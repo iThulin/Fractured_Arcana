@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // WorldData.cs
 //
 // Purpose:        The authoritative, Civ-scale world for one
-//                 cycle — pure data, no Godot nodes. A flat array
+//                 cycle: pure data, no Godot nodes. A flat array
 //                 of WorldTile indexed (y * Width + x), plus side
 //                 tables for POIs and staging points. Read by
 //                 both renderers (strategic MultiMesh + expedition
@@ -14,8 +14,8 @@ using System.Collections.Generic;
 // Layer:          Data
 // Collaborators:  WorldGenerator.cs (produces this),
 //                 CycleState.cs (stores it),
-//                 StrategicView (Phase 1b — paints it),
-//                 OverworldHexGrid (Phase 1c — windows into it),
+//                 StrategicView (Phase 1b, paints it),
+//                 OverworldHexGrid (Phase 1c, windows into it),
 //                 KingdomState.cs (territories reference tiles)
 // See:            single_world_refactor_v2.docx §3
 //
@@ -25,7 +25,7 @@ using System.Collections.Generic;
 // same convention OverworldHexGrid already uses internally.
 // ============================================================
 
-/// <summary>Per-tile discovery state. Persistent for the whole cycle —
+/// <summary>Per-tile discovery state. Persistent for the whole cycle,
 /// written by expeditions, read by both renderers. The illumination of
 /// the strategic map across a cycle IS the exploration game.</summary>
 public enum TileDiscovery
@@ -40,7 +40,7 @@ public enum TileDiscovery
     Explored = 2,
 }
 
-/// <summary>One world cell. A plain struct — never a Godot node. The
+/// <summary>One world cell. A plain struct, never a Godot node. The
 /// expedition view builds an OverworldHex from this when it renders the
 /// window; the strategic view reads it to color one quad.</summary>
 public struct WorldTile
@@ -57,7 +57,7 @@ public struct WorldTile
 
     /// <summary>Chronomancer corruption at this tile, 0–100 (a "fully fallen" tile
     /// saturates at 100; CorruptionSpread clamps to that range). NOT the kingdom
-    /// corruption LEVEL 0–3 — that level maps onto this per-tile 0–100 scale
+    /// corruption LEVEL 0–3. That level maps onto this per-tile 0–100 scale
     /// (0→0, 1→40, 2→70, 3→100). Spreads tile-to-tile.</summary>
     public byte Corruption;
 
@@ -76,16 +76,16 @@ public struct WorldTile
     public byte RiverEdges;
 
     /// <summary>Road edges, same 6-bit/both-sides convention as RiverEdges. A road
-    /// runs ALONG edge i. Roads are edges, not tiles — the underlying terrain is
+    /// runs ALONG edge i. Roads are edges, not tiles, so the underlying terrain is
     /// never overwritten, so roads run through cities over their real biome.</summary>
     public byte RoadEdges;
 
-    /// <summary>Spring edges — thin headwater streams from high ground, same 6-bit/
+    /// <summary>Spring edges: thin headwater streams from high ground, same 6-bit/
     /// both-sides convention. Rendered thinner than RiverEdges.</summary>
     public byte SpringEdges;
 
     /// <summary>A bridge is DERIVED: an edge carrying both a road and a river is a
-    /// road crossing a river, i.e. a bridge — fast to cross, no ford penalty. Kept
+    /// road crossing a river, i.e. a bridge, fast to cross, with no ford penalty. Kept
     /// as a property so readers are unchanged and road∩river can never desync.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public byte BridgeEdges => (byte)(RoadEdges & RiverEdges);
@@ -98,11 +98,11 @@ public struct WorldTile
 
     /// <summary>Index into WorldData.Settlements, or -1 for none. A tile inside a
     /// city/town carries this; the settlement is an AREA, not a POI. MUST be set to
-    /// -1 at construction — the struct default 0 would alias Settlements[0].</summary>
+    /// -1 at construction. The struct default 0 would alias Settlements[0].</summary>
     public int SettlementIndex;
 
     /// <summary>Index into WorldData.ShardZones, or -1 for none. A tile inside a
-    /// shard sub-region carries this. MUST be set to -1 at construction — the
+    /// shard sub-region carries this. MUST be set to -1 at construction. The
     /// struct default 0 would alias ShardZones[0]. Independent of SettlementIndex:
     /// shard zones sit on wilderness tiles, never inside a settlement footprint.</summary>
     public int ShardZoneIndex;
@@ -142,13 +142,13 @@ public class WorldPoi
 
     // ── Supply caches only (Kind == PoiKind.SupplyCache) ──────────────────
     /// <summary>Who harvests this cache: a kingdom id, or "guild" for the
-    /// player. Empty (pre-feature saves) reads as the host KingdomId — use
+    /// player. Empty (pre-feature saves) reads as the host KingdomId. Use
     /// SupplyCacheSystem.ControllerOf, never this field directly.</summary>
     public string SupplyControllerId = "";
 
     /// <summary>Companion posted to oversee a GUILD-controlled cache (+yield;
     /// injured if the cache falls). Empty = none. Availability is derived from
-    /// this field (SupplyCacheSystem.IsOverseer) — never a flag on Companion,
+    /// this field (SupplyCacheSystem.IsOverseer), never from a flag on Companion,
     /// same single-source discipline as envoy missions.</summary>
     public string OverseerCompanionId = "";
 }
@@ -157,7 +157,7 @@ public class WorldPoi
 /// POIs; Town = a few tiles down to one, no staging, lightly studded.</summary>
 public enum SettlementTier { Town, City }
 
-/// <summary>A settlement AREA — a contiguous run of tiles, not a POI. Tiles keep
+/// <summary>A settlement AREA: a contiguous run of tiles, not a POI. Tiles keep
 /// their biome and back-reference this via WorldTile.SettlementIndex. POIs are
 /// studded into the footprint by the generator; staging (cities only) is granted
 /// by a POI at the centre, through the normal POI-discovery path.</summary>
@@ -178,9 +178,9 @@ public class WorldSettlement
     /// staging POI there.</summary>
     public bool IsSeat = false;
 
-    /// <summary>True for the settlement that hosts the guild's campus this cycle —
+    /// <summary>True for the settlement that hosts the guild's campus this cycle,
     /// the seat city grown from the start capital. The eternal campus is "located"
-    /// here; re-derived each cycle since the world reseeds. (Phase 2 — the campus is
+    /// here; re-derived each cycle since the world reseeds. (Phase 2: the campus is
     /// an actual place in the world.)</summary>
     public bool IsGuildHome = false;
 
@@ -188,7 +188,7 @@ public class WorldSettlement
     public List<(int x, int y)> Tiles = new();
 }
 
-/// <summary>A shard acquisition sub-region — a contiguous footprint of tiles near
+/// <summary>A shard acquisition sub-region: a contiguous footprint of tiles near
 /// an archmage seat, holding one fragment. Like a settlement it is an AREA (tiles
 /// back-reference via WorldTile.ShardZoneIndex), but it is its OWN system, not a
 /// SettlementTier: it carries reduced-fog + step behaviour, a guardian GATE tile,
@@ -206,12 +206,12 @@ public class ShardZone
     public int CenterX;
     public int CenterY;
 
-    /// <summary>Guardian gate tile — entering it launches the fragment trial +
+    /// <summary>Guardian gate tile. Entering it launches the fragment trial +
     /// guardian boss. Defaults to the centre until sited.</summary>
     public int GateX;
     public int GateY;
 
-    /// <summary>Inner sanctum tile — holds the shard; collectable only after the
+    /// <summary>Inner sanctum tile. Holds the shard; collectable only after the
     /// guardian is cleared.</summary>
     public int SanctumX;
     public int SanctumY;
@@ -253,7 +253,7 @@ public class WorldData
     public int Height = 96;
 
     /// <summary>Row-major OFFSET storage: tile(col,row) = Tiles[row * Width + col].
-    /// The world is a Civ-6-style rectangular hex map — flat-top, odd-q. Use
+    /// The world is a Civ-6-style rectangular hex map: flat-top, odd-q. Use
     /// HexCoord for distance/neighbors/disc; (col,row) are offset coordinates,
     /// not square coordinates.</summary>
     public WorldTile[] Tiles = System.Array.Empty<WorldTile>();
@@ -268,10 +268,10 @@ public class WorldData
     public int ConvergenceX = -1;
     public int ConvergenceY = -1;
 
-    /// <summary>World coordinate of the guild's home this cycle — the start capital's
+    /// <summary>World coordinate of the guild's home this cycle, the start capital's
     /// seat, where the campus is sited. -1 until the generator sets it. The campus is
     /// eternal; this binding is per-cycle (the world reseeds each timeline).
-    /// (Phase 2 — campus-as-world-location.)</summary>
+    /// (Phase 2: campus-as-world-location.)</summary>
     public int HomeX = -1;
     public int HomeY = -1;
 
@@ -324,7 +324,7 @@ public class WorldData
     public int HexDistance(int col1, int row1, int col2, int row2)
         => HexCoord.OffsetDistance(col1, row1, col2, row2);
 
-    /// <summary>In-bounds offset cells within hex radius R of a center —
+    /// <summary>In-bounds offset cells within hex radius R of a center,
     /// the expedition window footprint.</summary>
     public System.Collections.Generic.List<(int col, int row)> Disc(int col, int row, int radius)
         => HexCoord.Disc(col, row, radius, Width, Height);

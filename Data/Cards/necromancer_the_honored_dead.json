@@ -210,7 +210,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon 2 Revenant Elders \u2014 one at target memorial, one at the nearest other. Spirits +3 damage. Memorials protected."
+					"value": "Summon 2 Revenant Elders, one at target memorial and one at the nearest other. Spirits +3 damage. Memorials protected."
 				}
 			]
 		},
@@ -260,7 +260,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The Deathless Covenant",
-			"description": "The Deathless Covenant: Elder cannot die \u2014 becomes a Strong memorial and rises again next turn.",
+			"description": "The Deathless Covenant: Elder cannot die. It becomes a Strong memorial and rises again next turn.",
 			"changes": [
 				{
 					"half": "top",
@@ -291,7 +291,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon the Covenant Elder (HP 25 / DMG 8). Cannot die \u2014 becomes a Strong memorial on death, rises again next turn. Spirits +3 damage. Memorials protected."
+					"value": "Summon the Covenant Elder (HP 25 / DMG 8). Cannot die. It becomes a Strong memorial on death, then rises again next turn. Spirits +3 damage. Memorials protected."
 				}
 			]
 		},

@@ -17,7 +17,7 @@ using System.Linq;
 //                 SaveManager.cs (ActiveSave + Save trigger),
 //                 GuildSaveData.cs (state container)
 // See:            README §4.5 (Adding a Companion),
-//                 README §6 — Save System
+//                 README §6 (Save System)
 // ============================================================
 
 /// <summary>Bridges companion JSON templates with the per-save runtime state. <see cref="EnsureRoster"/> backfills missing entries and migrates new template fields onto existing saves. The recruit/party query helpers all operate on <c>SaveManager.ActiveSave</c>.</summary>
@@ -39,7 +39,7 @@ public static class CompanionRoster
 
             if (existing == null)
             {
-                // New companion — add with all fields from template
+                // New companion: add with all fields from template
                 save.Companions.Add(new Companion
                 {
                     Id = template.Id,
@@ -68,7 +68,7 @@ public static class CompanionRoster
             }
             else
             {
-                // Existing companion — migrate any missing fields from template
+                // Existing companion: migrate any missing fields from template
                 // This handles saves created before new fields were added
                 if (string.IsNullOrEmpty(existing.UnitClass) || existing.UnitClass == "None")
                     existing.UnitClass = template.UnitClass;
@@ -117,8 +117,8 @@ public static class CompanionRoster
         if (DebugPartyOverride != null) return DebugPartyOverride;
         var save = SaveManager.ActiveSave;
         if (save == null) return new List<Companion>();
-        // K2 (§5b): injured companions are excluded from all three demands —
-        // they cannot be fielded (this filter also covers negotiation tokens
+        // K2 (§5b): injured companions are excluded from all three demands.
+        // They cannot be fielded (this filter also covers negotiation tokens
         // and combat spawns, which all read the party through here).
         // K2.5: mid-expedition, a companion stabilized at 0 (downed in a won
         // fight) is out for the REST of the expedition.
@@ -141,7 +141,7 @@ public static class CompanionRoster
     }
 
     /// <summary>[Exploration reward] Make a companion available AND recruited
-    /// for this timeline, free of the gold cost — they were *found*, not bought.
+    /// for this timeline, free of the gold cost. They were *found*, not bought.
     /// No-op (returns null) if unknown, dead, or already recruited. Returns the
     /// recruited companion's name on success.</summary>
     public static string GrantFromEncounter(string companionId)
@@ -185,15 +185,15 @@ public static class CompanionRoster
         var c = save.Companions.FirstOrDefault(x => x.Id == companionId);
         if (c == null || !c.IsRecruited || c.IsPermadead) return false;
 
-        // Envoys are afield — derived from CouncilState.ActiveMissions
+        // Envoys are afield, derived from CouncilState.ActiveMissions
         // (single-source; never a flag on Companion).
         if (CouncilQueries.IsOnMission(companionId)) return false;
 
-        // Envoys imprisoned after a Scandal spiral are held until rescued —
+        // Envoys imprisoned after a Scandal spiral are held until rescued,
         // derived from CouncilState.Imprisoned, same single-source discipline.
         if (CouncilQueries.IsImprisoned(companionId)) return false;
 
-        // Cache overseers are posted afield — derived from
+        // Cache overseers are posted afield, derived from
         // WorldPoi.OverseerCompanionId (SupplyCacheSystem), never a flag.
         if (SupplyCacheSystem.IsOverseer(companionId)) return false;
 

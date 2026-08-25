@@ -19,7 +19,7 @@
       "key": "requiem",
       "trigger": "onAllyDeath",
       "name": "Another Layer",
-      "intelDescription": "Each of its own that falls binds the working tighter \u2014 +2 damage, stacking.",
+      "intelDescription": "Each of its own that falls binds the working tighter: +2 damage, stacking.",
       "params": {
         "amount": "2"
       }

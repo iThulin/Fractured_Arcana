@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // WorldWindowBuilder.cs
 //
-// Purpose:        Builds and SLIDES the expedition window — a
+// Purpose:        Builds and SLIDES the expedition window: a
 //                 radius-R hex disc of the persistent WorldData
 //                 rendered into an OverworldHexGrid. Replaces
 //                 OverworldHexGrid's region GENERATION: instead of
@@ -21,7 +21,7 @@ using System.Collections.Generic;
 //                 diffs the loaded tile set against a new center:
 //                 tiles entering the load radius are instantiated
 //                 from world data, tiles beyond the (larger) unload
-//                 radius are freed. The hard perimeter is gone —
+//                 radius are freed. The hard perimeter is gone;
 //                 range is governed by the step/HP economy and the
 //                 W3 supply leash in ExpeditionManager, not by
 //                 geometry. Discovery persists in WorldData, so a
@@ -39,12 +39,12 @@ using System.Collections.Generic;
 // Coordinate mapping (verified): world stores OFFSET (col,row).
 // The grid keys Hexes by AXIAL, positioned by AxialToWorld. We
 // convert each world offset tile to world-axial, then recenter on
-// the staging point so the staging tile sits at grid axial (0,0) —
+// the staging point so the staging tile sits at grid axial (0,0),
 // no shear. The local frame is a FIXED TRANSLATION of world-axial
 // space (origin = staging, set once per expedition): it never moves
 // when the window slides, so existing nodes never move, saved local
 // coords (combat round-trips) stay valid, and LocalOf/WorldOf are
-// pure formulas — no per-tile lookup tables.
+// pure formulas with no per-tile lookup tables.
 // ============================================================
 
 /// <summary>Maps a sliding window of the persistent world into an
@@ -79,11 +79,11 @@ public class WorldWindowBuilder
         (_originQ, _originR) = HexCoord.OffsetToAxial(stagingCol, stagingRow);
     }
 
-    /// <summary>The party's start coord in grid-local axial space — always (0,0),
+    /// <summary>The party's start coord in grid-local axial space: always (0,0),
     /// since the local frame is anchored on the staging point.</summary>
     public Vector2I PartyStartLocal => Vector2I.Zero;
 
-    // ── Coordinate mapping (pure formulas — total over the whole world) ──
+    // ── Coordinate mapping (pure formulas, total over the whole world) ──
 
     /// <summary>Grid-local axial coord of a world offset tile.</summary>
     public Vector2I LocalOf(int col, int row)
@@ -92,7 +92,7 @@ public class WorldWindowBuilder
         return new Vector2I(q - _originQ, r - _originR);
     }
 
-    /// <summary>World offset coords of a grid-local axial coord. Total — does
+    /// <summary>World offset coords of a grid-local axial coord. Total: does
     /// not require the tile to be loaded (may be out of world bounds).</summary>
     public (int col, int row) WorldOf(Vector2I local)
         => HexCoord.AxialToOffset(local.X + _originQ, local.Y + _originR);
@@ -113,11 +113,11 @@ public class WorldWindowBuilder
 
     /// <summary>Populate the grid's Hexes with the initial disc. Defaults to the
     /// staging point; pass <paramref name="centerLocal"/> to build directly
-    /// around somewhere else — a combat/negotiation return with the party far
+    /// around somewhere else: a combat/negotiation return with the party far
     /// afield builds around the PARTY instead, rather than paying for 469 tiles
     /// at staging that the restore recenter immediately frees (the +391/−469
     /// double-build observed in the 2026-07-15 playtest). The grid must be in
-    /// the tree (so child OverworldHex nodes get _Ready) — call from the
+    /// the tree (so child OverworldHex nodes get _Ready); call from the
     /// manager after AddChild(grid).</summary>
     public void Build(OverworldHexGrid grid, Vector2I? centerLocal = null)
     {
@@ -134,7 +134,7 @@ public class WorldWindowBuilder
         StreamTo(grid, col, row);
 
         // The grid's entry is the staging point; no objective in the window model.
-        // (Pure data — valid even when the staging tile itself isn't loaded.)
+        // (Pure data, valid even when the staging tile itself isn't loaded.)
         grid.SetWindowAnchors(PartyStartLocal);
 
         bool atStaging = col == StagingCol && row == StagingRow;
@@ -249,7 +249,7 @@ public class WorldWindowBuilder
         // reconnaissance (discovery + a report), not an encounter.
         PoiKind.SupplyCache => OverworldHex.POIType.SupplyCache,
         // Espionage E1c: Concord nodes are world-scale only; a bespoke broker
-        // interaction (E3) replaces this. Non-rendering in-window for now —
+        // interaction (E3) replaces this. Non-rendering in-window for now,
         // explicit rather than falling to the default.
         PoiKind.Concord => OverworldHex.POIType.None,
         _ => OverworldHex.POIType.None,

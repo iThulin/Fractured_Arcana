@@ -1,7 +1,7 @@
 using Godot;
 
 // ============================================================
-// ToastManager.cs — stacking, auto-dismissing toast widget for
+// ToastManager.cs: stacking, auto-dismissing toast widget for
 // the expedition HUD. Bottom-right, newest at the bottom.
 // Toasts appear immediately (no fade-in dependency) and dismiss
 // via a SceneTree timer + a short fade. Colour-coded by kind.
@@ -44,7 +44,7 @@ public partial class ToastManager : Control
         // would NRE; a toast nobody can see is safe to drop instead.
         if (!IsInsideTree()) return;
 
-        // Soft cap — remove the oldest immediately (QueueFree alone is deferred).
+        // Soft cap. Remove the oldest immediately (QueueFree alone is deferred).
         while (_stack.GetChildCount() >= MaxToasts)
         {
             var old = _stack.GetChild(0);

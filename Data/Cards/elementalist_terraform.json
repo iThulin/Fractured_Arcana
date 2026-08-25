@@ -112,7 +112,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Titan",
-			"description": "Titan: The Colossus is empowered \u2014 arrives with extra HP and armor.",
+			"description": "Titan: The Colossus is empowered. It arrives with extra HP and armor.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -177,7 +177,7 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Iron Colossus",
-			"description": "Iron Colossus: The Colossus becomes iron-clad \u2014 taunts adjacent enemies.",
+			"description": "Iron Colossus: The Colossus becomes iron-clad and taunts adjacent enemies.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -252,7 +252,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Living Fortress",
-			"description": "Living Fortress: The Colossus is a living fortress \u2014 massive, mobile, and devastating.",
+			"description": "Living Fortress: The Colossus is a living fortress, massive, mobile, and devastating.",
 			"changes": [
 				{
 					"half": "bottom",

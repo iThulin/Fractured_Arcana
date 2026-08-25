@@ -4,13 +4,13 @@ using System.Collections.Generic;
 // ============================================================
 // ShardZones.cs
 //
-// Purpose:        Sites the six shard acquisition SUB-REGIONS — one
+// Purpose:        Sites the six shard acquisition SUB-REGIONS, one
 //                 per fragment (axiom/binding/deathless/moment/
-//                 schema/primal) — near a non-convergence archmage
+//                 schema/primal), near a non-convergence archmage
 //                 seat ("the archmage guards the shard"). A zone is
 //                 a contiguous tile FOOTPRINT (WorldTile.ShardZoneIndex
 //                 back-ref into WorldData.ShardZones), the same AREA
-//                 mechanism settlements use — but its OWN system, not
+//                 mechanism settlements use, but its OWN system, not
 //                 a SettlementTier. This pass only decides WHERE the
 //                 vaults are, how big, and which tile is the guardian
 //                 GATE vs the inner SANCTUM. Reduced-fog + step
@@ -62,7 +62,7 @@ public static class ShardZones
         }
         if (seats.Count == 0)
         {
-            GD.PushWarning("[ShardZones] No non-convergence seats — no shard zones sited.");
+            GD.PushWarning("[ShardZones] No non-convergence seats. No shard zones sited.");
             return;
         }
 
@@ -92,7 +92,7 @@ public static class ShardZones
         int seatX, int seatY, RandomNumberGenerator rng)
     {
         // 1. Anchor: best kingdom-owned land tile in the [min,max] ring around the
-        //    seat — off the city, off other zones. Bias toward wilder/corrupt ground.
+        //    seat, off the city, off other zones. Bias toward wilder/corrupt ground.
         (int x, int y) anchor = default;
         float best = float.NegativeInfinity;
         bool found = false;

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // CampusMapSaveData.cs
 //
 // Purpose:        Persistent, authored layout of the guild campus
-//                 hex map — cosmetic ground + buildable-slot data.
+//                 hex map: cosmetic ground + buildable-slot data.
 //                 Lives on EternalLedger (tier 3), alongside
 //                 Ledger.Buildings, so it survives cycle resets:
 //                 the campus is a place, not a run. Building
@@ -18,14 +18,14 @@ using System.Collections.Generic;
 //                 HexTile children), GuildSaveData.cs (Buildings)
 // See:            guild_campus_v2.docx §1-5, §8 (Campus Grounds),
 //                 single_world_refactor_v2.docx §2 (the data/view
-//                 split this mirrors — this class is the "world
+//                 split this mirrors, where this class is the "world
 //                 data" layer, CampusGridManager is the "view")
 // ============================================================
 
 /// <summary>
 /// One campus ground tile: axial coord, cosmetic dressing, and whether
-/// a building may ever be sited here. Does NOT reference a building —
-/// see <see cref="BuildingSaveData"/>.Q/R for placement.
+/// a building may ever be sited here. Does NOT reference a building
+/// (see <see cref="BuildingSaveData"/>.Q/R for placement).
 /// </summary>
 public class CampusTileSaveData
 {
@@ -33,18 +33,18 @@ public class CampusTileSaveData
     public int R = 0;
 
     /// <summary>Cosmetic ground dressing (e.g. "Lawn", "Path", "Plaza", "Pond").
-    /// Purely visual in v1 — CampusHex reads this for tint, nothing else keys off it.</summary>
+    /// Purely visual in v1. CampusHex reads this for tint, nothing else keys off it.</summary>
     public string Ground = "Lawn";
 
-    /// <summary>False for tiles that can never hold a building — paths, the ley line
+    /// <summary>False for tiles that can never hold a building: paths, the ley line
     /// plaza, decorative water. True (default) covers most of the campus.</summary>
     public bool IsBuildable = true;
 }
 
-/// <summary>One campus district — a large hex (one world/city hex when the campus is
+/// <summary>One campus district, a large hex (one world/city hex when the campus is
 /// placed on the map). Districts are unlocked and built out over the game; each unlocked
 /// one contributes a 7-hex flower of build-slots to the campus. The space between
-/// districts is decorative. (Phase 2, Stage 3 — the district campus.)</summary>
+/// districts is decorative. (Phase 2, Stage 3: the district campus.)</summary>
 public class CampusDistrict
 {
     /// <summary>District-space axial coords (0,0 = the founding centre).</summary>
@@ -64,16 +64,16 @@ public class CampusMapSaveData
     public int GridWidth = 11;
     public int GridHeight = 11;
 
-    /// <summary>"Dock" or "Skydock" — resolved once at guild creation from the campus's
+    /// <summary>"Dock" or "Skydock", resolved once at guild creation from the campus's
     /// starting-location terrain (near water → Dock, else Skydock) and never
     /// recomputed. Empty until that lookup is wired in (see campus_siege_and_defense_v1
-    /// §3, §5) — GenerateDefault leaves it blank rather than guessing.</summary>
+    /// §3, §5). GenerateDefault leaves it blank rather than guessing.</summary>
     public string EntryDockType = "";
 
     /// <summary>Seed for one-time cosmetic ground generation on a brand-new guild.
     /// RESERVED, not yet used: GenerateDefault stores it but lays every tile as Lawn with a
-    /// Plaza at the centre, with no seeded variation. Irrelevant once Tiles is populated —
-    /// nothing re-derives from this after first creation.
+    /// Plaza at the centre, with no seeded variation. Irrelevant once Tiles is populated,
+    /// because nothing re-derives from this after first creation.
     ///
     /// (Previously cited CampusHexGrid.GenerateDefaultLayout, which was doubly wrong: that
     /// class was retired on 2026-08-03, and the method never existed on the side that
@@ -86,33 +86,33 @@ public class CampusMapSaveData
     /// coarse /3 where ring children WERE the shared corners). 3 = the flower lattice:
     /// children at 1/3 scale unrotated, a whole 7-flower per district, vertex cells as
     /// 3-way bonus corners; 3-district founding. SaveManager lazily migrates &lt; 3 by
-    /// regenerating (additive field, no save-version bump — the version guard would
+    /// regenerating (additive field, no save-version bump, since the version guard would
     /// reject the save outright).</summary>
     public int LatticeVersion = 0;
 
-    /// <summary>The campus's districts — large hexes (one per city-hex when placed on the
+    /// <summary>The campus's districts, large hexes (one per city-hex when placed on the
     /// world) that the guild unlocks and builds out over the game. Each unlocked district
     /// contributes a 7-hex flower of build-slots to Tiles; the space between districts is
-    /// decorative. (Phase 2, Stage 3 — the district campus.)</summary>
+    /// decorative. (Phase 2, Stage 3: the district campus.)</summary>
     public List<CampusDistrict> Districts = new();
 
     // Districts ARE strategic map tiles: district (dq,dr) is the strategic-AXIAL offset
     // from the guild's home world tile, and the fine build-lattice is the /3 rep-tile
     // subdivision of those tiles (children at 1/√3 scale, rotated 30°). Each strategic
     // tile then contains exactly one whole child at its centre plus six children sitting
-    // ON its corners — the /3 pattern. The child lattice tessellates globally, so a
+    // ON its corners, the /3 pattern. The child lattice tessellates globally, so a
     // corner child shared between adjacent city tiles is claimed by the first district
     // that lays it (discrete membership). See DistrictCentre.
 
     /// <summary>
     /// Builds a fresh campus: a hex disc of radius <paramref name="radius"/>, all
     /// Lawn/buildable except a small authored plaza at the centre (Grand Hall's
-    /// eventual home — kept buildable, just dressed differently). Called once
+    /// eventual home, kept buildable, just dressed differently). Called once
     /// when a new guild is created; never called again, so hand-edited layouts
     /// (moved paths, ponds, etc.) are never clobbered on a later load.
     /// </summary>
     /// <summary>Fine-hex (child) coordinate of a district's CENTRE slot. The child lattice
-    /// is the strategic lattice at 1/3 scale, UNROTATED — so district (dq,dr) (a strategic-
+    /// is the strategic lattice at 1/3 scale, UNROTATED, so district (dq,dr) (a strategic-
     /// axial offset from home) has its centre child at (3dq,3dr), a full 7-hex flower fits
     /// WHOLLY inside each strategic tile (ring children touch the tile edge exactly), and
     /// the cells on the tile's six VERTICES are the corner pieces shared three ways
@@ -130,7 +130,7 @@ public class CampusMapSaveData
         (cq + 1, cr - 1), (cq - 1, cr + 1),
     };
 
-    /// <summary>The six fine-hex axial directions — a district's ring tiles sit at these
+    /// <summary>The six fine-hex axial directions. A district's ring tiles sit at these
     /// offsets from its centre child.</summary>
     private static readonly (int dq, int dr)[] ChildDirs =
         { (1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1) };
@@ -157,10 +157,10 @@ public class CampusMapSaveData
     }
 
     /// <summary>Rebuild <see cref="Tiles"/> from the unlocked districts. Each district lays
-    /// its whole 7-hex FLOWER — centre child (Plaza) plus 6 ring children (Lawn) — which
+    /// its whole 7-hex FLOWER (centre child (Plaza) plus 6 ring children (Lawn)), which
     /// fits entirely inside its strategic tile, so nothing ever pokes out of the city.
     /// Then the CORNER cells (on the tile vertices, shared three ways): one exists only
-    /// when ALL THREE owner districts are unlocked — expanding into both neighbours of a
+    /// when ALL THREE owner districts are unlocked, so expanding into both neighbours of a
     /// corner earns that bonus tile. Order-independent, so a building's Q/R stays valid
     /// across rebuilds.</summary>
     public void RebuildTilesFromDistricts()
@@ -186,7 +186,7 @@ public class CampusMapSaveData
             }
         }
 
-        // Bonus corner cells — each district checks its six vertices; a vertex cell is laid
+        // Bonus corner cells. Each district checks its six vertices; a vertex cell is laid
         // once all three districts meeting there are unlocked.
         foreach (var d in Districts)
         {
@@ -210,7 +210,7 @@ public class CampusMapSaveData
 
     /// <summary>Unlock a district (adding it to the lattice if not listed) and rebuild the
     /// tiles. Returns false if it was already unlocked. The unlock TRIGGER (cost /
-    /// progression gate) is wired separately — this is the state change + relayout.</summary>
+    /// progression gate) is wired separately. This is the state change + relayout.</summary>
     public bool UnlockDistrict(int dq, int dr)
     {
         var d = Districts.Find(x => x != null && x.Q == dq && x.R == dr);

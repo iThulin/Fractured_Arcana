@@ -5,7 +5,7 @@ using System;
 // CityServicesHost.cs
 //
 // Purpose:        Floats a visited enemy CAPITAL's services menu over
-//                 the live strategic/city view — the Phase 3 "services"
+//                 the live strategic/city view, the Phase 3 "services"
 //                 verb (shops / recruit / quests). A shell for now: the
 //                 sections are placeholders, wired to nothing, so the
 //                 interaction loop (enter capital → services panel →
@@ -22,7 +22,7 @@ using System;
 /// <summary>A CanvasLayer that hosts a visited capital's "services" menu as a right-docked card
 /// over the live city view. Mirrors <see cref="HomeBuildingPanelHost"/>, but for an NPC city the
 /// content is a fixed set of service sections (Market / Recruit / Quests) rather than a hosted
-/// campus panel — the guild's campus panels are bound to the guild's own save data and do not apply
+/// campus panel. The guild's campus panels are bound to the guild's own save data and do not apply
 /// to someone else's city. This is the SHELL: sections are placeholders until each service is built.</summary>
 public sealed partial class CityServicesHost : CanvasLayer
 {
@@ -74,7 +74,7 @@ public sealed partial class CityServicesHost : CanvasLayer
         card.AddChild(margins);
 
         // (2026-08-13, Magos) The live Market + Hiring Hall outgrew the
-        // screen — the section stack scrolls now (construct-card pattern).
+        // screen, so the section stack scrolls now (construct-card pattern).
         var scroll = new ScrollContainer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
@@ -127,7 +127,7 @@ public sealed partial class CityServicesHost : CanvasLayer
 
     /// <summary>The live Market section: this lunation's shelf as item rows
     /// with Steward-priced Buy buttons. Stock from CityMarketService (lazy
-    /// per-lunation refresh, persisted, no Legendaries — Auction House rule).</summary>
+    /// per-lunation refresh, persisted, no Legendaries per the Auction House rule).</summary>
     private void BuildMarketSection(VBoxContainer parent)
     {
         var cycle = SaveManager.ActiveSave?.Cycle;
@@ -161,7 +161,7 @@ public sealed partial class CityServicesHost : CanvasLayer
         PopulateMarket();
     }
 
-    /// <summary>(Re)fill the shelf — called at build and after each purchase,
+    /// <summary>(Re)fill the shelf. Called at build and after each purchase,
     /// so stock, prices, and the hall's gold readout stay honest together.</summary>
     private void PopulateMarket()
     {
@@ -277,7 +277,7 @@ public sealed partial class CityServicesHost : CanvasLayer
         PopulateRecruits();
     }
 
-    /// <summary>(Re)fill the candidate list — called at build and after each
+    /// <summary>(Re)fill the candidate list. Called at build and after each
     /// hire, so prices, gold, and the stock all stay honest without closing
     /// the menu.</summary>
     private void PopulateRecruits()
@@ -354,7 +354,7 @@ public sealed partial class CityServicesHost : CanvasLayer
     }
 
     /// <summary>Close the services menu and hand control back to the city view via
-    /// <see cref="_onClosed"/>. Idempotent — the callback fires at most once.</summary>
+    /// <see cref="_onClosed"/>. Idempotent: the callback fires at most once.</summary>
     public void Close()
     {
         var cb = _onClosed;

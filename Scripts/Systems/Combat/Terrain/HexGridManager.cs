@@ -19,7 +19,7 @@ using System.Collections.Generic;
 //                 CombatManager.cs (spawns + queries),
 //                 MapField.cs (seeded terrain/height field),
 //                 every IEffect that touches tiles
-// See:            README §3 — combat hex grid is the spatial
+// See:            README §3. The combat hex grid is the spatial
 //                 substrate for every other combat system
 //
 // Generation rewrite (substrate pass):
@@ -125,7 +125,7 @@ public partial class HexGridManager : Node3D
     [Export(PropertyHint.Range, "1,5,1")] public int CliffHeightThreshold = 2;
 
     /// <summary>
-    /// Block unit movement across cliff edges. Leave on — rendering
+    /// Block unit movement across cliff edges. Leave this on. Rendering
     /// impassable-looking cliffs that units can walk up is a readability lie.
     /// </summary>
     [Export] public bool BlockMovementAtCliffs = true;
@@ -289,7 +289,7 @@ public partial class HexGridManager : Node3D
     {
         // Generation is normally driven by CombatManager, which sets the recipe /
         // density / seed first, then calls GenerateMap(). As a fallback for opening
-        // a grid-only scene on its own, self-generate after the frame settles — but
+        // a grid-only scene on its own, self-generate after the frame settles, but
         // only if nothing has already generated the grid.
         CallDeferred(nameof(AutoGenerateIfEmpty));
     }
@@ -393,14 +393,14 @@ public partial class HexGridManager : Node3D
     private void CenterCameraOverGrid()
     {
         // Sibling path first; fall back to a tree-wide search so the camera is
-        // NEVER left on its placeholder bounds — unframed bounds are what let
+        // NEVER left on its placeholder bounds. Unframed bounds are what let
         // the rig pan off-board, zoom to orbit, and dip under the rim.
         var controller = GetNodeOrNull<CameraController>("../CameraController")
             ?? GetTree().Root.FindChild("CameraController", recursive: true, owned: false) as CameraController;
         if (controller == null)
         {
-            GD.PushError("[HexGridManager] CameraController not found anywhere in the tree — " +
-                "camera bounds/zoom limits NOT applied; the rig is running on placeholder bounds.");
+            GD.PushError("[HexGridManager] CameraController not found anywhere in the tree. " +
+                "Camera bounds/zoom limits NOT applied; the rig is running on placeholder bounds.");
             return;
         }
 
@@ -466,7 +466,7 @@ public partial class HexGridManager : Node3D
         // below their banks BEFORE heights bake. See WaterPlane partial.
         DigWaterBasins();
 
-        // Per-recipe sand palette into the shared splat template — before
+        // Per-recipe sand palette into the shared splat template, before
         // tiles duplicate it in ApplyTileVisuals. See Visuals partial.
         ApplyRecipeSandStyle();
 
@@ -508,7 +508,7 @@ public partial class HexGridManager : Node3D
     }
 
     /// <summary>Recomputes GridBoundsMin/Max from actual tile-top positions,
-    /// INCLUDING height. Must run after ApplyTileHeights — GenerateBaseGrid's
+    /// INCLUDING height. Must run after ApplyTileHeights, because GenerateBaseGrid's
     /// initial bounds are captured before heights exist and sit at Y = 0.</summary>
     private void RecomputeGridBounds()
     {

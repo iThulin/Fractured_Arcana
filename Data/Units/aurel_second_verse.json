@@ -16,7 +16,7 @@
       "key": "requiem",
       "trigger": "onAllyDeath",
       "name": "The Second Verse",
-      "intelDescription": "Each of its own that falls adds a verse \u2014 +2 damage, stacking, for the rest of the fight.",
+      "intelDescription": "Each of its own that falls adds a verse: +2 damage, stacking, for the rest of the fight.",
       "params": {
         "amount": "2"
       }

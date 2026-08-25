@@ -22,7 +22,7 @@
     "targetingType": "Tile",
     "range": 1,
     "effectKey": "force_path",
-    "description": "Open one impassable hex adjacent to the party — shatter a rockfall, freeze a crossing. The opened passage may be rough going."
+    "description": "Open one impassable hex adjacent to the party: shatter a rockfall, freeze a crossing. The opened passage may be rough going."
   },
   {
     "id": "tremorsense",
@@ -35,7 +35,7 @@
     "targetingType": "None",
     "effectKey": "tremorsense",
     "effectParams": { "radius": 12 },
-    "description": "Chart every Mountain and Hills hex within 12 hexes — the earth's side of the argument."
+    "description": "Chart every Mountain and Hills hex within 12 hexes: the earth's side of the argument."
   },
   {
     "id": "ember_ward",

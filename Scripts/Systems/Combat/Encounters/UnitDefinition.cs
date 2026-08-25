@@ -11,7 +11,7 @@ using System.Collections.Generic;
 //                 U2: BehaviorKey is now the AI dispatcher (the
 //                 EnemyArchetype enum and its EnemyArchetypeData facade
 //                 are deleted); BehaviorTags compose movement/targeting/
-//                 damage modifiers around the base routine — this is the
+//                 damage modifiers around the base routine. This is the
 //                 deferred Druid-wildlife behaviour-tag dispatcher,
 //                 generalized to all factions (units doc §4a).
 // Layer:          Data
@@ -41,10 +41,10 @@ public class UnitDefinition
     /// string ("fire" / "frost" / "lightning" / "earth" / "arcane"); the unit's
     /// landed attacks imbue the struck tile with it. Empty (default) = no rider.
     /// Parsed via MapRecipe.ParseElement, so card aliases (storm/ice/stone) do NOT
-    /// work here — use the enum names.</summary>
+    /// work here. Use the enum names.</summary>
     public string ImbueOnHit = "";
 
-    /// <summary>AI behaviour key — which planning routine drives the unit.
+    /// <summary>AI behaviour key: which planning routine drives the unit.
     /// Dispatched by CombatManager.EnemyIntents.PlanIntent (string → handler map).
     /// Current catalog: melee_advance, melee_target_highest_hp, hold_until_near,
     /// ranged_kite, ranged_charge, melee_hunt_wounded (the units doc's 'stalker').
@@ -53,7 +53,7 @@ public class UnitDefinition
 
     /// <summary>Composable modifiers around the base routine (units doc §4a):
     /// pack, bulwark, charge, scout, immobile. A tag never replaces the routine;
-    /// it modifies target choice, movement, or timing. Additive schema change —
+    /// it modifies target choice, movement, or timing. Additive schema change:
     /// U1 JSONs without the field deserialize to an empty list.</summary>
     public List<string> BehaviorTags = new();
 
@@ -66,7 +66,7 @@ public class UnitDefinition
         return false;
     }
 
-    /// <summary>U3a — ordered intent script. Each entry names a PLANNER from the
+    /// <summary>U3a: an ordered intent script. Each entry names a PLANNER from the
     /// same catalog BehaviorKey draws on, so a script is written in the vocabulary
     /// the AI already speaks. EMPTY (every pre-U3a JSON) = the unit plans from
     /// BehaviorKey on every activation, exactly as before. Additive schema change.
@@ -77,19 +77,19 @@ public class UnitDefinition
     /// memory. See enemy_identity_spec_v1 §4.</summary>
     public List<string> IntentCycle = new();
 
-    /// <summary>True (default) = the cycle repeats forever — rotations.
-    /// False = it runs ONCE and then falls through to BehaviorKey — openings
+    /// <summary>True (default) = the cycle repeats forever, i.e. rotations.
+    /// False = it runs ONCE and then falls through to BehaviorKey, i.e. openings
     /// (a wind-up, an entrance, a one-time transformation).</summary>
     public bool CycleLoops = true;
 
-    /// <summary>Triggered abilities (units doc §5, U3). Hard cap two per unit —
+    /// <summary>Triggered abilities (units doc §5, U3). Hard cap two per unit,
     /// the item system's two-effect legibility ceiling applied to enemies.
     /// Additive schema change: JSONs without the field deserialize empty.</summary>
     public List<UnitAbilityDef> Abilities = new();
 
     /// <summary>V2 (units doc §3): "line", "elite", "boss", or "summon". Drives
     /// roster role markers, nameplate policy, and (later) reward-roll bonuses.
-    /// Missing = "line" — every pre-V2 JSON is a line unit.</summary>
+    /// Missing = "line", since every pre-V2 JSON is a line unit.</summary>
     public string Role = "line";
 
     /// <summary>Owning archmage id ("conductor") or "" for generics/debug.
@@ -100,8 +100,8 @@ public class UnitDefinition
     public string IntelDescription = "";
 
     /// <summary>Signature spell key for channel->release casters (behaviorKey
-    /// ranged_charge). "" = default blast (damage + slowed rider). Values —
-    /// ember/chrono/grave/thorn/mind/arclance/geas/forge — swap the release rider
+    /// ranged_charge). "" = default blast (damage + slowed rider). The values
+    /// ember/chrono/grave/thorn/mind/arclance/geas/forge swap the release rider
     /// per wizard school in CombatManager.EnemyIntents.ApplyCasterRider. Additive:
     /// JSONs without the field deserialize to "".</summary>
     public string CasterSpell = "";
@@ -120,7 +120,7 @@ public class UnitDefinition
 /// <summary>One triggered ability on a UnitDefinition (units doc §5): a data KEY
 /// dispatched by the handler map in CombatManager.Triggers, a TRIGGER from the
 /// bounded taxonomy (onSpawn/onDeath/onAllyDeath/onAttack/onStruck/onTurnEnd/
-/// everyNRounds — auras are states, not events, and do not use this), a display
+/// everyNRounds; auras are states, not events, and do not use this), a display
 /// name for stack/log lines, and free-form string params (parsed by the handler).</summary>
 public class UnitAbilityDef
 {

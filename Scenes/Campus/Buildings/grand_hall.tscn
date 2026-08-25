@@ -1,11 +1,11 @@
 [gd_scene format=3]
 
 ; ═══════════════════════════════════════════════════════════════════
-; grand_hall — the PIPELINE EXAMPLE for building meshes (2026-08-13).
+; grand_hall: the PIPELINE EXAMPLE for building meshes (2026-08-13).
 ; Contract (see BuildingMeshLibrary.cs):
 ;   root Node3D · children "T1"/"T2"/"T3" · origin at hex centre,
 ;   ground at Y=0, +Y up · hex radius = 1.0 unit, keep within ~0.9.
-; These are placeholder primitives — replace each Tn's children with
+; These are placeholder primitives. Replace each Tn's children with
 ; inherited .glb meshes from Blender; the loader only cares about the
 ; T1/T2/T3 node names. Visibility is managed at runtime; the values
 ; here don't matter.

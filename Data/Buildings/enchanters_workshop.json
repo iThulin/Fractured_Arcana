@@ -4,7 +4,7 @@
   "category": "Core",
   "schoolAffinity": "Enchanter",
   "hostsSystem": "workshop",
-  "description": "The guild's sole venue for item mutation. One enchant slot per item, handcrafted scripts only — the Workshop bends things, it does not mass-produce them.",
+  "description": "The guild's sole venue for item mutation. One enchant slot per item, handcrafted scripts only. The Workshop bends things, it does not mass-produce them.",
   "tiers": [
     {
       "tier": 1,
@@ -19,7 +19,7 @@
       "tier": 2,
       "displayName": "Scripting Chamber",
       "goldCost": 220,
-      "description": "Scripted enchants: wards, waymarks, mending verses — living effects written onto worn things.",
+      "description": "Scripted enchants: wards, waymarks, mending verses. Living effects written onto worn things.",
       "requiredBuildings": [],
       "passiveEffects": [],
       "activeEffects": []

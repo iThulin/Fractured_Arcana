@@ -53,7 +53,7 @@ public partial class TooltipManager : Control
         root.MouseFilter = MouseFilterEnum.Ignore;
         canvas.AddChild(root);
 
-        // MarginContainer is the positioned root — it sizes to content
+        // MarginContainer is the positioned root; it sizes to content
         var margin = new MarginContainer();
         margin.MouseFilter = MouseFilterEnum.Ignore;
         margin.AddThemeConstantOverride("margin_left", 12);

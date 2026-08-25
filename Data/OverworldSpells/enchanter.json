@@ -21,7 +21,7 @@
     "targetingType": "None",
     "effectKey": "veil",
     "effectParams": { "steps": 5 },
-    "description": "The party is imperceptible to patrols for its next 5 steps — routes continue; interception simply fails."
+    "description": "The party is imperceptible to patrols for its next 5 steps. Routes continue; interception simply fails."
   },
   {
     "id": "parley_compulsion",

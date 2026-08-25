@@ -16,7 +16,7 @@ using System.Collections.Generic;
 // Collaborators:  OverworldHexGrid (samples this per hex),
 //                 OverworldHex (TerrainType), RegionDefinition
 //                 (OverworldBaseTerrain + OverworldPaletteRule)
-// Notes:          Pure / deterministic. No GD.Randf calls — the same seed
+// Notes:          Pure / deterministic. No GD.Randf calls, so the same seed
 //                 always yields the same field. Mirrors MapField's
 //                 AxialToPlane deskew and Norm01 remap so the overworld
 //                 and combat layers read terrain the same way.

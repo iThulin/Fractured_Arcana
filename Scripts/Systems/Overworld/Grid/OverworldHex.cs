@@ -12,7 +12,7 @@ using System;
 // Collaborators:  OverworldHexGrid.cs (parent grid),
 //                 FogOfWarManager.cs (sets Fog),
 //                 POIGenerator.cs (sets POI), UITheme.cs (colours)
-// See:            README §3 — overworld layer
+// See:            README §3 (overworld layer)
 // ============================================================
 
 /// <summary>One 2D hex on the overworld exploration map. Holds its axial coord, terrain type, fog state, and POI assignment, and renders itself as a flat-top hex polygon with optional fog overlay and POI marker child.</summary>
@@ -32,8 +32,8 @@ public partial class OverworldHex : Node2D
 
     // S4.2: Settlement/Seat appended (world-scale POIs, previously invisible
     // on the expedition map). SupplyCache appended 2026-08-05 (supply_cache
-    // spec v1.1 — caches must READ as an important resource in the window,
-    // not an anonymous revealed hex). APPEND-ONLY — debug
+    // spec v1.1: caches must READ as an important resource in the window,
+    // not an anonymous revealed hex). APPEND-ONLY. Debug
     // ForceNextEncounterType casts ints to this enum, so existing values
     // must keep their order.
     public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost, Prison, Settlement, Seat, SupplyCache }
@@ -46,7 +46,7 @@ public partial class OverworldHex : Node2D
     public bool IsLandmark { get; set; } = false;
 
     /// <summary>True when this tile belongs to one of the two provinces in the
-    /// warfront the party deployed into — the ground the war is actually over.
+    /// warfront the party deployed into, the ground the war is actually over.
     /// Painted by ExpeditionManager.PaintContestedGround at deploy and on every
     /// window slide. Tints the terrain toward danger in RefreshVisuals rather than
     /// adding a node, so it costs nothing on the ~500 tiles a window holds and
@@ -54,12 +54,12 @@ public partial class OverworldHex : Node2D
     /// not gate movement, spawns, or fog.</summary>
     public bool Contested { get; set; } = false;
 
-    /// <summary>This tile is the expedition's OBJECTIVE — currently only the
+    /// <summary>This tile is the expedition's OBJECTIVE, currently only the
     /// warfront's besieging stronghold (ExpeditionManager.StampStronghold).
     /// Deliberately a flag rather than a POIType: POIType.Objective exists and is
     /// gold, but the POI-entry switch in ExpeditionManager has no case for it, so
     /// retyping the stronghold would have made walking onto it do nothing at all.
-    /// As a flag it rides on TOP of POIType.Combat — the fight still routes — and
+    /// As a flag it rides on TOP of POIType.Combat (the fight still routes), and
     /// it will extend to escort destinations and ward tiles when the O-track
     /// (docs/combat_objectives_spec_v1) needs them.</summary>
     public bool IsObjective { get; set; } = false;
@@ -94,7 +94,7 @@ public partial class OverworldHex : Node2D
         _polygon = new Polygon2D { Polygon = points };
         AddChild(_polygon);
 
-        // Hex border outline — makes tiles visually distinct
+        // Hex border outline, which makes tiles visually distinct
         var borderPoints = new Vector2[7];
         for (int i = 0; i < 6; i++)
             borderPoints[i] = points[i];
@@ -123,7 +123,7 @@ public partial class OverworldHex : Node2D
         };
         AddChild(_poiMarker);
 
-        // Landmark beacon — a soft glow + crisp ring around a force-revealed
+        // Landmark beacon: a soft glow + crisp ring around a force-revealed
         // frontier lure so it reads as a distant point of interest. The glow
         // sits above the (transparent-on-revealed) fog; the POI pip stays on top.
         _landmarkHalo = new Polygon2D
@@ -205,7 +205,7 @@ public partial class OverworldHex : Node2D
         if (Contested)
             _polygon.Color = _polygon.Color.Lerp(UITheme.DangerDim, 0.32f);
 
-        // Fog overlay — less oppressive, more readable
+        // Fog overlay: less oppressive, more readable
         _fogOverlay.Color = Fog switch
         {
             FogState.Hidden => UITheme.FogHidden,
@@ -214,14 +214,14 @@ public partial class OverworldHex : Node2D
             _ => Colors.Black
         };
 
-        // POI marker — larger for visibility
+        // POI marker, drawn larger for visibility
         bool showPOI = POI != POIType.None && !POIConsumed && Fog == FogState.Revealed;
         _poiMarker.Visible = showPOI;
         if (showPOI)
         {
-            // S4.2: settlements/seats draw as a larger gold DIAMOND — a home
+            // S4.2: settlements/seats draw as a larger gold DIAMOND, a home
             // among the encounter dots. Supply caches draw as a larger green
-            // SQUARE (a crate — same silhouette as their strategic marker, so
+            // SQUARE (a crate, the same silhouette as their strategic marker, so
             // the resource reads as important at both scales). Everything
             // else keeps the small hex.
             bool civic = POI is POIType.Settlement or POIType.Seat;
@@ -262,14 +262,14 @@ public partial class OverworldHex : Node2D
             // The objective overrides its own POI hue: gold in a field of red
             // combat dots, so "the marked stronghold" names something the player
             // can actually pick out. Before this it drew as an ordinary red
-            // combat dot with a red landmark ring — identical to the 2-3 frontier
+            // combat dot with a red landmark ring, identical to the 2-3 frontier
             // lures FogOfWarManager reveals every window. The halo and ring below
             // tint FROM this colour, so the whole beacon turns gold with it.
             if (IsObjective)
                 _poiMarker.Color = UITheme.POIObjective;
         }
 
-        // Landmark beacon — glow + ring tinted to the POI, shown only for a
+        // Landmark beacon: glow + ring tinted to the POI, shown only for a
         // force-revealed frontier lure that still has an unentered POI.
         bool beacon = IsLandmark && showPOI;
         if (_landmarkHalo != null) _landmarkHalo.Visible = beacon;
@@ -297,7 +297,7 @@ public partial class OverworldHex : Node2D
     /// <summary>
     /// Generates vertices for a flat-top regular hexagon.
     /// </summary>
-    /// <summary>Vertices for a four-pointed star — the objective marker. Distinct
+    /// <summary>Vertices for a four-pointed star, the objective marker. Distinct
     /// in silhouette from the encounter hex, the civic diamond and the supply
     /// crate, and deliberately the largest of the four: it is the one mark on the
     /// map the player is being told to walk to.</summary>
@@ -313,7 +313,7 @@ public partial class OverworldHex : Node2D
         return pts;
     }
 
-    /// <summary>Vertices for a circle — used by the landmark beacon glow/ring.</summary>
+    /// <summary>Vertices for a circle, used by the landmark beacon glow/ring.</summary>
     private static Vector2[] MakeCirclePoints(float radius, int segments = 24)
     {
         var pts = new Vector2[segments];
@@ -353,7 +353,7 @@ public partial class OverworldHex : Node2D
     /// edge contributes its midpoint; midpoints are connected via quadratic Béziers
     /// bowed through the hex centre, so a channel passing through reads as one flowing
     /// line. Because edge-midpoints are shared between adjacent hexes (same two
-    /// vertices), neighbouring hexes' curves meet exactly — the network is continuous
+    /// vertices), neighbouring hexes' curves meet exactly, so the network is continuous
     /// without either hex knowing the other. Road-over-river draws last (bridge deck).</summary>
     private void BuildEdgeLines(Vector2[] pts)
     {
@@ -393,11 +393,11 @@ public partial class OverworldHex : Node2D
 
         if (mids.Count == 1)
         {
-            // A lone lit edge — either a true source/mouth, or a one-tile gap in the
+            // A lone lit edge: either a true source/mouth, or a one-tile gap in the
             // flow data mid-river. Extend the curve THROUGH the centre to the opposite
             // edge's midpoint, so a single missing-edge dropout still reads as a
             // continuous channel rather than a dead-end stub. The opposite edge is
-            // (dir + 3) % 6 — the antipodal hex side.
+            // (dir + 3) % 6, the antipodal hex side.
             int dir = mids[0].dir;
             int opp = (dir + 3) % 6;
             Vector2 oppMid = (pts[EdgeVerts[opp, 0]] + pts[EdgeVerts[opp, 1]]) * 0.5f;
@@ -405,7 +405,7 @@ public partial class OverworldHex : Node2D
         }
         else if (mids.Count == 2)
         {
-            // The common case — a channel passing straight through. One curve, bowed
+            // The common case: a channel passing straight through. One curve, bowed
             // through (near) the centre so it cuts across the tile.
             AddCurve(mids[0].p, center, mids[1].p, width, color, wander, mids[0].dir, mids[1].dir);
         }
@@ -443,7 +443,7 @@ public partial class OverworldHex : Node2D
             // Quadratic Bézier.
             Vector2 p = a.Lerp(ctrl, t).Lerp(ctrl.Lerp(b, t), t);
             // Light per-sample jitter for an organic edge (zero at the endpoints so
-            // shared midpoints stay exact — continuity with neighbours must not break).
+            // shared midpoints stay exact, since continuity with neighbours must not break).
             float endFade = Mathf.Sin(t * Mathf.Pi); // 0 at ends, 1 at middle
             float j = (HexNoise(seedA * 31 + i * 17) - 0.5f) * HEX_SIZE * 0.10f * wander * endFade;
             Vector2 jdir = (b - a).Orthogonal().Normalized();

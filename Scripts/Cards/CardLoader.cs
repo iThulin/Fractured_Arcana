@@ -12,10 +12,10 @@ using System.Collections.Generic;
 // Layer:          Loader
 // Collaborators:  JsonCardLoader.cs (the actual JSON parser),
 //                 CardScriptRegistry (effects/predicates/
-//                 targeters factories — registered on first
+//                 targeters factories, registered on first
 //                 call), CardDatabase.cs (target of every
 //                 successful load), GameBootstrap.cs (caller)
-// See:            README §3 (Architecture — card pipeline),
+// See:            README §3 (Architecture, card pipeline),
 //                 README §4.1 (Adding a Card)
 // ============================================================
 

@@ -10,11 +10,11 @@ using System.Collections.Generic;
 //                 skeletons that compose them. Features are the primitive;
 //                 themes/layouts are thin recipes over them. Boundaries are
 //                 perturbed by seeded noise so nothing reads as a perfect
-//                 circle or straight line — this is where map irregularity
+//                 circle or straight line. This is where map irregularity
 //                 comes from.
 // Layer:          System (generation)
 // Collaborators:  HexGridManager.cs (core grid, _rng, Tiles, Paint*/Make*),
-//                 MapField.cs (base terrain — runs before these)
+//                 MapField.cs (base terrain, runs before these)
 // Notes:          Everything here is seeded via _rng, so a given MapSeed
 //                 reproduces the same features. Reserved (spawn) tiles are
 //                 skipped by every builder.
@@ -192,8 +192,8 @@ public partial class HexGridManager : Node3D
     private void CarveStream(Vector2I start, int maxLength) => CarveRiver(start, maxLength, 0);
 
     /// <summary>
-    /// A deep, meandering impassable gash — a chasm. Tiles become unwalkable gaps
-    /// (movement-blocking but NOT line-of-sight blocking — you can see across).
+    /// A deep, meandering impassable gash, i.e. a chasm. Tiles become unwalkable gaps
+    /// (movement-blocking but NOT line-of-sight blocking, so you can see across).
     /// </summary>
     private void CarveCrevice(Vector2I start, Vector2I dir, int length, int depth)
     {
@@ -230,7 +230,7 @@ public partial class HexGridManager : Node3D
     /// <summary>
     /// Ramps the whole map upward toward the high-X edge into stone cliffs.
     /// Uses a squared falloff so the rise is gentle near the low side and steep
-    /// (cliff-like) near the top — pairs well with a larger HeightStep.
+    /// (cliff-like) near the top. Pairs well with a larger HeightStep.
     /// </summary>
     private void RaiseMountainside(int peakHeight)
     {
@@ -257,7 +257,7 @@ public partial class HexGridManager : Node3D
         }
     }
 
-    /// <summary>Soft, organic grass clearing — clears obstacles, keeps gentle undulation.</summary>
+    /// <summary>Soft, organic grass clearing. Clears obstacles, keeps gentle undulation.</summary>
     private void PlantMeadow(Vector2I center, int radius)
     {
         OrganicBlob(center, radius, 0.5f, 0.4f, (tile, t) =>
@@ -269,7 +269,7 @@ public partial class HexGridManager : Node3D
         });
     }
 
-    /// <summary>Flattened open ground for tactical breathing room — removes cover and levels height.</summary>
+    /// <summary>Flattened open ground for tactical breathing room. Removes cover and levels height.</summary>
     private void CarveClearing(Vector2I center, int radius)
     {
         int baseH = Tiles.TryGetValue(center, out var c) ? c.Height : 0;
@@ -399,7 +399,7 @@ public partial class HexGridManager : Node3D
     {
         Vector2I center = GetMidpoint(PlayerLayoutAnchor, EnemyLayoutAnchor);
         PaintObstacleCluster(GetRandomNearbyCoord(center, 2), "rock", 2);
-        // deliberately sparse — flank room is the point
+        // deliberately sparse, since flank room is the point
     }
 
     private void GenerateChokepointLayout()
@@ -410,7 +410,7 @@ public partial class HexGridManager : Node3D
         Vector2I wallStart = center + HexDirs[2] * 2; // shift up so it spans the middle
         CarveCrevice(wallStart, HexDirs[5], 6, 4);
 
-        // Carve one or two crossings over it — these become the chokepoints.
+        // Carve one or two crossings over it. These become the chokepoints.
         CarveLane(PlayerLayoutAnchor, EnemyLayoutAnchor, 0);
         if (_rng.Randf() < 0.6f)
             CarveLane(PlayerLayoutAnchor, center + HexDirs[5] * 2, 0);

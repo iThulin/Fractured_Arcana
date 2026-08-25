@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // CycleState.cs
 //
-// Purpose:        Tier 2 of the three-tier save schema — every
+// Purpose:        Tier 2 of the three-tier save schema: every
 //                 piece of state scoped to ONE timeline (one
 //                 cycle / one loop). Dies and is replaced
 //                 wholesale when a cycle ends, by any outcome.
@@ -14,7 +14,7 @@ using System.Collections.Generic;
 //                 SaveManager.cs (dual-file IO),
 //                 CalendarState.cs (owned field),
 //                 CampaignState.cs (owned field)
-// See:            open_world_refactor_v1.docx §10 — Save Schema
+// See:            open_world_refactor_v1.docx §10, Save Schema
 // Tier rule:      If Kassian's next timeline would not contain
 //                 it, it belongs here. If the loom remembers it,
 //                 it belongs in EternalLedger.
@@ -25,7 +25,7 @@ using System.Collections.Generic;
 /// one generated world, one corruption arc. Created fresh by
 /// <see cref="SaveManager.NewGame"/> and
 /// <see cref="SaveManager.BeginNewCycle"/>; never migrated across
-/// cycles — replaced.
+/// cycles, only replaced.
 /// </summary>
 public class CycleState
 {
@@ -57,14 +57,14 @@ public class CycleState
 
     /// <summary>The finale's progress for this timeline (schema v102). Phase −1 on
     /// every cycle that has not opened the Anchorhold, which is all of them until
-    /// every seat is resolved. Dies with the timeline like the rest of this block —
+    /// every seat is resolved. Dies with the timeline like the rest of this block;
     /// what survives a Convergence is the LoopRecord and the permanent flags.
     /// See docs/convergence_finale_spec_v1.md §2.</summary>
     public ConvergenceState Convergence = new();
 
     // ── Strategic world (the generated timeline) ─────────────────────────
     /// <summary>
-    /// The authoritative Civ-scale world for this cycle — terrain, territories,
+    /// The authoritative Civ-scale world for this cycle: terrain, territories,
     /// corruption, discovery, POIs, staging points. Generated once at cycle start
     /// by WorldGenerator; read by the strategic view and the expedition window.
     /// Replaces the retired node-graph StrategicMapData.
@@ -83,7 +83,7 @@ public class CycleState
     /// <summary>
     /// Courts, courtiers, the favor ledger, envoy missions, and echoes in
     /// flight. Generated at cycle start beside Kingdoms by CourtGenerator;
-    /// dies with the timeline — cross-cycle renown lives in EternalLedger.
+    /// dies with the timeline; cross-cycle renown lives in EternalLedger.
     /// See court_council_system_v1_1.docx §12.
     /// </summary>
     public CouncilState Council = new();
@@ -102,20 +102,20 @@ public class CycleState
     // ── Difficulty (stamped from the founding scenario each cycle) ───────
     /// <summary>Enemy stat multiplier for this timeline, copied from the guild's
     /// founding scenario at world generation. 1.0 = baseline. Consumed at combat
-    /// spawn (CombatManager) — pre-feature/legacy cycles default to 1.0.</summary>
+    /// spawn (CombatManager); pre-feature/legacy cycles default to 1.0.</summary>
     public float EnemyDifficultyMult = 1f;
 
     /// <summary>Corruption tile/territory spread-rate multiplier for this timeline,
     /// copied from the founding scenario. 1.0 = baseline. Consumed by
-    /// CorruptionSpread.Tick — legacy cycles default to 1.0.</summary>
+    /// CorruptionSpread.Tick; legacy cycles default to 1.0.</summary>
     public float CorruptionSpreadMult = 1f;
 
     // ── Timeline economy ─────────────────────────────────────────────────
     public int Gold = 0;
 
-    /// <summary>Building construction/upgrade cost's second resource, alongside Gold —
-    /// standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
-    /// Same tier as Gold by design (dies with the timeline) — no gathering system
+    /// <summary>Building construction/upgrade cost's second resource, alongside Gold.
+    /// Standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
+    /// Same tier as Gold by design (dies with the timeline). No gathering system
     /// exists yet, so NewGameScreen currently grants a flat starting stock as a
     /// placeholder.</summary>
     public int BuildMaterials = 0;
@@ -125,36 +125,36 @@ public class CycleState
     /// </summary>
     public int ArcaneSplinters = 0;
 
-    /// <summary>Guild supply stores (docs/supply_cache_spec_v1) — harvested each
+    /// <summary>Guild supply stores (docs/supply_cache_spec_v1), harvested each
     /// lunation from guild-controlled supply caches (SupplyCacheSystem.Tick,
     /// banked directly: strategic income is never expedition-carried), and
     /// bargained in negotiation deals (DealTerm.SuppliesDelta; deal GAINS ride
     /// with the expedition as SuppliesEarned and bank on extraction). Same tier
-    /// as Gold — dies with the timeline.</summary>
+    /// as Gold; dies with the timeline.</summary>
     public int Supplies = 0;
 
     /// <summary>One-shot flag for the supply-cache fog migration (v1 seeded
-    /// caches Discovered; v1.1 hides them until earned — see
+    /// caches Discovered; v1.1 hides them until earned, see
     /// SupplyCacheSystem.MigrateFog). True on fresh v1.1+ seeds.</summary>
     public bool SupplyCacheFogApplied = false;
 
     // ── W3: emergency-extraction debt ────────────────────────────────────
     /// <summary>Lunations the party owes for straggling home from an emergency
     /// extraction (claude/expedition_window_sliding_v1 §2.3). Set by
-    /// ExpeditionManager.EmergencyExtract; consumed — advanced on the calendar
-    /// WITH the full per-lunation world tick — by StrategicView on the next
+    /// ExpeditionManager.EmergencyExtract; consumed (advanced on the calendar
+    /// WITH the full per-lunation world tick) by StrategicView on the next
     /// return to the strategic map. Serialized so quitting between extraction
     /// and return can't dodge the time cost.</summary>
     public int PendingStraggleLunations = 0;
 
-    /// <summary>Human-readable "since your last sortie" strategic news — siege /
+    /// <summary>Human-readable "since your last sortie" strategic news: siege /
     /// warfront outcomes appended by KingdomTickSimulation on each lunation tick.
     /// Rendered by StrategicView's HUD on return to the map, then cleared at the
     /// top of the next Deploy (the player has read them). Serialized so the news
     /// survives the deploy → expedition → return scene round-trip and a quit.</summary>
     public List<string> PendingSiegeReports = new();
 
-    /// <summary>Active warfronts — the visible, intervenable form of a siege.
+    /// <summary>Active warfronts, the visible, intervenable form of a siege.
     /// Opened / advanced / resolved by KingdomTickSimulation on the lunation tick;
     /// rendered and deployed-into by StrategicView.</summary>
     public List<Warfront> Warfronts = new();
@@ -163,17 +163,17 @@ public class CycleState
     /// for NPC cities visited this cycle. Keyed by CityExploreState.CityId. Written
     /// by CityExploreService / WorldAtlas3D as the player scouts a city; read on
     /// re-entering the same city. Cycle-scoped (the world reseeds each cycle).
-    /// Additive save field — no SaveManager version bump.</summary>
+    /// Additive save field, no SaveManager version bump.</summary>
     public List<CityExploreState> CityExplore = new();
 
     /// <summary>K3 hiring halls: per-city candidate stock, lazily refreshed each
     /// lunation when the hall is opened (HiringHallService). Keyed by the same
     /// CityExploreService.CityId convention as CityExplore. Cycle-scoped (the
-    /// world reseeds each cycle). Additive save field — no version bump.</summary>
+    /// world reseeds each cycle). Additive save field, no version bump.</summary>
     public List<HiringHallState> HiringHalls = new();
 
     /// <summary>Q4 city markets: per-city item stock, same lifecycle and key
-    /// convention as HiringHalls (CityMarketService). Additive — no bump.</summary>
+    /// convention as HiringHalls (CityMarketService). Additive, no bump.</summary>
     public List<CityMarketState> CityMarkets = new();
 
     /// <summary>Warfront the player is currently deployed to intervene in (empty =
@@ -201,7 +201,7 @@ public class CycleState
     public int TotalEncountersWon = 0;
 
     // ── Companions (timeline people) ─────────────────────────────────────
-    // Roster is tier 2 — they are inhabitants of this timeline. Their arc
+    // Roster is tier 2: they are inhabitants of this timeline. Their arc
     // MILESTONES anchor into EternalLedger.RenownAnchors / MetaFlags so the
     // loom remembers them even when the timeline forgets.
     public List<Companion> Companions = new();
@@ -210,7 +210,7 @@ public class CycleState
 
     // ── Equipment armory ─────────────────────────────────────────────────
     /// <summary>
-    /// Items are timeline loot — they die with the cycle. (Future option:
+    /// Items are timeline loot; they die with the cycle. (Future option:
     /// named relics that can be essence-anchored into the ledger.)
     /// </summary>
     public ArmoryData Armory = new();
@@ -239,14 +239,14 @@ public class CycleState
     /// Cards minted from the Arcane Library this cycle. The per-cycle cap is what
     /// stops minting from trivialising the draft and flattening the reseed: you can
     /// rebuild your core, not your whole deck. Resets with the timeline, because the
-    /// budget is a timeline resource — the KNOWLEDGE that makes minting possible is
+    /// budget is a timeline resource; the KNOWLEDGE that makes minting possible is
     /// what persists. See docs/progression_card_acquisition_v1_2.md.
     /// </summary>
     public int MintsThisCycle = 0;
 
     // ── Overworld magic (S1) ─────────────────────────────────────────────
     /// <summary>Known/prepared overworld spells, Essence pool, scrolls,
-    /// beacons. Spell knowledge is timeline knowledge — dies with the cycle.
+    /// beacons. Spell knowledge is timeline knowledge; it dies with the cycle.
     /// See overworld_spell_system_v1_1 §5/§13 and GrimoireState.cs.</summary>
     public GrimoireState Grimoire = new();
 

@@ -300,7 +300,7 @@ public static class CardUpgradeApplier
     {
         if (root["upgrades"] is not JsonArray upgrades) return null;
 
-        // For tier 1, branch is always null — return the first null-branch entry
+        // For tier 1, branch is always null; return the first null-branch entry
         if (tier == 1)
         {
             foreach (var entry in upgrades)
@@ -348,7 +348,7 @@ public static class CardUpgradeApplier
             current = Descend(current, key, index);
             if (current == null)
             {
-                GD.PrintErr($"[CardUpgradeApplier] Path '{fieldPath}' — segment '{key}' not found.");
+                GD.PrintErr($"[CardUpgradeApplier] Path '{fieldPath}': segment '{key}' not found.");
                 return;
             }
         }

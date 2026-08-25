@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 // ============================================================
-// QuestEvents.cs — quest event shim (quest spec §8.1)
+// QuestEvents.cs: quest event shim (quest spec §8.1)
 //
 // Purpose:        Thin dispatch layer that stamps contextual
 //                 world-flags when quest-relevant game events
@@ -42,7 +42,7 @@ public static class QuestEvents
     public const string PatrolCompelled = "patrol_compelled";
     public const string PatrolSlain     = "patrol_slain";
 
-    // Combat (non-dossier outcomes — dossier pass wires its own flags)
+    // Combat (non-dossier outcomes; the dossier pass wires its own flags)
     public const string CombatWon  = "combat_won";
     public const string CombatLost = "combat_lost";
 
@@ -60,7 +60,7 @@ public static class QuestEvents
     // Campus
     public const string BuildingCompleted = "building_completed";
 
-    // Archmage resolution (Step 9) — qualifier carries the archmage id, so
+    // Archmage resolution (Step 9). The qualifier carries the archmage id, so
     // quest JSON can gate on qe_archmage_united / qe_archmage_united_{id} etc.
     public const string ArchmageUnited     = "archmage_united";
     public const string ArchmageCoerced    = "archmage_coerced";
@@ -75,13 +75,13 @@ public static class QuestEvents
     ///
     /// <para>Flags written (all idempotent via HashSet.Add):</para>
     /// <list type="bullet">
-    ///   <item><c>qe_{eventId}</c> — bare event (did it happen this timeline?)</item>
-    ///   <item><c>qe_{eventId}_{kingdom}</c> — kingdom-scoped (if provided)</item>
-    ///   <item><c>qe_{eventId}_{qualifier}</c> — extra qualifier (archmage id,
+    ///   <item><c>qe_{eventId}</c>: bare event (did it happen this timeline?)</item>
+    ///   <item><c>qe_{eventId}_{kingdom}</c>: kingdom-scoped (if provided)</item>
+    ///   <item><c>qe_{eventId}_{qualifier}</c>: extra qualifier (archmage id,
     ///         building id, etc.)</item>
     /// </list>
     ///
-    /// <para>The caller owns toasting — sites with a toast pipe push the
+    /// <para>The caller owns toasting. Sites with a toast pipe push the
     /// returned list; strategic-layer sites (no pipe) discard it and the
     /// quest log picks up the change on next view.</para>
     /// </summary>
@@ -100,14 +100,14 @@ public static class QuestEvents
 
         var before = QuestNotifier.Snapshot(save);
 
-        // Bare event flag — "this happened at least once this timeline"
+        // Bare event flag: "this happened at least once this timeline"
         save.SetFlag($"qe_{eventId}");
 
-        // Kingdom-scoped flag — "this happened in/to this kingdom"
+        // Kingdom-scoped flag: "this happened in/to this kingdom"
         if (!string.IsNullOrEmpty(kingdom))
             save.SetFlag($"qe_{eventId}_{kingdom}");
 
-        // Extra qualifier — building id with tier, archmage id, etc.
+        // Extra qualifier: building id with tier, archmage id, etc.
         if (!string.IsNullOrEmpty(qualifier))
             save.SetFlag($"qe_{eventId}_{qualifier}");
 

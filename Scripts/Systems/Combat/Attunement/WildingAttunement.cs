@@ -4,34 +4,34 @@ using System;
 // ============================================================
 // WildingAttunement.cs
 //
-// Purpose:        The Druid school mechanic — a single "Wilding"
+// Purpose:        The Druid school mechanic: a single "Wilding"
 //                 counter (0-4) that builds as the owner's living
 //                 terrain seeds, spreads, and advances, and decays
 //                 each turn when the land is left untended. Tiered
 //                 thresholds unlock passive bonuses; at 4 a Riot
 //                 fires (mass-advance + wildlife via GrowthManager),
-//                 then the counter resets to 0 — the wheel turns.
+//                 then the counter resets to 0. The wheel turns.
 // Layer:          System
 // Collaborators:  Unit.cs (each Druid unit owns one via Attunement),
 //                 GrowthManager.cs (raises charges on growth events,
 //                 reads tier bonuses, applies the Riot burst),
 //                 SchoolAttunementUI.cs (renders charges),
 //                 Effect.cs (GainWildingEffect mutates this later).
-// See:            README §6 — School Mechanics
+// See:            README §6, School Mechanics
 // ============================================================
 
 /// <summary>
-/// Folkloric stages of the Druid's Wilding counter — the wild stirring, spreading,
+/// Folkloric stages of the Druid's Wilding counter: the wild stirring, spreading,
 /// running rampant, then breaking into a Riot. Deliberately not clinical: this is
 /// "nature taking its course faster," not an ecology textbook.
 /// </summary>
 public enum WildingTier
 {
-    Still,      // 0 — dormant, no bonus
-    Stirring,   // 1 — living terrain spreads faster
-    Spreading,  // 2 — owner heals while on/adjacent to their own living terrain
-    Rampant,    // 3 — enemies on the owner's growth are rooted on the tick
-    Riot        // 4 — burst: all owned growth advances a stage + wildlife, then reset to 0
+    Still,      // 0: dormant, no bonus
+    Stirring,   // 1: living terrain spreads faster
+    Spreading,  // 2: owner heals while on/adjacent to their own living terrain
+    Rampant,    // 3: enemies on the owner's growth are rooted on the tick
+    Riot        // 4: burst, all owned growth advances a stage + wildlife, then reset to 0
 }
 
 public class WildingAttunement : ISchoolAttunement
@@ -51,7 +51,7 @@ public class WildingAttunement : ISchoolAttunement
     // ── Events for UI and card effects ───────────────────────────────
     public event Action<int> OnChargeChanged;        // new charge value
     public event Action<WildingTier> OnTierReached;  // tier crossed upward
-    public event Action OnRiotTriggered;             // burst fired — GrowthManager listens
+    public event Action OnRiotTriggered;             // burst fired; GrowthManager listens
 
     // ── ISchoolAttunement ─────────────────────────────────────────────
     public void OnCombatStart() => SetCharges(0);

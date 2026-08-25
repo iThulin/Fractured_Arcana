@@ -17,7 +17,7 @@ using Godot;
 
 public static class CampaignEscalation
 {
-    // ── Tuning knobs (the primary dial — progression doc §9) ──────────────
+    // ── Tuning knobs (the primary dial, progression doc §9) ───────────────
     /// <summary>Flat corruption added to every LAND tile per continued year.
     /// The forcing clock: higher = shorter chains. Byte-clamped to 100.</summary>
     public const int CorruptionTidePerYear = 8;

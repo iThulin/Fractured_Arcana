@@ -5,19 +5,19 @@ using System.Collections.Generic;
 // ============================================================
 // KingdomTickSimulation.cs
 //
-// Purpose:  The per-lunation POLITICAL tick — the living-world layer
+// Purpose:  The per-lunation POLITICAL tick, the living-world layer
 //           that turns the corruption tide into consequences the map
 //           can lose. Drives the KingdomState fields that shipped for
 //           Phase 2 (Stability, BorderPressure, PlayerInfluence,
 //           ControllingFactionId) but were never mutated.
 //
 //           Runs AFTER CorruptionSpread each lunation. Per province:
-//             1. STABILITY drifts — own corruption erodes cohesion;
+//             1. STABILITY drifts: own corruption erodes cohesion;
 //                player influence steadies it; clean provinces heal.
-//             2. BORDER PRESSURE accrues — a more-corrupted neighbour
+//             2. BORDER PRESSURE accrues: a more-corrupted neighbour
 //                leans on an unstable province; bleeds off when the
 //                gradient reverses.
-//             3. WARFRONTS — when pressure boils over (>= open
+//             3. WARFRONTS: when pressure boils over (>= open
 //                threshold) tension becomes an open WARFRONT (a visible,
 //                multi-lunation Advance bar) rather than an instant flip.
 //                Each lunation the aggressor pushes the bar; at 100 the
@@ -54,14 +54,14 @@ public static class KingdomTickSimulation
     private const int InstabilityFloor = 30;
     private const int BorderPressureRelief = 12;
 
-    // ── Supply dials (docs/supply_cache_spec_v1 — stock fed by SupplyCacheSystem) ──
+    // ── Supply dials (docs/supply_cache_spec_v1; stock fed by SupplyCacheSystem) ──
     /// <summary>SupplyStock at/above which a kingdom's granaries steady it.</summary>
     private const int SupplyStabilityThreshold = 40;
     /// <summary>Stability healed per lunation by a well-supplied kingdom.</summary>
     private const int SupplyStabilityBonus = 3;
     /// <summary>Stability lost per lunation by a STARVED kingdom (stock 0).</summary>
     private const int SupplyStarvedPenalty = 3;
-    /// <summary>Stock points per ±1 warfront advance — supplies are war muscle:
+    /// <summary>Stock points per ±1 warfront advance. Supplies are war muscle:
     /// a flush aggressor pushes harder, a flush defender digs in.</summary>
     private const int SupplyMusclePerAdvance = 25;
 
@@ -145,7 +145,7 @@ public static class KingdomTickSimulation
             if (myCorr == 0 && k.Stability < StabilityBaseline)
                 delta += StabilityHealPerLunation;
             // Supplies are civic glue: full granaries steady a province, empty
-            // ones starve it — cutting a kingdom's caches is a legitimate
+            // ones starve it. Cutting a kingdom's caches is a legitimate
             // pre-war softening move (user ruling, 2026-08-05).
             if (k.SupplyStock >= SupplyStabilityThreshold)
                 delta += SupplyStabilityBonus;
@@ -206,7 +206,7 @@ public static class KingdomTickSimulation
     private static bool HasOpenWarfrontFor(CycleState cycle, string defenderKid)
     {
         // Cache sieges (TargetPoiIndex ≥ 0) share DefenderKingdomId with the host
-        // province but are node-scoped — they must not block a real province war.
+        // province but are node-scoped; they must not block a real province war.
         foreach (var w in cycle.Warfronts)
             if (!w.Closed && !w.IsCacheSiege && w.DefenderKingdomId == defenderKid)
                 return true;
@@ -241,7 +241,7 @@ public static class KingdomTickSimulation
         };
         cycle.Warfronts.Add(wf);
 
-        string rep = $"War breaks out — {aggName} presses into {defName}.";
+        string rep = $"War breaks out: {aggName} presses into {defName}.";
         cycle.PendingSiegeReports.Add(rep);
         GD.Print($"[Warfront] {rep} (front {fc},{fr} · stronghold {sc},{sr})");
     }
@@ -306,7 +306,7 @@ public static class KingdomTickSimulation
             }
             else
             {
-                // Sentiment: siege repelled — the archmage's kingdom survived.
+                // Sentiment: siege repelled, the archmage's kingdom survived.
                 var repCampaign = cycle?.Campaign;
                 if (repCampaign != null)
                 {
@@ -333,7 +333,7 @@ public static class KingdomTickSimulation
     private static void FallToAggressor(CycleState cycle, KingdomState def, string defenderKid,
                                         string aggressorFactionId, Func<string, string> fd)
     {
-        // Sentiment: a kingdom falling is a major blow — the archmage blames
+        // Sentiment: a kingdom falling is a major blow. The archmage blames
         // the player for not preventing it (or is weakened by the loss).
         var fallCampaign = cycle?.Campaign;
         if (fallCampaign != null)
@@ -354,7 +354,7 @@ public static class KingdomTickSimulation
         def.BorderPressure.Clear();
 
         string report = wasPlayers
-            ? $"⚠ {fallenName} has fallen to {victor} — your hold there is lost."
+            ? $"⚠ {fallenName} has fallen to {victor}. Your hold there is lost."
             : $"{fallenName} has fallen to {victor}.";
         cycle.PendingSiegeReports.Add(report);
         GD.Print($"[Warfront] {report}");
@@ -362,7 +362,7 @@ public static class KingdomTickSimulation
 
     private static void SeizeForGuild(CycleState cycle, KingdomState def, string defenderKid)
     {
-        // Sentiment: seizing an archmage's kingdom for the guild — hostile act.
+        // Sentiment: seizing an archmage's kingdom for the guild is a hostile act.
         var seizeCampaign = cycle?.Campaign;
         if (seizeCampaign != null)
         {
@@ -377,7 +377,7 @@ public static class KingdomTickSimulation
         def.Stability = Mathf.Max(def.Stability, 40);
         def.BorderPressure.Clear();
 
-        string report = $"★ {name} answers to the guild now — seized from the war.";
+        string report = $"★ {name} answers to the guild now, seized from the war.";
         cycle.PendingSiegeReports.Add(report);
         GD.Print($"[Warfront] {report}");
     }
@@ -409,7 +409,7 @@ public static class KingdomTickSimulation
             return;
         }
 
-        // Cache sieges resolve on their own (node-scoped) rules — the cache's
+        // Cache sieges resolve on their own (node-scoped) rules: the cache's
         // controller flips, never the province. Delegated wholesale.
         if (wf.IsCacheSiege)
         {
@@ -433,7 +433,7 @@ public static class KingdomTickSimulation
                     def.PlayerInfluence = Mathf.Min(100, def.PlayerInfluence + 15);
                 }
                 cycle.PendingSiegeReports.Add(success
-                    ? $"You held the line at {defName} — the assault falters."
+                    ? $"You held the line at {defName}. The assault falters."
                     : $"Your defence of {defName} was broken.");
                 break;
 
@@ -486,8 +486,8 @@ public static class KingdomTickSimulation
     // Helpers
     // ══════════════════════════════════════════════════════════════════════
 
-    /// <summary>Site the front (a defender tile bordering the aggressor — the deploy
-    /// target) and the besieging stronghold (an aggressor tile a few hexes deeper —
+    /// <summary>Site the front (a defender tile bordering the aggressor, the deploy
+    /// target) and the besieging stronghold (an aggressor tile a few hexes deeper,
     /// the objective). Returns (-1,…) if no border exists. The stronghold prefers a
     /// tile 2–3 hexes into aggressor ground with no existing POI, falling back to the
     /// nearest aggressor tile.</summary>
@@ -497,7 +497,7 @@ public static class KingdomTickSimulation
     private const int StrongholdReachSteps = 8;
 
     /// <summary>Every tile reachable from (col,row) by walking over non-water ground,
-    /// within <paramref name="maxSteps"/> steps. A plain flood fill — the overworld has
+    /// within <paramref name="maxSteps"/> steps. A plain flood fill: the overworld has
     /// no other movement blockers at this scale, and terrain step COST does not stop a
     /// party, it only slows one.</summary>
     private static HashSet<(int, int)> LandReachableFrom(WorldData world, int col, int row, int maxSteps)
@@ -542,7 +542,7 @@ public static class KingdomTickSimulation
                 //
                 // Reachability (2026-08-06 playtest): the !IsWater test below is not
                 // enough. A dry tile across a strait, on a spit, or on a one-tile
-                // island passes it and is still unwalkable — a stronghold the party
+                // island passes it and is still unwalkable: a stronghold the party
                 // can SEE, is told to storm, and can never reach without a debug
                 // overworld spell. Restrict candidates to ground actually connected
                 // to the front by land.
@@ -558,7 +558,7 @@ public static class KingdomTickSimulation
                         if (at.KingdomId != aggressorKid || at.IsWater)
                             continue;
                         if (!reachable.Contains((x2, y2)))
-                            continue;   // dry but unwalkable-to — not a real objective
+                            continue;   // dry but unwalkable-to, not a real objective
                         int d = HexCoord.OffsetDistance(x, y, x2, y2);
                         if (d > 0 && d < fbD) { fbD = d; fbC = x2; fbR = y2; }
                         if (d >= 2 && d <= 3)
@@ -608,7 +608,7 @@ public static class KingdomTickSimulation
         return joined.StartsWith("The ", StringComparison.OrdinalIgnoreCase) ? joined : "The " + joined;
     }
 
-    /// <summary>Bordering kingdom ids for <paramref name="kid"/> — the shared
+    /// <summary>Bordering kingdom ids for <paramref name="kid"/>, from the shared
     /// adjacency cache, exposed for SupplyCacheSystem's envy-pressure pass.</summary>
     public static IEnumerable<string> NeighborsOf(WorldData world, string kid)
     {

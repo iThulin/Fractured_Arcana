@@ -2,7 +2,7 @@ using Godot;
 using System.Collections.Generic;
 
 // ============================================================
-// PainterlyGrassTuner.cs   (dev-only)  — v5 params
+// PainterlyGrassTuner.cs   (dev-only)  v5 params
 //
 // Live tuner for painterly_grass.gdshader. Drop it into the Character
 // Staging UI. On Refresh() it finds the generated grass field (group
@@ -106,7 +106,7 @@ public partial class PainterlyGrassTuner : PanelContainer
         vb.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         scroll.AddChild(vb);
 
-        vb.AddChild(new Label { Text = "Painterly Grass — live tuner" });
+        vb.AddChild(new Label { Text = "Painterly Grass: live tuner" });
 
         var rescan = new Button { Text = "Rescan / Sync" };
         rescan.Pressed += Refresh;
@@ -223,7 +223,7 @@ public partial class PainterlyGrassTuner : PanelContainer
     {
         _mat = ResolveMaterial();
         if (_mat == null)
-            GD.Print("[PainterlyGrassTuner] No grass material yet — generate the stage, then press Rescan / Sync.");
+            GD.Print("[PainterlyGrassTuner] No grass material yet. Generate the stage, then press Rescan / Sync.");
 
         foreach (var s in _syncers)
             s();

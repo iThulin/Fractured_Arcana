@@ -11,7 +11,7 @@
 // See:            (none)
 // ============================================================
 
-/// <summary>Static scratchpad for the most recent run's summary stats. Lives only between run-end and the campus summary render — campus calls <see cref="Clear"/> after consuming.</summary>
+/// <summary>Static scratchpad for the most recent run's summary stats. Lives only between run-end and the campus summary render. Campus calls <see cref="Clear"/> after consuming.</summary>
 public static class RunResultData
 {
     public static bool HasResults { get; private set; } = false;

@@ -1,7 +1,7 @@
 using Godot;
 
 // ============================================================
-// QuestLogScreen.cs — a global quest-log overlay, openable from
+// QuestLogScreen.cs: a global quest-log overlay, openable from
 // the top bar on any screen (mirrors CouncilScreen's toggle
 // pattern). Renders through the shared QuestLogView.
 // ============================================================

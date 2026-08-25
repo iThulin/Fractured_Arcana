@@ -140,7 +140,7 @@ public static class ConduitLinkSystem
                 if (!splitApplied) { selfShare = amount - half; splitApplied = true; }
                 if (half > 0) p.ApplyDamageSkippingLinks(half);
             }
-            else // Mirror — self takes full, partner takes backlash
+            else // Mirror: self takes full, partner takes backlash
             {
                 p.ApplyDamageSkippingLinks(Math.Max(1, half));
             }

@@ -6,8 +6,8 @@ using System.Linq;
 //
 // Purpose:        The shared people-reading surface (companion_item
 //                 _systems v2.1 §8): one card that renders a
-//                 Companion's dossier — name, class, school, trait,
-//                 loyalty tier, arc stage, stances, combat stats —
+//                 Companion's dossier (name, class, school, trait,
+//                 loyalty tier, arc stage, stances, combat stats)
 //                 identically wherever people are read. K3 consumer:
 //                 the hiring hall. Future consumers: the Muster
 //                 screen and the court dispatch screen (same card,
@@ -16,7 +16,7 @@ using System.Linq;
 // Collaborators:  CompanionDefinition.cs (the model), UITheme.cs,
 //                 StanceRegistry (stance display names),
 //                 CityServicesHost.cs (K3 host).
-// Notes:          Pure builder — no state, no signals of its own.
+// Notes:          Pure builder: no state, no signals of its own.
 //                 The host supplies the action button text/handler.
 // ============================================================
 
@@ -28,11 +28,11 @@ public static class CompanionDossier
     /// <summary>Build one dossier card. <paramref name="actionText"/> null/empty
     /// = no button (pure display). <paramref name="actionEnabled"/> lets hosts
     /// grey the verb (can't afford / slot full) while keeping the dossier
-    /// readable — the player should always be able to READ people.</summary>
+    /// readable. The player should always be able to READ people.</summary>
     public static Control Build(Companion c, string actionText = null,
         bool actionEnabled = true, System.Action onAction = null)
     {
-        // Authored companions (named souls with arcs — anyone not minted by
+        // Authored companions (named souls with arcs, anyone not minted by
         // the procedural matrix, whose ids all carry the "hire_" prefix)
         // read APART in any list: gold border, star, and a tell line. The
         // emotional backbone should never look like stock (2026-08-13).
@@ -62,7 +62,7 @@ public static class CompanionDossier
 
         if (authored)
         {
-            var tell = new Label { Text = "A named soul — their story travels with them." };
+            var tell = new Label { Text = "A named soul. Their story travels with them." };
             tell.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             tell.AddThemeColorOverride("font_color", UITheme.Gold);
             col.AddChild(tell);

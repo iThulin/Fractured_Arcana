@@ -9,7 +9,7 @@ using System.Linq;
 //                 per-city candidate stock, lazy per-lunation refresh,
 //                 Steward-regard pricing, the hire itself (gold →
 //                 roster move), and the R25 hiring-in-territory deed.
-//                 Towns are DEFERRED — they have no interaction
+//                 Towns are DEFERRED. They have no interaction
 //                 surface until they are enterable; halls live in the
 //                 cities the services menu already reaches.
 // Layer:          System (strategic)
@@ -23,8 +23,8 @@ using System.Linq;
 // ============================================================
 
 /// <summary>Stateless hiring-hall logic over <see cref="CycleState.HiringHalls"/>.
-/// Stock refreshes lazily when a hall is opened in a new lunation — no work on
-/// the tick for cities the player never visits. Hiring MOVES the candidate
+/// Stock refreshes lazily when a hall is opened in a new lunation, so there is no
+/// work on the tick for cities the player never visits. Hiring MOVES the candidate
 /// record into the save roster; the same Companion object is never in both
 /// lists.</summary>
 public static class HiringHallService
@@ -32,7 +32,7 @@ public static class HiringHallService
     // ── Tuning (K3 starting values) ──────────────────────────────────────
 
     /// <summary>Candidate count: ordinary city 1–3, seat/capital 2–3 (§5a
-    /// "city halls outdraw town halls" — with towns deferred, the seat is
+    /// "city halls outdraw town halls". With towns deferred, the seat is
     /// the quality tier).</summary>
     public const int MinCandidates = 1;
     public const int MaxCandidates = 3;
@@ -43,13 +43,13 @@ public static class HiringHallService
     public const int DiscountCapPct = 25;
 
     /// <summary>An authored, still-unrecruited, available companion is
-    /// GUARANTEED in every refreshed hall while any remain unoffered — the
-    /// storefront's replacement path, made deterministic (ruling 2026-08-13):
+    /// GUARANTEED in every refreshed hall while any remain unoffered. This is
+    /// the storefront's replacement path, made deterministic (ruling 2026-08-13):
     /// the politics game requires companions, and the first one must be a
     /// plan, not a lottery. At most one per hall, never the same person in
     /// two halls at once; the guarantee drains naturally as the starters are
     /// hired, and arc-gated people are untouched (not IsAvailable until
-    /// their flags fire — rarity stays where rarity matters).</summary>
+    /// their flags fire, so rarity stays where rarity matters).</summary>
     public const bool AuthoredGuaranteed = true;
 
     // ═════════════════════════════════════════════════════════════════════
@@ -58,7 +58,7 @@ public static class HiringHallService
 
     /// <summary>Fetch the hall for a city, rolling fresh stock if this is the
     /// first open or a new lunation. Unsold candidates from earlier lunations
-    /// are replaced — halls are a flow, not a warehouse (and the player can't
+    /// are replaced, because halls are a flow, not a warehouse (and the player can't
     /// stockpile options by never opening the menu).</summary>
     public static HiringHallState GetOrRefresh(CycleState cycle, WorldSettlement city)
     {
@@ -73,8 +73,8 @@ public static class HiringHallService
         }
 
         // Prune stale entries: an authored companion listed here can have been
-        // recruited (or killed) through another system since the roll — a hall
-        // must never sell someone the guild already has, or a corpse.
+        // recruited (or killed) through another system since the roll, and a
+        // hall must never sell someone the guild already has, or a corpse.
         var save = SaveManager.ActiveSave;
         if (save != null)
         {
@@ -89,7 +89,7 @@ public static class HiringHallService
         if (hall.LastRefreshLunation == now && hall.Candidates.Count > 0)
             return hall;
         if (hall.LastRefreshLunation == now)
-            return hall; // rolled this lunation and sold out — no re-roll scumming
+            return hall; // rolled this lunation and sold out, so no re-roll scumming
 
         RollStock(cycle, city, hall, now);
         hall.LastRefreshLunation = now;
@@ -103,7 +103,7 @@ public static class HiringHallService
         hall.Candidates.Clear();
 
         // Deterministic per (city, lunation): the rolled stock is persisted,
-        // but the seed is stable too (FNV-1a — string.GetHashCode is NOT
+        // but the seed is stable too (FNV-1a, since string.GetHashCode is NOT
         // stable across processes) so a regenerated state matches, same
         // discipline as CityExploreService.
         var rng = new RandomNumberGenerator();
@@ -118,12 +118,12 @@ public static class HiringHallService
             hall.Candidates.Add(CandidateGenerator.Generate(
                 rng, quality, hall.CityId, lunation, i));
 
-        // K5 (§5a): corruption displacement — when any OTHER kingdom's region
+        // K5 (§5a): corruption displacement. When any OTHER kingdom's region
         // sits at CorruptionLevel 2+, its desperate reach this hall at 60% of
         // the asking price ("the world's collapse priced into its labor
         // market"). Enters at 50 like everyone (v1 locked); the discount is
         // the only concession. SIMPLIFICATION (logged): "adjacent" halls
-        // widened to any hall outside the collapsing kingdom — there is no
+        // widened to any hall outside the collapsing kingdom, because there is no
         // kingdom-adjacency table, and roads carry the desperate far.
         var campaign = SaveManager.ActiveSave?.Cycle?.Campaign;
         var kingdoms = SaveManager.ActiveSave?.Cycle?.Kingdoms;
@@ -145,17 +145,17 @@ public static class HiringHallService
                 var refugee = CandidateGenerator.Generate(
                     rng, 0, hall.CityId, lunation, 99);
                 refugee.RecruitmentCost = refugee.RecruitmentCost * 60 / 100;
-                refugee.Backstory = "Displaced by the corruption's spread — what they " +
+                refugee.Backstory = "Displaced by the corruption's spread. What they " +
                                     "carried is gone; what they know is for hire, cheap.";
                 hall.Candidates.Add(refugee);
             }
         }
 
-        // Authored drop-in: found people must stay findable (§2 — the
+        // Authored drop-in: found people must stay findable (§2, where the
         // storefront dies, the people don't), and the FIRST companion must be
         // reachable deterministically (the bootstrap ruling above). Every
         // hall carries one while any IsAvailable authored companion remains
-        // unoffered — walk into any city, hire a person, start the politics
+        // unoffered. Walk into any city, hire a person, start the politics
         // game. Never the same person advertised in two halls at once.
         var save = SaveManager.ActiveSave;
         if (save != null && AuthoredGuaranteed)
@@ -187,8 +187,8 @@ public static class HiringHallService
 
     /// <summary>Final price after the Steward discount. Positive Steward
     /// Regard at this kingdom's court cuts the fee; a hostile Steward never
-    /// RAISES it (no punitive surcharge — the court's displeasure has its
-    /// own systems).</summary>
+    /// RAISES it (no punitive surcharge, since the court's displeasure has
+    /// its own systems).</summary>
     public static int HirePrice(CycleState cycle, WorldSettlement city, Companion c)
     {
         if (c == null) return 0;
@@ -240,7 +240,7 @@ public static class HiringHallService
         var rosterRecord = save.Companions.FirstOrDefault(x => x.Id == c.Id);
         if (rosterRecord != null)
         {
-            // Authored companion offered through the hall — recruit the
+            // Authored companion offered through the hall. Recruit the
             // roster's own record; the hall entry was the same object or a
             // stale twin either way.
             rosterRecord.IsAvailable = true;
@@ -261,7 +261,7 @@ public static class HiringHallService
         return toast ?? $"{c.Name} joins the guild.";
     }
 
-    /// <summary>Stable 64-bit FNV-1a — string.GetHashCode is not stable
+    /// <summary>Stable 64-bit FNV-1a. string.GetHashCode is not stable
     /// across .NET processes; seeds derived from ids must be.</summary>
     private static ulong Fnv1a(string s)
     {
@@ -308,6 +308,6 @@ public static class HiringHallService
 
         GD.Print(ok
             ? "[HiringHall] RoundTripAssert PASS"
-            : $"[HiringHall] RoundTripAssert FAIL — json was: {json}");
+            : $"[HiringHall] RoundTripAssert FAIL. Json was: {json}");
     }
 }

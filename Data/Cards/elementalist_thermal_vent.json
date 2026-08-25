@@ -110,7 +110,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Detonator",
-			"description": "Detonator: Thermal Vent imbues adjacent tiles with fire before consuming \u2014 building the explosion.",
+			"description": "Detonator: Thermal Vent imbues adjacent tiles with fire before consuming them, building the explosion.",
 			"changes": [
 				{
 					"half": "top",
@@ -369,7 +369,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Mana Surge",
-			"description": "Mana Surge: Glacial Rift feeds the wizard \u2014 each tile cleared grants mana.",
+			"description": "Mana Surge: Glacial Rift feeds the wizard. Each tile cleared grants mana.",
 			"changes": [
 				{
 					"half": "bottom",

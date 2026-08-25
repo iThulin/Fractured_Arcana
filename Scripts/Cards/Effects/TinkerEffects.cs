@@ -283,7 +283,7 @@ public sealed class DamagePerConstructEffect : EffectBase
 
         if (dmg <= 0)
         {
-            s?.Log("[Feedback] No constructs — the feedback loop is open.");
+            s?.Log("[Feedback] No constructs. The feedback loop is open.");
             return;
         }
 
@@ -320,7 +320,7 @@ public sealed class EnhanceConstructEffect : EffectBase
         target.AttackRange += _range;
         target.RefreshHealthBar();
 
-        s?.Log($"[Masterwork] {target.Name} rebuilt — +{_hp} HP, +{_damage} DMG, +{_range} RNG.");
+        s?.Log($"[Masterwork] {target.Name} rebuilt: +{_hp} HP, +{_damage} DMG, +{_range} RNG.");
     }
 }
 

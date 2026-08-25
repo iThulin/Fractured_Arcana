@@ -171,7 +171,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Primordial Catastrophe",
-			"description": "Primordial Catastrophe: The surge becomes apocalyptic \u2014 maximum radius, all elements, massive damage.",
+			"description": "Primordial Catastrophe: The surge becomes apocalyptic. Maximum radius, all elements, massive damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -199,7 +199,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Eternal Cycle",
-			"description": "Eternal Cycle: Cataclysm and re-imbue happen simultaneously \u2014 destroy and rebuild.",
+			"description": "Eternal Cycle: Cataclysm and re-imbue happen simultaneously, destroying and rebuilding in one breath.",
 			"changes": [
 				{
 					"half": "bottom",

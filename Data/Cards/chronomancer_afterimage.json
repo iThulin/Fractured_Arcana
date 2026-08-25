@@ -8,7 +8,7 @@
 		"name": "Afterimage",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Create an Echo of your last-cast spell \u2014 it resolves again at half value.",
+		"rules_text": "Create an Echo of your last-cast spell. It resolves again at half value.",
 		"tags": [
 			"temporal"
 		],

@@ -19,7 +19,7 @@ using System.Linq;
 //                 OverworldRunManager.cs (ticks GlobalStepCount),
 //                 CampusMentorPanel.cs (mentor dialogue),
 //                 FinalBattleManager.cs (reads dispositions)
-// See:            README §5 — Campaign Layer
+// See:            README §5 (Campaign Layer)
 // ============================================================
 
 /// <summary>
@@ -33,11 +33,11 @@ public enum ArchmageDisposition
     Unknown,
     /// <summary>Player has entered the region; archmage is aware of the player but no resolution yet.</summary>
     Neutral,
-    /// <summary>Fully united — archmage fights at full strength for the player in the final battle.</summary>
+    /// <summary>Fully united. The archmage fights at full strength for the player in the final battle.</summary>
     Allied,
-    /// <summary>Coerced into alliance — fights for the player at reduced effectiveness; Chronomancer can flip them.</summary>
+    /// <summary>Coerced into alliance. Fights for the player at reduced effectiveness; Chronomancer can flip them.</summary>
     Coerced,
-    /// <summary>Defeated in boss combat — shard invocation available; archmage is absent from the final battle.</summary>
+    /// <summary>Defeated in boss combat. Shard invocation available; the archmage is absent from the final battle.</summary>
     Overthrown,
     /// <summary>Chronomancer's corruption reached maximum before the player resolved them; fights against the player in the final battle.</summary>
     Corrupted
@@ -80,7 +80,7 @@ public class CampaignState
     // ── Sentiment (Step 8, quest_hooks_compendium §7) ─────────────────────
     /// <summary>Archmage id → sentiment value (−100 to +100). 0 = neutral.
     /// Positive = favoring the player, negative = drifting toward corruption.
-    /// The continuous scale beneath the discrete Disposition enum — sentiment
+    /// The continuous scale beneath the discrete Disposition enum. Sentiment
     /// accumulates from player actions and corruption pressure; the final
     /// resolution (Allied/Coerced/Overthrown/Corrupted) happens when the
     /// player triggers a resolution encounter at the right threshold.
@@ -125,7 +125,7 @@ public class CampaignState
     /// encounters to gate unite/coerce/overthrow choices.
     /// <para>When <paramref name="hasFlag"/> is supplied (save.HasFlag), Coerce
     /// additionally requires LEVERAGE: at least 2 revealed dossier hints
-    /// (`dossier_{id}_hint_2` — hints reveal sequentially). Coercion is knowing
+    /// (`dossier_{id}_hint_2`, since hints reveal sequentially). Coercion is knowing
     /// where it hurts; the sentiment window alone is not leverage (Step 9
     /// gating ruling, 2026-07-22). Callers without flag access get the old
     /// sentiment-only behaviour.</para></summary>
@@ -158,7 +158,7 @@ public class CampaignState
 
     /// <summary>Q4.2: absolute lunation each archmage was united, recorded by
     /// RecruitmentSources.OnArchmageUnited. Drives the relic anniversary gift
-    /// (ArchmageRelics.TickUniteAnniversaries). Additive field — old saves
+    /// (ArchmageRelics.TickUniteAnniversaries). Additive field, so old saves
     /// deserialize an empty dict, no version bump.</summary>
     public Dictionary<string, int> UniteLunations = new();
 
@@ -193,7 +193,7 @@ public class CampaignState
     public string CampaignOutcome = "";
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Convenience accessors (not serialized — computed from above state)
+    // Convenience accessors (not serialized; computed from above state)
     // ═══════════════════════════════════════════════════════════════════════
 
     /// <summary>Returns the archmageid assigned to the given region, or "" if none.</summary>
@@ -212,7 +212,7 @@ public class CampaignState
     public int GetCorruption(string regionId) =>
         CorruptionLevels.TryGetValue(regionId, out var c) ? c : 0;
 
-    /// <summary>True when this archmage's school matches the player's selected school — the betrayal encounter.</summary>
+    /// <summary>True when this archmage's school matches the player's selected school, which is the betrayal encounter.</summary>
     public bool IsSchoolBetrayal(string archmageid, string playerSchool)
     {
         var def = ArchmageRegistry.Get(archmageid);
@@ -233,7 +233,7 @@ public class CampaignState
 
     /// <summary>
     /// Returns all archmagi who will fight AGAINST the player in the final battle
-    /// (Corrupted disposition only — Overthrown are absent).
+    /// (Corrupted disposition only; Overthrown are absent).
     /// </summary>
     public List<string> GetEnemies() =>
         Dispositions
@@ -250,7 +250,7 @@ public class CampaignState
 
     /// <summary>
     /// True when every placed archmage has been resolved
-    /// (Allied, Coerced, Overthrown, or Corrupted — not Unknown or Neutral).
+    /// (Allied, Coerced, Overthrown, or Corrupted, but not Unknown or Neutral).
     /// Used to unlock the final battle.
     /// </summary>
     public bool AllArchmagiResolved()
@@ -258,7 +258,7 @@ public class CampaignState
         foreach (var pair in RegionArchmageMap)
         {
             if (string.IsNullOrEmpty(pair.Value))
-                continue; // unoccupied region — skip
+                continue; // unoccupied region, so skip
 
             var disposition = GetDisposition(pair.Value);
             if (disposition == ArchmageDisposition.Unknown ||

@@ -6,7 +6,7 @@ using static CampusUi;
 // ============================================================
 // CampusExpeditionPanel.cs
 //
-// Purpose:        The Expedition tab — world status, the door out
+// Purpose:        The Expedition tab: world status, the door out
 //                 to the strategic map, the post-Conjunction school
 //                 picker, and (interim home) the Scriptorium.
 // Layer:          UI
@@ -14,7 +14,7 @@ using static CampusUi;
 //                 OverworldSpellRegistry.cs, SpellAcquisition.cs,
 //                 PlayerSession.cs (CycleEndedByConjunction)
 // See:            overworld_spell_system §8a (scroll pricing);
-//                 docs/campus_tab_extraction_v1.md — Phase 2
+//                 docs/campus_tab_extraction_v1.md, Phase 2
 // ============================================================
 
 /// <summary>Expedition tab: where a cycle is surveyed and where it ends.
@@ -22,7 +22,7 @@ using static CampusUi;
 /// <para><b>What deliberately did NOT move here.</b> This cluster also contained
 /// <c>EnsureCycleWorld</c> (world generation, corruption/kingdom sim resets, echo seeding,
 /// roster rotation) and <c>BeginNextCycle</c> (archive a LoopRecord, replace CycleState,
-/// reseed the deck). Those are cycle LIFECYCLE, not tab UI — they mutate the save far
+/// reseed the deck). Those are cycle LIFECYCLE, not tab UI. They mutate the save far
 /// beyond anything this panel displays, and <c>EnsureCycleWorld</c>'s own comment says it
 /// belongs in a dedicated CycleInitializer. Pulling them into a UI class would have moved
 /// them further from that destination. They stayed on CampusScreen and this panel reaches
@@ -30,7 +30,7 @@ using static CampusUi;
 ///
 /// <para><b>Interim home for the Scriptorium.</b> R8 confirmed the Scribe's Tower as scroll
 /// crafting's real owner; it sits on this tab until the campus rework moves it. When it
-/// does, it lifts out of here as its own panel — which is part of why the scroll list is a
+/// does, it lifts out of here as its own panel, which is part of why the scroll list is a
 /// self-contained method rather than woven into the world-status refresh.</para>
 ///
 /// <para>Extracted from <c>CampusScreen</c> on 2026-08-03. Rendering, wording and the
@@ -93,18 +93,18 @@ public sealed class CampusExpeditionPanel : CampusPanel
         btnRow.AddChild(launchBtn);
         layout.AddChild(btnRow);
 
-        // ── S4: Scriptorium — scroll crafting (overworld_spell_system §8a) ──
+        // ── S4: Scriptorium, scroll crafting (overworld_spell_system §8a) ──
         // INTERIM HOME: R8 confirmed the Scribe's Tower as scroll crafting's
         // owner, but the campus is mid-rework (R6: no building dependencies
         // in v1), so the Scriptorium sits ungated on this tab until the
-        // rework gates/moves it. Price = SpellAcquisition.ScrollGoldCost —
+        // rework gates/moves it. Price = SpellAcquisition.ScrollGoldCost,
         // THE §8a balance lever; scrolls bypass the Essence economy.
         layout.AddChild(new HSeparator());
-        AddSectionHeader(layout, "Scriptorium — Scrolls");
+        AddSectionHeader(layout, "Scriptorium: Scrolls");
 
         var scrollHint = new Label
         {
-            Text = "A scroll holds one cast of a spell the guild knows — usable by any " +
+            Text = "A scroll holds one cast of a spell the guild knows, usable by any " +
                    "school, consuming no Essence, spent on use. Overt magic on a scroll " +
                    "is still witnessed.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
@@ -172,10 +172,10 @@ public sealed class CampusExpeditionPanel : CampusPanel
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Scriptorium (interim home — see class remarks)
+    // Scriptorium (interim home; see class remarks)
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>S4: rebuild the Scriptorium rows — one per scribable spell
+    /// <summary>S4: rebuild the Scriptorium rows, one per scribable spell
     /// (the wizard's school innates + every learned spell; Attunements can't
     /// be scribed, and Emulate has nothing to remember on parchment).</summary>
     private void RefreshScriptorium()
@@ -208,7 +208,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
         {
             var none = new Label
             {
-                Text = "The guild knows nothing worth scribing yet — spells are learned " +
+                Text = "The guild knows nothing worth scribing yet. Spells are learned " +
                        "afield (lore sites, cordial deals, the dead).",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
@@ -237,7 +237,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
             name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
             row.AddChild(name);
 
-            var craftBtn = MakeButton($"Scribe — {cost} g", 150, 34,
+            var craftBtn = MakeButton($"Scribe ({cost} g)", 150, 34,
                 UITheme.CampusSmallFontSize, isPrimary: false);
             craftBtn.Disabled = save.Gold < cost;
             string id = def.Id; // capture per-iteration
@@ -270,11 +270,11 @@ public sealed class CampusExpeditionPanel : CampusPanel
     {
         if (Ctx?.Save == null)
         {
-            GD.Print("[Campus] No save loaded — cannot open strategic map.");
+            GD.Print("[Campus] No save loaded, cannot open strategic map.");
             return;
         }
 
-        // If the last cycle ended at the Grand Conjunction, begin a new cycle first —
+        // If the last cycle ended at the Grand Conjunction, begin a new cycle first,
         // with school reselection (Option A: unlocked blueprints, campus, mastery, and
         // essence persist in the ledger; the deck resets to a starter).
         if (PlayerSession.CycleEndedByConjunction)
@@ -287,13 +287,13 @@ public sealed class CampusExpeditionPanel : CampusPanel
     }
 
     /// <summary>After a Conjunction, let the player choose the next cycle's school
-    /// (the same school is allowed — they keep their unlocked card pool either way,
+    /// (the same school is allowed, since they keep their unlocked card pool either way,
     /// but the deck rebuilds from a starter). Then begin the new cycle and open the
     /// freshly generated world.</summary>
     private void ShowNewCycleSchoolPicker()
     {
         // Settle progression BEFORE the carry section snapshots what is owned.
-        // BeginNewCycle also sweeps, but that runs after this screen is built —
+        // BeginNewCycle also sweeps, but that runs after this screen is built,
         // so a Regalia earned in the cycle's final unsaved moments (last archmage
         // answered, last shard taken) would be granted too late to be selectable
         // for the cycle it was earned for. Idempotent, so sweeping twice is free.
@@ -340,8 +340,8 @@ public sealed class CampusExpeditionPanel : CampusPanel
         title.HorizontalAlignment = HorizontalAlignment.Center;
         vbox.AddChild(title);
 
-        // This copy used to claim "your card knowledge, your campus, your mastery
-        // — endures." Two of those three were hollow: nothing read the unlock list
+        // This copy used to claim that "your card knowledge, your campus, your
+        // mastery endures." Two of those three were hollow: nothing read the unlock list
         // and nothing ever awarded SchoolMastery. Both are now real
         // (CardDatabase.DraftablePool, SchoolMasteryService), and the sentence
         // names what actually carries. See docs/progression_card_acquisition_v1.md §1b.
@@ -349,7 +349,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
         {
             Text = "Kassian weaves the world anew. Choose the school of this cycle. " +
                    "Your campus, your card knowledge, your mastery and your regalia " +
-                   "endure — they were never in the timeline. Your deck begins again " +
+                   "endure. They were never in the timeline. Your deck begins again " +
                    "from its foundations.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -377,26 +377,26 @@ public sealed class CampusExpeditionPanel : CampusPanel
 
             // Surface SchoolMastery on the one screen where the player is deciding
             // what to do with it. Until this landed the track was invisible AND
-            // never awarded — the read surface is half of why the field exists.
+            // never awarded. The read surface is half of why the field exists.
             int mastery = SchoolMasteryService.Points(Ctx.Save, schoolName);
             string masterySuffix = mastery > 0 ? $"   ·  {mastery} mastery" : "";
             if (SchoolMasteryService.IsFluent(Ctx.Save, schoolName))
                 masterySuffix += "  (fluent)";
 
             // You may only begin a timeline in a discipline you have declared.
-            // Adept is always available — it is where every guild starts, and it
+            // Adept is always available. It is where every guild starts, and it
             // is the fallback if a run of bad luck leaves you with no teachers.
             bool declared = DeclarationService.IsDeclared(Ctx.Save, schoolName);
 
             // Evaluate().Blocker is EMPTY for an eligible-but-undeclared school
-            // (eligibility has no blocker) — without the fallback, exactly the
+            // (eligibility has no blocker), so without the fallback, exactly the
             // school closest to unlocking got a blank lock tooltip.
             string lockTooltip = "";
             if (!declared)
             {
                 var declStatus = DeclarationService.Evaluate(Ctx.Save, schoolName);
                 lockTooltip = declStatus.Eligible
-                    ? "Eligible — declare it in the Guild tab's Disciplines section first."
+                    ? "Eligible. Declare it in the Guild tab's Disciplines section first."
                     : declStatus.Blocker;
             }
 
@@ -436,7 +436,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
     }
 
     /// <summary>
-    /// The Regalia carry picker — the permanent layer's one expression point at
+    /// The Regalia carry picker: the permanent layer's one expression point at
     /// cycle start (docs/progression_card_acquisition_v1.md §6c). You own N
     /// artifacts forever; you may bring K, where K scales with shards collected.
     ///
@@ -454,7 +454,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
         {
             var none = new Label
             {
-                Text = "You carry no regalia yet. They are won at milestones — " +
+                Text = "You carry no regalia yet. They are won at milestones: " +
                        "a shard claimed, an archmage answered, a companion's story finished.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -475,7 +475,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
         vbox.AddChild(header);
 
         void RefreshHeader() =>
-            header.Text = $"Regalia — carrying {selected.Count} of {k} " +
+            header.Text = $"Regalia: carrying {selected.Count} of {k} " +
                           $"({owned.Count} owned)";
 
         var grid = new GridContainer { Columns = 2 };
@@ -512,7 +512,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
                 {
                     if (selected.Count >= k)
                     {
-                        // At the limit — refuse rather than silently evicting a
+                        // At the limit. Refuse rather than silently evicting a
                         // choice the player already made.
                         suppress = true;
                         captured.ButtonPressed = false;

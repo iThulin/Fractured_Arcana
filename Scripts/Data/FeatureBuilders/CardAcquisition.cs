@@ -6,7 +6,7 @@ using System.Linq;
 // ============================================================
 // CardAcquisition.cs
 //
-// Purpose:        Explore→named codices — the field-discovery verb from
+// Purpose:        Explore→named codices. The field-discovery verb from
 //                 progression_card_acquisition_v1 §8:
 //
 //                   "Replace [the dead Hidden Vault legendary jackpot] with
@@ -31,7 +31,7 @@ using System.Linq;
 // Layer:          Data / Feature builder
 // Collaborators:  EternalLedger.UnlockedCardBlueprintIds (the payoff),
 //                 CardDatabase (blueprint lookup + rarity),
-//                 MarginaliaService (excluded — its own verb owns those),
+//                 MarginaliaService (excluded, since its own verb owns those),
 //                 ExpeditionManager.OnNarrativeCompleted (the call site)
 // See:            docs/progression_card_acquisition_v1.md §8;
 //                 SpellAcquisition.cs (the mirrored pattern)
@@ -58,7 +58,7 @@ public static class CardAcquisition
         var bp = CardDatabase.GetByName(blueprintId);
         if (bp == null)
         {
-            GD.PrintErr($"[CardAcquisition] CardReward '{blueprintId}' not in CardDatabase — skipped.");
+            GD.PrintErr($"[CardAcquisition] CardReward '{blueprintId}' not in CardDatabase. Skipped.");
             return "";
         }
         if (bp.Rarity == CardRarity.Legendary) return "";      // Regalia only
@@ -71,7 +71,7 @@ public static class CardAcquisition
 
         save.Ledger.UnlockedCardBlueprintIds.Add(bp.Id);
         SaveManager.MarkDirty();
-        GD.Print($"[CardAcquisition] Discovered '{bp.Id}' — it enters the draft pool " +
+        GD.Print($"[CardAcquisition] Discovered '{bp.Id}'. It enters the draft pool " +
                  $"and can be scribed at the Arcane Library.");
         return CardDatabase.GetDisplayName(bp);
     }
@@ -79,7 +79,7 @@ public static class CardAcquisition
     /// <summary>
     /// Roll one unknown Rare of a NAMED school. Excludes Legendaries and
     /// Marginalia cards. Returns the blueprint id, or "" when that school's Rares
-    /// are all already known. Does NOT unlock — the caller passes the result to
+    /// are all already known. Does NOT unlock: the caller passes the result to
     /// <see cref="Discover"/>, mirroring the spell path. Shared by the codex
     /// (current school, §2a in-school breadth) and espionage theft (the target
     /// court's school, the sanctioned off-school exception).
@@ -106,7 +106,7 @@ public static class CardAcquisition
     }
 
     /// <summary>The codex use case: roll an unknown Rare of the school currently
-    /// being played (§2a — found breadth pays the school you are on). Thin alias
+    /// being played (§2a: found breadth pays the school you are on). Thin alias
     /// over <see cref="RollUnknownRareOfSchool"/>.</summary>
     public static string RollUnknownInSchoolRare(GuildSaveData save, string schoolName)
         => RollUnknownRareOfSchool(save, schoolName);

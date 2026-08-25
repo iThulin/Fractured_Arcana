@@ -14,7 +14,7 @@ using Godot;
 //                 SettingsMenu.cs, CardLibraryUi.cs (inline
 //                 overlay children), EncounterRouter.cs
 //                 (forfeit combat path)
-// See:            README §8 — CallDeferred discipline applies
+// See:            README §8. CallDeferred discipline applies
 //                 to children added at runtime
 // ============================================================
 
@@ -100,7 +100,7 @@ public partial class PauseMenu : Control
     {
         OpenInlineOverlay(CardLibraryScenePath, before: inst =>
         {
-            // Cast directly — ReturnScenePath is a public field, not a property,
+            // Cast directly. ReturnScenePath is a public field, not a property,
             // so reflection via GetProperty() returns null and silently does nothing.
             if (inst is CardLibraryUi lib)
                 lib.ReturnScenePath = InlineSentinel;
@@ -120,8 +120,9 @@ public partial class PauseMenu : Control
     {
         PauseManager.Instance?.ClosePauseMenu();
 
-        // Debug-launched fights have no overworld run to return to — go to campus
-        // (resetting the debug flags) instead of the blank-screen overworld exit.
+        // Debug-launched fights have no overworld run to return to, so go to
+        // campus (resetting the debug flags) instead of the blank-screen
+        // overworld exit.
         if (PlayerSession.DebugCombat)
         {
             CombatDebugLauncher.ReturnToCampus(this);

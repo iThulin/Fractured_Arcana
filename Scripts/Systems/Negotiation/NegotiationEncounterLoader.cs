@@ -11,7 +11,7 @@ using System.Text.Json;
 // Layer:          Loader
 // Collaborators:  NpcArchetype.cs (NegotiationEncounterData
 //                 schema), NegotiationManager.cs (caller)
-// See:            README §6 — Negotiation
+// See:            README §6 (Negotiation)
 // ============================================================
 
 /// <summary>Lazy loader + per-session cache for negotiation encounter JSON. Each encounter file is read at most once per process.</summary>
@@ -32,7 +32,7 @@ public static class NegotiationEncounterLoader
     /// keeps the pristine authored data; every table gets its own copy, so
     /// runtime mutations (revealed hidden terms, Beguile-shifted starting
     /// tension, injected tuition terms) can never leak into the next visit
-    /// to the same encounter — which they previously did.</summary>
+    /// to the same encounter, which they previously did.</summary>
     public static NegotiationEncounterData Load(string id)
     {
         var pristine = LoadPristine(id);
@@ -71,9 +71,9 @@ public static class NegotiationEncounterLoader
         }
     }
 
-    /// <summary>Quiet existence probe for candidate pooling — no error spam
+    /// <summary>Quiet existence probe for candidate pooling: no error spam
     /// for the (expected) region-specific files that don't exist. Returns the
-    /// PRISTINE cached instance (read-only use only — PickForTerrain re-Loads
+    /// PRISTINE cached instance (read-only use only; PickForTerrain re-Loads
     /// by id so the winner is handed out as a proper clone).</summary>
     private static NegotiationEncounterData TryLoad(string id)
     {
@@ -83,7 +83,7 @@ public static class NegotiationEncounterLoader
     }
 
     /// <summary>Suffixes tried per region, and the generic pool. v2: the
-    /// archetype-generic encounters make all six NPC archetypes reachable —
+    /// archetype-generic encounters make all six NPC archetypes reachable;
     /// previously only {region}_commander and generic_merchant could ever
     /// be picked, so Scholar/Opportunist/Idealist/Survivor were dead data.</summary>
     private static readonly string[] RegionSuffixes =
@@ -103,7 +103,7 @@ public static class NegotiationEncounterLoader
     {
         var available = new List<NegotiationEncounterData>();
 
-        // Region-authored encounters first — each counted twice for weight.
+        // Region-authored encounters first, each counted twice for weight.
         foreach (var suffix in RegionSuffixes)
         {
             var data = TryLoad($"{regionId}_{suffix}");

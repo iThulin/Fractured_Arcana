@@ -6,13 +6,13 @@ using System.Linq;
 // ============================================================
 // DeclarationService.cs
 //
-// Purpose:        The faculty gate. You begin the game UNDECLARED — an
+// Purpose:        The faculty gate. You begin the game UNDECLARED, as an
 //                 Adept, a graduate whose conferral was interrupted
 //                 mid-sentence. Every other discipline must be declared,
 //                 and a university teaches what it has teachers for.
 //
 //                 Two legs, both of which already exist in the data:
-//                   1. A FACULTY SOURCE for that school — a recruited
+//                   1. A FACULTY SOURCE for that school: a recruited
 //                      companion past arc stage 2, or an Allied archmage.
 //                      The roster is a clean 1:1 grid: exactly one arcane
 //                      companion and exactly one archmage per school, all
@@ -21,7 +21,7 @@ using System.Linq;
 //                      lucky recruit cannot unlock a school the player has
 //                      never touched.
 //
-//                 Plus the Grand Hall, which is where it happens — the room
+//                 Plus the Grand Hall, which is where it happens: the room
 //                 the conferral stopped in. Its authored description already
 //                 promises "school of study".
 //
@@ -39,10 +39,10 @@ using System.Linq;
 // See:            docs/progression_card_acquisition_v1.md §7
 // ============================================================
 
-/// <summary>Why a school can or cannot be declared right now. Purely a report — computing it has no side effects.</summary>
+/// <summary>Why a school can or cannot be declared right now. Purely a report, since computing it has no side effects.</summary>
 public readonly struct DeclarationStatus
 {
-    /// <summary>Already declared — this school is playable.</summary>
+    /// <summary>Already declared, so this school is playable.</summary>
     public bool Declared { get; init; }
 
     /// <summary>Every requirement is met; Declare() would succeed.</summary>
@@ -81,7 +81,7 @@ public static class DeclarationService
     public static string DeclaredFlag(string school) => DeclaredPrefix + Norm(school);
 
     /// <summary>
-    /// True when the school is playable. Adept is always true — it is where you
+    /// True when the school is playable. Adept is always true, because it is where you
     /// start, and a save that predates this system has no declared_ flags at all,
     /// so without this special case an existing guild would have nothing to play.
     /// </summary>
@@ -114,7 +114,7 @@ public static class DeclarationService
     }
 
     /// <summary>
-    /// Who, in this timeline, could teach <paramref name="school"/> — or null.
+    /// Who, in this timeline, could teach <paramref name="school"/>, or null.
     /// A recruited, living companion of that school past arc stage 2, else an
     /// Allied archmage of that school. Companions are checked first because
     /// they are the earlier and more likely source.
@@ -154,7 +154,7 @@ public static class DeclarationService
     }
 
     /// <summary>
-    /// True when this school's archmage is resolved but NOT Allied — coerced or
+    /// True when this school's archmage is resolved but NOT Allied, so coerced or
     /// overthrown. They pay SchoolMastery (ProgressionSweep credits any resolution)
     /// but they will not teach, and the player deserves to be told that directly
     /// rather than read "bring them to your side" about someone already in chains.
@@ -178,7 +178,7 @@ public static class DeclarationService
 
     /// <summary>Is the Grand Hall standing? Declaration happens nowhere else.</summary>
     /// <remarks>
-    /// Checks <c>IsFunctional</c> (Tier &gt; 0 AND IsPlaced), not Tier alone — the
+    /// Checks <c>IsFunctional</c> (Tier &gt; 0 AND IsPlaced), not Tier alone. That is the
     /// codebase's stated rule for anything gating a building's EFFECTS. A hall you
     /// own but have never sited on the campus map is not a room you can stand in.
     /// </remarks>
@@ -189,7 +189,7 @@ public static class DeclarationService
 
     /// <summary>
     /// Full report for one school. Blocker names the single most actionable
-    /// missing thing rather than listing all of them — "you need a teacher" is
+    /// missing thing rather than listing all of them: "you need a teacher" is
     /// a quest; "you need a teacher and 4 more mastery and a building" is a wall.
     /// </summary>
     public static DeclarationStatus Evaluate(GuildSaveData save, string school)
@@ -219,10 +219,10 @@ public static class DeclarationService
         else if (faculty == null && HasUnwillingArchmage(save, key))
             // RULED: only an ALLIED archmage teaches. You can compel someone to
             // fight beside you; you cannot compel them to make you their student.
-            // Say so explicitly rather than repeating the generic line — a player
+            // Say so explicitly rather than repeating the generic line. A player
             // who coerced or overthrew that seat has done the work and deserves to
             // know why it bought them nothing here.
-            blocker = $"The {key} archmage is yours by force, not by choice — and no one " +
+            blocker = $"The {key} archmage is yours by force, not by choice, and no one " +
                       $"teaches under duress. Find a {key} companion, or win that seat again, " +
                       $"willingly, in another timeline.";
         else if (faculty == null)
@@ -251,7 +251,7 @@ public static class DeclarationService
     /// bypassing the gate. Called on load.
     ///
     /// The dynamic clause in <see cref="IsDeclared"/> would keep such a guild
-    /// playable, but only for as long as it stayed in that school — switch to
+    /// playable, but only for as long as it stayed in that school. Switch to
     /// Adept for one cycle and the school they had played for ten hours would
     /// lock behind a gate that did not exist when they earned it. Writing the
     /// flag makes the grandfathering permanent instead of incidental.
@@ -269,7 +269,7 @@ public static class DeclarationService
         if (save.Ledger.MetaNarrativeFlags.Contains(flag)) return false;
 
         save.Ledger.MetaNarrativeFlags.Add(flag);
-        GD.Print($"[Declaration] Grandfathered '{current}' — this guild was already " +
+        GD.Print($"[Declaration] Grandfathered '{current}'. This guild was already " +
                  $"studying it before the faculty gate existed.");
         return true;
     }
@@ -288,7 +288,7 @@ public static class DeclarationService
         // Test the PERSISTED flag, not IsDeclared. IsDeclared also returns true
         // for the currently-selected school (the grandfather clause), so checking
         // it here would make Declare a silent no-op for the school you are
-        // playing — returning success without ever writing the durable flag.
+        // playing, returning success without ever writing the durable flag.
         // Today GrandfatherCurrentSchool covers that on load, but the two should
         // not be invisibly coupled: this path must always converge on the flag.
         if (key == StartingSchool) return true;
@@ -304,7 +304,7 @@ public static class DeclarationService
         save.Ledger.MetaNarrativeFlags ??= new List<string>();
         save.Ledger.MetaNarrativeFlags.Add(DeclaredFlag(key));
 
-        // Declaring is itself a deed — it is the moment the school becomes yours.
+        // Declaring is itself a deed. It is the moment the school becomes yours.
         SchoolMasteryService.AddMilestone(save, key, $"declared_{key}");
 
         GD.Print($"[Declaration] {key} DECLARED (taught by {status.FacultySource}, " +
@@ -317,7 +317,7 @@ public static class DeclarationService
     /// <summary>
     /// The Provost's line from Beat 2, finally finishing. The player gets to
     /// spend this moment seven times, once per discipline, in a different voice
-    /// each time — see narrative_frame_intro_finale_v1 §3 Beat 2 and §6.
+    /// each time (see narrative_frame_intro_finale_v1 §3 Beat 2 and §6).
     /// </summary>
     public static string ConferralLine(string school, string facultySource)
     {

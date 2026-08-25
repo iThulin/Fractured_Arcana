@@ -22,12 +22,12 @@
   "coercedStrength": 0.7,
   "coercedCanFlip": false,
   "weaknessHints": [
-    "His devices fail half the time. The failure is when he learns. He is, in this way, the most prepared person in any room — he has already accounted for this going wrong.",
+    "His devices fail half the time. The failure is when he learns. He is, in this way, the most prepared person in any room: he has already accounted for this going wrong.",
     "He does not fear chaos. He studies it. Show him something he has not seen before and he will stop to write it down.",
     "He is suspicious of the Astrologer's certainty. He knows what it means when someone claims to know the outcome before the experiment."
   ],
   "personalityNotes": [
-    "'That wasn't supposed to do that. Write it down.' — this is his response to almost everything.",
+    "'That wasn't supposed to do that. Write it down.' This is his response to almost everything.",
     "He will explain what he is building while he is building it. Listening is optional. He is going to explain either way.",
     "He does not distrust you. He is collecting data on you. These are different things to him."
   ],
@@ -36,7 +36,7 @@
     "He joined. He then immediately began disassembling one of his own constructs to see if he could make it work better. I think that's a good sign."
   ],
   "postCorruptedDialogue": [
-    "Bram has fallen. The Unshackled Forge will be precise in ways his Workshop never was — he always built in safety constraints. Those are gone now.",
+    "Bram has fallen. The Unshackled Forge will be precise in ways his Workshop never was. He always built in safety constraints. Those are gone now.",
     "He said 'that wasn't supposed to do that' one too many times and the Astrologer offered him a schematic where everything does exactly what it's supposed to. I understand the appeal."
   ],
   "factionEncounters": {

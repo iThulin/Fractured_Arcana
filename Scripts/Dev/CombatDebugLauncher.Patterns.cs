@@ -7,7 +7,7 @@ using System.Collections.Generic;
 //
 // Purpose:   Two debug-launcher helpers split out to keep the main
 //            file readable:
-//            1) the expedition-pattern picker — spawn a premade enemy
+//            1) the expedition-pattern picker: spawn a premade enemy
 //               composition straight from a region's encounterPools;
 //            2) the archetype-grouped enemy roster builder.
 // Collaborators: EncounterPoolLoader / RegionLoader (pattern source),
@@ -184,7 +184,7 @@ public partial class CombatDebugLauncher : CanvasLayer
             int c = string.Compare(la, lb, StringComparison.OrdinalIgnoreCase);
             return c != 0 ? c : string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
         });
-        // Group header — a rule above (except the first group) plus a gold, larger,
+        // Group header: a rule above (except the first group) plus a gold, larger,
         // upper-cased label makes the archetype boundaries easy to scan past.
         if (leadingSeparator)
             form.AddChild(new HSeparator());

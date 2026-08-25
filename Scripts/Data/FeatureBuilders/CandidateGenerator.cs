@@ -7,14 +7,14 @@ using System.Linq;
 //
 // Purpose:        The K3 procedural hireling matrix (companion_item
 //                 _systems v2.1 §5c): Class (Fighter/Ranger/Arcane)
-//                 × Trait (5) × School (8, Arcane only — martial
+//                 × Trait (5) × School (8, Arcane only; martial
 //                 templates ship School "None" and procedurals match
 //                 that convention), stats rolled inside per-class
 //                 envelopes, 0–2 pre-trained stances by settlement
 //                 quality. Produces plain Companion records with
 //                 "hire_" ids; every downstream system (party, injury,
 //                 training, combat spawn) treats them identically to
-//                 authored companions — both die by the same rules
+//                 authored companions: both die by the same rules
 //                 (R5).
 // Layer:          Data (FeatureBuilders)
 // Collaborators:  HiringHallService.cs (the only caller),
@@ -25,7 +25,7 @@ using System.Linq;
 
 /// <summary>Rolls procedural hireling candidates for city hiring halls. Stat
 /// envelopes are anchored to the live authored-template ranges (BaseHP 12–30)
-/// so a procedural hire is a peer of an authored one, not a discount tier —
+/// so a procedural hire is a peer of an authored one, not a discount tier.
 /// "two hires are never twins" comes from the matrix roll, not from stat
 /// inflation. All constants are K3 starting values; tune here.</summary>
 public static class CandidateGenerator
@@ -33,7 +33,7 @@ public static class CandidateGenerator
     // ── The matrix axes ──────────────────────────────────────────────────
 
     private static readonly string[] Classes = { "Fighter", "Fighter", "Ranger", "Ranger", "Arcane" };
-    // Fighter/Ranger weighted 2:2:1 — halls sell muscle more often than
+    // Fighter/Ranger weighted 2:2:1. Halls sell muscle more often than
     // wizards; arcane hires are the rarer find (and the pricier one).
 
     private static readonly string[] Traits = { "Cunning", "Loyal", "Curious", "Stoic", "Reckless" };
@@ -68,7 +68,7 @@ public static class CandidateGenerator
 
     /// <summary>Roll one candidate. <paramref name="quality"/>: 0 = ordinary
     /// city hall, 1 = seat/capital hall (better stat floors, more pre-trained
-    /// stances — "city halls outdraw town halls in quality", §5a). The id is
+    /// stances; "city halls outdraw town halls in quality", §5a). The id is
     /// unique per (city, lunation, index) so re-rolls never collide with a
     /// previously hired companion's save entry.</summary>
     public static Companion Generate(RandomNumberGenerator rng, int quality,
@@ -76,7 +76,7 @@ public static class CandidateGenerator
         string forceClass = null, string forceSchool = null)
     {
         // K5: forceClass/forceSchool let the non-hall sources (Unite adepts,
-        // favor retainers) draw from the same matrix — a seconded adept is a
+        // favor retainers) draw from the same matrix: a seconded adept is a
         // rolled person with a fixed school, not a separate schema.
         string unitClass = forceClass ?? Classes[rng.RandiRange(0, Classes.Length - 1)];
         string trait = Traits[rng.RandiRange(0, Traits.Length - 1)];
@@ -106,12 +106,12 @@ public static class CandidateGenerator
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    // Stats — per-class envelopes (template range: BaseHP 12–30)
+    // Stats: per-class envelopes (template range: BaseHP 12–30)
     // ═════════════════════════════════════════════════════════════════════
 
     private static void RollStats(Companion c, RandomNumberGenerator rng, int quality)
     {
-        // Quality lifts the FLOOR, not the ceiling — a capital hall's worst
+        // Quality lifts the FLOOR, not the ceiling: a capital hall's worst
         // candidate is decent; its best is no better than anywhere's best.
         int q = quality > 0 ? 2 : 0;
 
@@ -135,7 +135,7 @@ public static class CandidateGenerator
                 c.BaseMana = 0;
                 break;
 
-            default: // Arcane — combat stats mostly superseded by school kit
+            default: // Arcane: combat stats mostly superseded by school kit
                 c.BaseHP = rng.RandiRange(12 + q, 16);
                 c.BaseArmor = 0;
                 c.BaseAttackDamage = rng.RandiRange(2, 3);
@@ -149,7 +149,7 @@ public static class CandidateGenerator
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    // Pre-trained stances — 0–2 by hall quality (§5c)
+    // Pre-trained stances: 0–2 by hall quality (§5c)
     // ═════════════════════════════════════════════════════════════════════
 
     private static void RollStances(Companion c, RandomNumberGenerator rng, int quality)
@@ -176,7 +176,7 @@ public static class CandidateGenerator
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    // Price — stats + training priced in, gold (RecruitmentCost relocated
+    // Price: stats + training priced in, gold (RecruitmentCost relocated
     // from the campus storefront to the hall, per §5a)
     // ═════════════════════════════════════════════════════════════════════
 
@@ -193,7 +193,7 @@ public static class CandidateGenerator
     {
         "Fighter" => $"A {c.PersonalityTrait.ToLower()} sell-sword between patrons, waiting out the season in the hall.",
         "Ranger" => $"A {c.PersonalityTrait.ToLower()} scout who knows the roads out of town better than the roads in.",
-        _ => $"A {c.PersonalityTrait.ToLower()} {c.School} adept who never found a seat at a court — and stopped waiting for one.",
+        _ => $"A {c.PersonalityTrait.ToLower()} {c.School} adept who never found a seat at a court, and stopped waiting for one.",
     };
 
     private static string Sanitize(string cityId) =>

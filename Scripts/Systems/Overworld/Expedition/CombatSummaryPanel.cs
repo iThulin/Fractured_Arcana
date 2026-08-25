@@ -7,9 +7,9 @@ using System.Collections.Generic;
 //
 // Purpose:        Post-combat spoils card (2026-08-13, Magos
 //                 request): one compact centered panel on the
-//                 expedition map summarizing what a VICTORY paid
-//                 — gold, splinters, item drops (rarity-colored,
-//                 blight-flagged), relic/guardian beats — instead
+//                 expedition map summarizing what a VICTORY paid:
+//                 gold, splinters, item drops (rarity-colored,
+//                 blight-flagged), and relic/guardian beats, instead
 //                 of the rewards scattering into toasts. Defeat
 //                 deliberately has NO card: it routes into
 //                 FailExpedition's banner with the casualty note.
@@ -77,7 +77,7 @@ public sealed partial class CombatSummaryPanel : CanvasLayer
 
         var title = new Label
         {
-            Text = "Victory — the Spoils",
+            Text = "Victory: the Spoils",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         title.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);

@@ -1,7 +1,7 @@
 {
     "id": "undercroft",
     "name": "The Undercroft",
-    "description": "A hidden warren of cutouts, handlers, and dead drops beneath the campus — the spine of the guild's espionage. Each tier lets the guild run more informants and more Veiled Concord contracts at once, and the deepest tier opens the cabal's lethal work.",
+    "description": "A hidden warren of cutouts, handlers, and dead drops beneath the campus, the spine of the guild's espionage. Each tier lets the guild run more informants and more Veiled Concord contracts at once, and the deepest tier opens the cabal's lethal work.",
     "category": "Reputation",
     "schoolAffinity": "",
     "maxTier": 3,
@@ -16,7 +16,7 @@
         {
             "tier": 2,
             "displayName": "The Handler's Table",
-            "description": "A standing corps of handlers works the networks so companions need not. Up to 4 informants and 2 contracts at once, and the Undercroft itself runs your assets — unhandled informants take less heat from counter-intelligence.",
+            "description": "A standing corps of handlers works the networks so companions need not. Up to 4 informants and 2 contracts at once, and the Undercroft itself runs your assets, so unhandled informants take less heat from counter-intelligence.",
             "goldCost": 300,
             "requiredBuildings": []
         },

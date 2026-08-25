@@ -22,7 +22,7 @@ using System.Linq;
 public static class HonoredDeadService
 {
     // Tracks indices claimed this combat so spirits prefer fresh deaths
-    // Cleared at combat start — re-used records are allowed if pool runs dry
+    // Cleared at combat start. Re-used records are allowed if pool runs dry
     private static readonly HashSet<int> _claimedThisCombat = new();
     private static string _currentRegionName = "";
 
@@ -44,7 +44,7 @@ public static class HonoredDeadService
         var save = SaveManager.ActiveSave;
         if (save == null) return;
 
-        // Don't record spirits — they're already echoes
+        // Don't record spirits; they're already echoes
         if (unit.IsSpirit) return;
 
         var meshNode = unit.GetNodeOrNull<MeshInstance3D>("MeshInstance3D");
@@ -66,7 +66,7 @@ public static class HonoredDeadService
         });
 
         SaveManager.MarkDirty();
-        GD.Print($"[HonoredDead] Recorded: {unit.Name} — {save.HonoredDead.Count} total.");
+        GD.Print($"[HonoredDead] Recorded: {unit.Name} ({save.HonoredDead.Count} total).");
     }
 
     // ── Claiming records for spirit summons ──────────────────────────
@@ -75,7 +75,7 @@ public static class HonoredDeadService
     //   1. Fell this combat, not yet claimed this combat
     //   2. Any ally/companion record not yet claimed this combat
     //   3. Any unclaimed record from any run
-    //   4. Most recent record (re-use — pool exhausted)
+    //   4. Most recent record (re-use once the pool is exhausted)
     public static HonoredDeadRecord Claim()
     {
         var save = SaveManager.ActiveSave;
@@ -106,8 +106,8 @@ public static class HonoredDeadService
                 return ClaimAt(i);
         }
 
-        // 4. Pool exhausted — recycle most recent
-        GD.Print("[HonoredDead] Pool exhausted — recycling most recent record.");
+        // 4. Pool exhausted: recycle most recent
+        GD.Print("[HonoredDead] Pool exhausted. Recycling most recent record.");
         return all[all.Count - 1];
     }
 

@@ -3,22 +3,22 @@ using Godot;
 // ============================================================
 // StrategicDebug.cs
 //
-// Purpose:        Test levers for the strategic layer — the one
+// Purpose:        Test levers for the strategic layer, the one
 //                 subsystem that could previously only be
 //                 exercised by playing a full cycle out. Three
 //                 actions:
-//                   ForceConjunction() — end the cycle NOW.
-//                   OweLunations(n)    — advance the calendar n
+//                   ForceConjunction():  end the cycle NOW.
+//                   OweLunations(n):     advance the calendar n
 //                                        lunations with the real
 //                                        per-lunation world tick.
-//                   PrimeWarfront()    — push a border to the
+//                   PrimeWarfront():     push a border to the
 //                                        boil-over threshold so
 //                                        the next tick opens a
 //                                        warfront.
 //                 None of these reimplement game logic: each sets
 //                 the state the shipped path already reads, so a
 //                 forced run exercises the SAME code an organic
-//                 one would. That is the whole point — a lever
+//                 one would. That is the whole point. A lever
 //                 that fakes the outcome tests nothing.
 // Layer:          System (debug)
 // Collaborators:  CalendarState.cs (ConjunctionForced),
@@ -29,7 +29,7 @@ using Godot;
 //                 KingdomTickSimulation.cs (WarfrontOpenThreshold)
 // See:            docs/build_order_v4.md §3 item 2 (the strategic
 //                 smoke tests, built 2026-07-21 and never run),
-//                 §7 (SCAFFOLDING — remove before any external
+//                 §7 (SCAFFOLDING, remove before any external
 //                 build), docs/convergence_finale_spec_v1.md §13
 //                 (I1 cannot be verified without ForceConjunction).
 //
@@ -38,17 +38,17 @@ using Godot;
 //   StrategicDebug.OweLunations(3);
 //   StrategicDebug.PrimeWarfront();
 //
-// EVERY lever takes effect on the NEXT strategic-map load —
+// EVERY lever takes effect on the NEXT strategic-map load.
 // StrategicView._Ready is where ProcessPendingStraggle and the
 // ConjunctionReached check run. Press, then walk to the map.
 // ============================================================
 
-/// <summary>Debug levers for the strategic layer. Scaffolding — listed in
+/// <summary>Debug levers for the strategic layer. Scaffolding, listed in
 /// build_order_v4 §7 for removal before any build someone else plays.</summary>
 public static class StrategicDebug
 {
     /// <summary>End the cycle at the next strategic-map load, regardless of
-    /// how many lunations remain. Writes CalendarState.ConjunctionForced —
+    /// how many lunations remain. Writes CalendarState.ConjunctionForced,
     /// a flag that shipped 2026-07-21 with a definition, a reader
     /// (ConjunctionReached) and NO writer until this method.
     ///
@@ -61,7 +61,7 @@ public static class StrategicDebug
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle == null)
         {
-            GD.Print("[StrategicDebug] No active cycle — load or start a game first.");
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
             return;
         }
         if (cycle.Calendar.ConjunctionReached)
@@ -75,7 +75,7 @@ public static class StrategicDebug
         cycle.Calendar.ConjunctionForced = true;
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
-        GD.Print("[StrategicDebug] Conjunction FORCED — was at lunation " +
+        GD.Print("[StrategicDebug] Conjunction FORCED. Was at lunation " +
                  $"{cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle} " +
                  $"({cycle.Calendar.LunationsRemaining} remaining). " +
                  "Return to the strategic map; the Conjunction beat plays on load.");
@@ -85,8 +85,8 @@ public static class StrategicDebug
     /// the REAL per-lunation world tick for each (council echoes, corruption
     /// tide, infirmary, kingdom simulation, warfront advance/resolve).
     ///
-    /// <para>Implemented by adding to CycleState.PendingStraggleLunations — the
-    /// emergency-extraction debt channel — so StrategicView.ProcessPendingStraggle
+    /// <para>Implemented by adding to CycleState.PendingStraggleLunations (the
+    /// emergency-extraction debt channel), so StrategicView.ProcessPendingStraggle
     /// does the work on the next map load. No tick logic is duplicated here, and
     /// the Conjunction check at the end of that method still fires, so walking
     /// the calendar past 12 this way behaves exactly like playing it out.</para></summary>
@@ -95,7 +95,7 @@ public static class StrategicDebug
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle == null)
         {
-            GD.Print("[StrategicDebug] No active cycle — load or start a game first.");
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
             return;
         }
         if (n <= 0)
@@ -104,7 +104,7 @@ public static class StrategicDebug
         cycle.PendingStraggleLunations += n;
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
-        GD.Print($"[StrategicDebug] Owed +{n} lunation(s) — now at " +
+        GD.Print($"[StrategicDebug] Owed +{n} lunation(s), now at " +
                  $"{cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle}, " +
                  $"{cycle.PendingStraggleLunations} pending. " +
                  "Return to the strategic map; each ticks the world in full.");
@@ -116,7 +116,7 @@ public static class StrategicDebug
     ///
     /// <para>Picks the (defender, aggressor) pair with the highest live
     /// BorderPressure, preferring an aggressor that actually has a controlling
-    /// faction — the tick's own requirement. Pressure entries only exist after
+    /// faction, which is the tick's own requirement. Pressure entries only exist after
     /// at least one tick has run, so on a brand-new world this reports empty:
     /// owe a lunation first, then prime.</para></summary>
     public static void PrimeWarfront()
@@ -124,7 +124,7 @@ public static class StrategicDebug
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle == null)
         {
-            GD.Print("[StrategicDebug] No active cycle — load or start a game first.");
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
             return;
         }
 
@@ -161,9 +161,9 @@ public static class StrategicDebug
         {
             GD.Print("[StrategicDebug] No primeable border found" +
                      (sawAnyEntry
-                        ? " — every candidate's aggressor has no controlling faction, " +
+                        ? ": every candidate's aggressor has no controlling faction, " +
                           "or every kingdom already has an open front."
-                        : " — BorderPressure is empty. Owe a lunation first, then prime.") +
+                        : ": BorderPressure is empty. Owe a lunation first, then prime.") +
                      $" (open warfronts: {cycle.Warfronts?.Count ?? 0})");
             return;
         }
@@ -174,8 +174,8 @@ public static class StrategicDebug
         SaveManager.SaveIfDirty();
         GD.Print($"[StrategicDebug] Primed '{bestAggressor}' → '{bestDefender}' " +
                  $"at pressure {KingdomTickSimulation.WarfrontOpenThreshold} " +
-                 $"(was {bestPressure}). Owe a lunation and return to the map — " +
-                 "the tick opens the warfront and plants the ⚔ marker.");
+                 $"(was {bestPressure}). Owe a lunation and return to the map. " +
+                 "The tick opens the warfront and plants the ⚔ marker.");
     }
 
     /// <summary>Resolve every unresolved archmage seat so
@@ -193,14 +193,14 @@ public static class StrategicDebug
     ///
     /// <para>Already-resolved seats are skipped. That guard lives HERE, not in
     /// CampaignState.SetDisposition, whose own guard only blocks downgrades to
-    /// Neutral — passing it a resolved seat would happily overwrite real play.</para></summary>
+    /// Neutral. Passing it a resolved seat would happily overwrite real play.</para></summary>
     public static void ResolveAllSeats()
     {
         var cycle = SaveManager.ActiveSave?.Cycle;
         var campaign = cycle?.Campaign;
         if (campaign == null)
         {
-            GD.Print("[StrategicDebug] No active campaign — load or start a game first.");
+            GD.Print("[StrategicDebug] No active campaign. Load or start a game first.");
             return;
         }
 
@@ -217,7 +217,7 @@ public static class StrategicDebug
         {
             string archmageId = kv.Value;
             if (string.IsNullOrEmpty(archmageId))
-                continue;   // unoccupied region — AllArchmagiResolved skips these too
+                continue;   // unoccupied region, and AllArchmagiResolved skips these too
 
             var current = campaign.GetDisposition(archmageId);
             if (current != ArchmageDisposition.Unknown && current != ArchmageDisposition.Neutral)
@@ -234,7 +234,7 @@ public static class StrategicDebug
         SaveManager.SaveIfDirty();
         GD.Print($"[StrategicDebug] Seats resolved: {changed} set, {already} already resolved. " +
                  $"AllArchmagiResolved = {campaign.AllArchmagiResolved()}. " +
-                 "Force Conjunction, then return to the strategic map — the Anchorhold opens.");
+                 "Force Conjunction, then return to the strategic map. The Anchorhold opens.");
     }
 
     private static bool HasOpenFront(CycleState cycle, string kingdomId)

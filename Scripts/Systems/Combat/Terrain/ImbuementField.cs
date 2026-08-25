@@ -6,7 +6,7 @@ using System.Collections.Generic;
 //
 // Purpose:        A world-space texture recording where each elemental
 //                 imbuement is on the board, so the TERRAIN can respond
-//                 to it — snow settling on grass, fire scorching it away.
+//                 to it: snow settling on grass, fire scorching it away.
 // Layer:          Terrain
 // Collaborators:  HexTile.cs (stamps on SetElement),
 //                 painterly_grass.gdshader (samples it in vertex),
@@ -20,7 +20,7 @@ using System.Collections.Generic;
 // uniform*. That was wrong three separate ways, and each one on its own kills
 // the cheap version:
 //
-//   1. `INSTANCE_CUSTOM.r` is already taken — painterly_grass reads it for
+//   1. `INSTANCE_CUSTOM.r` is already taken. painterly_grass reads it for
 //      `stiffness_from_instance_height`.
 //   2. `mm.UseCustomData` is only enabled when instance heights are written, so
 //      any design leaning on `.g`/`.b` silently no-ops on some maps.
@@ -46,14 +46,14 @@ using System.Collections.Generic;
 // ── G is shared, and that was a decision ────────────────────────────────
 //
 // Fire and Earth both write G. The channel is really "how bare is this ground",
-// and both elements make it barer — fire by burning the grass off, earth by
+// and both elements make it barer: fire by burning the grass off, earth by
 // heaving rock and spoil through it. They are separated by STRENGTH (see
 // StrengthOf): fire drives it to 1.0 and reads as char; earth stops at ~0.55,
 // which lands roughly halfway between turf and char and reads as churned mud.
 //
 // The cost, stated so nobody rediscovers it the hard way: **the field can no
 // longer tell fire from earth.** The moment those two want to look genuinely
-// different on the ground — not just different in degree — this has to be
+// different on the ground (not just different in degree), this has to be
 // unpacked, and the two ways out are (a) a second texture, or (b) repacking to
 // element-id + strength, which frees two channels but breaks the soft blended
 // edges between neighbouring tiles, and that softness is the thing that makes a
@@ -67,7 +67,7 @@ using System.Collections.Generic;
 // filtering. Snowdrifts and scorch marks that bleed a little past the hex
 // boundary read as weather; ones that stop exactly on the tile edge read as a
 // grid. The gameplay-critical "which tile is imbued" question is answered by
-// the FORM standing on the tile, not by this — which is what buys this the
+// the FORM standing on the tile, not by this, which is what buys this the
 // licence to be soft.
 // ============================================================
 
@@ -77,7 +77,7 @@ using System.Collections.Generic;
 /// </summary>
 public static class ImbuementField
 {
-    /// <summary>Edge resolution. 512 over the default extent is ~5 texels per tile — enough for a soft edge, cheap enough to rewrite on a whim.</summary>
+    /// <summary>Edge resolution. 512 over the default extent is ~5 texels per tile, enough for a soft edge and cheap enough to rewrite on a whim.</summary>
     public const int Pixels = 512;
 
     /// <summary>World units spanned by the field, centred on <see cref="Origin"/>. Raise for a larger board; the field silently ignores tiles outside it.</summary>
@@ -91,7 +91,7 @@ public static class ImbuementField
     ///
     /// SET FROM THE GRID by <see cref="Attach"/>, not hardcoded. The 1.0 here is only a
     /// last resort: this project runs at HexRadius 1.325, so a hardcoded 1.0 stamped a
-    /// disc 25% too small and the effect stopped short of the tile edges — the same
+    /// disc 25% too small and the effect stopped short of the tile edges. It is the same
     /// invented-constant mistake ImbuementRocks made with the boulder scale.
     /// </summary>
     public static float TileRadius = 1.0f;
@@ -124,7 +124,7 @@ public static class ImbuementField
 
     /// <summary>
     /// Wires the field into a material and switches its imbuement response on. Safe to call
-    /// repeatedly and safe to call before any tile is imbued — the texture object never
+    /// repeatedly and safe to call before any tile is imbued, since the texture object never
     /// changes, only its contents.
     /// </summary>
     public static void Attach(ShaderMaterial material, HexGridManager grid = null)
@@ -136,7 +136,7 @@ public static class ImbuementField
         Ensure();
 
         // "Is the field even live?" should be answerable from the log rather than by
-        // inspection — the same reason GlyphCipherTexture prints on _Ready. Every
+        // inspection. That is the same reason GlyphCipherTexture prints on _Ready. Every
         // number here has been wrong at least once.
         if (!_announced)
         {
@@ -197,7 +197,7 @@ public static class ImbuementField
     {
         TileElementType.Frost  => 0,
         TileElementType.Fire   => 1,
-        TileElementType.Earth  => 1,   // shares G with Fire — see the header
+        TileElementType.Earth  => 1,   // shares G with Fire (see the header)
         TileElementType.Water  => 2,
         TileElementType.Shadow => 3,
         _ => -1,
@@ -208,7 +208,7 @@ public static class ImbuementField
     /// sharing one: fire burns the grass off completely, earth only pushes rock and
     /// spoil through it, so earth stops well short of char.
     ///
-    /// Tune Earth here rather than in the grass shader — the shader's scorch_* uniforms
+    /// Tune Earth here rather than in the grass shader. The shader's scorch_* uniforms
     /// belong to Fire and moving them to make Earth read right would silently restyle
     /// every burnt tile on the map.
     /// </summary>

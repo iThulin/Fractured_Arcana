@@ -6,7 +6,7 @@ using Godot;
 // Purpose:        Orogenic uplift for the world generator, in two
 //                 passes that run at different points in the pipeline:
 //
-//                 RaiseElevation(world, seed) — adds ridged-noise
+//                 RaiseElevation(world, seed) adds ridged-noise
 //                   uplift, masked to a few orogenic BELTS, into each
 //                   land tile's stored Elevation. Runs EARLY (after
 //                   ContinentShaper / FillTerrain, before hydrology +
@@ -17,7 +17,7 @@ using Godot;
 //                   cluster into a few regions instead of carpeting
 //                   the map.
 //
-//                 ClassifyHighlands(world) — re-derives Hills / Mountain
+//                 ClassifyHighlands(world) re-derives Hills / Mountain
 //                   from the FINAL (uplifted) elevation, run LATE (after
 //                   ReclassifyTerrainPerRegion) so the mountain structure
 //                   is globally coherent and isn't repainted by per-region
@@ -29,7 +29,7 @@ using Godot;
 // Collaborators:  WorldData / WorldTile (mutated in place),
 //                 WorldGenerator (calls both passes),
 //                 OverworldField (sampling deskew matched here),
-//                 hydrology (next phase — reads the raised elevation).
+//                 hydrology (next phase; reads the raised elevation).
 // Notes:          Pure / deterministic from the world seed.
 // ============================================================
 
@@ -125,14 +125,14 @@ public static class MountainShaper
             if (!tile.IsLand)
                 continue;
 
-            // Region-authored Volcanic is a biome, not an elevation feature —
-            // leave it so volcanic regions keep their identity at any height.
+            // Region-authored Volcanic is a biome, not an elevation feature.
+            // Leave it so volcanic regions keep their identity at any height.
             if (tile.Terrain == OverworldHex.TerrainType.Volcanic)
                 continue;
 
             float e = tile.Elevation;
             if (e < HillsFloor)
-                continue;   // lowland — keep whatever the region palette assigned
+                continue;   // lowland: keep whatever the region palette assigned
 
             if (e >= MountainFloor)
             { tile.Terrain = OverworldHex.TerrainType.Mountain; mountains++; }

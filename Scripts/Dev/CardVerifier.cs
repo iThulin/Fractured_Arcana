@@ -11,13 +11,13 @@ using System.Text.Json;
 //                 Checks that every card parses, every effect/
 //                 predicate/targeter type resolves against the
 //                 CardScriptRegistry (catching the "card silently
-//                 no-ops" bug — README §7), element tags are valid
+//                 no-ops" bug, see README §7), element tags are valid
 //                 (the earth-vs-stone pip trap), required fields
 //                 are present, and ids are unique. Writes a full
 //                 report to user://card_verification.txt.
 // Layer:          Dev tooling
-// Collaborators:  CardScriptRegistry (partial — registry queries
-//                 below), JsonCardLoader (schema conventions),
+// Collaborators:  CardScriptRegistry (the partial with the registry
+//                 queries below), JsonCardLoader (schema conventions),
 //                 GameBootstrap.cs (F9 hotkey / --verify-cards)
 // Usage:          F9 in a debug build, or:
 //                 godot --headless -- --verify-cards
@@ -26,7 +26,7 @@ using System.Text.Json;
 // A card that PASSES here is functionally loadable: it parses, all
 // its script types resolve, and its effects construct without
 // throwing. This is the gate for flipping status wip → ready.
-// It says nothing about balance — that is telemetry's job.
+// It says nothing about balance. That is telemetry's job.
 
 /// <summary>Registry queries for the verifier. Lives in the same partial class so it can read the private factory tables without widening their surface.</summary>
 public static partial class CardScriptRegistry
@@ -55,7 +55,7 @@ public static class CardVerifier
     private const string CardsDir = "res://Data/Cards";
     private const string ReportPath = "user://card_verification.txt";
 
-    /// <summary>The element tag vocabulary — must match ElementColors.Get. "stone" is the known legacy trap (renders a broken pip); the checker names it explicitly. Ruled 2026-07-06: growth + glyph added; charm/ward/binding fold to enchant, summon/beast/flock/hex fold to growth.</summary>
+    /// <summary>The element tag vocabulary. It must match ElementColors.Get. "stone" is the known legacy trap (renders a broken pip); the checker names it explicitly. Ruled 2026-07-06: growth + glyph added; charm/ward/binding fold to enchant, summon/beast/flock/hex fold to growth.</summary>
     private static readonly HashSet<string> ValidElements = new(StringComparer.OrdinalIgnoreCase)
     {
         "fire", "ice", "storm", "earth", "arcane",
@@ -66,7 +66,7 @@ public static class CardVerifier
     /// <summary>
     /// Statuses with a real consumer in code (behavioral) or a sanctioned
     /// marker role. A status in a card but not here applies and silently does
-    /// nothing — the same bug class as an unregistered effect key.
+    /// nothing, the same bug class as an unregistered effect key.
     /// Audited 2026-07-06; keep in sync with Unit.ApplyStatus/ApplyDamage,
     /// the CombatManager status tick, CombatManager.TryDanceSwap, and
     /// ApplyStatusToAllSpiritsEffect.
@@ -94,8 +94,8 @@ public static class CardVerifier
     /// Valid summon kinds (lowercased), audited 2026-07-06. Two resolvers feed
     /// this set: most kinds go through the OnSummonRequested switch; wildlife
     /// (summon_wildlife) instead routes through GrowthManager.SummonWildlifeAt,
-    /// whose valid inputs are the bestiary keys — appended at run time by
-    /// LoadBestiaryKinds — plus the "auto" sentinel (host terrain picks the
+    /// whose valid inputs are the bestiary keys (appended at run time by
+    /// LoadBestiaryKinds) plus the "auto" sentinel (host terrain picks the
     /// kind). A kind not known here reaches neither resolver and summons nothing.
     /// </summary>
     private static readonly HashSet<string> KnownSummonKinds = new(StringComparer.OrdinalIgnoreCase)
@@ -109,7 +109,7 @@ public static class CardVerifier
         "arcaneconstruct", "arcane_construct", "livingspell", "living_spell", "illusion",
         "drone", "turret", "cannon", "grand_turret", "siege_engine", "sentinel",
         "lattice_node", "familiar", "tinker_barrier", "tinker_colossus", "foundry",
-        // summon_wildlife sentinel — GrowthManager resolves it to a terrain-appropriate kind
+        // summon_wildlife sentinel. GrowthManager resolves it to a terrain-appropriate kind
         "auto"
     };
 
@@ -148,7 +148,7 @@ public static class CardVerifier
     /// <summary>Runs the full verification pass, prints a summary to the console, writes the detailed report to user://card_verification.txt. Returns true when no card produced an error.</summary>
     public static bool RunAndReport()
     {
-        CardScriptRegistry.RegisterBuiltins(); // idempotent — factories are keyed assignments
+        CardScriptRegistry.RegisterBuiltins(); // idempotent, since factories are keyed assignments
         LoadBestiaryKinds();
 
         var run = new RunState();
@@ -191,7 +191,7 @@ public static class CardVerifier
         using var f = FileAccess.Open(path, FileAccess.ModeFlags.Read);
         if (f == null)
         {
-            run.Errors.Add($"{file} — cannot open: {FileAccess.GetOpenError()}");
+            run.Errors.Add($"{file}: cannot open ({FileAccess.GetOpenError()})");
             return;
         }
 
@@ -202,46 +202,46 @@ public static class CardVerifier
         }
         catch (Exception ex)
         {
-            run.Errors.Add($"{file} — JSON parse failure: {ex.Message}");
+            run.Errors.Add($"{file}: JSON parse failure ({ex.Message})");
             return;
         }
 
         // ── Top-level fields ────────────────────────────────────────
         string id = GetString(root, "id");
         if (string.IsNullOrEmpty(id))
-            run.Errors.Add($"{file} — missing or empty 'id'");
+            run.Errors.Add($"{file}: missing or empty 'id'");
         else if (run.SeenIds.TryGetValue(id, out var other))
-            run.Errors.Add($"{file} — duplicate id '{id}' (also in {other})");
+            run.Errors.Add($"{file}: duplicate id '{id}' (also in {other})");
         else
             run.SeenIds[id] = file;
 
         if (string.IsNullOrEmpty(GetString(root, "name")))
-            run.Errors.Add($"{file} — missing or empty 'name'");
+            run.Errors.Add($"{file}: missing or empty 'name'");
 
         string schoolStr = GetString(root, "school");
         if (schoolStr == null || !Enum.TryParse<CardSchool>(schoolStr, true, out _))
-            run.Errors.Add($"{file} — 'school' missing or not a CardSchool: '{schoolStr}'");
+            run.Errors.Add($"{file}: 'school' missing or not a CardSchool ('{schoolStr}')");
         else
             school = schoolStr.ToLowerInvariant();
 
         string status = GetString(root, "status")?.ToLowerInvariant() ?? "(missing)";
         if (status != "ready" && status != "wip" && status != "stub")
-            run.Errors.Add($"{file} — invalid status '{status}' (ready|wip|stub)");
+            run.Errors.Add($"{file}: invalid status '{status}' (ready|wip|stub)");
         run.ByStatus[status] = run.ByStatus.GetValueOrDefault(status) + 1;
 
         string rarity = GetString(root, "rarity");
         if (rarity != null && !Enum.TryParse<CardRarity>(rarity, true, out _))
-            run.Warnings.Add($"{file} — unknown rarity '{rarity}'");
+            run.Warnings.Add($"{file}: unknown rarity '{rarity}'");
 
         // ── Halves ──────────────────────────────────────────────────
         bool hasTop = root.TryGetProperty("top", out var top);
         bool hasBottom = root.TryGetProperty("bottom", out var bottom);
         if (!hasTop && !hasBottom)
-            run.Errors.Add($"{file} — card has neither 'top' nor 'bottom' half");
+            run.Errors.Add($"{file}: card has neither 'top' nor 'bottom' half");
         if (hasTop) VerifyHalf(top, $"{file}:top", run);
         if (hasBottom) VerifyHalf(bottom, $"{file}:bottom", run);
 
-        // Upgrade tiers patch effect subtrees in via field paths — walk any
+        // Upgrade tiers patch effect subtrees in via field paths, so walk any
         // patch value that is itself a node, or a leaf the checks care about.
         if (root.TryGetProperty("upgrades", out var upgrades) && upgrades.ValueKind == JsonValueKind.Array)
             VerifyUpgrades(upgrades, file, run);
@@ -255,11 +255,11 @@ public static class CardVerifier
     private static void VerifyHalf(JsonElement half, string where, RunState run)
     {
         if (!half.TryGetProperty("mana", out var mana) || mana.ValueKind != JsonValueKind.Number)
-            run.Errors.Add($"{where} — missing numeric 'mana'");
+            run.Errors.Add($"{where}: missing numeric 'mana'");
 
         string speed = GetString(half, "speed");
         if (speed != null && !Enum.TryParse<PlaySpeed>(speed, true, out _))
-            run.Errors.Add($"{where} — unknown speed '{speed}'");
+            run.Errors.Add($"{where}: unknown speed '{speed}'");
 
         // Element pips (JSON `tags`) must be in the ElementColors vocabulary.
         if (half.TryGetProperty("tags", out var tags) && tags.ValueKind == JsonValueKind.Array)
@@ -282,7 +282,7 @@ public static class CardVerifier
             }
             catch (Exception ex)
             {
-                run.Errors.Add($"{where} — effect throws on build: {ex.Message}");
+                run.Errors.Add($"{where}: effect throws on build ({ex.Message})");
             }
         }
     }
@@ -311,7 +311,7 @@ public static class CardVerifier
 
                         if (value.ValueKind == JsonValueKind.Object && value.TryGetProperty("type", out _))
                         {
-                            // A whole node patched in — route to the right walker.
+                            // A whole node patched in, so route to the right walker.
                             if (leaf == "targeting")
                                 WalkTargeter(value, where, run);
                             else if (leaf == "if" || leaf == "predicate")
@@ -331,7 +331,7 @@ public static class CardVerifier
                             {
                                 run.StatusInventory[sv] = run.StatusInventory.GetValueOrDefault(sv) + 1;
                                 if (!KnownStatuses.Contains(sv))
-                                    run.Errors.Add($"{where} — status '{sv}' has no handler in code (would apply and do nothing)");
+                                    run.Errors.Add($"{where}: status '{sv}' has no handler in code (would apply and do nothing)");
                             }
                         }
                     }
@@ -343,7 +343,7 @@ public static class CardVerifier
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // Recursive walks — mirror the composite shapes RegisterBuiltins defines
+    // Recursive walks that mirror the composite shapes RegisterBuiltins defines
     // ═══════════════════════════════════════════════════════════════
 
     private static void WalkEffect(JsonElement n, string path, RunState run)
@@ -352,19 +352,19 @@ public static class CardVerifier
             return;
         if (n.ValueKind != JsonValueKind.Object)
         {
-            run.Errors.Add($"{path} — effect node is not an object");
+            run.Errors.Add($"{path}: effect node is not an object");
             return;
         }
 
         string type = GetString(n, "type")?.ToLowerInvariant();
         if (type == null)
         {
-            run.Errors.Add($"{path} — effect node has no 'type'");
+            run.Errors.Add($"{path}: effect node has no 'type'");
             return;
         }
         if (!CardScriptRegistry.HasEffect(type))
         {
-            run.Errors.Add($"{path} — unknown effect type '{type}' (would silently no-op)");
+            run.Errors.Add($"{path}: unknown effect type '{type}' (would silently no-op)");
             return;
         }
 
@@ -382,18 +382,18 @@ public static class CardVerifier
                         WalkEffect(s, $"{path}.steps[{i++}]", run);
                 }
                 else
-                    run.Errors.Add($"{path} — sequence without 'steps' array");
+                    run.Errors.Add($"{path}: sequence without 'steps' array");
                 break;
 
             case "conditional":
                 if (n.TryGetProperty("if", out var pred))
                     WalkPredicate(pred, $"{path}.if", run);
                 else
-                    run.Errors.Add($"{path} — conditional without 'if'");
+                    run.Errors.Add($"{path}: conditional without 'if'");
                 if (n.TryGetProperty("then", out var then))
                     WalkEffect(then, $"{path}.then", run);
                 else
-                    run.Errors.Add($"{path} — conditional without 'then'");
+                    run.Errors.Add($"{path}: conditional without 'then'");
                 if (n.TryGetProperty("else", out var els))
                     WalkEffect(els, $"{path}.else", run);
                 break;
@@ -402,18 +402,18 @@ public static class CardVerifier
                 if (n.TryGetProperty("do", out var feDo))
                     WalkEffect(feDo, $"{path}.do", run);
                 else
-                    run.Errors.Add($"{path} — for_each_target without 'do'");
+                    run.Errors.Add($"{path}: for_each_target without 'do'");
                 break;
 
             case "retarget":
                 if (n.TryGetProperty("targeting", out var rt))
                     WalkTargeter(rt, $"{path}.targeting", run);
                 else
-                    run.Errors.Add($"{path} — retarget without 'targeting'");
+                    run.Errors.Add($"{path}: retarget without 'targeting'");
                 if (n.TryGetProperty("do", out var rtDo))
                     WalkEffect(rtDo, $"{path}.do", run);
                 else
-                    run.Errors.Add($"{path} — retarget without 'do'");
+                    run.Errors.Add($"{path}: retarget without 'do'");
                 break;
         }
     }
@@ -426,12 +426,12 @@ public static class CardVerifier
         string type = GetString(n, "type")?.ToLowerInvariant();
         if (type == null)
         {
-            run.Errors.Add($"{path} — predicate node has no 'type'");
+            run.Errors.Add($"{path}: predicate node has no 'type'");
             return;
         }
         if (!CardScriptRegistry.HasPredicate(type))
         {
-            run.Errors.Add($"{path} — unknown predicate type '{type}' (would default to AlwaysTrue)");
+            run.Errors.Add($"{path}: unknown predicate type '{type}' (would default to AlwaysTrue)");
             return;
         }
 
@@ -459,12 +459,12 @@ public static class CardVerifier
         string type = GetString(n, "type")?.ToLowerInvariant();
         if (type == null)
         {
-            run.Errors.Add($"{path} — targeting node has no 'type'");
+            run.Errors.Add($"{path}: targeting node has no 'type'");
             return;
         }
         if (!CardScriptRegistry.HasTargeter(type))
         {
-            run.Errors.Add($"{path} — unknown targeter type '{type}' (would fall back to no targeting)");
+            run.Errors.Add($"{path}: unknown targeter type '{type}' (would fall back to no targeting)");
             return;
         }
         CheckElementProperty(n, path, run);
@@ -485,9 +485,9 @@ public static class CardVerifier
         if (string.IsNullOrEmpty(element) || ValidElements.Contains(element))
             return;
         if (element.Equals("stone", StringComparison.OrdinalIgnoreCase))
-            run.Errors.Add($"{path} — element 'stone' is the legacy trap; the canonical tag is 'earth' (broken pip otherwise)");
+            run.Errors.Add($"{path}: element 'stone' is the legacy trap; the canonical tag is 'earth' (broken pip otherwise)");
         else
-            run.Errors.Add($"{path} — unknown element '{element}' (valid: {string.Join(", ", ValidElements)})");
+            run.Errors.Add($"{path}: unknown element '{element}' (valid: {string.Join(", ", ValidElements)})");
     }
 
     private static void CollectInventory(JsonElement n, string type, string path, RunState run)
@@ -501,7 +501,7 @@ public static class CardVerifier
             {
                 run.StatusInventory[key] = run.StatusInventory.GetValueOrDefault(key) + 1;
                 if (!KnownStatuses.Contains(key))
-                    run.Errors.Add($"{path} — status '{key}' has no handler in code (would apply and do nothing)");
+                    run.Errors.Add($"{path}: status '{key}' has no handler in code (would apply and do nothing)");
             }
         }
 
@@ -514,7 +514,7 @@ public static class CardVerifier
             if (type == "summon")
                 run.SummonInventory[kind] = run.SummonInventory.GetValueOrDefault(kind) + 1;
             if (kind.Length > 0 && IsSummonLikeEffect(type) && !KnownSummonKinds.Contains(kind))
-                run.Errors.Add($"{path} — summon kind '{kind}' has no resolver (would summon nothing)");
+                run.Errors.Add($"{path}: summon kind '{kind}' has no resolver (would summon nothing)");
         }
 
         // Nested summon specs (commune_all_memorials.summon_per, last_rite_aoe.summon_on_kill)
@@ -525,7 +525,7 @@ public static class CardVerifier
             {
                 string kind = su.GetString() ?? "";
                 if (kind.Length > 0 && !KnownSummonKinds.Contains(kind))
-                    run.Errors.Add($"{path}.{specKey} — summon kind '{kind}' unknown to OnSummonRequested (would summon nothing)");
+                    run.Errors.Add($"{path}.{specKey}: summon kind '{kind}' unknown to OnSummonRequested (would summon nothing)");
             }
         }
     }
@@ -558,7 +558,7 @@ public static class CardVerifier
             statusParts.Add($"{kv.Key} {kv.Value}");
         sb.Append(string.Join(", ", statusParts));
         sb.AppendLine(")");
-        sb.AppendLine($"Result: {(run.Errors.Count == 0 ? "PASS" : "FAIL")} — {run.Errors.Count} errors, {run.Warnings.Count} warnings");
+        sb.AppendLine($"Result: {(run.Errors.Count == 0 ? "PASS" : "FAIL")} with {run.Errors.Count} errors, {run.Warnings.Count} warnings");
         sb.AppendLine();
 
         sb.AppendLine("── Per school (ok / fail) ──");
@@ -568,7 +568,7 @@ public static class CardVerifier
 
         if (run.Errors.Count > 0)
         {
-            sb.AppendLine($"── ERRORS ({run.Errors.Count}) — fix before flipping to ready ──");
+            sb.AppendLine($"── ERRORS ({run.Errors.Count}), fix before flipping to ready ──");
             foreach (var e in run.Errors)
                 sb.AppendLine($"  ✗ {e}");
             sb.AppendLine();

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 //                 builder, splat shader, theme atmosphere) at a
 //                 small blob radius, then drops one Unit on the
 //                 centre tile so you can see a character lit and
-//                 grounded exactly as it will be in combat —
+//                 grounded exactly as it will be in combat,
 //                 without booting a full encounter (no cards, no
 //                 AI, no deck, no CombatManager).
 //
@@ -18,7 +18,7 @@ using System.Collections.Generic;
 //                 StagingControlPanel, which calls the public
 //                 methods on this node.
 // Layer:          Dev tooling (NOT shipped in combat)
-// Collaborators:  HexGridManager.cs (generation — called directly,
+// Collaborators:  HexGridManager.cs (generation, called directly,
 //                 NOT via the deferred auto-bootstrap),
 //                 Unit.cs (SetBodyColor / PlaceOnTile),
 //                 SchoolColors.cs (school tint source),
@@ -31,7 +31,7 @@ using System.Collections.Generic;
 //   ApplyThemeAtmosphere() is dormant in live combat right now.
 //   This preview DOES wire them, so theme lighting here is a
 //   PREVIEW of what combat will look like once those exports are
-//   wired in Battlefield.tscn — not a 1:1 of current combat.
+//   wired in Battlefield.tscn. It is not a 1:1 of current combat.
 // ============================================================
 
 /// <summary>
@@ -54,7 +54,7 @@ public partial class CharacterStagingPreview : Node3D
     [Export] public CameraController Camera;
 
     [ExportGroup("Initial Staging")]
-    /// <summary>Blob radius for the preview board. 2 ≈ 19 tiles — enough terrain context without a full arena.</summary>
+    /// <summary>Blob radius for the preview board. 2 ≈ 19 tiles, enough terrain context without a full arena.</summary>
     [Export(PropertyHint.Range, "1,4,1")] public int PreviewRadius = 2;
 
     /// <summary>Starting theme. The panel can change this at runtime.</summary>
@@ -116,7 +116,7 @@ public partial class CharacterStagingPreview : Node3D
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Public API — the control panel calls these.
+    // Public API. The control panel calls these.
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>
@@ -132,7 +132,7 @@ public partial class CharacterStagingPreview : Node3D
 
         // Clear any previously generated tiles/props/obstacles so GenerateMap
         // starts clean. GenerateMap itself clears Tiles, but the child HexTile
-        // nodes from a prior run are still parented to the grid — free them.
+        // nodes from a prior run are still parented to the grid, so free them.
         ClearGridChildren();
 
         Grid.MapSeed = randomizeSeed ? 0 : _currentSeed;
@@ -199,8 +199,8 @@ public partial class CharacterStagingPreview : Node3D
             _stagedUnit.IsPlayerControlled = true;
             _stagedUnit.TeamId = 0;
             _stagedUnit.DisplayName = "Preview";
-            // _Ready() fires on AddChild and builds rings / reads HealthBarRoot —
-            // all self-contained, safe outside combat.
+            // _Ready() fires on AddChild and builds rings / reads HealthBarRoot.
+            // That is all self-contained, safe outside combat.
             AddChild(_stagedUnit);
             _stagedUnit.School = _currentSchool;
         }
@@ -261,7 +261,7 @@ public partial class CharacterStagingPreview : Node3D
         _stagedUnit.School = _currentSchool;
         // Real tint path: SetBodyColor replaces surface 0's material with a flat
         // albedo material. NOTE: this discards the mesh's original material on
-        // surface 0 and only affects surface 0 — a multi-surface mesh (e.g. a
+        // surface 0 and only affects surface 0, so a multi-surface mesh (e.g. a
         // separate hat surface) won't tint. That's a property of Unit.SetBodyColor,
         // reflected faithfully here.
         _stagedUnit.SetBodyColor(SchoolColors.GetBorderColor(_currentSchool));

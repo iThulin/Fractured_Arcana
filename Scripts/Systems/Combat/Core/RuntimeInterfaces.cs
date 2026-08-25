@@ -6,7 +6,7 @@ using Godot;
 // RuntimeInterfaces.cs
 //
 // Purpose:        Core runtime interfaces and shared types
-//                 referenced by the card scripting system —
+//                 referenced by the card scripting system:
 //                 Entity, ICost (+ ManaCost), ICondition (+
 //                 AlwaysCondition), TargetSet, EffectSnapshot,
 //                 ITargetSelector. Cards' typed cost/condition/
@@ -16,10 +16,10 @@ using Godot;
 //                 IPredicate types), CardRuntime.cs (Ability
 //                 holds ICost[] etc.), Effect.cs, Unit.cs
 //                 (referenced via GameState.ActiveCasterUnit)
-// See:            README §5 — card schema fields map onto these
+// See:            README §5; card schema fields map onto these
 // ============================================================
 
-/// <summary>Lightweight identity tag used to distinguish "Player A" vs "Player B" in the rules engine. Real units are <see cref="Unit"/> instances; an Entity is the level above that — the controller.</summary>
+/// <summary>Lightweight identity tag used to distinguish "Player A" vs "Player B" in the rules engine. Real units are <see cref="Unit"/> instances; an Entity is the level above that, the controller.</summary>
 public sealed class Entity { public string Name = "Player"; }
 
 public interface ICost { bool CanPay(GameState s, Entity caster); void Pay(GameState s, Entity caster); }
@@ -29,7 +29,7 @@ public sealed class ManaCost : ICost
     public ManaCost(int a) { Amount = a; }
 
     /// <summary>U3e (tithe_aura): the price actually charged, after the enemy mana
-    /// tax. ONE function, called from BOTH CanPay and Pay — a tax applied at payment
+    /// tax. ONE function, called from BOTH CanPay and Pay, because a tax applied at payment
     /// but not at affordability lets the player cast a spell they cannot afford and
     /// fall to zero mana having "paid" four. (The existing DISCOUNT deliberately does
     /// NOT live here: RulesManager pays full price and refunds afterwards, so a
@@ -37,11 +37,11 @@ public sealed class ManaCost : ICost
     /// shape, which is why it goes in the cost object instead of the cast path.)
     ///
     /// Rulings baked in, both 2026-07-28:
-    /// - PLAYER-SIDE ONLY. Enemies never route through ManaCost — their casts go via
-    ///   ApplyCasterRider — but AI/scripted casts DO reach the Entity fallback below,
+    /// - PLAYER-SIDE ONLY. Enemies never route through ManaCost; their casts go via
+    ///   ApplyCasterRider. But AI/scripted casts DO reach the Entity fallback below,
     ///   and taxing those would be silent friendly fire.
     /// - CLAMPED TO MaxMana (spec §9 decision 1). Unclamped, a 3-cost half under a +1
-    ///   tithe at MaxMana 3 becomes literally UNCASTABLE — a lockout on the top of the
+    ///   tithe at MaxMana 3 becomes literally UNCASTABLE: a lockout on the top of the
     ///   curve, not a tax on it. Clamped, the tithe bites exactly where the player
     ///   reads it as a tax: it deletes the two-spell turn and leaves the one big spell
     ///   payable. A half already costing MaxMana is therefore untaxed, by design.
@@ -64,10 +64,10 @@ public sealed class ManaCost : ICost
         }
 
         // Per-card discount (2026-07-29): the card being priced is pinned on
-        // GameState.CostContextCard by the cast path and the UI provider — the same
+        // GameState.CostContextCard by the cast path and the UI provider, the same
         // one-formula-for-CanPay-Pay-and-pips discipline the tithe established.
         // Applied AFTER the tithe (a taxed, discounted card nets out), floored at 0.
-        // Free halves stay free and cannot go negative — a discount is not a refund.
+        // Free halves stay free and cannot go negative: a discount is not a refund.
         int discount = s.GetCardDiscount(s.CostContextCard);
         if (discount > 0)
             amount = Math.Max(0, amount - discount);
@@ -84,7 +84,7 @@ public sealed class ManaCost : ICost
         {
             int available = s.ActiveCasterUnit.Stats.Mana;
             // Time Bank (2026-07-10): during the enemy phase, banked Foresight
-            // backs the cost 1:1 — only Reactions are castable then, so the
+            // backs the cost 1:1. Only Reactions are castable then, so the
             // phase flag alone gates it.
             if (s.EnemyPhaseContext && s.ActiveCasterUnit.Attunement is FateAttunement fateAvail)
                 available += fateAvail.Charges;
@@ -136,7 +136,7 @@ public sealed class EffectSnapshot
     public float DamageMultiplier = 1.0f;
 
     /// <summary>Choose-one (2026-07-29): which option of a ChooseOneEffect this cast
-    /// selected. Lives on the snapshot — not on GameState — because the snapshot
+    /// selected. Lives on the snapshot, not on GameState, because the snapshot
     /// travels with the StackItem: a Reaction cast while this spell waits on the
     /// stack cannot clobber it. -1 = no choice was made (AI cast, headless test);
     /// ChooseOneEffect resolves option 0 and says so.</summary>

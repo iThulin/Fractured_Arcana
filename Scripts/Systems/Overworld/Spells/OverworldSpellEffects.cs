@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // OverworldSpellEffects.cs  (S2, 2026-07-15)
 //
-// Purpose:        Run-scoped ACTIVE spell-effect state — the
+// Purpose:        Run-scoped ACTIVE spell-effect state, meaning the
 //                 timed windows ("Forest costs 1 for 5 steps",
 //                 "corruption suppressed for 10 steps") that
 //                 spells open and party steps tick down. A static
@@ -12,14 +12,14 @@ using System.Collections.Generic;
 //                 PlayerSession run-scoped pattern, for two
 //                 reasons: (1) OverworldMovementCost.StepCost is
 //                 the single source of truth both the CHARGE path
-//                 and the PREVIEW path call — a static hook there
+//                 and the PREVIEW path call, and a static hook there
 //                 keeps them incapable of diverging; (2) statics
 //                 survive the combat scene swap, so a 5-step
 //                 window correctly persists across a mid-window
 //                 fight. Cleared on fresh deploy and on
 //                 extraction/failure.
 //
-//                 Nothing here grants steps (G1) — effects reduce
+//                 Nothing here grants steps (G1). Effects reduce
 //                 costs or suppress drains within bounded windows.
 // Layer:          System (run-scoped state)
 // Collaborators:  OverworldSpellManager.cs (opens effects),
@@ -84,12 +84,12 @@ public static class OverworldSpellEffects
     }
 
     /// <summary>Fulminant Charge (Tinker): rig a hex; the FIRST patrol to
-    /// enter is stunned. No expiry — a set charge waits (expedition-scoped).</summary>
+    /// enter is stunned. No expiry: a set charge waits (expedition-scoped).</summary>
     public static void AddTrap(Vector2I coord, int stunSteps)
         => _traps.Add(new Trap { Coord = coord, StunSteps = stunSteps });
 
     /// <summary>Spring the trap at a coord, if any. Returns stun steps (0 = no
-    /// trap). Consumed on spring — one patrol only.</summary>
+    /// trap). Consumed on spring, so one patrol only.</summary>
     public static int ConsumeTrapAt(Vector2I coord)
     {
         for (int i = 0; i < _traps.Count; i++)
@@ -185,8 +185,8 @@ public static class OverworldSpellEffects
             }
         }
 
-        // S3: veil + patrol blocks tick on the same cadence. Traps do not —
-        // a set charge waits until sprung.
+        // S3: veil + patrol blocks tick on the same cadence. Traps do not,
+        // because a set charge waits until sprung.
         if (VeilStepsLeft > 0 && --VeilStepsLeft == 0)
             GD.Print("[Spellcraft] The Veil lifts.");
         for (int i = _patrolBlocks.Count - 1; i >= 0; i--)
@@ -198,7 +198,7 @@ public static class OverworldSpellEffects
     }
 
     /// <summary>Wipe all run state. Call on fresh deploy and on
-    /// extraction/failure — statics outlive scenes by design (see header),
+    /// extraction/failure. Statics outlive scenes by design (see header),
     /// so the boundaries must clear them explicitly.</summary>
     public static void Clear()
     {

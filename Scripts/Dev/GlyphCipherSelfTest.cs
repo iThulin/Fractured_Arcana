@@ -14,7 +14,7 @@ using System.Text;
 // Collaborators:  GlyphCipher.cs (subject), GlyphCipherTags.cs,
 //                 CardDatabase.cs (live corpus),
 //                 GameBootstrap.cs (--verify-cipher entry, F10)
-// See:            docs/glyph_cipher_spec_v2.md §10 — acceptance tests
+// See:            docs/glyph_cipher_spec_v2.md §10 (acceptance tests)
 // ============================================================
 //
 // Run headless:   godot --headless -- --verify-cipher
@@ -25,8 +25,8 @@ using System.Text;
 // one statement changes every glyph in the game and nothing else will
 // notice. The checksums below were produced by a reference
 // implementation of the same grammar. If they fail after an edit to
-// GlyphCipher.cs, the edit changed the format. That may be intended —
-// regenerate them deliberately and bump the spec — but it is never
+// GlyphCipher.cs, the edit changed the format. That may be intended
+// (regenerate them deliberately and bump the spec), but it is never
 // accidental.
 //
 // The invariant assertions (INV-*) are independent of the goldens and
@@ -172,7 +172,7 @@ public static class GlyphCipherSelfTest
             uint cs = Checksum(glyph);
             if (cs != g.Checksum)
                 fails.Add($"GOLD {g.CardId}#{g.Half}: checksum 0x{cs:X8} != 0x{g.Checksum:X8} " +
-                          "(the generator's output changed — see the numbered draw sites in GlyphCipher.cs)");
+                          "(the generator's output changed. See the numbered draw sites in GlyphCipher.cs)");
 
             fails.AddRange(Invariants(glyph, $"{g.CardId}#{g.Half}"));
         }
@@ -236,7 +236,7 @@ public static class GlyphCipherSelfTest
                 var g = GlyphCipherTags.BuildFor(bp.Id, half, data);
                 if (g == null) { fails.Add($"LIVE {bp.Id}#{half}: BuildFor returned null"); liveFail++; continue; }
                 if (g.Verbs == CipherVerb.None)
-                { fails.Add($"LIVE {bp.Id}#{half} ('{data.Name}'): no verb extracted — add a .WithTag(...) at the effect's registration site"); liveFail++; }
+                { fails.Add($"LIVE {bp.Id}#{half} ('{data.Name}'): no verb extracted. Add a .WithTag(...) at the effect's registration site"); liveFail++; }
                 fails.AddRange(Invariants(g, $"live:{bp.Id}#{half}"));
             }
         }

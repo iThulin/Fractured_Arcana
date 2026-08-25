@@ -8,7 +8,7 @@ using System.Collections.Generic;
 // Purpose:        Makes overworld-spell knowledge permanent.
 //
 //                 GrimoireState.KnownSpellIds is cycle-scoped, and S4
-//                 removed the starting seed — so a fresh timeline knew
+//                 removed the starting seed, so a fresh timeline knew
 //                 NOTHING and the player re-learned every working from
 //                 scratch, every cycle, forever. That put knowledge on the
 //                 timeline layer while lore and card blueprints sat on the
@@ -19,7 +19,7 @@ using System.Collections.Generic;
 //                 record; the Grimoire's list stays the per-cycle working
 //                 copy and is re-seeded from the ledger at cycle start. All
 //                 ~22 existing read sites keep working untouched, because
-//                 they still read the working copy — it is simply no longer
+//                 they still read the working copy. It is simply no longer
 //                 empty.
 //
 //                 What stays cycle-scoped, correctly: PreparedSpellIds
@@ -35,7 +35,7 @@ using System.Collections.Generic;
 // See:            docs/progression_card_acquisition_v1_2.md
 //
 // AMENDS overworld_spell_system_v1_1 §5/§13 and the CycleState comment
-// "Spell knowledge is timeline knowledge — dies with the cycle."
+// "Spell knowledge is timeline knowledge. It dies with the cycle."
 // User-ruled 2026-08-04.
 // ============================================================
 
@@ -61,7 +61,7 @@ public static class SpellKnowledgeService
         if (isNew)
         {
             save.Ledger.KnownSpellIds.Add(spellId);
-            GD.Print($"[SpellKnowledge] '{spellId}' learned — permanent, {save.Ledger.KnownSpellIds.Count} known.");
+            GD.Print($"[SpellKnowledge] '{spellId}' learned and permanent. {save.Ledger.KnownSpellIds.Count} known.");
         }
 
         var grim = save.Cycle?.Grimoire;

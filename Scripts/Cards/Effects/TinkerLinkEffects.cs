@@ -6,7 +6,7 @@ using System.Linq;
 // TinkerLinkEffects.cs
 //
 // Purpose:        JSON-driven effects for the Conduit Link
-//                 layer — create a link (Split or Mirror, with
+//                 layer: create a link (Split or Mirror, with
 //                 optional line-cross damage), arc damage along
 //                 a target's links, and collapse all of a team's
 //                 links onto the lowest-HP enemy (Singularity).
@@ -155,7 +155,7 @@ public sealed class ConduitSingularityEffect : EffectBase
         int dmg = _perLink * Math.Max(1, linkCount);
 
         focus.ApplyDamageSkippingLinks(dmg);
-        s.Log($"[Singularity] {linkCount} link(s) converge on {focus.Name} — {dmg} damage.");
+        s.Log($"[Singularity] {linkCount} link(s) converge on {focus.Name} for {dmg} damage.");
 
         ConduitLinkSystem.ClearTeam(team);
     }

@@ -4,7 +4,7 @@
   "npcName": "Sister Maretta",
   "archetype": "Idealist",
   "factionId": "wayfarers_circle",
-  "openingText": "The warden meets you at the gate of the refugee waystation, sleeves rolled, ledger in hand. 'Wizards. Good — or bad, depending. We shelter forty souls and feed thirty of them. Whatever brought you here, I'll ask you plainly: will you help, and what will it cost me?'",
+  "openingText": "The warden meets you at the gate of the refugee waystation, sleeves rolled, ledger in hand. 'Wizards. Good... or bad, depending. We shelter forty souls and feed thirty of them. Whatever brought you here, I'll ask you plainly: will you help, and what will it cost me?'",
   "startingTension": 3,
   "basePatience": 7,
   "npcResolve": 1,
@@ -18,7 +18,7 @@
   "terms": [
     {
       "id": "provision_camp",
-      "description": "Provision the waystation from your stores — 20 gold of supplies.",
+      "description": "Provision the waystation from your stores: 20 gold of supplies.",
       "favorPlayer": false,
       "isHidden": false,
       "goldDelta": -20,
@@ -28,7 +28,7 @@
     },
     {
       "id": "circle_marks",
-      "description": "The Circle marks your guild as a friend of the road — word travels between every waystation.",
+      "description": "The Circle marks your guild as a friend of the road. Word travels between every waystation.",
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 0,
@@ -39,7 +39,7 @@
     },
     {
       "id": "guides_blessing",
-      "description": "A guide walks you past the flooded fords — 2 steps saved.",
+      "description": "A guide walks you past the flooded fords: 2 steps saved.",
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 0,

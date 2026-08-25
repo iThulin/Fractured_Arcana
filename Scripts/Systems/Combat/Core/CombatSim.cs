@@ -12,13 +12,13 @@ using System.Collections.Generic;
 //                   - Unit.ApplyStatus → no-op
 //                   - Unit.RemoveStatus → RecordStatusRemoved
 //                     (so HasStatus can report the consumption
-//                     WITHIN the sim — arcane_mark must pay out
+//                     WITHIN the sim: arcane_mark must pay out
 //                     once, not once per damage step)
 //                   - ImbueTileEffect / AttunementResolver tile
 //                     writes → skipped
 //                   - GameState.Log → suppressed
 //                 The preview then runs REAL effect Resolve code
-//                 through these gates — every number comes from
+//                 through these gates. Every number comes from
 //                 the resolver itself, never a parallel formula.
 // Layer:          Combat core (static; single-threaded like the
 //                 rest of the combat loop)
@@ -32,19 +32,19 @@ public static class CombatSim
 {
     public static bool Active { get; private set; }
 
-    // Per-hit ledger IN ORDER — mitigation (shrouded per-hit cap, shield,
-    // armor) must replay hits sequentially, not against the sum.
+    // Per-hit ledger IN ORDER, because mitigation (shrouded per-hit cap,
+    // shield, armor) must replay hits sequentially, not against the sum.
     private static readonly List<(Unit victim, int amount)> _hits = new();
 
-    // Statuses "consumed" during the sim (arcane_mark) — HasStatus consults
+    // Statuses "consumed" during the sim (arcane_mark). HasStatus consults
     // this so the real state is untouched but the sim sees the consumption.
     private static readonly HashSet<(Unit, string)> _removedStatuses = new();
 
     private static GameState _state;
     private static int _savedLastDamageDealt;
 
-    /// <summary>Enter simulation mode. Always pair with End() in a finally —
-    /// a stuck Active flag would swallow real damage.</summary>
+    /// <summary>Enter simulation mode. Always pair with End() in a finally,
+    /// because a stuck Active flag would swallow real damage.</summary>
     public static void Begin(GameState s)
     {
         Active = true;
@@ -89,7 +89,7 @@ public static class CombatSim
                 yield return amount;
     }
 
-    /// <summary>Copy of the full per-hit ledger (victim, amount) in order — take
+    /// <summary>Copy of the full per-hit ledger (victim, amount) in order. Take
     /// this BEFORE End(), which clears it. Lets the preview flash every unit a
     /// spell would hit (chain bounces, AoE, retargets), not just the primary.</summary>
     public static List<(Unit victim, int amount)> SnapshotHits()

@@ -36,17 +36,17 @@ using System.Collections.Generic;
 //
 // The ruling that shapes these: both picks happen at CAST time, not at
 // resolution. The destination is knowable before the card reaches the stack, and
-// this engine's stack is MTG-derived — targets are chosen when the spell is cast
+// this engine's stack is MTG-derived: targets are chosen when the spell is cast
 // and are public information from that moment. Three things fall out of that,
 // all of them wanted:
 //   · a Reaction can respond to WHERE the push is going, not just that it happened
 //   · the R22 drag preview can model the outcome, which it structurally cannot do
 //     for a choice made after resolution has begun
-//   · nothing in IEffect, Resolver or the stack changes — this is an input-layer
+//   · nothing in IEffect, Resolver or the stack changes. This is an input-layer
 //     feature wearing a targeter's clothes
 //
-// Choices whose INFORMATION does not exist until resolution — scry's "look at the
-// top 3" — are a genuinely different problem and do NOT belong here.
+// Choices whose INFORMATION does not exist until resolution (scry's "look at the
+// top 3") are a genuinely different problem and do NOT belong here.
 //
 // TargetSet convention for both: Items[0] is the victim Unit, Items[1] is the
 // chosen TileData. Effects read them positionally; CombatManager guarantees the
@@ -79,7 +79,7 @@ public abstract class SelectTwoStepTarget : ITargetSelector
     public bool Select(GameState s, Entity caster, out TargetSet targets)
     {
         targets = null;
-        GD.PrintErr($"[Targeting] {GetType().Name} is interactive — it cannot be resolved " +
+        GD.PrintErr($"[Targeting] {GetType().Name} is interactive and cannot be resolved " +
                     "by a non-interactive cast (AI, scripted, or Rules.TryCast). " +
                     "Cards using it must be cast by the player.");
         return false;
@@ -104,7 +104,7 @@ public sealed class SelectUnitThenTileTarget : SelectTwoStepTarget
 
 /// <summary>Pick a unit, then an ADJACENT tile of that unit naming the direction to
 /// shove it. "Push an enemy 2 tiles in a direction you choose." The adjacent tile
-/// is the AIM, not the destination — the effect walks <c>tiles</c> steps along that
+/// is the AIM, not the destination. The effect walks <c>tiles</c> steps along that
 /// axis and stops on the first blocker, exactly as the derived-direction push does.</summary>
 public sealed class SelectUnitThenDirectionTarget : SelectTwoStepTarget
 {
@@ -166,7 +166,7 @@ public sealed class SelectUnitTarget : ITargetSelector
     }
 }
 
-/// <summary>Picks a single tile — the player's clicked aim point if available, otherwise the caster's own tile.</summary>
+/// <summary>Picks a single tile: the player's clicked aim point if available, otherwise the caster's own tile.</summary>
 public sealed class SelectTileTarget : ITargetSelector
 {
     public int range;
@@ -234,7 +234,7 @@ public sealed class SelectSelfTarget : ITargetSelector
     }
 }
 
-/// <summary>Targets nothing in particular — returns an empty target set that's still considered a successful selection. Used by global effects (board-wipes) that operate on world state directly rather than a target list.</summary>
+/// <summary>Targets nothing in particular, returning an empty target set that's still considered a successful selection. Used by global effects (board-wipes) that operate on world state directly rather than a target list.</summary>
 public sealed class SelectGlobalTarget : ITargetSelector
 {
     public bool Select(GameState s, Entity caster, out TargetSet targets)
@@ -244,7 +244,7 @@ public sealed class SelectGlobalTarget : ITargetSelector
     }
 }
 
-/// <summary>Packages a tag string into the target set so downstream effects can read it. Does NOT iterate units — that's the effect's responsibility.</summary>
+/// <summary>Packages a tag string into the target set so downstream effects can read it. Does NOT iterate units. That's the effect's responsibility.</summary>
 public sealed class SelectByTagTarget : ITargetSelector
 {
     public string tag;
@@ -350,7 +350,7 @@ public sealed class SelectRingTarget : ITargetSelector
         {
             if (s.Grid.Distance(center, kvp.Key) != Radius) continue;
 
-            // Hostile rings collect enemy occupants only — never tiles, never
+            // Hostile rings collect enemy occupants only, never tiles, never
             // the caster's own side (Spores self-poison, PT7 2026-07-12).
             if (EnemiesOnly)
             {
@@ -408,7 +408,7 @@ public sealed class SelectLineTarget : ITargetSelector
             var tile = s.Grid.GetTile(coord);
             if (tile == null) continue;
 
-            // E1: the beam stops at a wall — it hits the blocker's tile, nothing beyond.
+            // E1: the beam stops at a wall. It hits the blocker's tile, nothing beyond.
             if (tile.BlocksLineOfSight)
             {
                 if (IncludeTiles) targets.Items.Add(tile);
@@ -681,7 +681,7 @@ public sealed class SelectElementTileTarget : ITargetSelector
 
 /// <summary>
 /// Selects the memorial tile nearest to the caster. Used by upgrade tiers that
-/// summon "at the nearest other memorial" — by resolution time the primary
+/// summon "at the nearest other memorial". By resolution time the primary
 /// memorial has been consumed, so the nearest remaining one IS the other.
 /// JSON: { "type": "nearest_memorial" }
 /// </summary>

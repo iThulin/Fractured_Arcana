@@ -3,7 +3,7 @@
 //
 // Purpose:        Static context carrier for negotiation scene
 //                 swaps. Mirrors the pattern of PlayerSession /
-//                 EquipmentLoadout — set before scene change,
+//                 EquipmentLoadout: set before scene change,
 //                 read on entry, results written back, run
 //                 manager reads results after return.
 // Layer:          Data
@@ -11,7 +11,7 @@
 //                 (input writers + result readers),
 //                 NegotiationManager.cs (consumes input + writes
 //                 results)
-// See:            README §6 — Negotiation
+// See:            README §6, Negotiation
 // ============================================================
 
 /// <summary>Static scratchpad threaded through the scene swap between overworld and negotiation. Input fields set by the run manager before swap; output fields populated by the negotiation scene on completion.</summary>
@@ -34,7 +34,7 @@ public static class NegotiationContext
     public static string OriginKingdomId = "";
 
     /// <summary>S3 (Beguile, overworld_spell_system §7f): points subtracted
-    /// from the encounter's starting tension — "one band more favorable",
+    /// from the encounter's starting tension, meaning "one band more favorable",
     /// implemented as −2 tension. Set by the expedition layer when an armed
     /// Beguile is consumed; consumed (zeroed) by NegotiationManager on open.</summary>
     public static int TensionShift = 0;
@@ -52,19 +52,19 @@ public static class NegotiationContext
     public static int GoldDelta = 0;
     public static int ReputationDelta = 0;
 
-    /// <summary>Supplies moved by the deal (docs/supply_cache_spec_v1) —
-    /// positive rides home with the expedition as at-risk SuppliesEarned,
-    /// negative deducts from the treasury on return (ExpeditionManager.
+    /// <summary>Supplies moved by the deal (docs/supply_cache_spec_v1). A
+    /// positive value rides home with the expedition as at-risk SuppliesEarned;
+    /// a negative value deducts from the treasury on return (ExpeditionManager.
     /// OnNegotiationReturned).</summary>
     public static int SuppliesDelta = 0;
 
-    /// <summary>True when the signed deal included supply-lines intel — on
+    /// <summary>True when the signed deal included supply-lines intel. On
     /// return, every cache in OriginKingdomId is revealed
     /// (SupplyCacheSystem.RevealCachesInKingdom).</summary>
     public static bool RevealSupplyCaches = false;
 
     /// <summary>Expedition range moved by the deal (DealTerm.StepsDelta).
-    /// Applied to ExpeditionManager.StepsRemaining on return, floored at 0 —
+    /// Applied to ExpeditionManager.StepsRemaining on return, floored at 0,
     /// the same shape as NarrativeChoice.StepDelta. Before 2026-08-06 this
     /// channel was authored in JSON, weighted by the NPC AI, and then
     /// silently dropped: frontier_wilds_commander's "safe_passage" promised
@@ -75,10 +75,10 @@ public static class NegotiationContext
 
     /// <summary>S4 (overworld_spell_system §11): spell id taught by a deal
     /// that closed in the Cordial zone, or "". ExpeditionManager learns it
-    /// on return (KnownSpellIds — persists on the cycle save).</summary>
+    /// on return (KnownSpellIds, which persists on the cycle save).</summary>
     public static string SpellGranted = "";
 
-    /// <summary>S5: true when the table ENDED in the Cordial zone — the
+    /// <summary>S5: true when the table ENDED in the Cordial zone. This is the
     /// compulsion-echo burial gate (with DealAccepted), set alongside the
     /// other results by NegotiationManager.</summary>
     public static bool ResolvedCordial = false;

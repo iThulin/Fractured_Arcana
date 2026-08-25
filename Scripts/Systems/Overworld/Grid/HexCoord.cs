@@ -6,7 +6,7 @@ using System.Collections.Generic;
 //
 // Purpose:        Hex coordinate math for the world map. The world
 //                 is stored as a RECTANGLE of offset coordinates
-//                 (col, row) — Civ 6 style — but every distance,
+//                 (col, row), Civ 6 style, but every distance,
 //                 neighbor, and adjacency query runs in hex space.
 //                 Layout: FLAT-TOP, odd-q (odd columns pushed down
 //                 half a hex), matching OverworldHex / OverworldHexGrid.
@@ -16,7 +16,7 @@ using System.Collections.Generic;
 // Layer:          Data (pure math, no nodes)
 // Collaborators:  WorldData.cs, WorldGenerator.cs (distance/disc),
 //                 StrategicView.cs (offset render position),
-//                 WorldWindowBuilder (Phase 1c — disc slice)
+//                 WorldWindowBuilder (Phase 1c, disc slice)
 // See:            single_world_refactor_v2.docx §3 (hex world)
 //
 // Conventions:

@@ -8,7 +8,7 @@ using Godot;
 // Layer:          Style
 // Collaborators:  CardUi.cs, SchoolAttunementUI.cs (consumers of
 //                 the colour/label lookups for element pips)
-// See:            README §5.2 (Card Half Fields — tags) for the
+// See:            README §5.2 (Card Half Fields, tags) for the
 //                 set of element tag strings cards may emit
 // ============================================================
 
@@ -62,7 +62,7 @@ public static class ElementColors
     /// </summary>
     public static Color GetTextColor(Color bg)
     {
-        // Perceived luminance — standard coefficients
+        // Perceived luminance, standard coefficients
         float luminance = 0.299f * bg.R + 0.587f * bg.G + 0.114f * bg.B;
         return luminance > 0.55f ? new Color("#1A1A1A") : Colors.White;
     }

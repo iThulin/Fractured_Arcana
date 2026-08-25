@@ -17,19 +17,19 @@
     "tiers": [
         {
             "tier": 1,
-            "description": "Placeholder — mechanical effects not yet designed. Registers as an entry point for the portal attack vector (campus_siege_and_defense_v1 §3).",
+            "description": "Placeholder. Mechanical effects are not yet designed. Registers as an entry point for the portal attack vector (campus_siege_and_defense_v1 §3).",
             "goldCost": 0,
             "requiredBuildings": []
         },
         {
             "tier": 2,
-            "description": "Placeholder — mechanical effects not yet designed.",
+            "description": "Placeholder. Mechanical effects are not yet designed.",
             "goldCost": 300,
             "requiredBuildings": []
         },
         {
             "tier": 3,
-            "description": "Placeholder — mechanical effects not yet designed.",
+            "description": "Placeholder. Mechanical effects are not yet designed.",
             "goldCost": 600,
             "requiredBuildings": []
         }

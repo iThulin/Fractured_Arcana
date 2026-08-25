@@ -5,12 +5,12 @@ using System.Collections.Generic;
 // ============================================================
 // ElementalAttunement.cs
 //
-// Purpose:        The Elementalist school mechanic — 4 counters
+// Purpose:        The Elementalist school mechanic. Four counters
 //                 (Fire, Ice, Storm, Earth) with opposition
 //                 pairs (Fire↔Ice, Storm↔Earth) and four tier
 //                 thresholds (1: +1 dmg; 2: auto-imbue; 3:
 //                 enhanced effect; 4: burst AoE then reset to 0).
-//                 Charges persist across turns — per-turn decay
+//                 Charges persist across turns. Per-turn decay
 //                 was removed 2026-07-06 (Decay() is a no-op);
 //                 charges fall only via opposition or a burst.
 //                 Other schools will get their own
@@ -21,7 +21,7 @@ using System.Collections.Generic;
 //                 SchoolAttunementUI.cs (renders charges),
 //                 CompositeEffects.cs (ElementalConvergence
 //                 sets counters directly)
-// See:            README §6 — Elemental Attunement
+// See:            README §6, Elemental Attunement
 // ============================================================
 
 /// <summary>Element identity tags for the Elementalist attunement system. Mapped to JSON tag strings on cards via aliasing in the predicate/effect code.</summary>
@@ -97,7 +97,7 @@ public class ElementalAttunement : ISchoolAttunement
 	}
 
 	/// <summary>
-	/// Direct charge gain outside the cast pipeline (attunement_per_nearby_element —
+	/// Direct charge gain outside the cast pipeline (attunement_per_nearby_element:
 	/// reading the land, not casting). No opposition reduction; fires the same UI
 	/// events as cast-driven gains, including threshold events.
 	/// </summary>
@@ -169,7 +169,7 @@ public class ElementalAttunement : ISchoolAttunement
 	/// </summary>
 	public void Decay()
 	{
-		// Intentionally does nothing — see summary.
+		// Intentionally does nothing. See summary.
 	}
 
 	// ── Query methods ───────────────────────────────────────────────
@@ -185,7 +185,7 @@ public class ElementalAttunement : ISchoolAttunement
 	/// <summary>R22 damage preview: the attunement bonus a cast carrying this
 	/// element WOULD deal, accounting for THIS cast's own charge increment.
 	/// At cast time OnSpellCast advances the meter (+1, cap, burst-reset)
-	/// BEFORE ApplyThresholdEffects reads GetBonusDamage — so a live read is one
+	/// BEFORE ApplyThresholdEffects reads GetBonusDamage, so a live read is one
 	/// step behind. This mirrors that increment purely (no mutation, no events).
 	/// KEEP IN SYNC with OnSpellCast's charge math + GetBonusDamage's thresholds.</summary>
 	public int PreviewBonusDamageAfterCast(ElementTag element)
@@ -236,10 +236,10 @@ public class ElementalAttunement : ISchoolAttunement
 
 	private string GetBurstDescription(ElementTag element) => element switch
 	{
-		ElementTag.Fire  => "FIRE BURST: Nova — Deal 6 damage to all enemies!",
-		ElementTag.Ice   => "ICE BURST: Freeze Wave — Freeze all enemies for 1 turn!",
-		ElementTag.Storm => "STORM BURST: Lightning Strike — Deal 8 damage to nearest enemy, chain to 1 adjacent!",
-		ElementTag.Earth => "EARTH BURST: Quake — All enemies lose 2 movement, caster gains 6 armor!",
+		ElementTag.Fire  => "FIRE BURST: Nova. Deal 6 damage to all enemies!",
+		ElementTag.Ice   => "ICE BURST: Freeze Wave. Freeze all enemies for 1 turn!",
+		ElementTag.Storm => "STORM BURST: Lightning Strike. Deal 8 damage to nearest enemy, chain to 1 adjacent!",
+		ElementTag.Earth => "EARTH BURST: Quake. All enemies lose 2 movement, caster gains 6 armor!",
 		_ => "Elemental burst!"
 	};
 }

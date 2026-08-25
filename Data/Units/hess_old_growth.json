@@ -16,7 +16,7 @@
       "key": "deathburst",
       "trigger": "onDeath",
       "name": "Deathburst",
-      "intelDescription": "Fell it and what was sheltering underneath comes out \u2014 two of the Pack on its death.",
+      "intelDescription": "Fell it and what was sheltering underneath comes out: two of the Pack on its death.",
       "params": {
         "count": "2",
         "unit": "hess_watching_pack"

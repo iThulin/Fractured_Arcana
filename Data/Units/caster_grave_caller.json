@@ -2,7 +2,7 @@
   "id": "caster_grave_caller",
   "threatLabel": "Grave-Caller",
   "role": "line",
-  "intelDescription": "Its charged bolt leaves a wound that keeps draining. The poison lingers all fight — kill it fast.",
+  "intelDescription": "Its charged bolt leaves a wound that keeps draining. The poison lingers all fight, so kill it fast.",
   "maxHealth": 12,
   "baseSpeed": 1,
   "armor": 0,

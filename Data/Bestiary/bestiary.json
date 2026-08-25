@@ -30,7 +30,7 @@
 			"beast",
 			"charge"
 		],
-		"notes": "Charge (WIRED): covering 2+ tiles this turn before the hit adds +3 damage. 2 AP but 5-tile moves — a fast line-breaker that wants a running start.",
+		"notes": "Charge (WIRED): covering 2+ tiles this turn before the hit adds +3 damage. 2 AP but 5-tile moves, so it is a fast line-breaker that wants a running start.",
 		"ap": 2,
 		"moveRange": 5
 	},
@@ -44,6 +44,6 @@
 			"flying",
 			"scout"
 		],
-		"notes": "Flying: ignores terrain and line-of-sight blocking. Scout: reveals hidden effects/buffs on enemies in sight — echoes Hess's ally ability and her crow."
+		"notes": "Flying: ignores terrain and line-of-sight blocking. Scout: reveals hidden effects/buffs on enemies in sight, which echoes Hess's ally ability and her crow."
 	}
 }

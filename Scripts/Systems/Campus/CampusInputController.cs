@@ -6,7 +6,7 @@ using System.Collections.Generic;
 //
 // Purpose:        Turns mouse input over the campus 3D viewport
 //                 into building selection and drag-and-drop
-//                 placement. Combat has no equivalent of this —
+//                 placement. Combat has no equivalent of this:
 //                 HexTile only exposes hover (MouseEntered/
 //                 MouseExited), and CameraController's left-click
 //                 handling is card-drop-specific
@@ -19,7 +19,7 @@ using System.Collections.Generic;
 //                 BuildingSelected to open a future info panel)
 // See:             Conversation note: "building interactable to
 //                 pull up relevant sub-menus and act as the new
-//                 main hud/ui bus" — BuildingSelected is the seam
+//                 main hud/ui bus". BuildingSelected is the seam
 //                 for that; the sub-menu system itself is not
 //                 designed here, just the selection event it needs.
 // ============================================================
@@ -66,14 +66,14 @@ public partial class CampusInputController : Node3D
     private bool _hasHoveredAnchor = false;
 
     [Signal] public delegate void BuildingSelectedEventHandler(string buildingId, Vector2I anchor);
-    [Signal] public delegate void TileClickedEventHandler(Vector2I axial); // empty-tile click — e.g. deselect
+    [Signal] public delegate void TileClickedEventHandler(Vector2I axial); // empty-tile click, e.g. deselect
     [Signal] public delegate void LandmarkClickedEventHandler(string landmarkId, Vector2I axial);
     [Signal] public delegate void PlacementConfirmedEventHandler(string buildingId, Vector2I anchor, int rotation);
     [Signal] public delegate void PlacementCancelledEventHandler(string buildingId);
 
     public override void _Ready()
     {
-        // Only resolve via NodePath if Configure() wasn't already called directly —
+        // Only resolve via NodePath if Configure() wasn't already called directly.
         // CampusScreen builds this whole scene in code at runtime (no .tscn), so it
         // wires _grid/_camera itself rather than relying on exported NodePaths.
         if (_grid == null)
@@ -87,7 +87,7 @@ public partial class CampusInputController : Node3D
             GD.PrintErr("CampusInputController: no Camera3D (Configure() not called and CameraPath did not resolve).");
     }
 
-    /// <summary>Direct-wiring entry point for code-built scenes — call right after
+    /// <summary>Direct-wiring entry point for code-built scenes. Call right after
     /// AddChild instead of authoring GridManagerPath/CameraPath in an editor scene.</summary>
     public void Configure(CampusGridManager grid, Camera3D camera)
     {
@@ -149,7 +149,7 @@ public partial class CampusInputController : Node3D
                     CancelDrag();
                     return;
                 }
-                // Left-click release commits (or fails silently — the preview already
+                // Left-click release commits (or fails silently; the preview already
                 // showed red if invalid, so a failed commit here isn't a surprise).
                 if (mb.ButtonIndex == MouseButton.Left && !mb.Pressed)
                 {
@@ -184,7 +184,7 @@ public partial class CampusInputController : Node3D
 
         // Dispatch order is building → landmark → bare tile. LoadLandmarks already
         // refuses to stamp a landmark onto an occupied hex (the building IS the
-        // restoration), so a hex should never hold both — this ordering is a
+        // restoration), so a hex should never hold both. This ordering is a
         // guarantee rather than a tie-breaker, and keeps the invariant local even
         // if that stamping rule is ever relaxed.
         string buildingId = _grid.GetBuildingIdAt(coord);
@@ -208,7 +208,7 @@ public partial class CampusInputController : Node3D
     {
         if (!TryRaycastHex(out Vector2I coord))
         {
-            // Cursor left the grid entirely — clear the preview so nothing looks
+            // Cursor left the grid entirely, so clear the preview so nothing looks
             // like a stale valid/invalid ghost is still live.
             if (_hasHoveredAnchor)
             {
@@ -230,7 +230,7 @@ public partial class CampusInputController : Node3D
 
         if (_hasHoveredAnchor)
         {
-            // Caller (CampusScreen) owns the actual BuildingSaveData list — this
+            // Caller (CampusScreen) owns the actual BuildingSaveData list; this
             // controller only knows the grid, not the save. It emits the confirmed
             // intent; CampusScreen calls CampusGridManager.PlaceBuilding with the
             // real save-backed list and reacts to success/failure itself.
@@ -270,7 +270,7 @@ public partial class CampusInputController : Node3D
         return _grid.Tiles.ContainsKey(coord);
     }
 
-    /// <summary>See the class-level ASSUMPTION note — this expects the collider to be
+    /// <summary>See the class-level ASSUMPTION note: this expects the collider to be
     /// a direct child of the HexTile. Change to a parent-walk loop if that's wrong.</summary>
     private static HexTile HexTileFromCollider(Node collider)
     {

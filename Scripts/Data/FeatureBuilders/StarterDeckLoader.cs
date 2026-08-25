@@ -44,7 +44,7 @@ public static class StarterDeckLoader
     /// <summary>
     /// Returns a ready-to-use list of <see cref="Card"/> instances for
     /// <paramref name="school"/>. Blueprint ids that can't be resolved are
-    /// skipped with a warning — check the console if your deck is short.
+    /// skipped with a warning; check the console if your deck is short.
     /// Falls back to <see cref="CardDatabase.BuildRandomDeck"/> (count 10)
     /// when the JSON file is absent.
     /// </summary>
@@ -65,7 +65,7 @@ public static class StarterDeckLoader
 
             if (bp == null)
             {
-                GD.PrintErr($"[StarterDeckLoader] Blueprint not found: '{entry.Id}' — skipping. " +
+                GD.PrintErr($"[StarterDeckLoader] Blueprint not found: '{entry.Id}', skipping. " +
                             $"Check Data/StarterDecks/{SchoolToFileName(school)} and verify the id " +
                             $"matches a registered CardBlueprint.Id (format: 'school:TopName|BotName').");
                 continue;
@@ -141,7 +141,7 @@ public static class StarterDeckLoader
         // so the save is never left with an empty deck.
         if (save.PlayerDeck.Cards.Count == 0)
         {
-            GD.PrintErr("[StarterDeckLoader] SeedStarterDeck produced 0 cards — seeding 10 random.");
+            GD.PrintErr("[StarterDeckLoader] SeedStarterDeck produced 0 cards; seeding 10 random.");
             var random = CardDatabase.BuildRandomDeck(school, 10);
             foreach (var card in random)
             {
@@ -165,7 +165,7 @@ public static class StarterDeckLoader
 
     /// <summary>
     /// Seed the permanent draft-pool breadth on
-    /// <see cref="EternalLedger.UnlockedCardBlueprintIds"/>. Idempotent — only
+    /// <see cref="EternalLedger.UnlockedCardBlueprintIds"/>. Idempotent: only
     /// adds what is missing, so it is safe to call on every seed and on an
     /// existing save.
     ///
@@ -173,7 +173,7 @@ public static class StarterDeckLoader
     ///  • ALL Commons and Uncommons, in EVERY school. Breadth must be seeded
     ///    for schools the player is not currently running, or the first cycle
     ///    after declaring a new discipline would draft from an empty pool.
-    ///  • Rares stay LOCKED — they are what the acquisition verbs (§8) pay out.
+    ///  • Rares stay LOCKED: they are what the acquisition verbs (§8) pay out.
     ///  • Legendaries are irrelevant here: they are Regalia and never enter a
     ///    draft pool at all (CardDatabase.DraftablePool drops them).
     ///  • Every card named by any school's starter JSON is unlocked regardless
@@ -200,7 +200,7 @@ public static class StarterDeckLoader
         foreach (var bp in CardDatabase.Blueprints)
         {
             // Marginalia reward cards are EARNED breadth (marginalia_spec_v1
-            // R1-R3) — 6 of the 8 are Common/Uncommon, and seeding them here
+            // R1-R3); 6 of the 8 are Common/Uncommon, and seeding them here
             // would hand out every entry's reward on day one. ProgressionSweep
             // is their only unlock path.
             if (MarginaliaService.IsMarginaliaCard(bp.Id))
@@ -209,7 +209,7 @@ public static class StarterDeckLoader
                 Unlock(bp.Id);
         }
 
-        // Starter entries override the rarity rule — a starter is knowledge by
+        // Starter entries override the rarity rule: a starter is knowledge by
         // definition. Missing starter files are already logged by LoadEntries.
         foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
         {
@@ -259,7 +259,7 @@ public static class StarterDeckLoader
 
         if (newIds.Count == 0)
         {
-            GD.PrintErr("[StarterDeckLoader] SeedDebugStarterDeck: starter entries missing — seeding 10 random.");
+            GD.PrintErr("[StarterDeckLoader] SeedDebugStarterDeck: starter entries missing; seeding 10 random.");
             var random = CardDatabase.BuildRandomDeck(school, 10);
             foreach (var card in random)
             {

@@ -6,7 +6,7 @@ using System.Text.Json;
 // CouncilSaveAssert.cs
 //
 // Purpose:        Round-trip assertions for the council's save-adjacent
-//                 structs — the save-file-paranoia rule made real in
+//                 structs: the save-file-paranoia rule made real in
 //                 code, not just promised in a header comment. Each
 //                 struct is built with distinctive non-default values,
 //                 pushed through the EXACT serializer the save uses
@@ -23,7 +23,7 @@ using System.Text.Json;
 //                 Read-only: builds throwaway instances, touches no
 //                 ActiveSave, marks nothing dirty. Safe to run anytime.
 // Layer:          System (debug / verification)
-// Collaborators:  SaveManager.cs (JsonOptions — the real path),
+// Collaborators:  SaveManager.cs (JsonOptions, the real path),
 //                 CouncilState.cs (the structs under test)
 // See:            court_council_system_v1_1.docx §8; save-file-paranoia
 //                 rule (every save-adjacent struct asserted before ship)
@@ -51,19 +51,19 @@ public static class CouncilSaveAssert
         ok &= AssertCouncilEspionageFields(sb);
 
         sb.AppendLine(ok
-            ? "RESULT: ALL PASSED — save-adjacent council structs round-trip clean."
-            : "RESULT: FAILURES ABOVE — a field is being dropped or renamed.");
+            ? "RESULT: ALL PASSED. Save-adjacent council structs round-trip clean."
+            : "RESULT: FAILURES ABOVE. A field is being dropped or renamed.");
         GD.Print(sb.ToString());
 
         if (!ok)
         {
-            GD.PushError("[CouncilSaveAssert] Round-trip assertion FAILED — see Output panel.");
+            GD.PushError("[CouncilSaveAssert] Round-trip assertion FAILED. See Output panel.");
         }
         return ok;
     }
 
-    /// <summary>Serialize then deserialize through the real save options —
-    /// the whole point is to catch drift between a struct and its persistence.</summary>
+    /// <summary>Serialize then deserialize through the real save options.
+    /// The whole point is to catch drift between a struct and its persistence.</summary>
     private static T RoundTrip<T>(T obj)
     {
         string json = JsonSerializer.Serialize(obj, SaveManager.JsonOptions);
@@ -85,7 +85,7 @@ public static class CouncilSaveAssert
         {
             Lunation = 7,
             KingdomId = "kingdom_3",
-            Text = "Word spread — an em dash & ünïcode line.",
+            Text = "Word spread → an arrow & ünïcode line.",
         };
         var rt = RoundTrip(src);
 
@@ -216,7 +216,7 @@ public static class CouncilSaveAssert
         {
             Id = "informant_1",
             KingdomId = "kingdom_2",
-            CourtierId = "courtier_3",   // court-embedded — shares court Exposure
+            CourtierId = "courtier_3",   // court-embedded; shares court Exposure
             WarfrontId = "",
             Role = ShadowVocab.RoleCutout,
             Cover = 7,
@@ -260,7 +260,7 @@ public static class CouncilSaveAssert
             TargetId = "comp_2",
             LunationsRemaining = 2,
             FavorPaid = 40,
-            AgainstPlayer = true,   // the outbid path — must survive intact
+            AgainstPlayer = true,   // the outbid path; must survive intact
         };
         var rt = RoundTrip(src);
 
@@ -289,7 +289,7 @@ public static class CouncilSaveAssert
 
     /// <summary>The espionage fields on the CouncilState container round-trip,
     /// AND the derived Concord standing band recomputes identically from the
-    /// persisted ConcordDealings driver — the derived-never-stored tell,
+    /// persisted ConcordDealings driver: the derived-never-stored tell,
     /// same shape as the CourtState.StandingScore() check above.</summary>
     private static bool AssertCouncilEspionageFields(StringBuilder sb)
     {
@@ -343,7 +343,7 @@ public static class CouncilSaveAssert
 
             // Derived band must recompute identically post-round-trip. If
             // ConcordDealings were dropped to 0 the band would read Unaware
-            // instead of Trusted — the derived-never-stored tell.
+            // instead of Trusted, the derived-never-stored tell.
             ok &= Check(sb, "ShadowVocab.StandingBand(ConcordDealings) == Trusted",
                 ShadowVocab.StandingBand(rt.ConcordDealings) == ConcordStandingBand.Trusted
                 && ShadowVocab.StandingBand(rt.ConcordDealings)

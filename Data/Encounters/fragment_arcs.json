@@ -2,7 +2,7 @@
   {
     "id": "axiom_discovery",
     "title": "The Marginalia",
-    "body": "A water-stained page, bound into a book that has no business holding it — dense annotations in a hand that cites a library no map admits exists, where every rule ever written is shelved and still being written.",
+    "body": "A water-stained page, bound into a book that has no business holding it. Dense annotations in a hand that cites a library no map admits exists, where every rule ever written is shelved and still being written.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -41,7 +41,7 @@
         ]
       },
       {
-        "label": "Not yet — turn back",
+        "label": "Not yet. Turn back",
         "resultText": "The way will keep. It has kept this long.",
         "stepDelta": 1
       }
@@ -59,7 +59,7 @@
     "choices": [
       {
         "label": "Resolve the paradox on its own terms",
-        "resultText": "You read the contradiction as a proof, not an error — the Arcanist's trick. The stacks fold into a single true aisle and let you pass.",
+        "resultText": "You read the contradiction as a proof, not an error. That is the Arcanist's trick. The stacks fold into a single true aisle and let you pass.",
         "requiredFlag": "axiom_location_known",
         "requiredSchool": "Arcanist",
         "setMetaFlags": [
@@ -83,7 +83,7 @@
   {
     "id": "axiom_recover",
     "title": "The Axiom Stone",
-    "body": "At the library's still centre, the Axiom Stone rests on an empty lectern — a rule made solid, the grammar every spell obeys without knowing. One of the six.",
+    "body": "At the library's still centre, the Axiom Stone rests on an empty lectern: a rule made solid, the grammar every spell obeys without knowing. One of the six.",
     "terrainTags": [
       "Ruins",
       "ArcaneGround"
@@ -101,7 +101,7 @@
         "goldDelta": 50
       },
       {
-        "label": "Leave it — the world is not ready",
+        "label": "Leave it. The world is not ready",
         "resultText": "You close the way behind you, and the fragment keeps its long patience.",
         "stepDelta": 1
       }
@@ -110,13 +110,13 @@
   {
     "id": "moment_discovery",
     "title": "The Stopped Watch",
-    "body": "A traveller's watch, found in the frost, its hands locked at a minute that is not on any dial. Held to the ear it does not tick — it repeats, the same held breath of a second, over and over.",
+    "body": "A traveller's watch, found in the frost, its hands locked at a minute that is not on any dial. Held to the ear it does not tick. It repeats, the same held breath of a second, over and over.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
       {
         "label": "Study the watch's frozen minute",
-        "resultText": "You learn to hear the repeating second and where it points — a place where the hours have pooled and stopped. The rumour takes root.",
+        "resultText": "You learn to hear the repeating second and where it points: a place where the hours have pooled and stopped. The rumour takes root.",
         "loreId": "moment_rumor_lore",
         "setMetaFlags": [
           "moment_rumor"
@@ -143,14 +143,14 @@
     "choices": [
       {
         "label": "Chart the way in",
-        "resultText": "You find the current in the stillness — the one direction that is still 'later.' The way is charted.",
+        "resultText": "You find the current in the stillness: the one direction that is still 'later.' The way is charted.",
         "requiredFlag": "moment_rumor",
         "setMetaFlags": [
           "moment_location_known"
         ]
       },
       {
-        "label": "Not yet — turn back",
+        "label": "Not yet. Turn back",
         "resultText": "The way will keep. It has kept this long.",
         "stepDelta": 1
       }
@@ -159,7 +159,7 @@
   {
     "id": "moment_trial",
     "title": "The Recurring Minute",
-    "body": "You enter a minute that will not end. The same wind, the same falling snow, the same three heartbeats, looping — and each loop, a little more of you forgets it has happened before.",
+    "body": "You enter a minute that will not end. The same wind, the same falling snow, the same three heartbeats, looping, and each loop, a little more of you forgets it has happened before.",
     "terrainTags": [
       "Snow",
       "Tundra",
@@ -193,7 +193,7 @@
   {
     "id": "moment_recover",
     "title": "Moment Eternal",
-    "body": "At the clock's dead centre hangs Moment Eternal — a single instant that never passes, lightning held mid-fork, a tear held mid-fall. One of the six.",
+    "body": "At the clock's dead centre hangs Moment Eternal: a single instant that never passes, lightning held mid-fork, a tear held mid-fall. One of the six.",
     "terrainTags": [
       "Snow",
       "Tundra",
@@ -212,7 +212,7 @@
         "goldDelta": 50
       },
       {
-        "label": "Leave it — the world is not ready",
+        "label": "Leave it. The world is not ready",
         "resultText": "You close the way behind you, and the fragment keeps its long patience.",
         "stepDelta": 1
       }
@@ -227,7 +227,7 @@
     "choices": [
       {
         "label": "Break a stranger's smile with a hard question",
-        "resultText": "For one instant the smile slips and something frightened looks out — then the glamour closes over it again. But you have the city's shape now, and the thread that stitches it.",
+        "resultText": "For one instant the smile slips and something frightened looks out. Then the glamour closes over it again. But you have the city's shape now, and the thread that stitches it.",
         "loreId": "binding_rumor_lore",
         "setMetaFlags": [
           "binding_rumor"
@@ -244,7 +244,7 @@
   {
     "id": "binding_seek",
     "title": "The City That Sings",
-    "body": "The Charmed City rises without walls, because it needs none — the enchantment is the wall. A song with no source keeps every citizen content and every gate open, and closing on you like warm water.",
+    "body": "The Charmed City rises without walls, because it needs none. The enchantment is the wall. A song with no source keeps every citizen content and every gate open, and closing on you like warm water.",
     "terrainTags": [
       "Grassland",
       "Road",
@@ -261,7 +261,7 @@
         ]
       },
       {
-        "label": "Not yet — turn back",
+        "label": "Not yet. Turn back",
         "resultText": "The way will keep. It has kept this long.",
         "stepDelta": 1
       }
@@ -304,7 +304,7 @@
   {
     "id": "binding_recover",
     "title": "The Binding Thread",
-    "body": "At the city's silent core, the Binding Thread waits — the Enchanter's fragment, and the connective piece: the strand that lets the other five be held together. Recover it, and every fragment to come will settle easier. One of the six.",
+    "body": "At the city's silent core, the Binding Thread waits. It is the Enchanter's fragment, and the connective piece: the strand that lets the other five be held together. Recover it, and every fragment to come will settle easier. One of the six.",
     "terrainTags": [
       "Grassland",
       "Road",
@@ -314,7 +314,7 @@
     "choices": [
       {
         "label": "Take the Binding Thread",
-        "resultText": "The Thread coils into your keeping, and the fragments you do not yet hold feel, somehow, already nearer. One fragment of the Seal, recovered — and the others made easier.",
+        "resultText": "The Thread coils into your keeping, and the fragments you do not yet hold feel, somehow, already nearer. One fragment of the Seal, recovered, and the others made easier.",
         "requiredFlag": "binding_trial_passed",
         "setMetaFlags": [
           "fragment_binding_collected"
@@ -323,7 +323,7 @@
         "goldDelta": 50
       },
       {
-        "label": "Leave it — the world is not ready",
+        "label": "Leave it. The world is not ready",
         "resultText": "You close the way behind you, and the fragment keeps its long patience.",
         "stepDelta": 1
       }
@@ -355,7 +355,7 @@
   {
     "id": "schema_seek",
     "title": "The Engine That Wakes",
-    "body": "A door of gears, each the size of a house, grinds in the hillside — the mouth of the Eternal Engine, a machine that has run since before the schools had names and will run after. It does not idle for visitors.",
+    "body": "A door of gears, each the size of a house, grinds in the hillside: the mouth of the Eternal Engine, a machine that has run since before the schools had names and will run after. It does not idle for visitors.",
     "terrainTags": [
       "Volcanic",
       "Mountain",
@@ -365,14 +365,14 @@
     "choices": [
       {
         "label": "Chart the way in",
-        "resultText": "You time the gap between the great gears' teeth. The way in is charted — for the brave and the quick.",
+        "resultText": "You time the gap between the great gears' teeth. The way in is charted, for the brave and the quick.",
         "requiredFlag": "schema_rumor",
         "setMetaFlags": [
           "schema_location_known"
         ]
       },
       {
-        "label": "Not yet — turn back",
+        "label": "Not yet. Turn back",
         "resultText": "The way will keep. It has kept this long.",
         "stepDelta": 1
       }
@@ -381,7 +381,7 @@
   {
     "id": "schema_trial",
     "title": "The Governor's Fault",
-    "body": "Inside, the Engine races toward a fault it will not survive — or it would, if it could die. A governor spins red-hot, demanding correction from anyone who would pass its housing to reach the Core.",
+    "body": "Inside, the Engine races toward a fault it will not survive. Or it would, if it could die. A governor spins red-hot, demanding correction from anyone who would pass its housing to reach the Core.",
     "terrainTags": [
       "Volcanic",
       "Mountain",
@@ -415,7 +415,7 @@
   {
     "id": "schema_recover",
     "title": "The Schema Core",
-    "body": "At the Engine's heart the Schema Core turns — the pattern the machine is forever building toward, the Tinker's fragment, order made to run itself. One of the six.",
+    "body": "At the Engine's heart the Schema Core turns: the pattern the machine is forever building toward, the Tinker's fragment, order made to run itself. One of the six.",
     "terrainTags": [
       "Volcanic",
       "Mountain",
@@ -425,7 +425,7 @@
     "choices": [
       {
         "label": "Take the Schema Core",
-        "resultText": "You lift the Core from its spindle and the Engine, for the first time in an age, slows — content. One fragment of the Seal, recovered. Two remain.",
+        "resultText": "You lift the Core from its spindle and the Engine, for the first time in an age, slows, and is content. One fragment of the Seal, recovered. Two remain.",
         "requiredFlag": "schema_trial_passed",
         "setMetaFlags": [
           "fragment_schema_collected"
@@ -434,7 +434,7 @@
         "goldDelta": 50
       },
       {
-        "label": "Leave it — the world is not ready",
+        "label": "Leave it. The world is not ready",
         "resultText": "You close the way behind you, and the fragment keeps its long patience.",
         "stepDelta": 1
       }
@@ -443,13 +443,13 @@
   {
     "id": "deathless_discovery",
     "title": "The Grave That Answers",
-    "body": "You speak the small rite for the unburied dead, as any decent traveller might — and this time the grave answers back. A single word, in a voice like cold mud settling: 'Hollow.' It knows you can hear it.",
+    "body": "You speak the small rite for the unburied dead, as any decent traveller might, and this time the grave answers back. A single word, in a voice like cold mud settling: 'Hollow.' It knows you can hear it.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
       {
         "label": "Ask the grave what it means",
-        "resultText": "The dead here are not silent, and they are not free. They speak of the Hollow — a door the living do not find by walking. Now you know to look.",
+        "resultText": "The dead here are not silent, and they are not free. They speak of the Hollow: a door the living do not find by walking. Now you know to look.",
         "loreId": "deathless_rumor_lore",
         "setMetaFlags": [
           "deathless_rumor"
@@ -466,7 +466,7 @@
   {
     "id": "deathless_seek",
     "title": "The Door in the Barrow",
-    "body": "No path leads to the Hollow; you reach it the way the dead do. In a barrow that breathes cold, the threshold waits — the Necromancer's realm, where the fragment sleeps among things that used to have names.",
+    "body": "No path leads to the Hollow; you reach it the way the dead do. In a barrow that breathes cold, the threshold waits: the Necromancer's realm, where the fragment sleeps among things that used to have names.",
     "terrainTags": [
       "Ruins",
       "Swamp",
@@ -476,14 +476,14 @@
     "choices": [
       {
         "label": "Chart the way in",
-        "resultText": "You find the crossing-rite the barrow will accept. The way down is charted — though the way back is never promised.",
+        "resultText": "You find the crossing-rite the barrow will accept. The way down is charted, though the way back is never promised.",
         "requiredFlag": "deathless_rumor",
         "setMetaFlags": [
           "deathless_location_known"
         ]
       },
       {
-        "label": "Not yet — turn back",
+        "label": "Not yet. Turn back",
         "resultText": "The way will keep. It has kept this long.",
         "stepDelta": 1
       }
@@ -492,7 +492,7 @@
   {
     "id": "deathless_trial",
     "title": "The Toll of the Dead",
-    "body": "The Hollow does not give. Its wardens are the ancient dead, and they demand proof that you understand what it is to command them — not merely the power, but the debt. The realm drinks the warmth from the living with every breath.",
+    "body": "The Hollow does not give. Its wardens are the ancient dead, and they demand proof that you understand what it is to command them: not merely the power, but the debt. The realm drinks the warmth from the living with every breath.",
     "terrainTags": [
       "Ruins",
       "Swamp",
@@ -526,7 +526,7 @@
   {
     "id": "deathless_recover",
     "title": "The Deathless Covenant",
-    "body": "At the Hollow's still heart lies the Deathless Covenant — the Necromancer's fragment, the promise that binds the dead to order rather than hunger. One of the six.",
+    "body": "At the Hollow's still heart lies the Deathless Covenant: the Necromancer's fragment, the promise that binds the dead to order rather than hunger. One of the six.",
     "terrainTags": [
       "Ruins",
       "Swamp",
@@ -545,7 +545,7 @@
         "goldDelta": 50
       },
       {
-        "label": "Leave it — the world is not ready",
+        "label": "Leave it. The world is not ready",
         "resultText": "You close the way behind you, and the fragment keeps its long patience.",
         "stepDelta": 1
       }

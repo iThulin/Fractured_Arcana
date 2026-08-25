@@ -9,12 +9,12 @@ using System.Linq;
 // Purpose:        The three Tinker cards that touch the cast /
 //                 deploy / damage pipeline rather than the
 //                 construct phase:
-//                   • Etching Ward — inscribe a tile rune; the
+//                   • Etching Ward: inscribe a tile rune; the
 //                     next construct deployed there enters with a
 //                     bonus (a tile-scoped Master Schematic).
-//                   • Redirector Field — reroute the owner's next
+//                   • Redirector Field: reroute the owner's next
 //                     incoming damage to a construct.
-//                   • Familiar — an echo aura (created on deploy)
+//                   • Familiar: an echo aura (created on deploy)
 //                     that replays the owner's spells while alive.
 // Layer:          Effects
 // Collaborators:  CombatManager.Constructs.cs (summon handler reads
@@ -98,7 +98,7 @@ public static class TrapSystem
             return;   // allies step over the wire; the trap stays armed
 
         Traps.Remove(mover.CurrentTile.Axial);   // one-shot
-        GD.Print($"[Trap] {mover.Name} trips a wire trap — {trap.Damage} damage.");
+        GD.Print($"[Trap] {mover.Name} trips a wire trap for {trap.Damage} damage.");
 
         if (trap.Damage > 0)
             mover.ApplyDamage(trap.Damage);
@@ -202,7 +202,7 @@ public sealed class RedirectorFieldEffect : EffectBase
 
         if (best == null)
         {
-            s.Log("[Redirector] No construct to absorb — field fizzles.");
+            s.Log("[Redirector] No construct to absorb. The field fizzles.");
             return;
         }
 
@@ -236,11 +236,11 @@ public sealed class FamiliarEchoAura : PersistentEffect
     {
         if (Familiar == null || !Familiar.Stats.IsAlive || Familiar.IsDeathQueued)
         {
-            TurnsRemaining = 0;   // Familiar gone — expire
+            TurnsRemaining = 0;   // Familiar gone, so expire
             return;
         }
         _echoed = false;          // refresh: ready to echo again this turn
-        // intentionally no decrement — lifetime is tied to the Familiar
+        // intentionally no decrement: lifetime is tied to the Familiar
     }
 
     public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)

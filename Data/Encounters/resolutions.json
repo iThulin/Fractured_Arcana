@@ -3,25 +3,25 @@
     "id": "resolution_wenna",
     "archmageId": "wenna",
     "title": "An Audience with The Scholar",
-    "body": "Wenna Aldric receives you standing, in a field tent pitched a careful hundred paces from the bubble's edge — the closest thing the founder of the Academy has to a door home. She corrects the tense of your greeting before answering it.\n\nOn the desk between you: fifteen examinations, fourteen marked. She has been working on the fifteenth for eleven years. She looks at you the way she looks at the unfinished one.\n\n'You never technically graduated. And yet the only working school in the world answers to you. I have opinions about that. First — show me you know the proper name of what you are about to do.'",
+    "body": "Wenna Aldric receives you standing, in a field tent pitched a careful hundred paces from the bubble's edge, the closest thing the founder of the Academy has to a door home. She corrects the tense of your greeting before answering it.\n\nOn the desk between you: fifteen examinations, fourteen marked. She has been working on the fifteenth for eleven years. She looks at you the way she looks at the unfinished one.\n\n'You never technically graduated. And yet the only working school in the world answers to you. I have opinions about that. First, show me you know the proper name of what you are about to do.'",
     "choices": [
       {
-        "label": "Unite — sit her final examination",
+        "label": "Unite: sit her final examination",
         "resolutionKind": "unite",
-        "resultText": "The examination takes the rest of the day. She never says whether you passed. But at dusk she folds her spectacles, pledges The Aldric Academy to the guild's cause, and asks — precisely, and only once — to be walked through the bubble's edge, to stand in her school for one hour. She will correct the frozen chalkboards. All of them."
+        "resultText": "The examination takes the rest of the day. She never says whether you passed. But at dusk she folds her spectacles, pledges The Aldric Academy to the guild's cause, and asks (precisely, and only once) to be walked through the bubble's edge, to stand in her school for one hour. She will correct the frozen chalkboards. All of them."
       },
       {
-        "label": "Coerce — show her the accession list from the Uncatalogued Wing",
+        "label": "Coerce: show her the accession list from the Uncatalogued Wing",
         "resolutionKind": "coerce",
-        "resultText": "She reads the pulled titles until she reaches the one annotated in Kassian's hand — hers. She goes very still. 'So he was in my library.' The Academy complies. Fear accomplished what standards would not, and she will not thank you for teaching her that."
+        "resultText": "She reads the pulled titles until she reaches the one annotated in Kassian's hand: hers. She goes very still. 'So he was in my library.' The Academy complies. Fear accomplished what standards would not, and she will not thank you for teaching her that."
       },
       {
-        "label": "Overthrow — take the Academy by force",
+        "label": "Overthrow: take the Academy by force",
         "resolutionKind": "overthrow",
-        "resultText": "She rises and dusts the chalk from her sleeves. 'Very well. The examination will be practical.' She fights like a syllabus, escalating by unit — and she grades."
+        "resultText": "She rises and dusts the chalk from her sleeves. 'Very well. The examination will be practical.' She fights like a syllabus, escalating by unit. And she grades."
       },
       {
-        "label": "Withdraw — this is not the day",
+        "label": "Withdraw: this is not the day",
         "resultText": "She notes your withdrawal on the list. Everything is on the list. The list will outlast her, which she considers appropriate."
       }
     ]
@@ -30,26 +30,26 @@
     "id": "resolution_aurel",
     "archmageId": "aurel",
     "title": "An Audience with The Reviser",
-    "body": "Master Aurel Pendry does not look up when you enter. He is mid-argument with a text that cannot argue back, shorthand crawling down the margin like corrections to a river. Then he sets his pen down. You will learn later how rare that is.\n\n'They say your campus holds a sentence that does not end,' he says. 'A working suspended mid-word. I have revised every text in this world worth the ink — and I cannot get at that one.'\n\nHe waits. There are no miracles, he has written, only observers who lacked the patience to understand what they were watching. He has been patient a very long time.",
+    "body": "Master Aurel Pendry does not look up when you enter. He is mid-argument with a text that cannot argue back, shorthand crawling down the margin like corrections to a river. Then he sets his pen down. You will learn later how rare that is.\n\n'They say your campus holds a sentence that does not end,' he says. 'A working suspended mid-word. I have revised every text in this world worth the ink, and I cannot get at that one.'\n\nHe waits. There are no miracles, he has written, only observers who lacked the patience to understand what they were watching. He has been patient a very long time.",
     "choices": [
       {
-        "label": "Unite — offer him one hour inside the Second",
+        "label": "Unite: offer him one hour inside the Second",
         "resolutionKind": "unite",
-        "resultText": "In the ceremony hall he stands before the half-cast killing spell — the one that almost ended you — takes out his shorthand, and begins annotating. 'Whoever drafted this was rushed. If it ever finishes casting, it will miss.' The Annotated Circle is yours. You will want that annotation at the Convergence."
+        "resultText": "In the ceremony hall he stands before the half-cast killing spell (the one that almost ended you), takes out his shorthand, and begins annotating. 'Whoever drafted this was rushed. If it ever finishes casting, it will miss.' The Annotated Circle is yours. You will want that annotation at the Convergence."
       },
       {
-        "label": "Coerce — refuse him entry until he pledges",
+        "label": "Coerce: refuse him entry until he pledges",
         "resolutionKind": "coerce",
-        "resultText": "His need does the rest. He signs — then revises the agreement's phrasing twice before returning it. Every correction is in your favor. You will spend a long time working out why that frightens you."
+        "resultText": "His need does the rest. He signs, then revises the agreement's phrasing twice before returning it. Every correction is in your favor. You will spend a long time working out why that frightens you."
       },
       {
-        "label": "Overthrow — take his seat by force",
+        "label": "Overthrow: take his seat by force",
         "resolutionKind": "overthrow",
         "resultText": "'A rushed draft,' he says of you, not unkindly, and opens the tome. Mid-fight, your own spells will start coming back annotated in his hand."
       },
       {
-        "label": "Withdraw — this is not the day",
-        "resultText": "He returns to his argument with the page. You were, his posture says, a digression — though he files digressions, and revisits them."
+        "label": "Withdraw: this is not the day",
+        "resultText": "He returns to his argument with the page. You were, his posture says, a digression, though he files digressions, and revisits them."
       }
     ]
   },
@@ -57,24 +57,24 @@
     "id": "resolution_hess",
     "archmageId": "hess",
     "title": "An Audience with The Witness",
-    "body": "You do not find Hess. You arrive where she is — which is different — and she was there first. A crow shifts its weight on her shoulder. She does not ask why you have come.\n\nShe has been present at eight significant endings and intervened at none of them. She was at Commencement. She walked out before the wards broke, and she has never said why.\n\nShe has already decided whether to trust you. She decided before you entered the region. You are not negotiating. You are confirming her suspicions.",
+    "body": "You do not find Hess. You arrive where she is, which is different, and she was there first. A crow shifts its weight on her shoulder. She does not ask why you have come.\n\nShe has been present at eight significant endings and intervened at none of them. She was at Commencement. She walked out before the wards broke, and she has never said why.\n\nShe has already decided whether to trust you. She decided before you entered the region. You are not negotiating. You are confirming her suspicions.",
     "choices": [
       {
-        "label": "Unite — stand and be seen",
+        "label": "Unite: stand and be seen",
         "resolutionKind": "unite",
         "resultText": "A long silence, the kind rivers make. Then: 'I have watched eight endings happen. I am willing to watch one be refused.' The Living Compact does not sign, does not seal, does not swear. It simply, from this day, is with you."
       },
       {
-        "label": "Bargain — ask her price",
+        "label": "Bargain: ask her price",
         "resultText": "The land does not bargain. The crow does not even look at you."
       },
       {
-        "label": "Overthrow — take this ground by force",
+        "label": "Overthrow: take this ground by force",
         "resolutionKind": "overthrow",
-        "resultText": "She does not move. The place you are standing in does. You will fight the valley before you ever reach the woman — and she will not strike first."
+        "resultText": "She does not move. The place you are standing in does. You will fight the valley before you ever reach the woman. And she will not strike first."
       },
       {
-        "label": "Withdraw — this is not the day",
+        "label": "Withdraw: this is not the day",
         "resultText": "She watches you go. Being watched by Hess is not a punishment. It is worse: it is patience."
       }
     ]
@@ -83,25 +83,25 @@
     "id": "resolution_joren",
     "archmageId": "joren",
     "title": "An Audience with The Vessel",
-    "body": "Joren Kall hosts the argument the elements have been having since before language, and it is loud today. When he greets you, a second voice finishes the sentence. It is not his. And lately, he will tell you, it has been quoting someone else's lines.\n\nHe is not unkind. He is very tired. These things look similar from a distance; up close, the difference is terrible.\n\n'The storm keeps saying things it heard somewhere,' he manages, in one language at a time. 'I know borrowed words when I translate them. Settle this — with me, or over me — but settle it soon.'",
+    "body": "Joren Kall hosts the argument the elements have been having since before language, and it is loud today. When he greets you, a second voice finishes the sentence. It is not his. And lately, he will tell you, it has been quoting someone else's lines.\n\nHe is not unkind. He is very tired. These things look similar from a distance; up close, the difference is terrible.\n\n'The storm keeps saying things it heard somewhere,' he manages, in one language at a time. 'I know borrowed words when I translate them. Settle this, with me or over me, but settle it soon.'",
     "choices": [
       {
-        "label": "Unite — help him steady the argument",
+        "label": "Unite: help him steady the argument",
         "resolutionKind": "unite",
-        "resultText": "The table quiets, one voice at a time, until the argument is merely ancient again instead of poisoned. When it is done, Joren asks the storm your question for you — one question — and the answer arrives phrased as weather. The Elemental Covenant stands with the guild."
+        "resultText": "The table quiets, one voice at a time, until the argument is merely ancient again instead of poisoned. When it is done, Joren asks the storm your question for you (one question), and the answer arrives phrased as weather. The Elemental Covenant stands with the guild."
       },
       {
-        "label": "Coerce — back one element against the rest",
+        "label": "Coerce: back one element against the rest",
         "resolutionKind": "coerce",
         "resultText": "The argument does not resolve; it adjourns. Joren complies hollow-eyed, one voice now louder than all the others together. You did not win the debate. Remember that, later, when you count on his strength."
       },
       {
-        "label": "Overthrow — silence the host",
+        "label": "Overthrow: silence the host",
         "resolutionKind": "overthrow",
         "resultText": "The host falls. The argument does not. What rises when he drops has no chair to sit in, and every voice at once."
       },
       {
-        "label": "Withdraw — this is not the day",
+        "label": "Withdraw: this is not the day",
         "resultText": "The argument resumes before you reach the door. One of its voices says goodbye in a diction you recognize, and wish you did not."
       }
     ]
@@ -113,22 +113,22 @@
     "body": "You are shown to a chair that was placed for you before you decided to come. The Namer does not look up from the working on their desk. 'I'm not finished. Sit.'\n\nYou count the layers you can see in the working and reach four before the count stops behaving. They have been watching you since before you entered the region. They know what layer you are on. You do not.\n\nAt last they set the working aside and fold their hands. 'You are here to resolve me. That is layer one. Shall we discuss what the others are?'",
     "choices": [
       {
-        "label": "Unite — accept the interview, all layers",
+        "label": "Unite: accept the interview, all layers",
         "resolutionKind": "unite",
-        "resultText": "'You're not finished either,' they say at the end, which you take as approval. The Seventh Layer pledges to the guild — and they enchant the Anchorhold's gate with a layer they refuse to describe. With the Namer, the reward is contractual trust in a sealed clause. It fires once, when it matters."
+        "resultText": "'You're not finished either,' they say at the end, which you take as approval. The Seventh Layer pledges to the guild, and they enchant the Anchorhold's gate with a layer they refuse to describe. With the Namer, the reward is contractual trust in a sealed clause. It fires once, when it matters."
       },
       {
-        "label": "Coerce — produce the withdrawn conference paper",
+        "label": "Coerce: produce the withdrawn conference paper",
         "resolutionKind": "coerce",
-        "resultText": "They read the proof that four layers once failed them without any expression at all. 'Provenance,' they say. 'Good.' They comply — and from this day forward, everything they make for you carries an eighth layer."
+        "resultText": "They read the proof that four layers once failed them without any expression at all. 'Provenance,' they say. 'Good.' They comply. From this day forward, everything they make for you carries an eighth layer."
       },
       {
-        "label": "Overthrow — strip the layers by force",
+        "label": "Overthrow: strip the layers by force",
         "resolutionKind": "overthrow",
         "resultText": "Each phase of the fight peels one visible layer. It will end at six. You will never see seven. This, too, is architectural."
       },
       {
-        "label": "Withdraw — this is not the day",
+        "label": "Withdraw: this is not the day",
         "resultText": "'Layer one concludes,' they say, resuming the working. You are not entirely certain the interview stopped when you left."
       }
     ]
@@ -140,22 +140,22 @@
     "body": "The bar is also a funeral home, depending on what you need tonight. The regulars do not breathe, which keeps the room restful. The Conductor pours without being asked and slides the glass across. Accept it. This matters more than it should.\n\n'Every time the sky re-reads itself,' she says, 'my regulars die again. Their deaths un-happen and re-happen, and they have noticed. They've started asking whose fault it is. I've started wanting to know the answer.'\n\nShe sets the Long Table's ledger on the bar, beside the shape of yours. Hers is longer. She keeps a good list too.",
     "choices": [
       {
-        "label": "Unite — open your ledger of the honored dead",
+        "label": "Unite: open your ledger of the honored dead",
         "resolutionKind": "unite",
-        "resultText": "She reads every name — all of it, every timeline — and pours one measure for each. It takes all night. At dawn she says only: 'You keep a good list.' The Long Table stands with the guild."
+        "resultText": "She reads every name (all of it, every timeline) and pours one measure for each. It takes all night. At dawn she says only: 'You keep a good list.' The Long Table stands with the guild."
       },
       {
-        "label": "Coerce — threaten the bar's quiet",
+        "label": "Coerce: threaten the bar's quiet",
         "resolutionKind": "coerce",
-        "resultText": "It is the one lever she has, and you pulled it. She agrees to everything. She will never forgive it, and her regulars have long memories — memory being, in fact, all they have."
+        "resultText": "It is the one lever she has, and you pulled it. She agrees to everything. She will never forgive it, and her regulars have long memories: memory being, in fact, all they have."
       },
       {
-        "label": "Overthrow — clear the Long Table",
+        "label": "Overthrow: clear the Long Table",
         "resolutionKind": "overthrow",
         "resultText": "The Long Table stands up. Every one of them is someone's regular. She will make certain you learn their names."
       },
       {
-        "label": "Withdraw — this is not the day",
+        "label": "Withdraw: this is not the day",
         "resultText": "She takes the untouched glass back without comment and marks something small in the ledger. The tab, apparently, stays open."
       }
     ]
@@ -164,25 +164,25 @@
     "id": "resolution_engineer",
     "archmageId": "engineer",
     "title": "An Audience with The Engineer",
-    "body": "Bram Korro's cart is parked at your threshold with three current projects aboard, one of which is on fire in what appears to be a controlled way. 'That wasn't supposed to do that,' he says, pleased. 'Write it down.'\n\nHe has concluded from field reports that the Anchorhold is a device — the most interesting device in the world, running unattended, with no documentation. Half his machines work. The other half are research. He knows the difference matters less than everyone thinks.\n\nHe has one question, and it is not about power, territory, or the war. 'Can I take notes?'",
+    "body": "Bram Korro's cart is parked at your threshold with three current projects aboard, one of which is on fire in what appears to be a controlled way. 'That wasn't supposed to do that,' he says, pleased. 'Write it down.'\n\nHe has concluded from field reports that the Anchorhold is a device: the most interesting device in the world, running unattended, with no documentation. Half his machines work. The other half are research. He knows the difference matters less than everyone thinks.\n\nHe has one question, and it is not about power, territory, or the war. 'Can I take notes?'",
     "choices": [
       {
-        "label": "Unite — let him take notes",
+        "label": "Unite: let him take notes",
         "resolutionKind": "unite",
-        "resultText": "Inside, he touches nothing, which costs him visibly. He diagrams the frozen killing spell, the hanging bell-note, the standing mending. The notebook page on the mending says only: 'it's tired. bring it something. see p.44.' The Korro Workshop is with you — and so, for better or worse, is the cart."
+        "resultText": "Inside, he touches nothing, which costs him visibly. He diagrams the frozen killing spell, the hanging bell-note, the standing mending. The notebook page on the mending says only: 'it's tired. bring it something. see p.44.' The Korro Workshop is with you. And so, for better or worse, is the cart."
       },
       {
-        "label": "Coerce — confiscate the cart",
+        "label": "Coerce: confiscate the cart",
         "resolutionKind": "coerce",
         "resultText": "He hands it over without a word and begins rebuilding all three projects from memory that same night. You have his compliance and none of his attention. The data he keeps on you goes in a different notebook now."
       },
       {
-        "label": "Overthrow — dismantle the Workshop",
+        "label": "Overthrow: dismantle the Workshop",
         "resolutionKind": "overthrow",
-        "resultText": "The fight is the research half of the notebook. Half his devices misfire on purpose, in ways that hurt you both — the randomness is authored, and it is taking measurements. He writes between phases."
+        "resultText": "The fight is the research half of the notebook. Half his devices misfire on purpose, in ways that hurt you both. The randomness is authored, and it is taking measurements. He writes between phases."
       },
       {
-        "label": "Withdraw — this is not the day",
+        "label": "Withdraw: this is not the day",
         "resultText": "'Provisional result,' he says, chalking something on the cart. 'Come back when you have more data. I will also have more data.' It is not a threat. It is worse: it is a hypothesis."
       }
     ]

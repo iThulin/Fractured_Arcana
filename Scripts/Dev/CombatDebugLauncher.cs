@@ -146,7 +146,7 @@ public partial class CombatDebugLauncher : CanvasLayer
             (int)EncounterTier.Battle);
         // Show the recipe each overworld terrain resolves to, so "Mountain"
         // reads as "Mountain → highland_crags" (the debug picker uses overworld
-        // terrain names; the recipe files use their own names — this bridges them).
+        // terrain names; the recipe files use their own names, and this bridges them).
         TerrainRecipeMap.EnsureLoaded();
         _mapOpt = AddEnumDropdown(form, "Map / terrain:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
             (int)OverworldHex.TerrainType.Grassland,
@@ -264,17 +264,17 @@ public partial class CombatDebugLauncher : CanvasLayer
         form.AddChild(resetDeckBtn);
 
         form.AddChild(new HSeparator());
-        AddSectionLabel(form, "Enemies — count of each:");
-        // U2: registry-driven roster — every Data/Units/*.json shows up here
+        AddSectionLabel(form, "Enemies (count of each):");
+        // U2: registry-driven roster. Every Data/Units/*.json shows up here
         // automatically, which is exactly the harness the U2 exit criterion
         // ("a debug encounter fielding tagged units") needs.
         BuildEnemyRoster(form);
         form.AddChild(new HSeparator());
 
-        AddSectionLabel(form, "Allies — bring companions (real cards + stats):");
+        AddSectionLabel(form, "Allies (bring companions with real cards + stats):");
         foreach (var comp in CompanionLoader.LoadAll())
         {
-            var chk = new CheckBox { Text = $"  {comp.Name} — {comp.School}" };
+            var chk = new CheckBox { Text = $"  {comp.Name} ({comp.School})" };
             chk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             form.AddChild(chk);
             _allyChecks.Add((chk, comp));
@@ -297,7 +297,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         // Same design rule as the strategic debug harness: a lever sets the
         // state the SHIPPED path already reads, so a forced run exercises the
         // same code an authored encounter would. These write a real
-        // CombatObjectiveDef / ReinforcementWave onto the definition — nothing
+        // CombatObjectiveDef / ReinforcementWave onto the definition, and nothing
         // here reimplements the runtime.
         _wavesChk = new CheckBox
         {
@@ -310,7 +310,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         _surviveChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_surviveChk);
 
-        // O3 (2026-08-13): protect test — spawns the Anchor as the ward.
+        // O3 (2026-08-13): protect test. Spawns the Anchor as the ward.
         _protectChk = new CheckBox { Text = "Objective: protect the Anchor (ward)" };
         _protectChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_protectChk);
@@ -384,7 +384,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         }
 
         // O3: protect wins over survive when both are ticked (one objective
-        // per fight — the def has a single slot).
+        // per fight, because the def has a single slot).
         if (_protectChk != null && _protectChk.ButtonPressed)
         {
             def.Objective = new CombatObjectiveDef
@@ -455,15 +455,15 @@ public partial class CombatDebugLauncher : CanvasLayer
         if (recipeSel > 0 && recipeSel <= BattlefieldRecipes.Length)
             def.MapRecipe = BattlefieldRecipes[recipeSel - 1];
         else if (recipeSel == BattlefieldRecipes.Length + 1 && !TryForceCompiledGate(def))
-            return;   // compile failed — reason already in the status label
+            return;   // compile failed; reason already in the status label
         else if (recipeSel == BattlefieldRecipes.Length + 2 && !TryForceCompiledGate(def, defending: true))
-            return;   // compile failed — reason already in the status label
+            return;   // compile failed; reason already in the status label
         else if (recipeSel == BattlefieldRecipes.Length + 3 && !TryForceCompiledGate(def, vectorKind: "breach"))
-            return;   // compile failed — reason already in the status label
+            return;   // compile failed; reason already in the status label
         else if (recipeSel == BattlefieldRecipes.Length + 4 && !TryForceCompiledGate(def, defending: true, vectorKind: "dock"))
-            return;   // compile failed — reason already in the status label
+            return;   // compile failed; reason already in the status label
         else if (recipeSel == BattlefieldRecipes.Length + 5 && !TryForceCompiledGate(def, defending: true, vectorKind: "portal"))
-            return;   // compile failed — reason already in the status label
+            return;   // compile failed; reason already in the status label
 
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(terrain, tier, neighborTerrains);
@@ -579,7 +579,7 @@ public partial class CombatDebugLauncher : CanvasLayer
 
     private static void SeedDebugDeckIfEmpty(CardSchool school)
     {
-        // Default the scratch deck to the selected class's starter — appended to the
+        // Default the scratch deck to the selected class's starter, appended to the
         // shared owned collection, never touching the real deck. No-op once it has cards.
         StarterDeckLoader.SeedDebugStarterDeck(SaveManager.ActiveSave, school);
     }
@@ -596,8 +596,8 @@ public partial class CombatDebugLauncher : CanvasLayer
             return;
         }
 
-        // Full reset of the scratch collection (separate from the real one) — no
-        // accumulation across resets.
+        // Full reset of the scratch collection (separate from the real one), so there
+        // is no accumulation across resets.
         pd.DebugCards = new List<OwnedCard>();
         pd.DebugDeckInstanceIds = new List<string>();
 
@@ -643,7 +643,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         bool compat = legacy != null && legacy.RealActiveDeckInstanceIds.Count == 3
                       && legacy.DebugDeckInstanceIds.Count == 0;
         GD.Print($"[DeckSplit] round-trip {(ok ? "OK" : "FAIL")}, legacy-compat {(compat ? "OK" : "FAIL")}.");
-        if (!(ok && compat)) GD.PushError("[DeckSplit] Assertion FAILED — deck save split is unsafe.");
+        if (!(ok && compat)) GD.PushError("[DeckSplit] Assertion FAILED. Deck save split is unsafe.");
         return ok && compat;
     }
 

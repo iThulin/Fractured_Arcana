@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // BuildingDefinition.cs
 //
-// Purpose:        Campus building model — identity, tier ladder,
+// Purpose:        Campus building model: identity, tier ladder,
 //                 per-tier costs and effect bonuses. Loaded from
 //                 Data/Buildings/*.json; runtime upgrade state
 //                 lives in GuildSaveData.
@@ -16,7 +16,7 @@ using System.Collections.Generic;
 // ============================================================
 
 /// <summary>One relative hex offset (q, r) in a building's authored footprint, before
-/// rotation/anchor are applied. Godot-free, matching this file's plain-data convention —
+/// rotation/anchor are applied. Godot-free, matching this file's plain-data convention;
 /// CampusGridManager.GetFootprintHexes does the axial math (rotation, anchoring) at the
 /// boundary.</summary>
 public class HexOffset
@@ -25,7 +25,7 @@ public class HexOffset
     public int R = 0;
 }
 
-/// <summary>Defines a campus building — its identity, tier ladder, and current upgrade state. Loaded from Data/Buildings/*.json. Runtime state (CurrentTier, IsUnlocked) lives in GuildSaveData.</summary>
+/// <summary>Defines a campus building: its identity, tier ladder, and current upgrade state. Loaded from Data/Buildings/*.json. Runtime state (CurrentTier, IsUnlocked) lives in GuildSaveData.</summary>
 public class Building
 {
     // ── Identity ────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ public class Building
 
     // ── Footprint (campus hex map) ───────────────────────────────────────
     /// <summary>Hex offsets (relative to the placement anchor, before rotation) this
-    /// building occupies on the campus map. Always includes (0,0) explicitly — there's
+    /// building occupies on the campus map. Always includes (0,0) explicitly. There's
     /// no implicit anchor hex, so a building with no "footprint" key in its JSON gets
     /// this single-hex default automatically and behaves exactly as before. See
     /// campus_siege_and_defense_v1.docx §4-5.</summary>
@@ -50,12 +50,12 @@ public class Building
     /// seeds the entry already built (Tier 1) and sited here at Rotation 0.
     ///
     /// Replaces the old <c>StartsBuiltAtCampusCenter</c> bool, which hardcoded (0,0) and
-    /// therefore could only ever describe ONE building — every additional starting
+    /// therefore could only ever describe ONE building; every additional starting
     /// building would have stacked on the same hex.
     ///
     /// For a NON-foundational building this is applied once, on first creation only, so a
     /// player who later moves or loses it is never overridden back. Foundational buildings
-    /// are re-asserted on every load — see <see cref="IsFoundational"/>.</summary>
+    /// are re-asserted on every load (see <see cref="IsFoundational"/>).</summary>
     public HexOffset StartsBuiltAt = null;
 
     /// <summary>True for the small set of buildings that host a system the player cannot
@@ -70,11 +70,11 @@ public class Building
     /// touch, so a foundational building seeded once already survives cycle resets; the
     /// repair pass is what makes that guarantee hold under damage and schema drift.
     ///
-    /// Requires <see cref="StartsBuiltAt"/> to be set — a foundational building with no
+    /// Requires <see cref="StartsBuiltAt"/> to be set: a foundational building with no
     /// anchor has nowhere to be repaired to, and EnsureBuildings logs an error for it.</summary>
     public bool IsFoundational = false;
 
-    /// <summary>Which campus system clicking this building opens — "guild", "companions",
+    /// <summary>Which campus system clicking this building opens: "guild", "companions",
     /// "expedition", "armory", "deck", or empty for a building that opens nothing.
     ///
     /// Resolved by <see cref="CampusLocationRegistry.ForSystemKey"/>, so adding a door to the
@@ -118,7 +118,7 @@ public class BuildingTier
 
     /// <summary>Flavor name for this tier ("Basic Training Grounds", "The
     /// Unbinding Floor"). The building JSONs have carried "displayName" all
-    /// along — this field just lets the CamelCase loader finally parse it
+    /// along; this field just lets the CamelCase loader finally parse it
     /// (2026-08-13, for the city-view upgrade strip). Empty = untitled tier.</summary>
     public string DisplayName = "";
 
@@ -126,7 +126,7 @@ public class BuildingTier
     public int GoldCost = 100;
 
     /// <summary>Materials cost for this tier. -1 (default/unset) means "derive from
-    /// GoldCost at the standard 3:1 ratio" (see EffectiveMaterialsCost) — so none of
+    /// GoldCost at the standard 3:1 ratio" (see EffectiveMaterialsCost), so none of
     /// the existing Data/Buildings/*.json files need editing. Set explicitly only when
     /// a building should deviate from the standard ratio.</summary>
     public int MaterialsCost = -1;
@@ -136,7 +136,7 @@ public class BuildingTier
     [System.Text.Json.Serialization.JsonIgnore]
     public int EffectiveMaterialsCost => MaterialsCost >= 0 ? MaterialsCost : GoldCost * 3;
 
-    /// <summary>(2026-08-13) Campus-persistent party-size growth — the §4a
+    /// <summary>(2026-08-13) Campus-persistent party-size growth: the §4a
     /// "party-size growth via campus" lever, finally given a home (the Grand
     /// Hall's tiers). Accumulated across built tiers by
     /// BuildingEffectApplier.ApplyCampusEffects onto CycleState.MaxPartySize.</summary>
@@ -152,7 +152,7 @@ public class BuildingTier
     public int BonusNegotiationTokens = 0;  // added to token pool
     public string BonusTokenType = "";       // which token type
 
-    // Scrying Chambers (scrying_chambers_spec_v1). Per-tier DELTAS — CalculateRunBonuses
+    // Scrying Chambers (scrying_chambers_spec_v1). Per-tier DELTAS: CalculateRunBonuses
     // sums tiers 1..current, so author increments, not cumulative totals (spec §4).
     public int RevealPoiCount = 0;           // nearest hidden POIs charted at run start
     public int ChartObjectiveRadius = 0;     // chart radius around the run objective at start

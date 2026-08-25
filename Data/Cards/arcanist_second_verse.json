@@ -8,7 +8,7 @@
 		"name": "Second Verse",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Echo your last-cast spell — it resolves again at full value. Draw 1 card.",
+		"rules_text": "Echo your last-cast spell. It resolves again at full value. Draw 1 card.",
 		"tags": [],
 		"targeting": {
 			"type": "self"

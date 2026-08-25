@@ -6,8 +6,8 @@ using System.Linq;
 // ============================================================
 // CardMasteryService.cs
 //
-// Purpose:        Permanent, per-BLUEPRINT card mastery — casts and
-//                 best tiers reached — on the EternalLedger.
+// Purpose:        Permanent, per-BLUEPRINT card mastery on the
+//                 EternalLedger: casts and best tiers reached.
 //
 //                 Before this, both lived only on OwnedCard, which hangs
 //                 off CycleState.PlayerDeck and is replaced wholesale
@@ -19,7 +19,7 @@ using System.Linq;
 //                     second copy of a card always started at base.
 //
 //                 Knowing a card well is KNOWLEDGE, and knowledge lives in
-//                 the loom (progression_persistence_model_v1 §2 — lore and
+//                 the loom (progression_persistence_model_v1 §2: lore and
 //                 unlocked blueprints were already there for this reason).
 //                 Splinters spent on tiers are still spent per copy; what
 //                 persists is the right to spend them and the ceiling you
@@ -33,9 +33,9 @@ using System.Linq;
 // See:            docs/progression_card_acquisition_v1_2.md
 //
 // ⚠ THIRD "MASTERY" IN THIS CODEBASE. Disambiguate in every comment:
-//     • CardMastery   (this)  — per blueprint, permanent, gates upgrades.
-//     • SchoolMastery         — per school, permanent, gates declaration.
-//     • CastMastery(Tracker)  — the per-copy counter this now shadows.
+//     • CardMastery   (this):  per blueprint, permanent, gates upgrades.
+//     • SchoolMastery:         per school, permanent, gates declaration.
+//     • CastMastery(Tracker):  the per-copy counter this now shadows.
 // ============================================================
 
 /// <summary>
@@ -59,7 +59,7 @@ public static class CardMasteryService
     /// <summary>
     /// Lifetime casts of a blueprint. Takes the max of the permanent record and the
     /// per-copy counter, so a save that predates the permanent record is never
-    /// worse off than it was — its existing OwnedCard.CastCount still counts until
+    /// worse off than it was: its existing OwnedCard.CastCount still counts until
     /// the ledger record overtakes it.
     /// </summary>
     public static int Casts(GuildSaveData save, string blueprintId, int ownedCopyCasts = 0)
@@ -76,7 +76,7 @@ public static class CardMasteryService
 
     /// <summary>
     /// Stamp a copy's tiers into the permanent high-water mark. Call after any
-    /// upgrade purchase. Monotonic — it only ever raises, so disenchanting or
+    /// upgrade purchase. Monotonic: it only ever raises, so disenchanting or
     /// losing the copy never costs the player the ceiling they proved.
     /// </summary>
     public static void RecordTiers(GuildSaveData save, OwnedCard owned)

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 //                 distance to each chunk and thins far chunks by lowering
 //                 MultiMesh.VisibleInstanceCount. Because the spawner
 //                 SHUFFLES each chunk's instance buffer, any prefix of it
-//                 is a spatially uniform subsample — so lowering the
+//                 is a spatially uniform subsample, so lowering the
 //                 visible count thins the chunk evenly instead of erasing
 //                 whole tiles off the buffer tail.
 // Layer:          Combat / Terrain
@@ -23,7 +23,7 @@ using System.Collections.Generic;
 //   d <= FullDistance                : 100% of blades (VisibleInstanceCount -1)
 //   FullDistance < d < EndDistance   : lerp 100% -> MinFraction
 //   d >= EndDistance                 : 0 blades. EndDistance must be >= the
-//                                      grass material's fade_end — the dither
+//                                      grass material's fade_end. The dither
 //                                      fade has fully dissolved blades by
 //                                      then, so the zero cut is invisible.
 //
@@ -95,7 +95,7 @@ public partial class GrassLodController : Node
             if (!IsInstanceValid(e.Mmi))
                 continue;
 
-            // Distance to the chunk's closest point, not its centre — a chunk
+            // Distance to the chunk's closest point, not its centre. A chunk
             // whose near edge is under the camera must never get thinned as if
             // it were centre-distance away.
             Vector3 nearest = new Vector3(

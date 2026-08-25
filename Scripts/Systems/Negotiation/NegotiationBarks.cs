@@ -7,9 +7,9 @@
 //                 flavored by the NPC's current stance; the NPC's
 //                 turn and stance changes bark from here too.
 //                 One table serves both the action UI (Phase 3b)
-//                 and the log (Phase 4) — written once, per the
+//                 and the log (Phase 4), written once, per the
 //                 redesign doc.
-// Layer:          Data (content only — no state)
+// Layer:          Data (content only, no state)
 // Collaborators:  NegotiationState.cs (NPC-turn barks),
 //                 NegotiationManager.cs (spoken-move buttons)
 // See:            negotiation_redesign_v1.md §3c, Phase 3b
@@ -17,7 +17,7 @@
 
 /// <summary>Static content tables for the v2 negotiation: spoken-move lines
 /// (token × stance, with "{term}" substituted), stance tells, NPC-turn barks,
-/// and squeeze lines. Pure lookup — no game state.</summary>
+/// and squeeze lines. Pure lookup, no game state.</summary>
 public static class NegotiationBarks
 {
     // ── Stance tells (portrait caption / log line on stance change) ──────
@@ -28,11 +28,11 @@ public static class NegotiationBarks
         return (a, s) switch
         {
             (NpcArchetypeType.Merchant,    NpcStance.Eager)     => "Their eyes keep drifting to your coin purse.",
-            (NpcArchetypeType.Commander,   NpcStance.Eager)     => "They lean over the map — they want what you're offering.",
+            (NpcArchetypeType.Commander,   NpcStance.Eager)     => "They lean over the map. They want what you're offering.",
             (NpcArchetypeType.Scholar,     NpcStance.Eager)     => "They've stopped pretending not to be curious.",
             (NpcArchetypeType.Opportunist, NpcStance.Eager)     => "They're already counting their cut of something.",
             (NpcArchetypeType.Idealist,    NpcStance.Eager)     => "Hope, plain and unguarded, crosses their face.",
-            (NpcArchetypeType.Survivor,    NpcStance.Eager)     => "For a moment the wariness lifts — they NEED this.",
+            (NpcArchetypeType.Survivor,    NpcStance.Eager)     => "For a moment the wariness lifts. They NEED this.",
             (_,                            NpcStance.Eager)     => "They lean in, appetite plain on their face.",
             (NpcArchetypeType.Commander,   NpcStance.Guarded)   => "Parade rest. They're giving you nothing.",
             (NpcArchetypeType.Opportunist, NpcStance.Guarded)   => "The easy patter stops. They're recalculating you.",
@@ -65,14 +65,14 @@ public static class NegotiationBarks
                 {
                     NpcStance.Eager     => "“Profit shared with a friend is profit twice.” You smile like you mean it.",
                     NpcStance.Guarded   => "“You keep your cards close. I respect that too much to bluff you.”",
-                    NpcStance.Wavering  => "“You already know these terms are fair — I can see it.” You hold their gaze, warm and steady.",
-                    NpcStance.Irritated => "“Come now — surely we're past bristling at one another.”",
-                    _                   => "You raise the cup they poured. “To long associations — and to the {term}.”",
+                    NpcStance.Wavering  => "“You already know these terms are fair. I can see it.” You hold their gaze, warm and steady.",
+                    NpcStance.Irritated => "“Come now. Surely we're past bristling at one another.”",
+                    _                   => "You raise the cup they poured. “To long associations, and to the {term}.”",
                 };
             case LeverageToken.Persuade:
                 return stance switch
                 {
-                    NpcStance.Eager     => "“Run the numbers yourself — the {term} pays you better my way.”",
+                    NpcStance.Eager     => "“Run the numbers yourself. The {term} pays you better my way.”",
                     NpcStance.Guarded   => "You lay the argument out plainly, point by point, nothing hidden.",
                     NpcStance.Wavering  => "“You've half-agreed already. Let me give you the other half.”",
                     NpcStance.Irritated => "“Forget the rhetoric. Here is why the {term} is wrong as written.”",
@@ -85,7 +85,7 @@ public static class NegotiationBarks
                     NpcStance.Guarded   => "“The guild's word is good. Ask anyone whose word YOU trust.”",
                     NpcStance.Wavering  => "“Half the Exchange has signed with us already. You'd be in fine company.”",
                     NpcStance.Irritated => "“I was warned you drive hard bargains. I was also told you were fair.”",
-                    _                   => "“We already share friends — and friends share terms.”",
+                    _                   => "“We already share friends, and friends share terms.”",
                 };
             case LeverageToken.Intimidate:
                 return stance switch
@@ -97,7 +97,7 @@ public static class NegotiationBarks
             case LeverageToken.Demonstration:
                 return stance switch
                 {
-                    NpcStance.Guarded   => "A flick of your fingers — the candleflames bend toward you and hold there.",
+                    NpcStance.Guarded   => "A flick of your fingers, and the candleflames bend toward you and hold there.",
                     NpcStance.Eager     => "You let a sliver of the guild's power play across your knuckles. “This is what you'd be buying.”",
                     _                   => "You demonstrate, briefly and precisely, why guild wizards are worth their fee.",
                 };
@@ -107,11 +107,11 @@ public static class NegotiationBarks
                     NpcStance.Eager     => "You open the lacquered case slowly, letting the contents catch the light. “A sample of what partnership yields.”",
                     NpcStance.Guarded   => "You slide the case across without ceremony. “No strings. Weigh it yourself.”",
                     NpcStance.Wavering  => "“Perhaps this settles the doubt.” You push the case gently across the table.",
-                    NpcStance.Irritated => "“A gesture of good faith — and no more words until you've seen it.”",
-                    _                   => "“A gift between friends, then — and friends talk the {term} honestly.”",
+                    NpcStance.Irritated => "“A gesture of good faith, and no more words until you've seen it.”",
+                    _                   => "“A gift between friends, then, and friends talk the {term} honestly.”",
                 };
             case LeverageToken.Insight:
-                return "You say nothing for a moment — just watch their hands, their eyes, the set of their jaw.";
+                return "You say nothing for a moment. You just watch their hands, their eyes, the set of their jaw.";
             case LeverageToken.Patience:
                 return "You refill their cup, sit back, and let the moment stretch.";
             default:
@@ -121,13 +121,13 @@ public static class NegotiationBarks
 
     /// <summary>Insight's other use has its own line (flip vs read).</summary>
     public const string InsightFlipLine =
-        "“And this clause, face-down at your elbow — shall we read it together?” You tap the hidden parchment.";
+        "“And this clause, face-down at your elbow. Shall we read it together?” You tap the hidden parchment.";
 
     // ── Mechanical previews (shown under each spoken line) ───────────────
 
     public static string PressPreview(NpcStance s) => s switch
     {
-        NpcStance.Irritated => "Badly timed — in this mood it will backfire and only raise the tension.",
+        NpcStance.Irritated => "Badly timed. In this mood it will backfire and only raise the tension.",
         NpcStance.Wavering  => "They're wavering: the clause moves your way and the room cools further.",
         NpcStance.Guarded   => "The clause moves your way, but they resent the pressure and tension climbs.",
         NpcStance.Expansive => "The clause moves your way, and the warmth in the room deepens.",
@@ -136,9 +136,9 @@ public static class NegotiationBarks
 
     public static string OfferPreview(NpcStance s, string resolveName) => s switch
     {
-        NpcStance.Eager   => $"They're eager — the clause jumps two steps your way and tension falls, though the gift feeds their {resolveName}.",
+        NpcStance.Eager   => $"They're eager. The clause jumps two steps your way and tension falls, though the gift feeds their {resolveName}.",
         NpcStance.Guarded => $"They pocket it coldly: the clause moves your way, but you earn no warmth and their {resolveName} still grows.",
-        _                 => $"The clause moves your way and tension eases — but the gift feeds their {resolveName}.",
+        _                 => $"The clause moves your way and tension eases, but the gift feeds their {resolveName}.",
     };
 
     public const string InsightFlipPreview =
@@ -146,16 +146,16 @@ public static class NegotiationBarks
     public const string InsightReadPreview =
         "Reads how their mood will turn next.";
     public const string PatiencePreview =
-        "The moment stretches — their patience holds, they make no move, and their mood shifts.";
+        "The moment stretches. Their patience holds, they make no move, and their mood shifts.";
 
     // ── Player-move resolution barks (how it landed) ─────────────────────
 
     public static string PressResolution(NpcStance s, bool backfired) =>
         backfired
-            ? "Badly timed. Their eyes narrow — you've pressed a raw nerve."
+            ? "Badly timed. Their eyes narrow. You've pressed a raw nerve."
             : s switch
             {
-                NpcStance.Wavering  => "It lands while they waver — they give ground, and the air softens.",
+                NpcStance.Wavering  => "It lands while they waver. They give ground, and the air softens.",
                 NpcStance.Guarded   => "They concede the point, but resent the pressure. The room cools.",
                 NpcStance.Expansive => "They laugh and wave the clause your way. “For a friend of the table!”",
                 _                   => "The clause shifts your way.",
@@ -163,16 +163,16 @@ public static class NegotiationBarks
 
     public static string OfferResolution(NpcStance s, string resolveName) => s switch
     {
-        NpcStance.Eager   => $"Their eyes light up — an eager moment, and the goods vanish quickly. (Their {resolveName} grows.)",
-        NpcStance.Guarded => $"They pocket it without a flicker of thanks. (Their {resolveName} grows — and you got no warmth for it.)",
-        _                 => $"A tangible offer — this they can work with. (Their {resolveName} grows.)",
+        NpcStance.Eager   => $"Their eyes light up. An eager moment, and the goods vanish quickly. (Their {resolveName} grows.)",
+        NpcStance.Guarded => $"They pocket it without a flicker of thanks. (Their {resolveName} grows, and you got no warmth for it.)",
+        _                 => $"A tangible offer. This they can work with. (Their {resolveName} grows.)",
     };
 
     // ── NPC-turn barks ────────────────────────────────────────────────────
 
     public static string NpcPullBark(NpcArchetypeType a, string termName, bool hard)
     {
-        string tail = hard ? " — hard, while the mood is ugly" : "";
+        string tail = hard ? ", hard, while the mood is ugly" : "";
         return a switch
         {
             NpcArchetypeType.Merchant    => $"They tap the {termName} and slide it back toward themselves{tail}. “My costs, you understand.”",
@@ -189,10 +189,10 @@ public static class NegotiationBarks
     {
         return a switch
         {
-            NpcArchetypeType.Merchant    => $"“Ah — did I mention the {termName} carries a handling clause? Standard practice.”",
+            NpcArchetypeType.Merchant    => $"“Ah. Did I mention the {termName} carries a handling clause? Standard practice.”",
             NpcArchetypeType.Commander   => $"“And the {termName} will be on MY schedule, not yours.”",
             NpcArchetypeType.Opportunist => $"“Small print on the {termName}, nothing to worry about.” Their smile says otherwise.",
-            NpcArchetypeType.Scholar     => $"“Per the standard Warden rider — which the {termName} incorporates by reference, naturally.”",
+            NpcArchetypeType.Scholar     => $"“Per the standard Warden rider, which the {termName} incorporates by reference, naturally.”",
             NpcArchetypeType.Idealist    => $"“And the {termName} must be sworn before witnesses. All of them.”",
             NpcArchetypeType.Survivor    => $"“The {termName} happens on my terms, my route, my hours. Non-negotiable.”",
             _                            => $"They rework the {termName} while you're mid-sentence.",
@@ -203,7 +203,7 @@ public static class NegotiationBarks
     {
         NpcArchetypeType.Merchant    => "“I hear your rivals pay better for this sort of arrangement…” They let the threat hang.",
         NpcArchetypeType.Commander   => "“I have other ways of resolving jurisdiction problems.”",
-        NpcArchetypeType.Opportunist => "“Be a shame if certain people learned your route. Anyway — where were we?”",
+        NpcArchetypeType.Opportunist => "“Be a shame if certain people learned your route. Anyway. Where were we?”",
         NpcArchetypeType.Idealist    => "“The Circle will hear how the guild bargains with the desperate. All of it.”",
         NpcArchetypeType.Survivor    => "The crossbow shifts, not quite at you. Not quite away, either.",
         _                            => "They let a pointed silence do the threatening for them.",
@@ -221,12 +221,12 @@ public static class NegotiationBarks
 
     public static string NpcGiftBark(NpcArchetypeType a, LeverageToken gift) => a switch
     {
-        NpcArchetypeType.Merchant    => $"They push a token of goodwill across the table — +1 {gift}. “To a long association.”",
-        NpcArchetypeType.Scholar     => $"“You argue well. Here — something I noticed that may help us both.” +1 {gift}.",
+        NpcArchetypeType.Merchant    => $"They push a token of goodwill across the table: +1 {gift}. “To a long association.”",
+        NpcArchetypeType.Scholar     => $"“You argue well. Here, something I noticed that may help us both.” +1 {gift}.",
         NpcArchetypeType.Opportunist => $"“On the house. First one always is.” +1 {gift}.",
         NpcArchetypeType.Idealist    => $"“The road is kinder when walked together.” +1 {gift}.",
-        NpcArchetypeType.Survivor    => $"They hand you something without a word — out here, that means everything. +1 {gift}.",
-        _                            => $"A gesture of goodwill crosses the table — +1 {gift}.",
+        NpcArchetypeType.Survivor    => $"They hand you something without a word. Out here, that means everything. +1 {gift}.",
+        _                            => $"A gesture of goodwill crosses the table: +1 {gift}.",
     };
 
     public static string NpcHoldBark(NpcArchetypeType a) => a switch
@@ -244,13 +244,13 @@ public static class NegotiationBarks
 
     public static string SqueezeOpen(NpcArchetypeType a, string termName) => a switch
     {
-        NpcArchetypeType.Merchant    => $"They take your hand — and hold it, smiling. “One amendment, and we're done: the {termName} tilts a little my way. Between partners, surely that's nothing.”",
+        NpcArchetypeType.Merchant    => $"They take your hand, and hold it, smiling. “One amendment, and we're done: the {termName} tilts a little my way. Between partners, surely that's nothing.”",
         NpcArchetypeType.Commander   => $"They grip your hand and don't let go. “One condition. The {termName}, on my terms. Then we're done.”",
-        NpcArchetypeType.Scholar     => $"“Before we sign — an erratum.” The pen hovers over the {termName}. “Purely editorial, you understand.”",
-        NpcArchetypeType.Opportunist => $"They shake warmly — and you feel the {termName} shift somewhere in the fine print. “Standard closing adjustment. Everyone does it.”",
-        NpcArchetypeType.Idealist    => $"They hold your hand in both of theirs. “One more kindness — the {termName}, for the ones who need it. You won't miss it.”",
+        NpcArchetypeType.Scholar     => $"“Before we sign, an erratum.” The pen hovers over the {termName}. “Purely editorial, you understand.”",
+        NpcArchetypeType.Opportunist => $"They shake warmly, and you feel the {termName} shift somewhere in the fine print. “Standard closing adjustment. Everyone does it.”",
+        NpcArchetypeType.Idealist    => $"They hold your hand in both of theirs. “One more kindness. The {termName}, for the ones who need it. You won't miss it.”",
         NpcArchetypeType.Survivor    => $"They pause mid-shake, grip tightening. “The {termName}. Sweeten it. Then we're square.”",
-        _                            => $"They clasp your hand — and hold it. “One last adjustment to the {termName}. A trifle.”",
+        _                            => $"They clasp your hand, and hold it. “One last adjustment to the {termName}. A trifle.”",
     };
 
     public const string SqueezeBlink =
@@ -262,13 +262,13 @@ public static class NegotiationBarks
 
     public static string SchoolMoveLine(CardSchool s) => s switch
     {
-        CardSchool.Adept        => "You adapt, the way students of every school learn to — improvising leverage from nothing.",
+        CardSchool.Adept        => "You adapt, the way students of every school learn to, improvising leverage from nothing.",
         CardSchool.Elementalist => "You open one hand. The candleflames roar to the ceiling and hold there, burning cold. The table goes very quiet.",
         CardSchool.Druid        => "You breathe out, and something green and patient enters the room. Shoulders lower. The air sweetens.",
         CardSchool.Necromancer  => "You tilt your head, listening to someone who isn't there. The dead have sat at this table before.",
-        CardSchool.Tinker       => "Your hands are already working — a whir, a click — and something small and marvelous sits on the felt.",
+        CardSchool.Tinker       => "Your hands are already working. A whir, a click, and something small and marvelous sits on the felt.",
         CardSchool.Enchanter    => "You murmur three syllables under your breath, and their mood turns like a key in a lock.",
-        CardSchool.Arcanist     => "The pattern of them unfolds before you — every tell, every tic, indexed and cross-referenced.",
+        CardSchool.Arcanist     => "The pattern of them unfolds before you: every tell, every tic, indexed and cross-referenced.",
         CardSchool.Chronomancer => "You reach back through the last few seconds and pull. The words unhappen. Only you remember.",
         _                       => "You reach for your school's deeper art.",
     };

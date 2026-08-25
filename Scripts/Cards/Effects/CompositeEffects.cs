@@ -5,8 +5,8 @@ using Godot;
 // ============================================================
 // CompositeEffects.cs
 //
-// Purpose:        Core composite effects — Sequence, Conditional,
-//                 ForEachTarget, Retarget, Push/PullDamage — plus
+// Purpose:        Core composite effects (Sequence, Conditional,
+//                 ForEachTarget, Retarget, Push/PullDamage) plus
 //                 shared element-tile utilities (ImbuePath,
 //                 ImbueArea, ConsumeElementTile). School capstones
 //                 (Cataclysm, Ragnarok, Terraform, etc.) now live
@@ -22,7 +22,7 @@ using Godot;
 //                 JsonCardLoader.cs (RegisterBuiltins maps JSON
 //                 type strings to these classes),
 //                 GameState.cs, ElementalAttunement.cs
-// See:            README §5.4 — Composite Effects
+// See:            README §5.4, Composite Effects
 // ============================================================
 
 /// <summary>Resolves a list of child effects in order, threading the resulting <see cref="EffectResult"/> from each step into the next via <c>PredicateContext.LastResult</c>. The result of the final step is returned to the parent.</summary>
@@ -64,7 +64,7 @@ public sealed class SequenceEffect : EffectBase
             // request's continuation and stop here.
             //
             // Without this, `[scry, draw]` would draw before the player had chosen
-            // what to keep — and five of the nine authored scry sequences have steps
+            // what to keep, and five of the nine authored scry sequences have steps
             // after the scry. The alternative was a rule that a choice must be the
             // last step of its sequence, enforced in the loader; that is a constraint
             // on the CONTENT to work around a limitation of the CODE, and it would be
@@ -85,20 +85,20 @@ public sealed class SequenceEffect : EffectBase
 }
 
 /// <summary>
-/// Choose One — the cast-time modal (2026-07-29). Holds N option effects; exactly one
+/// Choose One, the cast-time modal (2026-07-29). Holds N option effects; exactly one
 /// resolves, selected by <see cref="EffectSnapshot.ChosenOption"/>, which CombatManager
 /// sets from a mode picker BEFORE the cast is paid.
 ///
 /// This is deliberately NOT a post-cast continuation. Both options are printed on the
-/// card, so the information the player needs exists at cast time — by the bucket test
+/// card, so the information the player needs exists at cast time. By the bucket test
 /// (post_cast_choice_v1 §1) that makes it an input-layer choice: the pick is public
 /// when the spell goes on the stack (a Reaction can respond to the chosen mode), the
 /// preview can model the chosen mode, and cancelling is free because nothing has been
 /// paid. The index rides the snapshot so a Reaction cast while this waits on the
 /// stack cannot clobber it.
 ///
-/// With no pick recorded (AI cast, headless test), option 0 — the FIRST authored
-/// option, by convention the safest — resolves, and the log says so.
+/// With no pick recorded (AI cast, headless test), option 0 (the FIRST authored
+/// option, by convention the safest) resolves, and the log says so.
 /// JSON: { "type": "choose_one", "options": [
 ///          { "label": "...", "description": "...", "effect": {...} }, ... ] }
 /// </summary>
@@ -113,15 +113,15 @@ public sealed class ChooseOneEffect : EffectBase
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         if (Options.Length == 0)
-        { s?.Log("[ChooseOne] no options authored — no-op."); return; }
+        { s?.Log("[ChooseOne] no options authored; no-op."); return; }
 
         int idx = snap?.ChosenOption ?? -1;
         if (idx < 0 || idx >= Options.Length)
         {
             if (idx != -1)
-                s?.Log($"[ChooseOne] option {idx} out of range — using option 0.");
+                s?.Log($"[ChooseOne] option {idx} out of range; using option 0.");
             else
-                s?.Log($"[ChooseOne] no mode was picked (AI/headless) — using option 0" +
+                s?.Log($"[ChooseOne] no mode was picked (AI/headless); using option 0" +
                        (Labels.Length > 0 ? $" ({Labels[0]})." : "."));
             idx = 0;
         }
@@ -219,7 +219,7 @@ public sealed class PushDamageEffect : EffectBase
 
     /// <summary>Aimed mode (2026-07-29): with a `unit_then_direction` targeter, the
     /// TargetSet arrives as [victim, aim-tile] and the shove walks the CHOSEN axis
-    /// instead of away-from-caster — Gore hurls the boar's victim where the player
+    /// instead of away-from-caster: Gore hurls the boar's victim where the player
     /// points it, which is the entire reason to cast Gore next to a wall. Falls back
     /// to the derived direction when no aim tile is present, so the same effect class
     /// serves both authorings.</summary>
@@ -241,7 +241,7 @@ public sealed class PushDamageEffect : EffectBase
             return;
 
         // Aimed: [victim, tile] via the shared TwoStep reader; the aim tile is the
-        // direction, not the landing spot — same convention as PushAimedEffect.
+        // direction, not the landing spot; same convention as PushAimedEffect.
         Vector2I? aimedDir = null;
         if (Aimed && TwoStep.Read(s, targets, "PushDamage", out var aimedVictim, out var aimTile))
         {
@@ -547,7 +547,7 @@ public sealed class ImbuePathEffect : EffectBase
 
         casterUnit.OnTileLeft += onLeave;
 
-        // Grant the movement (movespeed currency — read by EffectiveMovement)
+        // Grant the movement (movespeed currency, read by EffectiveMovement)
         casterUnit.Stats.BonusMoveRange += MoveTiles;
         s.Log($"[ImbuePath] {casterUnit.Name} gains +{MoveTiles} move range this turn. Tiles left behind will be imbued with {Element}.");
 

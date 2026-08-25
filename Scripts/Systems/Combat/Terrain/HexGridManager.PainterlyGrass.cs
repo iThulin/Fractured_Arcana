@@ -22,7 +22,7 @@ using System.Collections.Generic;
 //
 // All [Export] fields carry /// XML doc summaries so they show as
 // tooltips in the Godot inspector. (Requires the project to generate
-// the XML documentation file — GenerateDocumentationFile in the .csproj.
+// the XML documentation file: GenerateDocumentationFile in the .csproj.
 // If your already-commented exports show tooltips, this is already on.)
 //
 // INTEGRATION: one line at the tail of GenerateMap(), after
@@ -43,7 +43,7 @@ public partial class HexGridManager : Node3D
     /** Fallback load path for the grass shader, used only when PainterlyGrassShader is null. */
     [Export] public string PainterlyGrassShaderPath = "res://Assets/Shaders/painterly_grass.gdshader";
 
-    /** Explicit grass material. If set, it is used AS-IS — the automatic wind_noise injection is skipped, so you must set the shader's wind_noise slot yourself on this material. Leave null to let the builder create one and wire wind_noise for you. */
+    /** Explicit grass material. If set, it is used AS-IS: the automatic wind_noise injection is skipped, so you must set the shader's wind_noise slot yourself on this material. Leave null to let the builder create one and wire wind_noise for you. */
     [Export] public Material PainterlyGrassMaterial;
 
     /** Weighted mesh palette. Add GrassMeshVariant entries to mix blade shapes; each blade picks one at random by Weight (filtered by terrain eligibility). Empty = fall back to PainterlyGrassMesh (or the procedural blade). Each variant is a separate draw call, so keep this to a few. */
@@ -52,7 +52,7 @@ public partial class HexGridManager : Node3D
     /** Single fallback blade mesh, used only when GrassMeshVariants is empty. If this is also null, a procedural two-quad blade is built at GrassBladeHeight. */
     [Export] public Mesh PainterlyGrassMesh;
 
-    /** Print per-variant blade counts to the output log after each spawn — handy for confirming your Weight ratios produced the blade distribution you expected. */
+    /** Print per-variant blade counts to the output log after each spawn. Handy for confirming your Weight ratios produced the blade distribution you expected. */
     [Export] public bool GrassDebugLog = false;
 
     /** Overall blade scale multiplier (applied to both width and height, before per-variant scale and per-blade jitter). */
@@ -94,7 +94,7 @@ public partial class HexGridManager : Node3D
     /** Camera distance up to which a chunk draws 100% of its blades. Keep at or below the grass material's fade_start so LOD thinning hides inside the dither fade. */
     [Export(PropertyHint.Range, "4,80,1")] public float GrassLodFullDistance = 24f;
 
-    /** Camera distance at which a chunk draws ZERO blades. MUST be >= the grass material's fade_end — the dither fade has fully dissolved blades by then, so culling them is visually free. */
+    /** Camera distance at which a chunk draws ZERO blades. MUST be >= the grass material's fade_end: the dither fade has fully dissolved blades by then, so culling them is visually free. */
     [Export(PropertyHint.Range, "8,120,1")] public float GrassLodEndDistance = 55f;
 
     /** Blade-fraction floor a chunk tapers to as it approaches GrassLodEndDistance (before the zero cut). */
@@ -169,7 +169,7 @@ public partial class HexGridManager : Node3D
         // N×N-tile block; each non-empty (chunk, variant) pair becomes its own
         // MultiMeshInstance3D with a tight CustomAabb, so offscreen chunks
         // frustum-cull for real and the LOD controller can thin far chunks.
-        // NOTE: bucketing by tile does NOT change any RNG draw order — blade
+        // NOTE: bucketing by tile does NOT change any RNG draw order; blade
         // positions stay byte-identical for a given MapSeed.
         int chunkSpan = Mathf.Max(1, GrassChunkTiles);
         var chunkBuckets = new Dictionary<Vector2I, List<Transform3D>[]>();
@@ -191,7 +191,7 @@ public partial class HexGridManager : Node3D
 
         // Eligible variant indices per terrain. Weights are now POSITION-
         // dependent (clump gating), so the cumulative table can't be precomputed
-        // here — only the eligible set is. Falls back to ALL variants if a
+        // here; only the eligible set is. Falls back to ALL variants if a
         // terrain's eligible subset is empty, so grass never silently vanishes.
         int[] BuildPickerIds(System.Func<int, bool> eligible)
         {
@@ -250,7 +250,7 @@ public partial class HexGridManager : Node3D
         // gate ~1 (full weight), outside it ~0 (absent), blended by ClumpInfluence.
         // A flat (ClumpInfluence == 0) variant keeps its constant weight and so
         // fills wherever the gated variants drop out. Uses a SINGLE variantRng
-        // draw per call, identical to before when no variant clumps — so existing
+        // draw per call, identical to before when no variant clumps, so existing
         // seeds keep byte-identical variant assignment until clumping is enabled.
         int PickVariant(bool isForest, float wx, float wz)
         {
@@ -336,7 +336,7 @@ public partial class HexGridManager : Node3D
             for (int k = 0; k < 6; k++)
             {
                 var nc = tile.Axial + HexDirs[k];
-                var nt = GetTileOrVista(nc); // vista counts — blades bleed into the surround
+                var nt = GetTileOrVista(nc); // vista counts: blades bleed into the surround
                 nbrGrass[k] = nt != null && nt.TileView != null && !nt.IsBlocked && IsGrassy(nt);
             }
 
@@ -430,7 +430,7 @@ public partial class HexGridManager : Node3D
 
         Node parent = PropParent ?? this;
 
-        // Per-instance mesh height is ALWAYS written (cheap — 16 bytes/instance)
+        // Per-instance mesh height is ALWAYS written (cheap, 16 bytes/instance)
         // so stiffness_from_instance_height works regardless of variant count or
         // a null/empty palette slot. Gating this on variantCount once silently
         // disabled instance-height mode whenever a slot was empty -> never again.
@@ -468,8 +468,8 @@ public partial class HexGridManager : Node3D
                     continue;
 
                 // Deterministic per-chunk shuffle of the instance buffer, so any
-                // PREFIX of it is a spatially uniform subsample of the chunk —
-                // that is what lets the LOD controller thin a chunk just by
+                // PREFIX of it is a spatially uniform subsample of the chunk.
+                // That is what lets the LOD controller thin a chunk just by
                 // lowering VisibleInstanceCount. Positions are untouched. Only
                 // safe because the grass shader is OPAQUE (v7.2): draw order
                 // within the buffer no longer affects the image.
@@ -490,7 +490,7 @@ public partial class HexGridManager : Node3D
 
                 // Object-space height of THIS variant's mesh. Written per-instance
                 // (custom-data .r) so the shader can normalise the height gradient
-                // PER MESH — a tall and a short mesh each get a correct 0->1 ramp.
+                // PER MESH, so a tall and a short mesh each get a correct 0->1 ramp.
                 // Also drives the AABB padding below so tall meshes get a tall box.
                 float meshHeight = meshes[v].GetAabb().Size.Y;
                 if (meshHeight <= 0.0001f)
@@ -528,7 +528,7 @@ public partial class HexGridManager : Node3D
                 // Godot's auto-computed MultiMesh AABB is unreliable for world-space
                 // scattered grass (whole field culls as one unit on a small camera
                 // turn), so bounds are built from the actual instance origins. The
-                // grow margin covers blade height × jitter plus wind sway — kept
+                // grow margin covers blade height × jitter plus wind sway, kept
                 // TIGHT here (unlike the old map-wide box) so chunk frustum culling
                 // and LOD distances stay accurate.
                 Vector3 mn = list[0].Origin;

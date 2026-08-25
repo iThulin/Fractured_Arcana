@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ImbuementOverlay.cs
 //
 // Purpose:        Visual child of HexTile that renders the
-//                 elemental imbuement effect — a coloured aura
+//                 elemental imbuement effect: a coloured aura
 //                 column rising from the tile plus a bobbing
 //                 glyph hovering above it. Driven by element
 //                 enum, tinted via shader parameters.
@@ -13,7 +13,7 @@ using System.Collections.Generic;
 // Collaborators:  HexTile.cs (parent; lazy-instantiates this),
 //                 UITheme.cs (per-element tint colors),
 //                 TileData.cs (TileElementType enum)
-// See:            README §6 — Elemental Attunement (for the
+// See:            README §6, Elemental Attunement (for the
 //                 element-to-gameplay mapping this visualizes)
 // ============================================================
 
@@ -36,7 +36,7 @@ public partial class ImbuementOverlay : Node3D
     /// Vertical multiplier on the elemental form. 1.0 = the heights authored in
     /// ImbuementForms' table (Fire 0.92 down to Water 0.20). This USED to be an absolute
     /// column height in world units; it is a multiplier now because the form's height is
-    /// part of its identity — a fire and a puddle should not be the same size.
+    /// part of its identity. A fire and a puddle should not be the same size.
     /// </summary>
     [Export] public float AuraHeight = 1.0f;
 
@@ -59,7 +59,7 @@ public partial class ImbuementOverlay : Node3D
     /// <summary>Fraction of a stone's window spent straining underground before it breaks through. The anticipation is what makes the launch read as force rather than as a lift.</summary>
     [Export] public float RockRumbleFraction = 0.38f;
 
-    /// <summary>Lateral shudder while straining, world units. Small — this is a heavy object failing to move, not a vibrating one.</summary>
+    /// <summary>Lateral shudder while straining, world units. Small, because this is a heavy object failing to move, not a vibrating one.</summary>
     [Export] public float RockRumbleAmount = 0.035f;
 
     /// <summary>How far past its resting height a stone throws itself, as a fraction of its burial depth. It falls back and beds down after.</summary>
@@ -68,7 +68,7 @@ public partial class ImbuementOverlay : Node3D
     /// <summary>
     /// Shudder frequency, radians per unit of rise time. Divide by RockRiseSeconds for Hz:
     /// 52 over 1.15 s is about 7 Hz, which is a heavy thing grinding. The first pass ran
-    /// at 95 (~13 Hz) and read as a buzz — mass is carried by LOW frequency, and a rock
+    /// at 95 (~13 Hz) and read as a buzz. Mass is carried by LOW frequency, and a rock
     /// that vibrates is a small rock.
     /// </summary>
     [Export] public float RockRumbleFreq = 52f;
@@ -95,8 +95,8 @@ public partial class ImbuementOverlay : Node3D
     private float _tileTopY = 0.0f;
 
     /// <summary>
-    /// Boulder scatter for prop-based imbuements (Earth). One node per distinct mesh —
-    /// a MultiMesh holds exactly one — because seven copies of a single rock, however
+    /// Boulder scatter for prop-based imbuements (Earth). One node per distinct mesh
+    /// (a MultiMesh holds exactly one), because seven copies of a single rock, however
     /// rotated, reads as a stamp rather than as rubble.
     /// </summary>
     private readonly List<MultiMeshInstance3D> _rockNodes = new();
@@ -115,7 +115,7 @@ public partial class ImbuementOverlay : Node3D
 
     /// <summary>
     /// The grid that owns this tile, cached on first use. Everything about the rock
-    /// look — pool, material, scale, sink, tilt — is configured on it, so the imbued
+    /// look (pool, material, scale, sink, tilt) is configured on it, so the imbued
     /// tile's boulders match the map's own by construction instead of by matching
     /// numbers in two places.
     /// </summary>
@@ -238,7 +238,7 @@ public partial class ImbuementOverlay : Node3D
 
         foreach (var n in _rockNodes)
         {
-            // Rocks take FormScale on all three axes, NOT AuraHeight — that export
+            // Rocks take FormScale on all three axes, NOT AuraHeight. That export
             // stretches the shard forms, and a stretched boulder stops looking like
             // a rock the instant it is not uniform.
             var rp = n.Position;
@@ -315,14 +315,14 @@ public partial class ImbuementOverlay : Node3D
     }
 
     /// <summary>
-    /// Swaps in the element's silhouette — flames, crystals, plates, ribbons — built
+    /// Swaps in the element's silhouette (flames, crystals, plates, ribbons), built
     /// procedurally by <see cref="ImbuementForms"/>.
     ///
     /// A null form means "keep the mesh already there", never "show nothing": which
     /// element a tile carries is targetable, consumable gameplay state, and a tile with no
     /// marker at all is a gameplay bug rather than a cosmetic one. The surface override
-    /// material set in _Ready survives the mesh swap — it is held by the MeshInstance3D,
-    /// not by the Mesh resource — so the per-tile tint and element id are not disturbed.
+    /// material set in _Ready survives the mesh swap. It is held by the MeshInstance3D,
+    /// not by the Mesh resource, so the per-tile tint and element id are not disturbed.
     /// </summary>
     private void ApplyElementalForm(TileElementType element)
     {
@@ -331,7 +331,7 @@ public partial class ImbuementOverlay : Node3D
         // Prop elements (Earth) are PLACED, not drawn: real boulders from the
         // painterly rock pool, lit and shadowed by the same passes as every other
         // rock on the board. The shard form and the rock form are mutually
-        // exclusive, and BOTH are hidden/shown every time — leaving the loser
+        // exclusive, and BOTH are hidden/shown every time. Leaving the loser
         // visible is how a tile ends up wearing two elements at once.
         bool useRocks = ImbuementRocks.HasRockForm(element);
         var scatter = useRocks ? ImbuementRocks.Build(element, GetInstanceId(), Grid) : null;
@@ -356,7 +356,7 @@ public partial class ImbuementOverlay : Node3D
             Bind(_debrisNodes, scatter.Debris, rockMat, aabb);
 
             // Push the rune clear of the stones. TopY is MEASURED from the meshes' own
-            // AABBs, not estimated — the first pass left the rune at its usual height
+            // AABBs, not estimated. The first pass left the rune at its usual height
             // and it ended up buried in the rubble, which loses the one thing keeping
             // Earth in the same family as the other seven elements.
             _glyphLift = Mathf.Max(0f, scatter.TopY * FormScale + GlyphRockClearance - GlyphBaseHeight);
@@ -391,7 +391,7 @@ public partial class ImbuementOverlay : Node3D
     }
 
     /// <summary>
-    /// Grows the pool of scatter nodes to <paramref name="want"/>. Nodes are never freed —
+    /// Grows the pool of scatter nodes to <paramref name="want"/>. Nodes are never freed:
     /// a tile that has been Earth once will very likely be Earth again, and three spare
     /// MultiMeshInstance3Ds cost less than the churn.
     /// </summary>
@@ -434,7 +434,7 @@ public partial class ImbuementOverlay : Node3D
     /// Three beats, and the first one is the reason the others land. A stone that simply
     /// travels upward reads as a lift; one that shudders in place first, fails to move,
     /// and THEN breaks through reads as something heavy being forced. The overshoot and
-    /// the settle are the follow-through — it throws itself clear and drops back into
+    /// the settle are the follow-through: it throws itself clear and drops back into
     /// its own spoil.
     ///
     /// Each stone has its own delay, burial depth and shudder phase, so they break the
@@ -479,7 +479,7 @@ public partial class ImbuementOverlay : Node3D
                 }
                 else
                 {
-                    // BREAKING THROUGH. Quartic ease-out — sharper than the cubic this
+                    // BREAKING THROUGH. Quartic ease-out, sharper than the cubic this
                     // replaces, which read as a lift. Then an overshoot that peaks just
                     // after the surface and decays to nothing, so the stone throws
                     // itself clear and beds back down into its own spoil.
@@ -538,7 +538,7 @@ public partial class ImbuementOverlay : Node3D
     /// The fallback is the point, not politeness: element is targetable, consumable
     /// gameplay state, and a tile showing NO element marker is a gameplay bug, not a
     /// cosmetic one. Same lesson as HexTile.ShowFallbackMarker. So `use_rune_tex` is
-    /// cleared FIRST and only set once a non-null texture is actually in hand — and if
+    /// cleared FIRST and only set once a non-null texture is actually in hand. If
     /// the player re-imbues the tile while a bake is in flight, the stale callback is
     /// dropped rather than painting the wrong element's rune.
     /// </summary>

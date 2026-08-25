@@ -4,7 +4,7 @@ using System.Text.Json;
 // ============================================================
 // CardScriptRegistry.Druid.cs
 //
-// Purpose:        Druid school effect registrations — maps the
+// Purpose:        Druid school effect registrations. Maps the
 //                 school's JSON `type` keys to effect factories.
 //                 Called from CardScriptRegistry.RegisterBuiltins().
 // Layer:          Loader

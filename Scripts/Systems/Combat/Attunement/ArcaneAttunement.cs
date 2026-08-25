@@ -4,13 +4,13 @@ using System;
 // ============================================================
 // ArcaneAttunement.cs
 //
-// Purpose:        The Arcanist school mechanic — the Grimoire.
+// Purpose:        The Arcanist school mechanic, the Grimoire.
 //                 Two coupled pieces of state held in one
 //                 ISchoolAttunement:
-//                   (1) Charge — a banked combo currency (0-6),
+//                   (1) Charge, a banked combo currency (0-6),
 //                       card-driven gain, spent by payoff cards,
 //                       does NOT decay (knowledge is kept).
-//                   (2) Grimoire memory — the last spell cast
+//                   (2) Grimoire memory, the last spell cast
 //                       this turn and the spell-count this turn,
 //                       which the school's "meta-magic" cards
 //                       read (Replicate, Spell Surge, etc.).
@@ -24,19 +24,19 @@ using System;
 //                 Focus" panel), ArcanistChargeEffects.cs
 //                 (GainChargeEffect / SpendChargeDamageEffect /
 //                 DamagePerSpellCastEffect read this).
-// See:            README §6 — School Mechanics
+// See:            README §6, School Mechanics
 // ============================================================
 
 /// <summary>Passive bands the Grimoire passes through as Charge accumulates. These are read by cards (e.g. "if 3+ charges …"); the bands themselves grant no automatic effect, matching the Arcanist's combo-driven, card-gated design rather than the Elementalist/Necromancer auto-threshold model.</summary>
 public enum ChargeTier
 {
-    /// <summary>0-1 charge — no banked power worth spending.</summary>
+    /// <summary>0-1 charge: no banked power worth spending.</summary>
     Latent,
-    /// <summary>2-3 charge — enough for most single-spend payoffs.</summary>
+    /// <summary>2-3 charge: enough for most single-spend payoffs.</summary>
     Resonant,
-    /// <summary>4-5 charge — chain/AoE thresholds come online.</summary>
+    /// <summary>4-5 charge: chain/AoE thresholds come online.</summary>
     Charged,
-    /// <summary>6 charge — the cap; further gains overflow into card draw.</summary>
+    /// <summary>6 charge: the cap. Further gains overflow into card draw.</summary>
     Overflowing
 }
 
@@ -63,7 +63,7 @@ public class ArcaneAttunement : ISchoolAttunement
     /// <summary>Number of spells (card halves) the Arcanist has cast since the start of the current turn. Reset by <see cref="OnTurnStart"/>. Read by Spell Surge / Arcane Drift / Replicate-style cards.</summary>
     public int SpellsCastThisTurn { get; private set; } = 0;
 
-    /// <summary>Card id of the most recent spell cast this turn, or null if none yet. The Grimoire's "open page" — what Replicate copies. Reset by <see cref="OnTurnStart"/>.</summary>
+    /// <summary>Card id of the most recent spell cast this turn, or null if none yet. The Grimoire's "open page", the one Replicate copies. Reset by <see cref="OnTurnStart"/>.</summary>
     public string LastSpellId { get; private set; } = null;
 
     /// <summary>Display name of the most recent spell cast this turn, for UI/logging. Reset by <see cref="OnTurnStart"/>.</summary>
@@ -90,11 +90,11 @@ public class ArcaneAttunement : ISchoolAttunement
     }
 
     /// <summary>
-    /// No-op by design. Charge is banked knowledge — it does not bleed away between
+    /// No-op by design. Charge is banked knowledge. It does not bleed away between
     /// turns the way Grief does. The Arcanist manages the reserve by spending it.
     /// Kept to satisfy <see cref="ISchoolAttunement"/>.
     /// </summary>
-    public void Decay() { /* Charge does not decay — see summary. */ }
+    public void Decay() { /* Charge does not decay. See summary. */ }
 
     // ── Per-turn Grimoire reset ──────────────────────────────────────
     /// <summary>Clears the per-turn Grimoire memory (spell count + last-spell page). Call from CombatManager at the start of each Arcanist turn. Does NOT touch Charge.</summary>
@@ -107,7 +107,7 @@ public class ArcaneAttunement : ISchoolAttunement
     }
 
     // ── Hook: a spell was cast ───────────────────────────────────────
-    /// <summary>Records that the Arcanist cast a spell this turn. Wire this to the GameState "AbilityCast" bus event from CombatManager. Note: this does NOT grant Charge — charge gain is explicit, via cards using the <c>gain_charge</c> effect.</summary>
+    /// <summary>Records that the Arcanist cast a spell this turn. Wire this to the GameState "AbilityCast" bus event from CombatManager. Note: this does NOT grant Charge. Charge gain is explicit, via cards using the <c>gain_charge</c> effect.</summary>
     /// <param name="cardId">Stable id of the cast card (for Replicate lookup).</param>
     /// <param name="displayName">Human-readable name for UI/log.</param>
     public void OnSpellCast(string cardId, string displayName)

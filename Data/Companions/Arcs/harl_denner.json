@@ -38,7 +38,7 @@
     {
       "stage": 3,
       "title": "A Door Worth a Warden",
-      "summary": "The campus keeps things now — records, relics, one held moment. He has inspected every door in the place.",
+      "summary": "The campus keeps things now: records, relics, one held moment. He has inspected every door in the place.",
       "encounterId": "cm_harl_3",
       "requiresParty": false,
       "location": "campus",

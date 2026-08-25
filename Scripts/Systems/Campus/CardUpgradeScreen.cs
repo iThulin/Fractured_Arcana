@@ -46,7 +46,7 @@ public partial class CardUpgradeScreen : Control
     private CardUi _beforeCard;
     private CardUi _afterCard;
 
-    // Stable reference to right panel content — never freed between refreshes
+    // Stable reference to right panel content, never freed between refreshes
     private VBoxContainer _rightContent = null;
 
     // ── State ─────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ public partial class CardUpgradeScreen : Control
             body.AddThemeConstantOverride("separation", 0);
             AddChild(body);
 
-            // ── LEFT — card list ──────────────────────────────────────────
+            // ── LEFT: card list ───────────────────────────────────────────
             var leftShell = new PanelContainer();
             leftShell.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             leftShell.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -131,7 +131,7 @@ public partial class CardUpgradeScreen : Control
             _cardList = MakeVBox(5);
             MakeInnerMargin(leftScroll).AddChild(_cardList);
 
-            // ── RIGHT — upgrade panel ─────────────────────────────────────
+            // ── RIGHT: upgrade panel ──────────────────────────────────────
             var rightPanel = new PanelContainer();
             rightPanel.CustomMinimumSize = new Vector2(520, 0);
             rightPanel.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
@@ -154,7 +154,7 @@ public partial class CardUpgradeScreen : Control
             _rightContent.SizeFlagsVertical = SizeFlags.ExpandFill;
             rightMargin.AddChild(_rightContent);
 
-            // Permanent static nodes — never freed
+            // Permanent static nodes, never freed
             _selectedCardLabel = new Label
             {
                 Text = "Select a card to upgrade",
@@ -174,7 +174,7 @@ public partial class CardUpgradeScreen : Control
             _gateLabel.AddThemeColorOverride("font_color", UITheme.Warning);
             _rightContent.AddChild(_gateLabel);
 
-            // Before / After preview zones — permanent, content is swapped
+            // Before / After preview zones are permanent, and content is swapped
             var previewRow = new HBoxContainer();
             previewRow.AddThemeConstantOverride("separation", 20);
             previewRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
@@ -290,7 +290,7 @@ public partial class CardUpgradeScreen : Control
 
         var hint = new Label
         {
-            Text = "—",
+            Text = "-",
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Name = "Hint",
@@ -511,7 +511,7 @@ public partial class CardUpgradeScreen : Control
             spacer.MouseFilter = MouseFilterEnum.Ignore;
             hbox.AddChild(spacer);
 
-            // Right side — tier badge + points remaining
+            // Right side: tier badge + points remaining
             var rightCol = new HBoxContainer();
             rightCol.AddThemeConstantOverride("separation", 6);
             rightCol.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
@@ -638,7 +638,7 @@ public partial class CardUpgradeScreen : Control
             _gateLabel.Text = "Requires a Scriptorum to refine your spells.";
         }
 
-        // Clear only the dynamic section — permanent nodes (_selectedCardLabel,
+        // Clear only the dynamic section. Permanent nodes (_selectedCardLabel,
         // _gateLabel, preview zones, bypass button) are preserved
         ClearDynamicContent();
 
@@ -651,7 +651,7 @@ public partial class CardUpgradeScreen : Control
         if (!baseUpgraded)
         {
             // PERMANENT cast count (EternalLedger.CardMastery), not the per-copy
-            // one — that lived on CycleState.PlayerDeck and reset every cycle, so
+            // one. That lived on CycleState.PlayerDeck and reset every cycle, so
             // the player re-ground 10/20/35 casts to re-earn points they had
             // already earned in a lost timeline. CardMasteryService.Casts takes the
             // max of both, so no existing save goes backwards.
@@ -666,8 +666,8 @@ public partial class CardUpgradeScreen : Control
 
             // NOTE: display must use lifetimeCasts too. Showing the per-copy count
             // here while the gate above uses the permanent one produced a visible
-            // contradiction — "✓ 0 casts" beside an ENABLED button, with the tier
-            // rows below reading "✓ 240 casts" — on the first cycle after a reseed.
+            // contradiction on the first cycle after a reseed: "✓ 0 casts" beside
+            // an ENABLED button, with the tier rows below reading "✓ 240 casts".
             string desc = CardUpgradeApplier.GetSharedUpgradeDescription(
                 _selectedOwned.BlueprintId);
 
@@ -857,7 +857,7 @@ public partial class CardUpgradeScreen : Control
 
         int cost = CardUpgradeCosts.HalfTierCost[Mathf.Min(nextTier,
             CardUpgradeCosts.HalfTierCost.Length - 1)];
-        // Permanent cast count — see the shared-upgrade gate above.
+        // Permanent cast count. See the shared-upgrade gate above.
         int lifetimeCasts = CardMasteryService.Casts(
             save, _selectedOwned.BlueprintId, _selectedOwned.CastCount);
 
@@ -901,8 +901,8 @@ public partial class CardUpgradeScreen : Control
         _selectedOwned.PointsSpent = 1;
 
         // Stamp the permanent high-water mark. Splinters are still spent per copy,
-        // but the ceiling you have proven is knowledge and survives the reseed —
-        // it is what a minted copy reproduces.
+        // but the ceiling you have proven is knowledge and survives the reseed.
+        // It is what a minted copy reproduces.
         CardMasteryService.RecordTiers(save, _selectedOwned);
 
         SaveManager.Save();
@@ -1019,8 +1019,8 @@ public partial class CardUpgradeScreen : Control
 
     private void SetPreviewEmpty()
     {
-        ClearZone(_beforeZone, ref _beforeCard, "—");
-        ClearZone(_afterZone, ref _afterCard, "—");
+        ClearZone(_beforeZone, ref _beforeCard, "-");
+        ClearZone(_afterZone, ref _afterCard, "-");
     }
 
     // ═════════════════════════════════════════════════════════════════

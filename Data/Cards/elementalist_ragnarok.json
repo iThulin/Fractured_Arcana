@@ -354,7 +354,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Eternal Flame",
-			"description": "Eternal Flame: Immortal rebirth \u2014 if you would die this turn, survive with 1 hp instead.",
+			"description": "Eternal Flame: Immortal rebirth. If you would die this turn, survive with 1 hp instead.",
 			"changes": [
 				{
 					"half": "bottom",

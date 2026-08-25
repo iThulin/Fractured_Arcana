@@ -5,7 +5,7 @@ using System.Collections.Generic;
 //
 // Purpose:        Schema for one overworld (noncombat) spell,
 //                 loaded from Data/OverworldSpells/*.json. Pure
-//                 data — effects are implemented in
+//                 data. Effects are implemented in
 //                 OverworldSpellManager's dispatcher, keyed by
 //                 EffectKey (bespoke key per spell, the same
 //                 dispatcher shape as the enemy-archetype
@@ -64,7 +64,7 @@ public class OverworldSpellDefinition
     /// <summary>Hard once-per-expedition cap (Retrace, Parley Compulsion).</summary>
     public bool OncePerExpedition = false;
 
-    /// <summary>Dispatcher key — bespoke per spell (see OverworldSpellManager).
+    /// <summary>Dispatcher key, bespoke per spell (see OverworldSpellManager).
     /// A definition whose key the dispatcher doesn't know renders greyed out
     /// with "(not yet implemented)" rather than failing at cast.</summary>
     public string EffectKey = "";
@@ -77,7 +77,7 @@ public class OverworldSpellDefinition
     public string Description = "";
 
     // ── Convenience ──────────────────────────────────────────────────────
-    /// <summary>Param lookup with default — effects should always read
+    /// <summary>Param lookup with default. Effects should always read
     /// through this so a missing key is a tuned default, not a crash.</summary>
     public float Param(string key, float fallback)
         => EffectParams != null && EffectParams.TryGetValue(key, out float v) ? v : fallback;

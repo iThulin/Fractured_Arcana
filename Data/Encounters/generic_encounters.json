@@ -27,7 +27,7 @@
   {
     "id": "abandoned_campsite",
     "title": "Abandoned Campsite",
-    "body": "You find the remnants of a campsite — ashes still warm, bedrolls scattered. Whoever was here left in a hurry. A pack lies open near the fire pit.",
+    "body": "You find the remnants of a campsite: ashes still warm, bedrolls scattered. Whoever was here left in a hurry. A pack lies open near the fire pit.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -42,7 +42,7 @@
         "hpDelta": 20
       },
       {
-        "label": "Move on — this doesn't feel right",
+        "label": "Move on. This doesn't feel right",
         "resultText": "Smart. You hear distant movement minutes later.",
         "stepDelta": 1
       }
@@ -51,12 +51,12 @@
   {
     "id": "fork_in_the_road",
     "title": "Fork in the Road",
-    "body": "The path splits. A weathered signpost points two directions — one toward sounds of distant conflict, one into deeper wilderness. A third path looks recently cleared.",
+    "body": "The path splits. A weathered signpost points two directions: one toward sounds of distant conflict, one into deeper wilderness. A third path looks recently cleared.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
       {
-        "label": "Toward the conflict — danger means opportunity",
+        "label": "Toward the conflict. Danger means opportunity",
         "resultText": "You find the aftermath of a skirmish. Among the fallen, scattered coin.",
         "goldDelta": 35,
         "hpDelta": -10
@@ -94,7 +94,7 @@
         ]
       },
       {
-        "label": "Take only the letter — they'll have to fend for themselves",
+        "label": "Take only the letter. They'll have to fend for themselves",
         "resultText": "They watch you go without a word. The letter is heavier than it looked.",
         "goldDelta": 30,
         "setFlags": [
@@ -110,7 +110,7 @@
   {
     "id": "sealed_letter_delivery",
     "title": "The Addressee",
-    "body": "A waystone shrine marks the crossroads, its niche stacked with wax-stubs and older offerings. A robed keeper tends a low flame and watches you approach. This is the place named on the sealed letter's face — if you still carry it.",
+    "body": "A waystone shrine marks the crossroads, its niche stacked with wax-stubs and older offerings. A robed keeper tends a low flame and watches you approach. This is the place named on the sealed letter's face, if you still carry it.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -126,7 +126,7 @@
       },
       {
         "label": "Read the sigils warding the shrine",
-        "resultText": "The wards resolve under a trained eye — a scholar's shortcut. You note a cache the keeper never mentions.",
+        "resultText": "The wards resolve under a trained eye, a scholar's shortcut. You note a cache the keeper never mentions.",
         "goldDelta": 25,
         "stepDelta": 2,
         "requiredSchool": "Arcanist"
@@ -148,7 +148,7 @@
   {
     "id": "grateful_courier",
     "title": "A Familiar Face",
-    "body": "A courier slows on the road, squinting at your party as if placing a memory. 'You're the ones who carried word to the shrine,' she says — or maybe she's mistaken. She waits to see how you answer.",
+    "body": "A courier slows on the road, squinting at your party as if placing a memory. 'You're the ones who carried word to the shrine,' she says. Or maybe she's mistaken. She waits to see how you answer.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -173,7 +173,7 @@
   {
     "id": "armory_cache",
     "title": "The Weaponsmith's Cache",
-    "body": "A collapsed forge-shrine, its bellows long cold. Wrapped in oilcloth beneath the anvil lies a blade that never took the rust — someone meant it to be found.",
+    "body": "A collapsed forge-shrine, its bellows long cold. Wrapped in oilcloth beneath the anvil lies a blade that never took the rust. Someone meant it to be found.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -192,7 +192,7 @@
   {
     "id": "wilds_companion",
     "title": "A Debt Repaid",
-    "body": "A broad-shouldered figure steps from the treeline, hands open. Word of your deeds in these lands reached them before you did. 'You do right by strangers,' they say. 'Let me do right by you — I'll walk your road a while.'",
+    "body": "A broad-shouldered figure steps from the treeline, hands open. Word of your deeds in these lands reached them before you did. 'You do right by strangers,' they say. 'Let me do right by you. I'll walk your road a while.'",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -231,7 +231,7 @@
   {
     "id": "vault_inscription",
     "title": "The Vault Inscription",
-    "body": "A sealed vault door, its lock long fused — but the lintel above is dense with a script older than any kingdom. It tells of a concord that drowned itself rather than yield what it guarded.",
+    "body": "A sealed vault door, its lock long fused, but the lintel above is dense with a script older than any kingdom. It tells of a concord that drowned itself rather than yield what it guarded.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
@@ -275,7 +275,7 @@
   {
     "id": "primal_seek",
     "title": "The Storm on the Horizon",
-    "body": "Past the last ridge the sky is wrong — a wall of iron cloud that never moves, lightning frozen inside it mid-strike. The drowned archive named this place. If the rumour holds, the Primal Shard is in there.",
+    "body": "Past the last ridge the sky is wrong: a wall of iron cloud that never moves, lightning frozen inside it mid-strike. The drowned archive named this place. If the rumour holds, the Primal Shard is in there.",
     "terrainTags": [
       "Volcanic",
       "Coast",
@@ -285,14 +285,14 @@
     "choices": [
       {
         "label": "Chart a course into the tempest",
-        "resultText": "You map the eye of the storm and the paths that might survive it. The way is known now — the rest is nerve.",
+        "resultText": "You map the eye of the storm and the paths that might survive it. The way is known now. The rest is nerve.",
         "requiredFlag": "primal_rumor",
         "setMetaFlags": [
           "primal_location_known"
         ]
       },
       {
-        "label": "Turn back — the storm is death unprepared",
+        "label": "Turn back. The storm is death unprepared",
         "resultText": "Some doors you knock on twice.",
         "stepDelta": 1
       }
@@ -301,7 +301,7 @@
   {
     "id": "primal_trial",
     "title": "The Warden of Elements",
-    "body": "At the storm's threshold something waits — not a beast but a will, six elements braided into one guardian. It regards your party the way a furnace regards a moth. It will not simply let you pass.",
+    "body": "At the storm's threshold something waits: not a beast but a will, six elements braided into one guardian. It regards your party the way a furnace regards a moth. It will not simply let you pass.",
     "terrainTags": [
       "Volcanic",
       "ArcaneGround"
@@ -334,7 +334,7 @@
   {
     "id": "primal_recover",
     "title": "The Heart of the Storm",
-    "body": "In the eye, everything is still. The Primal Shard hangs in the silence — raw creation, fire that does not burn, lightning frozen mid-strike. One of the six pieces of the Sixfold Seal. It is yours to take, and to answer for.",
+    "body": "In the eye, everything is still. The Primal Shard hangs in the silence: raw creation, fire that does not burn, lightning frozen mid-strike. One of the six pieces of the Sixfold Seal. It is yours to take, and to answer for.",
     "terrainTags": [
       "Volcanic",
       "ArcaneGround"
@@ -353,7 +353,7 @@
         "spellReward": "fulminant_charge"
       },
       {
-        "label": "Leave it — the world is not ready",
+        "label": "Leave it. The world is not ready",
         "resultText": "You close the way behind you. The Shard waits in the stillness, patient as the storm.",
         "stepDelta": 1
       }
@@ -413,7 +413,7 @@
   {
     "id": "signal_mirror_ridge",
     "title": "Signal Mirrors on the Ridge",
-    "body": "Sun-flash from a ridgeline: an abandoned signal station, its bronze mirrors still true. From up here the land lays itself open — if you can work the old sight-lines.",
+    "body": "Sun-flash from a ridgeline: an abandoned signal station, its bronze mirrors still true. From up here the land lays itself open, if you can work the old sight-lines.",
     "terrainTags": [
       "Mountain",
       "Hills"
@@ -436,7 +436,7 @@
   {
     "id": "codex_frozen_archive",
     "title": "The Frozen Archive",
-    "body": "A cold that shouldn't be here. Beneath a shelf of black ice, a reading-room stands unrotted — a scholar of your own discipline died mid-study, their working still open on the lectern.",
+    "body": "A cold that shouldn't be here. Beneath a shelf of black ice, a reading-room stands unrotted. A scholar of your own discipline died mid-study, their working still open on the lectern.",
     "terrainTags": [
       "Snow",
       "Tundra"
@@ -459,7 +459,7 @@
   {
     "id": "codex_ruined_athenaeum",
     "title": "The Watching Sigils",
-    "body": "Sigils that seem to watch back. A collapsed athenaeum of your school still hums — one folio survived the fall, its diagrams answering questions you hadn't yet asked.",
+    "body": "Sigils that seem to watch back. A collapsed athenaeum of your school still hums. One folio survived the fall, its diagrams answering questions you hadn't yet asked.",
     "terrainTags": [
       "Ruins",
       "ArcaneGround"
@@ -481,7 +481,7 @@
   {
     "id": "codex_ashen_folio",
     "title": "The Cinderleaf Folio",
-    "body": "Ash falling from a clear sky. In the lee of a scorched shrine, a folio bound in your school's marks lies open — the fire read it before you did, but the last legible page is the one that matters.",
+    "body": "Ash falling from a clear sky. In the lee of a scorched shrine, a folio bound in your school's marks lies open. The fire read it before you did, but the last legible page is the one that matters.",
     "terrainTags": [
       "Volcanic",
       "Desert"

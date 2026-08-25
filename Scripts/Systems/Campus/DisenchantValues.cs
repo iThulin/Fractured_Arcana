@@ -16,7 +16,7 @@ using System.Collections.Generic;
 /// <summary>Calculates Arcane Splinter yield for disenchanting an owned card.</summary>
 public static class DisenchantValues
 {
-	// Base yields by rarity — intentionally below full upgrade cost
+	// Base yields by rarity, intentionally below full upgrade cost
 	// so disenchanting is never strictly better than using the card
 	private static int BaseYield(CardRarity rarity) => rarity switch
 	{

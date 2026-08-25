@@ -18,9 +18,9 @@ using System.Collections.Generic;
 //                 RegionDefinition.cs (palette + feature inputs),
 //                 FogOfWarManager.cs, POIGenerator.cs (modify the
 //                 grid post-construction)
-// See:            README §3 — overworld layer
+// See:            README §3, overworld layer
 //
-// Generation rewrite (substrate pass — mirrors the combat MapField
+// Generation rewrite (substrate pass, mirroring the combat MapField
 // rewrite of HexGridManager):
 //   - Seeded OverworldField produces coherent elevation + moisture;
 //     terrain is DERIVED from a region palette (water in lows,
@@ -33,7 +33,7 @@ using System.Collections.Generic;
 //     high edge to a low edge, rather than running down the middle
 //     column; roads branch toward POIs.
 //   - A connectivity guarantee carves a corridor when entry→objective
-//     would otherwise be walled off by Water/Mountain — a failure the
+//     would otherwise be walled off by Water/Mountain, a failure the
 //     previous generator could silently produce and never checked.
 //   - All randomness draws from the seeded RNG / field, so the map
 //     regenerates identically on return from combat (invariant relied
@@ -53,7 +53,7 @@ public partial class OverworldHexGrid : Node2D
 
     // ── Runtime data ────────────────────────────────────────────────────
 
-    /// <summary>When true, _Ready does NOT generate a region — an external
+    /// <summary>When true, _Ready does NOT generate a region. An external
     /// WorldWindowBuilder populates Hexes from WorldData instead. Set this
     /// before adding the grid to the tree.</summary>
     public bool WindowMode = false;
@@ -146,7 +146,7 @@ public partial class OverworldHexGrid : Node2D
         if (Region != null && Region.HasMountainRange)
             GenerateMountainRange();
 
-        // ── Place entry and objective — seeded random positions ─────────
+        // ── Place entry and objective at seeded random positions ─────────
         // Entry:     left edge column (q=1), row randomised in middle third.
         // Objective: right edge column (q=GridWidth-2), independently randomised.
         // Uses _rng which is already seeded, so positions are deterministic
@@ -234,7 +234,7 @@ public partial class OverworldHexGrid : Node2D
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Adjacency constraints — smooth illegal terrain transitions
+    // Adjacency constraints that smooth illegal terrain transitions
     // ═══════════════════════════════════════════════════════════════════════
 
     // Pairs that should never sit edge-to-edge. When found, the "softer" tile of
@@ -245,7 +245,7 @@ public partial class OverworldHexGrid : Node2D
         (OverworldHex.TerrainType.Volcanic, OverworldHex.TerrainType.Swamp,  OverworldHex.TerrainType.Mountain),
         (OverworldHex.TerrainType.Volcanic, OverworldHex.TerrainType.Water,  OverworldHex.TerrainType.Mountain),
         (OverworldHex.TerrainType.Volcanic, OverworldHex.TerrainType.Forest, OverworldHex.TerrainType.Grassland),
-        // Swamp shouldn't touch bare mountain — insert grassland/forest fringe.
+        // Swamp shouldn't touch bare mountain, so insert grassland/forest fringe.
         (OverworldHex.TerrainType.Swamp,    OverworldHex.TerrainType.Mountain, OverworldHex.TerrainType.Grassland),
     };
 
@@ -337,7 +337,7 @@ public partial class OverworldHexGrid : Node2D
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // River generation — traces the descending elevation gradient
+    // River generation, tracing the descending elevation gradient
     // ═══════════════════════════════════════════════════════════════════════
 
     private void GenerateRiver()
@@ -392,7 +392,7 @@ public partial class OverworldHexGrid : Node2D
                 }
             }
 
-            // Local minimum reached (a basin / lake) — stop the river here.
+            // Local minimum reached (a basin / lake), so stop the river here.
             if (!found || next == current)
                 break;
 
@@ -414,7 +414,7 @@ public partial class OverworldHexGrid : Node2D
         }
     }
 
-    /// <summary>Highest-elevation hex along the top or left edge — the river's headwater.</summary>
+    /// <summary>Highest-elevation hex along the top or left edge, the river's headwater.</summary>
     private Vector2I FindRiverSource()
     {
         Vector2I best = new(0, 0);
@@ -439,7 +439,7 @@ public partial class OverworldHexGrid : Node2D
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Road generation — connects entry to objective with branches
+    // Road generation, connecting entry to objective with branches
     // ═══════════════════════════════════════════════════════════════════════
 
     private void GenerateRoads()
@@ -452,7 +452,7 @@ public partial class OverworldHexGrid : Node2D
             var coord = new Vector2I(q, roadR);
             if (Hexes.TryGetValue(coord, out var hex))
             {
-                // Don't overwrite water — roads use the carved crossings instead.
+                // Don't overwrite water. Roads use the carved crossings instead.
                 if (hex.Terrain != OverworldHex.TerrainType.Water)
                     hex.Terrain = OverworldHex.TerrainType.Road;
             }
@@ -499,7 +499,7 @@ public partial class OverworldHexGrid : Node2D
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Mountain range — optional explicit barrier (region toggle)
+    // Mountain range, an optional explicit barrier (region toggle)
     // ═══════════════════════════════════════════════════════════════════════
 
     private void GenerateMountainRange()
@@ -562,7 +562,7 @@ public partial class OverworldHexGrid : Node2D
         if (IsReachable(EntryCoord, ObjectiveCoord))
             return;
 
-        GD.Print("Overworld: objective unreachable — carving guaranteed corridor.");
+        GD.Print("Overworld: objective unreachable. Carving guaranteed corridor.");
 
         foreach (var coord in HexLine(EntryCoord, ObjectiveCoord))
         {

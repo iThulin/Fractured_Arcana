@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // NpcArchetype.cs
 //
-// Purpose:        Negotiation enums + small data classes —
+// Purpose:        Negotiation enums + small data classes:
 //                 LeverageToken, NpcArchetypeType, TensionZone,
 //                 NpcStance, NpcResource, DealTerm,
 //                 NegotiationEncounterData. The full negotiation
@@ -13,7 +13,7 @@ using System.Collections.Generic;
 //                 NegotiationManager.cs (UI),
 //                 NegotiationBarks.cs (spoken-move lines),
 //                 NegotiationEncounterLoader.cs (parser)
-// See:            README §6 — Negotiation;
+// See:            README §6 on Negotiation;
 //                 negotiation_redesign_v1.md (v2 core loop)
 // ============================================================
 
@@ -55,14 +55,14 @@ public enum TensionZone { Cordial, Strained, Hostile }
 /// is honest.</summary>
 public enum NpcStance
 {
-    Eager,      // wants what you have — Offerings land double
-    Guarded,    // giving nothing away — pressure resented, gifts pocketed coldly
-    Wavering,   // uncertain — social pressure lands best here
-    Irritated,  // one wrong word from bristling — charm backfires
-    Expansive   // Cordial-only warmth — everything social lands softer
+    Eager,      // wants what you have; Offerings land double
+    Guarded,    // giving nothing away; pressure resented, gifts pocketed coldly
+    Wavering,   // uncertain; social pressure lands best here
+    Irritated,  // one wrong word from bristling; charm backfires
+    Expansive   // Cordial-only warmth; everything social lands softer
 }
 
-/// <summary>v2: the NPC's own leverage pool — they spend against you every
+/// <summary>v2: the NPC's own leverage pool. They spend against you every
 /// turn. Resolve pulls terms back (fed by your Offerings: tokens literally
 /// cross the table), Guile makes demands / stirs tension, Poise steps them
 /// back from the brink at 9-10 tension.</summary>
@@ -86,11 +86,11 @@ public class DealTerm
     public string LoreUnlock = "";
     public int StepsDelta = 0;
 
-    /// <summary>Supplies this clause moves (docs/supply_cache_spec_v1) —
-    /// positive pays the guild, negative pledges from its stores. Settled on
+    /// <summary>Supplies this clause moves (docs/supply_cache_spec_v1).
+    /// Positive pays the guild, negative pledges from its stores. Settled on
     /// return like gold (ExpeditionManager.OnNegotiationReturned): gains ride
     /// the expedition at risk; costs deduct from the treasury immediately,
-    /// floored at 0. No zone multiplier — provisions are physical goods, the
+    /// floored at 0. No zone multiplier, because provisions are physical goods and the
     /// crates don't multiply because the talk went well. Authorable in JSON as
     /// "suppliesDelta"; weighted in DeriveWeight so the NPC AI values supply
     /// clauses (unlike the dead StepsDelta/LoreUnlock precedent).</summary>
@@ -98,15 +98,15 @@ public class DealTerm
 
     /// <summary>Supply-lines intel (supply_cache spec v1.1): when this term is
     /// part of a signed deal (and not fully conceded away), every supply cache
-    /// in the negotiation's origin kingdom is revealed on the strategic map —
-    /// diplomacy as a discovery channel. Injected dynamically at table-open
+    /// in the negotiation's origin kingdom is revealed on the strategic map.
+    /// Diplomacy as a discovery channel. Injected dynamically at table-open
     /// ("supply_lines_intel"); settled in ExpeditionManager.OnNegotiationReturned
     /// via NegotiationContext.RevealSupplyCaches.</summary>
     public bool RevealsSupplyCaches = false;
 
     /// <summary>S4 (overworld_spell_system §11): an overworld spell id this
     /// term teaches. Granted ONLY when the deal closes in the Cordial zone
-    /// (NegotiationState.GetSpellOutcome) — "Cordial deals" are the social
+    /// (NegotiationState.GetSpellOutcome). "Cordial deals" are the social
     /// route to spells, and the payoff for managing tension. Authorable in
     /// encounter JSON; also injected dynamically at table-open as the
     /// "spell_tuition" term (NegotiationManager).</summary>
@@ -177,13 +177,13 @@ public class NegotiationEncounterData
 }
 
 /// <summary>
-/// Archetype behavior rules — how NPCs respond to each token type.
+/// Archetype behavior rules: how NPCs respond to each token type.
 /// </summary>
 public static class ArchetypeBehavior
 {
     /// <summary>
     /// Base tension delta when the player plays a token against this archetype
-    /// (before the stance modifier — see NegotiationState).
+    /// (before the stance modifier; see NegotiationState).
     /// Negative = toward Cordial, positive = toward Hostile.
     /// </summary>
     public static int GetTensionDelta(NpcArchetypeType archetype, LeverageToken token)
@@ -206,13 +206,13 @@ public static class ArchetypeBehavior
             (NpcArchetypeType.Opportunist,LeverageToken.Persuade) => 0,
             (_,                           LeverageToken.Persuade) => -1,
 
-            // Insight — no tension effect
+            // Insight: no tension effect
             (_, LeverageToken.Insight)  => 0,
 
             // Connections
             (_, LeverageToken.Connections) => -1,
 
-            // Patience — no tension effect
+            // Patience: no tension effect
             (_, LeverageToken.Patience) => 0,
 
             // Offering
@@ -246,7 +246,7 @@ public static class ArchetypeBehavior
         };
     }
 
-    /// <summary>v2: what the NPC's Resolve is CALLED at this table — pure
+    /// <summary>v2: what the NPC's Resolve is CALLED at this table. Pure
     /// display flavor over the same mechanic ("Greed" for a merchant is
     /// "Duty" for a commander).</summary>
     public static string ResolveDisplayName(NpcArchetypeType a)
@@ -291,7 +291,7 @@ public static class ArchetypeBehavior
     }
 
     /// <summary>v2: token the NPC gifts the player during a Cordial hold
-    /// (their goodwill move) — archetype-flavored.</summary>
+    /// (their goodwill move), archetype-flavored.</summary>
     public static LeverageToken GiftTokenFor(NpcArchetypeType a)
     {
         return a switch
@@ -308,7 +308,7 @@ public static class ArchetypeBehavior
 
     /// <summary>
     /// Returns a description of what happens when this token is played.
-    /// (Legacy flat table — kept for chips mode; spoken-move lines live in
+    /// (Legacy flat table, kept for chips mode; spoken-move lines live in
     /// NegotiationBarks.)
     /// </summary>
     public static string GetTokenEffect(NpcArchetypeType archetype, LeverageToken token)
@@ -320,7 +320,7 @@ public static class ArchetypeBehavior
             (NpcArchetypeType.Commander, LeverageToken.Charm) =>
                 "The Commander is unmoved. Flattery doesn't impress them.",
             (NpcArchetypeType.Merchant, LeverageToken.Offering) =>
-                "The Merchant's eyes light up. A tangible offer — this is something they can work with.",
+                "The Merchant's eyes light up. A tangible offer. This is something they can work with.",
             (NpcArchetypeType.Scholar, LeverageToken.Persuade) =>
                 "A well-reasoned argument. The Scholar leans forward, genuinely engaged.",
             (NpcArchetypeType.Commander, LeverageToken.Intimidate) =>

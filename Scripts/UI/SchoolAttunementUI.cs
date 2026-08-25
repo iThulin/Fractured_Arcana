@@ -13,7 +13,7 @@ using System.Collections.Generic;
 // Collaborators:  Unit.cs (Attunement member),
 //                 ElementalAttunement.cs (charge data source),
 //                 UITheme.cs (element colours, padding)
-// See:            README §6 — Elemental Attunement
+// See:            README §6, Elemental Attunement
 // ============================================================
 
 /// <summary>HUD panel below the selected-unit panel that renders the current unit's elemental attunement state. Binds to the unit's <see cref="ElementalAttunement"/> instance and updates per-element ProgressBars with the corresponding tier label. Style matches <c>SelectedUnitPanel</c> in CombatUI for visual continuity.</summary>
@@ -54,13 +54,13 @@ public partial class SchoolAttunementUI : PanelContainer
 	// Elementalist-specific
 	private readonly Dictionary<ElementTag, ElementBar> _elementBars = new();
 
-	// Wilding (Druid) — single 0–4 gauge
+	// Wilding (Druid): single 0–4 gauge
 	private WildingAttunement _boundWilding;
 	private ProgressBar _wildingBar;
 	private Label _wildingTierLabel;
 	private Label _wildingEffectLabel;
 
-	// Tinker — Schematics ledger, single 0–5 gauge
+	// Tinker: Schematics ledger, single 0–5 gauge
 	private TinkerAttunement _boundTinker;
 	private ProgressBar _tinkerBar;
 	private Label _tinkerTierLabel;
@@ -75,7 +75,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	"Growth spreads faster",
 	"You heal on living ground",
 	"Foes on your wood are rooted",
-	"RIOT — the wild surges"
+	"RIOT: the wild surges"
 };
 
 	// ── Colors matching your card element pips ──────────────────────
@@ -235,7 +235,7 @@ public partial class SchoolAttunementUI : PanelContainer
 		_tinkerTierLabel = null;
 		_tinkerEffectLabel = null;
 
-		// Title — matches UnitNameLabel style (centered, default font)
+		// Title, which matches UnitNameLabel style (centered, default font)
 		_titleLabel = new Label
 		{
 			HorizontalAlignment = HorizontalAlignment.Center
@@ -294,7 +294,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// ELEMENTALIST — uses ProgressBar rows like HP/Mana/Move bars
+	// ELEMENTALIST: uses ProgressBar rows like HP/Mana/Move bars
 	// ════════════════════════════════════════════════════════════════
 
 	private void BuildElementalistUI()
@@ -332,7 +332,7 @@ public partial class SchoolAttunementUI : PanelContainer
 		};
 		row.AddChild(bar.NameLabel);
 
-		// Progress bar — same style as HealthBar/ManaBar
+		// Progress bar, same style as HealthBar/ManaBar
 		bar.Bar = new ProgressBar
 		{
 			CustomMinimumSize = new Vector2(80, UITheme.AttunementBarHeight),
@@ -447,7 +447,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// Chronomancer-specific UI — similar structure to Elementalist but with custom labels and no element pairs
+	// Chronomancer-specific UI, similar in structure to Elementalist but with custom labels and no element pairs
 	// ════════════════════════════════════════════════════════════════
 
 	// ── Build ────────────────────────────────────────────────────────────────────
@@ -650,7 +650,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// ARCANIST — Charge bar (0-6) + Grimoire memory line
+	// ARCANIST: Charge bar (0-6) + Grimoire memory line
 	// ════════════════════════════════════════════════════════════════
 
 	// Tier labels match ChargeTier enum: Latent / Resonant / Charged / Overflowing
@@ -661,7 +661,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	{
 		if (_container == null)
 		{
-			GD.Print("[AttunementUI] BuildArcanistUI: _container is null — skipping");
+			GD.Print("[AttunementUI] BuildArcanistUI: _container is null, so skipping");
 			return;
 		}
 		// ── Row 1: Charge bar ────────────────────────────────────────────
@@ -700,7 +700,7 @@ public partial class SchoolAttunementUI : PanelContainer
 		chargeRow.AddChild(_chargeTierLabel);
 
 		// ── Row 2: Grimoire memory (last spell + cast count) ─────────────
-		// Single label spanning full width — updates whenever a spell is cast.
+		// Single label spanning full width. It updates whenever a spell is cast.
 		_grimoireLabel = new Label
 		{
 			Text = "",
@@ -831,7 +831,7 @@ public partial class SchoolAttunementUI : PanelContainer
 
 
 	// ════════════════════════════════════════════════════════════════
-	// ENCHANTER — Weave bar (0-4) with Seventh Layer burst
+	// ENCHANTER: Weave bar (0-4) with Seventh Layer burst
 	// ════════════════════════════════════════════════════════════════
 
 	// Tier labels match WeaveTier enum: Loose / Taut / Woven / Bound / SeventhLayer
@@ -933,7 +933,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// DRUID — single Wilding gauge (reusable single-counter pattern)
+	// DRUID: single Wilding gauge (reusable single-counter pattern)
 	// ════════════════════════════════════════════════════════════════
 
 	private void BuildWildingUI()
@@ -1021,7 +1021,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	}
 
 	// ════════════════════════════════════════════════════════════════
-	// TINKER — Schematics ledger (0–5, monotonic; fed by construct loss)
+	// TINKER: Schematics ledger (0–5, monotonic; fed by construct loss)
 	// ════════════════════════════════════════════════════════════════
 
 	private void BuildTinkerUI()

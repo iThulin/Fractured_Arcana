@@ -18,7 +18,7 @@ using System.Collections.Generic;
 // See:            quest_hooks_compendium_v1.md §3
 // ============================================================
 
-/// <summary>One stage of a companion's arc — an encounter gated by flags,
+/// <summary>One stage of a companion's arc: an encounter gated by flags,
 /// with completion writing new flags. Loaded from Data/Companions/Arcs/*.json.</summary>
 public class CompanionArcStage
 {
@@ -52,7 +52,7 @@ public class CompanionArcStage
     public string RemembranceFlag = "";
 
     /// <summary>Alternative encounter id used when the remembrance flag from a
-    /// PRIOR cycle is already set — the foreknowledge variant. Empty = no
+    /// PRIOR cycle is already set: the foreknowledge variant. Empty = no
     /// remembrance branch for this stage (use the normal encounter).</summary>
     public string RemembranceEncounterId = "";
 
@@ -132,8 +132,8 @@ public class CompanionArcData
     // ── Reprise (roster sustainability, 2026-07-22) ─────────────────────
     /// <summary>One-beat encounter offered INSTEAD of the stage ladder when
     /// the arc was completed in a prior timeline (ArcCompleteMetaFlag present
-    /// on the ledger). Completing it completes the whole arc at once — the
-    /// player has walked this road before; the shorthand version. Location
+    /// on the ledger). Completing it completes the whole arc at once; the
+    /// player has walked this road before, so this is the shorthand version. Location
     /// "any", no party requirement. Empty = re-runs replay the full ladder
     /// (with remembrance variants).</summary>
     public string RepriseEncounterId = "";

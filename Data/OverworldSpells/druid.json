@@ -34,7 +34,7 @@
     "targetingType": "Path",
     "range": 6,
     "effectKey": "beast_envoy",
-    "description": "Send an animal scout along a drawn path of up to 6 hexes, charting as it goes. (S3 — path targeting)"
+    "description": "Send an animal scout along a drawn path of up to 6 hexes, charting as it goes. (S3: path targeting)"
   },
   {
     "id": "thornwall",
@@ -47,6 +47,6 @@
     "range": 1,
     "effectKey": "thornwall",
     "effectParams": { "steps": 8 },
-    "description": "Patrols cannot enter the chosen adjacent hex for 8 party steps. (S3 — patrol APIs)"
+    "description": "Patrols cannot enter the chosen adjacent hex for 8 party steps. (S3: patrol APIs)"
   }
 ]

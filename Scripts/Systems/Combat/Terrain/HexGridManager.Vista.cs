@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.Vista.cs  (partial of HexGridManager)
 //
-// NON-PLAYABLE VISTA RING — the world beyond the battlefield.
+// NON-PLAYABLE VISTA RING: the world beyond the battlefield.
 //
 // Generates VistaRingDepth extra rings of hexes past the playable
 // boundary so the combat scenario reads as a place in a landscape,
@@ -13,7 +13,7 @@ using System.Collections.Generic;
 //     and height simply continue outward (heights are clamped ring by
 //     ring to +/-1 step of already-known neighbours so the world rolls
 //     away gently instead of ending on random cliffs).
-//   - Live in VistaTiles, NEVER in Tiles — pathfinding, spawns, zones,
+//   - Live in VistaTiles, NEVER in Tiles. Pathfinding, spawns, zones,
 //     labels, features, and AI cannot see them by construction.
 //   - Have no collision (MarkAsVista zeroes the body + area layers),
 //     so they can't be hovered, clicked, or card-targeted.
@@ -22,11 +22,11 @@ using System.Collections.Generic;
 //     desaturated/darkened, so the playable boundary stays readable.
 //   - Receive reduced-density painterly scatter (grass/flowers/rocks/
 //     canopy) through ScatterTiles(); vista canopy is always PERMANENT
-//     (never occlusion-fades) — it is the framing treeline.
+//     (never occlusion-fades), because it is the framing treeline.
 //
 // WORLD-ADJACENCY SEAM (future): VistaTerrainBias lets a caller push
 // the vista classification toward a terrain per hex-direction before
-// generation — the hook for combat_environments §5 spatial storytelling
+// generation. That is the hook for combat_environments §5 spatial storytelling
 // (forest vista on the side of the world map that borders forest, etc.).
 // Unset = pure field continuation.
 //
@@ -60,8 +60,8 @@ public partial class HexGridManager : Node3D
     /** Width (world units) of the arena boundary ribbon. */
     [Export(PropertyHint.Range, "0.02,0.25,0.01")] public float ArenaBoundaryWidth = 0.07f;
 
-    /// <summary>Vista tiles by axial coord. Deliberately separate from <see cref="Tiles"/> —
-    /// gameplay systems iterate Tiles and can never reach these.</summary>
+    /// <summary>Vista tiles by axial coord. Deliberately separate from <see cref="Tiles"/>,
+    /// so gameplay systems iterate Tiles and can never reach these.</summary>
     public readonly Dictionary<Vector2I, TileData> VistaTiles = new();
 
     /// <summary>Optional per-direction terrain bias for the vista (future world-adjacency
@@ -134,8 +134,8 @@ public partial class HexGridManager : Node3D
                 // World-adjacency bias (fed by CombatManager.ApplyVistaBias from the
                 // overworld neighbour terrains): the vista on each side leans toward
                 // what borders the fight on the world map. Probabilistic and
-                // strengthening OUTWARD — the inner ring mostly continues the arena,
-                // the outer ring mostly reads as the neighbouring terrain — so the
+                // strengthening OUTWARD. The inner ring mostly continues the arena
+                // and the outer ring mostly reads as the neighbouring terrain, so the
                 // transition is a mottled blend, not a hard seam. Deterministic per
                 // coord + MapSeed.
                 if (VistaTerrainBias.Count > 0)
@@ -154,7 +154,7 @@ public partial class HexGridManager : Node3D
 
                 // RING-PROGRESSIVE height relaxation. The seam ring hugs the arena
                 // (a height jump right beside playable tiles reads as walls boxing
-                // the board in — the iceberg-rim bug), but each ring outward earns
+                // the board in, the iceberg-rim bug), but each ring outward earns
                 // +1 step of freedom in both directions, letting the raw field
                 // heights re-emerge with distance. Distant rises silhouette against
                 // the sky and fill the horizon instead of a flat void.
@@ -309,10 +309,10 @@ public partial class HexGridManager : Node3D
             for (int d = 0; d < 6; d++)
             {
                 if (Tiles.ContainsKey(tile.Axial + HexDirs[d]))
-                    continue; // internal edge — no marker
+                    continue; // internal edge, no marker
 
                 // Neighbour in HexDirs[d] shares corner edge (6 - d) % 6
-                // (dirs run CW, corners CCW — same reflection the zone renderer uses).
+                // (dirs run CW, corners CCW, the same reflection the zone renderer uses).
                 int e = (6 - d) % 6;
                 Vector2 cA = CornerXZ(e);
                 Vector2 cB = CornerXZ((e + 1) % 6);
@@ -359,7 +359,7 @@ public partial class HexGridManager : Node3D
         AddChild(mi);
     }
 
-    /// <summary>Deterministic 0..1 hash of a coord (salted by MapSeed) — drives the
+    /// <summary>Deterministic 0..1 hash of a coord (salted by MapSeed). It drives the
     /// probabilistic vista terrain bias without touching any RNG stream.</summary>
     private float VistaHash01(Vector2I c)
     {
@@ -374,7 +374,7 @@ public partial class HexGridManager : Node3D
     }
 
     /// <summary>Which of the 6 hex directions a coord most points toward from the grid
-    /// centre — used to pick a per-side terrain bias for the vista.</summary>
+    /// centre. Used to pick a per-side terrain bias for the vista.</summary>
     private int DominantDirection(Vector2I coord)
     {
         Vector3 centre = (GridBoundsMin + GridBoundsMax) * 0.5f;

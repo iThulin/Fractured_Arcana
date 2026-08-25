@@ -47,7 +47,7 @@ public partial class NewGameScreen : Control
             "᛫", "Hess, who does not intervene"
         )},
         { CardSchool.Necromancer, (
-            "She runs a bar. The bar is also a funeral home, depending on what you need. Most of her regulars are dead, which she finds restful — they listen better, drink less, and never ask her to weigh in on whose fault it was. She heals the living by asking the dead to chip in, and they do, because she is the kind of person you want to be on good terms with on both sides of the door. Spirit-light. Ruin-echoes. The usual.",
+            "She runs a bar. The bar is also a funeral home, depending on what you need. Most of her regulars are dead, which she finds restful. They listen better, drink less, and never ask her to weigh in on whose fault it was. She heals the living by asking the dead to chip in, and they do, because she is the kind of person you want to be on good terms with on both sides of the door. Spirit-light. Ruin-echoes. The usual.",
             "He still owes me eighty silver. I'll get it eventually. Patience is sort of my whole thing.",
             "☽", "Ondria Vell, Hostess of the Long Table"
         )},
@@ -62,12 +62,12 @@ public partial class NewGameScreen : Control
             "⬡", "Cael Morn, of the Seventh Layer"
         )},
         { CardSchool.Arcanist, (
-           "The Arcanist does not cast spells so much as revise them. He keeps a tome. The tome is not a spellbook in any sense another wizard would recognize; it is closer to a workshop, with the spells of every school laid out on the bench in pieces, partially disassembled, annotated in three languages and a personal shorthand that he has never explained. When another wizard casts something near him, he sees what it is doing and, more importantly, what it is failing to do — the constraint someone built into it for safety, the redundancy nobody bothered to remove, the second verse the original author forgot was there. A fire spell passes through the room and he lets it pass; a moment later, in a way nobody can quite trace, it is still burning. A binding goes around an enemy and holds tighter than it should, because the Arcanist has quietly removed the clause the original caster put in to make it humane.",
+           "The Arcanist does not cast spells so much as revise them. He keeps a tome. The tome is not a spellbook in any sense another wizard would recognize; it is closer to a workshop, with the spells of every school laid out on the bench in pieces, partially disassembled, annotated in three languages and a personal shorthand that he has never explained. When another wizard casts something near him, he sees what it is doing and, more importantly, what it is failing to do: the constraint someone built into it for safety, the redundancy nobody bothered to remove, the second verse the original author forgot was there. A fire spell passes through the room and he lets it pass; a moment later, in a way nobody can quite trace, it is still burning. A binding goes around an enemy and holds tighter than it should, because the Arcanist has quietly removed the clause the original caster put in to make it humane.",
            "There are no miracles. Only observers who lacked the patience to understand what they were watching.",
             "◈", "Master Aurel Pendry"
         )},
         { CardSchool.Chronomancer, (
-            "The Chronomancer is not bending time. He will correct you on this. What he is doing is reading — the sky writes the outcome of every event before the event happens, and he has spent a long time learning the script. He knows who wins. He knows who loses. He knows, with some precision, the moment at which each of you stopped having a real choice. He has been generous with this knowledge, in places. He has been less generous in others. The galaxy turns, and he turns with it, and somewhere in that turning he made a decision he is not, yet, willing to discuss.",
+            "The Chronomancer is not bending time. He will correct you on this. What he is doing is reading. The sky writes the outcome of every event before the event happens, and he has spent a long time learning the script. He knows who wins. He knows who loses. He knows, with some precision, the moment at which each of you stopped having a real choice. He has been generous with this knowledge, in places. He has been less generous in others. The galaxy turns, and he turns with it, and somewhere in that turning he made a decision he is not, yet, willing to discuss.",
             "I am not changing what happens. I am changing where you are standing when it does. The distinction will matter to you, later.",
             "◎", "Kassian Vor-Aleth, who read the Sky"
         )},
@@ -78,7 +78,7 @@ public partial class NewGameScreen : Control
     private LineEdit _wizardNameInput;
     private Label _errorLabel;
     private Button _confirmBtn;
-    // Preview cursor for the reader on the left — NOT a choice. Every guild
+    // Preview cursor for the reader on the left, NOT a choice. Every guild
     // starts undeclared as an Adept; see OnConfirmPressed.
     private CardSchool _selectedSchool = CardSchool.Adept;
     private int _targetSlot = -1;
@@ -167,10 +167,10 @@ public partial class NewGameScreen : Control
 
         var sub = new Label
         {
-            Text = "You sat the examination. You were standing for the conferral when it stopped — " +
+            Text = "You sat the examination. You were standing for the conferral when it stopped " +
                    "mid-sentence, half-written, the only unfinished thing in the room. Every guild " +
                    "begins as an Adept: the fundamentals and no discipline. The other seven are " +
-                   "locked — read them, want them, then declare one in the Grand Hall once someone " +
+                   "locked. Read them, want them, then declare one in the Grand Hall once someone " +
                    "is left who can teach it.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
@@ -190,7 +190,7 @@ public partial class NewGameScreen : Control
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // School list — left column
+    // School list: left column
     // ════════════════════════════════════════════════════════════════════
 
     private void BuildSchoolList(HBoxContainer parent)
@@ -258,7 +258,7 @@ public partial class NewGameScreen : Control
 
         // The lockout affordance (2026-08-04 playtest ruling): the browser is
         // for reading, but a locked school must LOOK locked at the list level,
-        // not only in the detail panel — the earlier reader form kept picker
+        // not only in the detail panel. The earlier reader form kept picker
         // affordances and read as a bug when confirm founded an Adept anyway.
         bool isStartSchool = school == CardSchool.Adept;
         var nameLbl = new Label
@@ -329,7 +329,7 @@ public partial class NewGameScreen : Control
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Detail panel — right column
+    // Detail panel: right column
     // Model frame on top, school info below
     // ════════════════════════════════════════════════════════════════════
 
@@ -451,7 +451,7 @@ public partial class NewGameScreen : Control
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Bottom bar — guild name + buttons
+    // Bottom bar: guild name + buttons
     // ════════════════════════════════════════════════════════════════════
 
     private void BuildBottomBar(VBoxContainer parent)
@@ -589,7 +589,7 @@ public partial class NewGameScreen : Control
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Update — called whenever selected school changes
+    // Update: called whenever selected school changes
     // ════════════════════════════════════════════════════════════════════
 
     private void UpdateAll()
@@ -602,7 +602,7 @@ public partial class NewGameScreen : Control
 
     /// <summary>
     /// Founding is only possible with Adept selected (2026-08-04 playtest ruling:
-    /// a locked selection must not be confirmable — the earlier form let you pick
+    /// a locked selection must not be confirmable. The earlier form let you pick
     /// Necromancer, hit confirm, and silently receive an Adept, which read as a
     /// bug). The button itself carries the reason while disabled.
     /// </summary>
@@ -613,7 +613,7 @@ public partial class NewGameScreen : Control
         _confirmBtn.Disabled = locked;
         _confirmBtn.Text = locked ? $"🔒 {_selectedSchool} is locked" : "Found the Guild";
         _confirmBtn.TooltipText = locked
-            ? "Every guild begins as an Adept. Select Adept to found — other " +
+            ? "Every guild begins as an Adept. Select Adept to found. Other " +
               "disciplines are declared in play, in the Grand Hall."
             : "";
     }
@@ -625,7 +625,7 @@ public partial class NewGameScreen : Control
             bool sel = school == _selectedSchool;
             var accent = SchoolColors.GetBorderColor(school);
             ApplySchoolCardStyle(card, sel, accent);
-            // Mirror BuildSchoolCard's lockout palette EXACTLY — BuildUI ends
+            // Mirror BuildSchoolCard's lockout palette EXACTLY. BuildUI ends
             // with UpdateAll(), so whatever is set here is what actually paints.
             // The first version of this method used a uniform scheme and erased
             // the Adept-gold/locked-dim distinction before the first frame.
@@ -697,7 +697,7 @@ public partial class NewGameScreen : Control
         bool isStart = _selectedSchool.ToString() == DeclarationService.StartingSchool;
         _detailCardCount.Text = isStart
             ? $"{count} cards  ·  YOU BEGIN HERE"
-            : $"{count} cards  ·  🔒 LOCKED — every guild begins as Adept. Declare this " +
+            : $"{count} cards  ·  🔒 LOCKED. Every guild begins as Adept. Declare this " +
               $"later, in the Grand Hall, once someone here can teach it.";
         _detailCardCount.AddThemeColorOverride("font_color",
             isStart ? UITheme.Gold : new Color(accent.R, accent.G, accent.B, 0.6f));
@@ -706,7 +706,7 @@ public partial class NewGameScreen : Control
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Founding scenario picker — realm + difficulty (spec §3.5)
+    // Founding scenario picker: realm + difficulty (spec §3.5)
     // ════════════════════════════════════════════════════════════════════
 
     private void BuildScenarioPicker(VBoxContainer parent)
@@ -718,7 +718,7 @@ public partial class NewGameScreen : Control
         section.AddThemeConstantOverride("separation", 8);
         parent.AddChild(section);
 
-        var hdr = new Label { Text = "FOUNDING — CHOOSE YOUR REALM" };
+        var hdr = new Label { Text = "FOUNDING: CHOOSE YOUR REALM" };
         hdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
         hdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
         section.AddChild(hdr);
@@ -870,14 +870,14 @@ public partial class NewGameScreen : Control
         {
             // Belt-and-braces behind the disabled button: a stale click must not
             // found a guild while a locked school is the visible selection.
-            ShowError($"{_selectedSchool} is locked. Every guild begins as an Adept — " +
-                      "select Adept to found, and declare other disciplines in play.");
+            ShowError($"{_selectedSchool} is locked. Every guild begins as an Adept. " +
+                      "Select Adept to found, and declare other disciplines in play.");
             return;
         }
 
         // Every guild begins UNDECLARED (A1 hard ruling). _selectedSchool is a
         // reading cursor for the locked browser, never a choice. The school is
-        // passed to NewGame EXPLICITLY — its default parameter is "Elementalist",
+        // passed to NewGame EXPLICITLY, because its default parameter is "Elementalist",
         // which would violate the ruling and seed the wrong starter deck.
         // Disciplines are declared later, in the Grand Hall (DeclarationService).
         var startingSchool = Enum.TryParse<CardSchool>(DeclarationService.StartingSchool, out var sc)
@@ -899,12 +899,12 @@ public partial class NewGameScreen : Control
         // Temporary: BuildMaterials has no gathering system yet (the terrain-drip
         // collection from run_structure_v2 §12b isn't built), so every new guild
         // starts with a flat stock. Remove this once materials are actually earnable
-        // in play — it's a placeholder, not an intended starting balance.
+        // in play. It's a placeholder, not an intended starting balance.
         save.BuildMaterials = 10000;
 
         // Apply the founding scenario: guild-level difficulty (re-applied to every
-        // cycle's world generation) + the founding gold stipend. Gold floors at 0 —
-        // base starting gold is 0, so a negative delta means "no cushion", not debt.
+        // cycle's world generation) + the founding gold stipend. Gold floors at 0.
+        // Base starting gold is 0, so a negative delta means "no cushion", not debt.
         var scen = StartScenarioLoader.Load(_selectedScenarioId) ?? StartScenarioLoader.Default();
         save.Ledger.FoundingScenario = scen;
         save.Cycle.Gold = Mathf.Max(0, save.Cycle.Gold + scen.StartingGold);
@@ -962,7 +962,7 @@ public partial class NewGameScreen : Control
             CornerRadiusBottomRight = 4,
         };
         // The confirm button now spends real time DISABLED (locked-school
-        // selection) — without an explicit disabled stylebox it fell back to the
+        // selection). Without an explicit disabled stylebox it fell back to the
         // engine-default grey with the white font override, which read as broken
         // rather than locked.
         var disabled = new StyleBoxFlat

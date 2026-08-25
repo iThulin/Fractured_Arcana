@@ -13,7 +13,7 @@ using System;
 //                 GlyphCipherTags.cs (semantic extraction),
 //                 GlyphCipherTexture.cs (bakes this Control),
 //                 UITheme.cs (all colours)
-// See:            docs/glyph_cipher_spec_v2.md §8 — LOD composites
+// See:            docs/glyph_cipher_spec_v2.md §8, LOD composites
 // ============================================================
 
 /// <summary>Which composite to render. The generator output is identical in all three; only the compositing differs.</summary>
@@ -37,7 +37,7 @@ public partial class GlyphCipherView : Control
     // ── LOD composite table ─────────────────────────────────────────
     //
     // The pixel floors are not cosmetic. Unit weights scale by render RADIUS, so at a
-    // 64px tile the function layer is 0.032 * 32 = 1.0px before the boost — the one
+    // 64px tile the function layer is 0.032 * 32 = 1.0px before the boost, so the one
     // layer carrying gameplay information would be the least visible thing on the
     // tile. Floors are inert at card scale and above.
     private readonly struct Profile
@@ -52,7 +52,7 @@ public partial class GlyphCipherView : Control
     // neither, because they are drawn onto a surface this code controls.
     //
     // The stave was originally dimmed to 0.30 on tiles, to foreground the function layer.
-    // That was tuned against controlled backdrops — paper, and a flat dark swatch — and it
+    // That was tuned against controlled backdrops (paper, and a flat dark swatch) and it
     // fails completely on a real board: pale ink at 30% over bright grass has almost no
     // contrast, and the sigil reads as a floating hub with nothing attached. Foregrounding
     // is now carried entirely by WEIGHT (the function layer is ~3x the stave's width at
@@ -60,7 +60,7 @@ public partial class GlyphCipherView : Control
     private static Profile ProfileFor(CipherLod lod) => lod switch
     {
         // The tile stave is thickened 1.7x and fully opaque, and this is not a taste
-        // call — it is a minification fix. The ring and hub survive at distance because
+        // call. It is a minification fix. The ring and hub survive at distance because
         // the ring is drawn procedurally in the shader (sharp at any scale) and the hub
         // is a large solid area; the stave was ~2.2px in a 256px bake against ~6.6px for
         // the rose, so the mip chain averaged the thin strokes toward transparent first
@@ -70,7 +70,7 @@ public partial class GlyphCipherView : Control
         // Tile backing is 0 because glyph_sigil.gdshader draws it instead. It has to:
         // the enclosing ring sits OUTSIDE the baked sigil, so a baked disc would stop
         // short of it and leave the ring floating on bare grass. Rendering a Tile-LOD
-        // view through a Control (the F11 gallery) therefore shows no backing — that is
+        // view through a Control (the F11 gallery) therefore shows no backing. That is
         // the dev preview being honest about what the texture actually contains.
         CipherLod.Tile       => new Profile(1.00f, 1.70f, 0.00f, 1.6f, 1.0f, 2.6f, false),
         CipherLod.Inspection => new Profile(1.00f, 1.00f, 0.00f, 1.0f, 1.0f, 1.6f, true),
@@ -116,7 +116,7 @@ public partial class GlyphCipherView : Control
     }
 
     /// <summary>
-    /// The colour behind the glyph. Only the ALLY hub reads it — that hub is a filled disc
+    /// The colour behind the glyph. Only the ALLY hub reads it. That hub is a filled disc
     /// with a punched centre, and the punch has to match whatever it sits on. An outlined
     /// ring would vanish into the arms crossing behind it at tile scale, which is why the
     /// punch exists at all.
@@ -221,12 +221,12 @@ public partial class GlyphCipherView : Control
     /// <summary>
     /// Draws one polyline with ROUND CAPS.
     ///
-    /// Godot's DrawPolyline has no line-cap or joint control — every stroke ends in a
+    /// Godot's DrawPolyline has no line-cap or joint control, so every stroke ends in a
     /// flat butt cap. The reference renderer this design was tuned against used SVG's
     /// stroke-linecap="round", and the difference is not subtle on a stave: an arm and
     /// its crossbars are short strokes, and flat ends make the ink read as machined
     /// rather than inked. Capping by hand with a disc at each end costs two extra draw
-    /// calls per stroke and restores it. Joints are left mitred — the polylines here are
+    /// calls per stroke and restores it. Joints are left mitred, since the polylines here are
     /// jittered straight runs, so no joint bends far enough for it to show.
     /// </summary>
     private void DrawStrokePolyline(CipherStroke s, Func<CipherPoint, Vector2> toScreen, Color col, float width)
@@ -323,7 +323,7 @@ public partial class GlyphCipherView : Control
     /// <summary>
     /// Filled polygon with a softened edge.
     ///
-    /// DrawColoredPolygon has NO antialiasing parameter — its edges are hard. That is
+    /// DrawColoredPolygon has NO antialiasing parameter, so its edges are hard. That is
     /// tolerable on a large shape and not tolerable on the hub, which is the single
     /// most-read mark on the glyph and is often only ~20px across. Stroking the outline
     /// with a thin antialiased polyline in the same colour feathers the edge at

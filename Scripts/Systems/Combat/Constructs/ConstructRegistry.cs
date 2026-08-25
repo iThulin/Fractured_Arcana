@@ -22,7 +22,7 @@ using System.Linq;
 
 /// <summary>
 /// Pure query layer over the player's constructs. Holds no state, so nothing to
-/// reset between fights — a construct is anything in play with
+/// reset between fights. A construct is anything in play with
 /// <see cref="Unit.IsConstruct"/> set and a matching <see cref="Unit.SummonerTeamId"/>.
 /// </summary>
 public static class ConstructRegistry

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // CampusGridManager.cs
 //
 // Purpose:        The 3D campus hex grid. Inherits HexGridManager
-//                 directly — gets Tiles, AxialToWorld, GetNeighbors,
+//                 directly: gets Tiles, AxialToWorld, GetNeighbors,
 //                 Distance, ApplyVisualToTile, HexTileScene3D,
 //                 HexRadius, and the whole painterly decoration
 //                 export surface for free. Overrides _Ready() to
@@ -20,11 +20,11 @@ using System.Collections.Generic;
 //                 CampusInputController.cs (click/drag)
 // See:            conversation note confirming ApplyVisualToTile
 //                 and RebuildTileAndNeighbors are public, and that
-//                 _Ready() only self-generates when Tiles is empty
-//                 — this class relies on both of those facts.
+//                 _Ready() only self-generates when Tiles is empty;
+//                 this class relies on both of those facts.
 // ============================================================
 
-/// <summary>3D campus hex grid — a HexGridManager subclass, not a sibling. Reuses the
+/// <summary>3D campus hex grid: a HexGridManager subclass, not a sibling. Reuses the
 /// base class's tile machinery and painterly export surface wholesale; supplies its
 /// own tile SOURCE (CampusMapSaveData/BuildingSaveData) instead of procedural
 /// generation, and never calls GenerateMap() or any of its private helpers.
@@ -32,34 +32,34 @@ using System.Collections.Generic;
 /// these are inherited [Export] fields with base-class defaults that don't suit a
 /// campus): HexTileScene3D must be assigned, HexRadius should match combat's real
 /// value (1.025, confirmed from Battlefield.tscn), and UseBlendedTerrainMesh MUST be
-/// set false — left at the base default (true), ApplyVisualToTile takes the blended-
+/// set false. Left at the base default (true), ApplyVisualToTile takes the blended-
 /// mesh branch, which depends on a private field (_lastWorldFloor) this class never
 /// populates.</summary>
 public partial class CampusGridManager : HexGridManager
 {
     /// <summary>Renamed from the base class's own GridBoundsMin/Max (which have a
     /// private setter this subclass can't write to) rather than hiding them with
-    /// `new` — avoids any ambiguity about which one a given reference sees.</summary>
+    /// `new`; avoids any ambiguity about which one a given reference sees.</summary>
     public Vector3 CampusGridBoundsMin { get; private set; }
     public Vector3 CampusGridBoundsMax { get; private set; }
 
-    /// <summary>Parallel to Tiles — CampusTileSaveData.IsBuildable per hex. Kept
+    /// <summary>Parallel to Tiles: CampusTileSaveData.IsBuildable per hex. Kept
     /// separate from TileData on purpose: "can a building go here" is a campus-only
     /// concept, and TileData is a shared combat type we don't want to pollute with it.</summary>
     private readonly Dictionary<Vector2I, bool> _buildableMask = new();
 
-    /// <summary>Parallel to Tiles — empty string = no building. Lets a click on ANY
+    /// <summary>Parallel to Tiles: empty string = no building. Lets a click on ANY
     /// footprint hex resolve back to the owning building's id, and lets placement
     /// validation check occupancy without parsing TileData.ObstacleKind strings.</summary>
     private readonly Dictionary<Vector2I, string> _buildingAtHex = new();
 
-    /// <summary>Parallel to Tiles — empty string = no landmark. Mirrors
+    /// <summary>Parallel to Tiles: empty string = no landmark. Mirrors
     /// <see cref="_buildingAtHex"/> so a click can resolve a hex back to its landmark
     /// id, and for the same reason it is kept off TileData: landmarks are a campus
     /// story concept with no meaning in combat.</summary>
     private readonly Dictionary<Vector2I, string> _landmarkAtHex = new();
 
-    /// <summary>Parallel to <see cref="_landmarkAtHex"/> — the flag-derived phase,
+    /// <summary>Parallel to <see cref="_landmarkAtHex"/>: the flag-derived phase,
     /// cached at stamp time so a redraw never has to re-run the hasFlag predicate
     /// per tile.</summary>
     private readonly Dictionary<Vector2I, CampusLandmarkData.LandmarkState> _landmarkStateAtHex = new();
@@ -68,14 +68,14 @@ public partial class CampusGridManager : HexGridManager
 
     /// <summary>Uniform per-tile VISUAL scale (1 = tiles touch). The city view sets ~0.9:
     /// a district's 7-flower of touching hexes necessarily overhangs its strategic tile's
-    /// edge midpoints (max extent ≈ 0.91·R against an apothem of 0.866·R — the septhex
+    /// edge midpoints (max extent ≈ 0.91·R against an apothem of 0.866·R; the septhex
     /// never tiles a hexagon), which read as the flower spilling past the city. At 0.9
     /// the extent drops to the apothem and the grout gaps give the "crafted model" read.
     /// Applied to the tile NODE, so labels and building meshes shrink with it; lattice
     /// positions, contour, and analytic picking are untouched.</summary>
     public float TileVisualShrink = 1f;
 
-    /// <summary>Deliberately does NOT call base._Ready() — that schedules the base
+    /// <summary>Deliberately does NOT call base._Ready(): that schedules the base
     /// class's AutoGenerateIfEmpty() safety net (a procedural GenerateMap() fallback
     /// this class never wants, since it's always populated explicitly via
     /// LoadFromSave). Overriding as a no-op is safer than relying on Tiles.Count > 0
@@ -85,7 +85,7 @@ public partial class CampusGridManager : HexGridManager
     // ── Loading ───────────────────────────────────────────────────────
 
     /// <summary>Clears any existing tiles and rebuilds the grid from saved data.
-    /// Never procedural — the campus is authored/persistent, not a fresh region.</summary>
+    /// Never procedural: the campus is authored/persistent, not a fresh region.</summary>
     public void LoadFromSave(CampusMapSaveData map, List<BuildingSaveData> buildings)
     {
         ClearTiles();
@@ -122,14 +122,14 @@ public partial class CampusGridManager : HexGridManager
                 IsBlocked = false,
             };
             if (tileSave.Ground == "Rubble")
-                tileData.ApplyTerrainModifier("rubble"); // existing TileData mechanic — see campus_siege_and_defense_v1 §4b
+                tileData.ApplyTerrainModifier("rubble"); // existing TileData mechanic (see campus_siege_and_defense_v1 §4b)
 
             tileNode.Data = tileData;
             Tiles[coord] = tileData; // inherited dict
 
-            ApplyVisualToTile(tileData); // inherited PUBLIC method — combat's real terrain palette
+            ApplyVisualToTile(tileData); // inherited PUBLIC method, combat's real terrain palette
 
-            // Rubble is never buildable regardless of the saved flag — clearing it is
+            // Rubble is never buildable regardless of the saved flag; clearing it is
             // a separate action, not a placement-time override (same rule as before).
             _buildableMask[coord] = tileSave.Ground == "Rubble" ? false : tileSave.IsBuildable;
             _buildingAtHex[coord] = "";
@@ -153,7 +153,7 @@ public partial class CampusGridManager : HexGridManager
 
             if (!fits)
             {
-                // Stranded off the current grid — a building authored for a district that isn't
+                // Stranded off the current grid: a building authored for a district that isn't
                 // founded yet, or one left behind by a lattice change. UNPLACE it in the save
                 // rather than log-and-skip on every load: it becomes a built-but-unsited building
                 // the player can re-place once its district is unlocked (the same philosophy as
@@ -163,7 +163,7 @@ public partial class CampusGridManager : HexGridManager
                 {
                     b.IsPlaced = false;
                     GD.Print($"[CampusGrid] '{b.Id}' footprint anchored at {anchor} is off the current " +
-                             "campus grid — unplaced (re-place it once its district is unlocked).");
+                             "campus grid; unplaced (re-place it once its district is unlocked).");
                 }
                 continue;
             }
@@ -187,13 +187,13 @@ public partial class CampusGridManager : HexGridManager
     /// <summary>
     /// Stamp landmarks from <see cref="CampusLandmarkRegistry"/> onto the grid: state
     /// tint on the tile plus a billboarded name label. Ported from the retired
-    /// 2D CampusHexGrid.LoadLandmarks (858054d) — that name is history, not a live
-    /// collaborator — preserving all three of its rules —
+    /// 2D CampusHexGrid.LoadLandmarks (858054d); that name is history, not a live
+    /// collaborator. All three of its rules are preserved:
     /// clear before restamping, buildings win, and a missing hex is an error rather
     /// than a crash.
     ///
     /// MUST be called after <see cref="LoadFromSave"/>: it reads _buildingAtHex, which
-    /// LoadFromSave populates. Safe to call repeatedly — each stamped tile has its
+    /// LoadFromSave populates. Safe to call repeatedly: each stamped tile has its
     /// terrain visual reapplied before the tint, so tints never compound.
     ///
     /// <paramref name="hasFlag"/> reads player flag state to derive each landmark's
@@ -207,7 +207,7 @@ public partial class CampusGridManager : HexGridManager
         {
             if (!Tiles.TryGetValue(coord, out var stale))
                 continue;
-            ApplyVisualToTile(stale);          // inherited — resets albedo to terrain
+            ApplyVisualToTile(stale);          // inherited; resets albedo to terrain
             stale.TileView?.ClearPoiLabel();
             // Drop the stale placeholder massing too (see the stamp below) so a
             // narrative-beat refresh never stacks two meshes on one hex.
@@ -231,7 +231,7 @@ public partial class CampusGridManager : HexGridManager
                 continue;
             }
 
-            // Landmarks don't override buildings — if a building sits here, the
+            // Landmarks don't override buildings: if a building sits here, the
             // building wins visually (the building IS the restoration).
             if (!string.IsNullOrEmpty(_buildingAtHex.GetValueOrDefault(coord, "")))
                 continue;
@@ -243,7 +243,7 @@ public partial class CampusGridManager : HexGridManager
             // A landmark hex is NOT buildable. Without this the player could site a
             // building on the Belfry, the buildings-win rule above would then skip that
             // landmark on the next load, and its whole restoration arc would vanish from
-            // the save — no exception, no log line, no way to notice.
+            // the save: no exception, no log line, no way to notice.
             //
             // Safe to write the mask here because LoadFromSave rebuilds it from the save
             // immediately before every LoadLandmarks call (CampusScreen.LoadCampusGrid is
@@ -263,18 +263,18 @@ public partial class CampusGridManager : HexGridManager
 
             if (tile.TileView != null)
             {
-                // Lerp rather than replace — same technique ApplyVisualToTile uses for
+                // Lerp rather than replace, the same technique ApplyVisualToTile uses for
                 // the spawn-side tints, so a landmark still reads as its ground type.
                 tile.TileView.SetBaseColor(
                     tile.TileView.BaseColor.Lerp(tint, UITheme.LandmarkTintStrength));
                 // DisplayName, not HexLabel: "The Belfry" reads; "BL" needs a legend the
-                // player does not have. HexLabel is left authored on all six landmarks —
+                // player does not have. HexLabel is left authored on all six landmarks;
                 // it is the right text for a future compact/zoomed-out view, and it costs
                 // nothing to keep.
                 tile.TileView.SetPoiLabel(lm.DisplayName, tint, UITheme.Label3DPlaceName);
 
                 // Placeholder massing (2026-08-19): landmarks get the same convention-scene
-                // treatment as buildings — Scenes/Campus/Buildings/{landmarkId}.tscn, tier
+                // treatment as buildings: Scenes/Campus/Buildings/{landmarkId}.tscn, tier
                 // group driven by the restoration phase (ruined→T1, active→T2, restored→T3),
                 // so a landmark visibly grows as its arc advances. Null-safe: no scene on
                 // disk keeps today's tint+label rendering.
@@ -305,7 +305,7 @@ public partial class CampusGridManager : HexGridManager
     }
 
     /// <summary>Maps CampusTileSaveData.Ground to a combat TileTerrainType. Colour now
-    /// comes entirely from the inherited ApplyVisualToTile (combat's own palette) —
+    /// comes entirely from the inherited ApplyVisualToTile (combat's own palette);
     /// see the class-level note on the Path/Plaza-both-read-as-Stone trade-off.</summary>
     private static TileTerrainType GroundToTerrain(string ground) => ground switch
     {
@@ -343,7 +343,7 @@ public partial class CampusGridManager : HexGridManager
         return result;
     }
 
-    /// <summary>Placeholder occupancy tint on top of the tile's real terrain colour —
+    /// <summary>Placeholder occupancy tint on top of the tile's real terrain colour,
     /// a campus-only concept (combat has no notion of "a building is here" baked into
     /// ApplyVisualToTile), so this stays a direct SetBaseColor call rather than trying
     /// to route it through the inherited visual method.</summary>
@@ -357,7 +357,7 @@ public partial class CampusGridManager : HexGridManager
             if (!Tiles.TryGetValue(coord, out var tile))
                 continue;
 
-            tile.IsBlocked = true;          // footprint is solid — units path around it
+            tile.IsBlocked = true;          // footprint is solid; units path around it
             tile.BlocksLineOfSight = true;  // and ranged/targeting treats it as solid
             tile.ObstacleKind = "building:" + buildingId;
 
@@ -371,7 +371,7 @@ public partial class CampusGridManager : HexGridManager
         //
         // Stands in for building meshes, which do not exist yet: until then every campus
         // structure is an identically-tinted hex, and the map cannot be navigated without
-        // this. Colour carries the second half of the message — cyan means the building is
+        // this. Colour carries the second half of the message: cyan means the building is
         // a door to a system, grey means it only grants passive bonuses.
         var template = BuildingDatabase.GetTemplate(buildingId);
         if (template != null && Tiles.TryGetValue(anchor, out var anchorTile))
@@ -401,7 +401,7 @@ public partial class CampusGridManager : HexGridManager
     // ── Placement (drag-and-drop target) ─────────────────────────────
 
     /// <summary>True if every hex in the given footprint exists, is marked buildable,
-    /// and is currently unoccupied. Read-only — no side effects.</summary>
+    /// and is currently unoccupied. Read-only, no side effects.</summary>
     public bool CanPlaceBuilding(Building template, Vector2I anchor, int rotation)
     {
         foreach (var coord in GetFootprintHexes(template, anchor, rotation))
@@ -448,7 +448,7 @@ public partial class CampusGridManager : HexGridManager
     /// the hex is unoccupied or unknown.</summary>
     public string GetBuildingIdAt(Vector2I coord) => _buildingAtHex.GetValueOrDefault(coord, "");
 
-    /// <summary>Resolve a WORLD-space ray to the grid hex it crosses — WITHOUT physics.
+    /// <summary>Resolve a WORLD-space ray to the grid hex it crosses, WITHOUT physics.
     /// The world atlas renders this grid as a small SCALED model on the home tile, and
     /// Godot's physics engine is unreliable against scaled collision shapes (a scaled
     /// StaticBody either mis-registers or is ignored with a warning), so a ray→collider
@@ -465,7 +465,7 @@ public partial class CampusGridManager : HexGridManager
             return false;
 
         // Per-tile analytic pick, in WORLD space. With contour-follow each tile sits at its OWN
-        // height (ChildTopWorldY), so a single shared plane no longer works — intersect the ray
+        // height (ChildTopWorldY), so a single shared plane no longer works: intersect the ray
         // with EACH tile's own top plane and keep the tile whose hit lands nearest its own centre.
         // The plane is lifted by the label height because the player aims at the billboarded name
         // label, which floats Label3DPoiHeight above the tile; intersecting the LABEL plane
@@ -489,7 +489,7 @@ public partial class CampusGridManager : HexGridManager
             // SURFACE and the LABEL plane. The label-plane-only version (2026-08-10) was
             // right when every click aimed at a floating name from a fixed steep pitch,
             // but the free city camera made surface/building clicks read with a
-            // camera-dependent parallax — the lifted plane's hit lands a hex TOWARD the
+            // camera-dependent parallax: the lifted plane's hit lands a hex TOWARD the
             // camera, worse the shallower the pitch. Testing both planes and keeping the
             // hit nearest its own tile centre serves both aims exactly.
             for (int plane = 0; plane < 2; plane++)
@@ -532,10 +532,10 @@ public partial class CampusGridManager : HexGridManager
     private readonly Dictionary<Vector2I, HexTile> _previewTiles = new();       // child coord → preview node
     private readonly Dictionary<Vector2I, Vector2I> _previewDistrictOf = new();  // child coord → owning district
 
-    /// <summary>Render the given LOCKED districts as dimmed 7-hex flowers around the built campus
-    /// — the "room to grow" the player can annex. Uses the SAME HexTile pipeline and
+    /// <summary>Render the given LOCKED districts as dimmed 7-hex flowers around the built campus,
+    /// the "room to grow" the player can annex. Uses the SAME HexTile pipeline and
     /// <see cref="AxialToWorld"/> as the real tiles (so they tessellate + contour seamlessly), but
-    /// they are NOT added to <see cref="HexGridManager.Tiles"/> — instead they're tracked in a
+    /// they are NOT added to <see cref="HexGridManager.Tiles"/>; instead they're tracked in a
     /// private map so <see cref="TryPickPreviewDistrict"/> can resolve a click back to its district
     /// without making them buildable.</summary>
     public void BuildDistrictPreview(System.Collections.Generic.IEnumerable<Vector2I> districts, Color lockedColor)
@@ -585,10 +585,10 @@ public partial class CampusGridManager : HexGridManager
 
     /// <summary>Explore fog (Phase 3): dim the flower tiles of UNREVEALED districts and restore the
     /// normal terrain colour on revealed ones. <paramref name="isRevealed"/> tests a child coord's
-    /// owning district. Cheap re-tint over the loaded tiles — call whenever the revealed set changes.</summary>
+    /// owning district. Cheap re-tint over the loaded tiles; call whenever the revealed set changes.</summary>
     /// <summary>Footprint preview (2026-08-13): tint a set of hexes (e.g. a
     /// building's would-be footprint) a flat colour. Restore with
-    /// <see cref="RestoreHexVisuals"/>. Hexes not on the grid are skipped —
+    /// <see cref="RestoreHexVisuals"/>. Hexes not on the grid are skipped;
     /// an off-grid footprint simply shows fewer tinted tiles, which is
     /// itself the "doesn't fit" signal.</summary>
     public void TintHexes(List<Vector2I> hexes, Color color)
@@ -599,7 +599,7 @@ public partial class CampusGridManager : HexGridManager
                 tile.TileView.SetBaseColor(color);
     }
 
-    /// <summary>Undo <see cref="TintHexes"/> — restores each hex's real
+    /// <summary>Undo <see cref="TintHexes"/>: restores each hex's real
     /// terrain/building visual.</summary>
     public void RestoreHexVisuals(List<Vector2I> hexes)
     {
@@ -617,7 +617,7 @@ public partial class CampusGridManager : HexGridManager
             var view = kv.Value.TileView;
             if (view == null) continue;
             if (isRevealed(kv.Key))
-                ApplyVisualToTile(kv.Value);          // inherited — restores the real terrain colour
+                ApplyVisualToTile(kv.Value);          // inherited; restores the real terrain colour
             else
                 view.SetBaseColor(fogColor);
         }
@@ -625,7 +625,7 @@ public partial class CampusGridManager : HexGridManager
 
     /// <summary>Resolve a WORLD-space ray to the DISTRICT of the preview flower it crosses, so a
     /// click in annex mode buys that district. Same per-tile world-space analytic pick as
-    /// <see cref="TryPickRay"/> (contour- and scale-proof), but over the preview flowers — and
+    /// <see cref="TryPickRay"/> (contour- and scale-proof), but over the preview flowers, and
     /// with NO label lift, since these tiles carry no name label: the player aims at the flower
     /// itself. Returns false when the ray misses every preview flower.</summary>
     public bool TryPickPreviewDistrict(Vector3 rayOrigin, Vector3 rayDir, out Vector2I district)
@@ -670,7 +670,7 @@ public partial class CampusGridManager : HexGridManager
 
     /// <summary>Restores each previewed hex to its true appearance by re-deriving it
     /// (ApplyVisualToTile from TerrainType, then re-applying the building tint if
-    /// occupied) rather than caching colours — simpler now that the real colour comes
+    /// occupied) rather than caching colours; simpler now that the real colour comes
     /// from the inherited method instead of code here.</summary>
     public void ClearPlacementPreview()
     {

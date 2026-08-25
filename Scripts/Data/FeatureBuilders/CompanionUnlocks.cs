@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 
 // ============================================================
-// CompanionUnlocks.cs — roster sustainability pass (2026-07-22)
+// CompanionUnlocks.cs (roster sustainability pass, 2026-07-22)
 //
 // Purpose:        Two jobs the roster never had:
 //                 1. ENFORCE unlock conditions. Companion JSON
 //                    carried human-readable unlockCondition text,
-//                    but nothing ever flipped IsAvailable — only
+//                    but nothing ever flipped IsAvailable, so only
 //                    the 5 starters were ever recruitable. Sync()
 //                    evaluates real save-state rules each campus
 //                    refresh and unlocks (returns newly-available
@@ -33,7 +33,7 @@ public static class CompanionUnlocks
 
     /// <summary>Per-cycle rotation: of the companions whose TEMPLATE is
     /// base-available (no unlock condition), only <see cref="RotationCount"/>
-    /// appear in a given cycle — deterministic on the cycle's world seed, so
+    /// appear in a given cycle, deterministic on the cycle's world seed, so
     /// each rendering's hiring hall differs. Runs once per cycle (flag-gated);
     /// call from EnsureCycleWorld after world generation.</summary>
     public static void SeedCycleRotation(GuildSaveData save)
@@ -76,7 +76,7 @@ public static class CompanionUnlocks
     /// <summary>Evaluate unlock rules against current save state and flip
     /// IsAvailable for any newly-earned companions. Returns the display names
     /// that just became available (for toasting). Never revokes availability.
-    /// Grant-style companions (bram — wilds rescue; isolde — court favor) are
+    /// Grant-style companions (bram via wilds rescue, isolde via court favor) are
     /// unlocked by their encounters/systems via CompanionRoster.GrantFromEncounter,
     /// not here.</summary>
     public static List<string> Sync(GuildSaveData save)
@@ -102,7 +102,7 @@ public static class CompanionUnlocks
 
             bool unlock = c.Id switch
             {
-                // Proven-guild hires — the guild's cross-cycle combat record.
+                // Proven-guild hires, keyed to the guild's cross-cycle combat record.
                 "kael_ashblade"   => combatWon >= 2,
                 "sable_voss"      => combatWon >= 2,
                 "miro_fletch"     => combatWon >= 3,

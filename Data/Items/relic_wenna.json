@@ -1,7 +1,7 @@
 {
   "id": "relic_wenna",
   "name": "The Scholar's Marginalia",
-  "description": "Wenna's own annotated grimoire \u2014 the notes are worth more than the text. Your first card each turn costs 1 less mana.",
+  "description": "Wenna's own annotated grimoire. The notes are worth more than the text. Your first card each turn costs 1 less mana.",
   "rarity": "Legendary",
   "slot": "Trinket",
   "unitClass": "Wizard",

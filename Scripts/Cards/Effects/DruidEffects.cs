@@ -6,16 +6,16 @@ using System.Linq;
 // ============================================================
 // DruidEffects.cs
 //
-// Purpose:        Druid school effects — growth stages, wilding, and wildlife.
+// Purpose:        Druid school effects: growth stages, wilding, and wildlife.
 // Layer:          Effects
 // Collaborators:  Effect.cs (EffectBase, core leaves),
 //                 PersistentEffect.cs (PersistentEffect base),
 //                 CardScriptRegistry.Druid.cs (registration)
 // Notes:          Extracted from Effect.cs / CompositeEffects.cs /
-//                 PersistentEffect.cs — pure move, no behavior change.
+//                 PersistentEffect.cs. Pure move, no behavior change.
 // ============================================================
 
-/// <summary>Shared helpers for the Druid growth effects — center resolution and radius iteration, mirroring TerraformEffect's target handling.</summary>
+/// <summary>Shared helpers for the Druid growth effects: center resolution and radius iteration, mirroring TerraformEffect's target handling.</summary>
 internal static class GrowthEffectUtil
 {
 	/// <summary>Center axial from the first tile/unit in the target set, else the caster's tile.</summary>
@@ -65,7 +65,7 @@ internal static class GrowthEffectUtil
 /// <summary>
 /// Plant living terrain at a stage on the target tile (and ring, if radius &gt; 0).
 /// Terrain affinity is enforced inside GrowthManager.Seed (never takes root on fire).
-/// Raises the caster's Wilding once per cast — not per tile — so a wide seed does not
+/// Raises the caster's Wilding once per cast, not per tile, so a wide seed does not
 /// spike straight into a Riot.
 /// JSON: { "type": "seed_growth", "stage": 1, "radius": 0, "wilding": 1 }
 /// </summary>
@@ -87,7 +87,7 @@ public sealed class SeedGrowthEffect : EffectBase
 		if (s?.Grid == null)
 			return;
 		if (s.Growth == null)
-		{ s.Log("[SeedGrowth] GameState.Growth is null — wire the GrowthManager."); return; }
+		{ s.Log("[SeedGrowth] GameState.Growth is null. Wire the GrowthManager."); return; }
 
 		Unit casterUnit = FindCasterUnit(s, caster);
 		if (!GrowthEffectUtil.TryGetCenter(casterUnit, targets, out Vector2I center))
@@ -112,7 +112,7 @@ public sealed class SeedGrowthEffect : EffectBase
 /// <summary>
 /// Force every living tile in radius up one stage, overriding the natural clock.
 /// GrowthManager.AdvanceTile raises Wilding per advance, so a big advance can be the
-/// thing that tips you into a Riot — intended.
+/// thing that tips you into a Riot. That is intended.
 /// JSON: { "type": "advance_growth", "radius": 1 }
 /// </summary>
 public sealed class AdvanceGrowthEffect : EffectBase
@@ -224,7 +224,7 @@ public sealed class EntangleEffect : EffectBase
 /// <summary>
 /// The panic button: clear living tiles in radius for heal/draw scaled by how many were
 /// consumed, leaving fertile carcass ground behind (the spent grove enriches the soil).
-/// Deliberately worse value than letting growth mature — composes the already-registered
+/// Deliberately worse value than letting growth mature. Composes the already-registered
 /// HealEffect / DrawCardsEffect rather than reimplementing those APIs.
 /// JSON: { "type": "harvest_growth", "radius": 2, "heal_per": 3, "draw_per": 0 }
 /// </summary>
@@ -235,7 +235,7 @@ public sealed class HarvestGrowthEffect : EffectBase
 	public int DrawPer;
 
 	/// <summary>Deadfall (audit §6.2.6, 2026-07-29): mana per harvested tile, capped
-	/// by <see cref="ManaCap"/>. Ramp that costs board — the Druid-flavored home for
+	/// by <see cref="ManaCap"/>. Ramp that costs board: the Druid-flavored home for
 	/// acceleration after Vein Tap's nerf.</summary>
 	public int ManaPer;
 	public int ManaCap;
@@ -290,8 +290,8 @@ public sealed class HarvestGrowthEffect : EffectBase
 }
 
 /// <summary>
-/// Damage each targeted enemy, scaled by the growth stage of the tile they stand on —
-/// the more mature the ground beneath them, the more it hurts. Rewards a board you have
+/// Damage each targeted enemy, scaled by the growth stage of the tile they stand on.
+/// The more mature the ground beneath them, the more it hurts. Rewards a board you have
 /// patiently grown rather than spent.
 /// JSON: { "type": "thornlash", "damage": 3, "per_stage": 2 }
 /// </summary>

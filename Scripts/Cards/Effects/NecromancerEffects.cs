@@ -6,14 +6,14 @@ using System.Linq;
 // ============================================================
 // NecromancerEffects.cs
 //
-// Purpose:        Necromancer school effects — spirits, memorials, grief, hallowed
+// Purpose:        Necromancer school effects: spirits, memorials, grief, hallowed
 //                 ground, and their persistent auras.
 // Layer:          Effects
 // Collaborators:  Effect.cs (EffectBase, core leaves),
 //                 PersistentEffect.cs (PersistentEffect base),
 //                 CardScriptRegistry.Necromancer.cs (registration)
 // Notes:          Extracted from Effect.cs / CompositeEffects.cs /
-//                 PersistentEffect.cs — pure move, no behavior change.
+//                 PersistentEffect.cs. Pure move, no behavior change.
 // ============================================================
 
 /// <summary>
@@ -58,7 +58,7 @@ public sealed class SummonSpiritEffect : EffectBase
 
 			if (tile == null || !tile.HasMemorial)
 			{
-				s.Log("[SummonSpirit] Target tile has no memorial — cannot summon here.");
+				s.Log("[SummonSpirit] Target tile has no memorial. Cannot summon here.");
 				continue;
 			}
 
@@ -81,7 +81,7 @@ public sealed class SummonSpiritEffect : EffectBase
 
 				if (spawnTile == null)
 				{
-					s.Log($"[SummonSpirit] Memorial at {tile.Axial} is occupied and no adjacent tile is free — summon blocked.");
+					s.Log($"[SummonSpirit] Memorial at {tile.Axial} is occupied and no adjacent tile is free. Summon blocked.");
 					continue;
 				}
 
@@ -112,7 +112,7 @@ public sealed class SummonSpiritEffect : EffectBase
 /// <summary>
 /// Summons a spirit from every memorial on the board simultaneously.
 /// JSON: { "type": "summon_spirit_from_all_memorials", "unit": "Spirit", "hp": 10, "damage": 5, "speed": 1 }
-/// Optional "hp_per_spirit": true — each spirit's HP equals number of other spirits controlled.
+/// Optional "hp_per_spirit": true. Each spirit's HP equals number of other spirits controlled.
 /// </summary>
 public sealed class SummonSpiritFromAllMemorialsEffect : EffectBase
 {
@@ -366,7 +366,7 @@ public sealed class AdvanceAllSpiritsEffect : EffectBase
 
 			if (AttackIfAdjacent && bestDist <= 1)
 			{
-				// Already adjacent — attack. Capture the tile first: Die() clears it.
+				// Already adjacent, so attack. Capture the tile first: Die() clears it.
 				var victimTile = nearestEnemy.CurrentTile;
 				int spiritDmg = spirit.ModifyOutgoingAttackDamage(spirit.AttackDamage);
 				if (spiritDmg <= 0)
@@ -377,7 +377,7 @@ public sealed class AdvanceAllSpiritsEffect : EffectBase
 				nearestEnemy.ApplyDamage(spiritDmg);
 				s.Log($"[AdvanceSpirits] {spirit.Name} attacks {nearestEnemy.Name} for {spiritDmg}.");
 
-				// On-kill riders (Call to Purpose and upgrades) — consumed here because
+				// On-kill riders (Call to Purpose and upgrades) are consumed here because
 				// spirits only ever attack through this effect.
 				if (!nearestEnemy.Stats.IsAlive)
 				{
@@ -560,7 +560,7 @@ public sealed class HealFractionOfDamageEffect : EffectBase
 }
 
 /// <summary>
-/// Alias registered as "gain_mana" — delegates to existing ManaGainEffect logic.
+/// Alias registered as "gain_mana". Delegates to existing ManaGainEffect logic.
 /// JSON: { "type": "gain_mana", "amount": n }
 /// </summary>
 public sealed class GainManaEffect : EffectBase
@@ -606,7 +606,7 @@ public sealed class DirgePulseEffect : EffectBase
 		if (casterUnit == null)
 			return;
 
-		// Collect pulse origins — all spirit tiles and memorial tiles
+		// Collect pulse origins: all spirit tiles and memorial tiles
 		var pulseOrigins = new HashSet<Vector2I>();
 
 		foreach (var unit in s.UnitsInPlay)
@@ -624,7 +624,7 @@ public sealed class DirgePulseEffect : EffectBase
 
 		if (pulseOrigins.Count == 0)
 		{
-			s.Log("[Dirge] No spirits or memorials on board — no effect.");
+			s.Log("[Dirge] No spirits or memorials on board. No effect.");
 			return;
 		}
 
@@ -657,7 +657,7 @@ public sealed class DirgePulseEffect : EffectBase
 }
 
 /// <summary>
-/// Hallows target tile — creates or upgrades a memorial to Hallowed state.
+/// Hallows target tile, creating or upgrading a memorial to Hallowed state.
 /// JSON: { "type": "hallow_tile", "duration": n, "auto_rise_range": n }
 /// </summary>
 public sealed class HallowTileEffect : EffectBase
@@ -791,7 +791,7 @@ public sealed class MemorialStrikeAllEffect : EffectBase
 }
 
 /// <summary>
-/// Imbues target tile as Memorial Ground — summon spells here cost less.
+/// Imbues target tile as Memorial Ground, so summon spells here cost less.
 /// JSON: { "type": "create_memorial_ground", "duration": n, "summon_discount": n }
 /// </summary>
 public sealed class CreateMemorialGroundEffect : EffectBase
@@ -874,7 +874,7 @@ public sealed class GriefDischargeDamageEffect : EffectBase
 		// Reset grief
 		grief.SetChargesDirectly(0);
 
-		s.Log($"[GriefDischarge] Spent {charges} Grief — dealt {totalDamage} to all enemies.");
+		s.Log($"[GriefDischarge] Spent {charges} Grief. Dealt {totalDamage} to all enemies.");
 	}
 }
 
@@ -946,8 +946,9 @@ public sealed class ConsumeAllMemorialsGlobalEffect : EffectBase
 	public int ManaPerMemorial;
 	public int DrawPerMemorial;
 
-	/// <summary>Audit #8 (2026-07-29): Memorial Wave was eating its own engine —
-	/// every memorial, including the Strong ones other cards spent turns building.
+	/// <summary>Audit #8 (2026-07-29): Memorial Wave was eating its own engine.
+	/// It consumed every memorial, including the Strong ones other cards spent
+	/// turns building.
 	/// With this set, Strong memorials survive the consumption (and grant no
 	/// per-consumed reward, since they were not consumed).</summary>
 	public bool SpareStrong;
@@ -1015,7 +1016,7 @@ public sealed class DamagePerMemorialGlobalEffect : EffectBase
 
 		if (damage <= 0)
 		{
-			s.Log("[DamagePerMemorial] No memorials — no damage.");
+			s.Log("[DamagePerMemorial] No memorials. No damage.");
 			return;
 		}
 
@@ -1053,7 +1054,7 @@ public sealed class HollowMantleLeafEffect : EffectBase
         s.ActiveEffects ??= new List<PersistentEffect>();
         s.ActiveEffects.Add(new HollowMantleEffect(Turns, caster));
 
-        s.Log($"[HollowMantle] Activated — {Armor} armor, {Turns} turns.");
+        s.Log($"[HollowMantle] Activated: {Armor} armor, {Turns} turns.");
     }
 }
 
@@ -1177,7 +1178,7 @@ public sealed class HallowedDoubleRiseLeafEffect : EffectBase
     {
         s.ActiveEffects ??= new List<PersistentEffect>();
         s.ActiveEffects.Add(new HallowedDoubleRiseEffect(caster, EmpowerOnKill));
-        s.Log($"[HallowedDoubleRise] Active — deaths on hallowed ground summon 2 spirits.");
+        s.Log($"[HallowedDoubleRise] Active. Deaths on hallowed ground summon 2 spirits.");
     }
 }
 
@@ -1246,7 +1247,7 @@ public class HollowMantleEffect : PersistentEffect
 /// <summary>
 /// Necromancer aura. While active: all enemies that die create a memorial
 /// AND immediately summon a spirit on their death tile.
-/// Wired into HandleUnitDeath in CombatManager — check for this effect
+/// Wired into HandleUnitDeath in CombatManager. Check for this effect
 /// the same way DealDamageEffect checks for AvatarAuraEffect.
 /// </summary>
 public class OpenGateEffect : PersistentEffect
@@ -1442,7 +1443,7 @@ public class HallowedDoubleRiseEffect : PersistentEffect
 
     public override void Tick(GameState s)
     {
-        // Permanent — don't decrement
+        // Permanent, so don't decrement
         s.Log("[HallowedDoubleRise] Active.");
     }
 }
@@ -1580,7 +1581,7 @@ public sealed class PullMemorialsAndMergeEffect : EffectBase
 				continue;   // already merged away this cast
 			int dist = s.Grid.Distance(center, tile.Axial);
 			if (dist <= 1)
-				continue;   // already beside the wizard — nothing to pull
+				continue;   // already beside the wizard, so nothing to pull
 
 			// Pick the step that gets closest to the caster; prefer stepping onto
 			// another memorial (that is the merge).
@@ -1615,7 +1616,7 @@ public sealed class PullMemorialsAndMergeEffect : EffectBase
 							  : tile.Occupant == null ? tile : null;
 				if (spawnTile == null)
 				{
-					s.Log("[Congregation] Merge blocked — both tiles occupied.");
+					s.Log("[Congregation] Merge blocked: both tiles occupied.");
 					continue;
 				}
 
@@ -1633,7 +1634,7 @@ public sealed class PullMemorialsAndMergeEffect : EffectBase
 					merged.AttackDamage = dmg;
 					merged.RefreshHealthBar();
 					merges++;
-					s.Log($"[Congregation] Two memorials merge — {merged.Name} rises " +
+					s.Log($"[Congregation] Two memorials merge. {merged.Name} rises " +
 						  $"({hp} HP, {dmg} DMG).");
 				}
 			}
@@ -1733,7 +1734,7 @@ public sealed class ShieldPerMemorialEffect : EffectBase
 }
 
 /// <summary>
-/// The Flood Within / Flood of Grief: forces the Grief Flood immediately —
+/// The Flood Within / Flood of Grief: forces the Grief Flood immediately.
 /// OnFloodTriggered fires (refreshing all spirits via CombatManager) and Grief
 /// resets to 0.
 /// JSON: { "type": "trigger_flood" }
@@ -1747,7 +1748,7 @@ public sealed class TriggerFloodEffect : EffectBase
 			s?.Log("[Flood] Caster has no Grief attunement.");
 			return;
 		}
-		s.Log("[Flood] The grief crests — the Flood breaks.");
+		s.Log("[Flood] The grief crests, and the Flood breaks.");
 		grief.ForceFlood();
 	}
 }
@@ -1830,7 +1831,7 @@ internal static class NecroEffectUtil
 			}
 			if (spawnTile == null)
 			{
-				s.Log($"[SpawnSpirit] {tile.Axial} occupied and no adjacent tile free — blocked.");
+				s.Log($"[SpawnSpirit] {tile.Axial} occupied and no adjacent tile free. Blocked.");
 				return null;
 			}
 		}
@@ -1894,7 +1895,7 @@ public sealed class PullToMemorialEffect : EffectBase
 
 			int moved = NecroEffectUtil.StepRelativeTo(s, victim, memorial.Axial, 32, toward: true, out _);
 			bool landed = victim.CurrentTile == memorial;
-			s.Log($"[PullToMemorial] {victim.Name} dragged {moved} tile(s) — " +
+			s.Log($"[PullToMemorial] {victim.Name} dragged {moved} tile(s) " +
 				  (landed ? "onto the memorial." : "toward the memorial."));
 		}
 	}
@@ -1997,14 +1998,14 @@ public sealed class PushAllToMemorialEffect : EffectBase
 			if (landed && DamageOnLand > 0)
 			{
 				enemy.ApplyDamage(DamageOnLand);
-				s.Log($"[TheTrap] {enemy.Name} lands in the memory — {DamageOnLand} damage.");
+				s.Log($"[TheTrap] {enemy.Name} lands in the memory, taking {DamageOnLand} damage.");
 			}
 		}
 	}
 }
 
 /// <summary>
-/// Last Words: the target is marked — dying while marked leaves a memorial of
+/// Last Words: the target is marked, and dying while marked leaves a memorial of
 /// the given strength (resolved in CombatManager.HandleUnitDeath).
 /// JSON: { "type": "mark_on_death_memorial", "strength": "strong" }
 /// </summary>
@@ -2021,14 +2022,14 @@ public sealed class MarkOnDeathMemorialEffect : EffectBase
 			if (victim == null)
 				continue;
 			victim.LeaveMemorialOnDeath = Strength;
-			s.Log($"[LastWords] {victim.Name} is marked — death will leave a {Strength} memorial.");
+			s.Log($"[LastWords] {victim.Name} is marked. Death will leave a {Strength} memorial.");
 		}
 	}
 }
 
 /// <summary>
-/// Many Voices / The Grand Seance: communes with every memorial in range —
-/// draw and gain Grief per memorial; optionally summon a spirit at each; the
+/// Many Voices / The Grand Seance: communes with every memorial in range.
+/// Draw and gain Grief per memorial; optionally summon a spirit at each; the
 /// Grand Seance leaves the memorials standing (consume: false).
 /// JSON: { "type": "commune_all_memorials", "range": 3, "draw_per": 1, "grief_per": 1,
 ///         "summon_per": { "unit": "Spirit", "hp": 8, "damage": 4, "speed": 1 }, "consume": false }
@@ -2080,12 +2081,12 @@ public sealed class CommuneAllMemorialsEffect : EffectBase
 			if (Consume)
 				s.Memorials.ConsumeMemorial(tile);
 		}
-		s.Log($"[Commune] {communed} memorial(s) answered — drew {communed * DrawPer}, +{communed * GriefPer} Grief.");
+		s.Log($"[Commune] {communed} memorial(s) answered. Drew {communed * DrawPer}, +{communed * GriefPer} Grief.");
 	}
 }
 
 /// <summary>
-/// The Garden / Consecrated Battlefield: Memorial Ground over an area — radius 99
+/// The Garden / Consecrated Battlefield: Memorial Ground over an area. Radius 99
 /// covers the whole board ("permanently" = duration 99, outliving any fight).
 /// JSON: { "type": "create_memorial_ground_area", "radius": 1, "duration": 5, "summon_discount": 2, "spirit_regen": 2 }
 /// </summary>
@@ -2253,7 +2254,7 @@ public sealed class GriefOverflowHealSpiritsEffect : EffectBase
 			return;
 		if (grief.Charges <= 4)
 		{
-			s.Log($"[Overflowing] Grief {grief.Charges} — no overflow.");
+			s.Log($"[Overflowing] Grief {grief.Charges}. No overflow.");
 			return;
 		}
 		int refreshed = 0;
@@ -2263,7 +2264,7 @@ public sealed class GriefOverflowHealSpiritsEffect : EffectBase
 			spirit.RefreshHealthBar();
 			refreshed++;
 		}
-		s.Log($"[Overflowing] Grief overflows — {refreshed} spirit(s) fully restored.");
+		s.Log($"[Overflowing] Grief overflows. {refreshed} spirit(s) fully restored.");
 	}
 }
 
@@ -2459,7 +2460,7 @@ public sealed class SpiritSwapWithNearestEnemyEffect : EffectBase
 }
 
 /// <summary>
-/// Mass Rites: damages all enemies; each kill performs the full rite — a
+/// Mass Rites: damages all enemies; each kill performs the full rite: a
 /// memorial on the victim's tile, a spirit strike on one enemy adjacent to the
 /// victim, and a spirit summoned from that memorial (consuming it).
 /// JSON: { "type": "last_rite_aoe", "damage": 7, "spirit_strike": 5,
@@ -2527,8 +2528,8 @@ public sealed class LastRiteAoeEffect : EffectBase
 }
 
 /// <summary>
-/// The Grand Departure: dismisses every friendly spirit; each bursts —
-/// damaging and pushing adjacent enemies — and leaves a memorial of the given
+/// The Grand Departure: dismisses every friendly spirit. Each bursts,
+/// damaging and pushing adjacent enemies, and leaves a memorial of the given
 /// strength on its tile.
 /// JSON: { "type": "mass_departure", "damage": 7, "push": 2, "collision_damage": 2, "memorial_strength": "strong" }
 /// </summary>
@@ -2577,7 +2578,7 @@ public sealed class MassDepartureEffect : EffectBase
 			// death itself already left one.
 			spirit.Die();
 			s.Memorials?.CreateMemorial(origin, spirit.Name, wasAlly: true, Strength, casterUnit.TeamId);
-			s.Log($"[GrandDeparture] {spirit.Name} departs — the burst and the memorial remain.");
+			s.Log($"[GrandDeparture] {spirit.Name} departs. The burst and the memorial remain.");
 		}
 	}
 }
@@ -2678,8 +2679,8 @@ public sealed class SummonSpiritScaledEffect : EffectBase
 
 /// <summary>
 /// Revenant Champion's consume step, done properly: consumes the nearest
-/// <c>count</c> memorials within <c>range</c> of the caster — excluding the
-/// cast's target tile so the champion still has a memorial to rise from — and
+/// <c>count</c> memorials within <c>range</c> of the caster (excluding the
+/// cast's target tile so the champion still has a memorial to rise from) and
 /// records their combined strength for summon_spirit_scaled.
 /// JSON: { "type": "consume_memorials_for_champion", "count": 2, "range": 3 }
 /// </summary>
@@ -2715,7 +2716,7 @@ public sealed class ConsumeMemorialsForChampionEffect : EffectBase
 			s.Memorials.ConsumeMemorial(tile);
 		}
 		s.LastMemorialStrengthConsumed = strength;
-		s.Log($"[Reckoning] {candidates.Count} memorial(s) consumed — combined strength {strength}.");
+		s.Log($"[Reckoning] {candidates.Count} memorial(s) consumed. Combined strength {strength}.");
 	}
 }
 
@@ -2757,7 +2758,7 @@ public sealed class ConsumeAllMemorialsForChampionsEffect : EffectBase
 			NecroEffectUtil.SpawnSpirit(s, UnitKind, memorials[i * 2], casterUnit.TeamId,
 				BaseHp, BaseDamage, Speed, "The Honored");
 
-		s.Log($"[Legion] {memorials.Count} memorial(s) consumed — {champions} champion(s) answer.");
+		s.Log($"[Legion] {memorials.Count} memorial(s) consumed. {champions} champion(s) answer.");
 	}
 }
 
@@ -2836,7 +2837,7 @@ public sealed class SummonSpiritFromAllMemorialsAndDeathSitesEffect : EffectBase
 		if (casterUnit == null || s.Grid == null)
 			return;
 
-		// 1) Every memorial — existing effect does this correctly.
+		// 1) Every memorial. The existing effect does this correctly.
 		new SummonSpiritFromAllMemorialsEffect(UnitKind, BaseHP, Damage, Speed,
 			HpPerSpirit, AdvanceOnArrive, InheritMemorialName, BonusDamagePerStrength)
 			.Resolve(s, caster, targets, snap);
@@ -2915,7 +2916,7 @@ public sealed class ImbuePathMemorialEffect : EffectBase
 
 /// <summary>
 /// Procession / The Guided: counts memorials the caster passes through for the
-/// rest of the turn and pays out at turn end — cards drawn or armor gained per
+/// rest of the turn and pays out at turn end: cards drawn or armor gained per
 /// memorial. Only memorials that existed when this resolved count, so a
 /// Spirit-Trail step doesn't pay for its own footprints.
 /// JSON: { "type": "draw_per_memorial_passed", "count_per": 1 }
@@ -2961,13 +2962,13 @@ public sealed class PerMemorialPassedEffect : EffectBase
 			{
 				casterUnit.Stats.Armor += amount;
 				casterUnit.RefreshHealthBar();
-				s.Log($"[TheGuided] {passed} memorial(s) passed — +{amount} armor.");
+				s.Log($"[TheGuided] {passed} memorial(s) passed. +{amount} armor.");
 			}
 			else if (casterUnit.DeckData != null)
 			{
 				casterUnit.DeckData.Draw(amount);
 				s.OnDrawCards?.Invoke(casterUnit);
-				s.Log($"[Procession] {passed} memorial(s) passed — drew {amount}.");
+				s.Log($"[Procession] {passed} memorial(s) passed. Drew {amount}.");
 			}
 		});
 	}
@@ -3009,7 +3010,7 @@ public sealed class WalkBetweenPersistentEffect : PersistentEffect
 			healed++;
 		}
 		if (healed > 0)
-			s.Log($"[WalkBetween] The casting echoes between worlds — {healed} spirit(s) heal {SpiritHealOnCast}.");
+			s.Log($"[WalkBetween] The casting echoes between worlds. {healed} spirit(s) heal {SpiritHealOnCast}.");
 	}
 }
 
@@ -3028,6 +3029,6 @@ public sealed class WalkBetweenLeafEffect : EffectBase
 	{
 		s.ActiveEffects ??= new List<PersistentEffect>();
 		s.ActiveEffects.Add(new WalkBetweenPersistentEffect(Turns, caster, SpiritHealOnCast));
-		s.Log($"[WalkBetween] Active for {Turns} turns — spells heal spirits {SpiritHealOnCast}.");
+		s.Log($"[WalkBetween] Active for {Turns} turns. Spells heal spirits {SpiritHealOnCast}.");
 	}
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // RegionDefinition.cs
 //
-// Purpose:        Overworld region data — grid dimensions, POI
+// Purpose:        Overworld region data: grid dimensions, POI
 //                 counts, a field-based base-terrain palette
 //                 (elevation/moisture rules), feature toggles
 //                 (rivers, mountains, roads), difficulty tier,

@@ -268,7 +268,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Pyroclastic Wave",
-			"description": "Pyroclastic Wave: Lava Flow becomes a board event \u2014 burns all nearby enemies.",
+			"description": "Pyroclastic Wave: Lava Flow becomes a board event that burns all nearby enemies.",
 			"changes": [
 				{
 					"half": "top",

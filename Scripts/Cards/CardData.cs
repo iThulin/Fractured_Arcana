@@ -9,12 +9,12 @@ using System.Collections.Generic;
 //                 both the legacy data layer and the runtime layer.
 // Layer:          Data
 // Collaborators:  CardRuntime.cs (the actual runtime types live there)
-// See:            README §7 — "CardData.cs vs CardRuntime.cs"
+// See:            README §7 ("CardData.cs vs CardRuntime.cs")
 // ============================================================
 //
 // NOTE: The CardData class itself is legacy. New combat code should
 // reference CardRuntime.Card / CardHalf instead. The enums in this
-// file ARE the source of truth — both layers depend on them.
+// file ARE the source of truth. Both layers depend on them.
 
 /// <summary>Top-level category used by the legacy CardData model. Runtime cards classify themselves via tags and effect types instead.</summary>
 public enum CardType { Attack, Skill, Environment, Summon, Reaction }

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 // GameStateManager.cs
 //
 // Purpose:        The central GameState class plus its
-//                 companions — EventBus, GameStack,
+//                 companions: EventBus, GameStack,
 //                 PriorityManager, Resolver. The full combat
 //                 state machine and stack-based card resolution
 //                 lives here. Every effect, predicate, and
@@ -15,7 +15,7 @@ using System.Collections.Generic;
 // Collaborators:  RulesManager.cs (the top-level driver),
 //                 Unit.cs, HexGridManager.cs, every IEffect /
 //                 IPredicate / ITargetSelector implementation
-// See:            README §3 — Architecture (combat stack model)
+// See:            README §3, Architecture (combat stack model)
 // ============================================================
 
 /// <summary>Top-level mutable combat state. Owns the hex grid, the unit list, the active caster reference, the event bus / stack / priority manager / resolver, and persistent effects. Every card-scripting interface receives this so effects can read and mutate the world.</summary>
@@ -71,13 +71,13 @@ public sealed class GameState
 
     /// <summary>
     /// Extra cost applied to enemy spells this round (Ritardando). Enemies pay no
-    /// mana — the only "spell" they cast is the ranged_charge Channel→Release — so
+    /// mana (the only "spell" they cast is the ranged_charge Channel→Release), so
     /// this is charged in the currency they DO spend: the channel is held for N extra
     /// activations before the blast lands. Read at ExecuteChannelStart into
     /// Unit.ChannelDelayRemaining.
     ///
     /// (2026-07-28, U3e) Was a DEAD FIELD: written by CostModifyEffect, reset in
-    /// StartEnemyTurn, and read by nothing at all — so Ritardando's "+1 cost" clause
+    /// StartEnemyTurn, and read by nothing at all, so Ritardando's "+1 cost" clause
     /// did nothing for its entire life. Worse, the reset sat at the HEAD of
     /// StartEnemyTurn, which wiped the value the player had just paid 3 mana to set,
     /// before a single enemy acted. The reset now lives in StartPlayerTurn so the
@@ -87,7 +87,7 @@ public sealed class GameState
 
     /// <summary>
     /// U3e (tithe_aura): extra mana every PLAYER spell costs while a tithe carrier
-    /// lives. The sibling of EnemySpellCostIncrease in name only — this one is
+    /// lives. The sibling of EnemySpellCostIncrease in name only: this one is
     /// actually consumed, in ManaCost.CanPay and ManaCost.Pay, so affordability is
     /// tested at the TAXED price rather than at the printed one.
     ///
@@ -127,12 +127,12 @@ public sealed class GameState
     /// without asking the player something leaves its request HERE and returns;
     /// Resolver.ResolveTop publishes it to <see cref="OnCardChoiceRequested"/> once the
     /// resolution has unwound, and SequenceEffect chains its remaining steps onto it
-    /// first so ordering survives. Exactly one request is in flight at a time — a second
+    /// first so ordering survives. Exactly one request is in flight at a time; a second
     /// effect finding this slot occupied means two choices in one resolution, which the
     /// seam queues rather than dropping.</summary>
     public CardChoiceRequest PendingChoice;
 
-    /// <summary>The UI end of the choice seam — the third of its kind, alongside
+    /// <summary>The UI end of the choice seam, the third of its kind, alongside
     /// OnSummonRequested and OnDrawCards. Null in headless contexts, which is why every
     /// request carries a usable default: an unanswered question must not wedge a fight.</summary>
     public Action<CardChoiceRequest> OnCardChoiceRequested;
@@ -152,13 +152,13 @@ public sealed class GameState
             OnCardChoiceRequested(req);
             return;
         }
-        Log($"[{req.Source}] no choice UI is listening — taking the default.");
+        Log($"[{req.Source}] no choice UI is listening; taking the default.");
         req.Complete(req.DefaultPick());
     }
 
     /// <summary>Publish-or-queue for effects that want a choice (2026-07-29). The slot
     /// holds ONE request; a second effect in the same resolution folds its request
-    /// behind whatever is already there and dispatches DIRECTLY from the continuation —
+    /// behind whatever is already there and dispatches DIRECTLY from the continuation:
     /// by then Resolver.ResolveTop has cleared the slot and stopped looking at it, so a
     /// second assignment would sit unread until some unrelated later resolution
     /// happened to publish it. Extracted from ScryEffect so the fourth and fifth
@@ -172,7 +172,7 @@ public sealed class GameState
         else if (ResolutionDepth > 0)
             PendingChoice = req;          // Resolver.ResolveTop publishes it after unwind
         else
-            // No resolver pass is coming — the effect is running inside a
+            // No resolver pass is coming: the effect is running inside a
             // continuation (Spell Storm's ordered casts), an Almanac tick, or some
             // other out-of-band resolve. Parking the request in the slot here would
             // strand it (and the cards it holds) until an unrelated cast happened to
@@ -193,7 +193,7 @@ public sealed class GameState
     /// is single-use and global, so it cannot express "THIS specific card costs 1
     /// less" (Precognition, Borrowed Future, Eternal Recall). Keyed by Guid rather
     /// than by Card because halves are SHARED between instances (CardDatabase's clone
-    /// is shallow) — a discount stored anywhere on the card object would discount
+    /// is shallow); a discount stored anywhere on the card object would discount
     /// every copy in every deck. Combat-scoped: GameState dies with the fight, so a
     /// discount can never leak into the next one. Consumed on cast in
     /// Rules.TryCastWithTargets, EXCEPT for Perfected cards, whose zero-cost is
@@ -220,7 +220,7 @@ public sealed class GameState
     public int GetCardDiscount(Card card)
         => card != null && CardCostDeltas.TryGetValue(card.InstanceId, out int v) ? v : 0;
 
-    /// <summary>The card whose costs are currently being evaluated — the per-card
+    /// <summary>The card whose costs are currently being evaluated, the per-card
     /// analogue of ActiveCasterUnit, read by ManaCost.EffectiveAmount. Pinned by
     /// Rules.TryCastWithTargets around affordability + payment, and by the UI's
     /// effective-cost provider around its read. Like the tithe, the discount lives in
@@ -232,7 +232,7 @@ public sealed class GameState
     // ── Foretell (2026-07-29) ────────────────────────────────────────────────
 
     /// <summary>Cards set aside by ForetellEffect, waiting to enter their owner's
-    /// hand. Ticked in CombatManager.StartPlayerTurn, AFTER the normal draw — a
+    /// hand. Ticked in CombatManager.StartPlayerTurn, AFTER the normal draw: a
     /// Foretold card arriving over MaxHandSize is kept, not burned; the player paid a
     /// card and a turn for it. The cards live in NO deck pile while here (same
     /// held-out convention as a scry's revealed cards), so deck counts exclude them
@@ -283,11 +283,11 @@ public sealed class GameState
 
     public void MoveCardToGraveyard(Entity who, Card card)
     {
-        // Cards live in UnitDeckData now — discard is handled by DeckManager
+        // Cards live in UnitDeckData now; discard is handled by DeckManager
         Log($"Card → Graveyard: {card.CardName}");
     }
 
-    // R22 sim gate: preview runs are silent — the resolver's log lines would
+    // R22 sim gate: preview runs are silent; the resolver's log lines would
     // otherwise spam the console on every hover.
     public void Log(string msg) { if (!CombatSim.Active) GD.Print(msg); }
 

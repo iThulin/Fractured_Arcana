@@ -10,7 +10,7 @@
     { "text": "a lonely marker leaning off the path", "terrainTags": [], "regionTags": [] }
   ],
   "detail": [
-    { "text": "The air is wrong here — too still, too watchful.", "terrainTags": [], "regionTags": [] },
+    { "text": "The air is wrong here, too still, too watchful.", "terrainTags": [], "regionTags": [] },
     { "text": "Old offerings rot in a niche, some barely cold.", "terrainTags": [], "regionTags": [] },
     { "text": "Frost rimes every surface though the season forbids it.", "terrainTags": ["Snow", "Tundra"], "regionTags": [] },
     { "text": "The mud holds footprints that lead only inward.", "terrainTags": ["Swamp", "Marsh"], "regionTags": [] },

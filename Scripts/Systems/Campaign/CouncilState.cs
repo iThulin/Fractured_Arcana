@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // CouncilState.cs
 //
 // Purpose:        Tier 2 data model for the Court & Council
-//                 system — courts, courtiers, the favor ledger,
+//                 system: courts, courtiers, the favor ledger,
 //                 envoy missions, echoes in flight, and queued
 //                 interjections. Owned by CycleState (dies with
 //                 the timeline; courtiers regenerate each cycle
@@ -18,7 +18,7 @@ using System.Collections.Generic;
 //                 CourtGenerator.cs (creates + seeds),
 //                 KingdomState.cs (kingdom identity, sibling
 //                 strategic state), CampaignState.cs (archmage
-//                 disposition truth — Seat state is NOT
+//                 disposition truth; Seat state is NOT
 //                 duplicated here)
 // See:            court_council_system_v1_1.docx §3, §4, §12
 // Tier rule:      Kassian's next timeline contains none of these
@@ -27,18 +27,18 @@ using System.Collections.Generic;
 // ============================================================
 
 /// <summary>
-/// Derived court standing band. NEVER stored — always computed from
+/// Derived court standing band. NEVER stored, always computed from
 /// courtier Regard × Influence via <see cref="CourtState.Band"/>.
 /// Gates missions, asks, and the archmage disposition pipeline.
 /// </summary>
 public enum CourtStandingBand
 {
-    Unknown,   // no contact yet — only Attend Court may be dispatched
-    Hostile,   // score <= -6 — envoys refused, patrol pressure
-    Received,  // -5 .. +2   — standard access
-    Welcome,   // +3 .. +8   — Petition + intrigue unlock; Coerce path opens
-    Favored,   // +9 .. +15  — passage purchasable; Expose the Agent
-    Trusted,   // >= +16     — Broker the Compact; free intelligence
+    Unknown,   // no contact yet: only Attend Court may be dispatched
+    Hostile,   // score <= -6: envoys refused, patrol pressure
+    Received,  // -5 .. +2:   standard access
+    Welcome,   // +3 .. +8:   Petition + intrigue unlock; Coerce path opens
+    Favored,   // +9 .. +15:  passage purchasable; Expose the Agent
+    Trusted,   // >= +16:     Broker the Compact; free intelligence
 }
 
 /// <summary>
@@ -50,7 +50,7 @@ public enum CourtStandingBand
 public static class CourtVocab
 {
     // IMPORTANT: these MUST match the negotiation system's NPC archetype
-    // ids exactly — the court layer reuses its matchup semantics. If the
+    // ids exactly; the court layer reuses its matchup semantics. If the
     // negotiation registry uses different casing, fix it HERE, once.
     public static readonly string[] Archetypes =
     {
@@ -83,7 +83,7 @@ public static class CourtVocab
     // NEGOTIATION archetype vocabulary above (casing verified 2026-08-13:
     // the canonical set is this file's Archetypes array; the "Soldier"
     // strings elsewhere are UNIT archetypes, a different system).
-    // K5 STARTING VALUES — the v1-era table was never written; tune here.
+    // K5 STARTING VALUES: the v1-era table was never written; tune here.
 
     /// <summary>Matchup term for an envoy's trait against a courtier's
     /// archetype: +1 affinity, -1 friction, 0 otherwise.</summary>
@@ -135,13 +135,13 @@ public class CourtierState
     public bool SecretKnown = false;
 
     /// <summary>The Astrologer's rival agent (§9). Never true at
-    /// generation — manifests during play at kingdom corruption 2.</summary>
+    /// generation; manifests during play at kingdom corruption 2.</summary>
     public bool IsCorruptedAgent = false;
 }
 
 /// <summary>
 /// One kingdom's court. The Seat (archmage or regent) is NOT stored
-/// here — archmage disposition truth stays single-sourced in
+/// here; archmage disposition truth stays single-sourced in
 /// CampaignState, mirroring the corruption single-sourcing rule in
 /// KingdomState.
 /// </summary>
@@ -168,7 +168,7 @@ public class CourtState
     /// Courtier mission completes its Patron Oath (phase C5/C6).</summary>
     public string PatronCourtierId = "";
 
-    /// <summary>False until any mission completes here — the Unknown band.</summary>
+    /// <summary>False until any mission completes here (the Unknown band).</summary>
     public bool HasContact = false;
 
     /// <summary>Expulsion lockout. While > 0 the court refuses missions
@@ -177,7 +177,7 @@ public class CourtState
 
     /// <summary>Institutional standing damage from Scandal (§8), subtracted
     /// from StandingScore. Persists as a lasting mark, recovered only by
-    /// out-earning it with courtier Regard. Save-adjacent — round-trip
+    /// out-earning it with courtier Regard. Save-adjacent; round-trip
     /// asserted. OPEN TUNING (unruled): whether it should decay over time.</summary>
     public int StandingPenalty = 0;
 
@@ -263,13 +263,13 @@ public class Favor
     public string KingdomId = "";
     public string CourtierId = "";
 
-    /// <summary>CourtVocab favor type — Military, Economic, Arcane,
+    /// <summary>CourtVocab favor type: Military, Economic, Arcane,
     /// Political, Passage, Intelligence.</summary>
     public string Type = "";
 
     public bool IsMajor = false;
 
-    /// <summary>Ledger attribution line shown to the player — every favor
+    /// <summary>Ledger attribution line shown to the player; every favor
     /// must be traceable to its cause.</summary>
     public string SourceDescription = "";
 
@@ -290,13 +290,13 @@ public class EnvoyMission
     /// mission targets the court as a whole.</summary>
     public string TargetCourtierId = "";
 
-    /// <summary>True once recalled — the envoy is 1 lunation from home
+    /// <summary>True once recalled: the envoy is 1 lunation from home
     /// and the mission yields nothing.</summary>
     public bool Recalled = false;
 }
 
 /// <summary>A guild envoy imprisoned after Imprisonment (§8). The mission is
-/// over; the companion is NOT in the active pool and NOT on a mission — held
+/// over; the companion is NOT in the active pool and NOT on a mission, held
 /// until the rescue POI resolves. Save-adjacent (round-trip asserted).</summary>
 public class ImprisonedEnvoy
 {
@@ -306,7 +306,7 @@ public class ImprisonedEnvoy
     /// <summary>Stable world coordinates of the rescue Prison POI's tile,
     /// (-1,-1) until sited. Keyed on the tile position, NOT a WorldData.Pois
     /// list index, so the record survives any reordering or removal of that
-    /// list — the gaol's tile never moves.</summary>
+    /// list. The gaol's tile never moves.</summary>
     public int PrisonX = -1;
     public int PrisonY = -1;
     public int LunationImprisoned = 0;
@@ -318,7 +318,7 @@ public class EchoEvent
 {
     public string KingdomId = "";
 
-    /// <summary>Deed tag — drives archetype routing and the Herald's
+    /// <summary>Deed tag. Drives archetype routing and the Herald's
     /// Report attribution line.</summary>
     public string DeedTag = "";
 
@@ -330,12 +330,12 @@ public class EchoEvent
     /// <summary>Absolute lunation index at which the echo lands.</summary>
     public int LandsOnLunation = 0;
 
-    /// <summary>Set by a Political favor call-in — the Chancellor buries
+    /// <summary>Set by a Political favor call-in: the Chancellor buries
     /// the story before it lands.</summary>
     public bool Cancelled = false;
 }
 
-/// <summary>A queued Tier B interjection — a single-scene choice card.
+/// <summary>A queued Tier B interjection, a single-scene choice card.
 /// Presented at extraction, at campus, or at the lunation summary;
 /// never mid-combat.</summary>
 public class InterjectionEvent
@@ -387,10 +387,10 @@ public class CouncilState
     // ── Espionage layer (ShadowState.cs) ─────────────────────────────────
     // The third tick tenant. Two new struct types (InformantState,
     // ConcordContract); the rest are scalars/lists on this container.
-    // See espionage_veiled_concord_spec_v1.md §7. All save-adjacent —
+    // See espionage_veiled_concord_spec_v1.md §7. All save-adjacent;
     // round-trip asserted in CouncilSaveAssert.
 
-    /// <summary>Standing informant assets — turned NPCs, not companions.
+    /// <summary>Standing informant assets: turned NPCs, not companions.
     /// Yield on the tick; hunted by counter-intelligence (E2+).</summary>
     public List<InformantState> Informants = new();
 
@@ -398,7 +398,7 @@ public class CouncilState
     /// Astrologer-commissioned against the guild (E3+).</summary>
     public List<ConcordContract> ConcordContracts = new();
 
-    /// <summary>The espionage currency — earned by fencing the network's
+    /// <summary>The espionage currency, earned by fencing the network's
     /// product to the Concord, spent on contracts and the outbid (§3b/§3e).</summary>
     public int ConcordFavor = 0;
 
@@ -408,11 +408,11 @@ public class CouncilState
     public int Marked = 0;
 
     /// <summary>Lifetime completed dealings (contracts + traced sells). The
-    /// DERIVED-standing driver — ConcordStandingBand is computed from this via
+    /// DERIVED-standing driver: ConcordStandingBand is computed from this via
     /// ShadowVocab.StandingBand, never stored, so it cannot drift.</summary>
     public int ConcordDealings = 0;
 
-    /// <summary>False until the guild first reaches a Concord node — the
+    /// <summary>False until the guild first reaches a Concord node, the
     /// Unaware band gate, mirroring CourtState.HasContact.</summary>
     public bool ConcordContacted = false;
 }

@@ -13,12 +13,12 @@ using System.Collections.Generic;
 //                     coasts have a broad gentle shelf reaching far out and
 //                     others drop off steeply right at the shore.
 //                   • Mottle noise (higher freq) adds a few depth-units of
-//                     per-tile jitter — this ragged the shelf→deep boundary
+//                     per-tile jitter. This ragged the shelf→deep boundary
 //                     (hiding the halo transition) and keeps the open ocean
 //                     from reading as one flat colour. It also dithers the
 //                     integer depth steps, dissolving concentric banding.
 //
-//                 Water stays the SAME terrain type — this is metadata, not
+//                 Water stays the SAME terrain type; this is metadata, not
 //                 a new biome, so land/water classification is untouched.
 //                 Lakes (enclosed, not ocean) are left at depth 0.
 // Layer:          System (generation helper)

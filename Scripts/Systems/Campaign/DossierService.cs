@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // DossierService.cs
 //
-// Purpose:        The archmage dossier layer — quests-as-knowledge
+// Purpose:        The archmage dossier layer: quests-as-knowledge
 //                 (docs/quest_system_narrative_spec_v1.md §4).
 //                 Stamps permanent EternalLedger metaflags as the
 //                 player crosses paths with each archmage's forces
@@ -12,7 +12,7 @@ using System.Collections.Generic;
 //                 Pure flag arithmetic over existing save state:
 //                 the dossier quests in Data/Quests/dossiers.json
 //                 gate/tick on these flags and QuestLogView renders
-//                 the revealed hint text — nothing else persists.
+//                 the revealed hint text. Nothing else persists.
 //                 The Astrologer's dossier advances from the
 //                 corruption clock instead (CorruptionSpread):
 //                 he has no patrols; his forces are the weather.

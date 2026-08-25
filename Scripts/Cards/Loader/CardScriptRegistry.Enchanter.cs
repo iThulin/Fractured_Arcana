@@ -4,7 +4,7 @@ using System.Text.Json;
 // ============================================================
 // CardScriptRegistry.Enchanter.cs
 //
-// Purpose:        Enchanter school effect registrations — maps the
+// Purpose:        Enchanter school effect registrations. Maps the
 //                 school's JSON `type` keys to effect factories.
 //                 Called from CardScriptRegistry.RegisterBuiltins().
 // Layer:          Loader
@@ -157,7 +157,7 @@ public static partial class CardScriptRegistry
 
 
         // ═══════════════════════════════════════════════════════════
-        // ENCHANTER — CONTROL / ZONE
+        // ENCHANTER: CONTROL / ZONE
         // ═══════════════════════════════════════════════════════════
 
         // Dominated enemies attack their own allies each turn
@@ -185,7 +185,7 @@ public static partial class CardScriptRegistry
             return new GrandDesignPassiveLeafEffect(turns).WithTag("Glyph");
         });
 
-        // Persistent zone — damages enemies in range each turn
+        // Persistent zone that damages enemies in range each turn
         // { "type": "absolute_territory", "radius": n, "damage_per_turn": n, "turns": n }
         RegisterEffect("absolute_territory", n =>
         {

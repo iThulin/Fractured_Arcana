@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ============================================================
 // GriefAttunement.cs
 //
-// Purpose:        The Necromancer school mechanic — a single
+// Purpose:        The Necromancer school mechanic: a single
 //                 Grief counter (0-4) that builds when units
 //                 die nearby and decays each turn. Tiered
 //                 thresholds unlock passive bonuses; at 4 a
@@ -17,16 +17,16 @@ using System.Collections.Generic;
 //                 SchoolAttunementUI.cs (renders the lantern),
 //                 CombatManager.cs (wires memorial events),
 //                 NecromancerEffects.cs (GainGriefEffect etc.)
-// See:            README §6 — School Mechanics
+// See:            README §6, School Mechanics
 // ============================================================
 
 public enum GriefTier
 {
-    Dim,      // 0 — no bonus
-    Kindled,  // 1 — raised spirits gain +1 HP
-    Burning,  // 2 — raised spirits act immediately on arrival
-    Flooding, // 3 — communion spells enhanced
-    Flood     // 4 — burst: refresh all spirits, reset to 0
+    Dim,      // 0: no bonus
+    Kindled,  // 1: raised spirits gain +1 HP
+    Burning,  // 2: raised spirits act immediately on arrival
+    Flooding, // 3: communion spells enhanced
+    Flood     // 4: burst, refresh all spirits, reset to 0
 }
 
 public class GriefAttunement : ISchoolAttunement

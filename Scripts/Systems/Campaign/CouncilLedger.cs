@@ -125,7 +125,7 @@ public static class CouncilLedger
             KingdomId = court.KingdomId,
             CourtierId = creditor.Id,
             Type = OfficeToFavorType(creditor.Office),
-            // Q4.3: a court's Patron owes MAJOR debts — the first Major
+            // Q4.3: a court's Patron owes MAJOR debts. This is the first Major
             // minting path (Majors previously never existed in play; the
             // redemption surfaces are ExecuteCallIn's gift + the Arcane
             // retainer). Everyone else still mints minor.

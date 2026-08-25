@@ -16,7 +16,7 @@ using System.Collections.Generic;
 //                 CardUi.cs (per-card UI), CardDatabase.cs
 //                 (deck generation), PlayerDeckService.cs
 //                 (persistent deck hydration)
-// See:            README §6 — Per-Unit Deck Management
+// See:            README §6, Per-Unit Deck Management
 // ============================================================
 
 /// <summary>
@@ -93,12 +93,12 @@ public partial class DeckManager : Node2D
         }
         else
         {
-            // No persistent deck yet — seed it from the starter JSON,
+            // No persistent deck yet, so seed it from the starter JSON,
             // then hydrate. This covers the very first run on a new save.
             var school = Enum.TryParse<CardSchool>(save?.SelectedSchool, true, out var s)
                 ? s : CardSchool.Elementalist;
 
-            GD.Print("[DeckManager] No valid persistent deck found — seeding starter deck.");
+            GD.Print("[DeckManager] No valid persistent deck found; seeding starter deck.");
             StarterDeckLoader.SeedStarterDeck(save, school);
             SaveManager.Save();
 
@@ -177,11 +177,11 @@ public partial class DeckManager : Node2D
         CallDeferred(nameof(DeferredRefreshDiscardFlags));
     }
 
-    /// <summary>Diagnostic — prints the active deck's pile counts to the Godot console.</summary>
+    /// <summary>Diagnostic: prints the active deck's pile counts to the Godot console.</summary>
     public void PrintDeckState()
     {
         if (_activeDeck == null) { GD.Print("No active deck."); return; }
-        GD.Print($"DeckManager state — Draw: {_activeDeck.DrawPile.Count}, " +
+        GD.Print($"DeckManager state. Draw: {_activeDeck.DrawPile.Count}, " +
                  $"Hand: {_activeDeck.Hand.Count}, " +
                  $"Discard: {_activeDeck.DiscardPile.Count}");
     }

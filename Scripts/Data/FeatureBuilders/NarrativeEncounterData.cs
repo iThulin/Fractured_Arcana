@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // NarrativeEncounterData.cs
 //
-// Purpose:        Narrative encounter model — title, body text,
+// Purpose:        Narrative encounter model: title, body text,
 //                 terrain/region filter tags, list of player
 //                 choices each with their own outcome deltas
 //                 (gold, HP, steps) and Phase-3 gating fields.
@@ -62,13 +62,13 @@ public class EncounterChoice
     public int StepDelta = 0;
 
     /// <summary>S4 (overworld_spell_system §11): an overworld spell id this
-    /// choice teaches — the authored half of the lore-POI acquisition path
+    /// choice teaches, the authored half of the lore-POI acquisition path
     /// (the other half is ExpeditionManager's terrain-flavored bonus roll,
     /// which only runs when this is empty). Already-known spells no-op.</summary>
     public string SpellReward = "";
 
     /// <summary>Explore→named codices (progression_card_acquisition_v1 §8): a
-    /// specific card blueprint id this choice DISCOVERS — unlocking it into the
+    /// specific card blueprint id this choice DISCOVERS, unlocking it into the
     /// permanent draft pool (EternalLedger.UnlockedCardBlueprintIds), the card
     /// analogue of SpellReward. "The cold three hexes north is ALWAYS the
     /// Frostward Codex." Legendaries, Marginalia cards, and already-known cards
@@ -76,7 +76,7 @@ public class EncounterChoice
     public string CardReward = "";
 
     /// <summary>When true and CardReward is empty, this choice discovers a random
-    /// UNKNOWN in-school Rare — the stochastic codex, matching the terrain-flavored
+    /// UNKNOWN in-school Rare: the stochastic codex, matching the terrain-flavored
     /// spell bonus-roll. In-school only, per the §2a organizing law (found breadth
     /// pays the school you are playing). Gated on this bool so ordinary narrative
     /// choices never leak card discovery; only authored codices do.</summary>
@@ -85,7 +85,7 @@ public class EncounterChoice
     // Phase 3+ tracking
     public List<string> SetFlags = new();
 
-    /// <summary>Permanent (cross-cycle) story flags this choice sets — written to
+    /// <summary>Permanent (cross-cycle) story flags this choice sets, written to
     /// EternalLedger.MetaNarrativeFlags, not the timeline-scoped WorldFlags. Used
     /// for fragment-arc milestones and other progress that must survive a cycle
     /// reset (convergence.docx). Read by quest objectives and choice gating.</summary>
@@ -132,7 +132,7 @@ public class EncounterChoice
 
     // ── Tranche 3 reward verb (2026-08-13) ───────────────────────────────
     /// <summary>Intel: reveal the N nearest hidden POIs in the expedition
-    /// window as beacons ("information is the primary resource" —
+    /// window as beacons ("information is the primary resource",
     /// run_structure). 0 = none. No-op on campus/city narrative hosts.</summary>
     public int RevealPois = 0;
 }

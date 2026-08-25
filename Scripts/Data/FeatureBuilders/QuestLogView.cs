@@ -2,16 +2,16 @@ using Godot;
 using System.Collections.Generic;
 
 // ============================================================
-// QuestLogView.cs — the ONE quest-list renderer, shared by the
+// QuestLogView.cs: the ONE quest-list renderer, shared by the
 // Campus Quests tab and the global QuestLogScreen overlay so they
 // can never drift. Pure UI over QuestLoader/QuestTracker.
 //
 // Groups quests by persistence layer (quest spec §7):
-//   ETERNAL  ("the Chronicle") — cross-cycle arcs, dossiers,
+//   ETERNAL  ("the Chronicle"): cross-cycle arcs, dossiers,
 //            fragments, campus restoration. Never resets.
-//   THIS TIMELINE — resolution arcs, companion arcs, kingdom
+//   THIS TIMELINE: resolution arcs, companion arcs, kingdom
 //            chains, incidentals. Header shows year/lunation.
-//   UNFINISHED BUSINESS — archived Timeline quests from past
+//   UNFINISHED BUSINESS: archived Timeline quests from past
 //            unmakes. Collapsed. The cost of every reset, itemized.
 // ============================================================
 
@@ -44,7 +44,7 @@ public static class QuestLogView
                 timeline.Add(q);
         }
 
-        // ── ETERNAL — "the Chronicle" ───────────────────────────────────
+        // ── ETERNAL: "the Chronicle" ────────────────────────────────────
         if (eternal.Count > 0)
         {
             AddSectionHeader(box, "ETERNAL");
@@ -71,7 +71,7 @@ public static class QuestLogView
                     var status = QuestTracker.StatusOf(q, save);
                     // Collapsed (user ruling 2026-07-22): undiscovered quests
                     // roll up into one line per category instead of a card
-                    // each — eight unmet dossiers were drowning the real log.
+                    // each. Eight unmet dossiers were drowning the real log.
                     if (status == QuestStatus.Locked)
                     { locked++; lockedInCat++; continue; }
                     else if (status == QuestStatus.Complete)
@@ -94,7 +94,7 @@ public static class QuestLogView
             {
                 int year = cycle.CampaignYear;
                 int lunation = cycle.Calendar?.CurrentLunation ?? 0;
-                timelineTitle += $"  —  Year {year}, Lunation {lunation}";
+                timelineTitle += $":  Year {year}, Lunation {lunation}";
             }
             AddSectionHeader(box, timelineTitle);
 
@@ -120,7 +120,7 @@ public static class QuestLogView
                     var status = QuestTracker.StatusOf(q, save);
                     // Collapsed (user ruling 2026-07-22): undiscovered quests
                     // roll up into one line per category instead of a card
-                    // each — eight unmet dossiers were drowning the real log.
+                    // each. Eight unmet dossiers were drowning the real log.
                     if (status == QuestStatus.Locked)
                     { locked++; lockedInCat++; continue; }
                     else if (status == QuestStatus.Complete)
@@ -134,7 +134,7 @@ public static class QuestLogView
             }
         }
 
-        // ── COMPANION MISSIONS (Step 9) — every recruited companion's next
+        // ── COMPANION MISSIONS (Step 9): every recruited companion's next
         // arc stage, shown regardless of party membership (user directive:
         // the log is the overview; party gating applies at the encounter).
         var missions = CompanionArcTracker.AvailableMissions(save);
@@ -258,8 +258,8 @@ public static class QuestLogView
             card.AddChild(line);
         }
 
-        // Dossier cards render the revealed weakness-hint TEXT inline — the
-        // dossier IS the reward (quest spec §4). Hint text lives on the
+        // Dossier cards render the revealed weakness-hint TEXT inline, because
+        // the dossier IS the reward (quest spec §4). Hint text lives on the
         // ArchmageDefinition; the flags only say which are revealed.
         const string dossierPrefix = "q_dossier_";
         if (q.Id.StartsWith(dossierPrefix))
@@ -276,7 +276,7 @@ public static class QuestLogView
                     {
                         Text = revealed
                             ? $"      '{arch.WeaknessHints[i - 1]}'"
-                            : "      —  an unrecorded weakness  —",
+                            : "      (an unrecorded weakness)",
                         AutowrapMode = TextServer.AutowrapMode.WordSmart,
                     };
                     hl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
@@ -304,7 +304,7 @@ public static class QuestLogView
 
         var title = new Label
         {
-            Text = $"◆  {m.CompanionName} — {m.NextStage.Title}",
+            Text = $"◆  {m.CompanionName}: {m.NextStage.Title}",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -337,7 +337,7 @@ public static class QuestLogView
         string locText;
         if (m.HasReprise)
         {
-            locText = "   ✦  you have walked this road with them before — a reprise will serve";
+            locText = "   ✦  you have walked this road with them before, so a reprise will serve";
         }
         else
         {
@@ -384,7 +384,7 @@ public static class QuestLogView
 
     // ── Unfinished Business card (archived timeline quests) ─────────────
 
-    /// <summary>Render one archived quest from a past unmake — title, summary,
+    /// <summary>Render one archived quest from a past unmake: title, summary,
     /// and "abandoned at stage N of M, Timeline VI" epitaph.</summary>
     private static void AddUnfinishedCard(VBoxContainer parent, UnfinishedQuestRecord rec)
     {
@@ -434,7 +434,7 @@ public static class QuestLogView
         {
             var stub = new Label
             {
-                Text = "No lore uncovered yet — the world reveals it to those who explore.",
+                Text = "No lore uncovered yet. The world reveals it to those who explore.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
             stub.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);

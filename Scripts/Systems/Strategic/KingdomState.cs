@@ -3,13 +3,13 @@ using System.Collections.Generic;
 // ============================================================
 // KingdomState.cs
 //
-// Purpose:        Per-province dynamic strategic state — the
+// Purpose:        Per-province dynamic strategic state, the
 //                 §3.2 state block. One per generated province,
 //                 stored in CycleState.Kingdoms keyed by region
 //                 id. Phase 1 ships the fields, accessors, and
 //                 generation defaults; the lunation TICK that
 //                 mutates Stability / BorderPressure / Stance is
-//                 Phase 2. Corruption is NOT duplicated here — it
+//                 Phase 2. Corruption is NOT duplicated here; it
 //                 remains single-sourced in
 //                 CampaignState.CorruptionLevels; read it through
 //                 CampaignState, not a copy.
@@ -18,7 +18,7 @@ using System.Collections.Generic;
 //                 CycleState.cs (owns the dictionary),
 //                 StrategicMapScreen.cs (renders),
 //                 CampaignState.cs (corruption + archmage truth),
-//                 KingdomTickSimulation (Phase 2 — mutates)
+//                 KingdomTickSimulation (Phase 2, mutates)
 // See:            open_world_refactor_v1.docx §3.2
 //
 // Province identity: for Phase 1, a province's id EQUALS its
@@ -83,7 +83,7 @@ public class KingdomState
     /// border flips on the lunation tick (Phase 2).</summary>
     public Dictionary<string, int> BorderPressure = new();
 
-    /// <summary>Harvested supplies 0–100 (docs/supply_cache_spec_v1) — the
+    /// <summary>Harvested supplies 0–100 (docs/supply_cache_spec_v1), the
     /// kingdom's war chest. Fed each lunation by controlled supply caches
     /// (SupplyCacheSystem.Tick), burned by upkeep. Read as WAR MUSCLE
     /// (warfront advance), civic glue (stability drift), and patrol funding

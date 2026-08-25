@@ -6,7 +6,7 @@ using System.Text.Json;
 // ProgressionSaveAssert.cs
 //
 // Purpose:        Round-trip assertion for the progression save-adjacent
-//                 structs added outside the council layer — the same
+//                 structs added outside the council layer. The same
 //                 save-file-paranoia rule CouncilSaveAssert enforces, applied
 //                 to the card-progression structs. Each is built with
 //                 distinctive non-default values, pushed through the EXACT
@@ -18,7 +18,7 @@ using System.Text.Json;
 //                   - CardCommission (the §8 pity-timer in-flight entry)
 //
 // Layer:          System (debug / verification)
-// Collaborators:  SaveManager.cs (JsonOptions — the real path),
+// Collaborators:  SaveManager.cs (JsonOptions, the real path),
 //                 EternalLedger.cs (CardCommission)
 // See:            docs/progression_card_acquisition_v1.md §8; save-file-paranoia
 //                 rule (every save-adjacent struct asserted before ship)
@@ -39,12 +39,12 @@ public static class ProgressionSaveAssert
         bool ok = AssertCardCommission(sb);
 
         sb.AppendLine(ok
-            ? "RESULT: ALL PASSED — progression save-adjacent structs round-trip clean."
-            : "RESULT: FAILURES ABOVE — a field is being dropped or renamed.");
+            ? "RESULT: ALL PASSED. Progression save-adjacent structs round-trip clean."
+            : "RESULT: FAILURES ABOVE. A field is being dropped or renamed.");
         GD.Print(sb.ToString());
 
         if (!ok)
-            GD.PushError("[ProgressionSaveAssert] Round-trip assertion FAILED — see Output panel.");
+            GD.PushError("[ProgressionSaveAssert] Round-trip assertion FAILED. See Output panel.");
 
         return ok;
     }
@@ -76,7 +76,7 @@ public static class ProgressionSaveAssert
         return ok;
     }
 
-    // ── Helpers (mirror CouncilSaveAssert — same serializer, same contract) ──
+    // ── Helpers (mirror CouncilSaveAssert: same serializer, same contract) ──
 
     private static T RoundTrip<T>(T obj)
     {

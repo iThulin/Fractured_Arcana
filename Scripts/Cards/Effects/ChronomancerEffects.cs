@@ -6,14 +6,14 @@ using System.Linq;
 // ============================================================
 // ChronomancerEffects.cs
 //
-// Purpose:        Chronomancer school effects — foresight, tempo, anchors, phase
+// Purpose:        Chronomancer school effects: foresight, tempo, anchors, phase
 //                 tiles, redirects, and temporal persistent effects.
 // Layer:          Effects
 // Collaborators:  Effect.cs (EffectBase, core leaves),
 //                 PersistentEffect.cs (PersistentEffect base),
 //                 CardScriptRegistry.Chronomancer.cs (registration)
 // Notes:          Extracted from Effect.cs / CompositeEffects.cs /
-//                 PersistentEffect.cs — pure move, no behavior change.
+//                 PersistentEffect.cs. Pure move, no behavior change.
 // ============================================================
 
 /// <summary>
@@ -35,7 +35,7 @@ public sealed class GainForesightEffect : EffectBase
 		}
 		else
 		{
-			s.Log("[GainForesight] No FateAttunement on caster — no-op.");
+			s.Log("[GainForesight] No FateAttunement on caster. No-op.");
 		}
 	}
 }
@@ -46,12 +46,12 @@ public sealed class GainForesightEffect : EffectBase
 /// the BOTTOM of the draw pile in the order they were revealed.
 ///
 /// (2026-07-28) This used to draw the top <see cref="Keep"/> cards and log
-/// "pending UI" — i.e. the card's whole point, the choice, did not exist. It now
+/// "pending UI", i.e. the card's whole point, the choice, did not exist. It now
 /// publishes a <see cref="CardChoiceRequest"/> and finishes in a continuation; see
 /// CardChoice.cs for why that is a continuation rather than an await.
 ///
 /// (2026-07-29) <see cref="Discount"/> is implemented: kept cards get a per-card
-/// discount via <see cref="GameState.AddCardDiscount"/> — the per-card modifier field
+/// discount via <see cref="GameState.AddCardDiscount"/>, the per-card modifier field
 /// the previous version of this comment said did not exist. The discount rides the
 /// card INSTANCE (GameState.CardCostDeltas), holds until that copy is cast, and is
 /// consumed by the cast (Rules.TryCastWithTargets).
@@ -64,9 +64,9 @@ public sealed class ScryEffect : EffectBase
 	public int Keep;
 	public int Discount;
 
-	/// <summary>True = picked cards go to HAND ("draw 1, bottom the rest" — the
+	/// <summary>True = picked cards go to HAND ("draw 1, bottom the rest", the
 	/// look/keep/draw cards). False = they go back on TOP of the draw pile ("scry N
-	/// and reorder" — the count cards). Unpicked cards always go to the bottom, so the
+	/// and reorder", the count cards). Unpicked cards always go to the bottom, so the
 	/// two modes differ only in where the winners land.</summary>
 	public bool ToHand;
 
@@ -82,25 +82,25 @@ public sealed class ScryEffect : EffectBase
 	{
 		var casterUnit = s.ActiveCasterUnit;
 		if (casterUnit == null)
-		{ s.Log("[Scry] No active caster — no-op."); return; }
+		{ s.Log("[Scry] No active caster. No-op."); return; }
 
 		var deck = casterUnit.DeckData;
 		if (deck == null)
-		{ s.Log($"[Scry] {casterUnit.Name} has no deck — no-op."); return; }
+		{ s.Log($"[Scry] {casterUnit.Name} has no deck. No-op."); return; }
 
 		// R22: the drag preview replays real effects. A preview that popped a modal
 		// would be unusable, and one that MOVED CARDS would corrupt the deck on hover.
 		if (CombatSim.Active)
 			return;
 
-		// Reveal off the top, reshuffling once if the pile runs dry — same courtesy
+		// Reveal off the top, reshuffling once if the pile runs dry, the same courtesy
 		// Draw() extends, so scrying near the end of a deck is not a dead card.
 		if (deck.DrawPile.Count < Look && deck.DiscardPile.Count > 0)
 			deck.Reshuffle();
 
 		int look = Math.Min(Look, deck.DrawPile.Count);
 		if (look <= 0)
-		{ s.Log($"[Scry] {casterUnit.Name}'s deck is empty — nothing to look at."); return; }
+		{ s.Log($"[Scry] {casterUnit.Name}'s deck is empty. Nothing to look at."); return; }
 
 		var revealed = deck.DrawPile.GetRange(0, look);
 		deck.DrawPile.RemoveRange(0, look);      // held OUT of the deck until answered
@@ -123,7 +123,7 @@ public sealed class ScryEffect : EffectBase
 			Source = "Scry",
 			OnChosen = chosen =>
 			{
-				// Unpicked first, to the BOTTOM. Then the picked ones — to hand, or
+				// Unpicked first, to the BOTTOM. Then the picked ones: to hand, or
 				// back on TOP in the order the player chose them. Both lists come from
 				// `revealed`, so a card can be neither lost nor duplicated whatever
 				// the UI hands back.
@@ -160,7 +160,7 @@ public sealed class ScryEffect : EffectBase
 			},
 		};
 
-		// Two effects could each want a choice in one resolution — the shared
+		// Two effects could each want a choice in one resolution. The shared
 		// publish-or-queue path (GameState.RequestCardChoice) queues behind whatever
 		// is already in the slot.
 		s.RequestCardChoice(req);
@@ -220,7 +220,7 @@ public class DelayedDamageEffect : PersistentEffect
 		DamagePerTick = damagePerTick;
 		TurnsRemaining = ticks;
 		Owner = owner;
-		// Entity can't be cast to Unit directly — match by name instead
+		// Entity can't be cast to Unit directly, so match by name instead
 		// _ownerTeamId is set externally via SetOwnerTeam if needed,
 		// or resolved at tick time:
 	}
@@ -244,7 +244,7 @@ public class DelayedDamageEffect : PersistentEffect
 			}
 			else
 			{
-				s.Log($"[DelayedDamage] No valid target at {TargetCoord} — tick skipped.");
+				s.Log($"[DelayedDamage] No valid target at {TargetCoord}. Tick skipped.");
 			}
 		}
 		TurnsRemaining--;
@@ -319,7 +319,7 @@ public sealed class TempBuffEffect : EffectBase
 				case "movement":
 					// Movespeed currency (BonusMoveRange, per-turn, auto-resets in StartTurn).
 					// The immediate grant covers this turn; multi-turn buffs re-apply via
-					// MovementBuffEffect. No end-of-turn cleanup needed — the reset handles it.
+					// MovementBuffEffect. No end-of-turn cleanup needed. The reset handles it.
 					unit.Stats.BonusMoveRange += Amount;
 					unit.RefreshHealthBar();
 					s.Log($"[TempBuff] {unit.Name} +{Amount} move range for {Turns} turn(s).");
@@ -334,7 +334,7 @@ public sealed class TempBuffEffect : EffectBase
 				case "action":
 					unit.CurrentActionPoints += Amount;
 					s.Log($"[TempBuff] {unit.Name} +{Amount} action(s) (now {unit.CurrentActionPoints}).");
-					// Actions don't roll over — no cleanup needed (they're consumed or lost at turn end)
+					// Actions don't roll over, so no cleanup needed (they're consumed or lost at turn end)
 					break;
 
 				case "damage":
@@ -355,7 +355,7 @@ public sealed class TempBuffEffect : EffectBase
 					break;
 
 				default:
-					s.Log($"[TempBuff] Unknown stat '{Stat}' — no-op.");
+					s.Log($"[TempBuff] Unknown stat '{Stat}'. No-op.");
 					break;
 			}
 		}
@@ -364,8 +364,8 @@ public sealed class TempBuffEffect : EffectBase
 
 /// <summary>
 /// Modifies mana costs.
-///   "self_next"  — your next spell costs Amount less (consumed after one spell).
-///   "enemy"      — enemy spells cost Amount more this round.
+///   "self_next"  : your next spell costs Amount less (consumed after one spell).
+///   "enemy"      : enemy spells cost Amount more this round.
 ///
 /// Reads/writes fields added to GameState:
 ///   GameState.NextSpellCostReduction (int)
@@ -398,11 +398,11 @@ public sealed class CostModifyEffect : EffectBase
 			case "enemy":
 				s.EnemySpellCostIncrease += Amount;
 				s.Log($"[CostModify] Enemy spells cost +{Amount} this round.");
-				// Reset in StartEnemyTurn — see wiring doc §7.
+				// Reset in StartEnemyTurn (see wiring doc §7).
 				break;
 
 			default:
-				s.Log($"[CostModify] Unknown scope '{Scope}' — no-op.");
+				s.Log($"[CostModify] Unknown scope '{Scope}'. No-op.");
 				break;
 		}
 	}
@@ -422,14 +422,14 @@ public sealed class PostponeEffect : EffectBase
 	/// <summary>Audit alteration #18 (2026-07-29): a unit that is already Delayed
 	/// cannot be postponed again until it has taken the loss. Lag + Hinder + Delay
 	/// Rune + Drag all feed the same PostponedTurns counter at ~2 mana per stolen
-	/// turn with no diminishing returns — an uncapped chain-stun that trivializes
+	/// turn with no diminishing returns: an uncapped chain-stun that trivializes
 	/// solo bosses. The cap is HERE, not in the card data, so no future postpone
 	/// card can reintroduce the loop by accident.</summary>
 	internal static bool TryPostpone(GameState s, Unit unit, int turns, string tag)
 	{
 		if (unit.HasStatus("delayed"))
 		{
-			s.Log($"[{tag}] {unit.Name} is already Delayed — a unit cannot be postponed again before it pays the turn.");
+			s.Log($"[{tag}] {unit.Name} is already Delayed. A unit cannot be postponed again before it pays the turn.");
 			return false;
 		}
 		unit.PostponedTurns += turns;
@@ -453,7 +453,7 @@ public sealed class PostponeEffect : EffectBase
 				s.Log($"[Postpone] {unit.Name} postponed {Turns} turn(s) (total: {unit.PostponedTurns}).");
 			}
 
-		// (2026-07-29) Self-targeted casts reach here with no enemy in the TargetSet —
+		// (2026-07-29) Self-targeted casts reach here with no enemy in the TargetSet.
 		// Riptide's postpone mode is a self-targeted choose_one. Fall back to the
 		// nearest living enemy rather than silently doing nothing: "the card did
 		// nothing" and "the targeting is wired wrong" must not look identical (U3c).
@@ -474,7 +474,7 @@ public sealed class PostponeEffect : EffectBase
 			if (nearest != null)
 			{
 				if (TryPostpone(s, nearest, Turns, "Postpone"))
-					s.Log($"[Postpone] No targeted enemy — postponed the nearest, {nearest.Name}, {Turns} turn(s).");
+					s.Log($"[Postpone] No targeted enemy. Postponed the nearest, {nearest.Name}, {Turns} turn(s).");
 			}
 			else
 				s.Log("[Postpone] No enemy to postpone.");
@@ -516,7 +516,7 @@ public sealed class SkipEnemyTurnEffect : EffectBase
 /// <summary>
 /// Schedules a child effect to resolve at the end of the player's turn
 /// <see cref="Turns"/> rounds from now. Stored in GameState.Almanac.
-/// The Almanac is ticked in StartPlayerTurn — see wiring doc §6.
+/// The Almanac is ticked in StartPlayerTurn (see wiring doc §6).
 /// JSON: { "type": "schedule", "turns": n, "do": { ...effect... } }
 /// </summary>
 public sealed class ScheduleLeafEffect : EffectBase
@@ -572,7 +572,7 @@ public sealed class AdvanceEffect : EffectBase
 
 		if (entry.IsReady)
 		{
-			s.Log($"[Advance] Entry reached 0 — firing immediately.");
+			s.Log($"[Advance] Entry reached 0. Firing immediately.");
 			entry.Child?.Resolve(s, entry.Caster, entry.Targets, entry.Snapshot);
 			s.Almanac.Remove(entry);
 		}
@@ -618,7 +618,7 @@ public sealed class FastForwardEffect : EffectBase
 /// <summary>
 /// Marks the caster's current tile as an anchor for <see cref="Turns"/> turns.
 /// Stores the coord on <c>Unit.AnchorCoord</c> and <c>Unit.AnchorTurnsRemaining</c>.
-/// The anchor expires in <c>StartPlayerTurn</c> — see wiring doc §8.
+/// The anchor expires in <c>StartPlayerTurn</c> (see wiring doc §8).
 /// JSON: { "type": "set_anchor", "turns": n }
 /// </summary>
 public sealed class SetAnchorEffect : EffectBase
@@ -631,7 +631,7 @@ public sealed class SetAnchorEffect : EffectBase
 		var casterUnit = s.ActiveCasterUnit;
 		if (casterUnit?.CurrentTile == null)
 		{
-			s.Log("[SetAnchor] Caster has no tile — no-op.");
+			s.Log("[SetAnchor] Caster has no tile. No-op.");
 			return;
 		}
 
@@ -653,7 +653,7 @@ public sealed class TeleportToAnchorEffect : EffectBase
 		var casterUnit = s.ActiveCasterUnit;
 		if (casterUnit == null || casterUnit.AnchorCoord == null)
 		{
-			s.Log("[TeleportToAnchor] No anchor set — no-op.");
+			s.Log("[TeleportToAnchor] No anchor set. No-op.");
 			return;
 		}
 
@@ -736,7 +736,7 @@ public sealed class TeleportToPhaseTileEffect : EffectBase
 		var casterUnit = s.ActiveCasterUnit;
 		if (casterUnit == null || s.PhaseTiles == null || s.PhaseTiles.Count == 0)
 		{
-			s.Log("[PhaseTile] No phase tiles registered — no-op.");
+			s.Log("[PhaseTile] No phase tiles registered. No-op.");
 			return;
 		}
 
@@ -768,7 +768,7 @@ public sealed class TeleportToPhaseTileEffect : EffectBase
 /// <summary>
 /// Directly re-resolves all effects of <c>GameState.LastResolvedItem</c>
 /// using the original targets. <see cref="ValueMult"/> is stored on the
-/// snapshot — DealDamageEffect reads <c>EffectSnapshot.DamageMultiplier</c>
+/// snapshot. DealDamageEffect reads <c>EffectSnapshot.DamageMultiplier</c>
 /// and applies it. See wiring doc §9 for the DealDamageEffect hook.
 /// JSON: { "type": "echo_last", "value_mult": f }
 /// </summary>
@@ -782,7 +782,7 @@ public sealed class EchoLastEffect : EffectBase
 		var last = s.LastResolvedItem;
 		if (last == null)
 		{
-			s.Log("[EchoLast] No last resolved item — no-op.");
+			s.Log("[EchoLast] No last resolved item. No-op.");
 			return;
 		}
 
@@ -815,13 +815,13 @@ public sealed class RewindLastEffect : EffectBase
 		var last = s.LastResolvedItem;
 		if (last == null)
 		{
-			s.Log("[RewindLast] Nothing to rewind — no-op.");
+			s.Log("[RewindLast] Nothing to rewind. No-op.");
 			return;
 		}
 
 		if (last.Ability?.Effects != null && last.Ability.Effects.OfType<RewindLastEffect>().Any())
 		{
-			s.Log("[RewindLast] Last spell contains a rewind — cannot rewind a rewind. No-op.");
+			s.Log("[RewindLast] Last spell contains a rewind. Cannot rewind a rewind. No-op.");
 			return;
 		}
 
@@ -841,7 +841,7 @@ public sealed class RewindLastEffect : EffectBase
 
 /// <summary>
 /// Reverses the order of all items on GameStack. The item that would have
-/// resolved last now resolves first. Requires GameStack.Reverse() — see wiring doc §10.
+/// resolved last now resolves first. Requires GameStack.Reverse() (see wiring doc §10).
 /// JSON: { "type": "reverse_stack" }
 /// </summary>
 public sealed class ReverseStackEffect : EffectBase
@@ -850,7 +850,7 @@ public sealed class ReverseStackEffect : EffectBase
 	{
 		if (s.StackCount() == 0)
 		{
-			s.Log("[ReverseStack] Stack is empty — no-op.");
+			s.Log("[ReverseStack] Stack is empty. No-op.");
 			return;
 		}
 
@@ -861,11 +861,11 @@ public sealed class ReverseStackEffect : EffectBase
 
 /// <summary>
 /// Retargets the top enemy spell on the stack.
-///   "random_enemy" — picks a random enemy other than the original target.
-///   "chosen"       — uses the targets passed into this effect (costs 1 Foresight).
-///   "decoy"        — redirects to the nearest live decoy.
+///   "random_enemy" : picks a random enemy other than the original target.
+///   "chosen"       : uses the targets passed into this effect (costs 1 Foresight).
+///   "decoy"        : redirects to the nearest live decoy.
 ///
-/// Requires GameStack.PeekTop() — see wiring doc §11.
+/// Requires GameStack.PeekTop() (see wiring doc §11).
 /// JSON: { "type": "redirect", "to": "random_enemy"|"chosen"|"decoy" }
 /// </summary>
 public sealed class RedirectEffect : EffectBase
@@ -880,7 +880,7 @@ public sealed class RedirectEffect : EffectBase
 		var top = s.Stack.PeekTop();
 		if (top == null)
 		{
-			s.Log("[Redirect] Stack is empty — no-op.");
+			s.Log("[Redirect] Stack is empty. No-op.");
 			return;
 		}
 
@@ -952,7 +952,7 @@ public sealed class RedirectChargeEffect : EffectBase
 			.FirstOrDefault(u => u != null && !u.IsPlayerControlled);
 
 		if (enemy == null)
-		{ s.Log("[RedirectCharge] No enemy target — no-op."); return; }
+		{ s.Log("[RedirectCharge] No enemy target. No-op."); return; }
 
 		// Find redirect destination: target tile or random walkable tile
 		TileData dest = null;
@@ -971,7 +971,7 @@ public sealed class RedirectChargeEffect : EffectBase
 		}
 		else
 		{
-			s.Log("[RedirectCharge] No valid charge destination — no-op.");
+			s.Log("[RedirectCharge] No valid charge destination. No-op.");
 		}
 	}
 }
@@ -1022,7 +1022,7 @@ public sealed class ExtraTurnLeafEffect : EffectBase
 		// Only one extra-turn effect at a time
 		if (s.HasActiveEffect<ExtraTurnPersistentEffect>(caster))
 		{
-			s.Log("[ExtraTurn] Already active — no-op.");
+			s.Log("[ExtraTurn] Already active. No-op.");
 			return;
 		}
 
@@ -1054,7 +1054,7 @@ public sealed class SummonDecoyLeafEffect : EffectBase
 	{
 		if (s.OnSummonRequested == null)
 		{
-			s.Log("[SummonDecoy] OnSummonRequested not registered — no-op.");
+			s.Log("[SummonDecoy] OnSummonRequested not registered. No-op.");
 			return;
 		}
 
@@ -1088,13 +1088,13 @@ public sealed class SummonDecoyLeafEffect : EffectBase
 		}
 
 		if (tile == null)
-		{ s.Log("[SummonDecoy] No valid tile — no-op."); return; }
+		{ s.Log("[SummonDecoy] No valid tile. No-op."); return; }
 
 		var casterUnit = s.ActiveCasterUnit;
 		int teamId = casterUnit?.TeamId ?? 0;
 
 		// Pass HP via a special summon kind; CombatManager.RegisterSummonHandler
-		// must handle "decoy" — see wiring doc §15.
+		// must handle "decoy" (see wiring doc §15).
 		var decoy = s.OnSummonRequested("decoy", tile, teamId);
 		if (decoy != null)
 		{
@@ -1120,7 +1120,7 @@ public sealed class SummonDecoyLeafEffect : EffectBase
 }
 
 /// <summary>
-/// Kills a specific unit — used internally to expire decoys.
+/// Kills a specific unit. Used internally to expire decoys.
 /// Not registered in the JSON registry.
 /// </summary>
 public sealed class LethalDamageEffect : EffectBase
@@ -1186,7 +1186,7 @@ public sealed class TemporalDecayFieldLeafEffect : EffectBase
 		// Only one decay field at a time
 		if (s.GetActiveEffect<TemporalDecayFieldPersistentEffect>(caster) != null)
 		{
-			s.Log("[TemporalDecayField] Already active — no-op.");
+			s.Log("[TemporalDecayField] Already active. No-op.");
 			return;
 		}
 
@@ -1217,7 +1217,7 @@ public sealed class EventControlLeafEffect : EffectBase
 	{
 		if (s.HasActiveEffect<EventControlPersistentEffect>(caster))
 		{
-			s.Log("[EventControl] Already active — no-op.");
+			s.Log("[EventControl] Already active. No-op.");
 			return;
 		}
 
@@ -1260,7 +1260,7 @@ public class EventControlPersistentEffect : PersistentEffect
 								s.LastResolvedItem.Targets, s.LastResolvedItem.Snapshot);
 			}
 		}
-		// Never expire — permanent for the fight
+		// Never expire. Permanent for the fight
 	}
 }
 
@@ -1268,7 +1268,7 @@ public class EventControlPersistentEffect : PersistentEffect
 /// Board-wide persistent effect. Each tick: deals <see cref="DamagePerTick"/>
 /// to every unit on the board (or enemies only when <see cref="EnemiesOnly"/> is set).
 /// Also increments <see cref="CurrentScalingBonus"/> by <see cref="ScalingPerTick"/>
-/// each turn — the caster's DealDamageEffect reads this via
+/// each turn. The caster's DealDamageEffect reads this via
 /// <c>GameState.GetActiveEffect&lt;TemporalDecayFieldPersistentEffect&gt;</c>
 /// and adds it to all spell damage.
 ///
@@ -1317,7 +1317,7 @@ public class TemporalDecayFieldPersistentEffect : PersistentEffect
         CurrentScalingBonus += ScalingPerTick;
         s.Log($"[TemporalDecay] Spell scaling now +{CurrentScalingBonus}.");
 
-        // TurnsRemaining never reaches 0 — effect persists until combat ends.
+        // TurnsRemaining never reaches 0, so the effect persists until combat ends.
         // CombatManager prunes dead-unit effects; this one only expires via
         // combat end or an explicit removal effect.
     }
@@ -1353,7 +1353,7 @@ public class ExtraTurnPersistentEffect : PersistentEffect
 
     public override void Tick(GameState s)
     {
-        // Permanent — never expire.
+        // Permanent. Never expire.
         // ExtraTurnFiredThisRound is reset by CombatManager each new round.
     }
 
@@ -1429,7 +1429,7 @@ public class RedirectAuraPersistentEffect : PersistentEffect
 /// <summary>
 /// Borrowed Mana (audit §6.2 addition, 2026-07-29): gain mana now, repay it at the
 /// start of your next turn. The school's answer to tithe_aura pressure without
-/// giving the zero-economy school real ramp — the debt makes it tempo, not value.
+/// giving the zero-economy school real ramp. The debt makes it tempo, not value.
 /// JSON: { "type": "mana_debt", "amount": n }  (the GAIN is a separate mana_gain
 /// step; this leaf only books the repayment)
 /// </summary>
@@ -1450,7 +1450,7 @@ public sealed class ManaDebtLeafEffect : EffectBase
 }
 
 /// <summary>Collects the Borrowed Mana debt on the owner's next turn start, then
-/// expires. Drains to a floor of 0 — a debt cannot make mana negative; if the
+/// expires. Drains to a floor of 0: a debt cannot make mana negative; if the
 /// player spent everything, the shortfall is simply forgiven (and logged), which is
 /// deliberately lenient: a debt that could brick the turn after a defensive
 /// emergency would make the card unplayable at its rarity.</summary>
@@ -1478,7 +1478,7 @@ public class ManaDebtPersistentEffect : PersistentEffect
 		if (s.Mana.ContainsKey(Owner))
 			s.Mana[Owner] = _unit.Stats.Mana;
 		s.Log(due < _amount
-			? $"[ManaDebt] {_unit.Name} repays {due}/{_amount} — the rest is forgiven."
+			? $"[ManaDebt] {_unit.Name} repays {due}/{_amount}. The rest is forgiven."
 			: $"[ManaDebt] {_unit.Name} repays {due} mana.");
 	}
 }

@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// HexGridManager.Spawns.cs — spawn anchors/zones/slots, reservation system, connectivity carve
+// HexGridManager.Spawns.cs: spawn anchors/zones/slots, reservation system, connectivity carve
 // Partial of HexGridManager. Split out for navigability; behaviour-neutral.
 public partial class HexGridManager
 {
@@ -62,7 +62,7 @@ public partial class HexGridManager
         _centerCoord = NearestTileTo(new Vector3((minX + maxX) * 0.5f, 0f, centerZ));
 
         // Siege recipes carry AUTHORED anchors (attacker at the approach,
-        // defender behind the wall) — override the X-extent derivation when
+        // defender behind the wall). Those override the X-extent derivation when
         // present and on-map. Absent/off-map coords keep the default.
         if (_activeRecipe?.Siege is SiegeSpec sg)
         {
@@ -83,7 +83,7 @@ public partial class HexGridManager
         // halves-of-the-map filter is meaningless there (both anchors can sit
         // in the same half). Candidates come from a depth-3 WALKABLE flood
         // instead of raw distance, for two reasons: (a) zones must not swallow
-        // wall/building tiles — EnsureReservedTilesArePlayable would bulldoze
+        // wall/building tiles, or EnsureReservedTilesArePlayable would bulldoze
         // holes in the curtain; (b) raw distance leaks THROUGH the wall onto
         // interior tiles. The flood is bounded by the curtain by construction.
         if (_activeRecipe?.Siege != null)
@@ -91,7 +91,7 @@ public partial class HexGridManager
             // The gate-gap tiles are impassable to the ZONE flood even though
             // they are walkable ground: the door spawns there after placement,
             // and a flood that slips through the doorway puts enemies inside
-            // the courtyard at round 1 (observed 2026-08-11 — an enemy in the
+            // the courtyard at round 1 (observed 2026-08-11: an enemy in the
             // hold_zone at spawn, and its occupancy blocked a door panel).
             var doorway = new HashSet<Vector2I>(_activeRecipe.Siege.GateGap);
 
@@ -185,7 +185,7 @@ public partial class HexGridManager
 
     private void EnsureConnectivity(Vector2I start, Vector2I goal)
     {
-        // BFS on raw coords — no unit involved, just check walkability + cliffs
+        // BFS on raw coords: no unit involved, just check walkability + cliffs
         var visited = new HashSet<Vector2I> { start };
         var queue = new Queue<Vector2I>();
         queue.Enqueue(start);
@@ -218,8 +218,8 @@ public partial class HexGridManager
         GD.Print("No valid path found between spawn points. Carving path...");
 
         // Ramp state: seed from the start tile so the first clamp is a no-op.
-        // Local on purpose — this method runs twice per map and a field would
-        // leak the previous carve's height into this one.
+        // Local on purpose, because this method runs twice per map and a field
+        // would leak the previous carve's height into this one.
         int prevHeight = Tiles.TryGetValue(start, out var startTile) ? startTile.Height : 0;
 
         Vector2I current2 = start;
@@ -269,7 +269,7 @@ public partial class HexGridManager
             goalTile.MoveCost = 1;
             goalTile.ObstacleKind = "";
 
-            // The carve loop exits before processing the goal — ramp it too,
+            // The carve loop exits before processing the goal, so ramp it too,
             // or the final step can still be an illegal cliff.
             goalTile.Height = Math.Clamp(goalTile.Height,
                 prevHeight - CliffHeightThreshold,
@@ -336,8 +336,8 @@ public partial class HexGridManager
         if (candidates.Count > 0)
             return candidates[0];
 
-        // Nuclear fallback — scan entire correct half for ANY walkable tile
-        GD.PrintErr($"[SpawnPlan] No spawn anchor found for {side} — using emergency fallback.");
+        // Nuclear fallback: scan entire correct half for ANY walkable tile
+        GD.PrintErr($"[SpawnPlan] No spawn anchor found for {side}. Using emergency fallback.");
         foreach (var coord in Tiles.Keys)
         {
             if (side == SpawnSide.Player && coord.X > GridWidth / 2)
@@ -365,8 +365,8 @@ public partial class HexGridManager
         var queue = new Queue<Vector2I>();
 
         // Siege doorway: the gate door spawns on these tiles AFTER placement,
-        // so the zone BFS must neither claim them nor traverse THROUGH them —
-        // this BFS is self-contained (it does NOT use GetSideCandidates), and
+        // so the zone BFS must neither claim them nor traverse THROUGH them.
+        // This BFS is self-contained (it does NOT use GetSideCandidates), and
         // without the guard it pours through the open gap into the courtyard
         // (observed 2026-08-11: enemy spawned ON a gap tile, blocking a door
         // panel and starting inside the hold_zone).

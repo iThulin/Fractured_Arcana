@@ -178,7 +178,7 @@ public sealed class FeatureOp
     }
 }
 
-/// <summary>Battlefield E4 — one scheduled map event parsed from a recipe's
+/// <summary>Battlefield E4: one scheduled map event parsed from a recipe's
 /// `map_events` array. `round` is its first firing (1-based); `telegraph` is how
 /// many rounds ahead it is announced (0 = silent); `repeat_every` (0 = one-shot)
 /// re-fires it on that cadence. Kind-specific params (element, at, radius, steps,
@@ -197,7 +197,7 @@ public sealed class MapEventDef
     public string GetStr(string key, string def) => Has(key) ? Raw[key].AsString() : def;
     public Variant GetVariant(string key) => Has(key) ? Raw[key] : default;
 
-    /// <summary>Kinds that make tiles lethal or impassable — subject to the telegraph
+    /// <summary>Kinds that make tiles lethal or impassable, subject to the telegraph
     /// law (must warn at least one round ahead; the loader clamps telegraph to >= 1).</summary>
     public static bool IsDestructiveKind(string kind) => kind == "collapse_tiles";
 }
@@ -211,14 +211,14 @@ public sealed class SiegeBackdropStamp
 }
 
 /// <summary>City-siege recipe extras (CityBattlemapCompiler): authored spawn
-/// anchors + the gate gap. Optional — null on every hand-authored recipe, and
+/// anchors + the gate gap. Optional: null on every hand-authored recipe, and
 /// everything downstream treats absence as "use the default derivation".</summary>
 public sealed class SiegeSpec
 {
     public string Vector = "";
     public string Entry = "";
 
-    /// <summary>True when the PLAYER is the defender (home defense) — gates
+    /// <summary>True when the PLAYER is the defender (home defense). Gates
     /// door spawning and any future defender-only dressing.</summary>
     public bool Defending;
 
@@ -232,7 +232,7 @@ public sealed class SiegeSpec
     public List<Vector2I> ObjectiveZone = new();
 
     /// <summary>VISUAL-ONLY: wall tiles continuing past the arena edge into
-    /// the vista (axial coords beyond the map radius — AxialToWorld still
+    /// the vista (axial coords beyond the map radius; AxialToWorld still
     /// converts them; no TileData exists there).</summary>
     public List<Vector2I> BackdropWall = new();
 

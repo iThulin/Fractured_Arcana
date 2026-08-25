@@ -357,7 +357,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Set Grief to 4. Draw 2 cards. Trigger the Flood \u2014 all spirits refresh, Grief resets to 0."
+					"value": "Set Grief to 4. Draw 2 cards. Trigger the Flood: all spirits refresh, Grief resets to 0."
 				}
 			]
 		}

@@ -10,19 +10,19 @@ using System.Linq;
 //                 at the tier you have already mastered.
 //
 //                 This is the "Library research" verb from
-//                 progression_card_acquisition_v1 §8 — the DETERMINISTIC
+//                 progression_card_acquisition_v1 §8: the DETERMINISTIC
 //                 conversion the doc flagged as the most-missed omission:
 //
 //                   "Everything above is stochastic. Without a deterministic
-//                    conversion — spend X, receive the specific blueprint you
-//                    named — a player chasing an archetype is hostage to RNG
+//                    conversion (spend X, receive the specific blueprint you
+//                    named), a player chasing an archetype is hostage to RNG
 //                    across multiple cycles. Build this. It is the difference
 //                    between 'slow reveal' and 'grind'."
 //
 //                 Priced in Arcane Splinters rather than lore + lunations,
 //                 and capped per cycle. The cap is the whole safety design:
 //                 unbounded minting would make the post-combat draft
-//                 pointless and the cycle reseed cosmetic — you would
+//                 pointless and the cycle reseed cosmetic. You would
 //                 rebuild your best deck in ten minutes and the roguelite
 //                 loop would flatten. Bounded, it converts the reseed from a
 //                 POWER reset into a DECK-BUILDING reset, which is the
@@ -65,7 +65,7 @@ public static class CardMintService
     // ── Budget ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Mints allowed this cycle — the Arcane Library's tier, so 0 without one and
+    /// Mints allowed this cycle, taken from the Arcane Library's tier, so 0 without one and
     /// 3 at full tier. Making the cap a building tier means the answer to "I want
     /// to mint more" is a campus investment, which is the meta-layer doing its job.
     /// </summary>
@@ -101,19 +101,19 @@ public static class CardMintService
     };
 
     /// <summary>
-    /// What the Scriptorum would charge to raise a copy from base to these tiers —
-    /// read straight from CardUpgradeScreen.CardUpgradeCosts so the two can never
+    /// What the Scriptorum would charge to raise a copy from base to these tiers.
+    /// Read straight from CardUpgradeScreen.CardUpgradeCosts so the two can never
     /// drift apart under retuning.
     ///
     /// THIS IS THE LOAD-BEARING PRICE. Charging rarity alone would sell a mastered
-    /// 3/3 Common for 20✦ against the 115✦ it costs to upgrade one by hand — an 83%
+    /// 3/3 Common for 20✦ against the 115✦ it costs to upgrade one by hand, an 83%
     /// discount on the entire upgrade economy, three times per cycle, forever. Worse,
     /// it made mint→disenchant net-POSITIVE on Commons (a minted 3/3 has
     /// PointsSpent 5, disenchanting for 3 + 5×4 = 23 against a 20✦ mint), turning
     /// the per-cycle cap into a free-reroll budget instead of a real cost.
     ///
     /// Minting now charges full freight for the tiers. What the player buys with the
-    /// convenience is skipping re-acquisition and re-casting — and the casts are
+    /// convenience is skipping re-acquisition and re-casting, and the casts are
     /// already permanent, which is the actual reward.
     /// </summary>
     public static int TierCost(int topTier, int botTier)
@@ -151,7 +151,7 @@ public static class CardMintService
     /// <param name="atBase">
     /// Scribe a plain copy at 0/0 for the rarity price alone, instead of reproducing
     /// the mastered tiers. Without this option a player who took a card to 3/3 could
-    /// price themselves out of ever minting it — mastery would make the card MORE
+    /// price themselves out of ever minting it, because mastery would make the card MORE
     /// expensive to copy, which is backwards.
     /// </param>
     public static MintStatus Evaluate(GuildSaveData save, CardBlueprint bp, bool atBase = false)
@@ -189,7 +189,7 @@ public static class CardMintService
         int cost = baseCost + TierCost(top, bot);
 
         if ((save?.Cycle?.ArcaneSplinters ?? 0) < cost)
-            return Fail($"Not enough splinters — {cost} needed.");
+            return Fail($"Not enough splinters. {cost} needed.");
 
         return new MintStatus
         {
@@ -206,7 +206,7 @@ public static class CardMintService
     // ── Mint ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Scribe a copy into the collection (stash, not the active deck — slotting is
+    /// Scribe a copy into the collection (stash, not the active deck, since slotting is
     /// still a separate gold cost in the deck editor). Re-evaluates rather than
     /// trusting the caller. Returns the new OwnedCard, or null on refusal.
     /// </summary>
@@ -226,7 +226,7 @@ public static class CardMintService
 
         // RealCards explicitly, NOT the routed .Cards property. That property
         // forwards to DebugCards whenever the static PlayerDeckSave.UseDebugDeck is
-        // set, and the card library also runs as an in-combat pause overlay — so a
+        // set, and the card library also runs as an in-combat pause overlay, so a
         // mint taken there after CombatDebugLauncher flipped the flag would charge
         // the real economy and drop the card into the scratch collection, where the
         // player would never find it.
@@ -252,7 +252,7 @@ public static class CardMintService
         GD.Print($"[Mint] Scribed '{bp.Id}' at {owned.TopTier}/{owned.BotTier} " +
                  $"for {status.SplinterCost}✦ " +
                  $"({save.Cycle.MintsThisCycle}/{status.MintsAllowed} this cycle). " +
-                 $"In the stash — slot it in the deck editor.");
+                 $"In the stash. Slot it in the deck editor.");
         return owned;
     }
 

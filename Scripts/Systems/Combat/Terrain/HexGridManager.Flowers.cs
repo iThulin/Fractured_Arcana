@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.Flowers.cs  (partial of HexGridManager)
 //
-// Scattered flower props over grass/forest tiles — MultiMesh layer(s)
+// Scattered flower props over grass/forest tiles: MultiMesh layer(s)
 // on top of the painterly grass carpet, mirroring the Blender reference
 // where modelled flowers ride the same scatter surface as the grass.
 //
@@ -19,7 +19,7 @@ using System.Collections.Generic;
 //
 // Per-instance colour (MultiMesh UseColors) tints each placed instance.
 // NOTE: a cluster mesh is ONE instance, so it receives ONE palette colour
-// across all its blooms — bake per-bloom colour into the cluster mesh's
+// across all its blooms. Bake per-bloom colour into the cluster mesh's
 // vertex colours and turn UseFlowerColorVariation OFF if you want varied
 // colours within a single cluster asset.
 //
@@ -86,7 +86,7 @@ public partial class HexGridManager : Node3D
 
         if (!UseMeshSurfaceMaterials && FlowerMaterial == null)
         {
-            GD.PushWarning("[HexGridManager] FlowerMaterial unassigned and UseMeshSurfaceMaterials is off — flowers skipped. " +
+            GD.PushWarning("[HexGridManager] FlowerMaterial unassigned and UseMeshSurfaceMaterials is off, so flowers are skipped. " +
                 "Assign painterly_flower.tres, or enable UseMeshSurfaceMaterials to use the meshes' own surface materials.");
             return;
         }
@@ -265,8 +265,8 @@ public partial class HexGridManager : Node3D
 
             // --- Explicit visibility AABB ---
             // Same reasoning as the grass/canopy fields: Godot's auto-computed
-            // MultiMesh AABB is unreliable for world-space scattered instances —
-            // the whole field frustum-culls as a single unit on a small camera
+            // MultiMesh AABB is unreliable for world-space scattered instances.
+            // The whole field frustum-culls as a single unit on a small camera
             // turn, so the flower layer vanishes in one pop at the screen edge.
             // Build bounds from the actual instance origins and grow by mesh
             // extent, scale band, and a wind-sway margin.
@@ -320,7 +320,7 @@ public partial class HexGridManager : Node3D
         }
     }
 
-    // Placeholder rosette — used only if no FlowerMeshes and no FlowerMesh are set.
+    // Placeholder rosette, used only if no FlowerMeshes and no FlowerMesh are set.
     private static Mesh BuildProceduralFlowerMesh()
     {
         const int petals = 5;

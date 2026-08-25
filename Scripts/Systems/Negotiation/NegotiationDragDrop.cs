@@ -15,7 +15,7 @@ using System;
 // Layer:          UI
 // Collaborators:  NegotiationManager.cs (creates chips, supplies
 //                 Clicked handlers + CanDrag gate),
-//                 Assets/UI/Tokens/{name}.png (placeholder art —
+//                 Assets/UI/Tokens/{name}.png (placeholder art;
 //                 swap the PNGs, no code changes)
 // ============================================================
 
@@ -37,7 +37,7 @@ public partial class NegotiationTokenChip : PanelContainer
     public int SizePx = 66;
     /// <summary>False for display-only chips (NPC pool, drag previews).</summary>
     public bool Interactive = true;
-    /// <summary>Manager-supplied gate for click/drag — e.g. table resolved.</summary>
+    /// <summary>Manager-supplied gate for click/drag (e.g. table resolved).</summary>
     public Func<bool> CanDrag;
     /// <summary>Primary interaction: click to spend.</summary>
     public event Action Clicked;
@@ -59,7 +59,7 @@ public partial class NegotiationTokenChip : PanelContainer
             CustomMinimumSize = new Vector2(SizePx, SizePx),
             // A bare Control defaults to MOUSE_FILTER_STOP: without this
             // override the holder sits on top of the chip, swallows every
-            // press, and _GuiInput/_GetDragData below never fire — which is
+            // press, and _GuiInput/_GetDragData below never fire, which is
             // exactly the "can't play actions in spoken-lines mode" bug.
             MouseFilter = MouseFilterEnum.Ignore,
         };

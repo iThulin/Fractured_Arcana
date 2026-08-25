@@ -14,7 +14,7 @@ using System.Linq;
 //
 //                 As of the open-world refactor, the REGION SET
 //                 is supplied by the caller (StrategicMapGenerator)
-//                 rather than read from RegionLoader directly —
+//                 rather than read from RegionLoader directly, so
 //                 the placement rules now run on the generated
 //                 strategic geography. The parameterless overload
 //                 is preserved for any legacy/standalone caller
@@ -59,7 +59,7 @@ public static class CampaignGenerator
     /// Open-world entry point: generates over a caller-supplied set of
     /// placeable regions (StrategicMapGenerator passes the placed provinces
     /// with distance-derived tiers). All placement rules are identical to
-    /// the legacy path — only the region SOURCE differs.
+    /// the legacy path; only the region SOURCE differs.
     /// </summary>
     /// <param name="campaignSeed">Deterministic seed.</param>
     /// <param name="playerSchool">Player's school (betrayal placement rule).</param>
@@ -78,7 +78,7 @@ public static class CampaignGenerator
 
         regions ??= new List<PlaceableRegion>();
 
-        // ── Archmage pool (placeable only — excludes villain factions) ───
+        // ── Archmage pool (placeable only, excluding villain factions) ───
         var pool = ArchmageRegistry.GetPlaceable();
 
         if (pool.Count == 0)

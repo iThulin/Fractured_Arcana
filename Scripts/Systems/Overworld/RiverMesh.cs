@@ -2,14 +2,14 @@ using Godot;
 using System.Collections.Generic;
 
 // ============================================================
-// RiverMesh.cs — art pass A9b (2026-08-12)
+// RiverMesh.cs (art pass A9b, 2026-08-12)
 //
 // Purpose:        Winding river RIBBON geometry for the 3D world
 //                 renderers, replacing the straight centre→edge box
 //                 strokes ("subway map" read). Shared by WorldAtlas3D
 //                 and ExpeditionWindow3D (one home, no drift).
 //
-// The model:      per tile —
+// The model:      per tile:
 //                 · 2 river edges  → ONE quadratic Bézier from edge
 //                   midpoint to edge midpoint, control at the tile
 //                   centre: the river BENDS through the tile.
@@ -21,15 +21,15 @@ using System.Collections.Generic;
 //                 perpendicular to its tangent. The envelope
 //                 16·t²(1−t)² has zero VALUE and zero SLOPE at both
 //                 ends, and endpoint tangents lie along the
-//                 centre→edge-midpoint line — which is collinear with
-//                 the neighbour's — so curves meet across tile
+//                 centre→edge-midpoint line, which is collinear with
+//                 the neighbour's, so curves meet across tile
 //                 boundaries with C1 continuity by construction.
 //
 // Geometry:       3-vertex cross-sections (bank / waterline / bank),
 //                 vertex colours darkening toward the banks for the
 //                 recessed-channel read, +Y normals, CLOCKWISE
 //                 winding (Godot front faces are CW seen from the
-//                 front — the painterly-water session gotcha; if
+//                 front, the painterly-water session gotcha; if
 //                 rivers ever render invisible from above, the tri
 //                 order in Quad() is the suspect).
 // ============================================================
@@ -40,7 +40,7 @@ public static class RiverMesh
 {
     /// <summary>Build the world's rivers as one mesh. <paramref name="width"/> is
     /// the base ribbon width in world units; colour runs body at the waterline to
-    /// bank at the edges. (Flat variant — callers supply pre-lifted heights.)</summary>
+    /// bank at the edges. (Flat variant; callers supply pre-lifted heights.)</summary>
     public static ArrayMesh Build(List<(Vector3 center, List<Vector3> mids)> tiles,
                                   float width, Color body, Color bank)
     {
@@ -54,8 +54,8 @@ public static class RiverMesh
     /// carry a ground sampler; every ribbon vertex is re-heighted to
     /// ground(p) + lift, so strokes LIE ON the actual terrain surface instead of
     /// lerping between endpoint heights (the source of the clipping the user
-    /// reported). <paramref name="meanderScale"/> scales the winding amplitude —
-    /// roads use a small value; they are drawn with this builder too so they
+    /// reported). <paramref name="meanderScale"/> scales the winding amplitude.
+    /// Roads use a small value; they are drawn with this builder too so they
     /// follow the ground the same way.</summary>
     public static ArrayMesh Build(List<(Vector3 center, List<Vector3> mids, System.Func<Vector3, float> ground)> tiles,
                                   float width, Color body, Color bank, float lift, float meanderScale)
@@ -137,7 +137,7 @@ public static class RiverMesh
             if (ground != null)
             {
                 // Ground-following: every vertex re-heighted to the actual
-                // terrain surface — banks included, so cross-slopes can't clip.
+                // terrain surface, banks included, so cross-slopes can't clip.
                 left[k].Y = ground(left[k]) + lift;
                 mid[k].Y = ground(mid[k]) + lift;
                 right[k].Y = ground(right[k]) + lift;

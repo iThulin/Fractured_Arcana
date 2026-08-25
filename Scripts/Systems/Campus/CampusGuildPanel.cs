@@ -6,21 +6,21 @@ using static CampusUi;
 // ============================================================
 // CampusGuildPanel.cs
 //
-// Purpose:        The Guild tab — save slots, guild identity,
+// Purpose:        The Guild tab: save slots, guild identity,
 //                 last-run result, the card/deck screen doors,
 //                 and the debug panel.
 // Layer:          UI
 // Collaborators:  CampusPanel.cs (base), CampusContext.cs,
 //                 SaveManager.cs, BuildingEffectApplier.cs,
 //                 PlayerSession.cs
-// See:            docs/campus_tab_extraction_v1.md — Phase 2
+// See:            docs/campus_tab_extraction_v1.md, Phase 2
 // ============================================================
 
 /// <summary>Guild tab. The last and largest extraction, and the least homogeneous: it mixes
 /// three unrelated things that only share a tab because a tab was the only place to put them.
 ///
 /// <para><b>Save slots do not belong on the campus map.</b> Slot selection, creation and
-/// deletion are CHROME — you cannot put "load a save" behind a building, because the building
+/// deletion are CHROME. You cannot put "load a save" behind a building, because the building
 /// only exists once a save is loaded. They live here now because they render into this tab
 /// today; in Phase 3 <see cref="RefreshSlots"/> and <see cref="SelectSlot"/> lift out to the
 /// Menu overlay alongside settings and quit, and what remains of this panel is what the Grand
@@ -48,7 +48,7 @@ public sealed class CampusGuildPanel : CampusPanel
 
     // Last-run result snapshot (see RefreshGuildResultPanel): RunResultData is
     // CONSUMED on first read because StrategicView's warfront resolution keys on
-    // HasResults per run — but Refresh() fires twice on campus boot (RefreshAll +
+    // HasResults per run, but Refresh() fires twice on campus boot (RefreshAll +
     // the tab-switch case), so rendering directly from RunResultData showed the
     // banner for exactly one frame and then destroyed it. Cache what was consumed.
     private bool _resultCached;
@@ -62,20 +62,20 @@ public sealed class CampusGuildPanel : CampusPanel
         var layout = MakeVBox(16);
         margins.AddChild(layout);
 
-        // ── Guild identity — filled by RefreshGuildTab() ─────────────────
+        // ── Guild identity, filled by RefreshGuildTab() ─────────────────
         _guildIdentityContainer = MakeVBox(0);
         layout.AddChild(_guildIdentityContainer);
 
-        // ── Last run result — filled by RefreshGuildTab() ────────────────
+        // ── Last run result, filled by RefreshGuildTab() ────────────────
         _guildResultContainer = MakeVBox(0);
         layout.AddChild(_guildResultContainer);
 
-        // ── Discipline — filled by RefreshDeclarations() ─────────────────
+        // ── Discipline, filled by RefreshDeclarations() ─────────────────
         // The Grand Hall hosts this panel, and the building's own description
         // already promises "school of study". It is also the room the conferral
         // stopped in, which is why declaring happens here and nowhere else.
         layout.AddChild(new HSeparator());
-        AddSectionHeader(layout, "Disciplines — what you can play, and why");
+        AddSectionHeader(layout, "Disciplines: what you can play, and why");
         _declarationContainer = MakeVBox(8);
         layout.AddChild(_declarationContainer);
 
@@ -194,7 +194,7 @@ public sealed class CampusGuildPanel : CampusPanel
         tally.AddThemeColorOverride("font_color", UITheme.Gold);
         _declarationContainer.AddChild(tally);
 
-        // Adept first — always playable, never declared. Skipping it entirely
+        // Adept first, since it is always playable and never declared. Skipping it entirely
         // read as a hole in the list during playtest.
         _declarationContainer.AddChild(BuildAdeptRow());
 
@@ -238,7 +238,7 @@ public sealed class CampusGuildPanel : CampusPanel
 
     /// <summary>
     /// One school, ONE line (2026-08-04 playtest: the prose blockers buried the
-    /// two facts that matter — unlock status and whether a teacher exists).
+    /// two facts that matter, unlock status and whether a teacher exists).
     /// Glyph + name + a fixed status line: "Teacher … · Mastery x/y · Grand Hall …"
     /// for undeclared schools, "Declared · Mastery n" for declared ones. The
     /// Declare button appears only when everything is met.
@@ -289,15 +289,15 @@ public sealed class CampusGuildPanel : CampusPanel
             return row;
         }
 
-        // The fixed status line — same three items in the same order on every
+        // The fixed status line: the same three items in the same order on every
         // undeclared row, so standing is comparable at a glance.
         bool hasHall = DeclarationService.HasGrandHall(save);
         bool hasTeacher = status.FacultySource != null;
         bool hasMastery = status.MasteryPoints >= status.MasteryRequired;
         detail.Text =
-            $"Teacher {(hasTeacher ? "✓ " + status.FacultySource : "—")}   ·   " +
+            $"Teacher {(hasTeacher ? "✓ " + status.FacultySource : "-")}   ·   " +
             $"Mastery {status.MasteryPoints}/{status.MasteryRequired}{(hasMastery ? " ✓" : "")}   ·   " +
-            $"Grand Hall {(hasHall ? "✓" : "—")}";
+            $"Grand Hall {(hasHall ? "✓" : "-")}";
         detail.AddThemeColorOverride("font_color",
             status.Eligible ? UITheme.HealthGreen : UITheme.CampusSubtleText);
         row.AddChild(detail);
@@ -318,7 +318,7 @@ public sealed class CampusGuildPanel : CampusPanel
         var save = Ctx.Save;
         if (save == null) return;
 
-        // Capture the teacher before declaring — Evaluate reports FacultySource
+        // Capture the teacher before declaring, because Evaluate reports FacultySource
         // for a declared school too, but reading it first keeps the conferral
         // line honest if the roster shifts underneath us.
         string faculty = DeclarationService.FindFacultySource(save, school);
@@ -333,7 +333,7 @@ public sealed class CampusGuildPanel : CampusPanel
 
         SaveManager.Save();
 
-        // The Provost's sentence from Beat 2, finally finishing — in the voice of
+        // The Provost's sentence from Beat 2, finally finishing, in the voice of
         // whoever stayed to speak it. The player spends this moment seven times.
         var dialog = new AcceptDialog
         {
@@ -389,7 +389,7 @@ public sealed class CampusGuildPanel : CampusPanel
         {
             var noSaveLabel = new Label
             {
-                Text = "No guild selected — choose a save slot below.",
+                Text = "No guild selected. Choose a save slot below.",
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
             noSaveLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -442,7 +442,7 @@ public sealed class CampusGuildPanel : CampusPanel
         AddStat("GOLD EARNED", $"{save.TotalGoldEarned}");
         AddStat("REGION", save.CurrentRegionId.Replace("_", " ").ToUpper());
 
-        // Phase 2 — where the guild is SITED in the world: home city + region +
+        // Phase 2. Where the guild is SITED in the world: home city + region +
         // the resolved campus dock. Full-width line (not a stat column) so the
         // longer text doesn't crowd the stats row. Falls back to the founding
         // realm before the cycle's world is generated.
@@ -544,7 +544,7 @@ public sealed class CampusGuildPanel : CampusPanel
 
         var resultTitle = new Label
         {
-            Text = won ? "✓  Last Expedition — Success" : "✗  Last Expedition — Failed",
+            Text = won ? "✓  Last Expedition: Success" : "✗  Last Expedition: Failed",
         };
         resultTitle.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         resultTitle.AddThemeColorOverride("font_color", won ? UITheme.Success : UITheme.Danger);
@@ -912,7 +912,7 @@ public sealed class CampusGuildPanel : CampusPanel
         // The faculty gate and the unlock gate are both slow by design, which
         // makes anything downstream of them tedious to test. These three skip
         // straight to the end state. They write to the EternalLedger and save
-        // immediately, so they are PERMANENT for that guild — use a scratch slot.
+        // immediately, so they are PERMANENT for that guild. Use a scratch slot.
         Button DebugGrant(string text, Action<GuildSaveData> apply)
         {
             var b = new Button { Text = text, CustomMinimumSize = new Vector2(140, 28) };
@@ -958,7 +958,7 @@ public sealed class CampusGuildPanel : CampusPanel
             }
             // Legendaries are included on purpose: DraftablePool drops them from
             // the draft regardless, so this only makes the card library honest.
-            GD.Print($"[Debug] Unlocked {n} blueprint(s) — " +
+            GD.Print($"[Debug] Unlocked {n} blueprint(s). " +
                      $"{save.Ledger.UnlockedCardBlueprintIds.Count} known. " +
                      $"Legendaries remain undraftable (they are Regalia).");
         });
@@ -966,11 +966,11 @@ public sealed class CampusGuildPanel : CampusPanel
         DebugGrant("Commission Random Rare", save =>
         {
             // Bypasses the Archives/gold/capacity gates and uses a 1-lunation timer
-            // so a single moon-turn settles it — lets you exercise the §8 pity-timer
+            // so a single moon-turn settles it. That lets you exercise the §8 pity-timer
             // tick + unlock without first building the Arcane Library to tier III.
             var id = CardCommissionService.DebugCommissionRandom(save, lunations: 1);
             if (id == null)
-                GD.Print("[Debug] Nothing to commission — every Rare is already known here.");
+                GD.Print("[Debug] Nothing to commission. Every Rare is already known here.");
         });
 
         DebugGrant("Learn All Spells", save =>
@@ -988,9 +988,9 @@ public sealed class CampusGuildPanel : CampusPanel
                 save.Cycle.Grimoire.KnownSpellIds.Add(id);
                 n++;
             }
-            // Cycle-scoped by design — the Grimoire dies with the timeline
+            // Cycle-scoped by design, since the Grimoire dies with the timeline
             // (overworld_spell_system_v1_1 §5), so this lasts the current cycle only.
-            GD.Print($"[Debug] Learned {n} overworld spell(s) — " +
+            GD.Print($"[Debug] Learned {n} overworld spell(s). " +
                      $"{save.Cycle.Grimoire.KnownSpellIds.Count} known this cycle.");
         });
 
@@ -1051,7 +1051,7 @@ public sealed class CampusGuildPanel : CampusPanel
 
             if (slot.IsEmpty)
             {
-                var emptyLabel = new Label { Text = $"Slot {slot.Slot + 1}  —  Empty" };
+                var emptyLabel = new Label { Text = $"Slot {slot.Slot + 1}  ·  Empty" };
                 emptyLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
                 emptyLabel.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
                 infoCol.AddChild(emptyLabel);

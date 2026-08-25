@@ -9,7 +9,7 @@
   "tiers": [
     {
       "tier": 1,
-      "description": "Local contacts. Establishes the guild's mission board — quests and companion errands are dispatched from here.",
+      "description": "Local contacts. Establishes the guild's mission board. Quests and companion errands are dispatched from here.",
       "goldCost": 120,
       "requiredBuildings": []
     },

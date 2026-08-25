@@ -11,12 +11,12 @@ using System.Collections.Generic;
 //                 integer height steps and theme-aware terrain type
 //                 from those two scalars. This is the substrate that
 //                 replaces independent per-tile height/terrain rolls
-//                 in HexGridManager — coherent noise + correlation
+//                 in HexGridManager, giving coherent noise + correlation
 //                 instead of salt-and-pepper randomness.
 // Layer:          System (generation helper)
 // Collaborators:  HexGridManager.Generation (samples this per tile),
 //                 TileData (TileTerrainType), HexGridManager.MapTheme
-// Notes:          Pure / deterministic. No GD.Randf calls — same seed
+// Notes:          Pure / deterministic. No GD.Randf calls, so the same seed
 //                 always yields the same field. Safe to construct,
 //                 sample, and discard during a single generation pass.
 // ============================================================

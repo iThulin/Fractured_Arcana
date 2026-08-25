@@ -10,14 +10,14 @@ using System.Text;
 //                 fight to fights.csv, one row per successful
 //                 card cast to card_events.csv, and maintains
 //                 per-blueprint lifetime aggregates in
-//                 cards_lifetime.csv — all under user://telemetry/.
+//                 cards_lifetime.csv, all under user://telemetry/.
 //                 Gated on the Enabled flag; zero allocation cost
 //                 when disabled. Analysis happens outside the game
 //                 (spreadsheet / pandas); this class only records.
 // Layer:          System
 // Collaborators:  CombatManager.cs (BeginFight / RecordCardCast /
 //                 EndFight call sites), PlayerSession (school)
-// See:            docs/build_order_v3.md — balance triage plan
+// See:            docs/build_order_v3.md (balance triage plan)
 // ============================================================
 //
 // Triage queries this data answers:
@@ -35,7 +35,7 @@ using System.Text;
 /// </summary>
 public static class CombatTelemetry
 {
-    /// <summary>Master switch. On in debug builds, off in release — playtester builds that should record must set this true explicitly (and say so to the tester).</summary>
+    /// <summary>Master switch. On in debug builds, off in release. Playtester builds that should record must set this true explicitly (and say so to the tester).</summary>
 #if DEBUG
     public static bool Enabled = true;
 #else
@@ -75,10 +75,10 @@ public static class CombatTelemetry
     private static Dictionary<string, Lifetime> _lifetime;
 
     // ═══════════════════════════════════════════════════════════════
-    // Public API — the three hooks
+    // Public API: the three hooks
     // ═══════════════════════════════════════════════════════════════
 
-    /// <summary>Opens a fight record. Safe to call again before EndFight (the previous unfinished fight is dropped — e.g. a restarted debug scene).</summary>
+    /// <summary>Opens a fight record. Safe to call again before EndFight (the previous unfinished fight is dropped, e.g. a restarted debug scene).</summary>
     public static void BeginFight(string encounterId, string regionId, string tier, IEnumerable<string> enemyKinds)
     {
         if (!Enabled) return;

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 // Purpose:        The tile-entry keystone from tile_interaction_spec
 //                 (§2–§4). Defines MovementKind, the per-resolution
 //                 MoveContext (loop guards), and the element/terrain
-//                 verbs that fire when a unit ENTERS a tile — Fire
+//                 verbs that fire when a unit ENTERS a tile: Fire
 //                 Sears, Storm Conducts, Stone Anchors, Growth Grasps,
 //                 Memorial Stirs, plus falling damage and the Frost
 //                 slide continuation.
@@ -25,7 +25,7 @@ using System.Collections.Generic;
 //     (standing is the pre-existing IsHazardous tick, untouched here).
 //   - Frost Slides on Walked and Forced entry (not Teleport).
 //   - Storm Conducts, Stone Anchors, Growth Grasps, Memorial Stirs are
-//     Forced-only — the Walked/Forced distinction still governs them.
+//     Forced-only. The Walked/Forced distinction still governs them.
 //   - Chain shove is depth-1; ElementStrength intensity is parked.
 //   - Deprecated elements (Water/Arcane/Shadow) and reserved Air have
 //     no verb by design.
@@ -43,10 +43,10 @@ public enum MovementKind
 /// <summary>Per-resolution movement scope. One instance is created by each
 /// forced-move effect (or walk commit) and threaded through every
 /// <see cref="Unit.PlaceOnTile"/> call in that resolution, so the §2.2 loop
-/// guards — the 10-tile force cap, the once-per-tile reaction guard, and the
-/// Stone/cap halt signal — hold across slides, chains, and multi-step pushes.
+/// guards (the 10-tile force cap, the once-per-tile reaction guard, and the
+/// Stone/cap halt signal) hold across slides, chains, and multi-step pushes.
 /// A null context (bare teleport / summon placement) means "single entry, no
-/// guards, no slide" — every reaction still fires exactly once.</summary>
+/// guards, no slide", and every reaction still fires exactly once.</summary>
 public sealed class MoveContext
 {
     /// <summary>Grid handle for adjacency (Storm Conducts) and slide lookahead.</summary>
@@ -70,7 +70,7 @@ public sealed class MoveContext
 
     /// <summary>Records that <paramref name="u"/> has reacted to <paramref name="t"/>
     /// this resolution. Returns true the FIRST time (caller should run reactions),
-    /// false on repeats (skip — prevents glyph↔push↔glyph ping-pong, spec §2.2).</summary>
+    /// false on repeats (skip, which prevents glyph↔push↔glyph ping-pong, spec §2.2).</summary>
     public bool MarkReacted(Unit u, TileData t)
     {
         _reacted ??= new HashSet<(ulong, Vector2I)>();
@@ -91,7 +91,7 @@ public static class TileEntryReactions
         if (unit == null || tile == null || !unit.Stats.IsAlive)
             return;
 
-        // Colossus form absorbs its tile through its own PlaceOnTile branch — it
+        // Colossus form absorbs its tile through its own PlaceOnTile branch, so it
         // must not ALSO be seared/conducted by the same element it is eating.
         if (unit.HasStatus("colossus_absorb"))
             return;
@@ -116,7 +116,7 @@ public static class TileEntryReactions
         switch (tile.ElementType)
         {
             case TileElementType.Fire:
-                // Sears: 2 on any entry (ruling 10.2 — walking sears too).
+                // Sears: 2 on any entry (ruling 10.2, so walking sears too).
                 unit.ApplyDamage(2);
                 break;
 

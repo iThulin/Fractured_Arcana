@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using static CampusUi;   // AddSectionHeader / MakeVBox / MakeMargins / MakeButton /
-                         // MakeStubLabel / ApplyTabStyle — see CampusUi.cs
+                         // MakeStubLabel / ApplyTabStyle. See CampusUi.cs
 
 // ============================================================
 // CampusScreen.cs
@@ -17,12 +17,12 @@ using static CampusUi;   // AddSectionHeader / MakeVBox / MakeMargins / MakeButt
 // Collaborators:  SaveManager.cs, CompanionRoster.cs,
 //                 BuildingDatabase.cs, ItemDatabase.cs,
 //                 EquipmentLoadout.cs, PlayerSession.cs,
-//                 UITheme.cs (extensive — every panel/button)
-// See:            README §3 — Campus is the persistence layer
+//                 UITheme.cs (extensive; every panel/button)
+// See:            README §3; Campus is the persistence layer
 //                 between runs; touches almost every save field
 // ============================================================
 
-/// <summary>Persistent between-runs hub. Hosts five tabs (Guild, Companions, Buildings, Armory, Training) and the start-run button. Reads/writes the active save through <see cref="SaveManager"/>. Massive file — see the section banners inside for the tab-by-tab layout.</summary>
+/// <summary>Persistent between-runs hub. Hosts five tabs (Guild, Companions, Buildings, Armory, Training) and the start-run button. Reads/writes the active save through <see cref="SaveManager"/>. Massive file. See the section banners inside for the tab-by-tab layout.</summary>
 public partial class CampusScreen : Control
 {
     private int _activeTab = 0;
@@ -33,17 +33,17 @@ public partial class CampusScreen : Control
     /// standalone campus scene, where leaving is a normal ChangeSceneToFile.</summary>
     public static System.Action OverlayLeaveHandler;
 
-    /// <summary>If set, the campus opens on this panel instead of the default Guild tab
-    /// — consumed once by BuildUI. StrategicView sets it to Campus so descending into
+    /// <summary>If set, the campus opens on this panel instead of the default Guild tab.
+    /// Consumed once by BuildUI. StrategicView sets it to Campus so descending into
     /// the city lands on the grounds map, not a menu (Phase 2, Stage 3).</summary>
     public static CampusPanelId? InitialPanel;
 
     /// <summary>Playtest switch (2026-08-19, revised same day): the STRATEGIC CITY VIEW
-    /// is the hub now. True hides the tab bar — systems are reached by clicking buildings
+    /// is the hub now. True hides the tab bar, and systems are reached by clicking buildings
     /// in the city (StrategicView.OnHomeBuildingPicked) or on the overlay-hosted campus.
     /// This screen survives as two rooms only: the no-save slot picker / cycle-end ritual
     /// (standalone, lands on Guild) and the lifecycle-heavy panel host (overlay). The
-    /// floating campus map tab is no longer routed from anywhere — deletion candidate
+    /// floating campus map tab is no longer routed from anywhere, so it is a deletion candidate
     /// once rotated/multi-tile siting moves to the city view. Flip to false to restore
     /// the tab bar if the diegetic hub blocks a playtest session.</summary>
     private static readonly bool DiegeticHubOnly = true;   // readonly, not const: const trips CS0162 in the gates below
@@ -65,13 +65,13 @@ public partial class CampusScreen : Control
     /// left the far half of the disc illegible.</summary>
     private const float CampusStartPitch = -60f;
 
-    /// <summary>Y offset where tab content begins — below the title bar (60) and the tab
+    /// <summary>Y offset where tab content begins, below the title bar (60) and the tab
     /// bar (44). The map layer, the dim backdrop and every tab panel all start here, so they
     /// stack exactly and none of them covers the bars.</summary>
     private const int TabContentTop = 104;
 
     /// <summary>Width of the right-docked building list on the Campus tab. Everything left of
-    /// it stays interactive map — see the panel-construction note in BuildUI.</summary>
+    /// it stays interactive map. See the panel-construction note in BuildUI.</summary>
     private const int CampusListWidth = 560;
 
     /// <summary>Full-screen host for the 3D campus. Added before the panels, so it renders
@@ -91,7 +91,7 @@ public partial class CampusScreen : Control
     private Label _campusResourceBanner;
     private string _campusPlacingBuildingId = null; // non-null while a drag placement is in progress
 
-    // Campus tab — building list collapse
+    // Campus tab: building list collapse
     private VBoxContainer _buildingListSection;
     private Button _buildingListCollapseBtn;
     private bool _buildingListCollapsed = false;
@@ -103,7 +103,7 @@ public partial class CampusScreen : Control
     private ToastManager _campusToasts;
 
     /// <summary>The one seam handed to extracted campus panels. Built in <see cref="BuildUI"/>
-    /// before the tab bodies run. Nothing consumes it yet — the tab bodies are still
+    /// before the tab bodies run. Nothing consumes it yet, since the tab bodies are still
     /// methods on this class; each one that moves out takes this as its build argument.
     /// See docs/campus_tab_extraction_v1.md.</summary>
     private CampusContext _ctx;
@@ -161,7 +161,7 @@ public partial class CampusScreen : Control
         BuildCampusMap();
 
         // Dimmer between the map and the panels. Added here so it sits above the map and
-        // below the bars and panels; MouseFilter.Stop is load-bearing — without it, clicks
+        // below the bars and panels; MouseFilter.Stop is load-bearing. Without it, clicks
         // meant for an open panel would fall through to the hex grid behind it.
         _dimBackdrop = new ColorRect { Color = new Color(0f, 0f, 0f, 0.62f), Visible = false };
         _dimBackdrop.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
@@ -221,7 +221,7 @@ public partial class CampusScreen : Control
         quitBtn.Pressed += () => GetTree().Quit();
         titleBar.AddChild(quitBtn);
 
-        // Tab bar. Hidden under the diegetic hub — the buttons still exist and SelectTab
+        // Tab bar. Hidden under the diegetic hub, but the buttons still exist and SelectTab
         // still drives their pressed state, so flipping DiegeticHubOnly back on restores
         // the bar with zero other changes.
         var tabBar = new HBoxContainer();
@@ -233,13 +233,13 @@ public partial class CampusScreen : Control
         AddChild(tabBar);
 
         string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop" };
-        // CampusPanelId's values ARE these indices — the map routes by enum, the bar routes
+        // CampusPanelId's values ARE these indices. The map routes by enum, the bar routes
         // by index, and nothing else ties them together. Reordering one without the other
         // would silently send every building on the campus to the wrong room.
         if (tabNames.Length != Enum.GetValues(typeof(CampusPanelId)).Length)
             GD.PrintErr($"CampusScreen: {tabNames.Length} tabs but " +
-                        $"{Enum.GetValues(typeof(CampusPanelId)).Length} CampusPanelId values — " +
-                        "the campus map's routing table is out of sync with the tab bar.");
+                        $"{Enum.GetValues(typeof(CampusPanelId)).Length} CampusPanelId values. " +
+                        "The campus map's routing table is out of sync with the tab bar.");
         _tabButtons = new Button[tabNames.Length];
         for (int i = 0; i < tabNames.Length; i++)
         {
@@ -274,7 +274,7 @@ public partial class CampusScreen : Control
                 // transparent. Making the Campus panel see-through therefore did not make it
                 // click-through: it sat over the whole map swallowing every mouse event
                 // before the SubViewportContainer could see one, so MouseEntered never fired
-                // and camera pan/zoom/orbit and grid clicks were all dead — on a map that
+                // and camera pan/zoom/orbit and grid clicks were all dead, on a map that
                 // looked perfectly fine. Transparency is a paint property; input is a
                 // separate axis.
                 //
@@ -306,7 +306,7 @@ public partial class CampusScreen : Control
         // vignette host and the audience UI).
         //
         // CONSTRUCTED here, before the tab bodies, so CampusContext can hand panels a
-        // valid NarrativeHost/Toasts at build time — but ADDED to the tree further down,
+        // valid NarrativeHost/Toasts at build time, but ADDED to the tree further down,
         // after the tab panels, because Godot draws later siblings on top and both of
         // these must layer over the tabs. Do not collapse the two halves back together.
         _campusNarrativePanel = new NarrativeEncounterPanel { Visible = false };
@@ -326,7 +326,7 @@ public partial class CampusScreen : Control
         _councilTab.Build((ScrollContainer)_tabPanels[8], _ctx);
         _workshopPanel.Build((ScrollContainer)_tabPanels[9], _ctx);
 
-        // Layered last — see the construction note above.
+        // Layered last. See the construction note above.
         AddChild(_campusNarrativePanel);
         AddChild(_campusToasts);
 
@@ -349,7 +349,7 @@ public partial class CampusScreen : Control
 
         RefreshAll();
         // Open on the requested panel (the overlay host always sets InitialPanel).
-        // Standalone default: the GUILD tab, always — with the strategic city as the
+        // Standalone default: the GUILD tab, always. With the strategic city as the
         // hub, this screen is only ever entered standalone as the no-save slot picker
         // or the cycle-end ritual (school choice + BeginNextCycle), both Guild-tab
         // business. The floating campus map is not a landing anywhere. One-shot.
@@ -358,12 +358,12 @@ public partial class CampusScreen : Control
     }
 
     /// <summary>THE way a campus system is opened. The tab bar and the 3D campus map are both
-    /// selectors that call this — neither is baked into any panel, which is what makes the bar
+    /// selectors that call this, and neither is baked into any panel, which is what makes the bar
     /// deletable later rather than something the map has to replace.</summary>
     public void Show(CampusPanelId id) => SelectTab((int)id);
 
-    /// <summary>Diegetic hub: Escape leaves the overlay-hosted campus back to the world
-    /// — the keyboard twin of the overlay's "↑ To the World Map" button. Overlay-only:
+    /// <summary>Diegetic hub: Escape leaves the overlay-hosted campus back to the world.
+    /// It is the keyboard twin of the overlay's "↑ To the World Map" button. Overlay-only:
     /// standalone (slot picker / cycle ritual) has nowhere to Escape to, and the
     /// narrative panel owns its own dismissal. Escape on the standalone screen falls
     /// through to PauseManager as before.</summary>
@@ -408,7 +408,7 @@ public partial class CampusScreen : Control
         switch (index)
         {
             case 0:
-                // Guild tab — was missing from this switch entirely, so the
+                // Guild tab. This was missing from the switch entirely, so the
                 // Disciplines section could go stale (or, before the RefreshAll
                 // fix, never render at all) when switching back to it.
                 _guildPanel.Refresh();
@@ -441,7 +441,7 @@ public partial class CampusScreen : Control
     // Guild Tab
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>Builds the 3D campus map into the SHELL rather than into a tab — the
+    /// <summary>Builds the 3D campus map into the SHELL rather than into a tab. This is the
     /// promotion this whole redesign was for. Same grid, camera and input controller as
     /// before; what changed is the parent and the size.
     ///
@@ -470,7 +470,7 @@ public partial class CampusScreen : Control
 
         // HUD column, floating over the map rather than stacked above it.
         var mapCol = MakeVBox(6);
-        // Anchors only, then Position — NOT SetAnchorsAndOffsetsPreset. That preset zeroes
+        // Anchors only, then Position. NOT SetAnchorsAndOffsetsPreset: that preset zeroes
         // every offset, so a later OffsetLeft/OffsetTop yields a NEGATIVE size and the HUD
         // collapses to whatever its content minimum happens to be.
         mapCol.SetAnchorsPreset(LayoutPreset.TopLeft);
@@ -486,7 +486,7 @@ public partial class CampusScreen : Control
         _campusSelectionLabel.Modulate = UITheme.CampusSubtleText;
         mapCol.AddChild(_campusSelectionLabel);
 
-        // Gold/Materials banner — local to the viewport so it's visible while focused
+        // Gold/Materials banner, local to the viewport so it's visible while focused
         // on placement, rather than only in the screen's top title bar.
         var bannerPanel = new PanelContainer();
         var bannerStyle = new StyleBoxFlat
@@ -502,7 +502,7 @@ public partial class CampusScreen : Control
             ContentMarginBottom = 6,
         };
         bannerPanel.AddThemeStyleboxOverride("panel", bannerStyle);
-        bannerPanel.MouseFilter = MouseFilterEnum.Ignore;   // readout only — never eats a click
+        bannerPanel.MouseFilter = MouseFilterEnum.Ignore;   // readout only; never eats a click
         _campusResourceBanner = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -515,7 +515,7 @@ public partial class CampusScreen : Control
         _campusViewport = new SubViewport
         {
             // project.godot sets anti_aliasing/quality/msaa_3d=2 (4x), but that applies to
-            // the ROOT viewport only — a SubViewport created in code defaults to MSAA
+            // the ROOT viewport only. A SubViewport created in code defaults to MSAA
             // disabled and does not inherit it. That was the jagged hex edges and the
             // stair-stepped horizon; combat looked better partly for this one reason.
             Msaa3D = Viewport.Msaa.Msaa4X,
@@ -524,7 +524,7 @@ public partial class CampusScreen : Control
         };
         viewportContainer.AddChild(_campusViewport);
 
-        // Exact values from Battlefield.tscn's DirectionalLight3D — not a guess anymore.
+        // Exact values from Battlefield.tscn's DirectionalLight3D, not a guess anymore.
         var sunBasis = new Basis(
             new Vector3(0.7071065f, 0.49999976f, -0.49999994f),
             new Vector3(0f, 0.7071065f, 0.7071067f),
@@ -548,7 +548,7 @@ public partial class CampusScreen : Control
 
         // Reused as-is from combat: pan/zoom/orbit rig. Its left-click handling
         // (_cardDropHandler?.TryDropCardOnTile()) no-ops safely here since no
-        // CardDropHandler exists in this scene — CampusInputController owns all
+        // CardDropHandler exists in this scene. CampusInputController owns all
         // actual click/drag behavior via _UnhandledInput, layered on top.
         _campusCameraController = new CameraController();
         var pivot = new Node3D { Name = "CameraPivot" };
@@ -562,7 +562,7 @@ public partial class CampusScreen : Control
             // Confirmed from Battlefield.tscn: this is the exact scene HexGridManager
             // uses for HexTileScene3D, so campus tiles render identically to combat.
             HexTileScene3D = GD.Load<PackedScene>("res://Scenes/Combat/HexTile.tscn"),
-            // Inherited from HexGridManager — its defaults (1f, true) don't suit the
+            // Inherited from HexGridManager, whose defaults (1f, true) don't suit the
             // campus. HexRadius must match combat's real value or tiles misalign;
             // UseBlendedTerrainMesh MUST be false or ApplyVisualToTile takes the
             // blended-mesh branch, which needs a private field this class never sets.
@@ -574,11 +574,11 @@ public partial class CampusScreen : Control
         _campusInput = new CampusInputController();
         // Configure BEFORE AddChild. AddChild runs _Ready synchronously, and _Ready's
         // NodePath fallback logs two errors ("no CampusGridManager" / "no Camera3D") when
-        // it finds _grid/_camera still null — which they are, if Configure comes second.
+        // it finds _grid/_camera still null, which they are if Configure comes second.
         // The controller worked anyway (the next line filled them in), so this was pure
         // console noise, but it buries real errors on a screen that prints ~90 lines.
         // Configure touches no tree state, so calling it pre-parent is safe.
-        _campusInput.Configure(_campusGrid, camera3D); // code-built scene — direct wiring, not NodePath
+        _campusInput.Configure(_campusGrid, camera3D); // code-built scene: direct wiring, not NodePath
         _campusViewport.AddChild(_campusInput);
         _campusInput.BuildingSelected += OnCampusBuildingSelected;
         _campusInput.TileClicked += OnCampusTileClicked;
@@ -588,7 +588,7 @@ public partial class CampusScreen : Control
 
         // Both CameraController and CampusInputController poll/read raw input that
         // Godot's normal event-consumption pipeline can't scope by screen position on
-        // its own (see AcceptInput's doc comment on each) — so this viewport's own
+        // its own (see AcceptInput's doc comment on each), so this viewport's own
         // hover state, tracked via the Control wrapping it, is what gates them. This
         // is what stops mouse motion / WASD from bleeding into the building list.
         viewportContainer.MouseEntered += () =>
@@ -601,7 +601,7 @@ public partial class CampusScreen : Control
             _campusCameraController.AcceptInput = false;
             _campusInput.AcceptInput = false;
         };
-        // Starts inactive — nothing has entered the viewport yet at build time.
+        // Starts inactive: nothing has entered the viewport yet at build time.
         _campusCameraController.AcceptInput = false;
         _campusInput.AcceptInput = false;
 
@@ -612,7 +612,7 @@ public partial class CampusScreen : Control
 
     /// <summary>The Campus tab, reduced to the build/upgrade list now that the map it used to
     /// sit beside is the whole screen. Its panel background is transparent (see BuildUI), so
-    /// this list reads as floating over the campus rather than replacing it — the one tab
+    /// this list reads as floating over the campus rather than replacing it. This is the one tab
     /// where the map stays visible and undimmed.</summary>
     private void BuildCampusTab(ScrollContainer scroll)
     {
@@ -670,7 +670,7 @@ public partial class CampusScreen : Control
     {
         EnsureCycleWorld();
         // Stage 3 (Phase 2): if the campus is hosted as an in-world overlay, leaving for
-        // the world just frees the overlay and swoops the atlas back out — no scene swap.
+        // the world just frees the overlay and swoops the atlas back out, with no scene swap.
         if (OverlayLeaveHandler != null)
         {
             OverlayLeaveHandler.Invoke();
@@ -684,7 +684,7 @@ public partial class CampusScreen : Control
 
     /// <summary>Backs <see cref="CampusContext.BeginNextCycle"/>. Cycle lifecycle, kept on
     /// the shell rather than moved into the Expedition panel: it archives a LoopRecord,
-    /// replaces CycleState and reseeds the deck — save mutation far beyond anything that
+    /// replaces CycleState and reseeds the deck, save mutation far beyond anything that
     /// panel displays. EnsureCycleWorld's own comment marks it for a future CycleInitializer;
     /// parking both here keeps that lift to one step.</summary>
     private void BeginNextCycle(string school)
@@ -696,7 +696,7 @@ public partial class CampusScreen : Control
         // The outcome was HARDCODED "ConvergenceDefeat" from the day this method was
         // written, because there was no Convergence to have an outcome. As of I1
         // (schema v102) there is: StrategicView writes CycleState.Convergence.Outcome
-        // when the finale resolves, and the three cases are genuinely distinct —
+        // when the finale resolves, and the three cases are genuinely distinct:
         //   "Victory"  → the Anchorhold was opened and held,
         //   "Defeat"   → it was opened and lost,
         //   ""         → the Conjunction passed, or the open door was declined.
@@ -715,7 +715,7 @@ public partial class CampusScreen : Control
         if (Enum.TryParse<CardSchool>(school, out var cs))
             PlayerSession.SelectedSchool = cs;
 
-        // Generate the new cycle's world and open it — in city view, the hub state.
+        // Generate the new cycle's world and open it in city view, the hub state.
         EnsureCycleWorld();
         RefreshAll();
         PlayerSession.StartInCityOnOpen = true;
@@ -724,7 +724,7 @@ public partial class CampusScreen : Control
 
     /// <summary>Generate the cycle's world on first entry if it doesn't exist yet.
     /// Body extracted to <see cref="CycleInitializer.EnsureCycleWorld"/> (2026-08-19)
-    /// so the strategic scene — the hub now — can boot without this screen.</summary>
+    /// so the strategic scene, the hub now, can boot without this screen.</summary>
     private void EnsureCycleWorld() => CycleInitializer.EnsureCycleWorld();
 
 
@@ -756,7 +756,7 @@ public partial class CampusScreen : Control
         BuildingEffectApplier.ApplyCampusEffects(SaveManager.ActiveSave);
 
         // Refresh(), not RefreshSlots(): until 2026-08-04 this called RefreshSlots
-        // directly, which left Refresh() with ZERO call sites — the guild identity
+        // directly, which left Refresh() with ZERO call sites, so the guild identity
         // panel and the entire Disciplines section had never rendered once.
         // "Always blank" in playtest was this line, not the section's layout.
         _guildPanel.Refresh();
@@ -828,7 +828,7 @@ public partial class CampusScreen : Control
             var catLabel = new Label
             {
                 // Footprint shown up front (2026-08-13): siting will carry
-                // adjacency mechanics — the shape must be readable BEFORE
+                // adjacency mechanics, so the shape must be readable BEFORE
                 // buying, not discovered inside the placement tool.
                 Text = template.Category
                        + (string.IsNullOrEmpty(template.SchoolAffinity) ? "" : $"  ·  {template.SchoolAffinity}")
@@ -890,7 +890,7 @@ public partial class CampusScreen : Control
                 }
             }
 
-            // Built but not yet sited on the map — the map's hex slots are
+            // Built but not yet sited on the map, so the map's hex slots are
             // otherwise empty for this building. Placement is separate from
             // tier progression (a building can be upgraded whether or not
             // it's sited yet), so this is its own row/button.
@@ -920,7 +920,7 @@ public partial class CampusScreen : Control
     // ── Campus hex map wiring ─────────────────────────────────────────────
 
     /// <summary>(Re)loads the campus grid from the active save and reframes the camera
-    /// on it. Safe to call repeatedly — CampusGridManager.LoadFromSave clears and
+    /// on it. Safe to call repeatedly, since CampusGridManager.LoadFromSave clears and
     /// rebuilds its tiles.</summary>
     private void LoadCampusGrid()
     {
@@ -932,21 +932,21 @@ public partial class CampusScreen : Control
 
         _campusGrid.LoadFromSave(save.Ledger.CampusMap, save.Ledger.Buildings);
 
-        // Must follow LoadFromSave — LoadLandmarks reads the building occupancy that
+        // Must follow LoadFromSave, because LoadLandmarks reads the building occupancy that
         // LoadFromSave populates, and skips any hex a building already sits on.
         // Every RefreshAll → BuildUI path lands here, so this is also what restamps
         // landmark states after a narrative beat advances ruined → active → restored.
         _campusGrid.LoadLandmarks(save.HasFlag);
 
         // Steeper than combat's default -35°: the campus is a management map read by its
-        // labels, not a tactical board read by its silhouettes. Still orbitable — this sets
+        // labels, not a tactical board read by its silhouettes. Still orbitable: this sets
         // the STARTING angle, it does not clamp what the player can do afterwards.
         _campusCameraController?.FrameGrid(_campusGrid.CampusGridBoundsMin, _campusGrid.CampusGridBoundsMax,
                                            pitch: CampusStartPitch);
     }
 
     /// <summary>Wired to the "Place on Map" button. Starts a drag via
-    /// CampusInputController — the player then moves the mouse over the 3D viewport
+    /// CampusInputController. The player then moves the mouse over the 3D viewport
     /// (live valid/invalid preview) and clicks to drop, rather than holding the mouse
     /// button down continuously from the button press.</summary>
     private void BeginBuildingDrag(string buildingId)
@@ -968,7 +968,7 @@ public partial class CampusScreen : Control
         // Diegetic navigation, step one: a building that hosts a system IS the door to it.
         // Routing lives in CampusLocationRegistry, keyed off the building JSON's hostsSystem,
         // so adding a door is a data edit. Buildings without a key stay inert and keep the
-        // select-and-label behaviour above — that is the majority of them.
+        // select-and-label behaviour above. That is the majority of them.
         var dest = CampusLocationRegistry.ForBuilding(buildingId);
         if (!dest.IsValid)
             return;
@@ -990,7 +990,7 @@ public partial class CampusScreen : Control
 
     private void OnCampusTileClicked(Vector2I axial)
     {
-        // Empty-tile click while not dragging — treat as deselect.
+        // Empty-tile click while not dragging: treat as deselect.
         _campusSelectionLabel.Text = "Click a building to select it.";
     }
 
@@ -1067,7 +1067,7 @@ public partial class CampusScreen : Control
     /// <summary>Seed everything a loaded save is expected to already contain: the companion
     /// roster, the building list, and the starter armory.
     ///
-    /// EnsureStarterItems used to sit outside this, called only from OnSlotSelected — so a
+    /// EnsureStarterItems used to sit outside this, called only from OnSlotSelected, so a
     /// guild reached by any OTHER route got a roster and buildings but an EMPTY ARMORY. Two
     /// routes do exactly that: founding a new guild (the empty-slot branch of OnSlotSelected
     /// early-returns to NewGameScreen and never comes back through it) and SaveManager
@@ -1075,37 +1075,37 @@ public partial class CampusScreen : Control
     ///
     /// Folded in rather than adding a second call to BuildUI: the failure mode was two
     /// seeding steps that had to be kept in sync and weren't, and a second call site would
-    /// have left that shape intact. EnsureStarterItems is idempotent — it skips demo items
-    /// that already exist and gates starter seeding on an empty armory — so callers may
+    /// have left that shape intact. EnsureStarterItems is idempotent: it skips demo items
+    /// that already exist and gates starter seeding on an empty armory, so callers may
     /// invoke this freely.</summary>
     private void EnsureSaveSeeded() => CycleInitializer.EnsureSaveSeeded();
 
     // ApplyTabStyle moved to CampusUi 2026-08-03, unchanged. It styles the tab-bar
-    // SELECTOR rather than any panel's content — which is exactly the piece the campus
+    // SELECTOR rather than any panel's content, which is exactly the piece the campus
     // map will not need when it becomes the second selector.
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Records Tab — the Hall of Records (negotiation doc §7b)
+    // Records Tab: the Hall of Records (negotiation doc §7b)
     // ═══════════════════════════════════════════════════════════════════════
 
-    // Extracted 2026-08-03 — bodies now live in CampusRecordsPanel / CampusQuestsPanel.
+    // Extracted 2026-08-03; bodies now live in CampusRecordsPanel / CampusQuestsPanel.
     // The five container fields these tabs used moved with them.
     private readonly CampusRecordsPanel _recordsPanel = new();
     private readonly CampusQuestsPanel _questsPanel = new();
 
-    // RefreshLoreSection / PrettifyLoreId removed 2026-08-03 — they were a second
+    // RefreshLoreSection / PrettifyLoreId removed 2026-08-03. They were a second
     // renderer for the same codex QuestLogView.BuildLoreInto already draws, flagged as
     // a parked follow-up in session log 2026-07-18. The Quests tab now calls
     // BuildLoreInto directly, so the campus tab and the global QuestLogScreen overlay
     // render the lore codex through one code path and cannot drift.
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Quests Tab — story log + lore codex (drives the fragment/Convergence spine
+    // Quests Tab: story log + lore codex (drives the fragment/Convergence spine
     // and the expansion arcs; status computed live by QuestTracker).
     // ═══════════════════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Council Tab (Step 9) — the archmage sentiment overview, the resolution
+    // Council Tab (Step 9): the archmage sentiment overview, the resolution
     // audiences, and the mentor's counsel. The campus is where the campaign's
     // central question is asked and answered.
     // ═══════════════════════════════════════════════════════════════════════
@@ -1119,8 +1119,8 @@ public partial class CampusScreen : Control
     /// the Snapshot-Mutate-Diff-Toast pass that persists flags, gold and meta-progression.
     ///
     /// The two halves were previously copy-pasted at three call sites. Showing without
-    /// wiring fails silently — the encounter renders, the player chooses, nothing is saved —
-    /// so they are one method now, and panels are handed the verb rather than the panel.</summary>
+    /// wiring fails silently: the encounter renders, the player chooses, nothing is saved.
+    /// So they are one method now, and panels are handed the verb rather than the panel.</summary>
     private void ShowCampusNarrative(NarrativeEncounterData enc)
     {
         var save = SaveManager.ActiveSave;
@@ -1144,7 +1144,7 @@ public partial class CampusScreen : Control
         var enc = lm.GetEncounter(save.HasFlag);
         if (enc == null)
         {
-            _campusSelectionLabel.Text = $"{lm.DisplayName} — restored.";
+            _campusSelectionLabel.Text = $"{lm.DisplayName} is restored.";
             return;
         }
 
@@ -1214,12 +1214,12 @@ public partial class CampusScreen : Control
             save.UnlockedLoreEntries.Add(choice.LoreId);
 
         // Companion arc delivery (Step 9 follow-up): campus-located arc stages
-        // resolve here — advance the arc and toast it.
+        // resolve here. Advance the arc and toast it.
         var arcStatus = CompanionArcTracker.TryCompleteByEncounter(encounter.Id, save);
         if (arcStatus != null)
             _campusToasts?.Push(arcStatus.IsComplete
-                ? $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" complete."
-                : $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
+                ? $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" complete."
+                : $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
                 QuestToastKind.Progress);
 
         SaveManager.MarkDirty();
@@ -1228,7 +1228,7 @@ public partial class CampusScreen : Control
         foreach (var qt in QuestNotifier.NotifyNew(before, save))
             _campusToasts?.Push(qt.Text, qt.Kind);
 
-        // Landmark states may have advanced (ruined → active → restored) —
+        // Landmark states may have advanced (ruined → active → restored), and
         // RefreshAll → BuildUI → LoadCampusGrid → LoadLandmarks restamps them from
         // current flags.
         RefreshAll();
@@ -1263,7 +1263,7 @@ public partial class CampusScreen : Control
                 campaign.SetDisposition(archmageId, ArchmageDisposition.Coerced);
                 foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageCoerced, region, archmageId))
                     _campusToasts?.Push(qt.Text, qt.Kind);
-                _campusToasts?.Push($"{def?.DisplayName ?? "The archmage"} yields to the accord — for now.",
+                _campusToasts?.Push($"{def?.DisplayName ?? "The archmage"} yields to the accord, for now.",
                                     QuestToastKind.Progress);
                 SaveManager.MarkDirty();
                 SaveManager.SaveIfDirty();
@@ -1407,7 +1407,7 @@ public partial class CampusScreen : Control
                 !save.Ledger.MetaNarrativeFlags.Contains($"{guardianKey}_trial_passed"))
             {
                 save.Ledger.MetaNarrativeFlags.Add($"{guardianKey}_trial_passed");
-                _campusToasts?.Push("The warden falls — the trial is passed.", QuestToastKind.Progress);
+                _campusToasts?.Push("The warden falls. The trial is passed.", QuestToastKind.Progress);
             }
 
             if (!string.IsNullOrEmpty(resolutionId))
@@ -1422,12 +1422,12 @@ public partial class CampusScreen : Control
                         _campusToasts?.Push(qt.Text, qt.Kind);
                 }
                 _campusToasts?.Push(
-                    $"{rDef?.DisplayName ?? "The archmage"} is overthrown — their shard answers you now.",
+                    $"{rDef?.DisplayName ?? "The archmage"} is overthrown. Their shard answers you now.",
                     QuestToastKind.Progress);
             }
 
-            // Marginalia (marginalia_spec_v1 R2): campus-launched fights —
-            // guardian trials and resolution bosses — are drawn from faction
+            // Marginalia (marginalia_spec_v1 R2): campus-launched fights,
+            // meaning guardian trials and resolution bosses, are drawn from faction
             // rosters and count like any expedition victory. This is the campus
             // twin of ExpeditionManager.EmitCombatDeed's commit. The MarkDirty
             // below persists it, and the SaveIfDirty runs ProgressionSweep, so
@@ -1439,23 +1439,23 @@ public partial class CampusScreen : Control
                 {
                     if (adv.CompletedNow)
                         _campusToasts?.Push(
-                            $"Marginalia complete: {adv.FactionName} — " +
+                            $"Marginalia complete: {adv.FactionName}, " +
                             $"{(string.IsNullOrEmpty(adv.CardName) ? "entry settled" : adv.CardName + " unlocked")}.",
                             QuestToastKind.Unlock);
                     else if (adv.Threshold > 0)
                         _campusToasts?.Push(
-                            $"Marginalia: {adv.FactionName} — {adv.Kills}/{adv.Threshold} defeated.",
+                            $"Marginalia: {adv.FactionName}, {adv.Kills}/{adv.Threshold} defeated.",
                             QuestToastKind.Progress);
                 }
             }
         }
         else
         {
-            _campusToasts?.Push("Driven back — the campus holds you while you recover.", QuestToastKind.Progress);
+            _campusToasts?.Push("Driven back. The campus holds you while you recover.", QuestToastKind.Progress);
         }
 
         // Marginalia: consumed or not, never leave a tally armed on the
-        // scene-persistent router — a stale one would be committed out of
+        // scene-persistent router. A stale one would be committed out of
         // context by a later return path.
         router.SavedCombatFamilyKills = new Dictionary<string, int>();
 
@@ -1470,5 +1470,5 @@ public partial class CampusScreen : Control
     // AddSectionHeader / MakeVBox / MakeMargins / MakeButton / MakeStubLabel moved to
     // CampusUi 2026-08-03, unchanged. Reached through the file-scoped `using static
     // CampusUi;` at the top, so every call site here is byte-identical. Panels extracted
-    // out of this class get the same helpers the same way — do NOT re-add private copies.
+    // out of this class get the same helpers the same way. Do NOT re-add private copies.
 }

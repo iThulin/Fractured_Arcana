@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // EncounterDefinition.cs
 //
-// Purpose:        Per-combat data model — encounter tier, enemy
+// Purpose:        Per-combat data model: encounter tier, enemy
 //                 composition list, source terrain/region tags.
 //                 Created by EncounterRouter from region pool
 //                 data before scene swap; read by CombatManager
@@ -13,7 +13,7 @@ using System.Collections.Generic;
 //                 EncounterPoolLoader.cs (data source),
 //                 CombatManager.cs (consumer),
 //                 UnitRegistry.cs (slot ids resolve here)
-// See:            README §3 — combat dispatch pipeline
+// See:            README §3 (combat dispatch pipeline)
 // ============================================================
 
 /// <summary>Difficulty tier of a combat encounter. Drives spawn count, enemy archetype mix, and reward scaling. Maps to overworld POI sub-types.</summary>
@@ -29,7 +29,7 @@ public enum EncounterTier
 /// <summary>
 /// A single enemy slot in an encounter composition. U2: keyed by canonical
 /// UnitRegistry id (already resolved from any legacy archetype name by
-/// EncounterPoolLoader — CombatManager never sees unresolved tokens).
+/// EncounterPoolLoader, so CombatManager never sees unresolved tokens).
 /// </summary>
 public struct EnemySlot
 {
@@ -59,7 +59,7 @@ public class EncounterDefinition
     public EncounterTier Tier = EncounterTier.Battle;
     public List<EnemySlot> Enemies = new();
 
-    // Overworld context — used by CombatManager for map theme selection later
+    // Overworld context, used by CombatManager for map theme selection later
     public string RegionId = "";
     public string TerrainType = "";   // OverworldHex.TerrainType name
     public string MapRecipe = "";     // E5: forces a specific battlefield recipe (else terrain default)

@@ -6,13 +6,13 @@ using System.Text;
 //
 // Purpose:        Verification tooling for the espionage E1c test
 //                 session. Two read-only dumps:
-//                   DumpNodes()  — every Veiled Concord node in the
+//                   DumpNodes()  lists every Veiled Concord node in the
 //                                  world: tile, host kingdom,
 //                                  discovered flag, and the DERIVED
 //                                  broker archetype. The direct
 //                                  assertion surface for "the
 //                                  Concord scattered coherently."
-//                   DumpShadow() — the espionage state on
+//                   DumpShadow() prints the espionage state on
 //                                  CouncilState: informant roster
 //                                  (role/cover/access/placement),
 //                                  live contracts, Favor, Marked,
@@ -60,7 +60,7 @@ public static class ConcordDebug
         }
 
         sb.AppendLine(count == 0
-            ? "  (none placed — check ConcordGenerator ran and had candidate tiles)"
+            ? "  (none placed; check ConcordGenerator ran and had candidate tiles)"
             : $"  total: {count} node(s), seed={cycle.WorldSeed}");
         GD.Print(sb.ToString());
     }
@@ -193,7 +193,7 @@ public static class ConcordDebug
                 }
             }
         }
-        GD.Print("[ConcordDebug] No known secret to sell — dig one first (Cutout / Gather Intel).");
+        GD.Print("[ConcordDebug] No known secret to sell. Dig one first (Cutout / Gather Intel).");
     }
 
     public static void DebugCommissionPlant()
@@ -257,7 +257,7 @@ public static class ConcordDebug
             : $"[ConcordDebug] Failed to plant saboteur.");
     }
 
-    /// <summary>First Saboteur strikes (corruption delay — always has a §4-gated
+    /// <summary>First Saboteur strikes (corruption delay: always has a §4-gated
     /// effect; siege needs an open front).</summary>
     public static void DebugSaboteurStrike()
     {

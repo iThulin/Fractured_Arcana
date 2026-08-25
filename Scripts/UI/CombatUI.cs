@@ -6,7 +6,7 @@ using System.Collections.Generic;
 // CombatUI.cs
 //
 // Purpose:        CanvasLayer hosting all in-combat HUD panels.
-//                 Fully procedural — no .tscn layout dependencies.
+//                 Fully procedural: no .tscn layout dependencies.
 //                 All children built via CallDeferred(nameof(BuildUI))
 //                 to satisfy Mac + Metal Compatibility mode rules.
 //
@@ -40,7 +40,7 @@ using System.Collections.Generic;
 //
 // Layer:          UI
 // Collaborators:  CombatManager.cs, Unit.cs, UITheme.cs
-// See:            README §8 (Godot 4.6 compat — CallDeferred rules)
+// See:            README §8 (Godot 4.6 compat, CallDeferred rules)
 // ============================================================
 
 public partial class CombatUI : CanvasLayer
@@ -55,13 +55,13 @@ public partial class CombatUI : CanvasLayer
 	[Signal] public delegate void EnemyButtonPressedEventHandler(int unitIndex);
 	/// <summary>U3: the player surrenders priority during an enemy-trigger window.</summary>
 	[Signal] public delegate void PriorityPassPressedEventHandler();
-	/// <summary>§7c: explicit Respond affordance — pulls the responder's hand up.</summary>
+	/// <summary>§7c: explicit Respond affordance. Pulls the responder's hand up.</summary>
 	[Signal] public delegate void PriorityRespondPressedEventHandler();
 	/// <summary>(2026-07-29) Stance switcher: the player clicked a stance button
 	/// for the selected martial unit. CombatManager routes to TrySwitchStance.</summary>
 	[Signal] public delegate void StanceSwitchRequestedEventHandler(string stanceId);
 
-	// ── Layout constants (design-space px — V1 resolution ruling) ────────
+	// ── Layout constants (design-space px, V1 resolution ruling) ─────────
 	private const int LeftPanelWidth = 280;
 	private const int RightPanelWidth = 220;
 	private const int PanelPadding = 10;
@@ -71,7 +71,7 @@ public partial class CombatUI : CanvasLayer
 	private const int LogHistoryCap = 200;       // full-history popup buffer
 	private const int UnitButtonWidth = 110;
 	private const int EnemyBarWidth = 90;
-	private const int BottomLeftWidth = 360;     // party chips + ticker block (chips may overflow right — they sit above the deck button's row, so nothing collides until 5+ chips)
+	private const int BottomLeftWidth = 360;     // party chips + ticker block (chips may overflow right; they sit above the deck button's row, so nothing collides until 5+ chips)
 	private const int EndTurnWidth = 180;
 	private const int FlankButtonWidth = 96;     // deck/grave beside the fan
 
@@ -136,7 +136,7 @@ public partial class CombatUI : CanvasLayer
 	private bool _deploymentModePending = false;
 
 	/// <summary>True once BuildUI has run. CombatManager's skip-deploy handoff
-	/// waits on this before pushing selection/roster state (2026-07-09) — calls
+	/// waits on this before pushing selection/roster state (2026-07-09). Calls
 	/// that land before the build either drop silently or hit empty panels.</summary>
 	public bool IsBuilt => _built;
 
@@ -167,7 +167,7 @@ public partial class CombatUI : CanvasLayer
 		CallDeferred(nameof(BuildUI));
 	}
 
-	/// <summary>V1: Enter / keypad-Enter ends the turn (or confirms deployment —
+	/// <summary>V1: Enter / keypad-Enter ends the turn (or confirms deployment;
 	/// same morph as the button). The bottom-right corner is a long mouse trip
 	/// every turn; the key is the fix. Suppressed while any popup or the U3
 	/// priority prompt is open so Enter can never blind-pass a stack window.</summary>
@@ -220,7 +220,7 @@ public partial class CombatUI : CanvasLayer
 			ApplyDeploymentMode();
 
 		// Roster replay (2026-07-09): RefreshEnemyRoster calls that arrived
-		// before the build used to drop silently — the skip-deploy handoff's
+		// before the build used to drop silently. The skip-deploy handoff's
 		// roster load was lost until the next damage event re-refreshed it.
 		if (_lastRosterEnemies != null)
 			RefreshEnemyRoster(_lastRosterEnemies);
@@ -267,10 +267,10 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddThemeConstantOverride("separation", 6);
 		margin.AddChild(vbox);
 
-		// (V1: phase banner moved to top center — BuildTopBanner.)
+		// (V1: phase banner moved to top center; see BuildTopBanner.)
 
 		// ── Unit name ────────────────────────────────────────────────
-		_unitNameLabel = MakeLabel("—", UITheme.FontSizeLarge, UITheme.TextPrimary);
+		_unitNameLabel = MakeLabel("-", UITheme.FontSizeLarge, UITheme.TextPrimary);
 		_unitNameLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		_unitNameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		vbox.AddChild(_unitNameLabel);
@@ -298,7 +298,7 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddChild(_stanceLine);
 
 		// Stance switcher (2026-07-29): one button per trained stance for the
-		// selected martial unit — the control TrySwitchStance never had.
+		// selected martial unit, the control TrySwitchStance never had.
 		_stanceRow = new HBoxContainer { Name = "StanceRow", Visible = false };
 		_stanceRow.AddThemeConstantOverride("separation", 6);
 		_stanceRow.Alignment = BoxContainer.AlignmentMode.Center;
@@ -316,7 +316,7 @@ public partial class CombatUI : CanvasLayer
 		_inspectBlock.AddThemeConstantOverride("separation", 4);
 		vbox.AddChild(_inspectBlock);
 
-		// Attunement slot — populated by SchoolAttunementUI.UseExternalContainer()
+		// Attunement slot, populated by SchoolAttunementUI.UseExternalContainer()
 		vbox.AddChild(MakeDivider(UITheme.VioletDim));
 		_attunementSection = new VBoxContainer { Name = "AttunementSection" };
 		_attunementSection.AddThemeConstantOverride("separation", 4);
@@ -324,7 +324,7 @@ public partial class CombatUI : CanvasLayer
 		GD.Print($"[CombatUI] AttunementSection built: {_attunementSection != null}");
 		vbox.AddChild(_attunementSection);
 
-		// (V1: log, party chips, deck/grave, and End Turn all moved out — the
+		// (V1: log, party chips, deck/grave, and End Turn all moved out; the
 		// left column stops being a junk drawer. §5: log+party → bottom left,
 		// deck/grave → flanking the hand, End Turn → bottom right.)
 	}
@@ -375,7 +375,7 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddChild(_objectiveLabel);
 
 		// Hint line rides the banner (V1 fix: its first home above the fan sat
-		// exactly on the card tops — unreadable and mid-hand). V4's context
+		// exactly on the card tops, unreadable and mid-hand). V4's context
 		// strip takes this slot later; the hint then moves or dies.
 		_hintLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.TextDim);
 		_hintLabel.Name = "HintLabel";
@@ -385,7 +385,7 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	// ════════════════════════════════════════════════════════════════════
-	// V1: bottom-left — party chips above a 3-line log ticker (click = full
+	// V1: bottom-left holds party chips above a 3-line log ticker (click = full
 	// history popup)
 	// ════════════════════════════════════════════════════════════════════
 
@@ -403,12 +403,12 @@ public partial class CombatUI : CanvasLayer
 		block.AddThemeConstantOverride("separation", 6);
 		AddChild(block);
 
-		// Party chips — slim row above the ticker (§5: ambient awareness).
+		// Party chips: slim row above the ticker (§5: ambient awareness).
 		_playerUnitBar = new HBoxContainer { Name = "UnitBar" };
 		_playerUnitBar.AddThemeConstantOverride("separation", 4);
 		block.AddChild(_playerUnitBar);
 
-		// Log ticker — 3 lines, panel-backed, clickable for full history.
+		// Log ticker: 3 lines, panel-backed, clickable for full history.
 		var logPanel = new PanelContainer { Name = "LogTicker" };
 		logPanel.AddThemeStyleboxOverride("panel",
 			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.VioletDim));
@@ -436,7 +436,7 @@ public partial class CombatUI : CanvasLayer
 			_logBox.AddChild(lbl);
 		}
 
-		// Click catcher — the whole ticker opens the scrollable history.
+		// Click catcher: the whole ticker opens the scrollable history.
 		var clickCatcher = new Button
 		{
 			Name = "LogClickCatcher",
@@ -455,7 +455,7 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	// ════════════════════════════════════════════════════════════════════
-	// V1: bottom-right — End Turn / Confirm Deployment, standard tactics
+	// V1: bottom-right holds End Turn / Confirm Deployment, standard tactics
 	// corner position
 	// ════════════════════════════════════════════════════════════════════
 
@@ -486,8 +486,8 @@ public partial class CombatUI : CanvasLayer
 		_confirmDeploymentButton.Pressed += () => EmitSignal(SignalName.ConfirmDeploymentPressed);
 		block.AddChild(_confirmDeploymentButton);
 
-		// Consumables (2026-08-13): the scroll satchel, beside End Turn —
-		// combat is the only place actives fire (v1: "actives are scrolls").
+		// Consumables (2026-08-13): the scroll satchel, beside End Turn.
+		// Combat is the only place actives fire (v1: "actives are scrolls").
 		_scrollsButton = new Button
 		{
 			Name = "ScrollsButton",
@@ -518,7 +518,7 @@ public partial class CombatUI : CanvasLayer
 		block.AddChild(_endTurnButton);
 
 		// §7c: always-reachable stop toggles. Without these, a stop could only
-		// be set from the stack panel — which never opens unless a stop is
+		// be set from the stack panel, which never opens unless a stop is
 		// already set or a Reflex is in hand (chicken-and-egg). Anchored above
 		// the End Turn stack, wider than EndTurnWidth so the row fits; hidden
 		// while the stack panel (which carries its own mirrored set) is up.
@@ -538,18 +538,18 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	// ════════════════════════════════════════════════════════════════════
-	// V1: bottom-center — hint line above the fan, deck/grave flanking it
+	// V1: bottom-center holds the hint line above the fan, deck/grave flanking it
 	// ════════════════════════════════════════════════════════════════════
 
 	private void BuildBottomCenter()
 	{
-		// (V1 fix: the hint line moved into the top banner — above the fan it
+		// (V1 fix: the hint line moved into the top banner; above the fan it
 		// sat on the card tops.)
 
-		// Deck / Grave counters flank the fan left/right (§5) — placed just
+		// Deck / Grave counters flank the fan left/right (§5), placed just
 		// INSIDE the hand reserves so they never collide with cards, the
 		// bottom-left block, or the End Turn corner (see UITheme tiling note).
-		_deckButton = MakeSmallButton("Deck —");
+		_deckButton = MakeSmallButton("Deck -");
 		_deckButton.Name = "DeckButton";
 		_deckButton.AnchorLeft = 0f; _deckButton.AnchorRight = 0f;
 		_deckButton.AnchorTop = 1f; _deckButton.AnchorBottom = 1f;
@@ -560,7 +560,7 @@ public partial class CombatUI : CanvasLayer
 		_deckButton.Pressed += OnDeckButtonPressed;
 		AddChild(_deckButton);
 
-		_graveButton = MakeSmallButton("Grave —");
+		_graveButton = MakeSmallButton("Grave -");
 		_graveButton.Name = "GraveButton";
 		_graveButton.AnchorLeft = 1f; _graveButton.AnchorRight = 1f;
 		_graveButton.AnchorTop = 1f; _graveButton.AnchorBottom = 1f;
@@ -574,7 +574,7 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	// ════════════════════════════════════════════════════════════════════
-	// Right panel — enemy roster
+	// Right panel: enemy roster
 	// ════════════════════════════════════════════════════════════════════
 
 	private void BuildRightPanel()
@@ -647,13 +647,13 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	// ════════════════════════════════════════════════════════════════════
-	// Public API — called by CombatManager
+	// Public API, called by CombatManager
 	// ════════════════════════════════════════════════════════════════════
 
 	// ── Phase / hint ─────────────────────────────────────────────────────
 
 	// Pending-replay (2026-07-09): phase/hint pushed before BuildUI used to
-	// drop silently — skip-deploy launches showed a blank top banner all of
+	// drop silently. Skip-deploy launches showed a blank top banner all of
 	// round 1 (RefreshPhaseUI fires from the handoff, pre-build; the next
 	// re-push only comes at the round-2 phase change).
 	private string _lastPhaseText;
@@ -688,7 +688,7 @@ public partial class CombatUI : CanvasLayer
 			_hintLabel.Text = text;
 	}
 
-	// ── V3: the stack panel (§7c) — replaces the U3 interim prompt ─────────
+	// ── V3: the stack panel (§7c); replaces the U3 interim prompt ──────────
 	// Compact vertical strip, center-right above the hand: pending stack
 	// objects top-down (source · name · one-line effect), resolving object
 	// highlighted. Interactive only while the player holds priority; during
@@ -710,7 +710,7 @@ public partial class CombatUI : CanvasLayer
 			Name = "StackPanel",
 			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
 			OffsetLeft = -12 - 320, OffsetRight = -12,
-			// §7c: taller than the v1 strip — stop-toggle row + Respond/Pass row.
+			// §7c: taller than the v1 strip (stop-toggle row + Respond/Pass row).
 			OffsetTop = -12 - 430, OffsetBottom = -12 - 80,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Begin,
@@ -735,7 +735,7 @@ public partial class CombatUI : CanvasLayer
 		header.HorizontalAlignment = HorizontalAlignment.Center;
 		vbox.AddChild(header);
 
-		// §7c stops: per-trigger-type toggles in the strip header — the
+		// §7c stops: per-trigger-type toggles in the strip header, the
 		// digital-card-game full-control pattern. Persist via PlayerSession.
 		var stopRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
 		stopRow.AddThemeConstantOverride("separation", 6);
@@ -747,7 +747,7 @@ public partial class CombatUI : CanvasLayer
 		_stackList.AddThemeConstantOverride("separation", 3);
 		vbox.AddChild(_stackList);
 
-		// §7c: Respond + Pass. Respond is the explicit affordance — enabled only
+		// §7c: Respond + Pass. Respond is the explicit affordance, enabled only
 		// when a castable Reflex is actually in a hand; it pulls that unit's
 		// hand up (casting stays drag-to-cast). Pass surrenders priority.
 		var btnRow = new HBoxContainer();
@@ -775,7 +775,7 @@ public partial class CombatUI : CanvasLayer
 		btnRow.AddChild(_stackPassBtn);
 	}
 
-	// §7c stop toggles exist in TWO places — the stack-panel header and the
+	// §7c stop toggles exist in TWO places: the stack-panel header and the
 	// always-visible bottom-right bar (you must be able to arm a stop BEFORE
 	// a window exists; without one set and no Reflex in hand, the stack
 	// auto-passes and the panel's own toggles are unreachable). All instances
@@ -788,13 +788,13 @@ public partial class CombatUI : CanvasLayer
 	public readonly struct ConsumableEntry
 	{
 		public readonly string InstanceId;   // one instance to consume on pick
-		public readonly string Label;        // "Healing Draught ×3 — restore 8 HP"
+		public readonly string Label;        // "Healing Draught ×3: restore 8 HP"
 		public ConsumableEntry(string instanceId, string label)
 		{ InstanceId = instanceId; Label = label; }
 	}
 
 	/// <summary>Show (or replace) the satchel popup above the Scrolls button.
-	/// Empty list shows the empty line. Manager owns eligibility — this only
+	/// Empty list shows the empty line. Manager owns eligibility; this only
 	/// renders what it is handed and reports the pick.</summary>
 	public void ShowConsumableList(List<ConsumableEntry> entries, string gateNote)
 	{
@@ -907,7 +907,7 @@ public partial class CombatUI : CanvasLayer
 	/// = (source, name, effect); index 0 is the top (resolving next, highlighted).
 	/// <paramref name="interactive"/> shows the Respond/Pass row (player holds
 	/// priority); otherwise the strip is display-only and plays through with zero
-	/// input. <paramref name="canRespond"/> enables Respond — false greys it out
+	/// input. <paramref name="canRespond"/> enables Respond; false greys it out
 	/// (window opened by a stop, no castable Reflex in hand).</summary>
 	public void ShowStackStrip(List<(string source, string name, string effect)> items, bool interactive,
 		bool canRespond = false)
@@ -922,7 +922,7 @@ public partial class CombatUI : CanvasLayer
 			var (source, name, effect) = items[i];
 			bool top = i == 0;
 
-			var line1 = MakeLabel($"{name} — {source}", UITheme.FontSizeSmall,
+			var line1 = MakeLabel($"{name} · {source}", UITheme.FontSizeSmall,
 				top ? UITheme.Gold : UITheme.TextSecondary);
 			_stackList.AddChild(line1);
 
@@ -946,8 +946,8 @@ public partial class CombatUI : CanvasLayer
 			: "No castable Reflex-speed card in hand";
 		_stackPanel.Visible = items.Count > 0;
 
-		// The panel carries its own stop toggles and overlaps the main-HUD bar —
-		// keep exactly one set on screen. SyncStopToggles so the panel's set
+		// The panel carries its own stop toggles and overlaps the main-HUD bar,
+		// so keep exactly one set on screen. SyncStopToggles so the panel's set
 		// reflects flags flipped on the bar since the panel last showed.
 		SyncStopToggles();
 		if (_stopsBar != null)
@@ -962,7 +962,7 @@ public partial class CombatUI : CanvasLayer
 			_stopsBar.Visible = true;
 	}
 
-	/// <summary>True while the strip is interactive — the Enter-to-end-turn guard
+	/// <summary>True while the strip is interactive; the Enter-to-end-turn guard
 	/// reads this so Enter can never blind-pass a stack window.</summary>
 	public bool StackWindowInteractive =>
 		_stackPanel != null && _stackPanel.Visible && _stackPassBtn.Visible;
@@ -1007,7 +1007,7 @@ public partial class CombatUI : CanvasLayer
 
 		if (unit == null)
 		{
-			_unitNameLabel.Text = "—";
+			_unitNameLabel.Text = "-";
 			_unitNameLabel.Modulate = UITheme.TextPrimary;
 			if (_hpBar != null)
 				SetHpBarWithered(_hpBar, 0, 1, 0, UITheme.StatBarHealth, UITheme.BgDeep);
@@ -1066,7 +1066,7 @@ public partial class CombatUI : CanvasLayer
 			string shield = unit.Stats.Shield > 0 ? $"SHD {unit.Stats.Shield}  " : "";
 			string ap = !isEnemy && unit.MaxActionPoints > 0 ? $"AP {apPips}  " : "";
 			// SPD = the real per-move reach (MoveRange + movespeed grants, adjusted for
-			// rooted/slowed) — the same value every movement path uses. Shows base→eff
+			// rooted/slowed), the same value every movement path uses. Shows base→eff
 			// when buffed/debuffed so Dash/Imbue/stance changes are visible.
 			int spdEff = unit.EffectiveMoveRange;
 			string spd = spdEff != unit.MoveRange
@@ -1095,9 +1095,9 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	/// <summary>Rebuilds the stance-switch buttons for the selected unit.
-	/// (2026-07-29) The stance system was fully implemented end to end —
-	/// registry, per-unit trained lists, TrySwitchStance with its 1-AP
-	/// once-per-turn cost, passive/attack hooks — but no control ever CALLED
+	/// (2026-07-29) The stance system was fully implemented end to end
+	/// (registry, per-unit trained lists, TrySwitchStance with its 1-AP
+	/// once-per-turn cost, passive/attack hooks), but no control ever CALLED
 	/// TrySwitchStance, so martials were locked into their first stance for
 	/// life. This row is that control: one button per trained stance; the
 	/// active one is highlighted and disabled; the rest emit
@@ -1139,9 +1139,9 @@ public partial class CombatUI : CanvasLayer
 		}
 	}
 
-	/// <summary>V2 (§7b): three enemy-only blocks — plain-language behavior line
+	/// <summary>V2 (§7b): three enemy-only blocks. Plain-language behavior line
 	/// from BehaviorKey + tags, one block per ability (icon, name, intel), and
-	/// the role/faction line. Strings live in UIContent — content, not code.</summary>
+	/// the role/faction line. Strings live in UIContent (content, not code).</summary>
 	private void RefreshInspectBlock(Unit unit, bool isEnemy)
 	{
 		if (_inspectBlock == null)
@@ -1159,7 +1159,7 @@ public partial class CombatUI : CanvasLayer
 
 		_inspectBlock.AddChild(MakeDivider(UITheme.VioletDim));
 
-		// Behavior line — rules and reach, plain language.
+		// Behavior line: rules and reach, plain language.
 		var behavior = MakeLabel(
 			UIContent.DescribeBehavior(unit.BehaviorKey, unit.BehaviorTags),
 			UITheme.FontSizeSmall, UITheme.TextSecondary);
@@ -1167,7 +1167,7 @@ public partial class CombatUI : CanvasLayer
 		_inspectBlock.AddChild(behavior);
 
 		// One block per ability: icon + name, then the telegraph sentence.
-		// §8 ability state (2026-07-17): the "current state" line — live
+		// §8 ability state (2026-07-17): the "current state" line, a live
 		// use-count for stacking/fired abilities (Requiem: "×2 this combat").
 		foreach (var ab in unit.Abilities)
 		{
@@ -1277,7 +1277,7 @@ public partial class CombatUI : CanvasLayer
 				lbl.Text = "";
 	}
 
-	/// <summary>V1: ticker click — full scrollable history (§5).</summary>
+	/// <summary>V1: ticker click opens the full scrollable history (§5).</summary>
 	private void OnLogTickerPressed()
 	{
 		if (_logPopup == null)
@@ -1320,7 +1320,7 @@ public partial class CombatUI : CanvasLayer
 
 	// ── Enemy roster v2 (combat_ui_v2 §6) ────────────────────────────────
 
-	/// <summary>V2: roster hover — index + entering. CombatManager wires this to
+	/// <summary>V2: roster hover reports index + entering. CombatManager wires this to
 	/// the threat-range overlay (hovering a row = hovering the unit in-world).</summary>
 	[Signal] public delegate void EnemyRowHoveredEventHandler(int unitIndex, bool entering);
 
@@ -1328,7 +1328,7 @@ public partial class CombatUI : CanvasLayer
 	private Unit _activeRosterEnemy;
 
 	/// <summary>V2: highlights the currently-acting enemy's row during the enemy
-	/// phase — the roster doubles as the phase's progress bar. Null clears.</summary>
+	/// phase; the roster doubles as the phase's progress bar. Null clears.</summary>
 	public void SetActiveEnemy(Unit enemy)
 	{
 		_activeRosterEnemy = enemy;
@@ -1400,8 +1400,8 @@ public partial class CombatUI : CanvasLayer
 
 			if (enemy.Stats.IsAlive)
 			{
-				// V3 charge dot (§8): ranged_charge units telegraph their cycle —
-				// hollow ○ = will begin channelling, filled ✸ = releases next
+				// V3 charge dot (§8): ranged_charge units telegraph their cycle.
+				// Hollow ○ = will begin channelling, filled ✸ = releases next
 				// activation. Replaces the implicit every-other-turn counting.
 				if (enemy.BehaviorKey == "ranged_charge")
 				{
@@ -1409,7 +1409,7 @@ public partial class CombatUI : CanvasLayer
 					var chargeDot = MakeLabel(charged ? "✸" : "○", UITheme.FontSizeSmall,
 						charged ? UITheme.ChargeReady : UITheme.ChargeSpent);
 					chargeDot.TooltipText = charged
-						? "Charged — releases its blast next activation"
+						? "Charged: releases its blast next activation"
 						: "Will begin channelling";
 					chargeDot.CustomMinimumSize = new Vector2(14, 0);
 					row.AddChild(chargeDot);
@@ -1433,7 +1433,7 @@ public partial class CombatUI : CanvasLayer
 				}
 
 				// Behavior-tag chips (v2.2 §7b): pack/charge/bulwark telegraph.
-				// Only tags with an authored chip render — a chip is a promise
+				// Only tags with an authored chip render; a chip is a promise
 				// the mechanic is wired, so inert tags (flock/flying) stay off.
 				if (enemy.BehaviorTags != null)
 				{
@@ -1493,7 +1493,7 @@ public partial class CombatUI : CanvasLayer
 				lbl.HorizontalAlignment = HorizontalAlignment.Right;
 				row.AddChild(lbl);
 
-				// Valence tag (V2 §6): kingdom chip vs blight chip — who claims
+				// Valence tag (V2 §6): kingdom chip vs blight chip. Who claims
 				// this unit is echo-relevant everywhere, not only in settlements.
 				var (_, valenceTip, valenceCol) = ResolveValence(enemy);
 				var valChip = MakeLabel("■", UITheme.FontSizeSmall, valenceCol);
@@ -1509,7 +1509,7 @@ public partial class CombatUI : CanvasLayer
 
 	// R22 damage preview note: the preview renders as a flashing span of the
 	// victim's in-world HP bar (HealthBarRoot.ShowDamagePreview), driven by
-	// CombatManager.UpdateDamagePreview — no CombatUI surface involved.
+	// CombatManager.UpdateDamagePreview; no CombatUI surface involved.
 
 	/// <summary>§8 ability state: case-insensitive read of a unit's live
 	/// use-count for an ability key (RequiemEffect writes lowercase keys).</summary>
@@ -1534,21 +1534,21 @@ public partial class CombatUI : CanvasLayer
 			bool corrupted = SaveManager.ActiveSave?.Campaign?
 				.GetDisposition(unit.FactionId) == ArchmageDisposition.Corrupted;
 			if (!corrupted)
-				return (false, $"{arch.FactionName} — kingdom-aligned",
+				return (false, $"{arch.FactionName} (kingdom-aligned)",
 					new Color(arch.FactionColorHex));
 
 			string cname = string.IsNullOrEmpty(arch.CorruptedFactionName)
 				? arch.FactionName : arch.CorruptedFactionName;
-			return (true, $"{cname} — corrupted", UITheme.ValenceBlight);
+			return (true, $"{cname} (corrupted)", UITheme.ValenceBlight);
 		}
-		return (true, "Blighted — claimed by no kingdom", UITheme.ValenceBlight);
+		return (true, "Blighted, claimed by no kingdom", UITheme.ValenceBlight);
 	}
 
 	public void ShowEnemyIntel(List<EnemyIntelEntry> entries)
 	{
 		if (_enemyRosterBox == null)
 		{
-			// UI not built yet — cache and apply once built
+			// UI not built yet; cache and apply once built
 			_pendingIntel = entries;
 			return;
 		}
@@ -1620,7 +1620,7 @@ public partial class CombatUI : CanvasLayer
 			var unit = playerUnits[i];
 			if (unit == null)
 				continue;
-			// O3: the ward is a mission element, not a squad member — its
+			// O3: the ward is a mission element, not a squad member; its
 			// health reads on the board, not in the party bar.
 			if (unit.IsObjectiveWard)
 				continue;

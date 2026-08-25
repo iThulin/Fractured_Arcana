@@ -7,7 +7,7 @@ using Godot;
 //             painterly_grass shader samples in world XZ for its
 //             wind gusts. You do NOT need this if you build the
 //             NoiseTexture2D in the inspector (Seamless = On) and
-//             drag it into the material's "wind_noise" slot — that
+//             drag it into the material's "wind_noise" slot. That
 //             is the zero-code path. This exists for procedural
 //             setup (e.g. theme-driven wind from ThemeAtmosphere).
 //  Layer:     Terrain / utility

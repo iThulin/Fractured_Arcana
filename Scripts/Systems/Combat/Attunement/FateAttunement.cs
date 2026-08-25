@@ -4,7 +4,7 @@ using System;
 // ============================================================
 // FateAttunement.cs
 //
-// Purpose:        The Chronomancer school mechanic — a single
+// Purpose:        The Chronomancer school mechanic: a single
 //                 Foresight counter (0-4) that builds when
 //                 spells are cast off-turn (Instant/Reaction)
 //                 or when more than one spell is cast per turn
@@ -13,7 +13,7 @@ using System;
 //                 Reaction this turn), then resets to 0.
 //
 //                 Unlike GriefAttunement, Foresight does NOT
-//                 decay at turn end — it is only spent by
+//                 decay at turn end. It is only spent by
 //                 effects or consumed by the burst.
 //
 // Layer:          System
@@ -25,18 +25,18 @@ using System;
 //                 SchoolAttunementUI.cs (renders the bar),
 //                 RulesManager.cs (queries GetInstantCostReduction,
 //                   HasFreeReaction, ConsumeFreeReaction)
-// See:            README §6 — School Mechanics
-//                 chronomancer_wiring.md — exact changes needed
+// See:            README §6, School Mechanics
+//                 chronomancer_wiring.md for the exact changes needed
 //                 in Unit.cs, GameRunner.cs, SchoolAttunementUI.cs
 // ============================================================
 
 public enum ForesightTier
 {
-    Blind,      // 0 — no bonus
-    Glimpsed,   // 1 — minor awareness
-    Aware,      // 2 — Instant spells cost 1 less mana
-    Prescient,  // 3 — enhanced prediction
-    Foreseen    // 4 — burst: one free Reaction, then reset
+    Blind,      // 0: no bonus
+    Glimpsed,   // 1: minor awareness
+    Aware,      // 2: Instant spells cost 1 less mana
+    Prescient,  // 3: enhanced prediction
+    Foreseen    // 4: burst, one free Reaction, then reset
 }
 
 public class FateAttunement : ISchoolAttunement
@@ -53,7 +53,7 @@ public class FateAttunement : ISchoolAttunement
     public event Action<ForesightTier> OnTierReached;     // tier crossed upward
     public event Action OnBurstTriggered;  // burst fired
 
-    // ── Burst state — queried by RulesManager ────────────────────────
+    // ── Burst state, queried by RulesManager ─────────────────────────
     /// <summary>True after a burst until consumed by one free Reaction cast.</summary>
     public bool HasFreeReaction { get; private set; } = false;
 
@@ -64,7 +64,7 @@ public class FateAttunement : ISchoolAttunement
     public void OnCombatStart() => SetCharges(0);
 
     /// <summary>
-    /// Foresight does NOT decay at turn end — override does nothing.
+    /// Foresight does NOT decay at turn end, so this override does nothing.
     /// Called by GameRunner at the start of each turn but intentionally
     /// left as a no-op so Foresight can only leave by burst or spending.
     /// </summary>
@@ -106,7 +106,7 @@ public class FateAttunement : ISchoolAttunement
     }
 
     /// <summary>Time Bank (2026-07-10, tick ruling same day): at end of the player
-    /// turn the bank gains 1 automatically — time passes whether spent or not —
+    /// turn the bank gains 1 automatically (time passes whether spent or not)
     /// PLUS any unspent mana (capped at MaxCharges). Holding mana is acceleration,
     /// not a prerequisite for reacting. Called from EndPlayerTurn.</summary>
     public void BankUnspentMana(int unspentMana)
@@ -121,14 +121,14 @@ public class FateAttunement : ISchoolAttunement
     }
 
     /// <summary>Time Bank (2026-07-10): a FULL bank at enemy-turn start grants one
-    /// free Reaction this phase (no reset — the bank still backs later reactions).
+    /// free Reaction this phase (no reset; the bank still backs later reactions).
     /// Called from RunEnemyTurn. Replaces the old burst-and-reset.</summary>
     public void OnEnemyTurnStart()
     {
         HasFreeReaction = Charges >= MaxCharges;
         if (HasFreeReaction)
         {
-            GD.Print("[TimeBank] Full bank — first Reaction this enemy phase is free.");
+            GD.Print("[TimeBank] Full bank: first Reaction this enemy phase is free.");
             OnBurstTriggered?.Invoke();
         }
     }
@@ -139,7 +139,7 @@ public class FateAttunement : ISchoolAttunement
         SetCharges(Math.Max(0, Charges - amount));
     }
 
-    /// <summary>Direct set — used by effects like set_foresight. Bypasses tier events.</summary>
+    /// <summary>Direct set, used by effects like set_foresight. Bypasses tier events.</summary>
     public void SetChargesDirectly(int value)
     {
         SetCharges(Math.Clamp(value, 0, MaxCharges));

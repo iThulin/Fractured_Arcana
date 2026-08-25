@@ -342,7 +342,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Storm Blade",
-			"description": "Storm Blade: Gust unifies ice and storm \u2014 pushes, freezes, and imbues landing tile with Storm.",
+			"description": "Storm Blade: Gust unifies ice and storm. It pushes, freezes, and imbues landing tile with Storm.",
 			"changes": [
 				{
 					"half": "bottom",

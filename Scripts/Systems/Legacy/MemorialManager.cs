@@ -5,7 +5,7 @@ using Godot;
 
 public class MemorialManager
 {
-    // Fires when a memorial is created — HexTile listens to refresh visuals
+    // Fires when a memorial is created. HexTile listens to refresh visuals
     public event Action<TileData> OnMemorialCreated;
     // Fires when a memorial's state changes (Fresh→Established, Hallowed)
     public event Action<TileData> OnMemorialChanged;
@@ -30,7 +30,7 @@ public class MemorialManager
 
         if (tile.HasMemorial)
         {
-            // Overlap — strengthen the existing memorial
+            // Overlap, so strengthen the existing memorial
             Strengthen(tile);
             return;
         }
@@ -123,7 +123,7 @@ public class MemorialManager
     {
         CreatedSinceLastTick.Clear();
 
-        // Grid may not be assigned yet at first tick — skip silently
+        // Grid may not be assigned yet at first tick, so skip silently
         if (_grid?.Tiles == null) return;
 
         var allTiles = _grid.Tiles.Values.ToList();
@@ -171,7 +171,7 @@ public class MemorialManager
 
     private static MemorialStrength DetermineStrength(Unit deceased)
     {
-        // Placeholder logic — expand when unit rarity/tier exists
+        // Placeholder logic. Expand when unit rarity/tier exists
         if (deceased.StartMaxHealth >= 20) return MemorialStrength.Strong;
         if (deceased.StartMaxHealth >= 10) return MemorialStrength.Solid;
         return MemorialStrength.Faint;

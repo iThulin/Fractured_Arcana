@@ -3,7 +3,7 @@
   "threatLabel": "The Storm's Argument",
   "role": "elite",
   "factionId": "joren",
-  "intelDescription": "Storm wants to move. It never closes and it never stops \u2014 you will have to corner the weather.",
+  "intelDescription": "Storm wants to move. It never closes and it never stops. You will have to corner the weather.",
   "maxHealth": 30,
   "baseSpeed": 3,
   "armor": 0,

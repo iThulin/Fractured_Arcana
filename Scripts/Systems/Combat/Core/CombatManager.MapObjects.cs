@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // CombatManager.MapObjects.cs  (partial of CombatManager)
 //
-// Purpose:   Battlefield E3 — neutral map objects (pillars, crystals,
+// Purpose:   Battlefield E3: neutral map objects (pillars, crystals,
 //            braziers, boulders, ward stones, powder casks). They are Units
 //            on a neutral "field" team (TeamId 2), spawned from the recipe's
 //            map_object ops after generation, kept OUT of playerUnits/
@@ -24,7 +24,7 @@ public partial class CombatManager : Node3D
 
     /// <summary>Materialise every map_object the recipe recorded during generation.
     /// Called from ConfigureAndGenerateMap right after grid.GenerateMap(), before
-    /// enemies deploy — so object tiles read as occupied and spawns avoid them.</summary>
+    /// enemies deploy, so object tiles read as occupied and spawns avoid them.</summary>
     private void SpawnMapObjects()
     {
         if (grid?.PendingMapObjects != null)
@@ -85,7 +85,7 @@ public partial class CombatManager : Node3D
             return null;
         if (!MapObjectCatalog.TryGet(kind, out var spec))
         {
-            GD.PushWarning($"[MapObject] unknown kind '{kind}' — skipped.");
+            GD.PushWarning($"[MapObject] unknown kind '{kind}', so it was skipped.");
             return null;
         }
 
@@ -173,7 +173,7 @@ public partial class CombatManager : Node3D
         grid.GetTileView(tile.Axial)?.SetTerrainScar("rubble");
     }
 
-    /// <summary>Radius-1 burst — damages living occupants of the tile and its neighbours,
+    /// <summary>Radius-1 burst. Damages living occupants of the tile and its neighbours,
     /// excluding other map objects so casks/crystals don't chain-detonate.</summary>
     private void MapObjectBurst(TileData center, int dmg)
     {
@@ -202,7 +202,7 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>Ward Stone aura (round start): any living combatant within 2 of a living
-    /// ward stone gains +1 armor. Neutral ground — either side benefits from holding it.
+    /// ward stone gains +1 armor. It is neutral ground, so either side benefits from holding it.
     /// Armor is a consumable damage pool, so this rewards standing near it without
     /// unbounded stacking. Called from the round boundary.</summary>
     private void ApplyWardStoneAuras()

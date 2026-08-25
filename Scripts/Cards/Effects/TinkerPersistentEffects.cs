@@ -58,7 +58,7 @@ public sealed class AssemblyLinePersistentEffect : PersistentEffect
                 if (spawned != null)
                     s.Log("[AssemblyLine] A drone rolls off the line.");
                 else
-                    s.Log("[AssemblyLine] Line idle — construct cap reached.");
+                    s.Log("[AssemblyLine] Line idle: construct cap reached.");
                 return;
             }
         }
@@ -71,7 +71,7 @@ public sealed class AssemblyLinePersistentEffect : PersistentEffect
 /// <summary>
 /// Lingering zone centered on a tile. Once per round (at start-of-player-turn) every
 /// enemy inside the radius takes damage and, optionally, is slowed. Allies and the
-/// owner's constructs are spared. Ticks on the player turn only — for a control zone
+/// owner's constructs are spared. Ticks on the player turn only, so for a control zone
 /// this resolves as one pulse per round.
 /// </summary>
 public sealed class DisruptionFieldZone : PersistentEffect
@@ -132,7 +132,7 @@ public sealed class AssemblyLineEffect : EffectBase
     {
         if (s?.ActiveEffects == null)
         {
-            s?.Log("[AssemblyLine] No active-effects list — cannot start line.");
+            s?.Log("[AssemblyLine] No active-effects list. Cannot start line.");
             return;
         }
         s.ActiveEffects.Add(new AssemblyLinePersistentEffect(_turns, caster, s.ActiveCasterUnit));
@@ -158,7 +158,7 @@ public sealed class DisruptionFieldEffect : EffectBase
     {
         if (s?.ActiveEffects == null)
         {
-            s?.Log("[DisruptionField] No active-effects list — cannot deploy.");
+            s?.Log("[DisruptionField] No active-effects list. Cannot deploy.");
             return;
         }
 

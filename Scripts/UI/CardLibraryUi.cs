@@ -15,7 +15,7 @@ using System.Linq;
 //                 CardLoaderV2.cs (lazy-load trigger),
 //                 CardUi.cs (per-tile scene),
 //                 UITheme.cs (filter tab + grid sizing)
-// See:            README §6 — accessed from campus and from pause
+// See:            README §6. Accessed from campus and from pause
 // ============================================================
 
 /// <summary>Filterable browse-all-cards grid. Loads card JSON on demand if the database is empty. Filters compose (school AND rarity AND mana AND search). <see cref="ReturnScenePath"/> follows the same back-button convention as <see cref="SettingsMenu"/>.</summary>
@@ -66,7 +66,7 @@ public partial class CardLibraryUi : Control
         // Clear the global top-bar HUD. The bar (HudManager, layer 90) floats
         // over scene content without reserving layout space, so the library
         // must offset itself below it or the filter rows clip underneath.
-        // Skipped when opened as an inline pause overlay — that host renders
+        // Skipped when opened as an inline pause overlay, because that host renders
         // ABOVE the bar (pause layer 100 > HUD layer 90), so no clearance is
         // needed and the extra gap would look wrong.
         if (ReturnScenePath != PauseMenu.InlineSentinel)
@@ -78,7 +78,7 @@ public partial class CardLibraryUi : Control
         EnsureCardsLoaded();
         _pool = CardDatabase.Blueprints;
 
-        GD.Print($"[CardLibrary] _Ready — Blueprints: {_pool.Count}, " +
+        GD.Print($"[CardLibrary] _Ready. Blueprints: {_pool.Count}, " +
                  $"CardUIScene null? {CardUIScene == null}");
 
         BuildSchoolTabs();
@@ -281,7 +281,7 @@ public partial class CardLibraryUi : Control
     private int CalculateColumns()
     {
         float available = _scroll?.Size.X ?? GetViewportRect().Size.X;
-        // Panel takes 520px when open — grid gets the remainder
+        // Panel takes 520px when open, and the grid gets the remainder
         if (_detailPanel != null && _detailPanel.Visible)
             available = Mathf.Max(available - 532, 100);
         float cellW = UITheme.LibraryCardWidth * CardScale + UITheme.LibraryGridSpacing;
@@ -293,10 +293,10 @@ public partial class CardLibraryUi : Control
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// The Library's scribing bench — the deterministic acquisition route
+    /// The Library's scribing bench, the deterministic acquisition route
     /// (progression_card_acquisition_v1 §8, "Library research"). Every other way to
     /// get a card is a dice roll; this is the one where you name the card you want,
-    /// pay, and receive it — at whatever tier you have already mastered.
+    /// pay, and receive it, at whatever tier you have already mastered.
     ///
     /// Bounded by a per-cycle cap (Arcane Library tier) so it cannot make the draft
     /// pointless or the reseed cosmetic. Everything it needs is already on this
@@ -321,7 +321,7 @@ public partial class CardLibraryUi : Control
         };
         info.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
 
-        // Blocked either way — show the reason and stop. Base is the cheaper of the
+        // Blocked either way, so show the reason and stop. Base is the cheaper of the
         // two, so if even that is refused there is nothing actionable to offer.
         if (!atBase.CanMint && !mastered.CanMint)
         {
@@ -332,7 +332,7 @@ public partial class CardLibraryUi : Control
         }
 
         info.Text = $"Scriptorium use: {atBase.MintsUsed}/{atBase.MintsAllowed} this timeline. " +
-                    $"A scribed copy goes to the stash — slot it in the deck editor.";
+                    $"A scribed copy goes to the stash. Slot it in the deck editor.";
         info.AddThemeColorOverride("font_color", UITheme.HealthGreen);
         row.AddChild(info);
 
@@ -360,7 +360,7 @@ public partial class CardLibraryUi : Control
 
         // Offer the mastered copy only when it is actually better than base. The
         // tier price is charged in full (see CardMintService.TierCost), so this is a
-        // real choice — a mastered 3/3 costs far more than a plain copy, and a player
+        // real choice: a mastered 3/3 costs far more than a plain copy, and a player
         // who cannot afford it can still take the base one rather than being priced
         // out of their own mastery.
         bool hasMastery = mastered.TopTier > 0 || mastered.BotTier > 0;
@@ -370,7 +370,7 @@ public partial class CardLibraryUi : Control
         AddMintButton(atBase, true, hasMastery ? "Scribe plain" : "Scribe");
 
         // Lifetime mastery, permanent and cross-timeline. Worth surfacing here even
-        // when minting is blocked — it is the number that decides what a copy would
+        // when minting is blocked, because it is the number that decides what a copy would
         // arrive at, and until now the player had no way to see it at all.
         var best = CardMasteryService.Best(save, bp.Id);
         if (best.Casts > 0 || best.BestTopTier > 0 || best.BestBotTier > 0)
@@ -386,8 +386,8 @@ public partial class CardLibraryUi : Control
     }
 
     /// <summary>The §8 pity-timer surface: for a locked card the player has not yet
-    /// discovered, offer to commission its research from the Forbidden Archives —
-    /// pay gold now, receive the card after a fixed number of lunations. Shows the
+    /// discovered, offer to commission its research from the Forbidden Archives.
+    /// Pay gold now, receive the card after a fixed number of lunations. Shows the
     /// in-flight countdown when a commission already exists, and nothing at all for
     /// cards that are already known, are Regalia, or belong to another verb
     /// (Marginalia). Additive to the mint section, which handles already-known cards.</summary>
@@ -397,19 +397,19 @@ public partial class CardLibraryUi : Control
         if (save == null || bp == null) return;
 
         // Only speak up when this card is a legitimate research target OR already
-        // has a commission in flight — otherwise stay silent (mint/Marginalia own it).
+        // has a commission in flight. Otherwise stay silent (mint/Marginalia own it).
         bool commissionable = CardCommissionService.IsCommissionable(save, bp);
         var existing = CardCommissionService.Find(save, bp.Id);
         if (!commissionable && existing == null) return;
 
         var status = CardCommissionService.Evaluate(save, bp);
 
-        // Already under research — show the countdown, no button.
+        // Already under research: show the countdown, no button.
         if (existing != null)
         {
             var pending = new Label
             {
-                Text = $"Forbidden Archives: under research — {existing.LunationsRemaining} " +
+                Text = $"Forbidden Archives: under research, {existing.LunationsRemaining} " +
                        $"lunation(s) remain. It enters the draft pool on completion.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
@@ -433,7 +433,7 @@ public partial class CardLibraryUi : Control
         if (!status.CanCommission)
         {
             // A locked card the player cannot yet research (no Archives, at capacity,
-            // too little gold). Show why — this is the want-list surface.
+            // too little gold). Show why, because this is the want-list surface.
             info.Text = status.Blocker;
             info.AddThemeColorOverride("font_color", UITheme.TextDim);
             row.AddChild(info);
@@ -441,7 +441,7 @@ public partial class CardLibraryUi : Control
         }
 
         info.Text = $"Undiscovered. Commission its research from the Forbidden Archives " +
-                    $"({status.InFlight}/{status.MaxConcurrent} in progress) — delivers in " +
+                    $"({status.InFlight}/{status.MaxConcurrent} in progress). Delivers in " +
                     $"{status.Lunations} lunations.";
         info.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
         row.AddChild(info);
@@ -485,7 +485,7 @@ public partial class CardLibraryUi : Control
         string faction = ArchmageRegistry.Get(family)?.FactionName ?? family;
         if (MarginaliaService.IsComplete(save, family))
         {
-            note.Text = $"Marginalia: earned against {faction} — the entry is complete.";
+            note.Text = $"Marginalia: earned against {faction}. The entry is complete.";
             note.AddThemeColorOverride("font_color", UITheme.HealthGreen);
         }
         else
@@ -768,7 +768,7 @@ public partial class CardLibraryUi : Control
     {
         if (_cardGrid == null || CardUIScene == null)
         {
-            GD.PrintErr($"[CardLibrary] RebuildGrid aborted — " +
+            GD.PrintErr($"[CardLibrary] RebuildGrid aborted. " +
                         $"CardGrid null? {_cardGrid == null}, " +
                         $"CardUIScene null? {CardUIScene == null}");
             return;
@@ -781,7 +781,7 @@ public partial class CardLibraryUi : Control
         _cardGrid.Columns = cols;
 
         var filtered = _pool.Where(PassesFilter).ToList();
-        GD.Print($"[CardLibrary] RebuildGrid — pool: {_pool.Count}, " +
+        GD.Print($"[CardLibrary] RebuildGrid. Pool: {_pool.Count}, " +
                  $"filtered: {filtered.Count}, columns: {cols}");
 
         filtered.Sort((a, b) =>
@@ -872,7 +872,7 @@ public partial class CardLibraryUi : Control
 
                 if (_selectedBlueprint == capturedBp)
                 {
-                    // Deselect — close panel
+                    // Deselect and close panel
                     _selectedBlueprint = null;
                     if (_detailPanel != null) _detailPanel.Visible = false;
                 }

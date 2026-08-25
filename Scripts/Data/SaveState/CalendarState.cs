@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // CalendarState.cs
 //
-// Purpose:        The astrological calendar for one cycle —
+// Purpose:        The astrological calendar for one cycle:
 //                 the strategic turn clock. Tracks the current
 //                 phase (turn), lunation, eclipse omens, and the
 //                 Grand Conjunction countdown. Phase 0 ships the
@@ -11,10 +11,10 @@ using System.Collections.Generic;
 //                 it to the strategic map and corruption ticks.
 // Layer:          Data
 // Collaborators:  CycleState.cs (owner),
-//                 CalendarManager (Phase 1 — drives advancement),
+//                 CalendarManager (Phase 1, drives advancement),
 //                 CampaignState.cs (corruption re-key, Phase 1),
-//                 AssaultDirector (Phase 4 — eclipse scheduling)
-// See:            open_world_refactor_v1.docx §2 — The Calendar
+//                 AssaultDirector (Phase 4, eclipse scheduling)
+// See:            open_world_refactor_v1.docx §2 (The Calendar)
 // ============================================================
 
 /// <summary>
@@ -134,7 +134,7 @@ public class CalendarState
     [System.Text.Json.Serialization.JsonIgnore]
     public string CurrentPhaseSchool => PhaseSchools[CurrentPhase];
 
-    /// <summary>True when the calendar has run out — the Conjunction is here.</summary>
+    /// <summary>True when the calendar has run out: the Conjunction is here.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool ConjunctionReached =>
         ConjunctionForced || CurrentLunation > LunationsPerCycle;
@@ -148,7 +148,7 @@ public class CalendarState
 
     /// <summary>
     /// Advance the calendar by one phase. Returns true when this advance
-    /// crossed a lunation boundary (the new moon) — the caller (Phase 1's
+    /// crossed a lunation boundary (the new moon); the caller (Phase 1's
     /// CalendarManager) runs the kingdom simulation tick on that signal.
     /// Does nothing if the Conjunction has been reached.
     /// </summary>
@@ -171,7 +171,7 @@ public class CalendarState
     }
 
     /// <summary>
-    /// Advance the calendar by one whole lunation — the cost of deploying one
+    /// Advance the calendar by one whole lunation, the cost of deploying one
     /// expedition. Snaps to the new moon (phase 0) of the next lunation and
     /// keeps TotalPhasesElapsed consistent (counts the phases skipped to reach
     /// the next new moon). Returns true (a lunation boundary is always crossed),
@@ -233,7 +233,7 @@ public class CalendarState
 
     /// <summary>
     /// True if any unresolved eclipse is visible on the calendar ahead
-    /// of (or at) the current moment — the omen the UI displays.
+    /// of (or at) the current moment. This is the omen the UI displays.
     /// </summary>
     public bool HasPendingEclipse()
     {

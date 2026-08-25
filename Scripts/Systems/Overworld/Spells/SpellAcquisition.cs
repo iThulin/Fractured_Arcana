@@ -5,14 +5,14 @@ using System.Collections.Generic;
 // SpellAcquisition.cs  (S4, 2026-07-16)
 //
 // Purpose:        The acquisition layer for overworld spells
-//                 (overworld_spell_system_v1_1 §11) — the single
+//                 (overworld_spell_system_v1_1 §11). The single
 //                 owner of "how does the guild come to KNOW a
 //                 spell." Three in-expedition routes plus the
 //                 scroll price formula:
 //                 - Lore POIs: authored SpellReward on a choice,
 //                   or a bonus roll against a terrain-flavored
 //                   pool (forge-country leans Tinker, graves lean
-//                   Communion — mirrored here as terrain → ids).
+//                   Communion, mirrored here as terrain → ids).
 //                 - Negotiation: a "tuition" DealTerm injected at
 //                   table-open; granted only when the deal closes
 //                   in the Cordial zone (§11 "Cordial deals").
@@ -20,10 +20,10 @@ using System.Collections.Generic;
 //                   from the dead (S3 wrap-up's lore-drop note).
 //                 Learnables = every registry definition that is
 //                 neither innate nor Attunement: the 8 school
-//                 exemplars + the 4 Generals (un-seeded in S4 —
-//                 Generals are ACQUIRED now, not given).
-// Layer:          System (static; stateless — all state lives on
-//                 GrimoireState)
+//                 exemplars + the 4 Generals (un-seeded in S4,
+//                 since Generals are ACQUIRED now, not given).
+// Layer:          System (static and stateless; all state lives
+//                 on GrimoireState)
 // Collaborators:  GrimoireState.cs (KnownSpellIds),
 //                 OverworldSpellRegistry.cs (definitions),
 //                 ExpeditionManager.cs (lore/negotiation grants),
@@ -34,7 +34,7 @@ using System.Collections.Generic;
 
 /// <summary>Acquisition rules for overworld spells: terrain-flavored drop
 /// pools, drop chances, the negotiation tuition pick, and scroll pricing.
-/// All knobs are constants here — one file to tune.</summary>
+/// All knobs are constants here: one file to tune.</summary>
 public static class SpellAcquisition
 {
     // ── Tuning knobs ─────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ public static class SpellAcquisition
 
     /// <summary>Scroll price (§8a): gold = max(floor, perEssence × base cost).
     /// Scrolls bypass the Essence economy entirely, so this price is THE
-    /// balance lever — a scroll library must never substitute for the pool.</summary>
+    /// balance lever. A scroll library must never substitute for the pool.</summary>
     public const int ScrollCostPerEssence = 25;
     public const int ScrollCostFloor = 30;
 
@@ -61,7 +61,7 @@ public static class SpellAcquisition
 
     /// <summary>Terrain-flavored learnable ids (§11: "forge sites lean
     /// Tinker-adjacent learnables, grave sites lean Communion"). Order is
-    /// irrelevant — the roll picks uniformly among the UNKNOWN entries.</summary>
+    /// irrelevant, because the roll picks uniformly among the UNKNOWN entries.</summary>
     private static List<string> FlavoredIds(OverworldHex.TerrainType terrain) => terrain switch
     {
         OverworldHex.TerrainType.Volcanic => new() { "ember_ward" },
@@ -125,8 +125,8 @@ public static class SpellAcquisition
     ///
     /// PERMANENCE (2026-08-04): the learn is also written to
     /// EternalLedger.KnownSpellIds via SpellKnowledgeService, so it survives the
-    /// cycle. The Grimoire's list remains the per-cycle working copy — every read
-    /// site still reads it — but it is now re-seeded from the loom at cycle start
+    /// cycle. The Grimoire's list remains the per-cycle working copy (every read
+    /// site still reads it), but it is now re-seeded from the loom at cycle start
     /// instead of starting empty. Preparation, scrolls and Essence stay
     /// cycle-scoped; only the knowledge persists.
     ///
@@ -140,7 +140,7 @@ public static class SpellAcquisition
         grimoire.KnownSpellIds.Add(spellId);
 
         // Mirror into the loom. Guarded on the active save being the one that owns
-        // this Grimoire — the probe in GrimoireState.AssertRoundTrip builds a
+        // this Grimoire: the probe in GrimoireState.AssertRoundTrip builds a
         // detached instance, and that must not write to the player's ledger.
         var save = SaveManager.ActiveSave;
         if (save?.Ledger != null && ReferenceEquals(save.Cycle?.Grimoire, grimoire))

@@ -1,7 +1,7 @@
 {
 	"id": "glacial_threshold",
 	"displayName": "The Glacial Threshold",
-	"description": "The spine of the world — a mountain range so high that clouds form below the passes and frostbite is a constant companion. The ice here is ancient and has things preserved inside it. Some of them are still alive. The cold doesn't kill you if you're prepared. Being unprepared does.",
+	"description": "The spine of the world, a mountain range so high that clouds form below the passes and frostbite is a constant companion. The ice here is ancient and has things preserved inside it. Some of them are still alive. The cold doesn't kill you if you're prepared. Being unprepared does.",
 	"schoolAffinity": "Arcanist",
 	"atmosphere": "Hostile",
 	"baseDifficultyTier": 3,

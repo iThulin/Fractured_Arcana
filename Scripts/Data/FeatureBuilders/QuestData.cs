@@ -7,8 +7,8 @@ using System.Collections.Generic;
 //                 authored definition whose objectives are
 //                 PREDICATES over existing save state (WorldFlags,
 //                 MetaNarrativeFlags, lore, counters). Status is
-//                 computed live by QuestTracker — no separate
-//                 quest-state to persist or keep in sync — with a
+//                 computed live by QuestTracker (no separate
+//                 quest-state to persist or keep in sync) with a
 //                 permanent completion record for cross-cycle arcs.
 // Layer:          Data
 // Collaborators:  QuestLoader.cs (JSON), QuestTracker.cs (eval),
@@ -43,7 +43,7 @@ public class QuestDefinition
 
     /// <summary>Persistence layer: "Eternal" or "Timeline" (quest spec §2/§7).
     /// JSON may set this explicitly; when empty, derived from <see cref="Permanent"/>
-    /// at load time — Permanent → Eternal, else Timeline.</summary>
+    /// at load time: Permanent → Eternal, else Timeline.</summary>
     public string Layer = "";
 
     /// <summary>Resolve the effective layer. Honors an explicit JSON value;
@@ -51,7 +51,7 @@ public class QuestDefinition
     public string EffectiveLayer => !string.IsNullOrEmpty(Layer) ? Layer
         : Permanent ? "Eternal" : "Timeline";
 
-    // Visibility gate — a rumored quest stays hidden until met.
+    // Visibility gate: a rumored quest stays hidden until met.
     public string RequiredLore = "";
     public string RequiredFlag = "";
     public string RequiredQuest = "";  // another quest id that must be complete

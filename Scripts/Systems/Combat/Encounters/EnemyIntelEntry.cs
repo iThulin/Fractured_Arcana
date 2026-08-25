@@ -22,6 +22,6 @@ public struct EnemyIntelEntry
     public int BaseSpeed;
     public int Armor;
     public Color BodyColor;
-    public string Role;        // V2: "line"/"elite"/"boss" — deployment role marker
+    public string Role;        // V2: "line"/"elite"/"boss" (deployment role marker)
     public string Intel;       // V2: one-line IntelDescription for the tooltip
 }

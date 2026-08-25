@@ -47,17 +47,17 @@ public static class NarrativeEncounterLoader
         var generic = LoadFile("generic_encounters");
         if (generic != null) combined.AddRange(generic);
 
-        // Fragment-arc pool (always included) — the six Seal Fragment recoveries.
+        // Fragment-arc pool (always included): the six Seal Fragment recoveries.
         var fragmentArcs = LoadFile("fragment_arcs");
         if (fragmentArcs != null) combined.AddRange(fragmentArcs);
 
-        // Ripple pool (always included) — quest-triggered reactive encounters.
+        // Ripple pool (always included): quest-triggered reactive encounters.
         // Each entry uses encounter-level RequiredFlag so it only surfaces when
         // the quest-event shim has set the matching qe_* trigger flag.
         var ripples = LoadFile("ripples");
         if (ripples != null) combined.AddRange(ripples);
 
-        // Companion mission pool (always included) — arc-stage beats. Gated at
+        // Companion mission pool (always included): arc-stage beats. Gated at
         // pick time by CompanionArcTracker.StageEncounterEligible (recruited,
         // prior stages complete, party present when required), not by flags.
         var missions = LoadFile("companion_missions");
@@ -66,7 +66,7 @@ public static class NarrativeEncounterLoader
         return combined;
     }
 
-    /// <summary>Find an encounter by id in the companion-mission pool — used by
+    /// <summary>Find an encounter by id in the companion-mission pool. Used by
     /// the campus host to launch campus-located arc stages directly.</summary>
     public static NarrativeEncounterData FindMissionById(string encounterId)
     {
@@ -149,7 +149,7 @@ public static class NarrativeEncounterLoader
         if (eligible.Count == 0) return null;
 
         // Companion arc beats take priority over ambient content: the player
-        // brought this companion along on purpose — the loom answers.
+        // brought this companion along on purpose, and the loom answers.
         if (save != null)
         {
             var arcBeats = new List<NarrativeEncounterData>();

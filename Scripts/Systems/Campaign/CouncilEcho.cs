@@ -53,7 +53,7 @@ public static class CouncilEcho
     public const string PatrolCompelled = "patrol_compelled";
 
     // K3 (companion_item_systems v2.1 §5a, R25): hiring inside a court's
-    // territory is employment given — a minor positive deed, Steward-routed.
+    // territory is employment given, a minor positive deed, Steward-routed.
     public const string HireGiven = "hire_given";
 
     // ═════════════════════════════════════════════════════════════════════
@@ -61,8 +61,8 @@ public static class CouncilEcho
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>Emit one echo toward a kingdom's court. Returns the deed-time
-    /// toast text, or null if no echo was emitted (no court — e.g. the
-    /// convergence — or bad args). Delay is 1 lunation, 0 with a Courier
+    /// toast text, or null if no echo was emitted (no court, e.g. the
+    /// convergence, or bad args). Delay is 1 lunation, 0 with a Courier
     /// Station.</summary>
     public static string EmitDeed(CycleState cycle, string kingdomId,
         string deedTag, bool positive, bool isMajor)
@@ -90,11 +90,11 @@ public static class CouncilEcho
         string courtName = CouncilTick.CourtDisplayName(cycle, kingdomId);
         return positive
             ? $"Word of this will reach the court of {courtName}."
-            : $"Word of this will reach the court of {courtName} — and it will not please them.";
+            : $"Word of this will reach the court of {courtName}, and it will not please them.";
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    // Landing (§13 step 1 — called from CouncilTick BEFORE obligation decay)
+    // Landing (§13 step 1, called from CouncilTick BEFORE obligation decay)
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>Land every echo whose LandsOnLunation has arrived: apply
@@ -140,7 +140,7 @@ public static class CouncilEcho
                 {
                     Lunation = now,
                     KingdomId = echo.KingdomId,
-                    Text = $"A story bound for {courtName} — {deed} — was quietly buried before it landed.",
+                    Text = $"A story bound for {courtName} ({deed}) was quietly buried before it landed.",
                 });
                 continue;
             }
@@ -204,7 +204,7 @@ public static class CouncilEcho
                 SettlementDefended => c.Archetype == "Commander" || c.Office == "Favorite",
                 DealFair => c.Archetype == arg,
                 DealExploit => c.Archetype == arg,
-                // S5 (§6a): spellcraft lands on those who mind the arcane —
+                // S5 (§6a): spellcraft lands on those who mind the arcane:
                 // the Court Wizard's office and Idealist temperaments.
                 SpellcraftAid => c.Office == CourtVocab.OfficeCourtWizard ||
                                  c.Archetype == "Idealist",
@@ -215,7 +215,7 @@ public static class CouncilEcho
                 PatrolCompelled => c.Office == CourtVocab.OfficeChancellor ||
                                    c.Archetype == "Commander",
                 // K3 (R25): employment given in the kingdom's territory is
-                // the Steward's ledger — money and livelihoods.
+                // the Steward's ledger: money and livelihoods.
                 HireGiven => c.Office == CourtVocab.OfficeSteward,
                 _ => false,
             };
@@ -225,7 +225,7 @@ public static class CouncilEcho
             }
         }
 
-        // Exploitative deals fall back to the Steward if no archetype match —
+        // Exploitative deals fall back to the Steward if no archetype match;
         // someone always minds the kingdom's purse (§7a).
         if (candidates.Count == 0 && baseTag == DealExploit)
         {
@@ -287,7 +287,7 @@ public static class CouncilEcho
         {
             if (e.KingdomId == kingdomId && e.DeedTag == deedTag && !e.Cancelled)
             {
-                target = e; // last match wins — the most recent telling
+                target = e; // last match wins: the most recent telling
             }
         }
         if (target == null)
@@ -304,7 +304,7 @@ public static class CouncilEcho
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>True if the kingdom has an in-flight, uncancelled negative
-    /// echo — the Political call-in's eligibility condition.</summary>
+    /// echo, the Political call-in's eligibility condition.</summary>
     public static bool HasCancellableNegative(CouncilState council, string kingdomId)
     {
         if (council == null)

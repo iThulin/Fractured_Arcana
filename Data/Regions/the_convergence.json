@@ -1,7 +1,7 @@
 {
 	"id": "the_convergence",
 	"displayName": "The Convergence",
-	"description": "Where the ley lines cross. Every school of magic has ruins here. Every faction has had a claim here and lost it. The terrain is a record of every war ever fought for this ground — volcanic scars from one age, frozen rubble from another, drowned archives from a third. The guild wants what's at the center. So does everyone else.",
+	"description": "Where the ley lines cross. Every school of magic has ruins here. Every faction has had a claim here and lost it. The terrain is a record of every war ever fought for this ground: volcanic scars from one age, frozen rubble from another, drowned archives from a third. The guild wants what's at the center. So does everyone else.",
 	"schoolAffinity": "Adept",
 	"atmosphere": "Hostile",
 	"baseDifficultyTier": 3,

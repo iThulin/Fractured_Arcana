@@ -7,7 +7,7 @@ using System.Linq;
 // Effect.cs
 //
 // Purpose:        EffectBase abstract class plus the CORE leaf
-//                 (non-composite) effects shared by all schools —
+//                 (non-composite) effects shared by all schools:
 //                 damage, heal, push, imbue, summon, status, etc.
 //                 School-specific effects live in their own files
 //                 (<School>Effects.cs). Each leaf is paired with a
@@ -19,8 +19,8 @@ using System.Linq;
 //                 GameState.cs, Entity.cs, Unit.cs, TileData.cs,
 //                 PersistentEffect.cs (some leaf effects spawn
 //                 persistent effects, e.g. AvatarTransformEffect)
-// See:            README §5.4 (Effect Types — JSON contract),
-//                 README §7 — "Effect Types Must Be Registered"
+// See:            README §5.4 (Effect Types, the JSON contract),
+//                 README §7, "Effect Types Must Be Registered"
 // ============================================================
 
 
@@ -106,7 +106,7 @@ internal static class InterfaceHelpers
 }
 
 // ════════════════════════════════════════════════════════════════
-// ALMANAC — the scheduled-spell queue
+// ALMANAC: the scheduled-spell queue
 // ════════════════════════════════════════════════════════════════
 
 /// <summary>
@@ -141,7 +141,7 @@ public class AlmanacEntry
 }
 
 // ════════════════════════════════════════════════════════════════
-// EFFECTS — leaf effects that do things. Each effect class is paired
+// EFFECTS: leaf effects that do things. Each effect class is paired
 // ════════════════════════════════════════════════════════════════
 
 /// <summary>
@@ -166,7 +166,7 @@ public abstract class EffectBase : IEffect
 	// Default: leaf effect, no children. Composite effects override.
 	public virtual IEnumerable<IEffect> Children => Array.Empty<IEffect>();
 
-	// Old entry point — kept for compatibility with your stack code
+	// Old entry point, kept for compatibility with your stack code
 	// (RulesManager still calls this through the IEffect interface).
 	public abstract void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap);
 
@@ -181,7 +181,7 @@ public abstract class EffectBase : IEffect
 	}
 
 	// ── Shared helper: find the caster's Unit in the game ───────────
-	// 2026-07-09: ActiveCasterUnit is authoritative when set — with per-unit
+	// 2026-07-09: ActiveCasterUnit is authoritative when set. With per-unit
 	// decks, PlayerA can be ANY party caster (a companion), not the main
 	// character. This mirrors TargetingHelpers.FindCasterUnit; the old
 	// PlayerA→PlayerUnit mapping made every companion spell resolve centered
@@ -226,17 +226,17 @@ public abstract class EffectBase : IEffect
 		// status leaf under an aoe targeter. Mapping the token to the caster in
 		// this shared helper would turn "does nothing" into "hits the caster",
 		// which is strictly worse. The self-cast mapping is done locally by the
-		// two effects that need it — see ApplyStatusEffect and ImbueTileEffect.
+		// two effects that need it (see ApplyStatusEffect and ImbueTileEffect).
 		return null;
 	}
 
-	/// <summary>True when <paramref name="targets"/> is the two-step aim shape —
+	/// <summary>True when <paramref name="targets"/> is the two-step aim shape:
 	/// [victim Unit, aim TileData] from a unit_then_* targeter (2026-07-29). The tile
 	/// in that shape is DIRECTION METADATA, not a second target: a damage or status
 	/// leaf in the same sequence as an aimed push must not also hit whoever happens
 	/// to stand on the tile the player used to point. Unit-facing leaf loops call
 	/// this and skip Items[1]. Tile-consuming effects (imbue, glyph placement) do
-	/// not — for them the tile may genuinely be the payload.</summary>
+	/// not, because for them the tile may genuinely be the payload.</summary>
 	protected static bool IsAimShape(TargetSet targets)
 		=> targets?.Items != null
 		   && targets.Items.Count == 2
@@ -250,12 +250,12 @@ public abstract class EffectBase : IEffect
 public sealed class DealDamageEffect : EffectBase
 {
 	public int Amount;
-	/// <summary>Arcane-mark consumption bonus — shared by Resolve and the R22 preview.</summary>
+	/// <summary>Arcane-mark consumption bonus, shared by Resolve and the R22 preview.</summary>
 	public const int ArcaneMarkBonus = 3;
 	public DealDamageEffect(int a) { Amount = a; }
 
 	/// <summary>R22 damage preview: the caster-side damage computation, extracted
-	/// so Resolve and the drag preview run the SAME code — never a parallel
+	/// so Resolve and the drag preview run the SAME code, never a parallel
 	/// formula, so the preview structurally cannot drift. Pure (mutates nothing).
 	/// <paramref name="log"/>=false silences the s.Log lines for preview calls.</summary>
 	public int ComputeTotalDamage(GameState s, Unit casterUnit, Entity caster, EffectSnapshot snap, bool log = true)
@@ -365,7 +365,7 @@ public sealed class DealDamageEffect : EffectBase
 		}
 
 		// Record for follow-up steps (heal_fraction_of_damage, grief_per_damage, ...).
-		// Total across all targets — "the damage this step dealt".
+		// Total across all targets, "the damage this step dealt".
 		if (hit > 0)
 			s.LastDamageDealt = totalDamage * hit;
 
@@ -629,7 +629,7 @@ public sealed class DamageByHandSizeEffect : EffectBase
 }
 
 /// <summary>Dual-purpose movement primitive: when targets is empty/self, grants the
-/// caster +N move range for the turn (the movespeed currency — mobility only, spent
+/// caster +N move range for the turn (the movespeed currency: mobility only, spent
 /// through the unit's own AP-gated moves and honored by EffectiveMovement); when
 /// targets contains units, pushes each target N tiles away from the caster.</summary>
 public sealed class DashEffect : EffectBase
@@ -643,7 +643,7 @@ public sealed class DashEffect : EffectBase
 		if (targets == null || targets.Items.Count == 0 ||
 			(targets.Items.Count == 1 && targets.Items[0] is Entity))
 		{
-			// Self-movement — grant movespeed (per-turn move-range bonus). Previously
+			// Self-movement: grant movespeed (per-turn move-range bonus). Previously
 			// this wrote Stats.MovePoints, which no movement code read, so every
 			// self-Dash card was inert. BonusMoveRange is read by EffectiveMovement.
 			if (casterUnit != null)
@@ -654,7 +654,7 @@ public sealed class DashEffect : EffectBase
 		}
 		else
 		{
-			// Push — find the victim and try to move them away from caster
+			// Push: find the victim and try to move them away from caster
 			foreach (var obj in targets.Items)
 			{
 				var victim = ResolveTargetUnit(s, obj);
@@ -678,7 +678,7 @@ public sealed class DashEffect : EffectBase
 					var current = victim.CurrentTile.Axial;
 					var dir = current - casterPos;
 
-					// Normalize to one hex step — pick the neighbor furthest from caster
+					// Normalize to one hex step: pick the neighbor furthest from caster
 					TileData bestTile = null;
 					int bestDist = -1;
 
@@ -704,7 +704,7 @@ public sealed class DashEffect : EffectBase
 					}
 					else
 					{
-						// Hit a wall or edge — could add collision damage here
+						// Hit a wall or edge. Could add collision damage here.
 						s.Log($"[Push] {victim.Name} hit an obstacle after {pushed} tile(s).");
 						break;
 					}
@@ -756,7 +756,7 @@ public sealed class TeleportEffect : EffectBase
 // PushEffect/PullEffect DERIVE their direction from the caster's position, which is
 // why no card could ever say "in a direction you choose". These two read the
 // direction (or the destination) the player picked, from the second slot of a
-// two-step TargetSet — see SelectTwoStepTarget.
+// two-step TargetSet (see SelectTwoStepTarget).
 //
 // TargetSet convention: Items[0] = victim Unit, Items[1] = chosen TileData.
 // CombatManager guarantees the order and validates both picks before casting, so
@@ -778,7 +778,7 @@ public sealed class PushAimedEffect : EffectBase
 	/// <summary>Flat damage dealt to the victim after the shove (2026-07-29). Exists
 	/// so "push 2 and deal 3" cards (Gust) can be ONE aimed effect: authored as
 	/// [push_aimed, damage] in a sequence, the damage leaf would also resolve against
-	/// the aim TILE's occupant — Items[1] is a TileData and ResolveTargetUnit happily
+	/// the aim TILE's occupant, since Items[1] is a TileData and ResolveTargetUnit happily
 	/// returns whoever stands there. Folding the damage in here keeps it on the
 	/// victim alone.</summary>
 	public int Damage;
@@ -798,7 +798,7 @@ public sealed class PushAimedEffect : EffectBase
 		var from = victim.CurrentTile.Axial;
 		var dir = aim.Axial - from;
 		if (dir == Vector2I.Zero)
-		{ s.Log("[PushAimed] the aim tile is the unit's own tile — no direction."); return; }
+		{ s.Log("[PushAimed] the aim tile is the unit's own tile, so there is no direction."); return; }
 
 		var ctx = new MoveContext(s.Grid);
 		int pushed = 0;
@@ -827,7 +827,7 @@ public sealed class PushAimedEffect : EffectBase
 		}
 
 		s.Log($"[PushAimed] {victim.Name} shoved {pushed} tile(s)" +
-			  (collided ? " — blocked." : "."));
+			  (collided ? ", blocked." : "."));
 
 		if (collided && CollisionDamage > 0)
 		{
@@ -845,7 +845,7 @@ public sealed class PushAimedEffect : EffectBase
 					{
 						ctx.ForcedTilesRemaining--;
 						collisionUnit.PlaceOnTile(chainNext, MovementKind.Forced, ctx);
-						s.Log($"[PushAimed] chain — {collisionUnit.Name} shoved 1 tile further.");
+						s.Log($"[PushAimed] chain: {collisionUnit.Name} shoved 1 tile further.");
 					}
 				}
 			}
@@ -857,7 +857,7 @@ public sealed class PushAimedEffect : EffectBase
 
 /// <summary>Relocates a unit to a player-chosen tile. "Move a construct you control
 /// up to 3 tiles." Uses PlaceOnTile, NOT TryMoveTo: this is being moved, not walking
-/// — it spends no AP, ignores move range (the targeter already bounded it), and by
+/// on its own: it spends no AP, ignores move range (the targeter already bounded it), and by
 /// design does NOT fire Unit.OnMoved, so an enemy binding_geas cannot tax a
 /// displacement the player's own card performed.
 /// JSON: { "type": "move_to_tile" } with targeting { "type": "unit_then_tile", ... }</summary>
@@ -873,9 +873,9 @@ public sealed class MoveToTileEffect : EffectBase
 			return;
 
 		if (dest.Occupant != null && dest.Occupant != victim)
-		{ s.Log($"[MoveToTile] {dest.Axial} was taken before this resolved — no move."); return; }
+		{ s.Log($"[MoveToTile] {dest.Axial} was taken before this resolved. No move."); return; }
 		if (!dest.CanEnter(victim))
-		{ s.Log($"[MoveToTile] {victim.Name} can no longer enter {dest.Axial} — no move."); return; }
+		{ s.Log($"[MoveToTile] {victim.Name} can no longer enter {dest.Axial}. No move."); return; }
 
 		victim.PlaceOnTile(dest);
 		s.Log($"[MoveToTile] {victim.Name} relocated to ({dest.Axial.X}, {dest.Axial.Y}).");
@@ -889,7 +889,7 @@ public sealed class MoveToTileEffect : EffectBase
 }
 
 /// <summary>Shared reader for the two-step TargetSet convention. One place, so the
-/// [victim, tile] ordering cannot drift between effects — and every failure says
+/// [victim, tile] ordering cannot drift between effects, and every failure says
 /// which half was missing rather than returning silently, because "the card did
 /// nothing" and "the targeting is wired wrong" must not look identical from outside
 /// (U3c lesson 3).</summary>
@@ -902,7 +902,7 @@ internal static class TwoStep
 		if (s?.Grid == null)
 		{ s?.Log($"[{tag}] no grid."); return false; }
 		if (targets?.Items == null || targets.Items.Count < 2)
-		{ s.Log($"[{tag}] needs a [unit, tile] TargetSet — got {targets?.Items?.Count ?? 0} item(s). " +
+		{ s.Log($"[{tag}] needs a [unit, tile] TargetSet, got {targets?.Items?.Count ?? 0} item(s). " +
 				"Is the card authored with a unit_then_* targeter?"); return false; }
 
 		victim = targets.Items[0] as Unit;
@@ -919,7 +919,7 @@ internal static class TwoStep
 
 // ── Push Effect ─────────────────────────────────────────────────────────
 
-/// <summary>Pushes each target N tiles directly away from the caster. When a push is blocked by an obstacle, optionally deals <see cref="CollisionDamage"/> to the obstructed unit. See README §5.4 — the JSON key is `tiles` not `amount`, a common typo source.</summary>
+/// <summary>Pushes each target N tiles directly away from the caster. When a push is blocked by an obstacle, optionally deals <see cref="CollisionDamage"/> to the obstructed unit. See README §5.4. The JSON key is `tiles` not `amount`, a common typo source.</summary>
 public sealed class PushEffect : EffectBase
 {
 	public int Tiles;
@@ -999,7 +999,7 @@ public sealed class PushEffect : EffectBase
 							 && td.Occupant != null && td.Occupant.Stats.IsAlive
 							 && td.Occupant != victim)
 					{
-						// A living unit blocks the outward path — a collision candidate.
+						// A living unit blocks the outward path, making it a collision candidate.
 						if (distFromCaster > blockerDist)
 						{
 							blockerDist = distFromCaster;
@@ -1097,7 +1097,7 @@ public sealed class PushEffect : EffectBase
 		{
 			ctx.ForcedTilesRemaining--;
 			occ.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
-			s.Log($"[Push] chain — {occ.Name} shoved 1 tile further.");
+			s.Log($"[Push] chain: {occ.Name} shoved 1 tile further.");
 		}
 	}
 }
@@ -1106,7 +1106,7 @@ public sealed class PushEffect : EffectBase
 
 /// <summary>
 /// Pulls each target N tiles directly toward the caster. When a pull is blocked
-/// by an obstacle, the unit stops at the last valid tile — no collision damage
+/// by an obstacle, the unit stops at the last valid tile, with no collision damage
 /// since being pulled into the caster is intentional positioning, not a hazard.
 /// JSON key is "tiles". See PushEffect for the inverse.
 /// </summary>
@@ -1150,7 +1150,7 @@ public sealed class PullEffect : EffectBase
 
 				var current = victim.CurrentTile.Axial;
 
-				// Already adjacent to caster — nowhere closer to go
+				// Already adjacent to caster, so nowhere closer to go
 				if (s.Grid.Distance(casterPos, current) <= 1)
 					break;
 
@@ -1181,7 +1181,7 @@ public sealed class PullEffect : EffectBase
 				}
 				else
 				{
-					// Blocked — stop here, no collision
+					// Blocked, so stop here, no collision
 					break;
 				}
 			}
@@ -1271,7 +1271,7 @@ public sealed class GiveTargetArmorEffect : EffectBase
 /// <summary>
 /// Grants the caster armor equal to <see cref="Amount"/> multiplied by the number
 /// of units in the current TargetSet. Designed to follow a retarget step in a
-/// sequence — the targets from the prior step are the units being counted.
+/// sequence: the targets from the prior step are the units being counted.
 /// JSON keys: "type": "armor_per_target", "amount": n.
 /// </summary>
 public sealed class ArmorPerTargetEffect : EffectBase
@@ -1285,7 +1285,7 @@ public sealed class ArmorPerTargetEffect : EffectBase
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		// Fallback path — no PredicateContext available, count whatever targets are passed
+		// Fallback path with no PredicateContext available. Count whatever targets are passed.
 		ApplyArmor(s, caster, targets);
 	}
 
@@ -1321,7 +1321,7 @@ public sealed class ArmorPerTargetEffect : EffectBase
 			casterUnit.Stats.Armor += totalArmor;
 			casterUnit.RefreshHealthBar();
 			s.Log($"[ArmorPerTarget] {casterUnit.Name} gains {totalArmor} armor " +
-				  $"({targetCount} target(s) × {Amount}) — now {casterUnit.Stats.Armor}.");
+				  $"({targetCount} target(s) × {Amount}), now {casterUnit.Stats.Armor}.");
 		}
 		else
 		{
@@ -1359,7 +1359,7 @@ public sealed class RemoveStatusEffect : EffectBase
 
 			if (StatusName == null && !unit.CanBeFreed)
 			{
-				s.Log($"[RemoveStatus] {unit.Name} is bound — cannot clear statuses.");
+				s.Log($"[RemoveStatus] {unit.Name} is bound. Cannot clear statuses.");
 				continue;
 			}
 
@@ -1434,7 +1434,7 @@ public sealed class ManaGainEffect : EffectBase
 /// <summary>
 /// Grants the caster 1 mana for each unique element type present on tiles
 /// within <see cref="Radius"/> of the caster. Maximum 4 mana (one per element).
-/// Designed for Worldshaper's Elemental Read — rewards building a diverse
+/// Designed for Worldshaper's Elemental Read. Rewards building a diverse
 /// elemental board state.
 /// JSON keys: "type": "mana_per_nearby_element", "radius": n.
 /// </summary>
@@ -1472,7 +1472,7 @@ public sealed class ManaPerNearbyElementEffect : EffectBase
 		int manaGained = uniqueElements.Count;
 		if (manaGained == 0)
 		{
-			s.Log($"[ManaPerNearbyElement] {casterUnit.Name}: no elements within {Radius} — no mana gained.");
+			s.Log($"[ManaPerNearbyElement] {casterUnit.Name}: no elements within {Radius}, so no mana gained.");
 			return;
 		}
 
@@ -1482,7 +1482,7 @@ public sealed class ManaPerNearbyElementEffect : EffectBase
 
 		var elementNames = string.Join(", ", uniqueElements);
 		s.Log($"[ManaPerNearbyElement] {casterUnit.Name} gains {manaGained} mana " +
-			  $"({elementNames}) — now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}.");
+			  $"({elementNames}), now {casterUnit.Stats.Mana}/{casterUnit.Stats.MaxMana}.");
 	}
 }
 
@@ -1566,8 +1566,8 @@ public sealed class ImbueTileEffect : EffectBase
 			else if (obj is Entity ent)
 			{
 				// "Imbue YOUR tile" (2026-08-01). A self-targeted cast puts the
-				// caster ENTITY in the target set, not a Unit — Entity is a bare
-				// `{ string Name }` token — so this loop used to `continue` past it
+				// caster ENTITY in the target set, not a Unit (Entity is a bare
+				// `{ string Name }` token), so this loop used to `continue` past it
 				// and the effect silently did nothing. Earth Anchor granted its armor
 				// and imbued no ground; the card looked half-working, not broken.
 				//
@@ -1581,7 +1581,7 @@ public sealed class ImbueTileEffect : EffectBase
 			if (tile == null)
 				continue;
 
-			// R22 sim gate: the preview must not really imbue the tile — but the
+			// R22 sim gate: the preview must not really imbue the tile, but the
 			// imbue's immediate tick damage below still runs (ApplyDamage is
 			// itself gated, so the tick lands in the sim ledger).
 			if (!CombatSim.Active)
@@ -1600,7 +1600,7 @@ public sealed class ImbueTileEffect : EffectBase
 
 			// Capture the occupant ONCE: if the imbue damage is lethal, death
 			// cleanup clears tile.Occupant between ApplyDamage and the log line
-			// (NRE, 2026-07-09 — surfaced once drop-on-unit made direct casts
+			// (NRE, 2026-07-09, surfaced once drop-on-unit made direct casts
 			// at enemies routine).
 			var victim = tile.Occupant;
 			if (BonusDamage > 0 && victim != null && victim.TeamId != 0)
@@ -1618,8 +1618,8 @@ public sealed class ImbueTileEffect : EffectBase
 // ── Imbue All Tiles Random Effect ─────────────────────────────────────────────────────────
 
 /// <summary>
-/// Imbues every tile on the board with a random element. No radius restriction —
-/// this is a board-wide effect. Used by Ragnarok and similar capstone cards.
+/// Imbues every tile on the board with a random element. No radius restriction,
+/// since this is a board-wide effect. Used by Ragnarok and similar capstone cards.
 /// JSON key: "type": "imbue_all_tiles_random". No parameters.
 /// </summary>
 public sealed class ImbueAllTilesRandomEffect : EffectBase
@@ -1727,7 +1727,7 @@ public sealed class PlaceGlyphEffect : EffectBase
 
 // ── Status / Summon / Misc Effects ──────────────────────────────────────
 
-/// <summary>Applies a named status to each target for a given duration. The runtime does not enforce a closed status enum here — any string is accepted and the consumer is responsible for handling it.</summary>
+/// <summary>Applies a named status to each target for a given duration. The runtime does not enforce a closed status enum here. Any string is accepted and the consumer is responsible for handling it.</summary>
 public sealed class ApplyStatusEffect : EffectBase
 {
 	public string StatusName; // "frozen", "slowed", "burning", etc.
@@ -1793,7 +1793,7 @@ public sealed class CleanseDebuffsEffect : EffectBase
 
 		if (!casterUnit.CanBeFreed)
 		{
-			s.Log($"[Cleanse] {casterUnit.Name} is bound — cannot be cleansed.");
+			s.Log($"[Cleanse] {casterUnit.Name} is bound. Cannot be cleansed.");
 			return;
 		}
 
@@ -1824,7 +1824,7 @@ public sealed class SummonEffect : EffectBase
 	public int Count;
 
 	/// <summary>Flat stat bumps applied to each spawned unit (2026-07-29). Exists so
-	/// upgrade tiers can patch a summon card's OUTPUT — the unit stats live in the
+	/// upgrade tiers can patch a summon card's OUTPUT. The unit stats live in the
 	/// summon handler's registry, which card-JSON field patches cannot reach, so
 	/// "the turret arrives sturdier" needs a knob on the card side. This is the knob
 	/// the new Tinker T1 tiers patch.</summary>
@@ -1852,7 +1852,7 @@ public sealed class SummonEffect : EffectBase
 
 	/// <summary>
 	/// Applies <see cref="SpawnImbues"/> for a freshly spawned summon. Mirrors
-	/// ImbueTileEffect's write exactly — element, strength, TileView refresh — so a
+	/// ImbueTileEffect's write exactly (element, strength, TileView refresh), so a
 	/// tile imbued this way is indistinguishable from one imbued by a spell.
 	/// </summary>
 	private static void ImbueForSummon(GameState s, string kind, TileData tile)
@@ -2070,7 +2070,7 @@ public sealed class RaiseTerrainEffect : EffectBase
 			s.Grid.ApplyVisualToTile(tile);
 
 			// Push any unit on the tile (ground rising under them).
-			// Captured once — lethal crush clears tile.Occupant mid-block.
+			// Captured once, because lethal crush clears tile.Occupant mid-block.
 			var crushed = tile.Occupant;
 			if (crushed != null)
 			{

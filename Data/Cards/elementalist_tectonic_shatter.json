@@ -296,7 +296,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Geological Disaster",
-			"description": "Geological Disaster: The shatter becomes cataclysmic \u2014 rubble and damage in a massive area.",
+			"description": "Geological Disaster: The shatter becomes cataclysmic, spreading rubble and damage in a massive area.",
 			"changes": [
 				{
 					"half": "top",
@@ -352,7 +352,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Singularity",
-			"description": "Singularity: Everything collapses inward \u2014 a perfect storm of impact.",
+			"description": "Singularity: Everything collapses inward, a perfect storm of impact.",
 			"changes": [
 				{
 					"half": "bottom",

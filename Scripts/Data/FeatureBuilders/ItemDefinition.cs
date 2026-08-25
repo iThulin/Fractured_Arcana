@@ -13,7 +13,7 @@ using System.Collections.Generic;
 //                 CompanionDefinition.cs (each Companion has a
 //                 UnitLoadout), Unit.cs (combat-side equipped
 //                 items), GuildSaveData.cs (persists instances)
-// See:            README §3 (Architecture — item pipeline)
+// See:            README §3 (Architecture, item pipeline)
 // ============================================================
 
 /// <summary>The three equipment slots every unit (wizard or companion) has.</summary>
@@ -37,7 +37,7 @@ public enum ItemUnitClass
 
 /// <summary>
 /// Data-driven passive behaviours. CombatManager and Unit check these at the
-/// appropriate moment. Add new values here as needed — no other code changes
+/// appropriate moment. Add new values here as needed; no other code changes
 /// required until you want to implement the behaviour itself.
 /// </summary>
 public enum ItemPassiveTag
@@ -45,12 +45,12 @@ public enum ItemPassiveTag
     None,
 
     // ── Wizard weapon passives ───────────────────────────────────────────
-    // RETIRED 2026-08-13 (never had consumers — cards carry SCHOOL, not
+    // RETIRED 2026-08-13 (never had consumers; cards carry SCHOOL, not
     // element; these were designed against a taxonomy that doesn't exist).
     // Kept so old save/JSON strings still parse; do not author new items
     // with them. Use the School* pair below.
-    StormSpellCostReduction,    // retired — use SchoolSpellCostReduction
-    FireSpellBonusDamage,       // retired — use SchoolSpellDamage
+    StormSpellCostReduction,    // retired, use SchoolSpellCostReduction
+    FireSpellBonusDamage,       // retired, use SchoolSpellDamage
 
     // ── Wizard armor passives ────────────────────────────────────────────
     StartCombatWithShield,      // Gain N shield at combat start
@@ -62,7 +62,7 @@ public enum ItemPassiveTag
     // ── Martial weapon passives ──────────────────────────────────────────
     // RETIRED 2026-08-13: superseded by the trigger-bus key apply_bleed
     // (same behavior, one dispatcher). Kept for parse safety only.
-    AttackAppliesBleed,         // retired — use apply_bleed / onAttack
+    AttackAppliesBleed,         // retired, use apply_bleed / onAttack
 
     // ── Martial trinket passives (implemented 2026-08-13) ────────────────
     BonusDamageAboveHalfHP,     // +N attack damage when HP > 50% (ResolveMartialAttack)
@@ -86,7 +86,7 @@ public class ItemStatModifiers
     public int BaseSpeed = 0;
     public int AttackDamage = 0;    // martial units only
     public int AttackRange = 0;    // martial units only
-    public int SpellDamage = 0;    // wizard units only — flat bonus to all spell damage
+    public int SpellDamage = 0;    // wizard units only: flat bonus to all spell damage
 }
 
 /// <summary>
@@ -120,7 +120,7 @@ public class ItemDefinition
 
     // ── Trigger-bus passive (Q2, §7a) ─────────────────────────────────────
     // When Trigger != "none", `Passive` is read as the effect KEY (lowercase,
-    // e.g. "apply_bleed") and PassiveValue as its magnitude — the legacy
+    // e.g. "apply_bleed") and PassiveValue as its magnitude; the legacy
     // ItemPassiveTag enum path is skipped for that item (ParsePassive returns
     // None for keys not in the enum, so the two systems never double-fire).
     //   Trigger ∈ { "none", "onSpawn", "onAttack", "aura" }
@@ -129,7 +129,7 @@ public class ItemDefinition
     // ── Economy ───────────────────────────────────────────────────────────
     public int GoldValue = 50;   // base sell/buy price
 
-    // ── Consumables (2026-08-13 — v1's "actives are scrolls", finally built) ──
+    // ── Consumables (2026-08-13: v1's "actives are scrolls", finally built) ──
     // Slot = "Consumable": unequippable BY CONSTRUCTION (Equip's
     // EquipmentSlot enum parse fails), so nothing in the loadout pipeline
     // ever sees one. Used from the combat Scrolls button; consuming removes
@@ -138,11 +138,11 @@ public class ItemDefinition
     public string ConsumeEffect = "";
     public int ConsumeValue = 0;
 
-    /// <summary>"potion" (default) | "scroll" — two RULES, not two flavors:
+    /// <summary>"potion" (default) | "scroll". Two RULES, not two flavors:
     /// a potion is the UNIT's resource (drunk by the selected unit, one per
     /// unit per turn, body effects, the ward cannot drink); a scroll is the
     /// PARTY's resource (an arcane reading, one per player turn total,
-    /// stacks with a potion on the same unit, and CAN target the ward —
+    /// stacks with a potion on the same unit, and CAN target the ward,
     /// the protect-mission tool).</summary>
     public string ConsumeKind = "potion";
 
@@ -171,7 +171,7 @@ public class ItemInstance
     public string DefinitionId = "";    // key into ItemDatabase
     public string InstanceId = "";    // unique per-instance GUID (set on creation)
 
-    // Cached for fast access — mirrors the definition at creation time.
+    // Cached for fast access; mirrors the definition at creation time.
     // If you add item upgrades, store deltas here rather than mutating the def.
     public string Name = "";
     public string Slot = "Trinket";
@@ -180,7 +180,7 @@ public class ItemInstance
     public int GoldValue = 50;
 
     // ── Q5: the enchant slot (v1 rules: ONE slot, Workshop is the sole
-    // mutation venue, handcrafted scripts only). Additive save fields — old
+    // mutation venue, handcrafted scripts only). Additive save fields: old
     // instances deserialize with an empty, unsealed slot. ────────────────
     /// <summary>WorkshopEnchants catalog id. "" = empty slot.</summary>
     public string EnchantKey = "";
@@ -188,17 +188,17 @@ public class ItemInstance
     public string EnchantParam = "";
     public string EnchantTrigger = "";
 
-    /// <summary>Blighted items arrive with the slot SEALED (§7d) — no enchant
+    /// <summary>Blighted items arrive with the slot SEALED (§7d): no enchant
     /// until Cleansed at Workshop tier 3.</summary>
     public bool EnchantSealed = false;
 
-    // ── Q5: blight (§7d) — authored drawback, never rolled ───────────────
+    // ── Q5: blight (§7d), authored drawback, never rolled ────────────────
     /// <summary>WorkshopEnchants drawback id. "" = not blighted.</summary>
     public string DrawbackKey = "";
     public int DrawbackValue = 0;
 
     /// <summary>The above-floor innate bump a blighted drop carries (+N to the
-    /// definition's PassiveValue in loadout resolution). SURVIVES Cleanse —
+    /// definition's PassiveValue in loadout resolution). SURVIVES Cleanse:
     /// what the corruption improved, it keeps; only the drawback and the seal
     /// are removed.</summary>
     public int BlightBonus = 0;

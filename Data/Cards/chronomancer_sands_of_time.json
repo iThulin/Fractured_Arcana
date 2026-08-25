@@ -8,7 +8,7 @@
 		"name": "Hasten the Hour",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Advance one of your scheduled spells \u2014 it resolves at the end of this turn.",
+		"rules_text": "Advance one of your scheduled spells. It resolves at the end of this turn.",
 		"tags": [
 			"temporal"
 		],
@@ -237,7 +237,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Shelve target enemy's next action \u2014 it acts only when you allow it. Gain 1 Foresight."
+					"value": "Shelve target enemy's next action. It acts only when you allow it. Gain 1 Foresight."
 				}
 			]
 		}

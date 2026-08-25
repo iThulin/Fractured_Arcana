@@ -15,13 +15,13 @@ using System.Collections.Generic;
 // Collaborators:  StrategicMapGenerator.cs (assigns at gen),
 //                 KingdomState.cs (ControllingFactionId),
 //                 StrategicMapScreen.cs (display),
-//                 FactionUnitProfile (Phase 2 — encounter comp),
+//                 FactionUnitProfile (Phase 2, encounter comp),
 //                 UITheme.cs (faction colors route through it)
 // See:            open_world_refactor_v1.docx §3.1, §5
 //
 // NOTE on colors: ColorHex here is DATA (faction identity). Per
 // the project's UI color rule, UI code must not inline new
-// Color() — add a UITheme.FactionColor(id) helper that parses
+// Color(). Add a UITheme.FactionColor(id) helper that parses
 // these hex strings, and have screens call that.
 // ============================================================
 
@@ -37,7 +37,7 @@ public class FactionDefinition
 
     /// <summary>
     /// Hex color string ("#RRGGBB") for the faction's territory and
-    /// banner. DATA only — UI must convert via UITheme, not inline.
+    /// banner. DATA only: UI must convert via UITheme, not inline.
     /// </summary>
     public string ColorHex = "#888888";
 

@@ -232,7 +232,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Mountain Fall",
-			"description": "Mountain Fall: The boulder falls from a great height \u2014 stuns the target.",
+			"description": "Mountain Fall: The boulder falls from a great height, stunning the target.",
 			"changes": [
 				{
 					"half": "top",

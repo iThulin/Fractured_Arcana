@@ -206,7 +206,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 5 cards. Keep 2 \u2014 they cost 0 next turn. Gain 2 Foresight."
+					"value": "Look at the top 5 cards. Keep 2; they cost 0 next turn. Gain 2 Foresight."
 				}
 			]
 		},

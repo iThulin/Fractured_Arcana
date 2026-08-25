@@ -6,11 +6,11 @@ using System;
 //
 // Purpose:        The mid-expedition Favor Ledger (§4a): a
 //                 read-only listing of every favor in the
-//                 bidirectional ledger, plus exactly ONE action —
+//                 bidirectional ledger, plus exactly ONE action:
 //                 call in a favor. Eligibility rules live in
 //                 ExpeditionManager (they need live expedition
 //                 state: party position, HP, patrols); this panel
-//                 is deliberately dumb — it renders rows and
+//                 is deliberately dumb: it renders rows and
 //                 forwards clicks.
 //
 //                 Mac/Windows Compatibility rules honored:
@@ -177,7 +177,7 @@ public partial class LedgerPanel : PanelContainer
         {
             var empty = new Label
             {
-                Text = "The ledger is empty. Favors are earned at court — " +
+                Text = "The ledger is empty. Favors are earned at court. " +
                        "Petition a Welcome court to mint one.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
@@ -226,7 +226,7 @@ public partial class LedgerPanel : PanelContainer
             : favor.KingdomId;
         var line1 = new Label
         {
-            Text = $"{favor.Type} ({weight}) — {direction} — " +
+            Text = $"{favor.Type} ({weight}), {direction}: " +
                    $"{CourtierName(council, favor)}, {kingdomName}  ·  minted L{favor.LunationMinted}",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };

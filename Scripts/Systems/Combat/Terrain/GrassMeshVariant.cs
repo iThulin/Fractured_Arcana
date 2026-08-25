@@ -45,7 +45,7 @@ public partial class GrassMeshVariant : Resource
     /** Upper bound of this variant's extra scale multiplier. Each blade samples uniformly in [ScaleMin, ScaleMax]. Set equal to ScaleMin for a fixed per-variant size (no random draw). */
     [Export(PropertyHint.Range, "0.05,4.0,0.01")] public float ScaleMax = 1.0f;
 
-    /** Flat tint multiplied into this variant's blades via MultiMesh instance colour (shader COLOR hook). White = inert, no instance-colour buffer is created. NOTE: instance colours are renderer-sensitive — verify on the GL Compatibility / Metal-compat target. For broad meadow colour drift prefer the shader's mass_tint instead; use this for discrete cases like a dry/dead-grass mesh. */
+    /** Flat tint multiplied into this variant's blades via MultiMesh instance colour (shader COLOR hook). White = inert, no instance-colour buffer is created. NOTE: instance colours are renderer-sensitive, so verify on the GL Compatibility / Metal-compat target. For broad meadow colour drift prefer the shader's mass_tint instead; use this for discrete cases like a dry/dead-grass mesh. */
     [Export] public Color Tint = Colors.White;
 
     /** Allow this variant on Grass tiles. */

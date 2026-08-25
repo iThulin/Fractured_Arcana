@@ -16,7 +16,7 @@
       "key": "deathburst",
       "trigger": "onDeath",
       "name": "Deathburst",
-      "intelDescription": "The curriculum outlives the lecturer \u2014 two Proctors take the front when it falls.",
+      "intelDescription": "The curriculum outlives the lecturer. Two Proctors take the front when it falls.",
       "params": {
         "count": "2",
         "unit": "wenna_proctor"

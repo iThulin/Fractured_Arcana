@@ -8,7 +8,7 @@ using Godot;
 // Purpose:        Resolves a channeled cast by applying the next
 //                 upgrade stage to the relevant card half and
 //                 returning it for cast-time use. Nothing is
-//                 saved — the upgrade is temporary and discarded
+//                 saved. The upgrade is temporary and discarded
 //                 after resolution.
 // Layer:          System
 // Collaborators:  CardUpgradeApplier.cs (Apply),

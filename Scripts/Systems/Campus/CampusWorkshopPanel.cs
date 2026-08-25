@@ -5,7 +5,7 @@ using static CampusUi;
 // ============================================================
 // CampusWorkshopPanel.cs
 //
-// Purpose:        Q5 — the Enchanter's Workshop tab: the sole
+// Purpose:        Q5, the Enchanter's Workshop tab: the sole
 //                 item-mutation venue. Lists the Armory's items
 //                 with their innate line, blight state, and the
 //                 one enchant slot; verbs are Enchant (tier-gated
@@ -72,7 +72,7 @@ public class CampusWorkshopPanel : CampusPanel
 
         var tierLabel = new Label
         {
-            Text = $"Workshop tier {tier} — " + tier switch
+            Text = $"Workshop tier {tier}: " + tier switch
             {
                 1 => "stat-line enchants.",
                 2 => "stat lines and scripted effects.",
@@ -130,7 +130,7 @@ public class CampusWorkshopPanel : CampusPanel
         if (item.IsBlighted)
         {
             var blight = new Label
-            { Text = $"BLIGHTED — {WorkshopEnchants.DrawbackText(item.DrawbackKey)}. Enchant slot sealed." };
+            { Text = $"BLIGHTED: {WorkshopEnchants.DrawbackText(item.DrawbackKey)}. Enchant slot sealed." };
             blight.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             blight.AddThemeColorOverride("font_color", UITheme.Danger);
             blight.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -140,7 +140,7 @@ public class CampusWorkshopPanel : CampusPanel
             {
                 Text = tier >= 3
                     ? $"Cleanse ({WorkshopEnchants.CleanseGold}g + {WorkshopEnchants.CleanseSplinters} splinters)"
-                    : "Cleanse (requires the Unbinding Floor — tier 3)",
+                    : "Cleanse (requires the Unbinding Floor, tier 3)",
                 Disabled = tier < 3 || save.Gold < WorkshopEnchants.CleanseGold
                            || save.ArcaneSplinters < WorkshopEnchants.CleanseSplinters,
                 SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
@@ -156,7 +156,7 @@ public class CampusWorkshopPanel : CampusPanel
                     Refresh();
             };
             col.AddChild(cleanse);
-            return card; // sealed slot — no enchant verbs while blighted
+            return card; // sealed slot, so no enchant verbs while blighted
         }
 
         // Enchant slot state

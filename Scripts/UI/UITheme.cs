@@ -13,19 +13,19 @@ using Godot;
 //                 Tiles/, Scripts/Systems/Overworld/,
 //                 Scripts/Systems/Campus/, Scripts/Systems/
 //                 Negotiation/, and CombatUI/CardUi
-// See:            README §3 — visual identity is one of the
-//                 game's three design pillars
+// See:            README §3, where visual identity is named one
+//                 of the game's three design pillars
 // ============================================================
 //
 // Visual identity reminders for new contributors:
-//   - 3D world (tiles, units, overworld map) — deep purple-black.
-//   - UI chrome (panels, campus, modals, negotiation) — dark
+//   - 3D world (tiles, units, overworld map): deep purple-black.
+//   - UI chrome (panels, campus, modals, negotiation): dark
 //     blue-grey slate. Near-white text on all panel surfaces.
-//   - Card faces — warm light parchment (SurfaceLight). Cards
+//   - Card faces: warm light parchment (SurfaceLight). Cards
 //     should read as physical objects on top of the slate UI.
-//   - Accents — violet borders, gold titles, arcane blue mana.
+//   - Accents: violet borders, gold titles, arcane blue mana.
 
-/// <summary>Project-wide theme tokens. Every UI surface, panel, button, label, and animation duration reads from this class. Member-level docs are intentionally omitted for the color/size constants — the names + the section banners below carry the meaning. If you find yourself hardcoding a color or padding value in another file, add a token here instead.</summary>
+/// <summary>Project-wide theme tokens. Every UI surface, panel, button, label, and animation duration reads from this class. Member-level docs are intentionally omitted for the color/size constants, because the names plus the section banners below carry the meaning. If you find yourself hardcoding a color or padding value in another file, add a token here instead.</summary>
 public static class UITheme
 {
     // ════════════════════════════════════════════════════════════
@@ -38,18 +38,18 @@ public static class UITheme
     public static readonly Color WorldOverlay = new Color(0.00f, 0.00f, 0.00f, 0.65f);
 
     // ── Slate UI chrome ───────────────────────────────────────────
-    public static readonly Color BgDeep = new Color(0.10f, 0.11f, 0.16f, 1f); // #1A1C29 — deepest slate
-    public static readonly Color BgBase = new Color(0.13f, 0.15f, 0.22f, 1f); // #212538 — panel bg
-    public static readonly Color BgRaised = new Color(0.17f, 0.19f, 0.28f, 1f); // #2B3047 — raised elements
+    public static readonly Color BgDeep = new Color(0.10f, 0.11f, 0.16f, 1f); // #1A1C29 is the deepest slate
+    public static readonly Color BgBase = new Color(0.13f, 0.15f, 0.22f, 1f); // #212538 is the panel bg
+    public static readonly Color BgRaised = new Color(0.17f, 0.19f, 0.28f, 1f); // #2B3047 for raised elements
     public static readonly Color BgOverlay = new Color(0.00f, 0.00f, 0.00f, 0.72f);
-    public static readonly Color BgCard = new Color(0.20f, 0.22f, 0.32f, 1f); // #333852 — lighter than BgBase, used for cards and campus elements to stand out against panels
+    public static readonly Color BgCard = new Color(0.20f, 0.22f, 0.32f, 1f); // #333852 is lighter than BgBase; used for cards and campus elements to stand out against panels
 
     // ── Accent purple ─────────────────────────────────────────────
     public static readonly Color Violet = new Color(0.48f, 0.30f, 0.82f, 1f); // #7A4DD1
     public static readonly Color VioletDim = new Color(0.32f, 0.20f, 0.55f, 1f); // #52338C
     public static readonly Color VioletDark = new Color(0.20f, 0.13f, 0.35f, 1f); // #332159
 
-    // ── Button fills — solid so they pop against slate ────────────
+    // ── Button fills, solid so they pop against slate ─────────────
     public static readonly Color ButtonPrimary = new Color(0.36f, 0.22f, 0.65f, 1f); // #5C38A6
     public static readonly Color ButtonPrimaryHover = new Color(0.44f, 0.28f, 0.76f, 1f); // #7048C2
     public static readonly Color ButtonSecondary = new Color(0.18f, 0.20f, 0.30f, 1f); // #2E3350
@@ -100,7 +100,7 @@ public static class UITheme
     public static readonly Color CardBottomActive = new Color(0.82f, 0.80f, 1.00f, 1f);
     public static readonly Color CardDim = new Color(0.55f, 0.52f, 0.60f, 1f);
     // §7c reaction window: halves that cannot respond (not Reflex speed) render
-    // darkened + desaturated — deader than CardDim so "locked" ≠ "unhovered".
+    // darkened + desaturated, deader than CardDim so "locked" ≠ "unhovered".
     public static readonly Color CardReactionLocked = new Color(0.38f, 0.38f, 0.42f, 1f);
     public static readonly Color CardDragGhost = new Color(0.92f, 0.90f, 0.96f, 0.88f);
 
@@ -160,7 +160,7 @@ public static class UITheme
     // Hue is the SECONDARY channel: the function layer is drawn at
     // 1.88x the identity layer's stroke weight (~3x at tile scale),
     // and it is a hub-and-spokes where the identity layer is
-    // arms-and-ticks — so shape carries the split even if colour
+    // arms-and-ticks, so shape carries the split even if colour
     // fails entirely. Measured contrast ink/function: 4.57:1 normal,
     // 3.79:1 protanopic.
     // ════════════════════════════════════════════════════════════
@@ -180,14 +180,14 @@ public static class UITheme
 
     /// <summary>Backing disc behind the hex-tile decal. Alpha here is the full-strength
     /// value; the LOD profile scales it. Without a backing the sigil is composited
-    /// straight onto whatever terrain the tile happens to be — grass, sand, stone, water —
+    /// straight onto whatever terrain the tile happens to be (grass, sand, stone, water),
     /// and no single ink alpha is legible across all of them. A controlled backdrop makes
     /// the composite deterministic, and reads as a rune scorched into the ground.</summary>
     public static readonly Color CipherTileBacking = new Color(0.055f, 0.043f, 0.051f, 1f);
     // ════════════════════════════════════════════════════════════
     // V1 DESIGN SPACE (combat_ui_v2 §4 ruling, R20/R21)
     // canvas_items stretch, 1920×1080 base, 1280×720 minimum window.
-    // ALL UI code positions in design space — these constants replace
+    // ALL UI code positions in design space. These constants replace
     // per-node screen-fraction exports (the DeckUiManager trap).
     // ════════════════════════════════════════════════════════════
 
@@ -196,7 +196,7 @@ public static class UITheme
     public const int MinWindowWidth = 1280;
     public const int MinWindowHeight = 720;
 
-    // Hand-fan region (design px) — replaces DeckUiManager's dead
+    // Hand-fan region (design px). Replaces DeckUiManager's dead
     // screen-fraction exports; the fan centers between these reserves.
     // SYMMETRIC reserves so the fan centers on the true screen center
     // (V1 fix: 570/350 read visibly off-center). Bottom-row tiling at 1920:
@@ -212,8 +212,8 @@ public static class UITheme
     public const float HandMaxArcDegrees = 25f;
 
     // ── V3 ability state chips (combat_ui_v2 §8/§12) ──
-    public static readonly Color ChargeReady = new Color(1.0f, 0.6f, 0.2f);   // filled — firing this activation
-    public static readonly Color ChargeSpent = new Color(0.5f, 0.5f, 0.55f);  // hollow — charging
+    public static readonly Color ChargeReady = new Color(1.0f, 0.6f, 0.2f);   // filled: firing this activation
+    public static readonly Color ChargeSpent = new Color(0.5f, 0.5f, 0.55f);  // hollow: charging
 
     // ── V2 roster role markers (combat_ui_v2 §6) ──
     public static readonly Color RoleLine = new Color(0.55f, 0.55f, 0.6f);
@@ -227,14 +227,14 @@ public static class UITheme
     public static readonly Color TileScarWater = new Color(0.20f, 0.45f, 0.85f, 0.60f);
     public static readonly Color TileScarChasm = new Color(0.14f, 0.10f, 0.22f, 0.75f);
     public static readonly Color TileScarRubble = new Color(0.45f, 0.38f, 0.30f, 0.50f);
-    /// <summary>Locked-but-unrevealed intent footprint — the kind-tier reticle
+    /// <summary>Locked-but-unrevealed intent footprint, the kind-tier reticle
     /// (you always see WHERE an enemy aims; the reveal tier adds how hard).</summary>
     public static readonly Color TileThreatDim = new Color(0.85f, 0.25f, 0.20f, 0.18f);
-    /// <summary>Floating reticle glyph over a threatened tile — revealed (hot) tier.
+    /// <summary>Floating reticle glyph over a threatened tile, revealed (hot) tier.
     /// A marker, not a tint: tile tints get buried under the move-zone overlay
     /// when the locked tile sits inside the player's movement range.</summary>
     public static readonly Color TileThreatReticle = new Color(1.0f, 0.35f, 0.28f, 1f);
-    /// <summary>Floating reticle glyph — locked-but-unrevealed (dim) tier.</summary>
+    /// <summary>Floating reticle glyph, locked-but-unrevealed (dim) tier.</summary>
     public static readonly Color TileThreatReticleDim = new Color(0.95f, 0.5f, 0.4f, 0.65f);
 
     // ════════════════════════════════════════════════════════════
@@ -257,7 +257,7 @@ public static class UITheme
     // CAMPUS LANDMARK STATE TINTS
     // ════════════════════════════════════════════════════════════
     // Applied by CampusGridManager.LoadLandmarks as a lerp over the tile's terrain
-    // colour — the same technique as the spawn tints above, not a replacement.
+    // colour, the same technique as the spawn tints above, not a replacement.
     // Active is deliberately the loudest of the three: it is the only state with a
     // player action available (an unplayed narrative beat). Ruined reads as dormant
     // stone, Restored as settled and finished.
@@ -271,10 +271,10 @@ public static class UITheme
     // A three-colour vocabulary on the campus map, readable before any building meshes
     // exist: GOLD (LandmarkTint* above) = quest site with a restoration arc;
     // CYAN = a building that is a door to a system; GREY = an ordinary building.
-    // Deliberately not the same hue family as the landmark tints — the player should be
+    // Deliberately not the same hue family as the landmark tints. The player should be
     // able to tell "this has a story" from "this opens a menu" at a glance.
 
-    /// <summary>Name label for a building whose JSON authors a <c>hostsSystem</c> — clicking
+    /// <summary>Name label for a building whose JSON authors a <c>hostsSystem</c>. Clicking
     /// it opens that system. The call to action.</summary>
     public static readonly Color BuildingLabelDoor = new Color(0.72f, 0.92f, 1.00f, 1f);
 
@@ -312,8 +312,8 @@ public static class UITheme
     public static readonly Color ElementTintWater = new Color(0.36f, 0.56f, 0.74f, 1f);
     public static readonly Color ElementTintAir = new Color(0.78f, 0.86f, 0.80f, 1f);
     // Nudged toward magenta ONLY to stay clear of Storm's new amethyst. Two violet
-    // elements on one board is a legibility problem, not a palette preference —
-    // which element a tile carries is targetable state. Shape separates them too
+    // elements on one board is a legibility problem, not a palette preference,
+    // because which element a tile carries is targetable state. Shape separates them too
     // (floating shards vs. ground clusters), but hue should not be doing nothing.
     public static readonly Color ElementTintArcane = new Color(0.80f, 0.44f, 0.70f, 1f);
     public static readonly Color ElementTintShadow = new Color(0.34f, 0.26f, 0.38f, 1f);
@@ -332,14 +332,14 @@ public static class UITheme
     // Threat overlay tiers (2026-07-13): blood-red darkening ramp. Level 0 = movement-
     // only (reachable, no attack affordable); higher = more attacks landable on that tile.
     public static readonly Color ThreatMoveOnly = new Color(0.55f, 0.30f, 0.28f, 1f); // faint desaturated
-    public static readonly Color ThreatTierLow  = new Color(0.82f, 0.22f, 0.20f, 1f); // 1 hit — bright red
-    public static readonly Color ThreatTierHigh = new Color(0.36f, 0.02f, 0.05f, 1f); // 3+ hits — blood dark
+    public static readonly Color ThreatTierLow  = new Color(0.82f, 0.22f, 0.20f, 1f); // 1 hit: bright red
+    public static readonly Color ThreatTierHigh = new Color(0.36f, 0.02f, 0.05f, 1f); // 3+ hits: blood dark
     public const int ThreatMaxTier = 3;
     // v2.2 behavior-tag chips (combat_ui §6/§7b): one hue per wired tag so the
     // roster telegraphs pack/charge/bulwark without reading tooltips.
-    public static readonly Color TagPack    = new Color(0.85f, 0.60f, 0.25f, 1f); // amber — hunts together
-    public static readonly Color TagCharge  = new Color(0.80f, 0.32f, 0.16f, 1f); // rust — momentum hit
-    public static readonly Color TagBulwark = new Color(0.35f, 0.55f, 0.78f, 1f); // steel — braces
+    public static readonly Color TagPack    = new Color(0.85f, 0.60f, 0.25f, 1f); // amber: hunts together
+    public static readonly Color TagCharge  = new Color(0.80f, 0.32f, 0.16f, 1f); // rust: momentum hit
+    public static readonly Color TagBulwark = new Color(0.35f, 0.55f, 0.78f, 1f); // steel: braces
     public static readonly Color TagNeutral = new Color(0.60f, 0.58f, 0.62f, 1f); // scout/immobile/other
     // V2 §6 valence: blight chip accent for corrupted-faction units and
     // factionless monsters (spec-ruled hex #1A3A5C).
@@ -446,18 +446,18 @@ public static class UITheme
     public static readonly Color StrategicUnseen = WorldDeep;                       // unexplored void (2D fallback map only)
     public static readonly Color StrategicCharted = new Color(0.16f, 0.14f, 0.20f, 1f); // dim known-shape (2D fallback map only)
 
-    // Painterly discovery — "the unpainted world" (art pass A6, 2026-08-12). The 3D
+    // Painterly discovery, "the unpainted world" (art pass A6, 2026-08-12). The 3D
     // renderers (WorldAtlas3D + ExpeditionWindow3D) render undiscovered ground as raw
     // canvas instead of a dark void: exploration literally paints the world in.
     // The 2D StrategicView fallback keeps the void tones above, untouched.
-    public static readonly Color CanvasUnseen = new Color(0.72f, 0.66f, 0.545f, 1f);  // raw parchment/gesso — unpainted ground
+    public static readonly Color CanvasUnseen = new Color(0.72f, 0.66f, 0.545f, 1f);  // raw parchment/gesso for unpainted ground
     public static readonly Color CanvasWetEdge = new Color(0.55f, 0.47f, 0.36f, 1f);  // watercolor edge-darkening where paint meets canvas
     public static readonly Color StrategicCorruption = new Color(0.78f, 0.12f, 0.20f, 1f); // red wash, blended by level
     public static readonly Color StrategicCorruptionWash = new Color(0.42f, 0.10f, 0.16f, 1f); // dark stain for the political-lens overlay
     public static readonly Color POIConvergence = new Color(0.72f, 0.18f, 0.62f, 1f); // endgame seat: corrupt magenta-violet
     public static readonly Color KingdomBorder = new Color(0.06f, 0.05f, 0.09f, 0.55f); // dark boundary-tile tint // near-black political boundary
 
-    // Kingdom/territory fill colors — tuned to the overworld palette's register
+    // Kingdom/territory fill colors, tuned to the overworld palette's register
     // (values ~0.55, muted) so blocs read as tinted GROUND beneath the POI/label
     // markers, not as the brightest surface. Hues borrow from the terrain/accent
     // families already in this file so the political layer feels authored alongside
@@ -495,7 +495,7 @@ public static class UITheme
 
     public static readonly Color WildingGreen = new Color(0.42f, 0.62f, 0.20f); // ~#6B9E33
 
-    // Druid living-terrain tile tints (low alpha — terrain still reads underneath)
+    // Druid living-terrain tile tints (low alpha, so terrain still reads underneath)
     public static readonly Color GrowthSapling = new Color(0.45f, 0.70f, 0.30f, 0.30f);
     public static readonly Color GrowthThicket = new Color(0.30f, 0.60f, 0.20f, 0.45f);
     public static readonly Color GrowthOldGrowth = new Color(0.18f, 0.45f, 0.14f, 0.60f);
@@ -518,7 +518,7 @@ public static class UITheme
     public static readonly Color SummonColorEnemy = new Color(0.88f, 0.22f, 0.22f, 1f);
 
     // ════════════════════════════════════════════════════════════
-    // NARRATIVE ENCOUNTER — slate panels
+    // NARRATIVE ENCOUNTER: slate panels
     // ════════════════════════════════════════════════════════════
     public static readonly Color NarrativeBackdrop = BgOverlay;
     public static readonly Color NarrativePanelBg = BgBase;
@@ -537,7 +537,7 @@ public static class UITheme
     public const int NarrativeResultCorner = 4;
 
     // ════════════════════════════════════════════════════════════
-    // NEGOTIATION — slate panels
+    // NEGOTIATION: slate panels
     // ════════════════════════════════════════════════════════════
     public static readonly Color NegotiationBg = BgDeep;
     public static readonly Color NegotiationResultBg = BgRaised;
@@ -571,7 +571,7 @@ public static class UITheme
     public const int NegotiationTensionFontSize = 14;
 
     // ════════════════════════════════════════════════════════════
-    // CAMPUS SCREEN — slate panels, near-white text
+    // CAMPUS SCREEN: slate panels, near-white text
     // ════════════════════════════════════════════════════════════
     public static readonly Color CampusBg = WorldBase;
     public static readonly Color CampusTitleBarBg = BgDeep;
@@ -648,7 +648,7 @@ public static class UITheme
     public const float LibraryGridSpacing = 12f;
 
     // ════════════════════════════════════════════════════════════
-    // FONT SIZES — shared scale
+    // FONT SIZES: shared scale
     // ════════════════════════════════════════════════════════════
     public const int FontSizeSmall = 13;
     public const int FontSizeNormal = 16;
@@ -662,28 +662,28 @@ public static class UITheme
     public const int Label3DGlyph = 64;
 
     /// <summary>Billboarded point-of-interest label on a hex (HexTile.SetPoiLabel).
-    /// The DEFAULT for SetPoiLabel, but nothing on the campus passes it any more — both
+    /// The DEFAULT for SetPoiLabel, but nothing on the campus passes it any more. Both
     /// landmarks and buildings now label with full names at
     /// <see cref="Label3DPlaceName"/>. Kept as the fallback for a future short-marker
     /// caller; delete it if none appears.
-    /// Sized for a two-character marker like the campus landmarks' "BL" / "RF" —
+    /// Sized for a two-character marker like the campus landmarks' "BL" / "RF". It is
     /// larger than Label3DSmall so it reads at campus camera distance, smaller than
     /// the memorial glyph so the two never compete when a tile carries both.</summary>
     public const int Label3DPoi = 32;
 
-    /// <summary>POI label size for named places on the campus map — buildings AND
+    /// <summary>POI label size for named places on the campus map, both buildings AND
     /// landmarks. Both draw a full name ("Gatehouse Yard", "The Uncatalogued Wing") rather
     /// than a marker, so both use this rather than <see cref="Label3DPoi"/>, which is sized
     /// for two characters and would send a long name across three hexes.
     ///
     /// One size for both on purpose: a place on the map should read with the same weight
-    /// whether it is a building or a landmark. What separates them is COLOUR — gold for a
+    /// whether it is a building or a landmark. What separates them is COLOUR: gold for a
     /// landmark with a restoration arc, cyan for a building that is a door, grey for one
     /// that is not.</summary>
     public const int Label3DPlaceName = 22;
 
-    /// <summary>Outline thickness for hex POI labels. Sized to survive the worst case —
-    /// pale text on the light-green campus lawn — rather than tuned for the best one.</summary>
+    /// <summary>Outline thickness for hex POI labels. Sized to survive the worst case,
+    /// pale text on the light-green campus lawn, rather than tuned for the best one.</summary>
     public const int Label3DOutlineSize = 10;
 
     /// <summary>Near-black outline behind every hex POI label. Almost fully opaque: a

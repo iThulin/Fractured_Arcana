@@ -4,7 +4,7 @@
   "npcName": "Old Marrow",
   "archetype": "Survivor",
   "factionId": "roadbound",
-  "openingText": "He's been watching you for an hour before he lets you see him — a weathered man in a coat of stitched tarpaulin, crossbow held easy, not quite pointed away. 'Twelve of us came through here. I'm what's left. You want what I know, and I want to not die out here. So. Talk slow, and keep your hands where the light is.'",
+  "openingText": "He's been watching you for an hour before he lets you see him: a weathered man in a coat of stitched tarpaulin, crossbow held easy, not quite pointed away. 'Twelve of us came through here. I'm what's left. You want what I know, and I want to not die out here. So. Talk slow, and keep your hands where the light is.'",
   "startingTension": 6,
   "basePatience": 6,
   "npcResolve": 2,
@@ -18,7 +18,7 @@
   "terms": [
     {
       "id": "dead_wells",
-      "description": "Marrow marks which wells are dry and which route still runs — 3 steps saved.",
+      "description": "Marrow marks which wells are dry and which route still runs: 3 steps saved.",
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 0,
@@ -39,7 +39,7 @@
     },
     {
       "id": "walk_me_out",
-      "description": "He wants escort to the next settlement — your pace slows by 2 steps.",
+      "description": "He wants escort to the next settlement: your pace slows by 2 steps.",
       "favorPlayer": false,
       "isHidden": false,
       "goldDelta": 0,
@@ -50,7 +50,7 @@
     },
     {
       "id": "caravan_stash",
-      "description": "Where the caravan buried its strongbox before the end — 35 gold in salvage.",
+      "description": "Where the caravan buried its strongbox before the end: 35 gold in salvage.",
       "favorPlayer": true,
       "isHidden": true,
       "goldDelta": 35,

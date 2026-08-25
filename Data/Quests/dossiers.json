@@ -19,7 +19,7 @@
     "title": "Dossier: The Reviser",
     "category": "Dossiers",
     "permanent": true,
-    "summary": "Aurel Pendry does not cast spells so much as revise them — including yours. Every engagement is a draft he is marking up. Learn what he cannot bring himself to leave alone.",
+    "summary": "Aurel Pendry does not cast spells so much as revise them, including yours. Every engagement is a draft he is marking up. Learn what he cannot bring himself to leave alone.",
     "requiredFlag": "dossier_aurel_met",
     "objectives": [
       { "text": "Cross paths with the Reviser's forces", "flag": "dossier_aurel_met" },

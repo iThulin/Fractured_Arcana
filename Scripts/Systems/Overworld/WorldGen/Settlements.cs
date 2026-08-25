@@ -6,7 +6,7 @@ using System.Collections.Generic;
 //
 // Purpose:        Grows City and Town AREAS across the world. A
 //                 settlement is a contiguous region of tiles, NOT a
-//                 POI — tiles keep their biome and carry a back-ref
+//                 POI. Tiles keep their biome and carry a back-ref
 //                 (WorldTile.SettlementIndex) into WorldData.Settlements.
 //                 POIs are studded into these areas later by
 //                 WorldGenerator.ScatterPois (cities dense, towns
@@ -15,14 +15,14 @@ using System.Collections.Generic;
 //
 //                 Each non-convergence kingdom gets a primary City grown
 //                 from its archmage SEAT (so every kingdom has at least
-//                 one staging city — no staging gaps), an optional second
+//                 one staging city, so no staging gaps), an optional second
 //                 City if the territory is large, and Towns scaled by
 //                 territory size, placed by a suitability score (fresh
 //                 water + flat ground) with spacing.
 //
 //                 AddJunctionTowns (called AFTER Roads) drops an extra
-//                 Town at every road convergence — a tile with roads on
-//                 3+ edges — regardless of the per-kingdom town cap.
+//                 Town at every road convergence (a tile with roads on
+//                 3+ edges), regardless of the per-kingdom town cap.
 // Layer:          System (generation helper)
 // Collaborators:  WorldData / WorldTile (SettlementIndex + Settlements
 //                 table), Hydrology (river/lake data feeds suitability),
@@ -111,8 +111,8 @@ public static class Settlements
 
     // ── Junction towns (called after Roads) ──────────────────────────────
 
-    /// <summary>Drops a Town at every road junction — a tile carrying roads on 3+
-    /// edges, i.e. where road paths converge — ignoring the per-kingdom town cap but
+    /// <summary>Drops a Town at every road junction (a tile carrying roads on 3+
+    /// edges, i.e. where road paths converge), ignoring the per-kingdom town cap but
     /// keeping JunctionMinSpacing from existing settlements.</summary>
     public static void AddJunctionTowns(WorldData world)
     {

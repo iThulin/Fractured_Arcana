@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // ImbuementRocks.cs
 //
-// Purpose:        Earth imbuement as ACTUAL ROCKS — boulders from the
+// Purpose:        Earth imbuement as ACTUAL ROCKS: boulders from the
 //                 map's own rock pool, uprooted and set onto the tile,
 //                 instead of shader-drawn slabs.
 // Layer:          Tiles / Terrain
@@ -17,8 +17,8 @@ using System.Collections.Generic;
 // WHY EARTH LEAVES THE SHARD BUILDER
 //
 // Every other element is a transient. Fire burns out, frost melts, an arc is
-// gone in a frame. ImbuementForms builds soft, translucent, wind-aware shards —
-// a vocabulary for things passing through — and Earth's slabs were the weakest
+// gone in a frame. ImbuementForms builds soft, translucent, wind-aware shards,
+// a vocabulary for things passing through, and Earth's slabs were the weakest
 // row in that table precisely because they were fighting it. Stone's whole
 // character is that it STAYS.
 //
@@ -34,22 +34,22 @@ using System.Collections.Generic;
 //      RockScale 0.55 x RockStoneScaleMult 1.7 = ~0.94 for a stone-tile
 //      boulder; the hardcoded 0.34 was nearly three times too small, which is
 //      why the rocks were barely visible.
-//   2. It could never follow the map. Everything about the rock look —
-//      which meshes, which material, how big, how far they sink, how much they
-//      tilt — is configured per scene on HexGridManager, and a second copy of
+//   2. It could never follow the map. Everything about the rock look (which
+//      meshes, which material, how big, how far they sink, how much they
+//      tilt) is configured per scene on HexGridManager, and a second copy of
 //      those numbers is a second thing to keep in sync.
 //
 // So this now reads the grid's own exports and derives everything from them. An
 // imbued tile's boulders are the SAME boulders, at the SAME scale, in the SAME
-// material as the ones the map scatters on its own stone tiles — by
+// material as the ones the map scatters on its own stone tiles, by
 // construction rather than by matching numbers.
 //
 // ── On "the right biome" ────────────────────────────────────────────────
 //
 // Worth being straight about what exists: there is no per-biome rock shader in
 // this project today. There are exactly TWO rock looks, both static exports on
-// HexGridManager — RockMaterial (the cool mossy meadow scree) and
-// MountainRockMaterial (the warm dry boulder palette) — and the map recipes do
+// HexGridManager: RockMaterial (the cool mossy meadow scree) and
+// MountainRockMaterial (the warm dry boulder palette). The map recipes do
 // not swap either. Themes tint the terrain splat, not the rocks.
 //
 // Earth takes the MOUNTAIN pair, and that is a deliberate reading rather than a
@@ -57,7 +57,7 @@ using System.Collections.Generic;
 // top of it, so it should look like the mountain, not like the meadow it came
 // up through. Rock_1..9 are pebbles and would read as gravel.
 //
-// If per-biome rock materials are ever added, this file needs no change — it
+// If per-biome rock materials are ever added, this file needs no change. It
 // asks the grid, and the grid will have the answer.
 //
 // ── Uprooting ───────────────────────────────────────────────────────────
@@ -66,17 +66,17 @@ using System.Collections.Generic;
 // imbuement happened is the ground being disturbed, so the scatter ships two
 // extra pieces:
 //
-//   DEBRIS — the same rock meshes, squashed flat and tinted earth-brown through
+//   DEBRIS: the same rock meshes, squashed flat and tinted earth-brown through
 //   INSTANCE_CUSTOM. painterly_rock.gdshader already supports a per-instance
 //   palette tint (`use_instance_tint`), so churned soil costs a second MultiMesh
 //   and no new art at all.
 //
 //   The squash has a FLOOR, and it is not an aesthetic one. The grass on this
 //   map stands about 0.3 world units; anything shorter than that is not subtle,
-//   it is absent. The first pass squashed to 18% — roughly 0.05 units — and then
+//   it is absent. The first pass squashed to 18%, roughly 0.05 units, and then
 //   sank it, which put the soil underground before the grass even got involved.
 //
-//   RISE — each stone starts fully buried and is driven up on its own seeded
+//   RISE: each stone starts fully buried and is driven up on its own seeded
 //   delay. Staggered, because seven stones surfacing in unison reads as a
 //   platform being raised, not as ground breaking. The per-instance transforms
 //   are rewritten each frame for the ~1s of the animation; at seven instances
@@ -153,7 +153,7 @@ public static class ImbuementRocks
     private static readonly Color DirtTint = new(0.30f, 0.22f, 0.15f);
 
     /// <summary>
-    /// Apothem of a unit hex — the inradius, not the circumradius. Placement is in tile
+    /// Apothem of a unit hex, meaning the inradius rather than the circumradius. Placement is in tile
     /// radii, so 1.0 is a CORNER and anything past 0.866 in the wrong direction is over
     /// the edge.
     /// </summary>
@@ -171,7 +171,7 @@ public static class ImbuementRocks
     /// <summary>
     /// Walks up from <paramref name="from"/> to the grid that owns it. Tiles are direct
     /// children of HexGridManager (HexGridManager.Generation.cs: <c>AddChild(tileNode)</c>),
-    /// so this is two hops from an overlay — but it walks rather than assuming, because a
+    /// so this is two hops from an overlay, but it walks rather than assuming, because a
     /// wrong assumption here fails silently as "no rocks".
     /// </summary>
     public static HexGridManager FindGrid(Node from)
@@ -184,7 +184,7 @@ public static class ImbuementRocks
     /// <summary>
     /// The material an imbued tile's rocks should wear. Prefers the grid's mountain
     /// palette, falls back to its meadow one, then to the packaged resource. Null means
-    /// the caller must skip — never render material-less, the same rule
+    /// the caller must skip. Never render material-less, the same rule
     /// HexGridManager.Rocks follows.
     /// </summary>
     public static Material MaterialFor(HexGridManager grid)
@@ -199,8 +199,8 @@ public static class ImbuementRocks
 
     /// <summary>
     /// Scatter for one tile. <paramref name="seed"/> must be stable per tile (the node's
-    /// instance id works) so a tile's rocks do not reshuffle every time it is re-imbued —
-    /// permanence is the whole point of the element.
+    /// instance id works) so a tile's rocks do not reshuffle every time it is re-imbued.
+    /// Permanence is the whole point of the element.
     /// </summary>
     public static RockScatter Build(TileElementType element, ulong seed, HexGridManager grid)
     {
@@ -221,8 +221,8 @@ public static class ImbuementRocks
 
         // Placement columns in the table are TILE RADII; boulder scale is world units
         // (it comes from the grid already). This project runs at HexRadius 1.325, so
-        // treating "1 tile radius" as 1 world unit shrank the whole scatter — and the
-        // hex clamp with it — to about three quarters of the tile.
+        // treating "1 tile radius" as 1 world unit shrank the whole scatter, and the
+        // hex clamp with it, to about three quarters of the tile.
         float tileR = (grid?.HexRadius ?? 1f);
 
         // Draw a few DISTINCT meshes for this tile rather than one. Sampling without
@@ -294,8 +294,8 @@ public static class ImbuementRocks
             //
             // The first tuning made these invisible and the arithmetic says why: at
             // 18% squash a clod stood about 0.05 world units tall and was then SUNK
-            // below the surface, so it was underground before the grass — which is
-            // ~0.3 tall — got a chance to hide it. A clod has to clear the turf or it
+            // below the surface, so it was underground before the grass, which is
+            // ~0.3 tall, got a chance to hide it. A clod has to clear the turf or it
             // is not a clod, it is a buried rock.
             //
             // So: squashed to 42% rather than 18%, wider, ringed further out so the
@@ -316,8 +316,8 @@ public static class ImbuementRocks
                     .Scaled(new Vector3(ds, ds * row.DebrisFlat, ds));
 
                 dirtTf[variant].Add(new Transform3D(dbasis, dpos));
-                // Soil is thrown clear at the LAUNCH — the instant the stone stops
-                // straining and breaks through — not partway up. That beat is at
+                // Soil is thrown clear at the LAUNCH, the instant the stone stops
+                // straining and breaks through, not partway up. That beat is at
                 // ImbuementOverlay.RockRumbleFraction into the stone's own window;
                 // 0.34 tracks its default. Off by a little is fine, off by a lot
                 // reads as the dirt appearing for no reason.
@@ -370,7 +370,7 @@ public static class ImbuementRocks
     /// Necessary because a tile can sit HIGHER than its neighbours: anything overhanging
     /// the rim is then hanging in mid-air above the tile next door, which is exactly what
     /// it looks like. On a flat board the overhang just blended into the grass and nobody
-    /// noticed — the bug was always there, terrain height only made it visible.
+    /// noticed. The bug was always there, terrain height only made it visible.
     /// </summary>
     private static Vector3 ClampToTile(Vector3 p, float ownRadius, float tileRadius)
     {
@@ -429,12 +429,12 @@ public static class ImbuementRocks
         {
             var m = GD.Load<Mesh>(path);
             if (m != null) found.Add(m);
-            else GD.PushWarning($"[ImbuementRocks] Missing fallback boulder '{path}' — skipped.");
+            else GD.PushWarning($"[ImbuementRocks] Missing fallback boulder '{path}', so it was skipped.");
         }
         _fallbackBoulders = found.ToArray();
 
         if (_fallbackBoulders.Length == 0)
-            GD.PushWarning("[ImbuementRocks] No boulder meshes available — Earth falls back to the shard form.");
+            GD.PushWarning("[ImbuementRocks] No boulder meshes available. Earth falls back to the shard form.");
 
         return _fallbackBoulders;
     }

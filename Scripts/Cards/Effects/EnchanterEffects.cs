@@ -6,14 +6,14 @@ using System.Linq;
 // ============================================================
 // EnchanterEffects.cs
 //
-// Purpose:        Enchanter school effects — glyphs, weave, control magic, and the
+// Purpose:        Enchanter school effects: glyphs, weave, control magic, and the
 //                 Dominion / Grand Design persistent zones.
 // Layer:          Effects
 // Collaborators:  Effect.cs (EffectBase, core leaves),
 //                 PersistentEffect.cs (PersistentEffect base),
 //                 CardScriptRegistry.Enchanter.cs (registration)
 // Notes:          Extracted from Effect.cs / CompositeEffects.cs /
-//                 PersistentEffect.cs — pure move, no behavior change.
+//                 PersistentEffect.cs. Pure move, no behavior change.
 // ============================================================
 
 /// <summary>
@@ -31,7 +31,7 @@ public sealed class GainWeaveEffect : EffectBase
 		var casterUnit = FindCasterUnit(s, caster);
 		if (casterUnit?.Attunement is not WeaveAttunement weave)
 		{
-			s.Log("[GainWeave] Caster has no Weave attunement — ignored.");
+			s.Log("[GainWeave] Caster has no Weave attunement. Ignored.");
 			return;
 		}
 		weave.Add(Amount);
@@ -230,7 +230,7 @@ public sealed class SwapUnitsEffect : EffectBase
 }
 
 /// <summary>
-/// Apply a status to each target (used for geas / mana_tithe — the on-move and on-cast hooks live in the status system). 
+/// Apply a status to each target (used for geas / mana_tithe; the on-move and on-cast hooks live in the status system).
 /// JSON: { "type":"geas",... } / "mana_tithe"
 /// </summary>
 public sealed class StatusApplyEffect : EffectBase
@@ -473,7 +473,7 @@ public sealed class ReflectWardEffect : EffectBase
 		if (tile == null)
 			return;
 		s.Glyphs.Prepare(tile, owner, g => { g.Trigger = GlyphTrigger.Manual; g.Status = "reflect"; g.StatusDuration = Triggers; g.DurationTurns = 3; });
-		s.Log("[ReflectWard] placed. (spell-reflection resolution needs a cast-pipeline hook — see writeup)");
+		s.Log("[ReflectWard] placed. (spell-reflection resolution needs a cast-pipeline hook, see writeup)");
 	}
 }
 
@@ -491,7 +491,7 @@ public sealed class SpellAnchorEffect : EffectBase
 		if (tile == null)
 			return;
 		s.Glyphs.Prepare(tile, owner, g => { g.Trigger = GlyphTrigger.SelfStand; g.Status = "anchor"; g.StatusDuration = Casts; g.DurationTurns = 3; });
-		s.Log("[SpellAnchor] placed. (cast-twice resolution needs the cast pipeline — see writeup)");
+		s.Log("[SpellAnchor] placed. (cast-twice resolution needs the cast pipeline, see writeup)");
 	}
 }
 
@@ -534,7 +534,7 @@ public sealed class DominateEffect : EffectBase
 /// Summons a phantom duplicate of the caster with HpFraction of the caster's
 /// max HP. The illusion unit carries an "illusion" status; apply one-hit-break
 /// behaviour in Unit.ApplyDamage by checking HasStatus("illusion") and calling
-/// Die() if any damage lands — that is a unit-side hook this effect cannot set.
+/// Die() if any damage lands. That is a unit-side hook this effect cannot set.
 /// JSON: { "type": "summon_illusion", "hp_fraction": 0.5, "duration": n }
 /// </summary>
 public sealed class SummonIllusionEffect : EffectBase
@@ -584,8 +584,8 @@ public sealed class SummonIllusionEffect : EffectBase
 }
 
 /// <summary>
-/// Spawns a GrandDesignPersistentEffect. Glyph doubling is enforced in GlyphData.Fire
-/// — add the 7-line check shown in the integration note above.
+/// Spawns a GrandDesignPersistentEffect. Glyph doubling is enforced in GlyphData.Fire;
+/// add the 7-line check shown in the integration note above.
 /// JSON: { "type": "grand_design_passive", "turns": n }
 /// </summary>
 public sealed class GrandDesignPassiveLeafEffect : EffectBase
@@ -600,7 +600,7 @@ public sealed class GrandDesignPassiveLeafEffect : EffectBase
 		var unit = FindCasterUnit(s, caster);
 		s.ActiveEffects ??= new List<PersistentEffect>();
 		s.ActiveEffects.Add(new GrandDesignPersistentEffect(Turns, caster, unit));
-		s.Log($"[GrandDesign] Glyphs doubled for {Turns} turn(s). (add check to GlyphData.Fire — see note)");
+		s.Log($"[GrandDesign] Glyphs doubled for {Turns} turn(s). (add check to GlyphData.Fire, see note)");
 	}
 }
 
@@ -633,7 +633,7 @@ public sealed class AbsoluteTerritoryLeafEffect : EffectBase
 /// While active, finds all enemies with "dominated" status and forces each to
 /// deal its AttackDamage to its nearest ally at start of turn.
 /// Full AI control (commanding the dominated unit's actions from the player UI)
-/// is a deeper engine feature — this implements the "hurts own team" half.
+/// is a deeper engine feature; this implements the "hurts own team" half.
 /// </summary>
 public sealed class DominateAura : PersistentEffect
 {
@@ -657,7 +657,7 @@ public sealed class DominateAura : PersistentEffect
             if (unit == null || !unit.Stats.IsAlive || !unit.HasStatus("dominated"))
                 continue;
             if (unit.TeamId == OwnerUnit.TeamId)
-                continue; // already on our side — skip
+                continue; // already on our side, so skip
 
             // Find the nearest unit on the dominated unit's OWN team to attack
             Unit target = null;

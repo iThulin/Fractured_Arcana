@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // StanceDefinition.cs
 //
 // Purpose:        Martial-companion stance system. Stances are
-//                 the martial alternative to cards — each stance
+//                 the martial alternative to cards. Each stance
 //                 persists between turns until manually switched
 //                 (once per turn). Passives apply at turn start;
 //                 attack modifiers apply when the unit attacks.
@@ -12,13 +12,13 @@ using System.Collections.Generic;
 // Collaborators:  CompanionDefinition.cs (trained stances list),
 //                 Unit.cs (ActiveStance), RulesManager.cs (drives
 //                 stance effects), CampusScreen.cs (Training tab)
-// See:            README §6 — Martial system
+// See:            README §6, Martial system
 // ============================================================
 
 /// <summary>Martial class identifying which stance bucket a stance belongs to. Wizards do not use stances; "None" is the unclassed levy default.</summary>
 public enum MartialClass
 {
-    None,       // unclassed levy — no stances
+    None,       // unclassed levy, no stances
     Fighter,    // melee, high HP/armor
     Ranger,     // ranged, high speed/mobility
 }
@@ -30,15 +30,15 @@ public enum MartialClass
 public enum StanceSpecialTag
 {
     None,
-    AoeAdjacent,        // Reckless — hits all adjacent enemies
-    LinePiercing,       // Volley — hits all enemies in a line
+    AoeAdjacent,        // Reckless: hits all adjacent enemies
+    LinePiercing,       // Volley: hits all enemies in a line
     BerserkScaling,     // damage scales with missing HP
-    SkirmishDash,       // Skirmish — free move after attack
+    SkirmishDash,       // Skirmish: free move after attack
     AmbushFirstStrike,  // double damage on first attack of combat
     MarkedTarget,       // apply Marked status; next ally hit deals bonus damage
     Taunt,              // redirect enemy AI to this unit next turn
     GuardianAura,       // adjacent allies gain armor while stance is active
-    AimedRequiresNoMove,// Aimed — bonus only applies if unit hasn't moved
+    AimedRequiresNoMove,// Aimed: bonus only applies if unit hasn't moved
 }
 
 /// <summary>
@@ -62,14 +62,14 @@ public class StanceDefinition
     // ── Attack modifiers ─────────────────────────────────────────────────
     public int AttackDamageBonus = 0;   // extra damage on this attack
     public int AttackRangeBonus = 0;   // extra range on this attack
-    public bool AttackIgnoresArmor = false; // Aimed — pierce armor entirely
+    public bool AttackIgnoresArmor = false; // Aimed: pierce armor entirely
     public int AttackPushTiles = 0;   // push target N tiles on hit
 
     // ── On-hit effects ────────────────────────────────────────────────────
     public string OnHitStatusName = null;  // status to apply to target
     public int OnHitStatusDuration = 1;
-    public int OnHitSelfShieldGain = 0;     // Defensive — gain shield on hit
-    public int OnHitSelfDamage = 0;     // Reckless — take damage after hit
+    public int OnHitSelfShieldGain = 0;     // Defensive: gain shield on hit
+    public int OnHitSelfDamage = 0;     // Reckless: take damage after hit
 
     // ── Special behaviour ─────────────────────────────────────────────────
     public StanceSpecialTag SpecialTag = StanceSpecialTag.None;
@@ -243,10 +243,10 @@ public static class StanceRegistry
         });
 
         // ── Signature stances (K4) ────────────────────────────────────────
-        // One per Class × Trait cell — elevated versions of the base kit with
+        // One per Class × Trait cell: elevated versions of the base kit with
         // a personality-shaped identity. FRESH-AUTHORED K4 STARTING VALUES
         // (the v1 signature matrix could not be located). Granted at spawn
-        // via EligibleSignature — never trained, never in TrainedStanceIds.
+        // via EligibleSignature, never trained, never in TrainedStanceIds.
         // Authored companions may override via Companion.SignatureStanceId.
 
         Add(new StanceDefinition
@@ -313,7 +313,7 @@ public static class StanceRegistry
         {
             Id = "sig_ranger_cunning",
             DisplayName = "Killing Angle ✦",
-            Description = "Signature. +1 damage. On hit: apply Marked — next ally attack " +
+            Description = "Signature. +1 damage. On hit: apply Marked. The next ally attack " +
                           "on that target deals +4 damage.",
             Class = MartialClass.Ranger,
             IsSignature = true,
@@ -378,12 +378,12 @@ public static class StanceRegistry
     private static void Add(StanceDefinition s) => _stances[s.Id] = s;
 
     // ═════════════════════════════════════════════════════════════════════
-    // K4 — signature grant (derived, single-source)
+    // K4: signature grant (derived, single-source)
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>The Class × Trait matrix id for a martial companion, or the
     /// authored override when set. Null for wizards/levies (arcane signatures
-    /// are DEFERRED pending card schema — v1 lock, carried in v2.1 §2).</summary>
+    /// are DEFERRED pending card schema: v1 lock, carried in v2.1 §2).</summary>
     public static string SignatureIdFor(Companion c)
     {
         if (c == null) return null;
@@ -399,7 +399,7 @@ public static class StanceRegistry
     }
 
     /// <summary>The signature stance this companion fields RIGHT NOW, or null.
-    /// Rules (v1, locked): arc complete (ArcStage 4) and not Wary — a signature
+    /// Rules (v1, locked): arc complete (ArcStage 4) and not Wary, since a signature
     /// is personal, and the Wary don't give you their best. Destroyed on
     /// permadeath by construction: this is derived state, and the dead never
     /// spawn. Never stored in TrainedStanceIds.</summary>

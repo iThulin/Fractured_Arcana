@@ -4,20 +4,20 @@ using static CampusUi;
 // ============================================================
 // CampusCompanionsPanel.cs
 //
-// Purpose:        The Companions tab — recruit companions, and
+// Purpose:        The Companions tab: recruit companions, and
 //                 pick which of them field as the active party.
 // Layer:          UI
 // Collaborators:  CampusPanel.cs (base), CampusContext.cs,
 //                 CampusUi.cs, CompanionRoster.cs (all mutation),
 //                 UITheme.cs
 // See:            guild_campus_v2.docx §5b (the visible infirmary);
-//                 docs/campus_tab_extraction_v1.md — Phase 2
+//                 docs/campus_tab_extraction_v1.md (Phase 2)
 // ============================================================
 
 /// <summary>Companion roster. All mutation goes through <see cref="CompanionRoster"/>;
 /// this panel only renders and dispatches.
 ///
-/// <para><b>Two different refresh scopes, and the difference is deliberate</b> — preserved
+/// <para><b>Two different refresh scopes, and the difference is deliberate.</b> Preserved
 /// exactly as extracted. Recruiting costs gold, so it calls
 /// <see cref="CampusContext.RequestRefreshAll"/> to repaint the gold label and every other
 /// panel that reads it. Adding to / removing from the party moves nobody's money, so it
@@ -43,8 +43,8 @@ public sealed class CampusCompanionsPanel : CampusPanel
         {
             Text = "Manage your roster and pick the active party. Active party members " +
                            "contribute cards to your deck and tokens to negotiations. " +
-                           "New people are found in the world — city hiring halls, rescues, " +
-                           "and the courts — not hired from home.",
+                           "New people are found in the world (city hiring halls, rescues, " +
+                           "and the courts), not hired from home.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -112,17 +112,17 @@ public sealed class CampusCompanionsPanel : CampusPanel
             card.AddChild(row);
 
             var info = MakeVBox(2);
-            // Control.SizeFlags — this class is not a Control, so the unqualified name
+            // Control.SizeFlags: this class is not a Control, so the unqualified name
             // that resolved inside CampusScreen does not resolve here.
             info.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             bool inParty = save.ActivePartyCompanionIds.Contains(c.Id);
-            // K2 (§5b): the infirmary must be VISIBLE — injured companions
+            // K2 (§5b): the infirmary must be VISIBLE. Injured companions
             // won't field, and the player learns that here, not from a
             // missing unit in the next fight.
-            // K3 (§5a): the campus storefront is retired — unrecruited people
+            // K3 (§5a): the campus storefront is retired, so unrecruited people
             // show as ABROAD (findable in the world), never as a price tag.
             string badge = c.IsInjured
-                ? $"  [INFIRMARY — {c.InjuredLunationsRemaining} lunation{(c.InjuredLunationsRemaining == 1 ? "" : "s")}]"
+                ? $"  [INFIRMARY: {c.InjuredLunationsRemaining} lunation{(c.InjuredLunationsRemaining == 1 ? "" : "s")}]"
                 : c.IsRecruited ? (inParty ? "  [PARTY]" : "  [ROSTER]") : "  [ABROAD]";
 
             var nameLabel = new Label { Text = $"{c.Name}{badge}" };
@@ -134,7 +134,7 @@ public sealed class CampusCompanionsPanel : CampusPanel
             var subLabel = new Label
             {
                 Text = c.IsInjured
-                    ? $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}  ·  ✚ recovering — excluded from expeditions and court duty"
+                    ? $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}  ·  ✚ recovering, excluded from expeditions and court duty"
                     : $"{c.School}  ·  {c.PersonalityTrait}  ·  Loyalty: {c.Loyalty}"
             };
             subLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -148,7 +148,7 @@ public sealed class CampusCompanionsPanel : CampusPanel
 
             if (!c.IsRecruited)
             {
-                // K3: campus-menu recruiting retired (v2.1 §2 — "the
+                // K3: campus-menu recruiting retired (v2.1 §2, "the
                 // storefront dies"). They're out there: hiring halls carry
                 // them at a chance per lunation, and their encounters still
                 // grant them directly.

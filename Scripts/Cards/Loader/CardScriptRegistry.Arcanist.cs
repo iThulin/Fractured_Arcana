@@ -4,7 +4,7 @@ using System.Text.Json;
 // ============================================================
 // CardScriptRegistry.Arcanist.cs
 //
-// Purpose:        Arcanist school effect registrations — maps the
+// Purpose:        Arcanist school effect registrations. Maps the
 //                 school's JSON `type` keys to effect factories.
 //                 Called from CardScriptRegistry.RegisterBuiltins().
 // Layer:          Loader
@@ -57,14 +57,14 @@ public static partial class CardScriptRegistry
         {
             // Three param vocabularies exist in the authored cards and, until
             // 2026-07-28, this factory understood exactly one of them:
-            //   look/keep/discount  — Chronomancer. Read correctly.
-            //   look/draw           — Arcanist. `draw` was NEVER READ, so
+            //   look/keep/discount  Chronomancer. Read correctly.
+            //   look/draw           Arcanist. `draw` was NEVER READ, so
             //                         {"look":4,"draw":2} silently became keep=1.
-            //   count               — Worldshaper. NEITHER key was read, so
+            //   count               Worldshaper. NEITHER key was read, so
             //                         {"count":2} silently became look=3, keep=1.
             // All three are honoured now. `draw` is a straight alias for `keep`.
             // `count` is the REORDER form: look at N, put 1 back on TOP, bottom the
-            // rest — nothing goes to hand.
+            // rest. Nothing goes to hand.
             bool hasCount = n.TryGetProperty("count", out var cnt);
             int look = n.TryGetProperty("look", out var l) ? l.GetInt32()
                      : hasCount ? cnt.GetInt32() : 3;
@@ -144,7 +144,7 @@ public static partial class CardScriptRegistry
         });
 
         // Perfect chosen card(s): cost 0, +bonus on resolve, returns to hand on cast
-        // (2026-07-29 — real selection; previously a flat caster-wide damage buff that
+        // (2026-07-29: real selection; previously a flat caster-wide damage buff that
         // read `bonus_damage`, a key no card ever authored: Magnum Opus writes
         // `bonus` and `count`, both of which were silently dropped.)
         // { "type": "perfect_card", "count": n, "bonus": n }
@@ -187,7 +187,7 @@ public static partial class CardScriptRegistry
             new ReplicateLastSpellLeafEffect().WithTag("Charge"));
 
         // Cast the top N cards' top halves, in a player-chosen resolution order
-        // (2026-07-29 — `count` is finally read; Spell Storm authored count:3 and got 1)
+        // (2026-07-29: `count` is finally read; Spell Storm authored count:3 and got 1)
         // { "type": "cast_deck_top", "count": n }
         RegisterEffect("cast_deck_top", n =>
         {
@@ -206,7 +206,7 @@ public static partial class CardScriptRegistry
         });
 
         // ═══════════════════════════════════════════════════════════
-        // ARCANIST — CONSTRUCTS
+        // ARCANIST: CONSTRUCTS
         // ═══════════════════════════════════════════════════════════
 
         // Summon an autonomous arcane construct
@@ -222,7 +222,7 @@ public static partial class CardScriptRegistry
         });
 
         // Summon a unit that embodies an exiled spell (auto-cast AI needs unit integration)
-        // (2026-07-29 — hp_per_mana / damage_per_mana are finally read; Living Spell
+        // (2026-07-29: hp_per_mana / damage_per_mana are finally read; Living Spell
         // authored them and got flat 8HP/5DMG with no exile at all)
         // { "type": "summon_living_spell", "unit": "LivingSpell",
         //   "hp_per_mana": n, "damage_per_mana": n, "hp": n, "damage": n, "duration": n }

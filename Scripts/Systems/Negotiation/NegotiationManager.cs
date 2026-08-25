@@ -19,7 +19,7 @@ using System.Linq;
 //                 NegotiationBarks.cs (spoken-move content),
 //                 NegotiationEncounterLoader.cs (data source),
 //                 UITheme.cs (negotiation panel styling)
-// See:            README §6 — Negotiation;
+// See:            README §6 (Negotiation);
 //                 negotiation_redesign_v1.md (approved package:
 //                 Core + Modules A/B/D)
 // ============================================================
@@ -73,13 +73,13 @@ public partial class NegotiationManager : Control
     private Label _patienceCaption;
 
     // Log aging: everything before your latest action renders dim, so the
-    // results of the last exchange pop. Entries carry their reading tier —
+    // results of the last exchange pop. Entries carry their reading tier:
     // Dialogue is the reading layer, Scene is stage direction, Detail is the
     // sim readout (hidden unless _showDetails).
     private ScrollContainer _logScroll;
     private readonly List<(string Text, NegotiationLogKind Kind)> _logHistory = new();
     private readonly List<(string Text, NegotiationLogKind Kind)> _logRecent = new();
-    private CheckButton _detailsToggle;        // "Table details" — sim readout in the log
+    private CheckButton _detailsToggle;        // "Table details": sim readout in the log
     private bool _showDetails = false;
 
     private bool _spokenMode = true;           // Module D on by default
@@ -107,7 +107,7 @@ public partial class NegotiationManager : Control
         // Starting reputation: kingdom NPCs derive it from court standing
         // (single source of truth per the standing ruling); non-kingdom
         // factions keep the FactionReputation ledger. OriginKingdomId is
-        // set at trigger time — the negotiation scene can't resolve the
+        // set at trigger time; the negotiation scene can't resolve the
         // tile's kingdom on its own.
         int factionRep = 0;
         var cycle = SaveManager.ActiveSave?.Cycle;
@@ -142,25 +142,25 @@ public partial class NegotiationManager : Control
         // injected terms can't leak across tables; the strip below stays as
         // a guard against authored stale tuition. Then maybe inject a fresh
         // offer for a learnable the guild lacks.
-        // Granted only if the deal closes in the Cordial zone — the term's
+        // Granted only if the deal closes in the Cordial zone. The term's
         // text says so up front (G5), and NegotiationState enforces it.
         _data.Terms.RemoveAll(t => t.Id == "spell_tuition");
 
         // Supply-cost clauses the guild can't cover come off the table before
         // the board is built. Settlement floors the treasury at 0, so without
         // this strip a "sell 15 supplies" term pays its gold in full while
-        // delivering supplies that don't exist — free gold on an empty larder.
+        // delivering supplies that don't exist: free gold on an empty larder.
         // (Conservative: pending expedition SuppliesEarned deliberately don't
-        // count — they're unbanked and may be forfeited.)
+        // count; they're unbanked and may be forfeited.)
         int suppliesOnHand = SaveManager.ActiveSave?.Supplies ?? 0;
         int strippedSupply = _data.Terms.RemoveAll(
             t => t.SuppliesDelta < 0 && suppliesOnHand < -t.SuppliesDelta);
         if (strippedSupply > 0)
-            GD.Print($"[Negotiation] Stripped {strippedSupply} supply-cost term(s) — " +
+            GD.Print($"[Negotiation] Stripped {strippedSupply} supply-cost term(s): " +
                      $"stores too low ({suppliesOnHand}).");
 
         // Supply-lines intel (supply_cache spec v1.1): kingdom NPCs can sell
-        // the locations of their homeland's caches — diplomacy as a discovery
+        // the locations of their homeland's caches, diplomacy as a discovery
         // channel. Offered only while the kingdom still has undiscovered ones.
         _data.Terms.RemoveAll(t => t.Id == "supply_lines_intel");
         var intelCycle = SaveManager.ActiveSave?.Cycle;
@@ -173,7 +173,7 @@ public partial class NegotiationManager : Control
             _data.Terms.Add(new DealTerm
             {
                 Id = "supply_lines_intel",
-                Description = "They mark the region's supply caches on your map — " +
+                Description = "They mark the region's supply caches on your map: " +
                               "every depot their people draw from.",
                 FavorPlayer = true,
                 RevealsSupplyCaches = true,
@@ -197,7 +197,7 @@ public partial class NegotiationManager : Control
                     _data.Terms.Add(new DealTerm
                     {
                         Id = "spell_tuition",
-                        Description = $"They offer to teach {offerDef.Name} — " +
+                        Description = $"They offer to teach {offerDef.Name}: " +
                                       "theirs if the deal closes cordially.",
                         FavorPlayer = true,
                         SpellId = offerDef.Id,
@@ -214,7 +214,7 @@ public partial class NegotiationManager : Control
         _state.OnStanceChanged += RefreshStance;
 
         // Court patron (C5): a courtier secured as the guild's Patron at the
-        // origin kingdom's court lends backing at the table — +1 leverage token
+        // origin kingdom's court lends backing at the table: +1 leverage token
         // of THEIR archetype's type (§ Court a Courtier), so who you courted
         // shapes the bonus. Reuses the origin court resolved above for factionRep.
         // Dormant until the Court-a-Courtier mission writes PatronCourtierId.
@@ -325,7 +325,7 @@ public partial class NegotiationManager : Control
         _titleLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
         root.AddChild(_titleLabel);
 
-        // ── TOP STRIP: centered pair — NPC card column | conversation ────
+        // ── TOP STRIP: centered pair, NPC card column | conversation ────
         // The page's ONLY flexible region: every other section sizes to its
         // content, and the conversation log (the one scrollable thing on
         // screen) absorbs whatever height is left.
@@ -338,7 +338,7 @@ public partial class NegotiationManager : Control
 
         topStrip.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.Expand });
 
-        // NPC column — the face of the table, with its dials right under it.
+        // NPC column: the face of the table, with its dials right under it.
         var npcCol = new VBoxContainer { CustomMinimumSize = new Vector2(280, 0) };
         npcCol.AddThemeConstantOverride("separation", 5);
         topStrip.AddChild(npcCol);
@@ -353,7 +353,7 @@ public partial class NegotiationManager : Control
         _npcNameLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
         npcCol.AddChild(_npcNameLabel);
 
-        // Stance tell (Module A) — the read, right under the face.
+        // Stance tell (Module A): the read, right under the face.
         _stanceLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -363,7 +363,7 @@ public partial class NegotiationManager : Control
         _stanceLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
         npcCol.AddChild(_stanceLabel);
 
-        // Tension — compact, part of the NPC card.
+        // Tension: compact, part of the NPC card.
         var tensionHead = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
         tensionHead.AddThemeConstantOverride("separation", 8);
         var tensionTag = MakeTinyLabel("TENSION", Colors.White);
@@ -390,7 +390,7 @@ public partial class NegotiationManager : Control
             _tensionBar.AddChild(step);
         }
 
-        // Their patience — a depleting pip bar; one pip = one more move.
+        // Their patience: a depleting pip bar; one pip = one more move.
         _patienceCaption = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -413,17 +413,17 @@ public partial class NegotiationManager : Control
         _npcPoolRow = new HBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-            TooltipText = "Their leverage — they spend it against you. Offerings you hand over feed it.",
+            TooltipText = "Their leverage. They spend it against you. Offerings you hand over feed it.",
         };
         _npcPoolRow.AddThemeConstantOverride("separation", 10);
         npcCol.AddChild(_npcPoolRow);
 
-        // (The NPC-intent line lives in the conversation header row below —
+        // (The NPC-intent line lives in the conversation header row below;
         // an always-on line here pushed the action row off short screens.)
 
-        // The conversation column — width capped so the NPC card sits near
+        // The conversation column: width capped so the NPC card sits near
         // the middle of the screen instead of shunted to a corner. Header row
-        // carries the "Table details" toggle (sim readout off by default —
+        // carries the "Table details" toggle (sim readout off by default;
         // the numbers live on the board).
         var logCol = new VBoxContainer
         {
@@ -434,7 +434,7 @@ public partial class NegotiationManager : Control
         topStrip.AddChild(logCol);
 
         var logHeaderRow = new HBoxContainer();
-        // The intent tell doubles as the conversation header — zero extra
+        // The intent tell doubles as the conversation header: zero extra
         // rows on screen (soft read for everyone; Embassy tier 2 upgrades
         // it to the precise briefing via RefreshIntent).
         _intentLabel = new Label
@@ -452,7 +452,7 @@ public partial class NegotiationManager : Control
         {
             Text = "Table details",
             ButtonPressed = false,
-            TooltipText = "Also show the mechanical readout — clause slides, " +
+            TooltipText = "Also show the mechanical readout: clause slides, " +
                           "tension numbers, turn stamps.",
         };
         _detailsToggle.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
@@ -503,14 +503,14 @@ public partial class NegotiationManager : Control
         topStrip.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.Expand });
 
         // ── THE DEAL (clause cards) ──────────────────────────────────────
-        var termsHeader = new Label { Text = "The Deal on the Table — click a clause to target it, then make your move" };
+        var termsHeader = new Label { Text = "The Deal on the Table. Click a clause to target it, then make your move" };
         termsHeader.AddThemeFontSizeOverride("font_size", UITheme.NegotiationHeaderFontSize);
         termsHeader.AddThemeColorOverride("font_color", Colors.White);
         root.AddChild(termsHeader);
 
         // Sizes to its content: with vertical scroll Disabled, a
         // ScrollContainer's minimum height tracks its tallest child, so the
-        // strip is always exactly as tall as the cards — never a vertical
+        // strip is always exactly as tall as the cards: never a vertical
         // scrollbar, never a clipped position label. (Horizontal stays Auto
         // purely as a fallback for very wide authored tables.)
         _termsScroll = new ScrollContainer
@@ -573,7 +573,7 @@ public partial class NegotiationManager : Control
         actionRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         root.AddChild(actionRow);
 
-        // Live closing preview — the one line that answers "what do I get if
+        // Live closing preview: the one line that answers "what do I get if
         // I shake hands right now?" Lives INSIDE the action row, beside the
         // handshake it describes (a standalone row pushed the buttons off
         // short screens). Updated every refresh.
@@ -581,7 +581,7 @@ public partial class NegotiationManager : Control
         {
             SizeFlagsVertical = SizeFlags.ShrinkCenter,
             TooltipText = "What the deal pays at the current clause positions " +
-                          "and zone — the squeeze, if any, comes on top.",
+                          "and zone. The squeeze, if any, comes on top.",
         };
         _dealPreviewLabel.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
         _dealPreviewLabel.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
@@ -590,7 +590,7 @@ public partial class NegotiationManager : Control
         _passButton = new Button
         {
             Text = "Pass (free)",
-            TooltipText = "Say nothing. Their patience wears — and they still act.",
+            TooltipText = "Say nothing. Their patience wears, and they still act.",
             CustomMinimumSize = new Vector2(140, 44),
         };
         _passButton.AddThemeFontSizeOverride("font_size", UITheme.NegotiationActionFontSize);
@@ -748,7 +748,7 @@ public partial class NegotiationManager : Control
     }
 
     /// <summary>The NPC's next move is now always telegraphed: a soft,
-    /// category-only read for everyone (the ladder is the game — hiding it
+    /// category-only read for everyone (the ladder is the game; hiding it
     /// made the table feel rigged), upgraded to the precise clause-naming
     /// briefing at Embassy tier 2.</summary>
     private void RefreshIntent()
@@ -764,7 +764,7 @@ public partial class NegotiationManager : Control
             : SoftIntent();
     }
 
-    /// <summary>Category-only tell — enough to teach the priority ladder,
+    /// <summary>Category-only tell: enough to teach the priority ladder,
     /// vague enough to keep the Embassy briefing worth building.</summary>
     private string SoftIntent()
     {
@@ -772,18 +772,18 @@ public partial class NegotiationManager : Control
         string res = _state.ResolveName;
         return kind switch
         {
-            NpcMoveKind.Poise => "Their next move: mastering themselves — a step back from the brink.",
-            NpcMoveKind.Pull => $"Their next move: {res} — dragging back your best clause.",
+            NpcMoveKind.Poise => "Their next move: mastering themselves, a step back from the brink.",
+            NpcMoveKind.Pull => $"Their next move: {res}, dragging back your best clause.",
             NpcMoveKind.Rework => _state.NpcPool[NpcResource.Resolve] > 0
-                ? $"Their next move: fine print on a minor clause — and their {res} waits for whatever you advance."
+                ? $"Their next move: fine print on a minor clause, and their {res} waits for whatever you advance."
                 : "Their next move: fine print on a minor clause.",
-            NpcMoveKind.Threat => "Their next move: a threat — they're out of fine print to rework.",
-            NpcMoveKind.Gift => "The warmth is working on them — generosity is close.",
-            _ => "They're spent — they'll hold and watch. Press your advantage.",
+            NpcMoveKind.Threat => "Their next move: a threat. They're out of fine print to rework.",
+            NpcMoveKind.Gift => "The warmth is working on them; generosity is close.",
+            _ => "They're spent. They'll hold and watch. Press your advantage.",
         };
     }
 
-    /// <summary>Phase 5: the school signature move row — a button plus a
+    /// <summary>Phase 5: the school signature move row, a button plus a
     /// per-school picker (Elementalist: target clause; Enchanter: mood;
     /// Adept: token type). Stays visible after use, disabled, so the player
     /// remembers it's spent.</summary>
@@ -813,7 +813,7 @@ public partial class NegotiationManager : Control
         switch (_state.School)
         {
             case CardSchool.Elementalist:
-                // Targets the selected clause card — no separate picker.
+                // Targets the selected clause card; no separate picker.
                 break;
             case CardSchool.Enchanter:
                 picker = new OptionButton { CustomMinimumSize = new Vector2(180, 36) };
@@ -923,7 +923,7 @@ public partial class NegotiationManager : Control
                 });
         }
 
-        // Low patience burns red — the walkout is imminent.
+        // Low patience burns red; the walkout is imminent.
         Color fill = remaining <= 2 ? UITheme.TensionHostile : UITheme.Violet;
         int i2 = 0;
         foreach (var child in _patienceBar.GetChildren())
@@ -935,8 +935,8 @@ public partial class NegotiationManager : Control
         _patienceCaption.Text = _state.IsResolved
             ? "Their patience"
             : remaining <= 2
-                ? $"Their patience — {remaining} move{(remaining == 1 ? "" : "s")} before they walk!"
-                : $"Their patience — {remaining} moves left";
+                ? $"Their patience: {remaining} move{(remaining == 1 ? "" : "s")} before they walk!"
+                : $"Their patience: {remaining} moves left";
         _patienceCaption.AddThemeColorOverride("font_color",
             remaining <= 2 && !_state.IsResolved
                 ? UITheme.TensionHostile : UITheme.NegotiationNpcColor);
@@ -975,9 +975,9 @@ public partial class NegotiationManager : Control
             Interactive = false,
             TooltipText = count > 0
                 ? $"{displayName} ×{count}"
-                : $"{displayName} — spent. This weapon is out of their hands.",
+                : $"{displayName}: spent. This weapon is out of their hands.",
         };
-        // A dry pool should LOOK dry — the moment their Resolve empties is
+        // A dry pool should LOOK dry: the moment their Resolve empties is
         // the moment pulls start sticking, and the rack should say so.
         if (count == 0)
             chip.Modulate = new Color(1f, 1f, 1f, 0.3f);
@@ -1046,7 +1046,7 @@ public partial class NegotiationManager : Control
     }
 
     /// <summary>This exchange's net slide of one clause by one mover, as a
-    /// from→to pair — null when that side didn't move it. A pull met by a
+    /// from→to pair, or null when that side didn't move it. A pull met by a
     /// counter-pull yields one marker for each side of the tug-of-war.</summary>
     private (int From, int To)? ExchangeMove(string termId, bool byPlayer)
     {
@@ -1066,7 +1066,7 @@ public partial class NegotiationManager : Control
     }
 
     /// <summary>Is notch p on the path this move slid across? (The landing
-    /// notch is excluded — it renders as the current-position marker.)</summary>
+    /// notch is excluded; it renders as the current-position marker.)</summary>
     private static bool InTrail(int p, (int From, int To) mv) =>
         p >= Mathf.Min(mv.From, mv.To) && p <= Mathf.Max(mv.From, mv.To) && p != mv.To;
 
@@ -1081,11 +1081,11 @@ public partial class NegotiationManager : Control
           .SetEase(Tween.EaseType.Out);
     }
 
-    /// <summary>One clause as a parchment card (placeholder art — swap the
+    /// <summary>One clause as a parchment card (placeholder art; swap the
     /// StyleBox for slip art in the full Phase 4 pass). Selected = gold
     /// border + ⌖ header; sealed = red border; targetable cards are
     /// clickable with a pointing-hand cursor. yourMove/theirMove are this
-    /// exchange's slides of THIS clause — drawn as move badges plus a ghost
+    /// exchange's slides of THIS clause, drawn as move badges plus a ghost
     /// trail on the slider, so the back-and-forth reads at a glance. threat
     /// marks the clause the NPC's NEXT move will land on (from
     /// PredictNpcAction), so baiting their pulls is a visible play.</summary>
@@ -1147,7 +1147,7 @@ public partial class NegotiationManager : Control
         box.AddChild(desc);
 
         // Move badges (last exchange) + threat marker (their next move).
-        // Both can show at once — that's the tug-of-war, made visible.
+        // Both can show at once; that's the tug-of-war, made visible.
         if (yourMove != null || theirMove != null || threat != null)
         {
             var moveRow = new HBoxContainer();
@@ -1161,7 +1161,7 @@ public partial class NegotiationManager : Control
                 var tag = MakeTinyLabel("⌖ IN THEIR SIGHTS", UITheme.TermAgainstPlayer);
                 tag.MouseFilter = MouseFilterEnum.Pass;   // tooltip without eating the card click
                 tag.TooltipText = $"While their {_state.ResolveName} holds, their next move " +
-                                  "drags this clause back a notch — two if the table is Hostile.";
+                                  "drags this clause back a notch, two if the table is Hostile.";
                 moveRow.AddChild(tag);
             }
             else if (threat == NpcMoveKind.Rework)
@@ -1184,7 +1184,7 @@ public partial class NegotiationManager : Control
             Color notch = p == term.Position
                 ? UITheme.NegotiationTitleColor
                 : new Color(ink.R, ink.G, ink.B, 0.18f);
-            // Ghost trail: the notches this clause just slid across — red
+            // Ghost trail: the notches this clause just slid across, red
             // when they dragged it, green when you pulled it.
             if (p != term.Position)
             {
@@ -1336,7 +1336,7 @@ public partial class NegotiationManager : Control
         var selectedTerm = SelectedTerm();
 
         // Compact cells: 44px chips (same as the NPC rack) with the token
-        // name folded into the effect line — a full token pool must fit the
+        // name folded into the effect line. A full token pool must fit the
         // moves box with no scrollbar, or closing buttons drift off-screen
         // and rows hide below the fold.
         var grid = new GridContainer { Columns = 2 };
@@ -1367,7 +1367,7 @@ public partial class NegotiationManager : Control
                 Count = _state.TokenPool[token],
                 SizePx = 44,
                 SizeFlagsVertical = SizeFlags.ShrinkCenter,
-                TooltipText = $"{token} ×{_state.TokenPool[token]} — click to spend it.",
+                TooltipText = $"{token} ×{_state.TokenPool[token]}. Click to spend it.",
                 CanDrag = () => _state != null && !_state.IsResolved
                                 && _state.TokenPool[token] > 0,
             };
@@ -1420,7 +1420,7 @@ public partial class NegotiationManager : Control
                 fxLbl.Text = NegotiationBarks.PatiencePreview;
             }
 
-            // Token identity lives on the effect line now — the caption that
+            // Token identity lives on the effect line now; the caption that
             // sat under each chip cost ~16px of height per row.
             fxLbl.Text = $"{token.ToString().ToUpperInvariant()} · {fxLbl.Text}";
 
@@ -1432,7 +1432,7 @@ public partial class NegotiationManager : Control
         {
             var spent = new Label
             {
-                Text = "Your leverage is spent — nothing left but silence, a handshake, or the door.",
+                Text = "Your leverage is spent. Nothing left but silence, a handshake, or the door.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
             spent.AddThemeFontSizeOverride("font_size", UITheme.NegotiationDetailFontSize);
@@ -1454,7 +1454,7 @@ public partial class NegotiationManager : Control
         if (token == LeverageToken.Patience)
         {
             StartLogTurn();
-            AppendLog($"— {NegotiationBarks.SpokenLine(LeverageToken.Patience, _state.Stance, _state.Data.Archetype)}",
+            AppendLog($"{NegotiationBarks.SpokenLine(LeverageToken.Patience, _state.Stance, _state.Data.Archetype)}",
                       NegotiationLogKind.Dialogue);
             _state.PlayPatience();
         }
@@ -1463,12 +1463,12 @@ public partial class NegotiationManager : Control
             StartLogTurn();
             if (SelectedHiddenTerm() != null)
             {
-                AppendLog($"— {NegotiationBarks.InsightFlipLine}", NegotiationLogKind.Dialogue);
+                AppendLog($"{NegotiationBarks.InsightFlipLine}", NegotiationLogKind.Dialogue);
                 _state.PlayInsightFlip();
             }
             else
             {
-                AppendLog($"— {NegotiationBarks.SpokenLine(LeverageToken.Insight, _state.Stance, _state.Data.Archetype)}",
+                AppendLog($"{NegotiationBarks.SpokenLine(LeverageToken.Insight, _state.Stance, _state.Data.Archetype)}",
                           NegotiationLogKind.Dialogue);
                 _state.PlayInsightRead();
             }
@@ -1479,7 +1479,7 @@ public partial class NegotiationManager : Control
             if (term == null)
                 return;
             StartLogTurn();
-            AppendLog($"— {NegotiationBarks.SpokenLine(token, _state.Stance, _state.Data.Archetype).Replace("{term}", NegotiationState.ShortName(term))}",
+            AppendLog($"{NegotiationBarks.SpokenLine(token, _state.Stance, _state.Data.Archetype).Replace("{term}", NegotiationState.ShortName(term))}",
                       NegotiationLogKind.Dialogue);
             if (token == LeverageToken.Offering)
                 _state.PlayOffering(term);
@@ -1489,7 +1489,7 @@ public partial class NegotiationManager : Control
         RefreshAll();
     }
 
-    /// <summary>Debug chips mode: raw token buttons + shared target picker —
+    /// <summary>Debug chips mode: raw token buttons + shared target picker,
     /// the same economy without the dialogue skin, for playtest comparison.</summary>
     private void BuildChipRows()
     {
@@ -1589,7 +1589,7 @@ public partial class NegotiationManager : Control
             $"Sign as written:  {SqLine(asWritten.Gold, asWritten.Rep, asWritten.Supplies, asWritten.Stars)}\n\n" +
             $"Hold firm: {_pendingSqueeze.OddsPercent}% they blink and sign as written.\n" +
             (_state.Tension >= 8
-                ? "If they bristle: +2 tension — this table would COLLAPSE."
+                ? "If they bristle: +2 tension, and this table would COLLAPSE."
                 : "If they bristle: +2 tension, and the talk goes on.");
         _squeezeHoldBtn.Text = $"Hold firm ({_pendingSqueeze.OddsPercent}%)";
         _squeezePanel.Visible = true;
@@ -1597,7 +1597,7 @@ public partial class NegotiationManager : Control
 
     // ── Log / events ─────────────────────────────────────────────────────
 
-    /// <summary>Archive everything logged so far as "old news" — called at
+    /// <summary>Archive everything logged so far as "old news". Called at
     /// the START of each player action so only the newest exchange renders
     /// bright. A blank sentinel line paragraphs the exchanges.</summary>
     private void StartLogTurn()
@@ -1616,7 +1616,7 @@ public partial class NegotiationManager : Control
     }
 
     /// <summary>Dialogue-first rendering: spoken lines bright, stage
-    /// direction italic and softer, the sim readout tiny — and hidden
+    /// direction italic and softer, the sim readout tiny, and hidden
     /// entirely unless "Table details" is on.</summary>
     private void RenderLog()
     {
@@ -1654,7 +1654,7 @@ public partial class NegotiationManager : Control
                 case NegotiationLogKind.Scene:
                     sb.Append($"[i][color=#{sceneHex}]{EscapeBb(text)}[/color][/i]\n");
                     break;
-                default:   // Dialogue — the reading layer
+                default:   // Dialogue, the reading layer
                     sb.Append($"{EscapeBb(text)}\n");
                     break;
             }
@@ -1704,7 +1704,7 @@ public partial class NegotiationManager : Control
             revealSupplyCaches: _state.GetSupplyIntelOutcome(),
             steps: _state.GetStepsOutcome());
 
-        RecordDeal(spellGranted);   // Hall of Records — every outcome, every timeline
+        RecordDeal(spellGranted);   // Hall of Records: every outcome, every timeline
 
         GD.Print($"Negotiation resolved: deal={_state.DealAccepted}, " +
                  $"gold={_state.GetGoldOutcome()}, rep={_state.GetReputationOutcome()}, " +
@@ -1774,7 +1774,7 @@ public partial class NegotiationManager : Control
     /// <summary>The signing receipt: one line per clause with what it
     /// actually pays or costs at its final position, the zone adjustment as
     /// its own line, then the walk-away totals. Replaces the old wall of
-    /// prose — every number the player cares about, nothing else.</summary>
+    /// prose: every number the player cares about, nothing else.</summary>
     private void BuildDealReceipt(string spellGranted)
     {
         AddResultLine($"Deal Struck   {StarLine(_state.GetStars())}",
@@ -1802,19 +1802,19 @@ public partial class NegotiationManager : Control
             Color noteColor = UITheme.NegotiationHiddenTerm;
             if (term.IsHidden)
             {
-                note = "never read — binds anyway";
+                note = "never read; binds anyway";
                 noteColor = UITheme.TermAgainstPlayer;
             }
             else if (!string.IsNullOrEmpty(term.SpellId))
             {
                 bool granted = spellGranted == term.SpellId;
-                note = granted ? "learned ✓" : "lost — needed a Cordial close";
+                note = granted ? "learned ✓" : "lost; needed a Cordial close";
                 noteColor = granted ? UITheme.TermFavorPlayer : UITheme.TermAgainstPlayer;
             }
             else if (term.RevealsSupplyCaches)
             {
                 bool marked = term.PlayerFraction() > 0f;
-                note = marked ? "supply lines marked ✓" : "lost — fully theirs";
+                note = marked ? "supply lines marked ✓" : "lost; fully theirs";
                 noteColor = marked ? UITheme.TermFavorPlayer : UITheme.TermAgainstPlayer;
             }
             else if (!term.FavorPlayer && term.PlayerFraction() == 0f)
@@ -1824,7 +1824,7 @@ public partial class NegotiationManager : Control
             }
             else if (term.FavorPlayer && term.PlayerFraction() == 0f)
             {
-                note = "lost — fully theirs";
+                note = "lost; fully theirs";
                 noteColor = UITheme.TermAgainstPlayer;
             }
             else
@@ -1834,22 +1834,22 @@ public partial class NegotiationManager : Control
 
             AddReceiptRow(grid,
                 name, nameColor,
-                tGold == 0 ? "—" : $"{Signed(tGold)}g", GainLossColor(tGold),
-                tSupplies == 0 ? "—" : $"{Signed(tSupplies)} sup", GainLossColor(tSupplies),
-                tRep == 0 ? "—" : $"{Signed(tRep)} rep", GainLossColor(tRep),
+                tGold == 0 ? "-" : $"{Signed(tGold)}g", GainLossColor(tGold),
+                tSupplies == 0 ? "-" : $"{Signed(tSupplies)} sup", GainLossColor(tSupplies),
+                tRep == 0 ? "-" : $"{Signed(tRep)} rep", GainLossColor(tRep),
                 note, noteColor);
         }
 
-        // Zone adjustments as their own line item — no hidden math. (Supplies
-        // take no zone rate — provisions are physical goods.)
+        // Zone adjustments as their own line item: no hidden math. (Supplies
+        // take no zone rate; provisions are physical goods.)
         float mult = NegotiationState.ZoneGoldMult(_state.Zone);
         int repAdj = NegotiationState.ZoneRepBonus(_state.Zone);
         if (mult != 1f || repAdj != 0)
             AddReceiptRow(grid,
                 $"{_state.Zone} zone rate", ZoneColor(_state.Zone),
-                mult != 1f ? $"×{mult:0.##}g" : "—", GainLossColor(mult - 1f),
-                "—", UITheme.NegotiationHiddenTerm,
-                repAdj != 0 ? $"{Signed(repAdj)} rep" : "—", GainLossColor(repAdj),
+                mult != 1f ? $"×{mult:0.##}g" : "-", GainLossColor(mult - 1f),
+                "-", UITheme.NegotiationHiddenTerm,
+                repAdj != 0 ? $"{Signed(repAdj)} rep" : "-", GainLossColor(repAdj),
                 "", UITheme.NegotiationHiddenTerm);
 
         _resultContent.AddChild(new HSeparator());
@@ -1871,12 +1871,12 @@ public partial class NegotiationManager : Control
     {
         AddResultLine(_state.PlayerWalkedAway ? "You Walked Away" : "They Ended It",
             UITheme.NegotiationTitleColor, UITheme.NegotiationResultFontSize);
-        AddResultLine("No deal — nothing gained, nothing lost. Reputation unharmed.",
+        AddResultLine("No deal. Nothing gained, nothing lost. Reputation unharmed.",
             UITheme.NegotiationNpcColor, UITheme.NegotiationBodyFontSize);
     }
 
     /// <summary>The one line that answers "what do I get if I shake hands
-    /// right now?" — refreshed after every exchange.</summary>
+    /// right now?" Refreshed after every exchange.</summary>
     private void RefreshDealPreview()
     {
         if (_dealPreviewLabel == null || _state == null)
@@ -1902,7 +1902,7 @@ public partial class NegotiationManager : Control
     /// <summary>Hall of Records (negotiation doc §7b): append this table's
     /// outcome to the eternal ledger, count the deeds, and anchor five-star
     /// deals as renown (RenownAnchor's own documented example milestone).
-    /// Fires for EVERY resolution — signed, walked, left, collapsed.</summary>
+    /// Fires for EVERY resolution: signed, walked, left, collapsed.</summary>
     private void RecordDeal(string spellGranted)
     {
         var save = SaveManager.ActiveSave;
@@ -1936,10 +1936,10 @@ public partial class NegotiationManager : Control
         NegotiationTelemetry.Record(record, _state);
 
         if (save == null)
-            return;   // debug scene entry — nothing to persist
+            return;   // debug scene entry; nothing to persist
         save.Ledger.DealRecords.Add(record);
 
-        // Deed ledger — outcome-blind count, plus the signed/masterpiece deeds.
+        // Deed ledger: outcome-blind count, plus the signed/masterpiece deeds.
         save.Ledger.RecordDeed("negotiation_resolved");
         if (_state.DealAccepted)
         {

@@ -5,8 +5,8 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.WaterPlane.cs  (partial of HexGridManager)
 //
-// Purpose:        Builds the single painterly water surface — one welded
-//                 MeshInstance3D covering every Water-classified tile —
+// Purpose:        Builds the single painterly water surface (one welded
+//                 MeshInstance3D covering every Water-classified tile)
 //                 and bakes the per-vertex data the shader needs:
 //                   COLOR.r = shore distance (0 at land edge .. 1 open water)
 //                   COLOR.g = depth (0 shallow .. 1 at WaterMaxDepthWorld)
@@ -18,11 +18,11 @@ using System.Collections.Generic;
 //                 sort hazard. Rebuilt on map regen like the scatter fields.
 // Layer:          System (visuals)
 // Collaborators:  HexGridManager.cs (Tiles, AxialToWorld, HexRadius, regen
-//                 path — SpawnWaterPlane() is called with the other fields),
+//                 path, where SpawnWaterPlane() is called with the other fields),
 //                 HexMeshBuilder.SampleSurfaceWorldY (depth bake),
 //                 WindNoise.cs (procedural noise fallback),
 //                 painterly_water.gdshader
-// Notes:          Spawn AFTER ApplyTileHeights()/ApplyTileVisuals() — the
+// Notes:          Spawn AFTER ApplyTileHeights()/ApplyTileVisuals(); the
 //                 depth bake samples the final blended terrain surface.
 //                 Material resolution mirrors the grass: explicit material
 //                 export wins, else shader + WindNoise.CreateSeamless().
@@ -32,7 +32,7 @@ using System.Collections.Generic;
 /// A water personality (S1.5): tint, motion, foam, sparkle, clarity and
 /// shoreline character for one kind of wet map. Resolved per map from the
 /// recipe's "water" block (profile name + overrides) or a theme fallback.
-/// Base motion/sparkle numbers assume the shader's authored defaults —
+/// Base motion/sparkle numbers assume the shader's authored defaults;
 /// retune both together if those change.
 /// </summary>
 public sealed class WaterProfile
@@ -68,7 +68,7 @@ public partial class HexGridManager : Node3D
     /// <summary>Surface height above the deepest bed for LANDLESS bodies only (open sea). Any body touching land takes its level from the land instead (see WaterShoreLip).</summary>
     [Export(PropertyHint.Range, "0.1,1.0,0.05")] public float WaterFillDepth = 0.4f;
 
-    /// <summary>How far the surface sits below the LOWEST adjacent bank top. Small (~0.06) = water at grade, spilling into the neighbors' noise dips — the marsh look; large = recessed pond in a visible basin.</summary>
+    /// <summary>How far the surface sits below the LOWEST adjacent bank top. Small (~0.06) = water at grade, spilling into the neighbors' noise dips (the marsh look); large = recessed pond in a visible basin.</summary>
     [Export(PropertyHint.Range, "0.0,0.4,0.01")] public float WaterShoreLip = 0.06f;
 
     /// <summary>Water thickness (world units) that maps to depth 1.0 in the baked COLOR.g channel.</summary>
@@ -86,10 +86,10 @@ public partial class HexGridManager : Node3D
     /// <summary>Sand tiles bordering water settle to the body's lowest bank height, so beaches meet the water AT GRADE (the ramp becomes submerged shallows) instead of dropping off a bank. Grass/stone shores keep their banks.</summary>
     [Export] public bool FlattenSandShores = true;
 
-    /// <summary>How strongly water tiles pull shared shore corners down in the height weld. 1 = plain average (DEFAULT — leave it). Values > 1 were a fix for waterline ties under the old bed-derived surface model; with the bank-lip waterline they only create steep pinched corner wedges that the splat's cliff retexture paints as small dark triangles at shore corners.</summary>
+    /// <summary>How strongly water tiles pull shared shore corners down in the height weld. 1 = plain average (DEFAULT, leave it). Values > 1 were a fix for waterline ties under the old bed-derived surface model; with the bank-lip waterline they only create steep pinched corner wedges that the splat's cliff retexture paints as small dark triangles at shore corners.</summary>
     [Export(PropertyHint.Range, "0.25,4.0,0.05")] public float WaterShoreCornerSink = 1.0f;
 
-    /// <summary>Explicit water material. When set it wins outright; assign its water_noise slot yourself (materials don't auto-inject noise — style guide §8).</summary>
+    /// <summary>Explicit water material. When set it wins outright; assign its water_noise slot yourself (materials don't auto-inject noise; style guide §8).</summary>
     [Export] public Material WaterMaterial;
 
     /// <summary>Water shader used when no explicit material is set. Falls back to WaterShaderPath.</summary>
@@ -247,7 +247,7 @@ public partial class HexGridManager : Node3D
 
     /// <summary>
     /// Builds the water plane over all Water-classified tiles. Call after
-    /// ApplyTileHeights()/ApplyTileVisuals() — the depth bake samples the
+    /// ApplyTileHeights()/ApplyTileVisuals(); the depth bake samples the
     /// final blended terrain surface under each vertex.
     /// </summary>
     public void SpawnWaterPlane()
@@ -261,7 +261,7 @@ public partial class HexGridManager : Node3D
 
         if (waterTiles.Count == 0)
         {
-            GD.Print("[WaterPlane] No Water-classified tiles on this map — nothing to build.");
+            GD.Print("[WaterPlane] No Water-classified tiles on this map; nothing to build.");
             return;
         }
 
@@ -284,13 +284,13 @@ public partial class HexGridManager : Node3D
         // Per-BODY waterline: flood-fill connected water tiles, then set each
         // body's surface from its own bed and its lowest adjacent land lip.
         // A single global waterline floats above any land that happens to sit
-        // low (Grassland at Height -1 next to a pond) — learned the hard way.
+        // low (Grassland at Height -1 next to a pond). Learned the hard way.
         Dictionary<Vector2I, float> surfaceYByTile = ComputeBodyWaterlines(waterTiles);
 
         // Shore skirt: with ramped beaches the plane extends one tile under
         // every adjacent land tile. The buried part is depth-hidden; the part
         // where the ramp dips below the surface becomes visible water, so the
-        // waterline is drawn by the terrain intersection — noisy and organic,
+        // waterline is drawn by the terrain intersection: noisy and organic,
         // never a hex silhouette.
         var skirt = new Dictionary<TileData, float>();
         if (BeachBlendWaterShores)
@@ -430,7 +430,7 @@ public partial class HexGridManager : Node3D
             }
 
             if (adjLandMin == int.MaxValue)
-                continue; // landless body (open sea) — nothing to dig against
+                continue; // landless body (open sea); nothing to dig against
 
             int maxAllowed = adjLandMin - 1;
             foreach (var t in body)
@@ -467,7 +467,7 @@ public partial class HexGridManager : Node3D
         if (dug > 0)
             GD.Print($"[WaterPlane] Dug {dug} water tile(s) below their banks so basins exist.");
 
-        // Push the waterline into the SHARED splat template now — tiles
+        // Push the waterline into the SHARED splat template now: tiles
         // duplicate it when their meshes build (later in the sequence), so this
         // must happen first. Grid lines fade out under water; submerged hex
         // lines read as hard geometry against the organic waterline.
@@ -505,7 +505,7 @@ public partial class HexGridManager : Node3D
     /// <summary>
     /// All water tiles the surface must cover: playable AND vista-ring water.
     /// On Coast/Water maps the sea continues past the playable boundary
-    /// (S1 item 6) — leaving vista water on the flat splat draws a hard seam
+    /// (S1 item 6); leaving vista water on the flat splat draws a hard seam
     /// through the ocean.
     /// </summary>
     private List<TileData> CollectAllWaterTiles()
@@ -604,7 +604,7 @@ public partial class HexGridManager : Node3D
             float surfaceY = adjLandMinTop != float.MaxValue
                 ? adjLandMinTop - lip
                 : bedMinTop + WaterFillDepth;
-            // Safety floor only — DigWaterBasins guarantees room below the lip.
+            // Safety floor only; DigWaterBasins guarantees room below the lip.
             surfaceY = Mathf.Max(surfaceY, bedMaxTop + 0.05f);
 
             foreach (var t in body)
@@ -644,7 +644,7 @@ public partial class HexGridManager : Node3D
             }
         }
 
-        // Flat-top corner ring — same 60°·i convention as HexMeshBuilder.Corner.
+        // Flat-top corner ring, same 60°·i convention as HexMeshBuilder.Corner.
         var corners = new Vector3[6];
         for (int i = 0; i < 6; i++)
         {
@@ -676,7 +676,7 @@ public partial class HexGridManager : Node3D
         // (opposite of the OpenGL right-hand convention). The corner ring is
         // authored at 60°·i in XZ, so the natural p0→p1→p2 order is what reads
         // clockwise from +Y. Swapping any two vertices makes the whole plane
-        // visible only from BELOW — it builds, logs, and renders to the fish.
+        // visible only from BELOW: it builds, logs, and renders to the fish.
         AddWaterVertex(st, tile, waterCenters, p0);
         AddWaterVertex(st, tile, waterCenters, p1);
         AddWaterVertex(st, tile, waterCenters, p2);
@@ -718,7 +718,7 @@ public partial class HexGridManager : Node3D
     private float BakeShoreDistance(TileData tile, Vector3 pos)
     {
         // Approximate distance to land as (distance to land tile center) minus
-        // the hex inradius — error is well under the shader's foam wobble.
+        // the hex inradius; error is well under the shader's foam wobble.
         float inradius = HexRadius * Mathf.Sqrt(3f) * 0.5f;
 
         float best = float.MaxValue;

@@ -18,7 +18,7 @@ using System.Collections.Generic;
 //                 post-resolve), Effect.cs / CompositeEffects.cs
 //                 (the effects this drives), CombatManager.cs
 //                 (top-level caller)
-// See:            README §3 — Architecture (stack-based resolution
+// See:            README §3, Architecture (stack-based resolution
 //                 model is MTG-derived)
 // ============================================================
 
@@ -44,7 +44,7 @@ public sealed class StackItem
     public Card SourceCard;
 
     /// <summary>The UNIT that cast this item, captured at cast time (2026-07-09).
-    /// The Entity alone can't identify the caster — PlayerA covers the whole
+    /// The Entity alone can't identify the caster, since PlayerA covers the whole
     /// party. Resolver.ResolveTop pins GameState.ActiveCasterUnit to this for
     /// the resolution, so stack-deferred casts (Reaction responses in trigger
     /// windows) resolve centered on their actual caster. Null for enemy
@@ -127,7 +127,7 @@ public sealed class Resolver
             s.ActiveCasterUnit = item.CasterUnit;
 
         // 2026-07-28: pin the DAMAGE SOURCE for the same window. Deliberately assigned
-        // from item.CasterUnit — which is captured at CAST time — and NOT from
+        // from item.CasterUnit (which is captured at CAST time) and NOT from
         // ActiveCasterUnit, which is derived from `selectedUnit` on some paths and so
         // can name whoever the player happens to have highlighted rather than whoever
         // actually cast. That distinction is the thornback bug: a spell from a distant
@@ -139,7 +139,7 @@ public sealed class Resolver
         Unit.AmbientDamageSource = item.CasterUnit;
 
         // Perfected cards (2026-07-29): the Magnum Opus bonus applies to exactly THIS
-        // card's resolution — pinned onto the caster for the effect loop and restored
+        // card's resolution, pinned onto the caster for the effect loop and restored
         // after, the same shape as the caster/damage-source pins above. Unit-level
         // BonusSpellDamage is how DealDamageEffect already reads flat bonuses, so the
         // bonus flows through every damage/heal leaf without those effects changing.
@@ -156,7 +156,7 @@ public sealed class Resolver
 
         // Equipment: school-keyed spell damage (2026-08-13, replaces the
         // never-implemented FireSpellBonusDamage). Same pin/unpin shape as
-        // Perfected — BonusSpellDamage is how DealDamageEffect already reads
+        // Perfected: BonusSpellDamage is how DealDamageEffect already reads
         // flat bonuses, so every damage leaf prices it without changing.
         int schoolItemBonus = 0;
         if (item.SourceCard != null && item.CasterUnit != null
@@ -191,15 +191,15 @@ public sealed class Resolver
         }
 
         // Post-cast player choice (2026-07-28): an effect asked the player something.
-        // Published HERE — after the effect loop, after the caster/damage-source pins
-        // are restored — so the continuation runs against a clean resolution context
+        // Published HERE, after the effect loop and after the caster/damage-source pins
+        // are restored, so the continuation runs against a clean resolution context
         // rather than inheriting pins from the item that requested it. If nothing is
         // listening (headless, AI cast, a test), the request takes its own default and
         // the game moves on; a question nobody can answer must never wedge a fight.
         var choice = s.PendingChoice;
         if (choice != null)
         {
-            s.PendingChoice = null;              // clear BEFORE dispatch — the
+            s.PendingChoice = null;              // clear BEFORE dispatch; the
                                                  // continuation may request another
             s.DispatchCardChoice(choice);
         }
@@ -230,7 +230,7 @@ public static class Rules
             var casterUnit = s.UnitsInPlay?.Find(u => u != null && u.Name == caster.Name);
             if (casterUnit?.Attunement is FateAttunement fate && fate.HasFreeReaction)
             {
-                // Free response (full bank) — skip the cost check for this path only.
+                // Free response (full bank): skip the cost check for this path only.
                 // Enemy-phase gated so a leftover grant can't discount your own turn.
                 return true;
             }
@@ -278,7 +278,7 @@ public static class Rules
     public static bool TryCastWithTargets(Ability a, GameState s, Entity caster, TargetSet targets, Card sourceCard)
     {
         // Per-card discount (2026-07-29): pin the card being cast so
-        // ManaCost.EffectiveAmount prices it — for the affordability check inside
+        // ManaCost.EffectiveAmount prices it, for the affordability check inside
         // CanCast AND for the payment below. Pinned through both, cleared in finally:
         // affordability and payment must price the same card or the player can cast a
         // spell they cannot afford (the exact failure the tithe comment warns about,
@@ -343,11 +343,11 @@ public static class Rules
         }
 
         // (2026-07-10 Time Bank tuning): the Foresight >= 2 Instant/Reaction discount
-        // is RETIRED — cheaper casts fed leftover mana straight back into the bank,
+        // is RETIRED: cheaper casts fed leftover mana straight back into the bank,
         // a feedback loop that kept the bank pegged at 4 (playtest-confirmed).
 
         // Full bank free response (2026-07-10): the preselected path never
-        // honored HasFreeReaction — it bypassed the affordability check but
+        // honored HasFreeReaction: it bypassed the affordability check but
         // still paid, and never consumed the grant. Now: skip payment entirely
         // and consume. Enemy-phase + non-Sorcery gated, mirroring CanCast.
         bool freeResponse = false;
@@ -358,14 +358,14 @@ public static class Rules
             {
                 freeResponse = true;
                 freeFate.ConsumeFreeReaction();
-                s.Log($"[TimeBank] Full-bank free response — {a.Name} costs nothing.");
+                s.Log($"[TimeBank] Full-bank free response: {a.Name} costs nothing.");
             }
         }
 
         // ── Chronomancer: consume queued cost reduction ──────────────────────────
         // (2026-07-29) Folded in BEFORE the refund. Previously this was consumed
         // AFTER the refund block had already run, so Accelerando's discount was
-        // eaten and never paid back — the log even printed the amount it wasn't
+        // eaten and never paid back; the log even printed the amount it wasn't
         // refunding.
         if (s.NextSpellCostReduction > 0)
         {
@@ -378,7 +378,7 @@ public static class Rules
         // then refund the GLOBAL discounts. Global discounts keep the
         // pay-full-then-refund shape deliberately: they can never make an
         // unaffordable spell castable. The per-card discount deliberately does the
-        // opposite — "this card costs 1 less" must make the card castable at the
+        // opposite: "this card costs 1 less" must make the card castable at the
         // lower price, which is why it prices the cost instead of refunding it.
         if (!freeResponse)
             foreach (var c in a.Costs)
@@ -386,7 +386,7 @@ public static class Rules
 
         if (!freeResponse && manaDiscount > 0)
         {
-            // (2026-07-29) Refund the UNIT's pool, not just the legacy dict — the
+            // (2026-07-29) Refund the UNIT's pool, not just the legacy dict. The
             // unit's mana is authoritative (ManaCost.CanPay reads it), so a refund
             // that only touched s.Mana never actually came back to the player.
             var refundUnit = s.ActiveCasterUnit;
@@ -414,7 +414,7 @@ public static class Rules
         }
 
         // Per-card discount is single-use: consumed by the cast it just priced.
-        // EXCEPT Perfected cards — Magnum Opus' cost-0 is permanent for the fight.
+        // EXCEPT Perfected cards: Magnum Opus' cost-0 is permanent for the fight.
         if (sourceCard != null
             && !s.PerfectedCards.ContainsKey(sourceCard.InstanceId)
             && s.CardCostDeltas.Remove(sourceCard.InstanceId))
@@ -423,7 +423,7 @@ public static class Rules
         var snap = (a as CardHalf)?.MakeSnapshot(s, caster) ?? new EffectSnapshot();
 
         // Choose-one (2026-07-29): move the mode pick onto the snapshot so it rides
-        // the stack with this item. Reset unconditionally — a stale index must not
+        // the stack with this item. Reset unconditionally: a stale index must not
         // leak onto the next cast.
         snap.ChosenOption = s.PendingChooseOneIndex;
         s.PendingChooseOneIndex = -1;
@@ -444,7 +444,7 @@ public static class Rules
     }
 
     /// <summary>The school of a runtime card, via its blueprint (runtime Cards
-    /// carry no school field). Empty string when the blueprint is unknown —
+    /// carry no school field). Empty string when the blueprint is unknown,
     /// which makes school-keyed item passives inert for it, never wrong.
     /// Public: consumed by both Rules (cost discount) and Resolver (damage pin).</summary>
     public static string SchoolOfCard(Card card)

@@ -6,8 +6,8 @@ using System.Text;
 // NegotiationTelemetry.cs
 //
 // Purpose:        One CSV row per resolved negotiation, appended
-//                 to user://negotiation_telemetry.csv — the
-//                 playtest data source for the tuning loop
+//                 to user://negotiation_telemetry.csv. This is
+//                 the playtest data source for the tuning loop
 //                 (claude/negotiation_tuning_v1.md). Mirrors the
 //                 CombatTelemetry pattern. Read the file into a
 //                 spreadsheet (or hand it to Claude) after a

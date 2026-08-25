@@ -10,7 +10,7 @@
  "npcResolve": 2,
  "npcGuile": 2,
  "npcPoise": 1,
- "dialogueCordial": "Now this I can work with. You drive a fair bargain — I'll remember this.",
+ "dialogueCordial": "Now this I can work with. You drive a fair bargain. I'll remember this.",
  "dialogueStrained": "I hear you. Whether I agree is another matter.",
  "dialogueHostile": "Watch yourself. I've dealt with rougher than you, and I didn't get rich by being pushed around.",
  "dialogueWalkaway": "This isn't worth my time. Good day.",
@@ -39,7 +39,7 @@
   },
   {
    "id": "hidden_fee",
-   "description": "A 'processing fee' of 15 gold — buried in the small print.",
+   "description": "A 'processing fee' of 15 gold, buried in the small print.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -15,
@@ -49,7 +49,7 @@
   },
   {
    "id": "provision_contract",
-   "description": "Aldric buys 15 of your supplies at caravan rates — 45 gold on delivery.",
+   "description": "Aldric buys 15 of your supplies at caravan rates: 45 gold on delivery.",
    "favorPlayer": true,
    "isHidden": false,
    "goldDelta": 45,

@@ -8,7 +8,7 @@
 		"name": "Contingency",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Choose one \u2014 prepare a Snare glyph on the target tile, or trigger all of your prepared glyphs.",
+		"rules_text": "Choose one: prepare a Snare glyph on the target tile, or trigger all of your prepared glyphs.",
 		"tags": [],
 		"targeting": {
 			"type": "tile",

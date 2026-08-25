@@ -3,7 +3,7 @@ using Godot;
 // ============================================================
 // HexDirection.cs
 //
-// Purpose:        Shared math helpers for hex direction vectors —
+// Purpose:        Shared math helpers for hex direction vectors:
 //                 the 6 axial unit vectors plus snap/projection
 //                 routines used by every shape-based targeter
 //                 (line, cone, ring, push, etc.).
@@ -11,12 +11,12 @@ using Godot;
 // Collaborators:  TargetSelectors.cs (consumers of All, Pick),
 //                 TargetingHelpers.cs (paired helpers),
 //                 HexGridManager.cs (axial coordinate system)
-// See:            README §3 — hex grid is the spatial substrate
+// See:            README §3 (hex grid is the spatial substrate)
 // ============================================================
 //
 // Conventions: axial coordinates, flat-top hexes, 6 directions
 // indexed clockwise starting from "east" (+x, 0). HexDirection.All
-// is the canonical order — do not reshuffle without updating
+// is the canonical order. Do not reshuffle without updating
 // callers that depend on the indexing (e.g. MaelstromEffect's
 // rotation step).
 
@@ -36,7 +36,7 @@ public static class HexDirection
 
     /// <summary>
     /// Cube-space projection: which of the 6 directions points most strongly
-    /// toward the aim tile? Stable tiebreaking — first-listed direction wins on ties.
+    /// toward the aim tile? Stable tiebreaking: first-listed direction wins on ties.
     /// </summary>
     public static int BestToward(Vector2I origin, Vector2I aim)
     {

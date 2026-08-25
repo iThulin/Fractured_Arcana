@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 // ============================================================
 // DeckUiManager.cs
 //
-// Purpose:        Owns the visible deck UI in the combat scene
-//                 — the hand fan, the draw/discard counter
+// Purpose:        Owns the visible deck UI in the combat scene:
+//                 the hand fan, the draw/discard counter
 //                 labels, the test/debug buttons, and the
 //                 diff-based hand refresh that keeps CardUi
 //                 nodes stable across redraws.
@@ -15,17 +15,17 @@ using System.Threading.Tasks;
 // Collaborators:  DeckManager.cs (active deck source),
 //                 CardUi.cs (the per-card visual nodes),
 //                 UITheme.cs (hand-arc layout constants)
-// See:            README §6 — Per-Unit Deck Management
+// See:            README §6, Per-Unit Deck Management
 // ============================================================
 
-/// <summary>Combat-scene UI controller for the hand and deck counters. Diff-driven refresh — existing <see cref="CardUi"/> nodes are kept and rearranged where possible rather than freed and recreated, so card hover/select state survives across draws.</summary>
+/// <summary>Combat-scene UI controller for the hand and deck counters. The refresh is diff-driven: existing <see cref="CardUi"/> nodes are kept and rearranged where possible rather than freed and recreated, so card hover/select state survives across draws.</summary>
 public partial class DeckUiManager : Node2D
 {
 	[Export] public PackedScene CardUIPackedScene;
 	[Export] public PackedScene DropSlotScene;
 
 	// V1 (combat_ui_v2 §4): the old HandBound* screen-fraction exports are
-	// deleted — they were dead (PositionHandCards never read them) and were
+	// deleted. They were dead (PositionHandCards never read them) and were
 	// the documented GetVisibleRect trap. Hand geometry now comes from the
 	// UITheme design-space constants (HandReserve*/HandCard*/HandArc*).
 	// Under canvas_items stretch, GetVisibleRect().Size IS design space, so
@@ -54,7 +54,7 @@ public partial class DeckUiManager : Node2D
 
 		CallDeferred(nameof(InitHandUISize));
 
-		// Hide debug buttons — deck/grave managed by CombatUI bottom bar
+		// Hide debug buttons: deck/grave are managed by CombatUI's bottom bar
 		drawButton = GetNodeOrNull<Button>("../DrawButton");
 		discardButton = GetNodeOrNull<Button>("../DiscardButton");
 		reshuffleButton = GetNodeOrNull<Button>("../ReshuffleButton");
@@ -219,7 +219,7 @@ public partial class DeckUiManager : Node2D
 			return;
 
 		// Design-space size (canvas_items stretch: constant 1920×1080, wider
-		// under aspect=expand on ultrawide — the reserves stay edge-anchored).
+		// under aspect=expand on ultrawide, where the reserves stay edge-anchored).
 		Vector2 screen = GetViewport().GetVisibleRect().Size;
 
 		float boxLeft = UITheme.HandReserveLeft;
@@ -227,8 +227,8 @@ public partial class DeckUiManager : Node2D
 		float boxCenterX = boxLeft + (boxRight - boxLeft) * 0.5f;
 
 		// Diagnostic (stale-assembly canary + widescreen evidence): prints once
-		// per viewport size change. boxCenter must equal screen.X/2 exactly —
-		// if it doesn't, or this line never appears, the fan math isn't the
+		// per viewport size change. boxCenter must equal screen.X/2 exactly.
+		// If it doesn't, or this line never appears, the fan math isn't the
 		// code you think it is.
 		bool logFanDiag = screen != _lastFanScreen;
 		if (logFanDiag)
@@ -357,7 +357,7 @@ public partial class DeckUiManager : Node2D
 	/// <summary>U3e: maps a half's PRINTED mana cost to what it will actually cost,
 	/// after tithe_aura. Wired by CombatManager to ManaCost.EffectiveAmount so the
 	/// hand and the rules engine cannot disagree about a number the player is about
-	/// to act on — the same "one formula, two readers" rule the R22 damage preview
+	/// to act on. This is the same "one formula, two readers" rule the R22 damage preview
 	/// follows. Unset (menus, deck editor) = identity, so nothing outside combat
 	/// changes.</summary>
 	public void SetEffectiveCostProvider(Func<int, int> provider)
@@ -373,7 +373,7 @@ public partial class DeckUiManager : Node2D
 
 	/// <summary>Per-card variant (2026-07-29): prices a printed cost for one specific
 	/// card INSTANCE, so per-card discounts (Precognition's kept card, a Perfected
-	/// card) show on that copy's pip and affordability tint — and only that copy's.
+	/// card) show on that copy's pip and affordability tint, and only that copy's.
 	/// Wired by CombatManager to the same ManaCost.EffectiveAmount the rules engine
 	/// pays with, with GameState.CostContextCard pinned for the read.</summary>
 	public void SetPerCardCostProvider(Func<int, Card, int> provider)
@@ -440,7 +440,7 @@ public partial class DeckUiManager : Node2D
 
 			var tween = neighbor.CreateTween();
 			tween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
-			// Shift along the arc tangent — approximate with X offset
+			// Shift along the arc tangent, approximated with an X offset
 			tween.TweenProperty(neighbor, "position",
 				neighbor._restPosition + new Vector2(push, 0), 0.15f);
 		}

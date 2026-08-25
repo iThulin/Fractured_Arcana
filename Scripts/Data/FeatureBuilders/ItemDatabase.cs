@@ -23,7 +23,7 @@ using System.Text.Json.Serialization;
 //                 CampusScreen.cs (calls BuildForRun),
 //                 CombatManager.cs / Unit.cs (read Resolved
 //                 loadouts at spawn)
-// See:            README §3 (Architecture — item pipeline)
+// See:            README §3 (Architecture, item pipeline)
 // ============================================================
 
 /// <summary>Process-wide loader and registry for item blueprints. Loads lazily on first <see cref="Get"/> call; cache cleared by re-invoking <see cref="LoadAll"/> after manual reset.</summary>
@@ -177,7 +177,7 @@ public class ArmoryData
 
     /// <summary>
     /// Equip an item to a unit's slot. Unequips whatever was there before
-    /// (returns it to the armory — it stays in OwnedItems).
+    /// (returns it to the armory; it stays in OwnedItems).
     /// Returns false if the item isn't in the armory or the slot doesn't match.
     /// </summary>
     public bool Equip(string unitId, string instanceId)
@@ -239,7 +239,7 @@ public class ArmoryData
 
 /// <summary>
 /// Resolved item data for one unit, ready to apply to Unit stats at spawn.
-/// CombatManager reads this — no ItemDatabase lookups needed in combat.
+/// CombatManager reads this, so no ItemDatabase lookups are needed in combat.
 /// </summary>
 public class ResolvedLoadout
 {
@@ -258,11 +258,11 @@ public class ResolvedLoadout
     // Param added 2026-08-13 for the school-keyed passives (empty for the rest).
     public List<(ItemPassiveTag tag, int value, string param)> Passives = new();
 
-    // Q2 (§7a): trigger-bus abilities from equipped items — dispatched on the
+    // Q2 (§7a): trigger-bus abilities from equipped items, dispatched on the
     // shared handler map in combat, NOT via the ItemPassiveTag switch above.
     public List<ItemAbility> Abilities = new();
 
-    // Q3 (§4b/§7b): overworld traversal-resistance passives — summed across the
+    // Q3 (§4b/§7b): overworld traversal-resistance passives, summed across the
     // party and read during expedition traversal (attrition + step cost). These
     // are inert in combat: not a trigger, not an ItemPassiveTag.
     public int CorruptionWard = 0;
@@ -351,12 +351,12 @@ public static class EquipmentLoadout
                 resolved.BonusAttackRange += def.Stats.AttackRange;
                 resolved.BonusSpellDamage += def.Stats.SpellDamage;
 
-                // Q5 (§7d): a blighted drop's above-floor innate — +N to the
+                // Q5 (§7d): a blighted drop's above-floor innate: +N to the
                 // definition's PassiveValue, wherever that value lands below.
                 // Survives Cleanse by design.
                 int pv = def.PassiveValue + instance.BlightBonus;
 
-                // Q5 (§7d): blight drawbacks — authored stat penalties. Land
+                // Q5 (§7d): blight drawbacks are authored stat penalties. Land
                 // as negative bonuses so every consumer (combat spawn, pool,
                 // readouts) prices the blight without new plumbing.
                 if (instance.IsBlighted)
@@ -370,8 +370,8 @@ public static class EquipmentLoadout
                     }
                 }
 
-                // Q5: the enchant slot rides the SAME accumulator as innates —
-                // one resolution seam, no parallel system (§7a's whole point).
+                // Q5: the enchant slot rides the SAME accumulator as innates.
+                // One resolution seam, no parallel system (§7a's whole point).
                 if (!string.IsNullOrEmpty(instance.EnchantKey))
                     AccumulateEffect(resolved, instance.EnchantKey, instance.EnchantValue,
                                      instance.EnchantParam, instance.EnchantTrigger,
@@ -379,7 +379,7 @@ public static class EquipmentLoadout
 
                 // Q3 (§4b/§7b): overworld traversal-resistance passives route into
                 // dedicated party-summed fields, consumed during expedition
-                // traversal — NOT a combat trigger, NOT an ItemPassiveTag. Checked
+                // traversal. NOT a combat trigger, NOT an ItemPassiveTag. Checked
                 // BEFORE the Q2 trigger block and the enum path so an overworld
                 // item is completely inert in combat.
                 string ovKey = (def.Passive ?? "").ToLowerInvariant();
@@ -410,7 +410,7 @@ public static class EquipmentLoadout
                     continue;   // do NOT also add it to the enum Passives list
                 }
 
-                // Collect passive tag (legacy enum path — unmigrated items)
+                // Collect passive tag (legacy enum path for unmigrated items)
                 var tag = ItemDatabase.ParsePassive(def);
                 if (tag != ItemPassiveTag.None)
                     resolved.Passives.Add((tag, pv, def.PassiveParam ?? ""));

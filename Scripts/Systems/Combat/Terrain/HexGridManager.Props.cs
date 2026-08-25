@@ -11,7 +11,7 @@
 // with TilesetManifest.cs / TilesetRegistry.cs.
 //
 // This file is an intentional tombstone so the removal is visible in
-// history — safe to DELETE from the Godot FileSystem dock whenever
+// history. Safe to DELETE from the Godot FileSystem dock whenever
 // (Godot will clean up the .uid with it). Recover the old code from git
 // if a data-driven prop manifest is ever wanted again.
 // ============================================================

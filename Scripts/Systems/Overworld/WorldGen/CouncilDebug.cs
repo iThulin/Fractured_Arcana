@@ -7,7 +7,7 @@ using System.Text;
 //
 // Purpose:        Verification tooling for the C4 (Word Spreads)
 //                 test sessions. Two dumps:
-//                   DumpEchoes()  — every echo in flight, with
+//                   DumpEchoes()  prints every echo in flight, with
 //                                   deed tag, valence, magnitude,
 //                                   landing lunation, and cancel
 //                                   flag. The direct assertion
@@ -15,7 +15,7 @@ using System.Text;
 //                                   priority), E2 (cancel removes
 //                                   from selection), and F
 //                                   (dissipation removal).
-//                   DumpRegard()  — per-court courtier table with
+//                   DumpRegard()  prints a per-court courtier table with
 //                                   exact Regard integers, for the
 //                                   E3 / F zero-movement pre/post
 //                                   comparisons.
@@ -46,13 +46,13 @@ public static class CouncilDebug
         var council = cycle?.Council;
         if (council == null)
         {
-            GD.Print("[CouncilDebug] No active cycle/council — load a save with a generated world first.");
+            GD.Print("[CouncilDebug] No active cycle/council. Load a save with a generated world first.");
             return;
         }
 
         int now = cycle.Calendar.CurrentLunation;
         var sb = new StringBuilder();
-        sb.AppendLine($"=== ECHOES IN FLIGHT — lunation {now}, {council.EchoesInFlight.Count} echo(es) ===");
+        sb.AppendLine($"=== ECHOES IN FLIGHT, lunation {now}: {council.EchoesInFlight.Count} echo(es) ===");
 
         if (council.EchoesInFlight.Count == 0)
         {
@@ -72,7 +72,7 @@ public static class CouncilDebug
                 }
                 else if (e.LandsOnLunation <= now)
                 {
-                    status = "DUE — lands at next tick";
+                    status = "DUE, lands at next tick";
                 }
                 else
                 {
@@ -96,12 +96,12 @@ public static class CouncilDebug
         var council = cycle?.Council;
         if (council == null)
         {
-            GD.Print("[CouncilDebug] No active cycle/council — load a save with a generated world first.");
+            GD.Print("[CouncilDebug] No active cycle/council. Load a save with a generated world first.");
             return;
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine($"=== COURT REGARD — lunation {cycle.Calendar.CurrentLunation} ===");
+        sb.AppendLine($"=== COURT REGARD, lunation {cycle.Calendar.CurrentLunation} ===");
 
         bool any = false;
         foreach (var kvp in council.Courts.OrderBy(k => k.Key))
@@ -112,7 +112,7 @@ public static class CouncilDebug
             }
             any = true;
             var court = kvp.Value;
-            sb.AppendLine($"  {kvp.Key} — {CouncilTick.CourtDisplayName(cycle, kvp.Key)} — standing: {court.Band()}");
+            sb.AppendLine($"  {kvp.Key} ({CouncilTick.CourtDisplayName(cycle, kvp.Key)}), standing: {court.Band()}");
             foreach (var c in court.Courtiers)
             {
                 string regard = (c.Regard > 0 ? "+" : "") + c.Regard;

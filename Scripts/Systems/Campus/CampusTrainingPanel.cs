@@ -4,24 +4,24 @@ using static CampusUi;
 // ============================================================
 // CampusTrainingPanel.cs
 //
-// Purpose:        The Training tab — stance training for martial
+// Purpose:        The Training tab: stance training for martial
 //                 companions, gated by Training Grounds tier.
 // Layer:          UI
 // Collaborators:  CampusPanel.cs (base), CampusContext.cs,
 //                 StanceRegistry.cs, Companion.cs,
 //                 GuildSaveData.MartialStanceSlots / TrainingGroundsTier
-// See:            docs/campus_tab_extraction_v1.md — Phase 2
+// See:            docs/campus_tab_extraction_v1.md (Phase 2)
 // ============================================================
 
 /// <summary>Stance training. The one tab that is legitimately empty until a building is
 /// built: with <c>TrainingGroundsTier == 0</c> it shows a single "Build Training Grounds"
-/// stub. That is the diegetic behaviour the campus-map redesign wants — no yard on the map,
-/// no training — and the reason Training Grounds stayed an OPTIONAL building when the
+/// stub. That is the diegetic behaviour the campus-map redesign wants (no yard on the map,
+/// no training), and the reason Training Grounds stayed an OPTIONAL building when the
 /// foundational set was authored.
 ///
 /// <para>Extracted from <c>CampusScreen</c> on 2026-08-03. Rendering, gating and the 50g
 /// training cost are unchanged, including two redundancies that were preserved rather than
-/// tidied — see <see cref="Refresh"/> and the learn button.</para></summary>
+/// tidied (see <see cref="Refresh"/> and the learn button).</para></summary>
 public sealed class CampusTrainingPanel : CampusPanel
 {
     /// <summary>Flat training cost per stance. Was an inline literal with a "could be
@@ -74,7 +74,7 @@ public sealed class CampusTrainingPanel : CampusPanel
 
         var note = new Label
         {
-            Text = $"Training Grounds Tier {tgTier} — " +
+            Text = $"Training Grounds Tier {tgTier}: " +
                    $"{save.MartialStanceSlots} stance slot(s) active per companion.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
@@ -99,7 +99,7 @@ public sealed class CampusTrainingPanel : CampusPanel
         if (!isMartial)
         {
             _container.AddChild(MakeStubLabel(
-                $"{companion.Name} is arcane — no stance training available."));
+                $"{companion.Name} is arcane, so no stance training is available."));
             return;
         }
 
@@ -181,7 +181,7 @@ public sealed class CampusTrainingPanel : CampusPanel
             var slotLbl = new Label
             {
                 Text = unlocked
-                    ? $"Slot {i + 1}: Empty — learn a stance below"
+                    ? $"Slot {i + 1}: Empty. Learn a stance below"
                     : $"Slot {i + 1}: Locked (Training Grounds Tier {i + 1} required)",
             };
             slotLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -203,7 +203,7 @@ public sealed class CampusTrainingPanel : CampusPanel
         {
             if (stance.Class != martialClass)
                 continue;
-            // K4: signatures are earned (ArcStage 4), never bought — the
+            // K4: signatures are earned (ArcStage 4), never bought. The
             // Training Grounds is the global floor, the signature is the
             // personal ceiling. Granted at spawn by EligibleSignature.
             if (stance.IsSignature)
@@ -262,7 +262,7 @@ public sealed class CampusTrainingPanel : CampusPanel
 
         if (!isActive)
         {
-            var inactiveLbl = new Label { Text = "Inactive — upgrade Training Grounds" };
+            var inactiveLbl = new Label { Text = "Inactive. Upgrade Training Grounds" };
             inactiveLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
             inactiveLbl.AddThemeColorOverride("font_color", UITheme.Warning);
             info.AddChild(inactiveLbl);
@@ -352,7 +352,7 @@ public sealed class CampusTrainingPanel : CampusPanel
             companion.TrainedStanceIds.Add(stanceId);
             SaveManager.Save();
             // Both calls preserved as extracted. RequestRefreshAll fans out to this panel's
-            // Refresh too, so the list rebuilds twice — pre-existing, and deliberately not
+            // Refresh too, so the list rebuilds twice. That is pre-existing, and deliberately not
             // "fixed" in an extraction commit. Drop the first line when someone is testing
             // training specifically, not while moving code.
             Refresh();

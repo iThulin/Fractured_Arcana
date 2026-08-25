@@ -11,7 +11,7 @@ using Godot;
 //                 armory) and EnsureCycleWorld (deterministic world
 //                 generation for the active cycle). EnsureCycleWorld's
 //                 old comment marked it for "a dedicated
-//                 CycleInitializer" — this is that lift.
+//                 CycleInitializer"; this is that lift.
 // Layer:          System (campaign lifecycle)
 // Collaborators:  SaveManager.cs, CompanionRoster.cs,
 //                 BuildingDatabase.cs, ItemDatabase.cs,
@@ -27,7 +27,7 @@ using Godot;
 public static class CycleInitializer
 {
     /// <summary>Seed everything a loaded save is expected to already contain: the
-    /// companion roster, the building list, and the starter armory. Idempotent —
+    /// companion roster, the building list, and the starter armory. Idempotent:
     /// starter seeding gates on an empty armory, demo grants skip existing items.</summary>
     public static void EnsureSaveSeeded()
     {
@@ -46,7 +46,7 @@ public static class CycleInitializer
 
         ItemDatabase.LoadAll();
 
-        // Q2 (§7a) + Q3 (§4b) demo items — ensure the six exemplars exist even on
+        // Q2 (§7a) + Q3 (§4b) demo items: ensure the six exemplars exist even on
         // an ESTABLISHED armory, so they're equippable for verification without a
         // fresh save. Q2: trigger-bus (aegis/duelist/standard). Q3: overworld
         // traversal-resistance (wardstone/cinderweave/trailwarden). Runs before
@@ -108,7 +108,7 @@ public static class CycleInitializer
         // The founding scenario is guild-level (EternalLedger) and re-applied to
         // every cycle's world generation. The direct founding path sets it on the
         // ledger; the OnComplete host path leaves it null but stashes the id in
-        // PlayerSession — resolve that here and persist it onto the guild so it is
+        // PlayerSession. Resolve that here and persist it onto the guild so it is
         // stable for every later cycle/load. Pre-feature saves → Standard.
         var scenario = save.Ledger?.FoundingScenario;
         if (scenario == null)
@@ -147,7 +147,7 @@ public static class CycleInitializer
         cycle.CorruptionSpreadMult = scenario.CorruptionSpreadMult;
 
         // Phase 2: resolve the campus entry dock ONCE from the home tile's terrain
-        // (near water → Dock, else Skydock). Eternal campus property — never
+        // (near water → Dock, else Skydock). Eternal campus property, never
         // recomputed once set, even as later cycles re-site the home elsewhere.
         var campusMap = save.Ledger?.CampusMap;
         if (campusMap != null && string.IsNullOrEmpty(campusMap.EntryDockType))
@@ -170,8 +170,8 @@ public static class CycleInitializer
             GD.Print($"[Campus] Entry dock resolved to '{campusMap.EntryDockType}' " +
                      $"from home tile ({g.World.HomeX},{g.World.HomeY}).");
         }
-        CorruptionSpread.Reset(); // new world — drop cached adjacency + pressure
-        KingdomTickSimulation.Reset(); // new world — drop cached kingdom adjacency
+        CorruptionSpread.Reset(); // new world, so drop cached adjacency + pressure
+        KingdomTickSimulation.Reset(); // new world, so drop cached kingdom adjacency
         // Seed echo-eligible flags from permanent records (quest_hooks §5, step 6).
         // Runs after world generation so echo encounters can reference the new world.
         EchoSeeder.Seed(SaveManager.ActiveSave);

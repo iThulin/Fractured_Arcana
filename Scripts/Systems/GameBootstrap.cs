@@ -6,14 +6,14 @@ using Godot;
 // Purpose:        Autoload that runs once at game startup to
 //                 prime any process-wide registries (currently:
 //                 the card database). Cheap to add new
-//                 initialization steps here — keeps that wiring
+//                 initialization steps here. This keeps that wiring
 //                 out of individual scenes. Also hosts the dev
 //                 entry points for CardVerifier (F9 in debug
 //                 builds, or `--verify-cards` headless).
 // Layer:          System
 // Collaborators:  CardLoaderV2.cs (LoadCardsFromJson),
 //                 CardVerifier.cs (dev verification pass)
-// See:            README §3 — startup sequence
+// See:            README §3 (startup sequence)
 // ============================================================
 
 /// <summary>Singleton-style autoload that primes process-wide registries at game startup. Currently only loads the card database; add additional initialization steps here as the project grows.</summary>
@@ -64,7 +64,7 @@ public partial class GameBootstrap : Node
             GlyphCipherSelfTest.RunAndReport();
         }
 
-        // F11: the glyph gallery — every Enchanter half drawn through the shipping
+        // F11: the glyph gallery. Every Enchanter half drawn through the shipping
         // renderer, for comparison against docs/glyph_cipher_sheet.png.
         if (OS.IsDebugBuild()
             && e is InputEventKey k3 && k3.Pressed && !k3.Echo && k3.Keycode == Key.F11)

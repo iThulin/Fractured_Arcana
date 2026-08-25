@@ -12,7 +12,7 @@ using System.Text;
 //                 runs invariant checks (every land tile owned,
 //                 co-conspirator placed, exactly one start, seat
 //                 POIs present). Call from a debug hook before any
-//                 rendering exists — this is how Phase 1a is
+//                 rendering exists. This is how Phase 1a is
 //                 confirmed.
 // Layer:          System (debug)
 // Collaborators:  WorldGenerator.cs, WorldData.cs, KingdomState.cs
@@ -200,7 +200,7 @@ public static class WorldDebug
         // 6. At least one POI pre-discovered.
         int discovered = w.Pois.Count(poi => poi.Discovered);
         if (discovered == 0)
-            fails.Add("no POIs pre-discovered — first strategic view would be blank.");
+            fails.Add("no POIs pre-discovered; first strategic view would be blank.");
 
         if (fails.Count == 0)
             Emit($"\n[WorldDebug] INVARIANTS PASSED " +

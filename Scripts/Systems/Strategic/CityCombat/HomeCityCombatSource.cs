@@ -12,7 +12,7 @@ using System.Collections.Generic;
 // Layer:          System (strategic -> combat seam)
 // Collaborators:  ICityCombatSource (contract), CampusMapSaveData
 //                 (lattice + CornerOwners), GuildSaveData/BuildingSaveData
-//                 (IsPlaced/Tier gate — mirrors CampusGridManager
+//                 (IsPlaced/Tier gate, mirroring CampusGridManager
 //                 .LoadFromSave's "skip !IsPlaced or Tier <= 0" rule)
 // See:            docs/city_battlemap_compiler_spec_v1_1.md §2
 // ============================================================
@@ -83,8 +83,8 @@ public sealed class HomeCityCombatSource : ICityCombatSource
     public CityBuildingRef BuildingAt(int q, int r) =>
         _buildings.TryGetValue((q, r), out var b) ? b : null;
 
-    /// <summary>grand_hall's lot; falls back to the founding centre (0,0) —
-    /// the Grand Hall startsBuiltAt the origin, so this only fires on a save
+    /// <summary>grand_hall's lot; falls back to the founding centre (0,0).
+    /// The Grand Hall startsBuiltAt the origin, so this only fires on a save
     /// where it was somehow unplaced, and (0,0) is still its home.</summary>
     public (int q, int r) SeatCell =>
         _buildingLots.TryGetValue(SeatBuildingId, out var lot) ? lot : (0, 0);
@@ -93,7 +93,7 @@ public sealed class HomeCityCombatSource : ICityCombatSource
         _buildingLots.TryGetValue(GateBuildingId, out var lot) ? lot : null;
 
     /// <summary>Null until EntryDockType is wired (campus_siege_and_defense_v1_1
-    /// §6 / spec §2) — DockRaid is simply unavailable at home until then,
+    /// §6 / spec §2). DockRaid is simply unavailable at home until then,
     /// which is the correct diegetic default rather than a guess.</summary>
     public (int q, int r)? DockCell => null;
 

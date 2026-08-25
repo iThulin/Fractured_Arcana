@@ -3,22 +3,22 @@ using System.Collections.Generic;
 // ============================================================
 // EternalLedger.cs
 //
-// Purpose:        Tier 3 of the three-tier save schema — the
+// Purpose:        Tier 3 of the three-tier save schema: the
 //                 loom. Everything that exists outside the
 //                 timelines: the deed ledger and school mastery,
 //                 anchored essence, the campus (Eiran's draft),
 //                 the beacon, loop history, renown anchors,
 //                 meta-narrative flags, and unlocked knowledge.
-//                 The ONLY permanent-loss vector in the game —
+//                 The ONLY permanent-loss vector in the game.
 //                 SaveManager writes it atomically with a .bak.
 //                 Serialized to user://saves/slot_N_ledger.json.
 // Layer:          Data
 // Collaborators:  GuildSaveData.cs (in-memory envelope + shims),
 //                 CycleState.cs (tier 2 sibling),
 //                 SaveManager.cs (atomic dual-file IO),
-//                 DeedLedgerService (Phase 3 — income hooks),
-//                 AssaultDirector (Phase 4 — beacon reader)
-// See:            open_world_refactor_v1.docx §10 — Save Schema
+//                 DeedLedgerService (Phase 3, income hooks),
+//                 AssaultDirector (Phase 4, beacon reader)
+// See:            open_world_refactor_v1.docx §10 (Save Schema)
 // Tier rule:      If the loom remembers it, it lives here.
 //                 The loom MAY grant permanent, raw combat
 //                 power: the campus is an intentional power-
@@ -34,14 +34,14 @@ using System.Collections.Generic;
 /// which hangs off CycleState.PlayerDeck and is destroyed every cycle. That meant
 /// a player re-earned the right to upgrade cards they had already mastered twice,
 /// and every tier they had ever bought evaporated with the timeline. Knowing a
-/// card well is knowledge — it belongs in the loom
+/// card well is knowledge, and it belongs in the loom
 /// (progression_persistence_model_v1 §2).
 ///
 /// The per-copy OwnedCard.CastCount still exists and still increments; this is the
 /// authoritative record that survives, and the one the upgrade gate reads.
 /// </summary>
 /// <summary>
-/// An in-flight Library research commission — the deterministic DISCOVERY verb
+/// An in-flight Library research commission: the deterministic DISCOVERY verb
 /// (progression_card_acquisition_v1 §8, "Library research → the pity timer").
 /// The player names a locked blueprint and pays gold up front; the card is
 /// unlocked once <see cref="LunationsRemaining"/> ticks to zero. Distinct from
@@ -61,8 +61,8 @@ public class CardCommission
     /// than an absolute due-lunation because the calendar resets every cycle.</summary>
     public int LunationsRemaining = 0;
 
-    /// <summary>Gold charged when the commission was placed. Audit/display only —
-    /// the payment already happened; this is never refunded on settlement.</summary>
+    /// <summary>Gold charged when the commission was placed. Audit/display only.
+    /// The payment already happened; this is never refunded on settlement.</summary>
     public int GoldPaid = 0;
 }
 
@@ -77,7 +77,7 @@ public class CardMasteryRecord
     /// <summary>Highest bottom-half tier ever reached on any copy.</summary>
     public int BestBotTier = 0;
 
-    /// <summary>Upgrade points spent to reach that best state — the mint reproduces it.</summary>
+    /// <summary>Upgrade points spent to reach that best state. The mint reproduces it.</summary>
     public int BestPointsSpent = 0;
 }
 
@@ -115,7 +115,7 @@ public class LoopRecord
 }
 
 /// <summary>
-/// One anchored relationship milestone — recognition without memory.
+/// One anchored relationship milestone: recognition without memory.
 /// Manifests in later cycles as starting offsets and memory threads.
 /// </summary>
 public class RenownAnchor
@@ -172,7 +172,7 @@ public class EternalLedger
     public string LastPlayedAt = "";
 
     // ── Founding scenario (the guild's difficulty, chosen once) ──────────
-    /// <summary>The founding scenario — a curated seed plus difficulty levers —
+    /// <summary>The founding scenario (a curated seed plus difficulty levers)
     /// chosen when the guild was founded. GUILD-LEVEL: re-applied to every cycle's
     /// world generation (spec §3.3), so difficulty is a property of the guild, not
     /// of one timeline. Null on pre-feature saves; SaveManager backfills the
@@ -205,16 +205,16 @@ public class EternalLedger
     /// Campus buildings. Phase 0: the existing flat tier list, relocated
     /// here because the campus exists outside time. Phase 3 expands this
     /// into the spatial model (districts, foundation tiles, scars,
-    /// integrity, work orders) — additively, on this same object.
+    /// integrity, work orders), additively, on this same object.
     /// </summary>
     public List<BuildingSaveData> Buildings = new();
 
     /// <summary>
     /// The campus hex map's ground layout (cosmetic dressing + buildable
-    /// slots) — see CampusMapSaveData.cs. Building PLACEMENT lives on each
+    /// slots). See CampusMapSaveData.cs. Building PLACEMENT lives on each
     /// BuildingSaveData (Q/R/IsPlaced), not here; this is ground only.
     /// First slice of the "spatial model" called out above. Districts,
-    /// scars, integrity, and work orders are still open — when they land,
+    /// scars, integrity, and work orders are still open. When they land,
     /// they belong either as new fields on CampusTileSaveData (per-tile:
     /// scar, integrity) or as new top-level fields here (districts,
     /// work-order queue), added the same additive way Buildings was.
@@ -255,13 +255,13 @@ public class EternalLedger
 
     // ── Regalia (the ONE reseed exception) ───────────────────────────────
     /// <summary>
-    /// Named artifacts owned permanently — granted at milestones (fragments,
+    /// Named artifacts owned permanently, granted at milestones (fragments,
     /// archmage confrontations, companion arc capstones), never drafted.
     /// Legendary draft weight is 0; these are the only route to a Legendary.
     ///
     /// Regalia are the single sanctioned exception to the deck reseed: up to
     /// K of them (RegaliaService.MaxCarry) ride into a fresh cycle alongside
-    /// the 10-card starter. The fiction pays for it — the fragments are
+    /// the 10-card starter. The fiction pays for it: the fragments are
     /// trans-temporal, so a card cut from one was never in the timeline that
     /// resets (narrative_frame_intro_finale_v1 R5).
     ///
@@ -285,12 +285,12 @@ public class EternalLedger
     /// Every overworld spell the guild has ever learned, across all timelines.
     ///
     /// GrimoireState.KnownSpellIds is the per-cycle working list and stays
-    /// cycle-scoped (as do prepared slots, scrolls, and Essence — those are
+    /// cycle-scoped (as do prepared slots, scrolls, and Essence, which are
     /// loadout and resource, not knowledge). This is the permanent record the
     /// working list is re-seeded from at cycle start.
     ///
     /// AMENDS overworld_spell_system_v1_1 §5/§13 and the CycleState comment
-    /// "spell knowledge is timeline knowledge — dies with the cycle", which put
+    /// "spell knowledge is timeline knowledge that dies with the cycle", which put
     /// knowledge on the wrong side of the two-layer law. Lore and card blueprints
     /// were already permanent for exactly this reason; spells were the outlier.
     /// User-ruled 2026-08-04.
@@ -299,7 +299,7 @@ public class EternalLedger
 
     public List<string> UnlockedLoreEntries = new();
 
-    /// <summary>Quest ids permanently completed (cross-cycle arcs — the fragment
+    /// <summary>Quest ids permanently completed (cross-cycle arcs: the fragment
     /// spine, the Convergence). Cycle-scoped quests are NOT recorded here; they
     /// derive completion live and reset with the timeline. Stamped by
     /// QuestTracker.SyncCompletions.</summary>
@@ -311,25 +311,25 @@ public class EternalLedger
     /// unmaked. Append-only: each unmake adds its live timeline quests here
     /// as a permanent record of what was left behind. The quest log renders
     /// these in a collapsible "Unfinished Business" section under the main
-    /// groups — emotionally load-bearing (the cost of every reset, itemized).
+    /// groups, and emotionally load-bearing (the cost of every reset, itemized).
     /// </summary>
     public List<UnfinishedQuestRecord> UnfinishedBusiness = new();
 
     // ── The honored dead ─────────────────────────────────────────────────
     /// <summary>
     /// Every unit death, every timeline. The loom remembers the dead even
-    /// when their timelines no longer exist — the Ossuary (a campus
+    /// when their timelines no longer exist. The Ossuary (a campus
     /// building, outside time) draws on all of them. Append-only.
     /// </summary>
     public List<HonoredDeadRecord> HonoredDead = new();
 
     // ── The Hall of Records (deal ledger) ────────────────────────────────
     /// <summary>
-    /// Every negotiation resolution, every timeline — signed, spurned, or
+    /// Every negotiation resolution, every timeline: signed, spurned, or
     /// collapsed (negotiation doc §7b). Append-only, like the honored dead:
     /// the loom remembers the deals even when their timelines are gone.
     /// Written by NegotiationManager; read by the campus Records tab.
-    /// Record only — grants no power.
+    /// Record only. Grants no power.
     /// </summary>
     public List<DealRecord> DealRecords = new();
 

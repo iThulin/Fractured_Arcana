@@ -6,7 +6,7 @@ using System.Linq;
 // ============================================================
 // RegaliaService.cs
 //
-// Purpose:        Regalia — the ONE sanctioned exception to the deck
+// Purpose:        Regalia: the ONE sanctioned exception to the deck
 //                 reseed. Legendaries are no longer draftable (their
 //                 draft weight is 0); they are named artifacts granted
 //                 at milestones, owned permanently on the EternalLedger,
@@ -18,8 +18,8 @@ using System.Linq;
 //                 reseed because it was never in the timeline that resets.
 //
 // Layer:          Data / Feature builder
-// Collaborators:  EternalLedger.cs (RegaliaBlueprintIds — ownership),
-//                 CycleState.cs (CarriedRegaliaIds — this cycle's picks),
+// Collaborators:  EternalLedger.cs (RegaliaBlueprintIds: ownership),
+//                 CycleState.cs (CarriedRegaliaIds: this cycle's picks),
 //                 ProgressionSweep.cs (the automatic granter),
 //                 SaveManager.SeedDeckForSchool (seeds carried into deck),
 //                 CampusExpeditionPanel.cs (the carry picker),
@@ -38,7 +38,7 @@ using System.Linq;
 /// </summary>
 public static class RegaliaService
 {
-    /// <summary>Carry limit floor — you may always bring one artifact.</summary>
+    /// <summary>Carry limit floor: you may always bring one artifact.</summary>
     public const int BaseCarrySlots = 1;
 
     /// <summary>Shards per additional carry slot. 6 shards → K = 4.</summary>
@@ -47,7 +47,7 @@ public static class RegaliaService
     // ── Ownership (permanent) ────────────────────────────────────────────
 
     /// <summary>
-    /// Grant a Regalia permanently. Idempotent — returns false if already owned
+    /// Grant a Regalia permanently. Idempotent. Returns false if already owned
     /// or if the blueprint does not exist. Does NOT slot it into any deck;
     /// carrying is a separate, bounded decision (<see cref="SetCarried"/>).
     /// </summary>
@@ -64,14 +64,14 @@ public static class RegaliaService
         var bp = FindBlueprint(blueprintId);
         if (bp == null)
         {
-            GD.PrintErr($"[Regalia] Grant failed — no blueprint '{blueprintId}'. " +
+            GD.PrintErr($"[Regalia] Grant failed: no blueprint '{blueprintId}'. " +
                         $"Has the card been renamed or removed? ({reason})");
             return false;
         }
 
         save.Ledger.RegaliaBlueprintIds.Add(blueprintId);
 
-        // Legendaries are also knowledge — harmlessly so, since DraftablePool
+        // Legendaries are also knowledge, harmlessly so, since DraftablePool
         // drops them anyway; recording it keeps the card library honest.
         //
         // Non-Legendary Regalia (companion signature cards, per design doc §6d)
@@ -85,7 +85,7 @@ public static class RegaliaService
                 save.Ledger.UnlockedCardBlueprintIds.Add(blueprintId);
         }
 
-        GD.Print($"[Regalia] GRANTED '{blueprintId}' — {reason} " +
+        GD.Print($"[Regalia] GRANTED '{blueprintId}': {reason} " +
                  $"(now own {save.Ledger.RegaliaBlueprintIds.Count})");
         return true;
     }
@@ -100,7 +100,7 @@ public static class RegaliaService
     /// The rarity sort is load-bearing, not cosmetic: this order IS the default
     /// carry selection, both in the picker's pre-selection and in the auto-carry
     /// fallback. Companion capstones pay in the companion's own contributed card
-    /// (design doc §6d), which is usually Common or Uncommon — in pure grant
+    /// (design doc §6d), which is usually Common or Uncommon. In pure grant
     /// order an early companion arc would push a shard's Legendary out of the
     /// default K slots.
     /// </summary>
@@ -114,7 +114,7 @@ public static class RegaliaService
         {
             var bp = FindBlueprint(id);
             if (bp != null) result.Add(bp);
-            else GD.PrintErr($"[Regalia] Owned id '{id}' resolves to no blueprint — skipped.");
+            else GD.PrintErr($"[Regalia] Owned id '{id}' resolves to no blueprint. Skipped.");
         }
 
         // OrderBy is stable in LINQ-to-objects, so grant order survives within
@@ -141,7 +141,7 @@ public static class RegaliaService
     }
 
     /// <summary>
-    /// K — how many Regalia may be carried into a cycle. Anchored to the Sixfold
+    /// K: how many Regalia may be carried into a cycle. Anchored to the Sixfold
     /// Seal rather than to campus tiers (there is no global campus tier in code;
     /// tiers are per-building). 0-1 shards → 1, 2-3 → 2, 4-5 → 3, 6 → 4.
     /// </summary>
@@ -159,7 +159,7 @@ public static class RegaliaService
 
     /// <summary>
     /// Set this cycle's carried Regalia. Silently drops ids the player does not own
-    /// and clamps to <see cref="MaxCarry"/> — the UI should prevent both, but a save
+    /// and clamps to <see cref="MaxCarry"/>. The UI should prevent both, but a save
     /// edited by hand or carried across a shard loss must not be able to smuggle
     /// artifacts past the limit. Returns the accepted list.
     /// </summary>
@@ -184,7 +184,7 @@ public static class RegaliaService
     // ── Pending selection (survives the CycleState swap) ─────────────────
     //
     // The carry picker runs on the OLD cycle, but BeginNewCycle replaces
-    // CycleState wholesale — writing the selection straight to
+    // CycleState wholesale. Writing the selection straight to
     // Cycle.CarriedRegaliaIds would throw it away one line later. So the picker
     // stages here, and SeedCarriedIntoDeck (called after the new CycleState
     // exists) consumes it. Single-frame lifetime; a lost staging degrades to
@@ -194,7 +194,7 @@ public static class RegaliaService
     /// <summary>
     /// Which save slot the staging belongs to. The picker stages at BUILD time
     /// (no player interaction required), and a static outlives scene and slot
-    /// changes — so without this, opening the picker in slot 0, backing out, and
+    /// changes, so without this, opening the picker in slot 0, backing out, and
     /// later ending a cycle in slot 1 would consume slot 0's staging. Every id
     /// would fail the IsOwned filter, leaving an empty carry that still counted
     /// as "the player chose", and slot 1 would start with no artifacts at all.
@@ -222,14 +222,14 @@ public static class RegaliaService
     {
         if (save?.Cycle?.PlayerDeck == null) return 0;
 
-        // 1. A staged pick from the carry screen wins — INCLUDING a deliberate
+        // 1. A staged pick from the carry screen wins, INCLUDING a deliberate
         //    empty one. "Carry nothing" is a legal choice (an off-school artifact
         //    you cannot fuel is worse than a tenth starter card), so a staged
         //    empty list must suppress the default below.
         //
         //    But ONLY a deliberately empty staging suppresses it. A staging that
         //    held ids and was emptied by SetCarried's ownership filter means the
-        //    staging was stale, not that the player chose nothing — falling back
+        //    staging was stale, not that the player chose nothing. Falling back
         //    to the default is right there.
         bool hadStaged = _pendingCarry != null && _pendingSlot == SaveManager.ActiveSlot;
         bool stagedEmptyOnPurpose = hadStaged && _pendingCarry.Count == 0;
@@ -247,7 +247,7 @@ public static class RegaliaService
         var carried = GetCarried(save);
 
         // 2. No pick made (new game, the picker was skipped, or the staging was
-        //    stale) — default to the first K. The player should never silently
+        //    stale): default to the first K. The player should never silently
         //    lose the artifacts they earned just because a screen did not run.
         if (!stagedEmptyOnPurpose && carried.Count == 0)
         {
@@ -258,7 +258,7 @@ public static class RegaliaService
             if (owned.Count == 0) return 0;
 
             carried = SetCarried(save, owned.Take(MaxCarry(save)).Select(b => b.Id));
-            GD.Print($"[Regalia] No selection staged — auto-carrying {carried.Count} " +
+            GD.Print($"[Regalia] No selection staged. Auto-carrying {carried.Count} " +
                      $"(Legendaries first, then grant order).");
         }
 
@@ -280,7 +280,7 @@ public static class RegaliaService
 
             if (FindBlueprint(id) == null)
             {
-                GD.PrintErr($"[Regalia] Carried id '{id}' has no blueprint — not seeded.");
+                GD.PrintErr($"[Regalia] Carried id '{id}' has no blueprint. Not seeded.");
                 continue;
             }
 
@@ -301,7 +301,7 @@ public static class RegaliaService
             if (deck.ActiveDeckInstanceIds.Count < PlayerDeckSave.MaxDeckSize)
                 deck.ActiveDeckInstanceIds.Add(owned.InstanceId);
             else
-                GD.Print($"[Regalia] '{id}' owned but not slotted — active deck is at " +
+                GD.Print($"[Regalia] '{id}' owned but not slotted: active deck is at " +
                          $"the {PlayerDeckSave.MaxDeckSize}-card ceiling.");
 
             seeded++;
@@ -317,7 +317,7 @@ public static class RegaliaService
 
     /// <summary>
     /// Pick a Legendary of <paramref name="school"/> that has not been granted yet.
-    /// Returns null when the school has no ungranted Legendary left — which is a real
+    /// Returns null when the school has no ungranted Legendary left, which is a real
     /// state, not a bug: Adept has zero Legendaries by design (the undeclared school
     /// has no artifacts), and three schools sit at exactly zero slack. Callers must
     /// handle null by paying the milestone in SchoolMastery instead.

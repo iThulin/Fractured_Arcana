@@ -92,7 +92,7 @@ public partial class OverworldFactionManager : Node2D
 
         if (campaign == null)
         {
-            GD.Print($"[FactionManager] No campaign — spawning a wilds patrol for '{regionId}'.");
+            GD.Print($"[FactionManager] No campaign. Spawning a wilds patrol for '{regionId}'.");
             SpawnWildsPatrol(regionId);
             return;
         }
@@ -100,7 +100,7 @@ public partial class OverworldFactionManager : Node2D
         _archmageId = campaign.GetArchmageForRegion(regionId);
         if (string.IsNullOrEmpty(_archmageId))
         {
-            GD.Print($"[FactionManager] No archmage in '{regionId}' — spawning a wilds patrol.");
+            GD.Print($"[FactionManager] No archmage in '{regionId}'. Spawning a wilds patrol.");
             SpawnWildsPatrol(regionId);
             return;
         }
@@ -108,7 +108,7 @@ public partial class OverworldFactionManager : Node2D
         _archmage = ArchmageRegistry.Get(_archmageId);
         if (_archmage == null)
         {
-            GD.PushWarning($"[FactionManager] Archmage '{_archmageId}' not found — wilds patrol instead.");
+            GD.PushWarning($"[FactionManager] Archmage '{_archmageId}' not found. Wilds patrol instead.");
             SpawnWildsPatrol(regionId);
             return;
         }
@@ -153,7 +153,7 @@ public partial class OverworldFactionManager : Node2D
 
             if (valid.Count == 0)
             {
-                GD.Print($"[FactionManager] Could not place patrol {i} — no spaced positions.");
+                GD.Print($"[FactionManager] Could not place patrol {i}. No spaced positions.");
                 break;
             }
 
@@ -189,7 +189,7 @@ public partial class OverworldFactionManager : Node2D
     /// regardless of Dictionary iteration order.
     /// (W1 fix: the old 0..GridWidth loop only covered the positive quadrant of
     /// a window-mode grid, whose local coords span roughly [-R, R] around the
-    /// staging point at (0,0) — patrols could only ever spawn southeast.)
+    /// staging point at (0,0), so patrols could only ever spawn southeast.)
     /// Excludes: Water, Mountain, POI hexes, hexes too close to Entry/Objective.
     /// </summary>
     private List<Vector2I> BuildCandidateList()
@@ -221,7 +221,7 @@ public partial class OverworldFactionManager : Node2D
             result.Add(coord);
         }
 
-        // Deterministic ordering (q then r) — spawn choice must reproduce.
+        // Deterministic ordering (q then r), because spawn choice must reproduce.
         result.Sort((a, b) => a.X != b.X ? a.X - b.X : a.Y - b.Y);
         return result;
     }
@@ -251,11 +251,11 @@ public partial class OverworldFactionManager : Node2D
             {
                 patrol.Stun(trapStun);
                 GD.Print($"[FactionManager] Patrol '{patrol.ArchmageId}' springs a fulminant " +
-                         $"charge at {patrol.CurrentCoord} — stunned {trapStun} step(s).");
+                         $"charge at {patrol.CurrentCoord} and is stunned {trapStun} step(s).");
             }
         }
 
-        // S3 (Veil, Enchanter): the party is imperceptible — interception
+        // S3 (Veil, Enchanter): the party is imperceptible, so interception
         // simply fails while the veil holds (G3).
         if (OverworldSpellEffects.VeilActive())
             return;
@@ -264,9 +264,9 @@ public partial class OverworldFactionManager : Node2D
         foreach (var patrol in _patrols)
         {
             if (patrol.IsDisengaged)
-                continue; // recovering from a fight — no re-capture
+                continue; // recovering from a fight, so no re-capture
             if (patrol.IsStunned)
-                continue; // frozen by a spell/trap — no capture either
+                continue; // frozen by a spell/trap, so no capture either
             if (patrol.IsOnSameHex(playerCoord))
             {
                 GD.Print($"[FactionManager] Patrol '{patrol.ArchmageId}' captured player " +
@@ -359,7 +359,7 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
     // Court & Council
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>A cooldown so large it never expires within one expedition —
+    /// <summary>A cooldown so large it never expires within one expedition, meaning
     /// "stood down for this expedition." Survives combat round-trips via the
     /// existing GetPatrolCooldowns / RestorePatrolCooldowns path.</summary>
     private const int StandDownSteps = 1_000_000;
@@ -439,8 +439,8 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
             // W1: with a return-centered window built far from staging, the
             // 5–9 ring around the entry isn't loaded at all. The TOKEN must
             // still exist (RestorePatrolPositions can only teleport patrols
-            // that spawned — no token, and the wilds patrol silently vanishes
-            // for the rest of the expedition) — fall back to any passable
+            // that spawned; with no token, the wilds patrol silently vanishes
+            // for the rest of the expedition). Fall back to any passable
             // loaded tile; the spawn spot is irrelevant on a return path.
             foreach (var kvp in _grid.Hexes)
             {
@@ -451,7 +451,7 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
         }
         if (candidates.Count == 0)
         {
-            GD.Print("[FactionManager] No wilds-patrol spawn site found — none spawned.");
+            GD.Print("[FactionManager] No wilds-patrol spawn site found, so none spawned.");
             return;
         }
 
@@ -468,7 +468,7 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
             _grid,
             start,
             homeCoord: start,
-            factionColorHex: "#9A8478",   // neutral dun — clearly not a faction force
+            factionColorHex: "#9A8478",   // neutral dun, clearly not a faction force
             archmageId: "wilds",
             seed: (int)rng.Randi());
         _patrols.Add(patrol);

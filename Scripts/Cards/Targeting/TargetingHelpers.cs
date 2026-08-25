@@ -4,7 +4,7 @@ using Godot;
 // TargetingHelpers.cs
 //
 // Purpose:        Shared utilities for ITargetSelector
-//                 implementations — caster lookup, target-object
+//                 implementations: caster lookup, target-object
 //                 to coord/unit resolution, aim-point detection,
 //                 and the standard team filter. Centralised so
 //                 each selector only writes its unique shape
@@ -28,8 +28,8 @@ public static class TargetingHelpers
     {
         if (s == null || caster == null) return null;
 
-        // ActiveCasterUnit is the authoritative source when set —
-        // it correctly tracks which player unit is acting each cast.
+        // ActiveCasterUnit is the authoritative source when set.
+        // It correctly tracks which player unit is acting each cast.
         if (s.ActiveCasterUnit != null) return s.ActiveCasterUnit;
 
         if (caster == s.PlayerA) return s.PlayerUnit;

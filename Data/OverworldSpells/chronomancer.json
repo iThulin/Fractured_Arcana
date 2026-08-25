@@ -21,7 +21,7 @@
     "targetingType": "None",
     "oncePerExpedition": true,
     "effectKey": "retrace",
-    "description": "Undo the party's last movement step — position restored, step refunded. Once per expedition, hard cap."
+    "description": "Undo the party's last movement step: position restored, step refunded. Once per expedition, hard cap."
   },
   {
     "id": "auspice",

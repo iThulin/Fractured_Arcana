@@ -16,10 +16,10 @@ using System.Linq;
 //                 metaflags and awards whatever is outstanding.
 //
 //                 Consequences of that shape, all deliberate:
-//                   • It cannot be missed — a new reward site needs no wiring.
-//                   • It is self-healing — a save whose grant was lost to a
+//                   • It cannot be missed: a new reward site needs no wiring.
+//                   • It is self-healing: a save whose grant was lost to a
 //                     crash gets it on the next write.
-//                   • It is retroactive — an existing save that allied three
+//                   • It is retroactive: an existing save that allied three
 //                     archmagi before this system existed is paid on load.
 //
 // Layer:          Data / Feature builder
@@ -45,7 +45,7 @@ public static class ProgressionSweep
     //
     // ALL SIX ARE RULED. User-confirmed 2026-08-04; see
     // docs/progression_card_acquisition_v1_1.md A7. Do not re-derive these from
-    // zone names in a future session — they are settled.
+    // zone names in a future session; they are settled.
     //   • primal    → Elementalist  shard_acquisition_spec_v1 §9
     //                 ("The Primal Heart (primal, Elementalist)")
     //   • moment    → Chronomancer  narrative_frame_intro_finale_v1 R3
@@ -57,7 +57,7 @@ public static class ProgressionSweep
     //
     // Druid is deliberately unmapped: seven non-Adept schools, six fragments.
     // A Druid-main has no aligned fragment and reaches Communion only through
-    // Fluency — shard_acquisition_spec_v1 §4 calls this out as intended.
+    // Fluency; shard_acquisition_spec_v1 §4 calls this out as intended.
     private static readonly Dictionary<string, string> FragmentSchool = new()
     {
         { "primal",    "Elementalist" },
@@ -80,7 +80,7 @@ public static class ProgressionSweep
 
     /// <summary>
     /// Award anything outstanding. Returns the number of awards made (0 on a
-    /// steady-state save, which is the common case). Never throws — a sweep
+    /// steady-state save, which is the common case). Never throws: a sweep
     /// failure must not be able to block a save.
     /// </summary>
     public static int Run(GuildSaveData save)
@@ -90,9 +90,9 @@ public static class ProgressionSweep
         // HARD REQUIREMENT: the card database must be populated first.
         //
         // The sweep writes once-ever "paid" stamps. If it runs against an empty
-        // CardDatabase — Load() is called from CampusScreen._Ready one line before
+        // CardDatabase (Load() is called from CampusScreen._Ready one line before
         // LoadCardsFromJson, and the autoload that normally primes it first is not
-        // guaranteed — then PickLegendaryForSchool returns null for every school
+        // guaranteed), then PickLegendaryForSchool returns null for every school
         // and every outstanding fragment gets stamped paid with no artifact ever
         // granted. Irreversible, silent, and once only.
         //
@@ -100,7 +100,7 @@ public static class ProgressionSweep
         // settles whatever this one didn't.
         if (CardDatabase.Blueprints == null || CardDatabase.Blueprints.Count == 0)
         {
-            GD.Print("[ProgressionSweep] Card database not loaded yet — deferring the sweep.");
+            GD.Print("[ProgressionSweep] Card database not loaded yet. Deferring the sweep.");
             return 0;
         }
 
@@ -161,7 +161,7 @@ public static class ProgressionSweep
                                         flag.Length - "fragment_".Length - "_collected".Length);
             if (string.IsNullOrEmpty(key)) continue;
 
-            // Two flags, one per reward — same reason as the archmage branch.
+            // Two flags, one per reward, same reason as the archmage branch.
             // A single flag would let "mastery paid, no Legendary available"
             // stamp the artifact as settled, forfeiting it forever even after a
             // new Legendary is authored for that school.
@@ -171,7 +171,7 @@ public static class ProgressionSweep
 
             if (!FragmentSchool.TryGetValue(key, out var school))
             {
-                GD.PrintErr($"[ProgressionSweep] Fragment '{key}' has no school mapping — " +
+                GD.PrintErr($"[ProgressionSweep] Fragment '{key}' has no school mapping; " +
                             $"no award made. Add it to FragmentSchool.");
                 continue;
             }
@@ -199,7 +199,7 @@ public static class ProgressionSweep
                 else if (OS.IsStdOutVerbose())
                 {
                     GD.Print($"[ProgressionSweep] No ungranted {school} Legendary for fragment " +
-                             $"'{key}' — artifact deferred, mastery already paid.");
+                             $"'{key}'. Artifact deferred, mastery already paid.");
                 }
             }
         }
@@ -224,7 +224,7 @@ public static class ProgressionSweep
             if (string.IsNullOrEmpty(id)) continue;
 
             // Unknown and Neutral are not resolutions. Corrupted is a failure
-            // state the player did not author — it teaches nothing about the
+            // state the player did not author; it teaches nothing about the
             // school, so it pays nothing.
             bool resolved = disposition == ArchmageDisposition.Allied
                          || disposition == ArchmageDisposition.Coerced
@@ -234,7 +234,7 @@ public static class ProgressionSweep
             string school = ArchmageRegistry.Get(id)?.School;
             if (string.IsNullOrWhiteSpace(school))
             {
-                GD.PrintErr($"[ProgressionSweep] Archmage '{id}' has no school — skipped.");
+                GD.PrintErr($"[ProgressionSweep] Archmage '{id}' has no school. Skipped.");
                 continue;
             }
 
@@ -267,14 +267,14 @@ public static class ProgressionSweep
                 }
                 else if (OS.IsStdOutVerbose())
                 {
-                    // Expected for Adept (zero Legendaries by design — the
+                    // Expected for Adept (zero Legendaries by design, since the
                     // undeclared school has no artifacts) and for any school
                     // whose Legendaries are exhausted. Do NOT stamp: if a new
                     // Legendary is authored later, the sweep pays it then.
                     // Verbose-gated because this branch is re-reached on EVERY
                     // save, for every resolved archmage of an exhausted school.
                     GD.Print($"[ProgressionSweep] No ungranted {school} Legendary for " +
-                             $"archmage '{id}' — artifact deferred.");
+                             $"archmage '{id}'. Artifact deferred.");
                 }
             }
         }
@@ -297,7 +297,7 @@ public static class ProgressionSweep
             if (c.ArcStage < 1) continue;                 // 0 = not started
 
             // Off-school companions (the 12 martials) have no school to credit
-            // and no contributed cards — they teach nothing. Their arcs pay in
+            // and no contributed cards; they teach nothing. Their arcs pay in
             // the timeline layer, which is correct.
             string signature = c.ContributedCardIds?.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(signature)) continue;
@@ -319,7 +319,7 @@ public static class ProgressionSweep
                     SchoolMasteryService.PointsCompanionArcStage,
                     $"companion '{c.Id}' reached arc stage {stage}");
 
-                if (total < 0) break;   // blank school — nothing will pay, stop trying
+                if (total < 0) break;   // blank school: nothing will pay, stop trying
                 Stamp(save, paid, stageFlag);
                 awards++;
             }
@@ -329,7 +329,7 @@ public static class ProgressionSweep
             string artFlag = PaidCompanionArt + c.Id;
             if (!paid.Contains(artFlag))
             {
-                // The card outlives the companion — permanently, even after they die.
+                // The card outlives the companion, permanently, even after they die.
                 // Grant returns false both when it fails AND when the blueprint is
                 // already owned (two companions can share a signature card), so
                 // check ownership rather than trusting the return value alone.
@@ -346,7 +346,7 @@ public static class ProgressionSweep
                     // later, the next sweep pays it. Verbose-gated so a permanently
                     // broken id cannot spam the console on every save.
                     GD.Print($"[ProgressionSweep] Companion '{c.Id}' signature " +
-                             $"'{signature}' could not be granted — artifact deferred.");
+                             $"'{signature}' could not be granted. Artifact deferred.");
                 }
             }
         }
@@ -366,10 +366,10 @@ public static class ProgressionSweep
             if (paid.Contains(paidFlag)) continue;
 
             // DeedCounts is the source of truth (cross-cycle, victory-committed
-            // by ExpeditionManager) — the sweep only DERIVES from it, so a crash
+            // by ExpeditionManager); the sweep only DERIVES from it, so a crash
             // between commit and save self-heals like every other pass.
             int threshold = MarginaliaService.Threshold(family);
-            if (threshold <= 0) continue;   // card missing from DB — defer, never stamp
+            if (threshold <= 0) continue;   // card missing from DB: defer, never stamp
             if (MarginaliaService.KillCount(save, family) < threshold) continue;
 
             var bp = MarginaliaService.CardFor(family);
@@ -379,7 +379,7 @@ public static class ProgressionSweep
             if (string.IsNullOrWhiteSpace(school))
             {
                 GD.PrintErr($"[ProgressionSweep] Marginalia family '{family}' has no " +
-                            "school in ArchmageRegistry — no award made.");
+                            "school in ArchmageRegistry. No award made.");
                 continue;
             }
 
@@ -393,12 +393,12 @@ public static class ProgressionSweep
                 $"marginalia '{family}' entry complete");
 
             Stamp(save, paid, paidFlag);
-            // The public flag — the design doc's stated namespace — for quests
+            // The public flag (the design doc's stated namespace) for quests
             // and feature gates that should not care about sweep bookkeeping.
             Stamp(save, paid, MarginaliaService.PublicFlag(family));
             awards++;
 
-            GD.Print($"[ProgressionSweep] Marginalia '{family}' settled — " +
+            GD.Print($"[ProgressionSweep] Marginalia '{family}' settled: " +
                      $"'{bp.Id}' unlocked, {school} SchoolMastery paid.");
         }
 

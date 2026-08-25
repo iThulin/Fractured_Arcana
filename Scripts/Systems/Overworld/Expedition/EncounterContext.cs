@@ -13,7 +13,7 @@ using Godot;
 // Collaborators:  EncounterRouter.cs (writes), CombatManager.cs
 //                 (reads inputs, writes results),
 //                 EncounterDefinition.cs (carried separately)
-// See:            README §3 — scene swap pattern
+// See:            README §3 (scene swap pattern)
 // ============================================================
 
 /// <summary>Per-scene-swap carrier mirroring <see cref="NegotiationContext"/>. Input fields (terrain, POI) set by the router; result fields set by combat on completion.</summary>
@@ -34,7 +34,7 @@ public class EncounterContext
 }
 
 /// <summary>
-/// Static carrier — set by EncounterRouter before scene swap,
+/// Static carrier: set by EncounterRouter before scene swap,
 /// read by CombatManager at spawn time.
 /// </summary>
 public static class EncounterContextCarrier
@@ -47,7 +47,7 @@ public static class EncounterContextCarrier
     public static EncounterTier Tier { get; private set; } = EncounterTier.Battle;
 
     /// <summary>Terrain of the six overworld hexes AROUND the combat source hex,
-    /// indexed by HexCoord.AxialDirections order — which matches the combat grid's
+    /// indexed by HexCoord.AxialDirections order, which matches the combat grid's
     /// HexDirs 1:1, so no direction remapping is needed. Null when the launch has
     /// no overworld context; individual entries may be null (off-map neighbour).
     /// Consumed by CombatManager.ConfigureAndGenerateMap → HexGridManager.VistaTerrainBias,

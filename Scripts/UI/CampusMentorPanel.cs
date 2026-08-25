@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // CampusMentorPanel.cs
 //
-// Purpose:        Step 9 (quest_hooks_compendium §7) — the campus
+// Purpose:        Step 9 (quest_hooks_compendium §7). The campus
 //                 mentor's counsel on the seven archmagi: who they
 //                 are (personality trait + roleplay note), what the
 //                 dossiers have revealed of their weaknesses (gated
@@ -17,7 +17,7 @@ using System.Collections.Generic;
 // Collaborators:  ArchmageRegistry.cs (hint content),
 //                 DossierService.cs (hint gating),
 //                 CampaignState.cs (approach gating + mentor state),
-//                 CampusScreen.cs (host — Council tab)
+//                 CampusScreen.cs (host, Council tab)
 // ============================================================
 
 /// <summary>The mentor's standing counsel on each placed archmage. Rebuilt on each Council tab open via <see cref="Build"/>.</summary>
@@ -39,7 +39,7 @@ public partial class CampusMentorPanel : VBoxContainer
         var campaign = save?.Cycle?.Campaign;
         if (campaign == null)
         {
-            AddChild(MakeDim("The mentor has nothing to say — no campaign in progress."));
+            AddChild(MakeDim("The mentor has nothing to say. No campaign is in progress."));
             return;
         }
 
@@ -66,8 +66,8 @@ public partial class CampusMentorPanel : VBoxContainer
             var card = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
             card.AddThemeConstantOverride("separation", 2);
 
-            // Name — faction-colored — plus the single-word trait.
-            var name = new Label { Text = $"{def.DisplayName} — {def.PersonalityTrait}" };
+            // Name, faction-colored, plus the single-word trait.
+            var name = new Label { Text = $"{def.DisplayName}: {def.PersonalityTrait}" };
             name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
             name.AddThemeColorOverride("font_color", new Color(def.FactionColorHex));
             card.AddChild(name);
@@ -79,7 +79,7 @@ public partial class CampusMentorPanel : VBoxContainer
                 card.AddChild(MakeBody(note));
             }
 
-            // Weakness hints — only what the dossiers have earned.
+            // Weakness hints: only what the dossiers have earned.
             int revealed = DossierService.HintsRevealed(save, id);
             if (def.WeaknessHints != null && def.WeaknessHints.Count > 0)
             {
@@ -95,7 +95,7 @@ public partial class CampusMentorPanel : VBoxContainer
                     card.AddChild(MakeDim($"❖ {def.WeaknessHints.Count - shown} more in the dossier, unearned."));
             }
 
-            // Approach counsel — live read of what resolution is in reach.
+            // Approach counsel: a live read of what resolution is in reach.
             var disp = campaign.GetDisposition(id);
             string approach = disp switch
             {
@@ -122,11 +122,11 @@ public partial class CampusMentorPanel : VBoxContainer
         var (canUnite, canCoerce, _) = campaign.ResolutionOptions(id, save != null ? save.HasFlag : null);
         int sentiment = campaign.GetSentiment(id);
         if (canUnite)
-            return "An alliance is within reach — seek the audience before corruption closes the door.";
+            return "An alliance is within reach. Seek the audience before corruption closes the door.";
         if (canCoerce)
-            return "Too little trust for union, but enough standing — and enough known — to press a forced accord.";
+            return "Too little trust for union, but enough standing, and enough known, to press a forced accord.";
         if (sentiment < -20)
-            return "You are past words with this one. Only the overthrow remains — or patient repair.";
+            return "You are past words with this one. Only the overthrow remains, or patient repair.";
         // In the coerce window but missing leverage, or corruption-blocked.
         return DossierService.HintsRevealed(save, id) < 2
             ? "Pressure needs a place to press. Fill the dossier before you try to bend this one."

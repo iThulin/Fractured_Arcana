@@ -123,12 +123,12 @@ public partial class CombatManager
             }
         }
 
-        // Wire death into the standard pipeline so HandleUnitDeath fires —
-        // this is what increments Schematics, runs the death nova, and cleans
+        // Wire death into the standard pipeline so HandleUnitDeath fires.
+        // That is what increments Schematics, runs the death nova, and cleans
         // up selection. (Summons are not otherwise subscribed to OnDied.)
         unit.OnDied += HandleUnitDeath;
 
-        GD.Print($"[Construct] {unit.Name} ready — DMG:{unit.AttackDamage} RNG:{unit.AttackRange} " +
+        GD.Print($"[Construct] {unit.Name} ready. DMG:{unit.AttackDamage} RNG:{unit.AttackRange} " +
                  $"setup:{unit.SetupTurnsRemaining} immobile:{unit.IsImmobileConstruct} " +
                  $"burnout:{unit.BurnoutThreshold} (deploy +{deployBonus}).");
     }
@@ -172,8 +172,8 @@ public partial class CombatManager
             if (u.Attunement is TinkerAttunement schem && u.TeamId == construct.SummonerTeamId)
             {
                 schem.RegisterConstructDestroyed();
-                GD.Print($"[Schematics] {u.Name} learns from a lost construct — Tier {schem.Tier}.");
-                combatUI?.AppendActionLog($"[Schematics] Tier {schem.Tier} — the next build is stronger.");
+                GD.Print($"[Schematics] {u.Name} learns from a lost construct. Tier {schem.Tier}.");
+                combatUI?.AppendActionLog($"[Schematics] Tier {schem.Tier}. The next build is stronger.");
                 schoolAttunementUI?.Refresh();
                 return;
             }
@@ -275,7 +275,7 @@ public partial class CombatManager
             if (c.PassiveHeat && IsValidActor(c))
                 c.AddHeat(1);
 
-            // Burnout — Heat at/over threshold detonates the construct.
+            // Burnout: Heat at/over threshold detonates the construct.
             if (IsValidActor(c) && c.BurnoutThreshold > 0 && c.Heat >= c.BurnoutThreshold)
                 await BurnoutConstruct(c);
 

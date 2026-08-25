@@ -4,7 +4,7 @@ using System;
 // ============================================================
 // CardUi.cs
 //
-// Purpose:        Control node that renders one Card in the hand —
+// Purpose:        Control node that renders one Card in the hand:
 //                 split-view labels, full-card hover state, mana
 //                 affordability tint, lift/drag animations, and the
 //                 drag-and-drop payload for play.
@@ -15,14 +15,14 @@ using System;
 //                 CardHalfSelected / CardDropped signals),
 //                 CardDropHandler.cs, DragPayloadManager.cs (drag state)
 // See:            README §3 (Architecture Overview),
-//                 README §8 (Godot 4.6 compat — CallDeferred on exits)
+//                 README §8 (Godot 4.6 compat: CallDeferred on exits)
 // ============================================================
 
 /// <summary>
 /// Visual representation of a single <see cref="Card"/> in the player's hand. Owns the
 /// split-view panels, the hover-triggered full-card view, mana affordability tinting,
 /// the lift/breathe animations, and the drag-and-drop payload. Holds no game state of
-/// its own — the underlying <see cref="Card"/> is set via <see cref="SetCard(Card)"/>
+/// its own. The underlying <see cref="Card"/> is set via <see cref="SetCard(Card)"/>
 /// and any rules logic lives elsewhere (CombatManager, DeckManager).
 /// </summary>
 public partial class CardUi : Control
@@ -39,8 +39,8 @@ public partial class CardUi : Control
     private DeckUiManager _deckUiManager;
 
     private Control _visualNode;
-    private Control topArea;   // TopControl — mouse hover zone for top half
-    private Control bottomArea; // BottomControl — mouse hover zone for bottom half
+    private Control topArea;   // TopControl: mouse hover zone for top half
+    private Control bottomArea; // BottomControl: mouse hover zone for bottom half
 
     // Hover animation
     private bool _cardIsLifted = false;
@@ -185,7 +185,7 @@ public partial class CardUi : Control
         _fullChannelLabel = GetNodeOrNull<RichTextLabel>($"{Full}/InfoPanel/InfoContainer/ChannelStrip/ChannelLabel");
 
         if (_fullCardView == null)
-            GD.Print("CardUi: FullCardView not found — hover art disabled");
+            GD.Print("CardUi: FullCardView not found, so hover art is disabled");
 
         // ── Mouse events ────────────────────────────────────────────
         topArea.MouseEntered += OnCardEnter;
@@ -270,14 +270,14 @@ public partial class CardUi : Control
         }
     }
 
-    // ── Card data — populate split halves and prepare full card view ───────
+    // ── Card data: populate split halves and prepare full card view ────────
 
     /// <summary>Wire the parent <see cref="DeckUiManager"/> so this card can notify it on hover (used to slide neighbor cards aside).</summary>
     public void SetDeckUiManager(DeckUiManager manager) => _deckUiManager = manager;
 
     /// <summary>
-    /// Bind a runtime <see cref="Card"/> to this UI. Safe to call before <c>_Ready</c> —
-    /// the card data is stashed in <c>_pendingCard</c> and applied once nodes are cached.
+    /// Bind a runtime <see cref="Card"/> to this UI. Safe to call before <c>_Ready</c>,
+    /// since the card data is stashed in <c>_pendingCard</c> and applied once nodes are cached.
     /// </summary>
     public void SetCard(Card card)
     {
@@ -346,8 +346,8 @@ public partial class CardUi : Control
         StyleManaPip($"{SplitBot}/NameBar/ManaPip", darkCol);
 
         // (2026-07-10) Channel badge RETIRED from the split name bar: CanChannel
-        // defaults true on every half, so the ⟳ appeared on all ~328 halves —
-        // an always-on indicator carries no information and squeezed SpellName.
+        // defaults true on every half, so the ⟳ appeared on all ~328 halves.
+        // An always-on indicator carries no information and squeezed SpellName.
         // The channel affordance lives in the full-card hover (ChannelStrip).
         SetChannelBadge($"{SplitTop}/NameBar", false);
         SetChannelBadge($"{SplitBot}/NameBar", false);
@@ -359,7 +359,7 @@ public partial class CardUi : Control
     {
         // U3e: taxed price, not printed. Routed through the same helper the
         // affordability refresh uses so populate-time and refresh-time can never
-        // disagree — at populate time the DeckUiManager back-reference may not be set
+        // disagree. At populate time the DeckUiManager back-reference may not be set
         // yet, in which case this falls back to the printed cost and the first
         // RefreshAffordability corrects it.
         ApplyManaPip(mana, half);
@@ -455,7 +455,7 @@ public partial class CardUi : Control
         nameBar.AddChild(badge);
     }
 
-    // ── Full-card view (hover state — art on top, info on bottom) ──────────
+    // ── Full-card view (hover state: art on top, info on bottom) ───────────
 
     private void ShowFullCard(CardHalf half, bool isTop)
     {
@@ -484,7 +484,7 @@ public partial class CardUi : Control
             _artPanel.AddThemeStyleboxOverride("panel", artStyle);
 
             // Enchanter sigil. Every half of every Enchanter card has one and they
-            // are generated, not authored — so this is the card art for the whole
+            // are generated, not authored, so this is the card art for the whole
             // school. Other schools fall through and keep the plain tinted panel.
             if (school == CardSchool.Enchanter)
             {
@@ -576,7 +576,7 @@ public partial class CardUi : Control
         bool canChannel = half?.CanChannel ?? false;
         string chText = canChannel ? $"[Shift+Drop] Channel: cast as Stage {(/* tier */ 0) + 1} (+1 mana)" : "";
 
-        // Channel hint — single line at bottom of rules text
+        // Channel hint: a single line at the bottom of the rules text
         if (_fullRulesLabel != null && (half?.CanChannel ?? false))
         {
             _fullRulesLabel.Text = (half?.RulesText ?? "") +
@@ -587,7 +587,7 @@ public partial class CardUi : Control
             _fullRulesLabel.Text = half?.RulesText ?? "";
         }
 
-        // Hide channel panel entirely — no longer used
+        // Hide channel panel entirely; it is no longer used
         if (_fullChannelPanel != null)
             _fullChannelPanel.Visible = false;
 
@@ -750,7 +750,7 @@ public partial class CardUi : Control
 
     /// <summary>Repaints both mana pips with the taxed number, tinted when inflated.
     /// Called from RefreshAffordability rather than from ApplyCardData because the
-    /// DeckUiManager back-reference is set AFTER SetCard — at populate time there is
+    /// DeckUiManager back-reference is set AFTER SetCard, so at populate time there is
     /// nothing to ask.</summary>
     private void RefreshManaPips()
     {
@@ -768,7 +768,7 @@ public partial class CardUi : Control
         // Warning, not Danger: Danger already means "you cannot afford this". An
         // inflated price the player CAN still pay is a different fact and must read
         // as a different colour. A DISCOUNTED price (2026-07-29: Precognition's kept
-        // card, a Perfected card) reads as a third — the affordance colour, because a
+        // card, a Perfected card) reads as a third: the affordance colour, because a
         // lowered price is an invitation.
         label.Modulate = IsTaxed(half) ? UITheme.Warning
                        : IsDiscounted(half) ? UITheme.Success
@@ -785,7 +785,7 @@ public partial class CardUi : Control
     }
 
     /// <summary>Hover color for a half: a reaction-locked half never lights up
-    /// as castable — hovering it keeps the locked read.</summary>
+    /// as castable, so hovering it keeps the locked read.</summary>
     private Color HalfActiveColor(CardHalf half, Color activeColor)
         => HalfReactionLocked(half) ? UITheme.CardReactionLocked : activeColor;
 
@@ -824,11 +824,11 @@ public partial class CardUi : Control
         _lastKnownMana = currentMana;
 
         // U3e: pips first, and OUTSIDE the discard-flag early-return below. A card
-        // flagged for overflow discard still has a price the player needs to read —
-        // the amber pulse owns the panel modulate, not the number.
+        // flagged for overflow discard still has a price the player needs to read.
+        // The amber pulse owns the panel modulate, not the number.
         RefreshManaPips();
 
-        // Don't override panel colors if discard flagged — amber pulse takes visual priority
+        // Don't override panel colors if discard flagged; the amber pulse takes visual priority
         if (_isDiscardFlagged) return;
 
         _topPanel.Modulate = HalfBaseColor(TopHalf);
@@ -853,7 +853,7 @@ public partial class CardUi : Control
         }
         else
         {
-            // Restore normal modulate — affordability will handle panel colors
+            // Restore normal modulate; affordability will handle panel colors
             _visualNode.Modulate = Colors.White;
             RefreshAffordability(_lastKnownMana);
         }
@@ -1040,7 +1040,7 @@ public partial class CardUi : Control
 
         // Bug fix (2026-07-17): PlayGrabAnimation ghosts the ROOT modulate
         // (UITheme.CardDragGhost, α 0.88) on drag start, but DoCardExit only
-        // restores rotation/scale — so a card returning from a FAILED cast
+        // restores rotation/scale, so a card returning from a FAILED cast
         // stayed slightly transparent in the hand. (_DropData's reorder path
         // already resets modulate; this path never did.) Restore explicitly,
         // independent of DoCardExit's early-return and its _cardTween.

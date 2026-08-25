@@ -4,7 +4,7 @@
   "npcName": "Lector Imbrell",
   "archetype": "Scholar",
   "factionId": "archive_wardens",
-  "openingText": "The Lector receives you on a gantry above the waterline, where the Archive's upper stacks have dried enough to walk. Below, shelves descend into green dark. 'Every year the water gives back another floor,' she says. 'And every year, something in the lower stacks remembers being locked in. You look sturdy. Let us discuss terms of mutual profit — and mutual survival.'",
+  "openingText": "The Lector receives you on a gantry above the waterline, where the Archive's upper stacks have dried enough to walk. Below, shelves descend into green dark. 'Every year the water gives back another floor,' she says. 'And every year, something in the lower stacks remembers being locked in. You look sturdy. Let us discuss terms of mutual profit... and mutual survival.'",
   "startingTension": 4,
   "basePatience": 9,
   "npcResolve": 1,
@@ -18,7 +18,7 @@
   "terms": [
     {
       "id": "reading_rights",
-      "description": "Reading rights in the recovered wing — the guild may copy what it can carry.",
+      "description": "Reading rights in the recovered wing: the guild may copy what it can carry.",
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 0,
@@ -30,7 +30,7 @@
     },
     {
       "id": "catalog_labor",
-      "description": "She wants your party cataloguing water-damaged folios — tedious hours, 2 steps lost.",
+      "description": "She wants your party cataloguing water-damaged folios: tedious hours, 2 steps lost.",
       "favorPlayer": false,
       "isHidden": false,
       "goldDelta": 0,
@@ -41,7 +41,7 @@
     },
     {
       "id": "duplicate_folio",
-      "description": "A duplicate folio of pre-Collapse engineering, sellable to any guild — 45 gold.",
+      "description": "A duplicate folio of pre-Collapse engineering, sellable to any guild for 45 gold.",
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 45,

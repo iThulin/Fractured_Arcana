@@ -8,7 +8,7 @@
 		"name": "Convergence",
 		"mana": 2,
 		"speed": "Sorcery",
-		"rules_text": "Choose an element \u2014 Fire, Ice, or Storm. Imbue the target tile and its ring with it.",
+		"rules_text": "Choose an element: Fire, Ice, or Storm. Imbue the target tile and its ring with it.",
 		"tags": [
 			"fire",
 			"ice",

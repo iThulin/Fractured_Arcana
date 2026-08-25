@@ -19,10 +19,10 @@ using System.Linq;
 //                 Unit.cs (spawned), CardDropHandler.cs (input),
 //                 DeckManager.cs (active deck), CombatUI.cs (HUD),
 //                 EncounterContextCarrier.cs (input encounter)
-// See:            README §3 — combat orchestration layer
+// See:            README §3 (combat orchestration layer)
 // ============================================================
 
-/// <summary>Top-level controller for a single combat encounter. Builds the GameState, spawns both teams from the encounter definition, runs the deployment phase, then hands off to RulesManager-driven turn cycles. Reports the result via <see cref="EncounterContext"/> on combat end. Massive file — see internal section banners for the deployment/turn-flow/spawning/end-condition split.</summary>
+/// <summary>Top-level controller for a single combat encounter. Builds the GameState, spawns both teams from the encounter definition, runs the deployment phase, then hands off to RulesManager-driven turn cycles. Reports the result via <see cref="EncounterContext"/> on combat end. Massive file; see internal section banners for the deployment/turn-flow/spawning/end-condition split.</summary>
 public partial class CombatManager : Node3D
 {
     // ── Scene references ────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ public partial class CombatManager : Node3D
     private List<PendingEnemySpawn> pendingEnemySpawns = new();
 
     /// <summary>Marginalia (marginalia_spec_v1 R2): per-fight kill tally by enemy
-    /// FactionId. Counted at HandleUnitDeath (encounter-spawned enemies only — no
+    /// FactionId. Counted at HandleUnitDeath (encounter-spawned enemies only, no
     /// mid-fight summons), handed to EncounterRouter on VICTORY, committed to
     /// EternalLedger.DeedCounts by ExpeditionManager.EmitCombatDeed. A lost or
     /// abandoned fight commits nothing, matching the combat_won precedent.</summary>
@@ -118,11 +118,11 @@ public partial class CombatManager : Node3D
     private SelectTwoStepTarget _twoStepTargeter;
     private TileData _twoStepChoice;     // set by the second click, consumed by the replay
 
-    /// <summary>The legal second-pick tiles — the AUTHORITATIVE set the second click is
+    /// <summary>The legal second-pick tiles: the AUTHORITATIVE set the second click is
     /// validated against. Deliberately NOT _targetHighlightTiles, which is cosmetic
     /// drag/hover feedback owned by the card UI and torn down on its own schedule. When
-    /// the two shared one set, CardDragEnded — which fires one frame after EVERY drag,
-    /// dropped or cancelled — cleared the aim set before the player could click it, and
+    /// the two shared one set, CardDragEnded (which fires one frame after EVERY drag,
+    /// dropped or cancelled) cleared the aim set before the player could click it, and
     /// every two-step card in the game was silently uncastable. Owned start to end by
     /// BeginTwoStep / ClearTwoStepHighlight; nothing in the highlight system may touch it.</summary>
     private readonly HashSet<Vector2I> _twoStepLegalTiles = new();
@@ -201,7 +201,7 @@ public partial class CombatManager : Node3D
             deckUiManager.SetManaProvider(() => selectedUnit?.Stats.Mana ?? 0);
             // U3e: the hand renders TAXED prices, straight off the rules engine's own
             // formula. ActiveCasterUnit is pinned to the selected unit for the call and
-            // restored, exactly as UnitCanPlay does — EffectiveAmount clamps against
+            // restored, exactly as UnitCanPlay does: EffectiveAmount clamps against
             // that unit's MaxMana, so asking without pinning would read whoever
             // happened to be mid-resolution.
             deckUiManager.SetEffectiveCostProvider(printed =>
@@ -271,7 +271,7 @@ public partial class CombatManager : Node3D
             combatUI.EnemyButtonPressed += OnEnemyRosterButtonPressed;
         }
 
-        // Movement zone renderer — resolved in InitZoneRenderer: prefers the scene node
+        // Movement zone renderer, resolved in InitZoneRenderer: prefers the scene node
         // under HexGridManager (Inspector-tunable), falls back to creating one in code.
         CallDeferred(nameof(InitZoneRenderer));
 
@@ -302,7 +302,7 @@ public partial class CombatManager : Node3D
         if (PlayerSession.DebugCombat)
         {
             CombatCompleted += (bool won) => CombatDebugLauncher.ReturnToCampus(this);
-            GD.Print("CombatManager: debug fight — CombatCompleted returns to campus.");
+            GD.Print("CombatManager: debug fight; CombatCompleted returns to campus.");
         }
         else if (EncounterRouter.Instance != null)
         {
@@ -319,17 +319,17 @@ public partial class CombatManager : Node3D
             PruneDeadUnits();
 
             // A death QUEUES onDeath/onAllyDeath (QueueDeathTriggers) but does not
-            // drain them — and KickTriggerDrain had exactly two call sites, one of
+            // drain them, and KickTriggerDrain had exactly two call sites, one of
             // which (the martial-attack path, :1980) is gated on the target
             // SURVIVING. So a KILLING blow left its Deathburst dormant until the
             // next cast happened to pump the queue.
             //   Playtest 2026-08-06: Ruslan killed The Aldric Curriculum with a
             //   martial attack; its two Proctors did not rise until Seraphine cast
-            //   Sap two actions later — the player committed AP and position
+            //   Sap two actions later; the player committed AP and position
             //   against a board that was lying about what was on it.
             // Kicking from the prune site covers a death from ANY source: martial,
             // glyph, hazard, corruption tide, retaliation, or another deathburst.
-            // Cheap to call per-frame — KickTriggerDrain early-outs when the queue
+            // Cheap to call per-frame: KickTriggerDrain early-outs when the queue
             // and stack are empty or a drain already owns them.
             if (!_priorityWindowOpen)
                 KickTriggerDrain();
@@ -376,7 +376,7 @@ public partial class CombatManager : Node3D
 
         // Fix (2026-07-09): a unit killed WHILE hovered gets freed by the prune,
         // leaving _hoveredUnit as a disposed wrapper. Touching it threw every
-        // frame, and the exception aborted _Process before the reassignment —
+        // frame, and the exception aborted _Process before the reassignment,
         // wedging the error loop permanently. (Surfaced by the drop-on-unit fix:
         // the mouse now legitimately rests on models mid-kill.) Same guard for
         // hitUnit: the corpse's collider can outlive the death by a frame.
@@ -476,7 +476,7 @@ public partial class CombatManager : Node3D
             if (unit == null)
                 continue;
             if (unit.IsStructure)
-                continue;   // doors do not study — no deck, no draws
+                continue;   // doors do not study: no deck, no draws
             if (unit.IsMartial)
                 continue;
 
@@ -491,7 +491,7 @@ public partial class CombatManager : Node3D
                 {
                     // Fallback: save has no valid persistent deck yet (edge case on
                     // migrated saves that haven't been through NewGame). Seed it now.
-                    GD.PrintErr("[InitializeUnitDecks] Persistent deck empty — seeding starter deck.");
+                    GD.PrintErr("[InitializeUnitDecks] Persistent deck empty; seeding starter deck.");
                     if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave?.SelectedSchool,
                             ignoreCase: true, out var school))
                         StarterDeckLoader.SeedStarterDeck(SaveManager.ActiveSave, school);
@@ -515,7 +515,7 @@ public partial class CombatManager : Node3D
                 // deck (2026-07-29 playtest): the old random draw dealt
                 // legendaries in expedition 2 and made companion turns
                 // unreliable. Their ContributedCardIds stay in the WIZARD's
-                // deck (BuildCompanionCardList) — not duplicated here.
+                // deck (BuildCompanionCardList), not duplicated here.
                 var starter = StarterDeckLoader.BuildStarterCards(unit.School);
                 unit.DeckData.Initialize(starter);
                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
@@ -526,7 +526,7 @@ public partial class CombatManager : Node3D
         if (playerUnits.Count > 0 && playerUnits[0].DeckData != null)
             deckManager.SetActiveDeck(playerUnits[0].DeckData);
 
-        // Post-cast player choice (2026-07-28) — the third seam of this shape,
+        // Post-cast player choice (2026-07-28), the third seam of this shape,
         // alongside OnSummonRequested and OnDrawCards. See CardChoice.cs.
         State.OnCardChoiceRequested = OnCardChoiceRequested;
 
@@ -542,7 +542,7 @@ public partial class CombatManager : Node3D
             _pendingSkipDeployTurnStart = false;
 
             // Fix v4 (2026-07-09): the round-1 StartPlayerTurn THROWS in the
-            // skip-deploy context (round 2+ runs the same code clean) — the
+            // skip-deploy context (round 2+ runs the same code clean); the
             // exception aborted this whole deferred call, killing the select
             // and roster sync in every prior version. The banner at the end of
             // StartPlayerTurn never printing was the tell. Caught and printed
@@ -559,7 +559,7 @@ public partial class CombatManager : Node3D
                 GD.PrintErr($"[SkipDeploy] StartPlayerTurn THREW (round-1 handoff): {e.Message}");
             }
 
-            // EAGER — select + roster push. CombatUI's pending-replay applies
+            // EAGER: select + roster push. CombatUI's pending-replay applies
             // whatever lands before BuildUI at build time.
             try
             {
@@ -574,7 +574,7 @@ public partial class CombatManager : Node3D
                 GD.PrintErr($"[SkipDeploy] eager sync THREW: {e.Message}");
             }
 
-            // LATE — re-sync after CombatUI reports built, for surfaces with no
+            // LATE: re-sync after CombatUI reports built, for surfaces with no
             // pending path (the attunement panel wires "Unit: none" otherwise).
             _ = FinishSkipDeployHandoffAsync();
         }
@@ -583,7 +583,7 @@ public partial class CombatManager : Node3D
     /// <summary>Skip-deploy handoff, late stage: wait for CombatUI.BuildUI
     /// (deferred on its side), then re-push selection + roster so the first
     /// turn starts fully armed. Fire-and-forget task: exceptions here are
-    /// INVISIBLE unless caught — hence the entry print (distinguishes a stale
+    /// INVISIBLE unless caught; hence the entry print (distinguishes a stale
     /// build from a dead task) and the catch-all.</summary>
     private async System.Threading.Tasks.Task FinishSkipDeployHandoffAsync()
     {
@@ -594,7 +594,7 @@ public partial class CombatManager : Node3D
             while ((combatUI == null || !combatUI.IsBuilt) && guard++ < 60)
                 await ToSignal(GetTree(), "process_frame");
             if (guard >= 60)
-                GD.PrintErr("[SkipDeploy] CombatUI never reported built — syncing anyway.");
+                GD.PrintErr("[SkipDeploy] CombatUI never reported built; syncing anyway.");
 
             // One extra frame: the attunement-section wire is its own deferred
             // chain that resolves just after BuildUI.
@@ -606,7 +606,7 @@ public partial class CombatManager : Node3D
             RefreshSelectedUnitUI();
             RefreshPlayerUnitBar();
             RefreshDeckCounts();
-            GD.Print("[SkipDeploy] handoff UI sync complete — unit selected, roster loaded.");
+            GD.Print("[SkipDeploy] handoff UI sync complete: unit selected, roster loaded.");
         }
         catch (Exception e)
         {
@@ -615,7 +615,7 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>Skip-deployment mode: set by SpawnTestUnits, consumed by
-    /// InitializeUnitDecks — the first turn must not start before decks exist.</summary>
+    /// InitializeUnitDecks: the first turn must not start before decks exist.</summary>
     private bool _pendingSkipDeployTurnStart = false;
 
     private List<Card> BuildCompanionCardList()
@@ -736,7 +736,7 @@ public partial class CombatManager : Node3D
 
     private void RefreshEnemyRoster()
     {
-        // During deployment, enemies don't exist yet — keep the intel panel visible.
+        // During deployment, enemies don't exist yet; keep the intel panel visible.
         if (isInDeploymentPhase)
         {
             combatUI?.ShowEnemyIntel(BuildEnemyIntel());
@@ -840,8 +840,8 @@ public partial class CombatManager : Node3D
         //
         // Godot's DEFAULT action map puts SPACE in BOTH "ui_select" AND "ui_accept",
         // so one press of the most obvious "get on with it" key fired Pass() *and*
-        // ResolveTop(). Pass() is the rules-engine priority pass — it does nothing for
-        // the R3 trigger window, whose exit is _priorityPassed — so the window stayed
+        // ResolveTop(). Pass() is the rules-engine priority pass (it does nothing for
+        // the R3 trigger window, whose exit is _priorityPassed), so the window stayed
         // open while ResolveTop() drained the stack from under it. The drain loop then
         // awaited a window that could never close, and the phase banner hung.
         //
@@ -860,7 +860,7 @@ public partial class CombatManager : Node3D
             // ── Unit selection ────────────────────────────────────────────
             if (currentPhase == CombatPhase.PlayerTurn)
             {
-                // Enemy inspection — check shift first
+                // Enemy inspection: check shift first
                 if (k.ShiftPressed)
                 {
                     if (k.Keycode == Key.Key1)
@@ -899,7 +899,7 @@ public partial class CombatManager : Node3D
     {
         //GD.Print($"TryHandleMainPhaseClick phase={currentPhase}");
 
-        // Two-step targeting owns this click if one is pending — and consumes it, so
+        // Two-step targeting owns this click if one is pending, and consumes it, so
         // aiming a shove at a tile with a unit on it does not also reselect that unit.
         if (TryHandleTwoStepClick())
             return;
@@ -982,7 +982,7 @@ public partial class CombatManager : Node3D
         _isDraggingUnit = false;
         _draggedUnit = null;
 
-        // Check if pressing on a player unit — potential drag start
+        // Check if pressing on a player unit, a potential drag start
         var hitUnit = GetUnitUnderMouse();
         if (hitUnit != null && hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive)
         {
@@ -1001,7 +1001,7 @@ public partial class CombatManager : Node3D
         {
             // U3 window (2026-07-09): while a trigger priority window is open
             // during the enemy phase, a click on a friendly unit switches the
-            // responder (selection only — movement/attacks stay phase-gated).
+            // responder (selection only, since movement/attacks stay phase-gated).
             if (_priorityWindowOpen)
             {
                 var clicked = GetUnitUnderMouse();
@@ -1020,14 +1020,14 @@ public partial class CombatManager : Node3D
 
         if (wasDrag && _draggedUnit != null)
         {
-            // Released after drag — try to move to tile under mouse
+            // Released after drag, so try to move to tile under mouse
             var tileView = GetTileViewUnderMouse();
             if (tileView != null)
                 TryMoveSelectedUnit(tileView);
         }
         else
         {
-            // Short press — treat as normal click
+            // Short press, so treat as normal click
             TryHandleMainPhaseClick();
         }
 
@@ -1163,8 +1163,8 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>V2 threat-range overlay (combat_ui_v2 §7a, as superseded): every
-    /// tile this enemy could reach-AND-attack next turn — movement envelope
-    /// (tag-adjusted: immobile stays put) expanded by AttackRange. Pure
+    /// tile this enemy could reach-AND-attack next turn, meaning the movement
+    /// envelope (tag-adjusted: immobile stays put) expanded by AttackRange. Pure
     /// arithmetic over the same reachability the AI uses; zero simulation.
     /// Complements the locked-intent reticles: reticle = THIS turn's committed
     /// strike, this zone = NEXT turn's possibility space.</summary>
@@ -1182,7 +1182,7 @@ public partial class CombatManager : Node3D
         int moveRange = Mathf.Max(1, enemy.EffectiveMoveRange);
         int attackCost = Mathf.Max(1, MartialAPCosts.AttackCost(enemy.AttackRange));
         // (2026-07-27) The AI reserves its attack cost before moving, so the reachable
-        // envelope is the POST-reserve budget — without this the zone would over-draw
+        // envelope is the POST-reserve budget. Without this the zone would over-draw
         // by attackCost x moveRange (3-6 tiles) now that AP includes the attack.
         int moveAp = Mathf.Max(0, ap - attackCost);
         int attackRange = Mathf.Max(1, enemy.AttackRange);
@@ -1223,9 +1223,9 @@ public partial class CombatManager : Node3D
         _zoneRenderer.ShowEnemyZone(level, grid);
     }
 
-    /// <summary>Rings 1..radius around center (attacks ignore walls — ranged shoots over
-    /// gaps). Raises each tile's threat level to <paramref name="attacks"/> if higher. The
-    /// center (the enemy's stand-tile) is excluded — a unit can't stand on it.</summary>
+    /// <summary>Rings 1..radius around center (attacks ignore walls, since ranged shoots
+    /// over gaps). Raises each tile's threat level to <paramref name="attacks"/> if higher.
+    /// The center (the enemy's stand-tile) is excluded: a unit can't stand on it.</summary>
     private void AddThreatFootprint(Vector2I center, int radius, int attacks,
         Dictionary<Vector2I, int> level)
     {
@@ -1334,7 +1334,7 @@ public partial class CombatManager : Node3D
     // Unit selection / movement
     // ═══════════════════════════════════════════════════════════════════════
 
-    // ── Consumables (2026-08-13 — v1's "actives are scrolls") ────────────
+    // ── Consumables (2026-08-13, v1's "actives are scrolls") ─────────────
 
     /// <summary>The Scrolls button: list the Armory's consumables, grouped by
     /// definition with counts, plus the gate note explaining why a pick might
@@ -1358,7 +1358,7 @@ public partial class CombatManager : Node3D
                 else
                     byDef[inst.DefinitionId] = (inst, 1);
             }
-            // Potions first, then scrolls — two sections in one list, each
+            // Potions first, then scrolls: two sections in one list, each
             // row carrying its kind tag so the two rules read at a glance.
             var ordered = new List<(string defId, ItemInstance first, int count, bool scroll)>();
             foreach (var kv in byDef)
@@ -1372,7 +1372,7 @@ public partial class CombatManager : Node3D
             {
                 var d = ItemDatabase.Get(defId);
                 string tag = scroll ? "[Scroll]" : "[Potion]";
-                string label = $"{tag} {d.Name}{(count > 1 ? $" ×{count}" : "")} — {d.Description}";
+                string label = $"{tag} {d.Name}{(count > 1 ? $" ×{count}" : "")}: {d.Description}";
                 entries.Add(new CombatUI.ConsumableEntry(first.InstanceId, label));
             }
         }
@@ -1381,7 +1381,7 @@ public partial class CombatManager : Node3D
             currentPhase != CombatPhase.PlayerTurn ? "Consumables can only be used on your turn." :
             selectedUnit == null ? "Select a unit first." :
             selectedUnit.IsObjectiveWard
-                ? $"Target: {selectedUnit.DisplayName} — it cannot drink; scrolls only." +
+                ? $"Target: {selectedUnit.DisplayName}. It cannot drink; scrolls only." +
                   (_scrollReadThisTurn ? " The party's scroll is spent this turn." : "")
                 : $"Target: {selectedUnit.DisplayName}. Potions: " +
                   (selectedUnit.HasUsedConsumableThisTurn ? "already drunk this turn." : "available.") +
@@ -1435,20 +1435,20 @@ public partial class CombatManager : Node3D
                 int before = unit.Stats.Health;
                 unit.Stats.Health = Mathf.Min(unit.Stats.MaxHealth,
                                               unit.Stats.Health + def.ConsumeValue);
-                line = $"{unit.DisplayName} drinks the {def.Name} — restores {unit.Stats.Health - before} HP.";
+                line = $"{unit.DisplayName} drinks the {def.Name} and restores {unit.Stats.Health - before} HP.";
                 break;
             case "shield":
                 unit.Stats.Shield += def.ConsumeValue;
-                line = $"{unit.DisplayName} reads the {def.Name} — gains {def.ConsumeValue} shield.";
+                line = $"{unit.DisplayName} reads the {def.Name} and gains {def.ConsumeValue} shield.";
                 break;
             case "mana":
                 unit.Stats.Mana = Mathf.Min(unit.Stats.MaxMana,
                                             unit.Stats.Mana + def.ConsumeValue);
-                line = $"{unit.DisplayName} drinks the {def.Name} — mana restored.";
+                line = $"{unit.DisplayName} drinks the {def.Name}. Mana restored.";
                 break;
             case "ap":
                 unit.CurrentActionPoints += def.ConsumeValue;
-                line = $"{unit.DisplayName} drinks the {def.Name} — +{def.ConsumeValue} action points.";
+                line = $"{unit.DisplayName} drinks the {def.Name} for +{def.ConsumeValue} action points.";
                 break;
             default:
                 GD.PrintErr($"[Consumable] Unknown effect '{def.ConsumeEffect}' on {def.Id}.");
@@ -1468,7 +1468,7 @@ public partial class CombatManager : Node3D
 
     private void SelectUnit(Unit unit)
     {
-        // O3 + consumables (2026-08-13): the ward IS selectable now — a
+        // O3 + consumables (2026-08-13): the ward IS selectable now. A
         // scroll's shield needs a way to land on it, and its detailed HP bar
         // is protect-mission information. It remains un-commandable by
         // construction (0 AP, 0 move, no deck) and off the unit bar.
@@ -1493,7 +1493,7 @@ public partial class CombatManager : Node3D
         ClearTargetHighlight();
 
         // Picking a unit is the player revisiting the decision the End Turn warning
-        // was about — disarm it so the next End Turn press re-evaluates from scratch.
+        // was about, so disarm it and the next End Turn press re-evaluates from scratch.
         // Guarded, so this only rewrites the hint in the one case where the gate wrote
         // it; unguarded it would stomp the two-step aim prompt on every selection.
         if (_endTurnConfirmPending)
@@ -1519,7 +1519,7 @@ public partial class CombatManager : Node3D
         }
         else if (unit.IsMartial)
         {
-            // Hide hand UI entirely — martial units use StanceUI instead
+            // Hide hand UI entirely, since martial units use StanceUI instead
             if (deckManager?.HandContainer != null)
                 deckManager.HandContainer.Visible = false;
         }
@@ -1561,7 +1561,7 @@ public partial class CombatManager : Node3D
     /// <summary>Can this unit still do something meaningful this turn?
     ///
     /// NOT simply "has AP". Card casts cost mana, not action points, so a wizard
-    /// sitting at 0 AP with mana and a hand is still fully able to act — auto-advancing
+    /// sitting at 0 AP with mana and a hand is still fully able to act. Auto-advancing
     /// off one would be worse than never advancing at all, because it would yank the
     /// board away mid-decision. Martials have no such second economy: their attacks,
     /// moves and stance switches all bill to AP, so AP alone answers for them.</summary>
@@ -1578,12 +1578,12 @@ public partial class CombatManager : Node3D
 
     /// <summary>Hands the selection to the next unit that can still act, once the
     /// current one is spent. Called from the player's action seams (a completed move,
-    /// a resolved martial attack) — the places where a unit can transition from ready
+    /// a resolved martial attack), the places where a unit can transition from ready
     /// to spent by the player's own hand.
     ///
     /// Guarded hard against stealing focus mid-decision: it declines during a priority
-    /// window, during a pending two-step aim, outside the player turn, and — most
-    /// importantly — while the current unit is still ready. Forgetting a unit is a
+    /// window, during a pending two-step aim, outside the player turn, and, most
+    /// importantly, while the current unit is still ready. Forgetting a unit is a
     /// selection failure, not a discipline failure; this fixes the selection.</summary>
     private void MaybeAdvanceToReadyUnit()
     {
@@ -1611,8 +1611,8 @@ public partial class CombatManager : Node3D
             SelectUnit(candidate);
             return;
         }
-        // Nobody left who can act. Say so once rather than silently doing nothing —
-        // this is the moment the End Turn confirm gate will wave you through.
+        // Nobody left who can act. Say so once rather than silently doing nothing.
+        // This is the moment the End Turn confirm gate will wave you through.
         GD.Print("[AutoAdvance] No unit left with an action.");
     }
 
@@ -1628,7 +1628,7 @@ public partial class CombatManager : Node3D
         var ready = alive.Where(IsReadyToAct).ToList();
         var ring = ready.Count > 0 ? ready : alive;
 
-        // Index against the RING, not the alive list — a spent unit is absent from
+        // Index against the RING, not the alive list. A spent unit is absent from
         // `ready`, so IndexOf returns -1 and there is no meaningful "next" from it.
         // Handle that explicitly rather than letting the modulo pick an arbitrary
         // neighbour: entering the ring from outside starts at either end.
@@ -1706,7 +1706,7 @@ public partial class CombatManager : Node3D
     /// tile machinery. Range = the widest of its live aura ranges (Sentinel
     /// `AuraArmorRange`, Lattice/Foundry `AuraDamageRange`); Foundry's board-wide
     /// range naturally rings the whole board. Aura sources are all immobile, so
-    /// the ring is static for the combat — no move refresh needed. No-op for
+    /// the ring is static for the combat and needs no move refresh. No-op for
     /// non-construct or aura-less units.</summary>
     private void ShowConstructAura(Unit unit)
     {
@@ -1830,13 +1830,13 @@ public partial class CombatManager : Node3D
             effectiveRange += attacker.ActiveStance.AttackRangeBonus;
 
         // Height rules (2026-08-11 ruling), symmetric with the enemy AI:
-        // melee reaches where feet reach — no swording across a cliff edge;
+        // melee reaches where feet reach, so no swording across a cliff edge;
         // ranged shots from above reach +1 (the rampart's payoff).
         int heightDiff = attacker.CurrentTile.Height - target.CurrentTile.Height;
         if (effectiveRange <= 1 && Math.Abs(heightDiff) > grid.CliffHeightThreshold)
         {
             combatUI?.AppendActionLog(
-                $"{attacker.Name} — too great a height to strike across.");
+                $"{attacker.Name} cannot strike across so great a height.");
             return;
         }
         if (effectiveRange > 1 && heightDiff > 0)
@@ -1846,7 +1846,7 @@ public partial class CombatManager : Node3D
         if (dist > effectiveRange)
         {
             combatUI?.AppendActionLog(
-                $"{attacker.Name} — target out of range (dist={dist} range={effectiveRange}).");
+                $"{attacker.Name}: target out of range (dist={dist} range={effectiveRange}).");
             return;
         }
 
@@ -1874,7 +1874,7 @@ public partial class CombatManager : Node3D
 
         // Aimed: requires no movement.
         // (2026-08-05) Was `attacker.Stats.HasMoved`, a field nothing in the codebase ever
-        // assigned — so this gate has never once fired and Aimed has never been payable in
+        // assigned, so this gate has never once fired and Aimed has never been payable in
         // movement. Retargeted at TilesMovedThisTurn, which TryMoveTo accumulates and
         // StartTurn resets. EXPECT AIMED TO GET HARDER: this is the first build where the
         // restriction exists at all, and its damage bonus was tuned against a stance that
@@ -1883,7 +1883,7 @@ public partial class CombatManager : Node3D
             && attacker.TilesMovedThisTurn > 0)
         {
             combatUI?.AppendActionLog(
-                $"{attacker.Name} — Aimed requires no movement this turn.");
+                $"{attacker.Name}: Aimed requires no movement this turn.");
             // Refund AP since we're blocking
             attacker.CurrentActionPoints += apCost;
             return;
@@ -1891,13 +1891,13 @@ public partial class CombatManager : Node3D
 
         ResolveMartialAttack(attacker, target);
 
-        // Refresh move tiles — AP changed so reachable range may shrink
+        // Refresh move tiles, since AP changed and reachable range may shrink
         ClearMoveTiles();
         ShowMoveTilesWithCost(selectedUnit);
     }
 
-    /// <summary>(2026-07-29) UI hook for the stance-switcher row in CombatUI —
-    /// the first caller TrySwitchStance has ever had (the whole stance system
+    /// <summary>(2026-07-29) UI hook for the stance-switcher row in CombatUI.
+    /// The first caller TrySwitchStance has ever had (the whole stance system
     /// was implemented but unreachable: no control invoked it). Resolves the
     /// id against the SELECTED unit's trained list; legality (AP cost,
     /// once-per-turn, ownership) is enforced inside TrySwitchStance, which
@@ -1966,7 +1966,7 @@ public partial class CombatManager : Node3D
         if (loadout != null)
             damage += loadout.BonusAttackDamage;
 
-        // BonusDamageAboveHalfHP (implemented 2026-08-13 — the tag existed
+        // BonusDamageAboveHalfHP (implemented 2026-08-13; the tag existed
         // since Q1 with no consumer): the healthy fighter hits harder.
         if (attacker.Stats.Health * 2 > attacker.Stats.MaxHealth)
         {
@@ -1994,8 +1994,8 @@ public partial class CombatManager : Node3D
             damage *= 2;
         }
 
-        // Aimed: only apply bonus if unit hasn't moved. Same retarget as the gate above —
-        // these two must agree on what "moved" means or a shot can be legal and unbonused.
+        // Aimed: only apply bonus if unit hasn't moved. Same retarget as the gate above.
+        // These two must agree on what "moved" means or a shot can be legal and unbonused.
         if (stance?.SpecialTag == StanceSpecialTag.AimedRequiresNoMove
             && attacker.TilesMovedThisTurn > 0)
         {
@@ -2017,15 +2017,15 @@ public partial class CombatManager : Node3D
             if (packmates > 0)
             {
                 damage += packmates;
-                combatUI?.AppendActionLog($"[Pack] {attacker.Name} +{packmates} — the pack hunts together.");
+                combatUI?.AppendActionLog($"[Pack] {attacker.Name} +{packmates}. The pack hunts together.");
             }
         }
 
-        // Charge: momentum — 2+ tiles covered this turn before the hit = +3.
+        // Charge: momentum, so 2+ tiles covered this turn before the hit = +3.
         if (attacker.HasBehaviorTag("charge") && attacker.TilesMovedThisTurn >= 2)
         {
             damage += 3;
-            combatUI?.AppendActionLog($"[Charge] {attacker.Name} slams in with momentum — +3 damage.");
+            combatUI?.AppendActionLog($"[Charge] {attacker.Name} slams in with momentum for +3 damage.");
         }
 
         // Marked target bonus
@@ -2036,7 +2036,7 @@ public partial class CombatManager : Node3D
             // Simplified: use a fixed +3 for now
             markedBonus = 3;
             target.RemoveStatus("marked");
-            combatUI?.AppendActionLog($"[Mark] {target.Name} was marked — +{markedBonus} damage!");
+            combatUI?.AppendActionLog($"[Mark] {target.Name} was marked, for +{markedBonus} damage!");
         }
 
         damage = Math.Max(1, damage + markedBonus);
@@ -2049,7 +2049,7 @@ public partial class CombatManager : Node3D
 
         if (ignoresArmor)
         {
-            // Bypass armor — apply directly to health
+            // Bypass armor and apply directly to health
             int savedArmor = target.Stats.Armor;
             target.Stats.Armor = 0;
             target.ApplyDamage(damage, attacker);
@@ -2068,7 +2068,7 @@ public partial class CombatManager : Node3D
         {
             foreach (var neighbor in grid.GetNeighbors(attacker.CurrentTile.Axial))
             {
-                // Captured once — lethal splash clears Occupant before the log
+                // Captured once, because lethal splash clears Occupant before the log
                 // line (2026-07-09 sweep).
                 var splashVictim = grid.GetTile(neighbor)?.Occupant;
                 if (splashVictim == null)
@@ -2172,7 +2172,7 @@ public partial class CombatManager : Node3D
         RefreshPlayerUnitBar();
         MaybeAdvanceToReadyUnit();   // the strike may have spent this unit's last AP
 
-        // Check combat end — attack may have killed the target
+        // Check combat end, since the attack may have killed the target
         _pruneNeeded = true;
     }
 
@@ -2182,7 +2182,7 @@ public partial class CombatManager : Node3D
 
     /// <summary>Turn-one hand sculpt: the player may bottom up to
     /// <see cref="OpeningSculptMax"/> cards and redraw that many. Offered to the
-    /// currently selected unit (the wizard the fight opens on) — one modal, not one
+    /// currently selected unit (the wizard the fight opens on): one modal, not one
     /// per party member; a four-modal combat open would be the decision-fatigue
     /// failure the design doc warns about.</summary>
     private void OfferOpeningSculpt()
@@ -2205,7 +2205,7 @@ public partial class CombatManager : Node3D
         var req = new CardChoiceRequest
         {
             Title = "Opening Hand",
-            Prompt = $"Bottom up to {max} card(s) and redraw that many — or cancel to keep your hand.",
+            Prompt = $"Bottom up to {max} card(s) and redraw that many, or cancel to keep your hand.",
             Owner = sculptUnit,
             Candidates = new List<Card>(hand),
             PickCount = max,
@@ -2239,7 +2239,7 @@ public partial class CombatManager : Node3D
         // Reset extra-turn flag and per-round tracking
         if (!_isExtraTurn)
         {
-            // New round — reset ExtraTurnFiredThisRound on active effects
+            // New round, so reset ExtraTurnFiredThisRound on active effects
             if (State.ActiveEffects != null)
             {
                 foreach (var eff in State.ActiveEffects.OfType<ExtraTurnPersistentEffect>())
@@ -2255,7 +2255,7 @@ public partial class CombatManager : Node3D
         // (2026-07-28, U3e) Ritardando's "+1 enemy spell cost" expires HERE, not at
         // the head of the enemy phase where it used to be cleared before it could
         // ever apply. Cast during turn N, it holds every enemy channel through the
-        // enemy phase of round N, and lifts as turn N+1 begins — which is what "this
+        // enemy phase of round N, and lifts as turn N+1 begins, which is what "this
         // round" reads as from the player's seat.
         State.EnemySpellCostIncrease = 0;
 
@@ -2312,13 +2312,13 @@ public partial class CombatManager : Node3D
         // ── Board-wide upkeep: ONCE per round, not once per party member ──────────
         // (2026-08-05) These two lines lived inside the per-unit loop above, so they
         // fired once for every living player unit. GlyphManager.Tick decrements
-        // DurationTurns and fires StartOfTurn glyphs on any enemy standing on one —
+        // DurationTurns and fires StartOfTurn glyphs on any enemy standing on one, so
         // with a three-unit party every timed glyph expired at 3x rate and every
         // StartOfTurn glyph dealt its damage three times. The bug scaled with party
         // size, which is why it was invisible in solo testing, and it silently
         // rebalanced the entire Enchanter/Weave school against headcount.
         //
-        // They sit here — after the loop, before PruneDeadUnits — so a glyph kill
+        // They sit here, after the loop and before PruneDeadUnits, so a glyph kill
         // still gets pruned on the same frame it always did. Every other global in
         // this method was already outside the loop; these two were the exception.
         State.Memorials.Tick();
@@ -2357,7 +2357,7 @@ public partial class CombatManager : Node3D
         // ── Foretold cards arrive (2026-07-29) ────────────────────────────────────
         // The Almanac's sibling: the Almanac schedules EFFECTS, Foretell schedules
         // CARDS. Runs AFTER the draw loop above, and deliberately ignores
-        // MaxHandSize — the player paid a card and a full turn for these; arriving
+        // MaxHandSize. The player paid a card and a full turn for these, so arriving
         // over the cap keeps them rather than burning them.
         if (State.Foretold != null && State.Foretold.Count > 0)
         {
@@ -2381,11 +2381,11 @@ public partial class CombatManager : Node3D
                 }
                 else if (owner != null && IsInstanceValid(owner) && owner.DeckData != null)
                 {
-                    // Owner fell before the future arrived — the card lands in their
+                    // Owner fell before the future arrived, so the card lands in their
                     // discard rather than vanishing (cards cannot be lost, rule 1 of
                     // the choice seam).
                     owner.DeckData.DiscardPile.Add(entry.Card);
-                    GD.Print($"[Foretell] {owner.Name} fell — {entry.Card.CardName} goes to their discard.");
+                    GD.Print($"[Foretell] {owner.Name} fell, so {entry.Card.CardName} goes to their discard.");
                 }
             }
             deckUiManager?.SafeRefreshUI();
@@ -2429,17 +2429,17 @@ public partial class CombatManager : Node3D
             }
         }
 
-        // Q2 (§7a): item AURAS (§5 states, not stack events) recompute here —
+        // Q2 (§7a): item AURAS (§5 states, not stack events) recompute here, so
         // regen auras heal adjacent allies at each of your turn starts.
         ApplyItemAuras();
-        ApplyEnemyAuras();   // U3d — radius auras (bodyguard, tithe_aura); idempotent
+        ApplyEnemyAuras();   // U3d radius auras (bodyguard, tithe_aura); idempotent
 
         ProcessStatusEffects(playerUnits);
         ApplyHazardDamage(playerUnits);
 
         // U3e action_tax: LAST, and deliberately so. StartTurn refilled AP,
         // ProcessStatusEffects may have zeroed it (frozen/stunned/bound) and
-        // ApplyHazardDamage may have killed the unit outright — everything that has
+        // ApplyHazardDamage may have killed the unit outright. Everything that has
         // a legitimate claim on this turn's action points has now spoken. The tax
         // only ever subtracts from what survives all of that.
         ApplyEnemyActionTax();
@@ -2489,13 +2489,13 @@ public partial class CombatManager : Node3D
 
             unit.Stats.Shield = 0;
 
-            // Bulwark (2026-07-12): a bear that did NOT attack this turn braces —
+            // Bulwark (2026-07-12): a bear that did NOT attack this turn braces for
             // shield that lives through the enemy turn (granted after the zeroing
             // above, cleared by next turn's zeroing). Hit hard OR be tough.
             if (unit.HasBehaviorTag("bulwark") && !unit.HasAttackedThisTurn && unit.Stats.IsAlive)
             {
                 unit.Stats.Shield += 4;
-                combatUI?.AppendActionLog($"[Bulwark] {unit.Name} braces — +4 shield until your next turn.");
+                combatUI?.AppendActionLog($"[Bulwark] {unit.Name} braces for +4 shield until your next turn.");
             }
 
             unit.RefreshHealthBar();
@@ -2537,7 +2537,7 @@ public partial class CombatManager : Node3D
 
             GD.Print($"[ExtraTurn] Extra turn: {extraTurn.ExtraMana} mana, draw {extraTurn.ExtraDraw}.");
             StartPlayerTurn();
-            return; // Don't call StartEnemyTurn — constructs hold until the round actually ends
+            return; // Don't call StartEnemyTurn; constructs hold until the round actually ends
         }
 
         await RunConstructPhase();   // ← only on the path that hands off to the enemy
@@ -2557,9 +2557,9 @@ public partial class CombatManager : Node3D
     /// Both halves are load-bearing:
     ///
     ///  * `!HasActed` is now an EXACT test rather than the AP/mana/tiles heuristic this
-    ///    method shipped with a few hours ago. That heuristic had two known gaps — a free
-    ///    (0-mana) cast read as idle, and an action_tax'd unit read as having acted — and
-    ///    both are gone now that every action seam sets the flag.
+    ///    method shipped with a few hours ago. That heuristic had two known gaps. A free
+    ///    (0-mana) cast read as idle, and an action_tax'd unit read as having acted. Both
+    ///    are gone now that every action seam sets the flag.
     ///  * `IsReadyToAct` suppresses the warning for a unit that CANNOT act: frozen,
     ///    stunned or bound at 0 AP, or a martial simply out of AP. Nagging about a unit
     ///    the player is powerless to use is how a confirm gate teaches people to click
@@ -2574,7 +2574,7 @@ public partial class CombatManager : Node3D
         {
             if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
                 continue;
-            // Constructs activate autonomously — the player cannot "un-idle" them, so
+            // Constructs activate autonomously and the player cannot "un-idle" them, so
             // warning that a construct hasn't acted nags about a condition they cannot
             // mechanically control (exactly the click-through trap this gate's own doc
             // above warns against).
@@ -2590,12 +2590,12 @@ public partial class CombatManager : Node3D
     {
         if (currentPhase != CombatPhase.PlayerTurn)
             return;
-        // U3 hardening (2026-07-09): the trigger drain awaits _priorityPassed —
+        // U3 hardening (2026-07-09): the trigger drain awaits _priorityPassed, so
         // ending the turn mid-window would race the drain loop. Pass first.
         if (_priorityWindowOpen)
         {
             combatUI?.AppendActionLog("Resolve the stack first (Pass).");
-            GD.Print("[Priority] End Turn blocked — window open.");
+            GD.Print("[Priority] End Turn blocked: window open.");
             return;
         }
 
@@ -2612,9 +2612,9 @@ public partial class CombatManager : Node3D
                 _endTurnConfirmPending = true;
                 string names = string.Join(", ", idle.Select(u => u.DisplayName));
                 string verb = idle.Count == 1 ? "hasn't" : "haven't";
-                combatUI?.AppendActionLog($"⚠ {names} {verb} acted — End Turn again to confirm.");
+                combatUI?.AppendActionLog($"⚠ {names} {verb} acted. End Turn again to confirm.");
                 combatUI?.SetHintText($"{names} {verb} acted. Press End Turn again to confirm.");
-                GD.Print($"[EndTurn] Confirm gate armed — idle: {names}");
+                GD.Print($"[EndTurn] Confirm gate armed. Idle: {names}");
                 return;
             }
         }
@@ -2624,17 +2624,17 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>Moves the selection off a corpse to the next living companion, or clears
-    /// it if the party is gone. Deferred from HandleUnitDeath — see the call site for why
-    /// it must not run synchronously.</summary>
+    /// it if the party is gone. Deferred from HandleUnitDeath (see the call site for why
+    /// it must not run synchronously).</summary>
     // ── Two-step targeting: the second pick ─────────────────────────────────
 
     /// <summary>True while a card is waiting for its second click. The card has NOT
-    /// been cast and NOTHING has been paid — cancelling costs the player nothing.</summary>
+    /// been cast and NOTHING has been paid, so cancelling costs the player nothing.</summary>
     private bool TwoStepPending => _twoStepTargeter != null;
 
     /// <summary>Arms the second pick: remembers the drop, highlights every legal
     /// destination, and prompts. Deliberately highlights the LEGAL set rather than
-    /// letting the player click anywhere and fail — a second click that can silently
+    /// letting the player click anywhere and fail. A second click that can silently
     /// do nothing is the same class of defect as a trigger that queues and evaporates.</summary>
     private void BeginTwoStep(CardUi cardUi, bool isTop, HexTile tile, Unit victim,
                               SelectTwoStepTarget ts, CardHalf half)
@@ -2689,7 +2689,7 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>Consumes the second click. Returns true when it handled the input, so
-    /// the normal click path does not ALSO run — otherwise the click that aims the
+    /// the normal click path does not ALSO run. Otherwise the click that aims the
     /// shove would reselect a unit underneath it.</summary>
     private bool TryHandleTwoStepClick()
     {
@@ -2709,14 +2709,14 @@ public partial class CombatManager : Node3D
             return true;
         }
 
-        // Replay the original drop with the choice in hand. Everything from here —
-        // requirements, preview self-check, cost, stack, telemetry — is the untouched
+        // Replay the original drop with the choice in hand. Everything from here on
+        // (requirements, preview self-check, cost, stack, telemetry) is the untouched
         // single-step path.
         _twoStepChoice = td;
         var card = _twoStepCard; bool isTop = _twoStepIsTop; var tile = _twoStepTile;
         ClearTwoStepHighlight();   // choice is captured; drop the aim paint before the replay
         OnCardDroppedOnTile(card, isTop, tile);
-        ClearTwoStep();               // idempotent — the switch already cleared it on success
+        ClearTwoStep();               // idempotent; the switch already cleared it on success
         return true;
     }
 
@@ -2728,7 +2728,7 @@ public partial class CombatManager : Node3D
             return;
         ClearTwoStep();
         ClearTargetHighlight();
-        string msg = reason == null ? "Cast cancelled." : $"Cast cancelled — {reason}.";
+        string msg = reason == null ? "Cast cancelled." : $"Cast cancelled: {reason}.";
         GD.Print($"[TwoStep] {msg}");
         combatUI?.AppendActionLog(msg);
     }
@@ -2778,9 +2778,9 @@ public partial class CombatManager : Node3D
 
     /// <summary>Pauses the drop and asks for the card's mode. The picker is the
     /// card-choice modal rendering synthetic option stubs (label + description as a
-    /// text panel — they are not cards and must not look draggable). On confirm the
-    /// drop is REPLAYED with _chooseOneIndex set, down the same single-step path —
-    /// the identical discipline BeginTwoStep established, for the identical reason:
+    /// text panel; they are not cards and must not look draggable). On confirm the
+    /// drop is REPLAYED with _chooseOneIndex set, down the same single-step path.
+    /// That is the identical discipline BeginTwoStep established, for one reason:
     /// nothing about casting gets duplicated. Cancel is free; nothing has been paid.</summary>
     private void BeginChooseOne(CardUi cardUi, bool isTop, HexTile tile, CardHalf half,
                                 ChooseOneEffect chooser)
@@ -2815,7 +2815,7 @@ public partial class CombatManager : Node3D
             },
             OnCancelled = () =>
             {
-                GD.Print($"[ChooseOne] {half.Name} cancelled — nothing paid.");
+                GD.Print($"[ChooseOne] {half.Name} cancelled. Nothing paid.");
                 combatUI?.AppendActionLog("Cast cancelled.");
             },
         };
@@ -2855,7 +2855,7 @@ public partial class CombatManager : Node3D
 
         for (int i = 0; i < overflow; i++)
         {
-            // Always discard index 0 — the oldest card
+            // Always discard index 0, the oldest card
             var dropped = unit.DeckData.Hand[0];
             unit.DeckData.Hand.RemoveAt(0);
             unit.DeckData.DiscardPile.Add(dropped);
@@ -2876,7 +2876,7 @@ public partial class CombatManager : Node3D
         if (stance.PassiveSpeedBonus != 0)
             unit.Stats.BonusMoveRange += stance.PassiveSpeedBonus;
 
-        // Armor bonus/penalty — temporary for this turn
+        // Armor bonus/penalty, temporary for this turn
         // We track the net stance armor separately to avoid double-applying
         // Simple: add directly; it resets next turn via StartTurn → stats rebuilt
         // For now store in a temp variable approach:
@@ -2923,8 +2923,8 @@ public partial class CombatManager : Node3D
         currentPhase = CombatPhase.EnemyTurn;
 
         // (2026-07-28, U3e) `State.EnemySpellCostIncrease = 0;` USED TO SIT HERE, at
-        // the head of the enemy phase. Ritardando is a Studied half — it can only be
-        // cast during the player's turn — so this line wiped the tax roughly one
+        // the head of the enemy phase. Ritardando is a Studied half, castable only
+        // during the player's turn, so this line wiped the tax roughly one
         // frame after the player paid 3 mana for it, before a single enemy acted. It
         // never mattered, because nothing read the field either; both halves of that
         // are fixed together. The reset now lives in StartPlayerTurn, so the value
@@ -2989,7 +2989,7 @@ public partial class CombatManager : Node3D
         // on updated terrain and zones read against reality.
         EvaluateMapEvents();
 
-        // E3: Ward Stone aura — armour to whoever holds ground near a ward stone.
+        // E3: Ward Stone aura, granting armour to whoever holds ground near a ward stone.
         ApplyWardStoneAuras();
 
         // Inert when the encounter carries no objective and no waves.
@@ -2998,7 +2998,7 @@ public partial class CombatManager : Node3D
             return;
 
         // U3c: regrowth asks "did it take THRESHOLD damage this round?", so the tally
-        // resets as the round turns over — after the enemy phase has read it, before
+        // resets as the round turns over, after the enemy phase has read it and before
         // the player can start adding to it again.
         foreach (var u in State.UnitsInPlay)
             if (u != null && IsInstanceValid(u))
@@ -3032,12 +3032,12 @@ public partial class CombatManager : Node3D
             return;
 
         // Find the actual next step along a navigable path, not just the
-        // closest reachable tile — avoids getting stuck on obstacle walls
+        // closest reachable tile. This avoids getting stuck on obstacle walls
         var nextStep = grid.GetFirstStepToward(enemy, target.CurrentTile.Axial);
 
         if (nextStep == null)
         {
-            // No path to target — try to get as close as possible
+            // No path to target, so try to get as close as possible
             // using the old greedy approach as fallback
             var moveOptions = grid.GetReachableTiles(enemy);
             Vector2I bestMove = enemy.CurrentTile.Axial;
@@ -3066,7 +3066,7 @@ public partial class CombatManager : Node3D
         int pathCost = grid.GetMoveCostTo(enemy, nextStep);
         if (pathCost < 0 || pathCost > enemy.EffectiveMoveRange)   // unified: honors rooted/slowed/grants
         {
-            // First step is too far for one AP spend — shouldn't happen
+            // First step is too far for one AP spend. This shouldn't happen
             // since BFS neighbors are always adjacent, but guard anyway
             return;
         }
@@ -3082,7 +3082,7 @@ public partial class CombatManager : Node3D
 
     /// Move to a specific distance from target (Ranger/Wizard kiting). Tier-2 economy:
     /// each AP buys a hop of up to EffectiveMoveRange, and the strike's cost is held in
-    /// reserve — see MoveTowardTile.
+    /// reserve (see MoveTowardTile).
     private async System.Threading.Tasks.Task MoveToDistance(Unit enemy, Unit target, int desiredDist)
     {
         int moves = 0;
@@ -3123,7 +3123,7 @@ public partial class CombatManager : Node3D
 
     /// Move away from target until at least minDist away (Ranger/Wizard retreat).
     /// Tier-2 economy: each AP buys a hop of up to EffectiveMoveRange, with the shot's
-    /// cost held in reserve. This is what makes enemy kiting real — a 2-speed ranger
+    /// cost held in reserve. This is what makes enemy kiting real: a 2-speed ranger
     /// cornered at range 1 opens its whole preferred band in a single turn.
     private async System.Threading.Tasks.Task MoveAwayFrom(Unit enemy, Unit target, int minDist)
     {
@@ -3139,7 +3139,7 @@ public partial class CombatManager : Node3D
 
             var goal = target.CurrentTile.Axial;
             if (grid.Distance(enemy.CurrentTile.Axial, goal) >= minDist)
-                break;                                  // far enough — don't flee the map
+                break;                                  // far enough, don't flee the map
             if (!CanSpendMoveAP(enemy))
                 break;
 
@@ -3171,7 +3171,7 @@ public partial class CombatManager : Node3D
     // every enemy attack now routes ExecuteIntent -> StrikeTile -> ResolveStrike, and
     // this method had zero callers. It also carried one of the two stale
     // ResolveRetaliation call sites (Riposte now hangs off Unit.OnStruck instead).
-    // PerformRangedAttack is KEPT — Tinker constructs still call it.
+    // PerformRangedAttack is KEPT, because Tinker constructs still call it.
 
 
     /// <summary>Riposte: a defender with RetaliateDamage strikes back at whoever just hit it.</summary>
@@ -3195,14 +3195,14 @@ public partial class CombatManager : Node3D
         int dist = grid.Distance(enemy.CurrentTile, target.CurrentTile);
         if (dist > enemy.AttackRange)
         {
-            GD.Print($"{enemy.Name} — target out of range for ranged attack.");
+            GD.Print($"{enemy.Name}: target out of range for ranged attack.");
             return;
         }
 
         // ── Line of sight check ───────────────────────────────────────────
         if (!grid.HasLineOfSight(enemy.CurrentTile.Axial, target.CurrentTile.Axial))
         {
-            GD.Print($"{enemy.Name} — no line of sight to {target.Name}.");
+            GD.Print($"{enemy.Name} has no line of sight to {target.Name}.");
             combatUI?.AppendActionLog($"{enemy.Name} has no line of sight!");
             return;
         }
@@ -3220,8 +3220,8 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog(msg);
 
         target.ApplyDamage(dmg, enemy);
-        // Riposte moved to the single OnStruck hook (HandleUnitStruck) 2026-07-28 —
-        // calling it here too would fire it twice for the one live caller of this
+        // Riposte moved to the single OnStruck hook (HandleUnitStruck) 2026-07-28.
+        // Calling it here too would fire it twice for the one live caller of this
         // method (Tinker constructs, CombatManager.Constructs.cs).
 
         RefreshSelectedUnitUI();
@@ -3249,7 +3249,7 @@ public partial class CombatManager : Node3D
             if (!unit.CurrentTile.IsHazardous)
                 continue;
 
-            // Capture everything we need from the tile BEFORE damage —
+            // Capture everything we need from the tile BEFORE damage, since
             // ApplyDamage may kill the unit and null out CurrentTile.
             var elementType = unit.CurrentTile.ElementType;
             var elementStrength = unit.CurrentTile.ElementStrength;
@@ -3291,7 +3291,7 @@ public partial class CombatManager : Node3D
                 GD.Print(msg);
                 combatUI?.AppendActionLog(msg);
             }
-            // ── Bleed (Q2, 2 damage per turn) — applied by onAttack items ────
+            // ── Bleed (Q2, 2 damage per turn), applied by onAttack items ────
             if (unit.HasStatus("bleed"))
             {
                 int bleedDmg = 2;
@@ -3333,13 +3333,13 @@ public partial class CombatManager : Node3D
                 unit.Stats.MaxHealth = Math.Max(0, unit.Stats.MaxHealth - drain);
                 unit.Stats.WitheredMaxHp += beforeMax - unit.Stats.MaxHealth;
 
-                // Clamp current HP to the new max — this IS damage
+                // Clamp current HP to the new max. This IS damage.
                 if (unit.Stats.Health > unit.Stats.MaxHealth)
                     unit.Stats.Health = unit.Stats.MaxHealth;
 
                 unit.RefreshHealthBar();
 
-                string msg = $"{unit.Name} is poisoned — max HP reduced by {drain} " +
+                string msg = $"{unit.Name} is poisoned. Max HP reduced by {drain} " +
                             $"(now {unit.Stats.Health}/{unit.Stats.MaxHealth}).";
                 GD.Print(msg);
                 combatUI?.AppendActionLog(msg);
@@ -3368,7 +3368,7 @@ public partial class CombatManager : Node3D
         GD.Print(deathMsg);
         combatUI?.AppendActionLog(deathMsg);
 
-        // K2.5: a companion downed on expedition is stabilized at 0 — out for
+        // K2.5: a companion downed on expedition is stabilized at 0 and out for
         // the rest of the expedition, infirmary check at extraction. If this
         // fight is LOST, the §5b wipe rolls decide their fate instead.
         if (unit.IsPlayerControlled && !string.IsNullOrEmpty(unit.CompanionId)
@@ -3378,36 +3378,36 @@ public partial class CombatManager : Node3D
             if (downedComp != null)
             {
                 downedComp.ExpeditionHP = 0;
-                GD.Print($"[ExpeditionHP] {downedComp.Name} downed — stabilized at 0, " +
+                GD.Print($"[ExpeditionHP] {downedComp.Name} downed and stabilized at 0, " +
                          "out for the rest of this expedition.");
             }
         }
 
         // U3: queue death-driven triggers (onDeath/onAllyDeath) while the corpse
-        // still has a tile — "when the unit dies, before removal" (units doc §5).
+        // still has a tile: "when the unit dies, before removal" (units doc §5).
         // Queuing only; the drain runs at the next safe async point.
         QueueDeathTriggers(unit);
 
         // O3: the ward's death latches objective defeat (declaration still
-        // flows through CheckCombatEnd — trigger-settle order intact).
+        // flows through CheckCombatEnd, keeping trigger-settle order intact).
         NoteObjectiveUnitDeath(unit);
 
         // (2026-07-28, PT-U3e-5) The camera and the selection used to stay parked on a
-        // companion that had just died — most visibly when binding_geas killed one
+        // companion that had just died, most visibly when binding_geas killed one
         // mid-move, since the player was looking right at it. Harmless (the corpse
         // drops out of the roster the moment anything else is clicked) but it reads as
         // the game having lost track of itself at the exact moment it should be clearest.
         //
         // DEFERRED, and gated to the player turn with no window open. HandleUnitDeath
         // runs INSIDE ApplyDamage, which can be inside an effect resolution or inside
-        // an open priority window that has auto-selected a responder — reselecting
+        // an open priority window that has auto-selected a responder. Reselecting
         // synchronously there would swap the active deck out from under a cast, or
         // fight the window for the selection.
         if (unit == selectedUnit && currentPhase == CombatPhase.PlayerTurn && !_priorityWindowOpen)
             CallDeferred(nameof(SelectNextLivingAfterDeath));
 
         // U3e: recompute the enemy aura field NOW, not at the next turn boundary.
-        // tithe_aura is a mana tax the player pays per cast — leaving it standing for
+        // tithe_aura is a mana tax the player pays per cast, so leaving it standing for
         // the rest of the turn after its carrier is dead would make the hand read as
         // unaffordable for a unit that no longer exists. Cheap (O(enemies²) over a
         // handful of units) and idempotent, and it fixes bodyguard's stale-guard case
@@ -3419,7 +3419,7 @@ public partial class CombatManager : Node3D
         // Enemy-team, faction-tagged, encounter-spawned units only. Summon-seam
         // copies are excluded (farm guard); factionless wildlife/generics have
         // no family in v1 and record nothing. Commit happens on victory, in
-        // ExpeditionManager — a death recorded here costs nothing on a loss.
+        // ExpeditionManager, so a death recorded here costs nothing on a loss.
         if (unit.TeamId != 0 && !unit.IsPlayerControlled && !unit.IsMidFightSummon
             && !string.IsNullOrEmpty(unit.FactionId))
         {
@@ -3453,31 +3453,31 @@ public partial class CombatManager : Node3D
 
             if (unit.LeaveMemorialOnDeath.HasValue)
             {
-                // Explicit card mark (Last Words) — overrides everything else.
+                // Explicit card mark (Last Words), which overrides everything else.
                 int team = necroTeam >= 0 ? necroTeam : 0;
                 State.Memorials.CreateMemorial(unit.CurrentTile, unit.Name,
                     wasAlly: false, unit.LeaveMemorialOnDeath.Value, team);
-                State.Log($"[LastWords] {unit.Name} died while marked — {unit.LeaveMemorialOnDeath.Value} memorial created.");
+                State.Log($"[LastWords] {unit.Name} died while marked. {unit.LeaveMemorialOnDeath.Value} memorial created.");
             }
             else if (unit.HasStatus("haunted"))
             {
-                // Haunted overrides normal memorial creation — always creates a
+                // Haunted overrides normal memorial creation and always creates a
                 // Strong memorial regardless of whether a Necromancer is present,
                 // and regardless of the unit's HP tier.
                 int team = necroTeam >= 0 ? necroTeam : 0;
                 State.Memorials.CreateMemorial(unit.CurrentTile, unit.Name,
                     wasAlly: false, MemorialStrength.Strong, team);
-                State.Log($"[Haunted] {unit.Name} died while haunted — Strong memorial created.");
+                State.Log($"[Haunted] {unit.Name} died while haunted. Strong memorial created.");
             }
             else if (necroTeam >= 0)
             {
-                // Normal Necromancer memorial — strength based on unit HP tier
+                // Normal Necromancer memorial, strength based on unit HP tier
                 State.Memorials.CreateMemorial(unit.CurrentTile, unit, necroTeam);
             }
         }
         // ─────────────────────────────────────────────────────────────────
 
-        // Wildlife death enriches the ground — circle of life
+        // Wildlife death enriches the ground: the circle of life
         if (State?.Growth != null && unit.CurrentTile != null && unit.HasStatus("wildlife"))
             State.Growth.LeaveCarcass(unit.CurrentTile, unit);
 
@@ -3538,7 +3538,7 @@ public partial class CombatManager : Node3D
             if (!u.Stats.IsAlive)
             {
                 list.RemoveAt(i);
-                // Now safe to actually free the node — nothing references it
+                // Now safe to actually free the node, since nothing references it
                 u.QueueFree();
             }
         }
@@ -3580,24 +3580,24 @@ public partial class CombatManager : Node3D
     private bool CheckCombatEnd()
     {
         // Already ended (2026-07-09): this is re-invoked by the enemy-turn tail
-        // and the per-frame prune loop after the phase is decided — without the
+        // and the per-frame prune loop after the phase is decided. Without the
         // guard, DEFEAT/VICTORY emitted CombatCompleted repeatedly (observed:
         // 4× on one loss, re-rolling the router's gold each time).
         if (currentPhase == CombatPhase.Victory || currentPhase == CombatPhase.Defeat)
             return true;
 
-        // U3: defer while death triggers are pending or on the stack — killing
+        // U3: defer while death triggers are pending or on the stack. Killing
         // The Final Service last must not declare victory before Deathburst
         // resolves and the Honored Dead rise. DrainTriggerStackAsync re-checks
         // once the stack settles.
         if (State != null && TriggersOutstanding)
         {
             // Latched (2026-07-09): PruneDeadUnits re-arms _pruneNeeded, so this
-            // check runs per-frame from the first kill on — one line per deferral
+            // check runs per-frame from the first kill on. One line per deferral
             // episode is evidence; hundreds are noise.
             if (!_combatEndDeferLogged)
             {
-                GD.Print("[CombatEnd] deferred — triggers outstanding on the stack.");
+                GD.Print("[CombatEnd] deferred: triggers outstanding on the stack.");
                 _combatEndDeferLogged = true;
             }
             return false;
@@ -3605,7 +3605,7 @@ public partial class CombatManager : Node3D
         _combatEndDeferLogged = false;
 
         // O-track: objective outcomes are LATCHED at the round boundary and
-        // declared here, after the trigger deferral above — so "you survived
+        // declared here, after the trigger deferral above, so "you survived
         // round 8" cannot beat a Deathburst to the punch any more than
         // "you killed the last one" can.
         if (_objectiveDefeat)
@@ -3638,7 +3638,7 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>The victory tail, lifted verbatim out of CheckCombatEnd so an
-    /// objective win runs the SAME side effects a kill-win does — expedition-HP
+    /// objective win runs the SAME side effects a kill-win does: expedition-HP
     /// writeback, the Marginalia handoff, telemetry, the CombatCompleted signal.
     /// Duplicating any of that is how a "held the line" victory quietly stops
     /// paying out. Only ever called from CheckCombatEnd, which owns the
@@ -3651,7 +3651,7 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog("Victory!");
         CombatTelemetry.EndFight(true, roundNumber);
 
-        // K2.5 (ruled 2026-07-09): unit HP is the fights — surviving
+        // K2.5 (ruled 2026-07-09): unit HP is the fights, so surviving
         // companions carry their remaining HP into the next fight of
         // this expedition. (Downed companions were stabilized at 0 in
         // HandleUnitDeath; the wizard's stand-in is the party pool.)
@@ -3667,11 +3667,11 @@ public partial class CombatManager : Node3D
                 {
                     // K2.5 symmetry (2026-07-29 playtest): the wizard's
                     // fight HP carries between battles exactly like the
-                    // companions' — it was resetting to full each fight.
+                    // companions' does. It was resetting to full each fight.
                     PlayerSession.WizardExpeditionHP = u.Stats.Health;
                     PlayerSession.WizardExpeditionMaxHP = u.Stats.MaxHealth;
                     GD.Print($"[ExpeditionHP] {u.DisplayName} leaves the fight at " +
-                             $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
+                             $"{u.Stats.Health}/{u.Stats.MaxHealth}, carried to the next one.");
                     continue;
                 }
                 var comp = SaveManager.ActiveSave.Companions?.Find(c => c.Id == u.CompanionId);
@@ -3679,14 +3679,14 @@ public partial class CombatManager : Node3D
                     continue;
                 comp.ExpeditionHP = u.Stats.Health;
                 GD.Print($"[ExpeditionHP] {comp.Name} leaves the fight at " +
-                         $"{u.Stats.Health}/{u.Stats.MaxHealth} — carried to the next one.");
+                         $"{u.Stats.Health}/{u.Stats.MaxHealth}, carried to the next one.");
             }
         }
 
-        // Marginalia: the fight is WON — hand the family kill tally to the
+        // Marginalia: the fight is WON, so hand the family kill tally to the
         // router for the victory-gated deed commit (ExpeditionManager.
         // EmitCombatDeed, or CampusScreen.ConsumeCampusCombatReturn for
-        // campus-launched fights). Debug fights are excluded explicitly —
+        // campus-launched fights). Debug fights are excluded explicitly because
         // the router node persists across scenes, so an unconsumed debug
         // tally would sit armed on it.
         if (EncounterRouter.Instance != null && !PlayerSession.DebugCombat)
@@ -3706,7 +3706,7 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog("Defeat.");
         CombatTelemetry.EndFight(false, roundNumber);
 
-        // Marginalia: a lost fight teaches nothing — clear any stale tally
+        // Marginalia: a lost fight teaches nothing, so clear any stale tally
         // so the next victory cannot inherit it.
         if (EncounterRouter.Instance != null)
             EncounterRouter.Instance.SavedCombatFamilyKills =
@@ -4060,14 +4060,14 @@ public partial class CombatManager : Node3D
             wizard.MaxActionPoints = wizard.Stats.BaseSpeed;      // ← add this
             wizard.CurrentActionPoints = wizard.MaxActionPoints;  // ← add this
 
-            // Adept identity (2026-07-10 ruling): raw capability, no engine —
-            // the generalist runs on 4 max mana instead of 3. Flat power that
+            // Adept identity (2026-07-10 ruling): raw capability, no engine.
+            // The generalist runs on 4 max mana instead of 3. Flat power that
             // never scales; every other school gets an attunement engine instead.
             if (PlayerSession.SelectedSchool == CardSchool.Adept)
             {
                 wizard.Stats.MaxMana += 1;
                 wizard.Stats.Mana += 1;
-                GD.Print("[Adept] The curriculum has no gaps — 4 max mana.");
+                GD.Print("[Adept] The curriculum has no gaps: 4 max mana.");
             }
             playerUnits.Add(wizard);
         }
@@ -4104,11 +4104,11 @@ public partial class CombatManager : Node3D
             // so every companion spawned with Unit.IsMartial == false (the field default)
             // regardless of UnitClass. Two systems read that flag and both broke:
             //   * SelectUnit (~1235): `if (!unit.IsMartial …)` seeds a SPELL DECK and shows
-            //     the hand — Fighters and Rangers were dealt cards they cannot cast
+            //     the hand, so Fighters and Rangers were dealt cards they cannot cast
             //     (their mana is already forced to 0 four lines above, so the hand was
             //     unplayable as well as wrong).
-            //   * TryMartialAttack (~1472): `if (!attacker.IsMartial) return;` — the
-            //     attack input silently no-ops, so martials could not attack AT ALL.
+            //   * TryMartialAttack (~1472): `if (!attacker.IsMartial) return;` made the
+            //     attack input silently no-op, so martials could not attack AT ALL.
             // The `[Spawn] … IsMartial=False` line for a Fighter has been printing the
             // symptom to the console this whole time.
             unit.IsMartial = isMartial;
@@ -4127,7 +4127,7 @@ public partial class CombatManager : Node3D
             {
                 unit.AttackDamage = companion.BaseAttackDamage;
                 unit.AttackRange = companion.BaseAttackRange;
-                // (2026-07-27) Martials no longer get a reach premium — everything
+                // (2026-07-27) Martials no longer get a reach premium. Everything
                 // stands on the same 2-tile baseline, so slowed halves cleanly for
                 // the party too. Martial mobility still comes from their AP (3 vs an
                 // arcane companion's 2), not from a bigger stride.
@@ -4154,13 +4154,13 @@ public partial class CombatManager : Node3D
                 unit.Stats.Health = unit.Stats.MaxHealth;
 
                 // ── Stances: INNATE (2026-07-29 ruling) ───────────────────
-                // A martial always fields EVERY stance on its list — the
+                // A martial always fields EVERY stance on its list: the
                 // authored pair from its JSON (which deserializes into
                 // TrainedStanceIds via the "availableStanceIds" alias, despite
                 // the comment on that field) plus anything later learned at
                 // the campus Training tab. The old MartialStanceSlots cap
                 // (= Training Grounds tier) zeroed the whole list when no
-                // building existed — every martial fielded Stances:0 and the
+                // building existed, so every martial fielded Stances:0 and the
                 // stance switcher had nothing to show. The Training Grounds
                 // keeps its stat bonuses and the Training tab's learn cap
                 // still reads MartialStanceSlots; only FIELDING is ungated.
@@ -4172,7 +4172,7 @@ public partial class CombatManager : Node3D
                         unit.AvailableStances.Add(stance);
                 }
 
-                // K4: the ArcStage-4 signature — derived, never trained.
+                // K4: the ArcStage-4 signature is derived, never trained.
                 // EligibleSignature owns all the rules (arc complete, not
                 // Wary, authored override, dead never reach here).
                 var sig = StanceRegistry.EligibleSignature(companion);
@@ -4193,14 +4193,14 @@ public partial class CombatManager : Node3D
             }
             else
             {
-                // Arcane companion — school deck gets added in InitializeUnitDecks
+                // Arcane companion. School deck gets added in InitializeUnitDecks
                 unit.School = System.Enum.TryParse<CardSchool>(companion.School,
                     out var cs) ? cs : CardSchool.Adept;
                 unit.MaxActionPoints = unit.Stats.BaseSpeed;      // ← add this
                 unit.CurrentActionPoints = unit.MaxActionPoints;  // ← add this
             }
 
-            // K4: Trusted personality perks — both branches (armor and stride
+            // K4: Trusted personality perks apply to both branches (armor and stride
             // mean the same thing to a wizard's bodyguard and a wizard).
             CompanionPerks.ApplyToUnit(unit, companion);
 
@@ -4233,7 +4233,7 @@ public partial class CombatManager : Node3D
             ApplyEquipmentLoadout(playerUnits[i], unitId);
         }
 
-        // Default encounter composition — will be replaced by EncounterDefinition
+        // Default encounter composition, to be replaced by EncounterDefinition
         // in Step 2 of the architecture plan. For now, a fixed mix that exercises
         // all five archetypes when TestEnemyCount >= 3.
         if (EncounterContextCarrier.HasEncounter)
@@ -4242,7 +4242,7 @@ public partial class CombatManager : Node3D
             QueueDefaultEncounter();
 
         // O3 (2026-08-13, ordering fix): the ward spawns AFTER the encounter
-        // queue — InitObjectiveState runs inside QueueEncounterFromContext, so
+        // queue. InitObjectiveState runs inside QueueEncounterFromContext, so
         // any earlier call sees _objective == null and spawns nothing (the
         // "banner without a body" bug). Also deliberately after the equipment
         // loop above: the ward must not consume a companion_N loadout slot.
@@ -4266,7 +4266,7 @@ public partial class CombatManager : Node3D
         State.Grid = grid;
 
         // GlyphManager was constructed in the GameState ctor BEFORE Grid was
-        // assigned, so it held a null grid — every board-wide glyph operation
+        // assigned, so it held a null grid. Every board-wide glyph operation
         // (start-of-turn triggers, TriggerAll, Link, NearestFriendly, timed
         // expiry) silently no-opped, and Rearm (the one unguarded method)
         // threw an NRE that killed the enemy-turn async chain (2026-07-29
@@ -4352,7 +4352,7 @@ public partial class CombatManager : Node3D
                         return;
                     unit.DeckData.Draw(overflowAmount);
                     State.OnDrawCards?.Invoke(unit);
-                    GD.Print($"[Arcanist] Overflow — drew {overflowAmount}.");
+                    GD.Print($"[Arcanist] Overflow: drew {overflowAmount}.");
                     schoolAttunementUI?.Refresh();
                 };
             }
@@ -4361,7 +4361,7 @@ public partial class CombatManager : Node3D
             {
                 grief.OnFloodTriggered += () =>
                 {
-                    // Refresh all living friendly spirits — reset their turns
+                    // Refresh all living friendly spirits by resetting their turns
                     // so they act again this round (the Flood effect).
                     foreach (var u in State.UnitsInPlay)
                     {
@@ -4371,7 +4371,7 @@ public partial class CombatManager : Node3D
                             continue;
                         u.StartTurn();
                     }
-                    GD.Print("[Necromancer] Flood — all spirits refreshed.");
+                    GD.Print("[Necromancer] Flood: all spirits refreshed.");
                     schoolAttunementUI?.Refresh();
                 };
             }
@@ -4380,7 +4380,7 @@ public partial class CombatManager : Node3D
             {
                 weave.OnSeventhLayer += () =>
                 {
-                    // Name the nearest living enemy — apply the "named" status.
+                    // Name the nearest living enemy by applying the "named" status.
                     Unit target = null;
                     float closest = float.MaxValue;
                     foreach (var u in State.UnitsInPlay)
@@ -4396,7 +4396,7 @@ public partial class CombatManager : Node3D
                     if (target != null)
                     {
                         target.ApplyStatus("named", 2);
-                        GD.Print($"[Enchanter] Seventh Layer — {target.Name} is Named.");
+                        GD.Print($"[Enchanter] Seventh Layer: {target.Name} is Named.");
                     }
                     schoolAttunementUI?.Refresh();
                 };
@@ -4410,7 +4410,7 @@ public partial class CombatManager : Node3D
                 AutoPlaceUnits();
                 // Fix (2026-07-09): do NOT start the turn here. This runs
                 // synchronously inside _Ready, but InitializeUnitDecks is a
-                // CallDeferred that hasn't run yet — Round 1's DrawToFull hit
+                // CallDeferred that hasn't run yet, so Round 1's DrawToFull hit
                 // DeckData == null and drew nothing, so the player's first
                 // playable turn was Round 2 (the "one turn delay" in skip
                 // mode). InitializeUnitDecks starts the turn when decks exist.
@@ -4437,9 +4437,9 @@ public partial class CombatManager : Node3D
         // (2026-07-29 playtest) Spawn-zone sizing: EnemySpawnCount /
         // PlayerSpawnCount were fixed inspector exports (3/3), so a Siege
         // composition's 4th enemy silently failed to spawn ("Not enough
-        // enemy zone tiles"). Size both zones from the REAL headcounts —
-        // the encounter definition rode in on EncounterContextCarrier and
-        // the party roster is known — before the spawn plan is built.
+        // enemy zone tiles"). Size both zones from the REAL headcounts. The
+        // encounter definition rode in on EncounterContextCarrier and the
+        // party roster is known, so do it before the spawn plan is built.
         //
         // O1 amendment: reinforcement waves land in the SAME enemy zone, so the
         // zone has to be sized for the opening roster PLUS the largest single
@@ -4463,7 +4463,7 @@ public partial class CombatManager : Node3D
                 grid.EnemySpawnCount = enemyHeadcount + largestWave;
         }
         int partyHeadcount = 1 + (CompanionRoster.GetActiveParty()?.Count ?? 0);
-        // O3: a protect objective's ward claims a player slot too — size for
+        // O3: a protect objective's ward claims a player slot too. Size for
         // it, or a full party leaves the ward slotless (loud degrade, no fight).
         if (EncounterContextCarrier.HasEncounter &&
             EncounterContextCarrier.Current?.Objective?.Kind == CombatObjectiveDef.KindProtect)
@@ -4489,14 +4489,14 @@ public partial class CombatManager : Node3D
         }
         else
         {
-            GD.Print("[CombatMap] No encounter terrain — using grid inspector defaults.");
+            GD.Print("[CombatMap] No encounter terrain. Using grid inspector defaults.");
         }
 
         ApplyVistaBias(grid);
 
         grid.GenerateMap();
 
-        // E3: materialise recipe map objects now — before enemies deploy, so their
+        // E3: materialise recipe map objects now, before enemies deploy, so their
         // tiles read as occupied and spawns route around them.
         SpawnMapObjects();
     }
@@ -4505,7 +4505,7 @@ public partial class CombatManager : Node3D
     /// Maps the overworld neighbour terrains captured at launch
     /// (EncounterContextCarrier.NeighborTerrains, one per hex direction) onto the
     /// grid's per-direction vista bias, so the non-playable surround leans toward
-    /// what actually borders this fight on the world map — forest vista on the
+    /// what actually borders this fight on the world map: forest vista on the
     /// side that touches forest, water past the rim on a lakeshore, and so on
     /// (combat_environments §5 spatial storytelling). No context = no bias = the
     /// vista purely continues the arena's own field.
@@ -4633,7 +4633,7 @@ public partial class CombatManager : Node3D
     /// scenario (CycleState.EnemyDifficultyMult), stamped at world generation.
     /// 1.0 for legacy/pre-feature cycles. Folded into each enemy slot's own mult at
     /// the initial spawn so it flows through the existing sqrt-HP / linear-damage
-    /// curve. Reinforcement waves keep their own mult for now — scaling them would
+    /// curve. Reinforcement waves keep their own mult for now, since scaling them would
     /// also touch player summons, which share SpawnRegistryUnit.</summary>
     private static float ScenarioEnemyMult()
     {
@@ -4654,7 +4654,7 @@ public partial class CombatManager : Node3D
 
             // Option B: HP on a softened (sqrt) curve so high mults don't create
             // slog-sponges; damage closer to linear so deep/corrupted ground is
-            // actually lethal, not just tankier. Armor left flat — scaling it
+            // actually lethal, not just tankier. Armor left flat, because scaling it
             // compounds the chip-grind against a low-unit-count party.
             float hpMult = Mathf.Sqrt(mult);
             float dmgMult = mult;
@@ -4676,7 +4676,7 @@ public partial class CombatManager : Node3D
             });
         }
 
-        GD.Print($"[Encounter] Loaded '{def.DisplayName}' — " +
+        GD.Print($"[Encounter] Loaded '{def.DisplayName}': " +
                  $"{pendingEnemySpawns.Count} enemies from {def.RegionId}/{def.Tier}");
 
         CombatTelemetry.BeginFight(def.Id, def.RegionId, def.Tier.ToString(),
@@ -4685,7 +4685,7 @@ public partial class CombatManager : Node3D
 
     /// <summary>
     /// Spawns enemy units after the player has committed their deployment.
-    /// The enemy AI places units reactively — it reads where the player's
+    /// The enemy AI places units reactively. It reads where the player's
     /// units ended up and tries to counter the formation.
     /// </summary>
     private void SpawnAndPlaceEnemies()
@@ -4724,7 +4724,7 @@ public partial class CombatManager : Node3D
 
         // (2026-07-29 playtest) Zone-shortfall fallback: widen outward ring by
         // ring instead of silently dropping spawns. With ConfigureAndGenerateMap
-        // now sizing zones from real headcounts this should rarely fire — it
+        // now sizing zones from real headcounts this should rarely fire. It
         // covers cramped maps where the BFS zone physically ran out of ground.
         if (availableTiles.Count < sorted.Count)
         {
@@ -4788,7 +4788,7 @@ public partial class CombatManager : Node3D
             AddChild(unit);
             unit.OnDied += HandleUnitDeath;
             unit.OnStruck += HandleUnitStruck;   // U3b
-            unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
+            unit.OnMoved += HandleUnitMoved;     // U3e: binding_geas
             unit.PlaceOnTile(tile);
 
             unit.Name = $"{p.NamePrefix}_{i + 1}";
@@ -4803,7 +4803,7 @@ public partial class CombatManager : Node3D
             unit.ImbueOnHit = MapRecipe.ParseElement(p.Def.ImbueOnHit);
             unit.IntentCycle = new List<string>(p.Def.IntentCycle);
             unit.CycleLoops = p.Def.CycleLoops;
-            unit.Abilities = p.Def.Abilities;   // defs are stateless — share, don't copy
+            unit.Abilities = p.Def.Abilities;   // defs are stateless: share, don't copy
             unit.Role = p.Def.Role;
             unit.FactionId = p.Def.FactionId;
             unit.AttackRange = p.AttackRange;
@@ -4812,13 +4812,13 @@ public partial class CombatManager : Node3D
             // actions) PLUS the cost of one attack, so a unit that advances at full
             // speed can still afford to strike. Sizing it as BaseSpeed alone would
             // disarm every AP-1 caster and every AP-0 turret the moment attacks
-            // started costing AP (ranged costs 2) — 22% of authored pool slots.
+            // started costing AP (ranged costs 2), or 22% of authored pool slots.
             unit.MaxActionPoints = p.BaseSpeed + MartialAPCosts.AttackCost(p.AttackRange);
             unit.CurrentActionPoints = unit.MaxActionPoints;
             unit.SetBodyColor(p.BodyColor);
             unit.RefreshNameLabel();
-            unit.RecacheSelfAuras();        // U3c — chitin/veil are read inline, not queued
-            FireEnemySpawnTriggers(unit);   // U3b — after the def is fully applied
+            unit.RecacheSelfAuras();        // U3c: chitin/veil are read inline, not queued
+            FireEnemySpawnTriggers(unit);   // U3b: after the def is fully applied
 
 
 
@@ -4888,12 +4888,12 @@ public partial class CombatManager : Node3D
         unit.StartArmor = armor;
         unit.StartShield = shield;
 
-        // ── Now add to scene — _Ready() fires here ────────────────────────
+        // ── Now add to scene, where _Ready() fires ────────────────────────
         AddChild(unit);
 
         unit.OnDied += HandleUnitDeath;
         unit.OnStruck += HandleUnitStruck;   // U3b
-        unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
+        unit.OnMoved += HandleUnitMoved;     // U3e: binding_geas
         unit.PlaceOnTile(tile);
 
         if (side == HexGridManager.SpawnSide.Player)
@@ -4921,10 +4921,10 @@ public partial class CombatManager : Node3D
         SeedAttunementFromStartingTile();
     }
 
-    /// <summary>Spell-level target overrides — RedirectAll (attack a random fellow
+    /// <summary>Spell-level target overrides: RedirectAll (attack a random fellow
     /// enemy) and RedirectAura decoys. Returns null when no override applies.
     /// U2: extracted from FindNearestPlayerUnit so behavior keys that ignore
-    /// nearest-selection (melee_hunt_wounded) still honor these effects — they
+    /// nearest-selection (melee_hunt_wounded) still honor these effects. They
     /// rewrite reality, not target preference.</summary>
     private Unit FindTargetOverride(Unit enemy)
     {
@@ -5009,7 +5009,7 @@ public partial class CombatManager : Node3D
             // ── U3: registry-resolved units (Deathburst, Fabricate, future keys) ──
             // Checked FIRST: if the kind is a UnitRegistry id, spawn a full
             // definition-driven unit (behavior key, tags, abilities, colours)
-            // exactly like SpawnAndPlaceEnemies does — the summon seam and the
+            // exactly like SpawnAndPlaceEnemies does, so the summon seam and the
             // deployment path produce indistinguishable units (units doc §12).
             if (UnitRegistry.TryResolveId(unitKind, out var registryId))
                 return SpawnRegistryUnit(registryId, tile, teamId);
@@ -5021,7 +5021,7 @@ public partial class CombatManager : Node3D
             bool isPlayerControlled = (teamId == 0);
             int schematicBonus = 0;
 
-            // ── Wildlife (Druid bestiary) — data-driven, checked before the switch ──
+            // ── Wildlife (Druid bestiary), data-driven, checked before the switch ──
             bool isWildlife = Bestiary.TryGet(unitKind, out WildlifeDef beast);
             if (isWildlife)
             {
@@ -5035,7 +5035,7 @@ public partial class CombatManager : Node3D
             {
                 if (ConstructRegistry.Count(State, teamId) >= GetConstructCap(teamId))
                 {
-                    GD.Print($"[Summon] Construct cap reached for team {teamId} — {unitKind} not deployed.");
+                    GD.Print($"[Summon] Construct cap reached for team {teamId}, so {unitKind} was not deployed.");
                     return null;
                 }
                 schematicBonus = ConsumeDeployBonus(teamId) + EtchingSystem.ConsumeWard(tile.Axial);
@@ -5079,7 +5079,7 @@ public partial class CombatManager : Node3D
                         armor = kindKey == "colossus_empowered" ? 8 : 5;
                         break;
 
-                    // Terraform tier 3: "iron-clad — taunts adjacent enemies".
+                    // Terraform tier 3: "iron-clad, taunts adjacent enemies".
                     case "colossus_iron":
                         scene = DummyUnitScene;
                         hp = 30;
@@ -5087,7 +5087,7 @@ public partial class CombatManager : Node3D
                         armor = 8;
                         break;
 
-                    // Terraform tier 4: "living fortress — massive, mobile, devastating".
+                    // Terraform tier 4: "living fortress, massive, mobile, devastating".
                     case "colossus_fortress":
                         scene = DummyUnitScene;
                         hp = 40;
@@ -5198,20 +5198,20 @@ public partial class CombatManager : Node3D
 
             AddChild(unit);
             // U3e: binding_geas must tax a summoned spirit or a bonded beast exactly
-            // as it taxes a companion — a player-side unit that walks and is not
+            // as it taxes a companion. A player-side unit that walks and is not
             // charged reads as a bug, not as a rule.
             //
             // NOTE (2026-07-28, U3e sweep): this legacy summon path wires NEITHER
             // OnDied NOR OnStruck, unlike all three of the other spawn sites. So
             // spirits, Tinker constructs and bonded wildlife spawned here do not run
-            // HandleUnitDeath and never fire onStruck — which means Riposte and the
+            // HandleUnitDeath and never fire onStruck, which means Riposte and the
             // U3c defensive keys are silent on them. That gap predates U3e and is
             // NOT fixed here: wiring OnDied would newly route these units through
             // memorial creation, kill counters and death triggers, which is a
             // behaviour change too large to smuggle into a resource-denial phase.
             // Logged for its own pass. (Lesson 5: refactors orphan call sites by
             // bypassing their container.)
-            unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
+            unit.OnMoved += HandleUnitMoved;     // U3e: binding_geas
             unit.PlaceOnTile(tile);
             unit.MaxActionPoints = unit.Stats.BaseSpeed
                                  + MartialAPCosts.AttackCost(unit.AttackRange);
@@ -5228,7 +5228,7 @@ public partial class CombatManager : Node3D
             if (kindKey is "colossus" or "colossus_empowered")
                 unit.ApplyStatus("colossus_absorb", 999);
 
-            // Iron/Fortress Colossus: taunts — enemies prefer it (FindNearestPlayerUnit).
+            // Iron/Fortress Colossus taunts, so enemies prefer it (FindNearestPlayerUnit).
             if (kindKey is "colossus_iron" or "colossus_fortress")
             {
                 unit.ApplyStatus("colossus_absorb", 999);
@@ -5241,7 +5241,7 @@ public partial class CombatManager : Node3D
                 unit.ApplyStatus("wildlife", 999);
 
                 // Wildlife fights like a martial companion: select it, click an
-                // enemy in range to attack (PT7 — summoned Boar had no attack
+                // enemy in range to attack (PT7: summoned Boar had no attack
                 // input; click fell through to InspectEnemy). Damage comes from
                 // the bestiary; default 5 if the def omits it.
                 unit.IsMartial = true;
@@ -5251,7 +5251,7 @@ public partial class CombatManager : Node3D
 
                 // Identity pass (2026-07-12): behavior tags drive pack/charge/
                 // bulwark riders; ap/moveRange decouple action count from reach
-                // (Boar: 2 AP but 5-tile moves — a fast line-breaker).
+                // (Boar: 2 AP but 5-tile moves, a fast line-breaker).
                 foreach (var t in beast.Tags)
                     if (!unit.BehaviorTags.Contains(t))
                         unit.BehaviorTags.Add(t);
@@ -5297,17 +5297,17 @@ public partial class CombatManager : Node3D
 
     /// <summary>U3: spawns a fully definition-driven unit through the summon seam
     /// (Deathburst, Fabricate, future ability keys). Mirrors SpawnAndPlaceEnemies'
-    /// config exactly — behavior key, tags, abilities, colour, death wiring — so
+    /// config exactly (behavior key, tags, abilities, colour, death wiring), so
     /// risen units fight identically to deployed ones. Base stats only: the
     /// difficulty mult applies at encounter spawn, not to mid-fight summons
-    /// (they're an ability's output, not an encounter slot — ruling logged).</summary>
+    /// (they're an ability's output, not an encounter slot; ruling logged).</summary>
     private Unit SpawnRegistryUnit(string unitId, TileData tile, int teamId,
         float difficultyMult = 1.0f, bool isMidFightSummon = true)
     {
         var def = UnitRegistry.Get(unitId);
 
         // O1: reinforcement waves are ENCOUNTER slots that happen to arrive
-        // late, not summon-seam output — so they take the encounter's
+        // late, not summon-seam output, so they take the encounter's
         // difficulty mult (same softened curve as QueueEncounterFromContext:
         // sqrt on HP so high mults don't make sponges, linear on damage) and
         // they COUNT for Marginalia. Both default to the summon behaviour, so
@@ -5333,9 +5333,9 @@ public partial class CombatManager : Node3D
         AddChild(unit);
         unit.OnDied += HandleUnitDeath;
         unit.OnStruck += HandleUnitStruck;   // U3b
-        unit.OnMoved += HandleUnitMoved;     // U3e — binding_geas
+        unit.OnMoved += HandleUnitMoved;     // U3e: binding_geas
         unit.PlaceOnTile(tile);
-        // Same tier-2 budget as SpawnAndPlaceEnemies — risen/summoned units fight
+        // Same tier-2 budget as SpawnAndPlaceEnemies, so risen/summoned units fight
         // identically to deployed ones.
         unit.MaxActionPoints = def.BaseSpeed + MartialAPCosts.AttackCost(def.AttackRange);
         unit.CurrentActionPoints = unit.MaxActionPoints;
@@ -5392,8 +5392,8 @@ public partial class CombatManager : Node3D
             return;
 
         // Q1 completion (Phase B): capture the pre-apply baseline so the
-        // parity assertion below can verify every bonus actually landed —
-        // the item system's "mostly broken" era gets a floor Q2 can stand on.
+        // parity assertion below can verify every bonus actually landed.
+        // The item system's "mostly broken" era gets a floor Q2 can stand on.
         int baseMaxHP = unit.Stats.MaxHealth, baseMaxMana = unit.Stats.MaxMana;
         int baseArmor = unit.Stats.Armor, baseSpeed = unit.Stats.BaseSpeed;
         int baseAtkDmg = unit.AttackDamage, baseAtkRng = unit.AttackRange;
@@ -5430,7 +5430,7 @@ public partial class CombatManager : Node3D
         // ── Passive tags ──────────────────────────────────────────────────
         unit.EquipmentPassives = new List<(ItemPassiveTag, int, string)>(loadout.Passives);
 
-        // Q2 (§7a): trigger-bus item abilities — dispatched on the shared map,
+        // Q2 (§7a): trigger-bus item abilities, dispatched on the shared map,
         // separate from the enum passives (so the Q1 parity assert below, which
         // counts EquipmentPassives, stays valid). onSpawn fires at method end.
         unit.ItemAbilities = new List<ItemAbility>(loadout.Abilities);
@@ -5444,7 +5444,7 @@ public partial class CombatManager : Node3D
                     unit.Stats.Shield += value;
                     break;
                     // Other passives are applied at their relevant moment
-                    // (turn start, on attack, etc.) — see passive hooks below
+                    // (turn start, on attack, etc.). See passive hooks below.
             }
         }
 
@@ -5457,7 +5457,7 @@ public partial class CombatManager : Node3D
                      $"Passives:{loadout.Passives.Count}");
 
         // ── Q1 parity assertion: expected = baseline + loadout, verified stat
-        // by stat at spawn. Fails LOUDLY (PushError) — a silently-dropped item
+        // by stat at spawn. Fails LOUDLY (PushError), because a silently-dropped item
         // bonus is exactly the defect class this exists to catch.
         int expShieldBonus = 0;
         foreach (var (tag, value, _) in loadout.Passives)
@@ -5479,12 +5479,12 @@ public partial class CombatManager : Node3D
         Check("PassiveCount", loadout.Passives.Count, unit.EquipmentPassives.Count);
 
         if (mismatches.Count > 0)
-            GD.PushError($"[Q1 Parity] {unit.Name} loadout '{unitId}' MISMATCH — " +
+            GD.PushError($"[Q1 Parity] {unit.Name} loadout '{unitId}' MISMATCH: " +
                          string.Join("; ", mismatches));
         else if (loadout.Passives.Count > 0 || HasAnyBonus(loadout))
             GD.Print($"[Q1 Parity] {unit.Name}: loadout '{unitId}' verified item-for-item.");
 
-        // Q2 (§7a): onSpawn item triggers — fired AFTER the parity assert so the
+        // Q2 (§7a): onSpawn item triggers, fired AFTER the parity assert so the
         // ward's shield doesn't read as a stat mismatch. Shared dispatcher + log.
         FireItemSpawnTriggers(unit);
     }
@@ -5554,7 +5554,7 @@ public partial class CombatManager : Node3D
                     break;
 
                 case "memorial_or_spirit_tile":
-                    // Also enforced by the targeter — pass through.
+                    // Also enforced by the targeter, so pass through.
                     break;
 
                 case "any_memorial":
@@ -5569,7 +5569,7 @@ public partial class CombatManager : Node3D
                 case "memorial_or_spirit_nearby":
                 {
                     // (2026-07-29, audit follow-up) This key was AUTHORED on
-                    // Unfinished Business from day one but had no case here — an
+                    // Unfinished Business from day one but had no case here. An
                     // unknown requires key falls through the switch and silently
                     // PASSES, so the card's gate never existed. Target-relative:
                     // a memorial or friendly spirit within 2 of the TARGET.
@@ -5658,7 +5658,7 @@ public partial class CombatManager : Node3D
         return true;
     }
 
-    /// <summary>First resolvable tile in a TargetSet — the anchor for
+    /// <summary>First resolvable tile in a TargetSet, the anchor for
     /// target-relative requires checks (memorial_or_spirit_nearby). Falls back to
     /// the caster's tile for self-targeted casts, mirroring TargetHasTileType.</summary>
     private TileData FirstTargetTile(TargetSet targets)
@@ -5712,23 +5712,23 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>Structural pre-cast veto (playtest 2026-08-06). A single-tile glyph
-    /// placement onto a tile that ALREADY carries a glyph places nothing —
+    /// placement onto a tile that ALREADY carries a glyph places nothing.
     /// GlyphManager.Prepare returns null when <c>tile.Glyph != null</c> or the tile is
-    /// blocked — and the cast still charged full mana and discarded the card, with no
+    /// blocked, and the cast still charged full mana and discarded the card, with no
     /// message of any kind. (Observed twice in one fight: Runic Trap onto (1,0), warded
     /// by Ward Stone two rounds earlier; Empower Rune onto (4,-2), already runed. Both
     /// logged "[PrepareGlyph] placed 0 glyph(s)" and cost a card.)
     ///
     /// Deliberately narrow, on three axes:
     /// <list type="bullet">
-    /// <item>AREA placements are exempt — partial coverage is the point of a radius glyph.</item>
-    /// <item>AT-ORIGIN placements are exempt — they target the caster's own tile, not a chosen one.</item>
+    /// <item>AREA placements are exempt, since partial coverage is the point of a radius glyph.</item>
+    /// <item>AT-ORIGIN placements are exempt, since they target the caster's own tile, not a chosen one.</item>
     /// <item>It walks the effect TREE for a PrepareGlyphEffect rather than testing the
     /// "glyph" tag, because Glyph Warp and Glyph Bolt carry that tag and specifically
     /// WANT an already-glyphed tile.</item>
     /// </list>
     /// Multi-tile (<c>Count &gt; 1</c>) placements fail only when EVERY targeted tile is
-    /// already taken — landing some of them is a real cast.</summary>
+    /// already taken. Landing some of them is a real cast.</summary>
     private bool GlyphPlacementWouldLand(CardHalf half, TargetSet targets, out string failReason)
     {
         failReason = null;
@@ -5758,7 +5758,7 @@ public partial class CombatManager : Node3D
 
     /// <summary>True when this effect tree contains a glyph placement aimed at a CHOSEN
     /// tile (not an area, not the caster's own tile). Depth-guarded like
-    /// JsonCardLoader.StampGlyphSource — card data is authored, not trusted.</summary>
+    /// JsonCardLoader.StampGlyphSource, because card data is authored, not trusted.</summary>
     private static bool HasSingleTileGlyphPlacement(IEnumerable<IEffect> effects, int depth = 0)
     {
         if (effects == null || depth > 8)
@@ -5798,14 +5798,14 @@ public partial class CombatManager : Node3D
         if (currentPhase != CombatPhase.PlayerTurn)
             return;
 
-        // Lock during drag — ignore hover changes on other cards entirely
+        // Lock during drag, ignoring hover changes on other cards entirely
         if (_isCardBeingDragged)
             return;
 
         // Same lock while a second pick is armed. Legality is safe either way now
         // (_twoStepLegalTiles is separate), but the card is back in hand under the
         // cursor, so without this the aim tiles would visibly repaint as this half's
-        // ordinary target set the moment the mouse moves — showing the player a set
+        // ordinary target set the moment the mouse moves, showing the player a set
         // that is not the one their next click is judged against.
         if (TwoStepPending)
             return;
@@ -5821,7 +5821,7 @@ public partial class CombatManager : Node3D
         }
     }
 
-    /// <summary>Every failed card drop reports WHY — to the action log (player)
+    /// <summary>Every failed card drop reports WHY, to the action log (player)
     /// AND the console (playtest transcripts). PT8: silent failed drops.</summary>
     private void CastFail(string msg)
     {
@@ -5836,7 +5836,7 @@ public partial class CombatManager : Node3D
         ClearTargetHighlight();
 
         // Choose-one: consume the replay's mode pick immediately. Every early-exit
-        // path below then discards it for free — a stale index must never survive to
+        // path below then discards it for free. A stale index must never survive to
         // an unrelated cast.
         int? chosenMode = _chooseOneIndex;
         _chooseOneIndex = null;
@@ -5851,18 +5851,18 @@ public partial class CombatManager : Node3D
         // ── U3: priority-window speed gate ────────────────────────────────
         // Two-speed ruling (2026-07-10): while a trigger window is open, any
         // NON-SORCERY half may be cast as a response (it lands ON TOP of the
-        // trigger and resolves first). Other schools opt in by reserving mana
-        // — which evaporates at turn start; the Chronomancer's bank persists.
+        // trigger and resolves first). Other schools opt in by reserving mana,
+        // which evaporates at turn start; the Chronomancer's bank persists.
         // Outside a window, casting during the enemy phase stays blocked.
         if (_priorityWindowOpen && half.Speed == PlaySpeed.Studied)
         {
-            combatUI?.AppendActionLog("Studied spells cannot respond — only Reflexes.");
-            GD.Print($"[Priority] rejected {half.Name} — Studied speed.");
+            combatUI?.AppendActionLog("Studied spells cannot respond. Only Reflexes can.");
+            GD.Print($"[Priority] rejected {half.Name}: Studied speed.");
             return;
         }
         if (!_priorityWindowOpen && currentPhase == CombatPhase.EnemyTurn)
         {
-            CastFail($"{half.Name}: cannot cast — enemy turn, no reaction window open.");
+            CastFail($"{half.Name}: cannot cast during the enemy turn with no reaction window open.");
             return;
         }
 
@@ -5874,7 +5874,7 @@ public partial class CombatManager : Node3D
         }
 
         // ── Choose-one: cast-time mode pick (2026-07-29) ──────────────────
-        // Both options are printed on the card — the information exists at cast
+        // Both options are printed on the card, so the information exists at cast
         // time, so this is an input-layer choice (post_cast_design_space_v1 §3.1),
         // NOT a resolution continuation: the mode is public when the spell goes on
         // the stack, and cancelling is free because nothing has been paid. Checked
@@ -5886,7 +5886,7 @@ public partial class CombatManager : Node3D
             if (chooser != null && chooser.Options.Length > 1)
             {
                 BeginChooseOne(cardUi, isTop, tile, half, chooser);
-                return;                  // not a failure — the cast is PAUSED
+                return;                  // not a failure; the cast is PAUSED
             }
         }
 
@@ -5911,7 +5911,7 @@ public partial class CombatManager : Node3D
             }
         }
 
-        // Flag for the is_channeled predicate — true only while this cast resolves.
+        // Flag for the is_channeled predicate, true only while this cast resolves.
         State.LastCastWasChannel = resolvedHalf != half;
 
         GD.Print($"Attempt cast {resolvedHalf.Name} cost? " +
@@ -5949,7 +5949,7 @@ public partial class CombatManager : Node3D
                 if (_twoStepChoice == null)
                 {
                     BeginTwoStep(cardUi, isTop, tile, victim, ts, resolvedHalf);
-                    return;                      // not a failure — the cast is PAUSED
+                    return;                      // not a failure; the cast is PAUSED
                 }
 
                 targets.Items.Add(victim);
@@ -5982,7 +5982,7 @@ public partial class CombatManager : Node3D
                         : blocker.GrowthStage >= 2 ? $"thicket growth at {blocker.Axial}"
                         : !string.IsNullOrEmpty(blocker.ObstacleKind) ? $"{blocker.ObstacleKind} at {blocker.Axial}"
                         : $"terrain at {blocker.Axial}";
-                    CastFail($"{resolvedHalf.Name}: no line of sight to {unit.Name} — blocked by {what}.");
+                    CastFail($"{resolvedHalf.Name}: no line of sight to {unit.Name}, blocked by {what}.");
                     return;
                 }
                 if (ut.enemyOnly && unit.TeamId == selectedUnit?.TeamId)
@@ -6212,7 +6212,7 @@ public partial class CombatManager : Node3D
             }
 
             // U3: while a priority window is open, the trigger drain loop owns
-            // resolution — the response stays ON the stack (above the trigger)
+            // resolution. The response stays ON the stack (above the trigger)
             // and resolves when the player passes. Otherwise drain as before.
             if (!_priorityWindowOpen)
             {
@@ -6227,7 +6227,7 @@ public partial class CombatManager : Node3D
 
             RefreshEnemyRoster();
 
-            // U3: kills during this cast queued death triggers — resolve their
+            // U3: kills during this cast queued death triggers, so resolve their
             // stack (with priority windows) now. No-op when nothing is queued;
             // guarded against re-entry while a window-owned drain runs.
             if (!_priorityWindowOpen)
@@ -6236,11 +6236,11 @@ public partial class CombatManager : Node3D
             if (deckManager != null && cardUi.CardInstance != null)
             {
                 // Perfected cards (Magnum Opus, 2026-07-29) are not discarded after
-                // use — the card stays in hand, still costing 0.
+                // use. The card stays in hand, still costing 0.
                 if (State.PerfectedCards.ContainsKey(cardUi.CardInstance.InstanceId))
                 {
                     GD.Print($"Perfected: {cardUi.CardInstance.CardName} returns to hand.");
-                    combatUI?.AppendActionLog($"{cardUi.CardInstance.CardName} is Perfected — it returns to your hand.");
+                    combatUI?.AppendActionLog($"{cardUi.CardInstance.CardName} is Perfected, so it returns to your hand.");
                     deckUiManager?.SafeRefreshUI();
                 }
                 else
@@ -6255,7 +6255,7 @@ public partial class CombatManager : Node3D
             RefreshSelectedUnitUI();
             RefreshPlayerUnitBar();
             // A cast may have changed movement (Dash/Imbue grant BonusMoveRange) or
-            // position — recompute the move zone so the new range shows immediately.
+            // position, so recompute the move zone and the new range shows immediately.
             if (selectedUnit != null)
             {
                 ClearMoveTiles();
@@ -6268,7 +6268,7 @@ public partial class CombatManager : Node3D
 
     private void OnCardDragStarted(CardUi cardUi, bool isTop)
     {
-        // Dragging a card while a second pick is armed abandons that pick — say so
+        // Dragging a card while a second pick is armed abandons that pick, so say so
         // and unwind it, rather than silently overpainting its legal-tile set.
         if (TwoStepPending)
             CancelTwoStep("started another card");
@@ -6290,7 +6290,7 @@ public partial class CombatManager : Node3D
         ClearTargetHighlight();
         ClearDamagePreview();   // R22
 
-        // CardDropHandler fires this one frame after EVERY drag, dropped or cancelled —
+        // CardDropHandler fires this one frame after EVERY drag, dropped or cancelled.
         // TryDropCardOnTile clears IsDragging itself, so its "_wasDragging && !isDragging"
         // detector cannot tell the two apart. A two-step card armed by that very drop is
         // still waiting for its second click, so don't reset the hint out from under it.
@@ -6317,7 +6317,7 @@ public partial class CombatManager : Node3D
 
     /// <summary>R22 self-check (DebugPreviewSelfCheck): after a real cast settles,
     /// compare each predicted per-enemy HP loss to the actual delta. A DESYNC line
-    /// means the CombatSim preview and the live resolver diverged — the guard that
+    /// means the CombatSim preview and the live resolver diverged. It is the guard that
     /// makes the interception approach maintainable without a parallel test suite.
     /// A unit freed by a lethal hit is read as having lost all its pre-cast HP.</summary>
     private void VerifyPreviewSelfCheck(string cardName,
@@ -6340,8 +6340,8 @@ public partial class CombatManager : Node3D
 
     /// <summary>Predicted damage while dragging a card half over an enemy,
     /// rendered as a flashing span of the victim's HP bar equal to the HP it
-    /// would lose. R22: this RUNS THE REAL EFFECT RESOLUTION in CombatSim mode —
-    /// the mutation chokepoints (Unit.ApplyDamage/ApplyStatus/RemoveStatus,
+    /// would lose. R22: this RUNS THE REAL EFFECT RESOLUTION in CombatSim mode.
+    /// The mutation chokepoints (Unit.ApplyDamage/ApplyStatus/RemoveStatus,
     /// ImbueTile's tile write, GameState.Log) divert to a per-hit ledger / no-op
     /// instead of touching live state, so the resolver's own code produces every
     /// number: base damage, the imbue-tile TICK, the taken conditional branch,
@@ -6381,7 +6381,7 @@ public partial class CombatManager : Node3D
     /// CombatSim no-mutation run. Returns null when a non-preview-safe effect
     /// aborted the run (caller shows nothing); otherwise a possibly-empty map.
     /// Used BOTH by the flashing preview and by the DebugPreviewSelfCheck, so the
-    /// two can never diverge from each other — the self-check compares THIS
+    /// two can never diverge from each other: the self-check compares THIS
     /// function's output against the live resolver's actual HP delta.</summary>
     private Dictionary<Unit, int> ComputePreviewDamage(CardHalf half, TileData tileData)
     {
@@ -6481,10 +6481,10 @@ public partial class CombatManager : Node3D
     /// <summary>Runs one effect in CombatSim preview mode, returning false when
     /// the effect type is not preview-safe (the caller then aborts the preview,
     /// showing nothing). Leaf damage / imbue / status effects run their REAL
-    /// Resolve — gated to the ledger, so imbue TICK damage and arcane-mark
+    /// Resolve, gated to the ledger, so imbue TICK damage and arcane-mark
     /// consumption are captured exactly. Sequence / Conditional / Retarget are
     /// navigated with the REAL targeting and branch choices, and their children
-    /// recurse back through this whitelist — so a Chain Lightning bounce
+    /// recurse back through this whitelist, so a Chain Lightning bounce
     /// (retarget → damage) is captured, but a retarget → move would still fail
     /// safe. Any unrecognized effect (move, heal, summon, …) fails safe so a
     /// hover can never trigger it.</summary>
@@ -6564,7 +6564,7 @@ public partial class CombatManager : Node3D
     void Pass()
     {
         // (2026-07-28) While an R3 trigger window is open, "pass" has exactly one
-        // meaning and it is not the rules-engine priority pass — it is the thing the
+        // meaning and it is not the rules-engine priority pass. It is the thing the
         // Pass button does. Routing here was the difference between the key working
         // and the key silently doing nothing while the player watched a frozen banner.
         if (_priorityWindowOpen)
@@ -6588,7 +6588,7 @@ public partial class CombatManager : Node3D
     {
         if (_priorityWindowOpen || _triggerDrainRunning)
         {
-            GD.Print("[Debug] ResolveTop ignored — the trigger stack is being drained. " +
+            GD.Print("[Debug] ResolveTop ignored: the trigger stack is being drained. " +
                      "Pass (Space) to resolve the top object.");
             return;
         }
@@ -6684,7 +6684,7 @@ public partial class CombatManager : Node3D
                 coords.Add(unit.CurrentTile.Axial);
             }
 
-            return coords; // return early — we handled tile highlighting directly
+            return coords; // return early, since we handled tile highlighting directly
         }
         else if (targeter is SelectTileTarget tt)
         {
@@ -6811,7 +6811,7 @@ public partial class CombatManager : Node3D
         }
         else if (targeter is SelectRingTarget rt)
         {
-            // Show the ring at the exact radius — this is what the spell targets
+            // Show the ring at the exact radius, which is what the spell targets
             foreach (var kvp in grid.Tiles)
             {
                 int dist = grid.Distance(center, kvp.Key);

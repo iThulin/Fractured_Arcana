@@ -25,7 +25,7 @@ public partial class MovementZoneRenderer : Node3D
     [Export] public Color EnemyColor = new Color(0.90f, 0.25f, 0.25f, 0.75f); // red
 
     /// <summary>(2026-07-29 playtest ruling) The full-hex color fill read as
-    /// visual noise over the battlefield — zones now show boundary WALLS only
+    /// visual noise over the battlefield, so zones now show boundary WALLS only
     /// by default. The fill pass (tops + skirts, threat-tier heat colors) is
     /// kept behind this flag for the planned indicator rework; flip it in the
     /// Inspector to compare.</summary>
@@ -51,7 +51,7 @@ public partial class MovementZoneRenderer : Node3D
 
     // Resources created at construction, NOT in _Ready (2026-07-09): the
     // skip-deploy handoff calls Clear()/ShowPlayerZone() before this node has
-    // entered the tree — round-1 StartPlayerTurn NRE'd at Clear() in every
+    // entered the tree. Round-1 StartPlayerTurn NRE'd at Clear() in every
     // version of the handoff (the root cause of the "first turn never
     // auto-selects" defect chain). Resources are tree-independent, so they are
     // safe to build here; the NODES (_borderMesh, _costLabel) still build in
@@ -104,7 +104,7 @@ public partial class MovementZoneRenderer : Node3D
     {
         // _immediateMesh / _lineMaterial are field-initialized (see above) so
         // pre-tree calls from the skip-deploy handoff can't NRE. Any zone data
-        // written before this point is already in the mesh — the MeshInstance
+        // written before this point is already in the mesh; the MeshInstance
         // picks it up the moment it's created here.
         _borderMesh = new MeshInstance3D
         {
@@ -114,7 +114,7 @@ public partial class MovementZoneRenderer : Node3D
         };
         AddChild(_borderMesh);
 
-        // Cost label — hidden until hover
+        // Cost label, hidden until hover
         _costLabel = new Label3D
         {
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
@@ -209,7 +209,7 @@ public partial class MovementZoneRenderer : Node3D
             : $"1 AP  ({stepCost}/{baseSpeed} steps)";
 
         if (_costLabel == null)
-            return;   // pre-_Ready call — label doesn't exist yet
+            return;   // pre-_Ready call; label doesn't exist yet
 
         var tileData = grid.GetTile(axial);
         float tileY = tileData != null ? tileData.Height * 0.5f + 0.8f : 0.8f;
@@ -239,7 +239,7 @@ public partial class MovementZoneRenderer : Node3D
         if (_reachableSet.Count == 0)
             return;
 
-        // ── Pass 1: tile fill (OFF by default — see DrawZoneFill) ─────────
+        // ── Pass 1: tile fill (OFF by default, see DrawZoneFill) ─────────
         if (DrawZoneFill)
         {
             _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, _fillMaterial);

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.Canopy.cs  (partial of HexGridManager)
 //
-// Tall Ghibli forest canopy over Forest tiles — a MultiMesh layer like the
+// Tall Ghibli forest canopy over Forest tiles. A MultiMesh layer like the
 // rocks/flowers, but:
 //   - LOW count per tile (1-3 big masses, not dozens).
 //   - Clumps TOWARD the dense grass-clump masses (like flowers) so canopy forms
@@ -16,7 +16,7 @@ using System.Collections.Generic;
 //             board-edge / impassable forest; 0.0 = clears when a unit stands
 //             under it. Read by painterly_canopy as INSTANCE_CUSTOM.a.
 //     Canopy reads INSTANCE_CUSTOM (not COLOR), so UseCustomData is set WITHOUT
-//     UseColors — same as flowers/rocks; the COLOR-black gotcha only hits shaders
+//     UseColors, same as flowers/rocks; the COLOR-black gotcha only hits shaders
 //     that multiply COLOR (grass), which this one doesn't.
 //
 // OWNS THE MATERIAL: resolves + caches one canopy ShaderMaterial (auto-injecting
@@ -31,7 +31,7 @@ using System.Collections.Generic;
 //
 // INTEGRATION: one line at the tail of GenerateMap(), AFTER the other scatters:
 //       SpawnRockProps();
-//           SpawnCanopyProps();   // canopy last — it also wires the feeder
+//           SpawnCanopyProps();   // canopy last; it also wires the feeder
 // ============================================================
 
 public partial class HexGridManager : Node3D
@@ -45,10 +45,10 @@ public partial class HexGridManager : Node3D
     /// <summary>Fallback load path for the canopy shader.</summary>
     [Export] public string PainterlyCanopyShaderPath = "res://Assets/Shaders/painterly_canopy.gdshader";
 
-    /// <summary>Explicit canopy material. If set, it's used AS-IS — you must set wind_noise AND model_height yourself, and it must be a ShaderMaterial (the feeder needs SetShaderParameter). Leave null to let the builder create one, wire wind_noise, and set model_height from the tallest mesh.</summary>
+    /// <summary>Explicit canopy material. If set, it's used AS-IS. You must set wind_noise AND model_height yourself, and it must be a ShaderMaterial (the feeder needs SetShaderParameter). Leave null to let the builder create one, wire wind_noise, and set model_height from the tallest mesh.</summary>
     [Export] public Material PainterlyCanopyMaterial;
 
-    /// <summary>Pool of canopy mesh variants (rounded blob clusters). Each scatter point picks one (optionally weighted). REQUIRED — canopy is skipped if empty. Author them at a CONSISTENT object-space height (see header).</summary>
+    /// <summary>Pool of canopy mesh variants (rounded blob clusters). Each scatter point picks one (optionally weighted). REQUIRED, because canopy is skipped if empty. Author them at a CONSISTENT object-space height (see header).</summary>
     [Export] public Mesh[] CanopyMeshes;
 
     /// <summary>Optional relative spawn weights, parallel to CanopyMeshes. Leave empty for equal odds.</summary>
@@ -61,19 +61,19 @@ public partial class HexGridManager : Node3D
     /// <summary>0 = canopy scatters evenly; 1 = canopy appears only where the grass clump field is DENSE (copses with clearings). Uses the same noise field as grass/flowers.</summary>
     [Export(PropertyHint.Range, "0,1,0.05")] public float CanopyClumpBias = 0.7f;
 
-    /// <summary>Lift each canopy slightly along +Y (usually 0 — canopy sits on its trunk base).</summary>
+    /// <summary>Lift each canopy slightly along +Y (usually 0, since canopy sits on its trunk base).</summary>
     [Export(PropertyHint.Range, "0,0.5,0.01")] public float CanopySurfaceOffset = 0.0f;
 
-    /// <summary>Random tilt (radians). Big masses barely lean — keep this small.</summary>
+    /// <summary>Random tilt (radians). Big masses barely lean, so keep this small.</summary>
     [Export(PropertyHint.Range, "0,0.4,0.01")] public float CanopyTiltJitter = 0.06f;
 
     /// <summary>Also place canopy on Grass tiles (off = Forest only).</summary>
     [Export] public bool CanopyOnGrass = false;
 
-    /// <summary>Mark canopy on board-EDGE forest tiles (any missing neighbour) as PERMANENT — never fades, framing the arena as a clearing in deep woods.</summary>
+    /// <summary>Mark canopy on board-EDGE forest tiles (any missing neighbour) as PERMANENT. It never fades, framing the arena as a clearing in deep woods.</summary>
     [Export] public bool CanopyPermanentOnEdge = true;
 
-    /// <summary>Per-instance palette tint via custom data (MULTIPLIES the gradient — keep entries near-white). Turn OFF for one uniform canopy tone; the permanent flag is still written either way.</summary>
+    /// <summary>Per-instance palette tint via custom data (MULTIPLIES the gradient, so keep entries near-white). Turn OFF for one uniform canopy tone; the permanent flag is still written either way.</summary>
     [Export] public bool UseCanopyColorVariation = true;
 
     /// <summary>Near-white tints sampled per canopy. They MULTIPLY the shader's gradient, so they nudge tone (warm/cool/light/dark), not recolour.</summary>
@@ -119,7 +119,7 @@ public partial class HexGridManager : Node3D
         }
         if (variantMeshes.Count == 0)
         {
-            GD.PushWarning("[HexGridManager] CanopyMeshes empty — canopy skipped. Assign at least one canopy blob mesh.");
+            GD.PushWarning("[HexGridManager] CanopyMeshes empty, so canopy was skipped. Assign at least one canopy blob mesh.");
             return;
         }
 
@@ -292,7 +292,7 @@ public partial class HexGridManager : Node3D
             {
                 TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
                 Mesh = variantMeshes[v],
-                UseCustomData = true   // canopy reads INSTANCE_CUSTOM, not COLOR — no UseColors needed
+                UseCustomData = true   // canopy reads INSTANCE_CUSTOM, not COLOR, so no UseColors needed
             };
             mm.InstanceCount = tf.Count;
 
@@ -302,7 +302,7 @@ public partial class HexGridManager : Node3D
                 mm.SetInstanceCustomData(i, cd[i]);
             }
 
-            // Explicit AABB — same reasoning as the grass: world-space scattered
+            // Explicit AABB, same reasoning as the grass: world-space scattered
             // instances frustum-cull as a unit and wind sway pushes geometry past
             // the auto-box. Canopy is TALL, so grow generously by mesh height.
             Vector3 mn = tf[0].Origin;
@@ -363,7 +363,7 @@ public partial class HexGridManager : Node3D
             if (child.IsInGroup(CanopyPropGroup))
                 child.QueueFree();
         }
-        // The CanopyOcclusion node is NOT in the group — it persists across regens
+        // The CanopyOcclusion node is NOT in the group. It persists across regens
         // and is re-pointed at the fresh material by EnsureCanopyOcclusion.
     }
 
@@ -374,7 +374,7 @@ public partial class HexGridManager : Node3D
 
         if (PainterlyCanopyMaterial != null)
         {
-            GD.PushWarning("[HexGridManager] PainterlyCanopyMaterial is not a ShaderMaterial — the occlusion feeder needs one. Canopy skipped.");
+            GD.PushWarning("[HexGridManager] PainterlyCanopyMaterial is not a ShaderMaterial. The occlusion feeder needs one, so canopy was skipped.");
             return null;
         }
 

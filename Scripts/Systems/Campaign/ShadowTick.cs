@@ -10,14 +10,14 @@ using System.Collections.Generic;
 //                 between mission resolution (step 4) and the exposure
 //                 loop (step 5), per espionage_veiled_concord_spec_v1
 //                 §5:
-//                   ResolveYields()      — Watcher/Cutout passive
+//                   ResolveYields():       Watcher/Cutout passive
 //                                          yields + Access ripen.
-//                   ResolveCounterIntel()— the Spymaster/agent burn
+//                   ResolveCounterIntel(): the Spymaster/agent burn
 //                                          rolls that hunt the network.
 //                 A court-embedded burn spikes that court's Exposure
 //                 and shields it from idle decay this tick, so the
 //                 EXISTING CouncilTick exposure edge-check fires the
-//                 Scandal — no parallel consequence system.
+//                 Scandal. There is no parallel consequence system.
 //
 //                 SCOPE: the full tick. Watcher + Cutout + Saboteur
 //                 yields; counter-intelligence burns; Concord contract
@@ -27,7 +27,7 @@ using System.Collections.Generic;
 //                 Active player verbs (Saboteur strike, false echo,
 //                 exfiltrate) live in ShadowOps; the marketplace in
 //                 ShadowMarket. Assassination resolves automatically for
-//                 now — see the interactive-broker SEAM in ShadowMarket.
+//                 now (see the interactive-broker SEAM in ShadowMarket).
 // Layer:          System
 // Collaborators:  CouncilTick.cs (calls both entry points; owns the
 //                 exposure loop the burn spike feeds),
@@ -39,7 +39,7 @@ using System.Collections.Generic;
 
 public static class ShadowTick
 {
-    // ── Yield tuning (§12 STARTING VALUES — tune here) ───────────────────
+    // ── Yield tuning (§12 STARTING VALUES, tune here) ───────────────────
     /// <summary>Unseen tiles a Watcher charts per lunation, by Access (1..3).
     /// Index 0 unused so Access maps directly.</summary>
     private static readonly int[] ChartBudget = { 0, 6, 10, 14 };
@@ -51,14 +51,14 @@ public static class ShadowTick
     private const int CutoutSecretAccess = 2;
 
     /// <summary>Per-lunation chance (%) a qualifying Cutout reveals one unknown
-    /// secret in its court — ~2 lunations expected, the spec's "over 2 lunations".</summary>
+    /// secret in its court. Expect ~2 lunations, the spec's "over 2 lunations".</summary>
     private const int CutoutSecretChance = 50;
 
-    /// <summary>Lunations in place per +1 Access (Library halves — §6).</summary>
+    /// <summary>Lunations in place per +1 Access (the Library halves it, §6).</summary>
     private const int RipenLunations = 3;
     private const int RipenLunationsLibrary = 2;
 
-    // ── Counter-intelligence tuning (§2e — the most sensitive weight) ────
+    // ── Counter-intelligence tuning (§2e, the most sensitive weight) ────
     private const int BurnBasePerThreat = 10;   // hit% per threat point
     private const int BurnCoverWeight = 2;      // hit% shed per Cover point
     private const int BurnHandlerMitigation = 12;
@@ -66,11 +66,11 @@ public static class ShadowTick
     private const int BurnHitMin = 2;
     private const int BurnHitMax = 85;
 
-    /// <summary>Exposure a COURT-EMBEDDED burn spikes onto its host court — the
+    /// <summary>Exposure a COURT-EMBEDDED burn spikes onto its host court. The
     /// network is traced back and the guild's envoy pays for it (§2e).</summary>
     private const int CourtEmbeddedBurnSpike = 3;
 
-    /// <summary>Extra hit% against a Saboteur — action is loud, so wreckers are
+    /// <summary>Extra hit% against a Saboteur, whose action is loud, so wreckers are
     /// caught soonest (§2c).</summary>
     private const int BurnSaboteurLoud = 10;
 
@@ -78,7 +78,7 @@ public static class ShadowTick
 
     /// <summary>Resolve every informant's passive yield and ripen Access. Emits
     /// Shadow Ledger lines into the tick's report list. No exposure mutation
-    /// here — that is ResolveCounterIntel's job.</summary>
+    /// here. That is ResolveCounterIntel's job.</summary>
     public static void ResolveYields(CycleState cycle, List<HeraldReport> reports)
     {
         var council = cycle?.Council;
@@ -153,7 +153,7 @@ public static class ShadowTick
         var council = cycle.Council;
         bool changed = false;
 
-        // Fence intel to the Concord for Favor — only once the guild has found
+        // Fence intel to the Concord for Favor, but only once the guild has found
         // the cabal. Before contact, the cutout still gathers ground instead.
         if (council.ConcordContacted)
         {
@@ -178,7 +178,7 @@ public static class ShadowTick
             }
         }
 
-        // Dig a secret (access-gated, chance-based — the "over 2 lunations" work).
+        // Dig a secret (access-gated, chance-based: the "over 2 lunations" work).
         if (access >= CutoutSecretAccess &&
             council.Courts.TryGetValue(inf.KingdomId, out var court) &&
             (int)(GD.Randi() % 100) < CutoutSecretChance)
@@ -205,7 +205,7 @@ public static class ShadowTick
     /// <summary>Roll counter-intelligence against every informant. On a burn the
     /// asset is removed; a court-embedded burn spikes its host court's Exposure
     /// and adds the court to <paramref name="intelShieldedCourts"/> so the
-    /// following exposure loop does NOT decay the spike away this tick — letting
+    /// following exposure loop does NOT decay the spike away this tick, letting
     /// the existing Scandal edge-check fire. Runs BEFORE that loop.</summary>
     public static void ResolveCounterIntel(CycleState cycle, List<HeraldReport> reports,
                                            HashSet<string> intelShieldedCourts)
@@ -220,19 +220,19 @@ public static class ShadowTick
         int embassyTier = save != null ? CouncilQueries.EmbassyTier(save) : 0;
         int undercroft = save != null
             ? CouncilQueries.BuildingTier(save, ShadowVocab.BuildingUndercroft) : 0;
-        // Marked >= Sold Out: the Concord fences the guild's movements — the
+        // Marked >= Sold Out: the Concord fences the guild's movements, so the
         // Astrologer's agents get one free extra burn roll per lunation (§3d).
         bool soldOut = council.Marked >= ShadowVocab.MarkedSoldOut;
         bool changed = false;
 
-        // Iterate a copy — burns remove entries.
+        // Iterate a copy, because burns remove entries.
         foreach (var inf in new List<InformantState>(council.Informants))
         {
             council.Courts.TryGetValue(inf.KingdomId, out var court);
             int threat = Threat(court, inf);
             if (threat <= 0)
             {
-                continue; // no counter-intelligence apparatus here — the network rests easy
+                continue; // no counter-intelligence apparatus here, so the network rests easy
             }
 
             int hit = BurnBasePerThreat * threat - BurnCoverWeight * inf.Cover;
@@ -280,7 +280,7 @@ public static class ShadowTick
                     ? $"{catcher.DisplayName} the {CouncilTick.OfficeDisplay(catcher.Office)}"
                     : "the court";
                 Emit(reports, lun, inf.KingdomId,
-                    $"Shadow: your agent inside {Court(cycle, inf.KingdomId)} is caught — {by} " +
+                    $"Shadow: your agent inside {Court(cycle, inf.KingdomId)} is caught, and {by} " +
                     $"traces the network to the guild (Exposure +{CourtEmbeddedBurnSpike}).");
             }
             else
@@ -301,7 +301,7 @@ public static class ShadowTick
     /// <summary>Advance and complete guild-commissioned Concord contracts. On
     /// completion the effect applies and dealings + Marked are booked (so a
     /// commission that never lands costs Favor but leaves no mark). Returns true
-    /// if any contract completed this tick — the dealing that shields Marked
+    /// if any contract completed this tick: the dealing that shields Marked
     /// from idle decay. Astrologer contracts (AgainstPlayer) are E5.</summary>
     public static bool ResolveContracts(CycleState cycle, List<HeraldReport> reports)
     {
@@ -323,7 +323,7 @@ public static class ShadowTick
             council.ConcordContracts.Remove(c);
             if (c.AgainstPlayer)
             {
-                // Not outbid in time — the knife lands (§3d threshold 9).
+                // Not outbid in time, so the knife lands (§3d threshold 9).
                 ApplyAgainstPlayer(cycle, c, lun, reports);
                 continue;
             }
@@ -372,8 +372,8 @@ public static class ShadowTick
         {
             bool stole = StealSecret(cycle, c.TargetKingdomId, c.TargetId, lun, reports, where);
             if (stole)
-                // §8 stolen spellbook: a successful break-in also lifts a working —
-                // an off-school Rare of the target court's school enters the permanent
+                // §8 stolen spellbook: a successful break-in also lifts a working.
+                // An off-school Rare of the target court's school enters the permanent
                 // pool. The sanctioned §2a exception (another school's card without
                 // alliance, mastery, or purchase); the Marked the Theft contract already
                 // charged is what makes theft feel like the cheat it is.
@@ -400,7 +400,7 @@ public static class ShadowTick
     /// <summary>Remove a courtier from the world permanently (§3c Tier C). The
     /// office falls vacant, any Patron oath with them breaks, and the court
     /// investigates its dead (a heavy Exposure spike). Standing recomputes from
-    /// the survivors — assassinating a blocker (negative Regard) opens the court;
+    /// the survivors. Assassinating a blocker (negative Regard) opens the court;
     /// killing an ally throws it away. Irreversible.</summary>
     private static void AssassinateCourtier(CycleState cycle, string kingdomId,
                                             string courtierId, int lun, List<HeraldReport> reports)
@@ -426,7 +426,7 @@ public static class ShadowTick
 
         Emit(reports, lun, kingdomId,
             $"Shadow: {mark.DisplayName} the {CouncilTick.OfficeDisplay(mark.Office)} at " +
-            $"{Court(cycle, kingdomId)} is dead — the office falls vacant and the court reels. " +
+            $"{Court(cycle, kingdomId)} is dead. The office falls vacant and the court reels. " +
             $"Standing: {court.Band()}.");
     }
 
@@ -455,7 +455,7 @@ public static class ShadowTick
         if (freed == null)
         {
             Emit(reports, lun, kingdomId,
-                "Shadow: the Concord's extraction team found no cell to crack — none are held.");
+                "Shadow: the Concord's extraction team found no cell to crack. None are held.");
             return;
         }
 
@@ -475,13 +475,13 @@ public static class ShadowTick
         var envoy = cycle.Companions.Find(c => c.Id == freed.CompanionId);
         string name = envoy?.Name ?? freed.CompanionId;
         Emit(reports, lun, freed.KingdomId,
-            $"Shadow: the Concord cracks the gaol at {Court(cycle, freed.KingdomId)} — " +
+            $"Shadow: the Concord cracks the gaol at {Court(cycle, freed.KingdomId)}. " +
             $"{name} is spirited back to the guild's ranks.");
     }
 
     /// <summary>Resolve an Astrologer-commissioned contract against the guild that
     /// was not outbid in time (§3d threshold 9). "seize:&lt;id&gt;" gaols a
-    /// companion (arc-scar for the cycle, ruling #5 — the same recoverable
+    /// companion (arc-scar for the cycle, ruling #5, using the same recoverable
     /// Imprisonment machinery); "burn" bleeds Cover across the whole network.</summary>
     private static void ApplyAgainstPlayer(CycleState cycle, ConcordContract c, int lun,
                                            List<HeraldReport> reports)
@@ -497,9 +497,9 @@ public static class ShadowTick
             var envoy = cycle.Companions.Find(cc => cc.Id == companionId);
             string name = envoy?.Name ?? companionId;
             Emit(reports, lun, c.TargetKingdomId, seized
-                ? $"Shadow: the shadows take their price — {name} is seized and gaoled at " +
+                ? $"Shadow: the shadows take their price. {name} is seized and gaoled at " +
                   $"{Court(cycle, c.TargetKingdomId)}. Storm it, or extract them, to bring them home."
-                : $"Shadow: a killer came for {name}, but they slipped the noose — this time.");
+                : $"Shadow: a killer came for {name}, but they slipped the noose, this time.");
             return;
         }
 
@@ -517,7 +517,7 @@ public static class ShadowTick
         }
         Emit(reports, lun, "", bled == 0
             ? "Shadow: the Astrologer's sweep found no network left to burn."
-            : $"Shadow: the Astrologer's coin sweeps the guild's network — {bled} asset(s) bled, " +
+            : $"Shadow: the Astrologer's coin sweeps the guild's network: {bled} asset(s) bled, " +
               $"{burned} burned out.");
         SaveManager.MarkDirty();
     }
@@ -546,7 +546,7 @@ public static class ShadowTick
         {
             bool ok = CorruptionSpread.TryRequestDelay(kingdomId, cycle.Kingdoms);
             Emit(reports, lun, kingdomId, ok
-                ? $"Shadow: {actor} stalls the corruption creeping into {where} — a lunation bought."
+                ? $"Shadow: {actor} stalls the corruption creeping into {where}. A lunation bought."
                 : $"Shadow: {actor} moved against the corruption in {where}, but the shadows were " +
                   $"already stretched thin (no effect this lunation).");
         }
@@ -562,13 +562,13 @@ public static class ShadowTick
             int before = wf.Advance;
             wf.Advance = Mathf.Max(0, wf.Advance - siegeAmount);
             Emit(reports, lun, kingdomId,
-                $"Shadow: {actor} undermines the siege pressing {where} — the advance falls " +
+                $"Shadow: {actor} undermines the siege pressing {where}. The advance falls " +
                 $"{before} → {wf.Advance}.");
         }
         SaveManager.MarkDirty();
     }
 
-    /// <summary>An open, non-cache warfront where the kingdom is the defender —
+    /// <summary>An open, non-cache warfront where the kingdom is the defender,
     /// the front the guild's shadow-work would relieve.</summary>
     public static Warfront FindDefendedWarfront(CycleState cycle, string kingdomId)
     {
@@ -624,11 +624,11 @@ public static class ShadowTick
         string name = CardAcquisition.Discover(save, id);
         if (!string.IsNullOrEmpty(name))
             Emit(reports, lun, kingdomId,
-                $"Shadow: your thief in {where} makes off with a working — " +
-                $"the {name} enters your library.");
+                $"Shadow: your thief in {where} makes off with a working. " +
+                $"The {name} enters your library.");
     }
 
-    /// <summary>The archmage-school governing a kingdom, or "" — the exact mapping
+    /// <summary>The archmage-school governing a kingdom, or "". This is the exact mapping
     /// CouncilTick uses (kingdom → TemplateRegionId → GetArchmageForRegion →
     /// ArchmageRegistry school), reused so theft and diplomacy read the world the
     /// same way.</summary>
@@ -699,7 +699,7 @@ public static class ShadowTick
         }
 
         // Threshold 3 (Noticed): a courtier learns of the guild's dealings and
-        // holds it — now the guild is the one with a secret. One-shot per cycle
+        // holds it. Now the guild is the one with a secret. One-shot per cycle
         // (WorldFlag), a lasting standing mark at the court that caught it.
         if (council.Marked >= ShadowVocab.MarkedNoticed && !cycle.HasFlag(BlackmailFlag))
         {
@@ -761,7 +761,7 @@ public static class ShadowTick
         }
         if (best == null)
         {
-            return; // no one positioned to hold it — try again a later tick
+            return; // no one positioned to hold it, so try again a later tick
         }
 
         best.StandingPenalty += ShadowVocab.BlackmailStandingPenalty;
@@ -806,7 +806,7 @@ public static class ShadowTick
         bool seize = flavor.StartsWith(ShadowVocab.AgainstSeize);
         Emit(reports, lun, targetKingdom,
             seize
-                ? $"Shadow: the Astrologer buys the Concord against the guild — a killer moves on an " +
+                ? $"Shadow: the Astrologer buys the Concord against the guild. A killer moves on an " +
                   $"envoy. Outbid them ({ShadowVocab.AstrologerBidFavor}+ favor) before the moon turns."
                 : $"Shadow: the Astrologer buys the Concord against the guild's network. Outbid them " +
                   $"({ShadowVocab.AstrologerBidFavor}+ favor) before the moon turns.");
@@ -816,7 +816,7 @@ public static class ShadowTick
 
     /// <summary>Plant a standing informant. Returns the new asset, or null if the
     /// placement is invalid (unknown kingdom, or a court-embedded slot already
-    /// filled on that courtier — one embed per courtier is the natural cap).</summary>
+    /// filled on that courtier, since one embed per courtier is the natural cap).</summary>
     public static InformantState PlantInformant(CycleState cycle, string kingdomId,
         string role, int coverStart, string courtierId = "", string warfrontId = "")
     {
@@ -833,7 +833,7 @@ public static class ShadowTick
             ? CouncilQueries.BuildingTier(save, ShadowVocab.BuildingUndercroft) : 0;
         if (council.Informants.Count >= ShadowVocab.InformantCap(undercroft))
         {
-            return null; // at capacity — exfiltrate or build the Undercroft
+            return null; // at capacity, so exfiltrate or build the Undercroft
         }
 
         if (!string.IsNullOrEmpty(courtierId))
@@ -887,7 +887,7 @@ public static class ShadowTick
     }
 
     /// <summary>Record an exfiltrated asset's Access as renown for its kingdom
-    /// (max, not sum — the best network you ever ran there).</summary>
+    /// (max, not sum: the best network you ever ran there).</summary>
     public static void BankRenown(GuildSaveData save, string kingdomId, int access)
     {
         if (save?.Ledger?.DeedCounts == null || string.IsNullOrEmpty(kingdomId))

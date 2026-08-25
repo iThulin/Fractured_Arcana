@@ -15,7 +15,7 @@
       "key": "redact",
       "trigger": "onAttack",
       "name": "Redact",
-      "intelDescription": "Whoever it strikes loses a random card from hand — burned out of the deck for the rest of the fight.",
+      "intelDescription": "Whoever it strikes loses a random card from hand, burned out of the deck for the rest of the fight.",
       "params": {
         "count": "1"
       }

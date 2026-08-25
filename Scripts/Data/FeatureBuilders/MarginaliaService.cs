@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ============================================================
 // MarginaliaService.cs
 //
-// Purpose:        The Marginalia — enemy-knowledge card acquisition
+// Purpose:        The Marginalia, enemy-knowledge card acquisition
 //                 (progression_card_acquisition_v1 §8 "Kill", spec:
 //                 docs/marginalia_spec_v1.md). Defeat N of an enemy
 //                 family and the blueprint that IS that family's
@@ -13,10 +13,10 @@ using System.Collections.Generic;
 //                 This service is the taxonomy + read/commit API:
 //                 family table, thresholds, kill counts, progress rows.
 //                 The UNLOCK itself is settled by ProgressionSweep,
-//                 never here — one automatic writer, per its header.
+//                 never here. One automatic writer, per its header.
 // Layer:          Data / Feature builder
 // Collaborators:  EternalLedger.cs (DeedCounts host),
-//                 ProgressionSweep.cs (SweepMarginalia — the writer),
+//                 ProgressionSweep.cs (SweepMarginalia, the writer),
 //                 CombatManager.cs (per-fight tally),
 //                 ExpeditionManager.cs (victory-gated commit + toasts),
 //                 ArchmageRegistry.cs (family → school/name),
@@ -25,7 +25,7 @@ using System.Collections.Generic;
 //                 CampusRecordsPanel.cs / CardLibraryUi.cs (read surfaces)
 //
 // ⚠ THIS IS NOT THE BESTIARY. Scripts/Cards/Loader/Bestiary.cs is
-//   Druid wildlife definitions for GrowthManager — unrelated (design
+//   Druid wildlife definitions for GrowthManager, and unrelated (design
 //   doc §1c). Flag namespace here: marginalia_<family>. Deed namespace:
 //   marginalia_kill_<family>. And never write bare "mastery": the points
 //   paid on completion are SchoolMastery, not CardMastery or CastMastery.
@@ -36,7 +36,7 @@ using System.Collections.Generic;
 /// </summary>
 public struct MarginaliaProgress
 {
-    public string FamilyId;      // archmage id — "conductor"
+    public string FamilyId;      // archmage id, e.g. "conductor"
     public string FactionName;   // ArchmageDefinition.FactionName
     public string School;        // "Necromancer"
     public int Kills;
@@ -57,7 +57,7 @@ public static class MarginaliaService
     // ── The family table (R1) ────────────────────────────────────────────
     //
     // family id = UnitDefinition.FactionId = ArchmageDefinition.Id. One
-    // authored card per family — the family's signature trick as a card.
+    // authored card per family: the family's signature trick as a card.
     // Additions (wildlife families, the 8 school casters) go here; the rest
     // of the system keys off this table and needs no other change.
     private static readonly Dictionary<string, string> FamilyCard = new(StringComparer.Ordinal)
@@ -72,7 +72,7 @@ public static class MarginaliaService
         { "engineer",   "tinker_bench_turret" },
     };
 
-    // Reverse map, built lazily — the CardLibraryUi lock note asks "is this
+    // Reverse map, built lazily, because the CardLibraryUi lock note asks "is this
     // blueprint a Marginalia card, and whose?" per detail-panel open.
     private static Dictionary<string, string> _cardFamily;
 
@@ -95,7 +95,7 @@ public static class MarginaliaService
     // ── Card / school / threshold lookups ────────────────────────────────
 
     /// <summary>The family's card blueprint, or null when the id is unknown or
-    /// the card is not (yet) in the database — callers must treat null as
+    /// the card is not (yet) in the database. Callers must treat null as
     /// "defer", mirroring the sweep's Legendary pattern.</summary>
     public static CardBlueprint CardFor(string family)
     {
@@ -104,7 +104,7 @@ public static class MarginaliaService
         return CardDatabase.GetByName(cardId);
     }
 
-    /// <summary>True when this blueprint id is a Marginalia reward card —
+    /// <summary>True when this blueprint id is a Marginalia reward card.
     /// StarterDeckLoader must NOT seed these into the day-one unlock pool,
     /// or the entries would be pointless (6 of 8 are Common/Uncommon).</summary>
     public static bool IsMarginaliaCard(string blueprintId)
@@ -143,7 +143,7 @@ public static class MarginaliaService
             CardRarity.Common => 8,
             CardRarity.Uncommon => 12,
             CardRarity.Rare => 20,
-            // A Legendary here would be a design error — Legendaries are Regalia
+            // A Legendary here would be a design error: Legendaries are Regalia
             // (§6a) and must never enter the draft pool through this door.
             _ => -1,
         };
@@ -218,10 +218,10 @@ public static class MarginaliaService
 
     /// <summary>
     /// Record a won fight's per-family kill tally into DeedCounts (R2: committed
-    /// on victory only — the tally is assembled by CombatManager and travels via
+    /// on victory only; the tally is assembled by CombatManager and travels via
     /// EncounterRouter). Unknown family ids are recorded too (deeds are cheap and
     /// honest) but only table families are reported back. Families already
-    /// settled by the sweep are recorded silently — no 13/12 toasts. The unlock
+    /// settled by the sweep are recorded silently, with no 13/12 toasts. The unlock
     /// itself is derived by ProgressionSweep on the next save.
     /// </summary>
     public static List<CommitResult> CommitKills(GuildSaveData save, Dictionary<string, int> tally)
@@ -241,7 +241,7 @@ public static class MarginaliaService
             GD.Print($"[Marginalia] {family}: +{count} → {after} defeated (cross-cycle).");
 
             if (!FamilyCard.ContainsKey(family)) continue;   // recorded, not reported
-            if (wasComplete) continue;                        // settled — stay quiet
+            if (wasComplete) continue;                        // settled, so stay quiet
 
             int threshold = Threshold(family);
             var def = ArchmageRegistry.Get(family);

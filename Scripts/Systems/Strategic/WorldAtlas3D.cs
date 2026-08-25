@@ -4,19 +4,19 @@ using System.Collections.Generic;
 // ============================================================
 // WorldAtlas3D.cs
 //
-// Purpose:        The 3D translation of the strategic view — a
+// Purpose:        The 3D translation of the strategic view: a
 //                 side-by-side PROTOTYPE for evaluating a Civ-style
 //                 terrain read of the world against StrategicView's
 //                 2D quad paint. Renders the SAME WorldData: one hex
-//                 prism per tile via two MultiMeshes — land (tapered
-//                 rim, matte) and water (seamless, glinting) — with
+//                 prism per tile via two MultiMeshes, land (tapered
+//                 rim, matte) and water (seamless, glinting), with
 //                 per-instance transform carrying terraced elevation
 //                 as height and per-instance color carrying the
 //                 active lens (graded + jittered), river/road edges as
 //                 a second MultiMesh, discovered POIs / settlements /
 //                 staging points / shard zones as marker meshes, and
 //                 settlement names as Label3Ds. Read-only: it renders
-//                 the world, it does not deploy expeditions — the
+//                 the world, it does not deploy expeditions. The
 //                 strategic scene stays the functional map while the
 //                 two renderers are compared.
 // Layer:          UI (strategic view, 3D prototype)
@@ -25,14 +25,14 @@ using System.Collections.Generic;
 //                 StrategicView.cs (the 2D renderer it mirrors),
 //                 CampusAtlasPanel.cs (its host tab)
 // See:            single_world_refactor_v2.docx §4.2 (the strategic
-//                 renderer's cost contract — no per-tile nodes; a
+//                 renderer's cost contract: no per-tile nodes; a
 //                 MultiMesh of prisms is one draw call, same as the
 //                 quad version)
 //
 // COLOR PARITY NOTE: the lens color logic below is a deliberate,
 // marked COPY of StrategicView's private color methods (TileColor,
 // PoliticalLensColor, TerrainColor, KingdomColor, ...). Two renderers
-// answering the same questions must not drift — if the 3D atlas is
+// answering the same questions must not drift. If the 3D atlas is
 // adopted past the comparison stage, extract that logic from
 // StrategicView into a shared static TileColors class and delete the
 // copy here (the QuestLogView precedent: one renderer, many hosts).
@@ -45,13 +45,13 @@ using TT = OverworldHex.TerrainType;
 /// <summary>Renders a <see cref="WorldData"/> as low-relief 3D hex terrain inside its own
 /// SubViewport. Pure renderer + camera: pan (left-drag), zoom (wheel, pitch eases with
 /// distance), click (no drag) reports the picked tile through <see cref="TilePicked"/>.
-/// Input is gated by <see cref="AcceptInput"/>, driven by the host container's hover state —
+/// Input is gated by <see cref="AcceptInput"/>, driven by the host container's hover state,
 /// the same discipline CampusScreen uses for the campus map's camera.</summary>
 public partial class WorldAtlas3D : Node3D
 {
-    // ── Layout (flat-top, odd-q — must match HexCoord/WorldData) ────────────
+    // ── Layout (flat-top, odd-q; must match HexCoord/WorldData) ─────────────
     /// <summary>Hex circumradius in world units. Column spacing is 1.5R, row spacing
-    /// is √3·R with odd columns pushed HALF A TILE toward +Z — the 3D analogue of
+    /// is √3·R with odd columns pushed HALF A TILE toward +Z, the 3D analogue of
     /// HexCoord.OffsetRenderPosition's "odd columns nudged down".</summary>
     private const float HexR = 1.0f;
     private static readonly float ColSpacing = 1.5f * HexR;
@@ -78,17 +78,17 @@ public partial class WorldAtlas3D : Node3D
     public bool AcceptInput = false;
 
     /// <summary>Fired on a click that wasn't a drag, with the picked OFFSET coords.
-    /// A plain .NET event, not a Godot signal — the host panel is not a Node.</summary>
+    /// A plain .NET event, not a Godot signal, since the host panel is not a Node.</summary>
     public event System.Action<int, int> TilePicked;
 
     /// <summary>Fired when a building on the home-grounds MODEL is clicked while the camera
     /// is in city view (<see cref="_cityMode"/>). Carries the building id and
-    /// its grid axial. The host (StrategicView) routes it to that building's campus panel —
-    /// this is the "build in place on the world map" seam (Phase 2, true geometry merge).</summary>
+    /// its grid axial. The host (StrategicView) routes it to that building's campus panel.
+    /// This is the "build in place on the world map" seam (Phase 2, true geometry merge).</summary>
     public event System.Action<string, Vector2I> HomeBuildingPicked;
 
     /// <summary>A bare (unbuilt, non-landmark) home-grounds hex was clicked in
-    /// city view — a candidate building site. The host opens the construct card.</summary>
+    /// city view, a candidate building site. The host opens the construct card.</summary>
     public event System.Action<Vector2I> HomeGroundPicked;
 
     // ── Footprint preview (2026-08-13) ───────────────────────────────────
@@ -97,7 +97,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>Tint a building's would-be footprint at an anchor on the home
     /// grounds: Gold = fits, Danger = doesn't (off-grid hexes simply don't
-    /// tint — fewer gold tiles than the footprint size IS the signal). One
+    /// tint; fewer gold tiles than the footprint size IS the signal). One
     /// preview at a time; call <see cref="ClearHomeFootprintPreview"/> after.</summary>
     public void PreviewHomeFootprint(string buildingId, Vector2I anchor)
     {
@@ -123,23 +123,23 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>How close the building-focus swoop lands. ORTHO MATH, not
     /// metres: the camera is orthographic and vertical framing = _camDist ×
-    /// OrthoSizeFactor (1.5), so dist 0.67 → Size ≈ 1.0 world unit — one
+    /// OrthoSizeFactor (1.5), so dist 0.67 → Size ≈ 1.0 world unit. One
     /// campus tile (0.67 across at the 1/3 grounds scale) genuinely fills
     /// the frame, with the 40° cinematic pitch this zoom implies. Deeper
     /// than the wheel floor (CamDistMinCity 1.5) on purpose: the showcase
     /// beat may go where the wheel doesn't. (History: 3.2 could pull BACK;
-    /// 1.8 still framed ~4 tiles — both wrong for the same ortho reason.)</summary>
+    /// 1.8 still framed ~4 tiles; both wrong for the same ortho reason.)</summary>
     private const float BuildingFocusDist = 1.0f;
 
-    /// <summary>Swoop the camera down to frame one home-grounds building —
+    /// <summary>Swoop the camera down to frame one home-grounds building,
     /// the beat that plays under its floating panel. No-op outside city view.
     ///
     /// <para>Two composition rules learned the hard way (2026-08-13): the
-    /// building must center in the VISIBLE area — the floating panel docks
+    /// building must center in the VISIBLE area: the floating panel docks
     /// right, so the look-target shifts camera-right by ~a fifth of the
     /// horizontal framing, placing the mesh left-of-screen-centre = centre
     /// of what the player can see. And it must sit in the tilt-shift post's
-    /// SHARP band (mid-frame) — off-centre framing dropped it into the
+    /// SHARP band (mid-frame). Off-centre framing dropped it into the
     /// miniature blur and the whole close-up read as soup.</para></summary>
     public void FocusHomeBuilding(Vector2I coord)
     {
@@ -154,14 +154,14 @@ public partial class WorldAtlas3D : Node3D
     }
 
     /// <summary>Pull back to the city framing after a focused panel closes.
-    /// Only if still in city view — leaving for the world already reframes.</summary>
+    /// Only if still in city view; leaving for the world already reframes.</summary>
     public void UnfocusHomeBuilding()
     {
         if (!_cityMode) return;
         FlyTo(_cityCentre, _cityFitDist);
     }
 
-    /// <summary>Place a building's anchor at a grounds hex (rotation 0 — the
+    /// <summary>Place a building's anchor at a grounds hex (rotation 0, the
     /// city card's placement; rotated/multi-tile siting stays on the campus
     /// overlay's placement tool). On success rebuilds the grounds in place.</summary>
     public bool TryPlaceHomeBuilding(string buildingId, Vector2I coord)
@@ -185,7 +185,7 @@ public partial class WorldAtlas3D : Node3D
     public bool CityMode => _cityMode;
 
     /// <summary>True when the in-world campus grounds exist (a home tile + a campus layout
-    /// have been resolved) — the precondition for <see cref="EnterCityMode"/> to work.</summary>
+    /// have been resolved), the precondition for <see cref="EnterCityMode"/> to work.</summary>
     public bool HasCityGrounds => _homeGrounds != null;
 
     // ── Scene pieces ────────────────────────────────────────────────────────
@@ -196,7 +196,7 @@ public partial class WorldAtlas3D : Node3D
     // low-roughness material so the sun glints on it.
     private MultiMeshInstance3D _landLayer;
     private MultiMeshInstance3D _waterLayer;
-    /// <summary>Unseen tiles — the UNPAINTED CANVAS layer (art pass A6): matte
+    /// <summary>Unseen tiles, the UNPAINTED CANVAS layer (art pass A6): matte
     /// parchment slabs with the same grout taper for land AND water, so no
     /// coastline silhouette can leak through the fog via mesh differences.</summary>
     private MultiMeshInstance3D _canvasLayer;
@@ -213,17 +213,17 @@ public partial class WorldAtlas3D : Node3D
     private MultiMeshInstance3D _borderLayer;  // A7: kingdom-border ink strokes
     private readonly List<Node3D> _markers = new();   // POI/settlement/staging/etc, rebuilt together
     // Map labels that hold a constant on-screen size across zoom (their world PixelSize is retuned
-    // from _camDist each camera move — see UpdateLabelScales). Their nodes live in _markers.
+    // from _camDist each camera move; see UpdateLabelScales). Their nodes live in _markers.
     private readonly List<(Label3D lbl, float fontSize, float screenFrac)> _scaledLabels = new();
-    // ── The city (Phase 2, true geometry merge — /3 rep-tile) ───────────────
+    // ── The city (Phase 2, true geometry merge, /3 rep-tile) ────────────────
     // The campus grid is PERMANENTLY anchored in world space as the /3 subdivision of the
     // strategic tiles the city occupies: the grounds node is drawn at 1/3 scale, unrotated,
-    // positioned on the home tile — so each city tile carries a whole 7-hex flower of
+    // positioned on the home tile, so each city tile carries a whole 7-hex flower of
     // build-slots (ring tiles touch the tile edge exactly) with the vertex cells shared
     // three ways as bonus corners, districts ≡ strategic tiles, and "zooming into the
     // campus" is purely a camera move. No scale swap, no world culling, no separate scene.
-    private CampusGridManager _homeGrounds;              // the HOME campus grounds — persistent, always present
-    private CampusGridManager _cityGrounds;             // Phase 3: a visited NPC city's grounds — transient (built on enter, freed on leave)
+    private CampusGridManager _homeGrounds;              // the HOME campus grounds: persistent, always present
+    private CampusGridManager _cityGrounds;             // Phase 3: a visited NPC city's grounds, transient (built on enter, freed on leave)
     private WorldSettlement _activeCity;                // Phase 3: the NPC city currently entered; null = home campus
     private readonly HashSet<Vector2I> _revealedDistricts = new();   // Phase 3 explore: revealed districts in the active NPC city (projection of _cityExplore)
     private CityExploreState _cityExplore;              // Phase 3 explore: the active city's persisted district content (per-city, saved this cycle)
@@ -232,20 +232,20 @@ public partial class WorldAtlas3D : Node3D
     private readonly HashSet<Vector2I> _cityTiles = new(); // strategic (col,row) the ACTIVE city occupies
 
     /// <summary>A revealed district holding uncleared content was clicked in an NPC city view. The
-    /// host (StrategicView) dispatches it — Service → services menu, Event → narrative panel,
-    /// Fight/Story → stub — then marks it cleared and calls <see cref="RefreshCityContentMarkers"/>.</summary>
+    /// host (StrategicView) dispatches it (Service → services menu, Event → narrative panel,
+    /// Fight/Story → stub), then marks it cleared and calls <see cref="RefreshCityContentMarkers"/>.</summary>
     public event System.Action<CityDistrictEntry, WorldSettlement> DistrictContentTriggered;
 
     /// <summary>True when the active city view is the home campus (vs. a visited NPC city). The
     /// host uses it to gate home-only affordances (annex) out of NPC cities.</summary>
     public bool ActiveCityIsHome => _activeCity == null;
 
-    /// <summary>Display name of the visited NPC city (empty at home) — for the services menu header.</summary>
+    /// <summary>Display name of the visited NPC city (empty at home), for the services menu header.</summary>
     public string ActiveCityName => _activeCity != null ? SettlementDisplayName(_activeCity) : "";
 
     /// <summary>The visited NPC city's settlement record (null at home). K3: the
-    /// services menu needs the settlement itself — KingdomId for Steward pricing
-    /// and the R25 deed, IsSeat for hall quality — not just its display name.</summary>
+    /// services menu needs the settlement itself (KingdomId for Steward pricing
+    /// and the R25 deed, IsSeat for hall quality), not just its display name.</summary>
     public WorldSettlement ActiveCity => _activeCity;
 
     // ── District growth (city view) ──────────────────────────────────────
@@ -268,13 +268,13 @@ public partial class WorldAtlas3D : Node3D
     private MultiMeshInstance3D _cityBordersInner;        // faint interior district seams, city view only
     private float _cityPlateau = 0f;                      // the city's uniform ground height (above all neighbours)
     /// <summary>Every marker standing ON a city tile (the seat block + label, the portal
-    /// beacon — the gold "staging" marker on the city IS the portal building — POI orbs).
+    /// beacon (the gold "staging" marker on the city IS the portal building), POI orbs).
     /// Hidden while in city view: zoomed in, they'd loom over the campus they stand on.</summary>
     private readonly List<Node3D> _cityHiddenMarkers = new();
     /// <summary>True while in CITY VIEW: camera down at campus scale, grounds clickable,
     /// city-tile borders shown. Entered by selecting the city / Return-to-Campus.</summary>
     private bool _cityMode = false;
-    /// <summary>Closest zoom allowed IN city view — near enough to sit among the buildings
+    /// <summary>Closest zoom allowed IN city view, near enough to sit among the buildings
     /// (child hexes are 1/3 world-tile scale), far below the world floor.</summary>
     private const float CamDistMinCity = 1.5f;
     private List<Vector2I> _warfronts = new();         // active warfront focus tiles (CYCLE state, injected)
@@ -283,7 +283,7 @@ public partial class WorldAtlas3D : Node3D
     // ── Expedition window preview (stage 2 seed) ────────────────────────────
     // Clicking a staging point previews the deploy window: a boundary ring, the
     // window's tiles lifted in brightness, and a GHOST party token that hops to
-    // any clicked tile inside — a feel test for playing expeditions on this
+    // any clicked tile inside, a feel test for playing expeditions on this
     // surface. Pure WorldData: radius matches StrategicView.DeployWindowRadius's
     // default; nothing here touches ExpeditionManager or run state.
     private const int WindowRadius = 12;
@@ -309,7 +309,7 @@ public partial class WorldAtlas3D : Node3D
     private const float OrbitYawSens = 0.008f;    // rad per px
     private const float OrbitPitchSens = 0.25f;   // deg per px
     private const float PitchMinDeg = 15f, PitchMaxDeg = 82f;
-    // Stage 1: min dropped 12→6 — close zoom is where exploration reads, and the
+    // Stage 1: min dropped 12→6. Close zoom is where exploration reads, and the
     // decoration layer + adaptive post blur make it worth going there.
     private const float CamDistMin = 6f, CamDistMax = 150f;
 
@@ -323,7 +323,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>Fires with zoom01 (0 = closest) whenever the camera moves. The host
     /// panel drives the post shader off this so the miniature blur RELAXES as the
-    /// camera comes down — a model stops reading as miniature at ground level.</summary>
+    /// camera comes down. A model stops reading as miniature at ground level.</summary>
     public event System.Action<float> ZoomChanged;
     private bool _dragging = false;
     private bool _dragMoved = false;
@@ -339,12 +339,12 @@ public partial class WorldAtlas3D : Node3D
     // ── Public surface ──────────────────────────────────────────────────────
 
     /// <summary>Inject the world (and kingdoms, for the political/reach lenses) and
-    /// rebuild. Safe to call before _Ready — _Ready picks it up.</summary>
+    /// rebuild. Safe to call before _Ready; _Ready picks it up.</summary>
     public void SetWorld(WorldData world, Dictionary<string, KingdomState> kingdoms)
     {
         _world = world;
         _kingdoms = kingdoms ?? new Dictionary<string, KingdomState>();
-        ComputeCityFootprint();   // before Rebuild — tile flattening reads the city set
+        ComputeCityFootprint();   // before Rebuild, since tile flattening reads the city set
         if (IsInsideTree())
         {
             FrameWorld();
@@ -365,7 +365,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>Resolve which strategic tiles the city occupies (home + each UNLOCKED
     /// district at its strategic-axial offset) plus the derived camera framing. Districts
-    /// are strategic tiles — CampusDistrict.Q/R are axial deltas from the home tile.</summary>
+    /// are strategic tiles: CampusDistrict.Q/R are axial deltas from the home tile.</summary>
     private void ComputeCityFootprint()
     {
         _cityTiles.Clear();
@@ -385,7 +385,7 @@ public partial class WorldAtlas3D : Node3D
             _cityTiles.Add(new Vector2I(_world.HomeX, _world.HomeY));
 
         // The city IS flattened to a plateau (2026-08-19): the home tile's natural terrain
-        // height, applied to every city tile via the TileHeightAt override. RAW height here —
+        // height, applied to every city tile via the TileHeightAt override. RAW height here:
         // TileHeightAt consults _cityPlateau for city tiles, so computing it through the
         // override would read the previous city's value.
         _cityPlateau = TileHeight(_world.GetTile(_world.HomeX, _world.HomeY));
@@ -407,7 +407,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>Contour-follow height with ONE exception (2026-08-19, reversing the earlier
     /// contour-follow-everywhere choice): the ACTIVE city's strategic tiles are flattened to
-    /// <see cref="_cityPlateau"/> — the centre tile's natural height. Under contour-follow
+    /// <see cref="_cityPlateau"/>, the centre tile's natural height. Under contour-follow
     /// the 3-way corner bonus hexes straddled terrace cliffs (never constructable-looking),
     /// building labels stacked down the hillside, and the border ring stepped. Every height
     /// consumer routes through here (tile prisms, grounds contour, borders, marker lifts),
@@ -417,7 +417,7 @@ public partial class WorldAtlas3D : Node3D
             ? _cityPlateau
             : TileHeight(_world.GetTile(col, row));
 
-    /// <summary>Stage 3 (Phase 2, true geometry merge) — render the guild's actual campus
+    /// <summary>Stage 3 (Phase 2, true geometry merge): render the guild's actual campus
     /// GROUNDS as a scaled model standing on the home tile, so the world map literally
     /// carries the city you zoom into (fits the "crafted clockwork model" art direction).
     /// Additive + visual for now: the overlay is still the entry. Rebuilt with the world;
@@ -430,8 +430,8 @@ public partial class WorldAtlas3D : Node3D
         // transform does all the work: DistrictCentre(dq,dr) = (3dq,3dr) lands on each
         // strategic tile's centre, the district's 7-flower sits wholly inside its tile
         // (ring tiles touch the edge exactly), and vertex cells are the 3-way bonus
-        // corners (verified numerically — see CampusMapSaveData.DistrictCentre). The
-        // grounds sit on the city plateau and are ALWAYS present — at map zoom they're
+        // corners (verified numerically; see CampusMapSaveData.DistrictCentre). The
+        // grounds sit on the city plateau and are ALWAYS present. At map zoom they're
         // simply small; city view is just the camera coming down. HexRadius 1.0 so child
         // spacing lands exactly on the sublattice.
         if (_cityMode) LeaveCityMode();
@@ -471,17 +471,17 @@ public partial class WorldAtlas3D : Node3D
         grounds.LoadFromSave(map, save.Ledger.Buildings);
         grounds.LoadLandmarks(save.HasFlag);
         _homeGrounds = grounds;
-        // Picking stays analytic (CampusGridManager.TryPickRay) — it goes through the node
+        // Picking stays analytic (CampusGridManager.TryPickRay): it goes through the node
         // transform, so the scale AND the rotation are handled exactly; Godot physics
         // mis-handles scaled colliders, which is why it isn't a ray→collider query.
 
         BuildCityBorders();
         // The annexable-district preview is built ON DEMAND when the player enters annex mode
-        // (see SetAnnexMode), not here — so the "room to grow" flowers only appear when they're
+        // (see SetAnnexMode), not here, so the "room to grow" flowers only appear when they're
         // actually about to buy a tile, and always reflect the current frontier.
     }
 
-    /// <summary>Enter/leave "annex mode" — the state in which the annexable-district preview is
+    /// <summary>Enter/leave "annex mode", the state in which the annexable-district preview is
     /// shown and a city click buys a district instead of opening a building. Rebuilds the preview
     /// to the CURRENT frontier each time it's turned on (so a freshly-annexed district's new
     /// neighbours appear). Only meaningful in city view.</summary>
@@ -499,7 +499,7 @@ public partial class WorldAtlas3D : Node3D
         }
     }
 
-    /// <summary>The LOCKED districts adjacent to an unlocked one — the contiguous frontier the
+    /// <summary>The LOCKED districts adjacent to an unlocked one, the contiguous frontier the
     /// guild can annex next. Districts tessellate on a hex lattice in (dq,dr) space, so a
     /// district's neighbours are the six axial steps.</summary>
     private System.Collections.Generic.IEnumerable<Vector2I> FrontierDistricts()
@@ -528,7 +528,7 @@ public partial class WorldAtlas3D : Node3D
     {
         if (_world == null) return;
         bool wasCity = _cityMode;
-        if (_cityMode) LeaveCityMode(flyOut: false);   // no swoop — BuildHomeGrounds would fly out; we snap back
+        if (_cityMode) LeaveCityMode(flyOut: false);   // no swoop; BuildHomeGrounds would fly out, and we snap back
         ComputeCityFootprint();
         Rebuild();
         BuildHomeGrounds();                             // _cityMode already false, so it won't re-fly
@@ -540,7 +540,7 @@ public partial class WorldAtlas3D : Node3D
     private const float GroundsLift = 0.02f;
 
     /// <summary>Contour-follow height provider for a city child tile: the WORLD top Y its tile
-    /// should sit at — its DISTRICT's strategic tile terrain height, plus <see cref="GroundsLift"/>.
+    /// should sit at: its DISTRICT's strategic tile terrain height, plus <see cref="GroundsLift"/>.
     /// A child's district is the nearest sublattice point (district centre child = (3dq,3dr), so
     /// round each axial component ÷3); shared corner cells round to one owner, whose height differs
     /// by at most a terrace step. <paramref name="center"/> is the city's centre strategic tile
@@ -560,8 +560,8 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>City-view borders, reworked 2026-08-19 per playtest: the old version outlined
     /// EVERY city tile's six edges in full violet, which read as a harsh grid of purple rings.
-    /// Now the city's outer PERIMETER (edges facing the world) gets the violet outline — one
-    /// outline around the whole city — while interior edges shared by two city tiles become
+    /// Now the city's outer PERIMETER (edges facing the world) gets the violet outline (one
+    /// outline around the whole city), while interior edges shared by two city tiles become
     /// thin, low, darkened seams that still let each district be counted without shouting.
     /// Hidden on the world map (toggled by Enter/LeaveCityMode); heights sit on the plateau.</summary>
     private void BuildCityBorders()
@@ -570,7 +570,7 @@ public partial class WorldAtlas3D : Node3D
         if (_cityBordersInner != null) { _cityBordersInner.QueueFree(); _cityBordersInner = null; }
         var outer = new List<Transform3D>();
         var inner = new List<Transform3D>();
-        var seenInterior = new HashSet<Vector2I>();   // quantized edge midpoints — draw shared edges once
+        var seenInterior = new HashSet<Vector2I>();   // quantized edge midpoints, so shared edges draw once
         float apo = HexR * Mathf.Sqrt(3f) * 0.5f;   // flat-top apothem: edge midpoints at 60k+30°
 
         // City-tile centres in the ground plane, for resolving which side of an edge is city.
@@ -609,7 +609,7 @@ public partial class WorldAtlas3D : Node3D
                 else
                 {
                     // SKIRT band (2026-08-19): the perimeter border DROPS from the plateau
-                    // lip to just below the neighbouring tile's top — it frames the city
+                    // lip to just below the neighbouring tile's top. It frames the city
                     // like a model base and covers the child tiles' slight overhang at the
                     // exterior edge. Per-edge height is baked into the instance basis (the
                     // layer's box is unit-height), since each neighbour sits at its own
@@ -641,7 +641,7 @@ public partial class WorldAtlas3D : Node3D
 
     // ── Phase 3: visited NPC cities ──────────────────────────────────────────
 
-    /// <summary>Descend into an NPC city: render its footprint as a /3 districted region (empty —
+    /// <summary>Descend into an NPC city: render its footprint as a /3 districted region (empty,
     /// no buildings) on a transient grounds grid, frame the camera on it, and enter city view.
     /// The home campus keeps its own persistent path, so a home settlement here just routes to
     /// <see cref="EnterCityMode"/>. Leaving (LeaveCityMode) tears the transient grounds down and
@@ -670,7 +670,7 @@ public partial class WorldAtlas3D : Node3D
         RebuildCityContentMarkers();
     }
 
-    /// <summary>The axial deltas (from the city centre) of a settlement's tiles — the district set
+    /// <summary>The axial deltas (from the city centre) of a settlement's tiles, the district set
     /// <see cref="GenerateCityLayout"/> renders and <see cref="CityExploreService"/> assigns content
     /// to. Kept in sync with GenerateCityLayout's per-tile math.</summary>
     private List<Vector2I> DistrictDeltas(WorldSettlement city)
@@ -719,7 +719,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>A transient district layout for an NPC city: each settlement tile becomes an
     /// unlocked district (axial delta from the centre), so CampusGridManager renders its /3 flowers
-    /// exactly as the campus does — with no buildings. Reuses the Locale renderer rather than
+    /// exactly as the campus does, just with no buildings. Reuses the Locale renderer rather than
     /// forking one (per the Phase 3 spec).</summary>
     private CampusMapSaveData GenerateCityLayout(WorldSettlement city)
     {
@@ -796,7 +796,7 @@ public partial class WorldAtlas3D : Node3D
     public void RefreshCityContentMarkers() => RebuildCityContentMarkers();
 
     /// <summary>A billboarded glyph marking a district's content type, floating just above the
-    /// district centre. NoDepthTest so it reads over the tiles. (Fixed pixel size for now — a first
+    /// district centre. NoDepthTest so it reads over the tiles. (Fixed pixel size for now, a first
     /// pass; may want the zoom-tracking scale the place-name labels use.)</summary>
     private Node3D MakeContentMarker(DistrictContentType type, Vector3 worldTop)
     {
@@ -827,7 +827,7 @@ public partial class WorldAtlas3D : Node3D
     // ── City view (camera-only) ─────────────────────────────────────────────
 
     /// <summary>Enter CITY VIEW: fly the camera down to campus scale over the city. The
-    /// geometry never changes — the campus is already there at true scale — so this is a
+    /// geometry never changes (the campus is already there at true scale), so this is a
     /// camera move plus state: borders on, seat marker off, closer zoom floor, grounds
     /// clicks take priority. The surrounding world tiles stay visible around the edges.</summary>
     public void EnterCityMode() => EnterCityMode(fly: true);
@@ -839,7 +839,7 @@ public partial class WorldAtlas3D : Node3D
 
         if (_cityBorders != null) _cityBorders.Visible = true;
         if (_cityBordersInner != null) _cityBordersInner.Visible = true;
-        // A9/A7: river/road/border strokes read as litter at city zoom — hide them.
+        // A9/A7: river/road/border strokes read as litter at city zoom, so hide them.
         if (_riverLayer != null) _riverLayer.Visible = false;
         if (_roadLayer != null) _roadLayer.Visible = false;
         if (_borderLayer != null) _borderLayer.Visible = false;
@@ -848,7 +848,7 @@ public partial class WorldAtlas3D : Node3D
         _camera.Near = 0.02f;   // let the camera get in close without slicing tiles
         _camera.Far = 150f;     // tighter near/far span = better depth precision up close
         // Concentrate the shadow map on the city: 350 units of range at campus zoom is
-        // maybe a texel per child hex — pure grain. ~60 covers the city + visible ring.
+        // maybe a texel per child hex, pure grain. ~60 covers the city + visible ring.
         if (_sun != null) _sun.DirectionalShadowMaxDistance = 60f;
         if (fly)
         {
@@ -857,7 +857,7 @@ public partial class WorldAtlas3D : Node3D
         else
         {
             // Wheel-triggered: no tween (FlyTo would lerp _camDist too and stomp further
-            // wheel input for its duration) — snap the look-target up onto the plateau so
+            // wheel input for its duration). Snap the look-target up onto the plateau so
             // the city SURFACE is framed, not the ground far beneath it.
             _camTarget.Y = _cityPlateau;
             PlaceCamera();
@@ -887,7 +887,7 @@ public partial class WorldAtlas3D : Node3D
         if (_camera != null) { _camera.Near = 0.05f; _camera.Far = 600f; }
         if (_sun != null) _sun.DirectionalShadowMaxDistance = 350f;
 
-        // Phase 3: a visited NPC city's grounds are transient — tear them down and restore the
+        // Phase 3: a visited NPC city's grounds are transient. Tear them down and restore the
         // HOME footprint + borders, so the map and a later home entry are back on the campus.
         if (_activeCity != null)
         {
@@ -909,7 +909,7 @@ public partial class WorldAtlas3D : Node3D
         }
         else
         {
-            // Wheel-triggered: snap the look-target back to the ground plane (no tween —
+            // Wheel-triggered: snap the look-target back to the ground plane (no tween;
             // see the matching note in EnterCityMode).
             _camTarget.Y = 0f;
             PlaceCamera();
@@ -919,7 +919,7 @@ public partial class WorldAtlas3D : Node3D
     }
 
     /// <summary>Continuous zoom across the city threshold: wheeling IN over the city slips
-    /// into city view without a camera hijack (state flip only — the zoom keeps going,
+    /// into city view without a camera hijack (state flip only; the zoom keeps going,
     /// now down to the campus floor); wheeling OUT past the exit distance slips back to the
     /// world map where you are. Selecting the city / Return-to-Campus still fly.</summary>
     private void MaybeAutoCityTransition()
@@ -998,14 +998,14 @@ public partial class WorldAtlas3D : Node3D
         if (!string.IsNullOrEmpty(buildingId)) { HomeBuildingPicked?.Invoke(buildingId, coord); return true; }
         string landmarkId = _homeGrounds.GetLandmarkIdAt(coord);
         if (!string.IsNullOrEmpty(landmarkId)) { HomeLandmarkPicked?.Invoke(landmarkId, coord); return true; }
-        // Construction (2026-08-13): a bare grounds hex is a building site —
-        // the host opens the construct card for this coord ("build in place",
+        // Construction (2026-08-13): a bare grounds hex is a building site.
+        // The host opens the construct card for this coord ("build in place",
         // the Phase-2 promise finally kept for NEW buildings).
         HomeGroundPicked?.Invoke(coord);
-        return true;   // consumed either way — never falls through to a world pick
+        return true;   // consumed either way; never falls through to a world pick
     }
 
-    /// <summary>Inject the active warfront focus tiles (cycle state — not in WorldData)
+    /// <summary>Inject the active warfront focus tiles (cycle state, not in WorldData)
     /// so the map draws red conflict beacons. The host routes picks on these tiles back
     /// to its intervention dialog. Rebuilds only the marker layer.</summary>
     public void SetWarfronts(List<Vector2I> tiles)
@@ -1017,7 +1017,7 @@ public partial class WorldAtlas3D : Node3D
 
     public StrategicLens Lens => _lens;
 
-    /// <summary>Switch lens. Color-only — heights don't change, so this is a recolor
+    /// <summary>Switch lens. Color-only: heights don't change, so this is a recolor
     /// pass over the existing instances, not a rebuild.</summary>
     public void SetLens(StrategicLens lens)
     {
@@ -1028,7 +1028,7 @@ public partial class WorldAtlas3D : Node3D
     public bool RevealAll => _revealAll;
 
     /// <summary>Toggle the debug full-map reveal (display-only, like StrategicView's
-    /// _debugReveal — saved discovery state is never touched). Heights depend on
+    /// _debugReveal; saved discovery state is never touched). Heights depend on
     /// discovery (Unseen renders as a flat slab), so this is a full rebuild.</summary>
     public void SetRevealAll(bool reveal)
     {
@@ -1037,7 +1037,7 @@ public partial class WorldAtlas3D : Node3D
             Rebuild();
     }
 
-    /// <summary>Human-readable report for a picked tile — the panel's info line.</summary>
+    /// <summary>Human-readable report for a picked tile, the panel's info line.</summary>
     public string DescribeTile(int col, int row)
     {
         if (_world == null || !_world.InBounds(col, row))
@@ -1045,7 +1045,7 @@ public partial class WorldAtlas3D : Node3D
         var t = _world.GetTile(col, row);
         var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
         if (discovery == TileDiscovery.Unseen)
-            return $"({col},{row})  Unpainted — no expedition has come this far.";
+            return $"({col},{row})  Unpainted. No expedition has come this far.";
 
         var parts = new List<string> { $"({col},{row})  {t.Terrain}" };
         if (t.IsOcean) parts.Add($"depth {t.OceanDepth}");
@@ -1080,7 +1080,7 @@ public partial class WorldAtlas3D : Node3D
                 BackgroundColor = UITheme.WorldDeep,
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
                 // A4b (exposure fix after user screenshots): the first daylight rig
-                // recreated the Pass-1 failure — fill ~equal to the sun's top-face
+                // recreated the Pass-1 failure: fill ~equal to the sun's top-face
                 // contribution = milky and flat. The steeper −45° sun catches tile
                 // TOPS at sin45 ≈ 0.71 (the lamp only grazed them at 0.45), so both
                 // knobs must drop to hold the OLD exposure with the NEW hue:
@@ -1095,7 +1095,7 @@ public partial class WorldAtlas3D : Node3D
         // replaces the raking late-afternoon amber. The lamp's ~27° grazing angle
         // and heavy warm cast were the "crafted model" read; a ~45° near-neutral
         // warm sun lets the A1 terrain hues render TRUE while mountain chains
-        // still throw readable shadow (higher would flatten the relief entirely —
+        // still throw readable shadow (higher would flatten the relief entirely;
         // this is mid-morning, not noon). Energy drops with the steeper incidence.
         // Shadows stay ON: cast shadow remains the atlas's biggest depth cue.
         _sun = new DirectionalLight3D
@@ -1112,10 +1112,10 @@ public partial class WorldAtlas3D : Node3D
         _sun.RotationDegrees = new Vector3(-45f, -35f, 0f);
     }
 
-    /// <summary>The atlas sun — kept so city view can tighten its shadow range. One
+    /// <summary>The atlas sun, kept so city view can tighten its shadow range. One
     /// directional map stretched over 350 units is fine at map zoom but starves the shadow
     /// of texels up close, which reads as pixel grain on shadows AND lit faces (the blur is
-    /// randomized sampling — under-resolution becomes noise).</summary>
+    /// randomized sampling, so under-resolution becomes noise).</summary>
     private DirectionalLight3D _sun;
 
     private void BuildCamera()
@@ -1130,7 +1130,7 @@ public partial class WorldAtlas3D : Node3D
         => new Vector3(_world.Width * ColSpacing * 0.5f, 0f, _world.Height * RowSpacing * 0.5f);
 
     /// <summary>The zoom distance that makes the whole world FILL the viewport (minimal
-    /// margin), accounting for the viewport aspect — a wide world on a wide screen is
+    /// margin), accounting for the viewport aspect: a wide world on a wide screen is
     /// width-bound, so the vertical ortho size is driven by width/aspect. Falls back to
     /// 16:9 if the viewport isn't sized yet.</summary>
     private float OverviewDist()
@@ -1153,10 +1153,10 @@ public partial class WorldAtlas3D : Node3D
         PlaceCamera();
     }
 
-    /// <summary>Closest zoom currently allowed — nearer in city view than on the world map.</summary>
+    /// <summary>Closest zoom currently allowed, nearer in city view than on the world map.</summary>
     private float MinDist() => _cityMode ? CamDistMinCity : CamDistMin;
 
-    /// <summary>Pitch eases from steep (far — the map overview) to shallower (close —
+    /// <summary>Pitch eases from steep (far, the map overview) to shallower (close,
     /// the Civ shot) as the camera comes down. Yaw is fixed: a map should not orbit.</summary>
     private void PlaceCamera()
     {
@@ -1196,7 +1196,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>Flip between the orthographic strategic map and the perspective diorama.
     /// Re-places the camera immediately (and re-fires ZoomChanged so the host can retune
-    /// the post pass — the miniature tilt-shift belongs to the cinematic view, not the map).</summary>
+    /// the post pass; the miniature tilt-shift belongs to the cinematic view, not the map).</summary>
     public void SetProjection(bool orthographic)
     {
         _orthographic = orthographic;
@@ -1207,7 +1207,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>Keyboard camera controls (2026-08-19): Q/E orbit via rotate_left /
     /// rotate_right, WASD/arrows pan via the ui_* actions (which the project binds to
-    /// both) — the same bindings every other 3D scene reads through CameraController.
+    /// both), the same bindings every other 3D scene reads through CameraController.
     /// Polled per-frame for held keys; zoom stays on the wheel. Pan runs in the camera's
     /// ground frame, same math as left-drag, and scales with zoom so a held key covers
     /// the screen in about the same time at any distance.</summary>
@@ -1389,7 +1389,7 @@ public partial class WorldAtlas3D : Node3D
         float dist = Mathf.Clamp(targetDist, CamDistMin, CamDistMax);
         Vector3 to = TileOrigin(col, row);
         // Shift the look-target in world +X (which is screen-right, since the camera has
-        // no yaw) so the tile lands screenLeftShiftPx to the LEFT of center — used to
+        // no yaw) so the tile lands screenLeftShiftPx to the LEFT of center. Used to
         // center the beacon in the map area NOT covered by the deploy drawer. Converts
         // pixels→world via the ortho size at the target distance.
         if (screenLeftShiftPx != 0f)
@@ -1438,7 +1438,7 @@ public partial class WorldAtlas3D : Node3D
     }
 
     /// <summary>Raycast the click onto the y=0 ground plane, then resolve the nearest
-    /// tile center among the 3×3 offset neighborhood — cheap and exact enough for a
+    /// tile center among the 3×3 offset neighborhood, cheap and exact enough for a
     /// hex field (the true cell is always one of the candidates).</summary>
     private void PickTile(Vector2 screenPos)
     {
@@ -1479,7 +1479,7 @@ public partial class WorldAtlas3D : Node3D
         var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
 
         // Phase 3: clicking a discovered enemy SEAT capital descends into it. Checked BEFORE staging
-        // so the click isn't stolen by a staging beacon sitting on the capital — you can't deploy
+        // so the click isn't stolen by a staging beacon sitting on the capital. You can't deploy
         // from an enemy capital anyway, so entering it is the only sensible action there.
         if (!_cityMode && discovery != TileDiscovery.Unseen)
         {
@@ -1495,7 +1495,7 @@ public partial class WorldAtlas3D : Node3D
             ShowWindowPreview(col, row);
             return;
         }
-        // Selecting the HOME city on the world map zooms into it (camera-only — the campus is
+        // Selecting the HOME city on the world map zooms into it (camera-only; the campus is
         // already there at true scale). Staging wins above for the home seat so deploy stays
         // reachable from its beacon; you enter the home campus from a non-beacon city tile.
         if (!_cityMode && _cityTiles.Contains(new Vector2I(col, row)))
@@ -1546,7 +1546,7 @@ public partial class WorldAtlas3D : Node3D
         _tileLayer = new byte[total];
 
         // Pass over the world once to split membership and count each layer.
-        // Unseen tiles — land AND water — go to the canvas layer (art pass A6), so
+        // Unseen tiles, land AND water alike, go to the canvas layer (art pass A6), so
         // the unpainted world is one uniform matte surface with one grout pattern
         // and nothing about the ground can leak through mesh differences.
         int waterCount = 0, canvasCount = 0;
@@ -1563,7 +1563,7 @@ public partial class WorldAtlas3D : Node3D
         var landMesh = new CylinderMesh
         {
             // Slight top taper gives every LAND prism a visible rim line under flat
-            // shading — the "grout" that makes 9k identical prisms read as tiles.
+            // shading, the "grout" that makes 9k identical prisms read as tiles.
             TopRadius = HexR * 0.96f,
             BottomRadius = HexR * 1.0f,
             Height = 1f,               // unit height; per-instance Y scale carries elevation
@@ -1587,15 +1587,15 @@ public partial class WorldAtlas3D : Node3D
             Rings = 0,
             CapBottom = false,
         };
-        // A3-lite: animated painterly sea — world-space swell, drifting sky
-        // bands, banded sun glints — on the existing prisms. The full welded
+        // A3-lite: animated painterly sea (world-space swell, drifting sky
+        // bands, banded sun glints) on the existing prisms. The full welded
         // water plane (combat's WaterPlane port) remains a later upgrade.
         waterMesh.Material = PainterlyPrism.TileMaterial(PainterlyPrism.Water, 0.55f);
 
         var canvasMesh = new CylinderMesh
         {
             // Same grout taper as land: the rim lines over the parchment read as the
-            // map's PENCIL UNDER-DRAWING — a faint hex grid waiting to be painted.
+            // map's PENCIL UNDER-DRAWING, a faint hex grid waiting to be painted.
             TopRadius = HexR * 0.96f,
             BottomRadius = HexR * 1.0f,
             Height = 1f,
@@ -1603,7 +1603,7 @@ public partial class WorldAtlas3D : Node3D
             Rings = 0,
             CapBottom = false,
         };
-        // Paper-fibre grain, fully matte — no sheen may slide across the
+        // Paper-fibre grain, fully matte: no sheen may slide across the
         // unpainted world.
         canvasMesh.Material = PainterlyPrism.TileMaterial(PainterlyPrism.Canvas, 1.0f);
 
@@ -1669,7 +1669,7 @@ public partial class WorldAtlas3D : Node3D
         {
             Name = "CanvasLayer",
             Multimesh = canvasMm,
-            // Canvas is the LOWEST geometry — nothing below it receives shadow, and
+            // Canvas is the LOWEST geometry: nothing below it receives shadow, and
             // thousands of coplanar bright slabs self-shadowing under the raking sun
             // produce acne (the diagonal slash artifacts, invisible on the old dark
             // void). It still RECEIVES shadows, so the painted world rests on the
@@ -1721,8 +1721,8 @@ public partial class WorldAtlas3D : Node3D
             return LakeHeight;
 
         // Pass 1: TERRACED and exaggerated. Raw elevation at ~1.3× was invisible at
-        // overview zoom; quantizing into steps first turns noise into landforms —
-        // plateaus, escarpments, stepped foothills — which is most of the Civ read.
+        // overview zoom; quantizing into steps first turns noise into landforms
+        // (plateaus, escarpments, stepped foothills), which is most of the Civ read.
         float terraced = Mathf.Round(Mathf.Clamp(t.Elevation, 0f, 1f) * TerraceSteps) / TerraceSteps;
         float h = 0.22f + terraced * 2.6f;
         switch (t.Terrain)
@@ -1745,20 +1745,20 @@ public partial class WorldAtlas3D : Node3D
     // ── Build: river/road edges ─────────────────────────────────────────────
 
     /// <summary>Rivers and roads as DRAWN STROKES (art pass A9): for each tile a
-    /// thin strip runs from its CENTRE out to each active edge midpoint — the
+    /// thin strip runs from its CENTRE out to each active edge midpoint. The
     /// neighbour draws its own half, so paths run continuously THROUGH tiles
     /// (the model the expedition window always used, matching the 2D map)
     /// instead of as boundary dashes. Each half hugs its OWN tile's top, so
     /// lines follow the terrain and step at cliffs like ink over relief.
     /// Water tiles are skipped (no strokes across lakes); Unseen is skipped
-    /// (nothing is drawn on unpainted canvas); Charted keeps its strokes —
+    /// (nothing is drawn on unpainted canvas); Charted keeps its strokes,
     /// inked chart lines on the underpainting.</summary>
     private void RebuildEdges()
     {
         _riverLayer?.QueueFree();
         _roadLayer?.QueueFree();
 
-        // A9b: rivers become WINDING RIBBONS (RiverMesh — Bézier through-curves +
+        // A9b: rivers become WINDING RIBBONS (RiverMesh: Bézier through-curves +
         // deterministic meander, bank-shaded); roads stay straight strokes.
         var riverTiles = new List<(Vector3 center, List<Vector3> mids)>();
         var roads = new List<Transform3D>();
@@ -1824,16 +1824,16 @@ public partial class WorldAtlas3D : Node3D
         _riverLayer = new MeshInstance3D
         {
             Name = "RiverLayer",
-            // A9c: 0.22 was invisible at map zoom — map rivers are exaggerated, not to scale.
+            // A9c: 0.22 was invisible at map zoom; map rivers are exaggerated, not to scale.
             Mesh = RiverMesh.Build(riverTiles, 0.36f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank),
             MaterialOverride = PainterlyPrism.RiverMaterial(),
         };
         AddChild(_riverLayer);
         _roadLayer = MakeEdgeLayer("RoadLayer", roads,
             new Vector3(1f, 0.025f, 0.14f), Hex3DPalette.RoadStroke);
-        // Phase-2 polish note honoured: strokes read as litter at city zoom — hidden
-        // in city view (Enter/LeaveCityMode toggle them).
-        // A7: kingdom-border ink — a dark drawn line along every edge where two
+        // Phase-2 polish note honoured: strokes read as litter at city zoom, so they
+        // are hidden in city view (Enter/LeaveCityMode toggle them).
+        // A7: kingdom-border ink, a dark drawn line along every edge where two
         // differing realms (or a realm and the wilds) meet. Both sides must be
         // discovered: a border may not leak into the unpainted canvas. Interior
         // edges once via direction bits 0–2 (the mirror is the neighbour's 3–5).
@@ -1935,7 +1935,7 @@ public partial class WorldAtlas3D : Node3D
         _scaledLabels.Clear();        // label nodes live in _markers, just freed above
         _cityHiddenMarkers.Clear();   // its nodes live in _markers, just freed above
 
-        // POIs — discovered only (or reveal), same rule as StrategicView's POI layer.
+        // POIs: discovered only (or reveal), same rule as StrategicView's POI layer.
         // A7: a flattened DAB of paint on the map rather than a floating ball.
         var poiMesh = new SphereMesh { Radius = 0.34f, Height = 0.26f, RadialSegments = 10, Rings = 6 };
         foreach (var poi in _world.Pois)
@@ -1954,9 +1954,9 @@ public partial class WorldAtlas3D : Node3D
             }, poi.X, poi.Y);
         }
 
-        // Settlements — one marker at the center, sized by tier, named label.
+        // Settlements: one marker at the center, sized by tier, named label.
         // The guild's own seat (IsGuildHome) ALWAYS shows and reads distinctly: a
-        // taller, glowing violet block labelled with the guild name — this is where
+        // taller, glowing violet block labelled with the guild name. This is where
         // the campus is (Phase 2, campus-as-world-location).
         foreach (var s in _world.Settlements)
         {
@@ -1966,10 +1966,10 @@ public partial class WorldAtlas3D : Node3D
             Color c = home ? UITheme.Violet : (s.IsSeat ? UITheme.Gold : UITheme.ArcaneBlue);
             // A4: painted game-piece, not polished metal (Metallic 0.9 was the
             // pass-2 crafted-model read). Emission below keeps the map-readability
-            // glow — loudness law unchanged.
+            // glow; loudness law unchanged.
             var mat = new StandardMaterial3D { AlbedoColor = c, Metallic = 0f, Roughness = 0.7f };
             // The city is now marked primarily by its grey FOOTPRINT REGION (see TileColor) + a large
-            // name label, so the centre marker is just a modest metal accent — deliberately NOT a tall
+            // name label, so the centre marker is just a modest metal accent, deliberately NOT a tall
             // pillar, which read as one of the gold staging beacons. Cities glow faintly; towns don't.
             if (home || city)
             {
@@ -1977,7 +1977,7 @@ public partial class WorldAtlas3D : Node3D
                 mat.Emission = c;
                 mat.EmissionEnergyMultiplier = home ? 0.5f : 0.4f;
             }
-            // Pass 2: settlements are METAL — worked brass pieces standing on the carving. Hue still
+            // Pass 2: settlements are METAL, worked brass pieces standing on the carving. Hue still
             // carries meaning (violet guild seat / gold enemy capital / arcane-blue lesser city).
             float side = home ? 1.35f : (city ? 1.2f : 0.65f);
             var block = new MeshInstance3D
@@ -1994,13 +1994,13 @@ public partial class WorldAtlas3D : Node3D
             if (home || s.IsSeat)
             {
                 string label = home
-                    ? $"{(SaveManager.ActiveSave?.Ledger?.GuildName ?? "Your Guild")} — your seat"
+                    ? $"{(SaveManager.ActiveSave?.Ledger?.GuildName ?? "Your Guild")} (your seat)"
                     : SettlementDisplayName(s);
                 var lbl = MakeLabel(label, c, MarkerPos(s.CenterX, s.CenterY, side + 1.4f), 88, 0.028f);
                 AddMarker(lbl);
                 if (home)
                 {
-                    // Tracked so city view can hide the seat block + label — zoomed in, they'd
+                    // Tracked so city view can hide the seat block + label. Zoomed in, they'd
                     // just occlude the campus you're standing in. Back when the camera leaves.
                     _cityHiddenMarkers.Add(block);
                     _cityHiddenMarkers.Add(lbl);
@@ -2009,15 +2009,15 @@ public partial class WorldAtlas3D : Node3D
             }
         }
 
-        // Staging points — gold beacons (the launch options the strategic view deploys
+        // Staging points: gold beacons (the launch options the strategic view deploys
         // from). Deliberately TALL and capped with a glowing orb: a staging point is a
         // single hex, which is only a few pixels at whole-world orthographic zoom, so
         // the beacon has to stand up off the map to stay visible and aimable.
-        // A beacon standing ON the city represents the PORTAL BUILDING (map travel) —
+        // A beacon standing ON the city represents the PORTAL BUILDING (map travel);
         // AddMarker's city-tile tracking hides it in city view like the seat block.
         foreach (var sp in _world.StagingPoints)
         {
-            // A7: a planted gold STANDARD instead of the cone — the guild's launch
+            // A7: a planted gold STANDARD instead of the cone, the guild's launch
             // flag in the world. The glowing orb cap stays smaller but bright: it
             // is the "see me from across the map" element (loudness law).
             var banner = new MeshInstance3D
@@ -2040,7 +2040,7 @@ public partial class WorldAtlas3D : Node3D
             }, sp.X, sp.Y);
         }
 
-        // Shard zones — violet spikes at the gate once discovered.
+        // Shard zones: violet spikes at the gate once discovered.
         foreach (var z in _world.ShardZones)
         {
             if (!z.Discovered && !_revealAll) continue;
@@ -2056,7 +2056,7 @@ public partial class WorldAtlas3D : Node3D
             });
         }
 
-        // The Convergence — Kassian's seat, the cycle's terminal location.
+        // The Convergence: Kassian's seat, the cycle's terminal location.
         if (_world.ConvergenceX >= 0)
         {
             AddMarker(new MeshInstance3D
@@ -2073,13 +2073,13 @@ public partial class WorldAtlas3D : Node3D
                 MarkerPos(_world.ConvergenceX, _world.ConvergenceY, 4.6f)));
         }
 
-        // Warfronts — red conflict beacons at active fronts. CYCLE state (not
+        // Warfronts: red conflict beacons at active fronts. CYCLE state (not
         // WorldData), injected via SetWarfronts, so they rebuild with the markers.
         // Deliberately LOUD: a tall spike, a bright floating orb, and a "War" label,
         // so an active front can't be missed on the whole-world view.
         foreach (var wf in _warfronts)
         {
-            // A7: a WAR BANNER instead of the spike — scaled past the staging
+            // A7: a WAR BANNER instead of the spike, scaled past the staging
             // standards so a front still can't be missed (loudness law: the orb +
             // label stay).
             var banner = new MeshInstance3D
@@ -2128,10 +2128,10 @@ public partial class WorldAtlas3D : Node3D
     }
     private static float Hash01(uint h) => (h & 0xFFFFu) / 65535f;
 
-    /// <summary>Trees on forests, cap-stones on mountain chains, snow spires on ice —
+    /// <summary>Trees on forests, cap-stones on mountain chains, snow spires on ice:
     /// the detail that makes close zoom worth visiting. Instanced (two MultiMeshes for
     /// thousands of props), deterministic per tile, and EXPLORED-ONLY: charted land
-    /// knows its shape, not what stands on it — props appearing is discovery's reward.</summary>
+    /// knows its shape, not what stands on it, and props appearing is discovery's reward.</summary>
     private void RebuildDecorations()
     {
         foreach (var l in _decoLayers)
@@ -2155,7 +2155,7 @@ public partial class WorldAtlas3D : Node3D
 
             if (t.Terrain == TT.Forest)
             {
-                // A5: canopy blob clusters (base-origin meshes — placed AT ground
+                // A5: canopy blob clusters (base-origin meshes, placed AT ground
                 // height), 60/40 broadleaf/conifer by hash, random yaw so the
                 // cluster meshes don't read as clones.
                 int n = 2 + (int)(HashTile(col, row, 1) % 2);
@@ -2219,7 +2219,7 @@ public partial class WorldAtlas3D : Node3D
             mm.SetInstanceColor(i, items[i].c);
         }
         // Style-guide scatter law: every world-space MultiMesh needs an explicit
-        // CustomAabb (auto AABB on world-space instance transforms is unreliable —
+        // CustomAabb (auto AABB on world-space instance transforms is unreliable;
         // whole layers frustum-cull as one unit on a camera turn). Latent here
         // since stage 1; fixed with the A5 refactor. Grown by mesh extent × the
         // max scale band.
@@ -2349,8 +2349,8 @@ public partial class WorldAtlas3D : Node3D
     }
 
     /// <summary>A readable name for a settlement's map label. Settlement generation doesn't assign
-    /// names yet (WorldSettlement.Name is empty), so fall back to the owning kingdom + tier —
-    /// "The Untamed Seat", "… City" — enough to identify a capital until place-name generation lands.</summary>
+    /// names yet (WorldSettlement.Name is empty), so fall back to the owning kingdom + tier
+    /// ("The Untamed Seat", "… City"), enough to identify a capital until place-name generation lands.</summary>
     private string SettlementDisplayName(WorldSettlement s)
     {
         if (!string.IsNullOrEmpty(s.Name)) return s.Name;
@@ -2385,7 +2385,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>As <see cref="AddMarker(Node3D)"/>, but for a marker standing on a KNOWN
     /// tile: if that tile belongs to the city, the marker joins the city-hidden set (not
-    /// drawn while in city view — it would loom over the campus it stands on).</summary>
+    /// drawn while in city view, where it would loom over the campus it stands on).</summary>
     private void AddMarker(Node3D node, int col, int row)
     {
         AddMarker(node);
@@ -2420,7 +2420,7 @@ public partial class WorldAtlas3D : Node3D
 
     /// <summary>Set a label's PixelSize so it occupies a constant fraction of screen HEIGHT at the
     /// current zoom. In the orthographic map, screen fraction = worldHeight / orthoSize, with
-    /// orthoSize = _camDist·OrthoSizeFactor and worldHeight = fontSize·PixelSize — solve for
+    /// orthoSize = _camDist·OrthoSizeFactor and worldHeight = fontSize·PixelSize; solve for
     /// PixelSize. Clamped so it never collapses or explodes.</summary>
     private void ApplyLabelScale(Label3D lbl, float fontSize, float screenFrac)
     {
@@ -2441,14 +2441,14 @@ public partial class WorldAtlas3D : Node3D
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Lens colors — MARKED COPY of StrategicView's private color logic.
+    // Lens colors: MARKED COPY of StrategicView's private color logic.
     // See the header note: extract to a shared TileColors class if adopted.
     // ════════════════════════════════════════════════════════════════════════
 
     private Color TileColor(in WorldTile t, int col, int row)
     {
         var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
-        // THE UNPAINTED WORLD (art pass A6): Unseen ground is raw canvas — paper
+        // THE UNPAINTED WORLD (art pass A6): Unseen ground is raw canvas, paper
         // grain only (coordinate hash, zero world data), plus a noisy watercolor
         // wet-edge where the canvas borders painted ground, so the frontier reads
         // as a torn wash boundary instead of a ruled line. Exploration paints the
@@ -2457,14 +2457,14 @@ public partial class WorldAtlas3D : Node3D
             return Hex3DPalette.CanvasTone(col, row,
                 HasPaintedNeighbor(col, row) ? Hex3DPalette.WetEdgeAmount(col, row) : 0f);
         // Charted is the UNDERPAINTING: a flat pale wash with the terrain hue
-        // faintly present — known shape, not yet painted in.
+        // faintly present: known shape, not yet painted in.
         if (discovery == TileDiscovery.Charted)
             return Jitter(Hex3DPalette.Underpaint(LensBaseColor(t)), col, row, 0.02f);
 
         Color c = LensColor(t);
         // A1: the palette is now authored as FINAL lit-scene painterly swatches in
-        // Hex3DPalette — the old Grade() compensation stack is gone. Per-tile value
-        // jitter (hash of col,row — stable across recolors) breaks the flat
+        // Hex3DPalette; the old Grade() compensation stack is gone. Per-tile value
+        // jitter (hash of col,row, stable across recolors) breaks the flat
         // fill-tool fields, amplitude per terrain so organic biomes read as painted
         // masses; this one trick is most of why the HTML mockup read painterly.
         // Cities read as a solid slate-grey REGION over their whole footprint (any lens), so a
@@ -2475,7 +2475,7 @@ public partial class WorldAtlas3D : Node3D
         return Jitter(c, col, row, Hex3DPalette.JitterAmp(t));
     }
 
-    /// <summary>True when any hex neighbor of an Unseen tile has been discovered —
+    /// <summary>True when any hex neighbor of an Unseen tile has been discovered:
     /// the canvas tile sits on the painted world's frontier and takes the wet-edge
     /// darkening. Carries no new information: adjacency to explored ground is
     /// already visible on the map.</summary>

@@ -2,7 +2,7 @@
 
 A tactical roguelite card game built in Godot 4 / C#. You play as a wizard leading a guild, exploring fog-of-war hex maps, resolving encounters through tactical card combat or negotiation, and building out a persistent campus between runs. Each wizard school has a distinct combat identity, exploration passive, and negotiation style.
 
-**Current development phase: Phase 3 — Horizontal Content**
+**Current development phase: Phase 3, Horizontal Content**
 One school (Elementalist) is fully playable. Core systems (save/load, overworld, campus, negotiation skeleton, companion framework) are in place. Phase 3 widens content to all six schools, multiple regions, and full campus buildings.
 
 ---
@@ -37,7 +37,7 @@ One school (Elementalist) is fully playable. Core systems (save/load, overworld,
 
 ### Requirements
 
-- **Godot 4.6.1** (exact version — do not use 4.5 or any 4.7 build; compat mode rules are version-specific)
+- **Godot 4.6.1** (exact version. Do not use 4.5 or any 4.7 build; compat mode rules are version-specific)
 - **.NET 8 SDK** (not .NET 6 or .NET 9)
 - A C# IDE: Rider or VS Code with the C# Dev Kit extension
 
@@ -65,7 +65,7 @@ Drop the `Schemas/` folder and `.vscode/settings.json` from the repo into VS Cod
 
 ## 2. Project Structure
 
-*(Reorganized 2026-07-05 — folder names contain no spaces; scripts are grouped by system.)*
+*(Reorganized 2026-07-05. Folder names contain no spaces; scripts are grouped by system.)*
 
 ```
 FracturedArcana/
@@ -74,7 +74,7 @@ FracturedArcana/
 ├── Schemas/                        # JSON Schema files (card, map) for content validation
 ├── docs/                           # Design documents (was "Dev Files")
 │
-├── Data/                           # JSON content files — no code lives here
+├── Data/                           # JSON content files, no code lives here
 │   ├── Archmagi/  Buildings/  Cards/  Companions/  Encounters/  Items/
 │   ├── Maps/  Negotiations/  Regions/  StarterDecks/  Tilesets/  World/
 │   ├── Bestiary/bestiary.json
@@ -131,7 +131,7 @@ FracturedArcana/
 
 ## 3. Architecture Overview
 
-Four layers flowing top-to-bottom. Never bypass a layer — effects don't touch the scene tree, UI doesn't parse JSON.
+Four layers flowing top-to-bottom. Never bypass a layer: effects don't touch the scene tree, UI doesn't parse JSON.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -183,7 +183,7 @@ Four layers flowing top-to-bottom. Never bypass a layer — effects don't touch 
 
 ## 4. How to Add Content
 
-For all content types, no code changes are required — you author a JSON file and the loader picks it up automatically on next run.
+For all content types, no code changes are required. You author a JSON file and the loader picks it up automatically on next run.
 
 ---
 
@@ -262,7 +262,7 @@ Create `Data/Regions/{regionid}.json`. The `id` field must match the filename (w
 }
 ```
 
-`biomes` is optional — omit it for default layout. `schoolAffinity` is currently flavor; it will gate school bonuses in Phase 3.
+`biomes` is optional. Omit it for default layout. `schoolAffinity` is currently flavor; it will gate school bonuses in Phase 3.
 
 ---
 
@@ -334,7 +334,7 @@ Create `Data/Buildings/{buildingid}.json`.
 
 `category` options: `Core`, `Magic`, `Economy`, `Reputation`, `School`. School buildings set `schoolAffinity` to the matching school name and are automatically unlocked when that school's wizard or companion joins.
 
-`requirements` entries use the format `"buildingid:tier"` — e.g. `"training_grounds:1"` means tier 1 of Training Grounds must be built first.
+`requirements` entries use the format `"buildingid:tier"`, for example `"training_grounds:1"` means tier 1 of Training Grounds must be built first.
 
 ---
 
@@ -376,9 +376,9 @@ All card JSON files must conform to `Schemas/card.schema.json`. VS Code validate
 | `name` | string | ✓ | Display name in UI |
 | `school` | string | ✓ | Must match `CardSchool` enum exactly (see values below) |
 | `rarity` | string | ✓ | `Common`, `Uncommon`, `Rare`, `Legendary` |
-| `status` | string | ✓ | `ready`, `wip`, or `stub` — controls whether the card loads (see Section 5.6) |
-| `top` | CardHalf | — | Top half of the card. At least one of top/bottom should be present. |
-| `bottom` | CardHalf | — | Bottom half of the card. |
+| `status` | string | ✓ | `ready`, `wip`, or `stub`. Controls whether the card loads (see Section 5.6) |
+| `top` | CardHalf | - | Top half of the card. At least one of top/bottom should be present. |
+| `bottom` | CardHalf | - | Bottom half of the card. |
 
 **Valid `school` values** (must match `CardSchool` enum exactly, case-sensitive):
 `Adept`, `Elementalist`, `Druid`, `Necromancer`, `Tinker`, `Enchanter`, `Arcanist`, `Chronomancer`
@@ -394,12 +394,12 @@ Both `top` and `bottom` use the same structure. The optional `channel` field ins
 | `name` | string | ✓ | Display name for this half |
 | `mana` | int | ✓ | Mana cost. Range: 0–10 |
 | `speed` | string | ✓ | `Sorcery`, `Instant`, or `Reaction` |
-| `rules_text` | string | ✓ | Text displayed on the card face. Uses snake_case — not camelCase. |
+| `rules_text` | string | ✓ | Text displayed on the card face. Uses snake_case, not camelCase. |
 | `tags` | string[] | ✓ | Element/school tags. Open-ended string array. Use `[]` for halves with no tag identity. Common values: `"fire"`, `"ice"`, `"storm"`, `"stone"`. New tags can be added freely for new schools. |
 | `targeting` | Targeting | ✓ | See Section 5.3 |
 | `effect` | Effect | ✓ | See Section 5.4. Must have a non-empty `type`. |
-| `requires` | string[] | — | Pre-cast validation. Card is unplayable unless all checks pass. Valid values: `"fire_tile"`, `"ice_tile"`, `"storm_tile"`, `"stone_tile"`, `"empty_tile"`, `"ally_adjacent"`, `"enemy_adjacent"` |
-| `channel` | CardHalf | — | Optional. The channeled variant of this half. Same structure. Convention: `"speed": "Reaction"` on channel variants. |
+| `requires` | string[] | - | Pre-cast validation. Card is unplayable unless all checks pass. Valid values: `"fire_tile"`, `"ice_tile"`, `"storm_tile"`, `"stone_tile"`, `"empty_tile"`, `"ally_adjacent"`, `"enemy_adjacent"` |
+| `channel` | CardHalf | - | Optional. The channeled variant of this half. Same structure. Convention: `"speed": "Reaction"` on channel variants. |
 
 ---
 
@@ -407,14 +407,14 @@ Both `top` and `bottom` use the same structure. The optional `channel` field ins
 
 | Type | Parameters | Description |
 |------|-----------|-------------|
-| `self` | — | Caster only |
+| `self` | - | Caster only |
 | `unit` | `range`, `enemies_only`, `los` | Single unit within range. `los: true` requires line of sight. |
 | `tile` | `range` | Any tile within range, regardless of occupant |
 | `aoe` | `radius`, `enemies_only`, `include_tiles` | All valid targets within radius of caster |
 | `line` | `length`, `enemies_only`, `include_tiles` | All tiles/units in a line from caster |
 | `cone` | `range`, `enemies_only` | Cone pattern in a chosen direction |
 | `ring` | `radius`, `include_tiles` | Tiles/units at exactly `radius` distance |
-| `adjacent` | — | All tiles immediately adjacent to caster |
+| `adjacent` | - | All tiles immediately adjacent to caster |
 | `nearest_to_target` | `range` | Closest enemy to the previous target. Used for chain effects inside `retarget`. |
 | `adjacent_to_target` | `include_tiles` | Tiles/units adjacent to the previous target |
 | `element_tile` | `element`, `range` | An imbued tile of the specified element within range |
@@ -445,7 +445,7 @@ Both `top` and `bottom` use the same structure. The optional `channel` field ins
 | `conditional` | `if: Predicate`, `then: Effect`, `else: Effect` | Branch on a predicate. `else` is optional. |
 | `retarget` | `targeting: Targeting`, `do: Effect` | Switch the active target set mid-sequence, then execute child effect on new targets. Core pattern for chain effects. |
 | `for_each_target` | `do: Effect` | Execute child effect once per unit in the current target set. |
-| `empty` | — | No-op. |
+| `empty` | - | No-op. |
 
 #### Core Leaf Effects
 
@@ -468,7 +468,7 @@ Both `top` and `bottom` use the same structure. The optional `channel` field ins
 | `imbue_path` | `element`, `move`, `armor_per_tile` | Move caster, imbuing each tile traversed. Gain armor per tile. |
 | `remove_armor` | `amount` | Strip armor from target |
 | `consume_element_tile` | `element`, `radius`, `damage` | Destroy imbued tiles of element within radius, deal damage |
-| `create_rubble` | — | Convert target tile to rubble (difficult terrain) |
+| `create_rubble` | - | Convert target tile to rubble (difficult terrain) |
 | `raise_terrain` | `height` | Raise target tile's elevation |
 | `summon` | `unit`, `count` | Summon units via `GameState.OnSummonRequested` delegate. `unit` is a string key. |
 
@@ -496,8 +496,8 @@ Used inside `conditional` effects.
 
 | Type | Parameters | Description |
 |------|-----------|-------------|
-| `always_true` | — | Always branches to `then` |
-| `was_lethal` | — | True if the previous effect killed a unit |
+| `always_true` | - | Always branches to `then` |
+| `was_lethal` | - | True if the previous effect killed a unit |
 | `target_on_tile` | `tile` | True if the target is standing on a tile of the given element |
 | `caster_on_terrain` | `terrain` | True if the caster is on a tile of the given terrain type |
 | `target_adjacent_to_tile` | `tile` | True if the target is adjacent to a tile of the given element |
@@ -537,7 +537,7 @@ Get-ChildItem "Data\Cards\*.json" | ForEach-Object {
 
 ### Elemental Attunement (Elementalist)
 
-The Elementalist tracks four elemental counters: Fire, Ice, Storm, Earth. Opposition pairs: Fire/Ice and Storm/Earth — casting one reduces the opposing counter by 1. All counters decay by 1 at start of each turn (minimum 0). Counters are capped at 4.
+The Elementalist tracks four elemental counters: Fire, Ice, Storm, Earth. Opposition pairs: Fire/Ice and Storm/Earth. Casting one reduces the opposing counter by 1. All counters decay by 1 at start of each turn (minimum 0). Counters are capped at 4.
 
 | Charges | Tier | Bonus |
 |---------|------|-------|
@@ -550,7 +550,7 @@ Attunement is read from the card half's `tags` field at cast time. A half tagged
 
 ### Save System
 
-Three save slots. Saves automatically after every run and every campus change. Add a migration case to `SaveManager.cs` when changing the shape of `GuildSaveData` — the version field is there for this purpose.
+Three save slots. Saves automatically after every run and every campus change. Add a migration case to `SaveManager.cs` when changing the shape of `GuildSaveData`. The version field is there for this purpose.
 
 ### Per-Unit Deck Management
 
@@ -577,8 +577,8 @@ The loaders use `JsonNamingPolicy.CamelCase` for most data classes. Card JSON ha
 | ❌ Wrong | ✓ Correct | Where |
 |---------|-----------|-------|
 | `"targetting"` | `"targeting"` | Card JSON |
-| `"amount"` | `"tiles"` | Push/move effects — the field is `tiles`, not `amount` |
-| `"rules_text"` as camelCase | `"rules_text"` | Keep as snake_case — it's matched explicitly |
+| `"amount"` | `"tiles"` | Push/move effects use the field `tiles`, not `amount` |
+| `"rules_text"` as camelCase | `"rules_text"` | Keep as snake_case; it's matched explicitly |
 | `"Stone"` | `"stone"` | Element tags are lowercase strings |
 | `"Elementalist"` | `"elementalist"` | Effect type keys in `RegisterBuiltins` are lowercased |
 
@@ -632,7 +632,7 @@ These rules exist for Godot 4.6.2 Mac + Windows cross-platform compatibility. Vi
 ```
 [feat]      New gameplay feature or system
 [fix]       Bug fix
-[data]      JSON content only — cards, regions, encounters, buildings
+[data]      JSON content only: cards, regions, encounters, buildings
 [refactor]  Code restructure, no behavior change
 [ui]        UI-only change
 [docs]      README, comments, documentation
@@ -652,31 +652,31 @@ Examples:
 
 Phase 3 parallel work splits cleanly by layer:
 
-- **Content work** (`Data/Cards/`, `Data/Regions/`, `Data/Encounters/`) — near-zero merge conflict risk; each card and region is an independent file.
-- **Systems/code work** — low conflict risk if you're in different script files.
+- **Content work** (`Data/Cards/`, `Data/Regions/`, `Data/Encounters/`) carries near-zero merge conflict risk; each card and region is an independent file.
+- **Systems/code work** carries low conflict risk if you're in different script files.
 - **High-traffic files** (coordinate before touching both at once): `GameRunner.cs`, `JsonCardLoader.cs`, `GameState.cs`, `CardRuntime.cs`.
 
 ---
 
 ## 10. Code Style & Comment Conventions
 
-Adopted at the start of Phase 3 — Horizontal Content, as the codebase opens up to additional contributors. The convention applies to all project-owned C# under `Scripts/` and to JSON Schemas under `Schemas/`. Existing files are being migrated; any file that lacks the file header (§10.1) is either third-party / generated or has not yet been migrated.
+Adopted at the start of Phase 3, Horizontal Content, as the codebase opens up to additional contributors. The convention applies to all project-owned C# under `Scripts/` and to JSON Schemas under `Schemas/`. Existing files are being migrated; any file that lacks the file header (§10.1) is either third-party / generated or has not yet been migrated.
 
 ### Guiding principle
 
-Comments earn their space by carrying information the code itself cannot. A reader fluent in C# can already see what a method does from its identifiers and call shape — what they can't see is *why* it exists, *where it sits* in the larger system, and *which other files it talks to*. That is the information this convention captures.
+Comments earn their space by carrying information the code itself cannot. A reader fluent in C# can already see what a method does from its identifiers and call shape. What they can't see is *why* it exists, *where it sits* in the larger system, and *which other files it talks to*. That is the information this convention captures.
 
-The convention does NOT require commenting every member, every body, or every line. Auto-generated narration on obvious code adds visual noise, balloons the diff for every refactor, drifts out of sync with the code, and trains readers to ignore comments because most of them are useless. We comment the public API surface, the file-level orientation, and the genuinely non-obvious internals — nothing else.
+The convention does NOT require commenting every member, every body, or every line. Auto-generated narration on obvious code adds visual noise, balloons the diff for every refactor, drifts out of sync with the code, and trains readers to ignore comments because most of them are useless. We comment the public API surface, the file-level orientation, and the genuinely non-obvious internals. Nothing else.
 
 ### Excluded paths
 
 The convention does NOT apply to:
 
-- `addons/` — third-party Godot plugins. Leave untouched.
-- `.godot/` — engine cache. Never edit.
-- `*.uid` files — Godot-generated. Never edit.
+- `addons/`: third-party Godot plugins. Leave untouched.
+- `.godot/`: engine cache. Never edit.
+- `*.uid` files: Godot-generated. Never edit.
 - Anything under `.godot/mono/temp/`.
-- `.tscn` scene files — editor-authored; rely on the editor's node naming.
+- `.tscn` scene files: editor-authored; rely on the editor's node naming.
 
 If you find yourself wanting to comment generated or third-party code, wrap it in your own type and comment that wrapper instead.
 
@@ -691,19 +691,19 @@ Every `.cs` file in `Scripts/` begins with this banner, placed below the `using`
 // Purpose:        One sentence on what this file owns.
 // Layer:          UI | Data | Runtime | System | Loader | Targeting | Effects | Predicates | Tiles | Style
 // Collaborators:  <FileA.cs>, <FileB.cs>          (files this one talks to directly)
-// See:            README §<N>.<M>                 (optional — link to relevant doc section)
+// See:            README §<N>.<M>                 (optional, links to a doc section)
 // ============================================================
 ```
 
 Rules:
 
 - The `=` separators are 60 columns wide so the banner is greppable: `grep -rn "^// ===" Scripts/` lists every file's header.
-- `Purpose` is one sentence. If you can't compress it, the file is doing too much — split it.
+- `Purpose` is one sentence. If you can't compress it, the file is doing too much. Split it.
 - `Layer` is one of the values listed above. If your file genuinely doesn't fit, propose a new layer in PR review rather than inventing one.
 - `Collaborators` lists *direct* collaborators only. Indirect dependencies (e.g., everything under `Cards/Effects/` because you're a card-related file) do not belong here.
 - `See` is optional but encouraged whenever the README has a section that frames this file's purpose.
 
-### 10.2 XML Doc Comments — Public API Only
+### 10.2 XML Doc Comments: Public API Only
 
 C# XML doc comments (`/// <summary>`) appear on:
 
@@ -715,7 +715,7 @@ They do NOT appear on:
 
 - `private`, `internal`, or `protected` members.
 - Trivial property getters/setters that wrap a backing field with no extra meaning.
-- Godot lifecycle overrides (`_Ready()`, `_Process()`, `_PhysicsProcess()`, etc.) — the framework already defines what they do.
+- Godot lifecycle overrides (`_Ready()`, `_Process()`, `_PhysicsProcess()`, etc.). The framework already defines what they do.
 - Unity-style implementation details that the consumer should never need to know about.
 
 Format:
@@ -727,14 +727,14 @@ Format:
 /// <remarks>Multi-paragraph context. Use sparingly.</remarks>
 ```
 
-Bad — restates the code, adds no information:
+Bad, because it restates the code and adds no information:
 
 ```csharp
 /// <summary>Gets or sets the card name.</summary>
 public string CardName { get; set; }
 ```
 
-Good — carries information that isn't in the signature:
+Good, because it carries information that isn't in the signature:
 
 ```csharp
 /// <summary>
@@ -756,9 +756,9 @@ Tag prefixes are case-insensitive but greppable. The `(name)` on `TODO` is the p
 
 ```csharp
 // TODO(magos): replace with proper status duration system once it lands
-// HACK: CallDeferred required — see README §8 (Godot 4.6 compat rules)
+// HACK: CallDeferred required. See README §8 (Godot 4.6 compat rules)
 // FIXME: this loses precision for elements with > 4 attunement counters
-// NOTE: order matters — Conditions must run before Costs (see Ability.CanPlay)
+// NOTE: order matters. Conditions must run before Costs (see Ability.CanPlay)
 ```
 
 Do not narrate obvious flow. `// loop through cards` above a `foreach (var c in cards)` adds no information.
@@ -773,16 +773,16 @@ For files over ~150 lines (typically large UI classes like `CombatUI.cs`, manage
 
 Rules:
 
-- Use `──` (U+2500 box-drawing horizontal) — not `--` — so the separator is visually distinct from inline `//` comments.
+- Use `──` (U+2500 box-drawing horizontal), not `--`, so the separator is visually distinct from inline `//` comments.
 - Pad each separator out to roughly 72 columns. Consistent length makes the file scan-friendly when you scroll past.
 - Use the same separator for both field groups and method groups; don't introduce a different style for one or the other.
 - Do not use C#'s `#region` / `#endregion`. They collapse in IDEs and hide structure from readers using non-folding editors or `git diff`.
 
 ### 10.5 JSON Schemas
 
-JSON itself doesn't support comments. For schemas, use the schema's `description` field — VS Code surfaces it as a tooltip in editors that have the schema bound. `Schemas/card.schema.json` already uses this pattern; new schemas should follow it.
+JSON itself doesn't support comments. For schemas, use the schema's `description` field. VS Code surfaces it as a tooltip in editors that have the schema bound. `Schemas/card.schema.json` already uses this pattern; new schemas should follow it.
 
-Every property in a schema should have a `description` that explains *why* the property exists or *how* it interacts with other properties — not just what type it is. The type already tells the reader the type.
+Every property in a schema should have a `description` that explains *why* the property exists or *how* it interacts with other properties, not just what type it is. The type already tells the reader the type.
 
 ### 10.6 Quick Reference
 

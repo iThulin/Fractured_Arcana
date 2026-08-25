@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 // Layer:          System (Combat)
 // Collaborators:  GlyphCipherView.cs (the Control that is baked),
 //                 GlyphCipherTags.cs (semantic extraction),
-//                 HexTile.cs (consumer — the tile decal),
+//                 HexTile.cs (the consumer, i.e. the tile decal),
 //                 CardDatabase.cs (blueprint lookup by id)
-// See:            docs/glyph_cipher_spec_v1.md §10 — tile decal
+// See:            docs/glyph_cipher_spec_v1.md §10, tile decal
 // ============================================================
 //
 // Add as an autoload named "GlyphCipherTexture" (Project Settings ->
@@ -89,7 +89,7 @@ public partial class GlyphCipherTexture : Node
     /// <summary>
     /// Bakes an ALREADY-BUILT glyph. Split out of <see cref="BakeAsync"/> so the element
     /// runes (which are authored, not generated from a card) go through the exact same
-    /// SubViewport path — including the two-frame await, which is subtle enough that a
+    /// SubViewport path, including the two-frame await, which is subtle enough that a
     /// second copy of it would eventually drift and produce blank textures on some
     /// drivers only.
     /// </summary>
@@ -125,7 +125,7 @@ public partial class GlyphCipherTexture : Node
 
             // Two frames: one for the Control to lay out and queue its draw, one for
             // the viewport to actually resolve. One frame is enough on most drivers
-            // and produces an empty texture on the rest — which shows up as an
+            // and produces an empty texture on the rest, which shows up as an
             // invisible glyph that is very hard to diagnose later.
             await ToSignal(RenderingServer.Singleton, "frame_post_draw");
             await ToSignal(RenderingServer.Singleton, "frame_post_draw");
@@ -186,12 +186,12 @@ public partial class GlyphCipherTexture : Node
     /// <summary>
     /// Requests a baked texture for an AUTHORED glyph (the elemental imbuement runes),
     /// rather than one generated from a card. <paramref name="runeId"/> only has to be
-    /// stable and unique — it is the cache key, not a card id, and is namespaced so it
+    /// stable and unique. It is the cache key, not a card id, and is namespaced so it
     /// can never collide with a blueprint id.
     ///
     /// Bake at <see cref="CipherLod.Tile"/>. It thickens the identity layer 1.7x and its
     /// backing alpha is 0 (glyph_sigil.gdshader draws that separately), which is exactly
-    /// what a rune viewed from board distance needs — a 0.017 unit stroke bakes to ~2.2px
+    /// what a rune viewed from board distance needs. A 0.017 unit stroke bakes to ~2.2px
     /// in a 256px Card composite and the mip chain averages it toward transparent as the
     /// camera pulls back. That failure has already been paid for once on the tile decal.
     /// Do NOT use Inspection: it draws pips for every UNSET verb, which for a rune with

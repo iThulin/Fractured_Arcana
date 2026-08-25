@@ -110,7 +110,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Inferno",
-			"description": "Inferno: Eruption spreads fire outward \u2014 imbues target tile and adjacent ring.",
+			"description": "Inferno: Eruption spreads fire outward, imbuing target tile and adjacent ring.",
 			"changes": [
 				{
 					"half": "top",

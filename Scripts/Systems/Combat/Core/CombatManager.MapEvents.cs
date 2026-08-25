@@ -5,14 +5,14 @@ using System.Collections.Generic;
 // ============================================================
 // CombatManager.MapEvents.cs  (partial of CombatManager)
 //
-// Purpose:        Battlefield E4 — scheduled map events. Hazards that
+// Purpose:        Battlefield E4, scheduled map events. Hazards that
 //                 spread, close, or scar the board over the course of a
 //                 fight (advance_hazard_ring, spread_element, imbue_patch).
 // Ordering:       Resolved at the round boundary BEFORE objectives and
 //                 wave spawns (called from AdvanceRound, ahead of
 //                 EvaluateObjectiveRoundBoundary), so waves arrive onto
 //                 the updated terrain and zones read against reality.
-// Telegraph:      Non-destructive kinds this pass — announced one
+// Telegraph:      Non-destructive kinds this pass, announced one
 //                 telegraph-window ahead via banner/log. A visual
 //                 tile-highlight telegraph and the destructive
 //                 collapse_tiles kind are follow-ups.
@@ -48,7 +48,7 @@ public partial class CombatManager : Node3D
         }
     }
 
-    /// <summary>True when <paramref name="ev"/> fires on the given round — its start
+    /// <summary>True when <paramref name="ev"/> fires on the given round: its start
     /// round, then every <c>repeat_every</c> after (0 = one-shot).</summary>
     private static bool FiresOn(MapEventDef ev, int round)
     {
@@ -138,7 +138,7 @@ public partial class CombatManager : Node3D
 
     // ── E4 destructive events + telegraph ─────────────────────────────────
 
-    /// <summary>Tiles a destructive event will hit — used for both the telegraph mark and
+    /// <summary>Tiles a destructive event will hit, used for both the telegraph mark and
     /// (indirectly) resolution. Empty for non-destructive kinds (they do not pre-mark).</summary>
     private List<TileData> MapEventAffectedTiles(MapEventDef ev, int fireRound)
     {
@@ -172,8 +172,8 @@ public partial class CombatManager : Node3D
         }
     }
 
-    /// <summary>Clear last round's telegraph — both the visual highlight and the
-    /// hazard-cost set — before rebuilding it this boundary.</summary>
+    /// <summary>Clear last round's telegraph, both the visual highlight and the
+    /// hazard-cost set, before rebuilding it this boundary.</summary>
     private void ClearTelegraph()
     {
         foreach (var c in grid.TelegraphedTiles)
@@ -182,7 +182,7 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>collapse_tiles: convert every tile within radius, evicting occupants
-    /// (a forced 1-tile shove — slides/fire/glyphs apply — then 3 damage). Returns the
+    /// (a forced 1-tile shove, with slides/fire/glyphs applying, then 3 damage). Returns the
     /// number of tiles converted.</summary>
     private int CollapseTiles(Vector2I center, int radius, string into)
     {
@@ -231,7 +231,7 @@ public partial class CombatManager : Node3D
         // Change every height FIRST, then re-bake. A tile's blended mesh (cliffs, skirts,
         // corner averages) depends on its neighbours, so raising one tile without re-baking
         // the ring leaves a seam. RebuildTileAndNeighbors re-seats height + re-meshes the
-        // tile and its six neighbours against the FINAL heights — the same stitch the
+        // tile and its six neighbours against the FINAL heights, the same stitch the
         // generation pass does, so edges close cleanly.
         var changed = new List<Vector2I>();
         foreach (var t in grid.Tiles.Values)
@@ -299,7 +299,7 @@ public partial class CombatManager : Node3D
 
     /// <summary>weather rain: each water tile floods up to perPatch adjacent unoccupied
     /// land tiles (deterministic, lowest-axial first). Occupied tiles are spared so it
-    /// never drowns a unit without warning — the map just closes over time.</summary>
+    /// never drowns a unit without warning. The map just closes over time.</summary>
     private int RainTick(int perPatch)
     {
         var water = new List<TileData>();
@@ -330,7 +330,7 @@ public partial class CombatManager : Node3D
     }
 
     /// <summary>weather snow: imbue Frost on the perPatch open tiles nearest the centre
-    /// that aren't already frost — accumulates outward each tick (frost = the tile
+    /// that aren't already frost, accumulating outward each tick (frost = the tile
     /// system's slippery/ice move-cost).</summary>
     private int SnowTick(int perPatch)
     {
@@ -351,7 +351,7 @@ public partial class CombatManager : Node3D
         string msg = ev.GetStr("announce", "");
         if (string.IsNullOrEmpty(msg))
             msg = $"a {ev.Kind} approaches";
-        GD.Print($"[MapEvent] telegraph — {msg} (round {fireRound}).");
-        combatUI?.AppendActionLog($"⚠ {msg} — round {fireRound}.");
+        GD.Print($"[MapEvent] telegraph: {msg} (round {fireRound}).");
+        combatUI?.AppendActionLog($"⚠ {msg}, round {fireRound}.");
     }
 }

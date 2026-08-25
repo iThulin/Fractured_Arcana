@@ -7,7 +7,7 @@ using System.Collections.Generic;
 //
 // Purpose:        Executes JSON-authored map recipes. When MapRecipeId
 //                 is set and resolves, the recipe drives shape, base
-//                 terrain palette, features (by phase), and atmosphere —
+//                 terrain palette, features (by phase), and atmosphere,
 //                 replacing the enum theme/layout path. The feature
 //                 dispatch maps recipe feature names to the C# builders
 //                 in HexGridManager.Features.cs.
@@ -104,7 +104,7 @@ public partial class HexGridManager : Node3D
         return new MapEventDef { Kind = kind, Round = 2, Telegraph = 1, RepeatEvery = 2, Raw = raw };
     }
 
-    /// <summary>Midpoint of the spawn anchors — the contested centre most events aim at.</summary>
+    /// <summary>Midpoint of the spawn anchors, the contested centre most events aim at.</summary>
     public Vector2I RecipeMidpoint => GetMidpoint(PlayerLayoutAnchor, EnemyLayoutAnchor);
     public Vector2I RecipeCenter => _centerCoord;
 
@@ -140,7 +140,7 @@ public partial class HexGridManager : Node3D
     }
 
     /// <summary>spread_element: each existing `element` tile spreads to up to `perPatch`
-    /// adjacent writable non-element tiles. Deterministic (lowest axial first) — no
+    /// adjacent writable non-element tiles. Deterministic (lowest axial first), with no
     /// boundary RNG, so replays and saves stay honest. Targets are collected before any
     /// write so a tile imbued this tick can't seed further spread until next tick.</summary>
     public int MapEventSpreadElement(TileElementType element, int perPatch)
@@ -276,7 +276,7 @@ public partial class HexGridManager : Node3D
 
             case "building_stamp":
                 // City siege shells (CityBattlemapCompiler). MUST run after any
-                // wall obstacle_band ops — the stamp restores IsWalkable on
+                // wall obstacle_band ops, because the stamp restores IsWalkable on
                 // footprint tiles a band crossed (see HexGridManager.CityStamps).
                 PaintBuildingStamp(CoordFromOp(op, "at", _centerCoord), op.GetInt("radius", 2),
                     op.GetStr("building_id", "unknown"), op.GetInt("height", 0));
@@ -363,7 +363,7 @@ public partial class HexGridManager : Node3D
     }
 
     /// <summary>E2.2: builds the per-tile writer for `ring` / `filled_radius` from the
-    /// op's payload — element, obstacle_kind (a LoS-blocking wall/rock), terrain, or
+    /// op's payload: element, obstacle_kind (a LoS-blocking wall/rock), terrain, or
     /// height. First key present wins.</summary>
     private System.Action<TileData> RecipeTileApplier(FeatureOp op)
     {
@@ -382,7 +382,7 @@ public partial class HexGridManager : Node3D
         {
             var tr = MapRecipe.ParseTerrain(op.GetStr("terrain", "grass"));
             // Full-fidelity write (2026-08-11): TerrainType alone left gameplay
-            // flags stale — recipe-written water was WALKABLE. ApplyTerrainType
+            // flags stale, so recipe-written water was WALKABLE. ApplyTerrainType
             // sets walkability/cost/hazard to match the terrain. NOTE it also
             // clears obstacle flags, so terrain ops must never target wall tiles
             // (the city compiler orders its ops accordingly).

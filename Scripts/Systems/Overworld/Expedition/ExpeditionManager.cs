@@ -8,17 +8,17 @@ using System.Collections.Generic;
 //                 onto the persistent world. Replaces the region-
 //                 generation lifecycle of OverworldRunManager with
 //                 the single-world model:
-//                   DEPLOY  — build a radius-R window of WorldData
+//                   DEPLOY:   build a radius-R window of WorldData
 //                             around the chosen staging point.
-//                   OPERATE — move / fight / negotiate inside the
+//                   OPERATE:  move / fight / negotiate inside the
 //                             window; reveal tiles, which write
 //                             straight back into Cycle.World.
-//                   EXTRACT — voluntary or range-exhausted; bank
+//                   EXTRACT:  voluntary or range-exhausted; bank
 //                             discoveries + new staging points,
 //                             save, return to the strategic view.
 //                 The world is authoritative and resident in
 //                 CycleState.World, so there is NO seed reproduction
-//                 and NO fog save/restore — combat round-trips just
+//                 and NO fog save/restore. Combat round-trips just
 //                 rebuild the same window from the same world.
 // Layer:          System
 // Collaborators:  WorldWindowBuilder.cs (builds the window),
@@ -41,7 +41,7 @@ public partial class ExpeditionManager : Node2D
 
     // ── W1: sliding window (claude/expedition_window_sliding_v1) ─────────
     /// <summary>Debug A/B lever: true restores the old fixed-perimeter window
-    /// (no sliding). Off by default — the wall is gone; range is governed by
+    /// (no sliding). Off by default. The wall is gone; range is governed by
     /// the step/HP economy plus the W3 supply leash below.</summary>
     [Export] public bool HardWindowMode = false;
 
@@ -50,9 +50,9 @@ public partial class ExpeditionManager : Node2D
     /// far beyond vision range; large enough that pacing doesn't thrash.</summary>
     [Export] public int RecenterThreshold = 3;
 
-    // ── W3: soft leash — the supply line ──────────────────────────────────
+    // ── W3: soft leash (the supply line) ──────────────────────────────────
     /// <summary>Hex distance from the nearest supply anchor (this expedition's
-    /// staging tile, or any Available staging point — including outposts
+    /// staging tile, or any Available staging point, including outposts
     /// secured mid-run) within which no leash drain applies.</summary>
     [Export] public int SupplyRange = 12;
 
@@ -60,7 +60,7 @@ public partial class ExpeditionManager : Node2D
     [Export] public int LeashBandWidth = 3;
 
     /// <summary>HP-pool drain per step, per band beyond supply. Deliberately
-    /// NOT reducible by HazardWard/CorruptionWard (Q3) — the leash is its own
+    /// NOT reducible by HazardWard/CorruptionWard (Q3). The leash is its own
     /// attrition axis; the deferred §7b Provisioner family is its future
     /// mitigation. Wards reducing it would trivialize the leash exactly the
     /// way the hard wall trivialized Pathfinder.</summary>
@@ -89,7 +89,7 @@ public partial class ExpeditionManager : Node2D
     private GrimoirePanel _grimoirePanel;
     private Label _essenceLabel;
 
-    // ── S3: Retrace memory (Chronomancer) — the last committed move, so the
+    // ── S3: Retrace memory (Chronomancer): the last committed move, so the
     // sole G1 exception can undo it. Cleared when a scene swap makes the
     // "last step" ambiguous (combat/negotiation) and after use. ─────────────
     private Vector2I _lastMoveFrom;
@@ -107,16 +107,16 @@ public partial class ExpeditionManager : Node2D
     private string _casualtyNote;
     public int GoldEarned { get; set; }
     public int SplinterEarned { get; set; }
-    /// <summary>Build Materials gathered on this run — banked only on
+    /// <summary>Build Materials gathered on this run: banked only on
     /// extraction, forfeited on failure (same stake rules as gold/splinters).
     /// No encounter grants materials yet (the gathering system is unbuilt);
     /// the channel exists so the top-bar pending readout and banking are
     /// already correct the day something does.</summary>
     public int MaterialEarned { get; set; }
-    /// <summary>Supplies GAINED by negotiation deals on this run — banked only on
+    /// <summary>Supplies GAINED by negotiation deals on this run: banked only on
     /// extraction, forfeited on failure (the 2026-08-05 "all spoils are losable"
     /// ruling). Deal terms that COST supplies deduct from the treasury at once
-    /// (you pledge from stores, but gains ride home with the party) — see
+    /// (you pledge from stores, but gains ride home with the party). See
     /// OnNegotiationReturned. Strategic cache income never touches this: it
     /// banks directly in SupplyCacheSystem.Tick.</summary>
     public int SuppliesEarned { get; set; }
@@ -139,8 +139,8 @@ public partial class ExpeditionManager : Node2D
     private int _strongholdCol = -1, _strongholdRow = -1;
 
     /// <summary>The two provinces the active warfront is fought over. Empty on an
-    /// ordinary expedition. Drives the contested-ground tint (PaintContestedGround)
-    /// — the answer to "which region is this war actually about", which the map
+    /// ordinary expedition. Drives the contested-ground tint (PaintContestedGround),
+    /// the answer to "which region is this war actually about", which the map
     /// could not previously show.</summary>
     private string _warfrontDefenderKid = "", _warfrontAggressorKid = "";
 
@@ -151,7 +151,7 @@ public partial class ExpeditionManager : Node2D
     /// <summary>How far from the front or the stronghold the ground still reads as
     /// contested. Tinting whole PROVINCES was the first cut and it was wrong: a kingdom
     /// is enormous, so the whole visible map went red and the tint stopped meaning
-    /// anything. The war zone is the corridor two armies actually fight over — front and
+    /// anything. The war zone is the corridor two armies actually fight over. Front and
     /// stronghold sit 2-3 apart, so 4 covers the corridor and a hex of shoulder.</summary>
     private const int WarZoneRadius = 4;
 
@@ -159,8 +159,8 @@ public partial class ExpeditionManager : Node2D
     private OverworldHexGrid _grid;
     private FogOfWarManager _fog;
 
-    /// <summary>Step 2 (convergence spec): the window's gameplay overlay — effective
-    /// POI, consumed, objective/landmark, contested — as plain data. The authority;
+    /// <summary>Step 2 (convergence spec): the window's gameplay overlay (effective
+    /// POI, consumed, objective/landmark, contested) as plain data. The authority;
     /// hex nodes mirror it through SetOverlay. Gameplay never reads hex.POI again.</summary>
     private readonly WindowOverlayModel _overlay = new();
     private OverworldPartyToken _party;
@@ -171,11 +171,11 @@ public partial class ExpeditionManager : Node2D
 
     // ── [DEBUG] 3D expedition-window overlay (Stage-2 live wiring) ────────
     // Toggled with M in DebugMode: renders THIS run's window in 3D from the live
-    // fog/overlay/world models, and its clicks drive the REAL _party.TryMoveTo — so
+    // fog/overlay/world models, and its clicks drive the REAL _party.TryMoveTo, so
     // walking here charges cost, reveals fog, and triggers POIs exactly like the 2D
     // map. The viewport is parented into the HUD canvas UNDER the panels (via
     // MoveChild to index 0), so encounter panels (scout/narrative/negotiation) draw
-    // OVER the 3D naturally — no auto-close guessing, no panel occlusion.
+    // OVER the 3D naturally: no auto-close guessing, no panel occlusion.
     private SubViewportContainer _window3DContainer;
     private ExpeditionWindow3D _window3D;
     private Button _view3DButton;   // persistent HUD 2D/3D view toggle (Stage 3)
@@ -191,7 +191,7 @@ public partial class ExpeditionManager : Node2D
     private EncounterDefinition _pendingEncounter = null;
     private string _pendingTerrain = null;
     /// <summary>Owner archmage when the pending scout-panel combat drew from an
-    /// archmage's own pool ("" otherwise) — dossier attribution (spec §4).</summary>
+    /// archmage's own pool ("" otherwise): dossier attribution (spec §4).</summary>
     private string _pendingCombatArchmageId = "";
     private float _scaledDifficultyMult = 1.0f;
     private bool _ambushPending = false;
@@ -203,7 +203,7 @@ public partial class ExpeditionManager : Node2D
 
     /// <summary>Persistent objective line at the top of the expedition HUD. Before
     /// 2026-08-06 a warfront's objective was stated ONCE, in the deploy ShowInfo, and
-    /// then scrolled away — so a player could win fights at the front all sortie and
+    /// then scrolled away, so a player could win fights at the front all sortie and
     /// have no way to learn that none of them were the objective, or what taking it
     /// would actually buy. Refreshed every UpdateUI; hidden on ordinary expeditions.</summary>
     private Label _objectiveLabel;
@@ -236,7 +236,7 @@ public partial class ExpeditionManager : Node2D
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle == null)
         {
-            GD.PrintErr("ExpeditionManager: no active cycle — cannot deploy.");
+            GD.PrintErr("ExpeditionManager: no active cycle. Cannot deploy.");
             return;
         }
         _world = cycle.World;
@@ -273,10 +273,10 @@ public partial class ExpeditionManager : Node2D
         _window = new WorldWindowBuilder(_world, _stagingCol, _stagingRow, WindowRadius);
 
         // On a combat/negotiation return the party may be far outside the base
-        // disc — build the initial window around where they'll actually be
+        // disc. Build the initial window around where they'll actually be
         // placed, instead of 469 tiles at staging that the restore recenter
-        // would immediately free. (Fresh deploys — and HardWindowMode, where
-        // the party can never leave the base disc — build at staging.)
+        // would immediately free. (Fresh deploys, and HardWindowMode, where
+        // the party can never leave the base disc, build at staging.)
         bool pendingReturn = router != null && router.HasPendingReturn;
         Vector2I initialCenter = (pendingReturn && !HardWindowMode)
             ? GridLocalOf(router.SavedPartyCoord)
@@ -292,15 +292,15 @@ public partial class ExpeditionManager : Node2D
         // Fog manager (child of grid, same as before)
         _fog = new FogOfWarManager { Name = "FogOfWar" };
         _grid.AddChild(_fog);
-        // Step 1: seed the fog MODEL from the freshly built window — hexes arrive
+        // Step 1: seed the fog MODEL from the freshly built window. Hexes arrive
         // carrying FogFromDiscovery, and from here on the model is the authority.
         _fog.SyncFromWindow();
         // Step 2: the landmark-lure scan reads the overlay model, not node POIs.
         _fog.Overlay = _overlay;
 
-        // Faction patrols — keyed to the staging tile's kingdom, if any.
+        // Faction patrols, keyed to the staging tile's kingdom, if any.
         _factionManager = new OverworldFactionManager { Name = "FactionManager" };
-        // Step 4: spawn filters + every patrol token read DATA through these —
+        // Step 4: spawn filters + every patrol token read DATA through these,
         // the same seams the manager itself gates on. Wired BEFORE Initialize.
         _factionManager.TileQuery = local => TryTileAt(local, out var ft) ? ft : (WorldTile?)null;
         _factionManager.FogQuery = local => _fog.FogAt(local);
@@ -314,7 +314,7 @@ public partial class ExpeditionManager : Node2D
         // Party token
         _party = new OverworldPartyToken { Name = "PartyToken" };
         // Step 4: movement legality + cost preview read the WORLD through the
-        // manager's seams — the same source OnPartyMoved charges from.
+        // manager's seams, the same source OnPartyMoved charges from.
         _party.TileQuery = local => TryTileAt(local, out var pt) ? pt : (WorldTile?)null;
         _party.IsBlocked = local => !_grid.Hexes.ContainsKey(local)
             || (TryTileAt(local, out var bt) && bt.IsWater);
@@ -368,10 +368,10 @@ public partial class ExpeditionManager : Node2D
         }
         else
         {
-            // K2.5: fresh expedition — everyone starts whole. (Combat returns
+            // K2.5: fresh expedition: everyone starts whole. (Combat returns
             // take the other branch and must NOT reset carried HP.)
             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
-            PlayerSession.WizardExpeditionHP = -1; // K2.5 symmetry — wizard too
+            PlayerSession.WizardExpeditionHP = -1; // K2.5 symmetry, wizard too
 
             // S4 (Identify) + S5 (True Names): pinned encounters are
             // expedition-scoped. Static so they survive combat round-trips
@@ -381,7 +381,7 @@ public partial class ExpeditionManager : Node2D
             _pinnedNegotiations.Clear();
 
             // Run journal: opens run_<id>.log/.csv under user://run_logs/.
-            // ONLY on a fresh deploy — combat/negotiation returns take the
+            // ONLY on a fresh deploy. Combat/negotiation returns take the
             // other branch and keep appending to the same run's files.
             RunEventLog.Begin(StagingTemplateRegion(),
                 PlayerSession.SelectedSchool.ToString(),
@@ -406,7 +406,7 @@ public partial class ExpeditionManager : Node2D
                 RevealAllFog();
         }
 
-        // ── S2: overworld spellcasting — manager + Grimoire panel ────────
+        // ── S2: overworld spellcasting (manager + Grimoire panel) ────────
         // Fresh deploys reset the Essence pool / cast counts / beacons;
         // combat and negotiation returns keep them (they ride the save).
         _spells = new OverworldSpellManager { Name = "SpellManager" };
@@ -458,7 +458,7 @@ public partial class ExpeditionManager : Node2D
         CenterCamera();
         UpdateUI();
 
-        // Stage 3: honour the player's view preference — launch straight into the 3D
+        // Stage 3: honour the player's view preference. Launch straight into the 3D
         // expedition view when it's set. The flag persists across deploys and combat
         // returns (static PlayerSession scratchpad), so once you switch to 3D every
         // subsequent run comes up in 3D until you switch back. The 2D map still runs
@@ -469,7 +469,7 @@ public partial class ExpeditionManager : Node2D
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Discovery write-back — the heart of the single-world model
+    // Discovery write-back: the heart of the single-world model
     // ════════════════════════════════════════════════════════════════════
 
     /// <summary>Push every currently-revealed window tile into Cycle.World as
@@ -481,7 +481,7 @@ public partial class ExpeditionManager : Node2D
         bool changed = false;
 
         // STEP 1 (convergence spec): iterate the FOG MODEL, not the scene nodes.
-        // The persistent world's Discovery now derives from plain data — the last
+        // The persistent world's Discovery now derives from plain data. The last
         // render-state scrape in the write-back path is gone. Same entries, same
         // ratchet: the model mirrors the loaded window 1:1.
         foreach (var kvp in _fog.Model.All)
@@ -490,7 +490,7 @@ public partial class ExpeditionManager : Node2D
             var fog = kvp.Value;
 
             // P3: seeing any footprint tile (charted or revealed) discovers the
-            // whole shard sub-region — the vault layout then reads at distance.
+            // whole shard sub-region. The vault layout then reads at distance.
             if ((fog == OverworldHex.FogState.Silhouette ||
                  fog == OverworldHex.FogState.Revealed) &&
                 _window.TryLocalToWorld(local, out int zc, out int zr))
@@ -505,7 +505,7 @@ public partial class ExpeditionManager : Node2D
 
             // W4 (§5 keystone extension): silhouette = terrain-only knowledge =
             // Charted. As the sliding window travels, its vision fringe leaves a
-            // persistent Charted corridor on the strategic map — the route
+            // persistent Charted corridor on the strategic map. The route
             // itself becomes a legible artifact of the expedition.
             if (fog == OverworldHex.FogState.Silhouette)
             {
@@ -541,7 +541,7 @@ public partial class ExpeditionManager : Node2D
                 poi.Discovered = true;
                 changed = true;
 
-                // Settlements grant staging the moment they're DISCOVERED — a
+                // Settlements grant staging the moment they're DISCOVERED: a
                 // friendly hub, no fight needed. (Outposts/seats still grant on
                 // being secured, via OnPartyArrived/GrantStagingPointAt.)
                 if (poi.Kind == PoiKind.Settlement && poi.GrantsStaging)
@@ -554,7 +554,7 @@ public partial class ExpeditionManager : Node2D
     }
 
     /// <summary>P3: the first sighting of any footprint tile opens the whole vault
-    /// layout — every footprint tile charts (reduced fog) and any loaded, still-
+    /// layout: every footprint tile charts (reduced fog) and any loaded, still-
     /// hidden footprint hex silhouettes immediately. Interaction + collection are
     /// later phases; this is discovery only.</summary>
     private void RevealShardZone(ShardZone z)
@@ -577,7 +577,7 @@ public partial class ExpeditionManager : Node2D
 
     // ── Step 3: the tile query seam ──────────────────────────────────────
 
-    /// <summary>THE tile query — window-local coord → the WORLD's tile. Step 3 of
+    /// <summary>THE tile query: window-local coord → the WORLD's tile. Step 3 of
     /// the convergence spec: terrain/water/edge questions are answered by WorldData
     /// (which SpellForcePath et al. already treat as the terrain authority), never
     /// by render nodes. False off-world; callers that need "is loaded" semantics
@@ -596,14 +596,14 @@ public partial class ExpeditionManager : Node2D
     }
 
     /// <summary>Terrain at a window-local coord from the world; Grassland (the
-    /// neutral cost row) off-world — callers that must distinguish guard first.</summary>
+    /// neutral cost row) off-world. Callers that must distinguish guard first.</summary>
     private OverworldHex.TerrainType TerrainAt(Vector2I local)
         => TryTileAt(local, out var t) ? t.Terrain : OverworldHex.TerrainType.Grassland;
 
     // ── Step 2: the overlay seam ─────────────────────────────────────────
 
     /// <summary>Write a tile's overlay: model first, node mirror + redraw second.
-    /// No-op for unloaded coords — matching every pre-Step-2 write pattern, all of
+    /// No-op for unloaded coords, matching every pre-Step-2 write pattern, all of
     /// which guarded on Hexes.TryGetValue. (Persistent POI truth still goes through
     /// ConsumeWorldPoi / WorldPoi.Discovered, unchanged.)</summary>
     private void SetOverlay(Vector2I coord, in TileOverlay o)
@@ -628,8 +628,8 @@ public partial class ExpeditionManager : Node2D
         SetOverlay(coord, o);
     }
 
-    /// <summary>Re-mirror the overlay model to the loaded window — the Step-1
-    /// SyncFromWindow pattern. Called after window Build and every StreamTo slide,
+    /// <summary>Re-mirror the overlay model to the loaded window (the Step-1
+    /// SyncFromWindow pattern). Called after window Build and every StreamTo slide,
     /// BEFORE the stamps re-run (they then write through the seam). Node→model is
     /// lossless because every mid-run write goes through SetOverlay.</summary>
     private void SyncOverlayFromWindow()
@@ -744,8 +744,8 @@ public partial class ExpeditionManager : Node2D
     {
         // ── View toggle (Stage 3): a REAL, non-debug feature, so it's handled
         //    BEFORE the debug gate. M flips this run between the 2D map and the
-        //    3D expedition view. Esc is deliberately NOT handled here — it is
-        //    reserved for the pause menu — so use M (or the "Switch to 2D"
+        //    3D expedition view. Esc is deliberately NOT handled here (it is
+        //    reserved for the pause menu), so use M (or the "Switch to 2D"
         //    button) to leave the 3D view.
         if (@event is InputEventKey { Pressed: true, Keycode: Key.M } && !ExpeditionComplete)
         {
@@ -763,7 +763,7 @@ public partial class ExpeditionManager : Node2D
             string kid = KingdomIdAt(_party.CurrentCoord);
             if (string.IsNullOrEmpty(kid))
             {
-                ShowInfo("[DEBUG] No kingdom here — cannot mint test favors.");
+                ShowInfo("[DEBUG] No kingdom here. Cannot mint test favors.");
             }
             else
             {
@@ -809,8 +809,8 @@ public partial class ExpeditionManager : Node2D
             return;
         }
 
-        // N: [DEBUG] summon the narrative-chain proof rig without walking the map
-        //    — cycles lost_traveler -> sealed_letter_delivery -> grateful_courier on
+        // N: [DEBUG] summon the narrative-chain proof rig without walking the map.
+        //    Cycles lost_traveler -> sealed_letter_delivery -> grateful_courier on
         //    repeat presses. Shift+N clears the chain's flags + completed ids so the
         //    ungated "before" state can be re-tested. Bypasses POI scarcity/patrols but
         //    runs the REAL resolve path, so flags actually set and gates react live.
@@ -831,7 +831,7 @@ public partial class ExpeditionManager : Node2D
         }
 
         // V: [DEBUG] teleport to the nearest unfinished shard vault (gate, or its
-        // sanctum once the guardian is felled) and trigger arrival — P4 testing.
+        // sanctum once the guardian is felled) and trigger arrival (P4 testing).
         if (@event is InputEventKey { Pressed: true, Keycode: Key.V })
         {
             DebugTeleportToVault();
@@ -852,7 +852,7 @@ public partial class ExpeditionManager : Node2D
     //    A full-screen 3D render of THIS run's window, built from the live
     //    fog/overlay/world models; clicking an adjacent tile calls the REAL
     //    _party.TryMoveTo, so a walk here charges cost, reveals fog, and fires POIs
-    //    exactly as the 2D map does — the decoupled models render AND drive the run
+    //    exactly as the 2D map does. The decoupled models render AND drive the run
     //    in 3D. The 2D map keeps running underneath (the overlay sits at HUD index 0,
     //    under every panel), so encounters resolve normally over it. Toggled by the
     //    persistent HUD button (or M / Esc); the choice is remembered in
@@ -889,7 +889,7 @@ public partial class ExpeditionManager : Node2D
             return;
 
         // Parent the 3D view into the HUD canvas, then MoveChild to index 0 so it sits
-        // UNDER every existing + future HUD panel — encounter panels draw over it, no
+        // UNDER every existing + future HUD panel: encounter panels draw over it, no
         // occlusion, no auto-close needed. Full-rect + MouseFilter.Stop, so it blocks
         // the 2D map's Area2D picking underneath while open.
         _window3DContainer = new SubViewportContainer { Stretch = true, Name = "Window3DView" };
@@ -922,7 +922,7 @@ public partial class ExpeditionManager : Node2D
 
         FeedWindow3D(frameCamera: true);
         UpdateView3DButton();
-        ShowInfo("3D expedition view — click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
+        ShowInfo("3D expedition view. Click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
     }
 
     private void CloseWindow3D()
@@ -991,7 +991,7 @@ public partial class ExpeditionManager : Node2D
 
     /// <summary>A 3D-overlay click: translate the world coord back to grid-local and run
     /// the REAL move. TryMoveTo enforces adjacency/water and no-ops if illegal, so a
-    /// coordinate mismatch is harmless — it simply doesn't move.</summary>
+    /// coordinate mismatch is harmless. It simply doesn't move.</summary>
     private void OnWindow3DMove(Vector2I worldCoord)
     {
         var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
@@ -1022,7 +1022,7 @@ public partial class ExpeditionManager : Node2D
           "axiom_discovery", "moment_discovery", "binding_discovery", "schema_discovery", "deathless_discovery" };
     private int _debugChainIdx;
 
-    /// <summary>[DEBUG] Summon the next chain encounter directly — ignores
+    /// <summary>[DEBUG] Summon the next chain encounter directly: ignores
     /// terrain/completed filters, but shows it with the REAL gating context and
     /// resolves through the REAL OnNarrativeCompleted so flags actually set.</summary>
     private void DebugSummonNextChainEncounter()
@@ -1162,7 +1162,7 @@ public partial class ExpeditionManager : Node2D
 private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         // Border-cross feedback: name the territory being entered. Fired
-        // first so hazard/corruption warnings on the same step overwrite it —
+        // first so hazard/corruption warnings on the same step overwrite it:
         // damage outranks geography.
         string fromKingdom = KingdomIdAt(oldCoord);
         string toKingdom = KingdomIdAt(newCoord);
@@ -1185,7 +1185,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             destTerrain = destTile.Terrain;
             hpDrain = GetTerrainHPDrain(destTerrain);
             // Q3 (§4b): HazardWard reduces terrain drain, floored at 1 whenever the
-            // terrain drains at all — relief is bought, immunity does not exist.
+            // terrain drains at all: relief is bought, immunity does not exist.
             if (hpDrain > 0)
                 hpDrain = Mathf.Max(1, hpDrain - EquipmentLoadout.PartyHazardWard());
             // Edge-aware step cost: destination terrain, cheapened by a road on the
@@ -1197,7 +1197,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 EquipmentLoadout.PartyPathfinder(destTerrain.ToString()));
 
             // S4.2 (user ruling 2026-07-16): a step traveled ALONG A ROAD is
-            // safe going — see the drain sites below. Edge roads are the real
+            // safe going (see the drain sites below). Edge roads are the real
             // network; the vestigial Road TERRAIN tile counts too (old maps).
             roadTravel = OverworldMovementCost.EdgeHasRoad(fromTile, oldCoord, newCoord) ||
                          destTerrain == OverworldHex.TerrainType.Road;
@@ -1210,11 +1210,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // the gate and the guardian fight, not attrition between gate and sanctum.
         bool inVault = InsideShardZone(newCoord);
         if (inVault && !_lastInVault)
-            ShowInfo("Within the vault's bounds, the wilds' toll lifts \u2014 no terrain, corruption, or supply drain here.");
+            ShowInfo("Within the vault's bounds, the wilds' toll lifts: no terrain, corruption, or supply drain here.");
         _lastInVault = inVault;
 
         // S3 (Retrace): remember this move so it can be undone. Records the
-        // cost actually charged (0 on the exhaustion path — HP is not refunded).
+        // cost actually charged (0 on the exhaustion path; HP is not refunded).
         _lastMoveFrom = oldCoord;
         _lastMoveStepCost = (!(PlayerSession.DebugMode && PlayerSession.UnlimitedSteps) &&
                              StepsRemaining > 0) ? Mathf.Min(StepsRemaining, stepCost) : 0;
@@ -1240,13 +1240,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 { CurrentHP = 0; FailExpedition("Stranded beyond your range."); return; }
             }
 
-            // S4.2 (user ruling): the causeway spares you the terrain's bite —
+            // S4.2 (user ruling): the causeway spares you the terrain's bite:
             // a road step never pays hazard drain. (Corruption is NOT road-
             // exempt below: the creep eats roads too, and corridor-immunity
             // through corrupted ground would gut the G4 pressure.)
             if (hpDrain > 0 && inVault)
             {
-                GD.Print($"[Expedition] Within the vault \u2014 {hpDrain} terrain drain suppressed.");
+                GD.Print($"[Expedition] Within the vault: {hpDrain} terrain drain suppressed.");
                 hpDrain = 0;
             }
             if (hpDrain > 0 && roadTravel)
@@ -1256,7 +1256,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
 
             // S2: an active warding spell (Ember Ward) negates the terrain's
-            // bite entirely — bounded window, not immunity (G4).
+            // bite entirely: bounded window, not immunity (G4).
             if (hpDrain > 0 && OverworldSpellEffects.DrainSuppressed(destTerrain))
             {
                 GD.Print($"[Spellcraft] Ward negates {hpDrain} terrain drain on {destTerrain}.");
@@ -1274,25 +1274,25 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
 
             // Corruption attrition: crossing corrupted ground bleeds you. Light at
-            // the creeping edge, heavy in the convergence core — so the spreading
+            // the creeping edge, heavy in the convergence core, so the spreading
             // corruption is a hostile zone to route around, not stroll through.
             int corruptionDrain = CorruptionDrainAt(newCoord);
             if (corruptionDrain > 0 && inVault)
             {
-                GD.Print($"[Expedition] Within the vault \u2014 {corruptionDrain} corruption drain suppressed.");
+                GD.Print($"[Expedition] Within the vault: {corruptionDrain} corruption drain suppressed.");
                 corruptionDrain = 0;
             }
             // S2: Purifying Rite suppresses corruption attrition for its
-            // window — bounded relief, never immunity (G4).
+            // window: bounded relief, never immunity (G4).
             if (corruptionDrain > 0 && OverworldSpellEffects.CorruptionSuppressed())
             {
-                GD.Print($"[Spellcraft] Purifying Rite holds — {corruptionDrain} corruption drain suppressed.");
+                GD.Print($"[Spellcraft] Purifying Rite holds: {corruptionDrain} corruption drain suppressed.");
                 corruptionDrain = 0;
             }
             if (corruptionDrain > 0)
             {
                 // Q3 (§4b): CorruptionWard reduces the bleed, but Σ ward is CAPPED
-                // at (tile corruption tier × 2) and drain never drops below 1 —
+                // at (tile corruption tier × 2) and drain never drops below 1;
                 // deep stacking is pointless past the tier you're actually walking.
                 int tier = CorruptionTierAt(newCoord);
                 int ward = Mathf.Min(EquipmentLoadout.PartyCorruptionWard(), tier * 2);
@@ -1306,7 +1306,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
 
             // W3: the soft leash. Past supply range of the nearest anchor, each
-            // step bleeds the pool — +1 HP per band of LeashBandWidth hexes,
+            // step bleeds the pool: +1 HP per band of LeashBandWidth hexes,
             // capped. NOT ward-reducible (see the export's doc comment); the
             // supply line is priced in pool HP the wards can't buy back.
             int band = inVault ? 0 : SupplyBandAt(newCoord);
@@ -1320,13 +1320,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             if (band > 0)
             {
-                // S4.2 (user ruling): the road bears your supply — steps taken
+                // S4.2 (user ruling): the road bears your supply: steps taken
                 // along a road edge pay no leash drain, however far out. Leave
                 // the road and the line snaps taut again. Early-game relief
                 // for the lone wizard; the wilds stay priced.
                 if (roadTravel)
                 {
-                    ShowInfo("The road bears your supply — safe going while you follow it.");
+                    ShowInfo("The road bears your supply. Safe going while you follow it.");
                 }
                 else
                 {
@@ -1349,7 +1349,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             RecenterWindow(_party.CurrentCoord);
 
         // S2: spell-effect windows tick per committed step; Arcane Ground
-        // feeds the pool (+1, §5 — a terrain property); the school Attunement
+        // feeds the pool (+1, §5, a terrain property); the school Attunement
         // re-applies around the new position BEFORE the discovery write so
         // its silhouettes chart in the same pass.
         OverworldSpellEffects.TickStep();
@@ -1377,7 +1377,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (contact) TriggerRoamerEncounter();
         }
 
-        // Durability flush — THROTTLED. The cycle file is large (the whole world
+        // Durability flush: THROTTLED. The cycle file is large (the whole world
         // array), so saving every move stutters. Autosave at most once every few
         // seconds; real checkpoints (combat entry, outpost, extract) save directly.
         ThrottledAutosave();
@@ -1413,7 +1413,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (fogHere != OverworldHex.FogState.Revealed)
         {
             _hoverTooltip.Text = fogHere == OverworldHex.FogState.Silhouette
-                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(axial, hex) ?? "")
+                ? "Charted, unexplored" + (_spells?.TooltipSilhouetteExtra(axial, hex) ?? "")
                 : "Unexplored";
         }
         else
@@ -1462,7 +1462,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// whose mouse filter is Ignore (labels, label-only panels).</summary>
     private readonly List<Control> _uiHoverBlockers = new();
 
-    /// <summary>True when the mouse is over any HUD element — the Godot
+    /// <summary>True when the mouse is over any HUD element: the Godot
     /// hovered-control query first (honors mouse filters: buttons, panels,
     /// the Grimoire), then rect tests for Ignore-filtered surfaces, then
     /// the global top bar strip.</summary>
@@ -1487,7 +1487,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_hoverTooltip == null || _grid == null)
             return;
 
-        // S4.2 (user request): never show the tile readout through UI — the
+        // S4.2 (user request): never show the tile readout through UI. The
         // Grimoire, the stat panel, buttons, and the top bar all take
         // precedence. Runs every frame, so entering/leaving UI just works.
         if (MouseIsOverUi())
@@ -1498,7 +1498,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Resolve the tile under the cursor from the mouse position, every frame.
         // (Area2D MouseEntered/Exited is unreliable here; InputEvent gives no exit
-        // event — so we poll, which also fixes "tooltip won't hide off-grid".)
+        // event, so we poll, which also fixes "tooltip won't hide off-grid".)
         Vector2 mouseWorld = _grid.GetGlobalMousePosition();
         Vector2I axial = _grid.WorldToAxial(_grid.ToLocal(mouseWorld));
 
@@ -1514,7 +1514,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (fogPolled != OverworldHex.FogState.Revealed)
         {
             _hoverTooltip.Text = fogPolled == OverworldHex.FogState.Silhouette
-                ? "Charted — unexplored" + (_spells?.TooltipSilhouetteExtra(axial, hex) ?? "")
+                ? "Charted, unexplored" + (_spells?.TooltipSilhouetteExtra(axial, hex) ?? "")
                 : "Unexplored";
         }
         else
@@ -1543,7 +1543,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
 
         // S3 (Deploy Waystation): standing on a deployed waystation consumes
-        // its one rest charge — quarter-heal + 3 Essence, then it breaks down
+        // its one rest charge: quarter-heal + 3 Essence, then it breaks down
         // (marker removed; it stops being a supply anchor).
         if (_window.TryLocalToWorld(coord, out int wcol, out int wrow))
         {
@@ -1566,7 +1566,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (TryHandleShardZone(coord))
             return;
 
-        // Step 2: the arrival gate reads the overlay model — including the
+        // Step 2: the arrival gate reads the overlay model, including the
         // stronghold, which exists ONLY as a stamp and is now data, not scenery.
         var ovArrived = _overlay.OverlayAt(coord);
         if (ovArrived.Poi == OverworldHex.POIType.None || ovArrived.Consumed)
@@ -1587,7 +1587,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             case OverworldHex.POIType.Rest:
                 int heal = MaxHP / 4;
-                // S2: Campward (§8) — the armed charge makes this Rest heal
+                // S2: Campward (§8): the armed charge makes this Rest heal
                 // +50% and grant +2 extra Essence, then is consumed.
                 bool campward = OverworldSpellEffects.ConsumeCampward();
                 if (campward)
@@ -1598,7 +1598,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ConsumeOverlayPoi(coord);
                 ConsumeWorldPoi(coord);
                 // K2.5 carry (2026-07-29): a rest also mends the party's
-                // carried COMBAT HP — a quarter of max each, mirroring the
+                // carried COMBAT HP: a quarter of max each, mirroring the
                 // pool heal above. Stabilized (0) companions stay down.
                 CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 0.25f);
                 if (PlayerSession.WizardExpeditionHP >= 0)
@@ -1627,7 +1627,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             case OverworldHex.POIType.Prison:
                 // Imprisonment rescue (§8): storming the gaol is a combat. Winning
-                // releases the captive — handled on combat return in
+                // releases the captive, handled on combat return in
                 // RestoreFromCombat via ReleaseImprisonedAt(resultHex). Routes
                 // through the ordinary scout->commit path so difficulty scaling and
                 // patrol attribution behave normally.
@@ -1643,7 +1643,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ConsumeWorldPoi(coord);
                 GrantStagingPointAt(coord);
                 // K2.5 carry (2026-07-29): an outpost is a full rest for the
-                // fights too — carriers mend to full; the wizard fields fresh.
+                // fights too. Carriers mend to full; the wizard fields fresh.
                 // Stabilized (0) companions stay down (HealExpeditionHP skips 0).
                 CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 1.0f);
                 PlayerSession.WizardExpeditionHP = -1;
@@ -1660,15 +1660,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             case OverworldHex.POIType.SupplyCache:
                 // Reconnaissance, not an encounter (supply_cache spec v1.1):
-                // standing at the depot confirms it — the strategic marker and
-                // its dialog unlock — and the banner says who's harvesting it.
+                // standing at the depot confirms it (the strategic marker and
+                // its dialog unlock) and the banner says who's harvesting it.
                 // Never consumed; the crate stays a landmark of the window.
                 if (_window.TryLocalToWorld(coord, out int scCol, out int scRow))
                 {
                     var scPoi = _world.PoiAt(scCol, scRow);
                     var scCycle = SaveManager.ActiveSave?.Cycle;
                     // Kind guard: debug ForceNextEncounterType can force this
-                    // case onto a tile holding some OTHER POI — don't discover
+                    // case onto a tile holding some OTHER POI; don't discover
                     // or misreport it as a cache.
                     if (scPoi != null && scPoi.Kind == PoiKind.SupplyCache && scCycle != null)
                     {
@@ -1679,7 +1679,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         }
                         string scCtrl = SupplyCacheSystem.ControllerDisplay(
                             scCycle, SupplyCacheSystem.ControllerOf(scPoi));
-                        ShowInfo($"Supply cache — harvested by {scCtrl} " +
+                        ShowInfo($"Supply cache: harvested by {scCtrl} " +
                                  $"(+{SupplyCacheSystem.YieldOf(scPoi)} supplies/lunation). " +
                                  "Sieges are laid from the strategic map.");
                         LogRun("supply_cache", $"scouted the cache; held by {scCtrl}", at: coord);
@@ -1690,7 +1690,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             case OverworldHex.POIType.Seat:
             case OverworldHex.POIType.Settlement:
                 // Phase 3: reaching a CITY centre on foot (a gold seat capital or a blue lesser city)
-                // opens its services menu — the same shell as the strategic-map city view. Gated to
+                // opens its services menu, the same shell as the strategic-map city view. Gated to
                 // Tier==City inside OpenCityServices, so towns fall through. Persistent (never
                 // consumed), so you can revisit it.
                 OpenCityServices(coord);
@@ -1702,7 +1702,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     private CityServicesHost _cityServices;
 
-    /// <summary>Walked onto an enemy capital's seat tile — open its services menu over the
+    /// <summary>Walked onto an enemy capital's seat tile: open its services menu over the
     /// expedition (reuses <see cref="CityServicesHost"/>). Skips the guild's OWN seat. The city
     /// name comes from its kingdom, matching the strategic-map labels.</summary>
     private void OpenCityServices(Vector2I coord)
@@ -1712,7 +1712,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (!_window.TryLocalToWorld(coord, out int wcol, out int wrow))
             return;
         var s = _world.SettlementAt(wcol, wrow);
-        // Cities only (seats + lesser cities — their footprint is the grey region); never your own.
+        // Cities only (seats + lesser cities; their footprint is the grey region); never your own.
         if (s == null || s.Tier != SettlementTier.City || s.IsGuildHome)
             return;
 
@@ -1731,7 +1731,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return !string.IsNullOrEmpty(s.KingdomId) ? $"{KingdomDisplayName(s.KingdomId)} {kind}" : kind;
     }
 
-    /// <summary>Services menu closed — drop the reference and hand input back to the expedition.
+    /// <summary>Services menu closed: drop the reference and hand input back to the expedition.
     /// The host frees itself.</summary>
     private void CloseCityServices()
     {
@@ -1748,19 +1748,19 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         string terrainType = TerrainAt(coord).ToString();   // Step 3: world read
         string regionId = StagingTemplateRegion();
-        // Warfront intervention fights the region's SIEGE pool — heavy compositions,
-        // Dense maps (DensityForTier) — so relieving a siege feels like one.
+        // Warfront intervention fights the region's SIEGE pool: heavy compositions,
+        // Dense maps (DensityForTier), so relieving a siege feels like one.
         var tier = _isWarfront ? EncounterTier.Siege : EncounterTier.Battle;
         _scaledDifficultyMult = DifficultyMultAt(coord);
 
-        // S4 (Identify): an identified site fights the PINNED composition —
+        // S4 (Identify): an identified site fights the PINNED composition:
         // what the spell showed is what you get (G5). Otherwise roll fresh.
         EncounterDefinition encounterDef = null;
         if (_window.TryLocalToWorld(coord, out int idCol, out int idRow))
             _identifiedEncounters.TryGetValue($"{idCol},{idRow}", out encounterDef);
 
         // Dossier attribution defaults to none (pinned/identified fights keep
-        // no attribution — accepted limit; the pin predates this pass).
+        // no attribution. Accepted limit; the pin predates this pass).
         _pendingCombatArchmageId = "";
 
         if (encounterDef == null)
@@ -1773,7 +1773,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // 2c: archmage groups own their authored difficulty (mult 1.0). Region-tier
             // scaling applies only to the generic region-pool fallback.
             // SEAM: a future corrupted-archmage variant would swap `arch` here based on
-            // the tile's corruption level before the draw — same call shape, different def.
+            // the tile's corruption level before the draw: same call shape, different def.
             var archDef =
                 arch != null
                     ? EncounterPoolLoader.PickFromArchmage(arch, regionId, tier, terrainType, CampaignEscalation.CombatDifficultyMult(SaveManager.ActiveSave?.Cycle))
@@ -1822,7 +1822,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (router == null)
         { GD.PrintErr("ExpeditionManager: EncounterRouter missing."); return; }
 
-        // S3 (Retrace): a scene swap makes "the last step" ambiguous — forget it.
+        // S3 (Retrace): a scene swap makes "the last step" ambiguous: forget it.
         _hasLastMove = false;
 
         LogRun("combat_start",
@@ -1830,7 +1830,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                (string.IsNullOrEmpty(guardianKey) ? "" : $" [guardian:{guardianKey}]"),
                at: hexCoord);
 
-        // Save only the RESOURCE state — the world (and thus the map) is resident.
+        // Save only the RESOURCE state: the world (and thus the map) is resident.
         router.SavedStepsRemaining = StepsRemaining;
         router.SavedCurrentHP = CurrentHP;
         router.SavedGoldEarned = GoldEarned;
@@ -1841,7 +1841,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedPartyCoord = _party.CurrentCoord;
         router.SavedCombatHexCoord = hexCoord;
         router.HasPendingReturn = false;
-        // Reset ambush attribution — OnPatrolCapturedPlayer re-marks it AFTER
+        // Reset ambush attribution: OnPatrolCapturedPlayer re-marks it AFTER
         // this call for genuine patrol fights. Without this reset, the flag
         // from a previous ambush survives on the scene-persistent router and
         // every later ordinary win re-emits patrol_slain.
@@ -1916,7 +1916,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             SaveManager.MarkDirty();
 
             // S5 (§6a row 3): compelling the kingdom's own patrol is
-            // witnessed — the echo fires NOW, at the moment of compulsion.
+            // witnessed: the echo fires NOW, at the moment of compulsion.
             // A Cordial resolution at the table buries it in flight
             // (OnNegotiationReturned); anything else lets it land on the
             // Chancellor and the Commanders.
@@ -1927,7 +1927,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     patrolKingdom, CouncilEcho.PatrolCompelled,
                     positive: false, isMajor: false);
 
-            ShowInfo("The compulsion takes hold — the patrol will talk instead of fight." +
+            ShowInfo("The compulsion takes hold. The patrol will talk instead of fight." +
                      (compulsionToast != null ? $" {compulsionToast}" : ""));
             // Dossier: a compelled parley still counts as crossing paths.
             AnnounceDossierMet(archmageId);
@@ -1936,13 +1936,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         // Scrying Chambers T3 Portent (scrying_chambers_spec_v1 §2): the party foresaw this
-        // interception. Spend the once-per-run portent to slip the first Ambush — the patrol
+        // interception. Spend the once-per-run portent to slip the first Ambush. The patrol
         // passes without forcing combat. Player-armed Parley (above) takes precedence: a
         // deliberate cast must not be pre-empted by passive foresight.
         if (PlayerSession.ScryingPortentAvailable)
         {
             PlayerSession.ScryingPortentAvailable = false;
-            ShowInfo("The scrying held true — you foresee the patrol and slip past unseen.");
+            ShowInfo("The scrying held true. You foresee the patrol and slip past unseen.");
             return;
         }
 
@@ -1950,7 +1950,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         ShowInfo("A patrol has intercepted you!");
         string regionId = StagingTemplateRegion();
         string terrainType = TerrainAt(coord).ToString();   // Step 3: world read
-        // The patrol BELONGS to this archmage (passed by the signal) — its forces
+        // The patrol BELONGS to this archmage (passed by the signal): its forces
         // are always the archmage's own, NO chance roll. Region pool only backstops
         // an archmage that has no authored skirmish group.
         var arch = ArchmageDefById(archmageId);
@@ -1961,8 +1961,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _scaledDifficultyMult = DifficultyMultAt(coord);
         // On a warfront the besieging patrols hit at siege weight too. OFF a warfront
         // the tier now says WHO caught you: an archmage's patrol was hunting you
-        // (Ambush — 3 enemies, Standard map, richer purse), while an unclaimed-wilds
-        // band merely blundered into you (Skirmish — 2 enemies, Sparse). This is the
+        // (Ambush: 3 enemies, Standard map, richer purse), while an unclaimed-wilds
+        // band merely blundered into you (Skirmish: 2 enemies, Sparse). This is the
         // ONLY consumer of EncounterTier.Ambush; before it, every authored ambush
         // composition in every region and archmage pool was unreachable data.
         var patrolTier = _isWarfront
@@ -1976,7 +1976,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Dossier: being intercepted by an archmage's patrol is crossing paths
         // with their forces ("wilds" is filtered inside the service). Fired
         // BEFORE CommitCombat (2026-07-29): CommitCombat changes scene, which
-        // tears the ToastManager out of the tree — announcing after it threw
+        // tears the ToastManager out of the tree; announcing after it threw
         // an NRE in ToastManager.Push (GetTree() on a detached node). The
         // dossier record persists either way; only the toast needed the tree.
         AnnounceDossierMet(archmageId);
@@ -1988,14 +1988,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     // ════════════════════════════════════════════════════════════════════
-    // Combat return — rebuild the SAME window; no seed/fog replay
+    // Combat return: rebuild the SAME window; no seed/fog replay
     // ════════════════════════════════════════════════════════════════════
 
     private void RestoreFromCombat(EncounterRouter router)
     {
         StepsRemaining = router.SavedStepsRemaining;
         // K1 clamp (2026-07-09): MaxHP was recomputed in _Ready from the LIVE
-        // roster — a companion permadying in the combat we're returning from
+        // roster: a companion permadying in the combat we're returning from
         // shrinks the pool, and the saved HP must not exceed the new ceiling.
         CurrentHP = Mathf.Min(router.SavedCurrentHP, MaxHP);
         GoldEarned = router.SavedGoldEarned;
@@ -2006,7 +2006,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // The window was rebuilt fresh in _Ready from World; discovery is already
         // correct (it lives in World). W1: _Ready already built the initial disc
-        // around this saved coord (return-aware Build) — this recenter is a
+        // around this saved coord (return-aware Build); this recenter is a
         // cheap idempotent safety net (adds/frees 0 tiles when Build did its
         // job) that also guarantees the tile exists before party placement.
         var savedLocal = GridLocalOf(router.SavedPartyCoord);
@@ -2019,7 +2019,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var resultHex = router.SavedCombatHexCoord;
 
         // Spoils card (2026-08-13): victory rewards collect here and show as
-        // ONE card instead of scattering into toasts. Defeat has no card —
+        // ONE card instead of scattering into toasts. Defeat has no card;
         // FailExpedition's banner owns that beat.
         var spoils = new List<(string, Color)>();
 
@@ -2052,8 +2052,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     foreach (var qt in QuestNotifier.NotifyNew(gBefore, gsave))
                         _toasts?.Push(qt.Text, qt.Kind);
                 }
-                _toasts?.Push("The guardian falls — the way to the fragment is open.", QuestToastKind.Progress);
-                spoils.Add(("The guardian falls — the way to the fragment is open.", UITheme.Violet));
+                _toasts?.Push("The guardian falls. The way to the fragment is open.", QuestToastKind.Progress);
+                spoils.Add(("The guardian falls. The way to the fragment is open.", UITheme.Violet));
             }
 
             // Step 9: archmage resolution boss felled → Overthrown.
@@ -2071,7 +2071,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         _toasts?.Push(qt.Text, qt.Kind);
                     SaveManager.MarkDirty();
                 }
-                _toasts?.Push($"{rDef?.DisplayName ?? "The archmage"} is overthrown — their shard answers you now.",
+                _toasts?.Push($"{rDef?.DisplayName ?? "The archmage"} is overthrown. Their shard answers you now.",
                               QuestToastKind.Progress);
                 // Q4.2 (§7c): Overthrow drops the archmage's authored relic.
                 string relicLine = ArchmageRelics.TryGrant(rid, "torn from the fallen seat");
@@ -2087,21 +2087,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             EncountersWon++;
             LogRun("combat_end",
                    $"victory{(router.SavedCombatWasPatrolAmbush ? " (patrol ambush)" : "")}" +
-                   $" — encounter #{EncountersWon}",
+                   $", encounter #{EncountersWon}",
                    goldDelta: +router.GoldReward, splinterDelta: +router.SplinterReward,
                    at: resultHex);
             if (router.GoldReward > 0 || router.SplinterReward > 0)
                 spoils.Add(($"+{router.GoldReward} gold   ·   +{router.SplinterReward} Arcane Splinters",
                             UITheme.Gold));
 
-            // Q4.4 (§7c): combat pays in things. Tier-keyed drop roll — the
+            // Q4.4 (§7c): combat pays in things. Tier-keyed drop roll: the
             // primary item faucet (encounter choices were the only one before
             // this). Siege rolls twice; Siege/Boss skip the chance gate.
             var lootSave = SaveManager.ActiveSave;
             if (lootSave != null)
             {
                 // Q5 (§7d): drops won on corrupted ground (tier ≥ 2 at the
-                // combat hex) may come back Blighted — better innate, authored
+                // combat hex) may come back Blighted: better innate, authored
                 // drawback, enchant slot sealed until Cleansed.
                 bool blightGround = CorruptionTierAt(resultHex) >= 2;
                 var blightRng = new RandomNumberGenerator();
@@ -2137,7 +2137,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 {
                     wfCycle.WarfrontStrongholdCleared = true;
                     SaveManager.MarkDirty();
-                    _toasts?.Push("The stronghold falls — the siege breaks. Extract to secure the front.",
+                    _toasts?.Push("The stronghold falls. The siege breaks. Extract to secure the front.",
                                   QuestToastKind.Progress);
                 }
             }
@@ -2151,7 +2151,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // Sentiment: winning combat in an archmage's region shifts sentiment
             // toward the player. Killing their OWN patrol is handled separately
             // in EmitCombatDeed (negative shift there). Here: region-archmage
-            // gets a positive nudge — the player is clearing threats.
+            // gets a positive nudge: the player is clearing threats.
             {
                 var sentCampaign = SaveManager.ActiveSave?.Cycle?.Campaign;
                 if (sentCampaign != null)
@@ -2164,7 +2164,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
 
             // Dossier: a field victory over an archmage's own forces reveals
-            // the next authored weakness hint (quest spec §4 — wiring pass).
+            // the next authored weakness hint (quest spec §4, wiring pass).
             {
                 string dossierArch = router.SavedCombatWasPatrolAmbush
                     ? router.SavedCombatPatrolArchmageId
@@ -2179,7 +2179,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     {
                         var dDef = ArchmageDefById(dossierArch);
                         _toasts?.Push(
-                            $"Dossier — {(dDef != null ? dDef.DisplayName : dossierArch)}: “{hint}”",
+                            $"Dossier ({(dDef != null ? dDef.DisplayName : dossierArch)}): “{hint}”",
                             QuestToastKind.Progress);
                         foreach (var qt in QuestNotifier.NotifyNew(dBefore, dSave))
                             _toasts?.Push(qt.Text, qt.Kind);
@@ -2189,7 +2189,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             ReleaseImprisonedAt(resultHex); // if this was a prison, free the captive
 
             // S3 (Deathsight, Necromancer): every won combat leaves a Remnant
-            // for the rest of the expedition — Bone Scout / Speak with the
+            // for the rest of the expedition: Bone Scout / Speak with the
             // Fallen cast from these. Recorded school-agnostically (cheap);
             // markers draw only when a necromancer can use them.
             if (_window.TryLocalToWorld(resultHex, out int rcol, out int rrow))
@@ -2206,7 +2206,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 _identifiedEncounters.Remove(mark);
             }
 
-            // The spoils card — everything the win paid, one modal read. Its
+            // The spoils card: everything the win paid, one modal read. Its
             // own backdrop gates map input until Continue; no host state to
             // re-enable on close.
             CombatSummaryPanel.Show(this, spoils, null);
@@ -2214,14 +2214,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         else
         {
             // K2 (§5b): a LOST combat downs the whole fielded party (defeat
-            // requires allPlayersDead in CheckCombatEnd) — one roll each at the
+            // requires allPlayersDead in CheckCombatEnd): one roll each at the
             // combat hex's territory tier; boss encounters roll at 40%.
             _casualtyNote = CompanionInjurySystem.ApplyWipe(SaveManager.ActiveSave,
                 TerritoryTierAt(resultHex),
                 bossContext: router.CurrentTier == EncounterTier.Boss,
                 "defeated in combat");
             LogRun("combat_end",
-                   $"DEFEAT{(string.IsNullOrEmpty(_casualtyNote) ? "" : " — " + _casualtyNote)}",
+                   $"DEFEAT{(string.IsNullOrEmpty(_casualtyNote) ? "" : ": " + _casualtyNote)}",
                    at: resultHex);
 
             ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
@@ -2229,7 +2229,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             // RULED (2026-07-09): defeat ENDS the expedition. The old path
             // subtracted router.DamageTaken (which arrived as 0) and carried on
-            // — a fully dead party "respawned" at full pool. A party that lost
+            // (a fully dead party "respawned" at full pool). A party that lost
             // everyone does not keep exploring. GodModeHP (debug) is the only
             // escape: the run survives at 1 HP.
             if (PlayerSession.DebugMode && PlayerSession.GodModeHP)
@@ -2330,7 +2330,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         Id = "roaming_caravan",
         Title = "A Caravan on the Road",
-        Body = "A string of laden mules and creaking carts crests the rise \u2014 a merchant column far " +
+        Body = "A string of laden mules and creaking carts crests the rise: a merchant column far " +
                "from any road you'd expect. The lead driver raises an open hand. Not a threat; an offer.",
         Choices = new System.Collections.Generic.List<EncounterChoice>
         {
@@ -2341,7 +2341,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ResultText = "The driver produces a travel-worn but sound warding cloak for the armory.",
                 GoldDelta = -30, ItemReward = "warding_cloak", RequiredGold = 30 },
             new EncounterChoice { Label = "Buy word of the road ahead (5 gold)",
-                ResultText = "They trade rumor for coin \u2014 a shortcut, and a warning about what waits on it.",
+                ResultText = "They trade rumor for coin: a shortcut, and a warning about what waits on it.",
                 GoldDelta = -5, StepDelta = 4, RequiredGold = 5 },
             new EncounterChoice { Label = "Wave them on",
                 ResultText = "The column rolls past and is gone. The road feels emptier after." },
@@ -2381,11 +2381,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return false;
     }
 
-    /// <summary>P4: take the shard from a cleared sanctum — permanent
+    /// <summary>P4: take the shard from a cleared sanctum: permanent
     /// fragment_&lt;key&gt;_collected, convert the vault centre to a staging point
     /// (the vault becomes a forward base), bump host-kingdom influence, notify.
     /// Idempotent. Staging is added inline: a vault centre carries no POI, so the
-    /// POI-gated GrantStagingPointAtWorld does not apply — this parallels its
+    /// POI-gated GrantStagingPointAtWorld does not apply; this parallels its
     /// core.</summary>
     private void CollectShard(ShardZone z)
     {
@@ -2424,17 +2424,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         SaveManager.MarkDirty();
-        LogRun("shard_collected", $"{z.Name} ({z.FragmentKey}) — vault becomes staging point");
+        LogRun("shard_collected", $"{z.Name} ({z.FragmentKey}); vault becomes staging point");
         _toasts?.Push($"Shard recovered: {z.Name}.", QuestToastKind.Complete);
-        ShowInfo($"You take the shard from {z.Name}. Its power is yours — and the vault " +
+        ShowInfo($"You take the shard from {z.Name}. Its power is yours, and the vault " +
                  "is now a staging point.");
         foreach (var qt in QuestNotifier.NotifyNew(before, save))
             _toasts?.Push(qt.Text, qt.Kind);
         UpdateUI();
     }
 
-    /// <summary>[DEBUG] V: teleport to the nearest UNFINISHED shard vault — its GATE
-    /// while the guardian stands, else its SANCTUM — and trigger arrival, so P4's
+    /// <summary>[DEBUG] V: teleport to the nearest UNFINISHED shard vault (its GATE
+    /// while the guardian stands, else its SANCTUM) and trigger arrival, so P4's
     /// gate/guardian/collect flow is testable without surviving the walk in.</summary>
     private void DebugTeleportToVault()
     {
@@ -2473,7 +2473,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var completedIds = SaveManager.ActiveSave?.CompletedEvents;
 
         // K3 (§5a): a rescue POI wears a Narrative marker in-window, but the
-        // world-side kind survives — route it to a found-person encounter.
+        // world-side kind survives; route it to a found-person encounter.
         // Falls through to the normal pool when no one is left to find
         // (a rescue site must never dead-end into nothing).
         NarrativeEncounterData encounter = null;
@@ -2536,14 +2536,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>K3 (§5a): synthesize the found-person encounter for a rescue POI.
-    /// Eligible: authored, not recruited, not dead, and NOT IsAvailable — the
+    /// Eligible: authored, not recruited, not dead, and NOT IsAvailable. The
     /// available ones are the hiring halls' pool; rescues find the people no
     /// hall will ever list. Complementary by construction, so a rescue never
     /// duplicates a hall offer. Returns null when no one is left to find
     /// (caller falls through to the normal narrative pool). The grant rides
-    /// the existing CompanionUnlock → GrantFromEncounter path — no gold, per
+    /// the existing CompanionUnlock → GrantFromEncounter path: no gold, per
     /// spec ("found people"). NOTE (logged deviation): the spec's "arrives
-    /// with a live arc, ArcStage > 0" is deferred to K4 — ArcStage is derived
+    /// with a live arc, ArcStage > 0" is deferred to K4: ArcStage is derived
     /// state owned by CompanionArcTracker's flag sync, and forcing it here
     /// would desync the tracker (single-source discipline).</summary>
     private NarrativeEncounterData BuildRescueEncounter()
@@ -2564,7 +2564,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             Id = $"rescue_{found.Id}",
             Title = "A Found Person",
             Body = $"Half-hidden from the road: a makeshift camp, cold ashes, and someone " +
-                   $"who has been out here too long. {found.Name} — " +
+                   $"who has been out here too long. {found.Name}. " +
                    $"{found.Backstory} They watch you decide what you are before " +
                    $"they decide what they'll be.",
             Choices = new List<EncounterChoice>
@@ -2573,7 +2573,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 {
                     Label = $"Take {found.Name} in",
                     ResultText = $"{found.Name} gathers what little there is to gather. " +
-                                 "Found, not bought — and they will remember which.",
+                                 "Found, not bought, and they will remember which.",
                     CompanionUnlock = found.Id,
                 },
                 new EncounterChoice
@@ -2588,7 +2588,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     /// <summary>T3 intel verb (2026-08-13): reveal the N nearest hidden,
     /// unconsumed POI hexes as landmark BEACONS (IsLandmark set BEFORE the
-    /// fog write — the 08-08 lesson: the redraw catches the styling only in
+    /// fog write; the 08-08 lesson: the redraw catches the styling only in
     /// that order). Distance from the party's current hex; ties break by
     /// iteration order. Returns how many were actually revealed (the window
     /// may hold fewer hidden POIs than asked).</summary>
@@ -2615,7 +2615,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         foreach (var (_, coord, hex) in candidates)
         {
             if (revealed >= count) break;
-            hex.IsLandmark = true;          // beacon styling — BEFORE the fog write
+            hex.IsLandmark = true;          // beacon styling, BEFORE the fog write
             _fog.RevealHex(coord);
             revealed++;
         }
@@ -2626,7 +2626,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// T1+: chart the nearest hidden POIs as beacons. T2+: chart a radius around the run
     /// objective so its site is known from turn one. T3: arm the once-per-run Ambush
     /// Portent. Pure reuse of existing primitives (RevealNearestPois, SpellChartHexRadius,
-    /// the fog) — no new reveal machinery. Called after the grid, fog, and party are all
+    /// the fog): no new reveal machinery. Called after the grid, fog, and party are all
     /// placed (post-StampStronghold), because RevealNearestPois reads _party.CurrentCoord.</summary>
     private void ApplyScryingReveals(BuildingEffectApplier.RunBonuses bonuses)
     {
@@ -2671,7 +2671,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 save.Ledger.MetaNarrativeFlags.Add($"{key}_trial_passed");
                 SaveManager.MarkDirty();
             }
-            LogRun("guardian_bypassed", $"{key} — trial granted unopposed");
+            LogRun("guardian_bypassed", $"{key}: trial granted unopposed");
             ShowInfo("The guardian does not stir. You pass unopposed.");
             UpdateUI();
             return;
@@ -2694,7 +2694,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             "deathless" => new[] { "Brute", "Wizard", "Defender" },
             _           => new[] { "Brute", "Wizard", "Soldier" },
         };
-        // Capstone escalation (user ruling 2026-07-20 — scale both, shared knob):
+        // Capstone escalation (user ruling 2026-07-20: scale both, shared knob):
         // the shard guardian hardens with the timeline's threat like the rest of the
         // world. Authored 1.6 base x the per-year threat scalar (x1.0 at Year 1).
         float mult = GuardianDifficultyMult *
@@ -2745,7 +2745,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 campaign.SetDisposition(archmageId, ArchmageDisposition.Coerced);
                 foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageCoerced, region, archmageId))
                     _toasts?.Push(qt.Text, qt.Kind);
-                _toasts?.Push($"{def?.DisplayName ?? "The archmage"} yields to the accord — for now.",
+                _toasts?.Push($"{def?.DisplayName ?? "The archmage"} yields to the accord, for now.",
                               QuestToastKind.Progress);
                 SaveManager.MarkDirty();
                 SaveManager.SaveIfDirty();
@@ -2834,7 +2834,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         int spl = SplinterDropTable.Narrative();
         SplinterEarned += spl;
 
-        // T3 (2026-08-13): the intel verb — information as a first-class
+        // T3 (2026-08-13): the intel verb: information as a first-class
         // reward. Reveals the N nearest hidden POIs as beacons.
         if (choice.RevealPois > 0)
         {
@@ -2873,8 +2873,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (arcStatus != null)
         {
             _toasts?.Push(arcStatus.IsComplete
-                ? $"{arcStatus.CompanionName} \u2014 \"{arcStatus.ArcName}\" complete."
-                : $"{arcStatus.CompanionName} \u2014 \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
+                ? $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" complete."
+                : $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
                 QuestToastKind.Progress);
             SaveManager.MarkDirty();
         }
@@ -2883,7 +2883,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // An authored SpellReward on the chosen option grants exactly that
         // spell; otherwise a bonus roll may teach an unknown learnable from
         // the tile's flavored pool. KnownSpellIds rides CycleState, so the
-        // learn persists through any save — the S4 exit criterion.
+        // learn persists through any save (the S4 exit criterion).
         string learnedId = "";
         var grimL = SaveManager.ActiveSave?.Cycle?.Grimoire;
         if (grimL != null)
@@ -2905,7 +2905,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // above. An authored CardReward discovers exactly that blueprint; a
         // CardCodex choice with no named reward rolls an unknown in-school Rare.
         // Discovery is permanent (rides the ledger), so a card found in the field
-        // is known across every timeline — the same knowledge/power split. ──
+        // is known across every timeline, the same knowledge/power split. ──
         string discoveredCard = "";
         var cardSave = SaveManager.ActiveSave;
         if (cardSave?.Ledger != null)
@@ -2965,12 +2965,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         string msg = learnedId != ""
             ? $"Encounter resolved. +{spl} Arcane Splinters. The site yields the secret of " +
-              $"{OverworldSpellRegistry.Get(learnedId)?.Name} — preparable at the next launch."
+              $"{OverworldSpellRegistry.Get(learnedId)?.Name}, preparable at the next launch."
             : $"Encounter resolved. +{spl} Arcane Splinters.";
         if (t2.Count > 0)
             msg += " You " + string.Join(", ", t2) + ".";
         if (discoveredCard != "")
-            msg += $" A codex here yields the {discoveredCard} — now in your card library, " +
+            msg += $" A codex here yields the {discoveredCard}, now in your card library, " +
                    $"draftable and scribable.";
 
         LogRun("narrative_choice",
@@ -2992,7 +2992,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>S3 (Parley Compulsion): a patrol interception converted into a
-    /// negotiation. Same setup as a Negotiation POI, minus POI consumption —
+    /// negotiation. Same setup as a Negotiation POI, minus POI consumption:
     /// the patrol's hex owns no POI. The patrol itself disengages via the
     /// standard post-negotiation restore path.</summary>
     private void TriggerPatrolNegotiation(Vector2I coord)
@@ -3001,7 +3001,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string terrain = TerrainAt(coord).ToString();   // Step 3: world read
         var encounter = NegotiationEncounterLoader.PickForTerrain(terrain, kingdomId);
         if (encounter == null)
-        { ShowInfo("The patrol shakes off the compulsion — nothing to say."); UpdateUI(); return; }
+        { ShowInfo("The patrol shakes off the compulsion. Nothing to say."); UpdateUI(); return; }
 
         NegotiationContext.Clear();
         NegotiationContext.EncounterId = encounter.Id;
@@ -3051,7 +3051,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         grim.BeguileArmed = false;
         NegotiationContext.TensionShift = 2;
         SaveManager.MarkDirty();
-        GD.Print("[Spellcraft] Beguile takes effect — the table opens a band more favorable.");
+        GD.Print("[Spellcraft] Beguile takes effect: the table opens a band more favorable.");
     }
 
     private void TriggerNegotiationEncounter(Vector2I coord)
@@ -3059,7 +3059,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         ConsumeOverlayPoi(coord);   // Step 2
         ConsumeWorldPoi(coord);
 
-        // S5 (True Names): honor the pinned pre-read when one exists —
+        // S5 (True Names): honor the pinned pre-read when one exists:
         // the archetype the attunement showed is the counterpart you meet.
         var encounter = PinnedNegotiationFor(coord);
         if (encounter == null)
@@ -3069,7 +3069,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         NegotiationContext.EncounterId = encounter.Id;
         NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
         NegotiationContext.NpcArchetype = encounter.Archetype.ToString();
-        // Kingdom of the tile we're standing on — drives court-standing
+        // Kingdom of the tile we're standing on: drives court-standing
         // starting tension and the deal-deed echo route. "" for wilds.
         NegotiationContext.OriginKingdomId = KingdomIdAt(coord);
         ConsumeBeguileIfArmed(); // S3
@@ -3106,7 +3106,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             // Supplies bargained at the table (docs/supply_cache_spec_v1): GAINS
             // ride home with the party (SuppliesEarned, at risk until extraction);
-            // COSTS come out of the treasury immediately — you pledged from
+            // COSTS come out of the treasury immediately: you pledged from
             // stores, and the treasury can't go below empty.
             if (NegotiationContext.SuppliesDelta > 0)
             {
@@ -3123,7 +3123,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             // Steps bargained at the table (safe passage, a guide, an opened
             // gate) pay in expedition range, applied to the live budget on
-            // return — same shape as NarrativeChoice.StepDelta, floored at 0.
+            // return, same shape as NarrativeChoice.StepDelta, floored at 0.
             // May exceed OperatingRange, exactly like the pre-expedition
             // BonusSteps path; the range label shows the overrun honestly.
             if (NegotiationContext.StepsDelta != 0)
@@ -3158,7 +3158,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 // Kingdom-aligned: the deal echoes to the court (C4). Routed
                 // on OriginKingdomId (the tile's kingdom), NOT the authored
-                // FactionId — encounter JSONs carry non-kingdom faction keys,
+                // FactionId: encounter JSONs carry non-kingdom faction keys,
                 // so keying on FactionId here was structurally dead (Session D).
                 // FactionReputation no longer stores kingdom feeling; court
                 // standing is the single source of truth.
@@ -3186,7 +3186,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         : NegotiationContext.ReputationDelta;
                 }
             }
-            // S4 (§11): a deal closed in the Cordial zone can carry tuition —
+            // S4 (§11): a deal closed in the Cordial zone can carry tuition,
             // the social route to spells. NegotiationState grants only on
             // Cordial (see GetSpellOutcome); here we just learn and say so.
             string taught = "";
@@ -3206,7 +3206,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     //
                     // Unfarmable by construction: SpellAcquisition.Learn returns
                     // false for anything already known, and spell knowledge is now
-                    // PERMANENT (SpellKnowledgeService) — so each spell can pay
+                    // PERMANENT (SpellKnowledgeService), so each spell can pay
                     // tuition exactly once, ever, across every timeline.
                     //
                     // "General" spells belong to no school and pay nothing; the
@@ -3223,7 +3223,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                             $"tuition: taught '{taughtDef.Id}' at a cordial table");
 
                         // Card tuition (§8, "Negotiate → tuition"): a teacher of YOUR
-                        // OWN school also imparts a technique — an unknown in-school
+                        // OWN school also imparts a technique: an unknown in-school
                         // Rare enters the pool. Off-school teachers pay only the spell
                         // + SchoolMastery above (§2a: off-school pays access, not
                         // cards), so this is gated to same-school instruction. Bounded
@@ -3247,14 +3247,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
             }
             // S5 (§7f/§6a): a compulsion table that CLOSES CORDIALLY buries
-            // the compulsion echo before it lands — same gate as tuition
+            // the compulsion echo before it lands: same gate as tuition
             // (DealAccepted ∧ Cordial). Walking away, strained deals, and
             // collapses all let the story reach the court.
             string buried = "";
             if (NegotiationContext.FromCompulsion && NegotiationContext.ResolvedCordial &&
                 CouncilEcho.CancelDeed(SaveManager.ActiveSave?.Cycle?.Council,
                     NegotiationContext.OriginKingdomId, CouncilEcho.PatrolCompelled))
-                buried = "  The patrol parts on good terms — that story dies here.";
+                buried = "  The patrol parts on good terms. That story dies here.";
 
             // Sentiment: a kingdom-aligned deal shifts the region's archmage.
             // Fair deal (positive rep) = favor; exploitative = disfavor.
@@ -3275,7 +3275,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
             }
 
-            // Quest event shim (step 1 spec — raise finally wired 2026-07-23):
+            // Quest event shim (step 1 spec; raise finally wired 2026-07-23):
             // qe_negotiation_deal (+kingdom variant) for quest gating and the
             // Seraphine unlock.
             foreach (var qt in QuestEvents.Raise(QuestEvents.NegotiationDeal,
@@ -3304,7 +3304,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// <summary>Extract-button router (W3 ruling): free extraction only while
     /// standing ON a supply anchor; anywhere else offers the emergency path
     /// behind a confirm. The return leg is the tension the step budget was
-    /// built for — walking home is the cheap way out.</summary>
+    /// built for: walking home is the cheap way out.</summary>
     private void OnExtractPressed()
     {
         if (ExpeditionComplete)
@@ -3317,12 +3317,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _emergencyConfirm?.PopupCentered();
     }
 
-    /// <summary>W3 emergency extraction — the party abandons the field and
+    /// <summary>W3 emergency extraction: the party abandons the field and
     /// straggles home. Costs: +1 lunation (CycleState.PendingStraggleLunations,
     /// advanced with the full world tick by StrategicView on return) and one
     /// §5b roll per companion at the tier-2 band (15% death, Sworn −10; the
     /// rest injured 1–2 lunations). AMENDS K2.5's "no death risk outside
-    /// losing fights" — this is the price of extraction beyond the line.
+    /// losing fights": this is the price of extraction beyond the line.
     /// Spoils and discoveries ARE kept: the cost is time and bodies, not loot.</summary>
     private void EmergencyExtract()
     {
@@ -3355,7 +3355,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             $"straggled home, +1 lunation.{casualties}",
             GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
             goldBanked: true, materials: MaterialEarned, supplies: SuppliesEarned);
-        ShowInfo($"Emergency extraction. The party straggles home — a lunation will pass. " +
+        ShowInfo($"Emergency extraction. The party straggles home. A lunation will pass. " +
                  $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
         _casualtyNote = null;
         ShowReturnButton();
@@ -3382,13 +3382,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _pinnedNegotiations.Clear();   // S5: True Names pre-reads likewise
 
         // K4: loyalty homecoming (+1 fielded, +2 heroism for the stabilized)
-        // BEFORE the extraction check — ApplyExtractionCheck resets
+        // BEFORE the extraction check: ApplyExtractionCheck resets
         // ExpeditionHP, which is the heroism evidence. Then the Cunning
         // Finder's Fee lands before banking.
         LoyaltyEvents.OnExtraction(SaveManager.ActiveSave);
         GoldEarned += CompanionPerks.ExtractionGold(SaveManager.ActiveSave);
 
-        // K2.5 ruling: extraction infirmary check — who came home broken?
+        // K2.5 ruling: extraction infirmary check: who came home broken?
         // Stabilized (downed in a won fight) → 1–2 lunations; below 25% of
         // BaseHP → 1. Resets ExpeditionHP. No death risk on extraction.
         string extractCasualties = CompanionInjurySystem.ApplyExtractionCheck(SaveManager.ActiveSave);
@@ -3414,7 +3414,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
 
-        // K2 (§5b): the pool hit 0 — an expedition wipe. One roll per fielded
+        // K2 (§5b): the pool hit 0, an expedition wipe. One roll per fielded
         // companion at the territory tier under the party's feet. Skipped when
         // the combat-loss return already rolled this wipe (one roll per wipe).
         if (!injuriesAlreadyRolled)
@@ -3422,7 +3422,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 TerritoryTierAt(_party?.CurrentCoord ?? Vector2I.Zero),
                 bossContext: false, reason);
 
-        // K2.5: expedition over — the wipe rolls above are the injury
+        // K2.5: expedition over. The wipe rolls above are the injury
         // accounting on this path; carried HP just clears.
         CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
         OverworldSpellEffects.Clear(); // S2: timed spell windows end with the expedition
@@ -3437,7 +3437,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Failure still banks DISCOVERY (it's in World) but forfeits unbanked gold.
         BankResources(extracted: false);
-        // The casualty note makes the human cost part of the banner — WHO was
+        // The casualty note makes the human cost part of the banner: WHO was
         // hurt and for how long, not just that the run died (K2 UX).
         string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
         RunEventLog.End("failed", $"{reason}{casualties}",
@@ -3471,7 +3471,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         else
         {
-            // Failure forfeits ALL unbanked spoils — gold, splinters, and
+            // Failure forfeits ALL unbanked spoils: gold, splinters, and
             // materials (2026-08-05 ruling, made alongside the top-bar at-risk
             // readouts: the bar shows all three as losable, so they must be).
             // Map discoveries are the only thing retained. Previously splinters
@@ -3520,7 +3520,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hudCanvas.AddChild(hudPanel);
         _uiHoverBlockers.Add(hudPanel); // S4.2: stat cluster blocks tile hover
 
-        // Hover tooltip — follows the mouse, names the tile under it (fog-gated).
+        // Hover tooltip: follows the mouse, names the tile under it (fog-gated).
         _hoverTooltip = new Label { Visible = false, ZIndex = 100 };
         _hoverTooltip.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
         _hoverTooltip.AddThemeColorOverride("font_color", UITheme.TextPrimary);
@@ -3592,7 +3592,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             DialogText = "You are away from any supply anchor. The party abandons\n" +
                          "the field and straggles home overland:\n\n" +
                          "  · One full lunation passes before you reach the campus.\n" +
-                         "  · Every companion risks injury — or worse — on the road.\n\n" +
+                         "  · Every companion risks injury, or worse, on the road.\n\n" +
                          "Spoils and discoveries are kept. Extract anyway?",
             OkButtonText = "Extract",
         };
@@ -3667,7 +3667,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hudCanvas.AddChild(_returnButton);
 
         // S4.2: every clickable HUD surface blocks the tile hover readout.
-        // (Modal panels — scout report, narrative — are caught by the
+        // (Modal panels (scout report, narrative) are caught by the
         // hovered-control query; listing them too costs nothing.)
         _uiHoverBlockers.Add(_extractButton);
         _uiHoverBlockers.Add(_ledgerButton);
@@ -3689,7 +3689,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>Keeps the objective banner honest about (a) what the objective IS,
-    /// (b) whether it has been met, and (c) what meeting it buys — the three things
+    /// (b) whether it has been met, and (c) what meeting it buys: the three things
     /// the warfront intervention silently decided on return
     /// (KingdomTickSimulation.ApplyIntervention). Success there requires BOTH
     /// ReachedObjective AND WarfrontStrongholdCleared, so an ordinary won fight at
@@ -3724,9 +3724,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         bool cleared = cyc?.WarfrontStrongholdCleared ?? false;
         string stake = (cyc?.PendingWarfrontSide ?? WarfrontSide.Defend) switch
         {
-            WarfrontSide.Seize => "Seize — the guild's banner over the province.",
-            WarfrontSide.Aid   => "Aid — drive the invasion home.",
-            _                  => "Defend — push the invasion back.",
+            WarfrontSide.Seize => "Seize: the guild's banner over the province.",
+            WarfrontSide.Aid   => "Aid: drive the invasion home.",
+            _                  => "Defend: push the invasion back.",
         };
 
         _objectiveLabel.Visible = true;
@@ -3734,7 +3734,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _objectiveLabel.Text = cleared
             ? $"⚔ WARFRONT · {stake}\nThe stronghold has fallen. EXTRACT to secure it."
             : _strongholdCol >= 0
-                ? $"⚔ WARFRONT · {stake}\nStorm the gold-starred stronghold{StrongholdBearing()} — other fights here win you nothing."
+                ? $"⚔ WARFRONT · {stake}\nStorm the gold-starred stronghold{StrongholdBearing()}. Other fights here win you nothing."
                 : $"⚔ WARFRONT · {stake}\nWin a fight at the front, then extract.";
         _objectiveLabel.Modulate = cleared ? Colors.White : UITheme.OverworldLowResourceWarning;
     }
@@ -3804,7 +3804,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         // W3: supply readout replaces the old fixed-window explored counter
-        // (the loaded set now slides and grows — a ratio over it is noise).
+        // (the loaded set now slides and grows; a ratio over it is noise).
         int supplyDist = SupplyDistanceAt(_party.CurrentCoord);
         int supplyBand = SupplyBandAt(_party.CurrentCoord);
         _windowLabel.Text = supplyBand == 0
@@ -3854,7 +3854,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     private string StagingKingdom()
         => _world.GetTile(_stagingCol, _stagingRow).KingdomId ?? "frontier_wilds";
 
-    /// <summary>The content template region for the staging kingdom — the real
+    /// <summary>The content template region for the staging kingdom: the real
     /// region name (e.g. "frontier_wilds") that encounter/narrative pools are
     /// filed under, NOT the "kingdom_N" id. Resolves via the kingdom's
     /// TemplateRegionId set at world generation; falls back to the borderlands.</summary>
@@ -3910,7 +3910,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// the tile's kingdom's region-template EnemyDifficultyMult × a positional
     /// factor from the kingdom's Tier (1→1.0, 2→1.25, 3→1.5). Per-tile (NOT
     /// staging-keyed) so a border-straddling window scales to the ground you're
-    /// on. Used only for the REGION pool — archmage groups carry their own
+    /// on. Used only for the REGION pool; archmage groups carry their own
     /// authored difficulty (see OpenScoutReport / OnPatrolCapturedPlayer).</summary>
     private float DifficultyMultAt(Vector2I local)
     {
@@ -3936,7 +3936,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return regionMult * tierFactor * threatMult;
     }
 
-    /// <summary>K2 (§5b): territory tier (1–3) at a window-local tile — the
+    /// <summary>K2 (§5b): territory tier (1–3) at a window-local tile: the
     /// injury/death roll severity. Same kingdom lookup as DifficultyMultAt;
     /// unclaimed ground rolls at tier 1.</summary>
     private int TerritoryTierAt(Vector2I local)
@@ -3951,15 +3951,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return Mathf.Clamp(ks.Tier, 1, 3);
     }
 
-    /// <summary>Map a stored grid-local coord through the window (identity — the
+    /// <summary>Map a stored grid-local coord through the window (identity: the
     /// window rebuild uses the same staging point, so local coords are stable
     /// even across slides: the local frame is a fixed translation of world axial).</summary>
     private Vector2I GridLocalOf(Vector2I savedLocal) => savedLocal;
 
     // ════════════════════════════════════════════════════════════════════
-    // S2: spell façade — OverworldSpellManager dispatches effects into
+    // S2: spell façade: OverworldSpellManager dispatches effects into
     // these; world mutation stays HERE (the manager owns decisions, not
-    // the world — overworld_spell_system §13).
+    // the world; overworld_spell_system §13).
     // ════════════════════════════════════════════════════════════════════
 
     public Vector2I PartyLocal => _party?.CurrentCoord ?? Vector2I.Zero;
@@ -3982,7 +3982,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         UpdateUI();
     }
 
-    /// <summary>Chart a hex disc into the world (Unseen → Charted only — G2;
+    /// <summary>Chart a hex disc into the world (Unseen → Charted only, G2;
     /// never touches Charted/Explored). Optional terrain filter (Tremorsense).
     /// Returns tiles charted; refreshes window silhouettes when > 0.</summary>
     public int SpellChartHexRadius(int col, int row, int radius,
@@ -4010,7 +4010,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>Force Path (Elementalist): open one impassable hex. Mountain
-    /// shatters to Hills; water freezes/fords to Marsh — passable but boggy,
+    /// shatters to Hills; water freezes/fords to Marsh: passable but boggy,
     /// the "may carry a hazard" clause priced as Marsh's HP drain. Writes the
     /// WORLD tile: a physically opened passage persists for the cycle.</summary>
     public bool SpellForcePath(Vector2I local)
@@ -4041,7 +4041,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     /// <summary>Draw a Wayfarer's Beacon marker at a grid-local coord. The
     /// marker is a direct grid child at a fixed position, so it survives
-    /// window slides (its hex node may unload; the mark remains — that is
+    /// window slides (its hex node may unload; the mark remains. That is
     /// the point of a beacon). Persistence lives in GrimoireState.</summary>
     public void SpellDrawBeaconMarker(Vector2I local)
     {
@@ -4074,7 +4074,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     // ── S3 façade additions ──────────────────────────────────────────────
 
     /// <summary>Retrace (Chronomancer, THE sole G1 exception, once/expedition):
-    /// undo the last committed movement step — position restored, charged step
+    /// undo the last committed movement step: position restored, charged step
     /// cost refunded. HP drains are NOT refunded (time reclaims the ground,
     /// not the toll). False when there is no step to undo.</summary>
     /// <summary>True when a last step exists to undo (Grimoire gating).</summary>
@@ -4112,7 +4112,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return true;
     }
 
-    /// <summary>Waystation marker — a small square-on-post, named by world
+    /// <summary>Waystation marker: a small square-on-post, named by world
     /// coord so consumption can find and free it.</summary>
     public void SpellDrawWaystationMarker(Vector2I local, int col, int row)
     {
@@ -4133,7 +4133,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _grid.AddChild(marker);
     }
 
-    /// <summary>Remnant marker (Deathsight) — a pale sliver on a won-combat hex.</summary>
+    /// <summary>Remnant marker (Deathsight): a pale sliver on a won-combat hex.</summary>
     public void SpellDrawRemnantMarker(Vector2I local)
     {
         var marker = new Node2D { Name = "RemnantMarker", ZIndex = 6 };
@@ -4152,7 +4152,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         => _factionManager?.TryStunPatrolAt(local, steps) != null;
 
     /// <summary>Coords of patrols whose tiles are currently visible (their
-    /// tokens render) — Stasis Snare's legal targets.</summary>
+    /// tokens render): Stasis Snare's legal targets.</summary>
     public List<Vector2I> VisiblePatrolCoords()
     {
         var result = new List<Vector2I>();
@@ -4226,7 +4226,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// combat scene swap (the OverworldSpellEffects pattern); cleared on
     /// fresh deploy and every expedition-end path. Known limit (accepted,
     /// logged in the verification doc): statics do not survive a full app
-    /// restart, so a quit-and-reload mid-expedition forgets pins — the
+    /// restart, so a quit-and-reload mid-expedition forgets pins: the
     /// next scout report re-rolls.</summary>
     private static readonly System.Collections.Generic.Dictionary<string, EncounterDefinition>
         _identifiedEncounters = new();
@@ -4235,7 +4235,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// combat/prison POI exactly as OpenScoutReport would, PIN it so the
     /// on-hex report later shows the same forces, and display it read-only
     /// through the ScoutReportPanel's intel mode. Returns the info-line
-    /// result, or null (refused — no charge, G5).</summary>
+    /// result, or null (refused; no charge, G5).</summary>
     public string SpellIdentify(Vector2I local)
     {
         // Step 2: gate on the overlay model (hex still fetched for terrain below).
@@ -4263,21 +4263,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         _scoutPanel.ShowIntel(encounterDef, TerrainAt(local).ToString(),
-            "Identified from afar — this composition is fixed; the scout report will match.");
-        return $"the weave yields their number — {encounterDef.Enemies.Count} foe(s) revealed";
+            "Identified from afar. This composition is fixed; the scout report will match.");
+        return $"the weave yields their number: {encounterDef.Enemies.Count} foe(s) revealed";
     }
 
-    // ── S5 façade additions — the world watches magic (§6a / R15) ────────
+    // ── S5 façade additions: the world watches magic (§6a / R15) ────────
 
     /// <summary>S5 (R15): deterministic HP hit per cast made FROM a tier-3
-    /// corrupted tile. Flat and legible — the detail card warns pre-cast;
+    /// corrupted tile. Flat and legible: the detail card warns pre-cast;
     /// no roll. Applies to scroll casts too: exposure is about standing in
     /// the corruption while channeling, not about Essence.</summary>
     [Export] public int Tier3CastExposureHP = 4;
 
     /// <summary>Apply the tier-3 casting exposure if the party stands on
     /// tier-3 ground. Returns the info-line note, or null when no exposure.
-    /// Can end the expedition — callers must check ExpeditionComplete.</summary>
+    /// Can end the expedition: callers must check ExpeditionComplete.</summary>
     public string SpellTier3Exposure()
     {
         if (CorruptionTierAt(_party.CurrentCoord) < 3)
@@ -4294,7 +4294,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return null;
         }
         UpdateUI();
-        return $"the corrupted ground answers the working — the party sears for {Tier3CastExposureHP} HP";
+        return $"the corrupted ground answers the working: the party sears for {Tier3CastExposureHP} HP";
     }
 
     /// <summary>S5 (§6a): emit the witnessed-cast deed for an Overt/Grand
@@ -4322,7 +4322,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>True when a Settlement/Seat POI of the given kingdom lies
-    /// within `radius` hexes of the party — §6a's "near a settlement
+    /// within `radius` hexes of the party: §6a's "near a settlement
     /// (benefiting inhabitants)" test.</summary>
     private bool CivicPoiNear(string kingdomId, int radius)
     {
@@ -4365,7 +4365,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>Hover extra for Negotiation POIs under the True Names
-    /// attunement: name the counterpart's archetype before engagement —
+    /// attunement: name the counterpart's archetype before engagement,
     /// pre-loading the token-affinity read the negotiation rewards.</summary>
     private string NegotiationPreread(Vector2I local)
     {
@@ -4398,7 +4398,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     private readonly List<Node2D> _auspiceMarks = new();
 
     /// <summary>Auspice (Chronomancer): preview where the corruption's tile
-    /// flood presses next — loaded clean tiles adjacent to corrupted ground
+    /// flood presses next: loaded clean tiles adjacent to corrupted ground
     /// (heuristic over CorruptionSpread's outward flood; the exact tick also
     /// moves kingdom pressure, which this does not simulate). Marks fade at
     /// the next Auspice or expedition end. Returns tiles flagged.</summary>
@@ -4446,7 +4446,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// coord: stream in tiles entering the load radius, free tiles beyond the
     /// unload radius. Patrols whose tiles unload freeze in place automatically
     /// (their passability/visibility checks fail on missing hexes) and resume
-    /// when the shard returns — the simulation LOD is implicit.</summary>
+    /// when the shard returns: the simulation LOD is implicit.</summary>
     private void RecenterWindow(Vector2I centerLocal)
     {
         if (!_window.TryLocalToWorld(centerLocal, out int col, out int row))
@@ -4455,7 +4455,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Step 1: re-mirror the fog model to the slid window (streamed-in hexes
         // carry FogFromDiscovery; streamed-out coords drop from the model).
         _fog?.SyncFromWindow();
-        // Step 2: same re-mirror for the overlay — the stamps below then rewrite
+        // Step 2: same re-mirror for the overlay: the stamps below then rewrite
         // their marks through the SetOverlay seam.
         SyncOverlayFromWindow();
         _windowCenterLocal = centerLocal;
@@ -4469,7 +4469,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>S4.2 (user request): settlements and seats had no expedition-
-    /// map presence — the window streamer maps only encounter-scale POIs to
+    /// map presence: the window streamer maps only encounter-scale POIs to
     /// hex markers, so cities were visible on the strategic view and invisible
     /// underfoot. Stamp POIType.Settlement/Seat onto loaded hexes after every
     /// build/slide (idempotent; never overwrites an encounter POI; marker
@@ -4478,7 +4478,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// landmark on its window hex and reveal it, so the party can march from the
     /// front and storm it. Re-called on recenter (streaming rebuilds hexes from
     /// world data, which has no stronghold). No-op once the siege is broken, so it
-    /// doesn't respawn. Touches only the in-window hex — never the world table.</summary>
+    /// doesn't respawn. Touches only the in-window hex, never the world table.</summary>
     /// <summary>Tint every window tile belonging to either province of the active
     /// warfront. Cheap by construction: it only calls RefreshVisuals on tiles whose
     /// contested state actually CHANGED, so a window slide repaints the newly
@@ -4528,13 +4528,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         var cyc = SaveManager.ActiveSave?.Cycle;
         if (cyc != null && cyc.WarfrontStrongholdCleared)
-            return; // already stormed — don't put it back
+            return; // already stormed; don't put it back
 
         var local = _window.LocalOf(_strongholdCol, _strongholdRow);
         if (!_grid.Hexes.ContainsKey(local))
-            return; // not in the loaded window yet — a later stream will catch it
+            return; // not in the loaded window yet; a later stream will catch it
 
-        // Step 2: the stronghold stamp is DATA now — before this, the warfront
+        // Step 2: the stronghold stamp is DATA now. Before this, the warfront
         // objective existed only as node properties inside the 2D scene.
         var ovHold = _overlay.OverlayAt(local);
         ovHold.Poi = OverworldHex.POIType.Combat; // entry must still route to a fight
@@ -4570,7 +4570,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         // A SEAT capital's centre is loaded as an Outpost POI (WorldWindowBuilder maps
-        // PoiKind.Seat -> POIType.Outpost — the old "seat is a rest/staging stop" behaviour). For
+        // PoiKind.Seat -> POIType.Outpost, the old "seat is a rest/staging stop" behaviour). For
         // Phase 3 an enemy capital is a SERVICES stop, so OVERRIDE its centre to POIType.Seat: this
         // draws the gold seat marker AND routes arrival to the services menu instead of the outpost
         // full-heal-and-consume. Only the seat's own centre tile is touched; lesser cities and real
@@ -4598,7 +4598,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     /// <summary>Hex distance from a grid-local coord to the NEAREST supply
     /// anchor: this expedition's staging tile, or any Available staging point
-    /// (settlements, secured outposts/seats — including ones secured this
+    /// (settlements, secured outposts/seats, including ones secured this
     /// run, which extend the line as you push).</summary>
     private int SupplyDistanceAt(Vector2I local)
     {
@@ -4616,7 +4616,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         // S3 (Deploy Waystation + W-track ruling #2): a standing waystation is
-        // a supply anchor while it lasts — the deep-push range strategy.
+        // a supply anchor while it lasts: the deep-push range strategy.
         var grimW = SaveManager.ActiveSave?.Cycle?.Grimoire;
         if (grimW != null)
             foreach (var mark in grimW.ActiveWaystations)
@@ -4660,7 +4660,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return _world.ShardZoneAt(col, row) != null;
     }
 
-    /// <summary>True when the party stands ON a supply anchor tile — the
+    /// <summary>True when the party stands ON a supply anchor tile: the
     /// staging tile or any Available staging point. Free extraction is only
     /// offered here (W3 ruling); anywhere else is an emergency extraction.</summary>
     private bool OnSupplyAnchor()
@@ -4673,7 +4673,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         foreach (var sp in _world.StagingPoints)
             if (sp.Available && sp.X == col && sp.Y == row)
                 return true;
-        // S3: a standing waystation is an anchor (free extraction included —
+        // S3: a standing waystation is an anchor (free extraction included;
         // it is a 5-Essence Overt cast; tuning watch noted in the docs).
         var grimA = SaveManager.ActiveSave?.Cycle?.Grimoire;
         if (grimA != null && grimA.ActiveWaystations.Contains($"{col},{row}"))
@@ -4760,8 +4760,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (f == null)
             return "No favor.";
         if (!f.OwedToGuild)
-            return "Owed by the guild — repay it, don't call it in.";
-        // Q4.3: Major favors ARE callable now — the courtier's own gift
+            return "Owed by the guild. Repay it, don't call it in.";
+        // Q4.3: Major favors ARE callable now: the courtier's own gift
         // (item, or the Arcane retainer). They skip the minor-effect type
         // gates below; territory + expedition checks still apply.
         if (!f.IsMajor && !CouncilLedger.CallableTypes.Contains(f.Type))
@@ -4812,7 +4812,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// (consumed, message); a no-op outcome refuses without consuming.</summary>
     private (bool ok, string msg) ExecuteCallIn(Favor f)
     {
-        // Q4.3 (§7c): a Major favor is the courtier's own gift — an item
+        // Q4.3 (§7c): a Major favor is the courtier's own gift: an item
         // flavored by their office ("the Marshal's own sword is a gift with a
         // story and a watcher"). Arcane Majors stay the retainer (K5).
         if (f.IsMajor && f.Type != "Arcane")
@@ -4822,8 +4822,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 return (false, "The court has nothing worthy to send.");
             SaveManager.ActiveSave?.Armory.AddItem(gift);
             SaveManager.MarkDirty();
-            return (true, $"A courier arrives under seal: {gift.Name} ({gift.Rarity}) " +
-                          "— a gift with a story, and a watcher.");
+            return (true, $"A courier arrives under seal: {gift.Name} ({gift.Rarity}), " +
+                          "a gift with a story, and a watcher.");
         }
 
         switch (f.Type)
@@ -4864,7 +4864,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             case "Arcane":
             {
-                // K5 (§5a): the Arcane MAJOR favor is the retainer redemption —
+                // K5 (§5a): the Arcane MAJOR favor is the retainer redemption:
                 // the Court Wizard's own person, sent to settle the debt.
                 // (Scope ruling: spec offered any Major favor; Arcane was the
                 // one empty effect slot, so no existing effect is overloaded.)
@@ -4879,7 +4879,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return (false, "That favor has no field effect yet.");
     }
 
-    /// <summary>Q4.3: pick the Major-favor gift — slot flavored by the favor
+    /// <summary>Q4.3: pick the Major-favor gift: slot flavored by the favor
     /// type (Military → Weapon, Passage → Armor, the rest → Trinket), Rare
     /// preferred, Uncommon fallback, never Legendary (Auction House rule).</summary>
     private ItemDefinition RollCourtierGift(Favor f)
@@ -4906,7 +4906,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (band.Count > 0)
                 return band[rng.RandiRange(0, band.Count - 1)];
         }
-        // No item of that slot below Legendary — fall back to any Rare.
+        // No item of that slot below Legendary: fall back to any Rare.
         var any = new List<ItemDefinition>();
         foreach (var d in all)
             if (d.Rarity == "Rare")
@@ -4928,7 +4928,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Match the resolved tile against the gaol's stored world coordinates.
         // Each runtime prison sits on its own unoccupied tile, so (col,row)
-        // identifies it uniquely and survives any mutation of WorldData.Pois —
+        // identifies it uniquely and survives any mutation of WorldData.Pois,
         // unlike the list index this used to key on.
         ImprisonedEnvoy freed = null;
         foreach (var e in council.Imprisoned)
@@ -4953,7 +4953,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// Wilds patrols and courtless kingdoms emit nothing.</summary>
     /// <summary>Dossier: open an archmage's dossier the first time their forces
     /// are encountered (seen, fought, or parleyed with), diffing quest state
-    /// around the stamp so the unlock toasts fire. Idempotent — "wilds" and
+    /// around the stamp so the unlock toasts fire. Idempotent; "wilds" and
     /// unknown ids are filtered inside DossierService.</summary>
     private void AnnounceDossierMet(string archmageId)
     {
@@ -4970,12 +4970,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     private void EmitCombatDeed(EncounterRouter router, Vector2I resultHex)
     {
-        // Cross-cycle combat record (deed:combat_won) — powers proven-guild
+        // Cross-cycle combat record (deed:combat_won): powers proven-guild
         // companion unlocks (CompanionUnlocks) and future deed-count quests.
         SaveManager.ActiveSave?.Ledger?.RecordDeed("combat_won");
 
         // Marginalia (marginalia_spec_v1 R2/R5): commit the won fight's family
-        // kill tally — victory-gated exactly like combat_won — and toast any
+        // kill tally (victory-gated exactly like combat_won) and toast any
         // movement. The unlock itself is settled by ProgressionSweep on the
         // next save; the completion toast is the promise it keeps.
         if (router.SavedCombatFamilyKills != null && router.SavedCombatFamilyKills.Count > 0)
@@ -4988,27 +4988,27 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 if (adv.CompletedNow)
                     _toasts?.Push(
-                        $"Marginalia complete: {adv.FactionName} — " +
+                        $"Marginalia complete: {adv.FactionName}, " +
                         $"{(string.IsNullOrEmpty(adv.CardName) ? "entry settled" : adv.CardName + " unlocked")}.",
                         QuestToastKind.Unlock);
                 else if (adv.Threshold > 0)
                     _toasts?.Push(
-                        $"Marginalia: {adv.FactionName} — {adv.Kills}/{adv.Threshold} defeated.",
+                        $"Marginalia: {adv.FactionName}, {adv.Kills}/{adv.Threshold} defeated.",
                         QuestToastKind.Progress);
             }
         }
 
         // The deed writes above mutate the permanent ledger directly; without
         // this, a return with no OTHER dirtying mutation (a re-fought hex, no
-        // quest movement) reaches SaveIfDirty clean and the kills — plus the
-        // completion the toast just promised — never touch disk.
+        // quest movement) reaches SaveIfDirty clean and the kills, plus the
+        // completion the toast just promised, never touch disk.
         SaveManager.MarkDirty();
 
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle?.Council == null)
             return;
 
-        // 1. Patrol slain — offense against whoever owns the soldiers.
+        // 1. Patrol slain: offense against whoever owns the soldiers.
         if (router.SavedCombatWasPatrolAmbush &&
             !string.IsNullOrEmpty(router.SavedCombatPatrolArchmageId) &&
             router.SavedCombatPatrolArchmageId != "wilds")
@@ -5054,7 +5054,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         }
 
-        // 3. Settlement defended — a discovered settlement of this kingdom
+        // 3. Settlement defended: a discovered settlement of this kingdom
         // within 4. Square-radius check on world offset coords approximates
         // hex distance (error <= 1 class at this radius); swap in a proper
         // offset->cube distance if the world exposes one.
@@ -5149,7 +5149,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>Lift Hidden window hexes to Silhouette where their world tile
-    /// is now Charted — mid-expedition world writes don't otherwise reach the
+    /// is now Charted. Mid-expedition world writes don't otherwise reach the
     /// already-built window.</summary>
     private void RefreshWindowSilhouettes()
     {
@@ -5187,7 +5187,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var c = save.Companions.Find(c => c.Id == id && c.IsRecruited && !c.IsPermadead && !c.IsInjured);
             if (c == null)
                 continue;
-            int contribution = c.BaseHP / 2;   // floor — int division, BaseHP ≥ 0
+            int contribution = c.BaseHP / 2;   // floor: int division, BaseHP ≥ 0
             int bonus = c.LoyaltyPoolBonus();
             int perk = CompanionPerks.PoolBonus(c);   // K4: Trusted Loyal
             total += contribution + bonus + perk;
@@ -5208,13 +5208,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         EquipmentLoadout.BuildForRun(save.Armory, "wizard",
             save.ActivePartyCompanionIds ?? new List<string>());
 
-        // Q3 (§4b) readout — party traversal resistance at a glance, once at deploy.
+        // Q3 (§4b) readout: party traversal resistance at a glance, once at deploy.
         int cw = EquipmentLoadout.PartyCorruptionWard();
         int hw = EquipmentLoadout.PartyHazardWard();
         if (cw > 0 || hw > 0)
             GD.Print($"[PartyResist] CorruptionWard {cw}, HazardWard {hw} (+ Pathfinder per-terrain).");
 
-        // W3 readout — the supply-line terms this expedition operates under.
+        // W3 readout: the supply-line terms this expedition operates under.
         GD.Print($"[PartyResist] Supply range {SupplyRange} from the nearest anchor; beyond it " +
                  $"+{LeashDrainPerBand} HP/step per {LeashBandWidth} hexes (cap {LeashBandCap} bands). " +
                  "Wards do not apply to leash drain. " +
@@ -5229,7 +5229,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GetTree().Root.AddChild(router);
         }
 
-        // ALWAYS claim the return path — the router is a persistent singleton that
+        // ALWAYS claim the return path: the router is a persistent singleton that
         // survives scene changes, so if the retired OverworldRunManager (or a prior
         // session) created it pointing at the old OverworldScene, combat would
         // return THERE instead of the expedition window. Set it every _Ready.

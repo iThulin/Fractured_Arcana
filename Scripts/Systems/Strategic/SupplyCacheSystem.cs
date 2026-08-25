@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ============================================================
 // SupplyCacheSystem.cs
 //
-// Purpose:  Supply caches — the strategic POI the factions fight over
+// Purpose:  Supply caches: the strategic POI the factions fight over
 //           (docs/supply_cache_spec_v1). Each kingdom seeds with a set
 //           number of caches in its territory; whoever CONTROLS a cache
 //           harvests Supplies from it every lunation. Kingdom supply
@@ -14,12 +14,12 @@ using System.Collections.Generic;
 //           neighbours feeds border pressure so wars erupt over access.
 //           Guild-controlled caches pay into the treasury
 //           (CycleState.Supplies) and can be overseen by a companion
-//           for a yield boost — at the cost of that companion being
+//           for a yield boost, at the cost of that companion being
 //           injured if the cache falls.
 //
 //           Sieges reuse the Warfront machinery: a Warfront with
-//           TargetPoiIndex >= 0 is a CACHE siege — same markers, same
-//           intervention dialog, same deploy round-trip — but it
+//           TargetPoiIndex >= 0 is a CACHE siege with the same markers,
+//           the same intervention dialog and deploy round-trip, but it
 //           advances here (supply-muscle formula, not corruption) and
 //           resolves by flipping the CACHE's controller, never the
 //           province.
@@ -97,9 +97,9 @@ public static class SupplyCacheSystem
     /// non-convergence kingdom's wilderness if the world has none yet. Covers
     /// both new worlds and existing mid-cycle saves (runs from StrategicView
     /// _Ready and from the lunation tick). Caches seed UNDISCOVERED (v1.1 user
-    /// ruling): they surface through play — exploration (the expedition
+    /// ruling): they surface through play, whether by exploration (the expedition
     /// discovery sweep), siege news naming them, the Spymaster chart packet,
-    /// or bargained supply-lines intel — never as free map knowledge.</summary>
+    /// or bargained supply-lines intel, and never as free map knowledge.</summary>
     public static void EnsureSeeded(CycleState cycle)
     {
         AssertRoundTripOnce();
@@ -109,7 +109,7 @@ public static class SupplyCacheSystem
         foreach (var p in world.Pois)
             if (p.Kind == PoiKind.SupplyCache)
             {
-                MigrateFog(cycle); // v1 seeded everything Discovered — re-hide once
+                MigrateFog(cycle); // v1 seeded everything Discovered, so re-hide once
                 return;            // already seeded
             }
 
@@ -177,7 +177,7 @@ public static class SupplyCacheSystem
 
     /// <summary>One-time v1 → v1.1 fog migration: v1 seeded every cache
     /// Discovered with a Charted tile. Re-hide the ones the player hasn't
-    /// EARNED knowledge of — anything not guild-controlled and not sitting on
+    /// EARNED knowledge of: anything not guild-controlled and not sitting on
     /// a tile the player actually explored. Guild caches (seized ground) and
     /// caches in explored country stay on the map; you don't forget a depot
     /// you've walked past.</summary>
@@ -243,7 +243,7 @@ public static class SupplyCacheSystem
         return revealed;
     }
 
-    /// <summary>Mark a cache Discovered and chart its tile — the one write path
+    /// <summary>Mark a cache Discovered and chart its tile: the one write path
     /// every intel channel (news, negotiation, spymaster arrives pre-charted)
     /// shares, so a marker never floats on Unseen fog.</summary>
     private static void Discover(WorldData world, WorldPoi p)
@@ -291,7 +291,7 @@ public static class SupplyCacheSystem
         BaseYield + (ControllerOf(p) == GuildId && !string.IsNullOrEmpty(p.OverseerCompanionId)
             ? OverseerYieldBonus : 0);
 
-    /// <summary>True if the kingdom holds at least one still-hidden cache —
+    /// <summary>True if the kingdom holds at least one still-hidden cache, which
     /// gates the supply-lines-intel negotiation offer.</summary>
     public static bool HasUndiscoveredCache(CycleState cycle, string kingdomId)
     {
@@ -314,7 +314,7 @@ public static class SupplyCacheSystem
     }
 
     /// <summary>True if this companion is posted as a cache overseer (unavailable
-    /// for party / envoy duty — same single-source discipline as envoy missions:
+    /// for party / envoy duty, the same single-source discipline as envoy missions:
     /// derived from WorldPoi.OverseerCompanionId, never a flag on Companion).</summary>
     public static bool IsOverseer(string companionId)
     {
@@ -326,7 +326,7 @@ public static class SupplyCacheSystem
         return false;
     }
 
-    /// <summary>+1 patrol in regions whose kingdom is flush with supplies —
+    /// <summary>+1 patrol in regions whose kingdom is flush with supplies. This is
     /// the "harvested supply becomes local power" knob for expeditions.
     /// Keyed by TEMPLATE region id (what OverworldFactionManager has).</summary>
     public static int PatrolBonusForRegion(string regionId)
@@ -340,11 +340,11 @@ public static class SupplyCacheSystem
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Lunation tick — pressure half (runs BEFORE KingdomTickSimulation.Tick)
+    // Lunation tick: pressure half (runs BEFORE KingdomTickSimulation.Tick)
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>Supply envy: a kingdom whose neighbour harvests EnvyCacheLead
-    /// more caches accrues border pressure AGAINST that neighbour — written
+    /// more caches accrues border pressure AGAINST that neighbour, written
     /// before the kingdom tick so it feeds the same boil-over that opens
     /// warfronts. This is how wars erupt over access to supply nodes.</summary>
     public static void TickPressure(CycleState cycle)
@@ -372,8 +372,8 @@ public static class SupplyCacheSystem
                 if (!cycle.Kingdoms.TryGetValue(n, out var nk) ||
                     string.IsNullOrEmpty(nk.ControllingFactionId))
                     continue;
-                // Guild-held provinces never turn hungry aggressor on their own —
-                // the player starts the player's wars (mirrors the step-3 guard
+                // Guild-held provinces never turn hungry aggressor on their own.
+                // The player starts the player's wars (mirrors the step-3 guard
                 // that bars guild kingdoms from opening cache sieges).
                 if (nk.ControllingFactionId == GuildId)
                     continue;
@@ -389,7 +389,7 @@ public static class SupplyCacheSystem
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Lunation tick — harvest + cache sieges (runs AFTER KingdomTickSimulation)
+    // Lunation tick: harvest + cache sieges (runs AFTER KingdomTickSimulation)
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>Harvest income for every controller (post-flip control, so a
@@ -431,12 +431,12 @@ public static class SupplyCacheSystem
                 (guildCaches == 1 ? "cache." : "caches."));
         }
 
-        // ── 2. Upkeep — every kingdom eats, cache or no cache ───────────────
+        // ── 2. Upkeep: every kingdom eats, cache or no cache ────────────────
         foreach (var kvp in cycle.Kingdoms)
             kvp.Value.SupplyStock = Mathf.Max(0, kvp.Value.SupplyStock - KingdomUpkeep);
 
         // ── 3. AI recapture: a kingdom moves on foreign-held caches in its own
-        //       territory (this is also how the enemy besieges PLAYER caches —
+        //       territory (this is also how the enemy besieges PLAYER caches, since
         //       guild holdings are almost always seized ground). Friendly and
         //       allied courts leave guild caches alone. One siege per kingdom
         //       at a time; besieged caches aren't double-besieged. ───────────
@@ -549,7 +549,7 @@ public static class SupplyCacheSystem
         };
         cycle.Warfronts.Add(wf);
 
-        // News travels: a report that NAMES a cache is intelligence — the
+        // News travels: a report that NAMES a cache is intelligence. The
         // frontier panel telling you about it IS discovering it.
         Discover(world, poi);
 
@@ -563,7 +563,7 @@ public static class SupplyCacheSystem
 
     /// <summary>Player-initiated siege on a cache the guild doesn't control.
     /// Creates the cache warfront at Advance 50 with the guild as aggressor;
-    /// the caller immediately deploys into it (side Seize) — one successful
+    /// the caller immediately deploys into it (side Seize). One successful
     /// expedition flips the cache. Returns the new warfront (or the existing
     /// open siege if one is already running).</summary>
     public static Warfront OpenPlayerSiege(CycleState cycle, int poiIndex)
@@ -621,7 +621,7 @@ public static class SupplyCacheSystem
         }
     }
 
-    /// <summary>Cache-scoped intervention outcomes — the branch ApplyIntervention
+    /// <summary>Cache-scoped intervention outcomes: the branch ApplyIntervention
     /// delegates to for warfronts with TargetPoiIndex ≥ 0. Cache fights resolve
     /// FAST: a successful Defend breaks the siege outright; a successful Seize
     /// flips the cache to the guild on the spot. Only failures leave the bar
@@ -645,14 +645,14 @@ public static class SupplyCacheSystem
                     wf.Closed = true;
                     wf.Resolution = "repelled";
                     cycle.PendingSiegeReports.Add(
-                        $"You broke the siege of the supply cache in {place} — the lines hold.");
+                        $"You broke the siege of the supply cache in {place}. The lines hold.");
                     ShiftHostSentiment(cycle, poi, ControllerOf(poi) == GuildId ? 0 : +8);
                 }
                 else
                 {
                     wf.Advance += CacheInterventionSwing;
                     cycle.PendingSiegeReports.Add(
-                        $"Your defence of the supply cache in {place} failed — the siege tightens.");
+                        $"Your defence of the supply cache in {place} failed. The siege tightens.");
                     ResolveCacheSiege(cycle, wf, poi, fd);
                 }
                 break;
@@ -709,14 +709,14 @@ public static class SupplyCacheSystem
                 c.InjuredLunationsRemaining =
                     Math.Max(c.InjuredLunationsRemaining, 1 + (int)(GD.Randi() % 2));
                 cycle.PendingSiegeReports.Add(
-                    $"⚠ {c.Name} was overseeing the cache — wounded in the rout, " +
+                    $"⚠ {c.Name} was overseeing the cache and was wounded in the rout, " +
                     $"home in {c.InjuredLunationsRemaining} lunation(s).");
             }
             poi.OverseerCompanionId = "";
         }
 
         poi.SupplyControllerId = newController;
-        Discover(cycle.World, poi); // the report below names it — news is discovery
+        Discover(cycle.World, poi); // the report below names it, and news is discovery
 
         string report = newController == GuildId
             ? $"★ The supply cache in {place} answers to the guild now."
@@ -757,7 +757,7 @@ public static class SupplyCacheSystem
         return true;
     }
 
-    /// <summary>Recall the overseer from a cache (no cost — they walk home).</summary>
+    /// <summary>Recall the overseer from a cache (no cost, they walk home).</summary>
     public static bool RecallOverseer(GuildSaveData save, int poiIndex)
     {
         var world = save?.Cycle?.World;
@@ -772,7 +772,7 @@ public static class SupplyCacheSystem
         return true;
     }
 
-    /// <summary>Recruited, alive, healthy, home, and not otherwise committed —
+    /// <summary>Recruited, alive, healthy, home, and not otherwise committed:
     /// the same bar envoy missions set, plus "not in the active party".</summary>
     public static bool OverseerEligible(GuildSaveData save, Companion c)
     {
@@ -802,7 +802,7 @@ public static class SupplyCacheSystem
         return "the wilds";
     }
 
-    /// <summary>Site the besieger camp — the intervention objective — on a free
+    /// <summary>Site the besieger camp (the intervention objective) on a free
     /// land tile 2–3 hexes from the cache (any kingdom; sieges camp where they
     /// can). Returns (-1,-1) when nothing fits; the expedition then falls back
     /// to its no-stronghold rule (first combat won counts).</summary>
@@ -877,7 +877,7 @@ public static class SupplyCacheSystem
 
             if (poiBack.SupplyControllerId != "guild" || poiBack.OverseerCompanionId != "comp_x" ||
                 wfBack.TargetPoiIndex != 7 || ksBack.SupplyStock != 42)
-                GD.PushError("[SupplyCache] Save round-trip FAILED — supply fields are not serializing.");
+                GD.PushError("[SupplyCache] Save round-trip FAILED. Supply fields are not serializing.");
             else
                 GD.Print("[SupplyCache] Save round-trip OK.");
         }

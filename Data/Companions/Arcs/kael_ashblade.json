@@ -10,7 +10,7 @@
     {
       "stage": 1,
       "title": "How He Counts",
-      "summary": "Kael counts everything in rounds — meals, marches, arguments. Tonight he explains where the count started.",
+      "summary": "Kael counts everything in rounds: meals, marches, arguments. Tonight he explains where the count started.",
       "encounterId": "cm_kael_1",
       "requiresParty": true,
       "location": "expedition",

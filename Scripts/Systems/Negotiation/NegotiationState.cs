@@ -7,7 +7,7 @@ using System.Linq;
 // NegotiationState.cs
 //
 // Purpose:        Pure state machine for one negotiation
-//                 encounter — v2 core loop: term board (sliders),
+//                 encounter. v2 core loop: term board (sliders),
 //                 two-sided token economy, stances (Module A),
 //                 closing squeeze (Module B), tension as risk
 //                 governor. Decoupled from UI; consumed by
@@ -17,12 +17,12 @@ using System.Linq;
 //                 NpcArchetype.cs (enums + archetype tables),
 //                 NegotiationBarks.cs (NPC-turn bark content),
 //                 NegotiationManager.cs (drives this)
-// See:            README §6 — Negotiation;
+// See:            README §6 (Negotiation);
 //                 negotiation_redesign_v1.md §3 (core), §6 (map)
 // ============================================================
 //
 // v2 rewrite notes (Phase 0 bug fixes folded in):
-//   - Patience is ONE ledger (TokenPool) — the PatienceUsed /
+//   - Patience is ONE ledger (TokenPool). The PatienceUsed /
 //     MaxPatience shadow counter is gone, along with the
 //     "everyone gets 2" floor. Patience is earned (Chronomancer,
 //     Stoic companions, buildings) and playing it does what the
@@ -35,21 +35,21 @@ using System.Linq;
 //     board and can be pulled/defanged, instead of silently
 //     summing into the payout.
 
-/// <summary>Reading tier of a log entry — the manager styles and filters by
-/// this. Dialogue: lines spoken at the table, theirs and yours — the primary
+/// <summary>Reading tier of a log entry. The manager styles and filters by
+/// this. Dialogue: lines spoken at the table, theirs and yours, the primary
 /// reading layer. Scene: stage direction and narration. Detail: the sim
 /// readout (clause slides, tension math, turn stamps), hidden unless the
 /// player turns on table details.</summary>
 public enum NegotiationLogKind { Dialogue, Scene, Detail }
 
-/// <summary>What the NPC will do on their next turn — the priority ladder's
+/// <summary>What the NPC will do on their next turn: the priority ladder's
 /// verdict at the current board. Computed by
 /// <see cref="NegotiationState.PredictNpcAction"/> and consumed by BOTH
 /// NpcTurn and the UI (intent line, clause-card threat markers), so the
 /// tell can never lie.</summary>
 public enum NpcMoveKind { Poise, Pull, Rework, Threat, Gift, Hold }
 
-/// <summary>One clause slide within the current exchange — who moved it,
+/// <summary>One clause slide within the current exchange: who moved it,
 /// from which notch to which. The manager draws these as move markers and
 /// ghost trails on the clause cards.</summary>
 public class NegotiationTermMove
@@ -62,7 +62,7 @@ public class NegotiationTermMove
 
 /// <summary>State machine for one in-progress negotiation. Holds the live
 /// tension meter, the term board, both token pools (yours and the NPC's),
-/// the stance, and resolution state. UI-agnostic — <see cref="NegotiationManager"/>
+/// the stance, and resolution state. UI-agnostic; <see cref="NegotiationManager"/>
 /// wraps this and renders.</summary>
 public class NegotiationState
 {
@@ -132,7 +132,7 @@ public class NegotiationState
     public List<string> Log { get; private set; } = new();
 
     // ── Last exchange (move markers) ─────────────────────────────────────
-    /// <summary>Every clause slide since the player last acted — the UI's
+    /// <summary>Every clause slide since the player last acted: the UI's
     /// move markers. Cleared at the top of each player action, so it always
     /// answers "what just changed, and who changed it?"</summary>
     public List<NegotiationTermMove> LastExchange { get; } = new();
@@ -176,7 +176,7 @@ public class NegotiationState
 
         // Court patron backing (C5): a courtier secured as the guild's Patron at
         // this kingdom's court lends a leverage token of THEIR archetype's type
-        // (§ Court a Courtier) — who you courted shapes the bonus. Applied here,
+        // (§ Court a Courtier). Who you courted shapes the bonus. Applied here,
         // not inside BuildTokenPool, because that method clears the pool first.
         if (patronTokenCount > 0)
         {
@@ -185,7 +185,7 @@ public class NegotiationState
                    NegotiationLogKind.Detail);
         }
 
-        // v2: NPC pool — authored per encounter, else archetype default.
+        // v2: NPC pool. Authored per encounter, else archetype default.
         var (resolve, guile, poise) = ArchetypeBehavior.DefaultNpcPool(data.Archetype);
         NpcPool[NpcResource.Resolve] = data.NpcResolve >= 0 ? data.NpcResolve : resolve;
         NpcPool[NpcResource.Guile] = data.NpcGuile >= 0 ? data.NpcGuile : guile;
@@ -201,7 +201,7 @@ public class NegotiationState
         _resolveEmptyAnnounced = NpcPool[NpcResource.Resolve] == 0;
         _guileEmptyAnnounced = NpcPool[NpcResource.Guile] == 0;
 
-        // v2: term board init — positions and weights.
+        // v2: term board init, positions and weights.
         foreach (var term in Terms)
         {
             term.Position = term.StartingPosition == DealTerm.UNAUTHORED
@@ -227,7 +227,7 @@ public class NegotiationState
               + Mathf.Abs(t.ReputationDelta)
               + (string.IsNullOrEmpty(t.SpellId) ? 0 : 2)
               + Mathf.CeilToInt(Mathf.Abs(t.StepsDelta) / 2f)
-              // Supplies weigh heavier than gold per unit (~10:15) — provisions
+              // Supplies weigh heavier than gold per unit (~10:15). Provisions
               // are war material, and the AI must not treat a supply clause as
               // fine print (the Rework target is the LOWEST-weight term).
               + Mathf.RoundToInt(Mathf.Abs(t.SuppliesDelta) / 10f);
@@ -246,7 +246,7 @@ public class NegotiationState
         // Wizard school innate tokens
         switch (school)
         {
-            // [SIM] SchoolTokenCount copies of each innate token — doubled
+            // [SIM] SchoolTokenCount copies of each innate token. Doubled
             // school identity is what opens 3-4★ deals to skilled play.
             case CardSchool.Enchanter:
                 TokenPool[LeverageToken.Charm] += NegotiationTuning.SchoolTokenCount;
@@ -275,13 +275,13 @@ public class NegotiationState
                 TokenPool[LeverageToken.Insight] += NegotiationTuning.SchoolTokenCount;
                 break;
             default:
-                // Adept / Druid: no authored profile yet — generalist Persuade.
+                // Adept / Druid: no authored profile yet, so generalist Persuade.
                 TokenPool[LeverageToken.Persuade] += NegotiationTuning.SchoolTokenCount;
                 break;
         }
 
         // [SIM] Universal floors: everyone can make an argument and everyone
-        // can put SOMETHING on the table — the exchange economy needs legs.
+        // can put SOMETHING on the table. The exchange economy needs legs.
         TokenPool[LeverageToken.Persuade] += NegotiationTuning.UniversalPersuade;
         TokenPool[LeverageToken.Offering] = Mathf.Max(
             TokenPool[LeverageToken.Offering], NegotiationTuning.BaseOfferingFloor);
@@ -372,7 +372,7 @@ public class NegotiationState
         TokenPool[token]--;
         PlayedCounts[token] = PlayedCounts.GetValueOrDefault(token) + 1;
 
-        // Instant walk-away on Intimidate against Idealist (unchanged rule —
+        // Instant walk-away on Intimidate against Idealist (unchanged rule:
         // no stance softens a violated principle).
         if (Data.Archetype == NpcArchetypeType.Idealist
             && token == LeverageToken.Intimidate)
@@ -402,7 +402,7 @@ public class NegotiationState
                     pull = 1;
                     delta = baseDelta + NegotiationTuning.IntimidateGuardedTension;
                     _npcHardened = true;
-                    AddLog("They harden under the threat — expect them to pull back twice as hard.");
+                    AddLog("They harden under the threat. Expect them to pull back twice as hard.");
                     break;
                 default:
                     pull = 1;
@@ -446,8 +446,8 @@ public class NegotiationState
         return true;
     }
 
-    /// <summary>Offer: the token crosses the table — it becomes the NPC's
-    /// Resolve — in exchange for a strong pull and cooler air. Eager moments
+    /// <summary>Offer: the token crosses the table and becomes the NPC's
+    /// Resolve, in exchange for a strong pull and cooler air. Eager moments
     /// double the pull; Guarded ones pocket the gift coldly.</summary>
     public bool PlayOffering(DealTerm target)
     {
@@ -466,7 +466,7 @@ public class NegotiationState
         {
             // Tinker's Fabricate: covetable, but worthless to hoard.
             _freeOfferingArmed = false;
-            AddLog("The fabricated marvel dazzles — but there's nothing in it to hoard. Their pool gains nothing.");
+            AddLog("The fabricated marvel dazzles, but there's nothing in it to hoard. Their pool gains nothing.");
         }
         else
         {
@@ -501,7 +501,7 @@ public class NegotiationState
     }
 
     /// <summary>Insight, use 1: flip the next face-down clause onto the board.
-    /// A revealed clause can then be pulled/defanged like any other — finding
+    /// A revealed clause can then be pulled/defanged like any other. Finding
     /// bad news is now the START of fixing it, not a payout penalty.</summary>
     public bool PlayInsightFlip()
     {
@@ -520,8 +520,8 @@ public class NegotiationState
             hidden.IsHidden = false;
             AddLog($"Revealed hidden term: \"{hidden.Description}\"" +
                    (hidden.FavorPlayer
-                        ? " — they were holding more than they let on."
-                        : " — now you can fight it."));
+                        ? " They were holding more than they let on."
+                        : " Now you can fight it."));
         }
         else
         {
@@ -531,7 +531,7 @@ public class NegotiationState
         return true;
     }
 
-    /// <summary>Insight, use 2: read the tells — learn the NPC's NEXT mood,
+    /// <summary>Insight, use 2: read the tells to learn the NPC's NEXT mood,
     /// so you can time the play that needs it.</summary>
     public bool PlayInsightRead()
     {
@@ -551,7 +551,7 @@ public class NegotiationState
     }
 
     /// <summary>Patience (the fixed token): skip your turn WITHOUT the NPC's
-    /// patience ticking and WITHOUT the NPC acting — and their mood rerolls.
+    /// patience ticking and WITHOUT the NPC acting, and their mood rerolls.
     /// A timing tool: you're fishing for the moment you need.</summary>
     public bool PlayPatience()
     {
@@ -565,13 +565,13 @@ public class NegotiationState
         TokenPool[LeverageToken.Patience]--;
         PlayedCounts[LeverageToken.Patience] = PlayedCounts.GetValueOrDefault(LeverageToken.Patience) + 1;
         TurnNumber++;
-        AddLog("You let the silence stretch, unhurried. Their patience holds — and the moment shifts.");
+        AddLog("You let the silence stretch, unhurried. Their patience holds, and the moment shifts.");
         AdvanceStance();
         return true;
     }
 
-    /// <summary>Pass: the free stall. The clock ticks and the NPC acts —
-    /// this is what Patience looks like when you haven't paid for it.</summary>
+    /// <summary>Pass: the free stall. The clock ticks and the NPC acts.
+    /// This is what Patience looks like when you haven't paid for it.</summary>
     public bool Pass()
     {
         if (IsResolved)
@@ -589,11 +589,11 @@ public class NegotiationState
     public class SqueezeOffer
     {
         public DealTerm Target;
-        public int OddsPercent;   // chance they blink if you hold firm — SHOWN to the player
+        public int OddsPercent;   // chance they blink if you hold firm; SHOWN to the player
     }
 
     /// <summary>Begin closing. Returns the NPC's squeeze, or null when they
-    /// sign as-is (squeeze already spent, or nothing worth squeezing) — in
+    /// sign as-is (squeeze already spent, or nothing worth squeezing). In
     /// the null case the deal is ALREADY resolved when this returns.</summary>
     public SqueezeOffer BeginShake()
     {
@@ -663,11 +663,11 @@ public class NegotiationState
         AddLog(NegotiationBarks.SqueezeBristle, NegotiationLogKind.Dialogue);
         ApplyTensionDelta(NegotiationTuning.SqueezeBristleTension);
         if (!IsResolved)
-            AddLog("The handshake failed — the negotiation continues.");
+            AddLog("The handshake failed. The negotiation continues.");
         return false;
     }
 
-    /// <summary>Withdraw the hand — back to the table, no cost.</summary>
+    /// <summary>Withdraw the hand: back to the table, no cost.</summary>
     public void ResolveSqueezeWithdraw()
     {
         if (IsResolved)
@@ -700,7 +700,7 @@ public class NegotiationState
 
     // ── School signature moves (Phase 5) ─────────────────────────────────
 
-    /// <summary>Full table snapshot for the Chronomancer's Rewind — captured
+    /// <summary>Full table snapshot for the Chronomancer's Rewind, captured
     /// at the top of every turn-consuming player action, restored on use.
     /// The log is deliberately NOT rewound: only you remember.</summary>
     private class TableSnapshot
@@ -826,7 +826,7 @@ public class NegotiationState
                 SchoolMoveUsed = true;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
                 RestoreRewindPoint();
-                AddLog("The moment repeats — the table is as you left it.");
+                AddLog("The moment repeats. The table is as you left it.");
                 AddLog($"[Turn {TurnNumber} | Tension: {Tension}/10 | Patience: {NpcPatience}]",
                        NegotiationLogKind.Detail);
                 return true;
@@ -859,7 +859,7 @@ public class NegotiationState
                 _omniscient = true;
                 NextStanceKnown = true;
                 AddLog(NegotiationBarks.SchoolMoveLine(School));
-                AddLog($"  · Next they'll be {_nextStance} — and you will always know.");
+                AddLog($"  · Next they'll be {_nextStance}, and you will always know.");
                 return true;
 
             case CardSchool.Druid:
@@ -935,10 +935,10 @@ public class NegotiationState
 
     /// <summary>The priority ladder's verdict at the CURRENT board: what the
     /// NPC will do on their turn, and to which clause. Single source of
-    /// truth — <see cref="NpcTurn"/> executes this verdict, and the UI
+    /// truth: <see cref="NpcTurn"/> executes this verdict, and the UI
     /// (intent line, clause-card threat markers) displays it, so the tell
     /// can never lie. Pure read; mutates nothing. Note it reads the board as
-    /// it stands NOW — the player's own next move can change the verdict
+    /// it stands NOW. The player's own next move can change the verdict
     /// (advancing a clause past 0 wakes their Resolve).</summary>
     public (NpcMoveKind Kind, DealTerm Target) PredictNpcAction()
     {
@@ -958,10 +958,10 @@ public class NegotiationState
         if (pullTarget != null && NpcPool[NpcResource.Resolve] > 0)
             return (NpcMoveKind.Pull, pullTarget);
 
-        // 3. Guile: rework the FINE PRINT — the lightest movable clause.
+        // 3. Guile: rework the FINE PRINT, the lightest movable clause.
         //    (Was min position×weight, which sniped the player's biggest-
         //    ticket clause first: punishing, and invisible to boot. The bark
-        //    has always said "small print" — now it behaves like it.)
+        //    has always said "small print"; now it behaves like it.)
         if (NpcPool[NpcResource.Guile] > 0)
         {
             var guileTarget = Terms
@@ -989,7 +989,7 @@ public class NegotiationState
         return kind switch
         {
             NpcMoveKind.Poise => "they're about to step back from the brink (Poise).",
-            NpcMoveKind.Pull => $"they're eyeing the {ShortName(target)} — expect a pull ({ResolveName}).",
+            NpcMoveKind.Pull => $"they're eyeing the {ShortName(target)}. Expect a pull ({ResolveName}).",
             NpcMoveKind.Rework => $"fine print is coming for the {ShortName(target)} (Guile).",
             NpcMoveKind.Threat => "a threat is coming (Guile).",
             NpcMoveKind.Gift => "they're feeling generous.",
@@ -1033,7 +1033,7 @@ public class NegotiationState
         OnStanceChanged?.Invoke();
     }
 
-    /// <summary>v2: the NPC's move — executes <see cref="PredictNpcAction"/>'s
+    /// <summary>v2: the NPC's move. Executes <see cref="PredictNpcAction"/>'s
     /// verdict, so what the UI foretold is exactly what happens.</summary>
     private void NpcTurn()
     {
@@ -1090,20 +1090,20 @@ public class NegotiationState
         }
     }
 
-    /// <summary>The "push now" tells: say it out loud when a pool runs dry —
-    /// the moment the player's pulls start sticking is the moment the
+    /// <summary>The "push now" tells: say it out loud when a pool runs dry.
+    /// The moment the player's pulls start sticking is the moment the
     /// minigame becomes winnable, and it should never pass silently.</summary>
     private void AnnouncePoolEmpty()
     {
         if (NpcPool[NpcResource.Resolve] == 0 && !_resolveEmptyAnnounced)
         {
             _resolveEmptyAnnounced = true;
-            AddLog($"Their {ResolveName} is spent — what you pull now, stays pulled.");
+            AddLog($"Their {ResolveName} is spent. What you pull now, stays pulled.");
         }
         if (NpcPool[NpcResource.Guile] == 0 && !_guileEmptyAnnounced)
         {
             _guileEmptyAnnounced = true;
-            AddLog("They're out of fine print — the clauses on the table are the whole story.");
+            AddLog("They're out of fine print. The clauses on the table are the whole story.");
         }
     }
 
@@ -1133,7 +1133,7 @@ public class NegotiationState
             return t.Id;
         var words = t.Description.Split(' ');
         int n = Mathf.Min(4, words.Length);
-        string s = string.Join(" ", words.Take(n)).TrimEnd('.', ',', ';', ':', '—');
+        string s = string.Join(" ", words.Take(n)).TrimEnd('.', ',', ';', ':');
         return words.Length > n ? s + "…" : s;
     }
 
@@ -1171,7 +1171,7 @@ public class NegotiationState
         }
     }
 
-    /// <summary>Hostile seals the clause you've won furthest — the NPC guards
+    /// <summary>Hostile seals the clause you've won furthest: the NPC guards
     /// their biggest concession until the room cools.</summary>
     private void UpdateLocks()
     {
@@ -1206,23 +1206,23 @@ public class NegotiationState
         OnLogEntry?.Invoke(message, kind);
     }
 
-    /// <summary>Forget the previous exchange's move markers — called at the
+    /// <summary>Forget the previous exchange's move markers. Called at the
     /// top of every player action, so <see cref="LastExchange"/> always
     /// describes what changed since the player last acted.</summary>
     private void BeginExchange() => LastExchange.Clear();
 
     // ── Outcomes ─────────────────────────────────────────────────────────
 
-    /// <summary>v2: gold from the term BOARD — each clause pays by its final
+    /// <summary>v2: gold from the term BOARD, where each clause pays by its final
     /// slider position (favorable terms pay more pulled toward you;
     /// unfavorable ones cost less). Hidden clauses you never flipped bind at
-    /// their resting position — the price of not reading the small print.
+    /// their resting position, the price of not reading the small print.
     /// The zone multiplier survives from v1.</summary>
     public int GetGoldOutcome() => DealAccepted ? ProjectGold() : 0;
 
     /// <summary>What the deal pays at CURRENT positions and zone, as if it
     /// signed right now. Drives the live "a handshake signs for" preview,
-    /// the squeeze modal's arithmetic, and the final receipt — one source
+    /// the squeeze modal's arithmetic, and the final receipt: one source
     /// of truth for all three.</summary>
     public int ProjectGold()
     {
@@ -1236,7 +1236,7 @@ public class NegotiationState
     public int GetSuppliesOutcome() => DealAccepted ? ProjectSupplies() : 0;
 
     /// <summary>Supplies at current positions, as if signed now. NO zone
-    /// multiplier — provisions are physical goods (see DealTerm.SuppliesDelta).</summary>
+    /// multiplier, since provisions are physical goods (see DealTerm.SuppliesDelta).</summary>
     public int ProjectSupplies()
     {
         float total = 0f;
@@ -1263,7 +1263,7 @@ public class NegotiationState
     public int GetStepsOutcome() => DealAccepted ? ProjectSteps() : 0;
 
     /// <summary>Expedition range moved by the deal (DealTerm.StepsDelta) at
-    /// current positions. NO zone multiplier — a cleared road is a physical
+    /// current positions. NO zone multiplier, since a cleared road is a physical
     /// fact, same reasoning as ProjectSupplies. Positive = safe passage /
     /// guides / opened gates; negative = a detour or an escort you owe.
     /// Applied on return by ExpeditionManager.OnNegotiationReturned.</summary>
@@ -1304,14 +1304,14 @@ public class NegotiationState
     };
 
     /// <summary>One clause's signed contribution to the pre-zone totals at
-    /// its current position — the receipt's line item.</summary>
+    /// its current position, the receipt's line item.</summary>
     public static (int Gold, int Rep, int Supplies) TermPayout(DealTerm t) => (
         Mathf.RoundToInt(t.GoldDelta * t.PlayerFraction()),
         Mathf.RoundToInt(t.ReputationDelta * t.PlayerFraction()),
         Mathf.RoundToInt(t.SuppliesDelta * t.PlayerFraction()));
 
     /// <summary>Totals if <paramref name="target"/> slid one notch their way
-    /// and the deal signed now — the squeeze modal's "concede" column. Pure:
+    /// and the deal signed now, the squeeze modal's "concede" column. Pure:
     /// nudges the position, projects, restores.</summary>
     public (int Gold, int Rep, int Supplies, int Stars) ProjectIfConceded(DealTerm target)
     {
@@ -1324,7 +1324,7 @@ public class NegotiationState
 
     /// <summary>S4 (overworld_spell_system §11): the spell this deal teaches,
     /// or "". A tuition term (SpellId set) grants only when the deal was
-    /// accepted IN THE CORDIAL ZONE — the term's description says exactly
+    /// accepted IN THE CORDIAL ZONE. The term's description says exactly
     /// that, so the gate is legible pre-accept (G5). Hidden spell terms
     /// count only once revealed/accepted, like every other term.</summary>
     public string GetSpellOutcome()

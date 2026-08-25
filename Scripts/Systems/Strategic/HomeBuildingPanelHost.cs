@@ -6,8 +6,8 @@ using System;
 //
 // Purpose:        Floats a SINGLE campus panel over the live
 //                 strategic/city view, so clicking a building in
-//                 city view opens its menu in place — the world
-//                 stays visible behind — instead of swapping to the
+//                 city view opens its menu in place (the world
+//                 stays visible behind) instead of swapping to the
 //                 full-screen CampusScene overlay. Closing returns
 //                 to the city view, not the world map.
 // Layer:          UI (strategic view)
@@ -16,7 +16,7 @@ using System;
 //                 Campus*Panel bodies it hosts, CampusContext.cs
 //                 (the seam it builds for the panel), UITheme.cs
 // See:            claude/HANDOFF_phase2_campus_and_next.md
-//                 (Immediate next step — retire the overlay)
+//                 (Immediate next step: retire the overlay)
 // ============================================================
 
 /// <summary>A CanvasLayer that hosts one <see cref="CampusPanel"/> as a right-docked card
@@ -25,9 +25,9 @@ using System;
 ///
 /// <para><b>Why only some panels.</b> A floated panel is handed a <see cref="CampusContext"/>
 /// built here, NOT by <c>CampusScreen</c>, so it cannot reach the shell's cycle lifecycle. The
-/// panels whose context surface is fully satisfiable without that lifecycle — Guild, Companions,
-/// Armory, Training, Records (they only use Save / Host / RefreshGold / RequestRefreshAll /
-/// EnsureSaveSeeded) — float here. Expedition (BeginNextCycle, EnterStrategicMap) and Quests /
+/// panels whose context surface is fully satisfiable without that lifecycle (Guild, Companions,
+/// Armory, Training, Records; they only use Save / Host / RefreshGold / RequestRefreshAll /
+/// EnsureSaveSeeded) float here. Expedition (BeginNextCycle, EnterStrategicMap) and Quests /
 /// Council (ShowNarrative with its persist-on-completion wiring) genuinely need the shell, so
 /// <see cref="CanFloat"/> rejects them and StrategicView keeps routing those to the full overlay
 /// until that machinery is generalized (Phase 3). Reconstructing half of it here would be a
@@ -49,7 +49,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     private Label _tierLabel;
     private Button _upgradeBtn;
 
-    /// <summary>True when <paramref name="id"/> is a panel this host can float today — i.e. one
+    /// <summary>True when <paramref name="id"/> is a panel this host can float today, i.e. one
     /// whose <see cref="CampusContext"/> needs no shell cycle/narrative lifecycle. Guard every
     /// call site with this; <see cref="CreatePanel"/> throws for anything else.</summary>
     public static bool CanFloat(CampusPanelId id) => id switch
@@ -66,7 +66,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
 
     /// <summary>Build a host for panel <paramref name="id"/>. The caller adds it to the tree;
     /// the overlay itself is built in <see cref="_Ready"/> (deferred, per Godot 4.6 compat
-    /// rules — README §8). <paramref name="panelHost"/> is passed to the panel as
+    /// rules; see README §8). <paramref name="panelHost"/> is passed to the panel as
     /// <see cref="CampusContext.Host"/>; <paramref name="onClosed"/> runs when the player
     /// closes the panel.</summary>
     public static HomeBuildingPanelHost Create(Node panelHost, CampusPanelId? id, string title,
@@ -75,7 +75,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         Action onBuildingChanged = null)
     {
         if (id.HasValue && !CanFloat(id.Value))
-            throw new ArgumentOutOfRangeException(nameof(id), id, "panel is not floatable — guard with CanFloat");
+            throw new ArgumentOutOfRangeException(nameof(id), id, "panel is not floatable; guard with CanFloat");
         return new HomeBuildingPanelHost
         {
             Name = "HomeBuildingPanelHost",
@@ -96,7 +96,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     /// (the 3D grounds' building meshes are tier-keyed).</summary>
     private Action _onBuildingChanged;
 
-    /// <summary>Refresh the hosted panel from outside — e.g. after a floated
+    /// <summary>Refresh the hosted panel from outside, e.g. after a floated
     /// narrative resolves (the host applied the outcome; the panel re-reads).</summary>
     public void RefreshHostedPanel() => _panel?.Refresh();
 
@@ -155,7 +155,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         header.AddChild(closeBtn);
 
         // Upgrade strip (2026-08-13): tier + upgrade verb, right under the
-        // header, for ANY building this host opens — the city view's missing
+        // header, for ANY building this host opens: the city view's missing
         // upgrade path. Purchase goes through the one CampusConstruction core.
         if (!string.IsNullOrEmpty(_buildingId))
         {
@@ -185,7 +185,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         };
         vbox.AddChild(scroll);
 
-        // A live toast host — the CampusContext ctor requires one. The floatable panels don't
+        // A live toast host; the CampusContext ctor requires one. The floatable panels don't
         // push toasts, but keep it valid and layered on top rather than passing null.
         var toasts = new ToastManager { Name = "FloatingPanelToasts" };
         AddChild(toasts);
@@ -194,7 +194,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         // "refresh all" means "redraw me" (panels call it from button handlers after a mutation).
         // refreshGold MUST be a no-op here: several panels (Armory, Training) call Ctx.RefreshGold
         // from INSIDE their Refresh(), so wiring it to _panel.Refresh() recurses to a stack
-        // overflow. The float has no separate gold readout, so there is nothing to repaint —
+        // overflow. The float has no separate gold readout, so there is nothing to repaint;
         // gold-dependent widgets redraw via requestRefreshAll after a purchase. The lifecycle
         // verbs are unreachable for CanFloat panels, so they get inert fallbacks (EnterStrategicMap
         // closes back to the city) rather than half-built shell logic.
@@ -214,7 +214,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         _panel.Refresh();
     }
 
-    /// <summary>Repaint the tier label + upgrade button from the save — at
+    /// <summary>Repaint the tier label + upgrade button from the save, at
     /// build and after each purchase.</summary>
     private void RefreshUpgradeStrip()
     {
@@ -236,7 +236,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         var tierData = template.Tiers.Find(t => t.Tier == bs.Tier);
         _tierLabel.Text = $"Tier {bs.Tier}/{template.MaxTier}" +
                           (tierData != null && !string.IsNullOrEmpty(tierData.DisplayName)
-                              ? $" — {tierData.DisplayName}" : "");
+                              ? $": {tierData.DisplayName}" : "");
 
         string reason = CampusConstruction.CannotBuildReason(save, _buildingId);
         var next = template.Tiers.Find(t => t.Tier == bs.Tier + 1);
@@ -264,7 +264,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     }
 
     /// <summary>Close the floated panel and hand control back to the city view via
-    /// <see cref="_onClosed"/>. Idempotent — the callback fires at most once.</summary>
+    /// <see cref="_onClosed"/>. Idempotent: the callback fires at most once.</summary>
     public void Close()
     {
         var cb = _onClosed;

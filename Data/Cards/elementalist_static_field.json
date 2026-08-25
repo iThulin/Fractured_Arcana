@@ -178,7 +178,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Shock Grid",
-			"description": "Shock Grid: Static Field now imbues rings at 2 and 3 \u2014 a wider storm grid.",
+			"description": "Shock Grid: Static Field now imbues rings at 2 and 3, a wider storm grid.",
 			"changes": [
 				{
 					"half": "top",
@@ -360,7 +360,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Superstorm",
-			"description": "Superstorm: Avalanche becomes a wave of ice and storm \u2014 freezes and stuns.",
+			"description": "Superstorm: Avalanche becomes a wave of ice and storm that freezes and stuns.",
 			"changes": [
 				{
 					"half": "bottom",

@@ -11,7 +11,7 @@ using System.Collections.Generic;
 //                 tallied enemy roster before the player commits
 //                 to the fight. Two buttons: Engage / Retreat.
 //                 S4: also the Identify seam (overworld_spell
-//                 _system §7b) — ShowIntel() renders the same
+//                 _system §7b). ShowIntel() renders the same
 //                 roster read-only from afar: no Engage, Retreat
 //                 relabeled Close, and the stored handlers are
 //                 NOT fired (they belong to a pending on-hex
@@ -21,7 +21,7 @@ using System.Collections.Generic;
 //                 UnitRegistry.cs (threat labels/colors),
 //                 UITheme.cs (styling),
 //                 OverworldRunManager.cs (callback owner)
-// See:            README §5a — POI engagement rules
+// See:            README §5a (POI engagement rules)
 // ============================================================
 
 /// <summary>
@@ -104,7 +104,7 @@ public partial class ScoutReportPanel : Control
         layout.AddThemeConstantOverride("separation", 10);
         _panel.AddChild(layout);
 
-        // Title — "SCOUTING REPORT"
+        // Title: "SCOUTING REPORT"
         _titleLabel = new Label
         {
             Text = "SCOUTING REPORT",
@@ -192,7 +192,7 @@ public partial class ScoutReportPanel : Control
         Visible = true;
     }
 
-    /// <summary>S4 (Identify): the same report, read from afar — no Engage
+    /// <summary>S4 (Identify): the same report, read from afar. No Engage
     /// (the party isn't on the hex), Retreat becomes Close, and the stored
     /// OnEngage/OnRetreat handlers are left untouched and unfired.</summary>
     public void ShowIntel(EncounterDefinition encounter, string terrainName, string note)
@@ -219,7 +219,7 @@ public partial class ScoutReportPanel : Control
             child.QueueFree();
 
         // Tally by display name so duplicates show "Soldier ×2" etc.
-        // U2: labels/colors come from the unit definition — unique unit names
+        // U2: labels/colors come from the unit definition; unique unit names
         // flow through to scout reports for free (units doc §11).
         var tally = new Dictionary<string, (int count, Color color)>();
         foreach (var slot in encounter.Enemies)
@@ -239,7 +239,7 @@ public partial class ScoutReportPanel : Control
             row.AddThemeConstantOverride("separation", 10);
             row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 
-            // Color swatch — fixed size, no wrapper needed
+            // Color swatch: fixed size, no wrapper needed
             var swatch = new ColorRect
             {
                 Color = kvp.Value.color,
@@ -274,7 +274,7 @@ public partial class ScoutReportPanel : Control
     {
         Visible = false;
         if (_intelMode)
-            return; // unreachable (button hidden) — belt and braces
+            return; // unreachable (button hidden); belt and braces
         OnEngage?.Invoke();
     }
 
@@ -282,7 +282,7 @@ public partial class ScoutReportPanel : Control
     {
         Visible = false;
         // S4: in intel mode the stored handlers belong to a pending on-hex
-        // encounter (or are stale) — an Identify view must not fire them.
+        // encounter (or are stale); an Identify view must not fire them.
         if (_intelMode)
             return;
         OnRetreat?.Invoke();

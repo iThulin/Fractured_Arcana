@@ -10,7 +10,7 @@ using Godot;
 // Collaborators:  CardUi.cs (card border + pip colours),
 //                 CardLibraryUi.cs, CampusScreen.cs,
 //                 NewGameScreen.cs, ClassSelectUi.cs
-// See:            README §3 — seven-school identity is one of the
+// See:            README §3; seven-school identity is one of the
 //                 game's core design pillars
 // ============================================================
 
@@ -21,7 +21,7 @@ using Godot;
 /// </summary>
 public static class SchoolColors
 {
-    /// <summary>Bright accent colour — card border and primary school highlight.</summary>
+    /// <summary>Bright accent colour: card border and primary school highlight.</summary>
     public static Color GetBorderColor(CardSchool school) => school switch
     {
         CardSchool.Adept => new Color("#A8A6A0"),  // warm grey
@@ -35,7 +35,7 @@ public static class SchoolColors
         _ => new Color("#A8A6A0"),
     };
 
-    /// <summary>Darker variant — mana pips, badge backgrounds, tinted card fills.</summary>
+    /// <summary>Darker variant: mana pips, badge backgrounds, tinted card fills.</summary>
     public static Color GetDarkColor(CardSchool school) => school switch
     {
         CardSchool.Adept => new Color("#6A6865"),

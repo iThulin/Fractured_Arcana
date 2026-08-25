@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // CorruptionSpread.cs
 //
-// Purpose:        The per-lunation corruption tick — Model C
+// Purpose:        The per-lunation corruption tick, Model C
 //                 (coupled, downward-only). Runs once per
 //                 expedition deploy (one deploy = one lunation).
 //                 Two layers:
@@ -56,7 +56,7 @@ public static class CorruptionSpread
     private const float TerritoryHopFalloff = 1.0f;
 
     /// <summary>Convergence-adjacent kingdoms get a head start each lunation
-    /// regardless of neighbours — the seat actively pushes outward.</summary>
+    /// regardless of neighbours, because the seat actively pushes outward.</summary>
     private const float ConvergencePushPerLunation = 0.4f;
 
     /// <summary>Tiles move at most this many points/lunation toward their target,
@@ -102,7 +102,7 @@ public static class CorruptionSpread
 
     /// <summary>Request that <paramref name="kingdomId"/>'s corruption level not
     /// rise on the next spread tick. Returns false if the map-wide cap is already
-    /// spent this lunation (an already-shielded region returns true — no-op).
+    /// spent this lunation (an already-shielded region returns true as a no-op).
     /// The region key mirrors Tick's kingdom→region resolution so the shield
     /// lands on the right campaign bucket.</summary>
     public static bool TryRequestDelay(string kingdomId, Dictionary<string, KingdomState> kingdoms)
@@ -236,7 +236,7 @@ public static class CorruptionSpread
 
             // Espionage delay (§4): a shielded region holds its level this tick.
             // Pressure still accumulates, so the delay postpones by a lunation
-            // rather than pausing the clock — tempo, not a stop.
+            // rather than pausing the clock. It is tempo, not a stop.
             if (_delayedRegions.Contains(region) && targetLevel > curLevel)
             {
                 GD.Print($"[Corruption] Kingdom '{kid}' ({region}) advance delayed this lunation (sabotage).");
@@ -260,7 +260,7 @@ public static class CorruptionSpread
                     GD.Print($"[Corruption] Kingdom '{kid}' ({region}) archmage fell to corruption.");
 
                 // Dossier (the Astrologer, quest spec §4): he fields no
-                // patrols — his forces are the corruption itself. The first
+                // patrols, because his forces are the corruption itself. The first
                 // witnessed advance opens his dossier; each archmage lost to
                 // corruption reveals another of his authored weaknesses.
                 // Silent stamps (strategic layer has no toast pipe); the

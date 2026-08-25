@@ -15,7 +15,7 @@ using System.Collections.Generic;
 //                 TargetSelectors.cs (SelectUnitTarget et al),
 //                 Effect.cs / IEffect (Tags, Children),
 //                 GlyphCipher.cs (the consumer)
-// See:            docs/glyph_cipher_spec_v1.md §6 — tag extraction
+// See:            docs/glyph_cipher_spec_v1.md §6 (tag extraction)
 // ============================================================
 //
 // WHY RUNTIME EXTRACTION AND NOT A JSON RE-PARSE
@@ -37,8 +37,8 @@ using System.Collections.Generic;
 // .WithTag("Damage") in JsonCardLoader, but in Dominion it wraps an
 // apply_status that deals no damage at all. Reading composite tags
 // would light STRIKE on a pure control card. That mislabel is a
-// pre-existing data smell worth fixing separately — it will corrupt
-// any tag-driven statistics, not just this cipher — but the cipher
+// pre-existing data smell worth fixing separately (it will corrupt
+// any tag-driven statistics, not just this cipher), but the cipher
 // does not depend on it being fixed.
 //
 // ============================================================
@@ -46,7 +46,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Maps a compiled <see cref="CardHalf"/> onto the cipher's semantic vocabulary.
 /// Static, allocation-light, and safe to call every frame (though callers should
-/// cache — see <c>GlyphCipherTexture</c>).
+/// cache; see <c>GlyphCipherTexture</c>).
 /// </summary>
 public static class GlyphCipherTags
 {
@@ -142,14 +142,14 @@ public static class GlyphCipherTags
                 // Every remaining selector picks a place, not a person: tile,
                 // empty tile, aoe, ring, line, cone, element tile, nearest
                 // memorial. All are TILE for cipher purposes. AoE is NOT given
-                // its own node — see the spec's accepted-losses list.
+                // its own node (see the spec's accepted-losses list).
                 return CipherTarget.Tile;
         }
     }
 
     /// <summary>
     /// Verbs for a half, walking the whole effect tree and reading tags from leaves.
-    /// Returns <see cref="CipherVerb.None"/> only if the half has no effects at all —
+    /// Returns <see cref="CipherVerb.None"/> only if the half has no effects at all,
     /// which <c>GlyphCipherSelfTest</c> treats as a failure for any registered card.
     /// </summary>
     public static CipherVerb VerbsOf(CardHalf half)

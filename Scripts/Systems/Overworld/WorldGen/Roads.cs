@@ -16,7 +16,7 @@ using System.Collections.Generic;
 //                 terrain, so a road runs through a city over its real
 //                 biome. A road edge that coincides with a river edge IS
 //                 a bridge (tile.BridgeEdges = RoadEdges & RiverEdges,
-//                 derived) — fast to cross, no ford penalty.
+//                 derived): fast to cross, no ford penalty.
 //
 //                 Links are stamped shortest-first and each A* reads the
 //                 CURRENT road edges, so later roads merge onto earlier
@@ -27,7 +27,7 @@ using System.Collections.Generic;
 //                 SettlementIndex + Terrain in), Settlements (must run
 //                 first), Hydrology (river edges), HexCoord, WorldGenerator.
 // Notes:          Runs AFTER Settlements, BEFORE ScatterPois. Deterministic.
-//                 Roads are unrendered until the edge render pass — the
+//                 Roads are unrendered until the edge render pass; the
 //                 [Roads] print is the only feedback until then.
 // ============================================================
 
@@ -52,7 +52,7 @@ public static class Roads
         int m = centers.Count;
         if (m < 2)
         {
-            GD.Print($"[Roads] {m} settlement(s) — nothing to connect.");
+            GD.Print($"[Roads] {m} settlement(s). Nothing to connect.");
             return;
         }
 
@@ -111,7 +111,7 @@ public static class Roads
 
             var ta = world.Tiles[a];
             if ((ta.RoadEdges & (byte)(1 << d)) != 0)
-                continue;                       // already a road edge — reused, not recounted
+                continue;                       // already a road edge: reused, not recounted
 
             bool bridge = (ta.RiverEdges & (byte)(1 << d)) != 0;   // road crossing a river
             int opp = (d + 3) % 6;
@@ -134,7 +134,7 @@ public static class Roads
 
     /// <summary>Per-destination-cell cost for OFF-road steps. Settlements are cheap
     /// so paths hub through towns; mountains costly but finite, so roads cross ranges
-    /// only at the cheapest saddle. Roads themselves are edges, not terrain — their
+    /// only at the cheapest saddle. Roads themselves are edges, not terrain; their
     /// cheapness lives in StepCost, not here.</summary>
     private static float TerrainCost(WorldTile t)
     {

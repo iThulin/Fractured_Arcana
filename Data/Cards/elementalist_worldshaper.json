@@ -104,7 +104,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Oracle",
-			"description": "Oracle: Elemental Read also scries \u2014 look at top 2 cards of deck and reorder.",
+			"description": "Oracle: Elemental Read also scries. Look at top 2 cards of deck and reorder.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -199,7 +199,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "World's Edge",
-			"description": "World's Edge: The worldshaping becomes total \u2014 imbue with all four elements simultaneously.",
+			"description": "World's Edge: The worldshaping becomes total. Imbue with all four elements simultaneously.",
 			"changes": [
 				{
 					"half": "top",
@@ -222,7 +222,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Grand Confluence",
-			"description": "Grand Confluence: The read becomes mastery \u2014 massive card advantage and attunement boost.",
+			"description": "Grand Confluence: The read becomes mastery, with massive card advantage and an attunement boost.",
 			"changes": [
 				{
 					"half": "bottom",

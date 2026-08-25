@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 //                 exposes the ENTIRE legacy field surface as
 //                 [JsonIgnore] forwarding shims so existing call
 //                 sites compile unchanged during the transition.
-//                 THIS CLASS IS NEVER SERIALIZED — SaveManager
+//                 THIS CLASS IS NEVER SERIALIZED; SaveManager
 //                 writes Ledger and Cycle to separate files.
 // Layer:          Data
 // Collaborators:  EternalLedger.cs (tier 3), CycleState.cs
@@ -18,7 +18,7 @@ using System.Text.Json.Serialization;
 //                 StarterDeckLoader.cs, PlayerDeckService.cs,
 //                 BuildingDatabase.cs, ItemDatabase.cs,
 //                 CampusScreen.cs (all via shims)
-// See:            open_world_refactor_v1.docx §10 — Save Schema
+// See:            open_world_refactor_v1.docx §10, Save Schema
 // Shim policy:    Shims exist so Phase 0 lands without touching
 //                 forty call sites. New code should address
 //                 .Cycle and .Ledger directly; burn shims down
@@ -33,14 +33,14 @@ using System.Text.Json.Serialization;
 public class GuildSaveData
 {
     // ── The two tiers ────────────────────────────────────────────────────
-    /// <summary>Tier 3 — the loom. The only permanent-loss vector.</summary>
+    /// <summary>Tier 3, the loom. The only permanent-loss vector.</summary>
     public EternalLedger Ledger = new();
 
-    /// <summary>Tier 2 — the current timeline.</summary>
+    /// <summary>Tier 2, the current timeline.</summary>
     public CycleState Cycle = new();
 
     // ═══════════════════════════════════════════════════════════════════
-    // Forwarding shims — legacy surface, [JsonIgnore], never serialized.
+    // Forwarding shims: legacy surface, [JsonIgnore], never serialized.
     // ═══════════════════════════════════════════════════════════════════
 
     // ── Meta ────────────────────────────────────────────────────────────
@@ -84,11 +84,11 @@ public class GuildSaveData
     public int Gold
     { get => Cycle.Gold; set => Cycle.Gold = value; }
 
-    /// <summary>Building construction/upgrade cost's second resource, alongside Gold —
-    /// standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
+    /// <summary>Building construction/upgrade cost's second resource, alongside Gold.
+    /// Standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
     /// Same tier as Gold (CycleState, resets each cycle) for consistency. NOTE: this
     /// shim needs a matching `public int BuildMaterials = 0;` field added to
-    /// CycleState itself — not yet done, CycleState.cs wasn't available to edit.</summary>
+    /// CycleState itself. Not yet done, CycleState.cs wasn't available to edit.</summary>
     public int BuildMaterials
     { get => Cycle.BuildMaterials; set => Cycle.BuildMaterials = value; }
 
@@ -96,7 +96,7 @@ public class GuildSaveData
     public int ArcaneSplinters
     { get => Cycle.ArcaneSplinters; set => Cycle.ArcaneSplinters = value; }
 
-    /// <summary>Guild supply stores — see CycleState.Supplies.</summary>
+    /// <summary>Guild supply stores (see CycleState.Supplies).</summary>
     [JsonIgnore]
     public int Supplies
     { get => Cycle.Supplies; set => Cycle.Supplies = value; }
@@ -187,7 +187,7 @@ public class GuildSaveData
     public int MinDeckSize
     { get => Cycle.MinDeckSize; set => Cycle.MinDeckSize = value; }
 
-    /// <summary>Discovered blueprints — knowledge, so it lives in the loom.</summary>
+    /// <summary>Discovered blueprints are knowledge, so they live in the loom.</summary>
     [JsonIgnore]
     public List<string> UnlockedCardBlueprintIds
     { get => Ledger.UnlockedCardBlueprintIds; set => Ledger.UnlockedCardBlueprintIds = value; }
@@ -258,14 +258,14 @@ public class PlayerDeckSave
     [JsonPropertyName("cards")]
     public List<OwnedCard> RealCards = new();
 
-    /// <summary>The debug/scratch owned collection — the cards that back the debug deck
+    /// <summary>The debug/scratch owned collection, the cards that back the debug deck
     /// only. Separate so seeding or resetting the scratch deck never duplicates into the
     /// real collection. New key; old saves default it empty.</summary>
     public List<OwnedCard> DebugCards = new();
 
     /// <summary>The live owned collection every call site uses (hydration, deck editor,
     /// crafting). Routes to the debug collection when <see cref="UseDebugDeck"/> is set,
-    /// else the real one. Not serialized — the two backing lists are.</summary>
+    /// else the real one. Not serialized; the two backing lists are.</summary>
     [JsonIgnore]
     public List<OwnedCard> Cards
     {
@@ -290,7 +290,7 @@ public class PlayerDeckSave
     public List<string> DebugDeckInstanceIds = new();
 
     /// <summary>When set, <see cref="ActiveDeckInstanceIds"/> routes to the debug deck
-    /// instead of the real one — so the existing deck editor and combat both target the
+    /// instead of the real one, so the existing deck editor and combat both target the
     /// scratch deck with zero call-site changes. Static and NOT serialized: defaults
     /// false, resets on quit and whenever the campus loads. Set by CombatDebugLauncher.</summary>
     [JsonIgnore]
@@ -298,7 +298,7 @@ public class PlayerDeckSave
 
     /// <summary>The live deck list every existing call site reads and writes. Routes to
     /// the debug deck when <see cref="UseDebugDeck"/> is set, else the real deck. Not
-    /// serialized — the two backing lists above are.</summary>
+    /// serialized; the two backing lists above are.</summary>
     [JsonIgnore]
     public List<string> ActiveDeckInstanceIds
     {
@@ -358,7 +358,7 @@ public class OwnedCard
 
     /// <summary>
     /// True for copies minted from a carried Regalia at cycle start. Ownership
-    /// is permanent (EternalLedger.RegaliaBlueprintIds); this copy is not — it
+    /// is permanent (EternalLedger.RegaliaBlueprintIds); this copy is not, as it
     /// is re-minted each cycle by RegaliaService.SeedCarriedIntoDeck. Flagged so
     /// the deck editor can refuse to disenchant an artifact the player can never
     /// re-earn. See docs/progression_card_acquisition_v1.md §6.
@@ -401,7 +401,7 @@ public class BuildingSaveData
     // Single source of truth for where this building sits on the campus
     // hex map (CampusMapSaveData.cs). A building can be Tier > 0 (owned,
     // e.g. auto-unlocked when a companion of that school joins per
-    // guild_campus_v2.docx §5) without yet being sited — IsPlaced gates
+    // guild_campus_v2.docx §5) without yet being sited; IsPlaced gates
     // that. Old saves default to Q=0, R=0, IsPlaced=false; CampusGridManager
     // .LoadFromSave skips any building that is !IsPlaced or Tier <= 0, so an
     // owned-but-unplaced building needs player siting and is never auto-placed
@@ -410,31 +410,31 @@ public class BuildingSaveData
     public int R = 0;
     public bool IsPlaced = false;
 
-    /// <summary>True only when this building both exists (Tier > 0 — paid for /
+    /// <summary>True only when this building both exists (Tier > 0, paid for /
     /// unlocked) AND is sited on the campus map (IsPlaced). Owning a building without
-    /// siting it grants nothing — this is the single flag anything gating building
+    /// siting it grants nothing, so this is the single flag anything gating building
     /// EFFECTS (BuildingEffectApplier, etc.) should check, rather than Tier alone.
     /// Tier > 0 && !IsPlaced means "owned, not yet functional."</summary>
     public bool IsFunctional => Tier > 0 && IsPlaced;
 
     /// <summary>0-5, one of the six hex rotation steps applied to the building
     /// template's Footprint before anchoring at Q/R. Not yet exposed in the placement
-    /// UI (BeginPlacingBuilding always places at rotation 0) — the field exists so the
+    /// UI (BeginPlacingBuilding always places at rotation 0); the field exists so the
     /// footprint math and save schema are ready before that UI lands.</summary>
     public int Rotation = 0;
 
     // ── Integrity (combat damage state) ──────────────────────────────────
-    // Flat baseline for now — 20 HP regardless of tier or building type.
+    // Flat baseline for now: 20 HP regardless of tier or building type.
     // Per-tier/per-building scaling is an open question (campus_siege_and_
     // defense_v1 §4), not decided yet; don't assume it here.
     public int MaxIntegrity = 20;
     public int CurrentIntegrity = 20;
 
     /// <summary>Applies combat damage. Clamps at 0 and, on reaching 0, destroys the
-    /// building: Tier resets to 0, IsPlaced to false (campus_siege_and_defense_v1 §4b —
+    /// building: Tier resets to 0, IsPlaced to false (campus_siege_and_defense_v1 §4b:
     /// "destroyed" and "not built" are the same state on the building record; the
     /// difference lives on the tile, which the caller must separately mark Rubble via
-    /// CampusMapSaveData/CampusGridManager — this method only knows about the building).
+    /// CampusMapSaveData/CampusGridManager, since this method only knows about the building).
     /// Returns true the turn it's destroyed (false on every other call, including
     /// once already destroyed), so the caller knows to react exactly once.</summary>
     public bool ApplyDamage(int amount)

@@ -233,7 +233,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind target until your next turn \u2014 cannot act or be freed. Haunted for 2 turns. Leaves a Strong memorial on death."
+					"value": "Bind target until your next turn: it cannot act or be freed. Haunted for 2 turns. Leaves a Strong memorial on death."
 				}
 			]
 		},

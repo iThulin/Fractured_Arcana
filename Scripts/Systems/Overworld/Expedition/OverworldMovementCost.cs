@@ -8,7 +8,7 @@ using Godot;
 //                 (ExpeditionManager.OnPartyMoved) and the UI that
 //                 PREVIEWS it (OverworldPartyToken.HighlightMoveOptions)
 //                 call these methods, so the highlighted number always
-//                 equals the cost actually paid — they can't diverge.
+//                 equals the cost actually paid; they can't diverge.
 //
 //                 Step cost = destination terrain cost, then a road on
 //                 the travelled edge cheapens it (floored at 1) and an
@@ -28,7 +28,7 @@ public static class OverworldMovementCost
     // ── Tuning (the single place these magnitudes live) ──────────────────
 
     /// <summary>Subtracted from a step that travels along a road edge. Cost is
-    /// floored at 1, so a road never makes a move free — just the cheapest.</summary>
+    /// floored at 1, so a road never makes a move free, just the cheapest.</summary>
     public static int RoadDiscount = 1;
 
     /// <summary>Added to a step that crosses an unbridged river edge (a ford).</summary>
@@ -72,7 +72,7 @@ public static class OverworldMovementCost
     // ── Edge-adjusted step cost ──────────────────────────────────────────
 
     /// <summary>Full step cost for moving from `fromHex` across the shared edge into
-    /// the destination terrain. fromHex may be null (e.g. window fringe) — then only
+    /// the destination terrain. fromHex may be null (e.g. window fringe); then only
     /// terrain cost applies. `pathfinderReduction` (Q3 §7b) subtracts from the
     /// terrain cost for a matching terrain; the final Max(1,…) keeps the floor-1
     /// rule so Pathfinder never makes a move free ("relief is bought, immunity
@@ -85,7 +85,7 @@ public static class OverworldMovementCost
         int cost = TerrainStep(destTerrain) - Mathf.Max(0, pathfinderReduction);
 
         // S2: active traversal spells (Verdant Passage) cap the terrain
-        // component. Applied HERE — the single source of truth — so the
+        // component. Applied HERE, the single source of truth, so the
         // charge path and the preview path cannot diverge (G1: reduction
         // within a bounded window, never a refund).
         cost = OverworldSpellEffects.AdjustTerrainStep(destTerrain, cost);
@@ -162,8 +162,8 @@ public static class OverworldMovementCost
         return d >= 0 && fromHex != null && (fromHex.RoadEdges & (1 << d)) != 0;
     }
 
-    /// <summary>True if an UNBRIDGED river runs along the edge (a ford). A bridge —
-    /// a road on the same edge — is not a ford.</summary>
+    /// <summary>True if an UNBRIDGED river runs along the edge (a ford). A bridge
+    /// (a road on the same edge) is not a ford.</summary>
     public static bool EdgeHasUnbridgedRiver(OverworldHex fromHex, Vector2I from, Vector2I to)
     {
         int d = EdgeDirection(from, to);

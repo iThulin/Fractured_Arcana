@@ -2,8 +2,8 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// HexGridManager.Visuals.cs — tile visual/material application, blended-mesh rebuild, obstacle spawning.
-// (Legacy per-tile prop/tuft spawning removed 2026-07-15 — superseded by the
+// HexGridManager.Visuals.cs: tile visual/material application, blended-mesh rebuild, obstacle spawning.
+// (Legacy per-tile prop/tuft spawning removed 2026-07-15, superseded by the
 // painterly scatter family: PainterlyGrass / Flowers / Rocks / Canopy.)
 // Partial of HexGridManager. Split out for navigability; behaviour-neutral.
 public partial class HexGridManager
@@ -71,9 +71,9 @@ public partial class HexGridManager
 
     /// <summary>
     /// Pushes the active recipe's sand palette (or the shader defaults) into
-    /// the SHARED splat template. Must run BEFORE ApplyTileVisuals — tiles
+    /// the SHARED splat template. Must run BEFORE ApplyTileVisuals, because tiles
     /// duplicate the template. The default constants MIRROR terrain_splat's
-    /// sand_light/sand_warm — keep them in sync if the shader defaults change.
+    /// sand_light/sand_warm, so keep them in sync if the shader defaults change.
     /// Reset matters: the template persists across regens.
     /// </summary>
     private void ApplyRecipeSandStyle()
@@ -152,7 +152,7 @@ public partial class HexGridManager
             }
 
             // City siege kinds ("wall", "building:<id>") have no authored scenes
-            // yet — spawn placeholder prisms so blocked is never invisible.
+            // yet, so spawn placeholder prisms and blocked is never invisible.
             // (HexGridManager.CityStamps; swap for real models in the art pass.)
             if (scene == null && tile.TileView != null &&
                 (tile.ObstacleKind == "wall" || tile.ObstacleKind.StartsWith("building:")))

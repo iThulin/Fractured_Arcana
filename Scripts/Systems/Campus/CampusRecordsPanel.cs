@@ -4,7 +4,7 @@ using static CampusUi;
 // ============================================================
 // CampusRecordsPanel.cs
 //
-// Purpose:        The Hall of Records tab — the permanent deal
+// Purpose:        The Hall of Records tab, the permanent deal
 //                 ledger, every negotiation signed or spurned,
 //                 across all timelines.
 // Layer:          UI
@@ -12,18 +12,18 @@ using static CampusUi;
 //                 CampusUi.cs, DealRecord.cs (EternalLedger
 //                 .DealRecords), UITheme.cs
 // See:            negotiation doc §7b;
-//                 docs/campus_tab_extraction_v1.md — Phase 2
+//                 docs/campus_tab_extraction_v1.md, Phase 2
 // ============================================================
 
-/// <summary>Hall of Records. Reads <c>EternalLedger.DealRecords</c> — permanent, so this
-/// panel is one of the few that shows anything at all on a fresh cycle.
+/// <summary>Hall of Records. Reads <c>EternalLedger.DealRecords</c>, which is permanent,
+/// so this panel is one of the few that shows anything at all on a fresh cycle.
 ///
 /// Extracted verbatim from <c>CampusScreen.BuildRecordsTab</c> / <c>RefreshRecordsTab</c>
 /// on 2026-08-03. No layout, wording or aggregate maths changed.</summary>
 public sealed class CampusRecordsPanel : CampusPanel
 {
     /// <summary>Newest-first row cap. The ledger is unbounded across a long save, and
-    /// Godot builds every row eagerly — this is a UI-sanity limit, not a data limit.</summary>
+    /// Godot builds every row eagerly. This is a UI-sanity limit, not a data limit.</summary>
     private const int MaxRows = 50;
 
     private VBoxContainer _container;
@@ -40,9 +40,9 @@ public sealed class CampusRecordsPanel : CampusPanel
         var layout = MakeVBox(12);
         margins.AddChild(layout);
 
-        // The Marginalia — enemy field notes, permanent like everything on this
+        // The Marginalia: enemy field notes, permanent like everything on this
         // tab. Eight fixed rows, so it sits above the unbounded deal ledger.
-        AddSectionHeader(layout, "The Marginalia — Field Notes on the Enemy");
+        AddSectionHeader(layout, "The Marginalia: Field Notes on the Enemy");
 
         _marginaliaSummary = new Label
         {
@@ -57,7 +57,7 @@ public sealed class CampusRecordsPanel : CampusPanel
 
         layout.AddChild(new HSeparator());
 
-        AddSectionHeader(layout, "Hall of Records — Deal Ledger");
+        AddSectionHeader(layout, "Hall of Records: Deal Ledger");
 
         _summaryLabel = new Label
         {
@@ -85,7 +85,7 @@ public sealed class CampusRecordsPanel : CampusPanel
         if (records == null || records.Count == 0)
         {
             _summaryLabel.Text =
-                "Every negotiation — signed or spurned — is remembered here, across all timelines.";
+                "Every negotiation, signed or spurned, is remembered here, across all timelines.";
             _container.AddChild(MakeStubLabel("No deals recorded yet."));
             return;
         }
@@ -118,7 +118,7 @@ public sealed class CampusRecordsPanel : CampusPanel
             {
                 Text = r.Outcome == "Signed"
                     ? new string('★', r.Stars) + new string('☆', 5 - r.Stars)
-                    : "—",
+                    : "-",
                 CustomMinimumSize = new Vector2(96, 0),
                 VerticalAlignment = VerticalAlignment.Top,
             };
@@ -128,13 +128,13 @@ public sealed class CampusRecordsPanel : CampusPanel
             row.AddChild(starLbl);
 
             var col = MakeVBox(2);
-            // Control.SizeFlags, not bare SizeFlags — this class is not a Control, so the
+            // Control.SizeFlags, not bare SizeFlags. This class is not a Control, so the
             // unqualified name that worked inside CampusScreen does not resolve here.
             col.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 
             var nameLbl = new Label
             {
-                Text = $"{r.NpcName} — {r.Title}",
+                Text = $"{r.NpcName}: {r.Title}",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
             nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -170,7 +170,7 @@ public sealed class CampusRecordsPanel : CampusPanel
     }
 
     /// <summary>The Marginalia rows (marginalia_spec_v1 R5): one per enemy
-    /// family — kills/threshold while open, the unlocked card once settled.
+    /// family, showing kills/threshold while open and the unlocked card once settled.
     /// Reads DeedCounts + the sweep's paid flags via MarginaliaService.</summary>
     private void RefreshMarginalia()
     {
@@ -188,7 +188,7 @@ public sealed class CampusRecordsPanel : CampusPanel
 
         _marginaliaSummary.Text =
             $"What is done to you often enough, you learn. {complete} of {rows.Count} " +
-            $"entries complete — a finished entry unlocks that family's trick as a card.";
+            $"entries complete. A finished entry unlocks that family's trick as a card.";
 
         foreach (var r in rows)
         {
@@ -211,7 +211,7 @@ public sealed class CampusRecordsPanel : CampusPanel
 
             var nameLbl = new Label
             {
-                Text = $"{r.FactionName} — {r.School}",
+                Text = $"{r.FactionName}: {r.School}",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
             nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -220,8 +220,8 @@ public sealed class CampusRecordsPanel : CampusPanel
             string detail;
             if (r.Complete)
                 detail = string.IsNullOrEmpty(r.CardName)
-                    ? "Entry complete — blueprint unlocked."
-                    : $"Entry complete — {r.CardName} unlocked.";
+                    ? "Entry complete. Blueprint unlocked."
+                    : $"Entry complete. {r.CardName} unlocked.";
             else if (r.Threshold > 0)
                 detail = $"{r.Kills}/{r.Threshold} defeated";
             else

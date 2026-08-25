@@ -9,7 +9,7 @@ using System.Collections.Generic;
 //                 city view can construct buildings without the
 //                 full-screen campus overlay (the Phase-2 "build
 //                 in place" gap Magos reported 2026-08-13). One
-//                 purchase path — the campus tab and the city
+//                 purchase path: the campus tab and the city
 //                 construct card both call this.
 // Layer:          System (campus)
 // Collaborators:  BuildingDatabase (templates/costs),
@@ -19,13 +19,13 @@ using System.Collections.Generic;
 // ============================================================
 
 /// <summary>Stateless purchase logic for building tiers. Placement is a
-/// separate concern (CampusGridManager.PlaceBuilding) — a building can be
+/// separate concern (CampusGridManager.PlaceBuilding): a building can be
 /// purchased unplaced and placed later, or placed then purchased; effects
 /// gate on IsFunctional (Tier &gt; 0 &amp;&amp; IsPlaced) either way.</summary>
 public static class CampusConstruction
 {
-    /// <summary>Buildings not yet raised (Tier 0), with their tier-1 data —
-    /// the city construct card's list. Includes unaffordable ones (the UI
+    /// <summary>Buildings not yet raised (Tier 0), with their tier-1 data.
+    /// This is the city construct card's list. Includes unaffordable ones (the UI
     /// greys them; hiding them hides the goal).</summary>
     public static List<(BuildingSaveData save, Building template)> Unbuilt(GuildSaveData save)
     {
@@ -80,7 +80,7 @@ public static class CampusConstruction
     /// <summary>Purchase the next tier (1 = fresh construction). The exact
     /// logic CampusScreen.TryBuildOrUpgrade carried, verbatim in behavior:
     /// cost + cap + prerequisite gates, integrity refill on a fresh build.
-    /// Does NOT touch placement and does NOT refresh any UI — callers own
+    /// Does NOT touch placement and does NOT refresh any UI. Callers own
     /// both.</summary>
     public static bool TryBuildOrUpgrade(GuildSaveData save, string buildingId)
     {
@@ -116,8 +116,8 @@ public static class CampusConstruction
 
         // Campus-persistent effects recompute on every purchase (2026-08-13):
         // the city-view upgrade path must apply party-size growth etc.
-        // immediately, not on the next campus visit. Pure recompute — safe
-        // from any caller.
+        // immediately, not on the next campus visit. It is a pure recompute,
+        // safe from any caller.
         BuildingEffectApplier.ApplyCampusEffects(save);
 
         SaveManager.Save();
@@ -126,7 +126,7 @@ public static class CampusConstruction
         return true;
     }
 
-    /// <summary>Undo the most recent tier purchase — the city construct card's
+    /// <summary>Undo the most recent tier purchase. This is the city construct card's
     /// escape hatch when siting fails AFTER the buy (PlaceBuilding requires
     /// Tier &gt; 0, so purchase must precede placement; a paid-but-unplaceable
     /// building refunds rather than stranding gold). Only steps back one tier

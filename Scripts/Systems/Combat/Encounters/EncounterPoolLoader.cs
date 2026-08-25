@@ -32,7 +32,7 @@ public class EnemySlotData
 }
 
 /// <summary>
-/// One named composition — a flat list of enemy slots.
+/// One named composition, which is a flat list of enemy slots.
 /// e.g. { "name": "patrol", "enemies": [{"archetype":"Soldier"},{"archetype":"Ranger"}] }
 /// </summary>
 public class CompositionData
@@ -154,7 +154,7 @@ public static class EncounterPoolLoader
             using var doc = JsonDocument.Parse(file.GetAsText());
             if (!doc.RootElement.TryGetProperty("encounterPools", out var poolEl))
             {
-                GD.Print($"EncounterPoolLoader: No 'encounterPools' key in {path} — using defaults.");
+                GD.Print($"EncounterPoolLoader: No 'encounterPools' key in {path}. Using defaults.");
                 return null;
             }
 
@@ -191,7 +191,7 @@ public static class EncounterPoolLoader
         // If no compositions found, fall back to a sensible default
         if (compositions == null || compositions.Count == 0)
         {
-            GD.Print($"EncounterPoolLoader: No compositions for {regionId}/{tier} — using fallback.");
+            GD.Print($"EncounterPoolLoader: No compositions for {regionId}/{tier}. Using fallback.");
             return BuildFallback(tier, regionId, terrainType, difficultyMult);
         }
 
@@ -203,7 +203,7 @@ public static class EncounterPoolLoader
     }
 
     /// <summary>
-    /// Materialise an EncounterDefinition from an ARCHMAGE faction pool — the
+    /// Materialise an EncounterDefinition from an ARCHMAGE faction pool. This is the
     /// parallel of Pick() for region pools. Returns null when the archmage has no
     /// authored group for this tier (or all slots fail to parse), so the caller
     /// can fall back to the region pool. RegionId is passed through for combat-map
@@ -221,7 +221,7 @@ public static class EncounterPoolLoader
 
         var groups = arch.FactionEncounters?.GetTier(tier.ToString());
         if (groups == null || groups.Count == 0)
-            return null; // no themed group at this tier — caller uses the region pool
+            return null; // no themed group at this tier, so the caller uses the region pool
 
         int idx = (int)(GD.Randi() % (uint)groups.Count);
         var group = groups[idx];
@@ -302,8 +302,8 @@ public static class EncounterPoolLoader
 
     /// <summary>
     /// Translates a composition's optional <c>objective</c> / <c>waves</c> blocks
-    /// onto the definition. Validation is LOUD and happens HERE — at load, where
-    /// the author can see it — never at fight time, where a malformed objective
+    /// onto the definition. Validation is LOUD and happens HERE, at load, where
+    /// the author can see it. It never happens at fight time, where a malformed objective
     /// would silently degrade into an ordinary kill-fight and look like a design
     /// choice. A rejected objective leaves the encounter as annihilate; a rejected
     /// wave is dropped and the rest of the fight is unaffected.
@@ -321,13 +321,13 @@ public static class EncounterPoolLoader
             if (!CombatObjectiveDef.IsKnownKind(kind))
             {
                 GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' declares unknown " +
-                            $"objective kind '{comp.Objective.Kind}' — objective IGNORED " +
+                            $"objective kind '{comp.Objective.Kind}'. Objective IGNORED " +
                             "(this fight will run as annihilate).");
             }
             else if (!CombatObjectiveDef.IsImplementedKind(kind))
             {
                 GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' declares objective " +
-                            $"kind '{kind}', which this build does not implement yet — objective " +
+                            $"kind '{kind}', which this build does not implement yet. Objective " +
                             "IGNORED (this fight will run as annihilate).");
             }
             else if (kind != CombatObjectiveDef.KindAnnihilate)
@@ -337,8 +337,8 @@ public static class EncounterPoolLoader
                 if (needsRounds && comp.Objective.Rounds <= 0)
                 {
                     GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' objective " +
-                                $"'{kind}' needs rounds > 0 (got {comp.Objective.Rounds}) — " +
-                                "objective IGNORED.");
+                                $"'{kind}' needs rounds > 0 (got {comp.Objective.Rounds}). " +
+                                "Objective IGNORED.");
                 }
                 else
                 {
@@ -367,7 +367,7 @@ public static class EncounterPoolLoader
                 {
                     GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' has a wave at " +
                                 $"round {w.Round}; waves must arrive at round 2 or later " +
-                                "(round 1 is the initial roster's job) — wave DROPPED.");
+                                "(round 1 is the initial roster's job). Wave DROPPED.");
                     continue;
                 }
 
@@ -390,7 +390,7 @@ public static class EncounterPoolLoader
                     def.Waves.Add(wave);
                 else
                     GD.PrintErr($"EncounterPoolLoader: wave at round {w.Round} of composition " +
-                                $"'{comp.Name}' resolved to zero units — wave DROPPED.");
+                                $"'{comp.Name}' resolved to zero units. Wave DROPPED.");
             }
 
             def.Waves.Sort((a, b) => a.Round.CompareTo(b.Round));
@@ -408,7 +408,7 @@ public static class EncounterPoolLoader
     }
 
     /// <summary>
-    /// Hardcoded fallback compositions — used when a region has no pool data,
+    /// Hardcoded fallback compositions, used when a region has no pool data,
     /// or as the default before any JSON is authored.
     /// Mirrors QueueDefaultEncounter() in CombatManager.
     /// </summary>

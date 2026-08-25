@@ -8,7 +8,7 @@
       "choices": [
         {
           "label": "Attempt the ritual",
-          "resultText": "The magic responds. Power floods through your party — at a cost.",
+          "resultText": "The magic responds. Power floods through your party, at a cost.",
           "hpDelta": -15,
           "stepDelta": 4
         },
@@ -27,7 +27,7 @@
     {
       "id": "forest_spirit",
       "title": "Voice in the Deep Wood",
-      "body": "Something old speaks from the treeline — not in words, but in impressions. It is not hostile. It is curious. It has been watching your party for some time.",
+      "body": "Something old speaks from the treeline, not in words but in impressions. It is not hostile. It is curious. It has been watching your party for some time.",
       "terrainTags": ["Forest"],
       "regionTags": ["frontier_wilds"],
       "choices": [
@@ -77,19 +77,19 @@
     {
       "id": "trapped_adventurer",
       "title": "Trapped Beneath the Stones",
-      "body": "A hand reaches from beneath a fallen arch. An adventurer — alive, barely — trapped under rubble. They're carrying gear that looks expensive.",
+      "body": "A hand reaches from beneath a fallen arch. An adventurer trapped under rubble. Alive, barely. They're carrying gear that looks expensive.",
       "terrainTags": [],
       "regionTags": ["frontier_wilds"],
       "choices": [
         {
-          "label": "Help them out — use full strength",
+          "label": "Help them out: use full strength",
           "resultText": "They're free. They press coin into your hand before staggering off.",
           "goldDelta": 40,
           "hpDelta": -10,
           "stepDelta": -1
         },
         {
-          "label": "Help them out — take it slow",
+          "label": "Help them out: take it slow",
           "resultText": "A careful approach. They're grateful, and no one gets hurt.",
           "goldDelta": 25,
           "stepDelta": -2

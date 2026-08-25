@@ -7,14 +7,14 @@ using System.Linq;
 //
 // Purpose:        Assigns each territory (kingdom) the authored region
 //                 whose climate/terrain identity best fits that
-//                 territory's NATURAL profile — so the icy region lands
+//                 territory's NATURAL profile, so the icy region lands
 //                 on the cold highland, the swamp region on the wet
 //                 lowland, the volcanic region on the volcanic ground,
 //                 instead of a blind shuffle. This is identity-by-match:
 //                 terrain is never repainted; we pick the region that
 //                 already suits the ground.
 //
-//                 Runs at WorldGenerator step 4 — AFTER territories +
+//                 Runs at WorldGenerator step 4: AFTER territories +
 //                 hydrology + uplift, BEFORE ClassifyHighlands / Climate.
 //                 So it measures base terrain, elevation, moisture, ocean-
 //                 adjacency, and a latitude/elevation TEMPERATURE PROXY
@@ -49,7 +49,7 @@ public static class RegionMatcher
     private const float LapseRate = 0.60f;   // temperature falloff with elevation (mirrors Climate)
 
     // Axis target values, in the realized range of TERRITORY MEANS (not raw tile
-    // extremes — means cluster toward the middle). Only ordering matters for the
+    // extremes; means cluster toward the middle). Only ordering matters for the
     // match ranking; magnitudes set cross-axis balance. Tune freely.
     private static readonly Dictionary<string, float> TempTarget =
         new() { { "cold", 0.30f }, { "temperate", 0.55f }, { "warm", 0.78f } };

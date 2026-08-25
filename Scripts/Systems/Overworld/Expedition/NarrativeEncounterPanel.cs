@@ -29,8 +29,8 @@ public partial class NarrativeEncounterPanel : Control
     private Label _bodyLabel;
     private VBoxContainer _choiceContainer;
     // (2026-08-13) PanelContainer, not Panel: the old fixed-110px Panel with a
-    // full-rect label let long result texts overflow onto the Continue row —
-    // a container grows with its content instead.
+    // full-rect label let long result texts overflow onto the Continue row.
+    // A container grows with its content instead.
     private PanelContainer _resultPanel;
     private Label _resultLabel;
     private Button _continueButton;
@@ -45,8 +45,8 @@ public partial class NarrativeEncounterPanel : Control
     private string _activeSchool = "";
     private int _currentGold;
 
-    // Step 9: campaign context for resolution-choice gating (may be null —
-    // resolution choices are then hidden entirely).
+    // Step 9: campaign context for resolution-choice gating (may be null, in
+    // which case resolution choices are hidden entirely).
     private CampaignState _campaign;
 
     // Fail-safe exit used only if every authored choice is gated out, so the
@@ -127,7 +127,7 @@ public partial class NarrativeEncounterPanel : Control
 
         layout.AddChild(new HSeparator());
 
-        // Body — inside a ScrollContainer so long texts (resolution audiences,
+        // Body, inside a ScrollContainer so long texts (resolution audiences,
         // echo encounters) scroll instead of pushing the choices, result, and
         // Continue button out of the panel / off-screen (Step 9 fix).
         _bodyScroll = new ScrollContainer
@@ -241,14 +241,14 @@ public partial class NarrativeEncounterPanel : Control
         int interactable = 0;
         foreach (var choice in encounter.Choices)
         {
-            // RequiredFlag — a hidden branch that only surfaces once the world
+            // RequiredFlag: a hidden branch that only surfaces once the world
             // remembers the earlier choice. Omit entirely when unmet.
             if (!string.IsNullOrEmpty(choice.RequiredFlag) &&
                 (_hasFlag == null || !_hasFlag(choice.RequiredFlag)))
                 continue;
 
             // Tranche 3 (2026-08-13): item/companion gates, same omit-when-unmet
-            // convention as flags — the door only exists for those holding the key.
+            // convention as flags: the door only exists for those holding the key.
             if (!string.IsNullOrEmpty(choice.RequiredItem) &&
                 (_hasItem == null || !_hasItem(choice.RequiredItem)))
                 continue;
@@ -256,13 +256,13 @@ public partial class NarrativeEncounterPanel : Control
                 (_hasCompanion == null || !_hasCompanion(choice.RequiredCompanion)))
                 continue;
 
-            // RequiredSchool — option exists only for the matching school.
+            // RequiredSchool: option exists only for the matching school.
             if (!string.IsNullOrEmpty(choice.RequiredSchool) &&
                 !string.Equals(choice.RequiredSchool, _activeSchool,
                                System.StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            // ResolutionKind — unite/coerce render disabled with the blocking
+            // ResolutionKind: unite/coerce render disabled with the blocking
             // reason when sentiment/corruption thresholds aren't met; overthrow
             // is always available. Hidden entirely without campaign context.
             bool resBlocked = false;
@@ -270,7 +270,7 @@ public partial class NarrativeEncounterPanel : Control
             if (!string.IsNullOrEmpty(choice.ResolutionKind))
             {
                 if (!isResolution)
-                    continue; // no campaign context — resolution verbs don't render
+                    continue; // no campaign context, so resolution verbs don't render
                 switch (choice.ResolutionKind.ToLowerInvariant())
                 {
                     case "unite":
@@ -294,7 +294,7 @@ public partial class NarrativeEncounterPanel : Control
                 }
             }
 
-            // RequiredGold — shown but disabled, with the reason, when unaffordable.
+            // RequiredGold: shown but disabled, with the reason, when unaffordable.
             bool tooPoor = choice.RequiredGold > 0 && _currentGold < choice.RequiredGold;
 
             bool disabled = tooPoor || resBlocked;
@@ -339,7 +339,7 @@ public partial class NarrativeEncounterPanel : Control
     {
         _chosenResult = choice;
 
-        // Hide the choices once one is taken — the dead buttons only crowd the
+        // Hide the choices once one is taken. The dead buttons only crowd the
         // result. The chosen line is echoed above the result text instead.
         _choiceContainer.Visible = false;
 

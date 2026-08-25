@@ -3,7 +3,7 @@ using Godot;
 // ============================================================
 // LoyaltyEvents.cs
 //
-// Purpose:        K4 loyalty delta hooks — the one place loyalty
+// Purpose:        K4 loyalty delta hooks: the one place loyalty
 //                 moves outside authored arc stages (which keep
 //                 their own LoyaltyDelta in CompanionArcTracker).
 //                 Table + application; callers are the expedition
@@ -20,16 +20,16 @@ using Godot;
 // ============================================================
 
 /// <summary>The K4 loyalty delta table and its appliers. Deltas clamp to 0–100
-/// and log one line each — loyalty movement should always be legible in the
+/// and log one line each; loyalty movement should always be legible in the
 /// console during tuning.</summary>
 public static class LoyaltyEvents
 {
-    // ── The table (K4 starting values — tune here) ───────────────────────
+    // ── The table (K4 starting values, tune here) ────────────────────────
 
     /// <summary>Came home from a successful extraction (fielded, alive).</summary>
     public const int ExtractionDelta = +1;
 
-    /// <summary>Went down in a fight the party WON, and still came home —
+    /// <summary>Went down in a fight the party WON, and still came home:
     /// heroism, rewarded. (v1's "heroism stays free" floor is kept: being
     /// downed in a won fight never costs loyalty; this is the earned upside.)</summary>
     public const int HeroismDelta = +2;
@@ -43,7 +43,7 @@ public static class LoyaltyEvents
 
     /// <summary>Ripple dampening for Sworn companions. Counterargument logged:
     /// arguably the devoted should grieve HARDEST. Mechanically that punishes
-    /// the player's best people for the player's worst moment — the death
+    /// the player's best people for the player's worst moment. The death
     /// already costs the roster its ripple; making Sworn brittle on top would
     /// fight the §4a "personal ceiling" investment. Sworn have survived worse
     /// with you: they take -4, everyone else -8.</summary>
@@ -54,7 +54,7 @@ public static class LoyaltyEvents
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>Extraction homecoming: +1 to every fielded companion who is
-    /// coming home (alive), +2 more to anyone stabilized at 0 — downed in a
+    /// coming home (alive), +2 more to anyone stabilized at 0: downed in a
     /// won fight, still walked out. MUST run BEFORE
     /// CompanionInjurySystem.ApplyExtractionCheck, which resets ExpeditionHP
     /// (the heroism evidence).</summary>
@@ -83,7 +83,7 @@ public static class LoyaltyEvents
 
     /// <summary>The v1-locked morale ripple, finally landing: a death moves
     /// the whole living roster. Sworn dampened (see the constant's note).
-    /// Signature destruction needs no code — signatures are DERIVED
+    /// Signature destruction needs no code; signatures are DERIVED
     /// (StanceRegistry.EligibleSignature) and the dead never spawn.</summary>
     public static void OnDeathRipple(GuildSaveData save, Companion dead)
     {
@@ -109,6 +109,6 @@ public static class LoyaltyEvents
         if (c.Loyalty != before)
             GD.Print($"[Loyalty] {c.Name} {(delta > 0 ? "+" : "")}{delta} → {c.Loyalty} ({why})" +
                      (c.GetLoyaltyTier() != Companion.TierOfValue(before)
-                        ? $" — now {c.GetLoyaltyTier()}" : ""));
+                        ? $", now {c.GetLoyaltyTier()}" : ""));
     }
 }

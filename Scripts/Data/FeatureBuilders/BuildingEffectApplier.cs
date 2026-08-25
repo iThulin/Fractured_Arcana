@@ -45,8 +45,8 @@ public static class BuildingEffectApplier
         {
             if (!buildingSave.IsFunctional) continue; // owned but unsited grants nothing
 
-            // Aggregate ALL built tiers, not just current —
-            // a Tier 2 building should carry Tier 1 flags too.
+            // Aggregate ALL built tiers, not just current: a
+            // Tier 2 building should carry Tier 1 flags too.
             var template = BuildingDatabase.GetTemplate(buildingSave.Id);
             if (template == null) continue;
 
@@ -96,7 +96,7 @@ public static class BuildingEffectApplier
     }
 
     /// <summary>
-    /// Apply campus-persistent effects (not run bonuses) — e.g., MinDeckSize.
+    /// Apply campus-persistent effects (not run bonuses), such as MinDeckSize.
     /// Call from CampusScreen after buildings are loaded.
     /// </summary>
     public static void ApplyCampusEffects(GuildSaveData save)
@@ -125,7 +125,7 @@ public static class BuildingEffectApplier
                     save.MinDeckSize = Math.Max(3, save.MinDeckSize - 2);
                 }
 
-                // (2026-08-13) Party-size growth via campus — §4a's lever.
+                // (2026-08-13) Party-size growth via campus. §4a's lever.
                 save.MaxPartySize += tier.PartySizeBonus;
             }
         }

@@ -22,23 +22,23 @@ using System.Collections.Generic;
 //                 OverworldHexGrid.cs (parent; loaded-set topology),
 //                 OverworldHex.cs (display mirror),
 //                 ExpeditionManager.cs (gates + world write-back)
-// See:            README §6 — Fog of War;
+// See:            README §6 (Fog of War);
 //                 docs/atlas_expedition_convergence_v1.md §Step 1
 // ============================================================
 
-/// <summary>Manages fog-of-war state for the overworld hex grid. Phase 1 implementation is a simple radius reveal — vision range + 1 row of silhouettes. Phase 2+ will add intel-based long-range reveals and per-school abilities.</summary>
+/// <summary>Manages fog-of-war state for the overworld hex grid. Phase 1 implementation is a simple radius reveal: vision range + 1 row of silhouettes. Phase 2+ will add intel-based long-range reveals and per-school abilities.</summary>
 public partial class FogOfWarManager : Node2D
 {
     [Export] public int BaseVisionRadius = 1;
 
     private OverworldHexGrid _grid;
 
-    /// <summary>The run's fog as plain data — the authority. The 2D hexes mirror it.</summary>
+    /// <summary>The run's fog as plain data, the authority. The 2D hexes mirror it.</summary>
     public ExpeditionFogModel Model { get; } = new();
 
     /// <summary>Step 2: the window overlay model, injected by ExpeditionManager so
     /// the landmark-lure scan reads POI data instead of node properties. Null in
-    /// isolation (falls back to node reads — same belt-and-braces as EffectiveFog).</summary>
+    /// isolation (falls back to node reads, same belt-and-braces as EffectiveFog).</summary>
     public WindowOverlayModel Overlay;
 
     public override void _Ready()
@@ -51,7 +51,7 @@ public partial class FogOfWarManager : Node2D
     // ── The seam gameplay talks through ──────────────────────────────────
 
     /// <summary>Fog at a grid-local coord, from the model. Hidden for unloaded
-    /// ground — the same answer the old node-lookup miss produced.</summary>
+    /// ground, the same answer the old node-lookup miss produced.</summary>
     public OverworldHex.FogState FogAt(Vector2I coord) => Model.FogAt(coord);
 
     /// <summary>Set fog on a LOADED hex: model first, node mirror + redraw second.
@@ -82,12 +82,12 @@ public partial class FogOfWarManager : Node2D
     }
 
     /// <summary>Model value, falling back to the node for a hex streamed in since
-    /// the last sync — belt-and-braces so a missed sync site degrades to the old
+    /// the last sync. Belt-and-braces so a missed sync site degrades to the old
     /// behaviour instead of treating known ground as Hidden.</summary>
     private OverworldHex.FogState EffectiveFog(Vector2I coord, OverworldHex hex)
         => Model.TryGet(coord, out var f) ? f : hex.Fog;
 
-    /// <summary>Overlay value with node fallback — Step 2's twin of EffectiveFog.</summary>
+    /// <summary>Overlay value with node fallback: Step 2's twin of EffectiveFog.</summary>
     private TileOverlay EffectiveOverlay(Vector2I coord, OverworldHex hex)
         => Overlay != null && Overlay.TryGet(coord, out var o)
             ? o
@@ -118,12 +118,12 @@ public partial class FogOfWarManager : Node2D
             var fog = EffectiveFog(coord, hex);
             if (dist <= revealRange)
             {
-                // Full reveal — terrain, POIs, everything visible
+                // Full reveal: terrain, POIs, everything visible
                 fog = OverworldHex.FogState.Revealed;
             }
             else if (dist <= silhouetteRange && fog == OverworldHex.FogState.Hidden)
             {
-                // Silhouette — can see terrain shape but not POI content
+                // Silhouette: can see terrain shape but not POI content
                 fog = OverworldHex.FogState.Silhouette;
             }
             // Note: already-revealed hexes stay revealed (no re-fogging)
@@ -149,7 +149,7 @@ public partial class FogOfWarManager : Node2D
 
     public void RevealLandmarks()
     {
-        // Objective — general direction always known (silhouette).
+        // Objective: general direction always known (silhouette).
         var objCoord = _grid.ObjectiveCoord;
         if (_grid.Hexes.TryGetValue(objCoord, out var objHex))
         {
@@ -163,7 +163,7 @@ public partial class FogOfWarManager : Node2D
     }
 
     /// <summary>Force-reveal 2-3 distant, kind-varied POIs through the fog as
-    /// frontier lures — so the player chooses which horizon to push under
+    /// frontier lures, so the player chooses which horizon to push under
     /// step-budget pressure, not just walks to the exit. Revealed (not
     /// silhouette) so each advertises its flavour: a court reads as Negotiation,
     /// a cache as Combat, a Narrative anomaly shows its signal on hover.
@@ -171,7 +171,7 @@ public partial class FogOfWarManager : Node2D
     private void RevealSecondaryLandmarks(Vector2I objCoord)
     {
         // (No MaxSecondaryLandmarks<=0 guard: the const is 3, so the check is
-        // dead code — CS0162. The Pass-1 `chosen.Count >= Max` break already
+        // dead code, CS0162. The Pass-1 `chosen.Count >= Max` break already
         // no-ops any non-positive value identically.)
         var start = _grid.EntryCoord;
 
@@ -182,7 +182,7 @@ public partial class FogOfWarManager : Node2D
             // Step 2: candidate POIs read the overlay model, not node properties.
             var ov = EffectiveOverlay(kvp.Key, hex);
             if (ov.Poi == OverworldHex.POIType.None || ov.Consumed) continue;
-            // Supply caches are earned knowledge (supply_cache spec v1.1) — a
+            // Supply caches are earned knowledge (supply_cache spec v1.1); a
             // free force-reveal at window-open would leak them as lures.
             if (ov.Poi == OverworldHex.POIType.SupplyCache) continue;
             if (kvp.Key == objCoord || kvp.Key == start) continue;
@@ -203,7 +203,7 @@ public partial class FogOfWarManager : Node2D
         void Take(KeyValuePair<Vector2I, OverworldHex> kvp)
         { chosen.Add(kvp); chosenKeys.Add(kvp.Key); }
 
-        // Pass 1: one landmark per distinct POI kind — maximises frontier flavour.
+        // Pass 1: one landmark per distinct POI kind; maximises frontier flavour.
         foreach (var kvp in candidates)
         {
             if (chosen.Count >= MaxSecondaryLandmarks) break;

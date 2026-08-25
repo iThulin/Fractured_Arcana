@@ -7,7 +7,7 @@ using System.Text;
 //
 // Purpose:        Whole-run event journal. One READABLE .log and
 //                 one machine-readable .csv per expedition under
-//                 user://run_logs/ — every combat, negotiation,
+//                 user://run_logs/: every combat, negotiation,
 //                 narrative choice, POI, drain, and the run-end
 //                 banking math, each with resource deltas AND
 //                 running totals. The playtest answer to "where
@@ -17,14 +17,14 @@ using System.Text;
 //                 the chronological spine that stitches a run
 //                 together.
 // Layer:          System (write-only sink; no game reads)
-// Collaborators:  ExpeditionManager.cs (sole caller today —
+// Collaborators:  ExpeditionManager.cs (sole caller today:
 //                 Begin at deploy, Event via its LogRun helper,
 //                 End from the three run-end paths)
 // Notes:          Static state survives combat/negotiation scene
 //                 round-trips (same process), so the run's files
 //                 stay open-for-append across them. Every write
 //                 is an immediate line-append: a crash loses
-//                 nothing already logged. Fire-and-forget —
+//                 nothing already logged. Fire-and-forget:
 //                 failures print and never interrupt play.
 // ============================================================
 
@@ -37,7 +37,7 @@ using System.Text;
 /// scenes), mirroring CombatTelemetry.</summary>
 public static class RunEventLog
 {
-    /// <summary>Master switch. On in debug builds, off in release —
+    /// <summary>Master switch. On in debug builds, off in release;
     /// playtester builds that should record must set this true
     /// explicitly (and say so to the tester).</summary>
 #if DEBUG
@@ -61,7 +61,7 @@ public static class RunEventLog
     // Public API
     // ═══════════════════════════════════════════════════════════════
 
-    /// <summary>Opens a new run journal. Call ONLY on a fresh deploy —
+    /// <summary>Opens a new run journal. Call ONLY on a fresh deploy;
     /// combat/negotiation returns must NOT re-begin (statics carry the
     /// open run across the scene swap).</summary>
     public static void Begin(string regionId, string school,
@@ -135,14 +135,14 @@ public static class RunEventLog
                           0, 0, 0, 0, gold, splinters, hp, stepsRemaining, "");
 
             AppendLog("════════════════════════════════════════════════════════════");
-            AppendLog($" RUN END — {outcome.ToUpperInvariant()}   ({detail})");
+            AppendLog($" RUN END: {outcome.ToUpperInvariant()}   ({detail})");
             AppendLog($" Encounters won: {encountersWon}   HP left: {hp}   Steps left: {stepsRemaining}");
-            // Materials/supplies appear only when nonzero — most runs carry none.
+            // Materials/supplies appear only when nonzero; most runs carry none.
             string extras = (materials != 0 ? $" + {materials} materials" : "")
                           + (supplies != 0 ? $" + {supplies} supplies" : "");
             AppendLog(goldBanked
                 ? $" BANKED: {gold} gold + {splinters} splinters{extras} → guild treasury"
-                : $" FORFEITED: {gold} gold + {splinters} splinters{extras} lost (not banked — run failed).");
+                : $" FORFEITED: {gold} gold + {splinters} splinters{extras} lost (not banked; run failed).");
             AppendLog("════════════════════════════════════════════════════════════");
         }
         catch (Exception e) { GD.PrintErr($"RunEventLog.End: {e.Message}"); }

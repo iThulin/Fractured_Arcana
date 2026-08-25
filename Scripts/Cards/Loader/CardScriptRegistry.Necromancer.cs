@@ -4,7 +4,7 @@ using System.Text.Json;
 // ============================================================
 // CardScriptRegistry.Necromancer.cs
 //
-// Purpose:        Necromancer school effect registrations — maps the
+// Purpose:        Necromancer school effect registrations. Maps the
 //                 school's JSON `type` keys to effect factories.
 //                 Called from CardScriptRegistry.RegisterBuiltins().
 // Layer:          Loader
@@ -452,7 +452,7 @@ public static partial class CardScriptRegistry
 
         // Walk Between (Hollow Mantle tier 4): spells heal all spirits while active.
         // { "type": "walk_between", "turns": 2, "spirit_heal_on_cast": 3 }
-        // (Was a miswired hollow_mantle duplicate — fixed 2026-07-06.)
+        // (Was a miswired hollow_mantle duplicate, fixed 2026-07-06.)
         RegisterEffect("walk_between", n =>
         {
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2;
@@ -461,7 +461,7 @@ public static partial class CardScriptRegistry
         });
 
         // ═══════════════════════════════════════════════════════════
-        // Upgrade-tier backlog (2026-07-06) — contracts in
+        // Upgrade-tier backlog (2026-07-06). Contracts live in
         // docs/card_effect_backlog.md
         // ═══════════════════════════════════════════════════════════
 
@@ -545,7 +545,7 @@ public static partial class CardScriptRegistry
             new HealFractionOfTotalDamageEffect(
                 n.TryGetProperty("fraction", out var f) ? f.GetSingle() : 1.0f).WithTag("Heal"));
 
-        // { "type": "heal_equal_to_damage_dealt" } — full-fraction alias
+        // { "type": "heal_equal_to_damage_dealt" }, the full-fraction alias
         RegisterEffect("heal_equal_to_damage_dealt", _ =>
             new HealFractionOfTotalDamageEffect(1.0f).WithTag("Heal"));
 
@@ -574,7 +574,7 @@ public static partial class CardScriptRegistry
         RegisterEffect("teleport_all_spirits_to_nearest_memorial", _ =>
             new TeleportAllSpiritsToNearestMemorialEffect().WithTag("Movement"));
 
-        // { "type": "damage_per_memorial", "amount_per": 1 } — targeted variant
+        // { "type": "damage_per_memorial", "amount_per": 1 }, the targeted variant
         RegisterEffect("damage_per_memorial", n =>
             new TargetedDamagePerMemorialEffect(
                 n.TryGetProperty("amount_per", out var a) ? a.GetInt32() : 1).WithTag("Damage"));

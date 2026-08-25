@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.CityStamps.cs  (partial of HexGridManager)
 //
-// Purpose:        The `building_stamp` recipe op — paints a building
+// Purpose:        The `building_stamp` recipe op. Paints a building
 //                 shell footprint for city siege battlemaps
 //                 (CityBattlemapCompiler output). Implements the tile
 //                 semantics LOCKED in campus_siege_and_defense_v1_1
@@ -14,13 +14,13 @@ using System.Collections.Generic;
 //                   BlocksLineOfSight = true  (solid to targeting)
 //                   ObstacleKind = "building:" + id  (identity carrier
 //                     for destruction / interiors / bespoke visuals)
-//                   IsWalkable = TRUE, explicitly — restored even if a
-//                     wall band crossed this footprint first. This is
+//                   IsWalkable = TRUE, explicitly. It is restored even
+//                     if a wall band crossed this footprint first. This is
 //                     the interiors-forward-compat rule: an enterable
 //                     building later just stops setting IsBlocked;
 //                     nothing else in the terrain model moves.
 //                 Do NOT reroute this through PaintObstacleBand /
-//                 RecipeTileApplier — both set IsWalkable = false.
+//                 RecipeTileApplier. Both set IsWalkable = false.
 // Layer:          System (generation)
 // Collaborators:  HexGridManager.Recipes (dispatch), CityBattlemapCompiler
 //                 (emits the ops), docs/city_battlemap_compiler_spec_v1_1.md §4.3
@@ -33,7 +33,7 @@ public partial class HexGridManager : Node3D
     public SiegeSpec ActiveSiege => _activeRecipe?.Siege;
 
     /// <summary>Public face of the private cliff rule (StepAllowed) for
-    /// CombatManager-side spawn floods — zones and wave arrivals must not
+    /// CombatManager-side spawn floods. Zones and wave arrivals must not
     /// leap onto ramparts a unit could never walk to.</summary>
     public bool StepLegal(Vector2I from, Vector2I to) => StepAllowed(from, to);
 
@@ -45,13 +45,13 @@ public partial class HexGridManager : Node3D
 
     /// <summary>Compiler-computed hold_zone tiles (door + inside pocket), or
     /// empty on a non-siege map. Preferred over the runtime BFS by
-    /// CombatManager.Objectives — the compiler knows inside from outside.</summary>
+    /// CombatManager.Objectives, because the compiler knows inside from outside.</summary>
     public IReadOnlyList<Vector2I> SiegeObjectiveZone =>
         _activeRecipe?.Siege?.ObjectiveZone ?? (IReadOnlyList<Vector2I>)System.Array.Empty<Vector2I>();
 
     /// <summary>Paints one building shell: a filled hex disk of
     /// <paramref name="radius"/> around <paramref name="center"/>. Reserved
-    /// (spawn-zone) tiles are skipped like every other paint — the compiler
+    /// (spawn-zone) tiles are skipped like every other paint. The compiler
     /// places anchors outside stamps, so a hole here means a compiler bug
     /// upstream, and a playable hole beats an unusable spawn.</summary>
     private void PaintBuildingStamp(Vector2I center, int radius, string buildingId, int stampHeight)
@@ -71,7 +71,7 @@ public partial class HexGridManager : Node3D
                 tile.IsBlocked = true;
                 tile.BlocksLineOfSight = true;
                 tile.ObstacleKind = "building:" + buildingId;
-                tile.IsWalkable = true;   // docx §4a — see header; deliberate
+                tile.IsWalkable = true;   // docx §4a (see header); deliberate
 
                 if (stampHeight > 0)
                     tile.Height = Math.Max(tile.Height, stampHeight);
@@ -81,7 +81,7 @@ public partial class HexGridManager : Node3D
 
     /// <summary>The city continuing past the arena edge: decorative prisms for
     /// the backdrop wall + off-map building masses, at AxialToWorld positions
-    /// beyond the playable tiles. No TileData, no collision, no gameplay —
+    /// beyond the playable tiles. No TileData, no collision, no gameplay:
     /// pure vista dressing. Tagged generated_obstacle so the standard cleanup
     /// frees it with everything else.</summary>
     private void SpawnSiegeBackdrop()
@@ -149,14 +149,14 @@ public partial class HexGridManager : Node3D
 
     /// <summary>Placeholder visuals for city obstacle kinds until real models
     /// land (art-pass swap point). Hex prisms: grey for "wall", a deterministic
-    /// per-building tint for "building:&lt;id&gt;" — deterministic by summing
+    /// per-building tint for "building:&lt;id&gt;", made deterministic by summing
     /// chars, NOT string.GetHashCode (randomized per process in .NET, would
     /// repaint the city a new colour every launch).</summary>
     private void SpawnCityObstaclePlaceholder(TileData tile)
     {
         bool isWall = tile.ObstacleKind == "wall";
-        // 5 ft/hex scale: a curtain wall is 20-30 ft (2026-08-11 — 1.7 read as
-        // garden fencing once the full city was visible). Shells top the wall.
+        // 5 ft/hex scale: a curtain wall is 20-30 ft (2026-08-11 ruling, after 1.7
+        // read as garden fencing once the full city was visible). Shells top the wall.
         float height = isWall ? 3.2f : 3.8f;
 
         Color color;

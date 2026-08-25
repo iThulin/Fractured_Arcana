@@ -107,7 +107,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Seamless",
-			"description": "Seamless: the bound card is not discarded \u2014 it returns to hand.",
+			"description": "Seamless: the bound card is not discarded. It returns to hand.",
 			"changes": [
 				{
 					"half": "top",

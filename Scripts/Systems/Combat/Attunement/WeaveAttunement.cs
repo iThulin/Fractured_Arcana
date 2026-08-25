@@ -4,19 +4,19 @@ using System;
 // ============================================================
 // WeaveAttunement.cs
 //
-// Purpose:        The Enchanter school mechanic — the Weave.
+// Purpose:        The Enchanter school mechanic, the Weave.
 //                 A single control counter (0-4) that builds as
 //                 the Enchanter prepares glyphs and as those
 //                 glyphs trigger, representing the tightening
 //                 layers of a working. Tiered thresholds grant
 //                 escalating passive control (glyph damage, glyph
 //                 duration, silence-on-Named); at 4 the Seventh
-//                 Layer fires — the Enchanter Names an enemy
+//                 Layer fires: the Enchanter Names an enemy
 //                 (half damage, cannot move) and the Weave resets.
 //                 Unlike Grief, the Weave does not bleed each
 //                 turn; instead it unravels (resets to 0) at end
-//                 of turn if the Enchanter holds no prepared tiles
-//                 — control only persists while the web stands.
+//                 of turn if the Enchanter holds no prepared tiles.
+//                 Control only persists while the web stands.
 // Layer:          System
 // Collaborators:  Unit.cs (owns instance via Attunement),
 //                 GlyphManager.cs (calls OnGlyphPrepared /
@@ -26,21 +26,21 @@ using System;
 //                 SchoolAttunementUI.cs (renders "Enchantment
 //                 Weave"), EnchanterWeaveEffects.cs (gain_weave,
 //                 damage_per_glyph read this).
-// See:            README §6 — School Mechanics
+// See:            README §6, School Mechanics
 // ============================================================
 
 /// <summary>Control bands the Weave passes through. Each grants a passive read by the glyph/status systems; the systems query <see cref="WeaveAttunement.Tier"/> rather than hard-coding charge numbers.</summary>
 public enum WeaveTier
 {
-    /// <summary>0 — no working in place.</summary>
+    /// <summary>0: no working in place.</summary>
     Loose,
-    /// <summary>1 — prepared glyphs deal +1 damage.</summary>
+    /// <summary>1: prepared glyphs deal +1 damage.</summary>
     Taut,
-    /// <summary>2 — prepared glyphs also last +1 turn.</summary>
+    /// <summary>2: prepared glyphs also last +1 turn.</summary>
     Woven,
-    /// <summary>3 — Named / weakened enemies are also silenced (cannot cast).</summary>
+    /// <summary>3: Named / weakened enemies are also silenced (cannot cast).</summary>
     Bound,
-    /// <summary>4 — the Seventh Layer: Name an enemy, then reset to 0.</summary>
+    /// <summary>4: the Seventh Layer. Name an enemy, then reset to 0.</summary>
     SeventhLayer
 }
 
@@ -76,11 +76,11 @@ public class WeaveAttunement : ISchoolAttunement
     public void OnCombatStart() => SetWeave(0);
 
     /// <summary>
-    /// No-op by design. The Weave does not bleed per turn like Grief — it unravels only
+    /// No-op by design. The Weave does not bleed per turn like Grief. It unravels only
     /// when the web is gone. Use <see cref="OnTurnEnd"/> for that. Kept to satisfy
     /// <see cref="ISchoolAttunement"/>.
     /// </summary>
-    public void Decay() { /* The Weave does not decay on a timer — see OnTurnEnd. */ }
+    public void Decay() { /* The Weave does not decay on a timer. See OnTurnEnd. */ }
 
     // ── Turn-end unravel ─────────────────────────────────────────────
     /// <summary>Call at the end of the Enchanter's turn. If no prepared tiles remain on the board, the working collapses and Weave resets to 0. CombatManager supplies the count from GlyphManager.</summary>

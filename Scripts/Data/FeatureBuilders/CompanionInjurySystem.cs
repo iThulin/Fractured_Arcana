@@ -5,7 +5,7 @@ using System.Text.Json;
 // ============================================================
 // CompanionInjurySystem.cs  (K2, 2026-07-09)
 //
-// Purpose:        §5b injury/death rolls and infirmary recovery —
+// Purpose:        §5b injury/death rolls and infirmary recovery,
 //                 the demand-math's third leg. One roll per
 //                 affected companion per wipe: Tier 1 injured;
 //                 Tier 2 injured + 15% death; Tier 3 +30%; boss
@@ -13,7 +13,7 @@ using System.Text.Json;
 //                 chance (earned plot armor). Injured = out of all
 //                 three demands for 1–2 lunations, recovering at
 //                 the campus (R24: infirmary rides Training Grounds
-//                 tiers, interim — the MECHANIC is the commitment,
+//                 tiers, interim; the MECHANIC is the commitment,
 //                 the host building is not).
 //
 // SCOPE RULINGS (logged):
@@ -23,16 +23,16 @@ using System.Text.Json;
 //   retreat mechanic ships.
 // - Death sets IsPermadead + prints. The v1 morale RIPPLE and
 //   signature destruction are K4 scope (they live in the loyalty
-//   delta table K4 builds) — logged here so K4 picks them up.
+//   delta table K4 builds); logged here so K4 picks them up.
 // - One roll per wipe (§5b: "no injury state precedes death within
-//   a single wipe — the roll is one roll").
+//   a single wipe; the roll is one roll").
 //
 // Layer:          System (campaign)
 // Collaborators:  Companion (InjuredLunationsRemaining, tiers),
 //                 ExpeditionManager (wipe call sites, territory
 //                 tier), StrategicView (lunation tick → recovery),
 //                 SaveManager (JsonOptions for the round-trip
-//                 assertion — house rule for save-adjacent fields).
+//                 assertion, house rule for save-adjacent fields).
 // See:            companion_item_systems_v2_1 §5b · docs/k2_verification.md
 // ============================================================
 
@@ -48,7 +48,7 @@ public static class CompanionInjurySystem
 
     /// <summary>One §5b roll for every companion in the active party. Call on:
     /// lost combat (whole fielded party is down by definition), or expedition
-    /// wipe (pool hit 0). NOT on won combats — heroism stays free.
+    /// wipe (pool hit 0). NOT on won combats; heroism stays free.
     /// Returns a player-facing casualty summary ("" when nobody was affected)
     /// so the failure banner can say WHO was hurt, not just that the run died.</summary>
     public static string ApplyWipe(GuildSaveData save, int territoryTier, bool bossContext, string context)
@@ -63,11 +63,11 @@ public static class CompanionInjurySystem
             : territoryTier == 2 ? Tier2DeathChance
             : 0;
 
-        GD.Print($"[Injury] Wipe rolls — {context} (territory tier {territoryTier}" +
+        GD.Print($"[Injury] Wipe rolls for {context} (territory tier {territoryTier}" +
                  $"{(bossContext ? ", BOSS" : "")}, base death {baseChance}%).");
 
-        // K4 ordering: deltas and ripples apply AFTER every roll is made —
-        // a mid-loop ripple could push a not-yet-rolled Sworn companion
+        // K4 ordering: deltas and ripples apply AFTER every roll is made.
+        // A mid-loop ripple could push a not-yet-rolled Sworn companion
         // below the threshold and strip their death-chance armor. Everyone
         // rolls against the loyalty they walked in with.
         var died = new List<Companion>();
@@ -77,7 +77,7 @@ public static class CompanionInjurySystem
         {
             var c = save.Companions.Find(x => x.Id == id && x.IsRecruited && !x.IsPermadead);
             if (c == null || c.IsInjured)
-                continue;   // already recovering — not fielded, not re-rolled
+                continue;   // already recovering: not fielded, not re-rolled
 
             int chance = baseChance;
             if (c.GetLoyaltyTier() == LoyaltyTier.Sworn)
@@ -92,7 +92,7 @@ public static class CompanionInjurySystem
                 summary.Append($" {c.Name} is DEAD.");
 
                 // Death→memorial (§8): the fallen companion's signature technique
-                // outlives them, entering the permanent card pool — the one reward
+                // outlives them, entering the permanent card pool, the one reward
                 // that makes loss accrue. Fires on permadeath at ANY arc stage, so it
                 // is distinct from the arc-capstone grant (ProgressionSweep), which
                 // needs the arc COMPLETED. Discover no-ops if the card is already
@@ -110,17 +110,17 @@ public static class CompanionInjurySystem
             {
                 // Severity roll: 1–2 lunations out of all three demands.
                 c.InjuredLunationsRemaining = 1 + (int)(GD.Randi() % 2);
-                GD.Print($"[Injury] {c.Name} injured — {c.InjuredLunationsRemaining} lunation(s) " +
+                GD.Print($"[Injury] {c.Name} injured: {c.InjuredLunationsRemaining} lunation(s) " +
                          $"in the infirmary (death roll {roll} ≥ {chance}%).");
-                summary.Append($" {c.Name} injured — {c.InjuredLunationsRemaining} lunation(s).");
+                summary.Append($" {c.Name} injured: {c.InjuredLunationsRemaining} lunation(s).");
                 survived.Add(c);
             }
         }
 
-        // K4: surviving the wipe still costs — the run died and they carried
+        // K4: surviving the wipe still costs. The run died and they carried
         // it home. Then the v1 morale ripple lands at last: each death moves
         // the whole living roster (Sworn dampened). Signature destruction is
-        // automatic — signatures are derived (StanceRegistry.EligibleSignature)
+        // automatic: signatures are derived (StanceRegistry.EligibleSignature)
         // and the dead never spawn.
         foreach (var c in survived)
             LoyaltyEvents.OnWipeSurvived(c);
@@ -144,7 +144,7 @@ public static class CompanionInjurySystem
                 continue;
             c.InjuredLunationsRemaining--;
             GD.Print(c.IsInjured
-                ? $"[Infirmary] {c.Name} recovering — {c.InjuredLunationsRemaining} lunation(s) left."
+                ? $"[Infirmary] {c.Name} recovering: {c.InjuredLunationsRemaining} lunation(s) left."
                 : $"[Infirmary] {c.Name} has recovered and returns to the roster.");
         }
     }
@@ -155,9 +155,9 @@ public static class CompanionInjurySystem
     /// → infirmary time. Tuning target.</summary>
     public const int ExtractionInjuryThresholdPct = 25;
 
-    /// <summary>K2.5: expedition over (extraction) — check who came home
+    /// <summary>K2.5: expedition over (extraction), so check who came home
     /// broken. Stabilized at 0 (downed in a won fight) → 1–2 lunations;
-    /// below 25% of BaseHP → 1 lunation. NO death risk — death stays a
+    /// below 25% of BaseHP → 1 lunation. NO death risk; death stays a
     /// losing-fight thing (§5b). Resets ExpeditionHP for everyone.
     /// Returns a player-facing summary ("" when everyone came home whole).</summary>
     public static string ApplyExtractionCheck(GuildSaveData save)
@@ -182,16 +182,16 @@ public static class CompanionInjurySystem
             if (hp == 0)
             {
                 c.InjuredLunationsRemaining = 1 + (int)(GD.Randi() % 2);
-                GD.Print($"[Injury] {c.Name} was carried home — " +
+                GD.Print($"[Injury] {c.Name} was carried home: " +
                          $"{c.InjuredLunationsRemaining} lunation(s) in the infirmary.");
-                summary.Append($" {c.Name} carried home — {c.InjuredLunationsRemaining} lunation(s).");
+                summary.Append($" {c.Name} carried home: {c.InjuredLunationsRemaining} lunation(s).");
             }
             else if (hp * 100 < c.BaseHP * ExtractionInjuryThresholdPct)
             {
                 c.InjuredLunationsRemaining = 1;
-                GD.Print($"[Injury] {c.Name} extracted at {hp}/{c.BaseHP} HP — " +
+                GD.Print($"[Injury] {c.Name} extracted at {hp}/{c.BaseHP} HP: " +
                          "1 lunation in the infirmary.");
-                summary.Append($" {c.Name} injured — 1 lunation.");
+                summary.Append($" {c.Name} injured: 1 lunation.");
             }
         }
         return summary.ToString().Trim();
@@ -199,7 +199,7 @@ public static class CompanionInjurySystem
 
     /// <summary>Overworld rest (2026-07-29): mend carried combat HP for every
     /// companion currently carrying, by <paramref name="fraction"/> of BaseHP
-    /// (minimum 1), clamped to BaseHP. Skips stabilized-at-0 companions —
+    /// (minimum 1), clamped to BaseHP. Skips stabilized-at-0 companions:
     /// being downed keeps you out of the fights for the rest of the run; a
     /// campfire does not undo that. Pass 1.0 for a full mend (outposts).</summary>
     public static void HealExpeditionHP(GuildSaveData save, float fraction)
@@ -215,7 +215,7 @@ public static class CompanionInjurySystem
         }
     }
 
-    /// <summary>K2.5: clear per-expedition HP — fresh launch, or after the
+    /// <summary>K2.5: clear per-expedition HP on a fresh launch, or after the
     /// expedition-end accounting (FailExpedition's wipe rolls already cover
     /// the injuries on that path).</summary>
     public static void ResetExpeditionHP(GuildSaveData save)
@@ -240,7 +240,7 @@ public static class CompanionInjurySystem
             JsonSerializer.Serialize(probe, SaveManager.JsonOptions), SaveManager.JsonOptions);
         if (back == null || back.InjuredLunationsRemaining != 2 || back.ExpeditionHP != 7)
             GD.PrintErr("[K2 RoundTrip] Injury/ExpeditionHP FAILED to round-trip " +
-                        "through SaveManager.JsonOptions — state will not persist!");
+                        "through SaveManager.JsonOptions. State will not persist!");
         else
             GD.Print("[K2 RoundTrip] InjuredLunationsRemaining + ExpeditionHP round-trip.");
     }

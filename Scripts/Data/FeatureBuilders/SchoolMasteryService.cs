@@ -6,7 +6,7 @@ using System.Linq;
 // ============================================================
 // SchoolMasteryService.cs
 //
-// Purpose:        The award + read API for EternalLedger.SchoolMastery —
+// Purpose:        The award + read API for EternalLedger.SchoolMastery,
 //                 the cross-cycle progression spine. The field, the
 //                 SchoolMasteryTrack class, and GetMastery() have existed
 //                 since the three-tier refactor, but had ZERO call sites:
@@ -21,7 +21,7 @@ using System.Linq;
 //                 RegaliaService.cs (sibling permanent currency)
 // See:            docs/progression_card_acquisition_v1.md §4
 //
-// ⚠ NAMING WARNING — TWO UNRELATED "MASTERY" SYSTEMS EXIST ⚠
+// ⚠ NAMING WARNING: TWO UNRELATED "MASTERY" SYSTEMS EXIST ⚠
 //   • SchoolMastery (this file): cross-cycle, per-school, EternalLedger.
 //     Feeds Fluency, Communion, and discipline declaration.
 //   • CastMastery (CastMasteryTracker / CardMasteryThresholds): per-CARD
@@ -31,7 +31,7 @@ using System.Linq;
 
 /// <summary>
 /// Awards and reads <see cref="EternalLedger.SchoolMastery"/>. All writes to
-/// SchoolMastery should go through here so every award is logged with a reason —
+/// SchoolMastery should go through here so every award is logged with a reason.
 /// SchoolMastery is invisible by nature, and an unlogged award is an undebuggable one.
 /// </summary>
 public static class SchoolMasteryService
@@ -39,7 +39,7 @@ public static class SchoolMasteryService
     // ── Tuning ───────────────────────────────────────────────────────────
     // Anchor (shard_acquisition_spec_v1 §11): pick FluencyThreshold so a
     // dedicated one-school game earns Fluency around the time that school's
-    // own fragment is done — i.e. it pays off on the SECOND school, not the first.
+    // own fragment is done, i.e. it pays off on the SECOND school, not the first.
 
     /// <summary>Points at which Communion opens for a non-matching school (shard spec §4).</summary>
     public const int FluencyThreshold = 60;
@@ -49,7 +49,7 @@ public static class SchoolMasteryService
     ///
     /// Set to exactly two companion arc stages. Arc stage 2 is also the faculty
     /// threshold, so a single arcane companion reaching it satisfies BOTH legs at
-    /// once — which is the design doc's §7e pacing verbatim: the first discipline
+    /// once, which is the design doc's §7e pacing verbatim: the first discipline
     /// is declarable within cycle one, off the first arcane companion recruit,
     /// rather than requiring a completed story or a full cycle of archmage work.
     /// </summary>
@@ -61,7 +61,7 @@ public static class SchoolMasteryService
     public const int PointsArchmageAllied    = 10;
     public const int PointsArchmageResolved  = 6;
 
-    /// <summary>Per arc stage reached (1-4), not just the capstone — see DeclarableThreshold.</summary>
+    /// <summary>Per arc stage reached (1-4), not just the capstone (see DeclarableThreshold).</summary>
     public const int PointsCompanionArcStage = 4;
 
     public const int PointsTuition           = 2;
@@ -88,7 +88,7 @@ public static class SchoolMasteryService
     {
         if (save?.Ledger == null)
         {
-            GD.PrintErr("[SchoolMastery] Award called with no ledger — ignored.");
+            GD.PrintErr("[SchoolMastery] Award called with no ledger. Ignored.");
             return -1;
         }
         if (string.IsNullOrWhiteSpace(school) || points <= 0)
@@ -172,7 +172,7 @@ public static class SchoolMasteryService
 
     /// <summary>
     /// The SchoolMastery leg of the faculty gate (design doc §7c). The faculty-source
-    /// leg is evaluated separately — this is necessary, not sufficient.
+    /// leg is evaluated separately; this is necessary, not sufficient.
     /// </summary>
     public static bool MeetsDeclarationThreshold(GuildSaveData save, string school) =>
         Points(save, school) >= DeclarableThreshold;
@@ -194,7 +194,7 @@ public static class SchoolMasteryService
 
     /// <summary>
     /// Canonical key form. Schools arrive from CardSchool.ToString(), from
-    /// ArchmageDefinition.School, and from Companion.School — all of which are
+    /// ArchmageDefinition.School, and from Companion.School, all of which are
     /// already PascalCase enum names, but normalising defends the dictionary
     /// against a stray lowercase JSON value silently creating a second track.
     /// </summary>

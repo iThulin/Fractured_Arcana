@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // WindowOverlayModel.cs
 //
 // Purpose:        The window's per-tile GAMEPLAY overlay as plain
-//                 data — the effective POI (world-mapped + civic/
+//                 data: the effective POI (world-mapped + civic/
 //                 stronghold stamps), consumed state, objective/
 //                 landmark flags, and contested-ground tint. Step 2
 //                 of the atlas/expedition convergence: these flags
@@ -19,7 +19,7 @@ using System.Collections.Generic;
 //                 FogOfWarManager.cs (reads it for landmark lures)
 // See:            docs/atlas_expedition_convergence_v1.md §Step 2
 //
-// Scope contract: same as ExpeditionFogModel — entries mirror the
+// Scope contract: same as ExpeditionFogModel. Entries mirror the
 // LOADED window; absent coord reads TileOverlay.None, the answer
 // the old TryGetValue-miss produced. Persistent truths (WorldPoi.
 // Discovered/Consumed) stay in WorldData; this model carries the
@@ -34,7 +34,7 @@ public struct TileOverlay
     /// civic/stronghold stamp. None for an ordinary tile.</summary>
     public OverworldHex.POIType Poi;
     public bool Consumed;
-    /// <summary>Warfront stronghold marker — draws the gold objective star.</summary>
+    /// <summary>Warfront stronghold marker; draws the gold objective star.</summary>
     public bool Objective;
     /// <summary>Frontier-lure / stronghold beacon styling.</summary>
     public bool Landmark;
@@ -51,7 +51,7 @@ public class WindowOverlayModel
 {
     private readonly Dictionary<Vector2I, TileOverlay> _tiles = new();
 
-    /// <summary>Overlay at a coord; TileOverlay.None when unknown/unloaded — the
+    /// <summary>Overlay at a coord; TileOverlay.None when unknown/unloaded, the
     /// same answer the old node-lookup miss produced.</summary>
     public TileOverlay OverlayAt(Vector2I local)
         => _tiles.TryGetValue(local, out var o) ? o : TileOverlay.None;

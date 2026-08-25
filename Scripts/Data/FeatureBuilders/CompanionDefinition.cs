@@ -36,7 +36,7 @@ public class Companion
 
     // ── Injury (K2, §5b) ─────────────────────────────────────────────────
     // Lunations left in the infirmary. >0 = excluded from all three demands
-    // (expedition, court dispatch — recovery IS the third). Serialized;
+    // (expedition, court dispatch; recovery IS the third). Serialized;
     // round-trip asserted in CompanionInjurySystem.
     public int InjuredLunationsRemaining = 0;
 
@@ -46,7 +46,7 @@ public class Companion
     // ── Expedition HP (K2.5 ruling, 2026-07-09) ──────────────────────────
     // Combat HP persists BETWEEN fights within one expedition: unit HP is
     // the fights, the party pool is the journey. -1 = fresh/full. 0 = downed
-    // in a WON fight — stabilized, cannot field again this expedition.
+    // in a WON fight: stabilized, cannot field again this expedition.
     // Set on combat end, consumed at spawn, resolved by the extraction
     // infirmary check (below 25% of BaseHP → recovery time), reset at
     // expedition launch/end. Serialized for mid-expedition saves.
@@ -60,7 +60,7 @@ public class Companion
     public string UnitClass = "None";
 
     // ── Combat stats (base values at levy tier) ──────────────────────────
-    // Wizards: these are ignored — wizard stats come from PlayerSession/school
+    // Wizards: these are ignored; wizard stats come from PlayerSession/school
     // Martials: these are the starting levy stats, boosted by Training Grounds
     public int BaseHP = 12;
     public int BaseSpeed = 2;
@@ -71,22 +71,22 @@ public class Companion
 
     // ── Martial progression (saved per companion) ────────────────────────
     // Which stances this companion has been trained in at the campus.
-    // Populated by the Training tab — not from JSON templates.
+    // Populated by the Training tab, not from JSON templates.
     [System.Text.Json.Serialization.JsonPropertyName("availableStanceIds")]
     public List<string> TrainedStanceIds = new();
 
-    // AP pool — set by Training Grounds tier at run start
+    // AP pool, set by Training Grounds tier at run start
     // Stored here so the UI can show it between runs
     public int BaseActionPoints = 3; // levy default
 
     // ── Signature override (K4, v1's signatureId hook) ───────────────────
     // Authored companions may name a bespoke signature stance id here (JSON
     // "signatureStanceId"). Empty = the Class × Trait matrix id. The GRANT
-    // is always derived (StanceRegistry.EligibleSignature) — this field only
+    // is always derived (StanceRegistry.EligibleSignature); this field only
     // redirects WHICH signature, never whether one is fielded.
     public string SignatureStanceId = "";
 
-    // ── Runtime state (not in JSON — set during combat) ──────────────────
+    // ── Runtime state (not in JSON, set during combat) ───────────────────
     // These are not serialized; they're rebuilt each combat from save data.
     [System.Text.Json.Serialization.JsonIgnore]
     public StanceDefinition ActiveStance = null;
@@ -107,7 +107,7 @@ public class Companion
     // Bands per companion_item_systems v1 (locked, carried in v2.1 §2):
     // Wary 0–24 / Hired 25–49 / Trusted 50–74 / Devoted / Sworn.
     // ASSUMPTION (flagged in docs/k1_verification.md): the docs never pin the
-    // Devoted/Sworn split numerically — 75–89 / 90–100 are K1 starting values.
+    // Devoted/Sworn split numerically; 75–89 / 90–100 are K1 starting values.
     // Tune HERE; K4 (Trusted perks, Sworn signatures) and §6 envoy fitness
     // must read tiers through this same helper, never re-derive.
     public const int TrustedThreshold = 50;
@@ -126,7 +126,7 @@ public class Companion
         : loyalty >= 25 ? LoyaltyTier.Hired
         : LoyaltyTier.Wary;
 
-    /// <summary>§4a pool-HP loyalty bonus: Devoted +2, Sworn +4 — "the personal
+    /// <summary>§4a pool-HP loyalty bonus: Devoted +2, Sworn +4, "the personal
     /// ceiling made literal." All other tiers contribute no bonus.</summary>
     public int LoyaltyPoolBonus() => GetLoyaltyTier() switch
     {

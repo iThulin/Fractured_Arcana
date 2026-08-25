@@ -20,7 +20,7 @@ content_margin_right = 4.0
 content_margin_bottom = 4.0
 
 ; ══════════════════════════════════════════════════════════════════════════
-; ROOT — full-screen overlay
+; ROOT: the full-screen overlay
 ; ══════════════════════════════════════════════════════════════════════════
 [node name="PauseMenu" type="Control"]
 process_mode = 3
@@ -44,7 +44,7 @@ grow_vertical = 2
 mouse_filter = 0
 color = Color(0, 0, 0, 0.55)
 
-; ── OverlayHost — where Settings / Card Library overlays mount ────────────
+; ── OverlayHost, where Settings / Card Library overlays mount ────────────
 [node name="OverlayHost" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -55,7 +55,7 @@ grow_vertical = 2
 mouse_filter = 1
 
 ; ══════════════════════════════════════════════════════════════════════════
-; MENU PANEL — centered card with the action buttons
+; MENU PANEL: a centered card with the action buttons
 ; ══════════════════════════════════════════════════════════════════════════
 [node name="MenuContainer" type="PanelContainer" parent="."]
 layout_mode = 1

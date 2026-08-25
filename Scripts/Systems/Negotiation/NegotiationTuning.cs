@@ -4,7 +4,7 @@
 // Purpose:        Single source of truth for every tunable
 //                 number in the negotiation system. Anywhere
 //                 else in Scripts/Systems/Negotiation/: read
-//                 from here, don't hardcode — same rule as
+//                 from here, don't hardcode. Same rule as
 //                 UITheme for colors.
 //                 Values marked [SIM] were set from the Monte
 //                 Carlo harness (claude/negotiation_tuning_v1);
@@ -12,7 +12,7 @@
 // Layer:          Data (constants only)
 // Collaborators:  NegotiationState.cs (main consumer),
 //                 ArchetypeBehavior (stance bags, NPC pools)
-// See:            claude/negotiation_tuning_v1.md — the knob →
+// See:            claude/negotiation_tuning_v1.md for the knob →
 //                 metric map, target ranges, and sim method.
 // ============================================================
 
@@ -33,12 +33,12 @@ public static class NegotiationTuning
     /// <summary>[SIM] Copies of each school-innate token (was 1).</summary>
     public const int SchoolTokenCount = 2;
 
-    /// <summary>[SIM] Universal Offering floor — the exchange economy needs
+    /// <summary>[SIM] Universal Offering floor: the exchange economy needs
     /// legs for every school, not just Tinker (was 0; Offerings saw 245
     /// plays in 6,000 simulated tables).</summary>
     public const int BaseOfferingFloor = 1;
 
-    /// <summary>[SIM] Universal +Persuade — the generalist argument everyone
+    /// <summary>[SIM] Universal +Persuade: the generalist argument everyone
     /// can make (was 0).</summary>
     public const int UniversalPersuade = 1;
 
@@ -70,7 +70,7 @@ public static class NegotiationTuning
 
     /// <summary>[SIM 2026-07-30] Fairness floor: at table-open, NpcPatience is
     /// raised to at least Resolve+Guile+this. Below that margin the clock ends
-    /// the table before skill can beat their pool — Monte Carlo put an
+    /// the table before skill can beat their pool. Monte Carlo put an
     /// informed bot at −13g vs a Commander at design-doc patience 4. Archetype
     /// personality survives relatively (Commanders still close fastest).</summary>
     public const int PatienceFloorOverPool = 3;
@@ -90,7 +90,7 @@ public static class NegotiationTuning
 
     // ── Scoring & stars (§7b) ─────────────────────────────────────────────
     // Moves: reward curve. [SIM] With the new economy: skilled-median score
-    // ≈ 3, naive ≈ 1, P95 ≈ 6-9 — these thresholds put skilled play at 3★,
+    // ≈ 3, naive ≈ 1, P95 ≈ 6-9. These thresholds put skilled play at 3★,
     // top-quartile at 4★, and keep 5★ genuinely rare. Revisit after human
     // playtests (bots understate real skill).
     public const float CordialGoldMult = 1.2f;

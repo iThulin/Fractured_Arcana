@@ -34,7 +34,7 @@ public partial class OverworldPartyToken : Node2D
     // ── Step 4 (convergence spec): injected queries ──────────────────────
     // Movement legality and cost previews read DATA through these, not render
     // nodes. ExpeditionManager wires them to WorldData/window seams; when null
-    // (isolation) the old node reads apply — same fallback discipline as
+    // (isolation) the old node reads apply, same fallback discipline as
     // FogOfWarManager.EffectiveFog.
 
     /// <summary>World tile at a grid-local coord, or null off-world.</summary>
@@ -171,11 +171,11 @@ public partial class OverworldPartyToken : Node2D
             {
                 // Edge-aware preview: the number is the TRUE cost (terrain ± road/ford,
                 // − Q3 Pathfinder); the colour signals a road (green) or an unbridged
-                // river ford (red). Same Pathfinder reduction the charge path applies —
-                // the preview can't diverge from the cost paid.
+                // river ford (red). Same Pathfinder reduction the charge path applies,
+                // so the preview can't diverge from the cost paid.
                 //
                 // Step 4: terrain/water/edges come from the WORLD (TileQuery) when
-                // wired — the same source OnPartyMoved charges from — with the node
+                // wired (the same source OnPartyMoved charges from), with the node
                 // path as the isolation fallback. The hex node itself remains only
                 // as the highlight's PARENT (display).
                 int cost;

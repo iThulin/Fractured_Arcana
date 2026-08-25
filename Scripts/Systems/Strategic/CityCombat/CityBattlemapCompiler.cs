@@ -11,7 +11,7 @@ using System.Text.Json.Nodes;
 //                 for one siege WINDOW. Increment 2 scope: the
 //                 WallSiege gate-assault window. Geometry is a direct
 //                 port of tools/city_compiler_proto.py (all asserts
-//                 verified numerically 2026-08-11) — keep the two in
+//                 verified numerically 2026-08-11); keep the two in
 //                 lockstep when editing either.
 // Layer:          System (strategic -> combat seam). Godot-free.
 // Collaborators:  ICityCombatSource (input), MapRecipe/MapRecipeRegistry
@@ -19,10 +19,10 @@ using System.Text.Json.Nodes;
 //                 (executes ops; `building_stamp` op lands in step 3)
 // See:            docs/city_battlemap_compiler_spec_v1_1.md §3–§5
 // Notes:          Direction indices follow HexDirection.All /
-//                 HexGridManager.HexDirs (clockwise from east) — the
+//                 HexGridManager.HexDirs (clockwise from east). The
 //                 rotational order is load-bearing: index arithmetic
 //                 on Dirs IS angle arithmetic (face tangents = i±2).
-//                 Walls emit per-tile at "chance": 1.0 — a gap-toothed
+//                 Walls emit per-tile at "chance": 1.0, since a gap-toothed
 //                 city wall is a connectivity lie. Lanes are emitted
 //                 BEFORE walls because CarveLane clears obstacles.
 // ============================================================
@@ -73,7 +73,7 @@ public static class CityBattlemapCompiler
     // MaxLots removed 2026-08-11: the full city is laid out; the arena radius
     // is what caps the playable window, and the remainder becomes backdrop.
 
-    // Clockwise from east — MUST match HexDirection.All / HexGridManager.HexDirs.
+    // Clockwise from east. MUST match HexDirection.All / HexGridManager.HexDirs.
     private static readonly (int q, int r)[] Dirs =
     {
         (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1),
@@ -114,7 +114,7 @@ public static class CityBattlemapCompiler
 
     // ── Window extraction + layout (proto: extract_window / layout) ─────────
 
-    /// <summary>BFS over lattice adjacency — the WHOLE city (v2: full layout;
+    /// <summary>BFS over lattice adjacency across the WHOLE city (v2: full layout;
     /// the arena clips the playable window, the remainder becomes backdrop).</summary>
     private static List<(int q, int r)> ExtractWindow(ICityCombatSource city, (int q, int r) focus)
     {
@@ -168,7 +168,7 @@ public static class CityBattlemapCompiler
                 }
             }
             if (bestPar == null)
-                continue;   // isolated admission — cannot place, drop silently
+                continue;   // isolated admission: cannot place, drop silently
 
             var par = bestPar.Value;
             int pitch = StampRadius(city, par) + StampRadius(city, lot) + StreetWidth + 1;
@@ -181,7 +181,7 @@ public static class CityBattlemapCompiler
     // ── The gate-assault window (proto: compile_gate_window) ────────────────
 
     /// <summary>Compiles the WallSiege gate-assault window. Throws if the city
-    /// has no gate lot on the perimeter — availability is diegetic, and callers
+    /// has no gate lot on the perimeter; availability is diegetic, and callers
     /// should have checked <see cref="ICityCombatSource.GateCell"/> first.
     /// <paramref name="defending"/> flips the orientation for home defense:
     /// identical geometry, but the PLAYER holds the courtyard and the enemy
@@ -210,7 +210,7 @@ public static class CityBattlemapCompiler
 
     /// <summary>DockRaid: the harbor assault. Focus = the city's dock lot when
     /// wired (EntryDockType); until then, the rank-1 far perimeter lot (rank 0
-    /// belongs to the breach — the two vectors get distinct faces). The
+    /// belongs to the breach, so the two vectors get distinct faces). The
     /// approach pocket floods as impassable harbor water; the quay opening
     /// (gap machinery) plus a straight pier are the only ways ashore.</summary>
     public static CityWindowResult CompileDockRaid(
@@ -221,11 +221,11 @@ public static class CityBattlemapCompiler
         return CompileWindow(city, seed, focus, "dock", defending, mapRadius);
     }
 
-    /// <summary>PortalStrike: the interior incursion — no perimeter opening at
+    /// <summary>PortalStrike: the interior incursion, with no perimeter opening at
     /// all. Window centres on the teleport_sigil's lot; the wall is the full
     /// boundary; the ENEMY anchor is the ritual ring around the sigil (waves
-    /// arrive there — the portal keeps disgorging), defenders muster at the
-    /// far lot. Diegetic availability: no placed sigil, no vector — throws.
+    /// arrive there; the portal keeps disgorging), defenders muster at the
+    /// far lot. Diegetic availability: no placed sigil, no vector, so it throws.
     /// (Mirror of the proto's compile_portal; keep in lockstep.)</summary>
     public static CityWindowResult CompilePortalStrike(
         ICityCombatSource city, ulong seed, int mapRadius = DefaultMapRadius,
@@ -233,7 +233,7 @@ public static class CityBattlemapCompiler
     {
         if (city.TeleporterCell == null)
             throw new InvalidOperationException(
-                "[CityCompiler] no placed teleport_sigil — the portal vector is diegetically unavailable.");
+                "[CityCompiler] no placed teleport_sigil. The portal vector is diegetically unavailable.");
         var focus = city.TeleporterCell.Value;
 
         var allLots = ExtractWindow(city, focus);
@@ -413,7 +413,7 @@ public static class CityBattlemapCompiler
         return ordered[Math.Min(rank, ordered.Count - 1)];
     }
 
-    /// <summary>Shared window core. <paramref name="gate"/> is the FOCUS lot —
+    /// <summary>Shared window core. <paramref name="gate"/> is the FOCUS lot,
     /// named for the dominant case; for a breach it is the collapsed segment.
     /// <paramref name="opening"/>: "door" (gate face, spawns door structures
     /// when defending) or "rubble" (breach face, cover instead of doors).</summary>
@@ -439,7 +439,7 @@ public static class CityBattlemapCompiler
         var arena = new HashSet<(int q, int r)>(Disk((0, 0), mapRadius));
         var result = new CityWindowResult();
 
-        // stamps: EVERY positioned building paints its in-arena tiles — a lot
+        // stamps: EVERY positioned building paints its in-arena tiles. A lot
         // whose center sits beyond the rim still pokes its edge into the map
         // (clipped buildings ARE the city continuing past the edge)
         foreach (var lot in allLots)
@@ -452,11 +452,11 @@ public static class CityBattlemapCompiler
                     result.StampTiles[t] = b.BlueprintId;
         }
 
-        // Wall v3 — region-boundary curtain (port of city_compiler_proto.py,
+        // Wall v3: region-boundary curtain (port of city_compiler_proto.py,
         // asserts passed 2026-08-11). City region = union of disks
         // (stamp radius + 2) over admitted lots; +2 guarantees adjacent lots'
         // disks overlap (pitch = rA+rB+3 < rA+rB+4), so the region is one blob
-        // and its outer boundary is a CLOSED, 1-thick contour by construction —
+        // and its outer boundary is a CLOSED, 1-thick contour by construction:
         // the curtain, clipped at the arena edge. Walls stand ~2 off stamps
         // (patrol alley inside the wall). The gate gap = the 2 boundary tiles
         // nearest the outward ray from the gate lot. Sealing is asserted in the
@@ -466,7 +466,7 @@ public static class CityBattlemapCompiler
                          r: pos[gate].r + dOut.r * (gateR + 1));
 
         var region = new HashSet<(int q, int r)>();
-        foreach (var lot in allLots)     // FULL city — no phantom interior walls
+        foreach (var lot in allLots)     // FULL city, so no phantom interior walls
             foreach (var t in Disk(pos[lot], StampRadius(city, lot) + 2))
                 region.Add(t);
 
@@ -517,10 +517,10 @@ public static class CityBattlemapCompiler
             .Take(GateGapWidth));
         result.GateGap = gap.ToList();
 
-        // RAMPARTS (2026-08-11 ruling; gate windows only — a collapsed breach
+        // RAMPARTS (2026-08-11 ruling; gate windows only, since a collapsed breach
         // has no pristine fighting platforms): wall tiles within 2 of the gap
         // become WALKABLE stone at height 4. The seal moves from "blocked" to
-        // the CLIFF RULE (CliffHeightThreshold = 2 — ground 0 → rampart 4 is
+        // the CLIFF RULE (CliffHeightThreshold = 2, so ground 0 → rampart 4 is
         // an illegal step). One stair tile (height 2) per flank inside the
         // courtyard gives a legal 0→2→4 climb; enemies that force the door
         // can storm the stairs. Proto-asserted: sealed incl. rampart top;
@@ -561,22 +561,22 @@ public static class CityBattlemapCompiler
                 result.WallTiles.Add(t);
 
         // anchors: attacker beyond the gate; defender at the deepest interior
-        // lot. `defending` swaps which side is the player — geometry unchanged.
+        // lot. `defending` swaps which side is the player; geometry unchanged.
         var approachAnchor = (q: gateOuter.q + dOut.q * 3, r: gateOuter.r + dOut.r * 3);
         var interior = admitted
             .Where(l => l != gate && MissingDirs(city, l).Count == 0)
             .ToList();
         var enemyLot = interior.Count > 0 ? interior[0] : admitted.First(l => l != gate);
         var interiorAnchor = pos[enemyLot];
-        // Defenders muster in the ALLEY COURTYARD between wall and gatehouse —
+        // Defenders muster in the ALLEY COURTYARD between wall and gatehouse:
         // that is gateOuter's tile (inside the region, adjacent to the door).
-        // NOT "gateInner" (the far side of the shell — a defender there is 8
+        // NOT "gateInner" (the far side of the shell, where a defender is 8
         // hexes from the door it must hold; caught 2026-08-11).
         result.PlayerAnchor = defending ? gateOuter : approachAnchor;
         result.EnemyAnchor = defending ? approachAnchor : interiorAnchor;
 
         // Objective zone (hold_zone "gate"): the door + the INSIDE pocket only.
-        // Computed HERE because only the compiler knows inside from outside —
+        // Computed HERE because only the compiler knows inside from outside:
         // gap tiles plus region tiles within 2 of the gap (walkable: not wall,
         // not stamp). Region membership excludes the approach: enemies breach
         // by coming THROUGH the door, not by standing in front of it.
@@ -594,7 +594,7 @@ public static class CityBattlemapCompiler
         var features = new JsonArray();
 
         // ground dressing (2026-08-11: bare lots read as empty field, not city
-        // ground — especially in building-sparse windows like the breach):
+        // ground, especially in building-sparse windows like the breach):
         // plazas pave in stone; lawns get a grass apron with a grove core.
         foreach (var lot in admitted)
         {
@@ -665,7 +665,7 @@ public static class CityBattlemapCompiler
         });
 
         // walls: the contour is snake-shaped, so emit PER-TILE ops rather than
-        // direction runs — filled_radius at radius 0 paints exactly one tile
+        // direction runs; filled_radius at radius 0 paints exactly one tile
         // (verified: dist-0 hit, edge roll defeated by chance 1.0). ~50 ops is
         // trivial; exactness beats compression here.
         foreach (var t in result.WallTiles)
@@ -683,7 +683,7 @@ public static class CityBattlemapCompiler
 
         // ramparts + stairs: walkable raised stone. TWO ops per tile because
         // RecipeTileApplier applies the FIRST recognized key only (element >
-        // obstacle_kind > terrain > height) — terrain and height cannot share
+        // obstacle_kind > terrain > height), so terrain and height cannot share
         // an op. No obstacle kind: these tiles are open ground, high up.
         foreach (var (set, h) in new[] { (rampart, 4), (stairs, 2) })
         {
@@ -714,7 +714,7 @@ public static class CityBattlemapCompiler
         // terrain applier is full-fidelity since 2026-08-11, so recipe water is
         // genuinely impassable). The quay (gap) stays ground; a straight pier
         // (anchor → quay along the ray, colinear by construction) and the
-        // landing barge (grass disk at the anchor) are carved back on top —
+        // landing barge (grass disk at the anchor) are carved back on top,
         // emitted AFTER the water ops so ordering does the carving.
         if (opening == "dock")
         {
@@ -777,10 +777,10 @@ public static class CityBattlemapCompiler
             }
         }
 
-        // "rubble" opening (wall breach): no doors — up to 2 pocket tiles that
+        // "rubble" opening (wall breach): no doors. Up to 2 pocket tiles that
         // FLANK the breach (adjacent to exactly one gap tile, never the
         // central lane) become rock cover. Proto-asserted to never re-seal
-        // the opening. (Mirror of the proto's rubble block — keep in lockstep.)
+        // the opening. (Mirror of the proto's rubble block; keep in lockstep.)
         if (opening == "rubble")
         {
             var flank = objectiveZone
@@ -803,7 +803,7 @@ public static class CityBattlemapCompiler
                 });
             }
 
-            // collapsed-masonry debris field OUTSIDE the breach — cover on the
+            // collapsed-masonry debris field OUTSIDE the breach: cover on the
             // approach, dressing for the fiction (proto-asserted passable)
             var debris = arena
                 .Where(t => !region.Contains(t) && !gap.Contains(t)
@@ -826,7 +826,7 @@ public static class CityBattlemapCompiler
             }
         }
 
-        // building stamps LAST — the step-3 `building_stamp` paint overwrites any
+        // building stamps LAST: the step-3 `building_stamp` paint overwrites any
         // band tile that crossed a footprint, and explicitly restores
         // IsWalkable = true (the docx §4a interiors-forward-compat rule)
         foreach (var lot in admitted)
@@ -872,7 +872,7 @@ public static class CityBattlemapCompiler
                 ["palette"] = new JsonArray(new JsonObject { ["terrain"] = "grass" }),
             },
             ["features"] = features,
-            // Unknown keys are ignored by MapRecipe.FromDict — this block carries
+            // Unknown keys are ignored by MapRecipe.FromDict; this block carries
             // the spawn/objective geometry for the step-4 encounter wiring.
             ["siege"] = new JsonObject
             {

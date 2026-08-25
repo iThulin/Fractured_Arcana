@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ============================================================
 // UnitDeckData.cs
 //
-// Purpose:        Per-unit deck state — draw pile, hand, discard
+// Purpose:        Per-unit deck state: draw pile, hand, discard
 //                 pile, max hand size, and the standard
 //                 draw/discard/shuffle/reshuffle operations.
 //                 Pure data; no Godot nodes, no UI.
@@ -14,10 +14,10 @@ using System.Collections.Generic;
 //                 (builds the starting deck), Unit.cs (each unit
 //                 holds one of these), DeckManager.cs,
 //                 Effect.cs (DrawCardsEffect calls Draw)
-// See:            README §6 — Per-Unit Deck Management
+// See:            README §6, Per-Unit Deck Management
 // ============================================================
 
-/// <summary>One unit's deck state — draw pile, hand, discard pile — with the standard card-game operations (draw, discard, shuffle, reshuffle). Each combat unit owns exactly one of these.</summary>
+/// <summary>One unit's deck state (draw pile, hand, discard pile) with the standard card-game operations (draw, discard, shuffle, reshuffle). Each combat unit owns exactly one of these.</summary>
 public class UnitDeckData
 {
 	public List<Card> DrawPile = new();
@@ -25,13 +25,13 @@ public class UnitDeckData
 	public List<Card> DiscardPile = new();
 
 	/// <summary>U3e: cards removed from the fight entirely (redact). NOT reshuffled by
-	/// <see cref="Reshuffle"/> — that is the whole point. A discarded card is a card you
+	/// <see cref="Reshuffle"/>. That is the whole point. A discarded card is a card you
 	/// will see again in two shuffles; an exiled one is gone, which is what turns hand
 	/// denial into attrition against a 10-card deck instead of a delay.</summary>
 	public List<Card> ExilePile = new();
 
 	/// <summary>Live hand cap. Lowered by the enemy `hand_cap` aura and restored when
-	/// its carrier dies — CombatManager.ApplyEnemyAuras recomputes it from
+	/// its carrier dies. CombatManager.ApplyEnemyAuras recomputes it from
 	/// <see cref="BaseMaxHandSize"/> every pass, so it is never adjusted in place.</summary>
 	public int MaxHandSize = 5;
 
@@ -123,7 +123,7 @@ public class UnitDeckData
 	}
 
 	/// <summary>U3e (redact): removes a card from hand for the rest of the combat.
-	/// Goes to <see cref="ExilePile"/>, which <see cref="Reshuffle"/> never touches —
+	/// Goes to <see cref="ExilePile"/>, which <see cref="Reshuffle"/> never touches,
 	/// so this shrinks the deck the player is drawing from rather than deferring the
 	/// card by one cycle. Returns true when a card was actually taken.</summary>
 	public bool ExileFromHand(Card card)
@@ -142,7 +142,7 @@ public class UnitDeckData
 		Shuffle();
 	}
 
-	/// <summary>Sum of all cards across the three LIVE zones — what the unit can still
+	/// <summary>Sum of all cards across the three LIVE zones: what the unit can still
 	/// draw or play. Deliberately excludes <see cref="ExilePile"/>: an exiled card is no
 	/// longer part of this deck, and a count that pretends otherwise would hide exactly
 	/// the attrition redact exists to cause. Used by save / sanity checks.</summary>

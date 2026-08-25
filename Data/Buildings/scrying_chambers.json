@@ -1,7 +1,7 @@
 {
     "id": "scrying_chambers",
     "name": "Scrying Chambers",
-    "description": "A vaulted hall of still water and lenses. The guild's divination organ: it charts what lies ahead before the party ever sets out — sites, objectives, and the patrols that hunt them.",
+    "description": "A vaulted hall of still water and lenses. The guild's divination organ: it charts what lies ahead before the party ever sets out: sites, objectives, and the patrols that hunt them.",
     "category": "Magic",
     "schoolAffinity": "",
     "footprint": [
@@ -22,7 +22,7 @@
         {
             "tier": 2,
             "displayName": "The Far Sight",
-            "description": "Sight enough to fix the goal itself. Charts one further site (3 total), and reveals the run objective's location, charting the ground around it — no more wandering blind toward the destination.",
+            "description": "Sight enough to fix the goal itself. Charts one further site (3 total), and reveals the run objective's location, charting the ground around it. No more wandering blind toward the destination.",
             "goldCost": 275,
             "requiredBuildings": [],
             "revealPoiCount": 1,
@@ -31,7 +31,7 @@
         {
             "tier": 3,
             "displayName": "The Third Eye",
-            "description": "Foresight sharp enough to read intent. Charts a fourth site (4 total), and once per expedition the party foresees and slips the first ambush — the patrol passes without forcing combat.",
+            "description": "Foresight sharp enough to read intent. Charts a fourth site (4 total), and once per expedition the party foresees and slips the first ambush, and the patrol passes without forcing combat.",
             "goldCost": 450,
             "requiredBuildings": [],
             "revealPoiCount": 1,

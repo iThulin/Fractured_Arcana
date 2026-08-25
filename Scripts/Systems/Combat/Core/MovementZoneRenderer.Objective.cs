@@ -4,13 +4,13 @@ using System.Collections.Generic;
 // ============================================================
 // MovementZoneRenderer.Objective.cs  (partial)
 //
-// Purpose:        Persistent OBJECTIVE-ZONE overlay — the "hold this
+// Purpose:        Persistent OBJECTIVE-ZONE overlay: the "hold this
 //                 ground" indicator for hold_zone fights (O4, city
 //                 siege gate defense). Same XCOM border-wall visual
 //                 grammar as the movement/threat zones, but on its OWN
 //                 mesh + material so ShowPlayerZone/Clear churn from
 //                 selection changes never erases it. Gold, solid (no
-//                 dash animation — it is a fact, not a preview), and
+//                 dash animation, since it is a fact, not a preview), and
 //                 NoDepthTest so it stays readable behind the
 //                 gatehouse shell.
 // Layer:          Combat / rendering
@@ -21,11 +21,11 @@ using System.Collections.Generic;
 
 public partial class MovementZoneRenderer : Node3D
 {
-    /// <summary>Objective-zone border colour. Gold — deliberately outside the
+    /// <summary>Objective-zone border colour. Gold, deliberately outside the
     /// blue/red movement/threat vocabulary.</summary>
     [Export] public Color ObjectiveColor = new Color(1.00f, 0.78f, 0.22f, 0.85f);
 
-    /// <summary>Objective wall height — between the player lip (0.1) and the
+    /// <summary>Objective wall height, between the player lip (0.1) and the
     /// threat walls (0.6): present, not looming.</summary>
     [Export] public float ObjectiveWallHeight = 0.28f;
 
@@ -81,7 +81,7 @@ public partial class MovementZoneRenderer : Node3D
             for (int d = 0; d < 6; d++)
             {
                 if (tiles.Contains(coord + HexDirs[d]))
-                    continue;   // interior edge — no border here
+                    continue;   // interior edge, no border here
 
                 int edge = EdgeForDir[d];
                 var cA = center2D + HexCorner(edge);

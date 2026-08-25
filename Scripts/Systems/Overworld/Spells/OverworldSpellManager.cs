@@ -9,7 +9,7 @@ using System.Collections.Generic;
 //                 prepared spells), the casting state machine
 //                 (Idle → Targeting → resolve), Essence accounting
 //                 with the corrupted-ground surcharge, once-per-
-//                 expedition caps, and the EffectKey dispatcher —
+//                 expedition caps, and the EffectKey dispatcher:
 //                 bespoke key per spell, the enemy-archetype
 //                 dispatcher shape. World mutation lives in
 //                 ExpeditionManager's Spell* façade; timed effect
@@ -19,26 +19,26 @@ using System.Collections.Generic;
 //                 Attunements: applied as passive fog effects
 //                 after each party move (ApplyAttunement).
 //                 Silhouettes they create become Charted through
-//                 the standard WriteVisibleToWorld pass — an
+//                 the standard WriteVisibleToWorld pass: an
 //                 attunement charts terrain along the route, per
 //                 G2 (terrain shape, never contents).
 //
 //                 S4 (2026-07-16): Identify lands through the
 //                 ScoutReportPanel seam (the last authored-but-
-//                 unbuilt key — the registry's 36 are now all
+//                 unbuilt key; the registry's 36 are now all
 //                 live); scroll casting (Essence-free, consumed
-//                 on SUCCESSFUL resolve only — G5: an aborted
+//                 on SUCCESSFUL resolve only; G5: an aborted
 //                 targeting session spends nothing); Speak with
 //                 the Fallen occasionally teaches a working
 //                 (SpellAcquisition).
-//                 S5 (2026-07-16): the witness stub is REAL now —
+//                 S5 (2026-07-16): the witness stub is REAL now.
 //                 Overt/Grand casts in kingdom territory emit §6a
 //                 deeds (SpellcraftAid/Transgression via the
 //                 ExpeditionManager façade), and casting from
 //                 tier-3 corrupted ground applies the R15
 //                 deterministic exposure (warned pre-cast).
-//                 Unknown EffectKeys still render greyed out —
-//                 data may lead implementation safely.
+//                 Unknown EffectKeys still render greyed out,
+//                 so data may lead implementation safely.
 // Layer:          System
 // Collaborators:  ExpeditionManager.cs (façade + lifecycle),
 //                 OverworldSpellRegistry.cs (definitions),
@@ -63,7 +63,7 @@ public partial class OverworldSpellManager : Node2D
     // Spell rules read DATA through these (wired by ExpeditionManager at
     // creation); null falls back to node reads. FogWrite is load-bearing, not
     // hygiene: the attunement senses used to write hex.Fog directly, which
-    // after Step 1 bypassed the fog MODEL — the next UpdateVision pass would
+    // after Step 1 bypassed the fog MODEL; the next UpdateVision pass would
     // stomp a sense's silhouette back to Hidden. Routing writes through the
     // seam (model + mirror) fixes that regression.
 
@@ -95,7 +95,7 @@ public partial class OverworldSpellManager : Node2D
 
     /// <summary>S4 (scrolls): the spell id being cast FROM A SCROLL right
     /// now, or null. While set for a definition, its Essence gates vanish
-    /// (scrolls bypass the pool entirely, §8a — surcharge included: the
+    /// (scrolls bypass the pool entirely, §8a, surcharge included: the
     /// surcharge is an Essence cost and there is no Essence cost). The
     /// scroll is consumed only on a successful resolve; every cancel or
     /// refuse path clears the flag and spends nothing (G5).</summary>
@@ -122,7 +122,7 @@ public partial class OverworldSpellManager : Node2D
         "thornwall", "fulminant_charge", "deploy_waystation", "clockwork_skimmer",
         "speak_fallen", "bone_scout", "beast_envoy", "pallid_bargain",
         "minor_working", "emulate", "attuned_recall",
-        // S4 — the ScoutReportPanel seam exists now; the G5 gap is closed.
+        // S4: the ScoutReportPanel seam exists now; the G5 gap is closed.
         "identify",
     };
 
@@ -146,7 +146,7 @@ public partial class OverworldSpellManager : Node2D
 
     /// <summary>Wire references and (on a FRESH deploy only) reset the
     /// expedition-scoped spell state. Combat/negotiation returns keep the
-    /// pool, cast counts, and beacons — they ride the save.</summary>
+    /// pool, cast counts, and beacons; they ride the save.</summary>
     public void Initialize(ExpeditionManager expedition, OverworldHexGrid grid,
                            GrimoireState grimoire, bool freshDeploy)
     {
@@ -191,7 +191,7 @@ public partial class OverworldSpellManager : Node2D
                     _expedition.SpellDrawRemnantMarker(_expedition.WindowRef.LocalOf(col, row));
             }
 
-        // S3: attunement vision flags — set once per scene build (Clear() on a
+        // S3: attunement vision flags, set once per scene build (Clear() on a
         // fresh deploy has already run above, so these survive it).
         var att = OverworldSpellRegistry.AttunementFor(_school);
         OverworldSpellEffects.ForebodingVision = att?.EffectKey == "foreboding";
@@ -208,7 +208,7 @@ public partial class OverworldSpellManager : Node2D
 
     /// <summary>The spells this expedition can cast right now: the school's
     /// innates (always prepared, no slots) + the prepared loadout. DebugMode
-    /// additionally exposes every implemented spell in the registry — the S1
+    /// additionally exposes every implemented spell in the registry: the S1
     /// "debug-cast from console" path, panel edition.</summary>
     public List<OverworldSpellDefinition> CastableSpells()
     {
@@ -228,8 +228,8 @@ public partial class OverworldSpellManager : Node2D
 
         // S3 (§4a): active-party companions of another school grant that
         // school's innates at +1 Essence (off-caster tax; waived for the
-        // Adept). They occupy no slots and leave when the companion leaves —
-        // losing your only Enchanter mid-expedition removes Veil. Intended.
+        // Adept). They occupy no slots and leave when the companion leaves.
+        // Losing your only Enchanter mid-expedition removes Veil. Intended.
         foreach (string school in ActiveCompanionSchools())
             if (school != _school)
                 foreach (var innate in OverworldSpellRegistry.InnatesFor(school))
@@ -244,7 +244,7 @@ public partial class OverworldSpellManager : Node2D
     }
 
     /// <summary>Full Essence cost right now: base + off-caster tax (+1 for a
-    /// non-General spell outside the wizard's school — companion-granted or
+    /// non-General spell outside the wizard's school, companion-granted or
     /// debug; waived for the Adept, §7h) + corrupted-ground surcharge
     /// (casting FROM a tile of corruption tier T costs +T, §5).</summary>
     public int CastCostOf(OverworldSpellDefinition def)
@@ -257,7 +257,7 @@ public partial class OverworldSpellManager : Node2D
     public int CorruptionSurcharge() => _expedition?.SpellCorruptionTierAtParty() ?? 0;
 
     /// <summary>S5 (R15, G5): the pre-cast warning the detail card shows
-    /// when the party stands on tier-3 corrupted ground — every cast from
+    /// when the party stands on tier-3 corrupted ground: every cast from
     /// here sears the party. Null when it doesn't apply.</summary>
     public string ExposureWarning()
         => CorruptionSurcharge() >= 3
@@ -388,7 +388,7 @@ public partial class OverworldSpellManager : Node2D
     public string CastBlockReason(OverworldSpellDefinition def)
         => CastBlockReason(def, ignoreEssence: IsScrollCast(def));
 
-    /// <summary>S4: the ignoreEssence form serves scrolls — contextual gates
+    /// <summary>S4: the ignoreEssence form serves scrolls: contextual gates
     /// and once-per-expedition caps still bind (a Retrace scroll cannot
     /// break the G1 hard cap), but the pool is irrelevant.</summary>
     public string CastBlockReason(OverworldSpellDefinition def, bool ignoreEssence)
@@ -459,7 +459,7 @@ public partial class OverworldSpellManager : Node2D
 
         CancelTargeting(null); // one targeting session at a time
 
-        // S3 (Emulate): recast the last spell at its cost +1 — inherits the
+        // S3 (Emulate): recast the last spell at its cost +1. It inherits the
         // original's flow (targeting and all), Magnitude, and echo profile.
         // Once-per-expedition caps still bind the recast (Retrace stays hard).
         if (def.EffectKey == "emulate")
@@ -488,10 +488,10 @@ public partial class OverworldSpellManager : Node2D
         RouteCast(def);
     }
 
-    /// <summary>S4 (§8a): cast from a scroll — any school, no Essence, the
+    /// <summary>S4 (§8a): cast from a scroll: any school, no Essence, the
     /// scroll consumed on a successful resolve. Contextual gates and
     /// once-per-expedition caps still bind; Magnitude and (S5) echoes are
-    /// the spell's own — an Overt scroll cast is still witnessed.</summary>
+    /// the spell's own; an Overt scroll cast is still witnessed.</summary>
     public void RequestScrollCast(string spellId)
     {
         if (_expedition == null || _expedition.ExpeditionComplete)
@@ -518,7 +518,7 @@ public partial class OverworldSpellManager : Node2D
         if (def.EffectKey == "emulate")
         {
             _scrollSpellId = null;
-            _expedition.SpellInfo("Emulate cannot be scribed — the scroll would have nothing to remember.");
+            _expedition.SpellInfo("Emulate cannot be scribed. The scroll would have nothing to remember.");
             return;
         }
         if (def.EffectKey == "minor_working")
@@ -541,16 +541,16 @@ public partial class OverworldSpellManager : Node2D
             ResolveCast(def, _expedition.PartyLocal);
     }
 
-    /// <summary>S3 (Minor Working, Adept): heal · chart · ward — never the
+    /// <summary>S3 (Minor Working, Adept): heal · chart · ward. Never the
     /// best tool, always a tool. The chart option enters tile targeting.</summary>
     private void ShowMinorWorkingMenu(OverworldSpellDefinition def)
     {
         if (_minorMenu == null)
         {
             _minorMenu = new PopupMenu { Name = "MinorWorkingMenu" };
-            _minorMenu.AddItem("Mend — heal 3 party HP", 0);
-            _minorMenu.AddItem("Glimpse — chart 1 adjacent unseen hex", 1);
-            _minorMenu.AddItem("Ward — no terrain drain for 3 steps", 2);
+            _minorMenu.AddItem("Mend: heal 3 party HP", 0);
+            _minorMenu.AddItem("Glimpse: chart 1 adjacent unseen hex", 1);
+            _minorMenu.AddItem("Ward: no terrain drain for 3 steps", 2);
             AddChild(_minorMenu);
             _minorMenu.IdPressed += id =>
             {
@@ -600,8 +600,8 @@ public partial class OverworldSpellManager : Node2D
         _expedition.SpellInfo($"{def.Name}: choose a target (right-click or Esc to cancel).");
     }
 
-    /// <summary>Per-EffectKey target validity. Targets are LOADED hexes only —
-    /// every S2 range (≤6) sits far inside the loaded window (R=12).</summary>
+    /// <summary>Per-EffectKey target validity. Targets are LOADED hexes only,
+    /// and every S2 range (≤6) sits far inside the loaded window (R=12).</summary>
     private void CollectValidTargets(OverworldSpellDefinition def, List<Vector2I> into)
     {
         var party = _expedition.PartyLocal;
@@ -618,14 +618,14 @@ public partial class OverworldSpellManager : Node2D
             switch (def.EffectKey)
             {
                 case "force_path":
-                    // Adjacent impassable ground (rockfall/water) — never the
+                    // Adjacent impassable ground (rockfall/water), never the
                     // party's own tile.
                     if (dist == 1 && ImpassableAt(coord, kvp.Value))
                         into.Add(coord);
                     break;
 
                 case "scrying_lens":
-                    // Any already-Charted (or Explored) tile within range —
+                    // Any already-Charted (or Explored) tile within range,
                     // the leapfrog anchor (G2: charts, never explores).
                     if (window.TryLocalToWorld(coord, out int c, out int r) &&
                         world.GetTile(c, r).Discovery != TileDiscovery.Unseen)
@@ -634,7 +634,7 @@ public partial class OverworldSpellManager : Node2D
 
                 case "clockwork_skimmer":
                     // Fire-and-forget: any loaded tile in range, no anchor
-                    // requirement — pays for the freedom in reach.
+                    // requirement. It pays for the freedom in reach.
                     into.Add(coord);
                     break;
 
@@ -661,7 +661,7 @@ public partial class OverworldSpellManager : Node2D
                 case "identify":
                     // S4 (§7b): a VISIBLE, unconsumed combat site (Prison
                     // gaols route through the same scout report). Revealed
-                    // only — a silhouette shows terrain, never its POI (G2).
+                    // only: a silhouette shows terrain, never its POI (G2).
                     // Step 4b: fog + POI from the models.
                     var idFog = FogQuery != null ? FogQuery(coord) : kvp.Value.Fog;
                     var idPoi = OverlayQuery != null
@@ -690,7 +690,7 @@ public partial class OverworldSpellManager : Node2D
         _path.Add(_expedition.PartyLocal);
         _state = CastState.PathTargeting;
         RefreshPathHighlights();
-        _expedition.SpellInfo($"{def.Name}: draw a path (0/{_pathMax}) — click the last hex to send, right-click to cancel.");
+        _expedition.SpellInfo($"{def.Name}: draw a path (0/{_pathMax}). Click the last hex to send, right-click to cancel.");
     }
 
     private void RefreshPathHighlights()
@@ -753,12 +753,12 @@ public partial class OverworldSpellManager : Node2D
         {
             _path.Add(axial);
             RefreshPathHighlights();
-            _expedition.SpellInfo($"{_targetingSpell.Name}: path {_path.Count - 1}/{_pathMax} — " +
-                                  "click the last hex to send, right-click to cancel.");
+            _expedition.SpellInfo($"{_targetingSpell.Name}: path {_path.Count - 1}/{_pathMax}. " +
+                                  "Click the last hex to send, right-click to cancel.");
             return true;
         }
 
-        _expedition.SpellInfo("The scout can't reach that — extend from the path's end.");
+        _expedition.SpellInfo("The scout can't reach that. Extend from the path's end.");
         return true;
     }
 
@@ -827,16 +827,16 @@ public partial class OverworldSpellManager : Node2D
     {
         bool scroll = IsScrollCast(def);
 
-        // Re-validate at resolve — the surcharge can differ from panel time.
+        // Re-validate at resolve, because the surcharge can differ from panel time.
         // (Emulate carries a cost override; its Essence gate was checked at
         // request time against that override, so skip the base-cost gate.
-        // Scroll casts have no Essence gate at all — CastBlockReason already
+        // Scroll casts have no Essence gate at all, and CastBlockReason already
         // skips it while the scroll flag is set.)
         string block = CastBlockReason(def);
         if (block != null && !(block == "not enough Essence" && _costOverride.HasValue))
         {
             _costOverride = null;
-            _scrollSpellId = null; // refused before dispatch — scroll kept (G5)
+            _scrollSpellId = null; // refused before dispatch, so scroll kept (G5)
             _expedition.SpellInfo($"{def.Name}: {block}.");
             return;
         }
@@ -853,7 +853,7 @@ public partial class OverworldSpellManager : Node2D
         string result = Dispatch(def, target, path);
         if (result == null)
         {
-            // Effect refused (validation raced) — no Essence spent, no
+            // Effect refused (validation raced): no Essence spent, no
             // scroll consumed (G5: legible costs; you never pay for nothing).
             _scrollSpellId = null;
             _expedition.SpellRefreshHud();
@@ -863,7 +863,7 @@ public partial class OverworldSpellManager : Node2D
         int scrollsLeft = 0;
         if (scroll)
         {
-            // S4: the scroll is spent HERE — after a successful dispatch,
+            // S4: the scroll is spent HERE, after a successful dispatch,
             // never on a cancel/refuse path.
             _scrollSpellId = null;
             if (_grimoire.ScrollInventory.TryGetValue(def.Id, out int held))
@@ -879,11 +879,11 @@ public partial class OverworldSpellManager : Node2D
         _grimoire.EssenceCurrent -= cost;
         _grimoire.PerExpeditionCastCounts[def.Id] =
             _grimoire.PerExpeditionCastCounts.TryGetValue(def.Id, out int n) ? n + 1 : 1;
-        _grimoire.LastCastSpellId = def.Id; // S3: Emulate's memory (scrolls count — "by anyone")
+        _grimoire.LastCastSpellId = def.Id; // S3: Emulate's memory (scrolls count, "by anyone")
         SaveManager.MarkDirty();
 
-        // S5 (R15): casting FROM tier-3 corrupted ground exposes the party —
-        // deterministic, warned pre-cast in the detail card (G5). Applies to
+        // S5 (R15): casting FROM tier-3 corrupted ground exposes the party.
+        // Deterministic, warned pre-cast in the detail card (G5). Applies to
         // scroll casts too: exposure is standing in the corruption while
         // channeling, not an Essence cost. Can end the expedition.
         string exposure = _expedition.SpellTier3Exposure();
@@ -891,7 +891,7 @@ public partial class OverworldSpellManager : Node2D
             return;
 
         // S5 (§6a): Overt/Grand casts in kingdom territory emit REAL deeds
-        // now — the stub is gone. Only the §6a rows echo (necromantic −,
+        // now, and the stub is gone. Only the §6a rows echo (necromantic −,
         // warding-near-settlement +); the toast rides the same info beat.
         string echoToast = null;
         if (def.Magnitude != "Subtle")
@@ -906,7 +906,7 @@ public partial class OverworldSpellManager : Node2D
         if (scroll)
         {
             _expedition.SpellInfo($"{def.Name}: {result} (the scroll crumbles" +
-                                  $"{(scrollsLeft > 0 ? $" — {scrollsLeft} left" : "")}; no Essence spent.)" + tail);
+                                  $"{(scrollsLeft > 0 ? $", {scrollsLeft} left" : "")}; no Essence spent.)" + tail);
         }
         else
         {
@@ -918,7 +918,7 @@ public partial class OverworldSpellManager : Node2D
         _expedition.SpellRefreshHud();
     }
 
-    /// <summary>The dispatcher — bespoke key per spell. Returns a short result
+    /// <summary>The dispatcher, with a bespoke key per spell. Returns a short result
     /// string for the info line, or null if the effect refused (no charge).</summary>
     private string Dispatch(OverworldSpellDefinition def, Vector2I target,
                             List<Vector2I> path = null)
@@ -931,15 +931,15 @@ public partial class OverworldSpellManager : Node2D
             // ── S3 ────────────────────────────────────────────────────────
             case "retrace":
                 return _expedition.SpellRetrace()
-                    ? "the last step unhappens — ground and cost restored"
+                    ? "the last step unhappens: ground and cost restored"
                     : null;
 
             case "auspice":
             {
                 int flagged = _expedition.SpellAuspicePreview();
                 return flagged > 0
-                    ? $"the next moon shows itself — {flagged} tile(s) marked for the creep"
-                    : "the next moon shows itself — the corruption rests near you";
+                    ? $"the next moon shows itself: {flagged} tile(s) marked for the creep"
+                    : "the next moon shows itself: the corruption rests near you";
             }
 
             case "stasis_snare":
@@ -966,11 +966,11 @@ public partial class OverworldSpellManager : Node2D
 
             case "fulminant_charge":
                 OverworldSpellEffects.AddTrap(_expedition.PartyLocal, (int)def.Param("stun", 4));
-                return "the charge is set — the first patrol to walk here will regret it";
+                return "the charge is set, and the first patrol to walk here will regret it";
 
             case "deploy_waystation":
                 return _expedition.SpellDeployWaystation()
-                    ? "the waystation unfolds — one rest, and an anchor while it stands"
+                    ? "the waystation unfolds: one rest, and an anchor while it stands"
                     : null;
 
             case "clockwork_skimmer":
@@ -978,7 +978,7 @@ public partial class OverworldSpellManager : Node2D
                 if (!window.TryLocalToWorld(target, out int kc, out int kr))
                     return null;
                 int charted = _expedition.SpellChartHexRadius(kc, kr, (int)def.Param("radius", 2));
-                return $"the skimmer lands — {charted} tile(s) charted";
+                return $"the skimmer lands: {charted} tile(s) charted";
             }
 
             case "speak_fallen":
@@ -987,7 +987,7 @@ public partial class OverworldSpellManager : Node2D
                 string bearing = _expedition.SpellNearestUndiscoveredPoiBearing();
 
                 // S4 (§7c "occasionally yields lore"): sometimes the dead
-                // teach. Terrain-flavored roll at the party's tile — at a
+                // teach. Terrain-flavored roll at the party's tile, so at a
                 // ruin that means the Communion-adjacent pool leads.
                 string taught = "";
                 if (GD.Randf() < SpellAcquisition.SpeakFallenDropChance)
@@ -1000,10 +1000,10 @@ public partial class OverworldSpellManager : Node2D
                     string learned = SpellAcquisition.RollUnknownLearnable(_grimoire, terr);
                     if (learned != "" && SpellAcquisition.Learn(_grimoire, learned))
                         taught = $"; the dead also yield the working of " +
-                                 $"{OverworldSpellRegistry.Get(learned)?.Name} — preparable at the next launch";
+                                 $"{OverworldSpellRegistry.Get(learned)?.Name}, preparable at the next launch";
                 }
 
-                return $"the dead speak — {exposed} patrol(s) betrayed" +
+                return $"the dead speak: {exposed} patrol(s) betrayed" +
                        (bearing == "" ? "" : $"; {bearing}") + taught;
             }
 
@@ -1018,7 +1018,7 @@ public partial class OverworldSpellManager : Node2D
                         charted += _expedition.SpellChartHexRadius(sc, sr,
                             (int)def.Param("chartRadius", 0));
                 string who = def.EffectKey == "bone_scout" ? "the bones walk" : "the beast runs";
-                return $"{who} — {charted} tile(s) charted along the path";
+                return $"{who}: {charted} tile(s) charted along the path";
             }
 
             case "pallid_bargain":
@@ -1041,7 +1041,7 @@ public partial class OverworldSpellManager : Node2D
                         if (!window.TryLocalToWorld(target, out int ac, out int ar))
                             return null;
                         _expedition.SpellChartHexRadius(ac, ar, 0);
-                        return "a glimpse past the veil — 1 hex charted";
+                        return "a glimpse past the veil: 1 hex charted";
                     }
                     default:
                         OverworldSpellEffects.AddDrainSuppression("Minor Working",
@@ -1055,14 +1055,14 @@ public partial class OverworldSpellManager : Node2D
 
             case "identify":
                 // S4 (§7b): reveal a visible combat site's full composition
-                // before engaging. The rolled encounter is PINNED — the
+                // before engaging. The rolled encounter is PINNED, so the
                 // scout report on arrival shows the same forces (G5: what
                 // the spell showed is what you fight).
                 return _expedition.SpellIdentify(target);
 
             case "force_path":
                 return _expedition.SpellForcePath(target)
-                    ? "the way is open — rough going, but passable"
+                    ? "the way is open: rough going, but passable"
                     : null;
 
             case "tremorsense":
@@ -1076,7 +1076,7 @@ public partial class OverworldSpellManager : Node2D
                     (int)def.Param("radius", 12),
                     new List<OverworldHex.TerrainType>
                     { OverworldHex.TerrainType.Mountain, OverworldHex.TerrainType.Hills });
-                return $"the earth speaks — {charted} highland tile(s) charted";
+                return $"the earth speaks: {charted} highland tile(s) charted";
             }
 
             case "scrying_lens":
@@ -1159,7 +1159,7 @@ public partial class OverworldSpellManager : Node2D
             if (!_warnedUnbuiltAttunement)
             {
                 _warnedUnbuiltAttunement = true;
-                GD.Print($"[Grimoire] Attunement '{att.Id}' not built yet (S3) — inert.");
+                GD.Print($"[Grimoire] Attunement '{att.Id}' not built yet (S3), so it is inert.");
             }
             return;
         }
@@ -1169,7 +1169,7 @@ public partial class OverworldSpellManager : Node2D
             case "elemental_sense":
             {
                 // Volcanic / Arcane Ground / water / frozen terrain silhouettes
-                // within 3. "Ice" has no overworld terrain yet — Snow stands in.
+                // within 3. "Ice" has no overworld terrain yet, so Snow stands in.
                 int radius = (int)att.Param("radius", 3);
                 foreach (var kvp in _grid.Hexes)
                 {
@@ -1225,7 +1225,7 @@ public partial class OverworldSpellManager : Node2D
             {
                 // Ruins silhouette through fog within 3. (Grave-marked POIs
                 // don't exist yet; consumed-combat sites are usually already
-                // revealed — the Remnant markers carry that half.)
+                // revealed, and the Remnant markers carry that half.)
                 int radius = (int)att.Param("radius", 3);
                 foreach (var kvp in _grid.Hexes)
                 {
@@ -1267,8 +1267,8 @@ public partial class OverworldSpellManager : Node2D
     }
 
     /// <summary>Arcane Literacy (Arcanist): revealed POIs show their reward
-    /// category — the sole sanctioned peek past G2's contents line, and only
-    /// once the POI is already revealed.</summary>
+    /// category. This is the sole sanctioned peek past G2's contents line,
+    /// and only once the POI is already revealed.</summary>
     public string TooltipPoiExtra(Vector2I local, OverworldHex node)
     {
         if (!HasAttunement("arcane_literacy"))

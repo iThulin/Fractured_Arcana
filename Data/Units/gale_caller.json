@@ -3,7 +3,7 @@
   "threatLabel": "Gale Caller",
   "role": "elite",
   "factionId": "",
-  "intelDescription": "Deals no wound. Reads the wind a turn ahead and hurls you three tiles back \u2014 off a ledge, across the ice, onto your own fire. Step off the marked tile or pay for where you land.",
+  "intelDescription": "Deals no wound. Reads the wind a turn ahead and hurls you three tiles back: off a ledge, across the ice, onto your own fire. Step off the marked tile or pay for where you land.",
   "maxHealth": 26,
   "baseSpeed": 2,
   "armor": 1,

@@ -5,7 +5,7 @@ using Godot;
 //
 // Purpose:        Curiosity-gap telegraph for revealed-but-
 //                 unentered Narrative POIs (discovery_loop_spec
-//                 Layer A — "Signal"). A narrative site should
+//                 Layer A, "Signal"). A narrative site should
 //                 read as an *anomaly worth the steps*, not a
 //                 labelled "Narrative" marker. Maps
 //                 (terrain, coordinate) to a stable flavour hint.
@@ -15,7 +15,7 @@ using Godot;
 // See:            discovery_loop_spec_v1 §Layer A
 //
 // The signal is derived deterministically from the axial
-// coordinate — no per-POI save state — so a site keeps ONE
+// coordinate, with no per-POI save state, so a site keeps ONE
 // consistent signal across hovers, while neighbouring sites in
 // the same terrain read differently. Only Narrative POIs are
 // transformed; functional POIs (Combat/Rest/…) keep their kind

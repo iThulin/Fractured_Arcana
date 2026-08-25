@@ -1,7 +1,7 @@
 {
   "id": "focus_adept",
   "name": "The Unmarked Staff",
-  "description": "Plain ash, no sigils \u2014 the school of no school. Adept spells deal +1 damage.",
+  "description": "Plain ash, no sigils. The school of no school. Adept spells deal +1 damage.",
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Wizard",

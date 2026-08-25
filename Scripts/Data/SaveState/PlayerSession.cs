@@ -11,14 +11,14 @@ using System.Collections.Generic;
 // Layer:          Data
 // Collaborators:  ClassSelectUi.cs / CampusScreen.cs (writers),
 //                 CombatManager.cs, OverworldRunManager.cs (readers)
-// See:            README §6 — Debug flags
+// See:            README §6 (Debug flags)
 // ============================================================
 
 /// <summary>
 /// Per-process active-run scratchpad. Holds school selection, run-scoped
 /// feature flags unlocked by campus buildings, debug-mode flags, and the
 /// disenchant splinter bonus accumulated from building tiers.
-/// Distinct from save data — nothing here persists to disk.
+/// Distinct from save data: nothing here persists to disk.
 /// </summary>
 public static class PlayerSession
 {
@@ -36,7 +36,7 @@ public static class PlayerSession
 
     /// <summary>One-shot: set by CampusScreen when leaving the campus for the world,
     /// consumed by StrategicView to open the atlas framed on the home city and swoop
-    /// out to the overview (Phase 2, Stage 2 — the "ascend" transition). Not run
+    /// out to the overview (Phase 2, Stage 2, the "ascend" transition). Not run
     /// state; a UI hand-off flag, so ClearRunState leaves it alone.</summary>
     public static bool ZoomFromHomeOnOpen = false;
 
@@ -49,7 +49,7 @@ public static class PlayerSession
     public static bool StartInCityOnOpen = false;
 
     /// <summary>True while the campus is open as an IN-WORLD OVERLAY hosted by the
-    /// strategic scene (Phase 2, Stage 3 — single-scene merge): no scene swap, the
+    /// strategic scene (Phase 2, Stage 3, the single-scene merge): no scene swap, the
     /// atlas sits hidden beneath. The campus draws its own chrome, so the global HUD
     /// hides while this is set. Not run state.</summary>
     public static bool CampusOverlayOpen = false;
@@ -60,7 +60,7 @@ public static class PlayerSession
 
     /// <summary>Scrying Chambers T3 "Portent" (scrying_chambers_spec_v1 §2): armed at
     /// run start when the Scrying Chambers is tier 3+, consumed to negate the first
-    /// Ambush of the run. Per-run only — reset by ClearRunState, never persisted.</summary>
+    /// Ambush of the run. Per-run only: reset by ClearRunState, never persisted.</summary>
     public static bool ScryingPortentAvailable = false;
     /// <summary>Currently selected wizard school. Drives starting deck composition and school-specific systems.</summary>
     public static CardSchool SelectedSchool = CardSchool.Elementalist;
@@ -97,14 +97,14 @@ public static class PlayerSession
     /// re-runs the CombatSim preview for that same cast and, after it resolves,
     /// logs whether the predicted per-enemy HP loss matched the actual delta.
     /// A "[PreviewSelfCheck] DESYNC …" line means the preview and the live
-    /// resolver diverged — the maintenance guard that replaces a second test
+    /// resolver diverged. It is the maintenance guard that replaces a second test
     /// suite. Off in normal play (adds a sim run + a 0.5s deferred compare per
     /// cast). Reaction/trigger damage landing within that window can log a
-    /// benign mismatch — read DESYNC lines in that light.</summary>
+    /// benign mismatch, so read DESYNC lines in that light.</summary>
     public static bool DebugPreviewSelfCheck = false;
 
     // ── Stack stops (combat_ui §7c, V3) ─────────────────────────────────
-    // Per-trigger-type "stop" toggles set from the stack strip header — the
+    // Per-trigger-type "stop" toggles set from the stack strip header. This is the
     // digital-card-game full-control pattern. A set stop opens an interactive
     // priority window for that category even with no Reflex card in hand.
     // Player-facing (NOT debug-gated); persists for the session.
@@ -172,12 +172,12 @@ public static class PlayerSession
     // ── Wizard expedition HP carry (K2.5 symmetry, 2026-07-29) ───────────
 
     /// <summary>The wizard's in-combat HP carried between fights of the same
-    /// expedition, mirroring <c>Companion.ExpeditionHP</c> — the playtest
+    /// expedition, mirroring <c>Companion.ExpeditionHP</c>. The playtest
     /// asymmetry was that companions carried battle damage while the wizard
     /// reset to full every fight. −1 = not carrying (next fight fields at
     /// full). Written on combat victory, applied at wizard spawn, reset on a
     /// fresh deploy, quarter-healed by rest sites, cleared (full) by outposts.
-    /// Deliberately NOT reset in ClearRunState — that runs on every
+    /// Deliberately NOT reset in ClearRunState, which runs on every
     /// ExpeditionManager._Ready including combat returns, which would defeat
     /// the carry.</summary>
     public static int WizardExpeditionHP = -1;
@@ -200,7 +200,7 @@ public static class PlayerSession
 
     /// <summary>Player-facing view preference: when true, an expedition run opens
     /// directly into the 3D expedition-window view and the in-run 2D/3D toggle
-    /// starts in 3D. NOT debug-gated — a real setting that persists for the
+    /// starts in 3D. NOT debug-gated: it is a real setting that persists for the
     /// session. Because this is a static scratchpad it survives the scene change
     /// into the overworld and across combat returns, so the choice made by the
     /// HUD toggle carries to the next deploy. Read at run start in
@@ -208,7 +208,7 @@ public static class PlayerSession
     /// (2026-08-13 ruling: every deploy lands in the 3D window; the HUD
     /// "Switch to 2D" remains as the escape hatch until the 2D expedition
     /// scene is formally retired).
-    /// Deliberately NOT reset in ClearRunState — a view preference, not run state.</summary>
+    /// Deliberately NOT reset in ClearRunState: it is a view preference, not run state.</summary>
     public static bool ExpeditionView3D = true;
 
     /// <summary>Set true when the Grand Conjunction ends a cycle. The campus reads
@@ -218,11 +218,11 @@ public static class PlayerSession
 
     /// <summary>Debug: when true, the strategic view charts the ENTIRE map (all tiles
     /// visible, all POIs discovered) so corruption spread and the whole world can be
-    /// inspected during testing. Does not write to the save — purely a view override.</summary>
+    /// inspected during testing. Does not write to the save; it is purely a view override.</summary>
     public static bool DebugRevealStrategicMap = false;
 
     /// <summary>Debug: suppress enemy-initiated combat on expeditions (patrol ambushes / warfront
-    /// interceptions), so the map can be walked freely — e.g. to reach a distant enemy capital
+    /// interceptions), so the map can be walked freely, e.g. to reach a distant enemy capital
     /// while testing. Does not affect player-initiated combat (walking into a combat POI).</summary>
     public static bool DebugNoAmbush = false;
 }

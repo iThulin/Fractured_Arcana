@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // CityExploreState.cs
 //
-// Purpose:        Per-city explore progress for visited NPC cities —
+// Purpose:        Per-city explore progress for visited NPC cities:
 //                 which districts are revealed / cleared and what
 //                 typed content each holds (Event / Service / Fight /
 //                 Story / Empty). Cycle-scoped: the world reseeds each
@@ -13,7 +13,7 @@ using System.Collections.Generic;
 // Collaborators:  CityExploreService.cs (generation + lookup),
 //                 WorldAtlas3D.cs (reveal + markers),
 //                 StrategicView.cs (trigger dispatch).
-// Notes:          Additive save field — no SaveManager version bump.
+// Notes:          Additive save field, no SaveManager version bump.
 // ============================================================
 
 /// <summary>Typed content a city district can hold. Stored as an int on
@@ -40,7 +40,7 @@ public class CityDistrictEntry
     /// <summary><see cref="DistrictContentType"/> as an int (JSON-friendly).</summary>
     public int Content = 0;
 
-    /// <summary>Optional content reference — e.g. a narrative encounter id, once
+    /// <summary>Optional content reference, e.g. a narrative encounter id, once
     /// an event has been bound. Empty until used.</summary>
     public string ContentRef = "";
 
@@ -48,7 +48,7 @@ public class CityDistrictEntry
     public bool Revealed = false;
 
     /// <summary>Consumed: the content has been triggered and resolved. A cleared
-    /// district shows no marker (a service district is never cleared — reopenable).</summary>
+    /// district shows no marker (a service district is never cleared; it stays reopenable).</summary>
     public bool Cleared = false;
 }
 

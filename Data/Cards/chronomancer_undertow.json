@@ -27,7 +27,7 @@
 		"name": "Riptide",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Choose one \u2014 advance one of your scheduled spells, or postpone an enemy spell 1 turn.",
+		"rules_text": "Choose one: advance one of your scheduled spells, or postpone an enemy spell 1 turn.",
 		"tags": [
 			"temporal"
 		],
@@ -39,7 +39,7 @@
 			"options": [
 				{
 					"label": "Advance",
-					"description": "Advance one of your scheduled spells \u2014 it resolves sooner.",
+					"description": "Advance one of your scheduled spells so it resolves sooner.",
 					"effect": {
 						"type": "advance"
 					}

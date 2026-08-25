@@ -6,7 +6,7 @@ using System.Linq;
 // ============================================================
 // GlyphManager.cs
 //
-// Purpose:        Board-state manager for prepared glyphs — the
+// Purpose:        Board-state manager for prepared glyphs, the
 //                 Enchanter's equivalent of MemorialManager. Owns
 //                 glyph lifetime (aging/expiry), start-of-turn
 //                 triggers, linked-batch firing, re-arming, and the
@@ -252,7 +252,7 @@ public sealed class GlyphManager
     public int Rearm(int team, int empower = 0)
     {
         // Null-grid guard, matching every other board-wide method here. This
-        // was the ONE unguarded _grid use — with the grid never assigned it
+        // was the ONE unguarded _grid use. With the grid never assigned it
         // threw mid-enemy-turn and softlocked combat (2026-07-29 playtest).
         if (_grid?.Tiles == null)
             return 0;
@@ -292,7 +292,7 @@ public sealed class GlyphManager
         return best;
     }
 
-    /// <summary>Fired by the cast pipeline when a spell resolves, to trigger SpellCastNear glyphs in range. Optional — wire from Resolver/CombatManager if you want Fate Weaver to work.</summary>
+    /// <summary>Fired by the cast pipeline when a spell resolves, to trigger SpellCastNear glyphs in range. Optional: wire from Resolver/CombatManager if you want Fate Weaver to work.</summary>
     public void OnSpellCastAt(GameState s, int casterTeam, Vector2I at)
     {
         if (_grid?.Tiles == null)

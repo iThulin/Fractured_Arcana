@@ -9,7 +9,7 @@ using System.Collections.Generic;
 //                 renderer that draws an Enchanter's spell sigil.
 // Layer:          Combat / Glyphs
 // Collaborators:  GlyphCipher.cs (unit space, weights, jitter
-//                 constants — NOT its generator), GlyphCipherView.cs
+//                 constants, NOT its generator), GlyphCipherView.cs
 //                 (the renderer), GlyphCipherTexture.cs (the bake),
 //                 ImbuementOverlay.cs (the consumer)
 // See:            docs/imbuement_painterly_redesign_v1.md §3.3
@@ -23,20 +23,20 @@ using System.Collections.Generic;
 //
 // A spell sigil is allowed to be unreadable on first sight. There are forty-two
 // of them, they are learned over a campaign, and the cipher's whole premise is
-// that the shape IS the encoded name — arbitrary by design.
+// that the shape IS the encoded name, arbitrary by design.
 //
 // An element rune is the opposite. There are eight, forever, and the player
 // must read one across the board in a quarter second while deciding whether to
 // step onto that tile. Element is targetable and consumable state
 // (`element_tile`, ConsumeElementTileEffect, ImbuePathEffect). Generating them
-// would trade the one property that matters — instant recognition — for the
+// would trade the one property that matters, instant recognition, for the
 // one property that does not.
 //
 // So the SHAPES are conserved from the analytic SDFs they replace: a flame, a
 // six-fold snowflake, a bolt, a diamond, waves, a swirl, a hexagram, an eye.
 // What changes is the HAND. Every stroke here is a jittered polyline with
 // round caps, drawn at the cipher's own weights, enclosed by the cipher's rim.
-// Same tradition, same tools, different purpose — which is exactly the fiction.
+// Same tradition, same tools, different purpose, which is exactly the fiction.
 //
 // ── Coordinate space ────────────────────────────────────────────────────
 // Cipher unit space: centre (0,0), rim radius 1.0, +Y DOWN (screen
@@ -48,7 +48,7 @@ using System.Collections.Generic;
 // The cipher splits identity from function because a spell has both a name and
 // a job. An element has only a name. More practically: the function layer is
 // drawn in UITheme.CipherFunction (rose), and these runes are baked to a
-// texture whose RGB is DISCARDED — the imbuement shader takes alpha only and
+// texture whose RGB is DISCARDED. The imbuement shader takes alpha only and
 // supplies colour from the tile's element tint. A rose stroke would bake to
 // the same alpha as an ink stroke and the distinction would vanish silently.
 // One layer, one colour, no lie.
@@ -64,7 +64,7 @@ public static class ElementRunes
     /// <summary>Rim radius for the enclosing circle. Inside the cipher's 1.0 so the rune reads as a smaller, humbler mark than a spell sigil.</summary>
     private const double RimR = 0.90;
 
-    /// <summary>Jitter amplitude for rune strokes. Between the cipher's arm (0.008) and crossbar (0.005) jitter — these strokes are longer than crossbars and want a visible waver.</summary>
+    /// <summary>Jitter amplitude for rune strokes. Between the cipher's arm (0.008) and crossbar (0.005) jitter, because these strokes are longer than crossbars and want a visible waver.</summary>
     private const double Jit = 0.007;
 
     /// <summary>Jitter for the enclosing rim. Small: a wobbly circle reads as a mistake, not as a hand.</summary>
@@ -76,8 +76,8 @@ public static class ElementRunes
 
     /// <summary>
     /// Returns the rune for <paramref name="element"/>, building it on first request.
-    /// Returns null for <see cref="TileElementType.None"/> and anything unmapped —
-    /// callers must treat null as "keep whatever marker you already had", never as
+    /// Returns null for <see cref="TileElementType.None"/> and anything unmapped.
+    /// Callers must treat null as "keep whatever marker you already had", never as
     /// "draw nothing". A tile with no element marker is a gameplay bug.
     /// </summary>
     public static CipherGlyph Build(TileElementType element)
@@ -114,13 +114,13 @@ public static class ElementRunes
             // Zero means the draw-on reveal never gates anything: every stroke here
             // carries Order = -1 and every marker passes MarkerRevealed at any
             // progress. These runes appear whole, because a tile's element is either
-            // true or it is not — there is no "half imbued".
+            // true or it is not. There is no "half imbued".
             OrderedCount = 0,
             // Unused: no stroke here carries CipherMark.Hub, so Target is never read.
             Target = CipherTarget.Tile,
             // Must stay None. Non-None would light spokes that do not exist.
             // (CipherLod.Inspection would then draw pips for the UNSET verbs, i.e.
-            //  all six — which is why these are baked at CipherLod.Card.)
+            //  all six, which is why these are baked at CipherLod.Card.)
             Verbs = CipherVerb.None,
             SeedKey = "element:" + element,
         };
@@ -134,12 +134,12 @@ public static class ElementRunes
 
     // ── The eight ───────────────────────────────────────────────────
 
-    // FIRE — a flame: outer silhouette, inner curl, two rising sparks.
+    // FIRE. A flame: outer silhouette, inner curl, two rising sparks.
     private static void Fire(ref Rng rng, List<CipherStroke> s)
     {
         // Thirteen knots, not eight. The first draft used eight and read as a tent:
         // too few samples around the shoulders and the silhouette straightens into
-        // facets. A flame is all curve — it needs the density.
+        // facets. A flame is all curve, so it needs the density.
         Closed(ref rng, s, new[]
         {
             P( 0.03, -0.62), P( 0.19, -0.36), P( 0.25, -0.12), P( 0.34, 0.12),
@@ -158,7 +158,7 @@ public static class ElementRunes
         s.Add(Dot(P( 0.46,  0.08), GlyphCipher.MarkDot * 0.70));
     }
 
-    // FROST — six-fold snowflake. The most load-bearing rune in the set: frost is
+    // FROST. Six-fold snowflake, and the most load-bearing rune in the set: frost is
     // the element with the most mechanical text attached to it, so its shape gets
     // the least licence. Two branch pairs per spoke, exactly as the SDF had.
     private static void Frost(ref Rng rng, List<CipherStroke> s)
@@ -174,7 +174,7 @@ public static class ElementRunes
         s.Add(Dot(P(0, 0), GlyphCipher.MarkDot * 0.9));
     }
 
-    // LIGHTNING — the standard bolt polygon, drawn as an outline rather than a
+    // LIGHTNING. The standard bolt polygon, drawn as an outline rather than a
     // filled shape so it carries the same stroke weight as everything else.
     private static void Lightning(ref Rng rng, List<CipherStroke> s)
     {
@@ -185,7 +185,7 @@ public static class ElementRunes
         }, 3, Jit);
     }
 
-    // EARTH — diamond and a planted core. Two strata lines in the lower half give
+    // EARTH. Diamond and a planted core. Two strata lines in the lower half give
     // it weight without adding a shape to recognise.
     private static void Earth(ref Rng rng, List<CipherStroke> s)
     {
@@ -199,7 +199,7 @@ public static class ElementRunes
         s.Add(Dot(P(0, -0.16), GlyphCipher.MarkDot));
     }
 
-    // WATER — three travelling waves. Sampled from a sine rather than knotted, so
+    // WATER. Three travelling waves, sampled from a sine rather than knotted, so
     // the crests stay even and only the hand moves them.
     private static void Water(ref Rng rng, List<CipherStroke> s)
     {
@@ -220,7 +220,7 @@ public static class ElementRunes
         }
     }
 
-    // AIR — three nested arcs, each open on a different bearing so the eye reads a
+    // AIR. Three nested arcs, each open on a different bearing so the eye reads a
     // rotation that is not actually there.
     private static void Air(ref Rng rng, List<CipherStroke> s)
     {
@@ -230,7 +230,7 @@ public static class ElementRunes
         s.Add(Ring(At(20.0, 0.56), GlyphCipher.MarkOpenDot * 0.8));
     }
 
-    // ARCANE — hexagram in the rim. Two triangles, drawn as two strokes so the
+    // ARCANE. Hexagram in the rim. Two triangles, drawn as two strokes so the
     // interlace reads at a glance.
     private static void Arcane(ref Rng rng, List<CipherStroke> s)
     {
@@ -239,7 +239,7 @@ public static class ElementRunes
         s.Add(Dot(P(0, 0), GlyphCipher.MarkDot * 0.85));
     }
 
-    // SHADOW — the eye. The only rune whose meaning is "something is watching"
+    // SHADOW. The eye, the only rune whose meaning is "something is watching"
     // rather than "something is here", and the only one that needs a filled centre
     // to land.
     private static void Shadow(ref Rng rng, List<CipherStroke> s)
@@ -270,8 +270,8 @@ public static class ElementRunes
             double r = RimR + (i > 0 && i < n ? rng.Sym() * RimJit : 0.0);
             pts[i] = At(a, r);
         }
-        // Endpoint forced back onto the exact start so the ring closes cleanly —
-        // the same rule the cipher's own rim follows.
+        // Endpoint forced back onto the exact start so the ring closes cleanly.
+        // Same rule the cipher's own rim follows.
         pts[n] = pts[0];
 
         s.Add(new CipherStroke
@@ -322,7 +322,7 @@ public static class ElementRunes
 
     /// <summary>
     /// Samples each knot-to-knot segment to <paramref name="perSeg"/> interior steps.
-    /// KNOTS ARE EXACT — jitter only touches interior samples, so corners stay sharp and
+    /// KNOTS ARE EXACT. Jitter only touches interior samples, so corners stay sharp and
     /// adjacent strokes stay registered. Same rule as GlyphCipher.Line, and for the same
     /// reason: a shape whose corners waver reads as a mistake, not as a hand.
     /// </summary>

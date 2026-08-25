@@ -21,7 +21,7 @@ using System.Collections.Generic;
 //
 //                 One PatrolToken per patrol unit. Combat
 //                 triggers when the token and party share a
-//                 coord — handled by FactionManager, not here.
+//                 coord. That is handled by FactionManager, not here.
 // Layer:          UI / System
 // Collaborators:  OverworldFactionManager.cs (owner + ticker),
 //                 OverworldHexGrid.cs (coord helpers),
@@ -77,7 +77,7 @@ public partial class PatrolToken : Node2D
     // not rout home) and resumes exactly where it froze. Delay, not removal (G3).
     private int _stunSteps;
 
-    /// <summary>True while frozen by a spell/trap — no move, no hunt, no capture.</summary>
+    /// <summary>True while frozen by a spell/trap: no move, no hunt, no capture.</summary>
     public bool IsStunned => _stunSteps > 0;
 
     /// <summary>Freeze in place for N party steps (does not stack; keeps the longer).</summary>
@@ -87,7 +87,7 @@ public partial class PatrolToken : Node2D
 
     private int _recoveryCooldown; // steps during which the patrol stays home and won't hunt/capture
 
-    /// <summary>True while routed and recovering — will not hunt or capture.</summary>
+    /// <summary>True while routed and recovering, so it will not hunt or capture.</summary>
     public bool IsDisengaged => _recoveryCooldown > 0;
 
     /// <summary>Remaining recovery steps. Saved/restored across combat scene swaps.</summary>
@@ -131,7 +131,7 @@ public partial class PatrolToken : Node2D
 
     private void BuildVisual(string archmageId)
     {
-        // Outline — slightly larger, dark for contrast
+        // Outline: slightly larger, dark for contrast
         _outline = new Polygon2D
         {
             Polygon = TrianglePoints(OutlineRadius),
@@ -233,7 +233,7 @@ public partial class PatrolToken : Node2D
         }
 
         // S3 (Foreboding, Chronomancer attunement): a committed hunter shows
-        // its pursuit vector — the direction of its current advance.
+        // its pursuit vector, the direction of its current advance.
         if (_vectorLine != null)
             _vectorLine.Visible = OverworldSpellEffects.ForebodingVision && _committed;
 
@@ -246,7 +246,7 @@ public partial class PatrolToken : Node2D
                 Modulate = Colors.White;
                 break;
             case OverworldHex.FogState.Silhouette:
-                // Ghosted — player knows something is there
+                // Ghosted, so the player knows something is there
                 Visible = true;
                 Modulate = new Color(1f, 1f, 1f, 0.28f);
                 break;
@@ -265,7 +265,7 @@ public partial class PatrolToken : Node2D
         if (_grid == null)
             return;
 
-        // S3: stunned — hold position, no hunt, no capture. Ticks down per
+        // S3: stunned, so hold position, no hunt, no capture. Ticks down per
         // party step and resumes exactly where it froze.
         if (_stunSteps > 0)
         {
@@ -287,7 +287,7 @@ public partial class PatrolToken : Node2D
 
         int distToPlayer = _grid.Distance(CurrentCoord, playerCoord);
 
-        // S3 (Veil, Enchanter): the party is imperceptible — detection fails
+        // S3 (Veil, Enchanter): the party is imperceptible, so detection fails
         // and a committed hunter loses the trail. The patrol keeps its route;
         // interception simply fails (G3). Checked here so the pursuit logic
         // below sees a world without the party in it.
@@ -303,7 +303,7 @@ public partial class PatrolToken : Node2D
         Vector2I next;
         if (_committed)
         {
-            // Relentless pursuit — no home leash. Equal speed means it shadows a
+            // Relentless pursuit, with no home leash. Equal speed means it shadows a
             // moving player and closes on a dithering one.
             next = StepToward(CurrentCoord, playerCoord);
         }
@@ -420,13 +420,13 @@ public partial class PatrolToken : Node2D
 
     private bool IsPassable(Vector2I coord)
     {
-        // Step 4: the loaded gate is EXPLICIT — this is the simulation LOD
+        // Step 4: the loaded gate is EXPLICIT. This is the simulation LOD
         // (patrols freeze when their ground unloads), no longer an accident
         // of node existence at the read site.
         if (!_grid.Hexes.ContainsKey(coord))
             return false;
         // S3 (Thornwall, Druid): spell-denied hexes are impassable to
-        // patrols only — the party walks them freely.
+        // patrols only, since the party walks them freely.
         if (OverworldSpellEffects.HexBlockedForPatrols(coord))
             return false;
         // Terrain from the WORLD when wired; node fallback in isolation.

@@ -57,7 +57,7 @@ public partial class SettingsManager : Node
             CallDeferred(nameof(ForceWindowToPrimaryScreen));
 
         if (IsEmbedded)
-            GD.Print("[Settings] Running in editor — window resize/move skipped.");
+            GD.Print("[Settings] Running in editor, so window resize/move is skipped.");
 
         // V1 (combat_ui_v2 §4 / R21): enforce the minimum window size the
         // 1920×1080 design space is guaranteed readable at. Safe in-editor
@@ -141,7 +141,7 @@ public partial class SettingsManager : Node
 
     private void ApplyResolution()
     {
-        // The embedded player can't be resized — skip silently.
+        // The embedded player can't be resized, so skip silently.
         if (IsEmbedded) return;
         if (WindowMode != DisplayServer.WindowMode.Windowed) return;
 
@@ -156,7 +156,7 @@ public partial class SettingsManager : Node
         if (IsEmbedded) return;
 
         // For fullscreen modes, explicitly move to the primary monitor first.
-        // WindowSetCurrentScreen alone is unreliable — position-based targeting
+        // WindowSetCurrentScreen alone is unreliable, and position-based targeting
         // is more consistent across drivers.
         if (WindowMode == DisplayServer.WindowMode.Fullscreen ||
             WindowMode == DisplayServer.WindowMode.ExclusiveFullscreen)
@@ -172,7 +172,7 @@ public partial class SettingsManager : Node
             // Step 2: move the window onto that monitor
             DisplayServer.WindowSetPosition(screenPos + new Vector2I(1, 1));
 
-            // Step 3: now go fullscreen — it will fullscreen on whichever
+            // Step 3: now go fullscreen. It will fullscreen on whichever
             // monitor the window is currently sitting on
             DisplayServer.WindowSetMode(WindowMode);
         }
@@ -213,7 +213,7 @@ public partial class SettingsManager : Node
         var err = cfg.Load(ConfigPath);
         if (err != Error.Ok)
         {
-            GD.Print("[Settings] No saved settings found — using defaults.");
+            GD.Print("[Settings] No saved settings found, so using defaults.");
             return;
         }
 
@@ -228,7 +228,7 @@ public partial class SettingsManager : Node
         UIScale = (float)cfg.GetValue("ui", "scale", 1.0f);
         MasterVolume = (float)cfg.GetValue("audio", "master_volume", 1.0f);
 
-        GD.Print($"[Settings] Loaded — {Resolution.X}x{Resolution.Y}, mode={WindowMode}, " +
+        GD.Print($"[Settings] Loaded: {Resolution.X}x{Resolution.Y}, mode={WindowMode}, " +
                  $"vsync={VSync}, ui_scale={UIScale}, vol={MasterVolume}");
     }
 

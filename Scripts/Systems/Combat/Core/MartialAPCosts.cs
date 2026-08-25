@@ -3,15 +3,15 @@
 //
 // Purpose:        Single source of truth for martial unit action
 //                 point costs. Both combat rules logic and the
-//                 UI consume these constants — hardcoding them
+//                 UI consume these constants. Hardcoding them
 //                 elsewhere will desync the two.
 // Layer:          Data
 // Collaborators:  Unit.cs (spends AP via these), RulesManager.cs,
 //                 CombatUI.cs (display)
-// See:            README §6 — Martial system
+// See:            README §6, Martial system
 // ============================================================
 
-/// <summary>Per-action AP cost table for martial units. AP resets each turn; martials spend it on movement, attacks, stance switches, and item use. Wizards do not consume AP — mana is their resource.</summary>
+/// <summary>Per-action AP cost table for martial units. AP resets each turn; martials spend it on movement, attacks, stance switches, and item use. Wizards do not consume AP, since mana is their resource.</summary>
 public static class MartialAPCosts
 {
     /// <summary>Cost to move one tile on normal terrain.</summary>
@@ -21,13 +21,13 @@ public static class MartialAPCosts
     public const int MoveDifficult = 2;
 
     /// <summary>Cost to make a melee attack (range 1). Ruling 2026-07-12:
-    /// moving a tile or fighting each costs one AP — a 1-AP Bear can attack,
+    /// moving a tile or fighting each costs one AP, so a 1-AP Bear can attack and
     /// a 2-AP Wolf can step-and-bite. Multi-attack per turn is allowed by the
-    /// economy (Boar 3 AP = up to 3 gores) — balance watch, not a bug.</summary>
+    /// economy (Boar 3 AP = up to 3 gores). That is a balance watch, not a bug.</summary>
     public const int AttackMelee = 1;
 
     /// <summary>Cost to make a ranged attack (range 2+). Ruling 2026-07-12:
-    /// ranged pays a one-AP premium over melee — a 3-AP shooter can move once
+    /// ranged pays a one-AP premium over melee, so a 3-AP shooter can move once
     /// and shoot, or spend the whole turn repositioning to flank.</summary>
     public const int AttackRanged = 2;
 
@@ -46,7 +46,7 @@ public static class MartialAPCosts
     /// <summary>
     /// Get the movement AP cost for a tile based on its MoveCost property.
     /// TileData.MoveCost is set to 2 for rubble, lava, and other difficult terrain
-    /// via ApplyTerrainModifier — so we read directly from that rather than
+    /// via ApplyTerrainModifier, so we read directly from that rather than
     /// checking TerrainModifier string or a non-existent IsRubble property.
     /// </summary>
     public static int MoveCost(TileData tile)

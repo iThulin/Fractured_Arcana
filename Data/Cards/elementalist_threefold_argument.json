@@ -8,7 +8,7 @@
 		"name": "Threefold Argument",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Choose one — Fire: deal 4 damage. Storm: push target 2 tiles (collisions deal 2 damage). Earth: the target is Rooted for 1 turn.",
+		"rules_text": "Choose one. Fire: deal 4 damage. Storm: push target 2 tiles (collisions deal 2 damage). Earth: the target is Rooted for 1 turn.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -115,7 +115,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Choose one — Fire: deal 5 damage. Storm: push target 3 tiles (collisions deal 2 damage). Earth: the target is Rooted for 2 turns."
+					"value": "Choose one. Fire: deal 5 damage. Storm: push target 3 tiles (collisions deal 2 damage). Earth: the target is Rooted for 2 turns."
 				},
 				{
 					"half": "bottom",

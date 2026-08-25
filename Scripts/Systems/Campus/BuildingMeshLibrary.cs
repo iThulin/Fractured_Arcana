@@ -8,12 +8,12 @@ using System.Collections.Generic;
 //                 Convention-driven: one packed scene per building
 //                 at res://Scenes/Campus/Buildings/{buildingId}.tscn
 //                 whose root is a Node3D with child nodes named
-//                 "T1", "T2", "T3" — one mesh group per tier,
+//                 "T1", "T2", "T3": one mesh group per tier,
 //                 grander as they rise. The library instantiates
 //                 the scene, shows the highest Tn <= current tier,
 //                 hides the rest, and applies footprint rotation.
 //                 NO scene on disk → returns null and the tile
-//                 keeps today's tint + label rendering — buildings
+//                 keeps today's tint + label rendering, so buildings
 //                 can gain meshes one at a time.
 // Layer:          System (campus rendering)
 // Collaborators:  CampusGridManager.StampBuilding (sole caller),
@@ -22,7 +22,7 @@ using System.Collections.Generic;
 // AUTHORING CONTRACT (Blender → glb → inherit into the tscn):
 //   - Origin at the hex CENTRE, ground plane at Y = 0, +Y up.
 //   - Scale: one hex has RADIUS 1.0 world unit (flat-to-flat
-//     ≈ 1.732) — author to fit inside r ≈ 0.9 so neighbours
+//     ≈ 1.732). Author to fit inside r ≈ 0.9 so neighbours
 //     never kiss. The city-grounds 1/3 scale is inherited from
 //     the grid transform; author at FULL combat-tile scale.
 //   - Rotation 0 faces +Z; footprint rotation turns the whole
@@ -54,7 +54,7 @@ public static class BuildingMeshLibrary
 
         if (scene.Instantiate() is not Node3D root)
         {
-            GD.PrintErr($"[BuildingMesh] {buildingId}.tscn root is not a Node3D — ignored.");
+            GD.PrintErr($"[BuildingMesh] {buildingId}.tscn root is not a Node3D. Ignored.");
             return null;
         }
 
@@ -66,7 +66,7 @@ public static class BuildingMeshLibrary
 
     /// <summary>Show the highest "Tn" child with n &lt;= tier; hide the other
     /// tier groups. A scene missing the exact tier (e.g. only T1 authored so
-    /// far) shows the best available — art debt reads as "not yet grander",
+    /// far) shows the best available: art debt reads as "not yet grander",
     /// never as an empty tile.</summary>
     public static void ApplyTier(Node3D root, int tier)
     {

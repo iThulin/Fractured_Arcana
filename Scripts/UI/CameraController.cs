@@ -3,7 +3,7 @@ using Godot;
 // ============================================================
 // CameraController.cs
 //
-// Purpose:        Top-down combat camera rig — handles pan, zoom,
+// Purpose:        Top-down combat camera rig. Handles pan, zoom,
 //                 and orbit on a pivot/camera pair, plus left-click
 //                 drop-on-tile forwarding to CardDropHandler.
 //
@@ -22,7 +22,7 @@ using Godot;
 //                   rig to a unit and tracks it while it moves. Any
 //                   pan input (keys / edge scroll / right-drag)
 //                   cancels the glide; F re-centres on the last
-//                   focused unit. Deliberately NOT a hard follow —
+//                   focused unit. Deliberately NOT a hard follow:
 //                   a leashed camera fights free card targeting.
 // Layer:          UI
 // Collaborators:  CardDropHandler.cs (forwards left-click drops),
@@ -50,7 +50,7 @@ public partial class CameraController : Node3D
     [Export] public float ZoomSpeed = 4f;
     /// <summary>Lerp rate used to ease zoom toward its target. Higher = snappier.</summary>
     [Export] public float ZoomLerpSpeed = 8f;
-    /// <summary>Closest the camera can get to the pivot (static minimum — the terrain-aware floor can only raise this, never lower it).</summary>
+    /// <summary>Closest the camera can get to the pivot (static minimum; the terrain-aware floor can only raise this, never lower it).</summary>
     [Export] public float MinZoom = 3f;
     /// <summary>Farthest the camera can pull out (maximum zoom).</summary>
     [Export] public float MaxZoom = 30f;
@@ -63,18 +63,18 @@ public partial class CameraController : Node3D
     /// <summary>Steepest the camera can tilt (looking straight down is -90).</summary>
     [Export] public float MinPitch = -75f;
     /// <summary>Shallowest the camera can tilt. -30° keeps the terrain-aware zoom
-    /// floor finite AND keeps near-level views off the table — at -20° the camera
+    /// floor finite AND keeps near-level views off the table: at -20° the camera
     /// could sit barely above the tallest tile and stare across the board at the
     /// rim skirts edge-on, which reads as "under the world".</summary>
     [Export] public float MaxPitch = -30f;
     /// <summary>How far INSIDE the playable bounds the rig is kept (world units).
     /// A positive inset stops the camera from parking on the arena edge and
-    /// staring past the vista rim — the surround is dressing, not a destination.
+    /// staring past the vista rim. The surround is dressing, not a destination.
     /// The old outward slack (BoundsPad) is gone for the same reason.</summary>
     [Export] public float PanEdgeInset = 2.5f;
     /// <summary>Maximum zoom as a fraction of the board span, resolved per map in
     /// FrameGrid (never above MaxZoom). Keeps the pull-out ceiling proportional to
-    /// the arena so small maps can't be viewed from orbit — the vista ring reads
+    /// the arena so small maps can't be viewed from orbit. The vista ring reads
     /// as landscape at mid range and as a floating island from a satellite.</summary>
     [Export] public float MaxZoomSpanFactor = 0.85f;
     /// <summary>Vertical clearance (world units) the camera keeps above the tallest tile top.</summary>
@@ -118,13 +118,13 @@ public partial class CameraController : Node3D
     // ── Input gate ───────────────────────────────────────────────────────────
     private bool _acceptInput = true;
 
-    /// <summary>Gate for all input this controller reacts to. Default true — existing
+    /// <summary>Gate for all input this controller reacts to. Default true; existing
     /// combat usage never touches this and is completely unchanged. Set false when
     /// this rig's viewport isn't the "active" one (e.g. mouse hovering a sibling UI
     /// panel in a SubViewport-embedded context like the campus screen). Necessary
     /// because HandlePan/HandleRotation/HandleZoom read Input.IsActionPressed as raw
-    /// polls every frame in _Process, and _Input reads mouse motion/buttons directly
-    /// — neither goes through Godot's normal event-consumption pipeline, so nothing
+    /// polls every frame in _Process, and _Input reads mouse motion/buttons directly.
+    /// Neither goes through Godot's normal event-consumption pipeline, so nothing
     /// about a Control's screen position can scope them on its own.</summary>
     public bool AcceptInput
     {
@@ -160,7 +160,7 @@ public partial class CameraController : Node3D
     // ── FrameGrid ─────────────────────────────────────────────────────────────
     /// <summary>
     /// Frames the whole arena. Pass HEIGHT-INCLUSIVE bounds
-    /// (HexGridManager.RecomputeGridBounds) — the rig centres at the bounds
+    /// (HexGridManager.RecomputeGridBounds). The rig centres at the bounds
     /// midpoint including Y, and the start zoom respects the terrain-aware
     /// safety floor so the camera can never spawn inside the mesh.
     /// </summary>
@@ -174,7 +174,7 @@ public partial class CameraController : Node3D
         if (!EnsureCameraNodes())
             return;
 
-        _camera.CallDeferred("make_current"); // README §8 — never set Current directly
+        _camera.CallDeferred("make_current"); // README §8: never set Current directly
         _boundsMin = min;
         _boundsMax = max;
 
@@ -264,7 +264,7 @@ public partial class CameraController : Node3D
         if (@event is InputEventMouseMotion motion)
             _mouseDelta = motion.Relative;
 
-        // Recenter on the active unit. Direct key check on purpose — no
+        // Recenter on the active unit. Direct key check on purpose, no
         // InputMap action required. Remap here if F conflicts with anything.
         if (@event is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.F)
         {
@@ -314,7 +314,7 @@ public partial class CameraController : Node3D
         if (Input.IsActionPressed("ui_left"))
             inputDir -= right;
 
-        // Edge scroll — only when mouse is not near the bottom (card hand area)
+        // Edge scroll: only when mouse is not near the bottom (card hand area)
         Vector2 mousePos = GetViewport().GetMousePosition();
         Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
         bool inCardArea = mousePos.Y > viewportSize.Y * 0.75f;
@@ -333,7 +333,7 @@ public partial class CameraController : Node3D
 
         bool userPanning = inputDir != Vector3.Zero || _dragging;
 
-        // Any pan input cancels an active glide — the player always wins.
+        // Any pan input cancels an active glide. The player always wins.
         if (userPanning)
             _focusing = false;
 
@@ -411,14 +411,14 @@ public partial class CameraController : Node3D
         // that keeps the camera's world Y above the tallest tile + clearance.
         // SAFETY WINS over the aesthetic ceiling: at shallow pitch the floor can
         // exceed _maxZoomDynamic, and C#'s Math.Clamp THROWS when min > max
-        // (unlike GDScript's clamp) — so the ceiling must yield to the floor.
+        // (unlike GDScript's clamp), so the ceiling must yield to the floor.
         float minSafe = MinSafeZoom();
         float ceiling = Mathf.Max(_maxZoomDynamic, minSafe);
         _zoomTarget = Mathf.Clamp(_zoomTarget, minSafe, ceiling);
 
         Vector3 camPos = _camera.Position;
         camPos.Z = Mathf.Lerp(camPos.Z, _zoomTarget, ZoomLerpSpeed * delta);
-        // Hard floor on the actual value too — a pitch change mid-lerp must
+        // Hard floor on the actual value too: a pitch change mid-lerp must
         // never leave the eye inside the terrain for even one frame.
         camPos.Z = Mathf.Max(camPos.Z, minSafe);
         _camera.Position = camPos;
@@ -433,7 +433,7 @@ public partial class CameraController : Node3D
     {
         float sin = Mathf.Sin(Mathf.DegToRad(Mathf.Abs(_pitch)));
         if (sin < 0.05f)
-            return _maxZoomDynamic; // defensive — MaxPitch should keep us far from here
+            return _maxZoomDynamic; // defensive; MaxPitch should keep us far from here
 
         float requiredRise = _boundsMax.Y + MinCameraClearance - Position.Y;
         if (requiredRise <= 0f)

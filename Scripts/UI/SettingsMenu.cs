@@ -3,7 +3,7 @@ using Godot;
 // ============================================================
 // SettingsMenu.cs
 //
-// Purpose:        Settings overlay controller — resolution, window
+// Purpose:        Settings overlay controller: resolution, window
 //                 mode, vsync, UI scale, master volume. Reads
 //                 current values from SettingsManager and pushes
 //                 changes back to it. Uses FindChild() instead of
@@ -16,7 +16,7 @@ using Godot;
 // See:            (none)
 // ============================================================
 
-/// <summary>Settings overlay controller. Two-way binds the visible widgets to <see cref="SettingsManager"/>. <see cref="ReturnScenePath"/> controls back-button behaviour — empty string or the inline sentinel means "QueueFree self", otherwise change scene.</summary>
+/// <summary>Settings overlay controller. Two-way binds the visible widgets to <see cref="SettingsManager"/>. <see cref="ReturnScenePath"/> controls back-button behaviour: empty string or the inline sentinel means "QueueFree self", otherwise change scene.</summary>
 public partial class SettingsMenu : Control
 {
     /// <summary>Optional: scene to return to when Back is pressed. If empty, hides the menu.</summary>
@@ -34,7 +34,7 @@ public partial class SettingsMenu : Control
     public override void _Ready()
     {
         // Find children by name (recursive). This is robust to scene-tree nesting
-        // changes — much better than hardcoded NodePath strings.
+        // changes, much better than hardcoded NodePath strings.
         _resDropdown    = FindChild("ResolutionDropdown",  true) as OptionButton;
         _modeDropdown   = FindChild("WindowModeDropdown",  true) as OptionButton;
         _vsyncCheck     = FindChild("VSyncCheck",          true) as CheckBox;

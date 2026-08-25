@@ -4,7 +4,7 @@ using Godot;
 // HudManager.cs
 //
 // Purpose:        Autoload singleton that owns the persistent
-//                 top-bar HUD — the always-present strip across the
+//                 top-bar HUD: the always-present strip across the
 //                 top of gameplay screens carrying key resource
 //                 readouts (Lunation, Gold, Splinters, Materials) and global nav buttons
 //                 (Return to Campus, Council, Menu). Mirrors PauseManager's
@@ -17,7 +17,7 @@ using Godot;
 //                 so those cover it (and block its clicks via their
 //                 own backdrops) whenever they're open.
 //
-//                 v2 contents (2026-08-05) — left cluster is the fixed
+//                 v2 contents (2026-08-05): left cluster is the fixed
 //                 resource strip [Lunation, Gold, Splinters, Materials];
 //                 the three currencies each carry a red "+N" delta while
 //                 an expedition holds unbanked spoils (all three are
@@ -40,7 +40,7 @@ public partial class HudManager : Node
     public static HudManager Instance { get; private set; }
 
     /// <summary>Height of the bar in pixels. Public so gameplay scenes can offset
-    /// their own top-anchored UI below it — the HUD is a floating overlay and does
+    /// their own top-anchored UI below it. The HUD is a floating overlay and does
     /// not reserve layout space, so scene content must clear it explicitly.</summary>
     public const int BarHeight = 60;
     private const int HudLayer = 90; // below pause (100) and council (128)
@@ -76,7 +76,7 @@ public partial class HudManager : Node
 
     private void OnNodeAdded(Node n)
     {
-        // Scene swaps add a node under the root — re-check whether the bar
+        // Scene swaps add a node under the root, so re-check whether the bar
         // should be visible in the new context.
         if (n.GetParent() == GetTree().Root && n != this)
         {
@@ -101,8 +101,8 @@ public partial class HudManager : Node
             AnchorBottom = 0f,
             OffsetBottom = BarHeight,
         };
-        // Mimic the campus title bar: deep fill, violet bottom border only —
-        // the same style the campus screen used, now unified across all content.
+        // Mimic the campus title bar: deep fill, violet bottom border only.
+        // It is the same style the campus screen used, now unified across all content.
         var barStyle = new StyleBoxFlat
         {
             BgColor = UITheme.CampusTitleBarBg,
@@ -147,7 +147,7 @@ public partial class HudManager : Node
         RefreshVisibility();
     }
 
-    /// <summary>Return to the campus. From the strategic map this DESCENDS — swooping
+    /// <summary>Return to the campus. From the strategic map this DESCENDS, swooping
     /// the atlas camera into the home city before the scene change (Phase 2, Stage 2);
     /// from every other menu/utility screen it's the plain scene warp.</summary>
     private void ReturnToCampus()
@@ -170,8 +170,8 @@ public partial class HudManager : Node
     }
 
     /// <summary>Base label + tight red delta label. The delta shows "+N" while
-    /// an expedition carries unbanked spoils of this currency — the amount
-    /// forfeited if the run ends without extraction — and hides at 0 so the
+    /// an expedition carries unbanked spoils of this currency (the amount
+    /// forfeited if the run ends without extraction) and hides at 0 so the
     /// bar reads clean outside expeditions.</summary>
     private ResourceReadout MakeResourceReadout(HBoxContainer row, Color color)
     {
@@ -185,9 +185,9 @@ public partial class HudManager : Node
             Delta = MakeLabel(cluster, UITheme.Danger),
         };
         r.Delta.Visible = false;
-        // Labels ignore the mouse by default — opt in so the tooltip works.
+        // Labels ignore the mouse by default, so opt in for the tooltip to work.
         r.Delta.MouseFilter = Control.MouseFilterEnum.Stop;
-        r.Delta.TooltipText = "At risk: earned this expedition but unbanked —\nlost unless you extract.";
+        r.Delta.TooltipText = "At risk: earned this expedition but unbanked.\nLost unless you extract.";
         return r;
     }
 
@@ -229,7 +229,7 @@ public partial class HudManager : Node
 
         // Expedition-carried spoils (2026-07-29 playtest request, extended
         // 2026-08-05 to all three currencies): a run's earnings are only
-        // BANKED on extraction — a failed run forfeits gold, splinters, AND
+        // BANKED on extraction, so a failed run forfeits gold, splinters, AND
         // materials. Show what's riding on the current expedition as a red
         // "+N" next to each treasury total so the stake stays visible.
         var (pGold, pSplinters, pMaterials, pSupplies) = GetExpeditionPending();
@@ -259,7 +259,7 @@ public partial class HudManager : Node
         r.LastPending = pending;
     }
 
-    /// <summary>Spoils earned by the active expedition but NOT yet banked —
+    /// <summary>Spoils earned by the active expedition but NOT yet banked, and
     /// all forfeited if the run fails. Read from the live ExpeditionManager
     /// while on the overworld (it is the expedition scene's root script), or
     /// from the EncounterRouter's saved resource state while a combat/
@@ -287,14 +287,14 @@ public partial class HudManager : Node
         {
             return;
         }
-        // Hidden while the campus is an in-world overlay (Stage 3) — the campus draws
+        // Hidden while the campus is an in-world overlay (Stage 3), because the campus draws
         // its own top bar, so the global one would double up.
         _layer.Visible = SaveManager.ActiveSave != null && !IsHiddenScene()
                          && !PlayerSession.CampusOverlayOpen;
 
         // Return to Campus shows on menu/utility screens (deck editor, card upgrade,
         // library, the strategic map, etc.) but is hidden where it would abandon an
-        // active activity — combat, an expedition, a negotiation — or is moot (the
+        // active activity (combat, an expedition, a negotiation) or is moot (the
         // campus itself). The pre-game menus already hide the whole bar.
         if (_returnButton != null)
         {
@@ -330,7 +330,7 @@ public partial class HudManager : Node
         string lower = (current?.SceneFilePath ?? "").ToLower();
         if (lower.Contains("mainmenu") || lower.Contains("newgame") || lower.Contains("titlescreen"))
         {
-            return true; // pre-game menus only — the bar spans all gameplay, combat included
+            return true; // pre-game menus only, since the bar spans all gameplay, combat included
         }
         return false;
     }

@@ -6,14 +6,14 @@ using System.Linq;
 // ============================================================
 // ArcanistEffects.cs
 //
-// Purpose:        Arcanist school effects — charges, spell manipulation, constructs
+// Purpose:        Arcanist school effects: charges, spell manipulation, constructs
 //                 of magic, and their persistent modifiers.
 // Layer:          Effects
 // Collaborators:  Effect.cs (EffectBase, core leaves),
 //                 PersistentEffect.cs (PersistentEffect base),
 //                 CardScriptRegistry.Arcanist.cs (registration)
 // Notes:          Extracted from Effect.cs / CompositeEffects.cs /
-//                 PersistentEffect.cs — pure move, no behavior change.
+//                 PersistentEffect.cs. Pure move, no behavior change.
 // ============================================================
 
 /// <summary>
@@ -31,7 +31,7 @@ public sealed class GainChargeEffect : EffectBase
 		var casterUnit = FindCasterUnit(s, caster);
 		if (casterUnit?.Attunement is not ArcaneAttunement arc)
 		{
-			s.Log("[GainCharge] Caster has no Arcane attunement — ignored.");
+			s.Log("[GainCharge] Caster has no Arcane attunement. Ignored.");
 			return;
 		}
 
@@ -49,7 +49,7 @@ public sealed class GainChargeEffect : EffectBase
 ///         "min_spend": 1, "max_spend": 0, "self_damage_per_charge": 0 }
 /// NOTE: This deals the full per-charge total to every target. The "may split between
 /// enemies" variant (Arcane Barrage) needs per-instance target selection and is handled
-/// by the heavier barrage effect — see Arcanist_Design.md.
+/// by the heavier barrage effect (see Arcanist_Design.md).
 /// </summary>
 public sealed class SpendChargeDamageEffect : EffectBase
 {
@@ -71,13 +71,13 @@ public sealed class SpendChargeDamageEffect : EffectBase
 		var casterUnit = FindCasterUnit(s, caster);
 		if (casterUnit?.Attunement is not ArcaneAttunement arc)
 		{
-			s.Log("[SpendChargeDamage] Caster has no Arcane attunement — ignored.");
+			s.Log("[SpendChargeDamage] Caster has no Arcane attunement. Ignored.");
 			return;
 		}
 
 		if (arc.Charge < MinSpend)
 		{
-			s.Log($"[SpendChargeDamage] Not enough charge ({arc.Charge} < {MinSpend}) — nothing spent.");
+			s.Log($"[SpendChargeDamage] Not enough charge ({arc.Charge} < {MinSpend}). Nothing spent.");
 			return;
 		}
 
@@ -202,10 +202,10 @@ public sealed class StealManaEffect : EffectBase
 }
 
 /// <summary>
-/// Return N cards from discard to hand — the player's pick, not "most recent first".
+/// Return N cards from discard to hand, the player's pick, not "most recent first".
 /// (2026-07-29) "Return A CARD from your discard" was silently returning the top of
 /// the pile; it now publishes a CardChoiceRequest over the discard's contents. The
-/// discard is public information, so nothing is revealed — the request goes straight
+/// discard is public information, so nothing is revealed. The request goes straight
 /// to the pile. Then optionally draw.
 /// JSON: { "type":"return_from_discard","count":n,"draw":m }
 /// </summary>
@@ -220,7 +220,7 @@ public sealed class ReturnFromDiscardEffect : EffectBase
 		if (d == null)
 			return;
 
-		// R22: the drag preview replays real effects — one that moved cards between
+		// R22: the drag preview replays real effects, and one that moved cards between
 		// piles would corrupt the deck on hover. (This guard was MISSING here; the
 		// old top-of-pile version mutated the discard during previews.)
 		if (CombatSim.Active)
@@ -229,11 +229,11 @@ public sealed class ReturnFromDiscardEffect : EffectBase
 		if (d.DiscardPile.Count == 0)
 		{
 			if (DrawN > 0) d.Draw(DrawN);
-			s.Log("[ReturnFromDiscard] discard is empty — nothing to return.");
+			s.Log("[ReturnFromDiscard] discard is empty. Nothing to return.");
 			return;
 		}
 
-		// Most recent first — that is how a player thinks about their discard.
+		// Most recent first, because that is how a player thinks about their discard.
 		var candidates = Enumerable.Reverse(d.DiscardPile).ToList();
 		int pick = Math.Min(Count, candidates.Count);
 
@@ -308,10 +308,10 @@ public sealed class GainChargePerKeywordEffect : EffectBase
 }
 
 /// <summary>
-/// Arcane Drift (audit #16, 2026-07-29 — the movement finally exists): grants
+/// Arcane Drift (audit #16, 2026-07-29, the movement finally exists): grants
 /// MOVEMENT, armor/shield, and optionally charge per spell cast this turn, capped
-/// at Max. Movement is granted as Stats.BonusMoveRange — the same this-turn
-/// movement currency other dash effects use and StartTurn resets — so the player
+/// at Max. Movement is granted as Stats.BonusMoveRange, the same this-turn
+/// movement currency other dash effects use and StartTurn resets, so the player
 /// spends it through normal movement rather than an auto-walk. (The old version
 /// granted only the armor and logged "movement step pending"; the card's text
 /// promised movement for its entire life.)
@@ -400,7 +400,7 @@ public sealed class CreateArcaneConstructEffect : EffectBase
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		if (s.OnSummonRequested == null)
-		{ s.Log("[CreateConstruct] No summon handler — cannot spawn."); return; }
+		{ s.Log("[CreateConstruct] No summon handler. Cannot spawn."); return; }
 
 		var casterUnit = FindCasterUnit(s, caster);
 		int team = casterUnit?.TeamId ?? 0;
@@ -425,7 +425,7 @@ public sealed class CreateArcaneConstructEffect : EffectBase
 			construct.ApplyStatus("construct", Duration);
 
 		s.UnitsInPlay?.Add(construct);
-		s.Log($"[CreateConstruct] {UnitKind} at {spawnTile.Axial} — {HP}HP / {construct.AttackDamage}ATK.");
+		s.Log($"[CreateConstruct] {UnitKind} at {spawnTile.Axial}: {HP}HP / {construct.AttackDamage}ATK.");
 	}
 
 	private static TileData FindSpawnTile(GameState s, Unit caster, TargetSet targets)
@@ -451,7 +451,7 @@ public sealed class CreateArcaneConstructEffect : EffectBase
 }
 
 /// <summary>
-/// Summons a Living Spell — a unit that embodies a spell and auto-casts it each
+/// Summons a Living Spell, a unit that embodies a spell and auto-casts it each
 /// turn against the nearest enemy. The auto-cast AI lives on the unit side (not
 /// in this effect); the effect handles the exile choice, the summoning, and stats.
 ///
@@ -548,7 +548,7 @@ public sealed class SummonLivingSpellEffect : EffectBase
 				var card = chosen != null && chosen.Count > 0 ? chosen[0] : null;
 				if (card == null || !deck.ExileFromHand(card))
 				{
-					Summon(s, casterUnit, team, HP, Damage, "exile failed — flat stats");
+					Summon(s, casterUnit, team, HP, Damage, "exile failed, flat stats");
 					return;
 				}
 				int mana = Math.Max(1, card.TopHalf?.ManaCost ?? 1);
@@ -652,9 +652,9 @@ public sealed class BindCardLeafEffect : EffectBase
 
 		var hand = unit.DeckData.Hand;
 		if (hand.Count == 0)
-		{ s.Log("[BindCard] Hand is empty — nothing to bind."); return; }
+		{ s.Log("[BindCard] Hand is empty. Nothing to bind."); return; }
 
-		// (2026-07-29) "Exile A CARD from your hand" is the player's pick — this used
+		// (2026-07-29) "Exile A CARD from your hand" is the player's pick. This used
 		// to bind hand[0] with a "future feature" comment. Hand choices go through
 		// the same request seam as pile choices; only the Candidates differ.
 		var req = new CardChoiceRequest
@@ -669,7 +669,7 @@ public sealed class BindCardLeafEffect : EffectBase
 			{
 				var card = chosen != null && chosen.Count > 0 ? chosen[0] : null;
 				if (card == null || !hand.Remove(card))
-				{ s.Log("[BindCard] the chosen card left the hand — nothing bound."); return; }
+				{ s.Log("[BindCard] the chosen card left the hand. Nothing bound."); return; }
 
 				s.ActiveEffects ??= new List<PersistentEffect>();
 				s.ActiveEffects.Add(new BoundCardAura(card, Turns, caster, unit));
@@ -694,12 +694,12 @@ public sealed class ReplicateLastSpellLeafEffect : EffectBase
 
 /// <summary>
 /// Spell Storm: reveal the top <see cref="Count"/> cards and cast their top halves
-/// for free — in an order the PLAYER chooses (2026-07-29). Sequencing three free
+/// for free, in an order the PLAYER chooses (2026-07-29). Sequencing three free
 /// spells is most of the card's skill expression, and the seam's OrderMatters flag
 /// exists for exactly this: pick-all-N is degenerate, ORDER-all-N is not.
 ///
 /// (Previously this cast only the single top card, in deck order, whatever the
-/// card's `count` said — the loader never read it.)
+/// card's `count` said, because the loader never read it.)
 /// Targets are inherited from the storm's own cast, as before; per-cast retargeting
 /// stays future work and the card text's "targeting enemies of your choice" is
 /// honest only up to that limit.
@@ -754,7 +754,7 @@ public sealed class CastDeckTopEffect : EffectBase
 		var req = new CardChoiceRequest
 		{
 			Title = "Spell Storm",
-			Prompt = $"Cast these {take} top halves for free — click them in the order they should resolve.",
+			Prompt = $"Cast these {take} top halves for free. Click them in the order they should resolve.",
 			Owner = unit,
 			Candidates = revealed,
 			PickCount = take,
@@ -763,7 +763,7 @@ public sealed class CastDeckTopEffect : EffectBase
 			OnChosen = chosen =>
 			{
 				// Resolve in click order; anything the UI failed to hand back still
-				// resolves (revealed order) — a card must not vanish because a modal
+				// resolves (revealed order). A card must not vanish because a modal
 				// glitched.
 				var order = new List<Card>();
 				if (chosen != null)
@@ -799,13 +799,13 @@ public sealed class ConvergenceLeafEffect : EffectBase
 
 /// <summary>
 /// Magnum Opus (2026-07-29, rebuilt on the choice seam): CHOOSE a card in your hand;
-/// it becomes Perfected for the fight — both halves cost 0 (a permanent per-card
+/// it becomes Perfected for the fight: both halves cost 0 (a permanent per-card
 /// discount that survives casting), it resolves with +<see cref="BonusDamage"/>
 /// (pinned in Resolver.ResolveTop), and it returns to hand instead of discarding
 /// (CombatManager's discard step checks GameState.PerfectedCards).
 ///
 /// The old version granted the caster +3 BonusSpellDamage on EVERY spell forever and
-/// never asked anything — a different, quietly stronger card than the one printed.
+/// never asked anything, a different and quietly stronger card than the one printed.
 /// JSON: { "type": "perfect_card", "count": n, "bonus": n }
 /// </summary>
 public sealed class PerfectCardEffect : EffectBase
@@ -824,7 +824,7 @@ public sealed class PerfectCardEffect : EffectBase
 
 		var hand = unit.DeckData.Hand;
 		if (hand.Count == 0)
-		{ s.Log("[PerfectCard] Hand is empty — nothing to perfect."); return; }
+		{ s.Log("[PerfectCard] Hand is empty. Nothing to perfect."); return; }
 
 		int pick = Math.Min(Count, hand.Count);
 		var req = new CardChoiceRequest
@@ -848,7 +848,7 @@ public sealed class PerfectCardEffect : EffectBase
 					// 99 floors both halves at 0 through ManaCost.EffectiveAmount;
 					// TryCastWithTargets skips consuming deltas on Perfected cards.
 					s.AddCardDiscount(card, 99);
-					s.Log($"[PerfectCard] '{card.CardName}' is Perfected — cost 0, +{BonusDamage}, not consumed on cast.");
+					s.Log($"[PerfectCard] '{card.CardName}' is Perfected: cost 0, +{BonusDamage}, not consumed on cast.");
 				}
 				s.OnDrawCards?.Invoke(unit);
 			},
@@ -861,11 +861,11 @@ public sealed class PerfectCardEffect : EffectBase
 /// Fires via OnSpellCast (sets BonusDamage) and OnSpellResolved (clears it, draws, counts down).
 ///
 /// SYMMETRY GUARD (2026-07-29): OnSpellCast runs BEFORE the stack drain in
-/// CombatManager and OnSpellResolved runs AFTER it — but this modifier is
+/// CombatManager and OnSpellResolved runs AFTER it, but this modifier is
 /// ADDED during the drain (when the queueing spell resolves). So it used to
 /// miss its own cast's OnSpellCast yet get caught by its own cast's
 /// OnSpellResolved: it subtracted a bonus that was never added, expired on
-/// the spot, and permanently drove BonusSpellDamage negative — one playtest
+/// the spot, and permanently drove BonusSpellDamage negative. One playtest
 /// fight decayed from 5 damage to −11 across four rounds, and the buff had
 /// never actually applied to anything. _armedThisCast makes the remove-side
 /// fire only when the add-side actually ran, which both stops the drain and
@@ -959,7 +959,7 @@ public sealed class ChargeCostModifierAura : PersistentEffect
         int chargesNeeded = manaCost * ChargePerMana;
         if (arc.Charge < chargesNeeded)
         {
-            s.Log($"[ChargeCostModifier] Not enough charge ({arc.Charge} < {chargesNeeded}) — mana stays spent.");
+            s.Log($"[ChargeCostModifier] Not enough charge ({arc.Charge} < {chargesNeeded}). Mana stays spent.");
             return;
         }
 
@@ -1001,7 +1001,7 @@ public sealed class OmniscienceEffect : PersistentEffect
         casterUnit.GainMana(manaCost);
         if (s.Mana.ContainsKey(Owner))
             s.Mana[Owner] = casterUnit.Stats.Mana;
-        s.Log($"[Omniscience] Refunded {manaCost} mana — spell was free.");
+        s.Log($"[Omniscience] Refunded {manaCost} mana. The spell was free.");
     }
 
     private void ExileHand(GameState s)
@@ -1011,7 +1011,7 @@ public sealed class OmniscienceEffect : PersistentEffect
         int n = Math.Min(ExileOnExpire, OwnerUnit.DeckData.Hand.Count);
         if (n > 0)
             OwnerUnit.DeckData.Hand.RemoveRange(0, n);
-        s.Log($"[Omniscience] Expired — {n} card(s) exiled as the price of godhood.");
+        s.Log($"[Omniscience] Expired. {n} card(s) exiled as the price of godhood.");
     }
 }
 
@@ -1025,10 +1025,10 @@ public sealed class ArcaneApotheosisAura : PersistentEffect
         ChargePerSpell = Math.Max(1, chargePerSpell);
         Owner = owner;
         OwnerUnit = ownerUnit;
-        TurnsRemaining = int.MaxValue; // never expires — legendary passive
+        TurnsRemaining = int.MaxValue; // never expires, legendary passive
     }
 
-    public override void Tick(GameState s) { /* permanent — intentionally no decrement */ }
+    public override void Tick(GameState s) { /* permanent, intentionally no decrement */ }
 
     public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
     {
@@ -1083,7 +1083,7 @@ public sealed class ReplicateSpellAura : PersistentEffect
     {
         Owner = owner;
         OwnerUnit = ownerUnit;
-        TurnsRemaining = 4; // safety — expires even if never triggered
+        TurnsRemaining = 4; // safety, expires even if never triggered
     }
 
     public override void Tick(GameState s) { TurnsRemaining--; }

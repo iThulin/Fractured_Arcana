@@ -4,13 +4,13 @@ using System.Linq;
 // ============================================================
 // RecruitmentSources.cs
 //
-// Purpose:        K5 — the non-hall recruitment sources from
+// Purpose:        K5: the non-hall recruitment sources from
 //                 companion_item_systems v2.1 §5a: the Unite
 //                 adept (a united school seconds one of its own)
 //                 and the favor retainer (an Arcane Major favor
 //                 called in for a courtier's person). Both draw
 //                 from the K3 candidate matrix with forced
-//                 class/school — one people-generation surface,
+//                 class/school: one people-generation surface,
 //                 no parallel schema. Displacement refugees live
 //                 in HiringHallService.RollStock (they are hall
 //                 stock, just discounted).
@@ -21,18 +21,18 @@ using System.Linq;
 //                 ArchmageRegistry (school lookup).
 // Notes:          SCOPE RULING (logged): the spec offers a
 //                 retainer for ANY Major favor; here it is the
-//                 Arcane Major call-in specifically — the one
+//                 Arcane Major call-in specifically, the one
 //                 favor type with no field effect, so the slot
 //                 was empty and no existing effect is overloaded.
 // ============================================================
 
 /// <summary>The §5a recruitment sources that hand the guild a person
-/// directly (no hall, no gold). Both recruit in place — the new companion
+/// directly (no hall, no gold). Both recruit in place: the new companion
 /// lands in the roster immediately, party-addable, hall-invisible (already
 /// IsRecruited, so the hall prune ignores them by construction).</summary>
 public static class RecruitmentSources
 {
-    /// <summary>Unite resolution: the united school seconds one adept —
+    /// <summary>Unite resolution: the united school seconds one adept,
     /// "the people-and-knowledge path where Overthrow is the power-and-shard
     /// path." Rolls an Arcane candidate of the archmage's school at seat
     /// quality and recruits them free. Idempotent per archmage (re-resolution
@@ -42,7 +42,7 @@ public static class RecruitmentSources
         var save = SaveManager.ActiveSave;
         if (save == null || string.IsNullOrEmpty(archmageId)) return null;
 
-        // Q4.2: stamp the unite lunation for the relic anniversary — BEFORE
+        // Q4.2: stamp the unite lunation for the relic anniversary. BEFORE
         // the adept idempotence check, but never overwritten (the first
         // swearing is the anniversary that counts).
         var campaign = save.Cycle?.Campaign;
@@ -66,8 +66,8 @@ public static class RecruitmentSources
         adept.IsRecruited = true;
         adept.IsAvailable = true;
         adept.RecruitmentCost = 0; // seconded, not sold
-        adept.Backstory = $"Seconded to the guild by {def?.DisplayName ?? "a united seat"} — " +
-                          "the alliance's first gift is a person.";
+        adept.Backstory = $"Seconded to the guild by {def?.DisplayName ?? "a united seat"}. " +
+                          "The alliance's first gift is a person.";
 
         save.Companions.Add(adept);
         SaveManager.MarkDirty();
@@ -76,7 +76,7 @@ public static class RecruitmentSources
     }
 
     /// <summary>Arcane Major favor call-in: the Court Wizard sends a retainer
-    /// of the court's own — school follows the court's archmage where one is
+    /// of the court's own; school follows the court's archmage where one is
     /// resolvable. Arrives recruited, free (the favor was the price). Returns
     /// the call-in message, or null if the save is missing (caller refuses
     /// without consuming).</summary>

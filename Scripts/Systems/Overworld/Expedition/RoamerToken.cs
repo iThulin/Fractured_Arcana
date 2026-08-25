@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // RoamerToken.cs
 //
 // Purpose:        A NON-HOSTILE roaming agent (merchant caravan)
-//                 on the expedition map — the living-map minimum
+//                 on the expedition map. It is the living-map minimum
 //                 (discovery_loop_spec Layer E). Wanders one hex
 //                 per player step; never hunts, never captures.
 //                 When it and the party share a hex, the
@@ -104,7 +104,7 @@ public partial class RoamerToken : Node2D
         }
     }
 
-    /// <summary>Wander one hex per player step — non-hostile, never hunts.</summary>
+    /// <summary>Wander one hex per player step. Non-hostile, never hunts.</summary>
     public void Tick()
     {
         if (_grid == null) return;

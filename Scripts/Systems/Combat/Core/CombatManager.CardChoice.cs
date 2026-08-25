@@ -5,8 +5,8 @@ using System.Collections.Generic;
 // ============================================================
 // CombatManager.CardChoice.cs  (partial of CombatManager)
 //
-// Purpose:        Services GameState.OnCardChoiceRequested — the
-//                 post-cast player-choice seam. Builds a modal card
+// Purpose:        Services GameState.OnCardChoiceRequested, which is
+//                 the post-cast player-choice seam. Builds a modal card
 //                 picker, waits for the player, and fires the
 //                 request's continuation.
 // Layer:          System (combat UI glue)
@@ -20,7 +20,7 @@ using System.Collections.Generic;
 public partial class CombatManager
 {
     // Exactly one picker on screen at a time. A resolution CAN produce two requests
-    // (two scries in one sequence), so the extras queue rather than overwrite — a
+    // (two scries in one sequence), so the extras queue rather than overwrite. A
     // dropped request would strand the cards its effect held out of the deck.
     private readonly List<CardChoiceRequest> _choiceQueue = new();
     private CanvasLayer _choiceLayer;
@@ -45,7 +45,7 @@ public partial class CombatManager
         if (req.IsDegenerate)
         {
             GD.Print($"[{req.Source}] no choice to make ({req.Candidates?.Count ?? 0} card(s), " +
-                     $"pick {req.PickCount}) — taking them all.");
+                     $"pick {req.PickCount}), so taking them all.");
             req.Complete(req.DefaultPick());
             return;
         }
@@ -134,8 +134,8 @@ public partial class CombatManager
         btnRow.AddChild(_choiceConfirmBtn);
         _choiceConfirmBtn.Pressed += OnChoiceConfirmed;
 
-        // Cast-time questions (choose-one, the opening sculpt) may be dismissed —
-        // nothing has been paid. Resolution continuations never set AllowCancel, so
+        // Cast-time questions (choose-one, the opening sculpt) may be dismissed,
+        // because nothing has been paid. Resolution continuations never set AllowCancel, so
         // this button structurally cannot appear on a question that already holds
         // cards out of the deck.
         if (req.AllowCancel)
@@ -161,7 +161,7 @@ public partial class CombatManager
     ///
     /// Follows CardLibraryUi's preview idiom exactly, because it is the same problem:
     /// a CardUi outside the hand. Instantiate, size, kill its mouse handling, then call
-    /// <c>SetStaticDisplay</c> on a deferred zero-timer — deferred because CardUi._Ready
+    /// <c>SetStaticDisplay</c> on a deferred zero-timer, deferred because CardUi._Ready
     /// parks the card off-screen at alpha 0 for the draw-in tween, and SetStaticDisplay
     /// has to run AFTER that to undo it.
     ///
@@ -171,7 +171,7 @@ public partial class CombatManager
     /// flat Button laid over the top instead.
     ///
     /// Falls back to a text block if no CardUi scene is available (deckUiManager absent,
-    /// e.g. a martial-only party) — a picker that renders nothing would be a dead end.</summary>
+    /// e.g. a martial-only party), since a picker that renders nothing would be a dead end.</summary>
     private Control BuildChoiceCard(Card card)
     {
         const float Pad = 10f;
@@ -183,7 +183,7 @@ public partial class CombatManager
         _choiceCardPanels[card] = holder;
 
         var scene = deckUiManager?.CardUIPackedScene;
-        // Synthetic options (choose-one modes) always render as text — they are not
+        // Synthetic options (choose-one modes) always render as text. They are not
         // cards, and a live CardUi would imply they can be dragged, previewed, upgraded.
         if (_activeChoice?.SyntheticOptions == true)
             scene = null;
@@ -231,7 +231,7 @@ public partial class CombatManager
             AddHalfBlock(box, card.BottomHalf);
         }
 
-        // Selection lives on a flat button over the whole holder — the card beneath has
+        // Selection lives on a flat button over the whole holder, because the card beneath has
         // no mouse handling left.
         var btn = new Button { Flat = true, MouseFilter = Control.MouseFilterEnum.Stop };
         btn.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -242,8 +242,8 @@ public partial class CombatManager
     }
 
     /// <summary>Strips mouse handling from a CardUi and everything under it. Without
-    /// this the card keeps its hover-lift, its full-card popout and — the one that
-    /// matters — <c>_GetDragData</c>, which would let the player drag a card they are
+    /// this the card keeps its hover-lift, its full-card popout, and (the one that
+    /// matters) <c>_GetDragData</c>, which would let the player drag a card they are
     /// merely being shown onto the board and cast it.</summary>
     private static void DisableMouseRecursive(Node node)
     {
@@ -254,7 +254,7 @@ public partial class CombatManager
     }
 
     /// <summary>Text-only rendering of one half. Used ONLY by the no-CardUi-scene
-    /// fallback in BuildChoiceCard — when the real card renders, this is dead weight
+    /// fallback in BuildChoiceCard. When the real card renders, this is dead weight
     /// the player never sees.</summary>
     private void AddHalfBlock(VBoxContainer box, CardHalf half)
     {
@@ -262,7 +262,7 @@ public partial class CombatManager
             return;
         var head = new Label
         {
-            // Synthetic option stubs have no cost array — printing "0  Advance"
+            // Synthetic option stubs have no cost array, so printing "0  Advance"
             // would invent a price for something that is not a card.
             Text = half.Costs is { Length: > 0 } ? $"{half.ManaCost}  {half.Name}" : half.Name,
             Modulate = UITheme.Gold,

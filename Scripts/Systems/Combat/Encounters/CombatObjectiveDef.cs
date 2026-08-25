@@ -6,7 +6,7 @@ using System.Collections.Generic;
 // Purpose:        Optional per-encounter objective + reinforcement
 //                 wave data (O-track). An EncounterDefinition with
 //                 no Objective and no Waves behaves exactly as it
-//                 did before this file existed — bit for bit.
+//                 did before this file existed, bit for bit.
 // Layer:          Data
 // Collaborators:  EncounterDefinition.cs (host),
 //                 EncounterPoolLoader.cs (JSON source),
@@ -32,7 +32,7 @@ public class CombatObjectiveDef
     public string Kind = KindAnnihilate;
 
     /// <summary>survive / hold_zone: victory at the END of this round (1-based).
-    /// protect: optional — 0 means "kill them all before they kill the ward".</summary>
+    /// protect: optional, where 0 means "kill them all before they kill the ward".</summary>
     public int Rounds = 0;
 
     /// <summary>protect: UnitRegistry id spawned player-side as the ward. (O3)</summary>
@@ -43,7 +43,7 @@ public class CombatObjectiveDef
 
     /// <summary>hold_zone siting: "player_spawn" (default) | "ward" | "center" |
     /// "gate" (city sieges: the compiled recipe's SiegeSpec.GateGap tiles +
-    /// ZoneRadius — falls back to player_spawn on a non-siege map). (O4)</summary>
+    /// ZoneRadius, falling back to player_spawn on a non-siege map). (O4)</summary>
     public string ZoneAnchor = "player_spawn";
 
     public int ZoneRadius = 2;
@@ -66,7 +66,7 @@ public class CombatObjectiveDef
 
 /// <summary>
 /// One reinforcement group. Spawns at the START of the named round (1-based),
-/// i.e. at the boundary entering it. Round 1 is invalid — that is the initial
+/// i.e. at the boundary entering it. Round 1 is invalid, because that is the initial
 /// roster's job, and the loader rejects it.
 /// </summary>
 public class ReinforcementWave

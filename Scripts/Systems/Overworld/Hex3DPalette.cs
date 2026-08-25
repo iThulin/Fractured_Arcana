@@ -6,18 +6,18 @@ using Godot;
 // Purpose:        The shared terrain-color palette for the 3D hex
 //                 renderers. Extracted from the byte-identical copies
 //                 that WorldAtlas3D (Atlas tab) and ExpeditionWindow3D
-//                 (expedition view) each carried — change a terrain's
+//                 (expedition view) each carried. Change a terrain's
 //                 look here and BOTH 3D views update in lockstep.
 //
 //                 Deliberately narrow: only the three helpers that were
-//                 PROVABLY identical across both renderers live here —
+//                 PROVABLY identical across both renderers live here:
 //                 the terrain→color switch, the water dissolve, and the
 //                 lit-scene grade. The per-tile Hash/Jitter noise was
 //                 left in each renderer on purpose: their salts and bit
 //                 masks differ (WorldAtlas3D masks &1023, the window
 //                 uses &0xFFFF via a salted hash), so unifying them would
 //                 visibly change one view's texture for no real gain.
-//                 The 2D StrategicView keeps its own copy — it renders
+//                 The 2D StrategicView keeps its own copy, since it renders
 //                 unlit quads, and whether it retires is CONDITIONAL: it
 //                 stays unless/until the 3D atlas (WorldAtlas3D) can be
 //                 scaled to show enough of the map to serve as the
@@ -27,7 +27,7 @@ using Godot;
 // Collaborators:  UITheme (the authored color source), WorldTile,
 //                 OverworldHex (TerrainType), WorldAtlas3D +
 //                 ExpeditionWindow3D (the two callers)
-// See:            docs/atlas_expedition_convergence_v1.md (housekeeping —
+// See:            docs/atlas_expedition_convergence_v1.md (housekeeping:
 //                 shared-palette extraction)
 // ============================================================
 
@@ -37,7 +37,7 @@ using TT = OverworldHex.TerrainType;
 /// window). The single home for "what colour is this terrain in 3D," so the two
 /// views can never drift apart. Fog handling, per-tile jitter, and POI colours stay
 /// with each renderer (they differ by view); only the terrain base colour, the ocean
-/// dissolve, and the lit-scene grade are common — and those live here.</summary>
+/// dissolve, and the lit-scene grade are common, and those live here.</summary>
 public static class Hex3DPalette
 {
     /// <summary>Base terrain colour before fog/grade/jitter. Water dissolves toward the
@@ -55,18 +55,18 @@ public static class Hex3DPalette
 
     /// <summary>Terrain enum → its authored PAINTERLY base colour (art pass A1,
     /// 2026-08-12). These are FINAL lit-scene swatches for the daylight rig (A4):
-    /// muted, wide-range hues in the combat painterly register — no post-grade, no
+    /// muted, wide-range hues in the combat painterly register, with no post-grade and no
     /// per-view saturation compensation (the old Grade()/×1.35 stack is deleted;
     /// lighting owns brightness, THESE own richness). Authored here rather than in
     /// UITheme on the SchoolColors/ElementColors precedent: this class IS the
     /// dedicated colour source for 3D terrain; UITheme's Terrain* set stays tuned
     /// for the unlit 2D fallback map. Readability law: every pair of swatches must
     /// stay tellable apart at whole-world zoom, and explored Desert must never be
-    /// mistaken for unpainted canvas (CanvasUnseen 0.72/0.66/0.545 — Desert is
-    /// deliberately more orange and more saturated).</summary>
+    /// mistaken for unpainted canvas (CanvasUnseen 0.72/0.66/0.545, against which Desert
+    /// is deliberately more orange and more saturated).</summary>
     public static Color TerrainColor(TT t) => t switch
     {
-        // A1b (screenshot tune): exposure verified correct — these read on screen at
+        // A1b (screenshot tune): exposure verified correct, so these read on screen at
         // authored value now, so richness is edited HERE, not in the lights. Greens
         // deepened/saturated (v1 was authored too grey); Snow pulled off pure white
         // and Mountain darkened so snowcaps, bare stone, and unpainted canvas stop
@@ -106,18 +106,18 @@ public static class Hex3DPalette
 
     // ── Rivers & roads (art pass A9/A9b, 2026-08-12) ──
 
-    /// <summary>River waterline — the ribbon's centre colour (A9b; deepened +
-    /// saturated in A9c after "hard to see" — it must SEPARATE from olive ground,
-    /// not harmonize with it).</summary>
+    /// <summary>River waterline, the ribbon's centre colour (A9b; deepened +
+    /// saturated in A9c after "hard to see", because it must SEPARATE from olive
+    /// ground, not harmonize with it).</summary>
     public static readonly Color RiverWater = new Color(0.25f, 0.41f, 0.58f);
 
-    /// <summary>River bank — darker edge of the ribbon; the recessed-channel cue.</summary>
+    /// <summary>River bank: the darker edge of the ribbon, the recessed-channel cue.</summary>
     public static readonly Color RiverBank = new Color(0.10f, 0.18f, 0.28f);
 
-    /// <summary>Road stroke — a warm worn-earth line.</summary>
+    /// <summary>Road stroke: a warm worn-earth line.</summary>
     public static readonly Color RoadStroke = new Color(0.56f, 0.47f, 0.34f);
 
-    /// <summary>Kingdom-border ink (A7) — the dark drawn line where two realms
+    /// <summary>Kingdom-border ink (A7): the dark drawn line where two realms
     /// meet on the painting.</summary>
     public static readonly Color BorderInk = new Color(0.16f, 0.13f, 0.12f);
 
@@ -128,13 +128,13 @@ public static class Hex3DPalette
 
     /// <summary>Charted/Silhouette ground as a flat UNDERPAINTING: a pale, heavily
     /// desaturated wash of the tile's real color pulled toward raw canvas. The terrain
-    /// hue stays faintly readable (it is charted — the shape and kind are known), but
+    /// hue stays faintly readable (it is charted, so the shape and kind are known), but
     /// the ground clearly hasn't been "painted in" by an expedition yet. Replaces the
     /// old dim-toward-dark treatment.</summary>
     public static Color Underpaint(Color c)
     {
         // A1b: the v1 wash (val→~0.68, 25% toward parchment) sat within a few
-        // percent of CanvasUnseen (0.72) — charted/silhouette rings mushed into
+        // percent of CanvasUnseen (0.72), so charted/silhouette rings mushed into
         // the unpainted field, and a fresh expedition window read as one cream
         // sheet. The underpainting must sit clearly BELOW the canvas: a toned
         // wash on the paper, darker than the paper itself.
@@ -144,7 +144,7 @@ public static class Hex3DPalette
     }
 
     /// <summary>Unseen/Hidden ground as raw canvas, with a deterministic per-tile
-    /// paper-grain wobble. The wobble hashes ONLY the coordinate — it carries zero
+    /// paper-grain wobble. The wobble hashes ONLY the coordinate, so it carries zero
     /// world data (terrain, height, contents never feed it), so it cannot be read as
     /// information; it just keeps a big unpainted field from rendering as one flat
     /// fill. <paramref name="wetEdge01"/> &gt; 0 darkens toward the watercolor

@@ -30,19 +30,19 @@ public class HonoredDeadRecord
     // Whether this was a player-side unit or an enemy
     public bool WasAlly = false;
 
-    // School of the unit — used to tint the spirit's ethereal color
+    // School of the unit, used to tint the spirit's ethereal color
     public string School = "";
 
-    // Companion id if this was a named companion — empty string otherwise
+    // Companion id if this was a named companion, empty string otherwise
     public string CompanionId = "";
 
-    // Run number when this unit died — used to sort chronologically
+    // Run number when this unit died, used to sort chronologically
     public int RunNumber = 0;
 
-    // Region name where they fell — flavor for the Ossuary display
+    // Region name where they fell, flavor for the Ossuary display
     public string RegionName = "";
 
     // Whether this record has ever been used to summon a spirit
-    // Cosmetic only — does not prevent re-use
+    // Cosmetic only. Does not prevent re-use
     public bool HasBeenSummoned = false;
 }

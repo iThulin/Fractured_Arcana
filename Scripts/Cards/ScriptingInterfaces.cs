@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ScriptingInterfaces.cs
 //
 // Purpose:        Core scripting interfaces for the composable
-//                 card system — IEffect, IPredicate, plus the
+//                 card system: IEffect, IPredicate, plus the
 //                 PredicateContext and EffectResult helpers that
 //                 carry data between sibling effects in a
 //                 sequence.
@@ -41,7 +41,7 @@ public interface IEffect
 }
 
 /// <summary>
-/// Contract for predicates — pure functions over game state that return yes/no. Predicates
+/// Contract for predicates: pure functions over game state that return yes/no. Predicates
 /// must not mutate state. Used by <c>ConditionalEffect</c>, filtered targeting, triggers,
 /// and conditional costs.
 /// </summary>
@@ -54,7 +54,7 @@ public interface IPredicate
 /// <summary>
 /// Bag of state passed to predicates and threaded between sibling effects in a
 /// <c>SequenceEffect</c>. Carries the game, the caster, the current targets,
-/// the cast-time snapshot, and <see cref="LastResult"/> — populated by the most
+/// the cast-time snapshot, and <see cref="LastResult"/>, populated by the most
 /// recently resolved effect so downstream predicates can ask "was that lethal?".
 /// </summary>
 public sealed class PredicateContext
@@ -78,7 +78,7 @@ public sealed class PredicateContext
     public EffectResult LastResult;
 }
 
-/// <summary>Data an effect reports back to its parent sequence for downstream predicates and triggers. The combat stack itself does not consume this — only sibling effects.</summary>
+/// <summary>Data an effect reports back to its parent sequence for downstream predicates and triggers. The combat stack itself does not consume this. Only sibling effects do.</summary>
 public sealed class EffectResult
 {
     /// <summary>Total damage this effect dealt (summed across all targets).</summary>
@@ -90,6 +90,6 @@ public sealed class EffectResult
     /// <summary>Number of targets the effect actually hit (after filters).</summary>
     public int TargetsHit;
 
-    /// <summary>Anything new the effect put on the board — corpses, summoned units, glyph tiles, etc. Walked by triggers and follow-up effects.</summary>
+    /// <summary>Anything new the effect put on the board: corpses, summoned units, glyph tiles, etc. Walked by triggers and follow-up effects.</summary>
     public List<object> SpawnedThings = new();
 }

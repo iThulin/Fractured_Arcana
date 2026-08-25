@@ -32,7 +32,7 @@ public static class CompanionLoader
 
     /// <summary>
     /// Load all companion definitions. Returns the master list.
-    /// These are the static templates — runtime state lives in GuildSaveData.
+    /// These are the static templates. Runtime state lives in GuildSaveData.
     /// </summary>
     public static List<Companion> LoadAll()
     {

@@ -10,10 +10,10 @@ using System.Text.Json.Serialization;
 // Purpose:        Save / load engine for the three-tier schema.
 //                 Owns the active save (the in-memory envelope),
 //                 writes TWO files per slot:
-//                   slot_N_ledger.json — EternalLedger (tier 3,
+//                   slot_N_ledger.json: EternalLedger (tier 3,
 //                     atomic write with .bak protection; the only
 //                     permanent-loss vector in the game)
-//                   slot_N_cycle.json  — CycleState (tier 2,
+//                   slot_N_cycle.json:  CycleState (tier 2,
 //                     replaced wholesale at cycle reset)
 //                 v100 is a clean break: legacy slot_N.json saves
 //                 are not migrated and are ignored (and removed
@@ -23,7 +23,7 @@ using System.Text.Json.Serialization;
 //                 EternalLedger.cs, CycleState.cs (the tiers),
 //                 StarterDeckLoader.cs (seeds PlayerDeck),
 //                 CompanionRoster.cs, CampusScreen.cs (callers)
-// See:            open_world_refactor_v1.docx §10 — Save Schema
+// See:            open_world_refactor_v1.docx §10, Save Schema
 // ============================================================
 
 /// <summary>
@@ -41,13 +41,13 @@ public static class SaveManager
     /// anything older is a legacy save and is rejected, not migrated.
     /// Referenced by CycleState and EternalLedger field initializers.
     /// </summary>
-    // v102 (2026-08-06): + CycleState.Convergence (ConvergenceState) — the finale
+    // v102 (2026-08-06): + CycleState.Convergence (ConvergenceState), the finale
     // progress block. Deliberately NO migration: dev mode starts a new game per
     // test, so the stamp just invalidates older saves (ruling 2026-08-06). This
     // becomes a real migration only once saves are durable.
     public const int CURRENT_VERSION = 102;
 
-    /// <summary>Canonical save serialization options — the single path every
+    /// <summary>Canonical save serialization options, the single path every
     /// persisted structure travels. Public so round-trip assertions
     /// (CouncilSaveAssert, save-file-paranoia rule) exercise the REAL options,
     /// not a stand-in that could drift from these.</summary>
@@ -104,7 +104,7 @@ public static class SaveManager
     /// <summary>
     /// Write both tier files for a slot. The ledger is written atomically
     /// with a .bak of the previous version; the cycle file is written via
-    /// temp-and-rename (no .bak — a lost cycle is recoverable by design).
+    /// temp-and-rename (no .bak; a lost cycle is recoverable by design).
     /// </summary>
     public static bool SaveToSlot(int slot, GuildSaveData data)
     {
@@ -173,8 +173,8 @@ public static class SaveManager
             using var check = FileAccess.Open(tmpPath, FileAccess.ModeFlags.Read);
             if (check == null || !verify(check.GetAsText()))
             {
-                GD.PrintErr($"SaveManager: Verification failed for {tmpPath} — " +
-                            "existing file left untouched.");
+                GD.PrintErr($"SaveManager: Verification failed for {tmpPath}. " +
+                            "Existing file left untouched.");
                 return false;
             }
         }
@@ -197,7 +197,7 @@ public static class SaveManager
                     DirAccess.RemoveAbsolute(gBak);
                 if (DirAccess.RenameAbsolute(gPath, gBak) != Error.Ok)
                 {
-                    GD.PrintErr($"SaveManager: Could not back up {path} — aborting swap.");
+                    GD.PrintErr($"SaveManager: Could not back up {path}; aborting swap.");
                     return false;
                 }
             }
@@ -250,7 +250,7 @@ public static class SaveManager
         ActiveSlot = slot;
 
         // Draft-pool breadth on load. SeedUnlockedPool otherwise only runs from
-        // SeedStarterDeck, i.e. on new game and on a new cycle — so a save loaded
+        // SeedStarterDeck, i.e. on new game and on a new cycle, so a save loaded
         // and played normally would draft from whatever UnlockedCardBlueprintIds
         // happened to accumulate, which on a pre-gate save is only the handful of
         // cards that were previously drafted. Idempotent, so this costs nothing
@@ -258,7 +258,7 @@ public static class SaveManager
         StarterDeckLoader.SeedUnlockedPool(data);
 
         // A guild that was already studying a discipline before the faculty gate
-        // existed keeps it, permanently — not just for as long as it stays in it.
+        // existed keeps it, permanently, not just for as long as it stays in it.
         DeclarationService.GrandfatherCurrentSchool(data);
 
         // Knowledge that used to die with the timeline, reconciled onto the loom.
@@ -276,7 +276,7 @@ public static class SaveManager
         // Self-heal any research commission that finished but lost its settlement
         // to a crash between the lunation tick and the save (§8 pity-timer). The
         // tick is the normal settle path; this only pays a completed-but-unsettled
-        // one. Idempotent — a no-op on the common case.
+        // one. Idempotent, a no-op on the common case.
         CardCommissionService.Reconcile(data);
 
         GD.Print($"SaveManager: Loaded slot {slot} " +
@@ -287,7 +287,7 @@ public static class SaveManager
 
     /// <summary>Load the most-recently-saved slot into ActiveSave when none is active,
     /// so the game and the combat debugger always have a save to work with. No-op if a
-    /// save is already loaded — a slot the player explicitly picked always wins.</summary>
+    /// save is already loaded; a slot the player explicitly picked always wins.</summary>
     public static bool AutoLoadLast()
     {
         if (ActiveSave != null)
@@ -310,7 +310,7 @@ public static class SaveManager
 
         if (best < 0)
         {
-            GD.Print("SaveManager: AutoLoadLast — no saves found.");
+            GD.Print("SaveManager: AutoLoadLast found no saves.");
             return false;
         }
         bool ok = Load(best);
@@ -321,7 +321,7 @@ public static class SaveManager
     /// <summary>
     /// Assemble a GuildSaveData envelope from a slot's two files.
     /// The ledger is required (with .bak fallback). A missing cycle file
-    /// is a legitimate between-cycles state — a fresh CycleState is
+    /// is a legitimate between-cycles state; a fresh CycleState is
     /// created (school selection happens at cycle start, not here).
     /// </summary>
     public static GuildSaveData LoadFromSlot(int slot)
@@ -336,37 +336,37 @@ public static class SaveManager
             string bak = GetLedgerPath(slot) + ".bak";
             ledger = ReadJson<EternalLedger>(bak);
             if (ledger != null)
-                GD.PrintErr($"SaveManager: Ledger for slot {slot} was unreadable — " +
+                GD.PrintErr($"SaveManager: Ledger for slot {slot} was unreadable. " +
                             "RECOVERED FROM BACKUP. Last session's ledger changes may be lost.");
         }
 
         if (ledger == null)
-            return null; // empty slot (or pre-v100 legacy — ignored by design)
+            return null; // empty slot (or pre-v100 legacy, ignored by design)
 
         if (ledger.SaveVersion != CURRENT_VERSION)
         {
             GD.PrintErr($"SaveManager: Slot {slot} ledger is v{ledger.SaveVersion}, " +
-                        $"expected v{CURRENT_VERSION}. Incompatible save — not loaded.");
+                        $"expected v{CURRENT_VERSION}. Incompatible save, not loaded.");
             return null;
         }
 
         // ── Lazy migration: v100 saves made before CampusMap existed load with
         // an empty Tiles list (the JSON simply has no campusMap key). Treat that
-        // the same way a missing cycle file is treated above — backfill rather
+        // the same way a missing cycle file is treated above: backfill rather
         // than fail the load. Never runs again once a real layout is saved.
         if (ledger.CampusMap == null || ledger.CampusMap.Tiles.Count == 0)
         {
-            GD.Print($"SaveManager: Slot {slot} ledger predates the campus map — " +
-                     "generating a default layout.");
+            GD.Print($"SaveManager: Slot {slot} ledger predates the campus map. " +
+                     "Generating a default layout.");
             ledger.CampusMap = CampusMapSaveData.GenerateDefault();
         }
         else if (ledger.CampusMap.Districts == null || ledger.CampusMap.Districts.Count == 0)
         {
             // District-campus migration (Phase 2, Stage 3): a pre-district save has Tiles
             // (a solid disc) but no Districts. Regenerate as districts and UNPLACE buildings
-            // — their old disc coords don't map to the flower layout — so the player re-sites
+            // (their old disc coords don't map to the flower layout) so the player re-sites
             // them on the new grounds. Dev saves only.
-            GD.Print($"SaveManager: Slot {slot} campus predates districts — regenerating as " +
+            GD.Print($"SaveManager: Slot {slot} campus predates districts. Regenerating as " +
                      "districts; existing buildings are unplaced.");
             ledger.CampusMap = CampusMapSaveData.GenerateDefault();
             if (ledger.Buildings != null)
@@ -381,8 +381,8 @@ public static class SaveManager
             // vertex cells as 3-way bonus corners; 3-district founding). Regenerate the map
             // (preserving the resolved dock type), then unplace only the buildings stranded
             // off the new grid.
-            GD.Print($"SaveManager: Slot {slot} campus predates the /3 district lattice — " +
-                     "regenerating; stranded buildings are unplaced.");
+            GD.Print($"SaveManager: Slot {slot} campus predates the /3 district lattice. " +
+                     "Regenerating; stranded buildings are unplaced.");
             string dock = ledger.CampusMap.EntryDockType;
             ledger.CampusMap = CampusMapSaveData.GenerateDefault();
             ledger.CampusMap.EntryDockType = dock;
@@ -398,20 +398,20 @@ public static class SaveManager
         // ── Lazy migration: saves founded before start-scenarios existed have no
         // FoundingScenario. Backfill the Standard default so difficulty reads
         // identically to shipping (all levers 1.0, no start hint). Same additive,
-        // no-version-bump pattern as the CampusMap backfill above — a version bump
+        // no-version-bump pattern as the CampusMap backfill above; a version bump
         // would REJECT the save outright (see the SaveVersion guard).
         if (ledger.FoundingScenario == null)
             ledger.FoundingScenario = StartScenarioLoader.Default();
 
-        // ── Tier 2: the cycle (optional — between-cycles is valid) ──────
+        // ── Tier 2: the cycle (optional; between-cycles is valid) ───────
         var cycle = ReadJson<CycleState>(GetCyclePath(slot));
         if (cycle == null)
         {
-            GD.Print($"SaveManager: Slot {slot} has no cycle file — between cycles. " +
+            GD.Print($"SaveManager: Slot {slot} has no cycle file, so it is between cycles. " +
                      "Creating a fresh CycleState (school unselected).");
             // SelectedSchool is set EXPLICITLY: CycleState's field initializer is
             // "Elementalist", which made this 'school unselected' state silently
-            // Elementalist — and DeclarationService's grandfather clause then
+            // Elementalist, and DeclarationService's grandfather clause then
             // reported Elementalist as a declared discipline on any between-cycles
             // load. Adept is the honest value: it is where every guild stands
             // when no discipline is in play (A1), and it is always declared anyway.
@@ -424,7 +424,7 @@ public static class SaveManager
         else if (cycle.SaveVersion != CURRENT_VERSION)
         {
             GD.PrintErr($"SaveManager: Slot {slot} cycle is v{cycle.SaveVersion}, " +
-                        $"expected v{CURRENT_VERSION}. Incompatible save — not loaded.");
+                        $"expected v{CURRENT_VERSION}. Incompatible save, not loaded.");
             return null;
         }
 
@@ -478,7 +478,7 @@ public static class SaveManager
                 CycleNumber = 1,
                 SelectedSchool = school,
                 // Base founding gold. The founding scenario's StartingGold is applied
-                // as a delta on top (NewGameScreen.OnConfirmPressed), floored at 0 —
+                // as a delta on top (NewGameScreen.OnConfirmPressed), floored at 0,
                 // so a positive base lets negative scenario deltas actually bite
                 // (e.g. Brutal −200 → 0 cushion) instead of being inert. Tune freely.
                 Gold = 200,
@@ -510,7 +510,7 @@ public static class SaveManager
     {
         if (ActiveSave == null || ActiveSlot < 0)
         {
-            GD.PrintErr("SaveManager: No active save — cannot begin a new cycle.");
+            GD.PrintErr("SaveManager: No active save; cannot begin a new cycle.");
             return null;
         }
 
@@ -533,7 +533,7 @@ public static class SaveManager
 
         // Completing a cycle is the single largest SchoolMastery award, and this
         // is the only place a cycle ends. Awarded here rather than in the sweep
-        // because it is an event, not a reconcilable state — LoopHistory already
+        // because it is an event, not a reconcilable state; LoopHistory already
         // records it and re-deriving it from there would double-pay on every save.
         // Outcome-blind by design: a lost timeline still taught you the school.
         //
@@ -589,7 +589,7 @@ public static class SaveManager
     }
 
     /// <summary>
-    /// CANONICAL: claude/progression_persistence_model_v1.md §4 — the "Continue"
+    /// CANONICAL: claude/progression_persistence_model_v1.md §4, the "Continue"
     /// (press-your-luck) transition. Unlike <see cref="BeginNewCycle"/>, which
     /// unmakes the timeline for a fresh gen-1 world, this KEEPS the current timeline
     /// (world, corruption, staging, deck, items, companions) and pushes it into the
@@ -601,7 +601,7 @@ public static class SaveManager
     // Victory-gating: RESOLVED by R-F2 (docs/convergence_finale_spec_v1.md §0, §3),
     // implemented in I1 as a HYBRID, and gated by the CALLER rather than here:
     //   • while seats remain unresolved, the Conjunction is a pure deadline and
-    //     surviving to it still earns Continue — StrategicView's unresolved branch;
+    //     surviving to it still earns Continue (StrategicView's unresolved branch);
     //   • once every seat is resolved, the Conjunction IS the Convergence, and
     //     Continue is offered from exactly one place: the post-VICTORY beat
     //     (StrategicView.ShowConvergenceOutcome). A defeat has no Continue button
@@ -613,7 +613,7 @@ public static class SaveManager
     {
         if (ActiveSave == null || ActiveSlot < 0)
         {
-            GD.PrintErr("SaveManager: No active save — cannot continue the campaign.");
+            GD.PrintErr("SaveManager: No active save; cannot continue the campaign.");
             return null;
         }
 
@@ -624,7 +624,7 @@ public static class SaveManager
         cycle.Calendar = new CalendarState();   // lunation 1, phase 0, no eclipses
         cycle.PendingStraggleLunations = 0;     // a new year owes no straggle debt
 
-        // The world hardens (the forcing clock — progression doc §6).
+        // The world hardens (the forcing clock, progression doc §6).
         CampaignEscalation.Apply(cycle);
 
         Save();
@@ -634,8 +634,8 @@ public static class SaveManager
     }
 
     /// <summary>Archive active Timeline quests into UnfinishedBusiness before
-    /// the CycleState is replaced. Called only from <see cref="BeginNewCycle"/>
-    /// — <see cref="ContinueCampaign"/> skips this because the timeline persists.</summary>
+    /// the CycleState is replaced. Called only from <see cref="BeginNewCycle"/>;
+    /// <see cref="ContinueCampaign"/> skips this because the timeline persists.</summary>
     private static void ArchiveUnfinishedQuests(CycleState endingCycle)
     {
         if (ActiveSave?.Ledger == null || endingCycle == null)
@@ -678,9 +678,9 @@ public static class SaveManager
         if (Enum.TryParse<CardSchool>(school, ignoreCase: true, out var cardSchool))
             StarterDeckLoader.SeedStarterDeck(data, cardSchool);
         else
-            GD.PrintErr($"SaveManager: Unknown school '{school}' — PlayerDeck not seeded.");
+            GD.PrintErr($"SaveManager: Unknown school '{school}'. PlayerDeck not seeded.");
 
-        // Regalia ride ON TOP of the 10-card starter floor, never in place of it —
+        // Regalia ride ON TOP of the 10-card starter floor, never in place of it,
         // so this must run after SeedStarterDeck, which bails early if the deck is
         // already populated. The ONE sanctioned exception to the reseed
         // (docs/progression_card_acquisition_v1.md §6; amends
@@ -688,7 +688,7 @@ public static class SaveManager
         RegaliaService.SeedCarriedIntoDeck(data);
 
         // Re-seed the fresh Grimoire from the loom. A new timeline no longer starts
-        // knowing nothing — knowledge crossed with you; only preparation, scrolls
+        // knowing nothing. Knowledge crossed with you; only preparation, scrolls
         // and Essence reset. Runs here because the new CycleState (and its empty
         // Grimoire) exists by this point.
         SpellKnowledgeService.Sync(data);
@@ -728,7 +728,7 @@ public static class SaveManager
     }
 
     /// <summary>
-    /// Delete a save slot — both tier files, their backups/temps, and any
+    /// Delete a save slot: both tier files, their backups/temps, and any
     /// legacy pre-v100 single-file save occupying the slot name.
     /// </summary>
     public static void DeleteSlot(int slot)

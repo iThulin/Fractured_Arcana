@@ -22,7 +22,7 @@ public partial class PauseButton : Button
 
     public override void _Ready()
     {
-        // Default appearance — small, unobtrusive corner button.
+        // Default appearance: small, unobtrusive corner button.
         Text = "☰";
         if (CustomMinimumSize == Vector2.Zero)
             CustomMinimumSize = new Vector2(40, 40);

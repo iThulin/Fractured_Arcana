@@ -4,10 +4,10 @@ using Godot;
 // ShadowMarket.cs
 //
 // Purpose:        The Veiled Concord's two-sided marketplace (phase
-//                 E3) — the player-facing verbs, resolved as domain
+//                 E3): the player-facing verbs, resolved as domain
 //                 calls (debug now, UI later). SELL side: fence a
 //                 known courtier secret for Concord Favor, with a
-//                 trace risk that scales with Marked (ruling #3 —
+//                 trace risk that scales with Marked (ruling #3:
 //                 only a TRACED sale bites the court). BUY side:
 //                 commission Tier A/B contracts (Plant Asset,
 //                 Purchase Intel, Theft) that ripen and resolve on
@@ -16,12 +16,12 @@ using Godot;
 //                 Currencies: Concord Favor (spent here, earned by
 //                 Cutouts and sales) and Marked (the shadow-world's
 //                 memory of the guild, raised by every dealing).
-//                 Gates: EffectiveBand — contact floors the guild at
+//                 Gates: EffectiveBand, where contact floors the guild at
 //                 Known; Theft needs Trusted (lifetime dealings).
 //
 //                 SCOPE (E3): Plant Asset / Purchase Intel / Theft.
 //                 Sabotage is E4 (its warfront/corruption hooks),
-//                 Extraction is E5, Assassination is E6 — none are
+//                 Extraction is E5, Assassination is E6. None are
 //                 registered here ahead of their effects (no stubs).
 //                 Prisoner/contraband sales await a capture system.
 // Layer:          System
@@ -32,7 +32,7 @@ using Godot;
 // See:            espionage_veiled_concord_spec_v1.md §3b, §3c, §3d
 // ============================================================
 
-/// <summary>Result of a marketplace action — success flag plus a player-facing
+/// <summary>Result of a marketplace action: a success flag plus a player-facing
 /// line for the debug console or a later toast.</summary>
 public struct ShadowMarketResult
 {
@@ -56,7 +56,7 @@ public static class ShadowMarket
 
     /// <summary>Fence a known courtier secret to the Concord for Favor. The
     /// guild trades away its copy (the secret is no longer held as leverage). A
-    /// trace roll — chance rising with Marked — may pin the leak on the guild,
+    /// trace roll (chance rising with Marked) may pin the leak on the guild,
     /// souring the sold-out courtier and deepening Marked.</summary>
     public static ShadowMarketResult SellSecret(CycleState cycle, string kingdomId,
                                                 string courtierId)
@@ -76,7 +76,7 @@ public static class ShadowMarket
             return ShadowMarketResult.Fail("No held secret to sell there.");
         }
 
-        // Trade the secret away for coin. The copy is spent — leverage or gold,
+        // Trade the secret away for coin. The copy is spent: leverage or gold,
         // not both.
         courtier.SecretKnown = false;
         council.ConcordFavor += ShadowVocab.FavorSellSecret;
@@ -90,7 +90,7 @@ public static class ShadowMarket
         {
             courtier.Regard = Mathf.Clamp(courtier.Regard - ShadowVocab.TracedSellRegardHit, -3, 3);
             AddMarked(council, ShadowVocab.MarkedGainTracedSell);
-            tail = $" The sale was traced — {courtier.DisplayName} knows, and the shadows note you " +
+            tail = $" The sale was traced. {courtier.DisplayName} knows, and the shadows note you " +
                    $"(Marked {council.Marked}).";
         }
         else
@@ -129,7 +129,7 @@ public static class ShadowMarket
             ConcordStandingBand.Trusted);
     }
 
-    /// <summary>Commission a Sabotage (§3c) — break an active siege pressing the
+    /// <summary>Commission a Sabotage (§3c) to break an active siege pressing the
     /// target kingdom, or stall its next corruption tick (subject to the §4 cap
     /// at resolution). The variant rides in TargetId.</summary>
     public static ShadowMarketResult CommissionSabotage(CycleState cycle, string kingdomId,
@@ -144,7 +144,7 @@ public static class ShadowMarket
             ConcordStandingBand.Known);
     }
 
-    /// <summary>Commission an Extraction (§3c) — free an imprisoned envoy without
+    /// <summary>Commission an Extraction (§3c) to free an imprisoned envoy without
     /// mounting the Prison-POI expedition. Trusted-gated. Optionally target a
     /// specific captive by companion id; otherwise the first held is freed.</summary>
     public static ShadowMarketResult CommissionExtraction(CycleState cycle, string kingdomId,
@@ -155,14 +155,14 @@ public static class ShadowMarket
             ConcordStandingBand.Trusted);
     }
 
-    /// <summary>Commission an Assassination (§3c, Tier C) — remove a courtier
+    /// <summary>Commission an Assassination (§3c, Tier C) to remove a courtier
     /// permanently. Gated on the Inner band AND Undercroft III (the spine's
     /// deepest tier unlocks the cabal's lethal work). Irreversible.
     ///
     /// SEAM: per spec §8 this is meant to play as an interactive Concord-broker
     /// negotiation (Opportunist archetype, Concord-state preload). That launcher
     /// is the SAME one the council's Tier C (Broker the Compact) will use, and it
-    /// is not built yet — so the contract resolves automatically for now. When
+    /// is not built yet, so the contract resolves automatically for now. When
     /// the shared interactive-climax launcher lands, this commission becomes its
     /// entry point without changing the effect.</summary>
     public static ShadowMarketResult CommissionAssassination(CycleState cycle, string kingdomId,
@@ -221,19 +221,19 @@ public static class ShadowMarket
 
         council.ConcordFavor -= toBeat;
         council.ConcordContracts.Remove(against);
-        // Outbidding is defensive — it does NOT deepen Marked. Raising it here
+        // Outbidding is defensive, and it does NOT deepen Marked. Raising it here
         // would trap the guild above the Contracted-Against line indefinitely;
         // the way out is to stop dealing and let Marked decay below 9.
         SaveManager.MarkDirty();
         return ShadowMarketResult.Pass(
-            $"The guild outbids the Astrologer — the contract is bought back for {toBeat} favor " +
+            $"The guild outbids the Astrologer. The contract is bought back for {toBeat} favor " +
             $"({council.ConcordFavor} left, Marked {council.Marked}).");
     }
 
     /// <summary>Shared commission path: validate contact, standing band, and
     /// Favor; spend the Favor; enqueue the contract. Effects apply on the tick
-    /// (ShadowTick.ResolveContracts), where dealings and Marked are also booked
-    /// — so a commission that never completes costs Favor but leaves no mark.</summary>
+    /// (ShadowTick.ResolveContracts), where dealings and Marked are also booked,
+    /// so a commission that never completes costs Favor but leaves no mark.</summary>
     private static ShadowMarketResult Commission(CycleState cycle, string contractType,
         string kingdomId, string targetId, int cost, int duration, ConcordStandingBand minBand)
     {

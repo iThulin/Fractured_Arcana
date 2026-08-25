@@ -20,7 +20,7 @@
     "magnitude": "Overt",
     "targetingType": "None",
     "effectKey": "deploy_waystation",
-    "description": "A pocket rest on this hex — one use of a quarter-heal and +3 Essence — and a supply anchor while it stands. Expires with the expedition."
+    "description": "A pocket rest on this hex, giving one use of a quarter-heal and +3 Essence, plus a supply anchor while it stands. Expires with the expedition."
   },
   {
     "id": "clockwork_skimmer",

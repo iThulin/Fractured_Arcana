@@ -1,7 +1,7 @@
 {
   "id": "warding_scroll",
   "name": "Warding Scroll",
-  "description": "A prentice's copy of an old rite \u2014 it holds. Gain 3 shield.",
+  "description": "A prentice's copy of an old rite. It holds. Gain 3 shield.",
   "rarity": "Common",
   "slot": "Consumable",
   "unitClass": "Any",

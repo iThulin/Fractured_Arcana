@@ -5,7 +5,7 @@ using System.Text.Json;
 // ============================================================
 // ResolutionEncounterBuilder.cs
 //
-// Purpose:        Step 9 (quest_hooks_compendium §7) — builds the
+// Purpose:        Step 9 (quest_hooks_compendium §7). Builds the
 //                 archmage RESOLUTION audience: a narrative
 //                 encounter whose Unite / Coerce / Overthrow
 //                 choices are gated by CampaignState.
@@ -27,14 +27,14 @@ using System.Text.Json;
 /// <summary>Builds resolution audiences and their Overthrow boss combats from archmage definitions.</summary>
 public static class ResolutionEncounterBuilder
 {
-    /// <summary>Difficulty multiplier base for archmage resolution boss fights —
+    /// <summary>Difficulty multiplier base for archmage resolution boss fights,
     /// the campaign's hardest authored combats short of the finale.</summary>
     private const float ResolutionDifficultyMult = 1.8f;
 
     // ── Authored audiences (Data/Encounters/resolutions.json) ───────────
     // Authored encounters carry ArchmageId + choices with ResolutionKind and
     // take precedence over the code-built fallback below. Standard encounter
-    // JSON schema (camelCase, fields included) — same as every other pool.
+    // JSON schema (camelCase, fields included), same as every other pool.
     private const string AuthoredPath = "res://Data/Encounters/resolutions.json";
     private static Dictionary<string, NarrativeEncounterData> _authored;
 
@@ -73,15 +73,15 @@ public static class ResolutionEncounterBuilder
 
     /// <summary>The audience gate (Step 9 gating ruling, 2026-07-22): an
     /// audience requires (1) the archmage not already resolved, (2) having MET
-    /// them — the dossier met flag, stamped the first time you cross their
-    /// forces (Eternal, survives the unmake), and (3) engagement THIS cycle —
-    /// disposition Neutral, which only happens once sentiment has moved off
+    /// them, which is the dossier met flag, stamped the first time you cross
+    /// their forces (Eternal, survives the unmake), and (3) engagement THIS
+    /// cycle, meaning disposition Neutral, which only happens once sentiment has moved off
     /// zero. You cannot resolve a stranger. Returns the blocking reason for
     /// the disabled button label.</summary>
     public static (bool canSeek, string reason) AudienceGate(GuildSaveData save, string archmageId)
     {
         var campaign = save?.Cycle?.Campaign;
-        if (campaign == null || string.IsNullOrEmpty(archmageId)) return (false, "—");
+        if (campaign == null || string.IsNullOrEmpty(archmageId)) return (false, "-");
 
         var disp = campaign.GetDisposition(archmageId);
         if (disp != ArchmageDisposition.Unknown && disp != ArchmageDisposition.Neutral)
@@ -146,7 +146,7 @@ public static class ResolutionEncounterBuilder
         if (def.PersonalityNotes != null && def.PersonalityNotes.Count > 0)
             body += $"\n\n{def.PersonalityNotes[0]}";
         body += "\n\nThis is the moment the campaign has been bending toward. " +
-                "However it ends, it ends today — or you withdraw, and it waits.";
+                "However it ends, it ends today. Or you withdraw, and it waits.";
 
         var enc = new NarrativeEncounterData
         {
@@ -158,28 +158,28 @@ public static class ResolutionEncounterBuilder
 
         enc.Choices.Add(new EncounterChoice
         {
-            Label = $"Unite — pledge {def.FactionName} to the guild's cause",
+            Label = $"Unite: pledge {def.FactionName} to the guild's cause",
             ResultText = def.PostUniteDialogue != null && def.PostUniteDialogue.Count > 0
                 ? def.PostUniteDialogue[0]
-                : $"{def.DisplayName} takes your measure one last time — and extends a hand.",
+                : $"{def.DisplayName} takes your measure one last time, then extends a hand.",
             ResolutionKind = "unite",
         });
         enc.Choices.Add(new EncounterChoice
         {
-            Label = "Coerce — press them into a forced accord",
+            Label = "Coerce: press them into a forced accord",
             ResultText = $"{def.DisplayName} yields, hollow-eyed. The accord will hold. " +
                          "It will never be forgiven.",
             ResolutionKind = "coerce",
         });
         enc.Choices.Add(new EncounterChoice
         {
-            Label = "Overthrow — take their seat by force",
+            Label = "Overthrow: take their seat by force",
             ResultText = $"{def.DisplayName} rises. The room goes quiet the way a held breath is quiet.",
             ResolutionKind = "overthrow",
         });
         enc.Choices.Add(new EncounterChoice
         {
-            Label = "Withdraw — this is not the day",
+            Label = "Withdraw: this is not the day",
             ResultText = "You step back from the threshold. The question keeps.",
         });
 

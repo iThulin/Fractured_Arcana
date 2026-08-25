@@ -6,13 +6,13 @@ using System.Linq;
 // ============================================================
 // CardCommissionService.cs
 //
-// Purpose:        The DISCOVERY pity-timer — the last unbuilt half of the
+// Purpose:        The DISCOVERY pity-timer, the last unbuilt half of the
 //                 "Library research" verb from
 //                 progression_card_acquisition_v1 §8:
 //
 //                   "Everything above is stochastic. Without a deterministic
-//                    conversion — spend X, receive the specific blueprint you
-//                    NAMED — a player chasing an archetype is hostage to RNG
+//                    conversion (spend X, receive the specific blueprint you
+//                    NAMED), a player chasing an archetype is hostage to RNG
 //                    across multiple cycles. Build this. Omitting it will be
 //                    the most-reported complaint about the whole system; it is
 //                    the difference between 'slow reveal' and 'grind'."
@@ -20,20 +20,20 @@ using System.Linq;
 //                 Where minting (CardMintService) COPIES a card you have
 //                 already discovered, this DISCOVERS one you have not: the
 //                 player names a locked Rare, pays gold, and it unlocks after
-//                 a fixed number of lunations. That delay is the whole design
-//                 — an instant unlock would make every Rare free the moment
+//                 a fixed number of lunations. That delay is the whole design.
+//                 An instant unlock would make every Rare free the moment
 //                 the Forbidden Archives are built, collapsing the slow reveal
 //                 the §5 seed deliberately created by locking Rares.
 //
 //                 Home: the Arcane Library's "forbidden_archives" T3 feature
-//                 flag — granted by arcane_library.json and, until now, set
+//                 flag, granted by arcane_library.json and, until now, set
 //                 and never consumed (v1 §1, session_log_2026-08-05).
 //
 // Layer:          Data / Feature builder
 // Collaborators:  EternalLedger.CardCommissions (the in-flight list),
 //                 EternalLedger.UnlockedCardBlueprintIds (the payoff),
 //                 CardDatabase (blueprint lookup + rarity),
-//                 MarginaliaService (excluded — its own verb owns those),
+//                 MarginaliaService (excluded, since its own verb owns those),
 //                 PlayerSession.HasFeature("forbidden_archives") (the gate),
 //                 StrategicView.RunLunationTick (the once-per-lunation tick),
 //                 CardLibraryUi.cs (the surface)
@@ -59,23 +59,23 @@ public readonly struct CommissionStatus
 
 public static class CardCommissionService
 {
-    // ── Tuning (starting values — empirical, tune in place) ───────────────
+    // ── Tuning (starting values: empirical, tune in place) ────────────────
     //
     // Gold, not splinters: minting already owns the splinter economy, and
     // keeping the two verbs on different currencies stops one from cannibalising
     // the other. Discovery is a research EXPENDITURE (gold + time); copying is a
     // scriptorium OUTPUT (splinters). Confidence on the exact numbers is
-    // moderate — they are playtest anchors, not commitments. If archetype-chasing
+    // moderate, because they are playtest anchors, not commitments. If archetype-chasing
     // still feels like grind, cut ResearchLunations before cutting gold; if Rares
     // arrive too cheaply, raise gold before shortening the timer.
 
     /// <summary>Lunations a commission takes to deliver. A 12-lunation cycle means
-    /// commissioning early lands the card mid-cycle — a real wait, not an instant.</summary>
+    /// commissioning early lands the card mid-cycle: a real wait, not an instant.</summary>
     public const int ResearchLunations = 3;
 
     public const int CostRareGold     = 250;
-    public const int CostUncommonGold = 120;   // edge case — Uncommons are seeded unlocked
-    public const int CostCommonGold   = 60;    // edge case — Commons are seeded unlocked
+    public const int CostUncommonGold = 120;   // edge case: Uncommons are seeded unlocked
+    public const int CostCommonGold   = 60;    // edge case: Commons are seeded unlocked
 
     private const string LibraryId   = "arcane_library";
     private const string FeatureFlag = "forbidden_archives";
@@ -87,7 +87,7 @@ public static class CardCommissionService
     /// path, so callers on other screens should refresh before trusting this.</summary>
     public static bool ArchivesAvailable() => PlayerSession.HasFeature(FeatureFlag);
 
-    /// <summary>Max commissions in flight at once — the Arcane Library's tier, so 3
+    /// <summary>Max commissions in flight at once, set by the Arcane Library's tier, so 3
     /// with the Forbidden Archives (which only exist at T3). A concurrency cap is
     /// what keeps the pity-timer a deliberate choice rather than a bulk order that
     /// floods discovery in a single wait.</summary>
@@ -105,7 +105,7 @@ public static class CardCommissionService
     // ── Cost ──────────────────────────────────────────────────────────────
 
     /// <summary>Gold cost by rarity, or -1 when the card can never be commissioned
-    /// (Legendaries are Regalia — milestone grants only, never researched).</summary>
+    /// (Legendaries are Regalia: milestone grants only, never researched).</summary>
     public static int GoldCost(CardBlueprint bp) => bp?.Rarity switch
     {
         null                 => -1,
@@ -129,7 +129,7 @@ public static class CardCommissionService
 
     /// <summary>Whether a blueprint is a legitimate research target: not already
     /// known, not a Legendary, and not a Marginalia reward (that card has its own
-    /// acquisition verb — defeating the faction — and the Library note already
+    /// acquisition verb, defeating the faction, and the Library note already
     /// tells the player so; letting them buy it here would undercut that verb).</summary>
     public static bool IsCommissionable(GuildSaveData save, CardBlueprint bp)
     {
@@ -140,7 +140,7 @@ public static class CardCommissionService
         var unlocked = save.Ledger.UnlockedCardBlueprintIds;
         if (unlocked != null &&
             unlocked.Any(id => string.Equals(id, bp.Id, StringComparison.OrdinalIgnoreCase)))
-            return false;   // already discovered — mint it, don't research it
+            return false;   // already discovered, so mint it, don't research it
 
         return true;
     }
@@ -164,19 +164,19 @@ public static class CardCommissionService
         if (!ArchivesAvailable())
             return Fail("The Forbidden Archives must stand (Arcane Library, tier III) before research can begin.");
         if (existing != null)
-            return Fail($"Already under research — {existing.LunationsRemaining} lunation(s) remain.");
+            return Fail($"Already under research. {existing.LunationsRemaining} lunation(s) remain.");
         if (bp.Rarity == CardRarity.Legendary || gold < 0)
             return Fail("This is Regalia. It is granted at a milestone, never researched.");
         if (MarginaliaService.IsMarginaliaCard(bp.Id))
-            return Fail("This one is earned in the field, not the stacks — defeat its faction to learn it.");
+            return Fail("This one is earned in the field, not the stacks. Defeat its faction to learn it.");
         if (!IsCommissionable(save, bp))
-            return Fail("You already know this card. The Library can copy it — see the scribing options.");
+            return Fail("You already know this card. The Library can copy it; see the scribing options.");
         if (max <= 0)
             return Fail("The Forbidden Archives must stand before research can begin.");
         if (inFlight >= max)
             return Fail($"The Archives are at capacity ({inFlight}/{max}). Wait for a commission to complete.");
         if ((save?.Cycle?.Gold ?? 0) < gold)
-            return Fail($"Not enough gold — {gold} needed.");
+            return Fail($"Not enough gold. {gold} needed.");
 
         return new CommissionStatus
         {
@@ -210,8 +210,8 @@ public static class CardCommissionService
         };
         save.Ledger.CardCommissions.Add(commission);
 
-        GD.Print($"[Commission] Research begun on '{bp.Id}' for {status.GoldCost} gold — " +
-                 $"delivers in {status.Lunations} lunation(s) " +
+        GD.Print($"[Commission] Research begun on '{bp.Id}' for {status.GoldCost} gold. " +
+                 $"Delivers in {status.Lunations} lunation(s) " +
                  $"({status.InFlight + 1}/{status.MaxConcurrent} in flight).");
         return commission;
     }
@@ -221,7 +221,7 @@ public static class CardCommissionService
     /// <summary>
     /// Advance every in-flight commission by one lunation and unlock any that
     /// reach zero. Call EXACTLY ONCE per lunation, from the single lunation-tick
-    /// chokepoint (StrategicView.RunLunationTick) — a second call in the same
+    /// chokepoint (StrategicView.RunLunationTick). A second call in the same
     /// lunation would double-count the timer, the canonical save-adjacent bug.
     /// Returns the number of cards unlocked this tick.
     /// </summary>
@@ -244,7 +244,7 @@ public static class CardCommissionService
 
     /// <summary>
     /// Self-heal pass: unlock and clear any commission already at zero (or below)
-    /// without decrementing. Safe to call on load — a commission that completed
+    /// without decrementing. Safe to call on load: a commission that completed
     /// but whose settlement was lost to a crash between tick and save is paid on
     /// the next load, matching the ProgressionSweep reconciler discipline.
     /// </summary>
@@ -268,7 +268,7 @@ public static class CardCommissionService
     /// <summary>
     /// Testing shortcut: place a commission on a random legitimate target
     /// (locked, non-Legendary, non-Marginalia, not already in flight),
-    /// BYPASSING the Archives flag, gold, and capacity gates — the same
+    /// BYPASSING the Archives flag, gold, and capacity gates, following the same
     /// "skip the slow gate" contract the campus debug grants use. Charges no
     /// gold. Defaults to a 1-lunation timer so a single lunation advance
     /// settles it. Returns the blueprint id commissioned, or null if none was
@@ -302,8 +302,8 @@ public static class CardCommissionService
             LunationsRemaining = Math.Max(1, lunations),
             GoldPaid = 0,
         });
-        GD.Print($"[Commission][Debug] Commissioned '{bp.Id}' ({bp.Rarity}) — " +
-                 $"settles in {Math.Max(1, lunations)} lunation(s). Advance the moon to test.");
+        GD.Print($"[Commission][Debug] Commissioned '{bp.Id}' ({bp.Rarity}). " +
+                 $"Settles in {Math.Max(1, lunations)} lunation(s). Advance the moon to test.");
         return bp.Id;
     }
 
@@ -321,7 +321,7 @@ public static class CardCommissionService
         if (!already)
             save.Ledger.UnlockedCardBlueprintIds.Add(c.BlueprintId);
 
-        GD.Print($"[Commission] Research complete — '{c.BlueprintId}' is now discovered " +
+        GD.Print($"[Commission] Research complete. '{c.BlueprintId}' is now discovered " +
                  $"and enters the draft pool. Copy it at the Arcane Library.");
         return already ? 0 : 1;
     }

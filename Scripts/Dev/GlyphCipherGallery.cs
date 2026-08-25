@@ -112,10 +112,10 @@ public partial class GlyphCipherGallery : CanvasLayer
             }
         }
 
-        _status.Text = $"Glyph cipher gallery — {built} built, {failed} failed.   " +
+        _status.Text = $"Glyph cipher gallery: {built} built, {failed} failed.   " +
                        "[L] LOD   [D] dark board   [R] replay draw-on   [Esc] close";
         if (built == 0)
-            _status.Text = "Glyph cipher gallery — NO ENCHANTER BLUEPRINTS. " +
+            _status.Text = "Glyph cipher gallery: NO ENCHANTER BLUEPRINTS. " +
                            "CardDatabase is empty; is GameBootstrap running?";
     }
 
@@ -125,7 +125,7 @@ public partial class GlyphCipherGallery : CanvasLayer
         var parts = new List<string>();
         foreach (var v in GlyphCipher.VerbRingOrder)
             if ((g.Verbs & v) != 0) parts.Add(v.ToString().ToUpperInvariant());
-        string verbs = parts.Count > 0 ? string.Join("+", parts) : "—";
+        string verbs = parts.Count > 0 ? string.Join("+", parts) : "-";
         return $"{g.Target.ToString().ToUpperInvariant()} · {verbs}   {g.ArmCount}×{g.DeepestArm}";
     }
 

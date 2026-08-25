@@ -98,7 +98,7 @@ public static class CityExploreService
         return DistrictContentType.Empty;
     }
 
-    /// <summary>FNV-1a over the city id — a stable per-city seed.</summary>
+    /// <summary>FNV-1a over the city id: a stable per-city seed.</summary>
     private static uint Hash(string s)
     {
         uint h = 2166136261u;

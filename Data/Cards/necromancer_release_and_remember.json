@@ -263,7 +263,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Untouchable",
-			"description": "Untouchable: Adds Shrouded this turn \u2014 max 5 damage per hit.",
+			"description": "Untouchable: Adds Shrouded this turn, capping damage at 5 per hit.",
 			"changes": [
 				{
 					"half": "bottom",

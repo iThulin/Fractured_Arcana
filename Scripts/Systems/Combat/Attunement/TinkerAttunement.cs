@@ -3,15 +3,15 @@ using System;
 // ============================================================
 // TinkerAttunement.cs
 //
-// Purpose:        The Tinker school mechanic — "Contraption
+// Purpose:        The Tinker school mechanic: "Contraption
 //                 Assembly", tracked as the Schematics ledger.
 //                 A monotonic per-combat counter that ticks up
 //                 every time one of the player's constructs is
 //                 destroyed (any cause, including Heat burnout).
 //                 Each tier grants newly-deployed constructs a
-//                 flat +HP / +primary-stat bonus. Does NOT decay
-//                 — losing hardware is how the Tinker iterates,
-//                 so the lesson is permanent for the fight.
+//                 flat +HP / +primary-stat bonus. Does NOT decay.
+//                 Losing hardware is how the Tinker iterates, so
+//                 the lesson is permanent for the fight.
 //                 Also holds the live construct cap (Capacity)
 //                 and the Master Schematic pending-bonus queue.
 // Layer:          System
@@ -54,7 +54,7 @@ public class TinkerAttunement : ISchoolAttunement
     /// <summary>Fires when the tier changes so the attunement UI can refresh. Argument is the new tier.</summary>
     public event Action<int> OnTierChanged;
 
-    /// <summary>The Tinker notes a failure down — the next construct is stronger.</summary>
+    /// <summary>The Tinker notes a failure down. The next construct is stronger.</summary>
     public void RegisterConstructDestroyed()
     {
         if (Tier >= MaxTier)
@@ -83,7 +83,7 @@ public class TinkerAttunement : ISchoolAttunement
 
     // ── ISchoolAttunement ───────────────────────────────────────────
 
-    /// <summary>No-op. Schematics is monotonic within a combat — it does not decay between turns.</summary>
+    /// <summary>No-op. Schematics is monotonic within a combat. It does not decay between turns.</summary>
     public void Decay() { }
 
     /// <summary>Resets the ledger at the start of each combat.</summary>

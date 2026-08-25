@@ -76,7 +76,7 @@ public static class CouncilMissions
             Id = GatherIntelligence, DisplayName = "Gather Intelligence",
             Lunations = 2, GoldCost = 40,
             RequiresContact = true, NeedsTargetCourtier = false,
-            Blurb = "Chart the kingdom's ground, uncover its places — and perhaps a courtier's secret. Raises Exposure.",
+            Blurb = "Chart the kingdom's ground and uncover its places, and perhaps a courtier's secret. Raises Exposure.",
         },
         new CouncilMissionDef
         {
@@ -118,7 +118,7 @@ public static class CouncilMissions
 }
 
 /// <summary>Shared read-only queries against the council layer. Envoy
-/// status is DERIVED from ActiveMissions — never stored on Companion
+/// status is DERIVED from ActiveMissions, never stored on Companion
 /// (single-source rule, same as corruption in CampaignState).</summary>
 public static class CouncilQueries
 {
@@ -139,8 +139,8 @@ public static class CouncilQueries
         return false;
     }
 
-    /// <summary>True if the companion is held captive after Imprisonment (§8) —
-    /// derived from CouncilState.Imprisoned, never a flag on Companion.</summary>
+    /// <summary>True if the companion is held captive after Imprisonment (§8).
+    /// Derived from CouncilState.Imprisoned, never a flag on Companion.</summary>
     public static bool IsImprisoned(string companionId)
     {
         var council = SaveManager.ActiveSave?.Cycle?.Council;
@@ -194,7 +194,7 @@ public static class CouncilQueries
     }
 
     /// <summary>Embassy tier from the campus (0 if the building doesn't
-    /// exist in the save — the template may not be authored yet).</summary>
+    /// exist in the save, since the template may not be authored yet).</summary>
     public static int EmbassyTier(GuildSaveData save) => BuildingTier(save, "embassy");
 
     // ── Standing unification (v1.2 ruling): court standing is the SINGLE
@@ -241,7 +241,7 @@ public static class CouncilQueries
 
     /// <summary>Total Patron slots across ALL courts (§2b): none without an
     /// Embassy, one at Embassy I, a second at Embassy II. Embassy III's slot
-    /// count is UNRULED — held at 2 until decided.</summary>
+    /// count is UNRULED, held at 2 until decided.</summary>
     public static int PatronSlots(GuildSaveData save)
     {
         int tier = EmbassyTier(save);
@@ -279,7 +279,7 @@ public static class CouncilTick
     private const int MaxReportLines = 60;
 
     // Exposure thresholds + consequences (§8). Edge-triggered on upward
-    // crossing; exposure is NOT reset on fire (v1.2 latch ruling — reset
+    // crossing; exposure is NOT reset on fire (v1.2 latch ruling, because reset
     // semantics capped reachable exposure at 6, making Expulsion/Imprisonment
     // impossible; doc erratum).
     private const int ScandalThreshold = 4;
@@ -304,7 +304,7 @@ public static class CouncilTick
         // Snapshot per-court exposure BEFORE mission resolution (step 4) mutates
         // it, so step 5 can detect UPWARD threshold crossings (edge-triggered):
         // a consequence fires when exposure moves from below a line to at/above
-        // it this tick. No persisted "already fired" field is needed — the
+        // it this tick. No persisted "already fired" field is needed, because the
         // exposure value itself is the memory. Re-firing a tier requires the
         // court to decay below the line and then be pushed back across it.
         var exposureBefore = new Dictionary<string, int>();
@@ -313,7 +313,7 @@ public static class CouncilTick
             exposureBefore[court.KingdomId] = court.Exposure;
         }
 
-        // Which courts ran an intrigue-class mission this lunation — those courts
+        // Which courts ran an intrigue-class mission this lunation. Those courts
         // skip idle exposure decay (§13 step 5), or the Exposure a mission raises
         // would be shed the same tick and never cross a threshold. Both Gather
         // Intelligence and Spread Rumor / Discredit raise Exposure, so both shield
@@ -333,7 +333,7 @@ public static class CouncilTick
         // Echoes carry per-court attribution: each landed / dissipated /
         // buried line is tagged with its target kingdom (echo.KingdomId) so
         // court-card echo history can filter on it. LandEchoes appends
-        // HeraldReports directly — no guild-wide bridge.
+        // HeraldReports directly, with no guild-wide bridge.
         CouncilEcho.LandEchoes(cycle, reports);
 
         // ── Step 2: obligation decay on overdue favors the guild owes ────
@@ -342,7 +342,7 @@ public static class CouncilTick
         // ── Step 4: resolve / advance missions ───────────────────────────
         // Iterate a copy: resolution removes entries. Record which envoy resolved
         // at each court this tick (transient, rebuilt each tick like exposureBefore)
-        // so step-5 consequences can name/seize the caught envoy — the mission is
+        // so step-5 consequences can name/seize the caught envoy. The mission is
         // removed here, BEFORE step 5, so MissionAt can no longer find them.
         var resolverThisTick = new Dictionary<string, string>();
         foreach (var mission in council.ActiveMissions.ToList())
@@ -514,7 +514,7 @@ public static class CouncilTick
         if (roll < 20)
         {
             delta = -1;
-            verdict = "the gift missed its mark — an insult taken";
+            verdict = "the gift missed its mark, and an insult was taken";
         }
         else if (roll < 70)
         {
@@ -576,7 +576,7 @@ public static class CouncilTick
         }
 
         // Secret discovery roll (the mission's second lunation of work).
-        // K5: no specific counterpart — the archetype term sits this one out.
+        // K5: no specific counterpart, so the archetype term sits this one out.
         CourtierState secretHolder = null;
         int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy, court);
         bool secretFound = roll >= 25; // 75% base
@@ -612,12 +612,12 @@ public static class CouncilTick
     {
         court.HasContact = true;
 
-        // Resolution-time backstop for the Welcome gate — standing may have
+        // Resolution-time backstop for the Welcome gate. Standing may have
         // slipped since dispatch, and not every dispatch path is UI-gated.
         if (court.Band() < CourtStandingBand.Welcome)
         {
             Emit(reports, lun, court.KingdomId,
-                $"{envoyName}'s whispers at {courtName} found no purchase — the guild's " +
+                $"{envoyName}'s whispers at {courtName} found no purchase. The guild's " +
                 $"standing does not yet move the court's talk.");
             return;
         }
@@ -632,9 +632,9 @@ public static class CouncilTick
 
         // Intrigue roll (~60% base, better with a capable envoy). Success discredits
         // the target: Influence -1 (weight at court, floor 1). Failure rebounds +1
-        // (ceiling 3) as the smear is traced back — the doc's "Influence +/-1".
+        // (ceiling 3) as the smear is traced back, matching the doc's "Influence +/-1".
         // Exposure rises +2 on a clean job, +3 when fingers point at the guild.
-        // K5: full vector — the smear's target IS the counterpart being read.
+        // K5: full vector, because the smear's target IS the counterpart being read.
         int roll = (int)(GD.Randi() % 100) + 15 * FitnessMod(envoy, court, target);
         bool success = roll >= 40;
 
@@ -643,9 +643,9 @@ public static class CouncilTick
         court.Exposure = Mathf.Clamp(court.Exposure + (success ? 2 : 3), 0, 10);
 
         string verdict = success
-            ? $"the whispers took root — {FirstName(target.DisplayName)} the " +
+            ? $"the whispers took root, and {FirstName(target.DisplayName)} the " +
               $"{OfficeDisplay(target.Office)} loses weight at court (Influence {target.Influence})"
-            : $"the smear was traced to the guild and rebounded — {FirstName(target.DisplayName)} " +
+            : $"the smear was traced to the guild and rebounded, so {FirstName(target.DisplayName)} " +
               $"the {OfficeDisplay(target.Office)} stands the stronger for it (Influence {target.Influence})";
         Emit(reports, lun, court.KingdomId,
             $"{envoyName} moved to discredit a power at {courtName}: {verdict}. " +
@@ -657,13 +657,13 @@ public static class CouncilTick
     {
         court.HasContact = true;
 
-        // Resolution-time backstop for the Welcome gate — covers standing
+        // Resolution-time backstop for the Welcome gate. It covers standing
         // dropping mid-mission and any un-gated dispatch path.
         if (court.Band() < CourtStandingBand.Welcome)
         {
             Emit(reports, lun, court.KingdomId,
                 $"{envoyName}'s petition at {courtName} was heard politely and " +
-                $"declined — the guild's standing does not yet command favors.");
+                $"declined. The guild's standing does not yet command favors.");
             return;
         }
 
@@ -689,7 +689,7 @@ public static class CouncilTick
     /// Connections token in this kingdom's negotiations). Gated by a Regard
     /// floor (+2), the court's single Patron seat, and the guild's global
     /// Patron slots (Embassy-derived, §2b). All refusals are no-ops with an
-    /// attributed line — consistent with C3 call-in refusal semantics.</summary>
+    /// attributed line, consistent with C3 call-in refusal semantics.</summary>
     private static void ResolveCourtship(CycleState cycle, CourtState court, int lun,
         EnvoyMission mission, string envoyName, string courtName, List<HeraldReport> reports)
     {
@@ -703,7 +703,7 @@ public static class CouncilTick
             return;
         }
 
-        // Already sworn here — nothing to win twice.
+        // Already sworn here, so there is nothing to win twice.
         if (court.PatronCourtierId == target.Id)
         {
             Emit(reports, lun, court.KingdomId,
@@ -771,7 +771,7 @@ public static class CouncilTick
         {
             return;
         }
-        // The envoy who resolved a mission here this tick — the one caught. Null if
+        // The envoy who resolved a mission here this tick is the one caught. Null if
         // the crossing came from some non-mission source (none exist today).
         string caughtId = resolvers.TryGetValue(court.KingdomId, out var cid) ? cid : null;
         if (Crossed(before, after, ScandalThreshold))
@@ -796,7 +796,7 @@ public static class CouncilTick
     /// <summary>Scandal (§8): a lasting standing penalty and a report naming both
     /// who caught the scent and the envoy who slinks home in disgrace. The
     /// mission has already resolved (envoy returns to the pool); Scandal does not
-    /// hold them — only Imprisonment does.</summary>
+    /// hold them; only Imprisonment does.</summary>
     private static void FireScandal(CycleState cycle, CourtState court, int lun,
         string caughtId, List<HeraldReport> reports)
     {
@@ -820,7 +820,7 @@ public static class CouncilTick
             $"Standing: {court.Band()}.");
     }
 
-    /// <summary>Expulsion (§8): the court casts the guild out — missions frozen
+    /// <summary>Expulsion (§8): the court casts the guild out, with missions frozen
     /// and standing capped at Received (via CourtState.Band) for the freeze. Names
     /// the envoy expelled alongside the guild.</summary>
     private static void FireExpulsion(CycleState cycle, CourtState court, int lun,
@@ -843,10 +843,10 @@ public static class CouncilTick
 
     /// <summary>Imprisonment (§8): the caught envoy is seized. They are held via
     /// CouncilState.Imprisoned (blocked from the party by the derived TryAddToParty
-    /// guard) until a rescue Prison POI — sited near the kingdom's seat — is
+    /// guard) until a rescue Prison POI, sited near the kingdom's seat, is
     /// stormed and won (ExpeditionManager.ReleaseImprisonedAt). If no gaol can be
-    /// sited the captive would be unrecoverable, so they flee instead — no
-    /// soft-lock. If no envoy resolved here this tick, only a report fires.</summary>
+    /// sited the captive would be unrecoverable, so they flee instead. That avoids
+    /// a soft-lock. If no envoy resolved here this tick, only a report fires.</summary>
     private static void FireImprisonment(CycleState cycle, CourtState court, int lun,
         string caughtId, List<HeraldReport> reports)
     {
@@ -865,7 +865,7 @@ public static class CouncilTick
 
         if (CouncilQueries.IsImprisoned(caughtId))
         {
-            return; // already held elsewhere — defensive, shouldn't recur
+            return; // already held elsewhere; defensive, shouldn't recur
         }
 
         int poiIndex = cycle.World != null
@@ -902,11 +902,11 @@ public static class CouncilTick
     }
 
     /// <summary>Seize a companion into a fresh gaol in <paramref name="kingdomId"/>
-    /// (espionage E5 — the Astrologer's shadow contract). Sites a Prison POI and
+    /// (espionage E5, the Astrologer's shadow contract). Sites a Prison POI and
     /// records the captive by STABLE coordinates, exactly as Imprisonment does, so
     /// the same rescue path (ExpeditionManager.ReleaseImprisonedAt) or a Concord
     /// Extraction frees them. Returns false if already held or no gaol could be
-    /// sited (the captive slips away — no soft-lock).</summary>
+    /// sited (the captive slips away, which avoids a soft-lock).</summary>
     public static bool SeizeEnvoyToGaol(CycleState cycle, string kingdomId, string companionId, int lun)
     {
         if (cycle?.Council == null || string.IsNullOrEmpty(companionId))
@@ -972,9 +972,9 @@ public static class CouncilTick
 
     /// <summary>K5 envoy fitness vector (companion_item_systems v2.1 §6),
     /// replacing the C2 arc-only stub. Four terms, each read from state the
-    /// player already develops — no second track:
+    /// player already develops, with no second track:
     ///   standing (loyalty): Wary −2 ("they are not yours"), Sworn +1
-    ///   experience: completed arc (ArcStage 4) +1 — people with history perform
+    ///   experience: completed arc (ArcStage 4) +1, since people with history perform
     ///   archetype matchup: trait vs the TARGET courtier (CourtVocab table), ±1
     ///   school: envoy school == the court's archmage school, +1
     /// Sum clamped to [−3, +3]; callers multiply by 15 on a d100, so a Wary
@@ -994,7 +994,7 @@ public static class CouncilTick
             case LoyaltyTier.Sworn: mod += 1; break;
         }
 
-        // Experience (completed arc — the old stub, preserved as one term)
+        // Experience (completed arc: the old stub, preserved as one term)
         if (envoy.ArcStage >= 4) mod += 1;
 
         // Archetype matchup (trait vs the specific counterpart)

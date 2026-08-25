@@ -1,13 +1,13 @@
 // ============================================================
 // DealRecord.cs
 //
-// Purpose:        One negotiation outcome, remembered forever —
-//                 the Hall of Records entry (negotiation doc
+// Purpose:        One negotiation outcome, remembered forever.
+//                 The Hall of Records entry (negotiation doc
 //                 §7b Deal Quality). Append-only, every table,
 //                 every timeline: signed deals, walkaways,
 //                 collapses. Lives on EternalLedger because the
 //                 loom remembers deals even when the timeline
-//                 that made them is gone. Record only — grants
+//                 that made them is gone. Record only. It grants
 //                 no power (tier-3 rule).
 // Layer:          Data
 // Collaborators:  EternalLedger.cs (owning list),

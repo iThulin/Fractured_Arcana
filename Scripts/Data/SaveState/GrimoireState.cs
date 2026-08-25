@@ -6,14 +6,14 @@ using Godot;
 // GrimoireState.cs  (S1, 2026-07-15)
 //
 // Purpose:        The wizard's noncombat spell state for one
-//                 cycle — known spells, the prepared loadout,
+//                 cycle: known spells, the prepared loadout,
 //                 the per-expedition Essence pool, once-per-
 //                 expedition cast counts, scroll inventory, and
 //                 active Wayfarer's Beacons. Lives on CycleState
 //                 (tier 2): spell knowledge is timeline knowledge
 //                 and dies with the cycle, like items and cards.
 //                 Essence / cast counts / beacons are expedition-
-//                 scoped — reset on fresh deploy, but SERIALIZED
+//                 scoped: reset on fresh deploy, but SERIALIZED
 //                 so a mid-expedition save (autosave, combat
 //                 round-trip) restores them exactly.
 // Layer:          Data
@@ -23,7 +23,7 @@ using Godot;
 //                 SaveManager.cs (JsonOptions round-trip)
 // See:            overworld_spell_system_v1_1.docx §5, §13
 //
-// S4 (2026-07-16): the interim General seed is REMOVED — a
+// S4 (2026-07-16): the interim General seed is REMOVED. A
 // fresh cycle knows nothing and prepares nothing until spells
 // are acquired (§11: lore POIs, negotiation tuition, Speak with
 // the Fallen). Existing saves are grandfathered: their seeded
@@ -39,7 +39,7 @@ public class GrimoireState
 {
     // ── Timeline knowledge ───────────────────────────────────────────────
     /// <summary>Every overworld spell the guild knows this cycle. School
-    /// innates and Attunements are NOT listed — they derive from the school.
+    /// innates and Attunements are NOT listed; they derive from the school.
     /// S4: starts EMPTY; filled only by acquisition (§11).</summary>
     public List<string> KnownSpellIds = new();
 
@@ -57,7 +57,7 @@ public class GrimoireState
     public int EssenceCurrent = 0;
     public int EssenceMax = 0;
 
-    /// <summary>Casts per spell this expedition — enforces OncePerExpedition
+    /// <summary>Casts per spell this expedition. Enforces OncePerExpedition
     /// caps (Retrace, Parley Compulsion in S3).</summary>
     public Dictionary<string, int> PerExpeditionCastCounts = new();
 
@@ -76,7 +76,7 @@ public class GrimoireState
     /// each; also a supply anchor while standing (W-track ruling #2).</summary>
     public List<string> ActiveWaystations = new();
 
-    /// <summary>Last spell resolved this expedition — Emulate's target.</summary>
+    /// <summary>Last spell resolved this expedition, Emulate's target.</summary>
     public string LastCastSpellId = "";
 
     /// <summary>Parley Compulsion armed: the next patrol interception becomes
@@ -89,7 +89,7 @@ public class GrimoireState
     // ── Expedition lifecycle ─────────────────────────────────────────────
 
     /// <summary>Fresh-deploy reset: full pool, no casts, no beacons. Combat
-    /// round-trips must NOT call this — the pool rides the save.</summary>
+    /// round-trips must NOT call this; the pool rides the save.</summary>
     public void BeginExpedition(int essenceMax)
     {
         EssenceMax = essenceMax;
@@ -104,7 +104,7 @@ public class GrimoireState
     }
 
     // ── Round-trip assertion (house rule for save-adjacent fields;
-    //    the EchoesInFlight precedent — IncludeFields mismatches fail
+    //    the EchoesInFlight precedent: IncludeFields mismatches fail
     //    silently, so probe once per session with the REAL options) ───────
     private static bool _roundTripAsserted = false;
 
@@ -141,7 +141,7 @@ public class GrimoireState
 
         if (!ok)
             GD.PrintErr("[S1 RoundTrip] GrimoireState FAILED to round-trip through " +
-                        "SaveManager.JsonOptions — spell state will not persist!");
+                        "SaveManager.JsonOptions. Spell state will not persist!");
         else
             GD.Print("[S1 RoundTrip] GrimoireState round-trips (essence, casts, beacons, scrolls).");
     }

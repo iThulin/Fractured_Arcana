@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // ArchmageDefinition.cs
 //
-// Purpose:        Data model for one archmage — the named
+// Purpose:        Data model for one archmage: the named
 //                 faction leaders who control regions in the
 //                 overworld. Each archmage has a school, a
 //                 faction identity (two states: normal and
@@ -19,17 +19,17 @@ using System.Collections.Generic;
 //                 CampaignGenerator.cs (placement),
 //                 OverworldFactionManager.cs (overworld faction),
 //                 FinalBattleManager.cs (final battle roster)
-// See:            README §5 — Campaign Layer
+// See:            README §5 (Campaign Layer)
 // ============================================================
 
 /// <summary>Full definition of one archmage. One instance per school, loaded from JSON. The Astrologer (Chronomancer) is included as his villain-faction definition; he is never placed in a region.</summary>
 public class ArchmageDefinition
 {
     // ── Identity ─────────────────────────────────────────────────────────
-    public string Id = "";              // "conductor" — matches filename
+    public string Id = "";              // "conductor"; matches filename
     public string DisplayName = "";     // "The Conductor"
     public string Title = "";           // "Archmagus of the Dead"
-    public string School = "";          // "Necromancer" — matches CardSchool enum
+    public string School = "";          // "Necromancer"; matches CardSchool enum
     public string Description = "";     // flavor text for UI panels
     public string PersonalityTrait = ""; // single-word trait for mentor hints
     public bool IsVillainFaction = false; // true only for "astrologer"
@@ -68,7 +68,7 @@ public class ArchmageDefinition
     // ── Boss combat ───────────────────────────────────────────────────────
     /// <summary>HP multiplier for the boss encounter when the player's school does NOT match this archmage's school.</summary>
     public float StandardBossHealthMult = 1.0f;
-    /// <summary>HP multiplier when the player IS facing their own school's archmage (betrayal encounter — harder).</summary>
+    /// <summary>HP multiplier when the player IS facing their own school's archmage (betrayal encounter, harder).</summary>
     public float BetrayalBossHealthMult = 1.5f;
     /// <summary>When true, the betrayal encounter has a second phase with changed AI behavior.</summary>
     public bool BetrayalHasSecondPhase = false;

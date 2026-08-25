@@ -2,7 +2,7 @@
   "id": "caster_thornspeaker",
   "threatLabel": "Thornspeaker",
   "role": "line",
-  "intelDescription": "Calls roots up through the strike tile — the hit unit can't reposition next turn.",
+  "intelDescription": "Calls roots up through the strike tile. The hit unit can't reposition next turn.",
   "maxHealth": 12,
   "baseSpeed": 1,
   "armor": 0,

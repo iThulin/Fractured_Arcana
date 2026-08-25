@@ -6,14 +6,14 @@ using System.Linq;
 // ============================================================
 // ElementalistEffects.cs
 //
-// Purpose:        Elementalist school effects — terrain/element composites and the
+// Purpose:        Elementalist school effects: terrain/element composites and the
 //                 Maelstrom / Avatar persistent auras.
 // Layer:          Effects
 // Collaborators:  Effect.cs (EffectBase, core leaves),
 //                 PersistentEffect.cs (PersistentEffect base),
 //                 CardScriptRegistry.Elementalist.cs (registration)
 // Notes:          Extracted from Effect.cs / CompositeEffects.cs /
-//                 PersistentEffect.cs — pure move, no behavior change.
+//                 PersistentEffect.cs. A pure move, no behavior change.
 // ============================================================
 
 /// <summary>Elementalist capstone. Randomly imbues every tile within radius around the caster, then damages each enemy by <c>uniqueElementsAdjacent × Damage</c>.</summary>
@@ -170,7 +170,7 @@ public sealed class CataclysmEffect : EffectBase
     }
 }
 
-/// <summary>Elementalist capstone — board-wipe. Counts unique elements imbued across the entire grid, purges them all, and deals <c>uniqueElements × DamagePerElement</c> to every unit. Allies take half damage when <see cref="HalfToAllies"/>.</summary>
+/// <summary>Elementalist capstone board-wipe. Counts unique elements imbued across the entire grid, purges them all, and deals <c>uniqueElements × DamagePerElement</c> to every unit. Allies take half damage when <see cref="HalfToAllies"/>.</summary>
 public sealed class RagnarokEffect : EffectBase
 {
     public int DamagePerElement;
@@ -238,7 +238,7 @@ public sealed class RagnarokEffect : EffectBase
     }
 }
 
-/// <summary>Elementalist capstone. Imbues every tile in radius with a random element, then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7 — JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
+/// <summary>Elementalist capstone. Imbues every tile in radius with a random element, then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7: the JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
 public sealed class ElementalConvergenceEffect : EffectBase
 {
     public int Radius;
@@ -358,7 +358,7 @@ public sealed class TectonicShatterEffect : EffectBase
             if (!isStone)
                 continue;
 
-            // Destroy it — clear obstacle, set to difficult terrain
+            // Destroy it: clear the obstacle, set to difficult terrain
             tile.IsBlocked = false;
             tile.IsWalkable = true;
             tile.BlocksLineOfSight = false;
@@ -371,7 +371,7 @@ public sealed class TectonicShatterEffect : EffectBase
             // Remove any unit occupying the obstacle (summons like stone pillars)
             if (tile.Occupant != null)
             {
-                // Captured once — the 999 is lethal by design, and death cleanup
+                // Captured once. The 999 is lethal by design, and death cleanup
                 // clears tile.Occupant before the log line (2026-07-09 sweep).
                 var pillar = tile.Occupant;
                 string unitName = pillar.Name.ToString().ToLowerInvariant();
@@ -607,7 +607,7 @@ public sealed class AvatarTransformEffect : EffectBase
         // BaseSpeed-based reachable highlight); BonusMoveRange makes it register
         // in the commit + cost-map paths this turn too. NOTE: the permanent half
         // only reaches the commit path once movement baselines are unified
-        // (BaseSpeed vs MoveRange) — see docs/movement_effects_refactor.md.
+        // (BaseSpeed vs MoveRange). See docs/movement_effects_refactor.md.
         if (BonusSpeed > 0)
         {
             casterUnit.Stats.BaseSpeed += BonusSpeed;
@@ -910,11 +910,11 @@ public class MaelstromEffect : PersistentEffect
             unit.ApplyDamage(Damage);
             s.Log($"[Maelstrom] {unit.Name} takes {Damage} damage.");
 
-            // Re-check after damage — unit may have died and CurrentTile nulled
+            // Re-check after damage, since the unit may have died and CurrentTile nulled
             if (!Godot.GodotObject.IsInstanceValid(unit) || !unit.Stats.IsAlive || unit.CurrentTile == null)
                 continue;
 
-            // Push clockwise — find the neighbor in rotation direction
+            // Push clockwise: find the neighbor in the rotation direction
             var current = unit.CurrentTile.Axial;
             var pushTarget = current + rotDir;
             var pushTile = s.Grid.GetTile(pushTarget);
@@ -1008,7 +1008,7 @@ public class AvatarAuraEffect : PersistentEffect
 
 
 /// <summary>
-/// Elemental Sight / Grand Confluence (Worldshaper tiers 3-4): reads the land —
+/// Elemental Sight / Grand Confluence (Worldshaper tiers 3-4): reads the land and
 /// gains one attunement charge per distinct element imbued on tiles within
 /// radius of the caster. Bypasses cast-driven opposition reduction (it is a
 /// reading, not a casting) via ElementalAttunement.GainCharge.
@@ -1051,6 +1051,6 @@ public sealed class AttunementPerNearbyElementEffect : EffectBase
 		foreach (var tag in found)
 			attunement.GainCharge(tag, 1);
 
-		s.Log($"[ElementalSight] {found.Count} element(s) read from the land — +1 charge each.");
+		s.Log($"[ElementalSight] {found.Count} element(s) read from the land, +1 charge each.");
 	}
 }

@@ -46,7 +46,7 @@ public static class EchoSeeder
     {
         if (save?.Ledger == null || save.Cycle == null)
         {
-            GD.Print("EchoSeeder: no save/ledger/cycle — skipping.");
+            GD.Print("EchoSeeder: no save/ledger/cycle. Skipping.");
             return;
         }
 
@@ -57,7 +57,7 @@ public static class EchoSeeder
         var metaFlags = ledger.MetaNarrativeFlags;
         int seeded = 0;
 
-        // ── 5.1 The Standing Debt — any DealRecord exists ───────────────
+        // ── 5.1 The Standing Debt: any DealRecord exists ───────────────
         if (ledger.DealRecords != null && ledger.DealRecords.Count > 0)
         {
             if (TrySeed("echo_standing_debt_eligible", metaFlags, "echo_standing_debt_seen", flags))
@@ -69,7 +69,7 @@ public static class EchoSeeder
             _subs["deal_faction"] = latestDeal.FactionId ?? "";
         }
 
-        // ── 5.2 A Stranger's Shrine — HonoredDead with WasAlly ─────────
+        // ── 5.2 A Stranger's Shrine: HonoredDead with WasAlly ─────────
         HonoredDeadRecord chosenDead = null;
         if (ledger.HonoredDead != null)
         {
@@ -91,7 +91,7 @@ public static class EchoSeeder
             _subs["dead_companion_region"] = chosenDead.RegionName ?? "";
         }
 
-        // ── 5.3 The Shape of the Scar — any fragment trial passed ───────
+        // ── 5.3 The Shape of the Scar: any fragment trial passed ───────
         if (metaFlags != null)
         {
             foreach (var f in metaFlags)
@@ -105,7 +105,7 @@ public static class EchoSeeder
             }
         }
 
-        // ── 5.4 The Song Nobody Wrote — LoopRecord with Convergence ─────
+        // ── 5.4 The Song Nobody Wrote: LoopRecord with Convergence ─────
         LoopRecord convergenceRecord = null;
         if (ledger.LoopHistory != null)
         {
@@ -126,14 +126,14 @@ public static class EchoSeeder
             _subs["convergence_school"] = convergenceRecord.School ?? "";
         }
 
-        // ── 5.5 The Guestbook — any completed campus-restoration quest ──
+        // ── 5.5 The Guestbook: any completed campus-restoration quest ──
         if (metaFlags != null && metaFlags.Any(f => f.StartsWith("campus_") && f.EndsWith("_complete")))
         {
             if (TrySeed("echo_guestbook_eligible", metaFlags, "echo_guestbook_seen", flags))
                 seeded++;
         }
 
-        // ── 5.6 The Style — HonoredDead with a CompanionId ─────────────
+        // ── 5.6 The Style: HonoredDead with a CompanionId ─────────────
         HonoredDeadRecord companionDead = null;
         if (ledger.HonoredDead != null)
         {
@@ -154,14 +154,14 @@ public static class EchoSeeder
             _subs["style_companion_id"] = companionDead.CompanionId ?? "";
         }
 
-        // ── 5.7 The Village That Always Burns — 2+ LoopRecords ──────────
+        // ── 5.7 The Village That Always Burns: 2+ LoopRecords ──────────
         if (ledger.LoopHistory != null && ledger.LoopHistory.Count >= 2)
         {
             if (TrySeed("echo_village_burns_eligible", metaFlags, "echo_village_burns_seen", flags))
                 seeded++;
         }
 
-        // ── 5.8 Kept Notes — Astrologer dossier at 2+ hints ────────────
+        // ── 5.8 Kept Notes: Astrologer dossier at 2+ hints ────────────
         if (metaFlags != null)
         {
             int astroHints = 0;

@@ -220,7 +220,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Consume memorial or dismiss spirit. Deal 7 damage + push 2 in radius 2. Leave Strong memorial \u2014 auto-rises a spirit next turn."
+					"value": "Consume memorial or dismiss spirit. Deal 7 damage + push 2 in radius 2. Leave Strong memorial. It auto-rises a spirit next turn."
 				}
 			]
 		},
@@ -323,7 +323,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Spend Grief (choose, min 1). Deal 5 damage per Grief. Gain 1 armor per Grief. Trigger the Flood \u2014 all spirits refresh."
+					"value": "Spend Grief (choose, min 1). Deal 5 damage per Grief. Gain 1 armor per Grief. Trigger the Flood: all spirits refresh."
 				}
 			]
 		}

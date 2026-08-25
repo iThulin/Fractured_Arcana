@@ -32,7 +32,7 @@ public partial class StagingControlPanel : Control
 {
     [Export] public CharacterStagingPreview Preview;
 
-    // ── Panel palette (dev tool — intentionally utilitarian) ────────────────
+    // ── Panel palette (dev tool, intentionally utilitarian) ─────────────────
     private static readonly Color PanelBg = new Color(0.10f, 0.11f, 0.13f, 0.92f);
     private static readonly Color SectionFg = new Color(0.74f, 0.80f, 0.88f);
     private static readonly Color LabelFg = new Color(0.62f, 0.66f, 0.72f);
@@ -84,8 +84,8 @@ public partial class StagingControlPanel : Control
         };
         panel.AddThemeStyleboxOverride("panel", sb);
 
-        // Full-height strip pinned to the left edge — mirrors the grass tuner on
-        // the right. Anchored top->bottom so the inner ScrollContainer gets the
+        // Full-height strip pinned to the left edge, mirroring the grass tuner
+        // on the right. Anchored top->bottom so the inner ScrollContainer gets the
         // whole screen height and only scrolls if controls genuinely overflow.
         panel.AnchorLeft = 0f;
         panel.AnchorTop = 0f;
@@ -138,7 +138,7 @@ public partial class StagingControlPanel : Control
         seedRow.AddChild(rollBtn);
         col.AddChild(seedRow);
 
-        _seedReadout = MiniLabel("Active seed: —");
+        _seedReadout = MiniLabel("Active seed: -");
         col.AddChild(_seedReadout);
 
         var regenBtn = new Button { Text = "Regenerate (new seed)" };
@@ -219,7 +219,7 @@ public partial class StagingControlPanel : Control
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Lighting application — overrides layered on the theme atmosphere baseline.
+    // Lighting application: overrides layered on the theme atmosphere baseline.
     // ════════════════════════════════════════════════════════════════════════
 
     private void ApplyLighting()

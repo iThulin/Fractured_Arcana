@@ -19,7 +19,7 @@
       "key": "deathburst",
       "trigger": "onDeath",
       "name": "Deathburst",
-      "intelDescription": "It comes apart and the parts keep working \u2014 two Bench Turrets on its death.",
+      "intelDescription": "It comes apart and the parts keep working: two Bench Turrets on its death.",
       "params": {
         "count": "2",
         "unit": "engineer_bench_turret"

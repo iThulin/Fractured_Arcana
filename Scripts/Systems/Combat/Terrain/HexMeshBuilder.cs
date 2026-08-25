@@ -2,11 +2,11 @@ using Godot;
 using System;
 
 // ============================================================
-// HexMeshBuilder.cs  (v8 — cliff foot welded via neighbour sampler)
+// HexMeshBuilder.cs  (v8: cliff foot welded via neighbour sampler)
 //
 // Purpose:        Generates the per-tile blended terrain mesh.
 //
-//                 v8 — CLIFF FOOT WELD:
+//                 v8 CLIFF FOOT WELD:
 //                 The cliff wall's bottom rim no longer reconstructs
 //                 the lower neighbour's rim noise from THIS tile's
 //                 side (the old CornerIndexOnNeighbour mapping was
@@ -14,11 +14,11 @@ using System;
 //                 on water edges). Instead the foot queries the
 //                 neighbour's OWN surface sampler
 //                 (SampleSurfaceWorldY) at the exact shared world
-//                 points — the same math that places the neighbour's
-//                 visible top — so the foot lands on it by
+//                 points, the same math that places the neighbour's
+//                 visible top, so the foot lands on it by
 //                 construction. CornerIndexOnNeighbour is removed.
 //
-//                 v7 carried forward — PER-TERRAIN NOISE (amplitude
+//                 v7 carried forward, PER-TERRAIN NOISE (amplitude
 //                 + frequency): each terrain type has its own noise
 //                 amp/freq, so water stays near-flat, stone is
 //                 jagged, grass rolls, arcane swells smoothly.
@@ -40,10 +40,10 @@ using System;
 //                     terrain). Symmetric over the component -> every
 //                     tile computes the same mean -> agree.
 //
-//                 v6 carried forward — seamless no-falloff noise,
+//                 v6 carried forward, seamless no-falloff noise,
 //                 subdivided fan + radially-subdivided bridge band,
 //                 cliff tops/bottoms welded to noised rims.
-//                 v4 carried forward — edge classification, corner
+//                 v4 carried forward, edge classification, corner
 //                 blend-components (now water/land aware via
 //                 BlendConnected), splat data.
 //
@@ -223,7 +223,7 @@ public static class HexMeshBuilder
             // when BeachBlendWaterShores is on, shores ramp like any terrain and
             // the ramp∩waterline intersection draws an organic shoreline (the
             // plane extends under the bank). Seams steeper than the cliff
-            // threshold still cliff — deep plunges stay dramatic.
+            // threshold still cliff, since deep plunges stay dramatic.
             bool waterStraddle = nE != null &&
                 ((tile.TerrainType == TileTerrainType.Water) != (nE.TerrainType == TileTerrainType.Water));
             bool waterEdge = !grid.BeachBlendWaterShores && waterStraddle;
@@ -258,7 +258,7 @@ public static class HexMeshBuilder
             bool texBlends = blends && !waterStraddle;
 
             // Water-side continuation: the LAND texture flows over the bed's
-            // rim band and fades to water toward the tile interior — the
+            // rim band and fades to water toward the tile interior. The
             // submerged bank reads as the same material as the shore, and both
             // sides agree on 100% land at the shared boundary (no visible
             // texture line). Strictly one-directional: land never turns blue.
@@ -334,7 +334,7 @@ public static class HexMeshBuilder
             Color attrB = splatMode ? edgeWeightsB[e] : cornerColor[e2];
             Color attrM = splatMode ? edgeWeightsM[e] : midColor[e];
 
-            // Shores never terrace — and neither does ANY edge touching a
+            // Shores never terrace, and neither does ANY edge touching a
             // water-adjacent corner. The corner welds give even equal-height
             // land-land edges near shores a nonzero band delta, and the
             // terrace quantizer turns that into one-step stair risers exactly
@@ -367,7 +367,7 @@ public static class HexMeshBuilder
             float topYB = cornerY[e2];
 
             // Weld the wall foot to the LOWER tile's ACTUAL surface at these world
-            // points by querying its own surface sampler — the same math that
+            // points by querying its own surface sampler, the same math that
             // places the neighbour's visible top, so the foot lands on it exactly
             // (no reconstruction, no gap). Local Y = neighbour world Y − ownTop.
             float botYA = SampleSurfaceWorldY(grid, nbr[e], cornerXZ[e].X, cornerXZ[e].Y, solidFactor, terraceSteps) - ownTop;
@@ -554,7 +554,7 @@ public static class HexMeshBuilder
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Subdivided fan triangle — OWN terrain noise (no falloff)
+    // Subdivided fan triangle: OWN terrain noise (no falloff)
     // ────────────────────────────────────────────────────────────────────────
 
     private static void AddNoisyFanTri(
@@ -607,8 +607,8 @@ public static class HexMeshBuilder
         // (WaterShoreCornerSink > 1) so the boundary ring near water sits
         // safely below the waterline and the visible waterline crosses on the
         // inner, noise-dominated part of the ramp. Unweighted, a 2-land/1-water
-        // corner averages to almost exactly the default waterline — alternating
-        // above/below along the outline — which reads as spiky wedges and
+        // corner averages to almost exactly the default waterline, alternating
+        // above/below along the outline, which reads as spiky wedges and
         // z-coplanar artifacts at every shore corner. Uniform (all-land or
         // all-water) components are unaffected: constant weights cancel.
         float sum = 0f;
@@ -668,7 +668,7 @@ public static class HexMeshBuilder
         return c;
     }
 
-    /// <summary>True when two tiles share a smooth blended surface rather than meet at a cliff. Water/land straddles: ALWAYS weld under beach blend (shores never cliff, any delta — mixed blend/cliff shore corners produce dark wall slivers), never without it. Land pairs: the height threshold as ever.</summary>
+    /// <summary>True when two tiles share a smooth blended surface rather than meet at a cliff. Water/land straddles: ALWAYS weld under beach blend (shores never cliff, any delta, because mixed blend/cliff shore corners produce dark wall slivers), never without it. Land pairs: the height threshold as ever.</summary>
     private static bool BlendConnected(TileData x, TileData y, int threshold, bool beachBlend)
     {
         if (x == null || y == null)
@@ -683,7 +683,7 @@ public static class HexMeshBuilder
         CornerComponent(HexGridManager grid, TileData tile, int cornerIndex, int startSlot, bool textureRules = false)
     {
         // textureRules: texture/color components NEVER join across water/land,
-        // even when beach blend welds the heights — keeps the blue on the bed.
+        // even when beach blend welds the heights. That keeps the blue on the bed.
         int threshold = grid.CliffHeightThreshold;
 
         var tA = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - cornerIndex) % 6]);
@@ -692,7 +692,7 @@ public static class HexMeshBuilder
         bool p1 = tA != null, p2 = tB != null;
 
         // Height-AND-terrain aware: a water/land pair is a barrier, never a blend,
-        // so it must not join a corner component — same predicate the per-edge
+        // so it must not join a corner component, the same predicate the per-edge
         // waterEdge rule uses, so edges and corners agree.
         bool beachBlend = grid.BeachBlendWaterShores && !textureRules;
         bool a01 = BlendConnected(tile, tA, threshold, beachBlend);
@@ -728,7 +728,7 @@ public static class HexMeshBuilder
         // PER-HALF index layouts so NO WEIGHT ever occupies the ALPHA channel:
         // alpha is the skirt flag, and a corner weight of 0.5 (ancient) or 1.0
         // (texture continuation) in alpha misclassified shore corners as
-        // near-black skirt faces — THE black-triangle bug (magenta-confirmed).
+        // near-black skirt faces: THE black-triangle bug (magenta-confirmed).
         // A-half slot2 = nA; B-half slot2 = nB; slot3 unused (own).
         var indicesA = new Color(
             ownIdx,
@@ -749,11 +749,11 @@ public static class HexMeshBuilder
         var (d0, dNe, dThird, _, _) = CornerComponent(grid, tile, (e + 1) % 6, 0, textureRules: true);
         int cntB = (d0 ? 1 : 0) + (dNe ? 1 : 0) + (dThird ? 1 : 0);
         float wB = 1f / Math.Max(1, cntB);
-        // Third member (nB) in SLOT2 under the B-half layout — alpha stays 0.
+        // Third member (nB) in SLOT2 under the B-half layout. Alpha stays 0.
         var weightsCornerB = new Color(d0 ? wB : 0f, dNe ? wB : 0f, dThird ? wB : 0f, 0f);
 
         // Water-side continuation (matches the edge-mid rule in Build): a water
-        // tile's rim corners take the mean texture of the corner's LAND tiles —
+        // tile's rim corners take the mean texture of the corner's LAND tiles,
         // the same value those land tiles compute for themselves, so the corner
         // is watertight. All-water corners keep their own (water) texture.
         if (grid.BeachBlendWaterShores && tile.TerrainType == TileTerrainType.Water)
@@ -771,7 +771,7 @@ public static class HexMeshBuilder
         return (indicesA, indicesB, weightsCornerA, weightsCornerB);
     }
 
-    /// <summary>Rim-corner weights for a water tile continuing its neighbors' land texture: slot1 = nE, slot2 = the corner's third tile (nA on the A-half layout, nB on the B-half layout). ALPHA IS NEVER A WEIGHT — it is the skirt flag.</summary>
+    /// <summary>Rim-corner weights for a water tile continuing its neighbors' land texture: slot1 = nE, slot2 = the corner's third tile (nA on the A-half layout, nB on the B-half layout). ALPHA IS NEVER A WEIGHT. It is the skirt flag.</summary>
     private static Color MakeLandCornerWeights(bool neLand, bool thirdLand)
     {
         int cnt = (neLand ? 1 : 0) + (thirdLand ? 1 : 0);

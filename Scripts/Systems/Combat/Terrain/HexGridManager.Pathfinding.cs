@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// HexGridManager.Pathfinding.cs — reachability, move-cost, line-of-sight, AI step queries, cliff rules
+// HexGridManager.Pathfinding.cs: reachability, move-cost, line-of-sight, AI step queries, cliff rules
 // Partial of HexGridManager. Split out for navigability; behaviour-neutral.
 public partial class HexGridManager
 {
@@ -13,15 +13,15 @@ public partial class HexGridManager
     public const int HazardStepCost = 4;
 
     /// <summary>Open, VISIBLE hazards an enemy can see and route around: fire, lava,
-    /// scorched ground. Deliberately NOT glyphs — hidden traps are unavoidable by
-    /// design (see <see cref="Unit.HazardCaution"/>).</summary>
+    /// scorched ground. Deliberately NOT glyphs, because hidden traps are
+    /// unavoidable by design (see <see cref="Unit.HazardCaution"/>).</summary>
     private bool IsPathHazard(TileData tile) =>
         tile != null && (tile.IsHazardous || TelegraphedTiles.Contains(tile.Axial));
 
     /// <summary>Extra pathfinding cost <paramref name="unit"/> pays to ENTER
     /// <paramref name="tile"/> because it is an open hazard, scaled by the unit's
     /// avoidance. Returns 0 for players, reckless enemies, and non-hazard tiles, so
-    /// every cost loop below is a no-op for anyone who does not avoid hazards — player
+    /// every cost loop below is a no-op for anyone who does not avoid hazards. Player
     /// movement range and highlights are byte-for-byte unchanged.</summary>
     private int HazardPenalty(Unit unit, TileData tile)
     {
@@ -157,8 +157,8 @@ public partial class HexGridManager
 
     /// <summary>Cost map like <see cref="GetReachableTilesWithCost"/> but with an explicit
     /// move-cost budget (tiered threat overlay: AP x EffectiveMoveRange for multi-move reach).
-    /// Includes the start tile at cost 0. Does NOT gate on current AP — it's a hypothetical
-    /// next-turn reach.</summary>
+    /// Includes the start tile at cost 0. Does NOT gate on current AP, since it is a
+    /// hypothetical next-turn reach.</summary>
     public Dictionary<Vector2I, int> GetReachableTilesWithBudget(Unit unit, int budget)
     {
         var result = new Dictionary<Vector2I, int>();
@@ -262,8 +262,8 @@ public partial class HexGridManager
     }
 
     /// <summary>Reconstructs the cheapest walkable path from <paramref name="unit"/>'s
-    /// tile to <paramref name="dest"/> as an ordered list of axial coords — START
-    /// EXCLUDED, dest included — or null when unreachable. Same walkability rules as
+    /// tile to <paramref name="dest"/> as an ordered list of axial coords (START
+    /// EXCLUDED, dest included), or null when unreachable. Same walkability rules as
     /// <see cref="GetMoveCostTo"/>; added (tile_interaction_spec §2) so the walk
     /// commit can step each tile through <c>Unit.PlaceOnTile</c> and fire the
     /// tile-entry verbs on every tile crossed, not just the landing tile.</summary>
@@ -294,8 +294,8 @@ public partial class HexGridManager
                     continue;
                 if (!StepAllowed(current, neighbor))
                     continue;
-                // Occupied tiles block the route (the start and the destination —
-                // already validated CanEnter by the caller — are the exceptions).
+                // Occupied tiles block the route. The start and the destination
+                // (already validated CanEnter by the caller) are the exceptions.
                 if (tile.IsOccupied && neighbor != start && neighbor != goal)
                     continue;
 
@@ -335,7 +335,7 @@ public partial class HexGridManager
 
     /// <summary>Same trace as HasLineOfSight, but returns the first tile that
     /// blocks the line (or null if the line is clear) so cast-failure feedback
-    /// can NAME the blocker — thicket growth, rock, crystal, LOS prop.</summary>
+    /// can NAME the blocker: thicket growth, rock, crystal, LOS prop.</summary>
     public TileData FirstLosBlocker(Vector2I from, Vector2I to)
     {
         // Use cube coordinate lerp to trace the line between hexes
@@ -424,7 +424,7 @@ public partial class HexGridManager
                 if (tile.IsOccupied && neighbor != goal)
                 {
                     visited[neighbor] = current;
-                    // Don't enqueue — can't pass through, but record for path tracing
+                    // Don't enqueue. Can't pass through, but record for path tracing.
                     continue;
                 }
 
@@ -457,7 +457,7 @@ public partial class HexGridManager
 
         var start = unit.CurrentTile.Axial;
 
-        // BFS the full reachable map (ignoring AP — we want the best destination)
+        // BFS the full reachable map, ignoring AP, because we want the best destination
         var visited = new Dictionary<Vector2I, Vector2I>();
         var queue = new Queue<Vector2I>();
         queue.Enqueue(start);

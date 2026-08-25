@@ -17,7 +17,7 @@
       "key": "deathburst",
       "trigger": "onDeath",
       "name": "Deathburst",
-      "intelDescription": "The seal closes behind it \u2014 a Keeper steps into the gap on its death.",
+      "intelDescription": "The seal closes behind it. A Keeper steps into the gap on its death.",
       "params": {
         "count": "1",
         "unit": "astrologer_sealkeeper"

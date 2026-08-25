@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// HexGridManager.Generation.cs — field-driven terrain, base grid, layout skeletons, paint/make helpers, density math
+// HexGridManager.Generation.cs: field-driven terrain, base grid, layout skeletons, paint/make helpers, density math
 // Partial of HexGridManager. Split out for navigability; behaviour-neutral.
 public partial class HexGridManager
 {
@@ -43,7 +43,7 @@ public partial class HexGridManager
     }
 
     /// <summary>
-    /// Sets gameplay flags + element for a terrain type. Does NOT touch Height —
+    /// Sets gameplay flags + element for a terrain type. Does NOT touch Height:
     /// height is owned by the field / additive features, so terrain and height
     /// stay correlated without one clobbering the other.
     /// </summary>
@@ -354,7 +354,7 @@ public partial class HexGridManager
         }
     }
 
-    /// <summary>Paints an Arcane leyline — a branching vein of Arcane imbuement
+    /// <summary>Paints an Arcane leyline: a branching vein of Arcane imbuement
     /// walking <paramref name="length"/> tiles from <paramref name="start"/> along
     /// <paramref name="direction"/> (tile_interaction addendum §B2). Leylines carry
     /// no movement verb; they feed the Arcanist's element-synergy cards

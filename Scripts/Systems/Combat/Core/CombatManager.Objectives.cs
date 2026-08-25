@@ -5,7 +5,7 @@ using System.Linq;
 // ============================================================
 // CombatManager.Objectives.cs
 //
-// Purpose:        O-track runtime — non-kill victory conditions and
+// Purpose:        O-track runtime: non-kill victory conditions and
 //                 reinforcement waves. Every state change happens at
 //                 the ONE true round boundary (StartEnemyTurn, right
 //                 after roundNumber++), and every win/loss is still
@@ -22,8 +22,8 @@ using System.Linq;
 // See:            docs/combat_objectives_spec_v1.md
 //
 // Scope: O1 (waves) + O2 (survive) + O4 (hold_zone, 2026-08-11 gate
-// defense) + O3 (protect, 2026-08-13). All four kinds implemented —
-// the O-track substrate is COMPLETE; the finale's Fracture and
+// defense) + O3 (protect, 2026-08-13). All four kinds are implemented,
+// so the O-track substrate is COMPLETE; the finale's Fracture and
 // Restoration Threshold (convergence spec v1.1) are unblocked.
 // ============================================================
 
@@ -32,14 +32,14 @@ public partial class CombatManager
     // ── Runtime state ────────────────────────────────────────────────────
     // All null/empty on a legacy encounter, which is every encounter
     // authored before the O-track. Combat state is not serialized today and
-    // this spec keeps it that way — nothing here survives a scene swap.
+    // this spec keeps it that way. Nothing here survives a scene swap.
 
     /// <summary>Null on an annihilate fight. Never set to the annihilate kind.</summary>
     private CombatObjectiveDef _objective;
 
     /// <summary>Waves not yet spawned, sorted ascending by round. Drained as
     /// they arrive. NOTE this is populated even when <see cref="_objective"/>
-    /// is null — an ordinary kill-fight may carry waves, and ruling 4 says an
+    /// is null, because an ordinary kill-fight may carry waves, and ruling 4 says an
     /// empty board with a wave still pending is NOT a victory.</summary>
     private List<ReinforcementWave> _pendingWaves = new();
 
@@ -106,8 +106,8 @@ public partial class CombatManager
             // hand-built definition (ConvergenceEncounterBuilder, a debug
             // launcher, a future caller) must not get a silent kill-fight.
             GD.PrintErr($"[Objective] Encounter '{def.Id}' asks for objective kind " +
-                        $"'{def.Objective.Kind}', which this build does not implement — " +
-                        "running as annihilate.");
+                        $"'{def.Objective.Kind}', which this build does not implement. " +
+                        "Running as annihilate.");
         }
 
         if (def.Waves != null && def.Waves.Count > 0)
@@ -119,7 +119,7 @@ public partial class CombatManager
                 if (w.Round <= 1)
                 {
                     GD.PrintErr($"[Objective] Encounter '{def.Id}' has a wave at round " +
-                                $"{w.Round} — dropped (waves arrive at round 2 or later).");
+                                $"{w.Round}, so it was dropped (waves arrive at round 2 or later).");
                     continue;
                 }
                 _pendingWaves.Add(w);
@@ -141,8 +141,8 @@ public partial class CombatManager
     // ── protect (O3): ward spawn + death ─────────────────────────────────
 
     /// <summary>Spawns the protect objective's ward player-side, after the
-    /// party (SpawnTestUnits tail). Stats from UnitRegistry; 0 speed, 0 AP —
-    /// it takes damage and benefits from shields/heals/auras normally, but
+    /// party (SpawnTestUnits tail). Stats from UnitRegistry; 0 speed, 0 AP.
+    /// It takes damage and benefits from shields/heals/auras normally, but
     /// never acts. Protecting it with the existing toolkit IS the mission.
     /// Registry-miss falls back loudly to a plain 20-HP ward rather than
     /// degrading the objective (UnitRegistry.Get already returns a fallback
@@ -153,8 +153,8 @@ public partial class CombatManager
             return;
         if (string.IsNullOrEmpty(_objective.WardUnitId))
         {
-            GD.PrintErr("[Objective] protect objective with no WardUnitId — " +
-                        "running as annihilate.");
+            GD.PrintErr("[Objective] protect objective with no WardUnitId. " +
+                        "Running as annihilate.");
             _objective = null;
             return;
         }
@@ -168,7 +168,7 @@ public partial class CombatManager
             armor: def.Armor, shield: 0);
         if (ward == null)
         {
-            GD.PrintErr("[Objective] Ward spawn failed (no slot) — protect degrades " +
+            GD.PrintErr("[Objective] Ward spawn failed (no slot). Protect degrades " +
                         "to annihilate rather than an unwinnable fight.");
             _objective = null;
             return;
@@ -189,8 +189,8 @@ public partial class CombatManager
         combatUI?.AppendActionLog($"── Protect {ward.DisplayName}. ──");
     }
 
-    /// <summary>Called from HandleUnitDeath right after QueueDeathTriggers —
-    /// corpse tile still valid, trigger order intact. Declaration still flows
+    /// <summary>Called from HandleUnitDeath right after QueueDeathTriggers, so the
+    /// corpse tile is still valid and trigger order is intact. Declaration still flows
     /// through CheckCombatEnd (the latch), so trigger-settle deferral and the
     /// emit-once guard hold.</summary>
     private void NoteObjectiveUnitDeath(Unit unit)
@@ -198,19 +198,19 @@ public partial class CombatManager
         if (_wardUnit == null || unit != _wardUnit)
             return;
         _objectiveDefeat = true;
-        GD.Print("[Objective] The ward has fallen — objective failed.");
+        GD.Print("[Objective] The ward has fallen. Objective failed.");
         combatUI?.AppendActionLog("── The ward falls. The field is lost. ──");
     }
 
     // ── The round boundary ───────────────────────────────────────────────
 
     /// <summary>The single evaluation point. Called from StartEnemyTurn
-    /// immediately after roundNumber++ — so roundNumber is now the round the
+    /// immediately after roundNumber++, so roundNumber is now the round the
     /// player is ABOUT to play, and the round just finished was roundNumber-1.
     ///
     /// <para>Order: rounds check, then wave spawn, then declare. A wave due on
     /// the very round the objective completes is skipped rather than spawned
-    /// and instantly discarded — a deviation from the spec's literal ordering,
+    /// and instantly discarded. That is a deviation from the spec's literal ordering,
     /// made because spawning bodies onto a board that is already won reads as
     /// a bug to the player and costs a frame of unit setup for nothing.</para></summary>
     private void EvaluateObjectiveRoundBoundary()
@@ -218,7 +218,7 @@ public partial class CombatManager
         if (_objective == null && !ObjectiveWavesPending)
             return;
 
-        // 1. Breach check (hold_zone) — O4. One breach per round-end with >=1
+        // 1. Breach check (hold_zone), O4. One breach per round-end with >=1
         //    living enemy on a zone tile, regardless of enemy count (legible),
         //    per spec §2. breaches > BreachLimit → defeat.
         if (_objective != null && _objective.Kind == CombatObjectiveDef.KindHoldZone)
@@ -238,7 +238,7 @@ public partial class CombatManager
             if (breachedNow)
             {
                 _breaches++;
-                GD.Print($"[Objective] BREACH — enemy holds the zone at round end " +
+                GD.Print($"[Objective] BREACH. An enemy holds the zone at round end " +
                          $"({_breaches}/{_objective.BreachLimit} tolerated).");
                 combatUI?.AppendActionLog(_breaches > _objective.BreachLimit
                     ? "── The line is broken. ──"
@@ -246,7 +246,7 @@ public partial class CombatManager
                 if (_breaches > _objective.BreachLimit)
                 {
                     _objectiveDefeat = true;
-                    GD.Print("[Objective] Breach limit exceeded — objective failed.");
+                    GD.Print("[Objective] Breach limit exceeded. Objective failed.");
                 }
             }
         }
@@ -257,7 +257,7 @@ public partial class CombatManager
         if (_objective != null && _objective.Rounds > 0 && roundNumber > _objective.Rounds)
         {
             _objectiveVictory = true;
-            GD.Print($"[Objective] Survived {_objective.Rounds} round(s) — objective met.");
+            GD.Print($"[Objective] Survived {_objective.Rounds} round(s). Objective met.");
             combatUI?.AppendActionLog($"You held for {_objective.Rounds} rounds. The objective is met.");
         }
 
@@ -273,7 +273,7 @@ public partial class CombatManager
 
     /// <summary>Builds the hold_zone tile set on first use (the grid does not
     /// exist yet when InitObjectiveState runs). Fixed thereafter. Seeds by
-    /// ZoneAnchor — "gate" reads the compiled siege recipe's gap tiles; empty
+    /// ZoneAnchor. "gate" reads the compiled siege recipe's gap tiles; empty
     /// gate on a non-siege map, "ward" (O3 absent), and unknown anchors all
     /// fall back to player_spawn. Growth is a walkable BFS to ZoneRadius, so
     /// walls and building shells never count as holdable ground.</summary>
@@ -305,7 +305,7 @@ public partial class CombatManager
                     seeds.Add(t);
                 if (seeds.Count == 0)
                     GD.PrintErr("[Objective] ZoneAnchor 'gate' on a map with no siege " +
-                                "gate gap — falling back to player_spawn.");
+                                "gate gap. Falling back to player_spawn.");
                 break;
             case "center":
                 seeds.Add(grid.RecipeMidpoint);
@@ -389,7 +389,7 @@ public partial class CombatManager
             {
                 if (taken >= arrivalTiles.Count)
                 {
-                    GD.PrintErr($"[Objective] Wave (round {w.Round}): out of arrival tiles — " +
+                    GD.PrintErr($"[Objective] Wave (round {w.Round}): out of arrival tiles. " +
                                 $"{spawnedThisWave}/{w.Enemies.Count} placed.");
                     break;
                 }
@@ -426,8 +426,8 @@ public partial class CombatManager
     /// <para>Deliberately NOT the deployment placer. SpawnAndPlaceEnemies solves
     /// a different problem: it places into an empty board using a local
     /// "claimed" set (nothing is on a tile yet) and sorts arrivals NEAREST the
-    /// party so the opening fight has contact. A wave lands on a LIVE board —
-    /// occupancy is real, so IsOccupied is authoritative — and should enter
+    /// party so the opening fight has contact. A wave lands on a LIVE board
+    /// (occupancy is real, so IsOccupied is authoritative) and should enter
     /// from the rear, because a body materialising in the player's face is a
     /// gotcha, not a mission.</para></summary>
     private List<TileData> CollectEnemyArrivalTiles(int needed)
@@ -454,7 +454,7 @@ public partial class CombatManager
             }
         }
 
-        // Ring-widen outward when the enemy zone cannot host the wave — the
+        // Ring-widen outward when the enemy zone cannot host the wave. The
         // usual cause is simply that the original roster is still standing in
         // it. Mirrors the deployment placer's shortfall fallback.
         while (result.Count < needed && frontier.Count > 0)
@@ -482,12 +482,12 @@ public partial class CombatManager
     // ── Banner ───────────────────────────────────────────────────────────
 
     /// <summary>Pushes the objective line. Safe to call before CombatUI is
-    /// built — SetObjectiveText carries the same pending-replay guard the
+    /// built, because SetObjectiveText carries the same pending-replay guard the
     /// phase and hint lines use.</summary>
     private void RefreshObjectiveBanner()
     {
         // Zone indicator: attempted here rather than at init because this
-        // re-fires on every phase change — first call where grid AND renderer
+        // re-fires on every phase change. The first call where grid AND renderer
         // exist wins, and the latch makes the rest no-ops.
         if (_objective != null && _objective.Kind == CombatObjectiveDef.KindHoldZone
             && !_objectiveZoneShown && grid != null && _zoneRenderer != null)
@@ -527,7 +527,7 @@ public partial class CombatManager
                 // roundNumber is the round in progress; clamp so the banner
                 // reads "8 / 8" on the last round rather than "9 / 8".
                 int shown = Mathf.Min(roundNumber, _objective.Rounds);
-                line = $"{label} — round {shown} / {_objective.Rounds}";
+                line = $"{label}: round {shown} / {_objective.Rounds}";
             }
             else
             {
@@ -544,8 +544,8 @@ public partial class CombatManager
             foreach (var w in _pendingWaves)
                 rounds.Add(w.Round.ToString());
             string waveLine = rounds.Count == 1
-                ? $"Reinforcements — round {rounds[0]}"
-                : $"Reinforcements — rounds {string.Join(", ", rounds)}";
+                ? $"Reinforcements: round {rounds[0]}"
+                : $"Reinforcements: rounds {string.Join(", ", rounds)}";
             line = line.Length > 0 ? $"{line}   ·   {waveLine}" : waveLine;
         }
 

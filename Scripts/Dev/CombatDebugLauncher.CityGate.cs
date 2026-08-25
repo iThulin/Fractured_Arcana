@@ -2,14 +2,14 @@ using Godot;
 using System;
 
 // ============================================================
-// CombatDebugLauncher.CityGate.cs  (partial — dev tooling)
+// CombatDebugLauncher.CityGate.cs  (partial, dev tooling)
 //
 // Purpose:        The "campus_gate (compiled)" entry in the Force
 //                 battlefield dropdown: compiles the HOME campus's
 //                 WallSiege gate-assault window live from the current
 //                 save (HomeCityCombatSource -> CityBattlemapCompiler),
-//                 registers the emitted recipe, and forces it — the
-//                 build-order step-3 smoke test ("walk a combat map
+//                 registers the emitted recipe, and forces it. This is
+//                 the build-order step-3 smoke test ("walk a combat map
 //                 that is recognizably your campus"). Dev-only.
 // Layer:          UI (dev overlay)
 // Collaborators:  CityBattlemapCompiler, HomeCityCombatSource,
@@ -29,11 +29,11 @@ public partial class CombatDebugLauncher : CanvasLayer
     private const ulong CompiledGateSeed = 0xC1717E;
 
     /// <summary>Compile + register + force a home siege window. Returns false
-    /// (with the reason in the status label) if the save can't produce one —
-    /// launch should be aborted, not fall back silently to a wrong map.
+    /// (with the reason in the status label) if the save can't produce one.
+    /// Launch should then be aborted, not fall back silently to a wrong map.
     /// <paramref name="vectorKind"/>: "gate" | "breach" | "dock" | "portal".
     /// <paramref name="defending"/>: home-defense orientation; attaches
-    /// hold_zone on the opening (gate/dock) or survive (portal — the rift
+    /// hold_zone on the opening (gate/dock) or survive (portal, where the rift
     /// keeps disgorging; pair it with the waves checkbox).</summary>
     private bool TryForceCompiledGate(EncounterDefinition def, bool defending = false,
         string vectorKind = "gate")
@@ -53,7 +53,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         }
         if (vectorKind == "portal" && city.TeleporterCell == null)
         {
-            _status.Text = "compiled portal: no placed teleport_sigil — build and site one first.";
+            _status.Text = "compiled portal: no placed teleport_sigil. Build and site one first.";
             return false;
         }
 
@@ -74,7 +74,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         }
         catch (Exception e)
         {
-            _status.Text = $"compiled gate: compiler threw — {e.Message}";
+            _status.Text = $"compiled gate: compiler threw. {e.Message}";
             return false;
         }
 
@@ -92,16 +92,16 @@ public partial class CombatDebugLauncher : CanvasLayer
 
         if (defending)
         {
-            // Debug starting values — the real encounter defs own tuning.
+            // Debug starting values. The real encounter defs own tuning.
             // Portal: the opening IS the enemy spawn, so hold_zone would be
-            // lost at round 1 — survive is the seal-the-rift objective.
+            // lost at round 1. Survive is the seal-the-rift objective.
             if (vectorKind == "portal")
             {
                 def.Objective = new CombatObjectiveDef
                 {
                     Kind = CombatObjectiveDef.KindSurvive,
                     Rounds = 8,
-                    Description = "Seal the rift — survive",
+                    Description = "Seal the rift. Survive.",
                 };
             }
             else

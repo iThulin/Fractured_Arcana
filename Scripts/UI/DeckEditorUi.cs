@@ -102,7 +102,7 @@ public partial class DeckEditorUi : Control
             });
             var bannerLabel = new Label
             {
-                Text = "You are on an expedition — deck editing is locked until you return to campus.",
+                Text = "You are on an expedition. Deck editing is locked until you return to campus.",
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             };
@@ -492,7 +492,7 @@ public partial class DeckEditorUi : Control
         Color dark = SchoolColors.GetDarkColor(school);
 
         // How many sibling copies of this blueprint exist in the same zone?
-        // Used only for the disambiguation badge — no longer used for grouping.
+        // Used only for the disambiguation badge; no longer used for grouping.
         var activeSet = new HashSet<string>(
             save.PlayerDeck.ActiveDeckInstanceIds ?? new List<string>());
         int siblingCount = isActive
@@ -546,7 +546,7 @@ public partial class DeckEditorUi : Control
         hbox.MouseFilter = MouseFilterEnum.Ignore;
         row.AddChild(hbox);
 
-        // Class label — fixed width
+        // Class label: fixed width
         var classLbl = new Label { Text = school.ToString() };
         classLbl.CustomMinimumSize = new Vector2(150, 0);
         classLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
@@ -632,7 +632,7 @@ public partial class DeckEditorUi : Control
         };
         hbox.AddChild(div2);
 
-        // Spacer — pushes everything after it to the right
+        // Spacer: pushes everything after it to the right
         var spacer = new Control();
         spacer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         spacer.MouseFilter = MouseFilterEnum.Ignore;
@@ -669,7 +669,7 @@ public partial class DeckEditorUi : Control
                 CustomMinimumSize = new Vector2(64, 28),
                 FocusMode = FocusModeEnum.None,
                 TooltipText = disenchantBlocked
-                    ? $"Cannot disenchant — deck at minimum size ({save.MinDeckSize})"
+                    ? $"Cannot disenchant: deck at minimum size ({save.MinDeckSize})"
                     : $"Disenchant for {yield} Arcane Splinters",
             };
             disBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -886,16 +886,16 @@ public partial class DeckEditorUi : Control
     {
         if (isActive)
         {
-            // Unslotting — free, starters included
+            // Unslotting is free, starters included
             PlayerDeckService.UnslotCard(save, owned.InstanceId);
         }
         else
         {
-            // Slotting — costs gold
+            // Slotting costs gold
             int cost = PlayerSession.CardSlotCost;
             if (save.Gold < cost)
             {
-                GD.Print($"[DeckEditor] Cannot slot — need {cost} gold, have {save.Gold}.");
+                GD.Print($"[DeckEditor] Cannot slot: need {cost} gold, have {save.Gold}.");
                 return;
             }
             save.Gold -= cost;
@@ -907,7 +907,7 @@ public partial class DeckEditorUi : Control
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Global input — mouse-up cancels drag anywhere on screen
+    // Global input: mouse-up cancels drag anywhere on screen
     // ─────────────────────────────────────────────────────────────────────
 
     public override void _Input(InputEvent @event)
@@ -925,22 +925,22 @@ public partial class DeckEditorUi : Control
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Global input — mouse-up cancels drag anywhere on screen
+    // Global input: mouse-up cancels drag anywhere on screen
     // ─────────────────────────────────────────────────────────────────────
     private void OnDisenchantPressed(OwnedCard owned, GuildSaveData save)
     {
         if (save == null || owned == null) return;
         if (owned.IsStarter) return;
-        // Regalia are re-minted every cycle — disenchanting one is a repeatable
+        // Regalia are re-minted every cycle; disenchanting one is a repeatable
         // splinter faucet, not a trade. The button is already hidden; this is the
         // enforcing check.
         if (owned.IsRegalia) return;
 
-        // Double-check floor — button should already be disabled but belt-and-suspenders
+        // Double-check floor; button should already be disabled but belt-and-suspenders
         bool isActive = save.PlayerDeck.ActiveDeckInstanceIds?.Contains(owned.InstanceId) ?? false;
         if (isActive && (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize)
         {
-            GD.Print("[Disenchant] Blocked — deck at minimum size.");
+            GD.Print("[Disenchant] Blocked: deck at minimum size.");
             return;
         }
 
@@ -987,7 +987,7 @@ public partial class DeckEditorUi : Control
     private ColorRect AddDropHighlight(VBoxContainer parent, Color accent)
     {
         // We need to overlay the shell's PanelContainer parent, not the VBox.
-        // The PanelContainer is the VBox's parent — walk up one level.
+        // The PanelContainer is the VBox's parent; walk up one level.
         var shell = parent.GetParent() as PanelContainer;
         if (shell == null) return null;
 
@@ -1060,7 +1060,7 @@ public partial class DeckEditorUi : Control
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DeckRowControl — PanelContainer that carries card metadata for the drag
+// DeckRowControl: PanelContainer that carries card metadata for the drag
 // system and handles its own hover style swap via Notification.
 // ─────────────────────────────────────────────────────────────────────────────
 public partial class DeckRowControl : PanelContainer

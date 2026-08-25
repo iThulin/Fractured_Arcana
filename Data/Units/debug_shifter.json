@@ -1,7 +1,7 @@
 {
   "id": "debug_shifter",
   "threatLabel": "Slumbering Guardian (dbg)",
-  "intelDescription": "Rooted and armoured \u2014 until it isn't.",
+  "intelDescription": "Rooted and armoured. Until it isn't.",
   "maxHealth": 40,
   "baseSpeed": 0,
   "armor": 5,

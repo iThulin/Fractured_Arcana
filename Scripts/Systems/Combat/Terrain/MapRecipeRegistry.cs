@@ -42,7 +42,7 @@ public static class MapRecipeRegistry
     /// <summary>Registers a runtime-compiled recipe (CityBattlemapCompiler
     /// siege windows). Forces the lazy file load FIRST so a later
     /// EnsureLoaded cannot Clear() this entry away. Same-id re-registration
-    /// overwrites — compiled ids embed their seed, so collisions are
+    /// overwrites. Compiled ids embed their seed, so collisions are
     /// deliberate recompiles.</summary>
     public static void Register(MapRecipe recipe)
     {

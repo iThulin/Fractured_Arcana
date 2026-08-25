@@ -5,26 +5,26 @@ using System.Threading.Tasks;
 // ============================================================
 // CombatManager.WarpChanneler.cs  (partial)
 //
-// Purpose:        The "warp_channeler" behavior — the siege answer to
+// Purpose:        The "warp_channeler" behavior, the siege answer to
 //                 "sit safely behind the door": a two-activation
 //                 CHANNEL that, on release, teleports the unit past
 //                 walls to a telegraphed tile beside its target.
 //                 Interruptible: ANY damage while charging collapses
-//                 the rift (warp only — the blast wizard's channel is
+//                 the rift (warp only; the blast wizard's channel is
 //                 deliberately NOT damage-interruptible; changing that
 //                 would rebalance an existing unit as a side effect).
 //                 Rides the existing Channel/Release intent machinery
 //                 (ChannelTile, "wizard_charging", glyphs, the
-//                 disable-break at RunEnemyTurn) — new code is the
+//                 disable-break at RunEnemyTurn). New code is only the
 //                 planner, the two executors, and the interrupt hook.
 // Layer:          Combat / enemy AI
 // Collaborators:  CombatManager.EnemyIntents (planner map + dispatch),
 //                 CombatManager.Triggers (HandleUnitStruck interrupt),
-//                 Unit.PlaceOnTile (MovementKind.Teleport — occupancy-
-//                 safe, no OnMoved: a rift is not walking),
+//                 Unit.PlaceOnTile (MovementKind.Teleport, which is
+//                 occupancy-safe, no OnMoved: a rift is not walking),
 //                 Data/Units/veil_warper.json (first carrier)
 // Notes:          Ritardando (EnemySpellCostIncrease) deliberately NOT
-//                 applied to warp channels in v1 — the counter-play is
+//                 applied to warp channels in v1. The counter-play is
 //                 damage interruption, not drag stacking. Revisit if
 //                 playtests want both.
 // ============================================================
@@ -34,7 +34,7 @@ public partial class CombatManager
     private const string WarpBehaviorKey = "warp_channeler";
 
     /// <summary>Max tiles between warper and landing tile. Close-range by
-    /// ruling — a rift, not a route.</summary>
+    /// ruling: a rift, not a route.</summary>
     private const int WarpRange = 6;
 
     /// <summary>Fight-normally distance: already at arm's reach → no warp.</summary>
@@ -67,7 +67,7 @@ public partial class CombatManager
         if (target?.CurrentTile == null || enemy.CurrentTile == null)
             return PlanSoldier(enemy);
 
-        // Close enough to fight like anyone else — the veil is for walls.
+        // Close enough to fight like anyone else. The veil is for walls.
         if (grid.Distance(enemy.CurrentTile.Axial, target.CurrentTile.Axial)
             <= WarpMinUsefulDistance)
             return PlanSoldier(enemy);
@@ -89,7 +89,7 @@ public partial class CombatManager
 
     /// <summary>Nearest free, walkable, unblocked tile adjacent to the target
     /// (ring 1, then ring 2), within WarpRange of the warper. Pathing and
-    /// walls are IGNORED — that is the entire point — but occupancy is not.
+    /// walls are IGNORED (that is the entire point), but occupancy is not.
     /// Deterministic tiebreak.</summary>
     private Vector2I? PickWarpDestination(Unit enemy, Unit target)
     {
@@ -129,7 +129,7 @@ public partial class CombatManager
         enemy.ChannelTile = intent.TargetTile;
         enemy.ApplyStatus("wizard_charging", 2);
 
-        string msg = $"{enemy.Name} tears at the veil — a rift forms. Strike it to collapse the channel!";
+        string msg = $"{enemy.Name} tears at the veil and a rift forms. Strike it to collapse the channel!";
         GD.Print($"[Warp] {enemy.Name} channels a rift to {intent.TargetTile.Value}.");
         combatUI?.AppendActionLog(msg);
         await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
@@ -148,8 +148,8 @@ public partial class CombatManager
             return;
 
         // Land on the locked tile; if the player body-blocked it, the nearest
-        // free neighbor; if the whole pocket is plugged, the rift fizzles —
-        // body-blocking is real counter-play and must pay off.
+        // free neighbor; if the whole pocket is plugged, the rift fizzles.
+        // Body-blocking is real counter-play and must pay off.
         TileData dest = grid.GetTile(locked.Value);
         if (dest == null || dest.IsBlocked || !dest.IsWalkable || dest.IsOccupied)
         {
@@ -164,7 +164,7 @@ public partial class CombatManager
 
         if (dest == null)
         {
-            string blocked = $"{enemy.Name} — the rift finds no ground and collapses.";
+            string blocked = $"{enemy.Name}: the rift finds no ground and collapses.";
             GD.Print("[Warp] " + blocked);
             combatUI?.AppendActionLog(blocked);
             return;
@@ -179,7 +179,7 @@ public partial class CombatManager
 
     // ── Interrupt (called from HandleUnitStruck) ─────────────────────────────
 
-    /// <summary>Damage collapses a WARP channel (warp only — see header).
+    /// <summary>Damage collapses a WARP channel (warp only; see header).
     /// Call on every strike; no-ops for everyone else.</summary>
     private void TryInterruptWarpChannel(Unit struck, int hpLoss)
     {
@@ -193,7 +193,7 @@ public partial class CombatManager
         struck.CurrentIntent = null;
         struck.ClearIntentDisplay();
 
-        string msg = $"{struck.Name}'s rift collapses — the channel is broken!";
+        string msg = $"{struck.Name}'s rift collapses. The channel is broken!";
         GD.Print("[Warp] " + msg);
         combatUI?.AppendActionLog($"── {msg} ──");
     }

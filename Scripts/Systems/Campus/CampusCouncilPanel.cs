@@ -4,14 +4,14 @@ using static CampusUi;
 // ============================================================
 // CampusCouncilPanel.cs
 //
-// Purpose:        The Council tab — archmage sentiment overview,
+// Purpose:        The Council tab: archmage sentiment overview,
 //                 the "Seek Resolution" audience list, and the
 //                 mentor panel.
 // Layer:          UI
 // Collaborators:  CampusPanel.cs (base), CampusContext.cs,
 //                 CouncilOverviewPanel.cs, CampusMentorPanel.cs,
 //                 ArchmageRegistry.cs, ResolutionEncounterBuilder.cs
-// See:            Step 9; docs/campus_tab_extraction_v1.md — Phase 2
+// See:            Step 9; docs/campus_tab_extraction_v1.md (Phase 2)
 // ============================================================
 
 /// <summary>Council tab. Mostly a host: <see cref="CouncilOverviewPanel"/> and
@@ -19,7 +19,7 @@ using static CampusUi;
 /// rendering this class owns is the audience list between them.
 ///
 /// <para><b>Not the same thing as <c>CouncilScreen</c>.</b> There is a global council
-/// overlay on the HudManager bar, and it shares NO renderer with this tab — a ~1,400-line
+/// overlay on the HudManager bar, and it shares NO renderer with this tab: a ~1,400-line
 /// CanvasLayer versus this. They are two independent implementations of overlapping ideas.
 /// Reconciling them is real design work, not a dedup, and should happen when the campus map
 /// decides which building the council lives behind. Until then, do not assume either is a
@@ -46,7 +46,7 @@ public sealed class CampusCouncilPanel : CampusPanel
         layout.AddChild(new HSeparator());
         AddSectionHeader(layout, "Seek Resolution");
         layout.AddChild(MakeStubLabel(
-            "An audience ends an archmage's question — by pact, by pressure, or by force. " +
+            "An audience ends an archmage's question: by pact, by pressure, or by force. " +
             "Or you withdraw, and it keeps."));
         _audienceContainer = MakeVBox(8);
         layout.AddChild(_audienceContainer);
@@ -87,8 +87,8 @@ public sealed class CampusCouncilPanel : CampusPanel
 
             var name = new Label
             {
-                Text = $"{def.DisplayName} — {def.Title}",
-                // Control.SizeFlags — this class is not a Control.
+                Text = $"{def.DisplayName}: {def.Title}",
+                // Control.SizeFlags: this class is not a Control.
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 VerticalAlignment = VerticalAlignment.Center,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
@@ -122,7 +122,7 @@ public sealed class CampusCouncilPanel : CampusPanel
         if (enc == null) return;
 
         // The shell's ShowNarrative also wires the completion handler that persists the
-        // outcome, and no-ops if the overlay does not exist — so the old
+        // outcome, and no-ops if the overlay does not exist, so the old
         // `_campusNarrativePanel == null` guard is now redundant rather than dropped.
         Ctx.ShowNarrative?.Invoke(enc);
     }

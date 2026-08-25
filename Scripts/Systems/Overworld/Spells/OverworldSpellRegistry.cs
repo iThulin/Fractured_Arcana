@@ -62,7 +62,7 @@ public static class OverworldSpellRegistry
         return null;
     }
 
-    /// <summary>S4: every learnable definition — neither innate nor
+    /// <summary>S4: every learnable definition, neither innate nor
     /// Attunement: the 8 school exemplars + the 4 Generals. This IS the
     /// acquisition pool (§11); sorted by id for stable presentation.</summary>
     public static List<OverworldSpellDefinition> Learnables()
@@ -144,7 +144,7 @@ public static class OverworldSpellRegistry
                         continue;
                     }
                     if (_cache.ContainsKey(def.Id))
-                        GD.PushWarning($"[OverworldSpellRegistry] Duplicate id '{def.Id}' ({path}) — last wins.");
+                        GD.PushWarning($"[OverworldSpellRegistry] Duplicate id '{def.Id}' ({path}). Last wins.");
                     _cache[def.Id] = def;
                 }
             }

@@ -4,21 +4,21 @@ using System.Collections.Generic;
 // ============================================================
 // ShadowOps.cs
 //
-// Purpose:        Active, informant-driven espionage verbs (phase E4)
-//                 — the player-committed operations that spend an
-//                 asset's Cover rather than Concord Favor:
-//                   SaboteurStrike() — a Saboteur wrecks a siege or
+// Purpose:        Active, informant-driven espionage verbs (phase E4).
+//                 These are the player-committed operations that spend
+//                 an asset's Cover rather than Concord Favor:
+//                   SaboteurStrike(): a Saboteur wrecks a siege or
 //                                      stalls a corruption tick (the
 //                                      free-of-Favor version of the
 //                                      Concord Sabotage contract; §2c).
-//                   ForgeEcho()      — a deep Cutout fabricates an
+//                   ForgeEcho():      a deep Cutout fabricates an
 //                                      EchoEvent toward a court; if
 //                                      traced it detonates as a court
 //                                      Exposure spike (§2c A3).
 //                 Both spend Cover and may burn the asset outright.
 //                 Effects reuse ShadowTick.ApplySabotage, the §4
-//                 corruption-delay cap, and CouncilEcho.EmitDeed — no
-//                 parallel machinery.
+//                 corruption-delay cap, and CouncilEcho.EmitDeed, with
+//                 no parallel machinery.
 // Layer:          System
 // Collaborators:  ShadowTick.cs (ApplySabotage / warfront lookup),
 //                 CorruptionSpread.cs (§4 delay cap), CouncilEcho.cs
@@ -75,8 +75,8 @@ public static class ShadowOps
         return ShadowMarketResult.Pass(msg + burnTail);
     }
 
-    /// <summary>A deep Cutout (Access 3) fabricates a deed-echo toward a court —
-    /// propaganda in the guild's favor, or a smear. Reuses the echo pipeline;
+    /// <summary>A deep Cutout (Access 3) fabricates a deed-echo toward a court,
+    /// either propaganda in the guild's favor or a smear. Reuses the echo pipeline;
     /// a trace roll (rising with Marked) can expose the forgery as a court
     /// Exposure spike. Costs Cover; may burn the asset.</summary>
     public static ShadowMarketResult ForgeEcho(CycleState cycle, string informantId,
@@ -137,7 +137,7 @@ public static class ShadowOps
             {
                 Lunation = lun,
                 KingdomId = targetKingdomId,
-                Text = $"Shadow: the forgery was smelled out — {CouncilTick.CourtDisplayName(cycle, targetKingdomId)} " +
+                Text = $"Shadow: the forgery was smelled out. {CouncilTick.CourtDisplayName(cycle, targetKingdomId)} " +
                        $"grows suspicious (Exposure +{ShadowVocab.ForgeEchoExposureSpike}).",
             });
         }
@@ -150,8 +150,8 @@ public static class ShadowOps
 
     /// <summary>Pull an informant off the board before it burns, banking its
     /// Access as cross-cycle renown so a network re-placed in that kingdom next
-    /// cycle starts with more Cover (§2e / §6). The disciplined tempo trade —
-    /// take the asset off the table before the enemy does.</summary>
+    /// cycle starts with more Cover (§2e / §6). This is the disciplined tempo
+    /// trade: take the asset off the table before the enemy does.</summary>
     public static ShadowMarketResult Exfiltrate(CycleState cycle, string informantId)
     {
         var council = cycle?.Council;
@@ -170,7 +170,7 @@ public static class ShadowOps
         SaveManager.MarkDirty();
         return ShadowMarketResult.Pass(
             $"Pulled your {(string.IsNullOrEmpty(inf.Role) ? "informant" : inf.Role.ToLower())} " +
-            $"out of {CouncilTick.CourtDisplayName(cycle, inf.KingdomId)} clean — the ground learned " +
+            $"out of {CouncilTick.CourtDisplayName(cycle, inf.KingdomId)} clean. The ground learned " +
             $"is banked for next time (renown {inf.Access}).");
     }
 
@@ -202,7 +202,7 @@ public static class ShadowOps
         {
             Lunation = lun,
             KingdomId = inf.KingdomId,
-            Text = $"Shadow: the work spent the asset's last cover — it is burned and gone.",
+            Text = $"Shadow: the work spent the asset's last cover. It is burned and gone.",
         });
         return " (the asset burned out doing it)";
     }

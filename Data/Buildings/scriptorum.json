@@ -9,7 +9,7 @@
     "tiers": [
         {
             "tier": 1,
-            "description": "Basic spell transcription. Cards can be refined to Stage 1 — core improvements to damage, range, and cost.",
+            "description": "Basic spell transcription. Cards can be refined to Stage 1: core improvements to damage, range, and cost.",
             "goldCost": 80,
             "requiredBuildings": [],
             "bonusStartingHP": 0,
@@ -23,7 +23,7 @@
         },
         {
             "tier": 2,
-            "description": "Advanced scholarship. Cards can be specialized to Stage 2 — choose a playstyle branch that shapes how your spell develops.",
+            "description": "Advanced scholarship. Cards can be specialized to Stage 2: choose a playstyle branch that shapes how your spell develops.",
             "goldCost": 175,
             "requiredBuildings": [
                 "scriptorum"
@@ -39,7 +39,7 @@
         },
         {
             "tier": 3,
-            "description": "Master transcription. Cards can be brought to Stages 3 and 4 — deep transformation of your spells into their final forms.",
+            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms.",
             "goldCost": 350,
             "requiredBuildings": [
                 "scriptorum"

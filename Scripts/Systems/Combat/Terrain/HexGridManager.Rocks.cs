@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // HexGridManager.Rocks.cs  (partial of HexGridManager)
 //
-// Scattered rock props over grass/forest tiles — a MultiMesh layer like the
+// Scattered rock props over grass/forest tiles: a MultiMesh layer like the
 // flowers, but INVERTED: rocks seek BARE ground (where the grass clumping is
 // sparse) instead of the dense grass masses. No wind (rocks don't sway). Rocks
 // cast shadows and sink slightly into the terrain so they sit embedded.
@@ -23,7 +23,7 @@ public partial class HexGridManager : Node3D
     [ExportGroup("Rock Props")]
     [Export] public bool EnableRockProps = true;
 
-    /// <summary>Pool of rock mesh variants. Each scatter point picks one (optionally weighted). REQUIRED — rocks are skipped if empty.</summary>
+    /// <summary>Pool of rock mesh variants. Each scatter point picks one (optionally weighted). REQUIRED: rocks are skipped if empty.</summary>
     [Export] public Mesh[] RockMeshes;
 
     /// <summary>Optional relative spawn weights, parallel to RockMeshes. Leave empty for equal odds.</summary>
@@ -35,7 +35,7 @@ public partial class HexGridManager : Node3D
     /// <summary>Optional weights parallel to MountainRockMeshes.</summary>
     [Export] public float[] MountainRockMeshWeights;
 
-    /// <summary>Material for the rocks. REQUIRED — assign painterly_rock.tres. Skipped if null (never rendered material-less).</summary>
+    /// <summary>Material for the rocks. REQUIRED: assign painterly_rock.tres. Skipped if null (never rendered material-less).</summary>
     [Export] public Material RockMaterial;
 
     /// <summary>Optional SEPARATE material for the mountain/stone boulder pool. Mountains want a warm dry rock palette; meadow scree wants the cool mossy one. Null = mountains reuse RockMaterial.</summary>
@@ -45,7 +45,7 @@ public partial class HexGridManager : Node3D
     [Export(PropertyHint.Range, "0.05,3.0,0.05")] public float RockScale = 0.4f;
     [Export(PropertyHint.Range, "0,0.8,0.05")] public float RockScaleJitter = 0.4f;
 
-    /// <summary>0 = scatter evenly; 1 = rocks appear only in SPARSE-grass (bare) areas. Inverse of the grass/flower clumping — uses the same noise field.</summary>
+    /// <summary>0 = scatter evenly; 1 = rocks appear only in SPARSE-grass (bare) areas. Inverse of the grass/flower clumping, and it uses the same noise field.</summary>
     [Export(PropertyHint.Range, "0,1,0.05")] public float RockBareBias = 0.6f;
 
     /// <summary>Push rocks DOWN into the terrain so they sit embedded rather than perched on a flat base.</summary>
@@ -59,16 +59,16 @@ public partial class HexGridManager : Node3D
     /// <summary>Scatter boulders/scree on STONE tiles too (mountains). Off = old grass-only behaviour.</summary>
     [Export] public bool RockOnStone = true;
 
-    /// <summary>Rock COUNT multiplier on stone tiles — mountains want more scree/boulders than meadows. Applied on top of RocksPerTile.</summary>
+    /// <summary>Rock COUNT multiplier on stone tiles, since mountains want more scree/boulders than meadows. Applied on top of RocksPerTile.</summary>
     [Export(PropertyHint.Range, "1,8,0.5")] public float RockStoneDensityMult = 2.0f;
 
-    /// <summary>Rock SCALE multiplier on stone tiles — bigger, protruding boulders on rock faces.</summary>
+    /// <summary>Rock SCALE multiplier on stone tiles, for bigger, protruding boulders on rock faces.</summary>
     [Export(PropertyHint.Range, "1,4,0.1")] public float RockStoneScaleMult = 1.7f;
 
     /// <summary>Per-instance tint via custom data, read by painterly_rock (use_instance_tint). Turn OFF for one uniform rock colour.</summary>
     [Export] public bool UseRockColorVariation = true;
 
-    /// <summary>Tints sampled per rock when UseRockColorVariation is on. Keep them near-white — they MULTIPLY the shader's rock_base, so they nudge tone (cool/warm/light/dark), not recolour.</summary>
+    /// <summary>Tints sampled per rock when UseRockColorVariation is on. Keep them near-white. They MULTIPLY the shader's rock_base, so they nudge tone (cool/warm/light/dark), not recolour.</summary>
     [Export]
     public Color[] RockPalette =
     {
@@ -89,7 +89,7 @@ public partial class HexGridManager : Node3D
 
         if (RockMaterial == null)
         {
-            GD.PushWarning("[HexGridManager] RockMaterial unassigned — rocks skipped. Assign painterly_rock.tres.");
+            GD.PushWarning("[HexGridManager] RockMaterial unassigned, so rocks were skipped. Assign painterly_rock.tres.");
             return;
         }
 
@@ -121,7 +121,7 @@ public partial class HexGridManager : Node3D
 
         if (variantMeshes.Count == 0)
         {
-            GD.PushWarning("[HexGridManager] RockMeshes empty — rocks skipped. Assign at least one rock mesh.");
+            GD.PushWarning("[HexGridManager] RockMeshes empty, so rocks were skipped. Assign at least one rock mesh.");
             return;
         }
 
@@ -231,7 +231,7 @@ public partial class HexGridManager : Node3D
                 float wz = top.Z + p.Y;
 
                 // Bare bias: prefer LOW clump noise so rocks CLUSTER into scree
-                // fields instead of an even carpet. Stone uses HALF strength —
+                // fields instead of an even carpet. Stone uses HALF strength, so
                 // mountains read rocky but still clumped, with bare rock faces
                 // showing between the scree, not a solid blanket.
                 float effBias = isStone ? RockBareBias * 0.5f : RockBareBias;
@@ -295,8 +295,8 @@ public partial class HexGridManager : Node3D
 
             // --- Explicit visibility AABB ---
             // Same reasoning as the grass/canopy fields: Godot's auto-computed
-            // MultiMesh AABB is unreliable for world-space scattered instances —
-            // the whole field frustum-culls as a single unit on a small camera
+            // MultiMesh AABB is unreliable for world-space scattered instances.
+            // The whole field frustum-culls as a single unit on a small camera
             // turn, so the rock layer vanishes in one pop at the screen edge.
             // Build bounds from the actual instance origins and grow by mesh
             // extent and the scale band (rocks don't sway, so no wind margin).

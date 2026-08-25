@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 // ============================================================
 // CombatManager.Triggers.cs  (partial of CombatManager)  (U3)
 //
-// Purpose:        The enemy trigger bus — RULED stack-first (R3):
+// Purpose:        The enemy trigger bus, RULED stack-first (R3):
 //                 triggered enemy abilities ENTER the RulesManager
 //                 stack as first-class, visible, respondable objects.
 //                 They do not resolve immediately.
@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 //                 FLOW:
 //                 1. Game events (deaths, later attacks/spawns/turn
 //                    ends) QUEUE triggers via QueueDeathTriggers etc.
-//                    Queuing is synchronous and allocation-only —
+//                    Queuing is synchronous and allocation-only,
 //                    safe from any call site including OnDied.
 //                 2. DrainTriggerStackAsync() pushes queued triggers
 //                    as StackItems, then loops: PRIORITY WINDOW →
@@ -35,7 +35,7 @@ using System.Threading.Tasks;
 //
 //                 RESPONSE CASTS: while a window is open, the card
 //                 drop path accepts Reaction-speed halves only, and
-//                 skips its own stack drain — the cast lands ON TOP
+//                 skips its own stack drain. The cast lands ON TOP
 //                 of the trigger and this loop resolves it first
 //                 (LIFO). Sorcery/Instant drops are rejected with a
 //                 log line.
@@ -46,7 +46,7 @@ using System.Threading.Tasks;
 //                   The bus + taxonomy support the full §5 table;
 //                   U4+ rosters add their call sites when their keys
 //                   land. Per build_order §8: U3 scope is exactly
-//                   one roster's keys — resist landing U4 "while in
+//                   one roster's keys. Resist landing U4 "while in
 //                   there".
 //                 - onAllyDeath is a taxonomy addition: §5 lists
 //                   OnDeath (self); Requiem is specced "(OnDeath of
@@ -62,7 +62,7 @@ using System.Threading.Tasks;
 //                   resolves and the Honored Dead rise.
 //                 - Response-hand check scans EVERY living arcane
 //                   unit's hand against ITS OWN mana (2026-07-09;
-//                   retires the active-deck-only v1 limitation —
+//                   retires the active-deck-only v1 limitation,
 //                   which, with State.Mana[Me] synced to the
 //                   SELECTED unit, made the window nearly unopenable
 //                   in real play). The window auto-selects the
@@ -106,7 +106,7 @@ public partial class CombatManager
 
     /// <summary>One queued trigger, context captured at queue time (the source
     /// node may be freed before resolution). Serves BOTH enemy ability triggers
-    /// (Def-keyed) and Q2 item triggers (ItemKey-keyed) — one queue, one drain,
+    /// (Def-keyed) and Q2 item triggers (ItemKey-keyed): one queue, one drain,
     /// one dispatcher (BuildTriggeredEffect).</summary>
     private sealed class QueuedTrigger
     {
@@ -122,7 +122,7 @@ public partial class CombatManager
         /// is the dead unit (Deathburst).</summary>
         public Unit Carrier;
 
-        /// <summary>U3b: the unit this trigger happened TO — the struck victim for
+        /// <summary>U3b: the unit this trigger happened TO, i.e. the struck victim for
         /// onAttack, null for triggers with no second party. Deliberately separate
         /// from ItemTarget so the enemy-Def path never reads item-only fields (the
         /// exact mistake that made shield_self/apply_bleed silent no-ops on units).</summary>
@@ -149,7 +149,7 @@ public partial class CombatManager
     private bool _priorityWindowOpen = false;
     private bool _priorityPassed = false;
 
-    /// <summary>True while a priority window is open — the card drop path reads
+    /// <summary>True while a priority window is open. The card drop path reads
     /// this to allow Reaction-speed responses and to leave stack draining to the
     /// trigger loop.</summary>
     public bool PriorityWindowOpen => _priorityWindowOpen;
@@ -157,7 +157,7 @@ public partial class CombatManager
     /// <summary>Wired to CombatUI's Pass button.</summary>
     public void OnPriorityPassPressed() => _priorityPassed = true;
 
-    /// <summary>Wired to CombatUI's Respond button (§7c): an explicit affordance —
+    /// <summary>Wired to CombatUI's Respond button (§7c): an explicit affordance that
     /// selects the unit holding a castable Reflex so its hand is up and its mana
     /// is synced. Casting stays drag-to-cast; Respond never resolves anything.</summary>
     public void OnPriorityRespondPressed()
@@ -169,7 +169,7 @@ public partial class CombatManager
             return;
         if (responder != selectedUnit)
             SelectUnit(responder);
-        combatUI?.AppendActionLog($"{responder.Name} readies a response — drag a Reflex card onto its target.");
+        combatUI?.AppendActionLog($"{responder.Name} readies a response. Drag a Reflex card onto its target.");
     }
 
     // ── Queue call sites ─────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ public partial class CombatManager
         if (dead == null || dead.CurrentTile == null)
             return;
 
-        // Own onDeath (Deathburst) — context is the corpse's tile and team.
+        // Own onDeath (Deathburst). Context is the corpse's tile and team.
         foreach (var ab in dead.Abilities)
         {
             if (!string.Equals(ab.Trigger, "onDeath", StringComparison.OrdinalIgnoreCase))
@@ -198,7 +198,7 @@ public partial class CombatManager
             });
         }
 
-        // Allies' onAllyDeath (Requiem) — carrier must still be alive.
+        // Allies' onAllyDeath (Requiem). The carrier must still be alive.
         foreach (var ally in enemyUnits)
         {
             if (ally == null || ally == dead || !IsInstanceValid(ally) || !ally.Stats.IsAlive)
@@ -223,8 +223,8 @@ public partial class CombatManager
 
     /// <summary>U3b: queues one unit's abilities matching <paramref name="trigger"/>.
     /// The single entry point for every NON-death enemy trigger. onDeath/onAllyDeath
-    /// keep their bespoke helper because their context is a corpse — the carrier is
-    /// null, or is somebody else — which this signature cannot express.</summary>
+    /// keep their bespoke helper because their context is a corpse, where the carrier
+    /// is null or is somebody else, which this signature cannot express.</summary>
     private void QueueAbilityTriggers(Unit carrier, string trigger, Unit target = null)
     {
         if (carrier == null || !IsInstanceValid(carrier) || carrier.Abilities == null)
@@ -251,7 +251,7 @@ public partial class CombatManager
     /// whose precondition ALREADY fails should never become a stack object: under R3
     /// every trigger opens a priority window, so a trigger that cannot possibly do
     /// anything costs the player a beat of attention and then silently evaporates.
-    /// Playtest reported exactly that — a thornback pushing a trigger onto the stack
+    /// Playtest reported exactly that: a thornback pushing a trigger onto the stack
     /// for a distant caster it could never reach, and for a striker it could not
     /// identify at all.
     ///
@@ -274,7 +274,7 @@ public partial class CombatManager
         }
 
         // U3e redact: a martial has no deck and a spent hand has nothing to take.
-        // Same reasoning as retaliate — a stack object that cannot possibly do
+        // Same reasoning as retaliate: a stack object that cannot possibly do
         // anything still costs the player a beat of attention under R3.
         if (string.Equals(ab.Key, "redact", StringComparison.OrdinalIgnoreCase))
         {
@@ -287,31 +287,31 @@ public partial class CombatManager
     }
 
     /// <summary>U3b: onStruck call site, wired to Unit.OnStruck at spawn. Fires only
-    /// when the unit LOST HP and SURVIVED — a fully-absorbed hit is not a wound, and
+    /// when the unit LOST HP and SURVIVED. A fully-absorbed hit is not a wound, and
     /// a fatal one is onDeath's business.</summary>
     private void HandleUnitStruck(Unit struck, int hpLoss, Unit source)
     {
         QueueAbilityTriggers(struck, "onStruck", source);
-        // Phase B (2026-08-13): items answer wounds too — the wearer's
+        // Phase B (2026-08-13): items answer wounds too, so the wearer's
         // onStruck abilities queue through the same seam. Because the
         // dispatcher routes by KEY, existing keys gain defensive readings
         // for free: shield_self here = "harden when wounded", apply_bleed
         // here = "barbed armor bites the attacker".
         QueueItemStruckTriggers(struck, source);
 
-        // City siege: damage collapses a WARP channel (warp_channeler only —
+        // City siege: damage collapses a WARP channel (warp_channeler only, because
         // the blast wizard's channel is deliberately not damage-interruptible).
         // Same one-call-site rationale as Riposte below: OnStruck fires on ANY
         // damage, so every card, attack and hazard can interrupt the rift.
         TryInterruptWarpChannel(struck, hpLoss);
 
         // Riposte re-hook (2026-07-28). ResolveRetaliation was called from
-        // PerformAttack / PerformRangedAttack — but the U2 intent-AI migration routed
+        // PerformAttack / PerformRangedAttack, but the U2 intent-AI migration routed
         // every enemy attack through ExecuteIntent -> StrikeTile -> ResolveStrike, and
         // left those two methods behind. PerformAttack now has ZERO callers;
         // PerformRangedAttack has exactly one (Tinker constructs). So the player's
         // Riposte card fired only against a construct's shot and never against the
-        // enemy AI — an orphaned hook, not dead code.
+        // enemy AI. It was an orphaned hook, not dead code.
         //
         // Unit.OnStruck (U3b) is the correct home: it fires on ANY damage with a known
         // source, so Riposte now answers melee, ranged, spells and constructs alike,
@@ -319,12 +319,12 @@ public partial class CombatManager
         // legacy calls were removed to avoid a double-fire.
         //
         // Terminates: ResolveRetaliation deals its damage with NO source, so the
-        // victim's own OnStruck sees source == null and returns — no ping-pong.
+        // victim's own OnStruck sees source == null and returns, so no ping-pong.
         ResolveRetaliation(struck, source);
     }
 
     /// <summary>U3b: onSpawn call site. Fires INLINE, mirroring FireItemSpawnTriggers
-    /// and §5's initial-state carve-out — at deployment there is no priority window to
+    /// and §5's initial-state carve-out. At deployment there is no priority window to
     /// open and nothing to respond with. Still routes through the one dispatcher.
     /// KNOWN DIVERGENCE: a unit spawned mid-combat (Deathburst, summon_cadence) also
     /// resolves its onSpawn un-respondably. Revisit if a spawn ability ever needs to
@@ -346,7 +346,7 @@ public partial class CombatManager
         }
     }
 
-    /// <summary>True when death triggers are queued or on the stack — combat-end
+    /// <summary>True when death triggers are queued or on the stack. Combat-end
     /// evaluation defers until the stack settles.</summary>
     private bool TriggersOutstanding => _pendingTriggers.Count > 0 || !State.Stack.IsEmpty;
 
@@ -363,12 +363,12 @@ public partial class CombatManager
             // ── Enemy roster keys (U3) ──
             case "requiem":
                 return new RequiemEffect(t.Carrier, t.Def.GetIntParam("amount", 2), this);
-            // U3b VERIFICATION SCAFFOLD — remove with debug_trigger_probe before ship.
+            // U3b VERIFICATION SCAFFOLD. Remove with debug_trigger_probe before ship.
             case "debug_echo":
                 return new DebugEchoEffect(t.Def?.Trigger ?? "?", t.SourceName,
                                            t.TargetUnit, roundNumber, this);
             // ── U3c defensive shapes ──
-            // chitin / veil are AURAS — states, not events (units doc §5). They are
+            // chitin / veil are AURAS: states, not events (units doc §5). They are
             // cached on Unit at spawn and read inline in the damage path; they never
             // reach this dispatcher, and the registry exempts them from needing a case.
             case "retaliate":
@@ -389,7 +389,7 @@ public partial class CombatManager
                                            t.Def.GetStringParam("profile", ""), this);
             // ── U3d composition ──
             // bodyguard is an AURA (Unit.BodyguardedBy, recomputed in ApplyEnemyAuras)
-            // and therefore has no case here — see auraKeys in UnitRegistry.
+            // and therefore has no case here (see auraKeys in UnitRegistry).
             case "ritual":
                 return new RitualEffect(t.Carrier, t.Def.GetIntParam("amount", 1),
                                         t.Def.GetIntParam("cap", 3), this);
@@ -400,8 +400,8 @@ public partial class CombatManager
                 return new FieldRepairEffect(t.Carrier, t.Def.GetIntParam("amount", 3), this);
             // ── U3e resource denial ──
             // tithe_aura / school_grudge / action_tax / binding_geas / hand_cap are
-            // AURAS and have no case here — see LivingAuraCarriers and the §5
-            // states-not-events rule. Only the two EVENT-driven Axis A keys reach the
+            // AURAS and have no case here (see LivingAuraCarriers and the §5
+            // states-not-events rule). Only the two EVENT-driven Axis A keys reach the
             // dispatcher.
             case "redact":
                 return new RedactEffect(t.Carrier, t.TargetUnit,
@@ -424,14 +424,14 @@ public partial class CombatManager
                     : null;
 
             default:
-                GD.PrintErr($"[Triggers] Unknown trigger key '{t.DispatchKey}' on {t.SourceName} — skipped.");
+                GD.PrintErr($"[Triggers] Unknown trigger key '{t.DispatchKey}' on {t.SourceName}, so it was skipped.");
                 return null;
         }
     }
 
     // ── Q2 item-trigger call sites ───────────────────────────────────────────
 
-    /// <summary>Fires a unit's onSpawn item abilities INLINE at spawn — combat
+    /// <summary>Fires a unit's onSpawn item abilities INLINE at spawn. Combat
     /// hasn't started, so there is no priority window and no possible response
     /// (§5's initial-state carve-out). Still routes through the shared
     /// dispatcher + log grammar, satisfying the §7a "one dispatcher" rule.</summary>
@@ -478,7 +478,7 @@ public partial class CombatManager
     }
 
     /// <summary>Phase B (2026-08-13): queues the STRUCK unit's onStruck item
-    /// abilities — the defensive mirror of QueueItemAttackTriggers. ItemTarget
+    /// abilities, the defensive mirror of QueueItemAttackTriggers. ItemTarget
     /// is the ATTACKER (so apply_bleed bites back, retaliate reflects); keys
     /// that only touch the carrier (shield_self) ignore it. Fires only when
     /// the wearer lost HP and survived, same contract as the U3b seam. The
@@ -497,7 +497,7 @@ public partial class CombatManager
                 SourceName = ab.SourceName,
                 ItemKey = ab.Key,
                 ItemValue = ab.Value,
-                ItemTarget = source,   // may be null (sourceless chip) — key handlers guard
+                ItemTarget = source,   // may be null (sourceless chip); key handlers guard
                 DisplayName = ab.SourceName,
                 PlayerControlled = struck.IsPlayerControlled,
             });
@@ -505,9 +505,9 @@ public partial class CombatManager
     }
 
     /// <summary>Recomputes item AURAS (§5: states, not stack events). Called at
-    /// the start of each player turn. Regen auras heal adjacent allies — a pure
+    /// the start of each player turn. Regen auras heal adjacent allies, a pure
     /// per-turn event, so no accumulation bookkeeping.</summary>
-    /// <summary>U3d: recomputes RADIUS auras on the enemy side — auras that affect
+    /// <summary>U3d: recomputes RADIUS auras on the enemy side, meaning auras that affect
     /// OTHER units, as opposed to the U3c self-auras (chitin/veil) which are cached on
     /// the unit at spawn. Full clear-then-reassign, so a guard dying, moving, or being
     /// displaced is reflected without any teardown bookkeeping. Called at the start of
@@ -526,7 +526,7 @@ public partial class CombatManager
                 u.BodyguardedBy = null;
 
         // U3e tithe_aura: a GLOBAL (unpositioned) aura, unlike bodyguard's radius.
-        // Recomputed from scratch every pass — killing the warden must drop the tax
+        // Recomputed from scratch every pass, because killing the warden must drop the tax
         // in the same frame the corpse hits the floor, which is why HandleUnitDeath
         // calls this too. Multiple wardens stack additively; the clamp in
         // ManaCost.EffectiveAmount is what stops that from becoming a lockout.
@@ -544,18 +544,18 @@ public partial class CombatManager
         {
             string msg = tithe > 0
                 ? UIContent.FormatLogLine("Tithe", "Tithe", $"your spells cost +{tithe} mana")
-                : UIContent.FormatLogLine("Tithe", "Tithe", "lifted — your spells cost their printed price");
+                : UIContent.FormatLogLine("Tithe", "Tithe", "lifted, so your spells cost their printed price");
             GD.Print(msg);
             AppendCombatLog(msg);
         }
         State.PlayerSpellCostIncrease = tithe;
 
         // U3e hand_cap (PT-U3e-2): a global aura that lowers every player unit's hand
-        // ceiling while the carrier lives. It needs no machinery of its own — the two
+        // ceiling while the carrier lives. It needs no machinery of its own: the two
         // existing readers of MaxHandSize do all the work, and between them they are
         // exactly the mechanic that was asked for:
-        //   · DiscardOverflowCards (EndPlayerTurn) forces the excess out, oldest first
-        //     — which IS the card the player has been saving
+        //   · DiscardOverflowCards (EndPlayerTurn) forces the excess out, oldest first,
+        //     which IS the card the player has been saving
         //   · DrawToFull (StartPlayerTurn) then refills only to the lowered cap
         // Recomputed from BaseMaxHandSize rather than adjusted in place, so a dead
         // carrier restores the cap without any teardown bookkeeping.
@@ -608,7 +608,7 @@ public partial class CombatManager
                     if (ward.BodyguardedBy != null)
                         continue;                       // first guard wins, deterministically
                     if (CarriesBodyguard(ward))
-                        continue;                       // guards are never guarded — one hop
+                        continue;                       // guards are never guarded: one hop
                     if (HexGridManager.AxialDistance(guard.CurrentTile.Axial,
                                                      ward.CurrentTile.Axial) > radius)
                         continue;
@@ -630,7 +630,7 @@ public partial class CombatManager
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // U3e — Axis A: resource denial. Every key below is an AURA (units doc §5:
+    // U3e Axis A: resource denial. Every key below is an AURA (units doc §5:
     // states, not events), so NONE of them queue a stack object or open a
     // priority window. That is not an optimisation, it is the ruling: these fire
     // on movement and on every card cast, and a window per cast would be the
@@ -661,7 +661,7 @@ public partial class CombatManager
 
     /// <summary>U3e action_tax: player units standing inside a taxer's radius begin
     /// their turn short of action points. Called from StartPlayerTurn AFTER StartTurn,
-    /// status ticks and hazard damage — everything that legitimately zeroes AP has
+    /// status ticks and hazard damage, so everything that legitimately zeroes AP has
     /// already run, so this can only ever subtract.
     ///
     /// Two rulings, both load-bearing:
@@ -669,7 +669,7 @@ public partial class CombatManager
     ///   `Max(1, Max - tax)` would hand it a point back and quietly cure the status.
     ///   The floor is computed from what the unit actually has, not from its maximum.
     /// - A unit that had AP keeps AT LEAST ONE. Movement costs AP, so taxing a unit to
-    ///   zero would trap it inside the radius with no way to answer the aura — and
+    ///   zero would trap it inside the radius with no way to answer the aura, and
     ///   "stand somewhere else" is the entire counterplay this key sells. A full-turn
     ///   lockout from a passive aura is a stun, and stuns are cards, not weather.</summary>
     private void ApplyEnemyActionTax()
@@ -702,7 +702,7 @@ public partial class CombatManager
             victim.CurrentActionPoints = Math.Max(floor, before - tax);
             int lost = before - victim.CurrentActionPoints;
             if (lost <= 0)
-                continue;                    // already at the floor — nothing to report
+                continue;                    // already at the floor, nothing to report
             victim.RefreshHealthBar();
             string msg = UIContent.FormatLogLine(taxerName ?? "Aura", "Action Tax",
                 $"-{lost} AP to {victim.Name}", $"{victim.CurrentActionPoints}/{victim.MaxActionPoints}");
@@ -712,7 +712,7 @@ public partial class CombatManager
     }
 
     /// <summary>U3e binding_geas: a player unit that walks takes damage on arrival.
-    /// Wired to Unit.OnMoved at spawn — once per COMMITTED move, i.e. once per AP
+    /// Wired to Unit.OnMoved at spawn, firing once per COMMITTED move, i.e. once per AP
     /// spent, which for a 3-AP martial crossing the board is three ticks. That is the
     /// intended read ("stand and fight"), and it is also why the authored amount must
     /// stay small; see the tuning note on debug_geas.json.
@@ -740,7 +740,7 @@ public partial class CombatManager
             int amount = Math.Max(0, ab.GetIntParam("amount", 2));
             if (amount <= 0)
             {
-                GD.Print($"[Geas] {carrier.Name} has amount 0 — authored as a no-op.");
+                GD.Print($"[Geas] {carrier.Name} has amount 0, authored as a no-op.");
                 continue;
             }
             string msg = UIContent.FormatLogLine(carrier.Name, "Binding Geas",
@@ -757,13 +757,13 @@ public partial class CombatManager
     }
 
     /// <summary>U3e school_grudge: the carrier grows permanently stronger every time
-    /// the player casts a half of the named school. The Gremlin Nob — it makes ONE
+    /// the player casts a half of the named school. This is the Gremlin Nob: it makes ONE
     /// school actively bad for ONE fight, which is the first thing in this game that
     /// gives attunement a downside.
     ///
     /// Reads CardHalf.School, NOT Card.School: CardRuntime notes a half may belong to
     /// a different school than its parent card, and the HALF is what was cast. Driven
-    /// off the "AbilityCast" bus event, which fires at PUSH time — so the grudge lands
+    /// off the "AbilityCast" bus event, which fires at PUSH time, so the grudge lands
     /// before the spell resolves and the player sees the cause and the effect in the
     /// same beat.
     ///
@@ -781,7 +781,7 @@ public partial class CombatManager
             // cast path forgot to set it, and "the grudge is broken" would otherwise
             // be indistinguishable from "nobody cast anything" (U3c lesson 3).
             if (item.Caster == Me)
-                GD.Print($"[Grudge] '{half.Name}' cast with no CasterUnit — grudge cannot attribute it.");
+                GD.Print($"[Grudge] '{half.Name}' cast with no CasterUnit, so the grudge cannot attribute it.");
             return;
         }
 
@@ -792,13 +792,13 @@ public partial class CombatManager
 
             // U3e revision (PT-U3e-3): the authored value may be the literal "player",
             // meaning "whichever school the CASTING UNIT belongs to". A fixed school is
-            // either always-on or never-on depending on the run — most decks are one
-            // school with splashes — so a fixed grudge is a coin flip made at authoring
+            // either always-on or never-on depending on the run (most decks are one
+            // school with splashes), so a fixed grudge is a coin flip made at authoring
             // time. Resolved per cast, it is always live and always answerable.
             //
             // Against the CASTER's school, not the wizard's: a splashed half from
             // another school does not feed the grudge, so playing your off-school cards
-            // is the counterplay. That is the whole design — it makes ONE school bad for
+            // is the counterplay. That is the whole design: it makes ONE school bad for
             // ONE fight, which is the first downside attunement has ever had.
             if (string.Equals(want, "player", StringComparison.OrdinalIgnoreCase))
             {
@@ -806,7 +806,7 @@ public partial class CombatManager
             }
             else if (!Enum.TryParse<CardSchool>(want, ignoreCase: true, out school))
             {
-                GD.PrintErr($"[Grudge] {carrier.Name}: '{want}' is not a CardSchool — grudge never fires.");
+                GD.PrintErr($"[Grudge] {carrier.Name}: '{want}' is not a CardSchool, so the grudge never fires.");
                 continue;
             }
             if (half.School != school)
@@ -816,7 +816,7 @@ public partial class CombatManager
             int stacks = carrier.AbilityUseCounts.TryGetValue("school_grudge", out var n) ? n + 1 : 1;
             carrier.AbilityUseCounts["school_grudge"] = stacks;
             string msg = UIContent.FormatLogLine(carrier.Name, "Grudge",
-                $"+{amount} damage — you cast {school}",
+                $"+{amount} damage because you cast {school}",
                 $"{stacks} stack{(stacks == 1 ? "" : "s")}, now {carrier.AttackDamage}");
             GD.Print(msg);
             AppendCombatLog(msg);
@@ -884,7 +884,7 @@ public partial class CombatManager
         try
         {
             // Push every queued trigger (queue order = trigger order; LIFO stack
-            // means the LAST queued resolves FIRST — and any response the player
+            // means the LAST queued resolves FIRST, and any response the player
             // casts lands on top of all of them).
             while (_pendingTriggers.Count > 0)
             {
@@ -895,7 +895,7 @@ public partial class CombatManager
                 // on a Wake-Keeper that was itself killed by the same sweep).
                 if (t.Carrier != null && (!IsInstanceValid(t.Carrier) || !t.Carrier.Stats.IsAlive))
                 {
-                    string fizzle = $"[Stack] {t.StackName} ({t.SourceName}) fizzles — its source is gone.";
+                    string fizzle = $"[Stack] {t.StackName} ({t.SourceName}) fizzles. Its source is gone.";
                     GD.Print(fizzle);
                     combatUI?.AppendActionLog(fizzle);
                     continue;
@@ -930,13 +930,13 @@ public partial class CombatManager
                 var top = State.Stack.PeekTop();
                 string topName = top?.Ability?.Name ?? "?";
 
-                // V3 (§7c): the strip renders whatever is on the stack — even
+                // V3 (§7c): the strip renders whatever is on the stack, and even
                 // during auto-pass it plays through visibly with zero input.
                 combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: false);
 
                 // §7c stops override the one-Pass-covers-the-exchange ruling
                 // (2026-07-10): a set stop reopens the window before EVERY
-                // matching resolution — that is what "stop" promises.
+                // matching resolution. That is what "stop" promises.
                 if (State.StackCount() > windowSkipAtOrBelow
                     || PlayerSession.DebugStopOnTriggers
                     || StopSetFor(CategorizeStackItem(top)))
@@ -945,7 +945,7 @@ public partial class CombatManager
                     windowSkipAtOrBelow = State.StackCount();
                 }
 
-                // The response may have COUNTERED/changed things — re-check.
+                // The response may have COUNTERED/changed things, so re-check.
                 if (State.Stack.IsEmpty)
                     break;
 
@@ -954,7 +954,7 @@ public partial class CombatManager
                          $"(size before: {State.StackCount()}).");
                 State.Resolver.ResolveTop(State);
 
-                // Readability beat — the strip is legible while it plays through.
+                // Readability beat, so the strip is legible while it plays through.
                 await ToSignal(GetTree().CreateTimer(0.3f), "timeout");
 
                 // A resolution can kill units (future keys) → queue more triggers.
@@ -986,7 +986,7 @@ public partial class CombatManager
             _triggerDrainRunning = false;
         }
 
-        // The stack settled — evaluate combat end that was deferred while
+        // The stack settled, so evaluate combat end that was deferred while
         // triggers were outstanding (Final Service killed last, etc.).
         combatUI?.HideStackStrip();
         CheckCombatEnd();
@@ -1066,21 +1066,21 @@ public partial class CombatManager
         GD.Print($"[Priority] window OPEN on {topName} ({why}).");
 
         // §7c: while the window is open, non-Reflex halves in the hand darken +
-        // desaturate — only castable responses read as live.
+        // desaturate, so only castable responses read as live.
         deckUiManager?.SetReactionWindow(true);
 
         // Auto-select the responder so their hand is on screen and their mana is
         // synced (SelectUnit does both). Click any other friendly mid-window to
-        // switch responders — see OnLeftMouseReleased's window branch.
+        // switch responders (see OnLeftMouseReleased's window branch).
         if (responder != null && responder != selectedUnit)
         {
             GD.Print($"[Priority] auto-selected {responder.Name} (holds a response).");
-            combatUI?.AppendActionLog($"{responder.Name} can respond — cast a Reflex, or Pass to resolve.");
+            combatUI?.AppendActionLog($"{responder.Name} can respond. Cast a Reflex, or Pass to resolve.");
             SelectUnit(responder);
             if (currentPhase != CombatPhase.PlayerTurn)
                 ClearMoveTiles();   // enemy-phase window: no move affordance
         }
-        // V3 (§7c): the strip itself is the window — Pass + Respond enabled
+        // V3 (§7c): the strip itself is the window, with Pass + Respond enabled
         // (Respond greys out unless a castable Reflex is actually in hand).
         combatUI?.ShowStackStrip(BuildStackSnapshot(), interactive: true, canRespond: holdsResponse);
 
@@ -1088,25 +1088,25 @@ public partial class CombatManager
         while (!_priorityPassed)
         {
             // Keep the window until the player passes, per R3: priority is
-            // theirs until surrendered (a response cast does not auto-pass —
-            // they may hold another Reaction).
+            // theirs until surrendered (a response cast does not auto-pass,
+            // because they may hold another Reaction).
             await ToSignal(GetTree(), "process_frame");
 
             // (2026-07-28, PT-U3e-4) HARD BAIL: priority is priority OVER SOMETHING.
             // If the stack empties underneath this window there is nothing left to
-            // respond to, and holding the window is a deadlock — the loop exits only
+            // respond to, and holding the window is a deadlock: the loop exits only
             // on _priorityPassed, and with a stop set the auto-close branch below can
             // never fire. RunEnemyTurn then awaits a drain that never returns and the
             // phase banner hangs forever.
             //
             // The reported repro was pressing Enter/Space during a trigger window,
             // which reached the DEBUG ResolveTop() and drained the stack out from
-            // under the loop. That input path is now blocked at the source as well —
-            // both fixes ship, because "no input can empty the stack" is a claim about
+            // under the loop. That input path is now blocked at the source as well.
+            // Both fixes ship, because "no input can empty the stack" is a claim about
             // every future call site and this is a claim about this loop.
             if (State.Stack.IsEmpty)
             {
-                GD.Print($"[Priority] window closed on {topName} — the stack emptied underneath it.");
+                GD.Print($"[Priority] window closed on {topName}. The stack emptied underneath it.");
                 break;
             }
 
@@ -1120,10 +1120,10 @@ public partial class CombatManager
                     canRespond: nextResponder != null);
 
                 // (2026-07-10 UX) The cast just landed. If no further castable
-                // response is held, don't demand a Pass click — close the window.
+                // response is held, don't demand a Pass click. Close the window.
                 if (!stopSet && nextResponder == null)
                 {
-                    GD.Print("[Priority] auto-close — no further responses held.");
+                    GD.Print("[Priority] auto-close. No further responses held.");
                     _priorityPassed = true;
                 }
             }
@@ -1136,7 +1136,7 @@ public partial class CombatManager
     }
 
     /// <summary>True when ANY living arcane player unit holds a castable Reaction.
-    /// (2026-07-09: the active-deck-only v1 limitation is retired — the gate now
+    /// (2026-07-09: the active-deck-only v1 limitation is retired, and the gate now
     /// scans every hand with per-unit mana. Pooled response strip stays V3 UX.)</summary>
     private bool PlayerHoldsCastableReaction() => FindReactionResponder() != null;
 
@@ -1186,7 +1186,7 @@ public partial class CombatManager
 
     /// <summary>half.CanPlay evaluated against a SPECIFIC unit's mana. ManaCost.CanPay
     /// treats State.ActiveCasterUnit as authoritative (RuntimeInterfaces.cs), so pin
-    /// it for the check and restore — without this, the fallback reads State.Mana[Me],
+    /// it for the check and restore it after. Without this, the fallback reads State.Mana[Me],
     /// which SelectUnit syncs to whatever unit happens to be selected (the root cause
     /// of the v3 checklist-4 defect). Conditions are pure; CanPay only reads.</summary>
     private bool UnitCanPlay(CardHalf half, Unit unit)
@@ -1198,8 +1198,8 @@ public partial class CombatManager
     }
 
     /// <summary>U3e: repaints the hand after something OTHER than the player changed
-    /// it. DeckManager's own discard path drives `_activeDeck` — the deck of whoever
-    /// is selected — so calling DiscardCard for a non-selected unit would take the
+    /// it. DeckManager's own discard path drives `_activeDeck`, the deck of whoever
+    /// is selected, so calling DiscardCard for a non-selected unit would take the
     /// card from the WRONG hand. Redact therefore mutates UnitDeckData directly and
     /// calls this, which repaints only when the victim is the unit actually on
     /// screen; every other unit's hand is redrawn by SelectUnit when the player
@@ -1214,12 +1214,12 @@ public partial class CombatManager
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// U3 ability effects — the Long Table's keys
+// U3 ability effects: the Long Table's keys
 // ════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Requiem (Wake-Keeper): +N AttackDamage, stacking, when any ally dies.
 /// Every death is added to the tab; the longer the fight grinds, the steeper the
-/// bill. Mutates the carrier's per-unit AttackDamage — its next planned intent
+/// bill. Mutates the carrier's per-unit AttackDamage, so its next planned intent
 /// telegraphs the new value automatically.</summary>
 public sealed class RequiemEffect : IEffect
 {
@@ -1237,13 +1237,13 @@ public sealed class RequiemEffect : IEffect
     {
         if (_carrier == null || !GodotObject.IsInstanceValid(_carrier) || !_carrier.Stats.IsAlive)
         {
-            s.Log("[Requiem] carrier gone — no effect.");
+            s.Log("[Requiem] carrier gone, so no effect.");
             return;
         }
         _carrier.AttackDamage += _amount;
         int stacks = _carrier.AbilityUseCounts.TryGetValue("requiem", out var n) ? n + 1 : 1;
         _carrier.AbilityUseCounts["requiem"] = stacks;
-        // V3 (§9): fixed grammar via FormatLogLine — [Source] Ability: effect (state).
+        // V3 (§9): fixed grammar via FormatLogLine, i.e. [Source] Ability: effect (state).
         string msg = UIContent.FormatLogLine(_carrier.Name, "Requiem",
             $"+{_amount} damage", $"{stacks} stack{(stacks == 1 ? "" : "s")}, now {_carrier.AttackDamage}");
         GD.Print(msg);
@@ -1252,7 +1252,7 @@ public sealed class RequiemEffect : IEffect
 }
 
 /// <summary>Ritual (U3d): every living ally gains +N attack damage, cumulatively,
-/// each time this fires. The Cultist — it makes kill PRIORITY a real decision instead
+/// each time this fires. This is the Cultist: it makes kill PRIORITY a real decision instead
 /// of "hit the nearest thing". CAPPED (spec §9 open decision 2): uncapped, a six-round
 /// siege ends at +6 on every enemy, and it compounds with requiem, which already
 /// stacks. The cap is reported in the log line so the player can see the ceiling.</summary>
@@ -1275,7 +1275,7 @@ public sealed class RitualEffect : IEffect
         int given = _carrier.AbilityUseCounts.TryGetValue("ritual", out var n) ? n : 0;
         if (given >= _cap)
         {
-            s.Log($"[Ritual] {_carrier.Name} is at its ceiling (+{given}) — no further escalation.");
+            s.Log($"[Ritual] {_carrier.Name} is at its ceiling (+{given}), so no further escalation.");
             return;
         }
         int step = Math.Min(_amount, _cap - given);
@@ -1299,7 +1299,7 @@ public sealed class RitualEffect : IEffect
 }
 
 /// <summary>Summon Cadence (U3d): spawns on a CLOCK rather than on death. This is
-/// deathburst's missing half — deathburst only fires once the unit is already dead, so
+/// deathburst's missing half. Deathburst only fires once the unit is already dead, so
 /// the player never sees pressure building and cannot choose to race it. A telegraphed
 /// cadence is a decision; a posthumous surprise is not. Reuses the same summon seam.</summary>
 public sealed class SummonCadenceEffect : IEffect
@@ -1322,7 +1322,7 @@ public sealed class SummonCadenceEffect : IEffect
             return;
         if (s.OnSummonRequested == null || s.Grid == null || string.IsNullOrEmpty(_unitId))
         {
-            s.Log("[SummonCadence] no summon seam or no unit id — no effect.");
+            s.Log("[SummonCadence] no summon seam or no unit id, so no effect.");
             return;
         }
         int spawned = 0;
@@ -1338,7 +1338,7 @@ public sealed class SummonCadenceEffect : IEffect
         }
         string msg = spawned > 0
             ? UIContent.FormatLogLine(_carrier.Name, "Assembly", $"{spawned} more come online")
-            : UIContent.FormatLogLine(_carrier.Name, "Assembly", "no room to deploy — nothing arrives");
+            : UIContent.FormatLogLine(_carrier.Name, "Assembly", "no room to deploy, so nothing arrives");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }
@@ -1387,12 +1387,12 @@ public sealed class FieldRepairEffect : IEffect
     }
 }
 
-/// <summary>Thorns — the enemy `retaliate` ability key (U3c). Named ThornsEffect,
+/// <summary>Thorns, the enemy `retaliate` ability key (U3c). Named ThornsEffect,
 /// NOT RetaliateEffect: Effect.cs already owns that name for the player's Riposte
-/// card, which arms Unit.RetaliateDamage. The two are separate mechanics today —
-/// see the note on ResolveRetaliation. A unit that answers being hit in melee. Fires on
+/// card, which arms Unit.RetaliateDamage. The two are separate mechanics today
+/// (see the note on ResolveRetaliation). A unit that answers being hit in melee. Fires on
 /// onStruck; the striker is carried as the trigger's TargetUnit. Adjacency is
-/// re-checked at RESOLUTION, not at queue time — displacement in response (the
+/// re-checked at RESOLUTION, not at queue time, so displacement in response (the
 /// Enchanter's whole kit) legitimately dodges the counter, which is the counterplay.
 /// Damage is dealt with no source, so two retaliators cannot ping-pong forever.</summary>
 public sealed class ThornsEffect : IEffect
@@ -1414,17 +1414,17 @@ public sealed class ThornsEffect : IEffect
         if (_striker == null || !GodotObject.IsInstanceValid(_striker) || !_striker.Stats.IsAlive)
         {
             // Was a SILENT return until 2026-07-28. A null striker means the damage
-            // path did not name its source (DoT, terrain — or a call site that has not
+            // path did not name its source (DoT, terrain, or a call site that has not
             // been taught to pass one), and saying nothing made that indistinguishable
             // from "the ability is broken". It cost a playtest cycle to find.
-            s.Log("[Retaliate] no identifiable striker — nothing to answer.");
+            s.Log("[Retaliate] no identifiable striker, so nothing to answer.");
             return;
         }
         if (_striker.CurrentTile == null || _carrier.CurrentTile == null)
             return;
         if (HexGridManager.AxialDistance(_striker.CurrentTile.Axial, _carrier.CurrentTile.Axial) > 1)
         {
-            s.Log($"[Retaliate] {_striker.Name} struck from outside reach — no answer.");
+            s.Log($"[Retaliate] {_striker.Name} struck from outside reach, so there is no answer.");
             return;
         }
         string msg = UIContent.FormatLogLine(_carrier.Name, "Retaliate",
@@ -1437,7 +1437,7 @@ public sealed class ThornsEffect : IEffect
 
 /// <summary>Regrowth (U3c): heals to FULL at the end of its action unless it took at
 /// least `threshold` HP of damage this round. Punishes spreading damage across the
-/// board and rewards committing to one target — the opposite lesson from chitin.</summary>
+/// board and rewards committing to one target, the opposite lesson from chitin.</summary>
 public sealed class RegrowthEffect : IEffect
 {
     private readonly Unit _carrier;
@@ -1475,7 +1475,7 @@ public sealed class RegrowthEffect : IEffect
 }
 
 /// <summary>Mode Shift (U3c): once cumulative combat damage crosses `threshold`, the
-/// unit adopts another UnitDefinition's profile — stats, behaviour key and tags. Once
+/// unit adopts another UnitDefinition's profile: stats, behaviour key and tags. Once
 /// per combat. The swap is QUEUED here and applied at the head of the unit's next
 /// activation (CombatManager.EnemyIntents), never mid-turn: §7a P2 says the UI states
 /// rules and never lies about the turn in progress, and a unit that transformed
@@ -1503,26 +1503,26 @@ public sealed class ModeShiftEffect : IEffect
             return;
         if (string.IsNullOrEmpty(_profile) || UnitRegistry.Get(_profile) == null)
         {
-            GD.PrintErr($"[ModeShift] {_carrier.Name}: profile '{_profile}' does not resolve — no shift.");
+            GD.PrintErr($"[ModeShift] {_carrier.Name}: profile '{_profile}' does not resolve, so no shift.");
             return;
         }
         _carrier.PendingProfileId = _profile;
         string msg = UIContent.FormatLogLine(_carrier.Name, "Mode Shift",
-            "something gives way", $"{_carrier.DamageTakenThisCombat}/{_threshold} — it changes next turn");
+            "something gives way", $"{_carrier.DamageTakenThisCombat}/{_threshold}, it changes next turn");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }
 }
 
 /// <summary>Redact (U3e): the struck unit loses N random cards from its HAND. The
-/// Censor — the only key in the game that attacks a decision the player has already
+/// Censor is the only key in the game that attacks a decision the player has already
 /// made rather than a resource they were going to spend.
 ///
 /// Per-unit decks make this naturally targeted: it takes from whoever was hit, not
 /// from a party-wide pool, so who you leave in reach is the counterplay.
 ///
-/// Does NOT go through DeckManager.DiscardCard. That method operates on `_activeDeck`
-/// — the SELECTED unit's deck — so calling it for an unselected victim would silently
+/// Does NOT go through DeckManager.DiscardCard. That method operates on `_activeDeck`,
+/// the SELECTED unit's deck, so calling it for an unselected victim would silently
 /// discard from the wrong hand. UnitDeckData.Discard is the per-unit primitive; the
 /// UI is repainted through CombatManager.RefreshHandFor, which no-ops unless the
 /// victim is the unit currently on screen.
@@ -1531,13 +1531,13 @@ public sealed class ModeShiftEffect : IEffect
 /// count 1, elite-gated.
 ///
 /// REVISED after playtest PT-U3e-2: the card is EXILED, not discarded. As a discard it
-/// was mechanically free — the hand refills to MaxHandSize at every turn start, so the
+/// was mechanically free: the hand refills to MaxHandSize at every turn start, so the
 /// player lost a card of *selection* and zero tempo, and the card came back in two
 /// shuffles anyway. Exiled, it is attrition against a 10-card deck: the draw pile the
 /// player will cycle through for the rest of the fight is permanently one card thinner,
 /// and the one it lost is the one they were holding on purpose.
 ///
-/// The tempo half of hand denial is now a SEPARATE key — `hand_cap` — because the two
+/// The tempo half of hand denial is now a SEPARATE key, `hand_cap`, because the two
 /// are different mechanics that happened to share a name.</summary>
 public sealed class RedactEffect : IEffect
 {
@@ -1562,7 +1562,7 @@ public sealed class RedactEffect : IEffect
         // changed inside the priority window, and that must be legible (U3c lesson 3).
         if (_victim == null || !GodotObject.IsInstanceValid(_victim) || !_victim.Stats.IsAlive)
         {
-            s.Log($"[Redact] {who}: the struck unit is gone — nothing to take.");
+            s.Log($"[Redact] {who}: the struck unit is gone, so there is nothing to take.");
             return;
         }
         if (_victim.DeckData == null)
@@ -1585,7 +1585,7 @@ public sealed class RedactEffect : IEffect
             names.Add(card.CardName ?? card.TopHalf?.Name ?? "a card");
             if (!_victim.DeckData.ExileFromHand(card))
             {
-                s.Log($"[Redact] {who}: '{card.CardName}' was not in hand — nothing taken.");
+                s.Log($"[Redact] {who}: '{card.CardName}' was not in hand, so nothing was taken.");
                 break;
             }
             taken++;
@@ -1593,7 +1593,7 @@ public sealed class RedactEffect : IEffect
         _cm?.RefreshHandFor(_victim);
 
         string msg = UIContent.FormatLogLine(who, "Redact",
-            $"{_victim.Name} loses {string.Join(", ", names)} — burned out of the deck",
+            $"{_victim.Name} loses {string.Join(", ", names)}, burned out of the deck",
             $"{hand.Count} in hand, {_victim.DeckData.TotalCards} cards left");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
@@ -1601,16 +1601,16 @@ public sealed class RedactEffect : IEffect
 }
 
 /// <summary>Overdraw Ward (U3e): if the player played N or more cards this round, the
-/// ward takes a SECOND activation next round. The Time Eater — it prices the burst
+/// ward takes a SECOND activation next round. This is the Time Eater: it prices the burst
 /// turn, which is the one turn structure this game otherwise never punishes.
 ///
 /// Reads GameState.SpellsCastThisTurn, which already exists and already resets at
 /// player-turn start; no new counter. Fires at onTurnEnd during the enemy phase, so
-/// the count it reads is the player turn that just finished — exactly "this round".
+/// the count it reads is the player turn that just finished, exactly "this round".
 ///
 /// Arms a flag rather than acting: the extra activation is a whole turn's worth of
-/// threat and must be TELEGRAPHED, not sprung. The under-threshold case logs too —
-/// "three of four" is the information that makes the fourth card a decision.</summary>
+/// threat and must be TELEGRAPHED, not sprung. The under-threshold case logs too,
+/// because "three of four" is the information that makes the fourth card a decision.</summary>
 public sealed class OverdrawWardEffect : IEffect
 {
     private readonly Unit _carrier;
@@ -1640,13 +1640,13 @@ public sealed class OverdrawWardEffect : IEffect
             return;                                   // already armed; do not stack
         _carrier.ExtraActivationPending = true;
         string msg = UIContent.FormatLogLine(_carrier.Name, "Overdraw Ward",
-            "you spent too much time — it acts twice next round", $"{cast}/{_n} cards");
+            "you spent too much time, so it acts twice next round", $"{cast}/{_n} cards");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }
 }
 
-/// <summary>U3b VERIFICATION SCAFFOLD — remove with the debug_trigger_probe unit.
+/// <summary>U3b VERIFICATION SCAFFOLD. Remove with the debug_trigger_probe unit.
 /// Announces that a trigger fired, with its round and victim. This is the phase's
 /// exit criterion made executable: author one echo per trigger, play one fight, read
 /// the log. A trigger that fires twice, at the wrong moment, or not at all is visible
@@ -1697,7 +1697,7 @@ public sealed class DeathburstEffect : IEffect
     {
         if (s.OnSummonRequested == null || s.Grid == null)
         {
-            s.Log("[Deathburst] no summon seam — no effect.");
+            s.Log("[Deathburst] no summon seam, so no effect.");
             return;
         }
 
@@ -1717,7 +1717,7 @@ public sealed class DeathburstEffect : IEffect
         // V3 (§9): fixed grammar via FormatLogLine.
         string msg = spawned > 0
             ? UIContent.FormatLogLine(_sourceName, "Deathburst", $"{spawned} Honored Dead rise")
-            : UIContent.FormatLogLine(_sourceName, "Deathburst", "no room at the table — nothing rises");
+            : UIContent.FormatLogLine(_sourceName, "Deathburst", "no room at the table, so nothing rises");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
     }
@@ -1763,13 +1763,13 @@ public sealed class EnemyStrikeEffect : IEffect
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Q2 item-trigger effects — §7a: items are abilities the wearer carries, on the
+// Q2 item-trigger effects (§7a): items are abilities the wearer carries, on the
 // SAME dispatcher + stack + log grammar as enemy abilities.
 // ════════════════════════════════════════════════════════════════════════════
 
 /// <summary>onSpawn item effect: the wearer gains N shield at combat start
 /// (the "shield-on-combat-start is OnSpawn" example from §7a). Resolves inline
-/// at spawn — see FireItemSpawnTriggers.</summary>
+/// at spawn (see FireItemSpawnTriggers).</summary>
 public sealed class ItemShieldSelfEffect : IEffect
 {
     private readonly int _amount;

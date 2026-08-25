@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 // ============================================================
 // CombatManager.EnemyIntents.cs  (partial of CombatManager)
 //
-// Purpose:        The enemy intent system — Into-the-Breach-style
+// Purpose:        The enemy intent system: Into-the-Breach-style
 //                 telegraphed AI. Splits the old ActEnemyUnit flow
 //                 into PLAN (end of enemy phase: every enemy decides
 //                 and locks its action, visible to the player all
@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 //                 LOCKING RULES:
 //                 - Attacks / shots / channels are TILE-locked: the
 //                   strike resolves against the planned tile and
-//                   whatever stands on it at execution — including
+//                   whatever stands on it at execution, including
 //                   the enemy's own allies, or nothing. Repositioning
 //                   and pushing things into/out of threat tiles is
 //                   the core counterplay verb.
@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 //                 INFORMATION TIERS:
 //                 - Intent KIND is always visible (glyph + "?").
 //                 - Full details (value + threat tiles) require a
-//                   reveal — RevealIntent / RevealAllIntents, the
+//                   reveal: RevealIntent / RevealAllIntents, the
 //                   API the per-school Mage Sight cards will call.
 //                 - Reveals last until the unit re-plans (one round)
 //                   unless unit.IntentPermanentlyRevealed (the
@@ -38,8 +38,8 @@ using System.Threading.Tasks;
 //                   ShowIntentKindByDefault = false.
 //
 //                 CHRONOMANCER COMPATIBILITY (no effect changes):
-//                 - PostponedTurns: the intent persists un-executed —
-//                   the telegraphed strike visibly hangs for another
+//                 - PostponedTurns: the intent persists un-executed,
+//                   so the telegraphed strike visibly hangs for another
 //                   round. Existing postpone effects work unchanged.
 //                 - RedirectedChargeTile: consumed at execution as a
 //                   retarget of the locked tile. Works on ANY
@@ -48,35 +48,35 @@ using System.Threading.Tasks;
 //                   before, so decoys now bait LOCKED attacks that
 //                   keep swinging at the decoy's tile.
 //
-//                 U2 — BEHAVIOR DISPATCH + TAGS (units doc §4/4a):
+//                 U2: BEHAVIOR DISPATCH + TAGS (units doc §4/4a):
 //                 - PlanIntent dispatches on Unit.BehaviorKey via a
 //                   string → handler map (the EnemyArchetype enum is
 //                   deleted). Unknown keys warn once, fall back to
 //                   melee_advance. New key: melee_hunt_wounded (the
-//                   doc's 'stalker') — targets the lowest-current-HP
+//                   doc's 'stalker'), which targets the lowest-current-HP
 //                   player unit instead of the nearest.
 //                 - BehaviorTags compose around the base routine:
-//                     pack    — +1 dmg while adjacent to a living
+//                     pack:     +1 dmg while adjacent to a living
 //                               pack ally, checked at STRIKE time
 //                               (splitting the pack before execution
-//                               denies the bonus — same counterplay
+//                               denies the bonus, the same counterplay
 //                               grammar as tile-locking); movement
 //                               steps prefer pack-adjacent tiles on
 //                               distance ties.
-//                     bulwark — will not move while an adjacent ally
+//                     bulwark:  will not move while an adjacent ally
 //                               is below half HP (plants; still
 //                               strikes if its mark is in reach).
-//                     charge  — melee sprint: takes steps until
+//                     charge:   melee sprint. Takes steps until
 //                               adjacent or AP runs out (legacy
 //                               routines step once per turn); +1 dmg
 //                               when it moved and arrived.
-//                     scout   — re-aims at plan time to a target
+//                     scout:    re-aims at plan time to a target
 //                               outside radius 2 when 2+ player units
 //                               crowd within 2 ("breaks off");
 //                               movement steps prefer flanking tiles
 //                               (adjacent to the mark, not adjacent
 //                               to other player units) on ties.
-//                     immobile— never moves (turrets, rooted growths).
+//                     immobile: never moves (turrets, rooted growths).
 //                 - Telegraph honesty: EnemyIntent.Value is the
 //                   plan-time ESTIMATE (base + tag bonuses as the
 //                   board stood at planning); EnemyIntent.BaseValue
@@ -106,7 +106,7 @@ public enum IntentKind
     Attack,        // melee strike at a locked tile
     RangedAttack,  // ranged shot at a locked tile (LOS at execution)
     Channel,       // turn 1 of the wizard's two-turn blast (locked tile)
-    Release,       // turn 2 — the blast lands on the locked tile
+    Release,       // turn 2: the blast lands on the locked tile
     Guard,         // defender reposition + self armor
     Imbue,         // caster writes its element onto telegraphed ground next turn
     Shove,         // gust elite force-moves the player along a telegraphed path
@@ -123,7 +123,7 @@ public class EnemyIntent
     public Vector2I? TargetTile;
     /// <summary>Tiles painted as threatened when revealed.</summary>
     public List<Vector2I> ThreatTiles = new();
-    /// <summary>Damage / armor value shown when revealed — the plan-time telegraph,
+    /// <summary>Damage / armor value shown when revealed. This is the plan-time telegraph,
     /// including behavior-tag bonuses as estimated at planning.</summary>
     public int Value;
     /// <summary>Untagged base value. Execution recomputes tag bonuses from this
@@ -146,7 +146,7 @@ public partial class CombatManager
 
     /// <summary>PLACEHOLDER TELEMETRY (2026-07-27, testing phase). Adds a second
     /// line of ASCII markers under each enemy's intent glyph spelling out what the
-    /// new systems are about to do — movement budget, behaviour tags, triggered
+    /// new systems are about to do: movement budget, behaviour tags, triggered
     /// abilities, caster rider. Deliberately ugly and deliberately not art: the
     /// tokens are plain ASCII because the Label3D font is only known to cover the
     /// handful of glyphs IntentGlyph already uses, and a box-drawing tofu is worse
@@ -182,17 +182,17 @@ public partial class CombatManager
     private readonly HashSet<Vector2I> _paintedThreatTiles = new();
 
     /// <summary>Floating reticle glyphs over threatened tiles, keyed by coord.
-    /// Markers, not tints — the threat TINT layers under the move-zone overlay
+    /// Markers, not tints: the threat TINT layers under the move-zone overlay
     /// and disappears whenever the locked tile is inside the player's movement
     /// range (which, for shots aimed at player units, is nearly always).</summary>
     private readonly Dictionary<Vector2I, Label3D> _threatMarkers = new();
 
-    /// <summary>Victim of the most recent ResolveStrike — read by the channel-release
+    /// <summary>Victim of the most recent ResolveStrike, read by the channel-release
     /// slow rider so dodges/redirects carry the rider to the right unit (or nobody).</summary>
     internal Unit LastStrikeVictim;
 
     // ════════════════════════════════════════════════════════════════════════
-    // PLANNING — runs at the end of each enemy phase (and once after
+    // PLANNING: runs at the end of each enemy phase (and once after
     // deployment), so intents are visible for the entire player turn.
     // ════════════════════════════════════════════════════════════════════════
 
@@ -246,7 +246,7 @@ public partial class CombatManager
 
         // U3a: an authored IntentCycle overrides BehaviorKey for THIS activation.
         // The index counts COMPLETED beats and is advanced in RunEnemyTurn, never
-        // here — PlanAllEnemyIntents runs at the tail of every enemy phase and would
+        // here. PlanAllEnemyIntents runs at the tail of every enemy phase and would
         // otherwise burn a beat per planning pass rather than per action.
         string key = CycleKeyFor(enemy);
 
@@ -255,15 +255,15 @@ public partial class CombatManager
             // Fail loudly once per unknown key, then run the safest routine.
             // The registry assertion catches authored typos before they get here.
             if (_warnedBehaviorKeys.Add(key ?? ""))
-                GD.PrintErr($"[EnemyAI] Unknown behaviour key '{key}' on {enemy.Name} — falling back to melee_advance.");
+                GD.PrintErr($"[EnemyAI] Unknown behaviour key '{key}' on {enemy.Name}. Falling back to melee_advance.");
             planner = PlanSoldier;
         }
 
         return ApplyPlanTags(enemy, planner(enemy));
     }
 
-    /// <summary>U3a: which planner key drives this activation. An empty cycle —
-    /// every unit authored before U3a — returns BehaviorKey, so this is a no-op for
+    /// <summary>U3a: which planner key drives this activation. An empty cycle, which
+    /// is every unit authored before U3a, returns BehaviorKey, so this is a no-op for
     /// the entire existing roster. A non-looping cycle that has run out also falls
     /// through to BehaviorKey, which is what makes "opening" scripts expressible
     /// (wind up once, then fight normally forever).</summary>
@@ -279,7 +279,7 @@ public partial class CombatManager
 
     /// <summary>U3d: rounds remaining until an everyNRounds ability next fires. The
     /// cadence is evaluated as roundNumber % n == 0 against the GLOBAL counter, so this
-    /// is exact rather than an estimate — which is what lets the marker promise it.</summary>
+    /// is exact rather than an estimate, which is what lets the marker promise it.</summary>
     private int RoundsUntilCadence(UnitAbilityDef ab)
     {
         int n = Math.Max(1, ab.GetIntParam("n", 2));
@@ -287,7 +287,7 @@ public partial class CombatManager
         return rem == n ? 0 : rem;     // 0 = fires on the round now being planned
     }
 
-    /// <summary>U3c: swaps a unit onto another definition's profile — stats,
+    /// <summary>U3c: swaps a unit onto another definition's profile: stats,
     /// behaviour key, tags, abilities and colour. Health carries across as a
     /// FRACTION, not reset: a Guardian that breaks open at 20% must not heal by
     /// transforming. Once per combat. The cycle index resets so the new profile's
@@ -330,7 +330,7 @@ public partial class CombatManager
         RefreshEnemyRoster();
     }
 
-    /// <summary>U3a: cycle-only planner — brace, strike nothing. Guard is the one
+    /// <summary>U3a: cycle-only planner. Brace, strike nothing. Guard is the one
     /// IntentKind that already resolves to a non-offensive action, so a script that
     /// wants a wind-up beat (the Lagavulin opening) spends it here rather than
     /// inventing a new kind. Deliberately NOT authorable as a BehaviorKey: a unit
@@ -350,20 +350,20 @@ public partial class CombatManager
     /// <summary>tile_interaction §7 (telegraphed imbue intent). A cycle-only beat: the
     /// caster spends its turn writing ITS element (<see cref="Unit.ImbueOnHit"/>) onto
     /// the ground under/around the nearest player, telegraphed a full round ahead via
-    /// the normal ThreatTiles pipeline. Imbuing GROUND is telegraph-honest — the tiles
+    /// the normal ThreatTiles pipeline. Imbuing GROUND is telegraph-honest, because the tiles
     /// cannot move between plan and execution the way an attack's victim can, so the
     /// player sees exactly where the terrain will change and can vacate it (area
     /// denial) or accept it. A unit with no element cannot imbue, so the beat falls
     /// back to a ranged plan rather than wasting the activation.
     ///
     /// Area is the aim tile + its walkable, non-water neighbours (radius 1). That
-    /// footprint is the primary balance knob for the pack-tuning pass — shrink to the
+    /// footprint is the primary balance knob for the pack-tuning pass. Shrink to the
     /// centre tile for a precise curse, or promote to a per-unit radius later.</summary>
     private EnemyIntent PlanImbue(Unit enemy)
     {
         var element = enemy.ImbueOnHit;
         if (element == TileElementType.None)
-            return PlanRanger(enemy);          // nothing to write — act normally
+            return PlanRanger(enemy);          // nothing to write, so act normally
 
         var target = FindNearestPlayerUnit(enemy);
         if (target?.CurrentTile == null)
@@ -374,7 +374,7 @@ public partial class CombatManager
 
         // Footprint: the aim tile plus the imbuable neighbours NEAREST the caster,
         // capped small (4 total) so a repeatable cast denies a chokepoint without
-        // carpeting the map — the fix for the 7-tiles-per-cast pile-up seen in
+        // carpeting the map. This is the fix for the 7-tiles-per-cast pile-up seen in
         // playtest. This cap is the primary balance knob for hazard-layer enemies.
         const int maxTiles = 4;
         var area = new List<Vector2I>();
@@ -405,7 +405,7 @@ public partial class CombatManager
     }
 
     /// <summary>A tile the imbue intent may write to: on the board, walkable, unblocked,
-    /// not open water (real map water superseded the Water element — §2 ruling 10.1).</summary>
+    /// not open water (real map water superseded the Water element; §2 ruling 10.1).</summary>
     private bool IsImbuableTile(Vector2I coord)
     {
         var t = grid.GetTile(coord);
@@ -414,13 +414,13 @@ public partial class CombatManager
     }
 
     /// <summary>Tiles a gust elite shoves its victim, and how far. The shove itself
-    /// deals no damage — the threat is WHERE you land (fire sear, ice slide, a
+    /// deals no damage. The threat is WHERE you land (fire sear, ice slide, a
     /// collision, a fall), which the whole tile-interaction stack resolves for free
     /// because the push runs through Forced PlaceOnTile.</summary>
     private const int ShoveDistance = 3;
 
     /// <summary>tile_interaction §7 (telegraphed shover elite). Force-moves the player
-    /// along a telegraphed path, weaponising the board — a gust that throws you onto
+    /// along a telegraphed path, weaponising the board: a gust that throws you onto
     /// your own fire, across an ice sheet, off a ledge. Locks the victim's tile like an
     /// attack, so the player DODGES by stepping off it before the enemy turn. Only
     /// plans when a mark is within reach; otherwise advances to close the gap.</summary>
@@ -435,7 +435,7 @@ public partial class CombatManager
         var shoverPos = enemy.CurrentTile.Axial;
         int reach = Math.Max(1, enemy.AttackRange);
         if (grid.Distance(shoverPos, target.CurrentTile.Axial) > reach)
-            return PlanSoldier(enemy);          // out of gust range — close in first
+            return PlanSoldier(enemy);          // out of gust range, so close in first
 
         var path = ResolveShovePath(target, shoverPos, ShoveDistance, apply: false, ctx: null);
         var threat = new List<Vector2I> { target.CurrentTile.Axial };
@@ -445,7 +445,7 @@ public partial class CombatManager
         {
             Kind = IntentKind.Shove,
             TargetUnit = target,
-            TargetTile = target.CurrentTile.Axial,   // locked — leave this tile to dodge
+            TargetTile = target.CurrentTile.Axial,   // locked: leave this tile to dodge
             ThreatTiles = threat,
             Value = ShoveDistance,
             BaseValue = ShoveDistance
@@ -454,7 +454,7 @@ public partial class CombatManager
 
     /// <summary>Predicts (apply=false) or performs (apply=true) a shove: the victim is
     /// forced one tile at a time to the enterable neighbour FARTHEST from the shover,
-    /// up to <paramref name="distance"/> steps — the same "away from source" rule the
+    /// up to <paramref name="distance"/> steps, following the same "away from source" rule the
     /// PushEffect card uses. When applying, each step is a Forced PlaceOnTile through
     /// <paramref name="ctx"/>, so element verbs / slides / collisions / falls all fire,
     /// and a Frost slide or Stone anchor can legitimately change the real path.</summary>
@@ -482,7 +482,7 @@ public partial class CombatManager
                 }
             }
             if (best == null)
-                break;                              // wall / edge / crowd — shove stops
+                break;                              // wall / edge / crowd stops the shove
 
             path.Add(best.Axial);
             if (apply)
@@ -505,7 +505,7 @@ public partial class CombatManager
         if (!IsValidActor(enemy) || enemy.CurrentTile == null)
             return;
 
-        // Re-acquire the victim on the LOCKED tile — if they stepped off it, the gust
+        // Re-acquire the victim on the LOCKED tile. If they stepped off it, the gust
         // catches empty ground (the telegraphed dodge).
         Unit victim = intent.TargetTile.HasValue
             ? grid.GetTile(intent.TargetTile.Value)?.Occupant : null;
@@ -551,9 +551,9 @@ public partial class CombatManager
     /// only struck the ward when it happened to be nearest, so protect fights
     /// carried no pressure. Hunts the objective ward through everything except
     /// spell-level target overrides (RedirectAll/decoys rewrite reality, not
-    /// preference — the Stalker rule). Taunt does NOT divert it, same ruling as
+    /// preference; the Stalker rule). Taunt does NOT divert it, same ruling as
     /// Stalker: taunt nudges nearest-selection, and ignoring nearest-selection
-    /// is this key's identity — body-blocking, shields, and heals are the
+    /// is this key's identity. Body-blocking, shields, and heals are the
     /// counterplay, which is exactly the protect toolkit. No ward standing →
     /// behaves as melee_advance (authored hunters stay useful in reuse).</summary>
     private EnemyIntent PlanHuntWard(Unit enemy)
@@ -581,9 +581,9 @@ public partial class CombatManager
     }
 
     /// <summary>The units doc's 'stalker' routine: ignores nearest-target selection
-    /// and hunts the lowest-current-HP player unit — assassin pressure that punishes
+    /// and hunts the lowest-current-HP player unit. That is assassin pressure that punishes
     /// leaving a wounded unit exposed. Spell-level target overrides (RedirectAll,
-    /// decoy auras) still apply — they rewrite reality, not preference. Taunting
+    /// decoy auras) still apply, because they rewrite reality, not preference. Taunting
     /// does NOT divert it: taunt is a nearest-selection nudge, and ignoring
     /// nearest-selection is this key's entire identity (ruling logged here).</summary>
     private EnemyIntent PlanStalker(Unit enemy)
@@ -610,10 +610,10 @@ public partial class CombatManager
             return null;
 
         // Targeting evidence for console transcripts (Session F finding: absolute
-        // current HP is the metric — a full-HP 14/14 companion outranks a wounded
+        // current HP is the metric, so a full-HP 14/14 companion outranks a wounded
         // 15/20 wizard. Doc-specified; kill-proximity, not wound-seeking.)
         GD.Print($"[Stalker] {enemy.Name} marks {target.Name} " +
-                 $"({target.Stats.Health}/{target.Stats.MaxHealth} HP — lowest current).");
+                 $"({target.Stats.Health}/{target.Stats.MaxHealth} HP, lowest current).");
 
         var tile = target.CurrentTile.Axial;
         int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
@@ -628,7 +628,7 @@ public partial class CombatManager
         };
     }
 
-    // ── U2: plan-time tag pass — retargeting + telegraph estimates ──────────
+    // ── U2: plan-time tag pass (retargeting + telegraph estimates) ──────────
 
     /// <summary>Applies behavior-tag effects that belong to PLANNING: the scout
     /// break-off retarget, and telegraph (Value) estimates for pack/charge.
@@ -640,7 +640,7 @@ public partial class CombatManager
 
         bool isStrike = intent.Kind is IntentKind.Attack or IntentKind.RangedAttack;
 
-        // scout: when 2+ player units crowd within 2 tiles, break off — re-aim at
+        // scout: when 2+ player units crowd within 2 tiles, break off and re-aim at
         // the nearest player unit OUTSIDE that radius (the flank target). If every
         // living target is crowding it, keep the original mark.
         if (isStrike && enemy.HasBehaviorTag("scout") && enemy.CurrentTile != null)
@@ -681,7 +681,7 @@ public partial class CombatManager
         }
 
         // Telegraph estimates for damage tags (melee strikes only). These are
-        // estimates by design — the locked VALUE the player reads; execution
+        // estimates by design: the locked VALUE the player reads. Execution
         // recomputes against the board they rearranged.
         if (intent.Kind == IntentKind.Attack && enemy.CurrentTile != null)
         {
@@ -693,8 +693,8 @@ public partial class CombatManager
 
             if (enemy.HasBehaviorTag("charge") && intent.TargetTile.HasValue)
             {
-                // (2026-07-27) Predict against the REAL envelope — AP-after-reserve x
-                // EffectiveMoveRange, charge bonus included — not the raw AP count.
+                // (2026-07-27) Predict against the REAL envelope: AP-after-reserve x
+                // EffectiveMoveRange, charge bonus included, not the raw AP count.
                 // The old check compared tiles against action points, which only
                 // happened to line up while a move action was worth one hex.
                 int dist = grid.Distance(enemy.CurrentTile.Axial, intent.TargetTile.Value);
@@ -776,7 +776,7 @@ public partial class CombatManager
         }
 
         // (2026-07-29 ward rework) A defender BOUND to a living ward does not
-        // hunt — it closes on the WARD (Guard intent below; ExecuteGuardIntent
+        // hunt. It closes on the WARD (Guard intent below; ExecuteGuardIntent
         // walks it in, and MayMove plants it on arrival). Only an unbound or
         // BEREAVED defender (ward slain) takes the advance-and-strike path.
         var boundWard = enemy.HasBehaviorTag("bulwark") ? GetBulwarkWard(enemy) : null;
@@ -785,8 +785,8 @@ public partial class CombatManager
         // return Guard here unconditionally, which meant a hold_until_near unit
         // never closed a single tile in its life: it attacked only what was already
         // adjacent at plan time, and its only movement (ExecuteGuardIntent) was
-        // toward its own ALLIES. Ignoring it was free, and it farmed +2 armor a turn
-        // — a 1:1 consumable damage pool — for the whole fight while contributing
+        // toward its own ALLIES. Ignoring it was free, and it farmed +2 armor a turn,
+        // a 1:1 consumable damage pool, for the whole fight while contributing
         // nothing. It is now a slow armoured soldier: it walks at you and swings.
         //
         // Identity kept vs melee_advance: the adjacency check above wins FIRST, so a
@@ -813,7 +813,7 @@ public partial class CombatManager
         }
 
         // Planted (bulwark shielding a wounded ally), immobile, or nothing to hunt →
-        // guard. Honest intent — no surprise attacks at execution.
+        // guard. Honest intent, with no surprise attacks at execution.
         return new EnemyIntent
         {
             Kind = IntentKind.Guard,
@@ -830,7 +830,7 @@ public partial class CombatManager
             return null;
 
         // Covering fire first (2026-08-11 ruling): a ranger prefers a LIVING
-        // SOLDIER it can actually service — nearest non-structure with LoS
+        // SOLDIER it can actually service: nearest non-structure with LoS
         // within range+1 (one reposition step). It shoots the DOOR only when
         // no such target exists. Taunt/untargetable semantics: taunters are
         // never structures, so a taunter pick survives this branch untouched;
@@ -857,7 +857,7 @@ public partial class CombatManager
             if (bestSoldier != null)
                 target = bestSoldier;          // covering fire
             else if (bestDoor != null)
-                target = bestDoor;             // no viable soldier — the door
+                target = bestDoor;             // no viable soldier, so the door
             // else: keep the original pick and let execution walk/report
         }
 
@@ -877,13 +877,13 @@ public partial class CombatManager
     private EnemyIntent PlanWizard(Unit enemy)
     {
         // Already channelling: the release is locked to the tile chosen when
-        // the channel began — NOT re-aimed. Two full player turns of warning.
+        // the channel began, NOT re-aimed. Two full player turns of warning.
         if (enemy.HasStatus("wizard_charging") && enemy.ChannelTile.HasValue)
         {
             var locked = enemy.ChannelTile.Value;
             int rdmg = (enemy.AttackDamage > 0 ? enemy.AttackDamage : 4) + ChannelReleaseBonus;
 
-            // (2026-07-28, U3e) Ritardando — "their spells cost +1 this round" — finally
+            // (2026-07-28, U3e) Ritardando, "their spells cost +1 this round", finally
             // does something. Enemies pay no mana, so the tax is charged in the only
             // currency a caster spends: the channel is HELD for N extra activations
             // before it lands. The player buys a round of safety and can see it: the
@@ -895,7 +895,7 @@ public partial class CombatManager
             // PURE READ. The counter is decremented at EXECUTION (ExecuteChannelStart),
             // never here: PlanAllEnemyIntents is documented "safe to call redundantly"
             // and runs once per enemy phase, so a decrement at plan time would burn the
-            // delay without an activation ever happening — the same plan-time/execution
+            // delay without an activation ever happening. It is the same plan-time/execution
             // -time distinction that U3a's IntentCycleIndex is built on.
             if (enemy.ChannelDelayRemaining > 0)
             {
@@ -937,7 +937,7 @@ public partial class CombatManager
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // REVEAL API — what the per-school Mage Sight cards will call.
+    // REVEAL API: what the per-school Mage Sight cards will call.
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>Fully reveals one enemy's intent (value + threat tiles). Lasts until it re-plans, or permanently if markPermanent (the Adept/Namer "true name" hook).</summary>
@@ -971,12 +971,12 @@ public partial class CombatManager
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // DISPLAY — intent glyph over each enemy + threat tile painting.
+    // DISPLAY: intent glyph over each enemy + threat tile painting.
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>Tiles this unit will cover on its next activation:
     /// (MaxActionPoints - reserved attack AP) move actions x EffectiveMoveRange.
-    /// Reads MaxActionPoints, NOT CurrentActionPoints — intents are planned at the
+    /// Reads MaxActionPoints, NOT CurrentActionPoints, because intents are planned at the
     /// TAIL of the enemy phase when the budget is already spent, so the current
     /// value would read 0 all through the player's turn.</summary>
     private int PredictedMoveTiles(Unit enemy)
@@ -991,7 +991,7 @@ public partial class CombatManager
         return Mathf.Max(0, enemy.MaxActionPoints - ReservedAttackAP(enemy)) * reach;
     }
 
-    /// <summary>PLACEHOLDER: the second display line — everything the new systems
+    /// <summary>PLACEHOLDER: the second display line, holding everything the new systems
     /// added that the player otherwise cannot see. ASCII only, see
     /// ShowDebugIntentMarkers.</summary>
     private string BuildIntentMarkers(Unit enemy)
@@ -1000,7 +1000,7 @@ public partial class CombatManager
             return "";
         var parts = new List<string>();
 
-        // Mobility — the most opaque thing after the tier-2 change.
+        // Mobility: the most opaque thing after the tier-2 change.
         int tiles = PredictedMoveTiles(enemy);
         if (enemy.HasBehaviorTag("immobile"))
             parts.Add("IMM");
@@ -1012,7 +1012,7 @@ public partial class CombatManager
         parts.Add($"AP{enemy.MaxActionPoints}");
 
         // U3a: script position and the NEXT beat. Per the units doc's mimic note the
-        // cycle telegraphs ONE STEP AHEAD by design — a script the player cannot read
+        // cycle telegraphs ONE STEP AHEAD by design. A script the player cannot read
         // a beat early is not a telegraph, it is a surprise, and by the spec's own
         // test an identity the player cannot perceive at decision time is worth zero.
         if (enemy.IntentCycle != null && enemy.IntentCycle.Count > 0)
@@ -1033,7 +1033,7 @@ public partial class CombatManager
             }
         }
 
-        // Behaviour tags — what the routine does that the glyph does not say.
+        // Behaviour tags: what the routine does that the glyph does not say.
         if (enemy.HasBehaviorTag("charge"))
             parts.Add("CHG+1");
         if (enemy.HasBehaviorTag("pack"))
@@ -1047,7 +1047,7 @@ public partial class CombatManager
         if (string.Equals(enemy.BehaviorKey, "melee_hunt_wounded", StringComparison.OrdinalIgnoreCase))
             parts.Add("HUNTS-WEAK");
 
-        // U3c defensive shapes — the reason a player's damage is not landing, stated
+        // U3c defensive shapes: the reason a player's damage is not landing, stated
         // rather than left to be inferred from a health bar that will not move.
         if (enemy.ChitinAmount > 0)
             parts.Add($"CHITIN-{enemy.ChitinAmount}");
@@ -1078,7 +1078,7 @@ public partial class CombatManager
                 parts.Add($"SHIFT@{Mathf.Max(0, ab.GetIntParam("threshold", 25) - enemy.DamageTakenThisCombat)}");
             // U3e resource denial. Every one of these taxes something the player is
             // ABOUT to spend, so an unstated one reads as the game cheating rather
-            // than as a fight being hard — §1a: a mechanic the player cannot read at
+            // than as a fight being hard. Per §1a, a mechanic the player cannot read at
             // decision time contributes zero identity.
             else if (string.Equals(ab.Key, "tithe_aura", StringComparison.OrdinalIgnoreCase))
                 parts.Add($"TITHE+{ab.GetIntParam("amount", 1)}");
@@ -1104,16 +1104,16 @@ public partial class CombatManager
                     : $"OVERDRAW@{ab.GetIntParam("n", 4)}cards");
         }
 
-        // U3e: a held channel is the one state where the intent glyph alone LIES —
-        // it reads Channel on a turn the player expected Release. Name the cause.
+        // U3e: a held channel is the one state where the intent glyph alone LIES.
+        // It reads Channel on a turn the player expected Release. Name the cause.
         if (enemy.ChannelDelayRemaining > 0)
             parts.Add($"DRAGGED@{enemy.ChannelDelayRemaining}");
 
-        // Caster rider — which school blast comes out of the channel.
+        // Caster rider: which school blast comes out of the channel.
         if (!string.IsNullOrEmpty(enemy.CasterSpell))
             parts.Add($"SPELL:{enemy.CasterSpell}");
 
-        // Triggered abilities — the death events the player cannot otherwise plan
+        // Triggered abilities: the death events the player cannot otherwise plan
         // around. Requiem shows LIVE stacks so the snowball is legible.
         foreach (var ab in enemy.Abilities)
         {
@@ -1134,7 +1134,7 @@ public partial class CombatManager
     }
 
     /// <summary>U3a: three-letter ASCII tag for a planner key, for the CYC marker.
-    /// ASCII on purpose — IntentGlyph's standing note is that the Label3D font is
+    /// ASCII on purpose, because IntentGlyph's standing note is that the Label3D font is
     /// only known to cover the six glyphs it already uses, and a tofu box is worse
     /// than no marker.</summary>
     private static string CycleToken(string key) => (key ?? "").ToLowerInvariant() switch
@@ -1200,22 +1200,22 @@ public partial class CombatManager
         string suffix = enemy.PostponedTurns > 0 ? "…" : "";
 
         Color color = intent.Revealed
-            ? new Color(1.0f, 0.55f, 0.45f)      // revealed — hot
-            : new Color(0.85f, 0.85f, 0.85f);    // kind-only — neutral
+            ? new Color(1.0f, 0.55f, 0.45f)      // revealed: hot
+            : new Color(0.85f, 0.85f, 0.85f);    // kind-only: neutral
 
         string markers = ShowDebugIntentMarkers ? BuildIntentMarkers(enemy) : "";
         string body = string.IsNullOrEmpty(markers)
             ? $"{glyph} {value}{suffix}"
             : $"{glyph} {value}{suffix}\n{markers}";
 
-        // The marker line is reference text, not a glyph — shrink it so two lines
+        // The marker line is reference text, not a glyph, so shrink it and two lines
         // don't swallow the board.
         enemy.SetIntentDisplay(body, color, string.IsNullOrEmpty(markers) ? 40 : 24);
     }
 
     /// <summary>
     /// Repaints threat highlights from all locked intents. Two tiers (info-tier
-    /// change 2026-07-08, from Session F confusion — a locked shot whiffing on a
+    /// change 2026-07-08, from Session F confusion about a locked shot whiffing on a
     /// tile the player never knew was threatened): when ShowIntentKindByDefault,
     /// EVERY locked tile paints as a dim reticle (the kind tier now includes
     /// WHERE); revealed intents paint hot. Hidden-intent mode (kind flag off)
@@ -1265,7 +1265,7 @@ public partial class CombatManager
 
     /// <summary>Creates the floating reticle over a threatened tile. Label3D via
     /// the proven glyph-label pattern (billboard, NoDepthTest, CallDeferred
-    /// add_child per README §8) — sits above terrain, grass, and every tile-tint
+    /// add_child per README §8). It sits above terrain, grass, and every tile-tint
     /// overlay, so it stays readable inside the player's move zone.</summary>
     private void SpawnThreatMarker(HexTile view, Vector2I coord, bool revealed)
     {
@@ -1284,16 +1284,16 @@ public partial class CombatManager
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // EXECUTION — replaces the old RunEnemyTurn. Each unit carries out its
+    // EXECUTION: replaces the old RunEnemyTurn. Each unit carries out its
     // locked intent against the board as the player left it.
     // ════════════════════════════════════════════════════════════════════════
 
-    /// <summary>U3a: closes out one executed beat — advance the script position, drop
+    /// <summary>U3a: closes out one executed beat by advancing the script position and dropping
     /// the spent intent and its marker. Extracted in U3e because overdraw_ward's second
     /// activation needs the same closing sequence mid-loop, and two copies of the
     /// Channel rule would eventually disagree.
     ///
-    /// A Channel is HALF a beat — the Release that follows completes it — so a
+    /// A Channel is HALF a beat, and the Release that follows completes it, so a
     /// `ranged_charge` entry costs two activations and cannot be severed mid-channel by
     /// the index. RunEnemyTurn's stun/postpone/negate branches `continue` before
     /// reaching either call site, so a fizzled beat is RETRIED next round rather than
@@ -1310,7 +1310,7 @@ public partial class CombatManager
     private async Task RunEnemyTurn()
     {
         // U3: settle any triggers queued since the last drain (deaths from the
-        // player's turn resolve their stack before enemies act — e.g. terrain
+        // player's turn resolve their stack before enemies act, e.g. terrain
         // ticks killing a Wake-Keeper's ally at the turn boundary).
         await DrainTriggerStackAsync();
 
@@ -1322,7 +1322,7 @@ public partial class CombatManager
                 && pu.Attunement is FateAttunement fateWindow)
                 fateWindow.OnEnemyTurnStart();
 
-        // U3d: recompute radius auras before the enemies act — the player has just
+        // U3d: recompute radius auras before the enemies act. The player has just
         // spent a turn moving, killing and displacing, so last turn's guard assignments
         // are stale.
         ApplyEnemyAuras();
@@ -1331,14 +1331,14 @@ public partial class CombatManager
         // (2026-08-05) This was ALREADY speed-ordered, but only by accident: the
         // spawn placer sorts pendingEnemySpawns by BaseSpeed to hand out tiles
         // nearest the player centroid first, and enemyUnits inherited that order
-        // from its Add loop. Nothing declared it, nothing preserved it — mid-fight
+        // from its Add loop. Nothing declared it, nothing preserved it, and mid-fight
         // reinforcements append at the tail regardless of speed, so a spawned-in
         // scout activated after a siege bulwark and the implicit rule broke exactly
         // when the player most needed it to hold.
         //
         // Sorting here makes the order explicit, survives reinforcements, and turns
         // SPD into a stat the player can learn and plan against. OrderByDescending
-        // is a STABLE sort, so equal-speed units keep their spawn order — for a
+        // is a STABLE sort, so equal-speed units keep their spawn order. For a
         // fight with no reinforcements this produces the identical sequence to
         // before the change, which is what makes it safe to land mid-playtest.
         var snapshot = enemyUnits
@@ -1355,7 +1355,7 @@ public partial class CombatManager
             await ToSignal(GetTree().CreateTimer(EnemyFocusBeat), "timeout");
 
             // U3e overdraw_ward: the charge armed last round is read AND SPENT here,
-            // at the very head of the activation — before the negate/postpone/stun
+            // at the very head of the activation, before the negate/postpone/stun
             // branches below can `continue` past it. That is the ruling, not an
             // accident of ordering: a Counterspell, a Postpone or a stun answers the
             // overdraw, rather than deferring it to a round the player has stopped
@@ -1380,7 +1380,7 @@ public partial class CombatManager
             if (enemy.PostponedTurns > 0)
             {
                 enemy.PostponedTurns--;
-                GD.Print($"{enemy.Name} is delayed — its strike hangs " +
+                GD.Print($"{enemy.Name} is delayed. Its strike hangs " +
                          $"({enemy.PostponedTurns} more turn(s)).");
                 combatUI?.AppendActionLog($"{enemy.Name} is delayed!");
                 UpdateIntentDisplay(enemy); // refresh the "…" suffix
@@ -1402,7 +1402,7 @@ public partial class CombatManager
                     combatUI?.AppendActionLog($"{enemy.Name}'s channel is broken!");
                 }
 
-                GD.Print($"{enemy.Name} is {reason} — its plan fizzles.");
+                GD.Print($"{enemy.Name} is {reason}. Its plan fizzles.");
                 combatUI?.AppendActionLog($"{enemy.Name} is {reason}!");
                 enemy.CurrentIntent = null;
                 enemy.ClearIntentDisplay();
@@ -1425,12 +1425,12 @@ public partial class CombatManager
                     $"locked strike drawn to ({newTile.X}, {newTile.Y})"));
             }
 
-            // U3c: a mode_shift armed last round lands HERE — at the head of the
+            // U3c: a mode_shift armed last round lands HERE, at the head of the
             // unit's activation, before it plans or acts, so the intent it telegraphs
             // is the intent the new profile will actually execute.
             ApplyPendingProfile(enemy);
 
-            // U3b: everyNRounds — evaluated against the GLOBAL round counter rather
+            // U3b: everyNRounds is evaluated against the GLOBAL round counter rather
             // than a per-unit tally. Deterministic, save-safe, and legible: "every 3rd
             // round" is a fact the player can read off the phase banner, where a
             // per-unit countdown would drift silently whenever a unit lost a turn.
@@ -1444,7 +1444,7 @@ public partial class CombatManager
 
             await ExecuteIntent(enemy);
 
-            // U3e overdraw_ward: the SECOND activation lands here — after the first
+            // U3e overdraw_ward: the SECOND activation lands here, after the first
             // beat is fully closed out (script position advanced, intent cleared) and
             // BEFORE onTurnEnd is queued. Both halves of that ordering are load-bearing:
             //
@@ -1454,7 +1454,7 @@ public partial class CombatManager
             //    rather than a stutter.
             //  - onTurnEnd stays ONCE PER ROUND. Firing it per activation would double
             //    regrowth's heal and re-arm this very ability against a count that has
-            //    not changed since — "turn end" means the end of the turn, and the unit
+            //    not changed since. "Turn end" means the end of the turn, and the unit
             //    has had one turn containing two actions.
             if (actsTwice && IsValidActor(enemy))
             {
@@ -1475,7 +1475,7 @@ public partial class CombatManager
 
                     // Refresh ONLY the action budget. Deliberately NOT StartTurn():
                     // that also runs TickStatuses, so a second activation would burn
-                    // an extra turn off every status on the unit — a ward under
+                    // an extra turn off every status on the unit, so a ward under
                     // `slowed` would shrug it off early, i.e. the punish would come
                     // with a free cleanse attached. Nothing else StartTurn does is
                     // wanted here (mana is unused by enemies; the disable clamp is
@@ -1501,11 +1501,11 @@ public partial class CombatManager
                 }
             }
 
-            // U3b: onTurnEnd — after the unit has acted, before the drain, so an
+            // U3b: onTurnEnd fires after the unit has acted, before the drain, so an
             // end-of-action ability resolves in the same window as the intent's kills.
             QueueAbilityTriggers(enemy, "onTurnEnd");
 
-            // U3: an intent's kills queue triggers — resolve the stack (with
+            // U3: an intent's kills queue triggers, so resolve the stack (with
             // priority windows) before the next enemy acts.
             await DrainTriggerStackAsync();
 
@@ -1533,7 +1533,7 @@ public partial class CombatManager
         var intent = enemy.CurrentIntent;
         if (intent == null)
         {
-            // No plan (spawned mid-round, or planning found no target) —
+            // No plan (spawned mid-round, or planning found no target), so
             // fall back to one fresh decision, unannounced. U2: routed through
             // PlanIntent so the unit's own key/tags apply, not a soldier default.
             intent = PlanIntent(enemy);
@@ -1578,7 +1578,7 @@ public partial class CombatManager
     }
 
     /// <summary>Executes a telegraphed imbue (tile_interaction §7): writes the intent's
-    /// element onto every tile it telegraphed. Imbuing sets terrain only — a unit
+    /// element onto every tile it telegraphed. Imbuing sets terrain only, so a unit
     /// already STANDING on a written tile is not seared on the spot (verbs fire on
     /// ENTRY; standing fire is the end-of-turn hazard tick), exactly as a player's
     /// imbue_tile behaves. Re-checks each tile at execution because the board may have
@@ -1601,7 +1601,7 @@ public partial class CombatManager
             count++;
         }
 
-        string msg = $"{enemy.Name} channels — {count} tile(s) imbued with {element}.";
+        string msg = $"{enemy.Name} channels. {count} tile(s) imbued with {element}.";
         GD.Print(msg);
         combatUI?.AppendActionLog(msg);
         if (count > 0)
@@ -1647,14 +1647,14 @@ public partial class CombatManager
 
         if (grid.Distance(enemy.CurrentTile.Axial, tile) <= 1)
         {
-            // Height gate (2026-08-11 ruling): melee reaches where feet reach —
-            // no swording across a cliff edge (rampart tops). Ranged/magic only.
+            // Height gate (2026-08-11 ruling): melee reaches where feet reach.
+            // No swording across a cliff edge (rampart tops). Ranged/magic only.
             var atkTd = grid.GetTile(enemy.CurrentTile.Axial);
             var defTd = grid.GetTile(tile);
             if (atkTd != null && defTd != null &&
                 Math.Abs(atkTd.Height - defTd.Height) > grid.CliffHeightThreshold)
             {
-                string tooHigh = $"{enemy.Name} — the wall is too high to reach!";
+                string tooHigh = $"{enemy.Name} finds the wall too high to reach!";
                 GD.Print(tooHigh);
                 combatUI?.AppendActionLog(tooHigh);
                 return;
@@ -1663,7 +1663,7 @@ public partial class CombatManager
             // U2: recompute tag bonuses against the board as the player left it.
             // Tag-evidence lines are GD.Print-mirrored: console transcripts are the
             // verification medium (u2_verification.md), and AppendActionLog alone
-            // is invisible there — caught in Session B, 2026-07-08.
+            // is invisible there, as caught in Session B, 2026-07-08.
             int dmg = intent.BaseValue;
             if (enemy.HasBehaviorTag("pack") &&
                 CountAdjacentPackAllies(enemy, enemy.CurrentTile.Axial) > 0)
@@ -1696,18 +1696,18 @@ public partial class CombatManager
 
     /// <summary>Ward bindings for bulwark defenders (2026-07-29 ruling). Keyed
     /// by defender; value is its designated ward, or null once the ward has
-    /// been slain (bereaved — the binding is deliberately NOT re-assigned).</summary>
+    /// been slain (bereaved, since the binding is deliberately NOT re-assigned).</summary>
     private readonly Dictionary<Unit, Unit> _bulwarkWards = new();
 
     /// <summary>Bulwark ward designation (2026-07-29 playtest ruling): each
-    /// bulwark binds to ONE specific ally — the nearest non-bulwark ally at
+    /// bulwark binds to ONE specific ally: the nearest non-bulwark ally at
     /// first plan (fallback: nearest ally of any kind). While the ward lives,
     /// the defender closes on it and plants beside it; once the ward is slain
     /// the binding stays broken and the defender commits to melee for the rest
     /// of the fight (PlanDefender's advance-and-strike path). Replaces the old
     /// "plant beside ANY wounded adjacent ally" rule, under which a defender
     /// could turtle the whole fight without ever engaging. Returns null when
-    /// no ward is (or can be) bound — i.e. the defender should engage.</summary>
+    /// no ward is (or can be) bound, i.e. the defender should engage.</summary>
     private Unit GetBulwarkWard(Unit enemy)
     {
         if (_bulwarkWards.TryGetValue(enemy, out var bound))
@@ -1745,7 +1745,7 @@ public partial class CombatManager
 
     /// <summary>Movement gate for immobile/bulwark. False = the unit stays put
     /// this activation; <paramref name="reason"/> carries the log line (null for
-    /// immobile — a turret not moving is not news).</summary>
+    /// immobile, since a turret not moving is not news).</summary>
     private bool MayMove(Unit enemy, out string reason)
     {
         reason = null;
@@ -1755,7 +1755,7 @@ public partial class CombatManager
 
         // bulwark (2026-07-29 ward rework): plants only while standing beside
         // ITS designated ward (see GetBulwarkWard). Ward dead or unbound →
-        // free to move — the defender engages instead of turtling forever.
+        // free to move, so the defender engages instead of turtling forever.
         if (enemy.HasBehaviorTag("bulwark") && enemy.CurrentTile != null)
         {
             var ward = GetBulwarkWard(enemy);
@@ -1771,7 +1771,7 @@ public partial class CombatManager
     }
 
     /// <summary>One pathfinder step toward <paramref name="goal"/>, with pack/scout
-    /// destination preference applied on DISTANCE TIES only — a tag never trades
+    /// destination preference applied on DISTANCE TIES only, because a tag never trades
     /// progress toward the mark for formation (units doc §4a: "when movement
     /// options tie").</summary>
     private TileData ChooseStepTowardTile(Unit enemy, Vector2I goal)
@@ -1781,7 +1781,7 @@ public partial class CombatManager
             return null;
         // Consider same-distance alternatives when a tag OR hazard-avoidance could
         // prefer a different tile. A reckless enemy (caution 0) with no formation tag
-        // falls straight through to the baseline step — it walks into the fire.
+        // falls straight through to the baseline step and walks into the fire.
         if (!enemy.HasBehaviorTag("pack") && !enemy.HasBehaviorTag("scout")
             && enemy.HazardCaution <= 0f)
             return baseline;
@@ -1833,7 +1833,7 @@ public partial class CombatManager
         // an open hazard, scaled by caution. Applied here so BOTH the single-step
         // chooser's tie-break and ScoreTowardGoal's destination scoring inherit it.
         // Dominated by the x100 distance term in ScoreTowardGoal, so it only ever
-        // breaks a tie — a hazard never outweighs real progress toward the mark.
+        // breaks a tie. A hazard never outweighs real progress toward the mark.
         if (enemy.HazardCaution > 0f)
         {
             var t = grid.GetTile(coord);
@@ -1842,7 +1842,7 @@ public partial class CombatManager
         }
 
         // High-ground preference (E-track §6.3): a ranged unit favours tiles that
-        // out-elevate its mark by >= 1 — the shooter that actually holds the terrace.
+        // out-elevate its mark by >= 1, i.e. the shooter that actually holds the terrace.
         // Tie-break magnitude only, so it never trades real progress toward the mark.
         if (enemy.AttackRange > 1)
         {
@@ -1857,7 +1857,7 @@ public partial class CombatManager
 
     // ── Tier-2 movement economy (2026-07-27) ────────────────────────────────
     // A move action now covers the unit's FULL EffectiveMoveRange instead of one
-    // adjacent hex, and attacks cost AP — the economy ShowEnemyThreatZone has
+    // adjacent hex, and attacks cost AP. This is the economy ShowEnemyThreatZone has
     // documented and rendered since 2026-07-13 but the AI never obeyed.
 
     /// <summary>AP the unit must keep back so its strike is still affordable after
@@ -1873,7 +1873,7 @@ public partial class CombatManager
            && enemy.CurrentActionPoints >= ReservedAttackAP(enemy) + 1;
 
     /// <summary>Best destination reachable in ONE move action (path cost less than or
-    /// equal to EffectiveMoveRange), scored by <paramref name="score"/> — higher wins,
+    /// equal to EffectiveMoveRange), scored by <paramref name="score"/>. Higher wins,
     /// ties broken toward the cheaper path. Returns null when standing still already
     /// scores best, so a caller's loop terminates naturally.
     ///
@@ -1914,7 +1914,7 @@ public partial class CombatManager
     }
 
     /// <summary>Destination score for closing on a mark. Distance dominates at x100 so
-    /// the pack/scout preference (max 15) still only breaks TIES — the units-doc rule
+    /// the pack/scout preference (max 15) still only breaks TIES, per the units-doc rule
     /// that a tag never trades progress for formation.</summary>
     private int ScoreTowardGoal(Unit enemy, Vector2I coord, Vector2I goal)
         => -100 * grid.Distance(coord, goal) + StepPreferenceScore(enemy, coord, goal);
@@ -1926,7 +1926,7 @@ public partial class CombatManager
     {
         // Tier 2 gave every mover the full-reach AP loop, so the charge sprint and the
         // ordinary advance are now the same routine. Charge keeps its identity through
-        // its AP-3 chassis, its +1 arrival rider, and its telegraph estimate — not
+        // its AP-3 chassis, its +1 arrival rider, and its telegraph estimate, not
         // through being the only unit in the game allowed to walk more than one hex.
         var before = enemy?.CurrentTile?.Axial;
         await MoveTowardTile(enemy, goal, quiet: true);
@@ -1951,7 +1951,7 @@ public partial class CombatManager
 
         var tile = intent.TargetTile.Value;
 
-        // Reposition relative to the living target if it still exists —
+        // Reposition relative to the living target if it still exists. This is
         // orientation only; the shot stays locked to the tile.
         // U2: immobile turrets and planted bulwarks skip the kiting move.
         if (IsValidActor(intent.TargetUnit) && MayMove(enemy, out string kiteGate))
@@ -1980,7 +1980,7 @@ public partial class CombatManager
 
         if (tileDist > effRange)
         {
-            combatUI?.AppendActionLog($"{enemy.Name} — mark out of range, shot wasted.");
+            combatUI?.AppendActionLog($"{enemy.Name} finds its mark out of range. The shot is wasted.");
             return;
         }
 
@@ -2000,7 +2000,7 @@ public partial class CombatManager
         if (!IsValidActor(enemy) || intent.TargetTile == null)
             return;
 
-        // (2026-07-28, U3e) Ritardando — a channel already under way, being HELD.
+        // (2026-07-28, U3e) Ritardando: a channel already under way, being HELD.
         // The counter is spent here rather than in PlanWizard because this is the one
         // place an activation has actually been consumed. Returns early: the tile was
         // locked when the channel began and must not be re-aimed by a delay, or the
@@ -2044,7 +2044,7 @@ public partial class CombatManager
         // charge the player was already counting down. Read once, held on the unit.
         enemy.ChannelDelayRemaining = Math.Max(0, State.EnemySpellCostIncrease);
         if (enemy.ChannelDelayRemaining > 0)
-            GD.Print($"[Ritardando] {enemy.Name} channels under drag — " +
+            GD.Print($"[Ritardando] {enemy.Name} channels under drag, with " +
                      $"+{enemy.ChannelDelayRemaining} activation(s) before release.");
 
         GD.Print($"{enemy.Name} begins channelling at {intent.TargetTile.Value}...");
@@ -2072,7 +2072,7 @@ public partial class CombatManager
         if (grid.Distance(enemy.CurrentTile.Axial, tile) > enemy.AttackRange ||
             !grid.HasLineOfSight(enemy.CurrentTile.Axial, tile))
         {
-            string missMsg = $"{enemy.Name} — the blast point is beyond reach, charge wasted.";
+            string missMsg = $"{enemy.Name} finds the blast point beyond reach. The charge is wasted.";
             GD.Print(missMsg);
             combatUI?.AppendActionLog(missMsg);
             return;
@@ -2089,7 +2089,7 @@ public partial class CombatManager
         ApplyCasterRider(enemy, victim);
     }
 
-    // ── Per-school caster riders (Step 2) — the signature effect each wizard
+    // ── Per-school caster riders (Step 2): the signature effect each wizard
     // school lands on release, on top of the tile-strike damage. The generic
     // wizard (CasterSpell == "") keeps the legacy slowed-1 rider so nothing
     // regresses. Riders use only proven, symmetric statuses: burn/bleed tick
@@ -2119,33 +2119,33 @@ public partial class CombatManager
 
         switch (spell)
         {
-            case "ember":                          // Elementalist — burn DoT
+            case "ember":                          // Elementalist: burn DoT
                 victim.ApplyStatus("burn", 2);
                 combatUI?.AppendActionLog($"{victim.Name} is set alight (burning)!");
                 break;
-            case "chrono":                         // Chronomancer — deeper slow
+            case "chrono":                         // Chronomancer: deeper slow
                 victim.ApplyStatus("slowed", 2);
                 combatUI?.AppendActionLog($"{victim.Name} is dragged through time (slowed)!");
                 break;
-            case "grave":                          // Necromancer — creeping poison
+            case "grave":                          // Necromancer: creeping poison
                 victim.ApplyStatus("poisoned", 1);
-                combatUI?.AppendActionLog($"{victim.Name} is poisoned — the tab grows!");
+                combatUI?.AppendActionLog($"{victim.Name} is poisoned. The tab grows!");
                 break;
-            case "thorn":                          // Druid — root in place
+            case "thorn":                          // Druid: root in place
                 victim.ApplyStatus("rooted", 1);
                 combatUI?.AppendActionLog($"{victim.Name} is bound by roots (rooted)!");
                 break;
-            case "mind":                           // Adept — stun (lose the action)
+            case "mind":                           // Adept: stun (lose the action)
                 victim.ApplyStatus("stunned", 1);
                 combatUI?.AppendActionLog($"{victim.Name} reels, mind struck (stunned)!");
                 break;
-            case "geas":                           // Enchanter — bleeding geas
+            case "geas":                           // Enchanter: bleeding geas
                 victim.ApplyStatus("bleed", 2);
                 combatUI?.AppendActionLog($"{victim.Name} is bound by a bleeding geas!");
                 break;
-            case "arclance":                       // Arcanist — pure damage, no rider
+            case "arclance":                       // Arcanist: pure damage, no rider
                 break;
-            default:                                // generic wizard — legacy rider
+            default:                                // generic wizard: legacy rider
                 victim.ApplyStatus("slowed", 1);
                 combatUI?.AppendActionLog($"{victim.Name} is slowed by arcane energy!");
                 break;
@@ -2153,7 +2153,7 @@ public partial class CombatManager
     }
 
     /// <summary>Living enemy unit (or the caster itself) with the largest
-    /// missing-HP fraction — target for the Tinker caster's ward.</summary>
+    /// missing-HP fraction. This is the target for the Tinker caster's ward.</summary>
     private Unit MostWoundedAlly(Unit caster)
     {
         Unit best = null;
@@ -2210,7 +2210,7 @@ public partial class CombatManager
             return;
 
         // U2: immobile/planted-bulwark units brace in place, skipping the
-        // reposition — the plant IS the guard.
+        // reposition, because the plant IS the guard.
         if (!MayMove(enemy, out string guardGate))
         {
             if (guardGate != null)
@@ -2239,7 +2239,7 @@ public partial class CombatManager
         }
 
         // Reposition toward the most allies (old defender logic, opportunistic
-        // attack removed — Guard does exactly what it telegraphed, nothing else).
+        // attack removed, so Guard does exactly what it telegraphed and nothing else).
         Unit nearestAlly = null;
         int nearestAllyDist = int.MaxValue;
         foreach (var u in enemyUnits)
@@ -2290,7 +2290,7 @@ public partial class CombatManager
     // ── Shared: tile-locked strike resolution ───────────────────────────────
 
     /// <summary>
-    /// Resolves a locked strike against a TILE: hits whatever stands there —
+    /// Resolves a locked strike against a TILE: hits whatever stands there, be it
     /// a player unit, the attacker's own ally (the push-into-harm payoff), or
     /// nothing (a visible whiff the player earned).
     /// </summary>
@@ -2309,7 +2309,7 @@ public partial class CombatManager
         }
 
         // R3 follow-on (2026-07-10): when anyone can actually respond, the strike
-        // enters the stack as a respondable object — dodge by vacating the tile,
+        // enters the stack as a respondable object: dodge by vacating the tile,
         // shield up, or redirect it. Otherwise resolve directly (pacing unchanged).
         if (!_triggerDrainRunning
             && (PlayerHoldsCastableReaction() || PlayerSession.DebugStopOnTriggers))
@@ -2352,10 +2352,10 @@ public partial class CombatManager
     }
 
     /// <summary>Applies a strike's damage. <paramref name="redirected"/> is non-null when a
-    /// Reaction replaced the victim — the strike then hits that unit directly wherever it
+    /// Reaction replaced the victim. The strike then hits that unit directly wherever it
     /// stands; otherwise the tile's occupant is re-read at resolution so a dodge whiffs.
     /// <paramref name="originalVictim"/> is the unit listed when the strike entered the
-    /// stack — when it vacated the tile, the whiff logs as a §9 Dodge reaction line
+    /// stack. When it vacated the tile, the whiff logs as a §9 Dodge reaction line
     /// instead of the generic empty-ground line. Records <see cref="LastStrikeVictim"/>
     /// for riders (channel slow).</summary>
     internal void ResolveStrike(Unit attacker, Vector2I tile, int damage, bool ranged,
@@ -2371,7 +2371,7 @@ public partial class CombatManager
         if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive)
         {
             // §9 reaction grammar: a listed victim that left the tile is a Dodge,
-            // not an aimless whiff — the log credits the vacate.
+            // not an aimless whiff, so the log credits the vacate.
             bool dodged = originalVictim != null && IsInstanceValid(originalVictim)
                 && originalVictim.Stats.IsAlive && originalVictim.CurrentTile?.Axial != tile;
             string whiff = dodged
@@ -2384,7 +2384,7 @@ public partial class CombatManager
         {
             // (2026-07-29 playtest) A displaced attacker can end up STANDING ON
             // its own locked target tile (Compel pulled a Brute onto the glyph
-            // it had aimed at — it then "struck its own ally Brute_1" for 13
+            // it had aimed at, and then "struck its own ally Brute_1" for 13
             // and killed itself). A unit swinging at its own feet whiffs; the
             // push-into-harm payoff below stays for OTHER allies on the tile.
             string self = $"{attackerName} {verb} at the ground beneath it!";
@@ -2411,8 +2411,8 @@ public partial class CombatManager
             LastStrikeVictim = victim;
         }
 
-        // U3b: onAttack. ResolveStrike is the ONE place both strike paths meet — the
-        // stack route (EnemyStrikeEffect) and the direct route both land here — so a
+        // U3b: onAttack. ResolveStrike is the ONE place both strike paths meet. The
+        // stack route (EnemyStrikeEffect) and the direct route both land here, so a
         // single call site cannot be bypassed by whichever path a given strike took.
         // Queued, not resolved: the drain that follows every strike carries it.
         QueueAbilityTriggers(attacker, "onAttack", LastStrikeVictim);
@@ -2459,7 +2459,7 @@ public partial class CombatManager
             if (!IsValidActor(enemy))
                 break;
             if (grid.Distance(enemy.CurrentTile.Axial, goal) <= 1)
-                break;                                  // arrived — the strike follows
+                break;                                  // arrived, so the strike follows
             if (!CanSpendMoveAP(enemy))
                 break;                                  // out of movement AP, or the
                                                         // rest is reserved for the hit

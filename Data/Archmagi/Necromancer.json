@@ -3,7 +3,7 @@
   "displayName": "The Conductor",
   "title": "Hostess of the Long Table",
   "school": "Necromancer",
-  "description": "She runs a bar. The bar is also a funeral home, depending on what you need. Most of her regulars are dead, which she finds restful — they listen better, drink less, and never ask her to weigh in on whose fault it was. She has been the head of the Necromancer school for twenty years because she is the only practitioner who has never lost a patient in either direction. The dead do not leave her establishment without her knowing where they are going. She heals the living by asking the dead to chip in, and they do, because she is the kind of person you want to be on good terms with on both sides of the door.",
+  "description": "She runs a bar. The bar is also a funeral home, depending on what you need. Most of her regulars are dead, which she finds restful. They listen better, drink less, and never ask her to weigh in on whose fault it was. She has been the head of the Necromancer school for twenty years because she is the only practitioner who has never lost a patient in either direction. The dead do not leave her establishment without her knowing where they are going. She heals the living by asking the dead to chip in, and they do, because she is the kind of person you want to be on good terms with on both sides of the door.",
   "personalityTrait": "Hospitable",
   "isVillainFaction": false,
   "factionName": "The Long Table",
@@ -16,13 +16,13 @@
   "standardBossHealthMult": 1.0,
   "betrayalBossHealthMult": 1.5,
   "betrayalHasSecondPhase": true,
-  "allyAbilityDescription": "Each round, Ondria raises one fallen enemy as a spirit under the player's control. She also maintains a tally — units she raises remember who freed them.",
+  "allyAbilityDescription": "Each round, Ondria raises one fallen enemy as a spirit under the player's control. She also maintains a tally: units she raises remember who freed them.",
   "shardInvocationDescription": "Invoke the Long Table's Shard: every enemy currently on the field takes damage equal to the total damage they have dealt this combat.",
   "alliedStrength": 1.0,
   "coercedStrength": 0.65,
   "coercedCanFlip": true,
   "weaknessHints": [
-    "Someone owes her something. She is patient about collecting. The Astrologer is trying to close her bar permanently — she takes that personally.",
+    "Someone owes her something. She is patient about collecting. The Astrologer is trying to close her bar permanently, and she takes that personally.",
     "She is not sentimental. She is fair. There is a difference, and she will explain it to you if you have time.",
     "The dead trust her. If you want her trust, ask someone she has buried what kind of person she is."
   ],
@@ -36,7 +36,7 @@
     "The Long Table is with us. The Astrologer is going to find that certain of his allies have already settled their accounts."
   ],
   "postCorruptedDialogue": [
-    "Ondria has fallen. The Silent Table serves nothing now — not the living, not the dead. The Astrologer has closed the bar.",
+    "Ondria has fallen. The Silent Table serves nothing now. Not the living, not the dead. The Astrologer has closed the bar.",
     "She owed the dead her hospitality. He offered her certainty instead. I understand why she took it. I don't forgive it."
   ],
   "factionEncounters": {

@@ -4,7 +4,7 @@
   "npcName": "Silt",
   "archetype": "Opportunist",
   "factionId": "gray_market",
-  "openingText": "The fixer materializes beside your campfire as if she'd always been sitting there. 'Relax. If I wanted trouble, you'd already be having it. I move things — goods, people, information. You're carrying at least two of those. Let's talk percentages.'",
+  "openingText": "The fixer materializes beside your campfire as if she'd always been sitting there. 'Relax. If I wanted trouble, you'd already be having it. I move things: goods, people, information. You're carrying at least two of those. Let's talk percentages.'",
   "startingTension": 5,
   "basePatience": 6,
   "npcResolve": 1,
@@ -14,11 +14,11 @@
   "dialogueStrained": "You're leaving value on the table. That offends me professionally.",
   "dialogueHostile": "Careful. I know what your route is worth to certain people.",
   "dialogueWalkaway": "Time is inventory, and you're spoiling mine. Gone.",
-  "dialogueAccept": "Pleasure. Whatever you heard about me — this deal, I keep.",
+  "dialogueAccept": "Pleasure. Whatever you heard about me, this deal I keep.",
   "terms": [
     {
       "id": "smugglers_path",
-      "description": "Silt marks the smugglers' path through the checkpoint ahead — saving you 2 steps.",
+      "description": "Silt marks the smugglers' path through the checkpoint ahead, saving you 2 steps.",
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 0,
@@ -29,7 +29,7 @@
     },
     {
       "id": "fence_goods",
-      "description": "She'll fence your surplus salvage at 40 gold — better than any settlement rate.",
+      "description": "She'll fence your surplus salvage at 40 gold, better than any settlement rate.",
       "favorPlayer": true,
       "isHidden": false,
       "goldDelta": 40,
@@ -39,7 +39,7 @@
     },
     {
       "id": "finders_cut",
-      "description": "A 'finder's cut' of 20 gold — buried three clauses deep.",
+      "description": "A 'finder's cut' of 20 gold, buried three clauses deep.",
       "favorPlayer": false,
       "isHidden": true,
       "goldDelta": -20,

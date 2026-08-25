@@ -14,12 +14,12 @@ using System.Collections.Generic;
 //                 current beat, resolved at display time from
 //                 the player's flag state.
 //
-//                 Landmarks are NOT buildings — they occupy fixed
+//                 Landmarks are NOT buildings. They occupy fixed
 //                 hex positions and do not participate in the
 //                 build/place/upgrade flow. They are the campus's
 //                 story layer; buildings are the mechanical layer.
 // Layer:          Data
-// Collaborators:  CampusGridManager.cs (3D stamping — LoadLandmarks
+// Collaborators:  CampusGridManager.cs (3D stamping. LoadLandmarks
 //                 tints the tile and sets the HexLabel marker),
 //                 CampusInputController.cs (LandmarkClicked signal),
 //                 CampusScreen.cs (hosts NarrativeEncounterPanel),
@@ -125,7 +125,7 @@ public class LandmarkBeat
 }
 
 /// <summary>
-/// Static registry of all campus landmarks. Hardcoded for v1 — migrate to
+/// Static registry of all campus landmarks. Hardcoded for v1. Migrate to
 /// JSON loading when the campus content stabilizes. Landmarks are keyed by
 /// id and placed at authored axial coordinates on the radius-5 campus disc.
 ///
@@ -186,7 +186,7 @@ public static class CampusLandmarkRegistry
                                    "Its note stretches thin through the still air, more felt " +
                                    "than heard, a single sound that has lasted every timeline " +
                                    "you have lived. The belfry stairs are choked with leaked " +
-                                   "dream-stuff that eats sound — your footsteps die on the " +
+                                   "dream-stuff that eats sound. Your footsteps die on the " +
                                    "first step.",
                             Choices = new List<EncounterChoice>
                             {
@@ -218,9 +218,9 @@ public static class CampusLandmarkRegistry
                         Encounter = new NarrativeEncounterData
                         {
                             Id = "campus_belfry_beat2",
-                            Title = "The Belfry — The Tuning Fork",
+                            Title = "The Belfry: The Tuning Fork",
                             Body = "The bell waits at the top of the cleared stair. Its note " +
-                                   "has changed since you climbed — thinner, as if your " +
+                                   "has changed since you climbed, thinner now, as if your " +
                                    "passage drained something from the dream-stuff that was " +
                                    "feeding it. The founder's tuning fork, if you can find it " +
                                    "in the world, remembers the bell's true pitch.",
@@ -229,8 +229,8 @@ public static class CampusLandmarkRegistry
                                 new EncounterChoice
                                 {
                                     Label = "Present the tuning fork.",
-                                    ResultText = "The fork hums. The bell does not ring — not " +
-                                                 "yet — but its clapper trembles, a motion so " +
+                                    ResultText = "The fork hums. The bell does not ring, not " +
+                                                 "yet, but its clapper trembles, a motion so " +
                                                  "small it might be a wish. The pitch is right. " +
                                                  "When the belfry is restored, the bell will know " +
                                                  "its own voice.",
@@ -269,7 +269,7 @@ public static class CampusLandmarkRegistry
                             Title = "The Refectory Lights",
                             Body = "The graduation feast is still on the tables, still warm, " +
                                    "frozen mid-steam. Twenty-seven place settings. Three have " +
-                                   "chairs pushed back — someone stood up quickly. The kitchen " +
+                                   "chairs pushed back. Someone stood up quickly. The kitchen " +
                                    "door is ajar, and through it you can see the ovens, cold " +
                                    "now but with bread halfway risen inside them, the dough " +
                                    "as fresh as the moment it stopped being time.",
@@ -281,7 +281,7 @@ public static class CampusLandmarkRegistry
                                     ResultText = "You work for what feels like an hour, though " +
                                                  "nothing here marks time. The frost retreats " +
                                                  "from the surfaces you touch, and behind it the " +
-                                                 "wood is warm — warm from a fire that went out " +
+                                                 "wood is warm, warm from a fire that went out " +
                                                  "in a timeline that never ended. The feast " +
                                                  "steams on, patient.",
                                     SetFlags = new List<string> { "campus_refectory_b1" },
@@ -301,7 +301,7 @@ public static class CampusLandmarkRegistry
                         Encounter = new NarrativeEncounterData
                         {
                             Id = "campus_refectory_beat2",
-                            Title = "The Refectory — The Kitchen-Master's Ledger",
+                            Title = "The Refectory: The Kitchen-Master's Ledger",
                             Body = "The cleared hall waits for its fire. The kitchen-master's " +
                                    "last entry is a supply order, dated the morning of the " +
                                    "Sundering: flour, salt, three barrels of wine for the " +
@@ -313,7 +313,7 @@ public static class CampusLandmarkRegistry
                                     Label = "Deliver the ledger's last order.",
                                     ResultText = "You set the supplies in the kitchen as the " +
                                                  "ledger describes. The ovens do not light " +
-                                                 "themselves — you light them, with your hands, " +
+                                                 "themselves. You light them, with your hands, " +
                                                  "in a room that has been waiting for hands " +
                                                  "since before you were born. The bread begins " +
                                                  "to rise again.",
@@ -339,7 +339,7 @@ public static class CampusLandmarkRegistry
                 Id = "infirmary",
                 DisplayName = "The Infirmary",
                 HexLabel = "IF",
-                Q = 3, R = -1,  // (2026-08-13 declump) martial district ring — the
+                Q = 3, R = -1,  // (2026-08-13 declump) martial district ring. The
                                 // infirmary belongs by the training yard (R24), and
                                 // the home flower was 7/7 full while two founding
                                 // districts sat near-empty.
@@ -356,8 +356,8 @@ public static class CampusLandmarkRegistry
                             Title = "The Interrupted Mending",
                             Body = "In the infirmary, a healer stands frozen over a student, " +
                                    "hands mid-gesture, the mending spell half-woven between " +
-                                   "them. The spell is still running — the only active magic " +
-                                   "in the frozen campus — and it has been running for every " +
+                                   "them. The spell is still running (the only active magic " +
+                                   "in the frozen campus), and it has been running for every " +
                                    "timeline you have lived. It is very tired.",
                             Choices = new List<EncounterChoice>
                             {
@@ -393,9 +393,9 @@ public static class CampusLandmarkRegistry
                         Encounter = new NarrativeEncounterData
                         {
                             Id = "campus_infirmary_beat2",
-                            Title = "The Infirmary — What It Needs",
+                            Title = "The Infirmary: What It Needs",
                             Body = "The mending spell is holding, but barely. Its structure " +
-                                   "needs reagents it exhausted long ago — heartleaf and " +
+                                   "needs reagents it exhausted long ago: heartleaf and " +
                                    "stillwater moss, the kind that grows in the Witness's " +
                                    "territory.",
                             Choices = new List<EncounterChoice>
@@ -443,7 +443,7 @@ public static class CampusLandmarkRegistry
                             Title = "The Counter-Reading",
                             Body = "The observatory's great lens is aimed at the sky the " +
                                    "Astrologer reads. From inside the Long Second, the sky " +
-                                   "doesn't move — which means, for the first time in " +
+                                   "doesn't move, which means that for the first time in " +
                                    "history, someone could read it slowly. The dome is " +
                                    "sealed shut, and the leaked dream-stuff here mimics " +
                                    "constellations, star-shaped and cold.",
@@ -456,7 +456,7 @@ public static class CampusLandmarkRegistry
                                                  "flare as you force the mechanism, casting cold " +
                                                  "light across the floor in patterns that almost " +
                                                  "mean something. The shutter groans open and the " +
-                                                 "frozen sky fills the lens — the same sky " +
+                                                 "frozen sky fills the lens: the same sky " +
                                                  "Kassian reads, held still for you to study at " +
                                                  "your own pace. It is both beautiful and " +
                                                  "deeply unsettling.",
@@ -480,7 +480,7 @@ public static class CampusLandmarkRegistry
                         Encounter = new NarrativeEncounterData
                         {
                             Id = "campus_observatory_beat2",
-                            Title = "The Observatory — The Night-Ledgers",
+                            Title = "The Observatory: The Night-Ledgers",
                             Body = "The lens shows the frozen sky in exquisite detail, but " +
                                    "without the night-ledgers from the week of the Sundering, " +
                                    "you cannot bracket what Kassian saw. The records are in an " +
@@ -491,7 +491,7 @@ public static class CampusLandmarkRegistry
                                 {
                                     Label = "Install the night-ledgers and grind the counter-lens.",
                                     ResultText = "The ledgers slot into the observatory's " +
-                                                 "calculation frames. Before and after — what " +
+                                                 "calculation frames. Before and after: what " +
                                                  "the sky showed the week of the Sundering, and " +
                                                  "what it shows now, frozen in the same instant. " +
                                                  "The difference is the counter-reading: what " +
@@ -534,8 +534,8 @@ public static class CampusLandmarkRegistry
                             Id = "campus_gatehouse_beat1",
                             Title = "The Threshold Wards",
                             Body = "The gatehouse wards were the first thing the " +
-                                   "co-conspirator broke, and they broke them from inside " +
-                                   "— the sigil-work is shattered in a pattern that only " +
+                                   "co-conspirator broke, and they broke them from inside. " +
+                                   "The sigil-work is shattered in a pattern that only " +
                                    "makes sense read in reverse. The arch replays its " +
                                    "half-second of shattering in a slow, silent loop, " +
                                    "over and over, the only motion on campus besides " +
@@ -548,7 +548,7 @@ public static class CampusLandmarkRegistry
                                     ResultText = "Read in reverse, the sigil-work tells a story. " +
                                                  "The breaker knew exactly where each ward " +
                                                  "anchored, exactly how much force each seal " +
-                                                 "could hold. This was not destruction — it was " +
+                                                 "could hold. This was not destruction. It was " +
                                                  "surgery, performed with a school-signature " +
                                                  "you almost recognize. Someone trained here. " +
                                                  "Someone who sat at those twenty-seven places " +
@@ -572,9 +572,9 @@ public static class CampusLandmarkRegistry
                         Encounter = new NarrativeEncounterData
                         {
                             Id = "campus_gatehouse_beat2",
-                            Title = "The Gatehouse — The Warding Primer",
+                            Title = "The Gatehouse: The Warding Primer",
                             Body = "You know how the wards were broken. To rebuild them, " +
-                                   "you need a primer — the foundational text the breaker " +
+                                   "you need a primer: the foundational text the breaker " +
                                    "studied from. It would be in their kingdom, in a library " +
                                    "or vault they once had access to.",
                             Choices = new List<EncounterChoice>
@@ -609,7 +609,7 @@ public static class CampusLandmarkRegistry
                 Id = "library_wing",
                 DisplayName = "The Uncatalogued Wing",
                 HexLabel = "UW",
-                Q = -1, R = 3,  // (2026-08-13 declump) arcane district ring — the
+                Q = -1, R = 3,  // (2026-08-13 declump) arcane district ring. The
                                 // Uncatalogued Wing beside the Observatory and the
                                 // Sanctum's plaza; see the infirmary note.
                 RestoredFlag = "campus_library_restored",
@@ -626,7 +626,7 @@ public static class CampusLandmarkRegistry
                             Body = "The library froze during reshelving. Ten thousand books " +
                                    "hang in the air, mid-flight between hands and shelves, " +
                                    "suspended in the last breath of a morning that never " +
-                                   "ended. The wing's index was being rewritten — nothing " +
+                                   "ended. The wing's index was being rewritten, and nothing " +
                                    "frozen here is anywhere twice. Whatever is in this room " +
                                    "exists nowhere else in any timeline.",
                             Choices = new List<EncounterChoice>
@@ -637,8 +637,8 @@ public static class CampusLandmarkRegistry
                                     ResultText = "You move through the suspended library like " +
                                                  "a diver in still water. One book, brushed by " +
                                                  "your sleeve, drops from its frozen arc and " +
-                                                 "ages to dust before it hits the floor — a " +
-                                                 "text that existed for every timeline, gone in " +
+                                                 "ages to dust before it hits the floor. It was " +
+                                                 "a text that existed for every timeline, gone in " +
                                                  "a breath of real time. You are more careful " +
                                                  "after that.",
                                     HPDelta = -4,
@@ -659,9 +659,9 @@ public static class CampusLandmarkRegistry
                         Encounter = new NarrativeEncounterData
                         {
                             Id = "campus_library_beat2",
-                            Title = "The Uncatalogued Wing — The Accession List",
+                            Title = "The Uncatalogued Wing: The Accession List",
                             Body = "Deep in the hanging stacks, you found the under-librarian's " +
-                                   "cart. On it, a day's accession list — three titles flagged " +
+                                   "cart. On it, a day's accession list with three titles flagged " +
                                    "for priority retrieval. The request came from outside the " +
                                    "Academy, from someone with enough standing to pull books " +
                                    "from a university collection. The signature is Kassian " +

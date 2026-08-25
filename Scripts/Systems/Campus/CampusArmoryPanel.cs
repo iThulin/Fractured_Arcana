@@ -4,27 +4,27 @@ using static CampusUi;
 // ============================================================
 // CampusArmoryPanel.cs
 //
-// Purpose:        The Armory tab — pick a unit, see its equipped
+// Purpose:        The Armory tab: pick a unit, see its equipped
 //                 loadout, and equip/swap from the unequipped pool.
 // Layer:          UI
 // Collaborators:  CampusPanel.cs (base), CampusContext.cs,
-//                 EquipmentLoadout.cs (save.Armory — all mutation),
+//                 EquipmentLoadout.cs (save.Armory does all mutation),
 //                 ItemDatabase.cs, UITheme.RarityColor
-// See:            docs/campus_tab_extraction_v1.md — Phase 2
+// See:            docs/campus_tab_extraction_v1.md (Phase 2)
 // ============================================================
 
 /// <summary>Armory. Every mutation goes through <c>save.Armory</c>
 /// (<see cref="EquipmentLoadout"/>); this panel renders and dispatches.
 ///
-/// <para><b>Selection state is intentionally sticky across refreshes</b> — <c>_selectedUnitId</c>
+/// <para><b>Selection state is intentionally sticky across refreshes.</b> <c>_selectedUnitId</c>
 /// and <c>_slotFilter</c> survive a <see cref="Refresh"/> because the whole tab rebuilds on
 /// every equip, and losing the selected unit mid-outfitting would be maddening. Switching
 /// units DOES reset the filter to "All", which is deliberate: the previous unit's filter is
 /// rarely the right one for the next.</para>
 ///
 /// <para>This is the panel that most argued for a stateful CampusPanel over a static
-/// <c>BuildInto</c> renderer — three pieces of live selection state that a static builder
-/// would have had to thread through parameters.</para>
+/// <c>BuildInto</c> renderer. It holds three pieces of live selection state that a static
+/// builder would have had to thread through parameters.</para>
 ///
 /// <para><b>EnsureStarterItems did not move.</b> It seeds save data rather than drawing
 /// anything, and is already invoked from the shell's slot-selection path. It stays with the
@@ -224,7 +224,7 @@ public sealed class CampusArmoryPanel : CampusPanel
         }
         else
         {
-            var emptyLbl = new Label { Text = "— Empty —" };
+            var emptyLbl = new Label { Text = "- Empty -" };
             emptyLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
             emptyLbl.AddThemeColorOverride("font_color", UITheme.TextDim);
             vbox.AddChild(emptyLbl);

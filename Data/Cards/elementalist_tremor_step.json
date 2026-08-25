@@ -90,7 +90,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Seismic",
-			"description": "Seismic: Tremor Step shakes the ground \u2014 enemies adjacent to stone tiles you imbue take 3 damage.",
+			"description": "Seismic: Tremor Step shakes the ground, and enemies adjacent to stone tiles you imbue take 3 damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -263,7 +263,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Earthquake",
-			"description": "Earthquake: The ground buckles \u2014 all enemies on stone tiles take 8 damage.",
+			"description": "Earthquake: The ground buckles, and all enemies on stone tiles take 8 damage.",
 			"changes": [
 				{
 					"half": "top",
@@ -314,7 +314,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Tempest Stride",
-			"description": "Tempest Stride: Both halves fuse \u2014 move through enemies, dealing storm damage to all in range.",
+			"description": "Tempest Stride: Both halves fuse. Move through enemies, dealing storm damage to all in range.",
 			"changes": [
 				{
 					"half": "bottom",

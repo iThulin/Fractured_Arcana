@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 //                 encounter body with terrain/region-tagged
 //                 fragments, so ONE authored skeleton reads
 //                 differently across the world. Fewer authored
-//                 pieces, combinatorial apparent variety — the
+//                 pieces, combinatorial apparent variety: the
 //                 only version of "Stellaris density" a solo dev
 //                 reaches without hand-writing hundreds of events.
 // Layer:          Data / assembler
@@ -90,14 +90,14 @@ public static class EncounterAssembler
             var subs = EchoSeeder.Substitutions;
             if (subs != null && subs.TryGetValue(key, out string sub))
                 return sub;
-            // Unknown token — keep literal so authoring gaps are visible
+            // Unknown token: keep literal so authoring gaps are visible
             return m.Value;
         });
     }
 
     /// <summary>Non-destructive: returns the original encounter when its body has
     /// no tokens, else a display clone with an assembled body. Choices are shared
-    /// by reference — resolution still runs against the caller's ORIGINAL
+    /// by reference; resolution still runs against the caller's ORIGINAL
     /// encounter (Id/flags), so the cached pool entry is never mutated.</summary>
     public static NarrativeEncounterData ForDisplay(NarrativeEncounterData enc,
                                                     OverworldHex.TerrainType terrain, string regionId)

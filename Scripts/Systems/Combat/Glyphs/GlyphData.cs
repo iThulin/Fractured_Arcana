@@ -3,7 +3,7 @@ using System;
 using System.Linq;
 
 // ============================================================
-// GlyphData.cs   (drop-in replacement — extends the original)
+// GlyphData.cs   (drop-in replacement that extends the original)
 //
 // Purpose:        Data container for a prepared glyph on a hex
 //                 tile. Originally enemy-enter only; now supports
@@ -18,7 +18,7 @@ using System.Linq;
 //                 Unit.cs (PlaceOnTile fires enter/ally-enter),
 //                 PlaceGlyphEffect / Glyph effects (creators),
 //                 WeaveAttunement.cs (prepare/trigger feed)
-// See:            README §5.4 — Place Glyph effect
+// See:            README §5.4 (Place Glyph effect)
 // ============================================================
 
 /// <summary>How a glyph is triggered.</summary>
@@ -28,7 +28,7 @@ public enum GlyphTrigger
     Enter,
     /// <summary>An enemy of the owner begins its turn on the tile.</summary>
     StartOfTurn,
-    /// <summary>An ally of the owner steps onto the tile — applies the ally payload.</summary>
+    /// <summary>An ally of the owner steps onto the tile, which applies the ally payload.</summary>
     AllyEnter,
     /// <summary>Any spell is cast within <see cref="Radius"/> tiles (fired by the cast pipeline / GlyphManager).</summary>
     SpellCastNear,
@@ -52,11 +52,11 @@ public sealed class GlyphData
     /// <summary>
     /// Blueprint id of the card that placed this glyph, and which half of it. Copied by
     /// <c>PrepareGlyphEffect.Configure</c> from fields stamped onto the effect at LOAD
-    /// time by <c>JsonCardLoader.StampGlyphSource</c> — deliberately not read from
+    /// time by <c>JsonCardLoader.StampGlyphSource</c>, deliberately not read from
     /// GameState during resolution, because casting pushes to the stack and the
     /// cast-context pins are cleared before the stack resolves. Empty for legacy glyphs
     /// and for anything created outside a cast (Runic Cascade's spread copies inherit
-    /// nothing) — <c>HexTile.ShowGlyph</c> falls back to the plain marker when they are
+    /// nothing). <c>HexTile.ShowGlyph</c> falls back to the plain marker when they are
     /// empty, so this is additive and never load-bearing.
     /// </summary>
     public string SourceCardId = "";

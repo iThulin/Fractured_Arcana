@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // StrategicView.cs
 //
 // Purpose:        The cheap whole-world renderer (Phase 1b). Paints
-//                 one quad per WorldTile via a single MultiMesh —
+//                 one quad per WorldTile via a single MultiMesh:
 //                 ~9,216 instances, one draw call, zero Area2D /
 //                 Label / per-tile nodes. Per-tile color encodes
 //                 discovery first (Unseen = void), then faction
@@ -27,7 +27,7 @@ using System.Collections.Generic;
 // scene, press F6). SetWorld(world) injects the real cycle world.
 // ============================================================
 
-/// <summary>Map lenses — each colors the strategic map to answer a different
+/// <summary>Map lenses. Each colors the strategic map to answer a different
 /// question. Political = faction control + terrain texture + corruption (the
 /// combined overview); Terrain = raw region terrain; Corruption = a spread
 /// heat map.</summary>
@@ -60,10 +60,10 @@ public partial class StrategicView : Node2D
     // Deploy cost is one whole lunation (see Deploy()): the moon turns once per
     // expedition and every deploy begins on the new moon (The Veiled). The world
     // ticks exactly once per deploy, so LunationsPerCycle (CalendarState) is the
-    // sole expedition-count pacing knob — ~LunationsPerCycle deploys per cycle.
+    // sole expedition-count pacing knob: ~LunationsPerCycle deploys per cycle.
 
     /// <summary>This scene. Doubles as the EncounterRouter return-override key for
-    /// the Convergence fight, the way CampusScreen uses its own path — that is what
+    /// the Convergence fight, the way CampusScreen uses its own path. That is what
     /// tells ConsumeConvergenceReturn a returning combat was the finale's and not an
     /// expedition's.</summary>
     private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
@@ -102,10 +102,10 @@ public partial class StrategicView : Node2D
     private VBoxContainer _rightHudStack;
     private Button _cityLeaveBtn;          // "to the world map", shown only in city view
     private Button _annexButton;           // "annex a district" toggle (kept so we can reset it after a purchase)
-    private Button _buildModeBtn;          // "build" toggle — arms bare-ground clicks to open the construct card
+    private Button _buildModeBtn;          // "build" toggle: arms bare-ground clicks to open the construct card
     private bool _buildMode;               // mirrors _buildModeBtn; gates OnHomeGroundPicked
     private Button _cityServicesBtn;       // "City Services" reopen button, NPC city view only
-    private Label _hintLabel;              // bottom context hint — text swaps per view mode
+    private Label _hintLabel;              // bottom context hint; text swaps per view mode
     private CanvasLayer _helpLayer;        // the "first steps" orientation card
     private Button _helpBtn;               // reopens the help card any time
     private static bool _helpAutoShown;    // once per app session: auto-open on first home-city entry
@@ -113,7 +113,7 @@ public partial class StrategicView : Node2D
     private NarrativeEncounterPanel _cityNarrativePanel;  // Phase 3 explore: hosts a district EVENT over the city view
     private CanvasLayer _cityExploreLayer;    // Phase 3 explore: hosts the narrative panel + toasts above the atlas
     private ToastManager _cityExploreToasts;  // Phase 3 explore: stub messages for Fight/Story districts
-    private const int DistrictAnnexCost = 250;   // placeholder gold cost to annex a district — tune in playtest
+    private const int DistrictAnnexCost = 250;   // placeholder gold cost to annex a district; tune in playtest
     [Export] public bool Use3DStrategicMap = true;
 
     // Camera control
@@ -144,7 +144,7 @@ public partial class StrategicView : Node2D
             else
             {
                 // THE HUB (2026-08-19): this scene is the game's main screen, so its
-                // boot must be self-sufficient — the jobs CampusScreen._Ready used to
+                // boot must be self-sufficient. The jobs CampusScreen._Ready used to
                 // do on the way in happen here. Cards are already primed by the
                 // GameBootstrap autoload; the save is autoloaded, seeded, and its
                 // cycle world generated on demand. A cold boot with NO save routes to
@@ -167,7 +167,7 @@ public partial class StrategicView : Node2D
                 var cycle = SaveManager.ActiveSave?.Cycle;
                 if (cycle == null || cycle.World == null || cycle.World.Tiles.Length == 0)
                 {
-                    GD.PrintErr("StrategicView: no active cycle/world after init — routing to campus.");
+                    GD.PrintErr("StrategicView: no active cycle/world after init. Routing to campus.");
                     CallDeferred(nameof(RouteToCampusFallback));
                     return;
                 }
@@ -175,13 +175,13 @@ public partial class StrategicView : Node2D
                 _kingdoms = cycle.Kingdoms;
                 _debugReveal = PlayerSession.DebugMode && PlayerSession.DebugRevealStrategicMap;
 
-                // W3: pay the emergency-extraction debt BEFORE anything renders
-                // — the straggle lunations advance the calendar and tick the
+                // W3: pay the emergency-extraction debt BEFORE anything renders.
+                // The straggle lunations advance the calendar and tick the
                 // world, and the HUD/markers must show the post-tick state.
                 ProcessPendingStraggle(cycle);
 
                 // A returned warfront-intervention expedition applies its outcome
-                // to the front here, before anything renders — so markers, control
+                // to the front here, before anything renders, so markers, control
                 // colours, and the frontier report reflect the post-intervention
                 // state the moment the map comes up.
                 ResolveReturnedWarfrontIntervention(cycle);
@@ -204,7 +204,7 @@ public partial class StrategicView : Node2D
         }
 
         // The 2D Camera2D is only for the 2D render path. In 3D-real mode we skip
-        // it — WorldAtlas3D owns its own camera, and _UnhandledInput/FrameCamera
+        // it. WorldAtlas3D owns its own camera, and _UnhandledInput/FrameCamera
         // both early-return on a null _camera, so all 2D pan/zoom auto-disables.
         if (Standalone || !Use3DStrategicMap)
             BuildCamera();
@@ -212,7 +212,7 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>W3 (claude/expedition_window_sliding_v1 §2.3): an emergency
-    /// extraction sends the party home overland — CycleState.PendingStraggleLunations
+    /// extraction sends the party home overland. CycleState.PendingStraggleLunations
     /// holds the debt. Advance the calendar one full lunation per owed unit,
     /// running the SAME per-lunation world tick a deploy-crossed boundary runs
     /// (council → corruption → infirmary), then save. If the lost time tips the
@@ -228,8 +228,8 @@ public partial class StrategicView : Node2D
         for (int i = 0; i < owed; i++)
         {
             if (!cycle.Calendar.AdvanceLunation())
-                break; // conjunction already reached — no further time to spend
-            GD.Print($"[Calendar] The party straggles home — a lunation passes " +
+                break; // conjunction already reached, no further time to spend
+            GD.Print($"[Calendar] The party straggles home. A lunation passes " +
                      $"(Lunation {cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentMoonName}).");
             RunLunationTick(cycle);
         }
@@ -295,7 +295,7 @@ public partial class StrategicView : Node2D
         // 3D-real path: render via WorldAtlas3D and route its tile picks into the
         // existing staging/supply dialogs. The HUD (calendar clock, siege news,
         // lens bar, hint) is a renderer-agnostic CanvasLayer and carries over as-is.
-        // Every 2D map/marker layer is skipped — the "2D system" retires here.
+        // Every 2D map/marker layer is skipped. The "2D system" retires here.
         if (Use3DStrategicMap && !Standalone)
         {
             BuildAtlas3D();
@@ -356,7 +356,7 @@ public partial class StrategicView : Node2D
         // Discovery gates the strategic map exactly as the 2D view did: normal play
         // shows only charted/explored ground (unseen = void), debug reveals all.
         // WorldAtlas3D DEFAULTS to revealed (it's a comparison prototype), so set
-        // this explicitly — and before SetWorld, so the first render is already right.
+        // this explicitly, and before SetWorld, so the first render is already right.
         _atlas3D.SetRevealAll(_debugReveal);
         _atlas3D.SetWorld(_world, _kingdoms);   // now render the resident world
         _atlas3D.SetLens(_lens);
@@ -371,9 +371,9 @@ public partial class StrategicView : Node2D
                     warTiles.Add(new Vector2I(wf.FocusCol, wf.FocusRow));
         _atlas3D.SetWarfronts(warTiles);
 
-        _atlas3D.AcceptInput = true;      // full-screen map — always live
+        _atlas3D.AcceptInput = true;      // full-screen map, always live
 
-        // The hub landing (2026-08-19): open IN CITY VIEW — the game's main screen.
+        // The hub landing (2026-08-19): open IN CITY VIEW, the game's main screen.
         // One-shot; set by cold boot, guild founding, and utility-screen returns.
         // Checked before ZoomFromHomeOnOpen so the city landing wins if both are set.
         if (PlayerSession.StartInCityOnOpen)
@@ -387,7 +387,7 @@ public partial class StrategicView : Node2D
             }
         }
         // Stage 2 (Phase 2): arriving from the campus, start framed on the home city
-        // at closest zoom and swoop OUT to the overview — the "ascend from your city
+        // at closest zoom and swoop OUT to the overview: the "ascend from your city
         // into the world". One-shot flag, cleared on use; only the campus→world
         // transition sets it, so expedition returns etc. are unaffected.
         else if (PlayerSession.ZoomFromHomeOnOpen)
@@ -404,10 +404,10 @@ public partial class StrategicView : Node2D
     /// <summary>A 3D map click resolved to (col,row): route it to the same handler
     /// the 2D marker used. Staging beacon → deploy; supply cache → cache dialog.
     /// (Warfront routing lands in a later pass.) A click on ordinary ground is a
-    /// no-op — WorldAtlas3D still updates its own inspect readout.</summary>
+    /// no-op; WorldAtlas3D still updates its own inspect readout.</summary>
     /// <summary>How many hexes from a staging point a click may land and still deploy
     /// there. A staging hex is only a few pixels at whole-world zoom, so demanding an
-    /// exact hit is unreasonable — snap to the nearest staging point within this radius.</summary>
+    /// exact hit is unreasonable: snap to the nearest staging point within this radius.</summary>
     private const int StagingClickTolerance = 3;
 
     private void OnAtlas3DTilePicked(int col, int row)
@@ -416,7 +416,7 @@ public partial class StrategicView : Node2D
             return;
 
         // Supply cache first, on the EXACT tile (caches are denser than staging, so no
-        // snap — an exact click opens the cache; a near click falls through to the
+        // snap: an exact click opens the cache; a near click falls through to the
         // staging snap below, which is the map's primary action).
         for (int i = 0; i < _world.Pois.Count; i++)
         {
@@ -458,12 +458,12 @@ public partial class StrategicView : Node2D
             OnStagingClicked(nearest);
     }
 
-    /// <summary>Stage 2 (Phase 2) — the "descend into your city" transition: swoop the
+    /// <summary>Stage 2 (Phase 2), the "descend into your city" transition: swoop the
     /// atlas camera into the home city, then change to the campus scene once the fly
     /// completes. Returns false when there's no atlas/home to fly to, so the caller
     /// (HudManager's Return-to-Campus) falls back to the plain scene warp.</summary>
     /// <summary>True while the atlas is in city view (home or NPC). Read by HudManager
-    /// to hide its Return-to-Campus warp — the button is moot (home) or a dead click
+    /// to hide its Return-to-Campus warp; the button is moot (home) or a dead click
     /// (NPC city, where EnterCityMode early-returns) while a city fills the screen.</summary>
     public bool InCityView => _atlas3D?.CityMode ?? false;
 
@@ -472,12 +472,12 @@ public partial class StrategicView : Node2D
         if (_atlas3D == null || !_atlas3D.HasCityGrounds)
             return false;
         // True geometry merge: the campus is permanently in the world at true scale, so
-        // "descending" is nothing but the camera flying down — EnterCityMode does the swoop.
+        // "descending" is nothing but the camera flying down; EnterCityMode does the swoop.
         _atlas3D.EnterCityMode();
         return true;
     }
 
-    /// <summary>Stage 3 (Phase 2) — host the campus as an in-world overlay instead of a
+    /// <summary>Stage 3 (Phase 2): host the campus as an in-world overlay instead of a
     /// scene swap. The strategic scene stays alive underneath (atlas hidden + input off);
     /// the campus draws its own chrome, so the global HUD hides too. Leaving is wired back
     /// through <see cref="CampusScreen.OverlayLeaveHandler"/> → <see cref="HideCampusOverlay"/>.</summary>
@@ -485,7 +485,7 @@ public partial class StrategicView : Node2D
 
     private void ShowCampusOverlay(CampusPanelId initial)
     {
-        if (_campusOverlay != null) return;   // grounds are covered while it's up — can't re-enter
+        if (_campusOverlay != null) return;   // grounds are covered while it's up; can't re-enter
         var scene = GD.Load<PackedScene>(CampusScenePath);
         if (scene == null)
         {
@@ -493,7 +493,7 @@ public partial class StrategicView : Node2D
             return;
         }
 
-        // Which panel the overlay lands on — the grounds MAP for a plain descend, or the
+        // Which panel the overlay lands on: the grounds MAP for a plain descend, or the
         // clicked building's panel when entered by clicking the world-map grounds model.
         CampusScreen.InitialPanel = initial;
 
@@ -549,12 +549,12 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>True geometry merge (Phase 2): a building in CITY VIEW was clicked. Route it
-    /// as the campus does — a building that hosts a panel opens that panel; one that hosts a
+    /// as the campus does: a building that hosts a panel opens that panel; one that hosts a
     /// separate screen (deck editor, card library, upgrade) changes scene; an inert building
     /// does nothing.
     ///
     /// <para>"Build in place" finish: a panel the strategic scene can host on its own
-    /// (<see cref="HomeBuildingPanelHost.CanFloat"/>) FLOATS over the live city — the world
+    /// (<see cref="HomeBuildingPanelHost.CanFloat"/>) FLOATS over the live city. The world
     /// stays visible behind it and closing returns to the city, not the world. The
     /// lifecycle-heavy panels (Expedition / Quests / Council) still need the full CampusScene
     /// overlay, so they fall back to it until that machinery is generalized (Phase 3).</para></summary>
@@ -563,7 +563,7 @@ public partial class StrategicView : Node2D
         var dest = CampusLocationRegistry.ForBuilding(buildingId);
         if (!dest.IsValid)
         {
-            // No system panel — still open the host for its tier/upgrade
+            // No system panel. Still open the host for its tier/upgrade
             // strip (2026-08-13: the city view's upgrade path; previously
             // these buildings were mute).
             ShowFloatingPanel(null, buildingId);
@@ -583,7 +583,7 @@ public partial class StrategicView : Node2D
         else if (!string.IsNullOrEmpty(dest.ScenePath))
         {
             // Entered from the city, so the utility screen's return warp should land
-            // back in the city — consumed by BuildAtlas3D when this scene reloads.
+            // back in the city, consumed by BuildAtlas3D when this scene reloads.
             PlayerSession.StartInCityOnOpen = true;
             GetTree().ChangeSceneToFile(dest.ScenePath);
         }
@@ -591,12 +591,12 @@ public partial class StrategicView : Node2D
 
     /// <summary>Float a single campus panel over the LIVE city view. Unlike
     /// <see cref="ShowCampusOverlay"/> this leaves the atlas/world VISIBLE (only its input is
-    /// gated) and closes back to the city rather than the world — the finish that lets a
+    /// gated) and closes back to the city rather than the world: the finish that lets a
     /// building's menu open in place. One panel at a time.</summary>
     private void ShowFloatingPanel(CampusPanelId? panel, string buildingId, string titleOverride = null)
     {
         // (2026-08-13) Panel SWAP: picking another building replaces the open
-        // card instead of being swallowed. Atlas input stays ENABLED — the
+        // card instead of being swallowed. Atlas input stays ENABLED. The
         // host's catcher now covers only the card, so grounds clicks (and the
         // camera) work beside it; that's the point.
         if (_floatingPanel != null)
@@ -620,8 +620,8 @@ public partial class StrategicView : Node2D
         if (_floatingPanel == null) return;
         _floatingPanel = null;
         // Atlas input was never disabled for floated panels (2026-08-13 swap
-        // behavior) — nothing to re-enable. Deliberately does NOT leave city
-        // view — the panel closes back into the city, pulling the camera
+        // behavior); nothing to re-enable. Deliberately does NOT leave city
+        // view: the panel closes back into the city, pulling the camera
         // back up from the building-focus swoop.
         _atlas3D?.UnfocusHomeBuilding();
     }
@@ -629,7 +629,7 @@ public partial class StrategicView : Node2D
     /// <summary>A landmark hex in city view was clicked (2026-08-13: no longer
     /// a no-op). Landmark restoration beats are PURE narrative (verified: no
     /// LaunchGuardian/ResolutionKind in CampusLandmarkData), so the
-    /// session-one floated-narrative host carries them completely — beat
+    /// session-one floated-narrative host carries them completely: beat
     /// shows over the live city, outcome through the shared applier, flags
     /// advance the ruined → active → restored chain. A fully restored
     /// landmark toasts instead of opening nothing.</summary>
@@ -652,11 +652,11 @@ public partial class StrategicView : Node2D
                 return;
             }
             EnsureCityExploreToasts();
-            _cityExploreToasts?.Push($"{lm.DisplayName} — restored.", QuestToastKind.Complete);
+            _cityExploreToasts?.Push($"{lm.DisplayName} restored.", QuestToastKind.Complete);
             return;
         }
         // Restoration advances change the grounds themselves (ruined → active
-        // → restored stamps) — rebuild the 3D grounds after the beat applies.
+        // → restored stamps), so rebuild the 3D grounds after the beat applies.
         ShowFloatedPanelNarrative(enc, onApplied: () => _atlas3D?.RefreshCityGrowth());
     }
 
@@ -665,7 +665,7 @@ public partial class StrategicView : Node2D
     private CanvasLayer _constructCard;
 
     /// <summary>The Build toggle (2026-08-19, playtest): construction is ARMED, like annex
-    /// mode, instead of ambushing from any bare-ground click — the card "jumped out of
+    /// mode, instead of ambushing from any bare-ground click. The card "jumped out of
     /// nowhere" with no instruction. Arming disarms annex (and vice versa), announces
     /// itself with a toast so the player knows what a click will now do, and disarming
     /// closes any open construct card.</summary>
@@ -685,7 +685,7 @@ public partial class StrategicView : Node2D
         }
     }
 
-    /// <summary>A bare home-grounds hex was clicked: open the construct card —
+    /// <summary>A bare home-grounds hex was clicked: open the construct card,
     /// the unbuilt ledger with tier-1 costs, buildable in place at that hex.
     /// This closes the Phase-2 gap where NEW buildings could only be raised
     /// through the full-screen campus overlay.</summary>
@@ -714,7 +714,7 @@ public partial class StrategicView : Node2D
         catcher.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         catcher.MouseFilter = Control.MouseFilterEnum.Stop;
         // Click-outside-to-close (2026-08-19): the card itself stops input, so any
-        // press reaching the catcher is beside the card — dismiss, like a popup.
+        // press reaching the catcher is beside the card: dismiss, like a popup.
         catcher.GuiInput += ev =>
         {
             if (ev is InputEventMouseButton b && b.Pressed && b.ButtonIndex == MouseButton.Left)
@@ -727,7 +727,7 @@ public partial class StrategicView : Node2D
         card.OffsetLeft = -520;
         // Below the global top bar (2026-08-19): the HUD CanvasLayer (90) draws over
         // this card's layer (50), so a full-height card had its title + Close button
-        // buried under the bar — "no way to close the menu".
+        // buried under the bar: "no way to close the menu".
         card.OffsetTop = HudManager.BarHeight;
         card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = UITheme.BgBase });
         catcher.AddChild(card);
@@ -765,7 +765,7 @@ public partial class StrategicView : Node2D
 
         var sub = new Label
         {
-            Text = $"Gold: {save.Gold}   Materials: {save.BuildMaterials}   — siting at the chosen ground.",
+            Text = $"Gold: {save.Gold}   Materials: {save.BuildMaterials}   Siting at the chosen ground.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         sub.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -796,7 +796,7 @@ public partial class StrategicView : Node2D
 
             // Footprint preview (2026-08-13): hovering a row paints the
             // building's would-be footprint on the grounds at the chosen
-            // anchor — gold fits, red doesn't. Siting will matter more once
+            // anchor: gold fits, red doesn't. Siting will matter more once
             // adjacency bonuses land; this is the read-before-you-build.
             string hoverId = bs.Id;
             row.MouseEntered += () => _atlas3D?.PreviewHomeFootprint(hoverId, coord);
@@ -836,7 +836,7 @@ public partial class StrategicView : Node2D
     /// <summary>Place FIRST, purchase second: placement writes only siting
     /// fields and is revertible; a paid-but-unplaceable building would strand
     /// gold. If the anchor doesn't fit (multi-tile footprint on a cramped
-    /// hex), the campus overlay's placement tool — with rotation — remains
+    /// hex), the campus overlay's placement tool (with rotation) remains
     /// the fallback.</summary>
     private void OnConstructPicked(string buildingId, Vector2I coord)
     {
@@ -845,13 +845,13 @@ public partial class StrategicView : Node2D
 
         EnsureCityExploreToasts();
 
-        // PURCHASE FIRST — PlaceBuilding refuses Tier 0 buildings (the campus
+        // PURCHASE FIRST: PlaceBuilding refuses Tier 0 buildings (the campus
         // flow's contract: buy, then site). A failed siting refunds the tier,
         // so gold is never stranded. (2026-08-13 fix: the original
         // place-first ordering failed silently for every unbuilt building.)
         if (!CampusConstruction.TryBuildOrUpgrade(save, buildingId))
         {
-            _cityExploreToasts?.Push("The coin came up short — construction cancelled.",
+            _cityExploreToasts?.Push("The coin came up short. Construction cancelled.",
                                      QuestToastKind.Progress);
             return;
         }
@@ -859,7 +859,7 @@ public partial class StrategicView : Node2D
         if (_atlas3D == null || !_atlas3D.TryPlaceHomeBuilding(buildingId, coord))
         {
             CampusConstruction.RefundTier(save, buildingId);
-            _cityExploreToasts?.Push("It doesn't fit there — pick more open ground, or site it " +
+            _cityExploreToasts?.Push("It doesn't fit there. Pick more open ground, or site it " +
                                      "from the campus placement tool (it can rotate).",
                                      QuestToastKind.Progress);
             return;
@@ -882,7 +882,7 @@ public partial class StrategicView : Node2D
 
     /// <summary>City view entered/left: show/hide the host buttons (leave-to-world,
     /// annex-a-district, city services) that only make sense in city view. The global
-    /// top-bar HUD stays VISIBLE in city view (2026-08-19 — the city is the hub screen
+    /// top-bar HUD stays VISIBLE in city view (2026-08-19: the city is the hub screen
     /// and its readouts/menus belong there); RefreshVisibility still runs so the bar's
     /// Return-to-Campus button can hide itself while we're already home.</summary>
     private void OnCityModeChanged(bool on)
@@ -890,7 +890,7 @@ public partial class StrategicView : Node2D
         HudManager.Instance?.RefreshVisibility();
         bool home = _atlas3D?.ActiveCityIsHome ?? true;
         if (_cityLeaveBtn != null) _cityLeaveBtn.Visible = on;
-        // Annexing/building are home-campus affordances only — hide them in an NPC city (Phase 3).
+        // Annexing/building are home-campus affordances only; hide them in an NPC city (Phase 3).
         if (_annexButton != null) _annexButton.Visible = on && home;
         if ((!on || !home) && _annexButton != null)
             _annexButton.ButtonPressed = false;   // drop annex mode on exit or in an NPC city
@@ -906,7 +906,7 @@ public partial class StrategicView : Node2D
         else if (_cityServices != null) _cityServices.Close();
 
         RefreshHint();
-        // First home-city entry this session: open the orientation card once, unbidden —
+        // First home-city entry this session: open the orientation card once, unbidden;
         // the hub otherwise drops a new player in with zero instruction.
         if (on && home && !_helpAutoShown)
         {
@@ -915,7 +915,7 @@ public partial class StrategicView : Node2D
         }
     }
 
-    /// <summary>Bottom hint line, per view mode. One line, always current — the "click a
+    /// <summary>Bottom hint line, per view mode. One line, always current: the "click a
     /// gold beacon" advice only appears where beacons exist.</summary>
     private void RefreshHint()
     {
@@ -1018,7 +1018,7 @@ public partial class StrategicView : Node2D
         AddChild(_cityServices);
     }
 
-    /// <summary>The services menu closed — drop our reference and re-enable atlas input, staying in
+    /// <summary>The services menu closed: drop our reference and re-enable atlas input, staying in
     /// the CITY view (the player leaves explicitly via "To the World Map", and can reopen services
     /// with the City Services button). The host frees itself. NOT leaving here is deliberate: leaving
     /// dropped the player onto the world map at the capital's staging tile, which popped the deploy
@@ -1034,7 +1034,7 @@ public partial class StrategicView : Node2D
 
     /// <summary>A revealed district's content was clicked in a visited NPC city. Route by type:
     /// Service reopens the capital's services menu; Event runs a narrative encounter over the city;
-    /// Fight and Story are stubbed (their real routing — combat + story beats — is the next
+    /// Fight and Story are stubbed (their real routing, combat + story beats, is the next
     /// increment). Non-service content is marked cleared once resolved.</summary>
     private void OnDistrictContentTriggered(CityDistrictEntry entry, WorldSettlement city)
     {
@@ -1042,20 +1042,20 @@ public partial class StrategicView : Node2D
         switch ((DistrictContentType)entry.Content)
         {
             case DistrictContentType.Service:
-                ShowCityServices();   // reopenable — never cleared
+                ShowCityServices();   // reopenable, never cleared
                 break;
             case DistrictContentType.Event:
                 TriggerCityEvent(entry, city);
                 break;
             case DistrictContentType.Fight:
                 EnsureCityExploreToasts();
-                _cityExploreToasts?.Push("A hostile enclave stirs here. (District fights — coming soon.)",
+                _cityExploreToasts?.Push("A hostile enclave stirs here. (District fights: coming soon.)",
                                          QuestToastKind.Progress);
                 ClearDistrict(entry);
                 break;
             case DistrictContentType.Story:
                 EnsureCityExploreToasts();
-                _cityExploreToasts?.Push("You uncover a thread of this city's story. (Story beats — coming soon.)",
+                _cityExploreToasts?.Push("You uncover a thread of this city's story. (Story beats: coming soon.)",
                                          QuestToastKind.Progress);
                 ClearDistrict(entry);
                 break;
@@ -1107,7 +1107,7 @@ public partial class StrategicView : Node2D
     /// <summary>The non-expedition narrative outcome, shared by city district
     /// events and floated campus panels (2026-08-13 CampusScreen extraction,
     /// session one). Mirrors CampusScreen.OnCampusNarrativeCompleted's save
-    /// mutations — including the item/companion/reputation/lore/arc verbs the
+    /// mutations, including the item/companion/reputation/lore/arc verbs the
     /// city path had deferred. HP/steps don't apply off-expedition;
     /// ResolutionKind/LaunchGuardian encounters must NOT route here (the
     /// Council panel stays on the campus overlay until session two).</summary>
@@ -1156,8 +1156,8 @@ public partial class StrategicView : Node2D
         {
             EnsureCityExploreToasts();
             _cityExploreToasts?.Push(arcStatus.IsComplete
-                ? $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" complete."
-                : $"{arcStatus.CompanionName} — \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
+                ? $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" complete."
+                : $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
                 QuestToastKind.Progress);
         }
 
@@ -1242,7 +1242,7 @@ public partial class StrategicView : Node2D
             Title = "Annex district",
             DialogText = save.Gold >= DistrictAnnexCost
                 ? $"Annex this district for {DistrictAnnexCost} gold?\nTreasury: {save.Gold} gold."
-                : $"Not enough gold to annex — costs {DistrictAnnexCost}, treasury has {save.Gold}.",
+                : $"Not enough gold to annex: costs {DistrictAnnexCost}, treasury has {save.Gold}.",
         };
         // Only allow the buy when affordable; otherwise the dialog is informational.
         dialog.GetOkButton().Disabled = save.Gold < DistrictAnnexCost;
@@ -1262,7 +1262,7 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>One button in the right-docked HUD stack. Visibility is state-driven
-    /// (OnCityModeChanged), so every button initializes from the CURRENT city state —
+    /// (OnCityModeChanged), so every button initializes from the CURRENT city state;
     /// the HUD can be (re)built before or after city mode engages.</summary>
     private Button MakeCityChromeButton(string text, bool primary, bool toggle = false)
     {
@@ -1283,7 +1283,7 @@ public partial class StrategicView : Node2D
         // Never leave a dangling overlay-leave callback pointing at a freed view, and if
         // we're torn down while the overlay was up (e.g. a new-cycle scene swap from
         // inside it), clear the flag so the next scene's HUD isn't wrongly hidden.
-        // (City mode no longer touches the flag — the HUD stays visible in the city.)
+        // (City mode no longer touches the flag; the HUD stays visible in the city.)
         if (CampusScreen.OverlayLeaveHandler == HideCampusOverlay)
             CampusScreen.OverlayLeaveHandler = null;
         if (_campusOverlay != null)
@@ -1291,7 +1291,7 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>Persistent strategic-map HUD: a free exit back to campus. Returning
-    /// costs nothing — the world, discoveries, and staging points already live in
+    /// costs nothing: the world, discoveries, and staging points already live in
     /// the saved cycle, so leaving and reopening the map changes nothing.</summary>
     private void BuildHud()
     {
@@ -1342,7 +1342,7 @@ public partial class StrategicView : Node2D
         _cityServicesBtn.Visible = cityNow && !homeNow;
         _cityServicesBtn.Pressed += ShowCityServices;
         _helpBtn = MakeCityChromeButton("?  How this works", primary: false);
-        _helpBtn.Pressed += ShowHelpCard;   // visible in every mode — orientation is never gated
+        _helpBtn.Pressed += ShowHelpCard;   // visible in every mode; orientation is never gated
 
         // ── Calendar readout: the doomsday clock, top-right ──────────────
         var cycle = SaveManager.ActiveSave?.Cycle;
@@ -1366,7 +1366,7 @@ public partial class StrategicView : Node2D
             calMargin.AddChild(calVbox);
 
             // Continue-campaign legibility (progression doc §9): which year of this
-            // timeline, and how hard the world has grown — so the player can read the
+            // timeline, and how hard the world has grown, so the player can read the
             // escalation and time the bank before a push turns unwinnable.
             int campaignYear = cycle.CampaignYear;
             if (campaignYear > 1)
@@ -1462,7 +1462,7 @@ public partial class StrategicView : Node2D
 
         // A short legend so the player knows what they're looking at. Context-sensitive
         // (2026-08-19): the fixed "gold beacon" line read as broken advice once the city
-        // became the landing view — RefreshHint swaps the text per mode.
+        // became the landing view; RefreshHint swaps the text per mode.
         _hintLabel = new Label
         {
             AnchorLeft = 0.5f,
@@ -1481,7 +1481,7 @@ public partial class StrategicView : Node2D
 
         BuildLensButtons();
         // The archmage standings strip was moved into CouncilScreen (user
-        // ruling 2026-07-22) — the strategic map stays clean; open the Council
+        // ruling 2026-07-22). The strategic map stays clean; open the Council
         // from the top bar for standings.
     }
 
@@ -1641,8 +1641,8 @@ public partial class StrategicView : Node2D
 
     /// <summary>River/road overlay for the strategic zoom. Each tile draws a half-
     /// segment from its centre toward each river/road edge's shared boundary; the two
-    /// tiles' halves meet, tracing the network as a route (a center-path simplification
-    /// — the window draws true hex edges). Respects fog. Rivers blue, roads tan; a road
+    /// tiles' halves meet, tracing the network as a route (a center-path simplification;
+    /// the window draws true hex edges). Respects fog. Rivers blue, roads tan; a road
     /// over a river draws second, reading as a crossing.</summary>
     private void BuildEdgeLayer()
     {
@@ -1666,7 +1666,7 @@ public partial class StrategicView : Node2D
                 if (t.RiverEdges == 0 && t.RoadEdges == 0 && t.SpringEdges == 0)
                     continue;
                 if (t.IsWater)
-                    continue;   // never originate a line in water — kills the ocean overshoot
+                    continue;   // never originate a line in water; kills the ocean overshoot
 
                 var disc = _debugReveal ? TileDiscovery.Explored : t.Discovery;
                 if (disc == TileDiscovery.Unseen)
@@ -1692,7 +1692,7 @@ public partial class StrategicView : Node2D
                     Vector2 dir = nCenter - c;
                     float dist = dir.Length();
                     // Clamp to half a tile so the segment stays inside this tile's
-                    // footprint — two tiles' halves still meet near the shared edge.
+                    // footprint; two tiles' halves still meet near the shared edge.
                     Vector2 end = c + dir / dist * Mathf.Min(dist * 0.5f, TilePx * 0.5f);
 
                     if (spring && !river)
@@ -1708,8 +1708,8 @@ public partial class StrategicView : Node2D
 
     /// <summary>Kingdom boundaries, Political lens only. Instead of stroking edges
     /// (which exposes the hex stairstep and drifts on the square-quad renderer), this
-    /// TINTS the boundary tiles — a tile whose neighbour is a different kingdom, ocean,
-    /// or off-map — with a dark band, using the SAME quad transform as the tile layer
+    /// TINTS the boundary tiles (a tile whose neighbour is a different kingdom, ocean,
+    /// or off-map) with a dark band, using the SAME quad transform as the tile layer
     /// so it lands exactly on grid. Mirrors BuildSettlementLayer's rim technique.</summary>
     private void BuildBorderLayer()
     {
@@ -1780,7 +1780,7 @@ public partial class StrategicView : Node2D
         {
             Name = "BorderLayer",
             Multimesh = mm,
-            ZIndex = 0, // above tiles, below POIs — same band as settlement rim
+            ZIndex = 0, // above tiles, below POIs; same band as settlement rim
         };
         AddChild(_borderLayer);
     }
@@ -1971,7 +1971,7 @@ public partial class StrategicView : Node2D
     // ── Color logic ──────────────────────────────────────────────────────
     private Color TileColor(WorldTile t)
     {
-        // Debug full-map reveal: treat every tile as Explored for DISPLAY only —
+        // Debug full-map reveal: treat every tile as Explored for DISPLAY only;
         // the saved discovery state is never touched. Lets corruption + the whole
         // world be inspected during testing.
         var discovery = _debugReveal ? TileDiscovery.Explored : t.Discovery;
@@ -2047,7 +2047,7 @@ public partial class StrategicView : Node2D
         if (t.Corruption > 0)
         {
             // Political lens: corruption is a STAIN over the kingdom color, not a
-            // recolor — the territory's identity must survive underneath. Capped low
+            // recolor: the territory's identity must survive underneath. Capped low
             // and darkened (vs the loud Corruption-lens red) so a heavily corrupted
             // kingdom reads as "this kingdom, corrupted," not "the red kingdom."
             float k = Mathf.Clamp(t.Corruption / 100f, 0f, 1f) * 0.35f;
@@ -2243,7 +2243,7 @@ public partial class StrategicView : Node2D
         _tileLayer.Multimesh.SetInstanceColor(i, TileColor(_world.Tiles[i]));
     }
 
-    /// <summary>A POI just became discovered — rebuild the POI layer (its
+    /// <summary>A POI just became discovered: rebuild the POI layer (its
     /// instance count changed). Cheap relative to the tile layer.</summary>
     public void RefreshPois() { BuildPoiLayer(); BuildShardZoneMarkers(); }
 
@@ -2303,7 +2303,7 @@ public partial class StrategicView : Node2D
     public override void _Process(double delta)
     {
         // The debug "reveal strategic map" checkbox lives in the Guild panel, which now floats over
-        // this LIVE view (Phase 2), so toggling it must re-apply to the running atlas — otherwise
+        // this LIVE view (Phase 2), so toggling it must re-apply to the running atlas; otherwise
         // the reveal (terrain + enemy city markers/regions) only took effect on a scene reload.
         bool reveal = PlayerSession.DebugMode && PlayerSession.DebugRevealStrategicMap;
         if (reveal != _debugReveal)
@@ -2380,7 +2380,7 @@ public partial class StrategicView : Node2D
     // ── Standalone continent-style selector (debug only) ─────────────────
 
     /// <summary>(Re)generate the disposable standalone world from the current
-    /// debug seed + style override. Never touches a save — Standalone only.</summary>
+    /// debug seed + style override. Never touches a save; Standalone only.</summary>
     private void GenerateStandaloneWorld()
     {
         var p = new WorldGenerator.Params { ContinentStyleOverride = _standaloneStyle };
@@ -2531,7 +2531,7 @@ public partial class StrategicView : Node2D
     /// <summary>One clickable marker per available staging point. Staging points
     /// are few, so a handful of Area2D markers is cheap (unlike per-tile nodes).</summary>
     /// <summary>P3: a distinct arcane beacon on each DISCOVERED shard sub-region,
-    /// drawn at the vault centre. Not clickable — a vault is reached by expedition,
+    /// drawn at the vault centre. Not clickable: a vault is reached by expedition,
     /// not by deploy. Reads apart from staging (gold) and POIs (flat diamonds) via a
     /// violet octagon + arcane-blue diamond core; dims once the shard is collected.</summary>
     private void BuildShardZoneMarkers()
@@ -2638,7 +2638,7 @@ public partial class StrategicView : Node2D
 
     /// <summary>One marker per discovered supply cache: a square "crate" in the
     /// CONTROLLER's color (guild green, else the holding faction's color) with a
-    /// yield tag — the at-a-glance "who is harvesting this, and how hard"
+    /// yield tag, the at-a-glance "who is harvesting this, and how hard"
     /// indication. Clicking opens the cache dialog. An active siege additionally
     /// shows the standard red warfront marker on the same tile (Z above this).</summary>
     private void BuildSupplyMarkers()
@@ -2685,7 +2685,7 @@ public partial class StrategicView : Node2D
                 Color = UITheme.BgDeep,
             });
 
-            // Harvest tag: the per-lunation draw, in the controller's color —
+            // Harvest tag: the per-lunation draw, in the controller's color;
             // overseer-boosted caches visibly pay more.
             var lbl = new Label
             {
@@ -2720,7 +2720,7 @@ public partial class StrategicView : Node2D
         return UITheme.Neutral;
     }
 
-    /// <summary>The cache dialog: who harvests it, what it pays, who watches it —
+    /// <summary>The cache dialog: who harvests it, what it pays, who watches it,
     /// plus the contextual action (view the siege / manage the overseer / lay
     /// siege). Mirrors ShowWarfrontIntervene's panel idiom.</summary>
     private void ShowSupplyCacheDialog(int poiIndex)
@@ -2764,7 +2764,7 @@ public partial class StrategicView : Node2D
 
         var title = new Label
         {
-            Text = $"Supply Cache — {SupplyCacheSystem.HostName(cycle, poi)}",
+            Text = $"Supply Cache: {SupplyCacheSystem.HostName(cycle, poi)}",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
@@ -2782,10 +2782,10 @@ public partial class StrategicView : Node2D
             var ov = cycle.Companions?.Find(x => x.Id == poi.OverseerCompanionId);
             AddDeployStat(vbox, "Overseer", ov != null
                 ? $"{ov.Name}  (+{SupplyCacheSystem.OverseerYieldBonus} yield, harder to besiege)"
-                : "none — assign one to boost the draw");
+                : "none (assign one to boost the draw)");
         }
         if (siege != null)
-            AddDeployStat(vbox, "Under siege", $"{siege.AggressorName} — {siege.Advance}/100");
+            AddDeployStat(vbox, "Under siege", $"{siege.AggressorName}, {siege.Advance}/100");
 
         vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
 
@@ -2804,7 +2804,7 @@ public partial class StrategicView : Node2D
 
         if (siege != null)
         {
-            // The fight is the warfront's — hand over to the standard dialog.
+            // The fight is the warfront's; hand over to the standard dialog.
             ActionButton("Go to the siege", true, () =>
             {
                 CloseSupplyUi();
@@ -2840,7 +2840,7 @@ public partial class StrategicView : Node2D
         _supplyUi = null;
     }
 
-    /// <summary>Companion picker for the overseer posting — recruited, healthy,
+    /// <summary>Companion picker for the overseer posting: recruited, healthy,
     /// home, and uncommitted (not in the party, not an envoy, not already an
     /// overseer). The stake is stated on the button row: they are wounded if
     /// the cache falls.</summary>
@@ -2891,7 +2891,7 @@ public partial class StrategicView : Node2D
         var warn = new Label
         {
             Text = $"+{SupplyCacheSystem.OverseerYieldBonus} supplies per lunation and a stiffer " +
-                   "defence — but if the cache falls, they are wounded in the rout. " +
+                   "defence, but if the cache falls, they are wounded in the rout. " +
                    "Posted companions can't join the party or run envoy missions.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
@@ -2925,7 +2925,7 @@ public partial class StrategicView : Node2D
         {
             var none = new Label
             {
-                Text = "No one is free — everyone is in the party, afield, recovering, or already posted.",
+                Text = "No one is free: everyone is in the party, afield, recovering, or already posted.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
             none.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -2942,7 +2942,7 @@ public partial class StrategicView : Node2D
 
     /// <summary>Lay siege to a cache the guild doesn't hold: open (or join) the
     /// cache warfront with the guild as aggressor and deploy into it at once,
-    /// side Seize — one successful expedition flips the cache
+    /// side Seize: one successful expedition flips the cache
     /// (SupplyCacheSystem.ApplyCacheIntervention). Costs a lunation like every
     /// deploy; a failed sortie collapses the siege.</summary>
     private void CommitCacheSiege(int poiIndex)
@@ -2973,7 +2973,7 @@ public partial class StrategicView : Node2D
     // ── Warfronts: markers + three-sided intervention ────────────────────────
 
     /// <summary>Render a clickable crossed-front marker for each open warfront at
-    /// its border tile — the deploy target for intervention.</summary>
+    /// its border tile, the deploy target for intervention.</summary>
     private void BuildWarfrontMarkers()
     {
         _warfrontLayer?.QueueFree();
@@ -2993,7 +2993,7 @@ public partial class StrategicView : Node2D
                          + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
             var marker = new Node2D { Position = center };
 
-            // A red diamond ring — reads as conflict, distinct from gold staging beacons.
+            // A red diamond ring reads as conflict, distinct from gold staging beacons.
             var ring = new Polygon2D { Polygon = MakeRing(TilePx * 1.7f), Color = UITheme.Danger };
             marker.AddChild(ring);
             var core = new Polygon2D { Polygon = MakeRing(TilePx * 0.8f), Color = UITheme.TextPrimary };
@@ -3001,7 +3001,7 @@ public partial class StrategicView : Node2D
 
             // Advance bar as a tiny label above the marker. Cache sieges sit ON
             // the cache tile, whose supply marker already carries a "+N" tag at
-            // -3.0 tiles — lift the siege label clear of it.
+            // -3.0 tiles; lift the siege label clear of it.
             var lbl = new Label
             {
                 Text = $"⚔ {wf.Advance}%",
@@ -3014,8 +3014,8 @@ public partial class StrategicView : Node2D
 
             // Cache sieges get NO clickable area: the supply marker underneath
             // owns the click (its dialog routes to "Go to the siege"). Two
-            // overlapping Area2Ds would both receive the click — Godot picking
-            // doesn't stop at the topmost — and stack two modal backdrops.
+            // overlapping Area2Ds would both receive the click (Godot picking
+            // doesn't stop at the topmost) and stack two modal backdrops.
             if (!wf.IsCacheSiege)
             {
                 var area = new Area2D();
@@ -3089,7 +3089,7 @@ public partial class StrategicView : Node2D
         vbox.AddThemeConstantOverride("separation", 10);
         margin.AddChild(vbox);
 
-        var title = new Label { Text = $"Warfront — {wf.DefenderName}" };
+        var title = new Label { Text = $"Warfront: {wf.DefenderName}" };
         title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
         title.AddThemeColorOverride("font_color", UITheme.Danger);
         title.HorizontalAlignment = HorizontalAlignment.Center;
@@ -3100,7 +3100,7 @@ public partial class StrategicView : Node2D
         AddDeployStat(vbox, "Defender", wf.DefenderName);
         AddDeployStat(vbox, "Advance", $"{wf.Advance}/100  (falls at 100, repelled at 0)");
         AddDeployStat(vbox, "Front", $"({wf.FocusCol}, {wf.FocusRow})");
-        AddDeployStat(vbox, "Cost", "1 lunation — the moon turns while you march");
+        AddDeployStat(vbox, "Cost", "1 lunation (the moon turns while you march)");
 
         var help = new Label
         {
@@ -3161,7 +3161,7 @@ public partial class StrategicView : Node2D
         cycle.PendingWarfrontSide = side;
         cycle.WarfrontStrongholdCleared = false; // fresh objective for this intervention
 
-        // Deploy to the front tile by synthesising a staging point there — reuses the
+        // Deploy to the front tile by synthesising a staging point there; reuses the
         // whole Deploy() path (lunation cost, world tick, scene change).
         _pendingStaging = new StagingPoint
         {
@@ -3212,7 +3212,7 @@ public partial class StrategicView : Node2D
         _deployUi = new CanvasLayer { Name = "DeployUI" };
         AddChild(_deployUi);
 
-        // 3D-native deploy: no dimming backdrop — the map stays visible with this
+        // 3D-native deploy: no dimming backdrop; the map stays visible with this
         // staging point's deploy footprint (WorldAtlas3D's window preview) highlighted
         // in-world. A cinematic fly-in swoops the camera down into the region; the
         // half-drawer-width shift centers the beacon in the map area LEFT of the drawer.
@@ -3225,7 +3225,7 @@ public partial class StrategicView : Node2D
         _deployUi.AddChild(guard);
 
         // Full-height sidebar flush to the right edge (below the global top bar) that
-        // SLIDES OUT from off-screen — a drawer opening, not a modal popping in. The
+        // SLIDES OUT from off-screen: a drawer opening, not a modal popping in. The
         // width is constant through the slide, so the content never reflows. This is
         // the "launch screen": the manifest + spell prep, read against the region the
         // camera flew into on the left.
@@ -3285,7 +3285,7 @@ public partial class StrategicView : Node2D
         AddDeployStat(vbox, "Operating range", $"~{DeployWindowRadius * 2} tiles across");
 
         // Time cost: every deploy spends one whole lunation of the doomsday
-        // clock. Surface it here — it is the most expensive thing the player
+        // clock. Surface it here: it is the most expensive thing the player
         // spends, and it was previously invisible until the debug log.
         var depCycle = SaveManager.ActiveSave?.Cycle;
         if (depCycle != null)
@@ -3296,7 +3296,7 @@ public partial class StrategicView : Node2D
             {
                 var conjWarn = new Label
                 {
-                    Text = "⚠ Cost: 1 lunation — this deploy brings the Grand Conjunction. " +
+                    Text = "⚠ Cost: 1 lunation. This deploy brings the Grand Conjunction. " +
                            "The cycle ends when you return.",
                     AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 };
@@ -3312,7 +3312,7 @@ public partial class StrategicView : Node2D
             }
         }
 
-        // K2 (§5b): party manifest — who actually deploys, who's in the
+        // K2 (§5b): party manifest: who actually deploys, who's in the
         // infirmary. Without this the injury system was invisible outside
         // the log and a missing companion in the first fight was a surprise.
         var deploySave = SaveManager.ActiveSave;
@@ -3336,7 +3336,7 @@ public partial class StrategicView : Node2D
             {
                 var injWarn = new Label
                 {
-                    Text = $"✚ Infirmary: {string.Join(", ", infirmary)} — recovering, will not deploy.",
+                    Text = $"✚ Infirmary: {string.Join(", ", infirmary)} (recovering, will not deploy).",
                     AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 };
                 injWarn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -3355,7 +3355,7 @@ public partial class StrategicView : Node2D
             vbox.AddChild(warn);
         }
 
-        // S4: Grimoire preparation — §4a prepared slots, chosen at launch.
+        // S4: Grimoire preparation, the §4a prepared slots, chosen at launch.
         BuildGrimoirePrep(vbox, deploySave);
 
         vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
@@ -3406,14 +3406,14 @@ public partial class StrategicView : Node2D
         while (grim.PreparedSpellIds.Count > slots)
             grim.PreparedSpellIds.RemoveAt(grim.PreparedSpellIds.Count - 1);
 
-        // Innates — always prepared, no slots.
+        // Innates: always prepared, no slots.
         var innateNames = new System.Collections.Generic.List<string>();
         foreach (var innate in OverworldSpellRegistry.InnatesFor(school))
             innateNames.Add(innate.Name);
         if (innateNames.Count > 0)
             AddDeployStat(vbox, "Innate", string.Join(" · ", innateNames));
 
-        // Companion-granted — schools of fielded companions, off-caster tax
+        // Companion-granted: schools of fielded companions, off-caster tax
         // noted (waived for the Adept, §7h).
         var grantedSchools = new System.Collections.Generic.List<string>();
         foreach (var cid in deploySave.ActivePartyCompanionIds)
@@ -3427,9 +3427,9 @@ public partial class StrategicView : Node2D
         if (grantedSchools.Count > 0)
             AddDeployStat(vbox, "Companion-granted",
                 $"{string.Join(" · ", grantedSchools)} innates " +
-                (school == "Adept" ? "(no tax — Adept)" : "(+1✦ off-school)"));
+                (school == "Adept" ? "(no tax: Adept)" : "(+1✦ off-school)"));
 
-        // Prepared slots — toggle the loadout from the known list.
+        // Prepared slots: toggle the loadout from the known list.
         _prepHeader = new Label();
         _prepHeader.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         _prepHeader.AddThemeColorOverride("font_color", UITheme.TextSecondary);
@@ -3437,7 +3437,7 @@ public partial class StrategicView : Node2D
 
         if (grim.KnownSpellIds.Count == 0)
         {
-            _prepHeader.Text = $"Prepared (0/{slots}) — no spells learned yet. " +
+            _prepHeader.Text = $"Prepared (0/{slots}). No spells learned yet. " +
                                "Lore sites, cordial deals, and the dead all teach.";
         }
         else
@@ -3449,7 +3449,7 @@ public partial class StrategicView : Node2D
             RebuildPrepButtons(grim, slots);
         }
 
-        // Scroll satchel — read-only summary; scribing lives at the campus.
+        // Scroll satchel: read-only summary; scribing lives at the campus.
         if (grim.ScrollInventory.Count > 0)
         {
             var scrollParts = new System.Collections.Generic.List<string>();
@@ -3463,7 +3463,7 @@ public partial class StrategicView : Node2D
 
     private void RebuildPrepButtons(GrimoireState grim, int slots)
     {
-        _prepHeader.Text = $"Prepared ({grim.PreparedSpellIds.Count}/{slots}) — click to toggle:";
+        _prepHeader.Text = $"Prepared ({grim.PreparedSpellIds.Count}/{slots}). Click to toggle:";
         foreach (var child in _prepFlow.GetChildren())
             child.QueueFree();
 
@@ -3497,7 +3497,7 @@ public partial class StrategicView : Node2D
                 {
                     if (grim.PreparedSpellIds.Count >= slots)
                     {
-                        btn.SetPressedNoSignal(false); // slots full — refuse
+                        btn.SetPressedNoSignal(false); // slots full, refuse
                         return;
                     }
                     if (!grim.PreparedSpellIds.Contains(id))
@@ -3559,7 +3559,7 @@ public partial class StrategicView : Node2D
 
         if (crossedLunation)
         {
-            GD.Print($"[Calendar] The moon turns — Lunation {cycle.Calendar.CurrentLunation} " +
+            GD.Print($"[Calendar] The moon turns. Lunation {cycle.Calendar.CurrentLunation} " +
                      $"of {cycle.Calendar.LunationsPerCycle}: {cycle.Calendar.CurrentMoonName} " +
                      $"({cycle.Calendar.CurrentMoonSchool} ascendant).");
             RunLunationTick(cycle);
@@ -3590,7 +3590,7 @@ public partial class StrategicView : Node2D
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
     }
 
-    /// <summary>The per-lunation world tick, in canonical order — the single
+    /// <summary>The per-lunation world tick, in canonical order: the single
     /// place a crossed lunation boundary advances the living world. Called by
     /// Deploy (every deploy = one lunation) and by ProcessPendingStraggle
     /// (emergency-extraction debt). Order (§13): Council resolves BEFORE
@@ -3614,11 +3614,11 @@ public partial class StrategicView : Node2D
         ArchmageRelics.TickUniteAnniversaries(cycle);
         // §8 pity-timer: advance Library research commissions; a completed one
         // unlocks its named card into the permanent draft pool. This is the ONE
-        // per-lunation call site — calling it twice would double the countdown.
+        // per-lunation call site; calling it twice would double the countdown.
         CardCommissionService.TickLunation(SaveManager.ActiveSave);
     }
 
-    /// <summary>The Grand Conjunction has arrived. For now the cycle simply ends —
+    /// <summary>The Grand Conjunction has arrived. For now the cycle simply ends;
     /// no final encounter yet (miniboss + campus assault are a later phase). Show a
     /// beat, then return the player to campus, where the next cycle is begun on
     /// re-entry to the strategic map (school reselection happens there).</summary>
@@ -3676,7 +3676,7 @@ public partial class StrategicView : Node2D
             gateCampaign.FinalBattleUnlocked = true;
             SaveManager.MarkDirty();
             SaveManager.SaveIfDirty();
-            GD.Print("[Convergence] Every seat is resolved — the Anchorhold can open.");
+            GD.Print("[Convergence] Every seat is resolved. The Anchorhold can open.");
         }
 
         var title = new Label
@@ -3691,7 +3691,7 @@ public partial class StrategicView : Node2D
         string gateBody = inFinale
             ? "You left the Anchorhold open. It is still open. Nothing else in this timeline is going to happen until you walk back through it."
             : resolved
-                ? "The sky has finished reading itself. Every seat is answered — allied, bought, emptied, or lost. The script has one passage left, and it converges on a second that was never written. The Anchorhold can open its door exactly once. He will be through it before it closes. So will you."
+                ? "The sky has finished reading itself. Every seat is answered: allied, bought, emptied, or lost. The script has one passage left, and it converges on a second that was never written. The Anchorhold can open its door exactly once. He will be through it before it closes. So will you."
                 : "The moons align and the timeline strains toward its close. You can let it unmake: return to the campus, keep everything you have learned, and begin a new world. Or refuse the reset and hold this timeline into another year. Perfect it, and all you have built endures; but the world hardens, the corruption deepens, and a defeat now unmakes it all.";
 
         var body = new Label
@@ -3723,7 +3723,7 @@ public partial class StrategicView : Node2D
         {
             // The permanent layer endures; the campus begins a fresh gen-1 timeline
             // (school chosen there). BeginNextCycle now reads Convergence.Outcome,
-            // so declining the open door archives as "Abandoned" — not a defeat.
+            // so declining the open door archives as "Abandoned", not a defeat.
             PlayerSession.CycleEndedByConjunction = true;
             SaveManager.SaveIfDirty();
             GetTree().ChangeSceneToFile(CampusScenePath);
@@ -3758,7 +3758,7 @@ public partial class StrategicView : Node2D
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // The Convergence — I1: gate, placeholder encounter, outcome routing
+    // The Convergence, I1: gate, placeholder encounter, outcome routing
     // (docs/convergence_finale_spec_v1.md §3, §13 step 1)
     // ══════════════════════════════════════════════════════════════════════
 
@@ -3766,7 +3766,7 @@ public partial class StrategicView : Node2D
     ///
     /// <para>I1 ships the PLACEHOLDER form the spec asks for: one authored Siege
     /// fight, then victory/defeat routing. There is no director, no five phases and
-    /// no path choice yet — those are I2 onward. What matters is that at the end of
+    /// no path choice yet; those are I2 onward. What matters is that at the end of
     /// this method the campaign can be WON, which it could not be for the first
     /// hundred thousand lines of this project.</para>
     ///
@@ -3795,7 +3795,7 @@ public partial class StrategicView : Node2D
             // Never dead-end the player at the one door the whole campaign points
             // at. If the roster cannot resolve, award the finale rather than
             // stranding them on a map with nothing left to do.
-            GD.PrintErr("[Convergence] Anchorhold roster failed to resolve — " +
+            GD.PrintErr("[Convergence] Anchorhold roster failed to resolve; " +
                         "awarding the victory rather than stranding the player.");
             ResolveConvergence(true);
             return;
@@ -3813,7 +3813,7 @@ public partial class StrategicView : Node2D
         SaveManager.SaveIfDirty();
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
-        GD.Print("[Convergence] The Anchorhold opens — the Fracture begins.");
+        GD.Print("[Convergence] The Anchorhold opens. The Fracture begins.");
         GetTree().ChangeSceneToFile(router.CombatScenePath);
     }
 
@@ -3824,7 +3824,7 @@ public partial class StrategicView : Node2D
     /// depends on no new data files.
     ///
     /// <para><b>R-F1: the wall is fixed.</b> CampaignEscalation.CombatDifficultyMult
-    /// is deliberately NOT applied — waiting extra years must not harden the finale,
+    /// is deliberately NOT applied: waiting extra years must not harden the finale,
     /// because corruption pressure is already the price of waiting. All variance is
     /// player-side, and lands with the prep ledger in I3.</para></summary>
     private static EncounterDefinition BuildAnchorholdPlaceholder()
@@ -3852,7 +3852,7 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>Pick up a returning Convergence combat. Keyed on the router's return
-    /// override being THIS scene, exactly as CampusScreen keys on its own path — an
+    /// override being THIS scene, exactly as CampusScreen keys on its own path. An
     /// expedition combat returns with an empty override and is untouched here.</summary>
     private void ConsumeConvergenceReturn(CycleState cycle)
     {
@@ -3962,8 +3962,8 @@ public partial class StrategicView : Node2D
         var body = new Label
         {
             Text = won
-                ? "The Long Second closes, and this time it closes on your terms. The hall lets go of the moment it has been holding since before you were a wizard. Whatever else is true of this timeline, it ended where it was always going to end — and you were the one still standing in the room."
-                : "The anchor takes you back before the blow lands. The timeline closes over the Convergence like water. He does not gloat; he schedules. Somewhere behind your eyes, the Long Second holds — and everything carried inside it holds with you.",
+                ? "The Long Second closes, and this time it closes on your terms. The hall lets go of the moment it has been holding since before you were a wizard. Whatever else is true of this timeline, it ended where it was always going to end, and you were the one still standing in the room."
+                : "The anchor takes you back before the blow lands. The timeline closes over the Convergence like water. He does not gloat; he schedules. Somewhere behind your eyes, the Long Second holds, and everything carried inside it holds with you.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
@@ -3995,7 +3995,7 @@ public partial class StrategicView : Node2D
 
         if (won)
         {
-            // R-F2: post-resolution, Continue is offered ONLY here — on a victory.
+            // R-F2: post-resolution, Continue is offered ONLY here, on a victory.
             int nextYear = (cycle?.CampaignYear ?? 1) + 1;
             vbox.AddChild(OutcomeButton($"Perfect the Timeline  (Year {nextYear})", true, () =>
             {

@@ -3,7 +3,7 @@ using System;
 // ============================================================
 // CardRuntime.cs
 //
-// Purpose:        Runtime card model used by combat — Card, CardHalf,
+// Purpose:        Runtime card model used by combat: Card, CardHalf,
 //                 Ability, and the PlaySpeed enum. This is the file
 //                 combat code talks to; CardData.cs is the legacy path.
 // Layer:          Runtime
@@ -13,7 +13,7 @@ using System;
 //                 GameState.cs, Entity.cs
 // See:            README §3 (Architecture Overview),
 //                 README §5 (Card Schema Reference),
-//                 README §7 — "CardData.cs vs CardRuntime.cs"
+//                 README §7 ("CardData.cs vs CardRuntime.cs")
 // ============================================================
 
 /// <summary>
@@ -36,7 +36,7 @@ public sealed class Card
     public string CardName;
 
     /// <summary>
-    /// Unique per-instance identifier. Distinct from <see cref="CardName"/> — two copies
+    /// Unique per-instance identifier. Distinct from <see cref="CardName"/>: two copies
     /// of the same card in a deck have the same CardName but different InstanceIds.
     /// </summary>
     public Guid InstanceId = Guid.NewGuid();
@@ -53,7 +53,7 @@ public sealed class Card
     /// <summary>Bottom half of the card. Always present for split cards; may be null for single-effect designs.</summary>
     public CardHalf BottomHalf;
 
-    /// <summary>Rarity tier — drives draft odds and UI border color.</summary>
+    /// <summary>Rarity tier. Drives draft odds and UI border color.</summary>
     public CardRarity Rarity;
 }
 
@@ -84,7 +84,7 @@ public abstract class Ability
 
     /// <summary>
     /// Returns true when the caster currently satisfies every condition AND can pay every cost.
-    /// Conditions are checked first by convention — they're cheaper than cost-payment validation.
+    /// Conditions are checked first by convention, since they're cheaper than cost-payment validation.
     /// </summary>
     /// <param name="s">Active game state.</param>
     /// <param name="caster">The entity attempting to play this ability.</param>
@@ -116,7 +116,7 @@ public sealed class CardHalf : Ability
     /// The JSON blueprint id this half was compiled from (e.g. "enchanter_snare_glyph"),
     /// stamped by <c>JsonCardLoader.BuildCard</c>. Distinct from <see cref="Name"/>, which
     /// is a display string and is localisable. Anything that must survive a rename or a
-    /// translation keys off this — the glyph cipher seeds from it.
+    /// translation keys off this. The glyph cipher seeds from it.
     /// </summary>
     public string SourceCardId = "";
 
@@ -134,7 +134,7 @@ public sealed class CardHalf : Ability
     public Func<GameState, Entity, EffectSnapshot> MakeSnapshot = (s, c) => new EffectSnapshot();
 
     /// <summary>
-    /// When true, this half can be channeled — the player spends 1 extra mana
+    /// When true, this half can be channeled: the player spends 1 extra mana
     /// to cast the next upgrade stage of this half instead of the base version.
     /// </summary>
     public bool CanChannel = true;
@@ -151,7 +151,7 @@ public sealed class CardHalf : Ability
     /// <summary>
     /// Element tags for this half (e.g. <c>"fire"</c>, <c>"ice"</c>, <c>"storm"</c>, <c>"stone"</c>).
     /// Read at cast time by the attunement system, by buff systems, and by element-aware
-    /// targeting selectors. Empty array is valid — see schema documentation.
+    /// targeting selectors. Empty array is valid (see schema documentation).
     /// </summary>
     public string[] Tags = Array.Empty<string>();
 

@@ -10,8 +10,8 @@ using System.Linq;
 //                 combat win before returning to the overworld.
 //                 Presents 3 draft choices (weighted by rarity;
 //                 the last slot is always Adept for non-Adept
-//                 schools; Legendaries are never offered — they
-//                 are Regalia). Player picks 1 or
+//                 schools; Legendaries are never offered, since
+//                 they are Regalia). Player picks 1 or
 //                 skips. Chosen card is added to PlayerDeckSave
 //                 collection (stash) via PlayerDeckService.
 //                 On skip or pick, routes back to overworld via
@@ -31,7 +31,7 @@ public partial class CardRewardScreen : Control
     [Export] public string OverworldScenePath = "res://Scenes/Overworld/ExpeditionScene.tscn";
 
     // How many cards the draft offers. The LAST slot is always the Adept
-    // (neutral) slot for non-Adept schools — the 2026-07-10 ruling, finally
+    // (neutral) slot for non-Adept schools, the 2026-07-10 ruling, finally
     // enacted in the live path. See GenerateOffers.
     private const int SlotCount = 3;
 
@@ -57,7 +57,7 @@ public partial class CardRewardScreen : Control
     private void BuildUI()
     {
         GD.Print("[UpgradeScreen] BuildUI started");
-        // Background overlay — semi-opaque dark panel over combat remnants
+        // Background overlay: a semi-opaque dark panel over combat remnants
         var bg = new ColorRect { Color = new Color(0.04f, 0.04f, 0.08f, 0.96f) };
         bg.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(bg);
@@ -111,7 +111,7 @@ public partial class CardRewardScreen : Control
             center.AddChild(splinterLbl);
         }
 
-        // Card row — three cards side by side
+        // Card row: three cards side by side
         _cardRow = new HBoxContainer();
         _cardRow.AddThemeConstantOverride("separation", 32);
         _cardRow.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
@@ -125,7 +125,7 @@ public partial class CardRewardScreen : Control
         // Skip button
         _skipButton = new Button
         {
-            Text = "Skip — Take Nothing",
+            Text = "Skip: Take Nothing",
             CustomMinimumSize = new Vector2(260, 48),
             SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
         };
@@ -151,7 +151,7 @@ public partial class CardRewardScreen : Control
     ///  • The 2026-07-10 Adept-as-neutral ruling is now actually in effect: the
     ///    LAST slot always offers an Adept card. It had been implemented only in
     ///    the dead CardDatabase.GetDraftChoices, while this live path rolled an
-    ///    independent 30% per slot — so ~34% of drafts offered no Adept card at
+    ///    independent 30% per slot, so ~34% of drafts offered no Adept card at
     ///    all. The old GenericChance constant is gone with it.
     /// </summary>
     private void GenerateOffers()
@@ -179,7 +179,7 @@ public partial class CardRewardScreen : Control
             bool isNeutralSlot = (i == SlotCount - 1) && neutralPool.Count > 0;
             var pool = isNeutralSlot ? neutralPool : schoolPool;
 
-            // Either pool can be empty on a narrow unlock set — fall through to
+            // Either pool can be empty on a narrow unlock set, so fall through to
             // whichever still has cards rather than showing a blank slot.
             if (pool.Count == 0)
                 pool = schoolPool.Count > 0 ? schoolPool : neutralPool;
@@ -202,7 +202,7 @@ public partial class CardRewardScreen : Control
         }
 
         if (_offered.Count == 0)
-            GD.PrintErr($"[CardReward] No offers generated for {school} — " +
+            GD.PrintErr($"[CardReward] No offers generated for {school}: " +
                         $"school pool {schoolPool.Count}, neutral pool {neutralPool.Count}.");
     }
 
@@ -394,7 +394,7 @@ public partial class CardRewardScreen : Control
                      $"(instance: {owned?.InstanceId[..8]}…)");
         }
 
-        // Visual feedback — disable all buttons
+        // Visual feedback: disable all buttons
         DisableAllButtons();
 
         // Brief delay so the player sees the selection before scene swap

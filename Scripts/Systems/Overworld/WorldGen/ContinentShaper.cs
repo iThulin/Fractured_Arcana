@@ -43,7 +43,7 @@ public sealed class ContinentShape
     public bool[] IsOcean;
 
     /// <summary>Row-major. True = a Water tile NOT connected to the world ocean
-    /// (an enclosed basin) — becomes a Lake instead of sea.</summary>
+    /// (an enclosed basin). Becomes a Lake instead of sea.</summary>
     public bool[] IsEnclosed;
 
     public ContinentStyle Style;
@@ -62,7 +62,7 @@ public static class ContinentShaper
     /// <summary>Coastline warp frequency. Lower = broader, smoother lobes.</summary>
     public static float CoastWarpFrequency = 0.025f;
 
-    /// <summary>Beyond this |per-axis normalized| coord, tiles are forced ocean — a
+    /// <summary>Beyond this |per-axis normalized| coord, tiles are forced ocean: a
     /// hard frame so the warp can't push land onto the literal map edge.</summary>
     public static float OceanFrameMargin = 0.96f;
 

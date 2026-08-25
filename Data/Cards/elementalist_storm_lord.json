@@ -167,7 +167,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Vortex",
-			"description": "Vortex: Eye of the Storm pulls then repels \u2014 enemies are first pulled in then blasted out.",
+			"description": "Vortex: Eye of the Storm pulls then repels. Enemies are first pulled in, then blasted out.",
 			"changes": [
 				{
 					"half": "bottom",

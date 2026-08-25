@@ -5,7 +5,7 @@ using System.Linq;
 // ============================================================
 // CombatLootTable.cs
 //
-// Purpose:        Q4.4 — combat item drops. The spec's "v1 tier
+// Purpose:        Q4.4, combat item drops. The spec's "v1 tier
 //                 tables carried" were never actually built (see
 //                 the Q4 reconciliation in the 2026-08-13 session
 //                 log); until now, encounter choices were the only
@@ -15,7 +15,7 @@ using System.Linq;
 // Layer:          Data (FeatureBuilders)
 // Collaborators:  ExpeditionManager (combat-victory return, the
 //                 sole caller), ItemDatabase, ArmoryData.
-// Rules:          Legendary never drops here — relics have their
+// Rules:          Legendary never drops here. Relics have their
 //                 own routing (ArchmageRelics) and the Auction
 //                 House rule stands. Siege/Boss guarantee a roll;
 //                 Siege ("elite") rolls twice, keeps both.

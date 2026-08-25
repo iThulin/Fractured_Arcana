@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // ConvergenceState.cs
 //
-// Purpose:        The finale's progress block — which phase the
+// Purpose:        The finale's progress block: which phase the
 //                 player is in, which path they committed to, and
 //                 what the event has decided so far. Tier-2 state:
 //                 it dies with the timeline, exactly like the rest
@@ -15,7 +15,7 @@ using System.Collections.Generic;
 // Collaborators:  CycleState (owner), StrategicView (writes Phase
 //                 and Outcome at the Conjunction gate),
 //                 CampusScreen.BeginNextCycle (reads Outcome to
-//                 archive the real LoopRecord), and — from I2 —
+//                 archive the real LoopRecord), and (from I2)
 //                 ConvergenceDirector.
 // See:            docs/convergence_finale_spec_v1.md §2 (this
 //                 block), §3 (the gate and outcome routing).
@@ -66,7 +66,7 @@ public class ConvergenceState
     /// ("won_clean", "won_bloodied", …).</summary>
     public Dictionary<int, string> PhaseResults = new();
 
-    /// <summary>True once the finale has been entered at all — the state a
+    /// <summary>True once the finale has been entered at all, the state a
     /// mid-finale quit leaves behind. The Conjunction gate reads this (with an
     /// empty Outcome) to offer "Return to the Convergence" instead of the
     /// ordinary press-your-luck choice: once entered, the Convergence is the

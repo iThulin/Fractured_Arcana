@@ -4,8 +4,8 @@ using System.Collections.Generic;
 // ============================================================
 // GrimoirePanel.cs  (S2, 2026-07-15)
 //
-// Purpose:        The Grimoire — the overworld HUD's spell panel,
-//                 bottom-left. Lists the expedition's castable
+// Purpose:        The Grimoire, which is the overworld HUD's spell
+//                 panel, bottom-left. Lists the expedition's castable
 //                 spells with cost (corrupted-ground surcharge
 //                 shown inline), magnitude tint, and a one-line
 //                 effect tooltip; a status row shows active timed
@@ -16,17 +16,17 @@ using System.Collections.Generic;
 //                 S2 simplification (noted vs the design doc's
 //                 collapse-to-icon-strip): a fixed compact list.
 //                 Collapse/expand polish can ride a later pass.
-//                 S4: a Scrolls section under the spell list —
+//                 S4: a Scrolls section under the spell list holds
 //                 Essence-free casts from GrimoireState.
 //                 ScrollInventory, routed through
 //                 RequestScrollCast.
 //                 S4.1 (user request 2026-07-16): the native
-//                 tooltip is gone — hovering a row opens an
+//                 tooltip is gone. Hovering a row opens an
 //                 OPAQUE detail card to the panel's right (name,
 //                 school · category · magnitude, live cost
 //                 breakdown, full description, block reason).
 //                 The card is a SIBLING on the HUD canvas (added
-//                 deferred — a PanelContainer would layout-manage
+//                 deferred, since a PanelContainer would layout-manage
 //                 a child), freed in _ExitTree.
 // Layer:          UI
 // Collaborators:  OverworldSpellManager.cs (data + cast entry),
@@ -36,7 +36,7 @@ using System.Collections.Generic;
 // ============================================================
 
 /// <summary>Bottom-left overworld spell panel. Refresh() rebuilds from the
-/// manager's castable list — cheap at ≤ a dozen rows.</summary>
+/// manager's castable list, which is cheap at ≤ a dozen rows.</summary>
 public partial class GrimoirePanel : PanelContainer
 {
     /// <summary>Layout constants shared by the panel and its detail card.</summary>
@@ -44,7 +44,7 @@ public partial class GrimoirePanel : PanelContainer
     private const float DetailGap = 8, DetailWidth = 340;
 
     /// <summary>Cap on the spell list's height, as a fraction of the viewport.
-    /// Debug mode exposes all 36 implemented spells — without a clamp the
+    /// Debug mode exposes all 36 implemented spells, and without a clamp the
     /// panel runs off the top of the screen (user report, 2026-07-16).</summary>
     private const float MaxListViewportShare = 0.55f;
 
@@ -52,11 +52,11 @@ public partial class GrimoirePanel : PanelContainer
     // The LOADOUT (own-school innates + prepared spells) is always visible;
     // everything else groups by §6 Category under collapsible headers that
     // start collapsed. STATIC so open/closed state survives panel rebuilds,
-    // combat round-trips, and whole expeditions — "remember the last state."
+    // combat round-trips, and whole expeditions. "Remember the last state."
     private static readonly System.Collections.Generic.Dictionary<string, bool>
         _sectionOpen = new();
 
-    /// <summary>§6 taxonomy order — problem-solving order, not alphabetical.</summary>
+    /// <summary>§6 taxonomy order, which is problem-solving order, not alphabetical.</summary>
     private static readonly string[] CategoryOrder =
     {
         "Traversal", "Divination", "Warding", "Evasion", "Conjuration", "Communion",
@@ -66,7 +66,7 @@ public partial class GrimoirePanel : PanelContainer
         => _sectionOpen.TryGetValue(key, out bool open) && open;
 
     /// <summary>S5.2 (user request): whole-panel visibility. STATIC so the
-    /// state rides through combat/negotiation scene swaps — leave hidden,
+    /// state rides through combat/negotiation scene swaps: leave hidden,
     /// return hidden (and vice versa). A small "Grimoire" tab (sibling on
     /// the HUD canvas) is the way back in while the panel is off-screen.</summary>
     private static bool _panelHidden = false;
@@ -84,11 +84,11 @@ public partial class GrimoirePanel : PanelContainer
     {
         _manager = manager;
 
-        // Bottom-left anchor. S4.2 fix: the rect is managed EXPLICITLY —
-        // bottom edge pinned at PanelBottom, top edge set from content in
+        // Bottom-left anchor. S4.2 fix: the rect is managed EXPLICITLY, with the
+        // bottom edge pinned at PanelBottom and the top edge set from content in
         // ClampListHeight. (The earlier grow-direction + SetSize approach
         // re-anchored the TOP-left on resize, which laid the panel out
-        // DOWNWARD off the bottom of the screen — user screenshot bug.)
+        // DOWNWARD off the bottom of the screen. See the user screenshot bug.)
         AnchorLeft = 0f; AnchorRight = 0f;
         AnchorTop = 1f; AnchorBottom = 1f;
         OffsetLeft = PanelLeft;
@@ -190,11 +190,11 @@ public partial class GrimoirePanel : PanelContainer
             OffsetLeft = PanelRight + DetailGap,
             OffsetRight = PanelRight + DetailGap + DetailWidth,
             OffsetBottom = PanelBottom,
-            // Read-only card — never steal clicks from the map beneath.
+            // Read-only card, so never steal clicks from the map beneath.
             MouseFilter = MouseFilterEnum.Ignore,
         };
 
-        // FULLY OPAQUE — the whole point. The HUD background color reads
+        // FULLY OPAQUE, which is the whole point. The HUD background color reads
         // through the map at its authored alpha; force A = 1 here.
         var bg = UITheme.OverworldHudBg;
         bg.A = 1f;
@@ -249,10 +249,10 @@ public partial class GrimoirePanel : PanelContainer
             meta += "  ·  once per expedition";
         Add(meta, -4, UITheme.TextSecondary);
 
-        // Cost line — the live breakdown, or the scroll note.
+        // Cost line: the live breakdown, or the scroll note.
         if (isScroll)
         {
-            Add($"Scroll ×{scrollsHeld} — no Essence; spent on a successful cast", -2,
+            Add($"Scroll ×{scrollsHeld}. No Essence; spent on a successful cast", -2,
                 UITheme.EssenceText);
         }
         else if (!def.IsAttunement)
@@ -269,10 +269,10 @@ public partial class GrimoirePanel : PanelContainer
 
         _detailBox.AddChild(new HSeparator { MouseFilter = MouseFilterEnum.Ignore });
 
-        // Full description — wrapped, never truncated, never translucent.
+        // Full description: wrapped, never truncated, never translucent.
         Add(def.Description, -2, UITheme.TextPrimary, wrap: true);
 
-        // S5 (R15, G5): the tier-3 exposure is priced in HP, not Essence —
+        // S5 (R15, G5): the tier-3 exposure is priced in HP, not Essence, so
         // it must be visible BEFORE the cast, scroll or not.
         string exposure = _manager.ExposureWarning();
         if (exposure != null && !def.IsAttunement)
@@ -294,7 +294,7 @@ public partial class GrimoirePanel : PanelContainer
 
     public override void _ExitTree()
     {
-        // The card and reopen tab are siblings, not children — free explicitly.
+        // The card and reopen tab are siblings, not children, so free them explicitly.
         _detail?.QueueFree();
         _detail = null;
         _detailBox = null;
@@ -309,12 +309,12 @@ public partial class GrimoirePanel : PanelContainer
         if (_manager == null || _list == null)
             return;
 
-        HideDetail(); // rows are about to be rebuilt — never show stale info
+        HideDetail(); // rows are about to be rebuilt, so never show stale info
 
         foreach (var child in _list.GetChildren())
             child.QueueFree();
 
-        // S5.2: header row — title + the Hide control.
+        // S5.2: header row with the title plus the Hide control.
         var headerRow = new HBoxContainer();
         _list.AddChild(headerRow);
 
@@ -333,8 +333,8 @@ public partial class GrimoirePanel : PanelContainer
         hideBtn.Pressed += () => { _panelHidden = true; ApplyHiddenState(); };
         headerRow.AddChild(hideBtn);
 
-        // S5.1: split the castable list — LOADOUT (own-school innates +
-        // prepared) always visible, the rest grouped by Category under
+        // S5.1: split the castable list. LOADOUT (own-school innates +
+        // prepared) stays always visible, the rest grouped by Category under
         // collapsible headers whose state persists (static _sectionOpen).
         var cycle = SaveManager.ActiveSave?.Cycle;
         var grimoire = cycle?.Grimoire;
@@ -381,7 +381,7 @@ public partial class GrimoirePanel : PanelContainer
                 _list.AddChild(MakeSpellRow(def, isScroll: false, scrollsHeld: 0));
         }
 
-        // S4 (§8a): the scroll satchel — its own collapsible section.
+        // S4 (§8a): the scroll satchel gets its own collapsible section.
         if (grimoire != null && grimoire.ScrollInventory.Count > 0)
         {
             int scrollKinds = 0;
@@ -426,7 +426,7 @@ public partial class GrimoirePanel : PanelContainer
     }
 
     /// <summary>Size the scroller to its content, clamped to a viewport
-    /// share — short lists sit tight, long lists scroll — then pin the
+    /// share (short lists sit tight, long lists scroll), then pin the
     /// panel's rect: bottom edge fixed at PanelBottom, top edge derived
     /// from the panel's own minimum height. No SetSize (it re-anchors the
     /// top-left and pushes a bottom-anchored panel off-screen).</summary>
@@ -453,7 +453,7 @@ public partial class GrimoirePanel : PanelContainer
     {
         string block = _manager.CastBlockReason(def, ignoreEssence: isScroll);
 
-        // S3: cost breakdown — base, off-caster tax, corruption surcharge.
+        // S3: cost breakdown covering base, off-caster tax, corruption surcharge.
         string costText;
         if (isScroll)
         {
@@ -471,8 +471,8 @@ public partial class GrimoirePanel : PanelContainer
             costText += "✦";
         }
 
-        // S5.1 (user request): a TEXT detection tag, not just the tint —
-        // only Overt/Grand are marked; an unmarked row is Subtle (quiet).
+        // S5.1 (user request): a TEXT detection tag, not just the tint.
+        // Only Overt/Grand are marked; an unmarked row is Subtle (quiet).
         string detect = def.Magnitude switch
         {
             "Overt" => "  ·  OVERT",
@@ -491,7 +491,7 @@ public partial class GrimoirePanel : PanelContainer
         btn.AddThemeColorOverride("font_color", MagnitudeColor(def.Magnitude));
 
         string id = def.Id;     // capture per-iteration, not loop variables
-        var hoverDef = def;     // (disabled rows still hover — the card explains WHY)
+        var hoverDef = def;     // (disabled rows still hover, and the card explains WHY)
         bool scroll = isScroll;
         int held = scrollsHeld;
         btn.Pressed += () =>
@@ -505,7 +505,7 @@ public partial class GrimoirePanel : PanelContainer
     }
 
     /// <summary>A collapsible section header: "▸ Divination (4)" /
-    /// "▾ Divination (4)". Toggles persist in the static _sectionOpen map —
+    /// "▾ Divination (4)". Toggles persist in the static _sectionOpen map, so
     /// state survives rebuilds, combat round-trips, and expeditions.</summary>
     private Button MakeSectionHeader(string key, int count)
     {

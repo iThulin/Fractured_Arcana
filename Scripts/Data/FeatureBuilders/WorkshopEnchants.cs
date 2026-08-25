@@ -5,19 +5,19 @@ using System.Linq;
 // ============================================================
 // WorkshopEnchants.cs
 //
-// Purpose:        Q5 — the Enchanter's Workshop machinery: the
+// Purpose:        Q5, the Enchanter's Workshop machinery: the
 //                 handcrafted enchant catalog (v1 rule: no
-//                 procedural affixes — every line here is
+//                 procedural affixes; every line here is
 //                 authored), the enchant verb, the blight roll
 //                 (§7d), and Cleanse at tier 3 (R23). Q5
-//                 STARTING VALUES throughout — v1 §6–7's numeric
+//                 STARTING VALUES throughout: v1 §6–7's numeric
 //                 content could not be located (same situation
 //                 as K4; fresh-authored under the empirical
 //                 pillar).
 // Layer:          Data (FeatureBuilders)
 // Collaborators:  ItemInstance (the enchant slot + blight
 //                 fields), EquipmentLoadout.BuildForRun (the ONE
-//                 resolution seam — enchants ride the same
+//                 resolution seam; enchants ride the same
 //                 accumulator as innates), CampusWorkshopPanel
 //                 (UI), ExpeditionManager (blight roll at the
 //                 corrupted-ground drop site),
@@ -33,7 +33,7 @@ using System.Linq;
 /// loadout resolver: "stat_*" keys land on ResolvedLoadout bonus fields;
 /// overworld keys (corruption_ward / hazard_ward / pathfinder) land on the
 /// party-summed fields; trigger keys (shield_self / regen_aura / apply_bleed)
-/// ride the Q2 trigger bus. No new effect keys — no new handlers.</summary>
+/// ride the Q2 trigger bus. No new effect keys, no new handlers.</summary>
 public class EnchantDef
 {
     public string Id = "";
@@ -64,7 +64,7 @@ public static class WorkshopEnchants
 
     public static readonly List<EnchantDef> Catalog = new()
     {
-        // Tier 1 — stat lines
+        // Tier 1: stat lines
         new EnchantDef { Id = "keen_edge", Name = "Keen Edge",
             Description = "+1 attack damage.", MinTier = 1, AllowedSlot = "Weapon",
             Key = "stat_attackdamage", Value = 1, GoldCost = 60 },
@@ -78,7 +78,7 @@ public static class WorkshopEnchants
             Description = "+1 max mana.", MinTier = 1, AllowedSlot = "Trinket",
             Key = "stat_maxmana", Value = 1, GoldCost = 80 },
 
-        // Tier 2 — scripted effects (live keys only)
+        // Tier 2: scripted effects (live keys only)
         new EnchantDef { Id = "warding_script", Name = "Warding Script",
             Description = "Reduces corruption attrition by 2 per corrupted step.",
             MinTier = 2, AllowedSlot = "Any",
@@ -116,7 +116,7 @@ public static class WorkshopEnchants
     public static List<EnchantDef> AvailableFor(ItemInstance item, int workshopTier)
     {
         if (item == null || item.EnchantSealed) return new List<EnchantDef>();
-        // Consumables have no enchant slot — the "Any" slot lines must not
+        // Consumables have no enchant slot. The "Any" slot lines must not
         // offer themselves to a potion.
         if (item.Slot == "Consumable") return new List<EnchantDef>();
         return Catalog
@@ -126,7 +126,7 @@ public static class WorkshopEnchants
     }
 
     /// <summary>Write an enchant onto the item's one slot (overwrites any
-    /// existing enchant — the Workshop is the sole mutation venue, and it
+    /// existing enchant; the Workshop is the sole mutation venue, and it
     /// charges every time). Returns the result line or null (sealed /
     /// unknown / wrong slot / tier / gold).</summary>
     public static string TryEnchant(ItemInstance item, string enchantId, int workshopTier)
@@ -149,7 +149,7 @@ public static class WorkshopEnchants
         return $"{e.Name} written onto {item.Name}.";
     }
 
-    /// <summary>R23: Cleanse at Workshop tier 3 — strip the drawback, unseal
+    /// <summary>R23: Cleanse at Workshop tier 3. Strip the drawback, unseal
     /// the slot, keep the blight's innate bump. Gold + splinters. Returns the
     /// result line or null.</summary>
     public static string TryCleanse(ItemInstance item, int workshopTier)
@@ -168,12 +168,12 @@ public static class WorkshopEnchants
             item.Name = item.Name.Substring("Blighted ".Length);
         SaveManager.Save();
         GD.Print($"[Workshop] {item.Name} cleansed ({CleanseGold}g + {CleanseSplinters} splinters).");
-        return $"{item.Name} is cleansed — the drawback lifts, the slot unseals, " +
+        return $"{item.Name} is cleansed: the drawback lifts, the slot unseals, " +
                "and what the corruption improved, it keeps.";
     }
 
     // ═════════════════════════════════════════════════════════════════════
-    // Blight roll (§7d) — called at the corrupted-ground drop site
+    // Blight roll (§7d), called at the corrupted-ground drop site
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>Maybe blight a fresh drop: authored drawback, sealed slot,
@@ -181,7 +181,7 @@ public static class WorkshopEnchants
     public static ItemInstance MaybeBlight(ItemInstance item, RandomNumberGenerator rng)
     {
         if (item == null || rng.RandiRange(1, 100) > BlightChancePct) return item;
-        // Consumables never blight — a one-use item has no slot to seal and
+        // Consumables never blight: a one-use item has no slot to seal and
         // no worn drawback to carry; a "Blighted Draught" is a different
         // design (poison mechanics) this deliberately isn't.
         if (item.Slot == "Consumable") return item;
@@ -192,7 +192,7 @@ public static class WorkshopEnchants
         item.EnchantSealed = true;
         item.BlightBonus = 1;
         item.Name = $"Blighted {item.Name}";
-        GD.Print($"[Blight] {item.Name}: {DrawbackText(key)} — slot sealed.");
+        GD.Print($"[Blight] {item.Name}: {DrawbackText(key)}. Slot sealed.");
         return item;
     }
 

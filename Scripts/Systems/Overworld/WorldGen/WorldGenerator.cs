@@ -19,7 +19,7 @@ using System.Linq;
 //                      (betrayal weight + co-conspirator intact),
 //                   4. scattering POIs (mostly undiscovered) and
 //                      seeding the first staging point.
-//                 No Godot nodes are instantiated — this runs and
+//                 No Godot nodes are instantiated; this runs and
 //                 verifies headless (Phase 1a).
 // Layer:          System
 // Collaborators:  OverworldField.cs (terrain noise),
@@ -203,7 +203,7 @@ public static class WorldGenerator
         Bathymetry.Apply(world, seed);
 
         // ── 5f. Settlements: grow City/Town AREAS (cities on the seats, towns by
-        // suitability). Areas only — ScatterPois studs them with POIs next.
+        // suitability). Areas only; ScatterPois studs them with POIs next.
         Settlements.Generate(world, kingdoms, capitals, kingdomIds, convergenceKingdom, rng);
 
         // ── 5g. Roads: MST over each landmass's settlements, stamped as Road on
@@ -230,7 +230,7 @@ public static class WorldGenerator
         SeedStaging(world, start, p, rng);
 
         // ── 9. Courts (Court & Council phase C1) ─────────────────────────
-        // Own per-kingdom RNGs (seed ^ FNV1a(kingdomId)) — deliberately
+        // Own per-kingdom RNGs (seed ^ FNV1a(kingdomId)). This deliberately
         // does NOT consume from this method's rng, so existing world
         // output is bit-identical with or without court generation.
         var council = CourtGenerator.Generate(seed, kingdoms, convergenceKingdom);
@@ -341,7 +341,7 @@ public static class WorldGenerator
         // First capital = the guild's start. A founding scenario may hint a
         // fractional position (StartHintX/Y in 0..1); snap to the nearest land
         // tile. Otherwise a seeded random land tile in the interior third (so the
-        // start isn't jammed in a corner) — the legacy path, byte-identical.
+        // start isn't jammed in a corner). That is the legacy path, byte-identical.
         if (p.StartHintX >= 0f && p.StartHintY >= 0f && land.Count > 0)
         {
             int hx = Mathf.Clamp(Mathf.RoundToInt(p.StartHintX * (world.Width - 1)), 0, world.Width - 1);
@@ -587,14 +587,14 @@ public static class WorldGenerator
         List<(int x, int y)> capitals, List<string> kingdomIds,
         Params p, RandomNumberGenerator rng)
     {
-        // 1. Archmage seats — each sits at its kingdom's primary (seat) city centre,
+        // 1. Archmage seats. Each sits at its kingdom's primary (seat) city centre,
         //    and is that city's staging POI.
         for (int i = 0; i < capitals.Count; i++)
         {
             // The convergence: Kassian's seat and the final objective. A distinct POI
             // kind so it reads as the endgame target, not a normal capital. Fog-gated like
             // any seat, so it stays hidden until the player reaches it (dramatic reveal).
-            // grantsStaging stays FALSE — it's an objective marker, not a deploy point;
+            // grantsStaging stays FALSE: it's an objective marker, not a deploy point;
             // the assault on it is a later phase and will hook here.
             int convIdx = kingdomIds.IndexOf(convergenceKingdom);
             if (convIdx >= 0)
@@ -605,7 +605,7 @@ public static class WorldGenerator
                 continue;
             if (!kingdoms.TryGetValue(id, out var ks))
                 continue;
-            // Every kingdom has a capital/seat — the archmage is the *ruler*, not a
+            // Every kingdom has a capital/seat. The archmage is the *ruler*, not a
             // precondition for the seat existing. Archmage-less kingdoms are real
             // polities with a minor/unnamed ruler; they still get a seat + label.
             bool hasArchmage = !string.IsNullOrEmpty(ks.ArchmageId);
@@ -674,7 +674,7 @@ public static class WorldGenerator
                 placedList.Add((x, y));
             }
 
-            // K3 (companion_item_systems v2.1 §5a): rescue POIs — found people.
+            // K3 (companion_item_systems v2.1 §5a): rescue POIs, found people.
             // At most ONE per kingdom, 35% chance, wilderness only. Rare by
             // design: rescues are the richest recruits narratively, so they
             // must not read as farm nodes. In-window the POI presents as a
@@ -743,7 +743,7 @@ public static class WorldGenerator
     /// <summary>Runtime POI creation for systems outside worldgen (the council tick
     /// siting an Imprisonment gaol). Anchors on the kingdom's Seat, then places the
     /// POI on the nearest kingdom-owned, non-settlement, unoccupied land tile
-    /// (WildTilesOfKingdom is land-only — water carries no KingdomId). Marks the POI
+    /// (WildTilesOfKingdom is land-only; water carries no KingdomId). Marks the POI
     /// discovered and reveals its tile so the marker shows and the rescue is
     /// reachable, and RETURNS the new POI index for the caller to back-reference.
     /// Returns -1 if the kingdom has no seat or no free wild tile.</summary>
@@ -759,7 +759,7 @@ public static class WorldGenerator
             { capX = poi.X; capY = poi.Y; break; }
         }
         if (capX < 0)
-            return -1; // no seat (convergence, or malformed) — cannot anchor
+            return -1; // no seat (convergence, or malformed), so cannot anchor
 
         int bestX = -1, bestY = -1, bestDist = int.MaxValue;
         foreach (var (x, y) in WildTilesOfKingdom(world, kingdomId))
@@ -775,7 +775,7 @@ public static class WorldGenerator
 
         int index = world.Pois.Count;
         AddPoi(world, bestX, bestY, kind, kingdomId, grantsStaging: false);
-        world.Pois[index].Discovered = true; // WorldPoi is a class — mutate in place
+        world.Pois[index].Discovered = true; // WorldPoi is a class, so mutate in place
 
         var t = world.GetTile(bestX, bestY);
         if (t.Discovery == TileDiscovery.Unseen)
@@ -790,7 +790,7 @@ public static class WorldGenerator
     private static void SeedStaging(WorldData world, (int x, int y) start, Params p,
                                     RandomNumberGenerator rng)
     {
-        // Phase 2: the guild's home is a real place in the world — the start capital
+        // Phase 2: the guild's home is a real place in the world, the start capital
         // (capitals[0]), whose seat city hosts the campus. Record the coordinate and
         // flag the settlement so renderers + the campus can locate it.
         world.HomeX = start.x;
@@ -814,15 +814,15 @@ public static class WorldGenerator
         });
 
         string startKingdom = world.GetTile(start.x, start.y).KingdomId ?? "";
-        // The Distant (foreign) outpost is the anti-softlock guarantee — always
+        // The Distant (foreign) outpost is the anti-softlock guarantee: always
         // seeded (StartingOutposts >= 1). The near Frontier outpost is convenience,
         // seeded at >= 2 (shipping). An extra Waystation is seeded at >= 3.
         int outposts = Mathf.Clamp(p.StartingOutposts, 1, 3);
         if (outposts >= 2)
-            // Near outpost: inside the first window, home kingdom is fine — it bootstraps the loop.
+            // Near outpost: inside the first window, home kingdom is fine. It bootstraps the loop.
             SeedBootstrapOutpost(world, start, minD: 10, maxD: 12, rng, "Frontier Outpost", foreignTo: null);
         // Distant outpost: MUST be in a different kingdom, so its window reaches foreign ground.
-        // This is the anti-softlock guarantee — without it every staging point can stay home.
+        // This is the anti-softlock guarantee: without it every staging point can stay home.
         SeedBootstrapOutpost(world, start, minD: 13, maxD: 18, rng, "Distant Outpost", foreignTo: startKingdom);
         if (outposts >= 3)
             SeedBootstrapOutpost(world, start, minD: 8, maxD: 14, rng, "Waystation Outpost", foreignTo: null);
@@ -879,12 +879,12 @@ public static class WorldGenerator
 
         if (foreignTo != null && foreignCandidates.Count == 0)
             GD.PushWarning($"[WorldGenerator] No FOREIGN bootstrap site for '{name}' in ring " +
-                           $"[{minD},{maxD}] — falling back to home kingdom; softlock risk.");
+                           $"[{minD},{maxD}]. Falling back to home kingdom; softlock risk.");
 
         if (pickList.Count == 0)
         {
             GD.PushWarning($"[WorldGenerator] No bootstrap-outpost site in ring " +
-                           $"[{minD},{maxD}] — staging may not bootstrap.");
+                           $"[{minD},{maxD}]. Staging may not bootstrap.");
             return;
         }
 
@@ -919,7 +919,7 @@ public static class WorldGenerator
         return result;
     }
 
-    // World coords (x,y) ARE offset (col,row). Distance is hexagonal — the
+    // World coords (x,y) ARE offset (col,row). Distance is hexagonal: the
     // world is a Civ-6-style rectangular hex map (flat-top, odd-q).
     private static int Dist((int x, int y) a, (int x, int y) b)
         => HexCoord.OffsetDistance(a.x, a.y, b.x, b.y);

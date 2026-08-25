@@ -99,7 +99,7 @@ public partial class NegotiationPortrait : Control
         if (IsInsideTree()) Refresh(instant: true);
     }
 
-    /// <summary>Module A hook: the per-round mood changed — swap expression.</summary>
+    /// <summary>Module A hook: the per-round mood changed, so swap expression.</summary>
     public void SetStance(NpcStance stance)
     {
         if (_stance == stance) return;

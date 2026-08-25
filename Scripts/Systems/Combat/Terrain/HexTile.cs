@@ -9,7 +9,7 @@ using System;
 //                 generated blended terrain mesh), handles hover/
 //                 highlight tinting, manages the imbuement overlay
 //                 and glyph indicator, and shows the debug coord
-//                 label. Pure visual layer — game state lives on
+//                 label. Pure visual layer; game state lives on
 //                 the paired TileData.
 // Layer:          Tiles
 // Collaborators:  TileData.cs (1:1 data sibling, via TileView),
@@ -18,14 +18,14 @@ using System;
 //                 HexMeshBuilder.cs (generated blended mesh),
 //                 terrain_splat.gdshader (textured terrain material),
 //                 HexGridManager.cs (instantiates and positions tiles)
-// See:            README §8 — CallDeferred rules apply to glyph
+// See:            README §8. CallDeferred rules apply to glyph
 //                 child addition (see ShowGlyph)
 //
 // Highlight architecture:
 //   ALL highlight/hover/overlay tinting flows through SetTint,
 //   which writes to whichever material is active:
 //   - StandardMaterial3D (legacy cylinder, or vertex-colour
-//     blended mesh): emission channel. Albedo is never tinted —
+//     blended mesh): emission channel. Albedo is never tinted;
 //     it would multiply against vertex colours / textures.
 //   - ShaderMaterial (terrain_splat.gdshader): the per-tile
 //     duplicate's highlight_color / highlight_strength uniforms,
@@ -72,7 +72,7 @@ public partial class HexTile : Node3D
     private Label3D _memorialLabel;
 
     /// <summary>Generic point-of-interest marker (see <see cref="SetPoiLabel"/>).
-    /// Independent of <see cref="_memorialLabel"/> — a tile may carry both, so this
+    /// Independent of <see cref="_memorialLabel"/>: a tile may carry both, so this
     /// is a separate node rather than a shared one with swapped text.</summary>
     private Label3D _poiLabel;
 
@@ -148,7 +148,7 @@ public partial class HexTile : Node3D
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Tint plumbing — the single channel all highlights flow through.
+    // Tint plumbing: the single channel all highlights flow through.
     // ────────────────────────────────────────────────────────────────────────
 
     /// <summary>True when some material is available to receive highlight tints.</summary>
@@ -191,11 +191,11 @@ public partial class HexTile : Node3D
     /// <summary>
     /// Installs a HexMeshBuilder-generated blended terrain mesh. The mesh is
     /// authored in tile-local space (top surface at Y = 0), so the MeshInstance
-    /// transform resets to identity — the legacy cylinder's 30° rotation,
+    /// transform resets to identity; the legacy cylinder's 30° rotation,
     /// Y-stretch, and -0.5 origin no longer apply.
     ///
     /// Pass a ShaderMaterial template (the grid's terrain_splat material) to
-    /// pair with a splat-mode mesh — it is duplicated per tile so highlight
+    /// pair with a splat-mode mesh; it is duplicated per tile so highlight
     /// uniforms stay independent. Pass null to pair with a vertex-colour mesh
     /// via a white-albedo StandardMaterial3D.
     /// </summary>
@@ -308,11 +308,11 @@ public partial class HexTile : Node3D
     {
         float tileTop = height * HeightStep;
 
-        // Move the tile's origin to its top surface — units, props, raycasts unaffected.
+        // Move the tile's origin to its top surface; units, props, raycasts unaffected.
         Position = new Vector3(Position.X, tileTop, Position.Z);
 
         // Generated mode: the blended mesh handles its own depth (skirts on
-        // map edges, watertight surface elsewhere) — no cylinder stretch.
+        // map edges, watertight surface elsewhere), so no cylinder stretch.
         if (_generatedMode)
             return;
 
@@ -321,7 +321,7 @@ public partial class HexTile : Node3D
         float requiredDepth = Mathf.Max(tileTop - worldFloor, _meshOriginalDepth);
         float yScaleRatio = requiredDepth / _meshOriginalDepth;
 
-        // Scale the MeshInstance3D transform — never the shared CylinderMesh resource.
+        // Scale the MeshInstance3D transform, never the shared CylinderMesh resource.
         // Basis.Y is the (0, 3, 0) column from the scene; length = 3 = original Y scale.
         float newYScale = _meshOriginalTransform.Basis.Y.Length() * yScaleRatio;
         float newYOrigin = -requiredDepth * 0.5f; // top stays at local Y=0
@@ -386,13 +386,13 @@ public partial class HexTile : Node3D
     }
 
     /// <summary>The tile's current resting albedo, as last set by <see cref="SetBaseColor"/>
-    /// (or read off the material at init). Read-only accessor for existing state — lets a
+    /// (or read off the material at init). Read-only accessor for existing state; lets a
     /// caller tint RELATIVE to whatever the terrain pass already decided, instead of
     /// duplicating the terrain→colour mapping on its own side. Meaningless in
     /// generated-mesh mode, where colour lives in the mesh rather than the albedo.</summary>
     public Color BaseColor => baseColor;
 
-    /// <summary>Sets the tile's resting albedo (legacy flat-colour path). In generated-mesh mode this is a no-op — terrain colour lives in the mesh's vertex data and textures.</summary>
+    /// <summary>Sets the tile's resting albedo (legacy flat-colour path). In generated-mesh mode this is a no-op: terrain colour lives in the mesh's vertex data and textures.</summary>
     public void SetBaseColor(Color color)
     {
         baseColor = color;
@@ -414,7 +414,7 @@ public partial class HexTile : Node3D
 
         imbuementOverlay?.SetElement(element);
 
-        // Record it board-wide so the TERRAIN can respond — snow settling on the
+        // Record it board-wide so the TERRAIN can respond: snow settling on the
         // grass, fire burning it away. Separate from the overlay on purpose: the
         // overlay is what stands ON this tile, the field is what this tile does to
         // the world around it, and grass is chunked 3x3 tiles per MultiMesh so it
@@ -437,7 +437,7 @@ public partial class HexTile : Node3D
     private const float GlyphDecalHeight = 0.055f;
 
     /// <summary>Seconds for the inscription when a glyph is first prepared. Six arms are
-    /// struck in sequence, so this is ~0.16s per stave — quick, but slow enough to read as
+    /// struck in sequence, so this is ~0.16s per stave: quick, but slow enough to read as
     /// deliberate drawing rather than a fade-in.</summary>
     private const float GlyphInscribeSeconds = 0.95f;
 
@@ -448,7 +448,7 @@ public partial class HexTile : Node3D
     /// the tile draws that spell's generated cipher sigil; call it bare and it falls back to
     /// the plain ✦ label.
     ///
-    /// The fallback is not a stub — it is the correct behaviour for every glyph the cipher
+    /// The fallback is not a stub; it is the correct behaviour for every glyph the cipher
     /// cannot name. Legacy PlaceGlyphEffect glyphs, Runic Cascade's self-spread copies and
     /// anything placed outside the cast pipeline carry no source card, and a tile with no
     /// marker at all would be a gameplay bug. Uses <c>CallDeferred("add_child", ...)</c> to
@@ -457,8 +457,8 @@ public partial class HexTile : Node3D
     public void ShowGlyph(GlyphData glyph = null)
     {
         // Put the fallback marker up FIRST, unconditionally. The cipher decal is baked
-        // asynchronously and can fail — no texture service, an unknown blueprint, a
-        // driver that returns an empty viewport — and a tile with no marker at all is a
+        // asynchronously and can fail (no texture service, an unknown blueprint, a
+        // driver that returns an empty viewport), and a tile with no marker at all is a
         // gameplay bug, not a cosmetic one. The ✦ stays until a real sigil is in hand
         // to replace it.
         ShowFallbackMarker();
@@ -470,7 +470,7 @@ public partial class HexTile : Node3D
 
         EnsureGlyphDecal();
         if (_glyphDecal == null)
-            return;                               // shader missing — keep the ✦
+            return;                               // shader missing; keep the ✦
 
         // The bake takes two frames cold and is cached, so a repeat placement of the
         // same spell resolves immediately. The nodes may be freed before the callback
@@ -483,14 +483,14 @@ public partial class HexTile : Node3D
             tex =>
             {
                 if (tex == null || !IsInstanceValid(decal) || mat == null)
-                    return;                       // bake failed — keep the ✦
+                    return;                       // bake failed; keep the ✦
                 mat.SetShaderParameter("sigil_tex", tex);
                 decal.Visible = true;
                 if (IsInstanceValid(label))
                     label.Visible = false;
 
                 // Inscribe it. The shader strikes one arm per beat, clockwise from the
-                // top — the cipher's own reading order — drawing each stave outward from
+                // top (the cipher's own reading order), drawing each stave outward from
                 // the hub, closing the ring behind it, and sealing the hub last.
                 //
                 // LINEAR on purpose: an eased tween front-loads the motion, which makes
@@ -550,7 +550,7 @@ public partial class HexTile : Node3D
         var shader = GD.Load<Shader>(GlyphDecalShaderPath);
         if (shader == null)
         {
-            GD.PushWarning($"HexTile {Axial}: {GlyphDecalShaderPath} not found — glyph falls back to the marker.");
+            GD.PushWarning($"HexTile {Axial}: {GlyphDecalShaderPath} not found; glyph falls back to the marker.");
             return;
         }
 
@@ -711,7 +711,7 @@ public partial class HexTile : Node3D
     /// <summary>Toggles the threat-tile tint (enemy intent footprint). Lowest layer
     /// in the highlight stack. Two tiers: <paramref name="revealed"/> = hot
     /// (UITheme.TileThreat, full details known); unrevealed = dim reticle
-    /// (UITheme.TileThreatDim — you see WHERE it aims, not how hard).</summary>
+    /// (UITheme.TileThreatDim: you see WHERE it aims, not how hard).</summary>
     public void SetThreatHighlight(bool on, bool revealed = true)
     {
         threatHighlighted = on;
@@ -751,7 +751,7 @@ public partial class HexTile : Node3D
         RefreshVisualState();
     }
 
-    /// <summary>Recomputes the current highlight tint from the layered flags (deployment → move → memorial → growth). No tint active = highlight off; the terrain (vertex colours, textures, or legacy albedo) shows untouched. No-op while a target/range highlight is active — those override.</summary>
+    /// <summary>Recomputes the current highlight tint from the layered flags (deployment → move → memorial → growth). No tint active = highlight off; the terrain (vertex colours, textures, or legacy albedo) shows untouched. No-op while a target/range highlight is active; those override.</summary>
     public void RefreshVisualState()
     {
         if (!HasTintTarget)
@@ -787,7 +787,7 @@ public partial class HexTile : Node3D
                 MemorialState.Hallowed => MemorialHallowedColor,
                 _ => MemorialNoneColor
             };
-            // Lerp into the tint rather than overriding it —
+            // Lerp into the tint rather than overriding it, so
             // the ground still reads as grass/stone/etc underneath
             tint = tint.Lerp(memColor, memColor.A);
         }
@@ -819,7 +819,7 @@ public partial class HexTile : Node3D
     }
 
     /// <summary>
-    /// Updates the tile's living-growth visual — ground tint plus a floating green
+    /// Updates the tile's living-growth visual: ground tint plus a floating green
     /// pip that grows brighter and larger by stage. Pass 0 to clear. The pip is a
     /// separate node, so it stays visible even while the tile is highlighted (when
     /// the ground tint is suppressed by RefreshVisualState).
@@ -875,7 +875,7 @@ public partial class HexTile : Node3D
     }
 
     /// <summary>
-    /// Updates the tile's memorial visual state — both the ground tint and the
+    /// Updates the tile's memorial visual state: both the ground tint and the
     /// floating symbol. Pass null to clear all memorial visuals.
     /// </summary>
     public void SetMemorial(MemorialData memorial)
@@ -961,7 +961,7 @@ public partial class HexTile : Node3D
     ///
     /// Takes a plain string and Color rather than any campus type ON PURPOSE: this
     /// is a shared combat node, and the campus keeps its own concepts on its own
-    /// side of the boundary — the same rule CampusGridManager follows by holding
+    /// side of the boundary, the same rule CampusGridManager follows by holding
     /// _buildableMask / _buildingAtHex as parallel dictionaries instead of adding
     /// campus fields to TileData. The caller maps its state to a colour first.
     ///
@@ -969,7 +969,7 @@ public partial class HexTile : Node3D
     /// Passing null or empty text clears the label.
     /// </summary>
     /// <param name="fontSize">0 (default) uses <see cref="UITheme.Label3DPoi"/>, sized for a
-    /// two-character marker. Everything on the campus map — buildings and landmarks alike —
+    /// two-character marker. Everything on the campus map (buildings and landmarks alike)
     /// passes <see cref="UITheme.Label3DPlaceName"/> instead, because it labels with a full
     /// name rather than initials.</param>
     public void SetPoiLabel(string text, Color tint, int fontSize = 0)
@@ -989,7 +989,7 @@ public partial class HexTile : Node3D
                 Name = "PoiLabel",
                 Text = text,
                 FontSize = size,
-                // A billboarded world-space label cannot know what is behind it — grass,
+                // A billboarded world-space label cannot know what is behind it: grass,
                 // a violet building tile, or the skybox. An outline is the only thing that
                 // makes it legible against all three, so it is not optional styling.
                 OutlineSize = UITheme.Label3DOutlineSize,

@@ -4,7 +4,7 @@ using System.Text.Json;
 // ============================================================
 // CardScriptRegistry.Chronomancer.cs
 //
-// Purpose:        Chronomancer school effect registrations — maps the
+// Purpose:        Chronomancer school effect registrations. Maps the
 //                 school's JSON `type` keys to effect factories.
 //                 Called from CardScriptRegistry.RegisterBuiltins().
 // Layer:          Loader
@@ -35,14 +35,14 @@ public static partial class CardScriptRegistry
         {
             // Three param vocabularies exist in the authored cards and, until
             // 2026-07-28, this factory understood exactly one of them:
-            //   look/keep/discount  — Chronomancer. Read correctly.
-            //   look/draw           — Arcanist. `draw` was NEVER READ, so
+            //   look/keep/discount  (Chronomancer). Read correctly.
+            //   look/draw           (Arcanist). `draw` was NEVER READ, so
             //                         {"look":4,"draw":2} silently became keep=1.
-            //   count               — Worldshaper. NEITHER key was read, so
+            //   count               (Worldshaper). NEITHER key was read, so
             //                         {"count":2} silently became look=3, keep=1.
             // All three are honoured now. `draw` is a straight alias for `keep`.
             // `count` is the REORDER form: look at N, put 1 back on TOP, bottom the
-            // rest — nothing goes to hand.
+            // rest. Nothing goes to hand.
             bool hasCount = n.TryGetProperty("count", out var cnt);
             int look = n.TryGetProperty("look", out var l) ? l.GetInt32()
                      : hasCount ? cnt.GetInt32() : 3;

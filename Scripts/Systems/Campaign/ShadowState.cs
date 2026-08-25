@@ -3,8 +3,8 @@ using System.Collections.Generic;
 // ============================================================
 // ShadowState.cs
 //
-// Purpose:        Tier 2 data model for the espionage layer — the
-//                 Informant Network and the Veiled Concord. The
+// Purpose:        Tier 2 data model for the espionage layer, namely
+//                 the Informant Network and the Veiled Concord. The
 //                 third tenant of the lunation tick, sitting beneath
 //                 the Court & Council system the way the underworld
 //                 sits beneath the throne room. Pure data + derived
@@ -37,7 +37,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Shared string vocabulary and tuning constants for the espionage
 /// layer. Strings (not enums) for Role/ContractType so authored JSON
-/// (the Concord price list) references them without a mapping table —
+/// (the Concord price list) references them without a mapping table,
 /// consistent with CourtVocab's archetype/office handling.
 /// </summary>
 public static class ShadowVocab
@@ -45,7 +45,7 @@ public static class ShadowVocab
     // ── Informant roles (§2c) ────────────────────────────────────────────
     /// <summary>Pure sensor. Charts tiles at range, previews echoes and the
     /// Astrologer's next corruption target. Cannot act, cannot be traced by
-    /// its own noise — the safest, slowest-burning role.</summary>
+    /// its own noise. The safest, slowest-burning role.</summary>
     public const string RoleWatcher = "Watcher";
 
     /// <summary>Fence and forger. Produces sellable intel, discovers secrets,
@@ -75,7 +75,7 @@ public static class ShadowVocab
         ContractTheft, ContractExtraction, ContractAssassination,
     };
 
-    // ── Cover tuning (§12 STARTING VALUES — tune here) ───────────────────
+    // ── Cover tuning (§12 STARTING VALUES, tune here) ────────────────────
     /// <summary>Cover 0..10. At 0 the informant is burned.</summary>
     public const int CoverMax = 10;
     public const int CoverMin = 0;
@@ -93,7 +93,7 @@ public static class ShadowVocab
     public const int AccessMax = 3;
 
     /// <summary>Lunations in place before Access ripens by +1 (Library halves
-    /// this — see campus riders, §6). Not applied here; read by the tick.</summary>
+    /// this; see campus riders, §6). Not applied here; read by the tick.</summary>
     public const int AccessRipenLunations = 3;
 
     // ── Marked tuning (§3d) ──────────────────────────────────────────────
@@ -104,7 +104,7 @@ public static class ShadowVocab
     public const int MarkedSoldOut = 6;    // the Concord fences your movements
     public const int MarkedContracted = 9; // the Astrologer commissions against you
 
-    // ── Marketplace tuning (§3b/§3c, phase E3 — STARTING VALUES) ─────────
+    // ── Marketplace tuning (§3b/§3c, phase E3, STARTING VALUES) ──────────
     /// <summary>Concord Favor granted for fencing one known courtier secret.</summary>
     public const int FavorSellSecret = 12;
 
@@ -129,7 +129,7 @@ public static class ShadowVocab
     public const int PurchaseIntelPoiReveal = 3;
 
     /// <summary>Trace chance (%) that a sold secret is pinned on the guild:
-    /// base + per current Marked point (ruling #3 — only a traced sell bites).</summary>
+    /// base + per current Marked point (ruling #3: only a traced sell bites).</summary>
     public const int SellTraceBasePercent = 20;
     public const int SellTracePerMarked = 5;
 
@@ -172,15 +172,15 @@ public static class ShadowVocab
     public const int AstrologerContractChance = 40;
     public const int AstrologerContractDuration = 1;
 
-    /// <summary>The Astrologer's standing bid on an against-guild contract — the
-    /// Favor the guild must BEAT to outbid and buy it back (§3e).</summary>
+    /// <summary>The Astrologer's standing bid on an against-guild contract. It is
+    /// the Favor the guild must BEAT to outbid and buy it back (§3e).</summary>
     public const int AstrologerBidFavor = 25;
 
     /// <summary>Cover each informant loses when a mass-burn contract lands.</summary>
     public const int MassBurnCover = 4;
 
-    /// <summary>Marked booked when the guild outbids a contract — dealing with
-    /// the shadows again, however defensively.</summary>
+    /// <summary>Marked booked when the guild outbids a contract. It is dealing
+    /// with the shadows again, however defensively.</summary>
     public const int OutbidMarkedGain = 1;
 
     /// <summary>Against-guild contract flavors, carried in ConcordContract.TargetId
@@ -228,12 +228,12 @@ public static class ShadowVocab
     public const int UndercroftHandlerMitigation = 6;
 
     /// <summary>Undercroft III shaves this much Marked off each completed guild
-    /// contract — deeper tradecraft leaves a shorter shadow (§6).</summary>
+    /// contract, because deeper tradecraft leaves a shorter shadow (§6).</summary>
     public const int UndercroftMarkedDiscountTier = 3;
     public const int UndercroftMarkedDiscount = 1;
 
     public const int FavorCostAssassination = 60;
-    public const int ContractDurAssassination = 3;   // Tier C — the slow, dear work
+    public const int ContractDurAssassination = 3;   // Tier C, the slow, dear work
     public const int MarkedGainAssassination = 3;
     public const int AssassinationExposureSpike = 5; // the court investigates its dead
 
@@ -242,7 +242,7 @@ public static class ShadowVocab
     public const int ExfilRenownCoverCap = 4;
 
     // ── Concord standing thresholds (§3c gate) ───────────────────────────
-    // Derived from lifetime completed dealings, NOT stored as a band — mirrors
+    // Derived from lifetime completed dealings, NOT stored as a band. This mirrors
     // CourtState.Band() deriving from Regard×Influence. The driver scalar is
     // CouncilState.ConcordDealings (completed contracts + traced sells).
     private const int StandingKnownAt = 1;   // first dealing: out of Unaware
@@ -250,7 +250,7 @@ public static class ShadowVocab
     private const int StandingInnerAt = 8;   // Assassination unlocked (also needs Undercroft III)
 
     /// <summary>Derive the Concord standing band from lifetime dealings.
-    /// Never stored — always computed, so it cannot drift from its driver.</summary>
+    /// Never stored, always computed, so it cannot drift from its driver.</summary>
     public static ConcordStandingBand StandingBand(int dealings)
     {
         if (dealings >= StandingInnerAt)
@@ -297,9 +297,9 @@ public static class ShadowVocab
 
     /// <summary>The broker archetype at a Concord node (§Negotiation 4 ids;
     /// drives the Tier C broker negotiation, E6). Derived from the cycle seed
-    /// and the node's tile — never stored, so it cannot drift and adds no save
+    /// and the node's tile. Never stored, so it cannot drift and adds no save
     /// surface. v1 RULING (#6, deferred): all nodes broker as Opportunist
-    /// (numerous, surprising hidden terms — the cabal's default face). The
+    /// (numerous, surprising hidden terms, the cabal's default face). The
     /// FNV hook below is the one-line seam to vary per node later; left inert
     /// rather than shipped as dead variety.</summary>
     public static string BrokerArchetypeFor(int seed, int x, int y)
@@ -314,23 +314,23 @@ public static class ShadowVocab
 }
 
 /// <summary>
-/// Derived Concord relationship band. NEVER stored — always computed from
+/// Derived Concord relationship band. NEVER stored, always computed from
 /// lifetime dealings via <see cref="ShadowVocab.StandingBand"/>. Gates which
 /// contract tiers the cabal will sell you.
 /// </summary>
 public enum ConcordStandingBand
 {
-    Unaware,  // no contact — nothing bought or sold yet
+    Unaware,  // no contact, nothing bought or sold yet
     Known,    // Plant Asset, Purchase Intel, Sabotage
     Trusted,  // + Theft, Extraction
     Inner,    // + Assassination (also gated on Undercroft III)
 }
 
 /// <summary>
-/// One standing informant — a turned NPC asset, NOT a companion (the
+/// One standing informant: a turned NPC asset, NOT a companion (the
 /// distinction is the layer's spine: informants never touch the party
 /// HP pool, never fill an expedition slot). Managed by one meter, Cover;
-/// at Cover 0 the asset is burned and removed. Save-adjacent — round-trip
+/// at Cover 0 the asset is burned and removed. Save-adjacent, round-trip
 /// asserted in CouncilSaveAssert.
 /// </summary>
 public class InformantState
@@ -349,7 +349,7 @@ public class InformantState
     /// and the Saboteur siege-degrade verb (§2c).</summary>
     public string WarfrontId = "";
 
-    /// <summary>ShadowVocab.Roles — Watcher, Cutout, Saboteur. Determines
+    /// <summary>ShadowVocab.Roles: Watcher, Cutout, Saboteur. Determines
     /// yield type and burn risk.</summary>
     public string Role = ShadowVocab.RoleWatcher;
 
@@ -361,7 +361,7 @@ public class InformantState
     /// AccessRipenLunations survived. Gates high-value yields and Sabotage.</summary>
     public int Access = ShadowVocab.AccessMin;
 
-    /// <summary>Companion left at campus to run this network (soft sacrifice —
+    /// <summary>Companion left at campus to run this network (a soft sacrifice,
     /// not on expedition, not an envoy). Empty = unhandled, or handled free by
     /// Undercroft II. Reduces counter-intelligence burn.</summary>
     public string HandlerCompanionId = "";
@@ -373,8 +373,8 @@ public class InformantState
 /// <summary>
 /// One live Veiled Concord contract, ticking toward completion. Bought by
 /// the guild (AgainstPlayer false) or commissioned by the Astrologer against
-/// the guild at Marked 9 (AgainstPlayer true — the outbid path, §3e).
-/// Save-adjacent — round-trip asserted.
+/// the guild at Marked 9 (AgainstPlayer true, the outbid path, §3e).
+/// Save-adjacent, round-trip asserted.
 /// </summary>
 public class ConcordContract
 {

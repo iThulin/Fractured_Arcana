@@ -18,7 +18,7 @@ using System.Collections.Generic;
 // ============================================================
 
 /// <summary>What a fine-lattice cell IS, for terrain compilation. Locked =
-/// not part of the city (no cell laid) — compiles to rubble or is omitted.</summary>
+/// not part of the city (no cell laid); compiles to rubble or is omitted.</summary>
 public enum CityCellKind
 {
     Plaza,
@@ -27,7 +27,7 @@ public enum CityCellKind
     Locked,
 }
 
-/// <summary>Siege attack vectors — mirrors the enum locked in
+/// <summary>Siege attack vectors. Mirrors the enum locked in
 /// campus_siege_and_defense_v1_1.docx §3/§5 (WallSiege covers both the
 /// gate-assault and wall-breach entry treatments).</summary>
 public enum SiegeVector
@@ -38,7 +38,7 @@ public enum SiegeVector
 }
 
 /// <summary>One placed, active building as the compiler sees it. Rotation is
-/// carried for the docx §5 schema work (BuildingSaveData.Rotation) — the home
+/// carried for the docx §5 schema work (BuildingSaveData.Rotation); the home
 /// adapter reports 0 until that field lands.</summary>
 public sealed class CityBuildingRef
 {
@@ -49,7 +49,7 @@ public sealed class CityBuildingRef
 /// <summary>
 /// Read-only view of a districted city for siege battlemap compilation.
 /// Coordinates are FINE-LATTICE AXIAL (the /3 flower lattice of
-/// CampusMapSaveData) — the same family the combat grid uses, so no offset
+/// CampusMapSaveData), the same family the combat grid uses, so no offset
 /// conversion exists anywhere in this pipeline.
 /// </summary>
 public interface ICityCombatSource
@@ -63,7 +63,7 @@ public interface ICityCombatSource
     /// <summary>The active (built AND placed) building on a lot, else null.</summary>
     CityBuildingRef BuildingAt(int q, int r);
 
-    /// <summary>The seat lot — grand_hall at home; the archmage seat in NPC
+    /// <summary>The seat lot: grand_hall at home; the archmage seat in NPC
     /// cities. The final siege window is built around it.</summary>
     (int q, int r) SeatCell { get; }
 

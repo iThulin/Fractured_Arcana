@@ -16,7 +16,7 @@ using System.Text.Json;
 //                 CardDatabase.cs (consumer of LoadAll),
 //                 Schemas/card.schema.json (the JSON contract)
 // See:            README §5 (Card Schema Reference),
-//                 README §7 — "Effect Types Must Be Registered" gotcha,
+//                 README §7 (the "Effect Types Must Be Registered" gotcha),
 //                 README §4.1 (Adding a Card)
 // ============================================================
 //
@@ -33,7 +33,7 @@ using System.Text.Json;
 /// <see cref="ITargetSelector"/>. Populate via <see cref="RegisterBuiltins"/> once
 /// at startup; cards loaded by <see cref="JsonCardLoader"/> resolve their type strings
 /// through these tables. Adding a new effect/predicate/targeter requires a
-/// corresponding <c>Register*</c> call here — see README §7.
+/// corresponding <c>Register*</c> call here (see README §7).
 /// </summary>
 public static partial class CardScriptRegistry
 {
@@ -56,7 +56,7 @@ public static partial class CardScriptRegistry
     /// <summary>
     /// Resolves a JSON effect node to a concrete <see cref="IEffect"/>. Unknown or
     /// missing `type` values fall back to <see cref="EmptyEffect"/> with an error
-    /// logged to the Godot console — cards never crash the loader, they just no-op.
+    /// logged to the Godot console. Cards never crash the loader, they just no-op.
     /// </summary>
     public static IEffect BuildEffect(JsonElement node)
     {
@@ -74,7 +74,7 @@ public static partial class CardScriptRegistry
     /// <summary>
     /// Resolves a JSON predicate node to a concrete <see cref="IPredicate"/>. Unknown
     /// or missing `type` values fall back to <see cref="AlwaysTrue"/> with an error
-    /// logged — a missing predicate is safer than a hard failure.
+    /// logged. A missing predicate is safer than a hard failure.
     /// </summary>
     public static IPredicate BuildPredicate(JsonElement node)
     {
@@ -141,7 +141,7 @@ public static partial class CardScriptRegistry
 
     /// <summary>
     /// Resolves a JSON targeting node to a concrete <see cref="ITargetSelector"/>.
-    /// Returns null (no targeting) for missing or unknown types — the caller is
+    /// Returns null (no targeting) for missing or unknown types. The caller is
     /// expected to handle a null targeter as "global / no target".
     /// </summary>
     public static ITargetSelector BuildTargeter(JsonElement node)
@@ -163,7 +163,7 @@ public static partial class CardScriptRegistry
     /// new effect type, you must (a) implement the <see cref="IEffect"/> class,
     /// (b) add a <c>RegisterEffect</c> call here, and (c) add the type to
     /// <c>Schemas/card.schema.json</c>'s examples list. Skipping (b) is the most common
-    /// "card silently no-ops" bug — see README §7.
+    /// "card silently no-ops" bug (see README §7).
     /// </summary>
     public static void RegisterBuiltins()
     {
@@ -196,7 +196,7 @@ public static partial class CardScriptRegistry
         RegisterEffect("for_each_target", n =>
             new ForEachTargetEffect(BuildEffect(n.GetProperty("do"))));
 
-        // Choose One — cast-time modal (2026-07-29). Exactly one option resolves,
+        // Choose One: cast-time modal (2026-07-29). Exactly one option resolves,
         // picked by the player before the cast is paid (CombatManager mode picker).
         // { "type": "choose_one", "options": [
         //     { "label": "...", "description": "...", "effect": { ... } }, ... ] }
@@ -221,7 +221,7 @@ public static partial class CardScriptRegistry
             };
         });
 
-        // Seek — filtered tutor over the top of the deck (2026-07-29).
+        // Seek: filtered tutor over the top of the deck (2026-07-29).
         // { "type": "seek", "look": n, "keep": n, "filter_tag": "construct",
         //   "charge_per_bottomed": n }
         RegisterEffect("seek", n =>
@@ -233,7 +233,7 @@ public static partial class CardScriptRegistry
             return new SeekEffect(look, keep, tag, cpb).WithTag("CardDraw");
         });
 
-        // Foretell — delayed hand (2026-07-29). Set-aside cards arrive next turn
+        // Foretell: delayed hand (2026-07-29). Set-aside cards arrive next turn
         // with a per-card discount. { "type": "foretell", "look": n, "set_aside": n,
         //   "discount": n }
         RegisterEffect("foretell", n =>
@@ -244,7 +244,7 @@ public static partial class CardScriptRegistry
             return new ForetellEffect(look, aside, discount).WithTag("CardDraw");
         });
 
-        // Remembrance — exile from discard, leave memorials (2026-07-29).
+        // Remembrance: exile from discard, leave memorials (2026-07-29).
         // { "type": "exile_discard_for_memorial", "count": n, "strength": "solid" }
         RegisterEffect("exile_discard_for_memorial", n =>
         {
@@ -414,7 +414,7 @@ public static partial class CardScriptRegistry
         });
 
         // Push + damage: { "type": "push_damage", "tiles": n, "damage_per_tile": m,
-        //                  "aimed": bool }  — aimed pairs with a unit_then_direction targeter
+        //                  "aimed": bool }  (aimed pairs with a unit_then_direction targeter)
         RegisterEffect("push_damage", n =>
         {
             int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 1;
@@ -424,7 +424,7 @@ public static partial class CardScriptRegistry
         });
 
         // Pull: { "type": "pull", "tiles": n }
-        // Aimed displacement (2026-07-28) — pair with a unit_then_* targeter.
+        // Aimed displacement (2026-07-28). Pair with a unit_then_* targeter.
         // { "type": "push_aimed", "tiles": n, "collision_damage": n, "damage": n }
         RegisterEffect("push_aimed", n =>
         {
@@ -508,7 +508,7 @@ public static partial class CardScriptRegistry
                 n.TryGetProperty("damage", out var rt) ? rt.GetInt32() : 4).WithTag("Defense"));
 
         // ═══════════════════════════════════════════════════════════
-        // SCHOOL EFFECT REGISTRATIONS — one partial file per school
+        // SCHOOL EFFECT REGISTRATIONS: one partial file per school
         // (CardScriptRegistry.<School>.cs). Add new school effects there.
         // ═══════════════════════════════════════════════════════════
 
@@ -639,7 +639,7 @@ public static partial class CardScriptRegistry
 
         RegisterTargeter("self", _ => new SelectSelfTarget());
         RegisterTargeter("none", _ => new SelectGlobalTarget());
-        RegisterTargeter("global", _ => new SelectGlobalTarget()); // alias — card JSON uses both spellings
+        RegisterTargeter("global", _ => new SelectGlobalTarget()); // alias, since card JSON uses both spellings
 
         // Unit selector: { "type": "unit", "enemies_only": bool, "range": n, "los": bool }
         RegisterTargeter("unit", n =>
@@ -673,7 +673,7 @@ public static partial class CardScriptRegistry
             bool enemiesOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
             // include_tiles wired for tile-counting AoE (tile_interaction_spec §5.2 /
             // §8.4 Cinder Cone): the selector always supported it, the loader never
-            // passed it — so a cone imbue step silently found no tiles.
+            // passed it, so a cone imbue step silently found no tiles.
             bool includeTiles = n.TryGetProperty("include_tiles", out var it) && it.GetBoolean();
             return new SelectConeTarget(range, enemiesOnly, includeTiles);
         });
@@ -903,7 +903,7 @@ public static class JsonCardLoader
             CardName = root.GetProperty("name").GetString() ?? "Unnamed",
             BlueprintId = root.TryGetProperty("id", out var idEl)
                 ? idEl.GetString() ?? ""
-                : ""  // fallback to empty — RegisterPrebuiltCard will warn
+                : ""  // fallback to empty; RegisterPrebuiltCard will warn
         };
 
         if (root.TryGetProperty("rarity", out var r)
@@ -916,8 +916,8 @@ public static class JsonCardLoader
         if (root.TryGetProperty("bottom", out var bot))
             card.BottomHalf = BuildHalf(bot, card, root);
 
-        // Stamp each half with where it came from. BuildHalf itself cannot do this —
-        // it is not told which half it is building — and the pair (id, half) is the
+        // Stamp each half with where it came from. BuildHalf itself cannot do this,
+        // because it is not told which half it is building, and the pair (id, half) is the
         // only stable identity a half has: display names are localisable and get
         // reworded during balance passes.
         if (card.TopHalf != null)
@@ -943,7 +943,7 @@ public static class JsonCardLoader
     ///
     /// This deliberately does NOT route through GameState. Casting is a two-phase
     /// operation: <c>Rules.TryCastWithTargets</c> pushes a StackItem and returns, and its
-    /// <c>finally</c> clears the cast-context pins immediately — long before the stack
+    /// <c>finally</c> clears the cast-context pins immediately, long before the stack
     /// resolves and the effect actually executes. Anything an effect reads off GameState
     /// inside <c>Resolve</c> has therefore already been cleared. An effect instance belongs
     /// to exactly one half of one blueprint, so its origin is a load-time constant and

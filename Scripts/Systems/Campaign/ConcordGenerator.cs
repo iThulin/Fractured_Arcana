@@ -14,7 +14,7 @@ using System.Collections.Generic;
 //                 shadow market is not on the table.
 //
 //                 Nodes are plain WorldPoi (Kind = Concord) appended
-//                 to WorldData.Pois — NO new save struct, and the
+//                 to WorldData.Pois: NO new save struct, and the
 //                 broker's archetype is DERIVED per node from the
 //                 seed (ShadowVocab.BrokerArchetypeFor), never stored.
 //                 The buyable/sellable contract catalogue is E3
@@ -23,7 +23,7 @@ using System.Collections.Generic;
 //
 //                 DETERMINISM: runs on its OWN RNG, seeded
 //                 seed ^ FNV1a("veiled_concord"), so it never draws
-//                 from WorldGenerator's stream — adding this pass
+//                 from WorldGenerator's stream. Adding this pass
 //                 leaves all existing world output bit-identical,
 //                 exactly as CourtGenerator does for courts.
 // Layer:          System
@@ -106,7 +106,7 @@ public static class ConcordGenerator
             X = x,
             Y = y,
             Kind = PoiKind.Concord,
-            // Host kingdom for locational/patrol context — the Concord answers
+            // Host kingdom for locational/patrol context. The Concord answers
             // to no throne, but its door is physically inside this territory.
             KingdomId = world.GetTile(x, y).KingdomId,
             Discovered = false,
@@ -138,7 +138,7 @@ public static class ConcordGenerator
         return h;
     }
 
-    /// <summary>xorshift32 — the project's determinism-stable RNG shape (unsigned
+    /// <summary>xorshift32: the project's determinism-stable RNG shape (unsigned
     /// wraparound, reproducible across runtimes), local per the codebase pattern
     /// of one private Rng per generator.</summary>
     private struct Rng

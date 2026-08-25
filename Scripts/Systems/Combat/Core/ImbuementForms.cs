@@ -6,7 +6,7 @@ using System.Collections.Generic;
 // ImbuementForms.cs
 //
 // Purpose:        Builds the elemental SILHOUETTE for an imbued
-//                 tile — flames, crystals, plates, ribbons — as one
+//                 tile (flames, crystals, plates, ribbons) as one
 //                 procedural shard mesh per element, from a single
 //                 parameter table.
 // Layer:          Tiles / VFX
@@ -35,8 +35,8 @@ using System.Collections.Generic;
 //   1. It is ONE builder with a parameter table, not eight meshes. That is
 //      redesign §3.7 applied to geometry rather than to shader branches. A
 //      ninth element costs a row.
-//   2. Every row is constrained to the same FOOTPRINT — shards are placed on
-//      or inside the hex and rise from its surface — so the "something is on
+//   2. Every row is constrained to the same FOOTPRINT (shards are placed on
+//      or inside the hex and rise from its surface), so the "something is on
 //      this tile" read survives even where the "what" does not.
 //
 // The floor is set by the shortest form (Water, 0.20) seen at maximum camera
@@ -45,13 +45,13 @@ using System.Collections.Generic;
 //
 // ── Construction ────────────────────────────────────────────────────────
 // A form is N shards. A shard is two quads crossed at 90° along a leaning,
-// curling spine — the same trick painterly grass uses to give a flat blade
+// curling spine, the same trick painterly grass uses to give a flat blade
 // volume from any camera angle, and for the same reason.
 //
 // Mesh space: base at y = 0 (the tile's top surface), +Y up, tile radius 1.0.
 // UV: u across the shard, v = 0 at base -> 1 at tip.
 // COLOR.a: SOLIDITY at that vertex. This is what the shader fades with, which
-// is why the shader no longer has to guess at a mesh's UV winding — the thing
+// is why the shader no longer has to guess at a mesh's UV winding. The thing
 // that authored the geometry says how solid it is, in the same place it says
 // how tall it is.
 // ============================================================
@@ -131,16 +131,16 @@ public static class ImbuementForms
         //
         // Place.Cluster at 0.78 rather than a ring: a ring reads as something
         // ARRANGED, and mineral growth is not arranged. Base/tip solidity are 0.72
-        // and 0.52 — these are the only GEMS in the table and they have to be
+        // and 0.52, because these are the only GEMS in the table and they have to be
         // semi-translucent, which is also why they carry the strongest rim term in
         // element_look().
         [TileElementType.Lightning] = new(6,  Place.Cluster, 0.78f, 0.52f, 0.42f, 0.075f, 1.15f, 0.00f, 0.00f,   6f,  0.00f, 40f, 2, 0.72f, 0.52f, 0.00f),
 
-        // Plates heaved up at the corners. TipFrac 0.72 is what makes these SLABS —
-        // with a pointed tip they read as paddles or mushrooms, not stone.
+        // Plates heaved up at the corners. TipFrac 0.72 is what makes these SLABS.
+        // With a pointed tip they read as paddles or mushrooms, not stone.
         [TileElementType.Earth]     = new(6,  Place.Corner,  0.88f, 0.32f, 0.28f, 0.260f, 0.90f, 0.72f, 0.00f, -24f,  0.08f, 12f, 2, 1.00f, 0.95f, 0.00f),
 
-        // A low rippling collar, flat ribbons rather than crossed shards — the
+        // A low rippling collar, flat ribbons rather than crossed shards. The
         // crossed version reads as a crown of teeth. Shortest form in the table and
         // therefore what bounds the whole system's legibility. See the header.
         [TileElementType.Water]     = new(10, Place.Ring,    0.60f, 0.20f, 0.22f, 0.300f, 0.70f, 0.45f, 0.30f, -10f,  0.20f,  8f, 1, 0.95f, 0.50f, 0.00f),
@@ -162,7 +162,7 @@ public static class ImbuementForms
     /// a spike; a spike with a litter of smaller ones around its foot is a mineral
     /// growth, and that difference is most of what makes amethyst read as amethyst.
     ///
-    /// Satellites are NOT added to the arc tip list — lightning leaps between the tall
+    /// Satellites are NOT added to the arc tip list: lightning leaps between the tall
     /// spires, not the gravel.
     ///
     /// Separate map rather than Row columns for the same reason as ArcCount: four more
@@ -175,7 +175,7 @@ public static class ImbuementForms
 
     /// <summary>
     /// Arcs drawn BETWEEN shard tips, per element. Lightning is the only entry and is
-    /// likely to stay that way — this is a separate map rather than a Row column because
+    /// likely to stay that way. This is a separate map rather than a Row column because
     /// a seventeenth constructor argument that is zero in seven rows out of eight is not
     /// a table, it is a wart.
     ///
@@ -197,7 +197,7 @@ public static class ImbuementForms
 
     /// <summary>
     /// The form mesh for <paramref name="element"/>, built on first request and cached.
-    /// Returns null for <see cref="TileElementType.None"/> and anything unmapped — callers
+    /// Returns null for <see cref="TileElementType.None"/> and anything unmapped. Callers
     /// must treat null as "keep the mesh you already had", never as "show nothing".
     /// </summary>
     public static ArrayMesh MeshFor(TileElementType element)
@@ -344,7 +344,7 @@ public static class ImbuementForms
             float t = (float)s / Segments;
 
             // Lean accumulates quadratically so the shard leaves the ground
-            // upright and bends as it rises — a straight leaning stick reads as
+            // upright and bends as it rises. A straight leaning stick reads as
             // fallen, not grown.
             float lean = tilt * t + row.Curl * t * t;
             float y = Mathf.Cos(lean) * height * t;
@@ -465,7 +465,7 @@ public static class ImbuementForms
                          + side * ((float)rng.Sym() * jag * k)
                          + Vector3.Up * ((float)rng.Sym() * jag * 0.5f * k);
 
-                // Thin. A bolt is a LINE — the first pass used 0.030 and the arcs
+                // Thin. A bolt is a LINE. The first pass used 0.030 and the arcs
                 // read as a fence strung between the crystals rather than as energy.
                 width[s] = 0.013f * (0.35f + Mathf.Sin(Mathf.Pi * t));
                 solid[s] = 1f;
@@ -481,7 +481,7 @@ public static class ImbuementForms
         // r = PER-SHARD SEED, g = ARC FLAG (0 = body, 1 = arc), a = solidity. b spare.
         //
         // The seed is what lets nine flames flicker on nine different beats while
-        // still riding one gust. This is a phase offset, not a second clock — the
+        // still riding one gust. This is a phase offset, not a second clock. The
         // tempo still comes from element_motion()'s rate column, which is the
         // distinction the whole table rests on. Without it, a "flicker" is the
         // entire form pulsing in unison, which reads as a heartbeat.

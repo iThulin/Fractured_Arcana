@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // ExpeditionWindow3D.cs
 //
-// Purpose:        Stage-2 PROTOTYPE — the expedition window rendered
+// Purpose:        Stage-2 PROTOTYPE: the expedition window rendered
 //                 in 3D. The payoff of the convergence refactor: a
 //                 renderer that takes the SAME data the live run uses
 //                 (WorldData + ExpeditionFogModel + WindowOverlayModel
@@ -18,12 +18,12 @@ using System.Collections.Generic;
 //
 //                 Standalone: with no data injected, _Ready generates
 //                 a world (StrategicView's seed), fakes a fog reveal
-//                 around a start tile, and lets you walk the window —
+//                 around a start tile, and lets you walk the window,
 //                 so the LOOK and FEEL can be judged before wiring
 //                 deploy. SetWindow(...) injects the live run's data.
 // Layer:          UI (expedition view, 3D prototype)
 // Collaborators:  WorldData / ExpeditionFogModel / WindowOverlayModel
-//                 (the data it renders — the run's authorities),
+//                 (the data it renders, the run's authorities),
 //                 OverworldMovementCost (WorldTile? overloads, Step 3),
 //                 HexCoord (disc + neighbours), UITheme (colors),
 //                 WorldAtlas3D (shares the render vocabulary),
@@ -33,10 +33,10 @@ using System.Collections.Generic;
 // COLOR NOTE: the terrain base-colour / ocean-dissolve / grade helpers
 // now live in the shared Hex3DPalette (used by WorldAtlas3D too), so a
 // terrain re-tune touches ONE place and both 3D views follow. Kept local
-// here: fog handling, per-tile Jitter (this view salts a &0xFFFF hash —
+// here: fog handling, per-tile Jitter (this view salts a &0xFFFF hash,
 // distinct noise from the Atlas), TileHeight, decorations, and PoiColor
 // (POIType, vs the Atlas's PoiKind). The 2D StrategicView still carries
-// its own copy — it renders unlit quads and retires only IF the 3D atlas
+// its own copy. It renders unlit quads and retires only IF the 3D atlas
 // can be scaled to serve as the strategic view.
 // ============================================================
 
@@ -47,12 +47,12 @@ using Fog = OverworldHex.FogState;
 /// Hidden tiles are a dark void slab, Silhouette shows terrain shape dimmed with no
 /// contents, Revealed is full color with decorations + POI markers. Click an adjacent
 /// non-water tile to walk the party (reveals vision as it goes); move options show the
-/// true step cost via <see cref="OverworldMovementCost"/> — the same numbers the live
+/// true step cost via <see cref="OverworldMovementCost"/>, the same numbers the live
 /// run charges. Coordinates are world OFFSET coords for the standalone harness (the
 /// window is a disc of the world); the live wiring maps local→world in the manager.</summary>
 public partial class ExpeditionWindow3D : Node3D
 {
-    // ── Layout (flat-top, odd-q — matches WorldAtlas3D / HexCoord) ──────────
+    // ── Layout (flat-top, odd-q; matches WorldAtlas3D / HexCoord) ──────────
     private const float HexR = 1.0f;
     private const float FogSlabHeight = 0.25f;   // flat height for unexplored (Hidden) fog tiles
     private static readonly float ColSpacing = 1.5f * HexR;
@@ -81,15 +81,15 @@ public partial class ExpeditionWindow3D : Node3D
     /// <summary>Standalone self-drives its own party on click (the harness). When a
     /// LIVE run hosts this, the host sets SelfDrive=false and listens to
     /// <see cref="MoveRequested"/> so the REAL ExpeditionManager.TryMoveTo advances
-    /// the run (charging cost, revealing fog, triggering POIs) — then the host
+    /// the run (charging cost, revealing fog, triggering POIs). Then the host
     /// re-feeds the updated models via SetWindow.</summary>
     public bool SelfDrive = true;
 
-    /// <summary>Fired when the party moves, with the new coord — the host updates
+    /// <summary>Fired when the party moves, with the new coord, so the host updates
     /// its readout. A plain event (the host may not be a Node).</summary>
     public event System.Action<Vector2I> PartyMoved;
 
-    /// <summary>Fired (live mode only) when the player clicks a legal adjacent tile —
+    /// <summary>Fired (live mode only) when the player clicks a legal adjacent tile;
     /// the host translates it to a run move. The coord is in the renderer's space
     /// (world-offset for standalone; the host feeds/reads the same space).</summary>
     public event System.Action<Vector2I> MoveRequested;
@@ -187,7 +187,7 @@ public partial class ExpeditionWindow3D : Node3D
         _world = gen.World;
 
         // Start at a staging point if the world has one, else the first land tile
-        // near the middle — a plausible deploy origin for the feel test.
+        // near the middle, a plausible deploy origin for the feel test.
         _center = PickStart();
         _party = _center;
 
@@ -260,7 +260,7 @@ public partial class ExpeditionWindow3D : Node3D
             BackgroundMode = Godot.Environment.BGMode.Color,
             BackgroundColor = UITheme.WorldDeep,
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            // A4b: same daylight rig as the strategic atlas — the two 3D views
+            // A4b: same daylight rig as the strategic atlas. The two 3D views
             // must light the shared A1 palette identically or the colours
             // drift apart. Exposure per the atlas's A4b note: ≈0.97 total on
             // flat tops at ~2.3:1 key-to-fill.
@@ -304,11 +304,11 @@ public partial class ExpeditionWindow3D : Node3D
     // obvious), and the rim colour the ground fades toward. Cycled live so the
     // look can be judged in-scene; the mesh recolours + refogs on each switch.
     public enum SurroundStyle { Haze, Desk, Vignette }
-    // Default is the dark chamber (Vignette) — the scrying-table setting. B still
+    // Default is the dark chamber (Vignette), the scrying-table setting. B still
     // cycles to Haze/Desk for comparison.
     private SurroundStyle _surround = SurroundStyle.Vignette;
     private Godot.Environment _env;
-    /// <summary>Colour the ground fades toward at its rim (set per style) — the
+    /// <summary>Colour the ground fades toward at its rim (set per style). The
     /// heightmap lerps edge vertices to this so the boundary dissolves.</summary>
     private Color _surroundEdge = new Color(0.92f, 0.89f, 0.82f);
 
@@ -322,7 +322,7 @@ public partial class ExpeditionWindow3D : Node3D
     // ── Inspector tuning (Path A) ────────────────────────────────────────────
     // Editable in the Godot Inspector on the ExpeditionWindow3D node; grouped so
     // the scrying-view knobs are all in one place. Tweak, re-run (F6 to preview
-    // standalone), see the change — no code edits.
+    // standalone), see the change. No code edits.
     [ExportGroup("Scrying Chamber")]
     [Export] public Color ChamberBackground = new Color(0.035f, 0.045f, 0.065f);
     [Export] public float ChamberFogDensity = 0.05f;
@@ -409,9 +409,9 @@ public partial class ExpeditionWindow3D : Node3D
     /// obvious and matches the active surround.</summary>
     private Color StyleUnexplored(Color canvas) => _surround switch
     {
-        // Pale mist — lift toward white so the painted world pops against it.
+        // Pale mist: lift toward white so the painted world pops against it.
         SurroundStyle.Haze => canvas.Lerp(new Color(0.95f, 0.94f, 0.91f), 0.45f),
-        // Flat blank parchment — warmer/greyer than painted ground.
+        // Flat blank parchment: warmer/greyer than painted ground.
         SurroundStyle.Desk => canvas.Lerp(new Color(0.80f, 0.74f, 0.62f), 0.5f),
         // Sink toward shadow so unexplored recedes.
         SurroundStyle.Vignette => canvas.Darkened(0.5f),
@@ -422,7 +422,7 @@ public partial class ExpeditionWindow3D : Node3D
     private int _debugViz;
 
     /// <summary>V-key diagnostic: cycles isolation modes so the layer painting
-    /// an artifact identifies itself live — no more inferring from screenshots.
+    /// an artifact identifies itself live. No more inferring from screenshots.
     /// 0 all on · 1 sun shadows OFF · 2 toon banding OFF (smooth light) ·
     /// 3 grain OFF · 4 colour map OFF (vertex colours) · 5 UNSHADED albedo.
     /// The mode at which the artifact vanishes names its source.</summary>
@@ -430,7 +430,7 @@ public partial class ExpeditionWindow3D : Node3D
     {
         string[] names = { "all on (normal)", "sun shadows OFF", "toon banding OFF (smooth light)",
                            "grain OFF", "color map OFF (vertex colours)", "UNSHADED (flat albedo)",
-                           "CRACK TEST (uniform grey — surviving lines = mesh gaps/MSAA)" };
+                           "CRACK TEST (uniform grey; surviving lines = mesh gaps/MSAA)" };
         GD.Print($"[ExpeditionWindow3D] V debug {_debugViz}: {names[_debugViz]}");
         if (_sun != null)
             _sun.ShadowEnabled = _debugViz != 1;
@@ -438,7 +438,7 @@ public partial class ExpeditionWindow3D : Node3D
         {
             m.SetShaderParameter("debug_mode", (_debugViz == 2 || _debugViz == 5 || _debugViz == 6) ? _debugViz : 0);
             // grain is OFF on the heightmap (0); mode 3 keeps it off, every other
-            // mode restores that same 0 — cycling back never reintroduces grain.
+            // mode restores that same 0, so cycling back never reintroduces grain.
             m.SetShaderParameter("grain_strength", 0f);
         }
     }
@@ -449,7 +449,7 @@ public partial class ExpeditionWindow3D : Node3D
 
     private void FrameCamera()
     {
-        // Start close on the party — an expedition is walked, not surveyed. The
+        // Start close on the party: an expedition is walked, not surveyed. The
         // revealed bubble (~7 tiles across) should fill the frame, not float in it.
         _camTarget = TileOrigin(_party.X, _party.Y);
         _camDist = 13f;
@@ -498,9 +498,9 @@ public partial class ExpeditionWindow3D : Node3D
     }
 
     /// <summary>Lazy deadzone follow. If the party sits within CamLeashFactor·zoom of
-    /// the camera focus, do nothing — the world stays put and the pawn walks across it
+    /// the camera focus, do nothing: the world stays put and the pawn walks across it
     /// (the treadmill fix). Only once a step carries the party past that leash does the
-    /// camera ease, and only far enough to bring the pawn back to the leash edge — never
+    /// camera ease, and only far enough to bring the pawn back to the leash edge, never
     /// a full recenter. Tweens _camTarget via a method callback (it's a plain field, not
     /// a Godot property) so PlaceCamera runs each interpolation step.</summary>
     private void LeashCameraToParty()
@@ -510,7 +510,7 @@ public partial class ExpeditionWindow3D : Node3D
         var offset = new Vector2(pawnGround.X - _camTarget.X, pawnGround.Z - _camTarget.Z);
         float dist = offset.Length();
         float leash = _camDist * CamLeashFactor;
-        if (dist <= leash) return;   // inside the deadzone — hold the world still
+        if (dist <= leash) return;   // inside the deadzone: hold the world still
 
         Vector2 pull = offset.Normalized() * (dist - leash);
         Vector3 to = _camTarget + new Vector3(pull.X, 0f, pull.Y);
@@ -525,7 +525,7 @@ public partial class ExpeditionWindow3D : Node3D
     public override void _UnhandledInput(InputEvent ev)
     {
         // V debug-viz cycler works whenever the view exists (before the
-        // AcceptInput gate) — it's a diagnostic, not a game input. (F8 was a
+        // AcceptInput gate); it's a diagnostic, not a game input. (F8 was a
         // mistake: it's the editor's Stop-project shortcut and killed the run.)
         if (ev is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.V)
         {
@@ -584,7 +584,7 @@ public partial class ExpeditionWindow3D : Node3D
     }
 
     /// <summary>RAY pick that respects tile HEIGHT: intersect the click ray with EACH tile's own top
-    /// plane (y = its RENDERED height — flat for fog) and keep the tile the ray actually crosses (hit
+    /// plane (y = its RENDERED height, flat for fog) and keep the tile the ray actually crosses (hit
     /// within its hex), NEAREST to the camera. Picks the tile you're looking at even when tiles are
     /// raised; the old nearest-projected-CENTRE pick was ambiguous between adjacent tiles at this
     /// shallow angle and moved the pawn the wrong way. Used by both click-to-move and hover.</summary>
@@ -632,7 +632,7 @@ public partial class ExpeditionWindow3D : Node3D
             tw.TweenProperty(_pawn, "position", dest, 0.18)
               .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
         }
-        // No hard recenter (that was the treadmill) — just a lazy leash: the camera
+        // No hard recenter (that was the treadmill), just a lazy leash: the camera
         // eases only if this step carried the party past the deadzone, keeping the
         // pawn from wandering out of frame while the world otherwise holds still.
         LeashCameraToParty();
@@ -650,11 +650,11 @@ public partial class ExpeditionWindow3D : Node3D
         RebuildMarkers();
         // First feed (frameCamera) snaps the pawn into place; a refresh (the live
         // host re-feeding after a run move) glides it, so a driven run walks across
-        // the world exactly like the standalone harness does — no teleport.
+        // the world exactly like the standalone harness does. No teleport.
         BuildPawn(animate: !frameCamera);
         RebuildMoveHints();
         // Frame hard on the FIRST feed; on a refresh (a host-driven run move) apply
-        // the lazy leash instead of a recenter — the camera trails only when the pawn
+        // the lazy leash instead of a recenter: the camera trails only when the pawn
         // would otherwise leave frame, so the world holds still step to step (the
         // treadmill fix) but the party can't be walked off-screen.
         if (frameCamera) FrameCamera();
@@ -667,7 +667,7 @@ public partial class ExpeditionWindow3D : Node3D
     // and colour are blended by an overlapping smooth kernel (a partition of
     // unity). The fields are C1-continuous and have ZERO relationship to tile
     // topology, so there is no cell, seam, facet, or crack for a line to live
-    // in — the entire class of tile-lattice artifacts is gone by construction.
+    // in. The entire class of tile-lattice artifacts is gone by construction.
     // Hexes stay pure gameplay data (picking, fog, movement, POIs unchanged).
     // Replaced the welded-fan land + canvas sheet + water prisms.
 
@@ -698,7 +698,7 @@ public partial class ExpeditionWindow3D : Node3D
 
     /// <summary>Populate <see cref="_field"/> with every window tile plus a few
     /// margin rings (so the disc sits on paper and the kernel has support past
-    /// the edge), each carrying its fog-aware RENDERED height and colour —
+    /// the edge), each carrying its fog-aware RENDERED height and colour:
     /// exactly what the old per-tile path drew, now as field samples.</summary>
     private void BuildFieldData()
     {
@@ -824,7 +824,7 @@ public partial class ExpeditionWindow3D : Node3D
                 col[idx] = c;
             }
 
-        // Grid-difference normals (cheap, smooth) — central where possible.
+        // Grid-difference normals (cheap, smooth), central where possible.
         float dx0 = wSpan / nx, dz0 = hSpan / nz;
         var nrm = new Vector3[pos.Length];
         for (int j = 0; j <= nz; j++)
@@ -865,7 +865,7 @@ public partial class ExpeditionWindow3D : Node3D
         {
             sm.SetShaderParameter("use_color_map", false);   // colour is smooth vertex colour
             sm.SetShaderParameter("top_undulation", 0f);     // undulation is baked into vertices
-            // grain OFF (0, was 0.07) — CONFIRMED cause of the lines. The fbm2
+            // grain OFF (0, was 0.07): CONFIRMED cause of the lines. The fbm2
             // brush grain is high-frequency world-space noise; across the large
             // ground at distance/grazing angles it undersamples and ALIASES into
             // regular moiré lines. How badly depends on resolution/GPU/MSAA,
@@ -890,7 +890,7 @@ public partial class ExpeditionWindow3D : Node3D
     /// projection hovers over, a chamber floor, a glowing projection rim, an
     /// arcane light, and a ring of stand-in companions. Positioned at the current
     /// map centre so it travels with a sliding window. The arcane light is
-    /// cull-masked to <see cref="RigLayer"/> so it lights only the rig — the map's
+    /// cull-masked to <see cref="RigLayer"/> so it lights only the rig; the map's
     /// tuned colours are untouched. Nothing here is pickable (picking is pure math
     /// over the tile grid, not physics), so it's purely a visual frame.</summary>
     private void BuildScryingRig()
@@ -906,7 +906,7 @@ public partial class ExpeditionWindow3D : Node3D
 
         void Add(Node3D n) { if (n is VisualInstance3D vi) vi.Layers = RigLayer; _scryRig.AddChild(n); }
 
-        // Chamber floor — a broad dark disc so the figures aren't standing in void.
+        // Chamber floor: a broad dark disc so the figures aren't standing in void.
         Add(new MeshInstance3D
         {
             Name = "ChamberFloor",
@@ -916,7 +916,7 @@ public partial class ExpeditionWindow3D : Node3D
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         });
 
-        // The scrying table — a round pedestal/basin the projection sits over.
+        // The scrying table: a round pedestal/basin the projection sits over.
         Add(new MeshInstance3D
         {
             Name = "ScryTable",
@@ -926,10 +926,10 @@ public partial class ExpeditionWindow3D : Node3D
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         });
 
-        // Glowing projection rim — a flat emissive annulus at the map edge.
+        // Glowing projection rim: a flat emissive annulus at the map edge.
         Add(MakeRing(c + new Vector3(0f, tableTopY + 0.06f, 0f), R - 0.2f, R + 0.35f, ArcaneGlow, ProjectionRimEnergy));
 
-        // Arcane light from the projection — lights ONLY the rig (cull mask), so
+        // Arcane light from the projection. It lights ONLY the rig (cull mask), so
         // the map colours stay as tuned. No shadows (avoids the acne we fixed).
         // Energy/range up so it pools visible light on the table + floor around
         // the projection rather than leaving a black void when zoomed out.
@@ -952,7 +952,7 @@ public partial class ExpeditionWindow3D : Node3D
         }
     }
 
-    /// <summary>Flat emissive annulus (ring) in the XZ plane — orientation-proof
+    /// <summary>Flat emissive annulus (ring) in the XZ plane, orientation-proof
     /// (built directly), used for the glowing projection rim.</summary>
     private MeshInstance3D MakeRing(Vector3 centre, float inner, float outer, Color glow, float energy)
     {
@@ -1010,20 +1010,20 @@ public partial class ExpeditionWindow3D : Node3D
             Layers = RigLayer,
         };
         fig.AddChild(robe); fig.AddChild(head);
-        // Yaw to face the map centre (compute directly — no in-tree LookAt needed).
+        // Yaw to face the map centre (compute directly; no in-tree LookAt needed).
         Vector3 dir = new Vector3(lookCentre.X - basePos.X, 0f, lookCentre.Z - basePos.Z);
         if (dir.LengthSquared() > 1e-4f)
             fig.Rotation = new Vector3(0f, Mathf.Atan2(dir.X, dir.Z), 0f);
         return fig;
     }
 
-    /// <summary>True when any hex neighbor of a Hidden tile is itself not Hidden —
+    /// <summary>True when any hex neighbor of a Hidden tile is itself not Hidden:
     /// the canvas tile borders painted/underpainted ground and takes the wet-edge
     /// darkening (see Hex3DPalette.CanvasTone). Absent coords read Hidden, matching
     /// the fog model's contract, so the window boundary stays clean canvas.</summary>
     private bool HasPaintedNeighbor(Vector2I c)
     {
-        // Window coords are WORLD OFFSET (col,row) — neighbor steps must round-trip
+        // Window coords are WORLD OFFSET (col,row), so neighbor steps must round-trip
         // through axial (offset steps are column-parity-dependent), same as the
         // adjacency walks elsewhere in this file.
         var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
@@ -1041,7 +1041,7 @@ public partial class ExpeditionWindow3D : Node3D
     /// strategic terracing is busy and hard to navigate at walking zoom). The
     /// strategic map's relief is INFORMATION at survey distance; here the
     /// information is adjacency and walkability, so the variable part of the
-    /// height is compressed — relief survives as gentle steps, cliffs stop
+    /// height is compressed: relief survives as gentle steps, cliffs stop
     /// occluding the tiles behind them. 1.0 restores the strategic profile.</summary>
     private const float HeightScale = 0.45f;
 
@@ -1068,7 +1068,7 @@ public partial class ExpeditionWindow3D : Node3D
     // ── Rivers & roads (edge masks) ──────────────────────────────────────────
 
     /// <summary>Rivers and roads are 6-bit EDGE masks on WorldTile. For each tile draw a strip from
-    /// its CENTRE out to each active edge midpoint — the neighbour draws its own half, so the two
+    /// its CENTRE out to each active edge midpoint. The neighbour draws its own half, so the two
     /// meet and the path runs continuously THROUGH the tiles (matching the 2D map) rather than as
     /// dashes on the boundaries. Per-instance X scale carries each segment's length. Fogged tiles
     /// and open water are skipped (no river drawn across a lake).</summary>
@@ -1076,7 +1076,7 @@ public partial class ExpeditionWindow3D : Node3D
     {
         _riverLayer?.QueueFree();
         _roadLayer?.QueueFree();
-        // Rivers and roads are ground-following ribbons — every vertex re-heighted
+        // Rivers and roads are ground-following ribbons: every vertex re-heighted
         // by SampleGround (the unified heightmap field), so strokes lie ON the
         // surface.
         var riverTiles = new List<(Vector3 center, List<Vector3> mids, System.Func<Vector3, float> ground)>();
@@ -1128,7 +1128,7 @@ public partial class ExpeditionWindow3D : Node3D
         _riverLayer = new MeshInstance3D
         {
             Name = "WinRivers",
-            // Stage 2d: lift raised — covers inter-sample pokes on fan creases.
+            // Stage 2d: lift raised; covers inter-sample pokes on fan creases.
             Mesh = RiverMesh.Build(riverTiles, 0.30f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank,
                                    lift: 0.06f, meanderScale: 1f),
             MaterialOverride = PainterlyPrism.RiverMaterial(),
@@ -1137,7 +1137,7 @@ public partial class ExpeditionWindow3D : Node3D
         _roadLayer = new MeshInstance3D
         {
             Name = "WinRoads",
-            // Roads: narrow, barely-winding, matte earth — same ground-following
+            // Roads: narrow, barely-winding, matte earth. Same ground-following
             // builder so they hug the welded terrain exactly like the rivers.
             Mesh = RiverMesh.Build(roadTiles, 0.15f, Hex3DPalette.RoadStroke,
                                    Hex3DPalette.RoadStroke.Darkened(0.2f),
@@ -1152,7 +1152,7 @@ public partial class ExpeditionWindow3D : Node3D
     }
 
     /// <summary>A tile's height as it actually RENDERS: hidden tiles sit at the
-    /// canvas slab (FogSlabHeight), not TileHeight's internal void value — used
+    /// canvas slab (FogSlabHeight), not TileHeight's internal void value. Used
     /// for edge-midpoint averaging so strokes meet what is really drawn.</summary>
     private float RenderedTileHeight(Vector2I c)
         => _fog.FogAt(c) == Fog.Hidden ? FogSlabHeight : TileHeight(c);
@@ -1160,7 +1160,7 @@ public partial class ExpeditionWindow3D : Node3D
     // ── Baked undulation amplitude (world-space height roll) ────────────────
     // 0 (was 0.06): the fine world-locked height roll. Its normals, resolved by
     // the toon-banded directional light, paint a soft ~2-unit quilt across the
-    // ground — the renderer-dependent "lines" (visible on Forward+/this GPU,
+    // ground: the renderer-dependent "lines" (visible on Forward+/this GPU,
     // hidden on the laptop). Killed while we confirm the diagnosis; a smoother
     // reintroduction (shaded flat, or fewer harder bands) can follow.
     private const float UndulationAmp = 0f;
@@ -1180,7 +1180,7 @@ public partial class ExpeditionWindow3D : Node3D
     }
 
     /// <summary>The true rendered ground height at a world point inside (or just
-    /// beside) a tile — welded fan interpolation + baked undulation. This is the
+    /// beside) a tile: welded fan interpolation + baked undulation. This is the
     /// single source of truth the stroke ribbons follow.</summary>
     private float SampleGround(Vector2I tile, Vector3 p)
     {
@@ -1192,7 +1192,7 @@ public partial class ExpeditionWindow3D : Node3D
         return SampleFieldHeight(p.X, p.Z);
     }
 
-    // Deterministic CPU value noise for the baked undulation (window-local — the
+    // Deterministic CPU value noise for the baked undulation (window-local; the
     // shader's top_undulation stays 0 here; geometry carries the roll).
     private static float UHash(int x, int z)
     {
@@ -1221,10 +1221,10 @@ public partial class ExpeditionWindow3D : Node3D
         // ROTATED octave domains. Value noise lives on an integer lattice; with
         // both octaves axis-aligned, their cell boundaries (2.0 and 0.83 world
         // units) stamp a RECTANGULAR, REGULARLY SPACED grid of shading creases
-        // across the ground — the reported "straight lines on the tiles".
+        // across the ground: the reported "straight lines on the tiles".
         // Rotating each octave (18° / 49°) off the world axes and off each
         // other breaks the aligned grid into unstructured rolling. Pure
-        // function of world XZ as before — welds, SampleGround, and the stroke
+        // function of world XZ as before, so welds, SampleGround, and the stroke
         // ribbons all stay consistent by construction.
         const float c1 = 0.9511f, s1 = 0.3090f;   // 18°
         const float c2 = 0.6561f, s2 = 0.7547f;   // 49°
@@ -1259,7 +1259,7 @@ public partial class ExpeditionWindow3D : Node3D
             float GroundAt(Vector3 p) => SampleGround(c, p);
             if (t.Terrain == TT.Forest)
             {
-                // A5: canopy blob clusters (base-origin — placed AT ground height),
+                // A5: canopy blob clusters (base-origin, placed AT ground height),
                 // 60/40 broadleaf/conifer by hash, random yaw against clone read.
                 int n = 2 + (int)(Hash(c, 1) % 2);
                 for (int i = 0; i < n; i++)
@@ -1280,7 +1280,7 @@ public partial class ExpeditionWindow3D : Node3D
             else if (t.Terrain == TT.Hills && Hash(c, 4) % 10 < 4)
             {
                 // Shrub clumps on hills (window-only): breaks the big gold fields
-                // at walking zoom — the atlas reads hills fine at survey distance.
+                // at walking zoom. The atlas reads hills fine at survey distance.
                 int n = 1 + (int)(Hash(c, 5) % 2);
                 for (int i = 0; i < n; i++)
                 {
@@ -1359,8 +1359,8 @@ public partial class ExpeditionWindow3D : Node3D
             {
                 // A7: flattened paint-dab, matching the atlas's POI language.
                 Mesh = new SphereMesh { Radius = 0.32f, Height = 0.24f, RadialSegments = 10, Rings = 6 },
-                // NoDepthTest so a marker is never hidden behind a taller tile at this shallow angle —
-                // the "markers don't reliably appear" fix. It reads through terrain like a map pin.
+                // NoDepthTest so a marker is never hidden behind a taller tile at this shallow angle.
+                // That is the "markers don't reliably appear" fix. It reads through terrain like a map pin.
                 MaterialOverride = new StandardMaterial3D
                 { AlbedoColor = col, EmissionEnabled = true, Emission = col, EmissionEnergyMultiplier = 0.4f, NoDepthTest = true },
                 Position = pos,
@@ -1372,7 +1372,7 @@ public partial class ExpeditionWindow3D : Node3D
 
     private void BuildPawn(bool animate = false)
     {
-        // Refresh path (animate): the pawn already exists — glide it to the new
+        // Refresh path (animate): the pawn already exists, so glide it to the new
         // party tile instead of freeing and re-spawning it, so a host-driven run
         // reads as a walk, not a blink. Matches MoveParty's standalone tween.
         if (animate && _pawn != null)
@@ -1423,7 +1423,7 @@ public partial class ExpeditionWindow3D : Node3D
             var t = _world.GetTile(nc, nr);
             if (t.IsWater) continue;   // party rule: only water blocks
 
-            // TRUE cost via the shared cost fn (the WorldTile overload from Step 3) —
+            // TRUE cost via the shared cost fn (the WorldTile overload from Step 3),
             // the same number the live run charges. Colour signals road/ford like 2D.
             int pathfinder = EquipmentLoadout.PartyPathfinder(t.Terrain.ToString());
             int cost = OverworldMovementCost.StepCost(t.Terrain, fromTile, _party, coord, pathfinder);
@@ -1474,7 +1474,7 @@ public partial class ExpeditionWindow3D : Node3D
             if (_fog.FogAt(tile) == Fog.Hidden) continue;
             var pos = TileOrigin(tile.X, tile.Y);
             pos.Y = TileHeight(tile) + 0.75f;
-            // A downward CONE (pin) — distinct from the POI spheres, so moving units read as units.
+            // A downward CONE (pin), distinct from the POI spheres, so moving units read as units.
             _entities.Add(AddChildReturn(new MeshInstance3D
             {
                 Mesh = new CylinderMesh { TopRadius = 0.34f, BottomRadius = 0f, Height = 0.72f, RadialSegments = 8, Rings = 0 },
@@ -1488,7 +1488,7 @@ public partial class ExpeditionWindow3D : Node3D
     private Node3D AddChildReturn(Node3D n) { AddChild(n); return n; }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Fog-aware color — marked copy of WorldAtlas3D's helpers (see header)
+    // Fog-aware color: a marked copy of WorldAtlas3D's helpers (see header)
     // ════════════════════════════════════════════════════════════════════════
 
     private static uint Hash(Vector2I c, uint salt)
@@ -1499,7 +1499,7 @@ public partial class ExpeditionWindow3D : Node3D
     private static float H01(uint h) => (h & 0xFFFFu) / 65535f;
 
     /// <summary>Slate grey filling a CITY's whole footprint (matches the strategic map's
-    /// CityRegionTint), so a capital's outskirts read on the expedition — the gold Seat marker
+    /// CityRegionTint), so a capital's outskirts read on the expedition. The gold Seat marker
     /// at its centre is how you interact with the capital itself.</summary>
     private static readonly Color CityRegionTint = new Color(0.42f, 0.43f, 0.47f);
 
@@ -1511,17 +1511,17 @@ public partial class ExpeditionWindow3D : Node3D
         // the Atlas's &1023 noise, so they stay here.
         Color baseCol = Hex3DPalette.TerrainColorOf(t);
         // Hidden is normally routed to the canvas layer in RebuildTiles; this guard
-        // is a safety net for any other caller. Silhouette is the UNDERPAINTING —
+        // is a safety net for any other caller. Silhouette is the UNDERPAINTING:
         // a flat pale wash, terrain hue faintly present (art pass A6; shared with
         // the strategic map via Hex3DPalette so the discovery language can't drift).
         if (fog == Fog.Hidden) return Hex3DPalette.CanvasTone(c.X, c.Y);
         if (fog == Fog.Silhouette) return Hex3DPalette.Underpaint(baseCol);
-        // A1: the swatches are final lit-scene painterly colours — the old
+        // A1: the swatches are final lit-scene painterly colours, so the old
         // Grade() + ×1.35 saturation compensation stack is deleted. Both 3D views
         // now light the SAME colours under the SAME daylight rig (A4); if the
         // window still reads flatter than the atlas after that, retune with
         // screenshots rather than reintroducing a per-view grade.
-        // City footprint reads as a grey region (revealed tiles only — fog handled above).
+        // City footprint reads as a grey region (revealed tiles only, since fog is handled above).
         if (t.SettlementIndex >= 0 && _world != null && t.SettlementIndex < _world.Settlements.Count
             && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City)
             baseCol = CityRegionTint;

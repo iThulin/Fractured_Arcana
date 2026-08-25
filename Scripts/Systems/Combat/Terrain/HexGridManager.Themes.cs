@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// HexGridManager.Themes.cs — per-theme accent terrain, theme set-piece features, landmark, atmosphere
+// HexGridManager.Themes.cs: per-theme accent terrain, theme set-piece features, landmark, atmosphere
 // Partial of HexGridManager. Split out for navigability; behaviour-neutral.
 public partial class HexGridManager
 {
@@ -170,7 +170,7 @@ public partial class HexGridManager
         ApplyHorizon(fogColor);
     }
 
-    // Themes — these now layer ACCENTS on top of the field-derived base terrain.
+    // Themes. These now layer ACCENTS on top of the field-derived base terrain.
 
     private void ApplyArcaneMeadowTheme()
     {

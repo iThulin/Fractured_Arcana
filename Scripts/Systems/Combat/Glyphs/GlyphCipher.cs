@@ -122,7 +122,7 @@ public enum CipherVerb
     None = 0,
     /// <summary>Protect, shield, heal, summon a guardian.</summary>
     Ward = 1 << 0,
-    /// <summary>Displace anything — self, ally, or enemy.</summary>
+    /// <summary>Displace anything: self, ally, or enemy.</summary>
     Move = 1 << 1,
     /// <summary>Create glyphs or persistent inscriptions on the board.</summary>
     Inscribe = 1 << 2,
@@ -189,7 +189,7 @@ public sealed class CipherGlyph
     /// <summary>Letters on the fullest arm, 1..4. Together with <see cref="ArmCount"/> this is the silhouette class.</summary>
     public int DeepestArm;
 
-    /// <summary>Crossbars drawn. Always equals <c>Letters.Length</c> — every letter gets exactly one.</summary>
+    /// <summary>Crossbars drawn. Always equals <c>Letters.Length</c>, since every letter gets exactly one.</summary>
     public int CrossbarCount;
 
     /// <summary>Crossbars marked as repeating the letter before them.</summary>
@@ -237,7 +237,7 @@ public static class GlyphCipher
     /// <summary>Crossbar half-length base. Half-length = ThisPlus slot × <see cref="BarSlotStep"/>.</summary>
     public const double BarMin = 0.045;
 
-    /// <summary>Crossbar half-length per slot. Range over slots 1..13 is 0.061 … 0.253 — wide enough to read at card scale.</summary>
+    /// <summary>Crossbar half-length per slot. Range over slots 1..13 is 0.061 … 0.253, wide enough to read at card scale.</summary>
     public const double BarSlotStep = 0.0160;
 
     /// <summary>Overhang on the short side of a rare-letter (inner-ring) crossbar, as a fraction of its half-length.</summary>
@@ -256,7 +256,7 @@ public static class GlyphCipher
     /// <summary>Rim stroke width.</summary>
     public const double WeightRim = 0.016;
 
-    /// <summary>Stave stroke width — arms, crossbars, ornaments.</summary>
+    /// <summary>Stave stroke width for arms, crossbars, and ornaments.</summary>
     public const double WeightIdentity = 0.017;
 
     /// <summary>Function spoke width. Nearly twice the stave: under protanopia the hue
@@ -274,7 +274,7 @@ public static class GlyphCipher
     // exactly the range where distinctiveness is all you have left.
     //
     // These feed CipherStroke.Weight, so changing them changes the stroke data and
-    // invalidates the goldens. That is intended — see the integration guide §4.
+    // invalidates the goldens. That is intended (see the integration guide §4).
     /// <summary>Filled disc marking where reading starts.</summary>
     public const double MarkStart = 0.042;
 
@@ -307,7 +307,7 @@ public static class GlyphCipher
     public const int RimSamples = 96;
 
     /// <summary>
-    /// Defensive cap on encoded letters. Not a design limit — the longest name in the
+    /// Defensive cap on encoded letters. Not a design limit. The longest name in the
     /// Enchanter corpus is "Absolute Territory" at 17 and encodes fine. This exists so a
     /// pathological future name cannot allocate without bound.
     /// </summary>
@@ -388,8 +388,8 @@ public static class GlyphCipher
     }
 
     /// <summary>
-    /// How the letters divide across arms. Letters fill arms CONTIGUOUSLY — arm 0 holds the
-    /// first m, arm 1 the next m — so reading is "walk arm 0 outward, then arm 1", with no
+    /// How the letters divide across arms. Letters fill arms CONTIGUOUSLY (arm 0 holds the
+    /// first m, arm 1 the next m), so reading is "walk arm 0 outward, then arm 1", with no
     /// interleaving to reconstruct.
     /// </summary>
     public static int[] ArmLayout(int letterCount)
@@ -437,7 +437,7 @@ public static class GlyphCipher
     /// </summary>
     /// <param name="cardId">Stable JSON card id, e.g. "enchanter_snare_glyph". Seeds the RNG.</param>
     /// <param name="half">"top" or "bottom". Each half is its own spell and its own glyph.</param>
-    /// <param name="cipherName">Name to encode. Must be a STABLE English string — see the localisation note in the spec.</param>
+    /// <param name="cipherName">Name to encode. Must be a STABLE English string (see the localisation note in the spec).</param>
     /// <param name="target">Recipient, from <see cref="GlyphCipherTags"/>.</param>
     /// <param name="verbs">Function verbs, from <see cref="GlyphCipherTags"/>.</param>
     public static CipherGlyph Build(string cardId, string half, string cipherName,
@@ -463,7 +463,7 @@ public static class GlyphCipher
 
         // ── Rim ─────────────────────────────────────────────────────
         // DRAW SITE 1: exactly RimSamples+1 draws. The final point is overwritten with
-        // the first to close the loop, but its draw still happened — do not "optimise"
+        // the first to close the loop, but its draw still happened. Do not "optimise"
         // that away or the whole stream shifts.
         var rim = new CipherPoint[RimSamples + 1];
         for (int i = 0; i <= RimSamples; i++)
@@ -597,7 +597,7 @@ public static class GlyphCipher
 
         switch (kind)
         {
-            case 0:                                   // plain — no ornament
+            case 0:                                   // plain, no ornament
                 break;
 
             case 1:
@@ -660,7 +660,7 @@ public static class GlyphCipher
         };
 
     /// <summary>
-    /// A straight run sampled to <paramref name="n"/> points. Endpoints are EXACT — jitter is
+    /// A straight run sampled to <paramref name="n"/> points. Endpoints are EXACT. Jitter is
     /// applied only to interior samples, so an arm and its crossbars stay registered with each
     /// other and the stave does not fray at its joins.
     /// </summary>

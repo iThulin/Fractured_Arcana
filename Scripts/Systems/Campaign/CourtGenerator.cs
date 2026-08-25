@@ -50,11 +50,11 @@ public static class CourtGenerator
     // ── Generation rules ─────────────────────────────────────────────────
 
     /// <summary>Floor for the generated standing score. Below this, contact
-    /// would open in the Hostile band — a rolled trap. Hostile is earned.</summary>
+    /// would open in the Hostile band, a rolled trap. Hostile is earned.</summary>
     private const int InitialScoreMin = -5;
 
     /// <summary>Ceiling for the generated standing score. Above this, contact
-    /// would open in the Welcome band — a rolled windfall that teaches the
+    /// would open in the Welcome band, a rolled windfall that teaches the
     /// player bands come from dice. Welcome is earned. Severable: raise or
     /// delete this constant to allow windfall courts.</summary>
     private const int InitialScoreMax = 2;
@@ -154,8 +154,8 @@ public static class CourtGenerator
             IsRegentCourt = string.IsNullOrEmpty(kingdom.ArchmageId),
         };
 
-        // First names used at THIS court (the regent counts — dispatches
-        // name the regent too).
+        // First names used at THIS court (the regent counts, because
+        // dispatches name the regent too).
         var courtFirstNames = new HashSet<string>();
 
         if (court.IsRegentCourt)
@@ -338,7 +338,7 @@ public static class CourtGenerator
             string seat = court.IsRegentCourt
                 ? court.RegentName
                 : $"Archmage {kingdoms[kvp.Key].ArchmageId}";
-            GD.Print($"[Court] {kvp.Key} — seat: {seat} — " +
+            GD.Print($"[Court] {kvp.Key}: seat {seat}, " +
                      $"score {court.StandingScore()} ({court.Band()})");
             foreach (var c in court.Courtiers)
             {

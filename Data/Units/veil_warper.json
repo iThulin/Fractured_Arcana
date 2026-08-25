@@ -2,7 +2,7 @@
   "id": "veil_warper",
   "threatLabel": "Veil Warper",
   "role": "line",
-  "intelDescription": "It does not knock. Kill it while it channels or meet it in your courtyard — the wall means nothing to the veil.",
+  "intelDescription": "It does not knock. Kill it while it channels or meet it in your courtyard. The wall means nothing to the veil.",
   "maxHealth": 12,
   "baseSpeed": 2,
   "armor": 0,

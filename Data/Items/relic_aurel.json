@@ -1,7 +1,7 @@
 {
   "id": "relic_aurel",
   "name": "The Second Draft",
-  "description": "The Reviser's working copy of reality. Restore 1 mana at the start of each turn \u2014 there is always another revision.",
+  "description": "The Reviser's working copy of reality. Restore 1 mana at the start of each turn. There is always another revision.",
   "rarity": "Legendary",
   "slot": "Trinket",
   "unitClass": "Wizard",

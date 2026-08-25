@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 // ============================================================
-// QuestNotifier.cs — turn quest-state CHANGES into toast messages
+// QuestNotifier.cs: turns quest-state CHANGES into toast messages
 // by diffing a cheap before/after snapshot around a mutation.
 // Detects unlocks, objective completions, quest completions, AND
 // per-increment counter progress. No persisted notification state.

@@ -13,7 +13,7 @@ using System.Text.Json;
 // Layer:          Loader
 // Collaborators:  StartScenario.cs (schema), NewGameScreen.cs (picker),
 //                 WorldDebug.cs (validator), SaveManager/CampusScreen
-//                 (world-gen wiring — later phase).
+//                 (world-gen wiring, later phase).
 // See:            docs/world_locales_and_founding_spec_v1.md §3.1
 // ============================================================
 

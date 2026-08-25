@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // ============================================================
 // StartScenario.cs
 //
-// Purpose:        Schema for a founding "starting scenario" — a
+// Purpose:        Schema for a founding "starting scenario": a
 //                 curated, predetermined seeded option the player
 //                 picks when founding the guild. Each scenario
 //                 fixes a world seed and a bundle of difficulty
@@ -14,8 +14,8 @@ using System.Collections.Generic;
 // Layer:          Data
 // Collaborators:  StartScenarioLoader.cs (JSON parser),
 //                 WorldGenerator.Params (levers feed in here),
-//                 NewGameScreen.cs (founding picker — later phase),
-//                 EternalLedger.cs (stores the chosen profile — later phase)
+//                 NewGameScreen.cs (founding picker, later phase),
+//                 EternalLedger.cs (stores the chosen profile, later phase)
 // See:            docs/world_locales_and_founding_spec_v1.md §3,
 //                 docs/start_scenarios_curation_v1.md
 // ============================================================
@@ -30,7 +30,7 @@ public class StartHint
 }
 
 /// <summary>One curated founding option. Difficulty is carried by explicit
-/// levers, not by geometry alone — the generator re-normalises the difficulty
+/// levers, not by geometry alone. The generator re-normalises the difficulty
 /// ramp around wherever the start lands, so a spawn coordinate on its own does
 /// not vary difficulty (see spec §2). All numeric defaults reproduce the
 /// current shipping behaviour, so an unspecified field is a no-op.</summary>
@@ -44,7 +44,7 @@ public class StartScenario
     /// <summary>Display band: "Gentle" | "Standard" | "Harsh" | "Brutal".</summary>
     public string DifficultyTag = "Standard";
 
-    /// <summary>0..3 — sort order and star display.</summary>
+    /// <summary>0..3, driving sort order and star display.</summary>
     public int DifficultyRank = 1;
 
     // ── World identity ───────────────────────────────────────────────────
@@ -89,7 +89,7 @@ public class StartScenario
 
     /// <summary>Map this scenario's generation levers onto a
     /// <see cref="WorldGenerator.Params"/>. The single source of the
-    /// scenario→generation mapping — WorldDebug's validator and the cycle-world
+    /// scenario→generation mapping. WorldDebug's validator and the cycle-world
     /// wiring both call this. Presentation fields and the RUNTIME mults
     /// (EnemyDifficultyMult / CorruptionSpreadMult, which are stamped onto
     /// CycleState and consumed by the combat + corruption layers) are not part of

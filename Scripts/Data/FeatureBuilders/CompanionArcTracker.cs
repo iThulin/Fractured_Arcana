@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // CompanionArcTracker.cs
 //
 // Purpose:        Derives companion arc state from save flags.
-//                 No separate arc-state store — reads flags
+//                 No separate arc-state store. Reads flags
 //                 (the live-projection pattern) to determine
 //                 current stage, available missions, and
 //                 remembrance eligibility. Provides query
@@ -51,14 +51,14 @@ public class CompanionArcStatus
     public bool IsInParty = false;
 
     /// <summary>True when the arc was completed in a PRIOR timeline and a
-    /// reprise encounter exists — the one-beat shorthand replaces the ladder.</summary>
+    /// reprise encounter exists. The one-beat shorthand replaces the ladder.</summary>
     public bool HasReprise = false;
 
     /// <summary>Whether the companion has been anchored in the Hall.</summary>
     public bool IsAnchored = false;
 }
 
-/// <summary>Companion arc tracker — stateless query layer over save flags
+/// <summary>Companion arc tracker: a stateless query layer over save flags
 /// and arc definitions. All methods are pure reads.</summary>
 public static class CompanionArcTracker
 {
@@ -209,8 +209,8 @@ public static class CompanionArcTracker
         var status = StatusOf(companionId, save);
         if (status?.NextStage == null) return null;
 
-        // Reprise (2026-07-22): the shorthand supersedes the ladder — any
-        // location, no party requirement. You have walked this road before.
+        // Reprise (2026-07-22): the shorthand supersedes the ladder at any
+        // location, with no party requirement. You have walked this road before.
         if (status.HasReprise)
         {
             var rArc = CompanionArcLoader.Load(companionId);
@@ -370,7 +370,7 @@ public static class CompanionArcTracker
     /// <summary>Called by both encounter hosts after a narrative encounter
     /// resolves: if the encounter is the owning companion's current stage
     /// (either variant, any location), advance the arc. Returns the refreshed
-    /// status for toasting ("Wren — The Room That Waited complete"), or null
+    /// status for toasting ("Wren: The Room That Waited complete"), or null
     /// when the encounter is not an arc stage / not current.</summary>
     public static CompanionArcStatus TryCompleteByEncounter(string encounterId, GuildSaveData save)
     {

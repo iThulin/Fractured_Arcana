@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 
 // ============================================================
-// QuestLoader.cs — loads QuestDefinitions from Data/Quests/*.json.
+// QuestLoader.cs. Loads QuestDefinitions from Data/Quests/*.json.
 // Mirrors ItemDatabase/NarrativeEncounterLoader (camelCase, fields).
 // ============================================================
 

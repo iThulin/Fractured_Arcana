@@ -24,7 +24,7 @@ using System.Collections.Generic;
 //                      of one-tile micro-pits, so:
 //                   3. Min-size filter: keep only flooded tiles that belong
 //                      to a connected basin of at least MinLakeTiles. This
-//                      is what stops single-tile "confetti" lakes — real
+//                      is what stops single-tile "confetti" lakes, since real
 //                      basins are multi-tile, micro-pits are isolated.
 //                   4. Flow accumulation down the drainage tree (leaves
 //                      first, O(n)).
@@ -50,7 +50,7 @@ public static class Hydrology
     // ── Tuning ───────────────────────────────────────────────────────────
 
     /// <summary>A basin must flood at least this far above its terrain before a
-    /// tile is a lake candidate. Low on purpose — the size filter, not depth,
+    /// tile is a lake candidate. Low on purpose, because the size filter, not depth,
     /// is what removes spurious water.</summary>
     public static float LakeMinDepth = 0.015f;
 
@@ -73,7 +73,7 @@ public static class Hydrology
     public static int SpringMaxLength = 16;
 
     /// <summary>Lake components this size or smaller become Marsh (passable wetland)
-    /// instead of open Lake — turns fragmented enclosed-basin water into marshland
+    /// instead of open Lake. This turns fragmented enclosed-basin water into marshland
     /// while large inland seas stay lakes. Tune up for more marsh, down for more lake.</summary>
     public static int MarshMaxSize = 12;
 
@@ -163,7 +163,7 @@ public static class Hydrology
         int riverEdges = 0;
         for (int i = 0; i < n; i++)
         {
-            // Skip open water as a river SOURCE: oceans, and future lakes (flooded[] — lakes are
+            // Skip open water as a river SOURCE: oceans, and future lakes (flooded[], where lakes are
             // classified in step 6, AFTER this, so they aren't IsWater yet). This stops a river
             // from carving across/out of a lake (the old drain-seed spill did exactly that, putting
             // "a river in the middle of the lake"). A river on land still stamps its edge toward a
@@ -187,8 +187,8 @@ public static class Hydrology
             {
                 // Drain-seed tile (a Lake or border) carrying river flow: it has no
                 // receiver, so the river would die here with no outflow edge. Stamp an
-                // outflow toward the LOWEST-elevation neighbour — where the water spills
-                // out of the lake — so the river continues across/out of the basin
+                // outflow toward the LOWEST-elevation neighbour, where the water spills
+                // out of the lake, so the river continues across/out of the basin
                 // instead of stopping at its shore.
                 if (!LowestNeighbor(world, i, out int nd, out int ni))
                     continue;   // no valid neighbour (shouldn't happen on a real map)
@@ -283,7 +283,7 @@ public static class Hydrology
             if (component.Count < MinLakeTiles)
             {
                 foreach (int idx in component)
-                    flooded[idx] = false;   // too small — revert to land
+                    flooded[idx] = false;   // too small, so revert to land
             }
             else
             {
@@ -351,7 +351,7 @@ public static class Hydrology
 
             var tc = world.Tiles[c];
             if ((tc.RiverEdges & (byte)(1 << d)) != 0)
-                break;   // joined a trunk — it's drawn already
+                break;   // joined a trunk, so it's drawn already
             if ((tc.SpringEdges & (byte)(1 << d)) != 0)
                 break;  // merged into another spring
 

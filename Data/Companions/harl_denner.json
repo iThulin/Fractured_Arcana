@@ -4,7 +4,7 @@
 	"school": "None",
 	"unitClass": "Ranger",
 	"personalityTrait": "Stoic",
-	"backstory": "Warden of a sealed sanctum for thirty years, without ever knowing what it held. When the first fragment was taken, he felt the seal break from four kingdoms away — and came looking for whoever finally opened a door he spent his life guarding.",
+	"backstory": "Warden of a sealed sanctum for thirty years, without ever knowing what it held. When the first fragment was taken, he felt the seal break from four kingdoms away, and came looking for whoever finally opened a door he spent his life guarding.",
 	"recruitmentCost": 95,
 	"isAvailable": false,
 	"unlockCondition": "Pass any fragment guardian's trial",

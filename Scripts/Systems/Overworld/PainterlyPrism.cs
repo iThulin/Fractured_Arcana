@@ -1,14 +1,14 @@
 using Godot;
 
 // ============================================================
-// PainterlyPrism.cs — art pass A2/A3-lite (2026-08-12)
+// PainterlyPrism.cs: art pass A2/A3-lite (2026-08-12)
 //
 // Purpose:        The single factory for the 3D world-map tile
 //                 materials, shared by WorldAtlas3D and
 //                 ExpeditionWindow3D (same rule as Hex3DPalette:
 //                 one home, the two views can never drift).
 //                 Returns a ShaderMaterial on
-//                 painterly_world_prism.gdshader — or, with
+//                 painterly_world_prism.gdshader, or, with
 //                 Enabled = false (the instant kill-switch the
 //                 art pass plan requires) or a failed shader
 //                 load, the pre-A2 StandardMaterial3D fallback.
@@ -26,7 +26,7 @@ public static class PainterlyPrism
     public const int Canvas = 2;
 
     /// <summary>Kill-switch: false restores the pre-A2 StandardMaterial3D look
-    /// everywhere the factory is used. Flip here (or from a debug hook) — the
+    /// everywhere the factory is used. Flip here (or from a debug hook); the
     /// tile layers rebuild their materials on every RebuildTiles.</summary>
     public static bool Enabled = true;
 
@@ -35,7 +35,7 @@ public static class PainterlyPrism
 
     /// <summary>A material for one tile layer. Falls back to the pre-A2
     /// StandardMaterial3D (vertex-colour albedo at the given roughness) when the
-    /// painterly path is disabled or the shader fails to load — never crashes
+    /// painterly path is disabled or the shader fails to load. It never crashes
     /// the map over an art asset.</summary>
     public static Material TileMaterial(int mode, float fallbackRoughness)
     {
@@ -67,7 +67,7 @@ public static class PainterlyPrism
     private static Material _riverMat;
 
     /// <summary>Material for the A9b river ribbons: the water shader retuned for a
-    /// thin flat ribbon lying on terrain — no vertex swell (a displaced ribbon
+    /// thin flat ribbon lying on terrain: no vertex swell (a displaced ribbon
     /// would poke through its banks), smaller/subtler sky wash, finer sparkle.
     /// Vertex colours (bank/waterline baked by RiverMesh) flow through COLOR
     /// exactly like MultiMesh instance colours do.</summary>

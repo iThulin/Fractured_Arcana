@@ -16,7 +16,7 @@ using System.Collections.Generic;
 //                 CombatManager.cs (combat-side consumer),
 //                 NegotiationManager.cs (alternate target),
 //                 NarrativeEncounterPanel.cs (alternate target)
-// See:            README §3 — Architecture (scene swap pattern)
+// See:            README §3, Architecture (scene swap pattern)
 // ============================================================
 
 /// <summary>Process-wide router for transitions between overworld, combat, narrative, and negotiation scenes. Owns the saved overworld state across scene swaps and exposes a deterministic seed so the map regenerates identically on return.</summary>
@@ -127,7 +127,7 @@ public partial class EncounterRouter : Node
         if (playerWon)
         {
             // Adept ruling (2026-07-10): the generalist never drafts on the road.
-            // Instead the splinter reward is DOUBLED — the Academy stipend — and
+            // Instead the splinter reward is DOUBLED (the Academy stipend) and
             // deck building happens back at the campus (upgrades now; a splinter
             // card-acquisition screen is the planned follow-on).
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave?.SelectedSchool,
@@ -135,13 +135,13 @@ public partial class EncounterRouter : Node
                 && schoolForReward == CardSchool.Adept)
             {
                 SplinterReward *= 2;
-                GD.Print($"EncounterRouter: Adept stipend — no draft, splinters doubled to {SplinterReward}.");
+                GD.Print($"EncounterRouter: Adept stipend. No draft, splinters doubled to {SplinterReward}.");
                 GetTree().CreateTimer(2.0f).Timeout += () =>
                     GetTree().ChangeSceneToFile(ReturnScenePath);
             }
             else
             {
-                // Show card reward screen — it routes to ReturnScenePath when done
+                // Show card reward screen. It routes to ReturnScenePath when done.
                 GetTree().ChangeSceneToFile("res://Scenes/UI/CardRewardScreen.tscn");
             }
         }
@@ -159,7 +159,7 @@ public partial class EncounterRouter : Node
     /// </summary>
     public void SetCurrentTier(EncounterTier tier) => _currentTier = tier;
 
-    /// <summary>K2 (§5b): boss contexts roll death at 40% — the expedition
+    /// <summary>K2 (§5b): boss contexts roll death at 40%. The expedition
     /// return path reads the tier of the combat it's returning from.</summary>
     public EncounterTier CurrentTier => _currentTier;
 
@@ -168,8 +168,8 @@ public partial class EncounterRouter : Node
         EncounterTier.Skirmish => (int)GD.RandRange(8, 15),
         EncounterTier.Battle => (int)GD.RandRange(18, 30),
         EncounterTier.Siege => (int)GD.RandRange(40, 60),
-        // Ambush sits between Skirmish and Battle — was already the fallthrough
-        // value; made explicit now that the tier is actually routed.
+        // Ambush sits between Skirmish and Battle. This was already the
+        // fallthrough value; made explicit now that the tier is actually routed.
         EncounterTier.Ambush => (int)GD.RandRange(15, 25),
         _ => (int)GD.RandRange(15, 25),
     };

@@ -338,7 +338,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Iron Crucible",
-			"description": "Iron Crucible: Forge Strike becomes a transformation \u2014 massive armor and a storm of fire.",
+			"description": "Iron Crucible: Forge Strike becomes a transformation, with massive armor and a storm of fire.",
 			"changes": [
 				{
 					"half": "bottom",

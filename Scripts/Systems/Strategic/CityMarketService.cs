@@ -9,7 +9,7 @@ using System.Linq;
 //                 §7c): stock rolling (Common–Rare, rarity-
 //                 weighted, seat cities draw one extra slot),
 //                 Steward-priced purchase into the Armory.
-//                 Legendaries NEVER appear — the Auction House
+//                 Legendaries NEVER appear; the Auction House
 //                 (unbuilt) remains the only Legendary venue per
 //                 guild_campus; the market must not pre-empt it.
 // Layer:          System (strategic)
@@ -36,12 +36,12 @@ public static class CityMarketService
 
     /// <summary>Shops sell above book value; a friendly Steward talks them
     /// down toward par. Markup 125%, −5%/point of positive Steward Regard,
-    /// floor 100% (never below book — merchants aren't charities).</summary>
+    /// floor 100% (never below book; merchants aren't charities).</summary>
     public const int MarkupPct = 125;
     public const int DiscountPerRegard = 5;
     public const int FloorPct = 100;
 
-    /// <summary>Rarity weights for a stock slot (Legendary excluded — the
+    /// <summary>Rarity weights for a stock slot (Legendary excluded per the
     /// Auction House venue rule).</summary>
     private static readonly (string rarity, int weight)[] RarityWeights =
     {
@@ -87,11 +87,11 @@ public static class CityMarketService
         int slots = city.IsSeat ? SeatStock : CityStock;
         int totalWeight = RarityWeights.Sum(w => w.weight);
 
-        // Consumables (2026-08-13): every shop reliably carries sundries —
-        // one guaranteed draught/scroll slot (two at seats), Common-leaning,
+        // Consumables (2026-08-13): every shop reliably carries sundries.
+        // One guaranteed draught/scroll slot (two at seats), Common-leaning,
         // on TOP of the gear slots so potions never crowd out equipment.
         // (Note: existing saves show potions only after the NEXT lunation
-        // refresh — stock is lazy-persisted per lunation by design.)
+        // refresh; stock is lazy-persisted per lunation by design.)
         var sundries = all.Where(d => d.IsConsumable
                                       && !market.StockItemIds.Contains(d.Id)).ToList();
         int sundrySlots = city.IsSeat ? 2 : 1;
@@ -163,7 +163,7 @@ public static class CityMarketService
         var def = ItemDatabase.Get(itemId);
         if (def == null)
         {
-            market.StockItemIds.Remove(itemId); // bad id on a shelf — clear it
+            market.StockItemIds.Remove(itemId); // bad id on a shelf, clear it
             return null;
         }
 
@@ -175,7 +175,7 @@ public static class CityMarketService
         save.Armory.AddItem(def);
         SaveManager.Save();
         GD.Print($"[Market] Bought {def.Name} for {price}g at {market.CityId}.");
-        return $"{def.Name} — bought for {price}g. It waits in the Armory.";
+        return $"{def.Name}, bought for {price}g. It waits in the Armory.";
     }
 
     private static ulong Fnv1a(string s)

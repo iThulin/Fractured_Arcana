@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 // ============================================================
 // TileData.cs
 //
-// Purpose:        Pure-data model for a single hex tile — terrain
+// Purpose:        Pure-data model for a single hex tile: terrain
 //                 type, imbued element, occupancy, height, glyph,
 //                 and pathfinding cost. Paired 1:1 with HexTile,
 //                 the visual Node3D representation.
@@ -13,8 +13,8 @@ using System.Runtime.CompilerServices;
 // Collaborators:  HexTile.cs (TileView back-pointer + visual),
 //                 HexGridManager.cs (owns the TileData grid),
 //                 Unit.cs (Occupant), GlyphData.cs (Glyph)
-// See:            README §3 (Architecture — hex grid is the spatial
-//                 substrate for combat)
+// See:            README §3 (Architecture. The hex grid is the
+//                 spatial substrate for combat.)
 // ============================================================
 
 /// <summary>Terrain types a tile can have. Affects movement cost, line-of-sight, and which terrain-tagged predicates apply.</summary>
@@ -28,7 +28,7 @@ public enum TileTerrainType
     Arcane,
     Ice,
     // APPEND ONLY: the ordinal is the texture-array layer index
-    // (TerrainTextureLibrary) and is stored in saves — never reorder.
+    // (TerrainTextureLibrary) and is stored in saves, so never reorder.
     Sand
 }
 
@@ -49,7 +49,7 @@ public enum TileElementType
 /// <summary>
 /// Pure-data representation of one tile on the combat hex grid. Holds terrain, occupancy,
 /// imbuement, glyph, height, and pathfinding metadata. The companion <see cref="HexTile"/>
-/// Node3D handles all rendering — <see cref="TileView"/> is the back-pointer.
+/// Node3D handles all rendering, and <see cref="TileView"/> is the back-pointer.
 /// </summary>
 public class TileData
 {
@@ -112,7 +112,7 @@ public class TileData
     /// <summary>The unit currently standing on this tile, if any. Null means unoccupied.</summary>
     public Unit Occupant = null;
 
-    /// <summary>Convenience accessor — true when <see cref="Occupant"/> is non-null.</summary>
+    /// <summary>Convenience accessor: true when <see cref="Occupant"/> is non-null.</summary>
     public bool IsOccupied => Occupant != null;
 
     /// <summary>Returns true when the given unit may step onto this tile (walkable, unblocked, unoccupied). Does not actually move the unit.</summary>
@@ -149,7 +149,7 @@ public class TileData
     public MemorialData Memorial = null;
 
     /// <summary>
-    /// Convenience accessor — true when a memorial is present and has not been consumed by a card effect this turn. Note that a memorial may be present but "consumed" (flagged for removal at end of turn) if a card effect has interacted with it, so this accessor checks both conditions.
+    /// Convenience accessor: true when a memorial is present and has not been consumed by a card effect this turn. Note that a memorial may be present but "consumed" (flagged for removal at end of turn) if a card effect has interacted with it, so this accessor checks both conditions.
     /// </summary>
     public bool HasMemorial => Memorial != null && !Memorial.ConsumedThisTurn;
     public bool IsHallowed => HasMemorial && Memorial.State == MemorialState.Hallowed;
@@ -158,7 +158,7 @@ public class TileData
     public int SummonDiscountTurns = 0;
 
     // ── Druid living-terrain (Wilding) ──────────────────────────────────────
-    /// <summary>Growth stage: 0 none, 1 sapling, 2 thicket, 3 old growth. Orthogonal to ElementType — the Druid never writes ElementType.</summary>
+    /// <summary>Growth stage: 0 none, 1 sapling, 2 thicket, 3 old growth. Orthogonal to ElementType, because the Druid never writes ElementType.</summary>
     public int GrowthStage = 0;
 
     /// <summary>Ticks spent at the current growth stage; drives auto-advance in GrowthManager.</summary>
@@ -173,7 +173,7 @@ public class TileData
     /// <summary>
     /// Applies a named persistent terrain modifier ("rubble", "scorched", "frozen") that
     /// changes move cost and hazard state. Passing "none" reverts to the saved base cost.
-    /// Modifiers do NOT stack — applying a new one replaces the prior modifier.
+    /// Modifiers do NOT stack. Applying a new one replaces the prior modifier.
     /// </summary>
     public void ApplyTerrainModifier(string modifier)
     {

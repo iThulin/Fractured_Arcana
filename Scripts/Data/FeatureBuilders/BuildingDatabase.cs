@@ -92,12 +92,12 @@ public static class BuildingDatabase
     /// Ensure every template has a runtime entry in the save. Two passes, and the
     /// difference between them is the whole point:
     ///
-    /// <para><b>SEED</b> — runs only when a template has no entry at all. Adds it at tier 0
+    /// <para><b>SEED</b>: runs only when a template has no entry at all. Adds it at tier 0
     /// / unplaced, or, when the template authors <see cref="Building.StartsBuiltAt"/>,
     /// already built and sited there. Once per building per save; a player who later moves
     /// or demolishes an ordinary starting building is never overridden back.</para>
     ///
-    /// <para><b>REPAIR</b> — runs on EVERY load, for foundational buildings only. Floors the
+    /// <para><b>REPAIR</b>: runs on EVERY load, for foundational buildings only. Floors the
     /// tier at 1, re-sites an unplaced entry at its authored anchor, and restores destroyed
     /// integrity. Foundational buildings host systems the game is unplayable without, so
     /// they must be standing at the start of every reset window no matter what the previous
@@ -107,7 +107,7 @@ public static class BuildingDatabase
     ///
     /// <para>Repair deliberately does not move a foundational building the player has
     /// relocated (IsPlaced stays true, Q/R are left alone). It also cannot detect a
-    /// collision when it re-sites — there is no grid at this layer — so a re-sited anchor
+    /// collision when it re-sites (there is no grid at this layer), so a re-sited anchor
     /// that another building has since occupied resolves at stamp time in
     /// CampusGridManager.LoadFromSave, last writer winning. Pre-existing behaviour; worth
     /// tightening if relocation ever ships.</para>
@@ -124,7 +124,7 @@ public static class BuildingDatabase
             if (template.IsFoundational && !anchored)
             {
                 GD.PrintErr($"BuildingDatabase: '{template.Id}' is marked foundational but authors " +
-                            "no startsBuiltAt anchor — there is nowhere to seed or repair it to. " +
+                            "no startsBuiltAt anchor, so there is nowhere to seed or repair it to. " +
                             "Treating it as an ordinary constructed building.");
             }
 
@@ -140,13 +140,13 @@ public static class BuildingDatabase
                     Tier = 0,
                     Category = template.Category,
                     SchoolAffinity = template.SchoolAffinity,
-                    MaxIntegrity = 20,       // flat baseline for now — see BuildingSaveData
+                    MaxIntegrity = 20,       // flat baseline for now; see BuildingSaveData
                     CurrentIntegrity = 20,   // and campus_siege_and_defense_v1 §4
                 };
 
                 if (anchored)
                 {
-                    // Pre-built, not purchased — the guild starts with this one standing.
+                    // Pre-built, not purchased. The guild starts with this one standing.
                     entry.Tier = 1;
                     entry.Q = template.StartsBuiltAt.Q;
                     entry.R = template.StartsBuiltAt.R;
@@ -155,7 +155,7 @@ public static class BuildingDatabase
                 }
 
                 save.Buildings.Add(entry);
-                continue;   // just built it correctly — nothing to repair
+                continue;   // just built it correctly; nothing to repair
             }
 
             // ── REPAIR ──────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ public static class BuildingDatabase
 
             if (entry.Tier < 1)
             {
-                GD.Print($"[BuildingDB] Foundational '{template.Id}' was tier {entry.Tier} — restored to tier 1.");
+                GD.Print($"[BuildingDB] Foundational '{template.Id}' was tier {entry.Tier}; restored to tier 1.");
                 entry.Tier = 1;
             }
 
@@ -177,14 +177,14 @@ public static class BuildingDatabase
                 entry.R = template.StartsBuiltAt.R;
                 entry.Rotation = 0;
                 entry.IsPlaced = true;
-                GD.Print($"[BuildingDB] Foundational '{template.Id}' was unplaced — re-sited at " +
+                GD.Print($"[BuildingDB] Foundational '{template.Id}' was unplaced; re-sited at " +
                          $"({entry.Q}, {entry.R}).");
             }
 
             if (entry.CurrentIntegrity <= 0)
             {
                 entry.CurrentIntegrity = entry.MaxIntegrity;
-                GD.Print($"[BuildingDB] Foundational '{template.Id}' was destroyed — integrity restored.");
+                GD.Print($"[BuildingDB] Foundational '{template.Id}' was destroyed; integrity restored.");
             }
         }
     }

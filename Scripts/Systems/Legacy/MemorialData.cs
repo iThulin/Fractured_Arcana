@@ -10,14 +10,14 @@ public enum MemorialStrength
 
 public enum MemorialState
 {
-    Fresh,       // created this turn — brighter visually
-    Established, // 1+ turns old — settled
+    Fresh,       // created this turn; brighter visually
+    Established, // 1+ turns old; settled
     Hallowed     // upgraded by a card effect
 }
 
 public class MemorialData
 {
-    // Who/what died here — drives the spirit identity flash on summon
+    // Who/what died here. Drives the spirit identity flash on summon.
     public string SourceName = "Unknown";
     public int SourceTeamId = -1;     // -1 = unknown
     public bool WasAlly = false;

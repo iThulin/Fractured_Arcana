@@ -5,14 +5,14 @@ using System.Collections.Generic;
 //
 // Purpose:        Q4 city markets (companion_item_systems v2.1
 //                 §7c): per-city item stock, refreshed each
-//                 lunation (lazily, on menu open) — the item-side
+//                 lunation (lazily, on menu open). The item-side
 //                 twin of HiringHallState. Stock is item IDS only;
 //                 prices are derived at display time (GoldValue ×
 //                 markup − Steward discount), never persisted.
 // Layer:          Data (SaveState)
 // Collaborators:  CityMarketService.cs (refresh + purchase),
 //                 CityServicesHost.cs (the Market section UI).
-// Notes:          Additive save field on CycleState.CityMarkets —
+// Notes:          Additive save field on CycleState.CityMarkets,
 //                 NO version bump (CityExploreState pattern).
 // ============================================================
 
@@ -26,7 +26,7 @@ public class CityMarketState
     public int LastRefreshLunation = 0;
 
     /// <summary>ItemDefinition ids on the shelf. Buying removes the id;
-    /// sold out stays sold out until the lunation turns (no re-roll scumming
-    /// — same discipline as the halls).</summary>
+    /// sold out stays sold out until the lunation turns (no re-roll scumming,
+    /// same discipline as the halls).</summary>
     public List<string> StockItemIds = new();
 }

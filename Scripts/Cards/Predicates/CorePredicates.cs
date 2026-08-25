@@ -20,7 +20,7 @@ using System.Collections.Generic;
 /// Shared tile-matching helpers for the tile predicates. A "tile type" key is
 /// matched against memorials ("memorial"), the tile's TerrainType, its
 /// ElementType, and the usual design-name aliases (stone→Earth, ice→Frost,
-/// storm→Lightning) — same vocabulary as CasterOnTerrain.
+/// storm→Lightning), the same vocabulary as CasterOnTerrain.
 /// </summary>
 internal static class TilePredicateUtil
 {
@@ -109,7 +109,7 @@ public sealed class OrPredicate : IPredicate
 }
 
 /// <summary>
-/// Logical NOT — inverts the wrapped predicate's result.
+/// Logical NOT: inverts the wrapped predicate's result.
 /// </summary>
 public sealed class NotPredicate : IPredicate
 {
@@ -266,7 +266,7 @@ public sealed class ActionsNegatedThisTurnPredicate : IPredicate
 /// <summary>
 /// True when the caster's current tile matches the named terrain 
 /// or element type. Checks both <c>TerrainType</c> and <c>ElementType</c>
-///  with aliases — "stone" matches Stone terrain or Earth imbuement, 
+///  with aliases: "stone" matches Stone terrain or Earth imbuement,
 /// "ice" matches Ice terrain or Frost imbuement, "fire"/"storm"/"arcane" 
 /// match the corresponding imbuements.
 /// </summary>
@@ -333,7 +333,7 @@ public sealed class CasterOnTerrain : IPredicate
 /// <summary>
 /// True when every element in <see cref="RequiredElements"/> is 
 /// present on at least one tile within <see cref="Range"/> hexes of the 
-/// caster. ALL must be present — partial matches return false. Element name 
+/// caster. ALL must be present; partial matches return false. Element name
 /// aliases match those of CasterOnTerrain.</summary>
 public sealed class HasElementsNearCaster : IPredicate
 {

@@ -14,7 +14,7 @@ using System.Collections.Generic;
 // Collaborators:  ElementalAttunement.cs (state container),
 //                 Unit.cs (caster ref), GameState.cs,
 //                 RulesManager.cs (calls this post-resolve)
-// See:            README §6 — Elemental Attunement
+// See:            README §6 (Elemental Attunement)
 // ============================================================
 
 /// <summary>Static resolver invoked after every spell resolution. Updates the caster's elemental attunement counters and applies tier-crossing bonuses (1: bonus damage; 2: auto-imbue; 3: enhanced effect; 4: burst AoE then reset).</summary>
@@ -158,7 +158,7 @@ public static class AttunementResolver
 					if (unit == null || !unit.Stats.IsAlive) continue;
 					if (unit.TeamId == castingUnit.TeamId) continue;
 					// Cross-turn slow: applied on the player turn, must bite on the enemy's
-					// turn — use the `slowed` status (survives their StartTurn reset), not a
+					// turn. Use the `slowed` status (survives their StartTurn reset), not a
 					// BonusMoveRange write (which would be wiped). EffectiveMovement halves it.
 					unit.ApplyStatus("slowed", 1);
 					log.Add($"  Quake slows {unit.Name}");

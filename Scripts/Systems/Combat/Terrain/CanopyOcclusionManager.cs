@@ -23,7 +23,7 @@ public partial class CanopyOcclusionManager : Node3D
 	private const int MaxOccluders = 16; // must match the shader array size
 
 	/// <summary>Manual override (hand-placed testing). In a live map the scatter
-	/// injects the cached material via SetCanopyMaterial — leave this null then.</summary>
+	/// injects the cached material via SetCanopyMaterial, so leave this null then.</summary>
 	[Export] public ShaderMaterial CanopyMaterial;
 
 	/// <summary>Called by HexGridManager.SpawnCanopyProps so the feeder writes to

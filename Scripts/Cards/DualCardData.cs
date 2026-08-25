@@ -10,10 +10,10 @@ using System.Collections.Generic;
 //                 Card/CardHalf split in CardRuntime.cs.
 // Layer:          Data
 // Collaborators:  CardData.cs (the wrapped halves)
-// See:            README §7 — "CardData.cs vs CardRuntime.cs"
+// See:            README §7 ("CardData.cs vs CardRuntime.cs")
 // ============================================================
 
-/// <summary>Legacy scene-graph wrapper holding two <see cref="CardData"/> halves. Predates the runtime <c>Card</c>/<c>CardHalf</c> split — new code should use those instead. Retained for any scenes that still instantiate dual cards directly.</summary>
+/// <summary>Legacy scene-graph wrapper holding two <see cref="CardData"/> halves. Predates the runtime <c>Card</c>/<c>CardHalf</c> split, so new code should use those instead. Retained for any scenes that still instantiate dual cards directly.</summary>
 [GlobalClass]
 public partial class DualCardData : Node2D
 {

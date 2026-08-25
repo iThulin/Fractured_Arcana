@@ -8,7 +8,7 @@ using System.Text.Json;
 //
 // Purpose:        Lazy loader and per-session cache for
 //                 ArchmageDefinition JSON files. Mirrors the
-//                 pattern of RegionLoader — load once, cache,
+//                 pattern of RegionLoader: load once, cache,
 //                 expose by id. Loaded from Data/Archmagi/.
 // Layer:          System
 // Collaborators:  ArchmageDefinition.cs (the schema),

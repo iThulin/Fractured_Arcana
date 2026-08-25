@@ -6,7 +6,7 @@ using System.Linq;
 // ============================================================
 // PersistentEffect.cs
 //
-// Purpose:        Persistent effects — zones, auras, and other
+// Purpose:        Persistent effects: zones, auras, and other
 //                 state-machines that live across turns and tick
 //                 at the start of each player turn. Spawned by
 //                 leaf effects (CreateMaelstromEffect,
@@ -19,8 +19,8 @@ using System.Linq;
 //                 Effect.cs (DealDamageEffect queries
 //                 AvatarAuraEffect for the bonus damage stack),
 //                 ElementalAttunement.cs (ElementTag mapping)
-// See:            README §6 — Persistent Effects,
-//                 README §6 — Elemental Attunement
+// See:            README §6, Persistent Effects,
+//                 README §6, Elemental Attunement
 // ============================================================
 
 /// <summary>
@@ -56,7 +56,7 @@ public abstract class PersistentEffect
 /// <summary>Multi-turn movespeed buff, tracked as a PersistentEffect. Because
 /// <c>BonusMoveRange</c> resets every <c>StartTurn</c> and this ticks AFTER that reset
 /// (StartTurn precedes the ActiveEffects tick in the turn-start sequence), the buff is
-/// RE-APPLIED each turn for its duration. No cleanup subtract is needed — expiry just
+/// RE-APPLIED each turn for its duration. No cleanup subtract is needed: expiry just
 /// stops the re-application, and the reset clears the value. The cast-time grant covers
 /// the first turn; this covers turns 2..N.</summary>
 public class MovementBuffEffect : PersistentEffect

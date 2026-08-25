@@ -41,7 +41,7 @@ public static class PlayerDeckService
     {
         if (save?.PlayerDeck == null)
         {
-            GD.PrintErr("[PlayerDeckService] PlayerDeck is null — falling back to random.");
+            GD.PrintErr("[PlayerDeckService] PlayerDeck is null. Falling back to random.");
             return CardDatabase.BuildRandomDeck(ParseSchool(save?.SelectedSchool), 10);
         }
 
@@ -64,7 +64,7 @@ public static class PlayerDeckService
         {
             if (!lookup.TryGetValue(id, out var owned))
             {
-                GD.PrintErr($"[PlayerDeckService] InstanceId '{id}' not found in owned cards — skipping.");
+                GD.PrintErr($"[PlayerDeckService] InstanceId '{id}' not found in owned cards. Skipping.");
                 continue;
             }
 
@@ -75,7 +75,7 @@ public static class PlayerDeckService
 
         if (cards.Count == 0)
         {
-            GD.PrintErr("[PlayerDeckService] HydrateActiveDeck produced 0 cards — falling back to random.");
+            GD.PrintErr("[PlayerDeckService] HydrateActiveDeck produced 0 cards. Falling back to random.");
             return CardDatabase.BuildRandomDeck(ParseSchool(save.SelectedSchool), 10);
         }
 
@@ -89,7 +89,7 @@ public static class PlayerDeckService
     /// Adds a newly acquired <paramref name="blueprintId"/> to the player's
     /// owned collection in <paramref name="save"/>. The new copy starts at
     /// UpgradeTier 0 with no grafts and is NOT auto-slotted into the active
-    /// deck — the player must do that in the deck editor.
+    /// deck. The player must do that in the deck editor.
     /// Also records the blueprintId in UnlockedCardBlueprintIds if not
     /// already present (so it shows up in future draft pools).
     /// Call this from your CardRewardScene when the player picks a card.

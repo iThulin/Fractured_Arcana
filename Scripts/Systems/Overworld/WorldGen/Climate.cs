@@ -8,9 +8,9 @@ using Godot;
 //                 cold toward the poles) minus an elevation lapse rate
 //                 plus low-frequency noise, then overrides the natural
 //                 land biomes at the extremes:
-//                   Desert — hot AND dry,
-//                   Tundra — cold lowland,
-//                   Snow   — very cold land, OR a mountain above the
+//                   Desert: hot AND dry,
+//                   Tundra: cold lowland,
+//                   Snow:   very cold land, OR a mountain above the
 //                            snowline (tall peaks ice over anywhere) OR
 //                            any cold-latitude mountain.
 //
@@ -28,8 +28,8 @@ using Godot;
 // Collaborators:  WorldData / WorldTile (Terrain out; Elevation + Moisture
 //                 in), WorldGenerator (caller), MountainShaper (mountains
 //                 must be stamped first).
-// Notes:          Deterministic. Temperature is computed inline, not stored
-//                 — add a WorldTile.Temperature field if a later system needs it.
+// Notes:          Deterministic. Temperature is computed inline, not stored.
+//                 Add a WorldTile.Temperature field if a later system needs it.
 // ============================================================
 
 public static class Climate
@@ -113,7 +113,7 @@ public static class Climate
                     else if (temp > DesertTemp && m < DesertMaxMoisture)
                     { result = OverworldHex.TerrainType.Desert; desert++; }
                     else
-                        continue;   // temperate — keep the region biome
+                        continue;   // temperate: keep the region biome
                 }
 
                 tile.Terrain = result;

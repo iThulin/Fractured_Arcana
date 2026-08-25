@@ -30,7 +30,7 @@
   },
   {
    "id": "patrol_intel",
-   "description": "Commander Vael shares patrol routes — revealing 3 hexes near the objective.",
+   "description": "Commander Vael shares patrol routes, revealing 3 hexes near the objective.",
    "favorPlayer": true,
    "isHidden": false,
    "goldDelta": 0,

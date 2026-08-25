@@ -14,7 +14,7 @@ using Godot;
 //                 HexTile.cs (hover highlight, axial coord),
 //                 CombatManager.cs / RulesManager.cs (consumers
 //                 of the CardDroppedOnTile signal)
-// See:            README §3 (Architecture — input flow)
+// See:            README §3 (Architecture, input flow)
 // ============================================================
 
 /// <summary>3D-space drag/drop bridge. Watches <see cref="DragPayloadManager"/> for an active drag, raycasts under the mouse each frame to find the hovered <see cref="HexTile"/>, and emits signals consumers can subscribe to (drag-start, drag-end, drop-on-tile).</summary>
@@ -41,7 +41,7 @@ public partial class CardDropHandler : Node3D
     public delegate void CardDragEndedEventHandler();
 
     /// <summary>R22 damage preview: emitted whenever the hovered tile CHANGES
-    /// during a drag (including to no-tile — consumers receive null-equivalent
+    /// during a drag (including to no-tile, where consumers receive null-equivalent
     /// via a separate DragHoverCleared). Lets CombatManager refresh the
     /// predicted-damage readout without polling.</summary>
     [Signal]
@@ -70,7 +70,7 @@ public partial class CardDropHandler : Node3D
             if (cardUi != null)
                 EmitSignal(SignalName.CardDragStarted, cardUi, isTop);
         }
-        // Detect drag end (without a drop — i.e. cancelled)
+        // Detect drag end (without a drop, i.e. cancelled)
         else if (!isDragging && _wasDragging)
         {
             EmitSignal(SignalName.CardDragEnded);
@@ -117,7 +117,7 @@ public partial class CardDropHandler : Node3D
         if (tile != null && cardUi != null)
         {
             var halfName = (isTop ? cardUi.TopHalf : cardUi.BottomHalf)?.Name ?? "(null half)";
-            GD.Print($"Card dropped on tile {tile.Axial} — Playing {halfName}");
+            GD.Print($"Card dropped on tile {tile.Axial}. Playing {halfName}");
             EmitSignal(SignalName.CardDroppedOnTile, cardUi, isTop, tile);
         }
 
@@ -161,7 +161,7 @@ public partial class CardDropHandler : Node3D
             // Fix (2026-07-09): dropping a card ON A UNIT resolves to the tile
             // the unit stands on. Unit collision bodies share ray layer 1 with
             // tiles, so a drop over an enemy's bounding box used to swallow the
-            // ray, resolve no tile, and silently eat the cast — the player had
+            // ray, resolve no tile, and silently eat the cast. The player had
             // to hit the sliver of tile around the model. Drag-hover highlight
             // gets the same fix for free (this resolver feeds both).
             if (node is Unit unit)

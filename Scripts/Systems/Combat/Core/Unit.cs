@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ============================================================
 // Unit.cs
 //
-// Purpose:        The combat unit — Stats (HP, mana, AP, armor,
+// Purpose:        The combat unit: Stats (HP, mana, AP, armor,
 //                 shield, statuses), Unit Node3D (visual +
 //                 tile occupancy + facing), and the public API
 //                 every effect/AI/UI uses to interact with it.
@@ -18,7 +18,7 @@ using System.Collections.Generic;
 //                 decks), ElementalAttunement.cs (Elementalist
 //                 charges), StanceDefinition.cs (martials),
 //                 every IEffect that targets units
-// See:            README §3 — units are the second-most central
+// See:            README §3. Units are the second-most central
 //                 abstraction after Card
 // ============================================================
 
@@ -32,10 +32,10 @@ public sealed class Stats
     public int Mana;
 
     public int BaseSpeed;
-    public int MovePoints;          // legacy pool — no longer read for gating; see EffectiveMovement
+    public int MovePoints;          // legacy pool, no longer read for gating; see EffectiveMovement
     public int BonusMoveRange;      // movespeed currency: per-turn move-range grant, reset in StartTurn
-    // (2026-08-05) `HasMoved` was DELETED here. It was declared, read twice — it was the
-    // Aimed stance's "requires no movement this turn" gate — and assigned true by nothing,
+    // (2026-08-05) `HasMoved` was DELETED here. It was declared, read twice (it was the
+    // Aimed stance's "requires no movement this turn" gate) and assigned true by nothing,
     // anywhere, ever. Aimed has therefore never blocked, in any playtest, and has been
     // strictly better than designed for its whole life. Both readers now test
     // `Unit.TilesMovedThisTurn`, which is genuinely maintained (reset in StartTurn,
@@ -55,7 +55,7 @@ public sealed class Stats
     /// passive in RulesManager. Reset in <see cref="Unit.StartTurn"/>.
     ///
     /// (2026-08-05) The reset is new. This was set on the first successful cast and never
-    /// cleared, so the discount fired once per COMBAT rather than once per turn — the exact
+    /// cleared, so the discount fired once per COMBAT rather than once per turn, the exact
     /// defect fixed for HasSwitchedStanceThisTurn on 07-29, in a different field.</summary>
     public bool HasPlayedCardThisTurn = false;
 
@@ -94,7 +94,7 @@ public partial class Unit : Node3D
     /// <summary>Tiles one move action covers. (2026-07-27) Baseline dropped 3 -> 2
     /// for EVERY unit, player and enemy alike, so that `slowed` is a clean halving
     /// (2 -> 1) instead of the lopsided 3 -> 1 it used to be. The `charge` tag buys
-    /// the difference back — see ChargeMoveRangeBonus.</summary>
+    /// the difference back (see ChargeMoveRangeBonus).</summary>
     [Export] public int MoveRange = 2;
     [Export] public int StartMaxMana = 3;
     [Export] public int StartMana = 3;
@@ -105,7 +105,7 @@ public partial class Unit : Node3D
     public ISchoolAttunement Attunement { get; private set; }
     [Export] public CardSchool School = CardSchool.Adept;
 
-    // ── Equipment passives — set by CombatManager after applying loadout ────
+    // ── Equipment passives (set by CombatManager after applying loadout) ────
     public List<(ItemPassiveTag tag, int value, string param)> EquipmentPassives = new();
     public int BonusSpellDamage = 0;   // from wizard weapon/trinket
 
@@ -118,14 +118,14 @@ public partial class Unit : Node3D
     /// <summary>UnitRegistry id this enemy was spawned from ("" for player units).</summary>
     public string DefinitionId = "";
     /// <summary>True for units spawned MID-FIGHT through the summon seam
-    /// (SpawnRegistryUnit — Deathburst risers, summon_cadence output). Read by
+    /// (SpawnRegistryUnit: Deathburst risers, summon_cadence output). Read by
     /// the Marginalia kill tally: summoned copies never count toward
     /// marginalia_kill_&lt;family&gt; deeds, or a summoner fight could farm an
     /// entry by stalling (marginalia_spec_v1 §3).</summary>
     public bool IsMidFightSummon = false;
     /// <summary>AI routine key, dispatched by CombatManager.EnemyIntents.PlanIntent.</summary>
     public string BehaviorKey = "";
-    /// <summary>Composable behavior modifiers (pack/bulwark/charge/scout/immobile) — units doc §4a.</summary>
+    /// <summary>Composable behavior modifiers (pack/bulwark/charge/scout/immobile); see units doc §4a.</summary>
     public List<string> BehaviorTags = new();
     /// <summary>U3a: ordered intent script copied from the UnitDefinition. Empty =
     /// plan from BehaviorKey every activation (all pre-U3a units).</summary>
@@ -133,7 +133,7 @@ public partial class Unit : Node3D
     /// <summary>U3a: false = the cycle runs once, then BehaviorKey takes over.</summary>
     public bool CycleLoops = true;
     /// <summary>U3a: how many beats of the script this unit has COMPLETED. Advanced
-    /// in RunEnemyTurn after a beat executes — never at plan time, so a stunned or
+    /// in RunEnemyTurn after a beat executes, never at plan time, so a stunned or
     /// postponed unit retries its beat instead of silently skipping one.</summary>
     public int IntentCycleIndex = 0;
     /// <summary>Triggered abilities from the UnitDefinition (units doc §5, U3).
@@ -142,12 +142,12 @@ public partial class Unit : Node3D
     public List<UnitAbilityDef> Abilities = new();
     // ── U3c: self-aura cache + damage bookkeeping ───────────────────────────
     /// <summary>Chitin (aura): flat reduction applied to EVERY incoming damage
-    /// instance. Cached at spawn by RecacheSelfAuras — auras are states, not stack
+    /// instance. Cached at spawn by RecacheSelfAuras: auras are states, not stack
     /// events (units doc §5), so this is read inline at damage time and never
     /// queued. Fed into MitigateCore so the R22 drag preview shows the real number.</summary>
     public int ChitinAmount = 0;
     /// <summary>Veil (aura): damage from a source more than 1 tile away is negated.
-    /// Sources with no board position (DoTs, terrain) are NOT blocked — veil answers
+    /// Sources with no board position (DoTs, terrain) are NOT blocked; veil answers
     /// shooting, not existing.</summary>
     public bool HasVeil = false;
     /// <summary>HP lost since the current round began. Reset in StartPlayerTurn.
@@ -156,13 +156,13 @@ public partial class Unit : Node3D
     /// <summary>HP lost across the whole combat. Read by mode_shift's threshold.</summary>
     public int DamageTakenThisCombat = 0;
     /// <summary>Unit id whose profile this unit adopts at the head of its NEXT
-    /// activation. Set by mode_shift; applied and cleared in RunEnemyTurn — the
+    /// activation. Set by mode_shift; applied and cleared in RunEnemyTurn, so the
     /// shift is telegraph-honest (§7a P2), never mid-turn.</summary>
     public string PendingProfileId = "";
     /// <summary>True once a mode_shift has fired. Shifts are once per combat.</summary>
     public bool HasModeShifted = false;
     /// <summary>U3d: the ally currently intercepting damage aimed at this unit
-    /// (bodyguard aura). Recomputed every round by CombatManager.ApplyEnemyAuras —
+    /// (bodyguard aura). Recomputed every round by CombatManager.ApplyEnemyAuras,
     /// never authored, never persisted. A unit that ITSELF carries bodyguard is never
     /// assigned one, which is what bounds redirection to a single hop.</summary>
     public Unit BodyguardedBy = null;
@@ -170,15 +170,15 @@ public partial class Unit : Node3D
     // ── U3e: resource-denial state ──────────────────────────────────────────
     /// <summary>U3e (overdraw_ward): this unit takes a SECOND activation the next
     /// time it acts. Armed by OverdrawWardEffect at onTurnEnd when the player
-    /// overspent their hand; consumed — unconditionally, at the head of the
-    /// activation — in RunEnemyTurn, so a unit that is stunned, negated or postponed
+    /// overspent their hand; consumed (unconditionally, at the head of the
+    /// activation) in RunEnemyTurn, so a unit that is stunned, negated or postponed
     /// spends the charge on the turn it was owed rather than banking it forever.</summary>
     public bool ExtraActivationPending = false;
 
     /// <summary>Activations this unit must still spend HOLDING a channel before the
     /// blast lands (Ritardando / GameState.EnemySpellCostIncrease). Enemies pay no
     /// mana, so "your spells cost more" is charged in the only currency a caster
-    /// actually spends: time. Set AND decremented in ExecuteChannelStart — never in
+    /// actually spends: time. Set AND decremented in ExecuteChannelStart, never in
     /// PlanWizard, which only reads it: planning runs once per enemy phase and is
     /// documented safe to repeat, so a decrement there would burn the delay without
     /// an activation ever being spent.
@@ -186,7 +186,7 @@ public partial class Unit : Node3D
     /// which is the entire pre-2026-07-28 history of this field's sibling.</summary>
     public int ChannelDelayRemaining = 0;
 
-    /// <summary>U3e: fired after a SUCCESSFUL TryMoveTo — once per committed move,
+    /// <summary>U3e: fired after a SUCCESSFUL TryMoveTo. Once per committed move,
     /// which is once per AP spent, not once per tile crossed. Wired to
     /// CombatManager.HandleUnitMoved at spawn, exactly like OnStruck. Exists so
     /// binding_geas has ONE call site that a future movement refactor cannot orphan
@@ -198,7 +198,7 @@ public partial class Unit : Node3D
     /// <summary>U3c: recomputes cached SELF auras from Abilities. Called at spawn
     /// after Abilities are assigned, and again after a mode_shift swaps the profile.
     /// Radius auras that affect OTHER units (bodyguard, tithe_aura) are U3d and need
-    /// a real recompute pass — this handles only auras a unit carries on itself.</summary>
+    /// a real recompute pass; this handles only auras a unit carries on itself.</summary>
     public void RecacheSelfAuras()
     {
         ChitinAmount = 0;
@@ -216,12 +216,12 @@ public partial class Unit : Node3D
         }
     }
 
-    /// <summary>V3: per-ability use counters (Requiem stacks etc.) — combat-
+    /// <summary>V3: per-ability use counters (Requiem stacks etc.): combat-
     /// transient state for log grammar + §8 state chips. Keyed by ability Key.</summary>
     public readonly Dictionary<string, int> AbilityUseCounts = new();
-    /// <summary>V2: "line"/"elite"/"boss"/"summon" — roster markers + nameplate policy.</summary>
+    /// <summary>V2: "line"/"elite"/"boss"/"summon". Roster markers + nameplate policy.</summary>
     public string Role = "line";
-    /// <summary>V2: owning archmage id ("" = none) — faction tinting.</summary>
+    /// <summary>V2: owning archmage id ("" = none), used for faction tinting.</summary>
     public string FactionId = "";
     /// <summary>Signature spell key for channel->release casters (Step 2 per-school
     /// wizards). "" = default blast + slowed rider. See ApplyCasterRider.</summary>
@@ -246,15 +246,15 @@ public partial class Unit : Node3D
 
     /// <summary>Hazard-avoidance weight for enemy pathfinding (tile_interaction §7 /
     /// battlefield §6.2). Multiplies the hazard step-cost a unit pays to path THROUGH
-    /// or END on an open hazard (fire/lava/scorched — <see cref="TileData.IsHazardous"/>).
+    /// or END on an open hazard (fire/lava/scorched; <see cref="TileData.IsHazardous"/>).
     /// 0 = ignores hazards entirely (walks straight through).
     ///
     /// - Player-controlled units: always 0. The player decides to eat a hazard; the
     ///   movement-range highlight must never lie by routing them around it.
-    /// - Enemy `reckless` tag: 0 — the generically aggressive / dumb bodies that
+    /// - Enemy `reckless` tag: 0. The generically aggressive / dumb bodies that
     ///   charge onto traps and fire. These are the Enchanter's and Elementalist's food.
-    /// - Enemy `cautious` tag: 2 — smart casters/kiters that strongly avoid.
-    /// - Default (untagged enemy): 1 — most enemies route around hazards when a
+    /// - Enemy `cautious` tag: 2. Smart casters/kiters that strongly avoid.
+    /// - Default (untagged enemy): 1. Most enemies route around hazards when a
     ///   same-distance clean step exists, but never trade PROGRESS to do it.
     ///
     /// NOTE: this deliberately does NOT consider glyphs. Enchanter traps (often
@@ -291,7 +291,7 @@ public partial class Unit : Node3D
     /// <summary>Tile locked when a wizard begins channelling; the release lands here regardless of repositioning. Cleared on release or interrupt.</summary>
     public Vector2I? ChannelTile = null;
 
-    /// <summary>Adept/Namer "true name" hook — once set, every future intent this unit plans starts fully revealed.</summary>
+    /// <summary>Adept/Namer "true name" hook. Once set, every future intent this unit plans starts fully revealed.</summary>
     public bool IntentPermanentlyRevealed = false;
 
     private Label3D _intentLabel;
@@ -380,7 +380,7 @@ public partial class Unit : Node3D
     public bool IsConstruct = false;
 
     /// <summary>
-    /// True for battlefield STRUCTURES (gate doors; later siege engines) — units
+    /// True for battlefield STRUCTURES (gate doors; later siege engines): units
     /// that occupy a tile and take damage but are nobody's soldier. On team 0 so
     /// enemy targeting/attacks work unchanged, but excluded from the all-players-
     /// dead defeat scan, unit-bar selection, and the player centroid. Never set
@@ -399,7 +399,7 @@ public partial class Unit : Node3D
     public bool IsImmobileConstruct = false;
 
     /// <summary>
-    /// Set true by Overclock for a single construct phase — the construct fires/acts twice. Consumed and cleared by the phase.
+    /// Set true by Overclock for a single construct phase; the construct fires/acts twice. Consumed and cleared by the phase.
     /// </summary>
     public bool ActsTwiceThisTurn = false;
 
@@ -429,7 +429,7 @@ public partial class Unit : Node3D
 
     // ── Heat / burnout (push-your-luck) ─────────────────────────────
     /// <summary>
-    /// Current Heat. Each point adds +1 to this construct's attack. Raised only by opt-in actions (Overclock, Heat cards) — or passively when <see cref="PassiveHeat"/> is set (corrupted Unshackled Forge).
+    /// Current Heat. Each point adds +1 to this construct's attack. Raised only by opt-in actions (Overclock, Heat cards), or passively when <see cref="PassiveHeat"/> is set (corrupted Unshackled Forge).
     /// </summary>
     public int Heat = 0;
 
@@ -439,7 +439,7 @@ public partial class Unit : Node3D
     public int BurnoutThreshold = 0;
 
     /// <summary>
-    /// Corrupted-variant flag. When true the construct gains 1 Heat each time it acts, with no opt-in required — the safety governor is gone.
+    /// Corrupted-variant flag. When true the construct gains 1 Heat each time it acts, with no opt-in required; the safety governor is gone.
     /// </summary>
     public bool PassiveHeat = false;
 
@@ -482,7 +482,7 @@ public partial class Unit : Node3D
     private StandardMaterial3D _hoverMat;
     private bool _isHovered = false;
 
-    // ── Map object fields (battlefield E3 — neutral "field" objects, TeamId 2) ──
+    // ── Map object fields (battlefield E3: neutral "field" objects, TeamId 2) ──
     /// <summary>True for neutral battlefield objects (pillars, braziers, boulders…).
     /// Kept out of playerUnits/enemyUnits so they're excluded from turn order, the
     /// unit bar, and both win/loss scans; they live only as tile occupants + in
@@ -491,14 +491,14 @@ public partial class Unit : Node3D
     /// <summary>Map object may be shoved (PushEffect skips non-pushable ones).</summary>
     public bool Pushable = false;
     /// <summary>Catalog key (cracked_pillar / resonant_crystal / ember_brazier /
-    /// boulder / ward_stone / powder_cask) — drives on-death + aura behaviour.</summary>
+    /// boulder / ward_stone / powder_cask); drives on-death + aura behaviour.</summary>
     public string MapObjectKind = "";
 
     // ── Spirit fields (Necromancer summoned units) ─────────────────────────────
     public bool IsSpirit = false;
 
     /// <summary>O3 (2026-08-13): a protect-objective ward. Player-side and
-    /// targetable, benefits from shields/heals/auras — but not a combatant:
+    /// targetable, benefits from shields/heals/auras, but not a combatant:
     /// excluded from the unit bar, from selection, and from the all-players-
     /// dead defeat scan (a board with only the ward standing is a Defeat).
     /// Its death latches objective defeat (CombatManager.Objectives).</summary>
@@ -512,7 +512,7 @@ public partial class Unit : Node3D
     public bool CreateMemorialOnKill = false;
 
     /// <summary>When set, this unit leaves a memorial of the given strength on death
-    /// (mark_on_death_memorial — Unfinished Business "Last Words"). Checked in
+    /// (mark_on_death_memorial, Unfinished Business "Last Words"). Checked in
     /// CombatManager.HandleUnitDeath before the haunted/necromancer branches.</summary>
     public MemorialStrength? LeaveMemorialOnDeath = null;
 
@@ -555,25 +555,25 @@ public partial class Unit : Node3D
     /// WHY THIS EXISTS: ApplyDamage grew an optional `source` for U3c's veil/thorns,
     /// and only 9 of 84 call sites were threaded. The other 75 live in the per-school
     /// effect files, so veil saw a null source for most spells and let them through.
-    /// Threading 75 sites by hand is the wrong shape of fix — it gets 73 right, misses
+    /// Threading 75 sites by hand is the wrong shape of fix: it gets 73 right, misses
     /// two silently, and every spell written afterwards has to remember. Capturing it
     /// once where the caster is ALREADY known makes every present and future effect
     /// correct without touching them.
     ///
     /// Static because Unit holds no GameState reference; single-combat game, and
     /// CombatSim.Active is the existing precedent. An explicit `source` argument always
-    /// wins over this — the enemy strike path passes its attacker directly.</summary>
+    /// wins over this; the enemy strike path passes its attacker directly.</summary>
     public static Unit AmbientDamageSource = null;
 
     public event Action<Unit> OnDied;
     /// <summary>U3b: raised after damage lands on a unit that LOST HP and SURVIVED.
-    /// Carries HP actually lost, not the raw amount — an ability that reacts to being
+    /// Carries HP actually lost, not the raw amount: an ability that reacts to being
     /// wounded must not fire on a hit the armour ate whole. CombatManager subscribes
     /// at spawn (HandleUnitStruck).</summary>
     public event Action<Unit, int, Unit> OnStruck;
 
     /// <summary>Tile-entry bus (tile_interaction_spec §2.1). Fires for EVERY tile a
-    /// unit enters — including each intermediate tile of a push / pull / slide —
+    /// unit enters, including each intermediate tile of a push / pull / slide,
     /// carrying HOW the unit arrived (<see cref="MovementKind"/>). Static because
     /// Unit holds no GameState reference (same rationale as
     /// <see cref="AmbientDamageSource"/>); single-combat game.</summary>
@@ -620,7 +620,7 @@ public partial class Unit : Node3D
 
         CurrentActionPoints = MaxActionPoints;
         Stats.HasActed = false;
-        Stats.HasPlayedCardThisTurn = false;   // (2026-08-05) was never cleared — see the field
+        Stats.HasPlayedCardThisTurn = false;   // (2026-08-05) was never cleared; see the field
         HasAttackedThisTurn = false;
         HasUsedConsumableThisTurn = false;     // consumables: one per unit per turn
         TilesMovedThisTurn = 0;
@@ -634,7 +634,7 @@ public partial class Unit : Node3D
         TickStatuses();
 
         // Action lockouts: frozen/stunned/bound zero AP so the unit can neither
-        // act nor move (movement needs AP). rooted/slowed are NOT handled here —
+        // act nor move (movement needs AP). rooted/slowed are NOT handled here;
         // they only restrict movement, which is now enforced read-side via
         // Unit.EffectiveMovement so a rooted unit keeps its AP for casting.
         if (HasStatus("frozen") || HasStatus("stunned") || HasStatus("bound"))
@@ -722,21 +722,21 @@ public partial class Unit : Node3D
             {
                 case TileElementType.Fire:
                     AttackDamage += 2;
-                    GD.Print($"[Colossus] {Name} absorbs fire — +2 DMG (now {AttackDamage}).");
+                    GD.Print($"[Colossus] {Name} absorbs fire: +2 DMG (now {AttackDamage}).");
                     break;
                 case TileElementType.Earth:
                     Stats.Armor += 2;
                     RefreshHealthBar();
-                    GD.Print($"[Colossus] {Name} absorbs earth — +2 Armor (now {Stats.Armor}).");
+                    GD.Print($"[Colossus] {Name} absorbs earth: +2 Armor (now {Stats.Armor}).");
                     break;
                 case TileElementType.Lightning:
                     Stats.BaseSpeed = Math.Min(Stats.BaseSpeed + 1, 4);
-                    GD.Print($"[Colossus] {Name} absorbs storm — +1 Speed (now {Stats.BaseSpeed}).");
+                    GD.Print($"[Colossus] {Name} absorbs storm: +1 Speed (now {Stats.BaseSpeed}).");
                     break;
                 case TileElementType.Frost:
                     Stats.Shield += 4;
                     RefreshHealthBar();
-                    GD.Print($"[Colossus] {Name} absorbs frost — +4 Shield.");
+                    GD.Print($"[Colossus] {Name} absorbs frost: +4 Shield.");
                     break;
             }
             CurrentTile.ElementType = TileElementType.None;
@@ -748,7 +748,7 @@ public partial class Unit : Node3D
         TrapSystem.OnUnitEntered(this);
         ConduitLinkSystem.OnUnitEntered(this);
 
-        // Public entry bus — every entered tile, any kind (spec §2.1).
+        // Public entry bus: every entered tile, any kind (spec §2.1).
         OnUnitEnteredTile?.Invoke(this, tile, kind);
 
         // 4. Frost slide continuation, after this tile has fully resolved (spec §3).
@@ -772,13 +772,13 @@ public partial class Unit : Node3D
 
         TrySpendAP(1);
         TilesMovedThisTurn += pathCost;   // Charge rider: distance covered this turn
-        Stats.HasActed = true;            // walking is acting — both teams, one seam
+        Stats.HasActed = true;            // walking is acting; both teams, one seam
 
         // Walk the path tile-by-tile so tile-entry verbs fire for EVERY tile
-        // crossed, not just the landing tile (rulings 10.2/10.3 — walking sears,
+        // crossed, not just the landing tile (rulings 10.2/10.3: walking sears,
         // walking onto ice slides). A shared MoveContext carries the §2.2 guards.
         // If path reconstruction fails, fall back to a single placement so
-        // movement never silently breaks — worst case verbs fire only on the
+        // movement never silently breaks; worst case verbs fire only on the
         // destination tile.
         var walkCtx = new MoveContext(grid);
         var path = grid.GetPathTo(this, dest);
@@ -791,7 +791,7 @@ public partial class Unit : Node3D
                     break;
                 PlaceOnTile(step, MovementKind.Walked, walkCtx);
                 // A slide (or other forced diversion) took the unit off-route, or
-                // the walk was halted — the walk ends here.
+                // the walk was halted. Either way the walk ends here.
                 if (CurrentTile != step || walkCtx.HaltForced)
                     break;
             }
@@ -802,7 +802,7 @@ public partial class Unit : Node3D
         }
 
         // U3e binding_geas. AFTER PlaceOnTile, so the handler measures the geas
-        // radius against where the unit ARRIVED, not where it set off — "damage on
+        // radius against where the unit ARRIVED, not where it set off: "damage on
         // arrival" has to mean arrival or the aura reads as random. PlaceOnTile has
         // already run TrapSystem/ConduitLink entry hooks, so this sits in the same
         // company as every other consequence of stepping onto a tile.
@@ -822,8 +822,8 @@ public partial class Unit : Node3D
 
     public void ClearHpDamagePreview() => _healthBar?.HideDamagePreview();
 
-    /// <summary>R22 damage preview: victim-side mitigation math — shrouded cap,
-    /// shield absorb, armor absorb, immortal floor — as a PURE STATIC function
+    /// <summary>R22 damage preview: victim-side mitigation math (shrouded cap,
+    /// shield absorb, armor absorb, immortal floor) as a PURE STATIC function
     /// shared verbatim by ApplyDamage and the drag preview (never a parallel
     /// formula). Static so the preview can replay multi-hit sequences against
     /// VIRTUAL shield/armor/HP without touching live stats. Does NOT model
@@ -841,7 +841,7 @@ public partial class Unit : Node3D
             amount = 5;
 
         // U3c chitin: flat reduction PER INSTANCE, before shield/armor absorb it.
-        // This is what makes chip damage fail and burst succeed — the whole point of
+        // This is what makes chip damage fail and burst succeed, the whole point of
         // the key. Applied here rather than at the call site so the damage preview
         // and the real resolution structurally cannot disagree.
         if (chitin > 0)
@@ -879,7 +879,7 @@ public partial class Unit : Node3D
     /// <summary>U3c: <paramref name="source"/> is the unit that dealt this damage,
     /// when one is known. Optional, so all pre-U3c callers are unaffected; the enemy
     /// strike path and the card damage path both pass it. Null means "no attributable
-    /// attacker" (DoT, terrain, self-damage) — veil and retaliate both treat null as
+    /// attacker" (DoT, terrain, self-damage); veil and retaliate both treat null as
     /// un-answerable and let the damage through.</summary>
     public void ApplyDamage(int amount, Unit source = null)
     {
@@ -896,19 +896,19 @@ public partial class Unit : Node3D
             && source.CurrentTile != null && CurrentTile != null
             && HexGridManager.AxialDistance(source.CurrentTile.Axial, CurrentTile.Axial) > 1)
         {
-            GD.Print($"{Name} is Veiled — {amount} damage from {source.Name} at range is turned aside.");
+            GD.Print($"{Name} is Veiled: {amount} damage from {source.Name} at range is turned aside.");
             return;
         }
 
         // R22 sim gate: preview runs record damage into the ledger and mutate
-        // NOTHING — no links, no mitigation, no death, no health bar.
+        // NOTHING: no links, no mitigation, no death, no health bar.
         // U3d bodyguard: an ally is standing in front of this unit. Ordered BEFORE
         // the CombatSim gate: the R22 drag preview must attribute this damage to the
         // GUARD, not to the ward the player is pointing at. Placed after the gate it
-        // compiled and ran correctly in a real fight while the preview quietly lied —
+        // compiled and ran correctly in a real fight while the preview quietly lied,
         // the same trap chitin fell into. Also before mitigation, so the damage is
         // absorbed by the GUARD's shield/armour: interposing a 4-armour bulwark has to
-        // actually matter. One hop only — a unit carrying bodyguard is never assigned
+        // actually matter. One hop only: a unit carrying bodyguard is never assigned
         // one (ApplyEnemyAuras enforces it), so this cannot chain or recurse.
         if (BodyguardedBy != null)
         {
@@ -917,19 +917,19 @@ public partial class Unit : Node3D
                 && guard.Stats.IsAlive && !guard.IsDeathQueued)
             {
                 if (!CombatSim.Active)
-                    GD.Print($"{guard.Name} steps in front of {Name} — takes {amount} instead.");
+                    GD.Print($"{guard.Name} steps in front of {Name} and takes {amount} instead.");
                 guard.ApplyDamage(amount, source);
                 return;
             }
             BodyguardedBy = null;      // guard died between recompute and this hit
         }
 
-        // DamageReductionPerHit (implemented 2026-08-13 — the tag existed
+        // DamageReductionPerHit (implemented 2026-08-13; the tag existed
         // since Q1 with no consumer). Flat per-hit reduction from equipment,
         // FLOOR 1: relief is bought, immunity does not exist (the wards'
-        // guardrail applied to combat chip). Ordered AFTER bodyguard — the
+        // guardrail applied to combat chip). Ordered AFTER bodyguard (the
         // interposing guard takes the original hit, and their own recursive
-        // ApplyDamage applies THEIR plate — and BEFORE the sim gate, so the
+        // ApplyDamage applies THEIR plate) and BEFORE the sim gate, so the
         // R22 preview prices the true target's reduction.
         if (EquipmentPassives.Count > 0 && amount > 1)
         {
@@ -974,12 +974,12 @@ public partial class Unit : Node3D
         // R22: mitigation math lives in ComputeMitigation, shared with the
         // drag damage preview so the preview structurally cannot drift.
         if (HasStatus("shrouded") && amount > 5)
-            GD.Print($"{Name} is Shrouded — {amount} damage capped to 5.");
+            GD.Print($"{Name} is Shrouded: {amount} damage capped to 5.");
 
         var (shieldLoss, armorLoss, hpLoss, immortalSave) = ComputeMitigation(amount);
 
         if (immortalSave)
-            GD.Print($"{Name} is Immortal — survives at 1 HP.");
+            GD.Print($"{Name} is Immortal and survives at 1 HP.");
 
         Stats.Shield -= shieldLoss;
         Stats.Armor -= armorLoss;
@@ -997,7 +997,7 @@ public partial class Unit : Node3D
         }
 
         // U3b: wounded-and-standing. Ordered before the death check so a lethal hit
-        // raises onDeath ONLY — a corpse does not react to being hurt.
+        // raises onDeath ONLY; a corpse does not react to being hurt.
         if (hpLoss > 0 && Stats.IsAlive)
             OnStruck?.Invoke(this, hpLoss, source);
 
@@ -1011,14 +1011,14 @@ public partial class Unit : Node3D
     public void Die()
     {
         if (IsDeathQueued)
-            return;   // idempotent — calling twice does nothing
+            return;   // idempotent; calling twice does nothing
         IsDeathQueued = true;
 
         // Free the tile immediately so other units can move/spawn there
         CurrentTile?.ClearOccupant(this);
         CurrentTile = null;
 
-        // Hide visually, but DON'T QueueFree yet — leave that to GameRunner
+        // Hide visually, but DON'T QueueFree yet; leave that to GameRunner
         Visible = false;
 
         // Disable any input/physics so it can't be clicked or interacted with
@@ -1043,7 +1043,7 @@ public partial class Unit : Node3D
     {
         if (amount <= 0)
             return;
-        Stats.Mana += amount; // no cap — overflow allowed this turn
+        Stats.Mana += amount; // no cap; overflow allowed this turn
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
     }
 
@@ -1088,7 +1088,7 @@ public partial class Unit : Node3D
         // Apply status immediately.
         // rooted and slowed are enforced READ-SIDE in EffectiveMovement (reach → 0 /
         // halved) and must NOT touch AP here: rooted has to leave AP for casting, and
-        // slowed already halves reach — also halving AP would double-nerf it (this was
+        // slowed already halves reach; also halving AP would double-nerf it (this was
         // a regression once EffectiveMovement took over the slow math).
         if (status == "frozen" || status == "bound")
             // frozen: can't act or move this turn. bound: same, plus immune to cleanse
@@ -1098,7 +1098,7 @@ public partial class Unit : Node3D
         {
             Stats.PoisonDrainPerTurn = Math.Max(Stats.PoisonDrainPerTurn, duration);
             // Override duration to a large number so TickStatuses doesn't
-            // accidentally expire it — poison is permanent until combat ends.
+            // accidentally expire it; poison is permanent until combat ends.
             if (Stats.StatusEffects.ContainsKey("poisoned"))
                 Stats.StatusEffects["poisoned"] = 999;
             else
@@ -1120,7 +1120,7 @@ public partial class Unit : Node3D
         }
         else if (status == "temporal_drag")
         {
-            // Half movement — enforced read-side in EffectiveMovement (no MovePoints
+            // Half movement, enforced read-side in EffectiveMovement (no MovePoints
             // write). The spells-cost+1 half still awaits enemy casting (R3 follow-on).
         }
 
@@ -1131,7 +1131,7 @@ public partial class Unit : Node3D
     public bool HasStatus(string status)
     {
         // R22 sim gate: a status "consumed" during the preview (arcane_mark)
-        // reads as gone WITHIN the sim, though the real state is untouched —
+        // reads as gone WITHIN the sim, though the real state is untouched;
         // otherwise a multi-hit card would pay the mark bonus once per hit.
         if (CombatSim.Active && CombatSim.WasStatusRemoved(this, status))
             return false;
@@ -1141,7 +1141,7 @@ public partial class Unit : Node3D
     /// <summary>
     /// Attacker-side status modifiers on outgoing ATTACK damage (not spells).
     /// Blinded: the attack misses entirely (deterministic, per house preference).
-    /// Weakened: −2 damage, floor 0. Named: half damage (Enchanter — the status
+    /// Weakened: −2 damage, floor 0. Named: half damage (Enchanter; the status
     /// existed with appliers but ZERO consumers until 2026-08-04, so every
     /// "Name an enemy" card was a silent no-op; see binding_chains' own text).
     /// Called by PerformAttack/PerformRangedAttack
@@ -1151,13 +1151,13 @@ public partial class Unit : Node3D
     {
         if (HasStatus("blinded"))
         {
-            GD.Print($"{Name} is Blinded — the attack goes wide.");
+            GD.Print($"{Name} is Blinded. The attack goes wide.");
             return 0;
         }
         if (HasStatus("weakened"))
             damage = Math.Max(0, damage - 2);
         if (HasStatus("named"))
-            damage /= 2;   // "it deals half damage" — stacks after Weakened's flat cut
+            damage /= 2;   // "it deals half damage"; stacks after Weakened's flat cut
         return damage;
     }
 
@@ -1202,7 +1202,7 @@ public partial class Unit : Node3D
     /// <summary>
     /// Applies poison, reducing max HP by <paramref name="drainPerTurn"/> each turn,
     /// clamping current HP to the new max. Stacks by taking the highest drain rate.
-    /// Permanent until combat ends — does not tick down via TickStatuses.
+    /// Permanent until combat ends; does not tick down via TickStatuses.
     /// </summary>
     public void ApplyPoison(int drainPerTurn)
     {
@@ -1240,15 +1240,15 @@ public partial class Unit : Node3D
     /// so movement-affecting statuses are honored consistently.
     ///
     /// Historically these statuses only wrote Stats.MovePoints, which no movement
-    /// code read — so rooted/slowed/temporal_drag were inert. This centralizes the
+    /// code read, so rooted/slowed/temporal_drag were inert. This centralizes the
     /// rule on the read side instead. NOTE: non-status movement modifiers (Dash /
     /// TempBuff / spirit grants) still write the dead MovePoints field and are NOT
-    /// yet folded in here — that needs the per-turn-pool decision.
+    /// yet folded in here; that needs the per-turn-pool decision.
     /// </summary>
     public int EffectiveMovement(int baseBudget)
     {
         // Hard stops: no movement at all this turn. Named ("it deals half damage
-        // and cannot move") joined 2026-08-04 — it had appliers but no consumers,
+        // and cannot move") joined 2026-08-04; it had appliers but no consumers,
         // so the movement half of every Naming card was a silent no-op.
         if (HasStatus("frozen") || HasStatus("stunned") || HasStatus("bound")
             || HasStatus("rooted") || HasStatus("named"))
@@ -1256,7 +1256,7 @@ public partial class Unit : Node3D
 
         // Movespeed currency: per-turn move-range grants from Dash-style self-move
         // spells (Stats.BonusMoveRange, reset each turn). This is the mobility-only
-        // lever — it raises reach-per-move but grants no extra actions, so it never
+        // lever: it raises reach-per-move but grants no extra actions, so it never
         // hands a martial a free attack. AP (the action-count lever, e.g. `hasted`)
         // is deliberately NOT folded in here; the two currencies stay separate.
         int budget = baseBudget + Stats.BonusMoveRange;
@@ -1268,14 +1268,14 @@ public partial class Unit : Node3D
     }
 
     /// <summary>The unit's status-adjusted per-move reach (base `MoveRange` + movespeed
-    /// grants). This is the single per-move-reach value ALL movement paths read — the
+    /// grants). This is the single per-move-reach value ALL movement paths read: the
     /// highlight (`GetReachableTiles`), the cost map (`GetReachableTilesWithCost`), the
     /// commit (`TryMoveTo`), and the SPD stat. `BaseSpeed` drives the AP count, not reach.</summary>
     public int EffectiveMoveRange
         => EffectiveMovement(MoveRange + (HasBehaviorTag("charge") ? ChargeMoveRangeBonus : 0));
 
     /// <summary>Extra per-move reach the `charge` behaviour tag grants (2026-07-27).
-    /// Tier-2 movement erased charge's identity — once every mover spent its whole AP
+    /// Tier-2 movement erased charge's identity: once every mover spent its whole AP
     /// budget, "the one that actually covers ground" described everything. This is
     /// where charge earns it back: a longer stride, not more actions, so it closes
     /// distance without gaining attacks. Added INSIDE EffectiveMovement's budget so
@@ -1415,8 +1415,8 @@ public partial class Unit : Node3D
 
         // ── Tint: warm gold for allies, cool blue for enemies ────────────
         Color baseAlbedo = record?.WasAlly == true
-            ? new Color(1.0f, 0.92f, 0.72f, 0.45f)   // ally — warm gold-white
-            : new Color(0.72f, 0.88f, 1.0f, 0.45f);  // enemy — cool blue-white
+            ? new Color(1.0f, 0.92f, 0.72f, 0.45f)   // ally: warm gold-white
+            : new Color(0.72f, 0.88f, 1.0f, 0.45f);  // enemy: cool blue-white
 
         Color emission = record?.WasAlly == true
             ? new Color(1.0f, 0.85f, 0.55f)
@@ -1446,7 +1446,7 @@ public partial class Unit : Node3D
                 ? new Color(1.0f, 0.92f, 0.72f, 0.9f)   // warm gold
                 : new Color(0.75f, 0.90f, 1.0f, 0.85f);  // cool blue
 
-        // ── Slightly larger scale — spirits feel weightless ──────────────
+        // ── Slightly larger scale; spirits feel weightless ────────────────
         meshNode.Scale = new Vector3(1.05f, 1.12f, 1.05f);
     }
 

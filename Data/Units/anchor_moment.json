@@ -2,7 +2,7 @@
   "id": "anchor_moment",
   "threatLabel": "The Anchor of the Moment",
   "role": "ward",
-  "intelDescription": "A held instant, made object. It does nothing but exist — which is exactly what must not stop.",
+  "intelDescription": "A held instant, made object. It does nothing but exist, which is exactly what must not stop.",
   "maxHealth": 30,
   "baseSpeed": 0,
   "armor": 1,

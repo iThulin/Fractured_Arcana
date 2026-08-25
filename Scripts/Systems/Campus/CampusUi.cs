@@ -11,7 +11,7 @@ using Godot;
 // Layer:          UI
 // Collaborators:  CampusScreen.cs (via `using static CampusUi;`),
 //                 UITheme.cs (every constant here comes from it)
-// See:            docs/campus_tab_extraction_v1.md — Phase 1
+// See:            docs/campus_tab_extraction_v1.md, Phase 1
 // ============================================================
 
 /// <summary>Stateless widget factory for the campus screens. Every method here was a
@@ -20,7 +20,7 @@ using Godot;
 ///
 /// Consumers pull these in with a file-scoped <c>using static CampusUi;</c> rather than
 /// qualifying each call, which keeps ~200 existing call sites byte-identical while still
-/// leaving exactly one implementation. Do not re-add instance copies to any panel — two
+/// leaving exactly one implementation. Do not re-add instance copies to any panel; two
 /// implementations of a widget factory is how campus layout drifts between tabs.
 ///
 /// Note the explicit <c>Control.SizeFlags</c> qualification below: inside CampusScreen
@@ -92,7 +92,7 @@ public static class CampusUi
         return label;
     }
 
-    /// <summary>Flat, square tab-bar button styling — active tabs carry a violet
+    /// <summary>Flat, square tab-bar button styling: active tabs carry a violet
     /// underline rather than a raised body, so the bar reads as one continuous strip.
     ///
     /// Stays here rather than moving into a panel: it styles the SELECTOR, not any
@@ -100,7 +100,7 @@ public static class CampusUi
     /// tab bar, this is the piece the map does NOT need.</summary>
     public static void ApplyTabStyle(Button btn, bool isActive)
     {
-        // Flat style — no rounded corners, continuous bar appearance
+        // Flat style: no rounded corners, continuous bar appearance
         var normal = new StyleBoxFlat
         {
             BgColor = isActive ? UITheme.ButtonPrimary : UITheme.BgDeep,
@@ -109,7 +109,7 @@ public static class CampusUi
             BorderWidthTop = 0,
             BorderWidthLeft = 0,
             BorderWidthRight = 0,
-            // No corner radius — square tabs
+            // No corner radius, square tabs
         };
         var hover = new StyleBoxFlat
         {

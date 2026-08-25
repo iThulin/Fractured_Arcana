@@ -4,7 +4,7 @@ using System.Collections.Generic;
 // ============================================================
 // CouncilOverviewPanel.cs
 //
-// Purpose:        Council overview UI — shows each archmage's
+// Purpose:        Council overview UI. Shows each archmage's
 //                 sentiment, disposition, kingdom, and corruption
 //                 level in a single panel. Designed to embed in
 //                 the campus screen (a new "Council" tab) or the
@@ -15,7 +15,7 @@ using System.Collections.Generic;
 // Collaborators:  CampaignState.cs (data source),
 //                 ArchmageRegistry.cs (definitions),
 //                 ArchmageDefinition.cs (display names, colors),
-//                 CampusScreen.cs (host — council tab)
+//                 CampusScreen.cs (host, council tab)
 // See:            quest_hooks_compendium_v1.md §7 Step 8
 // ============================================================
 

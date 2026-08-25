@@ -45,8 +45,8 @@ using System.Collections.Generic;
 //
 //                 RETIREMENT: OnActionRequested and the four action-
 //                 id consts are GONE. Any host that wired them
-//                 (StrategicView) must have that wiring removed —
-//                 grep for "OnActionRequested", "ActionDispatchEnvoy",
+//                 (StrategicView) must have that wiring removed.
+//                 Grep for "OnActionRequested", "ActionDispatchEnvoy",
 //                 "ActionPresentGifts", "ActionCourtCourtier",
 //                 "ActionGatherIntel" and delete those references or
 //                 the compile breaks.
@@ -79,7 +79,7 @@ public partial class CouncilScreen : CanvasLayer
     public static bool IsOpen => _instance != null && IsInstanceValid(_instance);
 
     /// <summary>Set true by scenes while a POI event panel is open (narrative
-    /// card, scout report) — the one encounter state a global overlay can't
+    /// card, scout report). This is the one encounter state a global overlay can't
     /// derive. Combat/negotiation and expedition state are derived directly.</summary>
     public static bool EncounterLockout = false;
 
@@ -89,11 +89,11 @@ public partial class CouncilScreen : CanvasLayer
     {
         if (EncounterRouter.Instance != null && EncounterRouter.Instance.HasPendingReturn)
         {
-            return "The council waits — you are mid-encounter.";
+            return "The council waits. You are mid-encounter.";
         }
         if (EncounterLockout)
         {
-            return "The council waits — resolve the event before you.";
+            return "The council waits. Resolve the event before you.";
         }
         return null;
     }
@@ -182,7 +182,7 @@ public partial class CouncilScreen : CanvasLayer
         switch (key.Keycode)
         {
             case Key.Escape:
-                // A live dispatch modal swallows Escape first — close it, not the
+                // A live dispatch modal swallows Escape first, so close it, not the
                 // whole screen.
                 if (_flowOpen)
                 {
@@ -309,7 +309,7 @@ public partial class CouncilScreen : CanvasLayer
         row.AddChild(close);
     }
 
-    /// <summary>The kingdom banner strip — one tab per court, across the top.
+    /// <summary>The kingdom banner strip: one tab per court, across the top.
     /// Populated in PopulateTabs once the court ids are resolved.</summary>
     private void BuildKingdomTabs(VBoxContainer root)
     {
@@ -388,7 +388,7 @@ public partial class CouncilScreen : CanvasLayer
         root.AddChild(_actionBox);
     }
 
-    /// <summary>The rumour ribbon — a full-width banner along the bottom carrying
+    /// <summary>The rumour ribbon: a full-width banner along the bottom carrying
     /// this kingdom's Herald lines (or deterministic flavour when none yet).</summary>
     private void BuildRumourRibbon(VBoxContainer root)
     {
@@ -501,7 +501,7 @@ public partial class CouncilScreen : CanvasLayer
     }
 
     /// <summary>Step 9 (relocated from the strategic map per user ruling): the
-    /// at-a-glance archmage standings — every placed archmage's signed
+    /// at-a-glance archmage standings, showing every placed archmage's signed
     /// sentiment (or disposition once resolved), faction-colored, in one
     /// wrapping strip above the footer. Full detail lives on the campus
     /// Council tab.</summary>
@@ -659,7 +659,7 @@ public partial class CouncilScreen : CanvasLayer
         return frame;
     }
 
-    /// <summary>A top-rounded, square-bottomed panel style — the arch shape.
+    /// <summary>A top-rounded, square-bottomed panel style: the arch shape.
     /// Placeholder until real portrait-frame art; the corner radius is a knob a
     /// designer pass can tune.</summary>
     private static StyleBoxFlat MakeArchStyle(Color bg, Color border)
@@ -769,7 +769,7 @@ public partial class CouncilScreen : CanvasLayer
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Actions row — native dispatch launchers + inline recall
+    // Actions row: native dispatch launchers + inline recall
     // ══════════════════════════════════════════════════════════════════════
 
     private void RefreshActions(CycleState cycle, CourtState court)
@@ -791,7 +791,7 @@ public partial class CouncilScreen : CanvasLayer
             _statusLabel.Text = mission.Recalled
                 ? $"{envoy?.Name ?? mission.CompanionId} is travelling home " +
                   $"({mission.LunationsRemaining} lunation)."
-                : $"{envoy?.Name ?? mission.CompanionId} — {mdef?.DisplayName ?? mission.MissionType}, " +
+                : $"{envoy?.Name ?? mission.CompanionId} is on {mdef?.DisplayName ?? mission.MissionType}, " +
                   $"{mission.LunationsRemaining} lunation(s) left.";
             if (encLock != null)
             {
@@ -812,7 +812,7 @@ public partial class CouncilScreen : CanvasLayer
                 UITheme.ApplyButtonStyle(recallBtn, isPrimary: false);
                 recallBtn.Pressed += () =>
                 {
-                    // Re-check the lock at commit — the screen is global, so an
+                    // Re-check the lock at commit. The screen is global, so an
                     // encounter or POI panel may have opened since this rendered.
                     if (ActionsLockReason() != null)
                     {
@@ -826,7 +826,7 @@ public partial class CouncilScreen : CanvasLayer
                 };
                 _actionBox.AddChild(recallBtn);
             }
-            return; // one mission per court — no dispatch while one is live
+            return; // one mission per court, so no dispatch while one is live
         }
 
         // ── Idle: status line, then one launcher button per mission ─────────
@@ -901,7 +901,7 @@ public partial class CouncilScreen : CanvasLayer
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Dispatch modal — envoy -> (target) -> confirm, for the chosen mission
+    // Dispatch modal: envoy -> (target) -> confirm, for the chosen mission
     // ══════════════════════════════════════════════════════════════════════
 
     private void OpenFlow(string missionId)
@@ -1019,7 +1019,7 @@ public partial class CouncilScreen : CanvasLayer
             return;
         }
 
-        _flowTitle.Text = $"{def.DisplayName} — {CouncilTick.CourtDisplayName(cycle, court.KingdomId)}";
+        _flowTitle.Text = $"{def.DisplayName} at {CouncilTick.CourtDisplayName(cycle, court.KingdomId)}";
         AddFlowLabel(def.Blurb, UITheme.TextSecondary);
 
         // 1. Envoy selection. On expedition, in-party companions are NOT
@@ -1034,7 +1034,7 @@ public partial class CouncilScreen : CanvasLayer
             {
                 continue;
             }
-            // K2 (§5b): injured companions are out of all three demands —
+            // K2 (§5b): injured companions are out of all three demands. They are
             // recovering at the infirmary, not dispatchable. Same outright
             // exclusion as imprisoned/afield.
             if (c.IsInjured)
@@ -1045,7 +1045,7 @@ public partial class CouncilScreen : CanvasLayer
             {
                 continue;
             }
-            // Cache overseers are posted afield (SupplyCacheSystem) — same
+            // Cache overseers are posted afield (SupplyCacheSystem), the same
             // outright exclusion as envoys on mission.
             if (SupplyCacheSystem.IsOverseer(c.Id))
             {
@@ -1059,7 +1059,7 @@ public partial class CouncilScreen : CanvasLayer
             AddSelectButton(label, _selCompanionId == c.Id,
                 () => { _selCompanionId = c.Id; RefreshFlow(); },
                 disabled: blocked,
-                tooltip: blocked ? "In the field with you — cannot be dispatched mid-expedition." : null);
+                tooltip: blocked ? "In the field with you. Cannot be dispatched mid-expedition." : null);
         }
         if (!anyCompanion)
         {
@@ -1087,12 +1087,12 @@ public partial class CouncilScreen : CanvasLayer
                 string label;
                 if (isPetition)
                 {
-                    label = $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} " +
+                    label = $"{c.DisplayName}, {CouncilTick.OfficeDisplay(c.Office)} " +
                             $"({CouncilLedger.OfficeToFavorType(c.Office)})";
                 }
                 else if (isCourtship)
                 {
-                    label = $"{c.DisplayName} — {CouncilTick.OfficeDisplay(c.Office)} (Regard +{c.Regard})";
+                    label = $"{c.DisplayName}, {CouncilTick.OfficeDisplay(c.Office)} (Regard +{c.Regard})";
                 }
                 else
                 {
@@ -1162,7 +1162,7 @@ public partial class CouncilScreen : CanvasLayer
         {
             return;
         }
-        // Re-validate EVERYTHING at commit — the modal is global and may have sat
+        // Re-validate EVERYTHING at commit. The modal is global and may have sat
         // open across a lunation boundary since it was rendered.
         if (ActionsLockReason() != null)
         {
@@ -1340,7 +1340,7 @@ public partial class CouncilScreen : CanvasLayer
             string seat = "Seat: " + (def?.DisplayName ?? ks.ArchmageId);
 
             // Step 9 (moved off the strategic map): this seat's standing with
-            // the guild — signed sentiment while unresolved, disposition once
+            // the guild: signed sentiment while unresolved, disposition once
             // resolved.
             var campaign = cycle.Campaign;
             if (campaign != null && def != null && !def.IsVillainFaction)
@@ -1390,7 +1390,7 @@ public partial class CouncilScreen : CanvasLayer
     {
         string[] pool =
         {
-            "The court speaks little of the guild — as yet.",
+            "The court speaks little of the guild, as yet.",
             "Servants trade gossip in the colonnades; none of it names you.",
             "A minor lord wonders aloud what the guild wants here.",
             "The halls are quiet. Word of your deeds has not yet arrived.",

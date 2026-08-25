@@ -13,7 +13,7 @@ using System;
 //                                    fallback where unassigned)
 //                 All source images are normalised to one
 //                 size/format. Layer index = (int)TileTerrainType
-//                 for BOTH arrays — they shift together if the
+//                 for BOTH arrays; they shift together if the
 //                 enum is reordered (don't reorder it).
 // Layer:          System (asset helper)
 // Collaborators:  HexGridManager (texture exports),

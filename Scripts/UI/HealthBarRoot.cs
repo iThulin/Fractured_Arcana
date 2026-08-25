@@ -24,11 +24,11 @@ public partial class HealthBarRoot : Node3D
     [Export] public NodePath ManaTextPath    = "ManaText";
     [Export] public NodePath SpeedTextPath   = "SpeedText";
 
-    // Back plates — kept as-is from scene
+    // Back plates, kept as-is from scene
     [Export] public NodePath HealthBackPath  = "HealthBack";
     [Export] public NodePath ManaBackPath    = "ManaBack";
 
-    // Armor / shield fills still exist but we hide them — values shown as text
+    // Armor / shield fills still exist but we hide them. Values are shown as text.
     [Export] public NodePath ArmorFillPath   = "ArmorFill";
     [Export] public NodePath ShieldFillPath  = "ShieldFill";
 
@@ -65,7 +65,7 @@ public partial class HealthBarRoot : Node3D
     private StandardMaterial3D _hpMat;
     private StandardMaterial3D _manaMat;
 
-    // Withered (poison-eaten) max HP segment — lazily created twin of the
+    // Withered (poison-eaten) max HP segment: a lazily created twin of the
     // HP fill, anchored to the RIGHT end of the bar in a sickly violet.
     private MeshInstance3D _witherFill;
     private StandardMaterial3D _witherMat;
@@ -126,7 +126,7 @@ public partial class HealthBarRoot : Node3D
             _manaFill.SetSurfaceOverrideMaterial(0, _manaMat);
         }
 
-        // Detail text label — one line below mana bar for armor/AP/shield
+        // Detail text label: one line below mana bar for armor/AP/shield
         _detailText = new Label3D
         {
             Name        = "DetailText",
@@ -176,12 +176,12 @@ public partial class HealthBarRoot : Node3D
     {
         _isDetailed = detailed;
 
-        // Mana bar — only in detail mode
+        // Mana bar, only in detail mode
         if (_manaFill  != null) _manaFill.Visible  = detailed;
         if (_manaBack  != null) _manaBack.Visible  = detailed;
         if (_manaText  != null) _manaText.Visible  = detailed;
 
-        // Armor/shield fills always hidden — shown as text instead
+        // Armor/shield fills always hidden, shown as text instead
         if (_armorFill  != null) _armorFill.Visible  = false;
         if (_shieldFill != null) _shieldFill.Visible = false;
 
@@ -192,7 +192,7 @@ public partial class HealthBarRoot : Node3D
         if (_detailText != null) _detailText.Visible = detailed;
         if (_statusRow  != null) _statusRow.Visible  = detailed;
 
-        // HP text — show in detail mode, hide in compact
+        // HP text: show in detail mode, hide in compact
         if (_healthText != null) _healthText.Visible = detailed;
     }
 
@@ -293,11 +293,11 @@ public partial class HealthBarRoot : Node3D
             {
                 Name            = $"SI_{i}",
                 Text            = active[i].symbol,
-                FontSize        = 52,          // was 18 — needs to be large to render crisply
+                FontSize        = 52,          // was 18; needs to be large to render crisply
                 Billboard       = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest     = true,
                 Modulate        = active[i].color,
-                OutlineSize     = 6,           // was 3 — scale with font size
+                OutlineSize     = 6,           // was 3; scale with font size
                 OutlineModulate = new Color(0f, 0f, 0f, 0.85f),
                 Position        = new Vector3(startX + i * spacing, 0f, 0f),
                 PixelSize       = 0.004f,      // shrinks the world-space size down so it doesn't loom
@@ -403,7 +403,7 @@ public partial class HealthBarRoot : Node3D
             _healthFillOriginX, _healthFill.Position.Y, _healthFill.Position.Z + 0.005f);
     }
 
-    /// <summary>Like ResizeBar but keeps the RIGHT edge pinned — the withered
+    /// <summary>Like ResizeBar but keeps the RIGHT edge pinned, so the withered
     /// segment grows leftward as poison eats the max.</summary>
     private void ResizeBarRight(MeshInstance3D fill, float originX, float pct)
     {
