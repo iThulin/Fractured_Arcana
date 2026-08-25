@@ -66,6 +66,13 @@ public static class NarrativeEncounterLoader
         return combined;
     }
 
+    /// <summary>Phase 3 story beats: the authored city-vignette pool, drawn by
+    /// STORY districts in visited NPC cities (StrategicView.TriggerCityStory).
+    /// Kept separate from LoadForRegion so road expeditions never draw a beat
+    /// that stages inside a city. All entries carry ids (one-shot per save).</summary>
+    public static List<NarrativeEncounterData> LoadCityStories()
+        => LoadFile("city_stories");
+
     /// <summary>Find an encounter by id in the companion-mission pool. Used by
     /// the campus host to launch campus-located arc stages directly.</summary>
     public static NarrativeEncounterData FindMissionById(string encounterId)

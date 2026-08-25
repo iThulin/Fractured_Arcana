@@ -1,0 +1,182 @@
+[
+  {
+    "id": "boreal_stopped_column",
+    "title": "The Column That Stopped",
+    "body": "A supply column, forty wagons, halted in perfect order and facing the direction it was going. Draught animals still in harness. Drivers still holding reins. None of it has fallen over, none of it has been scavenged, and the frost on the lead wagon's tarpaulin has the fine radial structure of frost that formed in one night and has not been disturbed since.",
+    "terrainTags": [
+      "Snow",
+      "Tundra"
+    ],
+    "regionTags": [
+      "boreal_march"
+    ],
+    "choices": [
+      {
+        "label": "Strip the wagons",
+        "resultText": "Grain, iron, salt and lamp oil, all of it two centuries old and all of it perfect. You take what you can carry and you work quickly, because the drivers are watching the road ahead and you would rather not be here when they start moving again.",
+        "goldDelta": 70,
+        "hpDelta": -12
+      },
+      {
+        "label": "Work out what stopped it",
+        "resultText": "It stopped between one wheel-turn and the next, all forty wagons at once, which is not weather. Something ahead of the column did this, and it is still ahead of the column.",
+        "stepDelta": -2,
+        "revealPois": 2
+      },
+      {
+        "label": "Go around at a distance",
+        "resultText": "You give the column half a mile and walk parallel to it for an hour. It does not move. You check twice.",
+        "stepDelta": 1,
+        "hpDelta": 5
+      }
+    ]
+  },
+  {
+    "id": "boreal_thawing_woman",
+    "title": "What the Thaw Gives Back",
+    "body": "There is a woman coming out of a drift, and she is coming out slowly: a hand and part of a shoulder so far, over what the melt-line suggests has been several weeks. She is not preserved. She is stopped, which is a different thing, and the exposed fingers have the colour of fingers with blood still in them.",
+    "terrainTags": [
+      "Snow"
+    ],
+    "regionTags": [
+      "boreal_march"
+    ],
+    "choices": [
+      {
+        "label": "Dig her out",
+        "resultText": "It takes four hours and she is entirely intact and entirely warm. She does not wake. You carry her to the nearest shelter, leave her by a banked fire, and spend the rest of the day not discussing it.",
+        "hpDelta": -25,
+        "stepDelta": -3,
+        "goldDelta": 40
+      },
+      {
+        "label": "Pack the drift back over her",
+        "resultText": "You rebuild the snow above her by hand and tamp it flat. Whatever the March is doing here, it is doing it on a schedule, and you decline to be the thing that interrupts it.",
+        "stepDelta": -1,
+        "hpDelta": 10
+      },
+      {
+        "label": "Take what she is carrying and go",
+        "resultText": "The hand is closed around something and does not want to give it up. It gives it up.",
+        "goldDelta": 65,
+        "hpDelta": -15
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Held Mid-Motion",
+    "body": "{site}. {weather} {detail} Nothing here has been knocked down by two hundred winters of wind, which is the detail your eye keeps returning to. {complication}",
+    "terrainTags": [
+      "Snow",
+      "Tundra"
+    ],
+    "regionTags": [
+      "boreal_march"
+    ],
+    "choices": [
+      {
+        "label": "Search it before the cold decides otherwise",
+        "resultText": "Fast, cold work with numb hands. You come away with less than you wanted and more than you expected to survive taking.",
+        "goldDelta": 35,
+        "hpDelta": -15
+      },
+      {
+        "label": "Record its position and posture",
+        "resultText": "You note where it is and precisely which way it is facing. Later you will compare the notes with others like them, and the directions will agree, and you will wish they had not.",
+        "stepDelta": -1,
+        "revealPois": 1
+      },
+      {
+        "label": "Leave it exactly as it stands",
+        "resultText": "You do not touch it. In the Boreal March that is less superstition than procedure.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "boreal_the_warm_cairn",
+    "title": "The Warm Cairn",
+    "body": "A shelter cairn on an empty steppe, its door-stone rolled aside, and inside it a banked fire that is still hot. Fuel for a week is stacked against the wall. There is a stew pot, a bedroll, and a slate by the entrance with a tally of nights scratched into it running well past four hundred. Everything is arranged for one person. Nobody is here.",
+    "terrainTags": [
+      "Snow",
+      "Tundra",
+      "Mountain"
+    ],
+    "regionTags": [
+      "boreal_march"
+    ],
+    "choices": [
+      {
+        "label": "Stay the night and add a mark to the tally",
+        "resultText": "You sleep warm for the first time in a week. In the morning the fire is banked again and the fuel stack has not gone down, and there are four hundred and some marks on the slate, plus yours.",
+        "hpDelta": 45,
+        "stepDelta": -2,
+        "itemReward": "coldpath_talisman",
+        "setMetaFlags": [
+          "deep_boreal_march_cairn_kept"
+        ]
+      },
+      {
+        "label": "Take the fuel and the pot",
+        "resultText": "A week of fuel is a week of fuel. You are two hours out before it occurs to you that somebody has been keeping this cairn stocked for four hundred nights specifically so that it would be here.",
+        "goldDelta": 55,
+        "hpDelta": 15,
+        "setMetaFlags": [
+          "deep_boreal_march_cairn_stripped"
+        ]
+      },
+      {
+        "label": "Restock it from your own supplies and move on",
+        "resultText": "You leave more than you found: fuel, salt, and a strip of dried meat. You do not write on the slate. It seemed presumptuous.",
+        "goldDelta": -35,
+        "stepDelta": -1,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "deep_boreal_march_cairn_kept"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chain_marks_read",
+    "title": "The System on the Steppe",
+    "body": "Route-marks on a stone at the edge of the Boreal March, in the notation the cache-runner used in the Crags, the one you could follow without ever being taught. There is no reason for that system to be here. There is no plausible route between the Crags and this stone, and the marks are recent, and they are addressed.",
+    "terrainTags": [
+      "Tundra",
+      "Snow",
+      "Mountain"
+    ],
+    "regionTags": [
+      "boreal_march"
+    ],
+    "requiredFlag": "deep_the_crags_runner_traded",
+    "choices": [
+      {
+        "label": "Read what is addressed to you",
+        "resultText": "It is short. It gives a bearing, a quantity, and a season, and it closes with the mark you left on the Crags slab when you restocked their cache. Somebody crossed a continent and expected you to arrive after them.",
+        "stepDelta": -1,
+        "revealPois": 2,
+        "setMetaFlags": [
+          "deep_boreal_march_marks_read"
+        ]
+      },
+      {
+        "label": "Answer in the same notation",
+        "resultText": "You cut a reply into the stone: what you have, where you are going, what you will leave and where. It is the first sentence you have ever written in this system and you are reasonably confident it is grammatical.",
+        "hpDelta": -15,
+        "stepDelta": -2,
+        "itemReward": "coldpath_talisman",
+        "setMetaFlags": [
+          "deep_boreal_march_marks_read"
+        ]
+      },
+      {
+        "label": "Take the cache and leave no mark",
+        "resultText": "The bearing leads to a cache and the cache is full and you empty it. The system requires a reply. You do not leave one.",
+        "goldDelta": 60,
+        "hpDelta": -10
+      }
+    ]
+  }
+]

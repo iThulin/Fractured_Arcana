@@ -1,0 +1,141 @@
+[
+  {
+    "id": "downs_charm_oath_stone",
+    "title": "The Oath-Stone",
+    "body": "A boundary-stone stands where three manors meet, and it is not a boundary-stone. The charm-work cut into its face is old, competent, and still running: an oath-binding laid on every levyman sworn within sight of it, renewing itself each time the barons muster. Nobody alive cut these marks. Everybody alive is bound by them.",
+    "terrainTags": [
+      "Grassland"
+    ],
+    "regionTags": [
+      "amber_downs"
+    ],
+    "choices": [
+      {
+        "label": "Read the binding all the way through",
+        "resultText": "It takes most of an afternoon. The oath does not bind the levy to the barons. It binds them to the stone, and the barons have simply been standing next to it for six generations.",
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Break the charm-work",
+        "resultText": "You take a hammer to six generations of quiet coercion. Somewhere over the hill a muster horn sounds and is not answered. The barons will want a word.",
+        "hpDelta": -15,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": -10,
+        "goldDelta": 60
+      },
+      {
+        "label": "Leave it standing",
+        "resultText": "It is not your county and they are not your levies. You mark the stone on your map with a symbol you will regret using so lightly.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "downs_politer_knives",
+    "title": "A Politer Knife",
+    "body": "You are invited to dine, which out here is not an invitation. The steward is charming, the table is good, and somewhere between the second course and the third it becomes clear that you are being asked (very courteously, without any of it being said aloud) to be somewhere specific tomorrow, so that somebody else can be somewhere else.",
+    "terrainTags": [
+      "Grassland",
+      "Road"
+    ],
+    "regionTags": [
+      "amber_downs"
+    ],
+    "choices": [
+      {
+        "label": "Accept, and be where they want you",
+        "resultText": "You stand in a field all morning doing nothing in particular. A payment arrives that afternoon from a house you have never heard of, which tells you roughly what you were worth to them.",
+        "goldDelta": 75,
+        "stepDelta": -3
+      },
+      {
+        "label": "Accept, then be somewhere else entirely",
+        "resultText": "Whatever was supposed to happen without you watching happened anyway, but slower and messier, and the wrong baron is now grateful.",
+        "goldDelta": 30,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 8
+      },
+      {
+        "label": "Say plainly what is being asked",
+        "resultText": "The table goes quiet in the particular way that means you have committed a serious breach of manners by being accurate. You are not asked to stay for the fourth course.",
+        "hpDelta": -5,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 6
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Held Ground",
+    "body": "{site}, and around it the fence-lines of an argument three generations old. {detail} Somebody has been maintaining this (the hedging is cut, the ditches are clear) and somebody else has been quietly moving the markers. {complication}",
+    "terrainTags": [
+      "Grassland",
+      "Forest"
+    ],
+    "regionTags": [
+      "amber_downs"
+    ],
+    "choices": [
+      {
+        "label": "Put the markers back where the wear says they belong",
+        "resultText": "You can read the ground well enough to see where the stones sat for fifty years. Somebody will notice by evening. Somebody else will be pleased.",
+        "stepDelta": -1,
+        "goldDelta": 20
+      },
+      {
+        "label": "Take the good iron out of the ditches",
+        "resultText": "Hedging tools, a length of chain, and a ploughshare in better condition than it deserves to be. All of it belonged to somebody.",
+        "goldDelta": 35,
+        "hpDelta": -5
+      },
+      {
+        "label": "Walk the boundary and leave it alone",
+        "resultText": "You keep to the lane the whole way. It is somebody's land, and out here that still means something, however little.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "downs_the_unbound_levy",
+    "title": "The Unbound Levy",
+    "body": "A levyman has walked out of a muster and cannot say why he was ever in it. He remembers swearing. He does not remember agreeing. Whatever held the oath in him has come loose, and now he is standing in a barn a day's ride from his village with a billhook he does not want and a very clear head for the first time in eleven years.",
+    "terrainTags": [
+      "Grassland",
+      "Forest"
+    ],
+    "regionTags": [
+      "amber_downs"
+    ],
+    "choices": [
+      {
+        "label": "Teach him how the charm-work was done to him",
+        "resultText": "He listens the whole way through and asks good questions. He will not be the last to walk out of a muster in the Amber Downs, and he now knows exactly what to look for on the stone.",
+        "stepDelta": -2,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": 10,
+        "setMetaFlags": [
+          "deep_amber_downs_oath_taught"
+        ]
+      },
+      {
+        "label": "Hire him",
+        "resultText": "He is competent, biddable in the ordinary way rather than the magical one, and cheap. He works a season with your outfit and leaves his billhook behind when he goes.",
+        "goldDelta": -40,
+        "itemReward": "iron_will_band",
+        "setMetaFlags": [
+          "deep_amber_downs_oath_taught"
+        ]
+      },
+      {
+        "label": "Send him back before he is missed",
+        "resultText": "You walk him to the edge of the muster ground and watch him go in. Within the hour he stands like the rest of them. It was the safer thing to do for him and you know precisely how little that is worth.",
+        "goldDelta": 15,
+        "hpDelta": -10,
+        "setMetaFlags": [
+          "deep_amber_downs_oath_returned"
+        ]
+      }
+    ]
+  }
+]

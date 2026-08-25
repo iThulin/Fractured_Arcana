@@ -1,0 +1,172 @@
+[
+  {
+    "id": "q_relight_refectory",
+    "title": "Relight the Refectory",
+    "category": "Campus",
+    "permanent": true,
+    "summary": "Twenty-seven place settings, still warm, still steaming, in a hall that stopped mid-feast. Three chairs are pushed back. The ovens hold bread that has been halfway risen since before the Sundering.",
+    "requiredFlag": "campus_refectory_b1",
+    "objectives": [
+      {
+        "text": "Find the relight the refectory",
+        "flag": "campus_refectory_b1"
+      },
+      {
+        "text": "Recover the kitchen-master's undelivered supply order",
+        "flag": "kitchen_ledger_recovered"
+      },
+      {
+        "text": "Light the ovens",
+        "flag": "campus_refectory_complete"
+      }
+    ],
+    "rewardLore": "campus_refectory_restored"
+  },
+  {
+    "id": "q_ring_the_bell",
+    "title": "Ring the Half-Rung Bell",
+    "category": "Campus",
+    "permanent": true,
+    "summary": "The commencement bell has been holding one note since the Long Second began. Its clapper rests a finger's width from the rim. It needs its true pitch back before it can finish the sound it started.",
+    "requiredFlag": "campus_belfry_b1",
+    "objectives": [
+      {
+        "text": "Find the ring the half-rung bell",
+        "flag": "campus_belfry_b1"
+      },
+      {
+        "text": "Recover the founder's tuning fork",
+        "flag": "tuning_fork_recovered"
+      },
+      {
+        "text": "Give the bell its pitch",
+        "flag": "campus_belfry_complete"
+      }
+    ],
+    "rewardLore": "campus_belfry_restored"
+  },
+  {
+    "id": "q_hold_the_mending",
+    "title": "Hold the Mending",
+    "category": "Campus",
+    "permanent": true,
+    "summary": "A healer's hands, a student's wound, and one spell that has rewritten itself a thousand times to keep running. It is the only magic still working on the frozen campus and it is very nearly finished.",
+    "requiredFlag": "campus_infirmary_b1",
+    "objectives": [
+      {
+        "text": "Find the hold the mending",
+        "flag": "campus_infirmary_b1"
+      },
+      {
+        "text": "Gather heartleaf and stillwater moss",
+        "flag": "infirmary_reagents_recovered"
+      },
+      {
+        "text": "Shore the weave with fresh reagents",
+        "flag": "campus_infirmary_complete"
+      }
+    ],
+    "rewardLore": "campus_infirmary_restored"
+  },
+  {
+    "id": "q_the_counter_reading",
+    "title": "The Counter-Reading",
+    "category": "Campus",
+    "permanent": true,
+    "summary": "Inside the Long Second the sky does not move, which means for the first time in history somebody could read it slowly. The lens is aimed. What is missing is what the sky looked like before.",
+    "requiredFlag": "campus_observatory_b1",
+    "objectives": [
+      {
+        "text": "Find the the counter-reading",
+        "flag": "campus_observatory_b1"
+      },
+      {
+        "text": "Recover the night-ledgers from the week of the Sundering",
+        "flag": "night_ledgers_recovered"
+      },
+      {
+        "text": "Grind the counter-lens",
+        "flag": "campus_observatory_complete"
+      }
+    ],
+    "rewardLore": "campus_observatory_restored"
+  },
+  {
+    "id": "q_raise_the_wards",
+    "title": "Raise the Threshold Wards",
+    "category": "Campus",
+    "permanent": true,
+    "summary": "The gatehouse wards were broken from the inside, with surgical knowledge of where every seal anchored. The arch has been replaying that half-second ever since. Rebuilding it means learning what the breaker learned.",
+    "requiredFlag": "campus_gatehouse_b1",
+    "objectives": [
+      {
+        "text": "Find the raise the threshold wards",
+        "flag": "campus_gatehouse_b1"
+      },
+      {
+        "text": "Recover the warding primer the breaker studied from",
+        "flag": "warding_primer_recovered"
+      },
+      {
+        "text": "Raise new wards from the primer",
+        "flag": "campus_gatehouse_complete"
+      }
+    ],
+    "rewardLore": "campus_gatehouse_restored"
+  },
+  {
+    "id": "q_catalogue_the_wing",
+    "title": "Catalogue the Uncatalogued Wing",
+    "category": "Campus",
+    "permanent": true,
+    "summary": "Ten thousand books hang in the air mid-reshelving, in a wing whose index was being rewritten. Nothing in this room is anywhere twice. One brushed sleeve ages a text to dust.",
+    "requiredFlag": "campus_library_b1",
+    "objectives": [
+      {
+        "text": "Walk the hanging stacks",
+        "flag": "campus_library_b1"
+      },
+      {
+        "text": "Read the three titles Kassian requested",
+        "flag": "campus_library_complete"
+      }
+    ],
+    "rewardLore": "campus_library_wing_restored"
+  },
+  {
+    "id": "q_the_academy_wakes",
+    "title": "The Academy Wakes",
+    "category": "Campus",
+    "permanent": true,
+    "summary": "Six places on the campus stopped mid-motion when the Sundering took it. None of them can be finished from inside the Long Second alone. Every one needs something carried in from the world outside. Restore all six.",
+    "requiredQuest": "q_relight_refectory",
+    "objectives": [
+      {
+        "text": "Relight the refectory",
+        "flag": "campus_refectory_complete"
+      },
+      {
+        "text": "Ring the bell",
+        "flag": "campus_belfry_complete"
+      },
+      {
+        "text": "Hold the mending",
+        "flag": "campus_infirmary_complete"
+      },
+      {
+        "text": "Grind the counter-lens",
+        "flag": "campus_observatory_complete"
+      },
+      {
+        "text": "Raise the wards",
+        "flag": "campus_gatehouse_complete"
+      },
+      {
+        "text": "Catalogue the wing",
+        "flag": "campus_library_complete"
+      }
+    ],
+    "rewardLore": "the_academy_wakes",
+    "rewardFlag": "campus_fully_restored"
+  }
+]

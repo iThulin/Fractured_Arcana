@@ -1,0 +1,75 @@
+{
+ "id": "boreal_march_survivor",
+ "title": "The Cairn-Keeper",
+ "npcName": "Ysolt Vane",
+ "archetype": "Survivor",
+ "factionId": "roadbound",
+ "openingText": "Four hundred and some marks are scratched on the slate by the cairn door, and Ysolt Vane has cut every one. She banks the fire, sets a second bowl out without being asked, and waits. 'Nobody crosses the March by accident,' she says eventually. 'So you want something, and I have the only warm room in ninety miles.'",
+ "startingTension": 4,
+ "basePatience": 10,
+ "npcResolve": 2,
+ "npcGuile": 1,
+ "npcPoise": 3,
+ "dialogueCordial": "Then sit down properly and stop standing in my doorway like a debt collector.",
+ "dialogueStrained": "Perhaps. The March has a way of making men promise more than they carry.",
+ "dialogueHostile": "You are shouting in a stone room at the only person who will feed you. Think.",
+ "dialogueWalkaway": "Then the door is that way, and it will be dark in an hour, and I will not come after you.",
+ "dialogueAccept": "Agreed. Eat first. Nothing agreed on an empty stomach in this country survives the walk out.",
+ "terms": [
+  {
+   "id": "hearth_right",
+   "description": "A night at the cairn, fire banked, and a bowl. The first warm sleep in a week.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": 0,
+   "weight": 3,
+   "spellId": "campward"
+  },
+  {
+   "id": "what_stopped",
+   "description": "Where the stopped things are, in order, and which of them have moved since last winter.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 45,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 2
+  },
+  {
+   "id": "restock_the_cairn",
+   "description": "Twenty supplies against the cairn's stores. She has kept it open four hundred nights.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": -1,
+   "weight": 4,
+   "factionId": "roadbound",
+   "suppliesDelta": -20
+  },
+  {
+   "id": "carry_the_slate",
+   "description": "You carry the tally south and tell one person in a warm place that it exists.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2,
+   "stepsDelta": -2
+  },
+  {
+   "id": "she_will_not_last",
+   "description": "The fuel stack is not going down because she has stopped eating.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -30,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

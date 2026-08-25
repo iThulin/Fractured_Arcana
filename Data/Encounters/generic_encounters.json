@@ -499,5 +499,421 @@
         "resultText": "You leave the folio to the fire and move on."
       }
     ]
+  },
+  {
+    "id": "",
+    "title": "The Crossing",
+    "body": "The route ahead pinches down to a single line: {site}. {weather} {detail} You can take it at pace or take it carefully, and the third option involves walking back the way you came.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Cross at speed",
+        "resultText": "You are over before the ground can form an opinion. Something in the packs is soaked and one ankle will complain about it for a day.",
+        "hpDelta": -8,
+        "stepDelta": 2
+      },
+      {
+        "label": "Cross carefully, one at a time",
+        "resultText": "Roped, slow, and entirely unglamorous. Everyone reaches the far side with everything they started with.",
+        "stepDelta": -2
+      },
+      {
+        "label": "Walk the bank for a better line",
+        "resultText": "The better line does not exist. The hour spent looking for it does put something worth knowing on your map.",
+        "stepDelta": -1,
+        "revealPois": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Somebody Else's Camp",
+    "body": "{site}, and laid out around it the bones of a camp: stones shifted, ground trodden flat, a latrine dug at a respectful distance by people who knew what they were doing. {detail} {complication}",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Strip it properly",
+        "resultText": "An hour on your knees in someone else's leavings turns up a little coin and a great deal you would rather not have learned about them.",
+        "goldDelta": 20,
+        "hpDelta": -5
+      },
+      {
+        "label": "Use it. It is a good site",
+        "resultText": "Whoever chose this ground chose well. You sleep better than you have any right to.",
+        "hpDelta": 18,
+        "stepDelta": -1
+      },
+      {
+        "label": "Leave it exactly as you found it",
+        "resultText": "You touch nothing. Out here that is a currency, and it occasionally pays.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "The Unburied",
+    "body": "At {site} you find {figure}. {detail} Nobody came for them, and this far out nobody was ever going to.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Bury them properly",
+        "resultText": "It costs you most of a morning and the use of two shovels. Their effects come to a handful of coin and a name, which you write down.",
+        "goldDelta": 10,
+        "stepDelta": -2
+      },
+      {
+        "label": "Take what they no longer need",
+        "resultText": "They do not object. Nobody does. You are careful not to look at the face while you work.",
+        "goldDelta": 35
+      },
+      {
+        "label": "Mark the position and move on",
+        "resultText": "You set a stone upright so the next party sees it coming, and you keep walking.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "A Shrine of Uncertain Provenance",
+    "body": "{site}. Someone made a shrine of it. Not recently, and not to anything you can put a name to. {detail} {complication}",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Leave an offering",
+        "resultText": "You give up something you will miss. The road afterwards is easier than it has any business being, and you decline to examine why.",
+        "goldDelta": -15,
+        "hpDelta": 20
+      },
+      {
+        "label": "Read the marks for a maker",
+        "resultText": "The hand is trained, the school is nobody's you were taught, and the sightlines the shrine was built along point somewhere specific.",
+        "stepDelta": -1,
+        "revealPois": 1
+      },
+      {
+        "label": "Take the offerings",
+        "resultText": "Coin, mostly, and older than it should be. Somebody put it here for a reason and now you are carrying the reason.",
+        "goldDelta": 40,
+        "hpDelta": -10
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "The Signal",
+    "body": "{weather} Through it, from the direction of {site}, a signal comes: three flashes, a pause, three more. {complication} It is a recognition code, cleanly sent. It is not one of yours.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Answer it",
+        "resultText": "You send back something plausible. What comes down the slope is not friendly, but it is negotiable, and it leaves you better off than it found you.",
+        "goldDelta": 25,
+        "hpDelta": -10
+      },
+      {
+        "label": "Move to see who answers",
+        "resultText": "You spend the afternoon on your belly watching an exchange you were never meant to see. It is worth the afternoon.",
+        "stepDelta": -2,
+        "revealPois": 1
+      },
+      {
+        "label": "Break line of sight and go wide",
+        "resultText": "You put a ridge between yourself and the conversation. The detour costs you, and costs you nothing you will regret.",
+        "stepDelta": -1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Terms on the Road",
+    "body": "Where the ground opens out beside {site}, {figure} is waiting. They have goods, or say they do, and they name a price before you have said what you want. {detail}",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Buy what they are offering",
+        "resultText": "You are overcharged by a professional. What you get for it is real, which is more than most transactions out here manage.",
+        "goldDelta": -30,
+        "hpDelta": 25
+      },
+      {
+        "label": "Sell them what you can spare",
+        "resultText": "They pay under value and both of you know it. Weight off your backs is worth something too.",
+        "goldDelta": 30,
+        "hpDelta": -5
+      },
+      {
+        "label": "Decline and keep walking",
+        "resultText": "They call an improved price after you, twice, then stop. The second price was the honest one.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "The Warning",
+    "body": "Someone went to genuine trouble here: {site}, and on it a warning (cut, daubed or piled up) in a hand that plainly meant it. {detail} {complication}",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Heed it and route around",
+        "resultText": "The long way is longer. Nothing happens on it, which is the entire point of the long way.",
+        "hpDelta": 5,
+        "stepDelta": -3
+      },
+      {
+        "label": "Press straight on",
+        "resultText": "The warning was accurate. It was also, in the end, survivable, and you make up the ground you would have lost going round.",
+        "hpDelta": -15,
+        "stepDelta": 2
+      },
+      {
+        "label": "Work out who left it, and when",
+        "resultText": "The weathering says two seasons; the hand says a professional; the direction it faces says the danger is not where you assumed.",
+        "stepDelta": -1,
+        "revealPois": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "A Wound in the Ground",
+    "body": "{site}. Except no weather opened this. Something took a piece out of the world here and the edges have never closed over. {weather} {complication}",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Go down into it",
+        "resultText": "The descent is worse than it looks and the bottom is worse than the descent. You come up with your hands full and your nerves shortened.",
+        "goldDelta": 45,
+        "hpDelta": -20
+      },
+      {
+        "label": "Sound it from the lip",
+        "resultText": "Rope, weight, and patience. You learn how deep it goes and, from the echo, roughly what else is down there.",
+        "stepDelta": -1,
+        "revealPois": 1
+      },
+      {
+        "label": "Give it the width it deserves",
+        "resultText": "You walk the long arc around it. Nobody in the party suggests otherwise.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "The Watcher",
+    "body": "{figure}, at distance, on ground that gives them the better view of you. {detail} They have made no attempt at concealment, which means either they want to be seen or the question of being seen does not concern them.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Walk up openly",
+        "resultText": "You go slow with your hands where they can be seen. The conversation is short, mostly one-sided, and ends with them handing you something.",
+        "goldDelta": 20,
+        "hpDelta": -5
+      },
+      {
+        "label": "Circle and come at them from cover",
+        "resultText": "By the time you reach the spot they have gone, leaving a cold seat, a clear firing line, and a view of the country you had not thought to take.",
+        "hpDelta": -10,
+        "revealPois": 1
+      },
+      {
+        "label": "Let them watch, and go",
+        "resultText": "You keep formation, keep pace, and do not look up again. Whatever they wanted, they did not want it enough.",
+        "stepDelta": 1
+      }
+    ]
+  },
+  {
+    "id": "recover_tuning_fork",
+    "title": "The Founder's Fork",
+    "body": "A collapsed bell-foundry, and in the rubble of what was the tuning room a rack of forks in graded sizes, all but one snapped or corroded past use. The survivor is heavy, dull with age, and stamped with a mark you have seen over the Academy gate. Struck against the heel of your hand it gives a note that goes on considerably longer than it ought to.",
+    "terrainTags": [
+      "Ruins",
+      "ArcaneGround"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Take the fork",
+        "resultText": "It goes into your pack wrapped in cloth, and it hums faintly against your back for the rest of the day whenever the party crosses hard ground. Somewhere a bell has been waiting for this pitch for a very long time.",
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "tuning_fork_recovered"
+        ]
+      },
+      {
+        "label": "Sound it properly first",
+        "resultText": "You strike it clean against stone and hold it up, and the note fills the foundry and keeps filling it. Two of your party sit down. When it finally fades you wrap the fork without discussion and carry it out.",
+        "hpDelta": -10,
+        "stepDelta": -2,
+        "setMetaFlags": [
+          "tuning_fork_recovered"
+        ]
+      },
+      {
+        "label": "Strip the rack for scrap metal",
+        "resultText": "Good bronze, badly stored. You take the broken ones for weight and leave the sound one where it is, because taking it felt disproportionate and you decline to examine why.",
+        "goldDelta": 45
+      }
+    ]
+  },
+  {
+    "id": "recover_kitchen_ledger",
+    "title": "An Order Never Delivered",
+    "body": "A carter's depot on a road that used to run to the Academy, and the standing orders are still on the hook by the door: the ones that were loaded, the ones that were paid for, and at the bottom of the spike one that was neither. Flour, salt, three barrels of wine, for delivery on the morning of the commencement. The carter it was assigned to never came back for the slip.",
+    "terrainTags": [
+      "Grassland",
+      "Road",
+      "Ruins"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Buy the order out and take the slip",
+        "resultText": "The depot honours a paid order at any age, which is either admirable bookkeeping or a policy nobody has ever had to test. Flour, salt, and three barrels of wine, and the slip itself, which matters more.",
+        "goldDelta": -55,
+        "setMetaFlags": [
+          "kitchen_ledger_recovered"
+        ]
+      },
+      {
+        "label": "Take the slip and argue about the goods later",
+        "resultText": "You lift it off the spike while the clerk is turned around. It is a piece of paper recording a debt owed to a kitchen that has not served a meal in living memory, and you want it very badly.",
+        "hpDelta": -5,
+        "setMetaFlags": [
+          "kitchen_ledger_recovered"
+        ]
+      },
+      {
+        "label": "Read the whole spike",
+        "resultText": "Every undelivered order from that season, in date order. The last one is the commencement supply. The three above it are for the same address and were cancelled by the sender the previous week.",
+        "stepDelta": -2,
+        "goldDelta": 25
+      }
+    ]
+  },
+  {
+    "id": "recover_infirmary_reagents",
+    "title": "Heartleaf and Stillwater",
+    "body": "The stand grows where the ground stays wet all year: heartleaf in the shade of the bank, stillwater moss under the surface in the slow part of the pool. Both are ordinary. Both are also the two reagents that a standing mending-weave burns through fastest, and somebody who knew that planted this stand deliberately, in rows, a very long time ago.",
+    "terrainTags": [
+      "Swamp",
+      "Forest",
+      "Water"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Harvest carefully and leave the stand viable",
+        "resultText": "You cut what you need and no more, and re-lay the moss so the pool will carry it. It is patient work and the reagents come out at full strength, which the hurried version does not manage.",
+        "stepDelta": -2,
+        "setMetaFlags": [
+          "infirmary_reagents_recovered"
+        ]
+      },
+      {
+        "label": "Strip it",
+        "resultText": "You take all of it. The reagents are good and there are a great many of them, and the stand will not be here next season for anyone else who needs it.",
+        "goldDelta": 40,
+        "hpDelta": -8,
+        "setMetaFlags": [
+          "infirmary_reagents_recovered"
+        ]
+      },
+      {
+        "label": "Find out who planted it",
+        "resultText": "The rows are on a spacing taught at exactly one institution, and the institution stopped teaching it before the Collapse. Whoever put this here expected to come back and harvest it for years.",
+        "stepDelta": -2,
+        "cardCodex": true
+      }
+    ]
+  },
+  {
+    "id": "recover_night_ledgers",
+    "title": "The Abandoned Station",
+    "body": "An observation post on high ground, abandoned in a hurry: the lens taken, the furniture left, and the night-ledgers still in the rack in date order. The last volume runs to within a week of the Sundering and then stops in the middle of an entry, mid-column, with the arithmetic unfinished and the pen still in the gutter of the page.",
+    "terrainTags": [
+      "Mountain",
+      "Ruins",
+      "Snow"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Take the final volumes",
+        "resultText": "Three books covering the season either side of the Sundering, in the observer's own hand, with their working shown. It is the raw material for a counter-reading and it has been sitting on a shelf on a hill.",
+        "hpDelta": -10,
+        "stepDelta": -2,
+        "setMetaFlags": [
+          "night_ledgers_recovered"
+        ]
+      },
+      {
+        "label": "Take the whole rack",
+        "resultText": "Eleven years of nightly observations. Most of it is unremarkable and all of it is continuous, and continuity is the thing that makes the last week mean anything.",
+        "goldDelta": -20,
+        "hpDelta": -20,
+        "stepDelta": -3,
+        "setMetaFlags": [
+          "night_ledgers_recovered"
+        ],
+        "cardCodex": true
+      },
+      {
+        "label": "Read the unfinished entry and leave",
+        "resultText": "The arithmetic breaks off partway through a correction. The correction is large. Whatever the observer had just realised, they did not stay to finish writing it down.",
+        "stepDelta": -1,
+        "revealPois": 1
+      }
+    ]
+  },
+  {
+    "id": "recover_warding_primer",
+    "title": "The Foundational Text",
+    "body": "A vault library, largely intact, and on the shelf the standard warding primer every apprentice of a certain generation was set to copy out by hand. This copy has been worked to death: annotated, disagreed with, argued into the margins in a small, fast, furious hand that treats the author as an opponent rather than a teacher. The annotator worked out how to break every ward in the book.",
+    "terrainTags": [
+      "Ruins",
+      "ArcaneGround"
+    ],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Take the annotated copy",
+        "resultText": "The primer is worth little and the marginalia is worth a great deal. You now hold both halves of the argument: how the wards are built, and precisely how one person proved they could be taken apart.",
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "warding_primer_recovered"
+        ]
+      },
+      {
+        "label": "Take a clean copy from the shelf instead",
+        "resultText": "There are four unmarked copies beside it. You take one, and then you go back and take the annotated one as well, because leaving it here was never actually an option.",
+        "goldDelta": -15,
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "warding_primer_recovered"
+        ],
+        "cardCodex": true
+      },
+      {
+        "label": "Read the marginalia where it stands",
+        "resultText": "You get through perhaps a third. The hand is confident, the reasoning is correct, and the tone by the final chapters has stopped being academic entirely.",
+        "hpDelta": -12,
+        "stepDelta": -2,
+        "revealPois": 1
+      }
+    ]
   }
 ]

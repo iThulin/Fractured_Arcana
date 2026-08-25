@@ -1,0 +1,75 @@
+{
+ "id": "hollow_mire_idealist",
+ "title": "The Grave-Warden",
+ "npcName": "Warden Ottoline Reck",
+ "archetype": "Idealist",
+ "factionId": "mire_wardens",
+ "openingText": "Reck counts your party as you come up the causeway, the way she counts everyone, and writes the number down. 'Three wars are in this water,' she says. 'They are sorted now: by regiment, then rank, then name. It took most of my life. I would like to know what you intend to do on top of it.'",
+ "startingTension": 5,
+ "basePatience": 10,
+ "npcResolve": 1,
+ "npcGuile": 1,
+ "npcPoise": 3,
+ "dialogueCordial": "Then you are the first outfit through here in two years I have not had to follow.",
+ "dialogueStrained": "That is what the last four told me. I found two of them digging by lamplight.",
+ "dialogueHostile": "You will not raise your voice over these rows. Not here. Not to me.",
+ "dialogueWalkaway": "Then go, and go by the causeway, and I will know if you do not.",
+ "dialogueAccept": "Agreed. And I will write your name in the book beside the terms, as I do with everyone.",
+ "terms": [
+  {
+   "id": "the_causeway",
+   "description": "The safe line across, which is not where the ground looks firmest.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 4
+  },
+  {
+   "id": "the_sorted_ledger",
+   "description": "Two hundred years of names, in order, with where each was found.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 40,
+   "reputationDelta": 1,
+   "startingPosition": -1,
+   "weight": 3,
+   "factionId": "mire_wardens"
+  },
+  {
+   "id": "finish_a_section",
+   "description": "You work a day on the unfinished rows. She will not thank you and will not forget.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": -2,
+   "weight": 4,
+   "factionId": "mire_wardens",
+   "suppliesDelta": -10,
+   "stepsDelta": -3
+  },
+  {
+   "id": "take_nothing",
+   "description": "Nothing leaves the mire. Not coin, not fittings, not one buckle.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -55,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 4
+  },
+  {
+   "id": "someone_else_is_sorting",
+   "description": "The section beyond the reeds is being worked by something that is not Reck.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -15,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 1
+  }
+ ]
+}

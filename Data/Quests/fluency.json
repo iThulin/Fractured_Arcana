@@ -1,0 +1,138 @@
+[
+  {
+    "id": "q_second_tongue_adept",
+    "title": "A Second Tongue: Adept",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "Adept work is the grammar under every other school's vocabulary, which is why nobody respects it and everybody uses it. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Adept",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Adept, the generalist's tongue",
+        "counter": "mastery:Adept"
+      }
+    ],
+    "rewardLore": "second_tongue_adept",
+    "rewardFlag": "second_tongue_adept"
+  },
+  {
+    "id": "q_second_tongue_elementalist",
+    "title": "A Second Tongue: Elementalist",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "Elementalism is not a language for describing fire. It is a language fire is willing to be addressed in. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Elementalist",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Elementalist, the unleashed tongue",
+        "counter": "mastery:Elementalist"
+      }
+    ],
+    "rewardLore": "second_tongue_elementalist",
+    "rewardFlag": "second_tongue_elementalist"
+  },
+  {
+    "id": "q_second_tongue_druid",
+    "title": "A Second Tongue: Druid",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "The Druid idiom has no word for a thing that is not alive, which makes it useless for half of magic and indispensable for the other half. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Druid",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Druid, the green tongue",
+        "counter": "mastery:Druid"
+      }
+    ],
+    "rewardLore": "second_tongue_druid",
+    "rewardFlag": "second_tongue_druid"
+  },
+  {
+    "id": "q_second_tongue_necromancer",
+    "title": "A Second Tongue: Necromancer",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "Necromancy's working language is almost entirely in the past tense. Fluency means learning to hear the tense as a courtesy rather than a limitation. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Necromancer",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Necromancer, the last tongue",
+        "counter": "mastery:Necromancer"
+      }
+    ],
+    "rewardLore": "second_tongue_necromancer",
+    "rewardFlag": "second_tongue_necromancer"
+  },
+  {
+    "id": "q_second_tongue_tinker",
+    "title": "A Second Tongue: Tinker",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "Tinker shorthand is a contract notation that grew into a spell notation. It is the only school whose idiom is legally binding. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Tinker",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Tinker, the charter tongue",
+        "counter": "mastery:Tinker"
+      }
+    ],
+    "rewardLore": "second_tongue_tinker",
+    "rewardFlag": "second_tongue_tinker"
+  },
+  {
+    "id": "q_second_tongue_enchanter",
+    "title": "A Second Tongue: Enchanter",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "Enchantment's idiom is built to be overheard and misunderstood in a specific direction. Fluency is knowing which direction. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Enchanter",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Enchanter, the borrowed tongue",
+        "counter": "mastery:Enchanter"
+      }
+    ],
+    "rewardLore": "second_tongue_enchanter",
+    "rewardFlag": "second_tongue_enchanter"
+  },
+  {
+    "id": "q_second_tongue_arcanist",
+    "title": "A Second Tongue: Arcanist",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "The Arcanist working language was standardised before the Collapse and has not moved since, which is either rigour or rigor mortis. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Arcanist",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Arcanist, the recorded tongue",
+        "counter": "mastery:Arcanist"
+      }
+    ],
+    "rewardLore": "second_tongue_arcanist",
+    "rewardFlag": "second_tongue_arcanist"
+  },
+  {
+    "id": "q_second_tongue_chronomancer",
+    "title": "A Second Tongue: Chronomancer",
+    "category": "Fluency",
+    "permanent": true,
+    "summary": "Chronomantic notation marks tense on the verb and certainty on the noun, and its speakers find every other school's grammar unbearably vague. Communion opens when the guild's permanent understanding of a school reaches fluency, whether or not you have ever played it.",
+    "requiredCounter": "mastery:Chronomancer",
+    "requiredCounterTarget": 1,
+    "objectives": [
+      {
+        "text": "Earn fluency in Chronomancer, the stopped tongue",
+        "counter": "mastery:Chronomancer"
+      }
+    ],
+    "rewardLore": "second_tongue_chronomancer",
+    "rewardFlag": "second_tongue_chronomancer"
+  }
+]

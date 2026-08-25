@@ -1,0 +1,74 @@
+{
+ "id": "ashfeld_crossing_commander",
+ "title": "The Rear Guard",
+ "npcName": "Colour-Serjeant Adric Vane",
+ "archetype": "Commander",
+ "factionId": "ashfeld_remnant",
+ "openingText": "Vane commands the rear guard of an army that surrendered before he was born, at a crossing neither side won, and he does it properly: pickets out, ground chosen, challenge given at the correct distance. 'State your business at the ford,' he says. 'I am obliged to record it.'",
+ "startingTension": 6,
+ "basePatience": 7,
+ "npcResolve": 4,
+ "npcGuile": 1,
+ "npcPoise": 1,
+ "dialogueCordial": "Then we understand each other, and I will enter it as a lawful passage.",
+ "dialogueStrained": "That is not a satisfactory answer. It is, I concede, an answer.",
+ "dialogueHostile": "You will not raise your voice at my picket line. I have shot men for less and entered it correctly.",
+ "dialogueWalkaway": "Then you are turned back at the ford. It is in the book. Good day.",
+ "dialogueAccept": "Recorded and countersigned. The crossing is yours until dusk.",
+ "terms": [
+  {
+   "id": "lawful_passage",
+   "description": "The ford, unopposed, with his pickets stood down and the crossing entered in the book.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "stepsDelta": 4
+  },
+  {
+   "id": "the_ground_itself",
+   "description": "Where both armies put their reserves, their dead, and their pay chests.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 70,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 4
+  },
+  {
+   "id": "relieve_the_line",
+   "description": "Provisions for a rear guard that has not been resupplied in two hundred years.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": -1,
+   "weight": 4,
+   "factionId": "ashfeld_remnant",
+   "suppliesDelta": -25
+  },
+  {
+   "id": "carry_the_despatch",
+   "description": "You carry his despatch to a headquarters that does not exist. He knows. Carry it anyway.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 3,
+   "stepsDelta": -3
+  },
+  {
+   "id": "no_relief_coming",
+   "description": "He has worked out there is no army. He is asking you not to say so aloud.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -15,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 1
+  }
+ ]
+}

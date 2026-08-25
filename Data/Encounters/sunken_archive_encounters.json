@@ -1,0 +1,147 @@
+[
+  {
+    "id": "archive_still_catalogued",
+    "title": "Still Catalogued",
+    "body": "A stack-hall standing in four feet of clear water, the shelving intact, the books intact, and on a lectern by the entrance the catalogue: leather-bound, water-marked, and current. Entries have been added in a consistent hand across what the ink says is several centuries. The most recent is from this season, and it records an acquisition.",
+    "terrainTags": [
+      "Water",
+      "Ruins"
+    ],
+    "regionTags": [
+      "sunken_archive"
+    ],
+    "choices": [
+      {
+        "label": "Look up what was acquired this season",
+        "resultText": "A shelf-mark, a title in a script that predates the Collapse, and a note of provenance that names a place you were standing in two weeks ago. The book is on the shelf. It is dry.",
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Take the catalogue",
+        "resultText": "It is the single most valuable object in the hall and it comes away easily. Whoever has been keeping it will notice within the season, and the Lantern Order will pay a great deal for it and ask where you got it.",
+        "goldDelta": 90,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": -10
+      },
+      {
+        "label": "Add your own acquisition to it",
+        "resultText": "You enter something you are carrying, in the correct format, on the correct line. It feels like signing a lease on something.",
+        "stepDelta": -1,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": 8
+      }
+    ]
+  },
+  {
+    "id": "archive_what_the_wards_hold",
+    "title": "What the Wards Hold",
+    "body": "A warded door below the waterline, and the wards are sound. The water opened everything around it and did not open this. The lattice is Arcanist work of a quality nobody currently alive is producing, and it is oriented inward. Whatever the pre-Collapse librarians were doing with this door, they were not keeping people out.",
+    "terrainTags": [
+      "Ruins",
+      "ArcaneGround"
+    ],
+    "regionTags": [
+      "sunken_archive"
+    ],
+    "choices": [
+      {
+        "label": "Study the lattice without touching it",
+        "resultText": "The construction is beautiful and the intent is unambiguous. There are also four places where the lattice has been repaired from this side, at long intervals, by different hands.",
+        "stepDelta": -3,
+        "cardCodex": true,
+        "itemReward": "archivists_ring"
+      },
+      {
+        "label": "Reinforce it",
+        "resultText": "You add what you can to somebody else's four hundred years of maintenance. It is not your work and it will not be credited and the door holds.",
+        "hpDelta": -20,
+        "goldDelta": -30,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": 15
+      },
+      {
+        "label": "Open it",
+        "resultText": "It opens. It opens easily, from this side, which is a thing you have time to find significant.",
+        "hpDelta": -40,
+        "goldDelta": 100
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Intact and Unreassuring",
+    "body": "{site}. {detail} The knowledge in this place survived four centuries under an aquifer, which means it was made to, and things are not made to survive that long by accident. {complication}",
+    "terrainTags": [
+      "Water",
+      "Ruins",
+      "ArcaneGround"
+    ],
+    "regionTags": [
+      "sunken_archive"
+    ],
+    "choices": [
+      {
+        "label": "Read while you can",
+        "resultText": "Cold water to the waist and a book that does not want to be closed. You get through less than you hoped and more than was safe.",
+        "hpDelta": -15,
+        "cardCodex": true
+      },
+      {
+        "label": "Take what will survive the trip",
+        "resultText": "Most of it will not. What will is worth the calculation you had to do to decide which.",
+        "goldDelta": 60,
+        "stepDelta": -1
+      },
+      {
+        "label": "Map the flooded levels",
+        "resultText": "The water is lower than it was last season and the level below is coming up. You record what is emerging and where the stairs go.",
+        "stepDelta": -2,
+        "revealPois": 2
+      }
+    ]
+  },
+  {
+    "id": "archive_the_unrelieved_librarian",
+    "title": "The Unrelieved Librarian",
+    "body": "He is at a desk on the third level, above the water, and he is doing accessions. He has a system. He knows the shelf-marks. He answers questions accurately and at length, and he is very glad of the company, and he has not been relieved of duty because the institution that would have relieved him stopped existing four hundred years ago and nobody has told him.",
+    "terrainTags": [
+      "Ruins",
+      "Water"
+    ],
+    "regionTags": [
+      "sunken_archive"
+    ],
+    "choices": [
+      {
+        "label": "Request a book properly",
+        "resultText": "He is delighted. He is gone eleven minutes. He comes back with exactly what you asked for, from a level that is under six feet of water, and it is dry.",
+        "stepDelta": -2,
+        "cardCodex": true,
+        "itemReward": "scribes_charm",
+        "setMetaFlags": [
+          "deep_sunken_archive_librarian_served"
+        ]
+      },
+      {
+        "label": "Tell him",
+        "resultText": "You explain about the Collapse, and the four centuries, and the institution. He listens the whole way through, thanks you for the information, notes it on a slip, and files the slip. Then he asks whether you wanted to request anything.",
+        "hpDelta": -10,
+        "stepDelta": -1,
+        "setMetaFlags": [
+          "deep_sunken_archive_librarian_told"
+        ]
+      },
+      {
+        "label": "Take the accession list off his desk",
+        "resultText": "Four hundred years of what has come into this building and where it went. He does not stop you. He does ask, politely, twice, whether you would like to sign for it.",
+        "goldDelta": 85,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": -8,
+        "setMetaFlags": [
+          "deep_sunken_archive_list_taken"
+        ]
+      }
+    ]
+  }
+]

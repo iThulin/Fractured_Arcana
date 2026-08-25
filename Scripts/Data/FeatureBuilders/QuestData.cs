@@ -56,6 +56,16 @@ public class QuestDefinition
     public string RequiredFlag = "";
     public string RequiredQuest = "";  // another quest id that must be complete
 
+    /// <summary>Counter-based visibility gate, same counter vocabulary as
+    /// <see cref="QuestObjective.Counter"/> ("mastery:Necromancer",
+    /// "deed:combat_won", "flags:deep_"). The quest stays Locked until the
+    /// counter reaches <see cref="RequiredCounterTarget"/>. Added for the
+    /// Fluency track, where the natural gate is "you have earned at least one
+    /// point in this school" and no flag exists to express that. Without it
+    /// all eight school quests would sit permanently visible at 0 progress.</summary>
+    public string RequiredCounter = "";
+    public int RequiredCounterTarget = 1;
+
     public List<QuestObjective> Objectives = new();
 
     // One-time completion rewards (Permanent quests only).

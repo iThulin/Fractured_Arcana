@@ -135,4 +135,19 @@ public class EncounterChoice
     /// window as beacons ("information is the primary resource",
     /// run_structure). 0 = none. No-op on campus/city narrative hosts.</summary>
     public int RevealPois = 0;
+
+    /// <summary>Shallow field-for-field copy, used by EncounterAssembler.ForDisplay
+    /// to build a display clone whose Label/ResultText can carry assembled {slot}
+    /// tokens without mutating the cached pool entry. Memberwise on purpose: every
+    /// reward verb added to this class from here on is carried by the clone
+    /// automatically, so a new field can never be silently dropped on the way to
+    /// the panel. The two mutable lists are re-created so a clone can never write
+    /// through to the original's flags.</summary>
+    public EncounterChoice Clone()
+    {
+        var copy = (EncounterChoice)MemberwiseClone();
+        copy.SetFlags = new List<string>(SetFlags);
+        copy.SetMetaFlags = new List<string>(SetMetaFlags);
+        return copy;
+    }
 }

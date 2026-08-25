@@ -176,6 +176,35 @@ public class CycleState
     /// convention as HiringHalls (CityMarketService). Additive, no bump.</summary>
     public List<CityMarketState> CityMarkets = new();
 
+    /// <summary>Deploy-flow streamline (2026-08-21): the staging point the last
+    /// sortie launched from ("x,y"), so clicking the Gatehouse reopens the deploy
+    /// drawer there directly. Empty = never deployed (falls back to Home Camp).
+    /// Additive save field: no version bump.</summary>
+    public string LastDeployStagingKey = "";
+
+    /// <summary>Deploy-flow streamline: consumable kinds (ItemDefinition ids) the
+    /// player has UNCHECKED on the deploy drawer's loadout. Default empty = carry
+    /// everything (today's behaviour); exclusions persist across sorties this
+    /// cycle. Additive, no bump.</summary>
+    public List<string> ExcludedConsumableIds = new();
+
+    /// <summary>Phase 3 contracts boards: per-city posted contracts (the Quests
+    /// service), same CityId + lazy-refresh convention as CityMarkets. Additive
+    /// save field: no version bump.</summary>
+    public List<CityContractBoardState> CityContractBoards = new();
+
+    /// <summary>Phase 3 explore: a district FIGHT launched from a visited city
+    /// round-trips through the combat scene; these record WHICH district so the
+    /// strategic scene's return consume (StrategicView.ConsumeDistrictFightReturn)
+    /// can clear it on victory and land the player back inside the same city.
+    /// CityId follows the CityExploreService.CityId convention; empty = no fight
+    /// pending. Serialized so the round-trip survives a mid-combat save; a stale
+    /// pending id with no router return (mid-combat reload) is dropped harmlessly:
+    /// the district simply stays live. Additive save fields, no version bump.</summary>
+    public string PendingCityFightCityId = "";
+    public int PendingCityFightDq = 0;
+    public int PendingCityFightDr = 0;
+
     /// <summary>Warfront the player is currently deployed to intervene in (empty =
     /// none). Set when an intervention deploy launches; consumed by StrategicView
     /// on return, applying the expedition outcome to the front. Serialized so the

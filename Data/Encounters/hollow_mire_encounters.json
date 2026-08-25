@@ -1,0 +1,144 @@
+[
+  {
+    "id": "mire_memorial_that_predates_you",
+    "title": "The Memorial That Was Already Here",
+    "body": "A memorial stone going down into the mire at the rate the mire takes everything, perhaps a handspan a year. The names on it are of the war before the war before this one. Halfway down the list, in the same hand and the same weathering as the rest, cut at the same time as the rest, is a name belonging to somebody who has not died yet.",
+    "terrainTags": [
+      "Swamp",
+      "Ruins"
+    ],
+    "regionTags": [
+      "hollow_mire"
+    ],
+    "choices": [
+      {
+        "label": "Copy the full list",
+        "resultText": "Two hundred and eleven names. Four of them belong to people currently alive, and the four are not otherwise connected to one another in any way you can find.",
+        "stepDelta": -2,
+        "cardCodex": true
+      },
+      {
+        "label": "Deface the name",
+        "resultText": "You chisel it out. The stone gives up the letters easily, which stone does not usually do. It will be legible again within the year and you both know it.",
+        "hpDelta": -12,
+        "goldDelta": 30
+      },
+      {
+        "label": "Dig the stone out before the mire takes it",
+        "resultText": "It is heavier than four people and a lever and it does not want to come. What it leaves behind in the hole is a second stone, older, with the same list, shorter.",
+        "hpDelta": -25,
+        "goldDelta": 55
+      }
+    ]
+  },
+  {
+    "id": "mire_organised_dead",
+    "title": "The Organised Dead",
+    "body": "The dead here are not restless. They are sorted. Somebody (or the mire itself, over three wars and a great deal of patience) has arranged the remains by regiment, then by rank, then alphabetically, in rows that run for a quarter mile through the reeds. The work is ongoing. There is a section at the end that is only half done.",
+    "terrainTags": [
+      "Swamp"
+    ],
+    "regionTags": [
+      "hollow_mire"
+    ],
+    "choices": [
+      {
+        "label": "Finish the unfinished section",
+        "resultText": "It takes a day and it is the worst day you have had in a while. When you look back from the far bank the section is complete and there is a new one started beyond it that was not there this morning.",
+        "hpDelta": -30,
+        "stepDelta": -4,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 15
+      },
+      {
+        "label": "Find whoever is doing this",
+        "resultText": "You follow the working end of the rows for three hours. The work gets fresher. It never gets current. Whoever it is stays exactly one hour ahead of you the entire way, and they are not hurrying.",
+        "stepDelta": -3,
+        "revealPois": 2
+      },
+      {
+        "label": "Take what is sorted and portable",
+        "resultText": "Somebody has done you the enormous favour of putting the officers together. You are not proud of how efficient this makes the afternoon.",
+        "goldDelta": 80,
+        "hpDelta": -15,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": -12
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Ground That Keeps",
+    "body": "{site}. {weather} {detail} The water table here is mostly people, and the mire gives things up on a schedule that is not yours. {complication}",
+    "terrainTags": [
+      "Swamp",
+      "Water",
+      "Ruins"
+    ],
+    "regionTags": [
+      "hollow_mire"
+    ],
+    "choices": [
+      {
+        "label": "Wade in and work the bottom",
+        "resultText": "You come out with cold in your bones that stays for two days and a bag that jingles. It is a fair exchange on paper.",
+        "goldDelta": 55,
+        "hpDelta": -25
+      },
+      {
+        "label": "Note what has surfaced since the last party came through",
+        "resultText": "The mire is running about a handspan a year and everything in it is on its way up. You can date the layers, and dating the layers tells you where to be in a season's time.",
+        "stepDelta": -2,
+        "revealPois": 1
+      },
+      {
+        "label": "Say the words over it and go",
+        "resultText": "Nobody in your party knows the right words and everybody has an opinion about which wrong ones will do. It takes ten minutes. It is not nothing.",
+        "stepDelta": 1,
+        "hpDelta": 10
+      }
+    ]
+  },
+  {
+    "id": "mire_the_fresh_flowers",
+    "title": "Fresh Flowers",
+    "body": "Somebody has left flowers at a nameless stone. They are fresh: cut this morning, from a species that grows two days' walk from here, in a direction with nothing in it. The stone has no name because the name has been deliberately removed, competently, a long time ago. The flowers have been arriving for as long as there has been a stone.",
+    "terrainTags": [
+      "Swamp",
+      "Ruins"
+    ],
+    "regionTags": [
+      "hollow_mire"
+    ],
+    "choices": [
+      {
+        "label": "Wait for whoever brings them",
+        "resultText": "You wait two days. Nobody comes and the flowers are replaced anyway, on the second morning, while four of you were awake and looking at the stone.",
+        "hpDelta": -20,
+        "stepDelta": -4,
+        "cardCodex": true,
+        "setMetaFlags": [
+          "deep_hollow_mire_flowers_witnessed"
+        ]
+      },
+      {
+        "label": "Recut a name into the stone",
+        "resultText": "You do not know the name, so you cut the word for what they were rather than who. The mourner, whoever they are, has left the addition alone every time you have been back.",
+        "stepDelta": -2,
+        "itemReward": "warded_mantle",
+        "setMetaFlags": [
+          "deep_hollow_mire_stone_named"
+        ]
+      },
+      {
+        "label": "Track the flowers to their source",
+        "resultText": "Two days' walk to a stand of them growing where nothing should grow, on ground the mire has left alone in a perfect circle. Somebody tends that too.",
+        "stepDelta": -3,
+        "revealPois": 2,
+        "setMetaFlags": [
+          "deep_hollow_mire_source_found"
+        ]
+      }
+    ]
+  }
+]

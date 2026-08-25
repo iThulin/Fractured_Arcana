@@ -350,8 +350,8 @@ public partial class NarrativeEncounterPanel : Control
         if (choice.GoldDelta < 0) outcomes.Add($"{choice.GoldDelta} gold");
         if (choice.HPDelta > 0) outcomes.Add($"+{choice.HPDelta} HP");
         if (choice.HPDelta < 0) outcomes.Add($"{choice.HPDelta} HP");
-        if (choice.StepDelta > 0) outcomes.Add($"+{choice.StepDelta} steps");
-        if (choice.StepDelta < 0) outcomes.Add($"{choice.StepDelta} steps");
+        if (choice.StepDelta > 0) outcomes.Add($"+{choice.StepDelta} fuel");
+        if (choice.StepDelta < 0) outcomes.Add($"{choice.StepDelta} fuel");
         if (!string.IsNullOrEmpty(choice.ItemReward)) outcomes.Add("a relic for the armory");
         if (!string.IsNullOrEmpty(choice.CompanionUnlock)) outcomes.Add("a companion joins");
         if (choice.ReputationAmount != 0)

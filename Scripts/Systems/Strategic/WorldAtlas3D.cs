@@ -236,6 +236,16 @@ public partial class WorldAtlas3D : Node3D
     /// Fight/Story → stub), then marks it cleared and calls <see cref="RefreshCityContentMarkers"/>.</summary>
     public event System.Action<CityDistrictEntry, WorldSettlement> DistrictContentTriggered;
 
+    /// <summary>A fogged district was just scouted (revealed) in a visited NPC city.
+    /// Phase 3 contracts: the host advances "scout" contracts off this.</summary>
+    public event System.Action<WorldSettlement> DistrictScouted;
+
+    /// <summary>Deploy-flow streamline (2026-08-21): while the launch drawer is up
+    /// the map stays live for pan/zoom and beacon retargeting, but a click on a
+    /// settlement must NOT descend into city view underneath the drawer. The host
+    /// sets this while its deploy UI is open.</summary>
+    public bool SuppressCityEntry = false;
+
     /// <summary>True when the active city view is the home campus (vs. a visited NPC city). The
     /// host uses it to gate home-only affordances (annex) out of NPC cities.</summary>
     public bool ActiveCityIsHome => _activeCity == null;
@@ -969,6 +979,7 @@ public partial class WorldAtlas3D : Node3D
                     if (entry != null) entry.Revealed = true;
                     _cityGrounds.ApplyDistrictFog(child => _revealedDistricts.Contains(DistrictOf(child)), CityFogColor);
                     RebuildCityContentMarkers();
+                    DistrictScouted?.Invoke(_activeCity);   // Phase 3 contracts: scout progress
                     SaveManager.Save();   // persist the scouted district
                 }
                 else if (entry != null && !entry.Cleared
@@ -1478,13 +1489,17 @@ public partial class WorldAtlas3D : Node3D
         var t = _world.GetTile(col, row);
         var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
 
-        // Phase 3: clicking a discovered enemy SEAT capital descends into it. Checked BEFORE staging
-        // so the click isn't stolen by a staging beacon sitting on the capital. You can't deploy
-        // from an enemy capital anyway, so entering it is the only sensible action there.
-        if (!_cityMode && discovery != TileDiscovery.Unseen)
+        // Phase 3: clicking a discovered NPC settlement descends into it: seats, ordinary
+        // cities, AND towns (the original "any town, city, capital" density goal). Checked
+        // BEFORE staging so a seat's click isn't stolen by a beacon sitting on the capital.
+        // You can't deploy from an enemy capital anyway. For a NON-seat settlement the
+        // staging beacon tile keeps its deploy action (staging is the map's primary verb),
+        // so only its other footprint tiles descend; seats descend from every tile.
+        if (!_cityMode && !SuppressCityEntry && discovery != TileDiscovery.Unseen)
         {
             var s = _world.SettlementAt(col, row);
-            if (s != null && s.Tier == SettlementTier.City && s.IsSeat && !s.IsGuildHome)
+            if (s != null && !s.IsGuildHome
+                && (s.IsSeat || !t.IsStagingPoint))
             {
                 EnterCityView(s);
                 return;
@@ -1498,7 +1513,7 @@ public partial class WorldAtlas3D : Node3D
         // Selecting the HOME city on the world map zooms into it (camera-only; the campus is
         // already there at true scale). Staging wins above for the home seat so deploy stays
         // reachable from its beacon; you enter the home campus from a non-beacon city tile.
-        if (!_cityMode && _cityTiles.Contains(new Vector2I(col, row)))
+        if (!_cityMode && !SuppressCityEntry && _cityTiles.Contains(new Vector2I(col, row)))
         {
             EnterCityMode();   // the home campus
             return;

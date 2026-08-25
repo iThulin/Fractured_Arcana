@@ -385,6 +385,12 @@ public partial class OverworldSpellManager : Node2D
 
     /// <summary>Null when castable; otherwise the human-readable reason the
     /// Grimoire panel shows (and disables the button with).</summary>
+    /// <summary>Mobile Fortress §3.4: set by ExpeditionManager to report that the
+    /// castle is mid-stride. While it returns true the Grimoire seals: no overworld
+    /// casting until the castle halts (the wizard's hands are on the helm). Armed/
+    /// passive charges already active are unaffected; only NEW casts lock.</summary>
+    public System.Func<bool> StrideLockQuery;
+
     public string CastBlockReason(OverworldSpellDefinition def)
         => CastBlockReason(def, ignoreEssence: IsScrollCast(def));
 
@@ -393,6 +399,10 @@ public partial class OverworldSpellManager : Node2D
     /// break the G1 hard cap), but the pool is irrelevant.</summary>
     public string CastBlockReason(OverworldSpellDefinition def, bool ignoreEssence)
     {
+        // §3.4: the Grimoire seals while the castle strides (only casting locks;
+        // armed charges persist). Checked first so every spell greys uniformly.
+        if (StrideLockQuery != null && StrideLockQuery())
+            return "the castle must halt to channel";
         if (!ImplementedKeys.Contains(def.EffectKey))
             return "not yet implemented";
         if (def.OncePerExpedition &&

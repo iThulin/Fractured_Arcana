@@ -171,7 +171,7 @@ public static class CampusLandmarkRegistry
                 DisplayName = "The Belfry",
                 HexLabel = "BL",
                 Q = 0, R = -1,  // district campus (centre district)
-                RestoredFlag = "campus_belfry_restored",
+                RestoredFlag = "campus_belfry_complete",
                 Beats = new List<LandmarkBeat>
                 {
                     new LandmarkBeat
@@ -201,6 +201,7 @@ public static class CampusLandmarkRegistry
                                                  "before the note would have ended.",
                                     HPDelta = -8,
                                     SetFlags = new List<string> { "campus_belfry_b1" },
+                                    SetMetaFlags = new List<string> { "campus_belfry_b1" },
                                 },
                                 new EncounterChoice
                                 {
@@ -236,6 +237,7 @@ public static class CampusLandmarkRegistry
                                                  "its own voice.",
                                     RequiredFlag = "tuning_fork_recovered",
                                     SetFlags = new List<string> { "campus_belfry_b2" },
+                                    SetMetaFlags = new List<string> { "campus_belfry_complete" },
                                 },
                                 new EncounterChoice
                                 {
@@ -256,7 +258,7 @@ public static class CampusLandmarkRegistry
                 DisplayName = "The Refectory",
                 HexLabel = "RF",
                 Q = 1, R = -1,  // flower lattice: home-district ring tile beside the Dormitory
-                RestoredFlag = "campus_refectory_restored",
+                RestoredFlag = "campus_refectory_complete",
                 Beats = new List<LandmarkBeat>
                 {
                     new LandmarkBeat
@@ -285,6 +287,7 @@ public static class CampusLandmarkRegistry
                                                  "in a timeline that never ended. The feast " +
                                                  "steams on, patient.",
                                     SetFlags = new List<string> { "campus_refectory_b1" },
+                                    SetMetaFlags = new List<string> { "campus_refectory_b1" },
                                 },
                                 new EncounterChoice
                                 {
@@ -320,6 +323,7 @@ public static class CampusLandmarkRegistry
                                     RequiredFlag = "kitchen_ledger_recovered",
                                     GoldDelta = -15,
                                     SetFlags = new List<string> { "campus_refectory_b2" },
+                                    SetMetaFlags = new List<string> { "campus_refectory_complete" },
                                 },
                                 new EncounterChoice
                                 {
@@ -343,7 +347,7 @@ public static class CampusLandmarkRegistry
                                 // infirmary belongs by the training yard (R24), and
                                 // the home flower was 7/7 full while two founding
                                 // districts sat near-empty.
-                RestoredFlag = "campus_infirmary_restored",
+                RestoredFlag = "campus_infirmary_complete",
                 Beats = new List<LandmarkBeat>
                 {
                     new LandmarkBeat
@@ -375,6 +379,7 @@ public static class CampusLandmarkRegistry
                                                  "It is the most stubborn piece of magic you " +
                                                  "have ever seen.",
                                     SetFlags = new List<string> { "campus_infirmary_b1" },
+                                    SetMetaFlags = new List<string> { "campus_infirmary_b1" },
                                     LoreId = "the_standing_spell",
                                 },
                                 new EncounterChoice
@@ -411,6 +416,7 @@ public static class CampusLandmarkRegistry
                                                  "one stitch more closed than it was. One stitch.",
                                     RequiredFlag = "infirmary_reagents_recovered",
                                     SetFlags = new List<string> { "campus_infirmary_b2" },
+                                    SetMetaFlags = new List<string> { "campus_infirmary_complete" },
                                 },
                                 new EncounterChoice
                                 {
@@ -430,7 +436,7 @@ public static class CampusLandmarkRegistry
                 DisplayName = "The Observatory",
                 HexLabel = "OB",
                 Q = 1, R = 2,   // flower lattice: ring tile of the +R founding district
-                RestoredFlag = "campus_observatory_restored",
+                RestoredFlag = "campus_observatory_complete",
                 Beats = new List<LandmarkBeat>
                 {
                     new LandmarkBeat
@@ -462,6 +468,7 @@ public static class CampusLandmarkRegistry
                                                  "deeply unsettling.",
                                     HPDelta = -6,
                                     SetFlags = new List<string> { "campus_observatory_b1" },
+                                    SetMetaFlags = new List<string> { "campus_observatory_b1" },
                                     LoreId = "the_frozen_sky",
                                 },
                                 new EncounterChoice
@@ -499,6 +506,7 @@ public static class CampusLandmarkRegistry
                                                  "that he can't. The observatory hums to life.",
                                     RequiredFlag = "night_ledgers_recovered",
                                     SetFlags = new List<string> { "campus_observatory_b2" },
+                                    SetMetaFlags = new List<string> { "campus_observatory_complete" },
                                 },
                                 new EncounterChoice
                                 {
@@ -522,7 +530,7 @@ public static class CampusLandmarkRegistry
                                 // Gatehouse Yard at (-1,0): the gate complex sits together
                                 // on the CITY EXTERIOR, where the main gate will stand.
                                 // Frees (0,1), formerly this landmark, as buildable lawn.
-                RestoredFlag = "campus_gatehouse_restored",
+                RestoredFlag = "campus_gatehouse_complete",
                 Beats = new List<LandmarkBeat>
                 {
                     new LandmarkBeat
@@ -554,6 +562,7 @@ public static class CampusLandmarkRegistry
                                                  "Someone who sat at those twenty-seven places " +
                                                  "at the feast.",
                                     SetFlags = new List<string> { "campus_gatehouse_b1" },
+                                    SetMetaFlags = new List<string> { "campus_gatehouse_b1" },
                                     LoreId = "the_broken_wards",
                                 },
                                 new EncounterChoice
@@ -591,6 +600,7 @@ public static class CampusLandmarkRegistry
                                                  "that no longer needs to scream.",
                                     RequiredFlag = "warding_primer_recovered",
                                     SetFlags = new List<string> { "campus_gatehouse_b2" },
+                                    SetMetaFlags = new List<string> { "campus_gatehouse_complete" },
                                 },
                                 new EncounterChoice
                                 {
@@ -612,7 +622,7 @@ public static class CampusLandmarkRegistry
                 Q = -1, R = 3,  // (2026-08-13 declump) arcane district ring. The
                                 // Uncatalogued Wing beside the Observatory and the
                                 // Sanctum's plaza; see the infirmary note.
-                RestoredFlag = "campus_library_restored",
+                RestoredFlag = "campus_library_complete",
                 Beats = new List<LandmarkBeat>
                 {
                     new LandmarkBeat
@@ -643,6 +653,7 @@ public static class CampusLandmarkRegistry
                                                  "after that.",
                                     HPDelta = -4,
                                     SetFlags = new List<string> { "campus_library_b1" },
+                                    SetMetaFlags = new List<string> { "campus_library_b1" },
                                 },
                                 new EncounterChoice
                                 {
@@ -679,6 +690,7 @@ public static class CampusLandmarkRegistry
                                                  "something. These three titles are the seed of " +
                                                  "that research, and they are now yours to follow.",
                                     SetFlags = new List<string> { "campus_library_b2" },
+                                    SetMetaFlags = new List<string> { "campus_library_complete" },
                                     LoreId = "the_accession_list",
                                 },
                                 new EncounterChoice

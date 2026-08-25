@@ -50,7 +50,7 @@ public static class QuestLogView
             AddSectionHeader(box, "ETERNAL");
 
             // Sub-group Eternal quests by Category for visual structure
-            string[] eternalCats = { "Story", "Fragments", "Dossiers", "Expansion" };
+            string[] eternalCats = { "Story", "Fragments", "Dossiers", "Expansion", "Campus", "Fluency" };
             foreach (var cat in eternalCats)
             {
                 var inCat = new List<QuestDefinition>();
@@ -99,7 +99,7 @@ public static class QuestLogView
             AddSectionHeader(box, timelineTitle);
 
             // Sub-group Timeline quests by Category
-            string[] timelineCats = { "Story", "Expansion" };
+            string[] timelineCats = { "Story", "Expansion", "Discoveries" };
             foreach (var cat in timelineCats)
             {
                 var inCat = new List<QuestDefinition>();

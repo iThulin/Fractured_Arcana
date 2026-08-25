@@ -21,6 +21,10 @@ public partial class OverworldPartyToken : Node2D
 {
     public Vector2I CurrentCoord { get; private set; }
 
+    /// <summary>True while the pawn is animating between tiles. Stride Orders
+    /// (§3.4) waits on this so a step is issued only after the previous one lands.</summary>
+    public bool IsMoving => _isMoving;
+
     // Visual
     private Polygon2D _tokenVisual;
     private float _moveSpeed = 300f; // pixels per second

@@ -168,6 +168,26 @@ public class NegotiationEncounterData
     public int NpcGuile = -1;
     public int NpcPoise = -1;
 
+    /// <summary>negotiation_system.docx, Resolution Check: "Escalation: tension
+    /// is at 10 and the NPC archetype is aggressive (Commander, some
+    /// Opportunists), triggering combat." That branch was specced and never
+    /// implemented. A table at maximum tension simply closed as "Collapsed".
+    ///
+    /// null (the JSON omits the key) = use the archetype default resolved by
+    /// <see cref="Escalates"/>. true / false = an explicit per-table override.
+    /// Every pre-existing encounter JSON deserializes unchanged.</summary>
+    public bool? EscalatesToCombat = null;
+
+    /// <summary>Whether a collapse at this table becomes a fight. The spec names
+    /// Commanders outright and only "some Opportunists", so the default escalates
+    /// Commanders and nobody else: an Opportunist table has to opt in explicitly
+    /// rather than surprising the player with steel. Never escalates a Merchant,
+    /// Scholar, Idealist or Survivor by default: those tables ending badly is a
+    /// door closing, not a weapon coming out.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool Escalates =>
+        EscalatesToCombat ?? (Archetype == NpcArchetypeType.Commander);
+
     // NPC dialogue lines per situation
     public string DialogueCordial = "";
     public string DialogueStrained = "";

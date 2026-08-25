@@ -1,0 +1,74 @@
+{
+ "id": "cogwork_reach_opportunist",
+ "title": "Three Seals, One Door",
+ "npcName": "Corvin Blake",
+ "archetype": "Opportunist",
+ "factionId": "gray_market",
+ "openingText": "Blake is leaning on a toll-post that carries three separate charter seals, all valid, all voiding the other two. 'Nobody can collect here without admitting the other two exist,' he says happily. 'So nobody does. I find that sort of gap very habitable. What have you got?'",
+ "startingTension": 5,
+ "basePatience": 7,
+ "npcResolve": 2,
+ "npcGuile": 4,
+ "npcPoise": 0,
+ "dialogueCordial": "Now you are speaking my language. Keep going, I like where this ends up.",
+ "dialogueStrained": "Mm. That is an offer. I have had offers. What else is in the bag?",
+ "dialogueHostile": "Careful. I know four people who would pay to know where you are standing right now.",
+ "dialogueWalkaway": "No deal, no hard feelings, no protection either. Watch the second gatehouse.",
+ "dialogueAccept": "Done. And you never heard the name of the man who arranged it.",
+ "terms": [
+  {
+   "id": "gap_in_the_ledger",
+   "description": "Blake loses your column from three sets of toll records. Nobody knows you passed.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 40,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3
+  },
+  {
+   "id": "who_is_buying",
+   "description": "The names of everyone who has asked after you in the Reach this month.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 1,
+   "startingPosition": 0,
+   "weight": 2,
+   "factionId": "gray_market"
+  },
+  {
+   "id": "cache_lines",
+   "description": "Blake's people know where the Charter parks its provisions. He will draw you a map.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3,
+   "revealsSupplyCaches": true
+  },
+  {
+   "id": "courier_favour",
+   "description": "You carry a small sealed package two towns north. Do not open it.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": -20,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 3,
+   "stepsDelta": -2
+  },
+  {
+   "id": "the_other_buyer",
+   "description": "He is already selling the same information to somebody else, tonight.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": 0,
+   "reputationDelta": -1,
+   "startingPosition": -1,
+   "weight": 2,
+   "factionId": "gray_market"
+  }
+ ]
+}

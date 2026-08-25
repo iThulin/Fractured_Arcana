@@ -1,0 +1,145 @@
+[
+  {
+    "id": "tidewrack_two_centuries_deep",
+    "title": "Two Centuries Deep",
+    "body": "A tide-line of wreckage that has been accumulating since before anyone kept records, sorted by nothing but weight and the temper of the sea. There is planking here from ships built in three different centuries lying in the same three feet of shingle, and the surge rearranges the whole assemblage twice a day, which means everything in it has surfaced before and will again.",
+    "terrainTags": [
+      "Water",
+      "Swamp"
+    ],
+    "regionTags": [
+      "tidewrack_coast"
+    ],
+    "choices": [
+      {
+        "label": "Work the line before the tide turns",
+        "resultText": "Fast, wet, and profitable. You stop when the water reaches the middle of the shingle, which is sooner than the tide-table said it would.",
+        "goldDelta": 60,
+        "hpDelta": -15
+      },
+      {
+        "label": "Work out the sorting",
+        "resultText": "The surge is not random. It stacks by density and it stacks in the same places every cycle, and once you can read it you know which forty feet of beach to be standing on.",
+        "stepDelta": -2,
+        "revealPois": 2
+      },
+      {
+        "label": "Look for one specific thing",
+        "resultText": "You are looking for a name on a transom and you do not find it. You find three others, and two of those were never reported lost.",
+        "stepDelta": -3,
+        "cardCodex": true
+      }
+    ]
+  },
+  {
+    "id": "tidewrack_honest_lantern",
+    "title": "An Honest Face and a Lantern",
+    "body": "He is walking the cliff path with a lantern in weather that does not call for one, at an hour that does not call for one, at a height where a light is visible a long way out to sea and looks a great deal like a harbour mark. He greets you warmly. He is entirely willing to explain what he is doing and the explanation is good.",
+    "terrainTags": [
+      "Water",
+      "Mountain"
+    ],
+    "regionTags": [
+      "tidewrack_coast"
+    ],
+    "choices": [
+      {
+        "label": "Take the lantern off him",
+        "resultText": "He gives it up without a struggle and without much apparent regret, which suggests lanterns are cheap and the cliff is long. There is no ship out there tonight. There will be.",
+        "hpDelta": -10,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 10
+      },
+      {
+        "label": "Walk the cliff with him and hear it out",
+        "resultText": "Four hours and a very great deal of local knowledge, freely given, from a man who wants you to like him and who is going to do this again the moment you are over the headland.",
+        "stepDelta": -2,
+        "revealPois": 2
+      },
+      {
+        "label": "Take a cut",
+        "resultText": "He is pleased and unsurprised. Wrecking is a trade on this coast with terms, seasons and a customary split, and you have just been told what the split is.",
+        "goldDelta": 70,
+        "reputationFactionId": "free_charter",
+        "reputationAmount": -10
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "The Water Is Never the Same Place Twice",
+    "body": "{site}. {weather} {detail} The chart is wrong here twice a day and this is one of the times. {complication}",
+    "terrainTags": [
+      "Water",
+      "Swamp",
+      "Ruins"
+    ],
+    "regionTags": [
+      "tidewrack_coast"
+    ],
+    "choices": [
+      {
+        "label": "Cross on the ebb",
+        "resultText": "You get the timing about right. The last two across are wet to the chest and everyone is over.",
+        "stepDelta": 2,
+        "hpDelta": -12
+      },
+      {
+        "label": "Wait for a tide you understand",
+        "resultText": "Six hours of doing nothing on a cold beach, and then a firm crossing in daylight with the whole bank visible.",
+        "stepDelta": -3,
+        "hpDelta": 15
+      },
+      {
+        "label": "Salvage what the ebb uncovered",
+        "resultText": "The water goes out and leaves the day's offering. It is not much. It is right there.",
+        "goldDelta": 35,
+        "stepDelta": -1
+      }
+    ]
+  },
+  {
+    "id": "tidewrack_came_ashore",
+    "title": "What Came Ashore",
+    "body": "Something came in with the last storm and has not gone back out. The evidence is circumstantial and consistent: a stretch of foreshore the gulls avoid, a smokehouse cleaned out without the door being forced, and a set of drag-marks above the high-water line that the last four tides have not touched because the last four tides have not come up that far.",
+    "terrainTags": [
+      "Water",
+      "Swamp"
+    ],
+    "regionTags": [
+      "tidewrack_coast"
+    ],
+    "choices": [
+      {
+        "label": "Follow the drag-marks inland",
+        "resultText": "They go half a mile up a creek and stop at a pool that is deeper than a creek should manage. You do not go into the pool. You do note precisely where it is.",
+        "stepDelta": -3,
+        "hpDelta": -15,
+        "revealPois": 2,
+        "setMetaFlags": [
+          "deep_tidewrack_coast_thing_tracked"
+        ]
+      },
+      {
+        "label": "Warn the villages along the strand",
+        "resultText": "Three hamlets, a day of walking, and a reception that ranges from grateful to openly hostile. Two of them move their smokehouses. That is a better result than you expected.",
+        "goldDelta": -25,
+        "stepDelta": -3,
+        "reputationFactionId": "aegis_concordat",
+        "reputationAmount": 12,
+        "setMetaFlags": [
+          "deep_tidewrack_coast_coast_warned"
+        ]
+      },
+      {
+        "label": "Set a bait and wait one night",
+        "resultText": "The bait is gone by first light and so is a good deal of the beach where you set it. You have a measurement of its reach now, and a strong sense that it has one of you.",
+        "hpDelta": -30,
+        "itemReward": "wayfarers_map",
+        "setMetaFlags": [
+          "deep_tidewrack_coast_thing_baited"
+        ]
+      }
+    ]
+  }
+]

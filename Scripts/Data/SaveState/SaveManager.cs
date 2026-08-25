@@ -285,6 +285,16 @@ public static class SaveManager
         return true;
     }
 
+    /// <summary>True when ANY slot holds save files: the title screen's Continue
+    /// visibility check. Scans without loading (2026-08-21 title screen).</summary>
+    public static bool AnySaveExists()
+    {
+        for (int i = 0; i < MAX_SLOTS; i++)
+            if (FileAccess.FileExists(GetLedgerPath(i)) || FileAccess.FileExists(GetCyclePath(i)))
+                return true;
+        return false;
+    }
+
     /// <summary>Load the most-recently-saved slot into ActiveSave when none is active,
     /// so the game and the combat debugger always have a save to work with. No-op if a
     /// save is already loaded; a slot the player explicitly picked always wins.</summary>

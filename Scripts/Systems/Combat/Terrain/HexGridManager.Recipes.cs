@@ -78,11 +78,36 @@ public partial class HexGridManager : Node3D
         {
             var baseList = _activeRecipe?.MapEvents ?? _noMapEvents;
             var dbg = BuildDebugMapEvent();
-            if (dbg == null)
+            var wx = BuildWeatherMapEvent();
+            if (dbg == null && wx == null)
                 return baseList;
-            var merged = new System.Collections.Generic.List<MapEventDef>(baseList) { dbg };
+            var merged = new System.Collections.Generic.List<MapEventDef>(baseList);
+            if (dbg != null) merged.Add(dbg);
+            if (wx != null) merged.Add(wx);
             return merged;
         }
+    }
+
+    /// <summary>Mobile Fortress W3: when the sortie deployed into a fight under
+    /// weather, the battlefield inherits a matching recurring weather_tick hazard
+    /// (storm=lightning, snow=ice, rain=rising water). Reads the weather the
+    /// overworld stashed on the router; null when the fight had no weather (or is
+    /// a non-overworld combat, which clears SavedWeather on finish). Fires round 2,
+    /// telegraphed 1 ahead, then every 3 rounds: present but not overwhelming.</summary>
+    private static MapEventDef BuildWeatherMapEvent()
+    {
+        var router = EncounterRouter.Instance;
+        if (router == null)
+            return null;
+        string param = WeatherCatalog.Def(router.SavedWeather).CombatHazard;
+        if (string.IsNullOrEmpty(param))
+            return null;
+
+        var raw = new Godot.Collections.Dictionary();
+        raw["weather"] = param;
+        raw["per_patch"] = param == "snow" ? 2 : 1;
+        raw["announce"] = $"the {WeatherCatalog.Name(router.SavedWeather).ToLower()} reaches the field";
+        return new MapEventDef { Kind = "weather_tick", Round = 2, Telegraph = 1, RepeatEvery = 3, Raw = raw };
     }
 
     /// <summary>CombatDebugLauncher hook: when PlayerSession.DebugMapEventKind is set,

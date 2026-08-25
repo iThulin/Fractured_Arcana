@@ -1,0 +1,74 @@
+{
+ "id": "glacial_threshold_scholar",
+ "title": "The Counter-Reading",
+ "npcName": "Adjunct Perrin Vask",
+ "archetype": "Scholar",
+ "factionId": "archive_wardens",
+ "openingText": "Vask is taking readings off the observatory ring at an altitude where speaking costs something, and he does not stop while you approach. 'Somebody rotated this instrument off true, deliberately, with wedges,' he says, to the instrument. 'The interesting number is not the bearing. It is the size of the lie. Do you have anything, or are you just cold?'",
+ "startingTension": 3,
+ "basePatience": 9,
+ "npcResolve": 1,
+ "npcGuile": 2,
+ "npcPoise": 3,
+ "dialogueCordial": "Yes. Yes, that is exactly the sort of thing I came up a mountain to hear.",
+ "dialogueStrained": "It is not nothing. It is not yet a finding. There is a difference and it matters.",
+ "dialogueHostile": "I am four thousand feet up with a stranger raising his voice. Do consider that.",
+ "dialogueWalkaway": "Then take your observations elsewhere. I have three hours of light and no interest.",
+ "dialogueAccept": "Agreed, and I will credit you in the record, which you may find is worth more than the coin.",
+ "terms": [
+  {
+   "id": "the_true_bearing",
+   "description": "Vask's working: what the ring pointed at before somebody wedged it, and when.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 60,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3
+  },
+  {
+   "id": "archive_credit",
+   "description": "Your name in a Lantern Order record. Doors in the Sunken Archive open on it.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 2,
+   "startingPosition": 0,
+   "weight": 3,
+   "factionId": "archive_wardens"
+  },
+  {
+   "id": "the_reading_lens",
+   "description": "He teaches you to read ground the way he reads sky. It transfers better than it should.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2,
+   "spellId": "scrying_lens"
+  },
+  {
+   "id": "carry_the_instruments",
+   "description": "You haul his brass down the mountain. It is heavy and he is not sorry.",
+   "favorPlayer": false,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "startingPosition": -2,
+   "weight": 3,
+   "suppliesDelta": -10,
+   "stepsDelta": -3
+  },
+  {
+   "id": "he_is_not_going_down",
+   "description": "Vask has provisioned for four days and intends to stay eleven.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -20,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 2
+  }
+ ]
+}

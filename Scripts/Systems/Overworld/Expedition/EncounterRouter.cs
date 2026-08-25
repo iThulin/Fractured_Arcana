@@ -57,8 +57,19 @@ public partial class EncounterRouter : Node
     public Vector2I SavedPartyCoord;
     public Vector2I SavedCombatHexCoord;
 
+    /// <summary>Weather over the combat tile at launch (Mobile Fortress W3).
+    /// The battlefield injects a matching weather_tick hazard from this. Set by
+    /// ExpeditionManager.CommitCombat; cleared on combat finish so a later
+    /// non-overworld fight (debug, city gate) never inherits stale weather.</summary>
+    public WeatherType SavedWeather = WeatherType.Clear;
+
     /// <summary>True when the pending combat was a patrol ambush (C4 deed).</summary>
     public bool SavedCombatWasPatrolAmbush = false;
+
+    /// <summary>True when the ambush caught the castle MID-STRIDE (Mobile Fortress
+    /// §3.4). The F6 "Defend the Castle" combat reads this to add +1 round to the
+    /// wizard's teleport delay (the castle was unbraced). Inert until F6 ships.</summary>
+    public bool SavedStrideAmbush = false;
 
     /// <summary>Owner archmage of the ambushing patrol ("wilds" for the
     /// generic pursuer).</summary>
@@ -114,6 +125,8 @@ public partial class EncounterRouter : Node
     {
         EncounterContextCarrier.Clear();
         CombatWon = playerWon;
+        SavedWeather = WeatherType.Clear; // W3: don't leak weather into the next fight
+        SavedStrideAmbush = false;        // §3.4: clear the stride-ambush flag too
         GoldReward = CalculateGoldRewardForTier(_currentTier);
         SplinterReward = SplinterDropTable.Combat(_currentTier);
         HasPendingReturn = true;

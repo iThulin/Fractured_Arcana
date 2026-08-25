@@ -56,6 +56,11 @@ public static class CouncilEcho
     // territory is employment given, a minor positive deed, Steward-routed.
     public const string HireGiven = "hire_given";
 
+    // Phase 3 contracts boards: a contract taken from a city's board and
+    // honored is dependable work done for the kingdom's coin: a minor
+    // positive deed, Steward-routed (the board pays from the purse he minds).
+    public const string ContractHonored = "contract_honored";
+
     // ═════════════════════════════════════════════════════════════════════
     // Emission (deed time, mid-expedition)
     // ═════════════════════════════════════════════════════════════════════
@@ -217,6 +222,8 @@ public static class CouncilEcho
                 // K3 (R25): employment given in the kingdom's territory is
                 // the Steward's ledger: money and livelihoods.
                 HireGiven => c.Office == CourtVocab.OfficeSteward,
+                // Phase 3: board contracts pay from the Steward's purse too.
+                ContractHonored => c.Office == CourtVocab.OfficeSteward,
                 _ => false,
             };
             if (match)
@@ -268,6 +275,7 @@ public static class CouncilEcho
             SpellcraftTransgression => "necromancy worked openly in the kingdom's lands",
             PatrolCompelled => "the kingdom's own patrol bent by enchantment",
             HireGiven => "honest work given to the kingdom's own at the hiring hall",
+            ContractHonored => "a posted contract honored to the letter",
             _ => "the guild's doings",
         };
     }

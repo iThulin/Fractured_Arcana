@@ -1,0 +1,184 @@
+[
+  {
+    "id": "glacial_the_facing",
+    "title": "The Facing",
+    "body": "A shelf of blue ice at the head of the pass, and held in it at a depth of perhaps two feet, a figure. Arms at its sides. Eyes open. It is well preserved, which the ice does routinely, and it is facing downslope, which it was not doing when your rear guard passed the same shelf ninety minutes ago.",
+    "terrainTags": [
+      "Mountain",
+      "Water"
+    ],
+    "regionTags": [
+      "glacial_threshold"
+    ],
+    "choices": [
+      {
+        "label": "Cut it out",
+        "resultText": "Two hours of axe-work in thin air. What comes free is intact, unarmed, and dressed for a climate this has not been since before the Collapse. It does not move again while you are watching.",
+        "hpDelta": -30,
+        "goldDelta": 60
+      },
+      {
+        "label": "Mark the ice and check it again on the way back",
+        "resultText": "You score a line in the shelf level with its shoulder and note the bearing. You will check. You have already decided that you will not tell anyone what you find.",
+        "stepDelta": -1,
+        "cardCodex": true
+      },
+      {
+        "label": "Take the pass at speed and do not look at the shelf",
+        "resultText": "Everyone understands the instruction without it being explained. Nobody looks. The party makes better time through that pass than any other on the route.",
+        "stepDelta": 3,
+        "hpDelta": -10
+      }
+    ]
+  },
+  {
+    "id": "glacial_observatory_ring",
+    "title": "The Observatory Ring",
+    "body": "Cut into the saddle of the pass, a ring of graduated stone forty feet across. A sighting instrument, pre-Collapse, aligned on something. The graduations are intact. The alignment is not: the whole ring has been deliberately rotated some degrees off true, by hand, with wedges, by people who wanted it to keep working and to keep pointing at the wrong thing.",
+    "terrainTags": [
+      "Ruins",
+      "Mountain"
+    ],
+    "regionTags": [
+      "glacial_threshold"
+    ],
+    "choices": [
+      {
+        "label": "Restore the true alignment",
+        "resultText": "The wedges come out over an afternoon and the ring settles back onto its original bearing with a sound you feel through your boots. It points at nothing you can see. It points very precisely at nothing you can see.",
+        "hpDelta": -20,
+        "stepDelta": -3,
+        "revealPois": 2
+      },
+      {
+        "label": "Record both bearings and change nothing",
+        "resultText": "True and false, to the minute. Somebody went to enormous trouble to make this instrument lie by a specific amount, and the amount is the message.",
+        "stepDelta": -1,
+        "cardCodex": true
+      },
+      {
+        "label": "Take the graduated plates",
+        "resultText": "The metal is exceptional and the engraving is worth more than the metal. The ring will never be aligned on anything again, which was possibly the intention of the last people here too.",
+        "goldDelta": 70,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": -12
+      }
+    ]
+  },
+  {
+    "id": "",
+    "title": "Above the Cloud",
+    "body": "{site}. {weather} {detail} The way you came is under cloud now and there is no sensible way to describe how far down that cloud is. {complication}",
+    "terrainTags": [
+      "Mountain",
+      "Ruins"
+    ],
+    "regionTags": [
+      "glacial_threshold"
+    ],
+    "choices": [
+      {
+        "label": "Push for the high camp before the light goes",
+        "resultText": "You make it with perhaps twenty minutes to spare, and everyone is worse for the effort, and everyone is above the weather.",
+        "stepDelta": 3,
+        "hpDelta": -20
+      },
+      {
+        "label": "Cut a snow shelter and wait it out",
+        "resultText": "Slow, cold, and correct. The mountain does whatever it was going to do and you are not on it while it does.",
+        "stepDelta": -3,
+        "hpDelta": 30
+      },
+      {
+        "label": "Work the ground here while you can see it",
+        "resultText": "Thin air makes an hour's work into three. What the ice has been holding is worth the three.",
+        "goldDelta": 45,
+        "hpDelta": -15
+      }
+    ]
+  },
+  {
+    "id": "glacial_the_relieved_climber",
+    "title": "The Climber Who Sat Down",
+    "body": "Roped, provisioned, and equipped by somebody who knew exactly what they were doing, sitting with their back to a rock and their gear stowed correctly beside them. They did not fall and they were not caught out. At some point on a well-managed ascent they sat down, stowed their kit properly, and stopped. The rope runs on upward past them, still fixed, still good.",
+    "terrainTags": [
+      "Mountain"
+    ],
+    "regionTags": [
+      "glacial_threshold"
+    ],
+    "choices": [
+      {
+        "label": "Follow their fixed rope up",
+        "resultText": "It is expertly placed the entire way and it ends at an anchor above a face that goes nowhere. They fixed a line to a dead end and then came down and sat. You take the anchor and a great deal to think about.",
+        "hpDelta": -25,
+        "itemReward": "greater_wardstone",
+        "setMetaFlags": [
+          "deep_glacial_threshold_rope_followed"
+        ]
+      },
+      {
+        "label": "Bring them down",
+        "resultText": "It is a wretched three days and it does not have to be done. The Lantern Order has a name for them and a record of the expedition, and they had been listed as an abandonment.",
+        "hpDelta": -35,
+        "stepDelta": -4,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": 15,
+        "setMetaFlags": [
+          "deep_glacial_threshold_climber_recovered"
+        ]
+      },
+      {
+        "label": "Take the kit and leave them sitting",
+        "resultText": "Superb equipment, properly maintained, and no use at all to its owner. You coil their rope yourself, which is not a kindness anyone will observe.",
+        "goldDelta": 70,
+        "itemReward": "coldpath_talisman",
+        "setMetaFlags": [
+          "deep_glacial_threshold_climber_stripped"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chain_provenance_traced",
+    "title": "Provenance",
+    "body": "The book the librarian fetched you carried a provenance slip, and the slip names a place rather than a person: an observation ring cut into a mountain saddle, with a bearing and a date. You are standing on the ring. The date on the slip is the day somebody rotated this instrument off true and wedged it there.",
+    "terrainTags": [
+      "Ruins",
+      "Mountain"
+    ],
+    "regionTags": [
+      "glacial_threshold"
+    ],
+    "requiredFlag": "deep_sunken_archive_librarian_served",
+    "choices": [
+      {
+        "label": "Sight along the false bearing",
+        "resultText": "The wedged alignment does not point at nothing after all. It points at a specific place, badly, on purpose, and now that you have the date you can work out what was in that direction on that day.",
+        "stepDelta": -2,
+        "revealPois": 3,
+        "setMetaFlags": [
+          "deep_glacial_threshold_provenance_traced"
+        ]
+      },
+      {
+        "label": "Leave the slip in the ring",
+        "resultText": "You weight the provenance slip under a stone at the centre of the instrument, which is where the Archive's own cataloguing convention says a returned item goes. It is a small correctness in a very large cold place.",
+        "stepDelta": -1,
+        "reputationFactionId": "lantern_order",
+        "reputationAmount": 12,
+        "setMetaFlags": [
+          "deep_glacial_threshold_provenance_traced"
+        ]
+      },
+      {
+        "label": "Take a copy of the bearing and say nothing",
+        "resultText": "You write it down twice, in two places, in two different notations, and mention it to nobody. It is the most valuable thing you are carrying and the least explicable.",
+        "goldDelta": 55,
+        "setMetaFlags": [
+          "deep_glacial_threshold_provenance_traced"
+        ]
+      }
+    ]
+  }
+]

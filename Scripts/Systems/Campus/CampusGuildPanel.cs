@@ -565,7 +565,7 @@ public sealed class CampusGuildPanel : CampusPanel
         AddResult("Gold:", $"{_resultGold}");
         AddResult("Splinters:", $"{_resultSplinters}");
         AddResult("Encounters:", $"{_resultEncounters}");
-        AddResult("HP:", $"{_resultHp}");
+        AddResult("Hull:", $"{_resultHp}");
     }
 
     // ═══════════════════════════════════════════════════════════════════════
