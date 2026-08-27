@@ -81,7 +81,7 @@ Sample chain (template for all — 3 beats max):
 
 - **`q_relight_refectory` — "The Refectory Lights"**
   1. *Clear the frost-stilled hall* (small campus interaction/fight vs.
-     leaked dream-stuff — reuse an encounter).
+     leaked aether — reuse an encounter).
   2. *Find the kitchen-master's ledger* (region narrative POI — his last
      order was for the graduation feast that never got served).
   3. *Light the ovens* (build/tier action). Completion beat: the frozen

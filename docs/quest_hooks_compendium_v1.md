@@ -37,7 +37,7 @@ morale bonus becomes diegetic.
 ### 1.2 The Half-Rung Bell — `q_finish_the_toll`
 The commencement bell froze mid-swing; its note hangs in the air over campus,
 one sound stretched thin, more felt than heard. The belfry stairs are choked
-with leaked dream-stuff that eats sound.
+with leaked aether that eats sound.
 1. *Climb the silent stair* (campus encounter — enemies that cannot be heard
    moving).
 2. *Recover the founder's tuning fork* (region POI: a music-hall ruin; the
@@ -85,7 +85,7 @@ The observatory's great lens is aimed at the sky the Astrologer reads. From
 inside the Long Second, the sky doesn't move — which means, for the first
 time in history, someone could read it SLOWLY.
 1. *Unshutter the dome* (campus encounter — the dome resists; the leaked
-   dream-stuff here mimics constellations, star-shaped and cold).
+   aether here mimics constellations, star-shaped and cold).
 2. *Recover the night-ledgers* (region POI: an abandoned observatory station;
    its readings from the WEEK of the Sundering bracket what Kassian saw).
 3. *Grind the counter-lens* (build). Completion + ongoing: the observatory

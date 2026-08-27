@@ -103,7 +103,7 @@ public partial class ExpeditionWindow3D : Node3D
     // ── Scene ───────────────────────────────────────────────────────────────
     private Camera3D _camera;
     private GeometryInstance3D _landLayer;      // welded ArrayMesh (stage 2) or MultiMesh fallback
-    private MultiMeshInstance3D _waterLayer;
+    private MeshInstance3D _waterLayer;         // painterly water surface (combat shader reuse, 2026-08-27)
     private GeometryInstance3D _canvasLayer;    // Hidden fog = unpainted canvas (welded sheet or MultiMesh fallback)
     private Node3D _mistLayer;                  // 2026-08-21 rev 2: volumetric mist stack (deck + 2 wisp sheets)
     private readonly List<ShaderMaterial> _mistMats = new();   // deck, wispA, wispB: restyled live by ApplySurround
@@ -153,6 +153,10 @@ public partial class ExpeditionWindow3D : Node3D
     public void SetWindow(WorldData world, ExpeditionFogModel fog, WindowOverlayModel overlay,
                           Vector2I center, Vector2I party, bool frameCamera = true)
     {
+        // A different WORLD invalidates the cached city grounds (settlement
+        // indices and positions belong to the old world; the per-step refresh
+        // only diffs reveal counts, not world identity).
+        if (!ReferenceEquals(_world, world)) FreeAllCityGrounds();
         _world = world; _fog = fog; _overlay = overlay;
         _center = center; _party = party;
         ComputeWindowTiles();
@@ -462,9 +466,9 @@ public partial class ExpeditionWindow3D : Node3D
         if (_landLayer is MeshInstance3D mi && mi.MaterialOverride is ShaderMaterial m)
         {
             m.SetShaderParameter("debug_mode", (_debugViz == 2 || _debugViz == 5 || _debugViz == 6) ? _debugViz : 0);
-            // grain is OFF on the heightmap (0); mode 3 keeps it off, every other
-            // mode restores that same 0, so cycling back never reintroduces grain.
-            m.SetShaderParameter("grain_strength", 0f);
+            // Mode 3 isolates the (now distance-faded) grain by zeroing it;
+            // every other mode restores the pass-3 walking-zoom value.
+            m.SetShaderParameter("grain_strength", _debugViz == 3 ? 0f : 0.05f);
         }
     }
 
@@ -912,13 +916,17 @@ public partial class ExpeditionWindow3D : Node3D
     // Replaced the welded-fan land + canvas sheet + water prisms.
 
     /// <summary>Per-hex fog-aware rendered height + colour, the field's sample
-    /// points. Rebuilt each RebuildTiles.</summary>
-    private readonly Dictionary<Vector2I, (float h, Color col)> _field = new();
+    /// points, plus whether the sample is water (the colour kernel weights
+    /// water down so beds do not tint the land). Rebuilt each RebuildTiles.</summary>
+    private readonly Dictionary<Vector2I, (float h, Color col, bool water)> _field = new();
     private Vector2 _fieldMin, _fieldMax;
     /// <summary>Kernel radius in WORLD units. Must exceed the hex spacing
     /// (~1.5–1.73) so kernels overlap and the blended field is smooth. Larger =
-    /// softer washes and gentler slopes; smaller = crisper terrain identity.</summary>
-    private const float FieldKernelRadius = 2.4f;
+    /// softer washes and gentler slopes; smaller = crisper terrain identity.
+    /// 2.0 (was 2.4, relief pass 2026-08-27): the wide kernel averaged hills
+    /// and mountains into pancakes; at 2.0 a neighbour's pull drops from 0.22
+    /// to 0.05, so per-tile relief survives while the field stays C1.</summary>
+    private const float FieldKernelRadius = 2.0f;
 
     private void RebuildTiles()
     {
@@ -932,6 +940,8 @@ public partial class ExpeditionWindow3D : Node3D
 
         BuildFieldData();
         _landLayer = BuildHeightmapSurface();
+        BuildWaterLayer();   // needs _mapCenter/_mapDiscR set by the heightmap build
+        RefreshCityGrounds();   // after the field: grounds contour-sample it
         RebuildMistLayer();
 
         // Keep the active V-key diagnostic mode across rebuilds.
@@ -946,19 +956,33 @@ public partial class ExpeditionWindow3D : Node3D
     private void BuildFieldData()
     {
         _field.Clear();
+        _fogWaterContinuation.Clear();
         void Add(Vector2I c)
         {
             if (_field.ContainsKey(c)) return;
             bool hidden = !_world.InBounds(c.X, c.Y) || _fog.FogAt(c) == Fog.Hidden;
             if (hidden)
             {
+                // Water continuation ("fog falls onto water", 2026-08-27): a
+                // hidden tile touching visible water stays at bed height with a
+                // deep-water tone instead of rising to the tan canvas slab, so
+                // the water surface runs on under the mist and the fog meets
+                // WATER, not a parchment beach ramp. The slab (and its canvas
+                // tone) begins one ring deeper, where the mist is opaque.
+                if (EnableWaterPlane && TouchesVisibleWater(c))
+                {
+                    _fogWaterContinuation.Add(c);
+                    _field[c] = (WaterHiddenBed, WaterHiddenColor, true);
+                    return;
+                }
                 float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
-                _field[c] = (FogSlabHeight, StyleUnexplored(Hex3DPalette.CanvasTone(c.X, c.Y, edge)));
+                _field[c] = (FogSlabHeight, StyleUnexplored(Hex3DPalette.CanvasTone(c.X, c.Y, edge)), false);
             }
             else
             {
                 var f = _fog.FogAt(c);
-                _field[c] = (RenderedTileHeight(c), TileColor(_world.GetTile(c.X, c.Y), c, f));
+                _field[c] = (RenderedTileHeight(c) + BankLip(c), TileColor(_world.GetTile(c.X, c.Y), c, f),
+                             _world.GetTile(c.X, c.Y).IsWater);
             }
         }
 
@@ -994,15 +1018,54 @@ public partial class ExpeditionWindow3D : Node3D
         _fieldMax = new Vector2(maxX, maxZ);
     }
 
+    // ── Colour field sharpening (ground pass 1, 2026-08-27) ─────────────────
+    // The height kernel (2.4) exists to kill lattice artifacts; using the SAME
+    // kernel for colour smeared every terrain into one gradient (nothing was
+    // nameable at a glance). Colour now uses its own tighter, sharpened kernel
+    // sampled at a domain-warped position: terrains read as distinct
+    // watercolour washes with wobbly organic boundaries, while the geometry
+    // keeps the wide artifact-free kernel. A low-frequency two-tone mottle
+    // breaks large single-terrain fields.
+
+    /// <summary>Colour-kernel radius. Just under the hex spacing, so each wash
+    /// is dominated by its own tile with soft edges to neighbours.</summary>
+    private const float ColorKernelRadius = 1.55f;
+    /// <summary>World-unit amplitude of the colour-boundary domain warp.</summary>
+    private const float ColorWarpAmp = 0.45f;
+    /// <summary>Value amplitude of the wash mottle (fraction of base colour).</summary>
+    private const float MottleAmp = 0.07f;
+
+    /// <summary>Low-frequency two-octave value noise on rotated domains (the
+    /// Undulation lesson: axis-aligned octaves stamp a rectangular grid).
+    /// Wavelengths ~7 and ~3 units: well above the 0.4-unit vertex grid, so
+    /// it cannot alias the way the killed brush grain did.</summary>
+    private static float MottleNoise(float wx, float wz)
+    {
+        const float c1 = 0.9781f, s1 = 0.2079f;   // 12 degrees off-axis
+        float a = UNoise((wx * c1 - wz * s1) * 0.14f, (wx * s1 + wz * c1) * 0.14f);
+        const float c2 = 0.7314f, s2 = 0.6820f;   // 43 degrees
+        float b = UNoise((wx * c2 - wz * s2) * 0.33f, (wx * s2 + wz * c2) * 0.33f);
+        return a * 0.65f + b * 0.35f;
+    }
+
     /// <summary>Smooth blended field at a world point: kernel-weighted average of
     /// nearby hexes' heights and colours (partition of unity ⇒ C1-smooth). Out
-    /// param carries the colour; return value is the height PRE-undulation.</summary>
+    /// param carries the colour; return value is the height PRE-undulation.
+    /// Height and colour use SEPARATE kernels (see the pass-1 note above).</summary>
     private float SampleField(float wx, float wz, out Color col)
     {
         var (cc, cr) = WorldToOffset(wx, wz);
         var (q0, r0) = HexCoord.OffsetToAxial(cc, cr);
         float wsum = 0f, hsum = 0f, rr = 0f, gg = 0f, bb = 0f;
+        float cw = 0f, crr = 0f, cgg = 0f, cbb = 0f;
         float R = FieldKernelRadius, R2 = R * R;
+        float Rc = ColorKernelRadius, Rc2 = Rc * Rc;
+        // Domain-warped colour position. The warp stays under ColorWarpAmp, so
+        // with the 5x5 axial probe there is always a sample inside Rc.
+        const float wc1 = 0.9781f, ws1 = 0.2079f;
+        float wxr = wx * wc1 - wz * ws1, wzr = wx * ws1 + wz * wc1;
+        float cwx = wx + (UNoise(wxr * 0.35f, wzr * 0.35f) - 0.5f) * 2f * ColorWarpAmp;
+        float cwz = wz + (UNoise(wxr * 0.35f + 71.3f, wzr * 0.35f - 37.7f) - 0.5f) * 2f * ColorWarpAmp;
         for (int dq = -2; dq <= 2; dq++)
             for (int dr = -2; dr <= 2; dr++)
             {
@@ -1011,14 +1074,40 @@ public partial class ExpeditionWindow3D : Node3D
                 var o = TileOrigin(nc, nr);
                 float dx = wx - o.X, dz = wz - o.Z;
                 float dist2 = dx * dx + dz * dz;
-                if (dist2 >= R2) continue;
-                float tt = Mathf.Sqrt(dist2) / R;                 // 0 at centre, 1 at radius
-                float w = 1f - tt * tt * (3f - 2f * tt);          // smoothstep-down, C1
-                wsum += w; hsum += w * d.h;
-                rr += w * d.col.R; gg += w * d.col.G; bb += w * d.col.B;
+                if (dist2 < R2)
+                {
+                    float tt = Mathf.Sqrt(dist2) / R;             // 0 at centre, 1 at radius
+                    float w = 1f - tt * tt * (3f - 2f * tt);      // smoothstep-down, C1
+                    wsum += w; hsum += w * d.h;
+                    rr += w * d.col.R; gg += w * d.col.G; bb += w * d.col.B;
+                }
+                float cdx = cwx - o.X, cdz = cwz - o.Z;
+                float cdist2 = cdx * cdx + cdz * cdz;
+                if (cdist2 < Rc2)
+                {
+                    float ct = Mathf.Sqrt(cdist2) / Rc;
+                    float w2 = 1f - ct * ct * (3f - 2f * ct);
+                    w2 *= w2;                                     // sharpen: own tile dominates
+                    // Water samples barely vote on colour: the bed tint was
+                    // washing a blue band across shoreline land (user report
+                    // 2026-08-27). Land now keeps its colour to the waterline;
+                    // over open water the factor cancels (uniform weights),
+                    // and near-shore beds pick up land tone, which reads as
+                    // sandy shallows under the transparent plane. Heights are
+                    // untouched: the bank-lip math needs the symmetric kernel.
+                    if (d.water) w2 *= 0.15f;
+                    cw += w2; crr += w2 * d.col.R; cgg += w2 * d.col.G; cbb += w2 * d.col.B;
+                }
             }
         if (wsum <= 1e-6f) { col = UITheme.CanvasUnseen; return FogSlabHeight; }
-        col = new Color(rr / wsum, gg / wsum, bb / wsum, 1f);
+        // Sharp colour kernel first; wide-kernel colour is the fallback.
+        col = cw > 1e-6f
+            ? new Color(crr / cw, cgg / cw, cbb / cw, 1f)
+            : new Color(rr / wsum, gg / wsum, bb / wsum, 1f);
+        float m = 1f + (MottleNoise(wx, wz) - 0.5f) * 2f * MottleAmp;
+        col = new Color(Mathf.Clamp(col.R * m, 0f, 1f),
+                        Mathf.Clamp(col.G * m, 0f, 1f),
+                        Mathf.Clamp(col.B * m, 0f, 1f), 1f);
         return hsum / wsum;
     }
 
@@ -1141,7 +1230,14 @@ public partial class ExpeditionWindow3D : Node3D
             // painterly read is carried by the toon light + colour, not grain;
             // if fine surface texture is wanted back, re-add it camera-distance-
             // faded so it only appears close up where it can be sampled.
-            sm.SetShaderParameter("grain_strength", 0f);
+            // Ground pass 3 (2026-08-27): done exactly that. The shader now has
+            // an explicit camera-distance fade (grain_fade_start/end) on top of
+            // its fwidth ramp; grain exists only at walking zoom, where it
+            // samples cleanly, and is fully gone before the moire distances.
+            sm.SetShaderParameter("grain_strength", 0.05f);
+            sm.SetShaderParameter("grain_scale", 1.3f);
+            sm.SetShaderParameter("grain_fade_start", 9f);
+            sm.SetShaderParameter("grain_fade_end", 16f);
             sm.SetShaderParameter("skirt_darken", 0.10f);
             sm.SetShaderParameter("stripe_strength", 0.06f);
             sm.SetShaderParameter("toon_softness", 0.26f);
@@ -1149,6 +1245,483 @@ public partial class ExpeditionWindow3D : Node3D
         var node = new MeshInstance3D { Name = "WinHeightmap", Mesh = st.Commit(), MaterialOverride = mat };
         AddChild(node);
         return node;
+    }
+
+    // ── Painterly water surface (combat shader reuse, 2026-08-27) ────────────
+    // The combat maps' painterly_water.gdshader ported to the window so water
+    // reads as WATER (mirror, foam, depth tint) instead of a blue smear in the
+    // smooth colour field: the walkability boundary becomes the shoreline.
+    // Only the SHADER is shared; none of the combat mesh pipeline (basin dig,
+    // per-body waterlines, corner welds) is needed here. Because the unified
+    // heightmap dips smoothly from land (0.22+) down to the water beds, one
+    // FLAT plane at WaterSurfaceY intersects the ground along an organic
+    // contour, and the shader's depth-read foam hugs that intersection
+    // exactly. The fog slab (0.25) sits above the waterline, so Hidden water
+    // is buried by its own canvas: the discovery law costs nothing.
+    // Silhouette water uses the SAME material as revealed water (user ruling
+    // 2026-08-27: the earlier muted underpaint variant read as a tan band at
+    // the fog line). Water also CONTINUES one ring under the mist: hidden
+    // tiles touching visible water keep bed-height ground and water cover, so
+    // the fog falls onto water instead of exposing a canvas beach ramp.
+
+    [ExportGroup("Water")]
+    [Export] public bool EnableWaterPlane = true;
+    /// <summary>Waterline height. Must sit above the ocean/lake beds (0.02 /
+    /// 0.07) and below the land floor (0.22) and fog slab (0.25).</summary>
+    [Export(PropertyHint.Range, "0.10,0.21,0.005")] public float WaterSurfaceY = 0.175f;
+    /// <summary>World-unit water thickness at which the depth tint saturates to
+    /// deep_color. Window depths run about 0.10 (lake) to 0.155 (ocean).</summary>
+    [Export(PropertyHint.Range, "0.05,0.4,0.005")] public float WaterDepthNorm = 0.14f;
+    /// <summary>Thickness of the depth-read foam band at the shoreline.</summary>
+    [Export(PropertyHint.Range, "0.01,0.12,0.005")] public float WaterFoamRange = 0.035f;
+
+    private const string WaterShaderPath = "res://Assets/Shaders/painterly_water.gdshader";
+    /// <summary>Bed height and tone for hidden tiles that continue visible
+    /// water under the mist (see BuildFieldData).</summary>
+    private const float WaterHiddenBed = 0.02f;
+    private static readonly Color WaterHiddenColor = new Color(0.10f, 0.20f, 0.30f);
+    private ShaderMaterial _waterMat;
+    private static Texture2D _waterNoiseTex;   // one seamless noise for every window
+    /// <summary>Hidden tiles rendered as under-fog water continuation this
+    /// rebuild. Filled by BuildFieldData, read by the water cover + fog spill
+    /// (those tiles do NOT count as fog frontier for the water fade).</summary>
+    private readonly HashSet<Vector2I> _fogWaterContinuation = new();
+
+    /// <summary>FIELD-SAMPLE bank lip for land beside water (2026-08-27). The
+    /// kernel dilutes a land sample against neighbouring beds: a land tile
+    /// with several deep-water neighbours blends BELOW the waterline, so
+    /// isthmuses drowned and one-tile islands surfaced only as foam stars.
+    /// Lifting the SAMPLE by ~0.033 per water neighbour pre-compensates the
+    /// dilution: worst case (six ocean neighbours) blends to ~0.19, above the
+    /// 0.175 waterline. Applied to field samples only, so pawn/marker heights
+    /// (TileHeight) are untouched; ordinary coasts gain a subtle bank, which
+    /// the shoreline wanted anyway (combat's WaterShoreLip, same lesson).</summary>
+    // 0.022 (was 0.036): recomputed for FieldKernelRadius 2.0. Neighbour
+    // dilution fell from 0.22 to 0.05 per water tile, so the old lip built
+    // conspicuous coastal levees; 0.022 keeps the worst case (six ocean
+    // neighbours, undulation trough) at ~0.25 blended, above the 0.175
+    // waterline with margin.
+    private const float WaterBankLipPerNeighbor = 0.022f;
+
+    private float BankLip(Vector2I c)
+    {
+        if (!EnableWaterPlane || _world.GetTile(c.X, c.Y).IsWater) return 0f;
+        int n = 0;
+        var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+        foreach (var (dq, dr) in HexCoord.AxialDirections)
+        {
+            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+            if (_world.InBounds(nc, nr) && _world.GetTile(nc, nr).IsWater) n++;
+        }
+        return WaterBankLipPerNeighbor * n;
+    }
+
+    /// <summary>True when any neighbour of c is a visible (non-Hidden,
+    /// in-bounds) water tile.</summary>
+    private bool TouchesVisibleWater(Vector2I c)
+    {
+        var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+        foreach (var (dq, dr) in HexCoord.AxialDirections)
+        {
+            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+            if (!_world.InBounds(nc, nr)) continue;
+            if (_fog.FogAt(new Vector2I(nc, nr)) == Fog.Hidden) continue;
+            if (_world.GetTile(nc, nr).IsWater) return true;
+        }
+        return false;
+    }
+
+    private void BuildWaterLayer()
+    {
+        if (!EnableWaterPlane || _world == null) return;
+
+        // Coverage: every non-Hidden water tile in the field (window + margin
+        // rings, so a lake is not sliced at the window edge), the under-fog
+        // continuation tiles, plus a one-ring skirt into their neighbours.
+        // The skirt is buried wherever the smooth ground rises above the
+        // waterline (land, fog slab), so the visible waterline is the terrain
+        // intersection, never a hex silhouette.
+        var cover = new HashSet<Vector2I>();
+        void Claim(Vector2I c)
+        {
+            if (!cover.Add(c)) return;
+            var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+            foreach (var (dq, dr) in HexCoord.AxialDirections)
+            {
+                var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+                cover.Add(new Vector2I(nc, nr));
+            }
+        }
+        foreach (var c in _field.Keys)
+        {
+            if (_fogWaterContinuation.Contains(c)) { Claim(c); continue; }
+            if (!_world.InBounds(c.X, c.Y)) continue;
+            if (_fog.FogAt(c) == Fog.Hidden) continue;
+            if (_world.GetTile(c.X, c.Y).IsWater) Claim(c);
+        }
+        if (cover.Count == 0) return;
+
+        ResolveWaterMaterials();
+        if (_waterMat == null) return;   // shader missing; warned inside
+
+        var mesh = new ArrayMesh();
+        if (AppendWaterSurface(mesh, cover) < 0) return;
+
+        _waterLayer = new MeshInstance3D
+        {
+            Name = "WinWater",
+            Mesh = mesh,
+            ExtraCullMargin = 0.5f,   // swell displacement headroom
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        _waterLayer.SetSurfaceOverrideMaterial(0, _waterMat);
+        AddChild(_waterLayer);
+    }
+
+    /// <summary>Append one flat fan (centre + alternating corner/edge-midpoint
+    /// ring) per covered hex. Returns the new surface index, or -1 when the
+    /// cover is empty.</summary>
+    private int AppendWaterSurface(ArrayMesh mesh, HashSet<Vector2I> cover)
+    {
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        bool any = false;
+        float y = WaterSurfaceY;
+
+        // Two-ring fan: centre, mid ring at 0.5R (6), outer ring (12). The
+        // baked spill fades are radial fields sampled at vertices; on the old
+        // single-ring fan the interpolation rendered a fade hole as a pointed
+        // six-star (the "island stars"). The mid ring rounds them off.
+        Vector3[] outer = new Vector3[12];
+        Color[] outerCol = new Color[12];
+        Vector3[] mid = new Vector3[6];
+        Color[] midCol = new Color[6];
+
+        // Godot front faces are CLOCKWISE seen from the front (the combat
+        // water plane learned this the hard way); order numerically so every
+        // triangle faces +Y regardless of loop direction.
+        void Tri(Vector3 a, Color ca, Vector3 b, Color cb, Vector3 c2, Color cc2)
+        {
+            float crossY = (b.Z - a.Z) * (c2.X - a.X) - (b.X - a.X) * (c2.Z - a.Z);
+            if (crossY > 0f) { (b, c2) = (c2, b); (cb, cc2) = (cc2, cb); }
+            st.SetNormal(Vector3.Up); st.SetColor(ca); st.AddVertex(a);
+            st.SetNormal(Vector3.Up); st.SetColor(cb); st.AddVertex(b);
+            st.SetNormal(Vector3.Up); st.SetColor(cc2); st.AddVertex(c2);
+        }
+
+        foreach (var key in cover)
+        {
+            any = true;
+            var o = TileOrigin(key.X, key.Y);
+            var centre = new Vector3(o.X, y, o.Z);
+            for (int i = 0; i < 12; i++)
+            {
+                // Even slots: corners at 60°·k, radius R. Odd slots: edge
+                // midpoints at 30°+60°·k, radius R·cos30. Both fans of a shared
+                // edge emit the same three points, so seams are watertight.
+                float ang = Mathf.DegToRad(30f * i);
+                float rad = (i % 2 == 0) ? HexR : HexR * 0.8660254f;
+                outer[i] = new Vector3(o.X + Mathf.Cos(ang) * rad, y, o.Z + Mathf.Sin(ang) * rad);
+                outerCol[i] = WaterVertexColor(outer[i].X, outer[i].Z);
+            }
+            for (int k = 0; k < 6; k++)
+            {
+                float ang = Mathf.DegToRad(60f * k);
+                mid[k] = new Vector3(o.X + Mathf.Cos(ang) * HexR * 0.5f, y, o.Z + Mathf.Sin(ang) * HexR * 0.5f);
+                midCol[k] = WaterVertexColor(mid[k].X, mid[k].Z);
+            }
+            Color cc = WaterVertexColor(centre.X, centre.Z);
+            for (int k = 0; k < 6; k++)
+            {
+                int k1 = (k + 1) % 6;
+                int e0 = 2 * k, e1 = 2 * k + 1, e2 = (2 * k + 2) % 12;
+                Tri(centre, cc, mid[k], midCol[k], mid[k1], midCol[k1]);
+                Tri(mid[k], midCol[k], outer[e0], outerCol[e0], outer[e1], outerCol[e1]);
+                Tri(mid[k], midCol[k], outer[e1], outerCol[e1], mid[k1], midCol[k1]);
+                Tri(mid[k1], midCol[k1], outer[e1], outerCol[e1], outer[e2], outerCol[e2]);
+            }
+        }
+        if (!any) return -1;
+        st.Commit(mesh);
+        return mesh.GetSurfaceCount() - 1;
+    }
+
+    /// <summary>Bake the shader's vertex channels for a water vertex.
+    /// R: shore distance stand-in from true thickness (calms ripple at banks).
+    /// G: depth 0..1 against WaterDepthNorm. B: reserved (flow, unused).
+    /// A: spill = the water's fade-to-nothing channel, the max of two ramps:
+    /// the disc-rim ramp (the rim sink dives the ground below the waterline,
+    /// which would draw a water ring around the whole island) and the fog
+    /// frontier ramp (the water mesh ends on hex outlines at the edge of the
+    /// covered set; without a fade that polygon edge reads as a hex-stepped
+    /// border inside the mist). Both dissolve the water well before its own
+    /// mesh edge, so the only visible boundary is the mist itself.</summary>
+    private Color WaterVertexColor(float wx, float wz)
+    {
+        float ground = SampleFieldHeight(wx, wz);
+        float depth = WaterSurfaceY - ground;
+        float r = Mathf.Clamp(depth / 0.09f, 0f, 1f);
+        float g = Mathf.Clamp(depth / WaterDepthNorm, 0f, 1f);
+        float dx = wx - _mapCenterX, dz = wz - _mapCenterZ;
+        float dist = Mathf.Sqrt(dx * dx + dz * dz);
+        // spill 0.40 (fade start) lands at discR-5.6, 0.85 (gone) at discR-2.9,
+        // inside the mist rim so the dissolve hides under the fog wall.
+        float a = Mathf.Clamp((dist - (_mapDiscR - 8f)) / 6f, 0f, 1f);
+        a = Mathf.Max(a, ProximitySpills(wx, wz));
+        return new Color(r, g, 0f, a);
+    }
+
+    /// <summary>Two spill ramps from one neighbourhood probe.
+    /// FOG: fades water approaching DEEP hidden ground (hidden tiles that are
+    /// not water continuations), so the surface dissolves under the opaque
+    /// mist instead of ending on the covered set's hex outline. Continuation
+    /// tiles do not count as frontier: water runs one ring under the mist and
+    /// dies past it. Out-of-bounds counts as deep hidden.
+    /// LAND: fades water out over any visible land tile's centre. The smooth
+    /// field can drag a land tile with several deep-water neighbours below
+    /// the flat waterline (the party's isthmus, 2026-08-27 screenshot); the
+    /// ground then fails to bury the plane and a WALKABLE tile reads as
+    /// water. The ramp guarantees the plane is gone by mid-tile while leaving
+    /// the outer skirt (and so the depth foam waterline) untouched. On normal
+    /// banks the faded region is already buried, so nothing changes.</summary>
+    private float ProximitySpills(float wx, float wz)
+    {
+        var (cc, cr) = WorldToOffset(wx, wz);
+        var (q0, r0) = HexCoord.OffsetToAxial(cc, cr);
+        float bestFog = float.MaxValue, bestLand = float.MaxValue;
+        for (int dq = -2; dq <= 2; dq++)
+            for (int dr = -2; dr <= 2; dr++)
+            {
+                if (Mathf.Abs(dq + dr) > 2) continue;   // keep the probe a hex disc
+                var (nc, nr) = HexCoord.AxialToOffset(q0 + dq, r0 + dr);
+                var co = new Vector2I(nc, nr);
+                bool hidden = !_world.InBounds(nc, nr) || _fog.FogAt(co) == Fog.Hidden;
+                bool deepHidden = hidden && !_fogWaterContinuation.Contains(co);
+                bool visibleLand = !hidden && !_world.GetTile(nc, nr).IsWater;
+                if (!deepHidden && !visibleLand) continue;
+                var o = TileOrigin(nc, nr);
+                float ddx = wx - o.X, ddz = wz - o.Z;
+                float d2 = ddx * ddx + ddz * ddz;
+                if (deepHidden) bestFog = Mathf.Min(bestFog, d2);
+                else bestLand = Mathf.Min(bestLand, d2);
+            }
+        float spill = 0f;
+        if (bestFog < float.MaxValue)
+        {
+            float d = Mathf.Sqrt(bestFog);
+            // Full spill within a hex radius of a deep-hidden centre; fade
+            // begins about 2.2 units out (inside the continuation ring).
+            spill = Mathf.Clamp((2.2f - d) / 1.2f, 0f, 1f);
+        }
+        if (bestLand < float.MaxValue)
+        {
+            float d = Mathf.Sqrt(bestLand);
+            // Through the shader's 0.40/0.85 fade window this starts thinning
+            // at d = 0.71 and is fully gone inside d = 0.55, well clear of
+            // the pawn's footprint at the tile centre.
+            spill = Mathf.Max(spill, Mathf.Clamp((0.85f - d) / 0.35f, 0f, 1f));
+        }
+        return spill;
+    }
+
+    /// <summary>Create (once) and restyle (every rebuild, so a surround cycle
+    /// retunes it) the water material. Scale note: the combat shader's
+    /// defaults assume combat world scale (depths 0.4 to 1.5 units); window
+    /// water is a tenth of that, so every depth-driven knob is rescaled here.</summary>
+    private void ResolveWaterMaterials()
+    {
+        if (_waterMat == null)
+        {
+            var shader = GD.Load<Shader>(WaterShaderPath);
+            if (shader == null)
+            {
+                GD.PushWarning($"[ExpeditionWindow3D] Water shader missing at '{WaterShaderPath}'; water plane skipped.");
+                EnableWaterPlane = false;
+                return;
+            }
+            _waterNoiseTex ??= WindNoise.CreateSeamless(512, 0.008f, 24680);
+            _waterMat = new ShaderMaterial { Shader = shader };
+            _waterMat.SetShaderParameter("water_noise", _waterNoiseTex);
+        }
+
+        // Sky tones per surround, so the mirror reflects the ACTIVE sky story
+        // rather than combat's blue day (a bright blue mirror inside the dark
+        // scrying chamber would glow like a screen).
+        Color horizon, zenith; float clouds;
+        switch (_surround)
+        {
+            case SurroundStyle.Desk:
+                horizon = new Color(0.62f, 0.55f, 0.45f); zenith = new Color(0.38f, 0.34f, 0.30f); clouds = 0.20f;
+                break;
+            case SurroundStyle.Vignette:
+                horizon = new Color(0.30f, 0.42f, 0.55f); zenith = new Color(0.10f, 0.16f, 0.24f); clouds = 0.25f;
+                break;
+            default:   // Haze
+                horizon = new Color(0.88f, 0.87f, 0.82f); zenith = new Color(0.45f, 0.60f, 0.74f); clouds = 0.55f;
+                break;
+        }
+
+        void Common(ShaderMaterial m)
+        {
+            // MAP-SCALE motion (playtest 2026-08-27: combat-tuned motion read
+            // as churning surf on the scrying map). One hex is kilometres, so
+            // the surface may only shimmer: tiny amplitudes, drifts an order
+            // of magnitude slower than combat, a softer per-pixel normal
+            // (larger sample distance = gentler mirror wobble).
+            m.SetShaderParameter("swell_amplitude", 0.006f);
+            m.SetShaderParameter("swell_frequency", 2.2f);
+            m.SetShaderParameter("swell_speed", 0.12f);
+            m.SetShaderParameter("ripple_amplitude", 0.004f);
+            m.SetShaderParameter("ripple_scale", 0.30f);
+            m.SetShaderParameter("ripple_drift", new Vector2(0.008f, 0.012f));
+            m.SetShaderParameter("normal_sample_dist", 0.08f);
+            m.SetShaderParameter("micro_normal_strength", 0.10f);
+            m.SetShaderParameter("micro_normal_scale", 2.6f);
+            // Depth-driven knobs rescaled to window thickness.
+            m.SetShaderParameter("use_depth_reads", true);
+            m.SetShaderParameter("foam_from_depth", true);
+            m.SetShaderParameter("foam_depth_range", WaterFoamRange);
+            m.SetShaderParameter("depth_tint_distance", WaterDepthNorm);
+            m.SetShaderParameter("edge_fade_distance", 0.02f);
+            m.SetShaderParameter("foam_noise_scale", 0.9f);
+            m.SetShaderParameter("foam_wobble", 0.03f);
+            m.SetShaderParameter("foam_drift", new Vector2(0.004f, 0.006f));
+            m.SetShaderParameter("cloud_drift", new Vector2(0.006f, 0.002f));
+            // The banded sun glint saturates whole regions at survey distance
+            // (the blown-white sheet): tighten and dim it hard.
+            m.SetShaderParameter("glint_threshold", 0.995f);
+            m.SetShaderParameter("glint_intensity", 0.25f);
+            // Honest shallows (2026-08-27, "the blue is still there"): the
+            // at-grade coasts make a wide shelf just under the waterline, and
+            // at alpha 0.55 + the reflection floor it painted a solid teal
+            // band that read as tinted GROUND. Near-transparent shallows show
+            // the sandy bed instead; blue arrives with depth.
+            m.SetShaderParameter("alpha_shallow", 0.28f);
+            m.SetShaderParameter("reflection_base", 0.25f);
+            // Rim handled by baked spill; the endless-sea horizon melt would
+            // paint an opaque haze ring instead. Off.
+            m.SetShaderParameter("horizon_melt_max", 0f);
+            m.SetShaderParameter("sky_horizon", horizon);
+            m.SetShaderParameter("sky_zenith", zenith);
+            if (_sun != null)
+                m.SetShaderParameter("sun_direction", -_sun.GlobalTransform.Basis.Z);
+        }
+
+        Common(_waterMat);
+        _waterMat.SetShaderParameter("cloud_strength", clouds);
+        // Sparse, slow sparkle: single paint daubs that wink, not glitter
+        // fields (density lives in the threshold, size in the scale).
+        _waterMat.SetShaderParameter("sparkle_scale", 2.2f);
+        _waterMat.SetShaderParameter("sparkle_threshold", 0.93f);
+        _waterMat.SetShaderParameter("sparkle_speed", 0.05f);
+        _waterMat.SetShaderParameter("sparkle_ambient", 0.10f);
+        _waterMat.SetShaderParameter("sparkle_sun_boost", 0.7f);
+        _waterMat.SetShaderParameter("sparkle_sun_focus", 12f);
+    }
+
+    // ── City grounds (2026-08-27): real buildings instead of the grey blot ──
+    // The strategic map's phase-2 trick, replayed here: a City's footprint
+    // hosts a CampusGridManager at 1/3 scale, so the HOME city shows its
+    // actual campus buildings and NPC cities show their paved district
+    // lattices (the same thing the atlas renders; NPC layouts come from the
+    // SHARED WorldAtlas3D.CityLayoutFor so the two views cannot drift).
+    // Grounds are CACHED per settlement, not rebuilt each step: LoadFromSave
+    // instantiates hundreds of nodes, so a per-move rebuild would hitch. A
+    // grounds appears when any footprint tile is Revealed inside the window,
+    // rebuilds when the revealed count changes (progressive reveals reshape
+    // the contour under it), and is freed when the window slides away.
+    // Contour: each 1/3-scale child tile samples the smooth field at its own
+    // world position, so a hillside city drapes the slope. Read-only scenery;
+    // window picking is pure math over the world grid and ignores it.
+
+    [ExportGroup("Cities")]
+    [Export] public bool EnableCityGrounds = true;
+
+    private const float CityGroundsLift = 0.02f;
+    private readonly Dictionary<int, CampusGridManager> _cityGrounds3D = new();
+    private readonly Dictionary<int, int> _cityGroundsSig = new();
+
+    private void RefreshCityGrounds()
+    {
+        if (!EnableCityGrounds || _world == null)
+        {
+            FreeAllCityGrounds();
+            return;
+        }
+        for (int i = 0; i < _world.Settlements.Count; i++)
+        {
+            var s = _world.Settlements[i];
+            if (s.Tier != SettlementTier.City) { continue; }
+            // Signature = number of Revealed footprint tiles. Zero (hidden,
+            // silhouette, or window slid away; FogAt is Hidden off-window)
+            // means no grounds; a changed count re-drapes the contour.
+            int sig = 0;
+            foreach (var (x, y) in s.Tiles)
+                if (_fog.FogAt(new Vector2I(x, y)) == Fog.Revealed) sig++;
+            bool cached = _cityGrounds3D.TryGetValue(i, out var node);
+            if (sig == 0 || (cached && _cityGroundsSig.GetValueOrDefault(i) != sig))
+            {
+                if (cached) { node.QueueFree(); _cityGrounds3D.Remove(i); _cityGroundsSig.Remove(i); }
+                cached = false;
+            }
+            if (sig > 0 && !cached)
+                BuildCityGrounds(i, s, sig);
+        }
+    }
+
+    private void FreeAllCityGrounds()
+    {
+        foreach (var g in _cityGrounds3D.Values) g.QueueFree();
+        _cityGrounds3D.Clear();
+        _cityGroundsSig.Clear();
+    }
+
+    private void BuildCityGrounds(int index, WorldSettlement s, int sig)
+    {
+        var save = SaveManager.ActiveSave;
+        bool isHome = s.CenterX == _world.HomeX && s.CenterY == _world.HomeY;
+        CampusMapSaveData map;
+        List<BuildingSaveData> buildings;
+        if (isHome && save?.Ledger?.CampusMap != null && save.Ledger.CampusMap.Tiles.Count > 0)
+        {
+            map = save.Ledger.CampusMap;
+            buildings = save.Ledger.Buildings;
+        }
+        else
+        {
+            map = WorldAtlas3D.CityLayoutFor(s);
+            buildings = new List<BuildingSaveData>();
+        }
+        if (map.Tiles.Count == 0) return;
+
+        var grounds = new CampusGridManager
+        {
+            Name = $"WinCityGrounds{index}",
+            HexTileScene3D = GD.Load<PackedScene>("res://Scenes/Combat/HexTile.tscn"),
+            HexRadius = 1.0f,
+            UseBlendedTerrainMesh = false,
+            TileVisualShrink = 1f,   // full mesh, matching the atlas grounds
+            ShowNameLabels = false,  // scenery here: no floating tag cloud
+        };
+        AddChild(grounds);
+        Vector3 c = TileOrigin(s.CenterX, s.CenterY);
+        // Transform + height provider BEFORE LoadFromSave (the atlas's rule:
+        // the provider's world→local conversion reads the global transform).
+        grounds.Scale = Vector3.One / 3f;
+        grounds.Position = new Vector3(c.X, SampleFieldHeight(c.X, c.Z) + CityGroundsLift, c.Z);
+        grounds.ChildTopWorldY = child =>
+        {
+            // Child axial → world XZ on the 1/3 sublattice (flat-top axial
+            // formula scaled by HexRadius/3), then the smooth field height.
+            float lx = child.X * 1.5f / 3f;
+            float lz = (child.Y + child.X * 0.5f) * Mathf.Sqrt(3f) / 3f;
+            return SampleFieldHeight(c.X + lx, c.Z + lz) + CityGroundsLift;
+        };
+        grounds.LoadFromSave(map, buildings);
+        if (isHome && save != null)
+            grounds.LoadLandmarks(save.HasFlag);
+        _cityGrounds3D[index] = grounds;
+        _cityGroundsSig[index] = sig;
     }
 
     // ── Scrying table rig ────────────────────────────────────────────────────
@@ -1335,14 +1908,23 @@ public partial class ExpeditionWindow3D : Node3D
     /// information is adjacency and walkability, so the variable part of the
     /// height is compressed: relief survives as gentle steps, cliffs stop
     /// occluding the tiles behind them. 1.0 restores the strategic profile.</summary>
-    private const float HeightScale = 0.45f;
+    // 0.65 (was 0.45, relief pass 2026-08-27): the 0.45 ruling answered
+    // TERRACED tiles occluding rows behind them; the smooth heightmap has no
+    // terraces, and at 0.45 on top of the wide kernel the map read as a
+    // billiard table. Pull back toward 0.45 if tall revealed peaks start
+    // hiding tiles at shallow pitch.
+    private const float HeightScale = 0.65f;
 
     private float TileHeight(Vector2I c)
     {
         var t = _world.GetTile(c.X, c.Y);
         if (_fog.FogAt(c) == Fog.Hidden) return VoidSlabHeight;
-        if (t.IsOcean) return 0.08f;
-        if (t.IsLake) return 0.12f;
+        // Water beds sit deeper when the painterly water plane is on: the plane
+        // needs real thickness under it for the depth tint and depth foam to
+        // read (waterline 0.175 minus bed). With the plane off, the old flat
+        // colour heights return unchanged.
+        if (t.IsOcean) return EnableWaterPlane ? 0.02f : 0.08f;
+        if (t.IsLake) return EnableWaterPlane ? 0.07f : 0.12f;
         float terraced = Mathf.Round(Mathf.Clamp(t.Elevation, 0f, 1f) * TerraceSteps) / TerraceSteps;
         float h = 0.22f + terraced * 2.6f;
         switch (t.Terrain)
@@ -1748,7 +2330,12 @@ void fragment() {
     // ground: the renderer-dependent "lines" (visible on Forward+/this GPU,
     // hidden on the laptop). Killed while we confirm the diagnosis; a smoother
     // reintroduction (shaded flat, or fewer harder bands) can follow.
-    private const float UndulationAmp = 0f;
+    // Re-enabled at LOW amplitude (ground pass 3, 2026-08-27; was 0.06, then
+    // 0 during the line-artifact hunt). The confirmed culprit was the brush
+    // grain aliasing, not this: the rotated octaves + quintic fade below are
+    // the undulation's own artifact fixes and are already in place. 0.025
+    // restores a gentle roll to the plains without the old crease risk.
+    private const float UndulationAmp = 0.04f;   // 0.025 → 0.04, relief pass 2026-08-27
 
     /// <summary>World XZ → offset tile coord, via fractional axial + cube
     /// rounding (inverse of <see cref="TileOrigin"/>: x = q·1.5, z = √3·(r + q/2)).</summary>
@@ -1834,6 +2421,13 @@ void fragment() {
         var broadleaf = new List<(Transform3D, Color)>();
         var conifers = new List<(Transform3D, Color)>();
         var peaks = new List<(Transform3D, Color)>();
+        // Ground pass 2 (2026-08-27): silhouettes for the previously bare
+        // terrains. The crafted-model read comes from tiny props catching the
+        // raking light, not from surface texture.
+        var tuftFlecks = new List<(Transform3D, Color)>();   // flower/fleck dabs
+        var dunes = new List<(Transform3D, Color)>();
+        var reeds = new List<(Transform3D, Color)>();
+        var stones = new List<(Transform3D, Color)>();
         foreach (var c in _windowTiles)
         {
             if (_fog.FogAt(c) != Fog.Revealed) continue;
@@ -1893,10 +2487,115 @@ void fragment() {
                           basePos + new Vector3(0f, GroundAt(basePos) + 0.9f * s * 0.5f - 0.04f, 0f)),
                           new Color(0.92f, 0.94f, 0.97f)));
             }
+            else if (t.Terrain == TT.Grassland)
+            {
+                // Meadow: small canopy-blob tufts, plus occasional bright
+                // flecks (flower dabs) so the big green fields carry life.
+                if (Hash(c, 101) % 10 < 4)
+                {
+                    int n = 1 + (int)(Hash(c, 103) % 2);
+                    for (int i = 0; i < n; i++)
+                    {
+                        float a = H01(Hash(c, (uint)(107 + i))) * Mathf.Tau;
+                        float rad = 0.1f + H01(Hash(c, (uint)(109 + i))) * 0.5f;
+                        float s = 0.12f + H01(Hash(c, (uint)(113 + i))) * 0.10f;
+                        var pos = basePos + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                        pos.Y = GroundAt(pos) - 0.015f;
+                        var yaw = new Basis(Vector3.Up, H01(Hash(c, (uint)(127 + i))) * Mathf.Tau);
+                        broadleaf.Add((new Transform3D(yaw * Basis.FromScale(new Vector3(s, s * 0.7f, s)), pos),
+                                       Jitter(new Color(0.30f, 0.42f, 0.20f), c, 0.15f)));
+                    }
+                }
+                if (Hash(c, 131) % 10 < 2)
+                {
+                    int n = 2 + (int)(Hash(c, 137) % 2);
+                    for (int i = 0; i < n; i++)
+                    {
+                        float a = H01(Hash(c, (uint)(139 + i))) * Mathf.Tau;
+                        float rad = H01(Hash(c, (uint)(149 + i))) * 0.6f;
+                        var pos = basePos + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                        pos.Y = GroundAt(pos) + 0.02f;
+                        Color fc = (Hash(c, (uint)(151 + i)) % 3) switch
+                        {
+                            0 => new Color(0.85f, 0.55f, 0.60f),
+                            1 => new Color(0.92f, 0.90f, 0.80f),
+                            _ => new Color(0.90f, 0.75f, 0.40f),
+                        };
+                        tuftFlecks.Add((new Transform3D(Basis.Identity, pos), fc));
+                    }
+                }
+            }
+            else if (t.Terrain == TT.Desert && Hash(c, 157) % 10 < 5)
+            {
+                // Dune ridges: long flattened mounds, random yaw, a shade off
+                // the ground tone so the raking light draws the crescents.
+                int n = 1 + (int)(Hash(c, 163) % 2);
+                for (int i = 0; i < n; i++)
+                {
+                    float a = H01(Hash(c, (uint)(167 + i))) * Mathf.Tau;
+                    float rad = H01(Hash(c, (uint)(173 + i))) * 0.45f;
+                    float s = 0.7f + H01(Hash(c, (uint)(179 + i))) * 0.6f;
+                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                    pos.Y = GroundAt(pos) - 0.02f;
+                    var yaw = new Basis(Vector3.Up, H01(Hash(c, (uint)(181 + i))) * Mathf.Tau);
+                    dunes.Add((new Transform3D(yaw * Basis.FromScale(new Vector3(s, s * 0.16f, s * 0.42f)), pos),
+                               Jitter(new Color(0.80f, 0.70f, 0.50f), c, 0.08f)));
+                }
+            }
+            else if ((t.Terrain == TT.Swamp || t.Terrain == TT.Marsh) && Hash(c, 191) % 10 < 6)
+            {
+                // Reed clusters: thin dark cones leaning slightly, wetland tone.
+                int n = 2 + (int)(Hash(c, 193) % 3);
+                for (int i = 0; i < n; i++)
+                {
+                    float a = H01(Hash(c, (uint)(197 + i))) * Mathf.Tau;
+                    float rad = 0.1f + H01(Hash(c, (uint)(199 + i))) * 0.5f;
+                    float s = 0.7f + H01(Hash(c, (uint)(211 + i))) * 0.6f;
+                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                    pos.Y = GroundAt(pos) + 0.4f * s * 0.5f - 0.02f;
+                    var lean = new Basis(Vector3.Up, H01(Hash(c, (uint)(223 + i))) * Mathf.Tau)
+                             * new Basis(Vector3.Right, (H01(Hash(c, (uint)(227 + i))) - 0.5f) * 0.3f);
+                    reeds.Add((new Transform3D(lean * Basis.FromScale(new Vector3(s, s, s)), pos),
+                               Jitter(new Color(0.22f, 0.30f, 0.18f), c, 0.12f)));
+                }
+            }
+            else if (t.Terrain == TT.Ruins && Hash(c, 229) % 10 < 6)
+            {
+                // Broken masonry: tilted grey blocks, the "something stood
+                // here" cue the flat splat never gave.
+                int n = 2 + (int)(Hash(c, 233) % 2);
+                for (int i = 0; i < n; i++)
+                {
+                    float a = H01(Hash(c, (uint)(239 + i))) * Mathf.Tau;
+                    float rad = 0.08f + H01(Hash(c, (uint)(241 + i))) * 0.45f;
+                    float s = 0.7f + H01(Hash(c, (uint)(251 + i))) * 0.7f;
+                    var pos = basePos + new Vector3(Mathf.Cos(a) * rad, 0f, Mathf.Sin(a) * rad);
+                    pos.Y = GroundAt(pos) + 0.09f * s;
+                    var tilt = new Basis(Vector3.Up, H01(Hash(c, (uint)(257 + i))) * Mathf.Tau)
+                             * new Basis(Vector3.Forward, (H01(Hash(c, (uint)(263 + i))) - 0.5f) * 0.35f);
+                    stones.Add((new Transform3D(tilt * Basis.FromScale(new Vector3(s, s, s)), pos),
+                                Jitter(new Color(0.52f, 0.50f, 0.47f), c, 0.10f)));
+                }
+            }
         }
         _decor.Add(MakeDecoLayer("WinBroadleaf", broadleaf, PainterlyProps.BroadleafCanopy(), 1.3f));
         _decor.Add(MakeDecoLayer("WinConifers", conifers, PainterlyProps.ConiferCanopy(), 1.4f));
         _decor.Add(MakeDecoLayer("WinPeaks", peaks, PainterlyProps.PeakCone(0.34f, 0.9f), 1.6f));
+        // Primitive prop meshes need the shared gouache material explicitly,
+        // or MultiMesh instance colours are ignored and everything is white.
+        var propMat = PainterlyProps.SharedPropMaterial();
+        _decor.Add(MakeDecoLayer("WinFlecks", tuftFlecks,
+            new SphereMesh { Radius = 0.05f, Height = 0.07f, RadialSegments = 6, Rings = 3, Material = propMat }, 0.2f));
+        _decor.Add(MakeDecoLayer("WinDunes", dunes,
+            new SphereMesh { Radius = 0.5f, Height = 0.5f, RadialSegments = 10, Rings = 5, Material = propMat }, 1.2f));
+        // NOT PainterlyProps.PeakCone: that factory caches its FIRST call's
+        // dimensions (doc'd on HexTileMesh too), so asking it for a thin reed
+        // cone would silently return the mountain spire. Fresh mesh instead.
+        _decor.Add(MakeDecoLayer("WinReeds", reeds,
+            new CylinderMesh { TopRadius = 0f, BottomRadius = 0.05f, Height = 0.4f,
+                               RadialSegments = 5, Rings = 0, Material = propMat }, 0.8f));
+        _decor.Add(MakeDecoLayer("WinStones", stones,
+            new BoxMesh { Size = new Vector3(0.16f, 0.20f, 0.13f), Material = propMat }, 0.5f));
     }
 
     private MultiMeshInstance3D MakeDecoLayer(string name, List<(Transform3D, Color)> items, Mesh mesh, float meshExtent)
@@ -2242,8 +2941,11 @@ void fragment() {
         // now light the SAME colours under the SAME daylight rig (A4); if the
         // window still reads flatter than the atlas after that, retune with
         // screenshots rather than reintroducing a per-view grade.
-        // City footprint reads as a grey region (revealed tiles only, since fog is handled above).
-        if (t.SettlementIndex >= 0 && _world != null && t.SettlementIndex < _world.Settlements.Count
+        // City footprints: with the 3D grounds on, the buildings/lattice ARE
+        // the city read, so the ground keeps its terrain colour (the old grey
+        // blot is the fallback for EnableCityGrounds = false only).
+        if (!EnableCityGrounds && t.SettlementIndex >= 0 && _world != null
+            && t.SettlementIndex < _world.Settlements.Count
             && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City)
             baseCol = CityRegionTint;
         return Jitter(baseCol, c, Hex3DPalette.JitterAmp(t));

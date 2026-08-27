@@ -730,8 +730,10 @@ public partial class WorldAtlas3D : Node3D
     /// <summary>A transient district layout for an NPC city: each settlement tile becomes an
     /// unlocked district (axial delta from the centre), so CampusGridManager renders its /3 flowers
     /// exactly as the campus does, just with no buildings. Reuses the Locale renderer rather than
-    /// forking one (per the Phase 3 spec).</summary>
-    private CampusMapSaveData GenerateCityLayout(WorldSettlement city)
+    /// forking one (per the Phase 3 spec). STATIC and public (2026-08-27) so the
+    /// expedition window renders the same city lattices from the same math; a
+    /// second copy would drift.</summary>
+    public static CampusMapSaveData CityLayoutFor(WorldSettlement city)
     {
         var map = new CampusMapSaveData { LatticeVersion = 3 };
         var centerAx = OffsetToAxial(city.CenterX, city.CenterY);
@@ -743,6 +745,8 @@ public partial class WorldAtlas3D : Node3D
         map.RebuildTilesFromDistricts();
         return map;
     }
+
+    private CampusMapSaveData GenerateCityLayout(WorldSettlement city) => CityLayoutFor(city);
 
     /// <summary>Build the transient grounds for a visited NPC city (freed on leave). Same renderer
     /// + contour as the home campus, positioned on the settlement centre, with an empty
