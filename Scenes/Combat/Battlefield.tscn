@@ -136,9 +136,9 @@ text = "Remove"
 
 [node name="HexGridManager" type="Node3D" parent="." unique_id=1283187122 node_paths=PackedStringArray("ThemeSun", "ThemeWorldEnvironment", "WaterSunLight")]
 script = ExtResource("6_duw5d")
-GridWidth = 15
-GridHeight = 15
-HexRadius = 1.325
+GridWidth = 25
+GridHeight = 25
+HexRadius = 1.5470000000000002
 LayoutType = 1
 Theme = 9
 TerrainDensity = 0.4
@@ -183,7 +183,7 @@ script = ExtResource("29_6m6xa")
 
 [node name="MovementZoneRenderer" type="Node3D" parent="HexGridManager" unique_id=869605721]
 script = ExtResource("30_q7oa6")
-HexRadius = 1.325
+HexRadius = 1.5470000000000002
 
 [node name="GroundMesh" type="MeshInstance3D" parent="." unique_id=1378590758]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
