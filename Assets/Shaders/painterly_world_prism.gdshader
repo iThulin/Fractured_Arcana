@@ -49,6 +49,15 @@ group_uniforms land_grain;
 uniform float grain_strength : hint_range(0.0, 0.3) = 0.07;
 /** World-space scale of the brush grain. */
 uniform float grain_scale : hint_range(0.05, 5.0) = 0.9;
+/** Camera distance (view units) where the brush grain starts fading out.
+    Belt and braces on top of the fwidth fade: the 2026-08-21 moire showed the
+    fwidth ramp alone is not enough on every GPU. Defaults keep grain at all
+    distances (atlas unchanged); the expedition window sets ~9.0/16.0 so grain
+    exists only at walking zoom where it samples cleanly. */
+uniform float grain_fade_start = 100000.0;
+/** Camera distance where the brush grain is fully gone. Keep above
+    grain_fade_start. */
+uniform float grain_fade_end = 100000.0;
 /** Gentle world-space undulation of land TOP surfaces, world units. 0 = flat
     lids (the strategic map). The expedition window sets ~0.07 on a subdivided
     tile mesh so the ground rolls naturally ACROSS tiles (world-space noise ⇒
@@ -195,6 +204,8 @@ void fragment()
 		vec2 gp = v_world_pos.xz * grain_scale;
 		float gw = fwidth(gp.x) + fwidth(gp.y);
 		float gfade = clamp(1.5 - 2.0 * gw, 0.0, 1.0);
+		// Explicit camera-distance fade (VERTEX is view-space in fragment).
+		gfade *= 1.0 - smoothstep(grain_fade_start, grain_fade_end, length(VERTEX));
 		float g = (fbm2(gp) - 0.5) * gfade;
 		base *= 1.0 + g * 2.0 * grain_strength;
 		float wall = 1.0 - clamp(abs(NORMAL.y) * 2.0, 0.0, 1.0);

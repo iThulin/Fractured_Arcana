@@ -82,6 +82,12 @@ public partial class CampusGridManager : HexGridManager
     /// timing to suppress it.</summary>
     public override void _Ready() { }
 
+    /// <summary>Building/landmark name labels on anchor tiles. The expedition
+    /// window sets this false BEFORE LoadFromSave: at run scale the 1/3-scale
+    /// city is read-only scenery and the tag cloud reads as noise floating on
+    /// the map. Campus and atlas keep the default.</summary>
+    public bool ShowNameLabels = true;
+
     // ── Loading ───────────────────────────────────────────────────────
 
     /// <summary>Clears any existing tiles and rebuilds the grid from saved data.
@@ -271,7 +277,8 @@ public partial class CampusGridManager : HexGridManager
                 // player does not have. HexLabel is left authored on all six landmarks;
                 // it is the right text for a future compact/zoomed-out view, and it costs
                 // nothing to keep.
-                tile.TileView.SetPoiLabel(lm.DisplayName, tint, UITheme.Label3DPlaceName);
+                if (ShowNameLabels)
+                    tile.TileView.SetPoiLabel(lm.DisplayName, tint, UITheme.Label3DPlaceName);
 
                 // Placeholder massing (2026-08-19): landmarks get the same convention-scene
                 // treatment as buildings: Scenes/Campus/Buildings/{landmarkId}.tscn, tier
@@ -377,10 +384,11 @@ public partial class CampusGridManager : HexGridManager
         if (template != null && Tiles.TryGetValue(anchor, out var anchorTile))
         {
             bool isDoor = !string.IsNullOrEmpty(template.HostsSystem);
-            anchorTile.TileView?.SetPoiLabel(
-                template.EffectiveMapLabel,
-                isDoor ? UITheme.BuildingLabelDoor : UITheme.BuildingLabelPlain,
-                UITheme.Label3DPlaceName);
+            if (ShowNameLabels)
+                anchorTile.TileView?.SetPoiLabel(
+                    template.EffectiveMapLabel,
+                    isDoor ? UITheme.BuildingLabelDoor : UITheme.BuildingLabelPlain,
+                    UITheme.Label3DPlaceName);
 
             // ── Building mesh (2026-08-13) ─────────────────────────────────
             // Convention scene on the ANCHOR tile, tier group visible per the

@@ -186,7 +186,7 @@ public static class CampusLandmarkRegistry
                                    "Its note stretches thin through the still air, more felt " +
                                    "than heard, a single sound that has lasted every timeline " +
                                    "you have lived. The belfry stairs are choked with leaked " +
-                                   "dream-stuff that eats sound. Your footsteps die on the " +
+                                   "aether that eats sound. Your footsteps die on the " +
                                    "first step.",
                             Choices = new List<EncounterChoice>
                             {
@@ -194,7 +194,7 @@ public static class CampusLandmarkRegistry
                                 {
                                     Label = "Climb the silent stair.",
                                     ResultText = "You climb in silence so complete it feels " +
-                                                 "like drowning. The dream-stuff parts reluctantly, " +
+                                                 "like drowning. The aether parts reluctantly, " +
                                                  "filling back in behind you. At the top, the bell " +
                                                  "is enormous and very still. Its clapper rests a " +
                                                  "finger's width from the rim, frozen in the moment " +
@@ -222,7 +222,7 @@ public static class CampusLandmarkRegistry
                             Title = "The Belfry: The Tuning Fork",
                             Body = "The bell waits at the top of the cleared stair. Its note " +
                                    "has changed since you climbed, thinner now, as if your " +
-                                   "passage drained something from the dream-stuff that was " +
+                                   "passage drained something from the aether that was " +
                                    "feeding it. The founder's tuning fork, if you can find it " +
                                    "in the world, remembers the bell's true pitch.",
                             Choices = new List<EncounterChoice>
@@ -451,14 +451,14 @@ public static class CampusLandmarkRegistry
                                    "Astrologer reads. From inside the Long Second, the sky " +
                                    "doesn't move, which means that for the first time in " +
                                    "history, someone could read it slowly. The dome is " +
-                                   "sealed shut, and the leaked dream-stuff here mimics " +
+                                   "sealed shut, and the leaked aether here mimics " +
                                    "constellations, star-shaped and cold.",
                             Choices = new List<EncounterChoice>
                             {
                                 new EncounterChoice
                                 {
                                     Label = "Unshutter the dome.",
-                                    ResultText = "The dome resists. The dream-stuff constellations " +
+                                    ResultText = "The dome resists. The aether constellations " +
                                                  "flare as you force the mechanism, casting cold " +
                                                  "light across the floor in patterns that almost " +
                                                  "mean something. The shutter groans open and the " +

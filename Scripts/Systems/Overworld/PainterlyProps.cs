@@ -202,6 +202,11 @@ public static class PainterlyProps
 
     private static StandardMaterial3D _mat;
 
+    /// <summary>The shared gouache prop material, for callers that scatter
+    /// primitive meshes (spheres, boxes) as extra prop layers: assign it to
+    /// the primitive's Material so MultiMesh instance colours apply.</summary>
+    public static StandardMaterial3D SharedPropMaterial() => PropMaterial();
+
     /// <summary>Matte and instance-coloured: gouache paint, same register as the A4
     /// tile materials. One shared instance.</summary>
     private static StandardMaterial3D PropMaterial()
