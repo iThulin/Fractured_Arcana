@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "storm_track_passage",
+   "shortName": "corridor passage",
    "description": "Use of the elemental corridor as a road. It runs west to east and it is fast.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +30,7 @@
   },
   {
    "id": "the_green_reading",
+   "shortName": "green reading",
    "description": "What grew in nine days on ground that had nothing, and what that is worth.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +41,7 @@
   },
   {
    "id": "untamed_standing",
+   "shortName": "untamed standing",
    "description": "The Untamed will know your name and what you agreed to. That cuts both ways.",
    "favorPlayer": true,
    "isHidden": false,
@@ -51,6 +54,7 @@
   },
   {
    "id": "no_felling",
+   "shortName": "no-felling vow",
    "description": "No axe work in the Deep. Not for fuel, not for a path, not for a night's fire.",
    "favorPlayer": false,
    "isHidden": false,
@@ -62,7 +66,9 @@
   },
   {
    "id": "the_opinion_is_formed",
+   "shortName": "verdict",
    "description": "It was formed before you arrived. This is notification, courteously delivered.",
+   "rumorText": "The Deep's answer arrived before your question did. You can feel it in how patiently she listens.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": 0,

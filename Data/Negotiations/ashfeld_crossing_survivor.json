@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "worked_strip",
+   "shortName": "salvage strip",
    "description": "A strip already picked once, and everything her people left because it was too heavy.",
    "favorPlayer": true,
    "isHidden": false,
@@ -28,6 +29,7 @@
   },
   {
    "id": "the_sorted_finds",
+   "shortName": "sorted salvage",
    "description": "Two centuries of finds, sorted by regiment, waiting for a buyer who never came.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +41,7 @@
   },
   {
    "id": "safe_ford",
+   "shortName": "ford lore",
    "description": "Where the gravel holds and where it does not. Four of her people learned the difference badly.",
    "favorPlayer": true,
    "isHidden": false,
@@ -50,6 +53,7 @@
   },
   {
    "id": "dig_the_trench",
+   "shortName": "burial shift",
    "description": "You work a shift on the burial line. It is not optional and it is not paid.",
    "favorPlayer": false,
    "isHidden": false,
@@ -62,7 +66,9 @@
   },
   {
    "id": "the_detail_is_watching",
+   "shortName": "detail's arrangement",
    "description": "The burial detail have their own arrangement, and Hollow is not part of it.",
+   "rumorText": "The burial detail stop digging when you pass, and not out of respect.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -20,

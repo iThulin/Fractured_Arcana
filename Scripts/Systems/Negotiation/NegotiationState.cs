@@ -49,6 +49,12 @@ public enum NegotiationLogKind { Dialogue, Scene, Detail }
 /// tell can never lie.</summary>
 public enum NpcMoveKind { Poise, Pull, Rework, Threat, Gift, Hold }
 
+/// <summary>How the NPC's CURRENT stance receives a token: the rack's
+/// timing glyph (✓ / · / ✗). Computed by
+/// <see cref="NegotiationState.TimingFor"/> from the same stance rules
+/// PlayPress/PlayOffering apply, so the glyph can never lie.</summary>
+public enum TokenTiming { Favorable, Indifferent, Poor }
+
 /// <summary>One clause slide within the current exchange: who moved it,
 /// from which notch to which. The manager draws these as move markers and
 /// ghost trails on the clause cards.</summary>
@@ -87,6 +93,8 @@ public class NegotiationState
     // ── NPC pool (v2: they spend too) ────────────────────────────────────
     public Dictionary<NpcResource, int> NpcPool { get; private set; } = new();
     public string ResolveName => ArchetypeBehavior.ResolveDisplayName(Data.Archetype);
+    public string GuileName => ArchetypeBehavior.GuileDisplayName(Data.Archetype);
+    public string PoiseName => ArchetypeBehavior.PoiseDisplayName(Data.Archetype);
 
     // ── Stance (Module A) ────────────────────────────────────────────────
     public NpcStance Stance { get; private set; } = NpcStance.Guarded;
@@ -147,7 +155,13 @@ public class NegotiationState
     private bool _npcHardened = false;   // Intimidate-into-Guarded: next NPC pull +1
     private bool _giftGiven = false;     // one goodwill gift per table
     private bool _resolveEmptyAnnounced; // "their Greed is spent" fired once
-    private bool _guileEmptyAnnounced;   // "out of fine print" fired once
+    private bool _guileEmptyAnnounced;   // guile-exhausted line fired once
+    private bool _smallPrintHinted = false;  // §4c tip-of-the-hand fired once
+    private bool _squeezeSeedBarked = false; // §5c closing-demand seed fired once
+    private bool _grudgeArmed = false;       // §6b: collapsed history opens on Guile
+    private bool _firstTableGuidance = false; // §4e mentor lines, first table ever
+    private bool _stanceGuidanceGiven = false;
+    private bool _shakeGuidanceGiven = false;
 
     // ── Init ─────────────────────────────────────────────────────────────
 
@@ -219,6 +233,14 @@ public class NegotiationState
         AddLog($"Negotiation begins. {data.NpcName} presents their terms.");
         AddLog(data.OpeningText, NegotiationLogKind.Dialogue);
         AddLog(NegotiationBarks.StanceTell(Data.Archetype, Stance));
+
+        // First-table onboarding (spec §4e): guild training surfacing at the
+        // natural moments, once ever, in the fiction rather than a tutorial.
+        _firstTableGuidance = SaveManager.ActiveSave?.Ledger?.DeedCounts != null
+            && !SaveManager.ActiveSave.Ledger.DeedCounts.ContainsKey("negotiation_resolved");
+        if (_firstTableGuidance)
+            AddLog("Your guild training surfaces: the meter by their portrait is " +
+                   "the temper of the room. Read it before you spend anything.");
     }
 
     private static int DeriveWeight(DealTerm t)
@@ -592,21 +614,39 @@ public class NegotiationState
         public int OddsPercent;   // chance they blink if you hold firm; SHOWN to the player
     }
 
+    /// <summary>The clause the NPC would squeeze at a handshake offered NOW:
+    /// the visible clause the player has won furthest, the concession they
+    /// most want back. Null when no squeeze would come: already spent, no
+    /// worthwhile target, or (spec §5b, ruled 2026-08-31) their Resolve is
+    /// exhausted. A counterpart with nothing left to want it WITH signs as
+    /// written, which turns pool attrition into closing strategy. Single
+    /// source of truth for BeginShake AND the UI's corner mark, so this
+    /// tell, like the others, can never lie.</summary>
+    public DealTerm PredictSqueezeTarget()
+    {
+        if (IsResolved || SqueezeSpent || NpcPool[NpcResource.Resolve] <= 0)
+            return null;
+        return Terms
+            .Where(t => !t.IsHidden && t.Position > -2)
+            .OrderByDescending(t => t.Position * t.Weight)
+            .FirstOrDefault();
+    }
+
     /// <summary>Begin closing. Returns the NPC's squeeze, or null when they
-    /// sign as-is (squeeze already spent, or nothing worth squeezing). In
-    /// the null case the deal is ALREADY resolved when this returns.</summary>
+    /// sign as-is (squeeze already spent, Resolve exhausted, or nothing
+    /// worth squeezing). In the null case the deal is ALREADY resolved when
+    /// this returns.</summary>
     public SqueezeOffer BeginShake()
     {
         if (IsResolved)
             return null;
 
-        var target = Terms
-            .Where(t => !t.IsHidden && t.Position > -2)
-            .OrderByDescending(t => t.Position * t.Weight)
-            .FirstOrDefault();
-
-        if (SqueezeSpent || target == null)
+        var target = PredictSqueezeTarget();
+        if (target == null)
         {
+            if (!SqueezeSpent && NpcPool[NpcResource.Resolve] <= 0)
+                AddLog($"Nothing left in them to haggle with: their {ResolveName} " +
+                       "is spent, and the hand comes out clean.");
             AcceptDeal();
             return null;
         }
@@ -933,6 +973,105 @@ public class NegotiationState
         }
     }
 
+    /// <summary>§6b: the last table with this counterpart in THIS life walks
+    /// back in the door as their re-meeting opener. The starting-tension
+    /// shift is applied by the manager pre-init (the Beguile pattern); this
+    /// logs the line. Called once, right after Initialize.</summary>
+    public void ApplyContinuity(string lastOutcome, int lastStars)
+    {
+        if (IsResolved || string.IsNullOrEmpty(lastOutcome))
+            return;
+        var kind = lastOutcome switch
+        {
+            "Signed" => lastStars >= 4
+                ? NegotiationContinuityKind.WarmReturn
+                : NegotiationContinuityKind.CoolReturn,
+            "WalkedAway" => NegotiationContinuityKind.WalkedBefore,
+            "Collapsed" => NegotiationContinuityKind.CollapsedBefore,
+            _ => NegotiationContinuityKind.TimedOutBefore,
+        };
+        // A collapsed history arms the grudge: their FIRST move is fine
+        // print, never generosity (spec §6b's continuity table).
+        _grudgeArmed = kind == NegotiationContinuityKind.CollapsedBefore;
+        AddLog(NegotiationBarks.ContinuityLine(Data.Archetype, kind),
+               NegotiationLogKind.Dialogue);
+    }
+
+    /// <summary>§6c: cross-timeline familiarity. The counterpart is the same
+    /// person reborn without memory (ruled 2026-08-31); the player's
+    /// chronicle kept every record. Effects mirror the Courier Dossier
+    /// hooks and stack per prior-table count, unbounded (ruled 2026-08-31:
+    /// mastery through repetition IS the loop). Called after Initialize,
+    /// before the dossier, and the two do not double-count: each effect is
+    /// idempotent.</summary>
+    public void ApplyChronicleFamiliarity(int priorTables, bool sawCollapse)
+    {
+        if (priorTables <= 0 || IsResolved)
+            return;
+        AddLog(priorTables == 1
+            ? "You have sat at this table before, in a life they do not remember."
+            : $"You have sat at this table in {priorTables} other lives. They remember none of them.");
+        NextStanceKnown = true;
+        AddLog($"  · You remember how they open: next they'll be {_nextStance}.");
+        if (priorTables >= 3)
+        {
+            var hidden = Terms.FirstOrDefault(t => t.IsHidden && !t.IsAccepted);
+            if (hidden != null)
+            {
+                hidden.RumorText = $"You remember the small print: \"{hidden.Description}\"";
+                AddLog("  · And you remember their small print. The face-down clause holds no mystery for you.");
+            }
+        }
+        if (sawCollapse)
+            AddLog($"  · You remember exactly how this goes wrong: \"{Data.DialogueWalkaway}\"");
+    }
+
+    /// <summary>§6c: a COMPLETED archmage dossier (every weakness hint
+    /// revealed) arms one extra argument at that archmage's kingdom's
+    /// tables: you know the master this counterpart answers to, and the
+    /// argument half writes itself. Quest spec ruling 2: dossiers grant
+    /// mechanical unlocks in later timelines.</summary>
+    public void ApplyDossierSeam()
+    {
+        if (IsResolved)
+            return;
+        TokenPool[LeverageToken.Persuade]++;
+        AddLog("You know the master this table answers to, down to the flaws. " +
+               "The argument half writes itself.");
+        AddLog("  · Completed dossier: +1 Persuade.", NegotiationLogKind.Detail);
+    }
+
+    /// <summary>The timing glyph's verdict for a token at the CURRENT
+    /// stance, from the same rules the play methods apply. Idealists read
+    /// Intimidate as Poor at every stance: no mood softens a violated
+    /// principle (the instant-walkaway rule).</summary>
+    public TokenTiming TimingFor(LeverageToken token)
+    {
+        if (token is LeverageToken.Insight or LeverageToken.Patience)
+            return TokenTiming.Indifferent;
+        if (token == LeverageToken.Intimidate)
+        {
+            if (Data.Archetype == NpcArchetypeType.Idealist)
+                return TokenTiming.Poor;
+            return Stance switch
+            {
+                NpcStance.Wavering => TokenTiming.Favorable,
+                NpcStance.Guarded => TokenTiming.Poor,
+                _ => TokenTiming.Indifferent,
+            };
+        }
+        if (token == LeverageToken.Offering)
+            return Stance == NpcStance.Guarded
+                ? TokenTiming.Indifferent : TokenTiming.Favorable;
+        // The social presses: Charm / Persuade / Connections / Demonstration.
+        return Stance switch
+        {
+            NpcStance.Irritated => TokenTiming.Poor,
+            NpcStance.Wavering or NpcStance.Expansive => TokenTiming.Favorable,
+            _ => TokenTiming.Indifferent,
+        };
+    }
+
     /// <summary>The priority ladder's verdict at the CURRENT board: what the
     /// NPC will do on their turn, and to which clause. Single source of
     /// truth: <see cref="NpcTurn"/> executes this verdict, and the UI
@@ -949,6 +1088,20 @@ public class NegotiationState
         if (Tension >= NegotiationTuning.PoiseTriggerTension
             && NpcPool[NpcResource.Poise] > 0)
             return (NpcMoveKind.Poise, null);
+
+        // 1.5. Grudge (§6b): after a collapsed table this life, their first
+        // move is fine print while they hold any. Cleared by NpcTurn once
+        // it executes, so the UI's tell and the move stay one verdict.
+        if (_grudgeArmed && NpcPool[NpcResource.Guile] > 0)
+        {
+            var grudgeTarget = Terms
+                .Where(t => !t.IsHidden && t.Position > -2)
+                .OrderBy(t => t.Weight).ThenBy(t => t.Position)
+                .FirstOrDefault();
+            return grudgeTarget != null
+                ? (NpcMoveKind.Rework, grudgeTarget)
+                : (NpcMoveKind.Threat, null);
+        }
 
         // 2. Resolve: drag the clause you've won furthest back toward them.
         var pullTarget = Terms
@@ -1020,8 +1173,25 @@ public class NegotiationState
         }
 
         AdvanceStance();
+
+        // §5c: the closing demand, seeded. Once per table, when the clause
+        // they would squeeze first reaches "leaning yours", the seed drops.
+        var squeezeSeed = PredictSqueezeTarget();
+        if (!_squeezeSeedBarked && squeezeSeed != null && squeezeSeed.Position >= 1)
+        {
+            _squeezeSeedBarked = true;
+            AddLog($"Their eyes keep returning to the {ShortName(squeezeSeed)}.");
+        }
+
         AddLog($"[Turn {TurnNumber} | Tension: {Tension}/10 | Patience: {NpcPatience}]",
                NegotiationLogKind.Detail);
+
+        if (_firstTableGuidance && !_shakeGuidanceGiven)
+        {
+            _shakeGuidanceGiven = true;
+            AddLog("Training, again: offer the handshake whenever the signing " +
+                   "preview suits you, and expect one last demand before ink.");
+        }
     }
 
     private void AdvanceStance()
@@ -1030,6 +1200,12 @@ public class NegotiationState
         _nextStance = ArchetypeBehavior.RollStance(Zone, GD.Randi());
         NextStanceKnown = _omniscient;   // Arcanist's Omniscient Read never fades
         AddLog(NegotiationBarks.StanceTell(Data.Archetype, Stance));
+        if (_firstTableGuidance && !_stanceGuidanceGiven)
+        {
+            _stanceGuidanceGiven = true;
+            AddLog("Their mood turns between exchanges. The same argument lands " +
+                   "differently on a different mood.");
+        }
         OnStanceChanged?.Invoke();
     }
 
@@ -1038,6 +1214,7 @@ public class NegotiationState
     private void NpcTurn()
     {
         var (kind, target) = PredictNpcAction();
+        _grudgeArmed = false;   // the grudge shapes one move, then it's spent
         switch (kind)
         {
             case NpcMoveKind.Poise:
@@ -1063,14 +1240,15 @@ public class NegotiationState
             case NpcMoveKind.Rework:
                 NpcPool[NpcResource.Guile]--;
                 PullTerm(target, 1, byPlayer: false);
-                AddLog(NegotiationBarks.NpcGuileBark(Data.Archetype, ShortName(target)),
+                AddLog(TipTheHand() ?? NegotiationBarks.NpcGuileBark(Data.Archetype, ShortName(target)),
                        NegotiationLogKind.Dialogue);
                 AnnouncePoolEmpty();
                 return;
 
             case NpcMoveKind.Threat:
                 NpcPool[NpcResource.Guile]--;
-                AddLog(NegotiationBarks.NpcThreatBark(Data.Archetype), NegotiationLogKind.Dialogue);
+                AddLog(TipTheHand() ?? NegotiationBarks.NpcThreatBark(Data.Archetype),
+                       NegotiationLogKind.Dialogue);
                 ApplyTensionDelta(+1);
                 AnnouncePoolEmpty();
                 return;
@@ -1080,14 +1258,29 @@ public class NegotiationState
                     _giftGiven = true;
                     var gift = ArchetypeBehavior.GiftTokenFor(Data.Archetype);
                     TokenPool[gift]++;
-                    AddLog(NegotiationBarks.NpcGiftBark(Data.Archetype, gift), NegotiationLogKind.Dialogue);
+                    AddLog(NegotiationBarks.NpcGiftBark(Data.Archetype), NegotiationLogKind.Dialogue);
+                    AddLog($"Their goodwill joins your pool: +1 {gift}.");
                     return;
                 }
 
             default:
-                AddLog(NegotiationBarks.NpcHoldBark(Data.Archetype), NegotiationLogKind.Dialogue);
+                AddLog(TipTheHand() ?? NegotiationBarks.NpcHoldBark(Data.Archetype),
+                       NegotiationLogKind.Dialogue);
                 return;
         }
+    }
+
+    /// <summary>Spec §4c: once per table, on the NPC's first Hold or Guile
+    /// move while a face-down clause remains, they tip their hand about the
+    /// small print instead of the generic bark. Returns null when the hint
+    /// doesn't apply (no hidden term left, or already fired), so callers can
+    /// fall through to the normal line.</summary>
+    private string TipTheHand()
+    {
+        if (_smallPrintHinted || !Terms.Any(t => t.IsHidden && !t.IsAccepted))
+            return null;
+        _smallPrintHinted = true;
+        return NegotiationBarks.SmallPrintHint(Data.Archetype);
     }
 
     /// <summary>The "push now" tells: say it out loud when a pool runs dry.
@@ -1103,7 +1296,7 @@ public class NegotiationState
         if (NpcPool[NpcResource.Guile] == 0 && !_guileEmptyAnnounced)
         {
             _guileEmptyAnnounced = true;
-            AddLog("They're out of fine print. The clauses on the table are the whole story.");
+            AddLog($"Their {GuileName} is exhausted. The clauses on the table are the whole story.");
         }
     }
 
@@ -1125,10 +1318,17 @@ public class NegotiationState
         }
     }
 
-    /// <summary>Short handle for a term in barks ("Saffron Contract" from a
-    /// long description): the first few words of the description, or the Id.</summary>
+    /// <summary>Display handle for a term in barks and on cards. Prefers the
+    /// authored <see cref="DealTerm.ShortName"/> (the grammar-contract noun
+    /// phrase, negotiation_narrative_spec_v1 §3a); the old first-few-words
+    /// derivation survives only as a fallback for unauthored data, and the
+    /// validator flags any term that still relies on it.</summary>
     public static string ShortName(DealTerm t)
     {
+        if (t == null)
+            return "";
+        if (!string.IsNullOrEmpty(t.ShortName))
+            return t.ShortName;
         if (string.IsNullOrEmpty(t.Description))
             return t.Id;
         var words = t.Description.Split(' ');

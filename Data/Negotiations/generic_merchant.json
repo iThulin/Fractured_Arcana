@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "gold_payment",
+   "shortName": "intel payment",
    "description": "Aldric will pay 50 gold for safe passage intel about the region.",
    "favorPlayer": true,
    "isHidden": false,
@@ -28,6 +29,7 @@
   },
   {
    "id": "supply_discount",
+   "shortName": "discount",
    "description": "Future goods from Aldric are sold at a 10% discount (tracked as faction rep).",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,7 +41,9 @@
   },
   {
    "id": "hidden_fee",
+   "shortName": "processing fee",
    "description": "A 'processing fee' of 15 gold, buried in the small print.",
+   "rumorText": "The contract runs three clauses longer than anything it needs to say.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -15,
@@ -49,6 +53,7 @@
   },
   {
    "id": "provision_contract",
+   "shortName": "provision contract",
    "description": "Aldric buys 15 of your supplies at caravan rates: 45 gold on delivery.",
    "favorPlayer": true,
    "isHidden": false,

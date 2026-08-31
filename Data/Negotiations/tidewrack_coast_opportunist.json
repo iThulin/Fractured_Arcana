@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "tide_tables",
+   "shortName": "tide almanac",
    "description": "Marrow's real tide-tables, the ones the charts get wrong twice a day.",
    "favorPlayer": true,
    "isHidden": false,
@@ -30,6 +31,7 @@
   },
   {
    "id": "split_the_strand",
+   "shortName": "strand share",
    "description": "A customary share of the season's tide-line. Coin, no questions.",
    "favorPlayer": true,
    "isHidden": false,
@@ -40,6 +42,7 @@
   },
   {
    "id": "quiet_landing",
+   "shortName": "quiet beach",
    "description": "A beach nobody watches, for one landing, at a time of your choosing.",
    "favorPlayer": true,
    "isHidden": false,
@@ -51,6 +54,7 @@
   },
   {
    "id": "hold_the_lantern",
+   "shortName": "lantern walk",
    "description": "You walk the cliff path with him one night. You do not have to like it.",
    "favorPlayer": false,
    "isHidden": false,
@@ -62,7 +66,9 @@
   },
   {
    "id": "already_promised",
+   "shortName": "double booking",
    "description": "That beach is promised to somebody else on the same night.",
+   "rumorText": "He names the night a little too readily, like a man reading it off someone else's calendar.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -20,

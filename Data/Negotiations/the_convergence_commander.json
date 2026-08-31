@@ -5,6 +5,7 @@
  "archetype": "Commander",
  "factionId": "convergence_claimants",
  "openingText": "Oule has three ages of rubble under his boots and a banner that has been struck through on every stone in sight. He does not sit and does not offer. 'Every party that has held this crossing lost it,' he says. 'I am aware of the pattern. I am going to be the exception, and you are going to help me or you are going to be part of the stratum. Speak.'",
+ "openingTextLate": "Oule's banner carries new stitching over old burns, and his pickets stand where the rubble is freshest. 'The pattern is accelerating,' he says. 'Every claimant loses this crossing faster than the last. I remain determined to be the exception. Speak.'",
  "startingTension": 8,
  "basePatience": 5,
  "escalatesToCombat": true,
@@ -19,6 +20,7 @@
  "terms": [
   {
    "id": "the_centre_ground",
+   "shortName": "junction passage",
    "description": "Passage to the junction itself, where the ley-lines cross and nobody is permitted.",
    "favorPlayer": true,
    "isHidden": false,
@@ -30,6 +32,7 @@
   },
   {
    "id": "what_the_strata_hold",
+   "shortName": "strata map",
    "description": "Three ages of dropped material, and Oule's map of which layer is which.",
    "favorPlayer": true,
    "isHidden": false,
@@ -40,6 +43,7 @@
   },
   {
    "id": "swear_to_the_banner",
+   "shortName": "banner oath",
    "description": "You are entered as his auxiliary. Every other claimant here learns it within the day.",
    "favorPlayer": false,
    "isHidden": false,
@@ -51,6 +55,7 @@
   },
   {
    "id": "provision_the_line",
+   "shortName": "provisioning",
    "description": "Thirty supplies to a force that has been holding open ground for a season.",
    "favorPlayer": false,
    "isHidden": false,
@@ -63,7 +68,9 @@
   },
   {
    "id": "he_has_no_reserve",
+   "shortName": "hollow muster",
    "description": "The pickets are all of it. Oule commands one under-strength company and a banner.",
+   "rumorText": "The same faces stand every picket, and the banner is guarded by men who should be sleeping.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -25,

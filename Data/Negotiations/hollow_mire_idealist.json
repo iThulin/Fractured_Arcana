@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "the_causeway",
+   "shortName": "causeway line",
    "description": "The safe line across, which is not where the ground looks firmest.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +30,7 @@
   },
   {
    "id": "the_sorted_ledger",
+   "shortName": "sorted ledger",
    "description": "Two hundred years of names, in order, with where each was found.",
    "favorPlayer": true,
    "isHidden": false,
@@ -40,6 +42,7 @@
   },
   {
    "id": "finish_a_section",
+   "shortName": "day's labor",
    "description": "You work a day on the unfinished rows. She will not thank you and will not forget.",
    "favorPlayer": false,
    "isHidden": false,
@@ -53,6 +56,7 @@
   },
   {
    "id": "take_nothing",
+   "shortName": "take-nothing rule",
    "description": "Nothing leaves the mire. Not coin, not fittings, not one buckle.",
    "favorPlayer": false,
    "isHidden": false,
@@ -63,7 +67,9 @@
   },
   {
    "id": "someone_else_is_sorting",
+   "shortName": "far section",
    "description": "The section beyond the reeds is being worked by something that is not Reck.",
+   "rumorText": "Beyond the reeds, the rows are being straightened. Reck has not been beyond the reeds in years.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -15,

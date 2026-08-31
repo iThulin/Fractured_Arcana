@@ -20,12 +20,36 @@ using System;
 // ============================================================
 
 /// <summary>A leverage-token chip. Shows Assets/UI/Tokens/{name}.png (falls
-/// back to a colored disc with an initial) plus a ×N tag. Interactive chips
+/// back to a colored disc with a per-token glyph, see GlyphFor) plus a ×N tag. Interactive chips
 /// emit <see cref="Clicked"/> on left-click; NPC-pool chips set
 /// <see cref="Interactive"/> = false and are display-only.</summary>
 public partial class NegotiationTokenChip : PanelContainer
 {
     private const string ART_DIR = "res://Assets/UI/Tokens/";
+
+    /// <summary>Fallback glyph per token when no PNG exists: the initial
+    /// letter stopped working once the verb band grouped tokens (Sway holds
+    /// two C's and a P; Patience, Persuade, and Pass all collide on P).
+    /// Text-glyph range only: color emoji do not render in the UI font
+    /// stack (the old handshake button proved it). This path is cold in
+    /// practice, since tools/generate_token_art.py draws a symbol PNG for
+    /// every token, and painted art in ART_DIR always wins.</summary>
+    private static string GlyphFor(string artName) => artName switch
+    {
+        "charm"         => "♥",
+        "persuade"      => "§",   // the clause sign: the argument itself
+        "connections"   => "∞",
+        "intimidate"    => "†",
+        "demonstration" => "✦",
+        "offering"      => "❖",
+        "insight"       => "◉",   // the eye, in outline form
+        "patience"      => "◔",
+        "pass"          => "…",   // the silence, stretched
+        "resolve"       => "◆",
+        "guile"         => "✎",   // the fine-print marker, kept consistent
+        "poise"         => "☾",
+        _ => artName.Length > 0 ? artName[..1].ToUpperInvariant() : "?",
+    };
 
     public LeverageToken Token;
     /// <summary>Art file name override (e.g. "resolve" for NPC-pool chips).
@@ -37,6 +61,16 @@ public partial class NegotiationTokenChip : PanelContainer
     public int SizePx = 66;
     /// <summary>False for display-only chips (NPC pool, drag previews).</summary>
     public bool Interactive = true;
+
+    /// <summary>Optional timing-glyph badge, top-right ("✓" / "·" / "✗"):
+    /// how the current mood receives this token, supplied by the manager
+    /// from NegotiationState.TimingFor. Empty = no badge.</summary>
+    public string Badge = "";
+    public Color BadgeColor = Colors.White;
+
+    /// <summary>False hides the ×N count tag (the Bide group's free Pass
+    /// chip is an action, not a stock of tokens).</summary>
+    public bool ShowCount = true;
     /// <summary>Manager-supplied gate for click/drag (e.g. table resolved).</summary>
     public Func<bool> CanDrag;
     /// <summary>Primary interaction: click to spend.</summary>
@@ -95,27 +129,61 @@ public partial class NegotiationTokenChip : PanelContainer
                 CornerRadiusBottomLeft = SizePx / 2, CornerRadiusBottomRight = SizePx / 2,
             });
             holder.AddChild(disc);
-            var initial = new Label
+            var glyph = new Label
             {
-                Text = artName.Length > 0 ? artName[..1].ToUpperInvariant() : "?",
+                Text = GlyphFor(artName),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 AnchorRight = 1f,
                 AnchorBottom = 1f,
                 MouseFilter = MouseFilterEnum.Ignore,
             };
-            initial.AddThemeFontSizeOverride("font_size", SizePx / 2 - 6);
-            initial.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
-            holder.AddChild(initial);
+            glyph.AddThemeFontSizeOverride("font_size", SizePx / 2 - 6);
+            glyph.AddThemeColorOverride("font_color", UITheme.NegotiationTitleColor);
+            holder.AddChild(glyph);
         }
 
-        // ×N count tag, bottom-right.
+        // Timing badge, riding the disc's top-right EDGE: mostly outside the
+        // circle so the symbol stays readable (offsets extend past the chip
+        // rect; nothing in the band clips, so the overhang draws fine).
+        if (!string.IsNullOrEmpty(Badge))
+        {
+            var badge = new Label
+            {
+                Text = Badge,
+                AnchorLeft = 1f, AnchorTop = 0f, AnchorRight = 1f, AnchorBottom = 0f,
+                OffsetLeft = -(int)(SizePx * 0.22f), OffsetTop = -(int)(SizePx * 0.14f),
+                OffsetRight = (int)(SizePx * 0.14f), OffsetBottom = (int)(SizePx * 0.18f),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            badge.AddThemeFontSizeOverride("font_size", UITheme.NegotiationSmallFontSize);
+            badge.AddThemeColorOverride("font_color", BadgeColor);
+            badge.AddThemeStyleboxOverride("normal", new StyleBoxFlat
+            {
+                BgColor = UITheme.BgDeep,
+                BorderColor = BadgeColor,
+                BorderWidthTop = 1, BorderWidthBottom = 1,
+                BorderWidthLeft = 1, BorderWidthRight = 1,
+                CornerRadiusTopLeft = 9, CornerRadiusTopRight = 9,
+                CornerRadiusBottomLeft = 9, CornerRadiusBottomRight = 9,
+                ContentMarginLeft = 3, ContentMarginRight = 3,
+            });
+            holder.AddChild(badge);
+        }
+
+        if (!ShowCount)
+            return;
+
+        // ×N count tag, riding the disc's bottom-right edge (same overhang
+        // treatment as the badge, so the symbol keeps its face).
         var tag = new Label
         {
             Text = $"×{Count}",
             AnchorLeft = 1f, AnchorTop = 1f, AnchorRight = 1f, AnchorBottom = 1f,
-            OffsetLeft = -(int)(SizePx * 0.46f), OffsetTop = -(int)(SizePx * 0.34f),
-            OffsetRight = -1, OffsetBottom = -1,
+            OffsetLeft = -(int)(SizePx * 0.34f), OffsetTop = -(int)(SizePx * 0.24f),
+            OffsetRight = (int)(SizePx * 0.14f), OffsetBottom = (int)(SizePx * 0.08f),
             HorizontalAlignment = HorizontalAlignment.Center,
             MouseFilter = MouseFilterEnum.Ignore,
         };

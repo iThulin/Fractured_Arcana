@@ -3694,7 +3694,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 // FactionReputation no longer stores kingdom feeling; court
                 // standing is the single source of truth.
                 int rep = NegotiationContext.ReputationDelta;
-                if (rep != 0)
+                // §6a (Q4 ruling): when the court's own voice sat at the
+                // table (a courtier of the counterpart's archetype), Regard
+                // moved there and then; the deal-deed echo is REPLACED, not
+                // doubled. NegotiationManager.SettleRegardAtTable sets this.
+                if (rep != 0 && !NegotiationContext.RegardSettledAtTable)
                 {
                     string tag = (rep > 0 ? CouncilEcho.DealFair : CouncilEcho.DealExploit)
                                  + ":" + NegotiationContext.NpcArchetype;

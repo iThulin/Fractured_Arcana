@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "charter_escort",
+   "shortName": "outrider escort",
    "description": "Charter outriders see your column through the canal-road towns unmolested.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +30,7 @@
   },
   {
    "id": "bulk_purchase",
+   "shortName": "bulk purchase",
    "description": "Verrick buys 20 of your supplies at works rates: 70 gold on the spot.",
    "favorPlayer": true,
    "isHidden": false,
@@ -40,6 +42,7 @@
   },
   {
    "id": "seal_of_passage",
+   "shortName": "charter seal",
    "description": "A provisional Charter seal: tolls waived at three gatehouses this season.",
    "favorPlayer": true,
    "isHidden": false,
@@ -51,6 +54,7 @@
   },
   {
    "id": "exclusivity_clause",
+   "shortName": "exclusivity clause",
    "description": "You agree not to sell the same intelligence to any rival guild. Enforceable.",
    "favorPlayer": false,
    "isHidden": false,
@@ -61,7 +65,9 @@
   },
   {
    "id": "assay_fee",
+   "shortName": "handling charge",
    "description": "An 'assay and handling' charge she has not mentioned aloud.",
+   "rumorText": "Her clerk keeps a second slate under the first, and writes on it whenever money is mentioned.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -25,

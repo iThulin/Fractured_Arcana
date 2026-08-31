@@ -5,6 +5,7 @@
  "archetype": "Commander",
  "factionId": "downs_levy",
  "openingText": "Aidenne has four hundred charm-sworn levymen behind her and the expression of a woman who has counted them twice today. 'You are armed, you are foreign, and you are on Aidenne ground,' she says. 'I am obliged to establish which of those matters. Sit.'",
+ "openingTextLate": "Aidenne still counts her levies twice a day. The count is smaller each time she says it aloud. 'You are armed, you are foreign, and half my barony answers to things I do not have a word for,' she says. 'Convince me the first two facts are useful. Sit.'",
  "startingTension": 5,
  "basePatience": 8,
  "npcResolve": 4,
@@ -14,10 +15,12 @@
  "dialogueStrained": "Noted. I am not yet convinced, and I am rarely convinced quickly.",
  "dialogueHostile": "You will lower your voice on my ground or you will be escorted off it.",
  "dialogueWalkaway": "Then you will be off Aidenne land by dusk, and I will have riders confirm it.",
+ "dialogueWalkawayLate": "Then be off Aidenne land by dusk. I cannot spare the riders to confirm it, and we both know what that admission costs me.",
  "dialogueAccept": "Agreed. My word holds as far as my banners do, which is further than the baron's.",
  "terms": [
   {
    "id": "column_escort",
+   "shortName": "escort",
    "description": "A levy escort to the far boundary. Nothing on the road will trouble you.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +32,7 @@
   },
   {
    "id": "muster_intelligence",
+   "shortName": "muster report",
    "description": "Where the neighbouring barons have put their levies this season, and why.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +43,7 @@
   },
   {
    "id": "arms_requisition",
+   "shortName": "requisition",
    "description": "She requisitions arms and provisions from your stores at the Crown rate.",
    "favorPlayer": false,
    "isHidden": false,
@@ -50,6 +55,7 @@
   },
   {
    "id": "no_dealings",
+   "shortName": "exclusivity clause",
    "description": "You will not treat with the Verrick charter factors while on her ground.",
    "favorPlayer": false,
    "isHidden": false,
@@ -60,7 +66,9 @@
   },
   {
    "id": "she_expects_a_war",
+   "shortName": "escort's purpose",
    "description": "The escort is not courtesy. She wants your column seen on that road.",
+   "rumorText": "The escort is generous. Suspiciously generous, for a woman who counts her levies twice a day.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": 0,

@@ -176,7 +176,7 @@ Four layers flowing top-to-bottom. Never bypass a layer: effects don't touch the
 | **School mechanic** | `ISchoolAttunement`, `ElementalAttunement` | Per-school class mechanic (charges, thresholds, burst) |
 | **Deck management** | `DeckManager` | Per-unit draw pile/hand/discard; swaps on unit select |
 | **Persistence** | `GuildSaveData`, `SaveManager` | 3-slot JSON save with versioning + migration |
-| **Negotiation** | `NegotiationManager` | Standalone scene; tension meter, 8 token types |
+| **Negotiation** | `NegotiationManager` | Standalone scene; tension meter, verb-band token rack, continuity and chronicle memory (see docs/negotiation_narrative_spec_v1.md) |
 | **Campus** | `CampusScreen`, `BuildingDatabase` | Building construction/upgrade, school building unlocks |
 
 ---

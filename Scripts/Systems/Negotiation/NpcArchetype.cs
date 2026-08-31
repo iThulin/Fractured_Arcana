@@ -75,6 +75,20 @@ public class DealTerm
 {
     public string Id = "";
     public string Description = "";
+
+    /// <summary>Authored display handle for barks, cards, and the receipt:
+    /// a lowercase noun phrase, one to three words, no leading article, no
+    /// trailing punctuation. It must read inside the "the {term}" frames
+    /// ("They pull the escort back toward their side"). Empty = the old
+    /// derived fallback (NegotiationState.ShortName), which the validator
+    /// flags. See negotiation_narrative_spec_v1 §3a.</summary>
+    public string ShortName = "";
+
+    /// <summary>Hidden terms only: one line of in-fiction innuendo shown on
+    /// the face-down card in place of a generic caption. Hints at stakes
+    /// without naming mechanics (negotiation_narrative_spec_v1 §4a).
+    /// Required by the validator when IsHidden is true.</summary>
+    public string RumorText = "";
     public bool FavorPlayer = true;    // true = good for player, false = costs something
     public bool IsHidden = false;       // revealed by Insight tokens
     public bool IsAccepted = false;
@@ -151,6 +165,18 @@ public class NegotiationEncounterData
     public string Id = "";
     public string Title = "";
     public string OpeningText = "";     // NPC's opening statement
+
+    /// <summary>Optional late-campaign opening (negotiation_narrative_spec_v1
+    /// §6d): used in place of OpeningText once the timeline has been
+    /// continued past its first year (CycleState.CampaignYear >= 2), so a
+    /// counterpart who was counting men in the early game is burying them
+    /// in the late game. Empty = OpeningText serves the whole campaign.</summary>
+    public string OpeningTextLate = "";
+
+    /// <summary>Optional late-campaign walkaway line, same gate as
+    /// <see cref="OpeningTextLate"/>.</summary>
+    public string DialogueWalkawayLate = "";
+
     public string NpcName = "";
     public NpcArchetypeType Archetype = NpcArchetypeType.Merchant;
     public string FactionId = "";
@@ -280,6 +306,40 @@ public static class ArchetypeBehavior
             NpcArchetypeType.Idealist    => "Conviction",
             NpcArchetypeType.Survivor    => "Wariness",
             _                            => "Resolve",
+        };
+    }
+
+    /// <summary>What the NPC's Guile is CALLED at this table, same display
+    /// treatment as <see cref="ResolveDisplayName"/>: the Merchant's
+    /// "fine print" is the Scholar's "riders". Used by the pool chips and
+    /// the empty-pool announcements (negotiation_narrative_spec_v1 §3b).</summary>
+    public static string GuileDisplayName(NpcArchetypeType a)
+    {
+        return a switch
+        {
+            NpcArchetypeType.Merchant    => "Fine Print",
+            NpcArchetypeType.Commander   => "Conditions",
+            NpcArchetypeType.Scholar     => "Riders",
+            NpcArchetypeType.Opportunist => "Sleight",
+            NpcArchetypeType.Idealist    => "Provisos",
+            NpcArchetypeType.Survivor    => "Precautions",
+            _                            => "Guile",
+        };
+    }
+
+    /// <summary>What the NPC's Poise is CALLED at this table, completing the
+    /// archetype-voiced pool rack.</summary>
+    public static string PoiseDisplayName(NpcArchetypeType a)
+    {
+        return a switch
+        {
+            NpcArchetypeType.Merchant    => "Composure",
+            NpcArchetypeType.Commander   => "Discipline",
+            NpcArchetypeType.Scholar     => "Detachment",
+            NpcArchetypeType.Opportunist => "Nerve",
+            NpcArchetypeType.Idealist    => "Grace",
+            NpcArchetypeType.Survivor    => "Control",
+            _                            => "Poise",
         };
     }
 

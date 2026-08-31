@@ -90,6 +90,15 @@ public static class NegotiationContext
     /// combat is entered through EncounterRouter from the expedition scene.</summary>
     public static bool Escalated = false;
 
+    /// <summary>§6a (Q4 ruling 2026-08-31): true when the deal's court
+    /// consequence was settled AT THE TABLE, because the origin court seats
+    /// a courtier of the counterpart's archetype and their Regard moved
+    /// directly. ExpeditionManager.OnNegotiationReturned then SKIPS the
+    /// deal-deed echo: table-immediate Regard REPLACES the Word Spreads
+    /// route for courtier tables, it does not double-count with it. Set by
+    /// NegotiationManager.SettleRegardAtTable.</summary>
+    public static bool RegardSettledAtTable = false;
+
     public static void SetResult(bool accepted, int gold, int rep, string factionId,
                                  string spellGranted = "", bool resolvedCordial = false,
                                  int supplies = 0, bool revealSupplyCaches = false,
@@ -123,6 +132,7 @@ public static class NegotiationContext
         SpellGranted = "";
         ResolvedCordial = false;
         Escalated = false;
+        RegardSettledAtTable = false;
         EncounterId = "";
         HexCoordKey = "";
         NpcArchetype = "";

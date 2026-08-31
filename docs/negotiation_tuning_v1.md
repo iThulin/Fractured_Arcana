@@ -4,6 +4,8 @@
 
 ---
 
+> **2026-08-31:** the narrative and UI redesign shipped (`negotiation_narrative_spec_v1.md`). One mechanical change affects these targets: the closing squeeze now fires only while the NPC holds Resolve (spec s5b/s10). Squeeze-at-close drops from ~98% to ~11% in simulation (`tools/negotiation_squeeze_sim.py`, replaces the uncommitted negotiation_sim.js); other targets moved less than a point. Watch the squeeze rate in playtests; the reserve-model fallback is described in the spec's s10.
+
 ## 1. Target metrics — what "tuned" means
 
 | Metric | Target | Why |
