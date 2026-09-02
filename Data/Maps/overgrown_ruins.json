@@ -1,103 +1,130 @@
 {
-	"id": "overgrown_ruins",
-	"display_name": "Overgrown Ruins",
-	"shape": {
-		"type": "blob",
-		"width": 9,
-		"height": 8,
-		"radius": 5,
-		"erosion": 0.3
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.16,
-		"moisture_frequency": 0.12,
-		"detail_weight": 0.22,
-		"max_height_step": 4,
-		"min_height_step": -2,
-		"palette": [
-			{
-				"terrain": "water",
-				"max_elevation": 0.12
-			},
-			{
-				"terrain": "forest",
-				"min_moisture": 0.5
-			},
-			{
-				"terrain": "stone",
-				"min_elevation": 0.6
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.78,
-			0.82,
-			0.7
-		],
-		"sun_energy": 1.05,
-		"ambient_color": [
-			0.42,
-			0.48,
-			0.38
-		],
-		"ambient_energy": 0.85,
-		"fog_color": [
-			0.5,
-			0.55,
-			0.44
-		],
-		"fog_density": 0.009
-	},
-	"water": {
-		"profile": "murky_swamp",
-		"cloud_strength": 0.35,
-		"sparkle": 0.5
-	},
-	"features": [
-		{
-			"feature": "rocky_outcrop",
-			"phase": "skeleton",
-			"at": "center",
-			"radius": 3
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "player_anchor",
-			"to": "enemy_anchor",
-			"width": 1
-		},
-		{
-			"feature": "scatter_copses",
-			"phase": "accent",
-			"count": [
-				2,
-				4
-			],
-			"radius": [
-				1,
-				2
-			]
-		},
-		{
-			"feature": "clearing",
-			"phase": "accent",
-			"at": "random",
-			"radius": 1
-		},
-		{
-			"feature": "leyline",
-			"phase": "accent",
-			"at": "random",
-			"length": [
-				6,
-				9
-			],
-			"branch": 0.3
-		}
-	]
+  "id": "overgrown_ruins",
+  "display_name": "Overgrown Ruins",
+  "shape": {
+    "type": "blob",
+    "width": 9,
+    "height": 8,
+    "radius": 5,
+    "erosion": 0.3
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.16,
+    "moisture_frequency": 0.12,
+    "detail_weight": 0.22,
+    "max_height_step": 4,
+    "min_height_step": -2,
+    "palette": [
+      {
+        "terrain": "water",
+        "max_elevation": 0.12
+      },
+      {
+        "terrain": "forest",
+        "min_moisture": 0.5
+      },
+      {
+        "terrain": "stone",
+        "min_elevation": 0.6
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.78,
+      0.82,
+      0.7
+    ],
+    "sun_energy": 1.05,
+    "ambient_color": [
+      0.42,
+      0.48,
+      0.38
+    ],
+    "ambient_energy": 0.85,
+    "fog_color": [
+      0.5,
+      0.55,
+      0.44
+    ],
+    "fog_density": 0.009
+  },
+  "water": {
+    "profile": "murky_swamp",
+    "cloud_strength": 0.35,
+    "sparkle": 0.5
+  },
+  "obstacles": {
+    "low": "broken_wall",
+    "high": "wall",
+    "pillar": "cracked_column"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "rocky_outcrop",
+      "phase": "skeleton",
+      "at": "center",
+      "radius": 3
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "player_anchor",
+      "to": "enemy_anchor",
+      "width": 1
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "scatter_copses",
+      "phase": "accent",
+      "count": [
+        2,
+        4
+      ],
+      "radius": [
+        1,
+        2
+      ]
+    },
+    {
+      "feature": "clearing",
+      "phase": "accent",
+      "at": "random",
+      "radius": 1
+    },
+    {
+      "feature": "leyline",
+      "phase": "accent",
+      "at": "random",
+      "length": [
+        6,
+        9
+      ],
+      "branch": 0.3
+    }
+  ]
 }

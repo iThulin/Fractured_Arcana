@@ -1,383 +1,384 @@
 {
-	"id": "elementalist_frost_shard",
-	"status": "ready",
-	"name": "Frost Shard",
-	"school": "Elementalist",
-	"rarity": "Common",
-	"top": {
-		"name": "Frost Shard",
-		"mana": 1,
-		"speed": "Reflex",
-		"rules_text": "Deal 4 damage. Target enemy is Slowed for 1 turn.",
-		"tags": [
-			"ice"
-		],
-		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": true,
-			"enemies_only": true
-		},
-		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "damage",
-					"amount": 4
-				},
-				{
-					"type": "apply_status",
-					"status": "slowed",
-					"duration": 1
-				}
-			]
-		}
-	},
-	"bottom": {
-		"name": "Gust",
-		"mana": 1,
-		"speed": "Reflex",
-		"rules_text": "Push target enemy 2 tiles in a direction you choose. Deal 3 damage.",
-		"tags": [
-			"storm"
-		],
-		"targeting": {
-			"type": "unit_then_direction",
-			"range": 6,
-			"enemies_only": true
-		},
-		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "push_aimed",
-					"tiles": 2,
-					"collision_damage": 3
-				},
-				{
-					"type": "damage",
-					"amount": 3
-				}
-			]
-		}
-	},
-	"upgrades": [
-		{
-			"tier": 1,
-			"half": "both",
-			"top_name": "Frost Shard+",
-			"bottom_name": "Gust+",
-			"description": "Frost Shard hits harder. Gust pushes further and deals more damage.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.steps[0].amount",
-					"value": 5
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 5 damage. Target enemy is Slowed for 1 turn."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.steps[0].tiles",
-					"value": 3
-				},
-				{
-					"half": "bottom",
-					"field": "effect.steps[0].collision_damage",
-					"value": 4
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Push target enemy 3 tiles. Deal 3 damage."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "top",
-			"top_name": "Creeping Cold",
-			"description": "Creeping Cold: Frost Shard imbues the target tile with Ice. A slowed enemy on ice is a frozen enemy.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 5
-							},
-							{
-								"type": "imbue_tile",
-								"element": "ice"
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "target_on_tile",
-									"tile": "ice"
-								},
-								"then": {
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 1
-								},
-								"else": {
-									"type": "apply_status",
-									"status": "slowed",
-									"duration": 1
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 5 damage. Imbue target tile with Ice. On Ice: freeze instead of slow."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "bottom",
-			"bottom_name": "Icebreaker",
-			"description": "Icebreaker: Gust freezes targets pushed onto ice tiles.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "push_aimed",
-								"tiles": 3,
-								"collision_damage": 4
-							},
-							{
-								"type": "damage",
-								"amount": 3
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "target_on_tile",
-									"tile": "ice"
-								},
-								"then": {
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 1
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Push target 3 tiles. Deal 3 damage. If pushed onto Ice, freeze for 1 turn."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "top",
-			"top_name": "Arctic Spread",
-			"description": "Arctic Spread: Killing a slowed or frozen target spreads ice to adjacent tiles.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 6
-							},
-							{
-								"type": "imbue_tile",
-								"element": "ice"
-							},
-							{
-								"type": "apply_status",
-								"status": "frozen",
-								"duration": 1
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "was_lethal"
-								},
-								"then": {
-									"type": "retarget",
-									"targeting": {
-										"type": "ring",
-										"radius": 1,
-										"include_tiles": true
-									},
-									"do": {
-										"type": "imbue_tile",
-										"element": "ice"
-									}
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 6 damage. Imbue tile with Ice. They are Frozen for 1 turn. On kill, imbue adjacent tiles with Ice."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "bottom",
-			"bottom_name": "Shatter",
-			"description": "Shatter: Gust deals massive bonus damage to targets already on ice.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "push_aimed",
-								"tiles": 3,
-								"collision_damage": 5
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "target_on_tile",
-									"tile": "ice"
-								},
-								"then": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 8
-										},
-										{
-											"type": "apply_status",
-											"status": "frozen",
-											"duration": 1
-										}
-									]
-								},
-								"else": {
-									"type": "damage",
-									"amount": 4
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Push target 3 tiles. On Ice: deal 8 damage and freeze. Otherwise deal 4 damage."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "Glacial Dominion",
-			"description": "Glacial Dominion: Frost Shard always freezes and spreads ice on every cast.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 7
-							},
-							{
-								"type": "imbue_tile",
-								"element": "ice"
-							},
-							{
-								"type": "apply_status",
-								"status": "frozen",
-								"duration": 2
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "ice"
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 7 damage. Imbue target tile and ring with Ice. Always freeze for 2 turns."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "bottom",
-			"bottom_name": "Storm Blade",
-			"description": "Storm Blade: Gust unifies ice and storm. It pushes, freezes, and imbues landing tile with Storm.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "push_aimed",
-								"tiles": 4,
-								"collision_damage": 6
-							},
-							{
-								"type": "damage",
-								"amount": 6
-							},
-							{
-								"type": "apply_status",
-								"status": "frozen",
-								"duration": 1
-							},
-							{
-								"type": "imbue_tile",
-								"element": "storm",
-								"bonus_damage": 3
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Push target 4 tiles. Deal 6 damage. They are Frozen for 1 turn. Imbue landing tile with Storm."
-				}
-			]
-		}
-	]
+  "id": "elementalist_frost_shard",
+  "status": "ready",
+  "name": "Frost Shard",
+  "school": "Elementalist",
+  "rarity": "Common",
+  "top": {
+    "name": "Frost Shard",
+    "mana": 1,
+    "speed": "Reflex",
+    "rules_text": "Deal 4 damage. Target enemy is Slowed for 1 turn.",
+    "tags": [
+      "ice"
+    ],
+    "targeting": {
+      "type": "unit",
+      "range": 6,
+      "los": true,
+      "enemies_only": true,
+      "delivery": "bolt"
+    },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        {
+          "type": "damage",
+          "amount": 4
+        },
+        {
+          "type": "apply_status",
+          "status": "slowed",
+          "duration": 1
+        }
+      ]
+    }
+  },
+  "bottom": {
+    "name": "Gust",
+    "mana": 1,
+    "speed": "Reflex",
+    "rules_text": "Push target enemy 2 tiles in a direction you choose. Deal 3 damage.",
+    "tags": [
+      "storm"
+    ],
+    "targeting": {
+      "type": "unit_then_direction",
+      "range": 6,
+      "enemies_only": true
+    },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        {
+          "type": "push_aimed",
+          "tiles": 2,
+          "collision_damage": 3
+        },
+        {
+          "type": "damage",
+          "amount": 3
+        }
+      ]
+    }
+  },
+  "upgrades": [
+    {
+      "tier": 1,
+      "half": "both",
+      "top_name": "Frost Shard+",
+      "bottom_name": "Gust+",
+      "description": "Frost Shard hits harder. Gust pushes further and deals more damage.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect.steps[0].amount",
+          "value": 5
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 5 damage. Target enemy is Slowed for 1 turn."
+        },
+        {
+          "half": "bottom",
+          "field": "effect.steps[0].tiles",
+          "value": 3
+        },
+        {
+          "half": "bottom",
+          "field": "effect.steps[0].collision_damage",
+          "value": 4
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Push target enemy 3 tiles. Deal 3 damage."
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "half": "top",
+      "top_name": "Creeping Cold",
+      "description": "Creeping Cold: Frost Shard imbues the target tile with Ice. A slowed enemy on ice is a frozen enemy.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "damage",
+                "amount": 5
+              },
+              {
+                "type": "imbue_tile",
+                "element": "ice"
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "target_on_tile",
+                  "tile": "ice"
+                },
+                "then": {
+                  "type": "apply_status",
+                  "status": "frozen",
+                  "duration": 1
+                },
+                "else": {
+                  "type": "apply_status",
+                  "status": "slowed",
+                  "duration": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 5 damage. Imbue target tile with Ice. On Ice: freeze instead of slow."
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "half": "bottom",
+      "bottom_name": "Icebreaker",
+      "description": "Icebreaker: Gust freezes targets pushed onto ice tiles.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "push_aimed",
+                "tiles": 3,
+                "collision_damage": 4
+              },
+              {
+                "type": "damage",
+                "amount": 3
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "target_on_tile",
+                  "tile": "ice"
+                },
+                "then": {
+                  "type": "apply_status",
+                  "status": "frozen",
+                  "duration": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Push target 3 tiles. Deal 3 damage. If pushed onto Ice, freeze for 1 turn."
+        }
+      ]
+    },
+    {
+      "tier": 3,
+      "half": "top",
+      "top_name": "Arctic Spread",
+      "description": "Arctic Spread: Killing a slowed or frozen target spreads ice to adjacent tiles.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "damage",
+                "amount": 6
+              },
+              {
+                "type": "imbue_tile",
+                "element": "ice"
+              },
+              {
+                "type": "apply_status",
+                "status": "frozen",
+                "duration": 1
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "was_lethal"
+                },
+                "then": {
+                  "type": "retarget",
+                  "targeting": {
+                    "type": "ring",
+                    "radius": 1,
+                    "include_tiles": true
+                  },
+                  "do": {
+                    "type": "imbue_tile",
+                    "element": "ice"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 6 damage. Imbue tile with Ice. They are Frozen for 1 turn. On kill, imbue adjacent tiles with Ice."
+        }
+      ]
+    },
+    {
+      "tier": 3,
+      "half": "bottom",
+      "bottom_name": "Shatter",
+      "description": "Shatter: Gust deals massive bonus damage to targets already on ice.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "push_aimed",
+                "tiles": 3,
+                "collision_damage": 5
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "target_on_tile",
+                  "tile": "ice"
+                },
+                "then": {
+                  "type": "sequence",
+                  "steps": [
+                    {
+                      "type": "damage",
+                      "amount": 8
+                    },
+                    {
+                      "type": "apply_status",
+                      "status": "frozen",
+                      "duration": 1
+                    }
+                  ]
+                },
+                "else": {
+                  "type": "damage",
+                  "amount": 4
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Push target 3 tiles. On Ice: deal 8 damage and freeze. Otherwise deal 4 damage."
+        }
+      ]
+    },
+    {
+      "tier": 4,
+      "half": "top",
+      "top_name": "Glacial Dominion",
+      "description": "Glacial Dominion: Frost Shard always freezes and spreads ice on every cast.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "damage",
+                "amount": 7
+              },
+              {
+                "type": "imbue_tile",
+                "element": "ice"
+              },
+              {
+                "type": "apply_status",
+                "status": "frozen",
+                "duration": 2
+              },
+              {
+                "type": "retarget",
+                "targeting": {
+                  "type": "ring",
+                  "radius": 1,
+                  "include_tiles": true
+                },
+                "do": {
+                  "type": "imbue_tile",
+                  "element": "ice"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 7 damage. Imbue target tile and ring with Ice. Always freeze for 2 turns."
+        }
+      ]
+    },
+    {
+      "tier": 4,
+      "half": "bottom",
+      "bottom_name": "Storm Blade",
+      "description": "Storm Blade: Gust unifies ice and storm. It pushes, freezes, and imbues landing tile with Storm.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "push_aimed",
+                "tiles": 4,
+                "collision_damage": 6
+              },
+              {
+                "type": "damage",
+                "amount": 6
+              },
+              {
+                "type": "apply_status",
+                "status": "frozen",
+                "duration": 1
+              },
+              {
+                "type": "imbue_tile",
+                "element": "storm",
+                "bonus_damage": 3
+              }
+            ]
+          }
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Push target 4 tiles. Deal 6 damage. They are Frozen for 1 turn. Imbue landing tile with Storm."
+        }
+      ]
+    }
+  ]
 }

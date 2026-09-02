@@ -261,6 +261,20 @@ public partial class HexGridManager
         return bestCost.TryGetValue(goal, out int finalCost) ? finalCost : -1;
     }
 
+    /// <summary>Scale that keeps movement cost dominant over strike count in
+    /// GetPathTo's combined key. No walk draws anywhere near this many strikes.</summary>
+    private const int ZocCostScale = 64;
+
+    /// <summary>Free strikes the step <paramref name="from"/> to <paramref name="to"/>
+    /// would draw on <paramref name="unit"/>: hostile control-exerting units adjacent
+    /// to the tile being left and not to the destination. Zero without a unit.</summary>
+    private int ZocStepStrikes(Unit unit, Vector2I from, TileData to)
+    {
+        if (unit == null || to == null || !Tiles.TryGetValue(from, out var fromTile))
+            return 0;
+        return unit.ZoneOfControlLeavers(this, fromTile, to).Count;
+    }
+
     /// <summary>Reconstructs the cheapest walkable path from <paramref name="unit"/>'s
     /// tile to <paramref name="dest"/> as an ordered list of axial coords (START
     /// EXCLUDED, dest included), or null when unreachable. Same walkability rules as
@@ -299,8 +313,14 @@ public partial class HexGridManager
                 if (tile.IsOccupied && neighbor != start && neighbor != goal)
                     continue;
 
+                // Lexicographic cost (cover_and_zoc_v1 §12): movement cost first, so
+                // the route never costs more move points than GetMoveCostTo promised,
+                // then the number of free strikes the step draws. Two routes of equal
+                // length pick the one that does not break contact; a longer safe
+                // route never beats a shorter exposed one (that is the mover's call).
                 int stepCost = Mathf.Max(1, tile.MoveCost) + HazardPenalty(unit, tile);
-                int newCost = costSoFar + stepCost;
+                int strikes = ZocStepStrikes(unit, current, tile);
+                int newCost = costSoFar + stepCost * ZocCostScale + strikes;
 
                 if (bestCost.TryGetValue(neighbor, out int oldCost) && oldCost <= newCost)
                     continue;

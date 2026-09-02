@@ -36,6 +36,58 @@
 		},
 		"sand": {
 			"$ref": "#/$defs/sand"
+		},
+		"tactics": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Tactical targets checked after generation (HexGridManager.Tactics). Missed targets log a warning, never fail the map.",
+			"properties": {
+				"max_visibility": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Max fraction of player-zone x enemy-zone tile pairs with clear line of sight."
+				},
+				"min_cover": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Min fraction of open, unreserved tiles with cover on at least one side."
+				}
+			}
+		},
+		"siege": {
+			"type": "object",
+			"description": "Siege layout (city_battlemap_compiler_spec). Validated by SiegeSpec.FromDict."
+		},
+		"map_events": {
+			"type": "array",
+			"items": {
+				"type": "object"
+			},
+			"description": "Per-round map events (CombatManager.MapEvents). Validated by MapEventDef."
+		},
+		"fallback": {
+			"type": "string"
+		},
+		"terrain": {
+			"type": "string"
+		},
+		"obstacles": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Obstacle dressing palette: which Data/Obstacles catalog kind each role resolves to on this map. Ops write \"kind\": \"low\" | \"high\" | \"pillar\" and get these. Missing roles fall back to a default keyed on the dominant base terrain.",
+			"properties": {
+				"low": {
+					"type": "string"
+				},
+				"high": {
+					"type": "string"
+				},
+				"pillar": {
+					"type": "string"
+				}
+			}
 		}
 	},
 	"$defs": {
@@ -67,18 +119,23 @@
 			"maxItems": 4
 		},
 		"coord": {
-			"description": "A named anchor or an explicit [q, r] axial coordinate.",
+			"description": "A named anchor, an axis token, or an explicit [q, r] axial coordinate. axis:N shifts the anchor midpoint N tiles along the player-to-enemy axis (negative = toward the player); flank:N shifts it N tiles perpendicular.",
 			"oneOf": [
 				{
 					"type": "string",
 					"enum": [
 						"center",
+						"midpoint",
 						"random",
 						"high_tile",
 						"low_tile",
 						"player_anchor",
 						"enemy_anchor"
 					]
+				},
+				{
+					"type": "string",
+					"pattern": "^(axis|flank):-?[0-9]+$"
 				},
 				{
 					"type": "array",
@@ -246,7 +303,15 @@
 						"height_basin",
 						"carve_lane",
 						"patch",
-						"element_patch"
+						"element_patch",
+						"leyline",
+						"obstacle_band",
+						"cover_line",
+						"height_ridge",
+						"ring",
+						"filled_radius",
+						"map_object",
+						"building_stamp"
 					]
 				},
 				"phase": {
@@ -300,10 +365,7 @@
 				},
 				"kind": {
 					"type": "string",
-					"enum": [
-						"rock",
-						"crystal"
-					]
+					"description": "A role (low, high, pillar) resolved through the recipe's obstacles palette, or a concrete kind from Data/Obstacles/obstacle_catalog.json (rock, crystal, wall, broken_wall, rock_ledge, fallen_log, ...). For map_object: a MapObjectCatalog kind (cracked_pillar, resonant_crystal, ember_brazier, boulder, ward_stone, powder_cask)."
 				},
 				"terrain": {
 					"$ref": "#/$defs/terrain"
@@ -314,6 +376,32 @@
 				},
 				"strength": {
 					"type": "number"
+				},
+				"obstacle_kind": {
+					"type": "string",
+					"description": "ring / filled_radius payload: paint this obstacle kind. Low cover kinds keep sight clear."
+				},
+				"height": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"branch": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"gaps": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "cover_line: guaranteed open tiles in the band, never at the ends. Default 1."
+				},
+				"fill": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "cover_line: per-tile density on top of the gaps. Default 0.85. Distinct from chance, which gates the whole op."
+				},
+				"building_id": {
+					"type": "string"
 				}
 			}
 		},

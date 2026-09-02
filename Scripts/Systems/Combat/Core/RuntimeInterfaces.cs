@@ -130,7 +130,16 @@ public sealed class ManaCost : ICost
 public interface ICondition { bool IsSatisfied(GameState s, Entity caster); }
 public sealed class AlwaysCondition : ICondition { public bool IsSatisfied(GameState s, Entity c) => true; }
 
-public sealed class TargetSet { public List<object> Items = new(); }
+public sealed class TargetSet
+{
+    public List<object> Items = new();
+
+    /// <summary>How the cast that built this set travels (see <see cref="Delivery"/>).
+    /// Set by the selector; read by DealDamageEffect so Bolt cards feed cover armour.
+    /// Untyped for every selector that does not say otherwise, which keeps every
+    /// pre-cover cast byte-for-byte unchanged.</summary>
+    public Delivery Delivery = Delivery.Untyped;
+}
 public sealed class EffectSnapshot
 {
     public float DamageMultiplier = 1.0f;

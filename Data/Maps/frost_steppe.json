@@ -1,93 +1,120 @@
 {
-	"id": "frost_steppe",
-	"display_name": "Frost Steppe",
-	"shape": {
-		"type": "blob",
-		"width": 12,
-		"height": 9,
-		"radius": 5,
-		"erosion": 0.3
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.11,
-		"moisture_frequency": 0.08,
-		"detail_weight": 0.15,
-		"max_height_step": 2,
-		"min_height_step": -1,
-		"palette": [
-			{
-				"terrain": "ice",
-				"min_moisture": 0.68
-			},
-			{
-				"terrain": "stone",
-				"min_elevation": 0.82
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.88,
-			0.92,
-			0.98
-		],
-		"sun_energy": 1.1,
-		"ambient_color": [
-			0.68,
-			0.74,
-			0.85
-		],
-		"ambient_energy": 0.9,
-		"fog_color": [
-			0.8,
-			0.84,
-			0.9
-		],
-		"fog_density": 0.009
-	},
-	"features": [
-		{
-			"feature": "patch",
-			"phase": "accent",
-			"at": "random",
-			"terrain": "ice",
-			"radius": [
-				1,
-				2
-			]
-		},
-		{
-			"feature": "patch",
-			"phase": "accent",
-			"at": "random",
-			"terrain": "ice",
-			"radius": [
-				1,
-				2
-			]
-		},
-		{
-			"feature": "rocky_outcrop",
-			"phase": "accent",
-			"at": "random",
-			"radius": 1,
-			"chance": 0.7
-		},
-		{
-			"feature": "meadow",
-			"phase": "accent",
-			"at": "center",
-			"radius": 3
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "random",
-			"element": "frost",
-			"radius": 2
-		}
-	]
+  "id": "frost_steppe",
+  "display_name": "Frost Steppe",
+  "shape": {
+    "type": "blob",
+    "width": 12,
+    "height": 9,
+    "radius": 5,
+    "erosion": 0.3
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.11,
+    "moisture_frequency": 0.08,
+    "detail_weight": 0.15,
+    "max_height_step": 2,
+    "min_height_step": -1,
+    "palette": [
+      {
+        "terrain": "ice",
+        "min_moisture": 0.68
+      },
+      {
+        "terrain": "stone",
+        "min_elevation": 0.82
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.88,
+      0.92,
+      0.98
+    ],
+    "sun_energy": 1.1,
+    "ambient_color": [
+      0.68,
+      0.74,
+      0.85
+    ],
+    "ambient_energy": 0.9,
+    "fog_color": [
+      0.8,
+      0.84,
+      0.9
+    ],
+    "fog_density": 0.009
+  },
+  "obstacles": {
+    "low": "ice_ridge",
+    "high": "crystal",
+    "pillar": "ice_spire"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "patch",
+      "phase": "accent",
+      "at": "random",
+      "terrain": "ice",
+      "radius": [
+        1,
+        2
+      ]
+    },
+    {
+      "feature": "patch",
+      "phase": "accent",
+      "at": "random",
+      "terrain": "ice",
+      "radius": [
+        1,
+        2
+      ]
+    },
+    {
+      "feature": "rocky_outcrop",
+      "phase": "accent",
+      "at": "random",
+      "radius": 1,
+      "chance": 0.7
+    },
+    {
+      "feature": "meadow",
+      "phase": "accent",
+      "at": "center",
+      "radius": 3
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "random",
+      "element": "frost",
+      "radius": 2
+    }
+  ]
 }

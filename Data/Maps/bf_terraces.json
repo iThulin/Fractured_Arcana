@@ -1,106 +1,133 @@
 {
-	"id": "bf_terraces",
-	"display_name": "The Terraces",
-	"shape": {
-		"type": "rectangle",
-		"width": 10,
-		"height": 8
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.1,
-		"moisture_frequency": 0.06,
-		"detail_weight": 0.15,
-		"max_height_step": 4,
-		"min_height_step": 0,
-		"palette": [
-			{
-				"terrain": "stone",
-				"min_elevation": 0.55
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.95,
-			0.93,
-			0.88
-		],
-		"sun_energy": 1.2,
-		"ambient_color": [
-			0.55,
-			0.55,
-			0.6
-		],
-		"ambient_energy": 0.75,
-		"fog_color": [
-			0.7,
-			0.72,
-			0.78
-		],
-		"fog_density": 0.008
-	},
-	"features": [
-		{
-			"feature": "height_ridge",
-			"phase": "skeleton",
-			"at": "axis:0",
-			"dir": 5,
-			"length": 7,
-			"height": 1
-		},
-		{
-			"feature": "height_ridge",
-			"phase": "skeleton",
-			"at": "axis:2",
-			"dir": 5,
-			"length": 7,
-			"height": 2
-		},
-		{
-			"feature": "height_ridge",
-			"phase": "skeleton",
-			"at": "axis:4",
-			"dir": 5,
-			"length": 7,
-			"height": 3
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "player_anchor",
-			"to": "enemy_anchor",
-			"width": 0
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "flank:-3",
-			"to": "enemy_anchor",
-			"width": 0
-		},
-		{
-			"feature": "obstacle_cluster",
-			"phase": "accent",
-			"at": "axis:3",
-			"kind": "rock",
-			"size": 2
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "random",
-			"element": "earth",
-			"radius": 1
-		},
-		{
-			"feature": "map_object",
-			"phase": "accent",
-			"at": "axis:2",
-			"kind": "boulder",
-			"count": 1
-		}
-	]
+  "id": "bf_terraces",
+  "display_name": "The Terraces",
+  "shape": {
+    "type": "rectangle",
+    "width": 10,
+    "height": 8
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.1,
+    "moisture_frequency": 0.06,
+    "detail_weight": 0.15,
+    "max_height_step": 4,
+    "min_height_step": 0,
+    "palette": [
+      {
+        "terrain": "stone",
+        "min_elevation": 0.55
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.95,
+      0.93,
+      0.88
+    ],
+    "sun_energy": 1.2,
+    "ambient_color": [
+      0.55,
+      0.55,
+      0.6
+    ],
+    "ambient_energy": 0.75,
+    "fog_color": [
+      0.7,
+      0.72,
+      0.78
+    ],
+    "fog_density": 0.008
+  },
+  "obstacles": {
+    "low": "rock_ledge",
+    "high": "rock",
+    "pillar": "standing_stone"
+  },
+  "tactics": {
+    "max_visibility": 0.5,
+    "min_cover": 0.3
+  },
+  "features": [
+    {
+      "feature": "height_ridge",
+      "phase": "skeleton",
+      "at": "axis:0",
+      "dir": 5,
+      "length": 7,
+      "height": 1
+    },
+    {
+      "feature": "height_ridge",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "dir": 5,
+      "length": 7,
+      "height": 2
+    },
+    {
+      "feature": "height_ridge",
+      "phase": "skeleton",
+      "at": "axis:4",
+      "dir": 5,
+      "length": 7,
+      "height": 3
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "player_anchor",
+      "to": "enemy_anchor",
+      "width": 0
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "flank:-3",
+      "to": "enemy_anchor",
+      "width": 0
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 5,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.85
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:3",
+      "length": 5,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.85
+    },
+    {
+      "feature": "obstacle_cluster",
+      "phase": "accent",
+      "at": "axis:3",
+      "kind": "rock",
+      "size": 2
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "random",
+      "element": "earth",
+      "radius": 1
+    },
+    {
+      "feature": "map_object",
+      "phase": "accent",
+      "at": "axis:2",
+      "kind": "boulder",
+      "count": 1
+    }
+  ]
 }

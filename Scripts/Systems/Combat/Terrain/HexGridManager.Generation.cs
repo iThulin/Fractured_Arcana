@@ -53,6 +53,7 @@ public partial class HexGridManager
         tile.IsBlocked = false;
         tile.BlocksLineOfSight = false;
         tile.ObstacleKind = "";
+        tile.AuthoredCover = CoverKind.None;
         tile.IsHazardous = false;
         tile.ElementType = TileElementType.None;
         tile.ElementStrength = 0f;
@@ -239,6 +240,7 @@ public partial class HexGridManager
             tile.IsHazardous = false;
             tile.MoveCost = 1;
             tile.ObstacleKind = "";
+            tile.AuthoredCover = CoverKind.None;
             tile.Height = 0;
         }
     }
@@ -529,6 +531,132 @@ public partial class HexGridManager
         }
     }
 
+    /// <summary>True when the kind is registered as Low cover in the obstacle
+    /// catalog (Data/Obstacles/obstacle_catalog.json). Unknown kinds are High.</summary>
+    public static bool IsLowObstacleKind(string kind) => ObstacleCatalog.IsLow(kind);
+
+    /// <summary>Role tokens a recipe op may use in place of a concrete kind. The
+    /// active recipe's obstacles palette (or the terrain default) picks the kind.</summary>
+    private static readonly HashSet<string> ObstacleRoleTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "low", "high", "pillar"
+    };
+
+    /// <summary>Resolve what an op wrote in "kind": a role token becomes the palette's
+    /// kind for that role; anything else is taken as a concrete catalog kind.</summary>
+    public string ResolveObstacleKind(string kindOrRole)
+    {
+        if (string.IsNullOrEmpty(kindOrRole))
+            return ResolveObstacleKind("high");
+        if (!ObstacleRoleTokens.Contains(kindOrRole))
+            return kindOrRole;
+
+        string role = kindOrRole.ToLowerInvariant();
+        var palette = _activeRecipe?.Obstacles;
+        string kind = palette?.Get(role);
+        if (string.IsNullOrEmpty(kind))
+            kind = ObstaclePalette.DefaultFor(DominantBaseTerrain(), role);
+        return kind;
+    }
+
+    /// <summary>The terrain most of the grid is made of, for palette defaults on a
+    /// recipe that declares none (and for the enum-theme path).</summary>
+    private TileTerrainType DominantBaseTerrain()
+    {
+        var counts = new Dictionary<TileTerrainType, int>();
+        foreach (var t in Tiles.Values)
+        {
+            if (t == null) continue;
+            counts[t.TerrainType] = counts.TryGetValue(t.TerrainType, out var c) ? c + 1 : 1;
+        }
+        var best = TileTerrainType.Grass;
+        int bestN = -1;
+        foreach (var kv in counts)
+        {
+            if (kv.Key == TileTerrainType.Water) continue;   // water is never the dressing
+            if (kv.Value > bestN) { bestN = kv.Value; best = kv.Key; }
+        }
+        return best;
+    }
+
+    /// <summary>Single write site for obstacle flags so cover and sight stay in
+    /// agreement. Accepts a role token or a concrete kind. Low kinds: blocked,
+    /// walkable false, sight clear, Low cover. High kinds: blocked, walkable false,
+    /// sight blocked (which CoverAt reads as High). Unknown kinds warn once and
+    /// paint as High (ObstacleCatalog.GetOrFallback).</summary>
+    public void ApplyObstacle(TileData tile, string kindOrRole)
+    {
+        if (tile == null)
+            return;
+        string kind = ResolveObstacleKind(kindOrRole);
+        var spec = ObstacleCatalog.GetOrFallback(kind);
+
+        tile.IsBlocked = true;
+        tile.IsWalkable = false;
+        tile.ObstacleKind = kind ?? "";
+        if (spec.IsLow)
+        {
+            tile.BlocksLineOfSight = false;
+            tile.AuthoredCover = CoverKind.Low;
+        }
+        else
+        {
+            tile.BlocksLineOfSight = true;
+            tile.AuthoredCover = CoverKind.None;
+        }
+    }
+
+    /// <summary>cover_line (cover_and_zoc_v1 §7.6): a band of Low cover laid across
+    /// the player-enemy axis so the approach has something to crouch behind.
+    /// Centred on <paramref name="center"/>, extended <paramref name="length"/> tiles
+    /// along <paramref name="direction"/> (half each way, rounded toward the
+    /// negative side), with <paramref name="gaps"/> tiles left open at random so the
+    /// line is never a wall, and <paramref name="fill"/> as the per-tile density on
+    /// top of that. Skips reserved (spawn) tiles, water, and occupied tiles. The
+    /// kind defaults to the "low" role (the recipe's obstacles palette picks the
+    /// dressing); a High kind or the "high" role makes a proper wall with gaps.</summary>
+    private void PaintCoverLine(Vector2I center, Vector2I direction, int length, string kind, int gaps, float fill)
+    {
+        if (length <= 0)
+            return;
+
+        var coords = new List<Vector2I>();
+        int back = length / 2;
+        for (int i = -back; i < length - back; i++)
+        {
+            var c = center + direction * i;
+            if (Tiles.ContainsKey(c))
+                coords.Add(c);
+        }
+        if (coords.Count == 0)
+            return;
+
+        // Guaranteed gaps: never the two end tiles when the line is long enough,
+        // so the opening reads as a gate rather than the band just being short.
+        var open = new HashSet<int>();
+        int interiorLo = coords.Count >= 4 ? 1 : 0;
+        int interiorHi = coords.Count >= 4 ? coords.Count - 2 : coords.Count - 1;
+        int wanted = Math.Clamp(gaps, 0, Math.Max(0, interiorHi - interiorLo + 1));
+        int guard = 0;
+        while (open.Count < wanted && guard++ < 64)
+            open.Add(_rng.RandiRange(interiorLo, interiorHi));
+
+        for (int i = 0; i < coords.Count; i++)
+        {
+            if (open.Contains(i))
+                continue;
+            if (!Tiles.TryGetValue(coords[i], out var tile))
+                continue;
+            if (IsReserved(coords[i]) || tile.IsOccupied)
+                continue;
+            if (tile.TerrainType == TileTerrainType.Water)
+                continue;
+            if (_rng.Randf() > fill)
+                continue;
+            ApplyObstacle(tile, kind);
+        }
+    }
+
     private void PaintObstacleBand(Vector2I start, Vector2I direction, int length, string obstacleKind, float chance = 0.7f)
     {
         Vector2I current = start;
@@ -539,12 +667,7 @@ public partial class HexGridManager
                 break;
 
             if (!IsReserved(current) && _rng.Randf() < chance)
-            {
-                tile.IsBlocked = true;
-                tile.IsWalkable = false;
-                tile.BlocksLineOfSight = true;
-                tile.ObstacleKind = obstacleKind;
-            }
+                ApplyObstacle(tile, obstacleKind);
 
             current += direction;
         }
@@ -584,10 +707,7 @@ public partial class HexGridManager
             if (tile.IsOccupied)
                 continue;
 
-            tile.IsBlocked = true;
-            tile.IsWalkable = false;
-            tile.BlocksLineOfSight = true;
-            tile.ObstacleKind = obstacleKind;
+            ApplyObstacle(tile, obstacleKind);
             placed++;
 
             foreach (var neighbor in GetNeighbors(current))
@@ -702,6 +822,7 @@ public partial class HexGridManager
         tile.IsBlocked = false;
         tile.BlocksLineOfSight = false;
         tile.ObstacleKind = "";
+        tile.AuthoredCover = CoverKind.None;
     }
 
     private void ClearTileForLane(Vector2I center, int width)
@@ -718,6 +839,7 @@ public partial class HexGridManager
             tile.IsBlocked = false;
             tile.BlocksLineOfSight = false;
             tile.ObstacleKind = "";
+            tile.AuthoredCover = CoverKind.None;
             tile.MoveCost = 1;
         }
     }

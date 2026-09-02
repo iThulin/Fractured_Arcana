@@ -1,101 +1,128 @@
 {
-	"id": "lakeshore",
-	"display_name": "Lakeshore",
-	"shape": {
-		"type": "blob",
-		"width": 11,
-		"height": 9,
-		"radius": 5,
-		"erosion": 0.4
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.1,
-		"moisture_frequency": 0.1,
-		"detail_weight": 0.15,
-		"max_height_step": 2,
-		"min_height_step": -2,
-		"palette": [
-			{
-				"terrain": "water",
-				"max_elevation": 0.18
-			},
-			{
-				"terrain": "forest",
-				"min_moisture": 0.62
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.95,
-			0.97,
-			1.0
-		],
-		"sun_energy": 1.2,
-		"ambient_color": [
-			0.6,
-			0.66,
-			0.72
-		],
-		"ambient_energy": 0.85,
-		"fog_color": [
-			0.74,
-			0.8,
-			0.86
-		],
-		"fog_density": 0.007
-	},
-	"water": {
-		"profile": "clear_lake",
-		"shore_lip": 0.1
-	},
-	"features": [
-		{
-			"feature": "lake",
-			"phase": "skeleton",
-			"at": "random",
-			"radius": [
-				3,
-				4
-			],
-			"depth": 2
-		},
-		{
-			"feature": "lake",
-			"phase": "accent",
-			"at": "random",
-			"radius": [
-				1,
-				2
-			],
-			"depth": 1
-		},
-		{
-			"feature": "stream",
-			"phase": "accent",
-			"from": "high_tile",
-			"length": 7
-		},
-		{
-			"feature": "meadow",
-			"phase": "accent",
-			"at": "center",
-			"radius": 3
-		},
-		{
-			"feature": "scatter_copses",
-			"phase": "accent",
-			"count": [
-				2,
-				3
-			],
-			"radius": [
-				1,
-				2
-			]
-		}
-	]
+  "id": "lakeshore",
+  "display_name": "Lakeshore",
+  "shape": {
+    "type": "blob",
+    "width": 11,
+    "height": 9,
+    "radius": 5,
+    "erosion": 0.4
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.1,
+    "moisture_frequency": 0.1,
+    "detail_weight": 0.15,
+    "max_height_step": 2,
+    "min_height_step": -2,
+    "palette": [
+      {
+        "terrain": "water",
+        "max_elevation": 0.18
+      },
+      {
+        "terrain": "forest",
+        "min_moisture": 0.62
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.95,
+      0.97,
+      1.0
+    ],
+    "sun_energy": 1.2,
+    "ambient_color": [
+      0.6,
+      0.66,
+      0.72
+    ],
+    "ambient_energy": 0.85,
+    "fog_color": [
+      0.74,
+      0.8,
+      0.86
+    ],
+    "fog_density": 0.007
+  },
+  "water": {
+    "profile": "clear_lake",
+    "shore_lip": 0.1
+  },
+  "obstacles": {
+    "low": "driftwood",
+    "high": "old_trunk",
+    "pillar": "sunk_piling"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "lake",
+      "phase": "skeleton",
+      "at": "random",
+      "radius": [
+        3,
+        4
+      ],
+      "depth": 2
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "lake",
+      "phase": "accent",
+      "at": "random",
+      "radius": [
+        1,
+        2
+      ],
+      "depth": 1
+    },
+    {
+      "feature": "stream",
+      "phase": "accent",
+      "from": "high_tile",
+      "length": 7
+    },
+    {
+      "feature": "meadow",
+      "phase": "accent",
+      "at": "center",
+      "radius": 3
+    },
+    {
+      "feature": "scatter_copses",
+      "phase": "accent",
+      "count": [
+        2,
+        3
+      ],
+      "radius": [
+        1,
+        2
+      ]
+    }
+  ]
 }

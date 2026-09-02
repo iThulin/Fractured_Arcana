@@ -220,6 +220,14 @@
 					"type": "boolean",
 					"description": "Require line of sight from caster to target. Used by: unit."
 				},
+				"delivery": {
+					"type": "string",
+					"enum": [
+						"arc",
+						"bolt"
+					],
+					"description": "How the effect travels (cover_and_zoc_v1). arc (default): lobbed or willed, ignores low cover. bolt: flies straight, cannot target a unit behind full cover, low cover soaks it; implies los. Used by: unit."
+				},
 				"include_tiles": {
 					"type": "boolean",
 					"description": "Include empty hex tiles (not just units) in the selection. Used by: aoe, ring, line, adjacent_to_target."
@@ -371,8 +379,8 @@
 				},
 				"radius": {
 					"type": "integer",
-					"description": "Radius (in tiles) of an area effect. Used by: aoe_all, imbue_area, consume_element_tile, terraform, elemental_convergence, primordial_surge, tectonic_shatter, create_maelstrom, cataclysm, hallow_area, ossuary_aura, elder_aura.",
-					"minimum": 1
+					"description": "Radius (in tiles) of an area effect. Used by: aoe_all, imbue_area, consume_element_tile, terraform, elemental_convergence, primordial_surge, tectonic_shatter, create_maelstrom, cataclysm, hallow_area, ossuary_aura, elder_aura. 0 = the target tile only.",
+					"minimum": 0
 				},
 				"damage": {
 					"type": "integer",
@@ -411,8 +419,8 @@
 				},
 				"turns": {
 					"type": "integer",
-					"description": "Duration in turns. Used by: avatar_transform, create_maelstrom, hollow_mantle, open_gate, hallow_tile, create_memorial_ground.",
-					"minimum": 1
+					"description": "Duration in turns. Used by: avatar_transform, create_maelstrom, hollow_mantle, open_gate, hallow_tile, create_memorial_ground. 0 = this turn only.",
+					"minimum": 0
 				},
 				"bonus_speed": {
 					"type": "integer",
@@ -516,7 +524,12 @@
 						"bound",
 						"undying_turn",
 						"undying_full_restore",
-						"vigil"
+						"vigil",
+						"named",
+						"temporal_drag",
+						"hasted",
+						"mana_taxed",
+						"delayed"
 					]
 				},
 				"duration": {
@@ -598,7 +611,8 @@
 						"damage",
 						"armor",
 						"speed",
-						"health"
+						"health",
+						"movement"
 					]
 				},
 				"attack_if_adjacent": {
@@ -835,7 +849,8 @@
 					"description": "Conduit Link redistribution mode. Used by: create_link.",
 					"enum": [
 						"split",
-						"mirror"
+						"mirror",
+						"halved"
 					]
 				},
 				"line_damage": {
@@ -984,7 +999,7 @@
 					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
 				},
 				"value": {
-					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
+					"description": "Threshold for predicate-style effect nodes. Used by: charge_at_least when authored as an effect step."
 				},
 				"value_mult": {
 					"description": "Effect parameter (schema catch-up 2026-07-10 \u2014 see the school registry partial that registers this effect's type for semantics)."
@@ -1076,6 +1091,136 @@
 				"charge_per": {
 					"type": "integer",
 					"description": "move_per_spell_cast: Arcanist charge banked per spell counted."
+				},
+				"reusable": {
+					"type": "boolean",
+					"description": "Glyph is re-armed after triggering instead of consumed. Used by: prepare_glyph, prepare_glyph_area."
+				},
+				"ally_damage": {
+					"type": "integer",
+					"description": "Bonus damage granted to allies standing on or linked to the object. Used by: prepare_glyph, prepare_glyph_area, create_arcane_construct.",
+					"minimum": 0
+				},
+				"ally_armor": {
+					"type": "integer",
+					"description": "Armor granted to allies on the glyph. Used by: prepare_glyph, prepare_glyph_area.",
+					"minimum": 0
+				},
+				"ally_shield": {
+					"type": "integer",
+					"description": "Shield granted to allies on the glyph. Used by: prepare_glyph, prepare_glyph_area.",
+					"minimum": 0
+				},
+				"ally_all_stats": {
+					"type": "integer",
+					"description": "Flat bonus to every ally stat in the aura. Used by: enchant_pillar.",
+					"minimum": 0
+				},
+				"aura_status": {
+					"type": "string",
+					"description": "Status applied to enemies inside the aura. Used by: enchant_pillar."
+				},
+				"stage": {
+					"type": "integer",
+					"description": "Growth stage to seed: 1 sapling, 2 thicket, 3 old growth. Used by: seed_growth.",
+					"minimum": 1
+				},
+				"on_trigger_draw": {
+					"type": "integer",
+					"description": "Cards drawn when the glyph triggers. Used by: prepare_glyph.",
+					"minimum": 0
+				},
+				"empty_only": {
+					"type": "boolean",
+					"description": "Only empty tiles receive the glyph. Used by: prepare_glyph_area."
+				},
+				"caster_cost_reduction": {
+					"type": "integer",
+					"description": "Mana discount for the caster while the glyph stands. Used by: prepare_glyph.",
+					"minimum": 0
+				},
+				"at_origin": {
+					"type": "boolean",
+					"description": "Place the glyph on the caster's own tile. Used by: prepare_glyph."
+				},
+				"heal_caster": {
+					"type": "integer",
+					"description": "HP the caster regains when the glyph triggers. Used by: prepare_glyph.",
+					"minimum": 0
+				},
+				"spread_radius": {
+					"type": "integer",
+					"description": "Radius the passive spreads to each turn. Used by: grand_design_passive.",
+					"minimum": 0
+				},
+				"spread": {
+					"type": "integer",
+					"description": "Tiles the cascade jumps per hop. Used by: cascade_glyph.",
+					"minimum": 0
+				},
+				"damage_per_charge": {
+					"type": "integer",
+					"description": "Damage per Charge spent. Used by: spend_charge_damage.",
+					"minimum": 0
+				},
+				"extra_target_range": {
+					"type": "integer",
+					"description": "Range of the extra target the modifier adds. Used by: queue_next_spell_modifier.",
+					"minimum": 0
+				},
+				"extra_target_fraction": {
+					"type": "number",
+					"description": "Damage fraction dealt to the extra target. Used by: queue_next_spell_modifier.",
+					"minimum": 0
+				},
+				"echo_nearest": {
+					"type": "boolean",
+					"description": "The echo targets the nearest enemy to the primary. Used by: queue_next_spell_modifier."
+				},
+				"echo_fraction": {
+					"type": "number",
+					"description": "Damage fraction the echo deals. Used by: queue_next_spell_modifier.",
+					"minimum": 0
+				},
+				"damage_per_mana": {
+					"type": "integer",
+					"description": "Damage per mana the living spell was fed. Used by: summon_living_spell.",
+					"minimum": 0
+				},
+				"charge_per_turn": {
+					"type": "integer",
+					"description": "Charge banked per turn by the construct. Used by: create_arcane_construct.",
+					"minimum": 0
+				},
+				"charge_per_hit": {
+					"type": "integer",
+					"description": "Charge banked per hit landed. Used by: create_arcane_construct.",
+					"minimum": 0
+				},
+				"charge_per_cast": {
+					"type": "integer",
+					"description": "Charge banked per spell cast. Used by: arcane_apotheosis.",
+					"minimum": 0
+				},
+				"bonus_per_charge": {
+					"type": "integer",
+					"description": "Bonus per Charge held. Used by: create_arcane_construct.",
+					"minimum": 0
+				},
+				"enemy_cost": {
+					"type": "integer",
+					"description": "Extra mana enemies pay near the construct. Used by: create_arcane_construct.",
+					"minimum": 0
+				},
+				"reaction_threshold": {
+					"type": "integer",
+					"description": "Charge at which the reaction fires. Used by: arcane_apotheosis.",
+					"minimum": 0
+				},
+				"move_tiles": {
+					"type": "integer",
+					"description": "Tiles the dominated unit is walked. Used by: dominate.",
+					"minimum": 0
 				}
 			}
 		},
@@ -1157,6 +1302,11 @@
 					"description": "Reserved for predicates that compare against a numeric threshold (e.g. attunement >= n). Currently unused by any registered predicate.",
 					"minimum": 1,
 					"maximum": 4
+				},
+				"value": {
+					"type": "integer",
+					"description": "Threshold the predicate compares against. Used by: charge_at_least.",
+					"minimum": 0
 				}
 			}
 		},

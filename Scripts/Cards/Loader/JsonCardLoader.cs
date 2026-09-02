@@ -641,13 +641,24 @@ public static partial class CardScriptRegistry
         RegisterTargeter("none", _ => new SelectGlobalTarget());
         RegisterTargeter("global", _ => new SelectGlobalTarget()); // alias, since card JSON uses both spellings
 
-        // Unit selector: { "type": "unit", "enemies_only": bool, "range": n, "los": bool }
+        // Unit selector: { "type": "unit", "enemies_only": bool, "range": n, "los": bool,
+        //                  "delivery": "arc" | "bolt" }
+        // delivery defaults to arc (magic goes over low cover). A bolt flies straight:
+        // it cannot target a unit whose facing side holds High cover, and Low cover
+        // feeds the defender's cover armour. Bolt implies los.
         RegisterTargeter("unit", n =>
         {
             bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 6;
             bool los = n.TryGetProperty("los", out var l) && l.GetBoolean();
-            return new SelectUnitTarget(enemyOnly, range, los);
+            var delivery = Delivery.Arc;
+            if (n.TryGetProperty("delivery", out var dv) && dv.ValueKind == JsonValueKind.String
+                && string.Equals(dv.GetString(), "bolt", StringComparison.OrdinalIgnoreCase))
+            {
+                delivery = Delivery.Bolt;
+                los = true;
+            }
+            return new SelectUnitTarget(enemyOnly, range, los, false, delivery);
         });
 
         // Tile selector: { "type": "tile", "range": n }

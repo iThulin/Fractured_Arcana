@@ -1,98 +1,125 @@
 {
-	"id": "verdant_woods",
-	"display_name": "Verdant Woods",
-	"shape": {
-		"type": "blob",
-		"width": 8,
-		"height": 7,
-		"radius": 5,
-		"erosion": 0.4
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.14,
-		"moisture_frequency": 0.1,
-		"detail_weight": 0.18,
-		"max_height_step": 3,
-		"min_height_step": -2,
-		"palette": [
-			{
-				"terrain": "water",
-				"max_elevation": 0.16
-			},
-			{
-				"terrain": "stone",
-				"min_elevation": 0.82
-			},
-			{
-				"terrain": "forest",
-				"min_moisture": 0.35
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.8,
-			0.95,
-			0.75
-		],
-		"sun_energy": 1.1,
-		"ambient_color": [
-			0.5,
-			0.6,
-			0.45
-		],
-		"ambient_energy": 0.85,
-		"fog_color": [
-			0.6,
-			0.7,
-			0.55
-		],
-		"fog_density": 0.009
-	},
-	"features": [
-		{
-			"feature": "scatter_copses",
-			"phase": "accent",
-			"count": [
-				3,
-				5
-			],
-			"radius": [
-				2,
-				3
-			]
-		},
-		{
-			"feature": "stream",
-			"phase": "accent",
-			"from": "high_tile",
-			"length": 8
-		},
-		{
-			"feature": "clearing",
-			"phase": "accent",
-			"at": "center",
-			"radius": 2
-		},
-		{
-			"feature": "rocky_outcrop",
-			"phase": "accent",
-			"at": "random",
-			"radius": 1,
-			"chance": 0.5
-		},
-		{
-			"feature": "leyline",
-			"phase": "accent",
-			"at": "random",
-			"length": [
-				6,
-				9
-			],
-			"branch": 0.35
-		}
-	]
+  "id": "verdant_woods",
+  "display_name": "Verdant Woods",
+  "shape": {
+    "type": "blob",
+    "width": 8,
+    "height": 7,
+    "radius": 5,
+    "erosion": 0.4
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.14,
+    "moisture_frequency": 0.1,
+    "detail_weight": 0.18,
+    "max_height_step": 3,
+    "min_height_step": -2,
+    "palette": [
+      {
+        "terrain": "water",
+        "max_elevation": 0.16
+      },
+      {
+        "terrain": "stone",
+        "min_elevation": 0.82
+      },
+      {
+        "terrain": "forest",
+        "min_moisture": 0.35
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.8,
+      0.95,
+      0.75
+    ],
+    "sun_energy": 1.1,
+    "ambient_color": [
+      0.5,
+      0.6,
+      0.45
+    ],
+    "ambient_energy": 0.85,
+    "fog_color": [
+      0.6,
+      0.7,
+      0.55
+    ],
+    "fog_density": 0.009
+  },
+  "obstacles": {
+    "low": "fallen_log",
+    "high": "old_trunk",
+    "pillar": "old_trunk"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "scatter_copses",
+      "phase": "accent",
+      "count": [
+        3,
+        5
+      ],
+      "radius": [
+        2,
+        3
+      ]
+    },
+    {
+      "feature": "stream",
+      "phase": "accent",
+      "from": "high_tile",
+      "length": 8
+    },
+    {
+      "feature": "clearing",
+      "phase": "accent",
+      "at": "center",
+      "radius": 2
+    },
+    {
+      "feature": "rocky_outcrop",
+      "phase": "accent",
+      "at": "random",
+      "radius": 1,
+      "chance": 0.5
+    },
+    {
+      "feature": "leyline",
+      "phase": "accent",
+      "at": "random",
+      "length": [
+        6,
+        9
+      ],
+      "branch": 0.35
+    }
+  ]
 }

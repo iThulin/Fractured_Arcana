@@ -327,7 +327,7 @@ public sealed class DealDamageEffect : EffectBase
 
 			if (obj is Unit u)
 			{
-				u.ApplyDamage(totalDamage, s.ActiveCasterUnit);
+				u.ApplyDamage(totalDamage, s.ActiveCasterUnit, targets.Delivery);
 				s.Log($"HIT unit {u.Name}");
 				hit++;
 				victim = u;
@@ -338,7 +338,7 @@ public sealed class DealDamageEffect : EffectBase
 			else if (obj is TileData td && td.Occupant != null)
 			{
 				victim = td.Occupant;
-				victim.ApplyDamage(totalDamage, s.ActiveCasterUnit);
+				victim.ApplyDamage(totalDamage, s.ActiveCasterUnit, targets.Delivery);
 				s.Log($"HIT tile occupant {victim.Name} on {td.Axial}");
 				hit++;
 			}
@@ -348,7 +348,7 @@ public sealed class DealDamageEffect : EffectBase
 				if (tileData != null && tileData.Occupant != null)
 				{
 					victim = tileData.Occupant;
-					victim.ApplyDamage(totalDamage, s.ActiveCasterUnit);
+					victim.ApplyDamage(totalDamage, s.ActiveCasterUnit, targets.Delivery);
 					s.Log($"HIT tile occupant {victim.Name} on {tileData.Axial}");
 					hit++;
 				}
@@ -572,16 +572,17 @@ public sealed class AoeAllEffect : EffectBase
 		int totalDamage = Damage + bonusSpellDmg;
 
 		var center = casterUnit.CurrentTile.Axial;
+		var reach = s.Grid.BurstReach(center, Radius);   // walls stop it, low cover slows it
 		int hit = 0;
 
 		foreach (var unit in s.UnitsInPlay)
 		{
 			if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
 				continue;
-			if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius)
+			if (!reach.Contains(unit.CurrentTile.Axial))
 				continue;
 
-			unit.ApplyDamage(totalDamage);
+			unit.ApplyDamage(totalDamage, casterUnit, Delivery.Burst);
 			s.Log($"[AoeAll] {unit.Name} takes {totalDamage} damage.");
 			hit++;
 		}

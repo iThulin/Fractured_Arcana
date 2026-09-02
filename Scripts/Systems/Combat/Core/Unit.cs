@@ -62,6 +62,13 @@ public sealed class Stats
     public int Armor;
     public int Shield;
 
+    /// <summary>Cover armour: a small pool, refilled at the start of the unit's turn
+    /// and whenever it finishes a walk, sized by whether any neighbour tile gives
+    /// cover. Only a <see cref="Delivery.Bolt"/> arriving from a covered direction
+    /// spends it. It is not Armor: a burst, an arc, or a flanking shot never sees it,
+    /// and it never survives a forced move (a push knocks the unit out of position).</summary>
+    public int CoverArmor;
+
     // Poison tracks drain rate separately because the status dict only
     // stores duration. Set when poisoned is applied, persists until combat ends.
     public int PoisonDrainPerTurn = 0;
@@ -326,6 +333,41 @@ public partial class Unit : Node3D
     {
         if (_intentLabel != null)
             _intentLabel.Visible = false;
+    }
+
+    // ── Cover marker (cover_and_zoc_v1): COVER / FLANKED relative to the selected unit ──
+
+    private Label3D _coverLabel;
+
+    public void SetCoverMarker(string text, Color color)
+    {
+        if (_coverLabel == null)
+        {
+            _coverLabel = new Label3D
+            {
+                Name = "CoverMarker",
+                Text = text,
+                FontSize = 22,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Position = new Vector3(0f, 2.35f, 0f),   // just under the intent glyph
+                Modulate = color,
+                OutlineSize = 6,
+            };
+            CallDeferred("add_child", _coverLabel);
+        }
+        else
+        {
+            _coverLabel.Visible = true;
+            _coverLabel.Text = text;
+            _coverLabel.Modulate = color;
+        }
+    }
+
+    public void ClearCoverMarker()
+    {
+        if (_coverLabel != null)
+            _coverLabel.Visible = false;
     }
 
     // ── Chronomancer: action delay ───────────────────────────────
@@ -626,6 +668,7 @@ public partial class Unit : Node3D
         TilesMovedThisTurn = 0;
         Stats.MovePoints = Stats.BaseSpeed;
         Stats.BonusMoveRange = 0;   // movespeed grants last one turn
+        RefreshCoverArmor();        // cover is re-read each turn: walls fall, rubble forms
 
         Stats.Mana = Stats.MaxMana;
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
@@ -661,6 +704,11 @@ public partial class Unit : Node3D
 
         if (tile.TileView != null)
             GlobalPosition = tile.TileView.GlobalPosition;
+
+        // A push, pull, slide, or teleport leaves the unit out of position: cover
+        // armour is gone until it settles again (its next walk or its next turn).
+        if (kind != MovementKind.Walked && previousTile != null && previousTile != tile)
+            Stats.CoverArmor = 0;
 
         // Fire the callback so effects can react to movement
         if (previousTile != null && previousTile != tile)
@@ -755,6 +803,65 @@ public partial class Unit : Node3D
         TileEntryReactions.TrySlide(this, tile, previousTile, kind, ctx);
     }
 
+    /// <summary>Cover armour granted per refresh to a unit with cover on at least
+    /// one side. Deliberately small: cover buys a turn of chip relief, not immunity.</summary>
+    public const int CoverArmorPerTurn = 2;
+
+    // ── Zone of control (cover_and_zoc_v1) ──────────────────────────────────
+
+    /// <summary>Resolver for a free strike. Installed by CombatManager on combat
+    /// start (striker, mover) and returns true when the mover is dead or otherwise
+    /// cannot continue its walk. Null outside combat and in headless card tests,
+    /// where nobody exerts control.
+    /// RULED 2026-09-02: only a WALK draws a strike. Teleports, blinks, swaps, and
+    /// forced moves all go through <see cref="PlaceOnTile"/> and never through this
+    /// hook. Do not route a teleport through TryMoveTo to reuse the path walk.</summary>
+    public static Func<Unit, Unit, bool> ZoneOfControlStrike;
+
+    /// <summary>True when this unit's adjacency is a threat a mover must respect:
+    /// alive, a real combatant (not a map object), able to act, and armed. A unit
+    /// with no attack (a ward, a totem) holds no ground.</summary>
+    public bool ExertsZoneOfControl()
+        => Stats.IsAlive && !IsDeathQueued && !IsMapObject && CanAct() && AttackDamage > 0;
+
+    /// <summary>Hostile units whose zone of control the step <paramref name="from"/>
+    /// to <paramref name="to"/> LEAVES: adjacent to the tile being vacated and not
+    /// adjacent to the destination. Circling an enemy while staying adjacent is not
+    /// an escape and draws no strike; stepping out of reach is.</summary>
+    public List<Unit> ZoneOfControlLeavers(HexGridManager grid, TileData from, TileData to)
+    {
+        var result = new List<Unit>();
+        if (grid == null || from == null || to == null)
+            return result;
+        foreach (var n in grid.GetNeighbors(from.Axial))
+        {
+            var occ = grid.GetTile(n)?.Occupant;
+            if (occ == null || occ == this || occ.TeamId == TeamId)
+                continue;
+            if (!occ.ExertsZoneOfControl())
+                continue;
+            if (HexGridManager.AxialDistance(n, to.Axial) <= 1)
+                continue;   // still in reach after the step
+            result.Add(occ);
+        }
+        return result;
+    }
+
+    /// <summary>Re-read the pool from the tile the unit stands on. Called at the
+    /// start of the unit's turn and at the end of every walk. A forced move clears
+    /// it instead (see <see cref="PlaceOnTile"/>), because being shoved out from
+    /// behind a wall is the whole point of the shove.</summary>
+    public void RefreshCoverArmor()
+    {
+        var grid = HexGridManager.Current;
+        if (grid == null || CurrentTile == null || IsMapObject)
+        {
+            Stats.CoverArmor = 0;
+            return;
+        }
+        Stats.CoverArmor = grid.HasAnyCover(CurrentTile.Axial) ? CoverArmorPerTurn : 0;
+    }
+
     public bool TryMoveTo(HexGridManager grid, TileData dest)
     {
         if (grid == null || dest == null || CurrentTile == null)
@@ -782,6 +889,7 @@ public partial class Unit : Node3D
         // destination tile.
         var walkCtx = new MoveContext(grid);
         var path = grid.GetPathTo(this, dest);
+        var struckBy = new HashSet<Unit>();      // one free strike per enemy per walk
         if (path != null && path.Count > 0)
         {
             foreach (var stepCoord in path)
@@ -789,6 +897,26 @@ public partial class Unit : Node3D
                 var step = grid.GetTile(stepCoord);
                 if (step == null || !step.CanEnter(this))
                     break;
+
+                // Zone of control: stepping out of an enemy's reach gives it a free
+                // swing BEFORE the step lands. A lethal swing ends the walk here.
+                if (ZoneOfControlStrike != null)
+                {
+                    bool halted = false;
+                    foreach (var striker in ZoneOfControlLeavers(grid, CurrentTile, step))
+                    {
+                        if (!struckBy.Add(striker))
+                            continue;
+                        if (ZoneOfControlStrike(striker, this))
+                        {
+                            halted = true;
+                            break;
+                        }
+                    }
+                    if (halted || !Stats.IsAlive || IsDeathQueued)
+                        break;
+                }
+
                 PlaceOnTile(step, MovementKind.Walked, walkCtx);
                 // A slide (or other forced diversion) took the unit off-route, or
                 // the walk was halted. Either way the walk ends here.
@@ -806,6 +934,7 @@ public partial class Unit : Node3D
         // arrival" has to mean arrival or the aura reads as random. PlaceOnTile has
         // already run TrapSystem/ConduitLink entry hooks, so this sits in the same
         // company as every other consequence of stepping onto a tile.
+        RefreshCoverArmor();      // settled behind a wall (or left one): re-read
         OnMoved?.Invoke(this);
         return true;
     }
@@ -881,7 +1010,7 @@ public partial class Unit : Node3D
     /// strike path and the card damage path both pass it. Null means "no attributable
     /// attacker" (DoT, terrain, self-damage); veil and retaliate both treat null as
     /// un-answerable and let the damage through.</summary>
-    public void ApplyDamage(int amount, Unit source = null)
+    public void ApplyDamage(int amount, Unit source = null, Delivery delivery = Delivery.Untyped)
     {
         if (amount <= 0 || IsDeathQueued)
             return;
@@ -939,6 +1068,37 @@ public partial class Unit : Node3D
                     flatReduction += value;
             if (flatReduction > 0)
                 amount = Mathf.Max(1, amount - flatReduction);
+        }
+
+        // Cover armour (cover_and_zoc_v1): a Bolt from a covered direction spends
+        // the pool first. Ordered after bodyguard (the guard's own cover applies to
+        // the guard) and before the sim gate, so the R22 preview prices it. The sim
+        // reads the pool without spending it.
+        if (delivery == Delivery.Bolt && Stats.CoverArmor > 0 && source != null
+            && GodotObject.IsInstanceValid(source) && source.CurrentTile != null && CurrentTile != null)
+        {
+            var grid = HexGridManager.Current;
+            var cover = grid != null
+                ? grid.CoverBetween(CurrentTile.Axial, source.CurrentTile.Axial)
+                : CoverKind.None;
+            if (cover != CoverKind.None)
+            {
+                int soak = Math.Min(amount, Stats.CoverArmor);
+                amount -= soak;
+                if (!CombatSim.Active)
+                {
+                    Stats.CoverArmor -= soak;
+                    GD.Print($"{Name} in cover: {soak} of the shot from {source.Name} stops at the wall ({Stats.CoverArmor} cover left).");
+                }
+                if (amount <= 0)
+                {
+                    if (CombatSim.Active)
+                        CombatSim.RecordDamage(this, 0);
+                    else
+                        RefreshHealthBar();
+                    return;
+                }
+            }
         }
 
         if (CombatSim.Active)
@@ -1067,7 +1227,7 @@ public partial class Unit : Node3D
     {
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield, Stats.WitheredMaxHp);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
-        _healthBar?.SetAP(CurrentActionPoints, MaxActionPoints, Stats.Armor, Stats.Shield);
+        _healthBar?.SetAP(CurrentActionPoints, MaxActionPoints, Stats.Armor, Stats.Shield, Stats.CoverArmor);
         _healthBar?.RefreshStatuses(Stats.StatusEffects);
     }
 
@@ -1358,6 +1518,67 @@ public partial class Unit : Node3D
             _hoverRing.Visible = hovered && !_isSelected;
     }
 
+    // ── Cast preview markers (cast_preview_v1) ───────────────────────────
+    // A dragged card marks the units it can reach with a ring, and the ones it
+    // cannot with the reason. Both are separate nodes from the hover ring so a
+    // real hover, a selection, and a target marker never fight over one mesh.
+
+    private MeshInstance3D _targetRing;
+    private StandardMaterial3D _targetRingMat;
+    private Label3D _blockedLabel;
+
+    /// <summary>Show (or hide) the "this card can reach me" ring in <paramref name="color"/>.</summary>
+    public void SetTargetable(bool on, Color color = default)
+    {
+        if (_targetRing == null)
+        {
+            if (!on)
+                return;
+            var mesh = new TorusMesh { InnerRadius = 0.62f, OuterRadius = 0.80f, Rings = 24, RingSegments = 6 };
+            _targetRingMat = new StandardMaterial3D
+            {
+                AlbedoColor = color,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                NoDepthTest = true,
+            };
+            _targetRing = new MeshInstance3D { Mesh = mesh, Position = new Vector3(0f, 0.05f, 0f) };
+            _targetRing.SetSurfaceOverrideMaterial(0, _targetRingMat);
+            AddChild(_targetRing);
+        }
+        if (on && _targetRingMat != null)
+            _targetRingMat.AlbedoColor = color;
+        _targetRing.Visible = on;
+    }
+
+    /// <summary>Show why a dragged card cannot reach this unit ("full cover", "no
+    /// sight", "out of range"), or clear it with an empty string.</summary>
+    public void SetBlockedReason(string reason)
+    {
+        if (string.IsNullOrEmpty(reason))
+        {
+            if (_blockedLabel != null)
+                _blockedLabel.Visible = false;
+            return;
+        }
+        if (_blockedLabel == null)
+        {
+            _blockedLabel = new Label3D
+            {
+                Name = "BlockedReason",
+                FontSize = 20,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Position = new Vector3(0f, 1.95f, 0f),
+                Modulate = new Color(0.85f, 0.55f, 0.45f),
+                OutlineSize = 6,
+            };
+            AddChild(_blockedLabel);
+        }
+        _blockedLabel.Text = reason;
+        _blockedLabel.Visible = true;
+    }
+
     public void RefreshNameLabel()
     {
         if (_nameLabel != null)
@@ -1370,7 +1591,7 @@ public partial class Unit : Node3D
         // Also push AP into the bar whenever detail opens
         if (detailed)
             _healthBar?.SetAP(CurrentActionPoints, MaxActionPoints,
-                            Stats.Armor, Stats.Shield);
+                            Stats.Armor, Stats.Shield, Stats.CoverArmor);
     }
 
     public void SetBodyColor(Color color)

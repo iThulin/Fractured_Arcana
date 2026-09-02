@@ -180,6 +180,7 @@ public partial class HexGridManager
             tile.IsHazardous = false;
             tile.MoveCost = 1;
             tile.ObstacleKind = "";
+            tile.AuthoredCover = CoverKind.None;
         }
     }
 
@@ -236,6 +237,7 @@ public partial class HexGridManager
                 tile.IsHazardous = false;
                 tile.MoveCost = 1;
                 tile.ObstacleKind = "";
+                tile.AuthoredCover = CoverKind.None;
 
                 // Ramp through any cliff: keep each carved tile within the
                 // traversable height band of the previous one.
@@ -268,6 +270,7 @@ public partial class HexGridManager
             goalTile.IsHazardous = false;
             goalTile.MoveCost = 1;
             goalTile.ObstacleKind = "";
+            goalTile.AuthoredCover = CoverKind.None;
 
             // The carve loop exits before processing the goal, so ramp it too,
             // or the final step can still be an illegal cliff.

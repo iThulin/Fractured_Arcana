@@ -612,12 +612,13 @@ public sealed class ImbueAreaEffect : EffectBase
             _ => TileElementType.None
         };
 
+        // Burst fill (cover_and_zoc_v1 §4): the imbuement pours through open ground
+        // and stops at walls instead of soaking through them.
+        var reach = s.Grid.BurstReach(center, Radius);
         int imbued = 0;
-        foreach (var kvp in s.Grid.Tiles)
+        foreach (var coord in reach)
         {
-            if (s.Grid.Distance(center, kvp.Key) > Radius)
-                continue;
-            var tile = kvp.Value;
+            var tile = s.Grid.GetTile(coord);
             if (tile == null)
                 continue;
 
@@ -694,17 +695,18 @@ public sealed class ConsumeElementTileEffect : EffectBase
         targetTile.TileView?.SetElement(TileElementType.None);
         s.Log($"[ConsumeTile] Consumed {Element} tile at {center}.");
 
-        // Deal damage to enemies within radius
+        // Deal damage to enemies the explosion reaches (burst fill: walls stop it)
+        var blast = s.Grid.BurstReach(center, Radius);
         foreach (var unit in s.UnitsInPlay)
         {
             if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
                 continue;
             if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
                 continue;
-            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius)
+            if (!blast.Contains(unit.CurrentTile.Axial))
                 continue;
 
-            unit.ApplyDamage(Damage);
+            unit.ApplyDamage(Damage, casterUnit, Delivery.Burst);
             s.Log($"[ConsumeTile] {unit.Name} takes {Damage} damage from {Element} explosion.");
         }
     }

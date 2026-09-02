@@ -46,6 +46,22 @@ public enum TileElementType
     Lightning
 }
 
+/// <summary>How much protection a tile gives to a unit standing NEXT to it, on the
+/// side facing away from the attacker. Cover is a property of the obstacle tile, not of
+/// the defender's tile. See HexGridManager.Cover.cs for the directional rule.</summary>
+public enum CoverKind
+{
+    /// <summary>Open ground, or an obstacle too low to matter.</summary>
+    None,
+    /// <summary>Waist-high: a low wall, rubble, a brazier, a cask. Does not block sight.
+    /// Bolts (arrows, martial ranged, straight-flying spells) lose damage to it; arcs
+    /// (lobbed or willed magic) ignore it; bursts spread through it one step slower.</summary>
+    Low,
+    /// <summary>Full height: a wall, a rock, a tree, a pillar. Blocks sight, so it also
+    /// stops every targeted delivery from that side. Bursts do not spread through it.</summary>
+    High
+}
+
 /// <summary>
 /// Pure-data representation of one tile on the combat hex grid. Holds terrain, occupancy,
 /// imbuement, glyph, height, and pathfinding metadata. The companion <see cref="HexTile"/>
@@ -72,6 +88,12 @@ public class TileData
 
     /// <summary>True when this tile blocks line-of-sight checks for targeting and ranged effects.</summary>
     public bool BlocksLineOfSight = false;
+
+    /// <summary>Authored low cover on this tile (a low wall from a recipe, rubble). Only
+    /// <see cref="CoverKind.Low"/> is ever stored here: High cover is derived from
+    /// <see cref="BlocksLineOfSight"/>, and map objects derive theirs from the occupant.
+    /// Read the effective value through HexGridManager.CoverAt, never this field.</summary>
+    public CoverKind AuthoredCover = CoverKind.None;
 
     /// <summary>True when standing on this tile damages the unit each turn (lava, scorched ground, etc.).</summary>
     public bool IsHazardous = false;

@@ -39,15 +39,14 @@ public sealed class PrimordialSurgeEffect : EffectBase
             return;
 
         var center = casterUnit.CurrentTile.Axial;
+        var reach = s.Grid.BurstReach(center, Radius);   // walls stop the surge
 
-        // Imbue tiles within radius
+        // Imbue tiles the surge reaches
         int imbued = 0;
-        foreach (var kvp in s.Grid.Tiles)
+        foreach (var coord in reach)
         {
-            var tile = kvp.Value;
+            var tile = s.Grid.GetTile(coord);
             if (tile == null)
-                continue;
-            if (s.Grid.Distance(center, kvp.Key) > Radius)
                 continue;
 
             var element = Elements[_rng.Next(Elements.Length)];
@@ -303,6 +302,22 @@ public sealed class ElementalConvergenceEffect : EffectBase
 /// <summary>Elementalist capstone. Destroys all stone-typed tiles, earth-imbued tiles, and stone obstacles within radius of the target, replaces them with rubble, and deals <c>destroyed × DamagePerTile</c> to the single nearest enemy.</summary>
 public sealed class TectonicShatterEffect : EffectBase
 {
+    /// <summary>Kinds Tectonic Shatter breaks: the legacy names plus anything the
+    /// obstacle catalog files under a rock, masonry, basalt, or sand material.</summary>
+    private static bool IsShatterableKind(string kind)
+    {
+        if (string.IsNullOrEmpty(kind))
+            return false;
+        switch (kind)
+        {
+            case "rock": case "stone": case "boulder": case "stone_pillar":
+                return true;
+        }
+        if (!ObstacleCatalog.TryGet(kind, out var spec))
+            return false;
+        return spec.Material is "rock" or "masonry" or "basalt" or "sand";
+    }
+
     public int Radius;
     public int DamagePerTile;
 
@@ -347,13 +362,13 @@ public sealed class TectonicShatterEffect : EffectBase
             if (tile == null)
                 continue;
 
+            // Stone by terrain, by imbuement, or by obstacle material: the catalog
+            // (Data/Obstacles) groups rock ledges, standing stones, boulders, and
+            // masonry under materials, so a themed obstacle shatters like a rock does.
+            bool stoneObstacle = tile.IsBlocked && IsShatterableKind(tile.ObstacleKind);
             bool isStone = tile.TerrainType == TileTerrainType.Stone ||
                            tile.ElementType == TileElementType.Earth ||
-                            (tile.IsBlocked &&
-                            (tile.ObstacleKind == "rock" ||
-                            tile.ObstacleKind == "stone" ||
-                            tile.ObstacleKind == "boulder" ||
-                            tile.ObstacleKind == "stone_pillar"));
+                           stoneObstacle;
 
             if (!isStone)
                 continue;
@@ -363,6 +378,7 @@ public sealed class TectonicShatterEffect : EffectBase
             tile.IsWalkable = true;
             tile.BlocksLineOfSight = false;
             tile.ObstacleKind = "";
+            tile.AuthoredCover = CoverKind.None;
             tile.ElementType = TileElementType.None;
             tile.ElementStrength = 0f;
             tile.ApplyTerrainModifier("rubble");
@@ -491,14 +507,15 @@ public sealed class TerraformEffect : EffectBase
             _ => TileElementType.Earth
         };
 
-        // Reshape all tiles in radius
-        foreach (var kvp in s.Grid.Tiles)
+        // Reshape every tile the surge reaches. Burst fill (cover_and_zoc_v1 §4):
+        // terraforming pours around a pillar and stops at a wall rather than
+        // rewriting the ground on the far side of it.
+        var reshaped = s.Grid.BurstReach(center, Radius);
+        foreach (var coord in reshaped)
         {
-            if (s.Grid.Distance(center, kvp.Key) > Radius)
-                continue;
-            var tile = kvp.Value;
-            if (tile == null)
-                continue;
+            var tile = s.Grid.GetTile(coord);
+            if (tile == null || tile.IsBlocked)
+                continue;   // the obstacle itself is not ground to reshape
 
             tile.TerrainType = newTerrain;
             tile.ElementType = newElement;
@@ -533,7 +550,7 @@ public sealed class TerraformEffect : EffectBase
                 continue;
 
             int dist = s.Grid.Distance(center, unit.CurrentTile.Axial);
-            if (dist > Radius)
+            if (dist > Radius || !reshaped.Contains(unit.CurrentTile.Axial))
                 continue;
 
             // Push to edge: push (Radius - dist + 1) tiles away

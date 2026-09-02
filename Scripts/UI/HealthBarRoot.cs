@@ -258,10 +258,10 @@ public partial class HealthBarRoot : Node3D
     public void SetSpeed(int current) { /* shown in side panel, not above unit */ }
 
     // ── AP pips ─────────────────────────────────────────────────────
-    public void SetAP(int current, int max, int armor, int shield)
+    public void SetAP(int current, int max, int armor, int shield, int cover = 0)
     {
         if (!IsInstanceValid(this) || _detailText == null || !_isDetailed) return;
-        UpdateDetailText(armor, shield, current, max);
+        UpdateDetailText(armor, shield, current, max, cover);
     }
 
     // ── Status icons ────────────────────────────────────────────────
@@ -427,7 +427,7 @@ public partial class HealthBarRoot : Node3D
             fill.Position.Z);
     }
 
-    private void UpdateDetailText(int armor, int shield, int apCurrent, int apMax)
+    private void UpdateDetailText(int armor, int shield, int apCurrent, int apMax, int cover = 0)
     {
         if (_detailText == null) return;
 
@@ -435,6 +435,9 @@ public partial class HealthBarRoot : Node3D
 
         if (armor > 0)  parts.Add($"[{armor}🛡]");
         if (shield > 0) parts.Add($"({shield}◈)");
+        // Cover armour in braces, plain ASCII: the Label3D font's glyph coverage is
+        // only proven for the few symbols above (see IntentGlyph's standing note).
+        if (cover > 0)  parts.Add($"{{{cover}}}");
         if (apCurrent >= 0 && apMax > 0)
         {
             // Pip string: filled and empty circles

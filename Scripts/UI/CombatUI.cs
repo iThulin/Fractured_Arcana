@@ -1064,6 +1064,8 @@ public partial class CombatUI : CanvasLayer
 
 			string armor = unit.Stats.Armor > 0 ? $"ARM {unit.Stats.Armor}  " : "";
 			string shield = unit.Stats.Shield > 0 ? $"SHD {unit.Stats.Shield}  " : "";
+			// COV = cover armour left this turn: only bolts from behind the wall spend it.
+			string cover = unit.Stats.CoverArmor > 0 ? $"COV {unit.Stats.CoverArmor}  " : "";
 			string ap = !isEnemy && unit.MaxActionPoints > 0 ? $"AP {apPips}  " : "";
 			// SPD = the real per-move reach (MoveRange + movespeed grants, adjusted for
 			// rooted/slowed), the same value every movement path uses. Shows base→eff
@@ -1072,7 +1074,7 @@ public partial class CombatUI : CanvasLayer
 			string spd = spdEff != unit.MoveRange
 				? $"SPD {unit.MoveRange}→{spdEff}"
 				: $"SPD {unit.MoveRange}";
-			_statLine.Text = $"{armor}{shield}{ap}{spd}";
+			_statLine.Text = $"{armor}{shield}{cover}{ap}{spd}";
 		}
 
 		if (_stanceLine != null)

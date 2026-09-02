@@ -725,6 +725,7 @@ public partial class CombatManager
     {
         if (CombatSim.Active)
             return;                       // preview runs mutate nothing (R22)
+        RefreshCoverMarkers();            // either side moving changes who is flanked
         if (mover == null || !IsInstanceValid(mover) || !mover.Stats.IsAlive
             || !mover.IsPlayerControlled || mover.CurrentTile == null)
             return;

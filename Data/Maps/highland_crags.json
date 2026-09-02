@@ -1,86 +1,113 @@
 {
-	"id": "highland_crags",
-	"display_name": "Highland Crags",
-	"shape": {
-		"type": "hexagon",
-		"radius": 5
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.18,
-		"moisture_frequency": 0.12,
-		"detail_weight": 0.25,
-		"max_height_step": 5,
-		"min_height_step": -2,
-		"palette": [
-			{
-				"terrain": "grass",
-				"max_elevation": 0.22
-			},
-			{
-				"terrain": "stone"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.95,
-			0.93,
-			0.88
-		],
-		"sun_energy": 1.2,
-		"ambient_color": [
-			0.55,
-			0.55,
-			0.6
-		],
-		"ambient_energy": 0.75,
-		"fog_color": [
-			0.7,
-			0.72,
-			0.78
-		],
-		"fog_density": 0.008
-	},
-	"features": [
-		{
-			"feature": "mountainside",
-			"phase": "skeleton",
-			"peak": 4
-		},
-		{
-			"feature": "crevice",
-			"phase": "skeleton",
-			"at": "center",
-			"dir": 5,
-			"length": 6,
-			"depth": 4
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "player_anchor",
-			"to": "enemy_anchor",
-			"width": 0
-		},
-		{
-			"feature": "rocky_outcrop",
-			"phase": "accent",
-			"at": "random",
-			"radius": 2
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "random",
-			"element": "earth",
-			"radius": 1
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "random",
-			"element": "lightning",
-			"radius": 1
-		}
-	]
+  "id": "highland_crags",
+  "display_name": "Highland Crags",
+  "shape": {
+    "type": "hexagon",
+    "radius": 5
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.18,
+    "moisture_frequency": 0.12,
+    "detail_weight": 0.25,
+    "max_height_step": 5,
+    "min_height_step": -2,
+    "palette": [
+      {
+        "terrain": "grass",
+        "max_elevation": 0.22
+      },
+      {
+        "terrain": "stone"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.95,
+      0.93,
+      0.88
+    ],
+    "sun_energy": 1.2,
+    "ambient_color": [
+      0.55,
+      0.55,
+      0.6
+    ],
+    "ambient_energy": 0.75,
+    "fog_color": [
+      0.7,
+      0.72,
+      0.78
+    ],
+    "fog_density": 0.008
+  },
+  "obstacles": {
+    "low": "rock_ledge",
+    "high": "rock",
+    "pillar": "standing_stone"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "mountainside",
+      "phase": "skeleton",
+      "peak": 4
+    },
+    {
+      "feature": "crevice",
+      "phase": "skeleton",
+      "at": "center",
+      "dir": 5,
+      "length": 6,
+      "depth": 4
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "player_anchor",
+      "to": "enemy_anchor",
+      "width": 0
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "rocky_outcrop",
+      "phase": "accent",
+      "at": "random",
+      "radius": 2
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "random",
+      "element": "earth",
+      "radius": 1
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "random",
+      "element": "lightning",
+      "radius": 1
+    }
+  ]
 }

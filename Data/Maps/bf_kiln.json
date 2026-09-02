@@ -1,93 +1,120 @@
 {
-	"id": "bf_kiln",
-	"display_name": "The Kiln",
-	"shape": {
-		"type": "rectangle",
-		"width": 10,
-		"height": 8
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.11,
-		"moisture_frequency": 0.09,
-		"detail_weight": 0.18,
-		"max_height_step": 2,
-		"min_height_step": -1,
-		"palette": [
-			{
-				"terrain": "stone",
-				"min_elevation": 0.6
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			1.0,
-			0.6,
-			0.4
-		],
-		"sun_energy": 1.1,
-		"ambient_color": [
-			0.5,
-			0.32,
-			0.28
-		],
-		"ambient_energy": 0.85,
-		"fog_color": [
-			0.42,
-			0.24,
-			0.18
-		],
-		"fog_density": 0.014
-	},
-	"features": [
-		{
-			"feature": "obstacle_band",
-			"phase": "skeleton",
-			"at": "flank:1",
-			"dir": 0,
-			"length": 6,
-			"kind": "wall",
-			"chance": 0.9
-		},
-		{
-			"feature": "obstacle_band",
-			"phase": "skeleton",
-			"at": "flank:-1",
-			"dir": 0,
-			"length": 6,
-			"kind": "wall",
-			"chance": 0.9
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "player_anchor",
-			"to": "enemy_anchor",
-			"width": 1
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "axis:-1",
-			"element": "fire",
-			"radius": 1
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "axis:2",
-			"element": "fire",
-			"radius": 1
-		},
-		{
-			"feature": "map_object",
-			"phase": "accent",
-			"at": "axis:0",
-			"kind": "ember_brazier",
-			"count": 1
-		}
-	]
+  "id": "bf_kiln",
+  "display_name": "The Kiln",
+  "shape": {
+    "type": "rectangle",
+    "width": 10,
+    "height": 8
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.11,
+    "moisture_frequency": 0.09,
+    "detail_weight": 0.18,
+    "max_height_step": 2,
+    "min_height_step": -1,
+    "palette": [
+      {
+        "terrain": "stone",
+        "min_elevation": 0.6
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      1.0,
+      0.6,
+      0.4
+    ],
+    "sun_energy": 1.1,
+    "ambient_color": [
+      0.5,
+      0.32,
+      0.28
+    ],
+    "ambient_energy": 0.85,
+    "fog_color": [
+      0.42,
+      0.24,
+      0.18
+    ],
+    "fog_density": 0.014
+  },
+  "obstacles": {
+    "low": "cooled_crust",
+    "high": "wall",
+    "pillar": "basalt_column"
+  },
+  "tactics": {
+    "max_visibility": 0.5,
+    "min_cover": 0.3
+  },
+  "features": [
+    {
+      "feature": "obstacle_band",
+      "phase": "skeleton",
+      "at": "flank:1",
+      "dir": 0,
+      "length": 6,
+      "kind": "wall",
+      "fill": 0.9
+    },
+    {
+      "feature": "obstacle_band",
+      "phase": "skeleton",
+      "at": "flank:-1",
+      "dir": 0,
+      "length": 6,
+      "kind": "wall",
+      "fill": 0.9
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "player_anchor",
+      "to": "enemy_anchor",
+      "width": 1
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 7,
+      "kind": "low",
+      "gaps": 2,
+      "fill": 0.85
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 7,
+      "kind": "low",
+      "gaps": 2,
+      "fill": 0.85
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "axis:-1",
+      "element": "fire",
+      "radius": 1
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "axis:2",
+      "element": "fire",
+      "radius": 1
+    },
+    {
+      "feature": "map_object",
+      "phase": "accent",
+      "at": "axis:0",
+      "kind": "ember_brazier",
+      "count": 1
+    }
+  ]
 }

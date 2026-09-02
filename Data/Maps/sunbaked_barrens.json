@@ -1,110 +1,137 @@
 {
-	"id": "sunbaked_barrens",
-	"display_name": "Sunbaked Barrens",
-	"shape": {
-		"type": "blob",
-		"width": 12,
-		"height": 9,
-		"radius": 5,
-		"erosion": 0.45
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.12,
-		"moisture_frequency": 0.07,
-		"detail_weight": 0.2,
-		"max_height_step": 3,
-		"min_height_step": -1,
-		"palette": [
-			{
-				"terrain": "grass",
-				"min_moisture": 0.72
-			},
-			{
-				"terrain": "stone",
-				"min_elevation": 0.78
-			},
-			{
-				"terrain": "sand"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			1.0,
-			0.88,
-			0.66
-		],
-		"sun_energy": 1.45,
-		"ambient_color": [
-			0.72,
-			0.62,
-			0.5
-		],
-		"ambient_energy": 0.8,
-		"fog_color": [
-			0.86,
-			0.76,
-			0.6
-		],
-		"fog_density": 0.007
-	},
-	"sand": {
-		"light": [
-			0.78,
-			0.65,
-			0.42
-		],
-		"warm": [
-			0.56,
-			0.4,
-			0.24
-		]
-	},
-	"features": [
-		{
-			"feature": "crevice",
-			"phase": "skeleton",
-			"at": "random",
-			"length": [
-				4,
-				6
-			],
-			"depth": [
-				2,
-				3
-			]
-		},
-		{
-			"feature": "height_hill",
-			"phase": "skeleton",
-			"at": "random",
-			"radius": 2,
-			"peak": [
-				1,
-				2
-			]
-		},
-		{
-			"feature": "rocky_outcrop",
-			"phase": "accent",
-			"at": "random",
-			"radius": [
-				1,
-				2
-			],
-			"chance": 0.8
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "accent",
-			"width": 0
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "random",
-			"element": "fire",
-			"radius": 1
-		}
-	]
+  "id": "sunbaked_barrens",
+  "display_name": "Sunbaked Barrens",
+  "shape": {
+    "type": "blob",
+    "width": 12,
+    "height": 9,
+    "radius": 5,
+    "erosion": 0.45
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.12,
+    "moisture_frequency": 0.07,
+    "detail_weight": 0.2,
+    "max_height_step": 3,
+    "min_height_step": -1,
+    "palette": [
+      {
+        "terrain": "grass",
+        "min_moisture": 0.72
+      },
+      {
+        "terrain": "stone",
+        "min_elevation": 0.78
+      },
+      {
+        "terrain": "sand"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      1.0,
+      0.88,
+      0.66
+    ],
+    "sun_energy": 1.45,
+    "ambient_color": [
+      0.72,
+      0.62,
+      0.5
+    ],
+    "ambient_energy": 0.8,
+    "fog_color": [
+      0.86,
+      0.76,
+      0.6
+    ],
+    "fog_density": 0.007
+  },
+  "sand": {
+    "light": [
+      0.78,
+      0.65,
+      0.42
+    ],
+    "warm": [
+      0.56,
+      0.4,
+      0.24
+    ]
+  },
+  "obstacles": {
+    "low": "sandstone_ledge",
+    "high": "hoodoo",
+    "pillar": "hoodoo"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "crevice",
+      "phase": "skeleton",
+      "at": "random",
+      "length": [
+        4,
+        6
+      ],
+      "depth": [
+        2,
+        3
+      ]
+    },
+    {
+      "feature": "height_hill",
+      "phase": "skeleton",
+      "at": "random",
+      "radius": 2,
+      "peak": [
+        1,
+        2
+      ]
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "rocky_outcrop",
+      "phase": "accent",
+      "at": "random",
+      "radius": [
+        1,
+        2
+      ],
+      "chance": 0.8
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "accent",
+      "width": 0
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "random",
+      "element": "fire",
+      "radius": 1
+    }
+  ]
 }

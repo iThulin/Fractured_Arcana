@@ -125,13 +125,24 @@ public sealed class SelectUnitTarget : ITargetSelector
     public bool los;
     public bool friendlyOnly;
 
-    public SelectUnitTarget(bool enemyOnly = true, int range = 4, bool los = true, bool friendlyOnly = false)
+    /// <summary>Arc by default: school magic goes over low walls. A card sets
+    /// <c>"delivery": "bolt"</c> to fly straight and respect cover like an arrow.</summary>
+    public Delivery delivery = Delivery.Arc;
+
+    public SelectUnitTarget(bool enemyOnly = true, int range = 4, bool los = true, bool friendlyOnly = false,
+                            Delivery delivery = Delivery.Arc)
     {
         this.enemyOnly = enemyOnly;
         this.range = range;
         this.los = los;
         this.friendlyOnly = friendlyOnly;
+        this.delivery = delivery;
     }
+
+    /// <summary>True when a Bolt from <paramref name="from"/> cannot reach a unit on
+    /// <paramref name="to"/> because High cover faces the shooter. Arcs never fail this.</summary>
+    public bool BlockedByCover(HexGridManager grid, Vector2I from, Vector2I to)
+        => delivery == Delivery.Bolt && grid.CoverBetween(to, from) == CoverKind.High;
 
     public bool Select(GameState s, Entity caster, out TargetSet targets)
     {
@@ -156,12 +167,14 @@ public sealed class SelectUnitTarget : ITargetSelector
 
             // E1: honour the card's line-of-sight flag (was plumbed, never checked).
             if (los && !s.Grid.HasLineOfSight(center, unit.CurrentTile.Axial)) continue;
+            if (BlockedByCover(s.Grid, center, unit.CurrentTile.Axial)) continue;
 
             if (dist < bestDist) { bestDist = dist; best = unit; }
         }
 
         if (best == null) return false;
         targets.Items.Add(best);
+        targets.Delivery = delivery;
         return true;
     }
 }
@@ -293,26 +306,29 @@ public sealed class SelectAreaTarget : ITargetSelector
         if (!TargetingHelpers.TryGetAim(s, out center))
             center = casterUnit.CurrentTile.Axial;
 
-        // Collect tiles in radius
+        // Burst fill (cover_and_zoc_v1): the blast spreads through open ground,
+        // stops at walls, and climbs low cover one step slower. Raw hex distance
+        // went straight through walls, which is why obstacles never shaped a spell.
+        var reach = s.Grid.BurstReach(center, Radius);
+
         if (IncludeTiles)
         {
-            foreach (var kvp in s.Grid.Tiles)
+            foreach (var coord in reach)
             {
-                if (s.Grid.Distance(center, kvp.Key) <= Radius)
-                    targets.Items.Add(kvp.Value);
+                var tile = s.Grid.GetTile(coord);
+                if (tile != null)
+                    targets.Items.Add(tile);
             }
         }
 
-        // Collect units in radius
         foreach (var unit in s.UnitsInPlay)
         {
             if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null) continue;
             if (!TargetingHelpers.PassesTeamFilter(unit, casterUnit, EnemiesOnly)) continue;
-
-            int dist = s.Grid.Distance(center, unit.CurrentTile.Axial);
-            if (dist <= Radius) targets.Items.Add(unit);
+            if (reach.Contains(unit.CurrentTile.Axial)) targets.Items.Add(unit);
         }
 
+        targets.Delivery = Delivery.Burst;
         return true;
     }
 }
@@ -346,9 +362,12 @@ public sealed class SelectRingTarget : ITargetSelector
             center = casterUnit.CurrentTile.Axial;
         }
 
+        // Burst ring: the blast's outer edge after walls and low cover bend it.
+        var ring = s.Grid.BurstRing(center, Radius);
+
         foreach (var kvp in s.Grid.Tiles)
         {
-            if (s.Grid.Distance(center, kvp.Key) != Radius) continue;
+            if (!ring.Contains(kvp.Key)) continue;
 
             // Hostile rings collect enemy occupants only, never tiles, never
             // the caster's own side (Spores self-poison, PT7 2026-07-12).
@@ -367,6 +386,7 @@ public sealed class SelectRingTarget : ITargetSelector
                 targets.Items.Add(kvp.Value.Occupant);
         }
 
+        targets.Delivery = Delivery.Burst;
         return targets.Items.Count > 0;
     }
 }
@@ -457,6 +477,9 @@ public sealed class SelectConeTarget : ITargetSelector
 
         int dirIdx = HexDirection.Pick(origin, aim, Range);
         var coneTiles = BuildConeCoords(origin, dirIdx, Range);
+        // A cone is a burst with a direction: it still cannot pour through a wall,
+        // and low cover costs it a step of reach on that side.
+        coneTiles.IntersectWith(s.Grid.BurstReach(origin, Range));
 
         if (IncludeTiles)
         {
@@ -479,6 +502,7 @@ public sealed class SelectConeTarget : ITargetSelector
                 targets.Items.Add(unit);
         }
 
+        targets.Delivery = Delivery.Burst;
         s.Log($"[ConeTarget] Direction {dirIdx}, range {Range}: found {targets.Items.Count} target(s).");
         return true;
     }

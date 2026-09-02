@@ -1,91 +1,118 @@
 {
-	"id": "bf_amphitheater",
-	"display_name": "The Amphitheater",
-	"shape": {
-		"type": "hexagon",
-		"radius": 5
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.11,
-		"moisture_frequency": 0.09,
-		"detail_weight": 0.18,
-		"max_height_step": 3,
-		"min_height_step": -2,
-		"palette": [
-			{
-				"terrain": "stone",
-				"min_elevation": 0.55
-			},
-			{
-				"terrain": "arcane",
-				"min_moisture": 0.7
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.7,
-			0.7,
-			0.95
-		],
-		"sun_energy": 1.0,
-		"ambient_color": [
-			0.45,
-			0.42,
-			0.6
-		],
-		"ambient_energy": 0.9,
-		"fog_color": [
-			0.4,
-			0.38,
-			0.55
-		],
-		"fog_density": 0.012
-	},
-	"features": [
-		{
-			"feature": "height_basin",
-			"phase": "skeleton",
-			"at": "midpoint",
-			"radius": 5,
-			"depth": 2
-		},
-		{
-			"feature": "filled_radius",
-			"phase": "skeleton",
-			"at": "midpoint",
-			"radius": 2,
-			"height": 2
-		},
-		{
-			"feature": "ring",
-			"phase": "skeleton",
-			"at": "midpoint",
-			"radius": 4,
-			"height": 1
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "player_anchor",
-			"to": "midpoint",
-			"width": 1
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "enemy_anchor",
-			"to": "midpoint",
-			"width": 1
-		},
-		{
-			"feature": "clearing",
-			"phase": "accent",
-			"at": "midpoint",
-			"radius": 2
-		}
-	]
+  "id": "bf_amphitheater",
+  "display_name": "The Amphitheater",
+  "shape": {
+    "type": "hexagon",
+    "radius": 5
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.11,
+    "moisture_frequency": 0.09,
+    "detail_weight": 0.18,
+    "max_height_step": 3,
+    "min_height_step": -2,
+    "palette": [
+      {
+        "terrain": "stone",
+        "min_elevation": 0.55
+      },
+      {
+        "terrain": "arcane",
+        "min_moisture": 0.7
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.7,
+      0.7,
+      0.95
+    ],
+    "sun_energy": 1.0,
+    "ambient_color": [
+      0.45,
+      0.42,
+      0.6
+    ],
+    "ambient_energy": 0.9,
+    "fog_color": [
+      0.4,
+      0.38,
+      0.55
+    ],
+    "fog_density": 0.012
+  },
+  "obstacles": {
+    "low": "broken_wall",
+    "high": "wall",
+    "pillar": "cracked_column"
+  },
+  "tactics": {
+    "max_visibility": 0.55,
+    "min_cover": 0.25
+  },
+  "features": [
+    {
+      "feature": "height_basin",
+      "phase": "skeleton",
+      "at": "midpoint",
+      "radius": 5,
+      "depth": 2
+    },
+    {
+      "feature": "filled_radius",
+      "phase": "skeleton",
+      "at": "midpoint",
+      "radius": 2,
+      "height": 2
+    },
+    {
+      "feature": "ring",
+      "phase": "skeleton",
+      "at": "midpoint",
+      "radius": 4,
+      "height": 1
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "player_anchor",
+      "to": "midpoint",
+      "width": 1
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "enemy_anchor",
+      "to": "midpoint",
+      "width": 1
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-3",
+      "length": 5,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.85
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:3",
+      "length": 5,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.85
+    },
+    {
+      "feature": "clearing",
+      "phase": "accent",
+      "at": "midpoint",
+      "radius": 2
+    }
+  ]
 }

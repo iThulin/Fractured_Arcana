@@ -285,6 +285,25 @@ public partial class HexGridManager : Node3D
 
     // Structures
 
+    /// <summary>The combat grid currently in the tree, for code that has a unit but
+    /// no grid reference (Unit.ApplyDamage reads cover through it). Set on ready,
+    /// cleared on exit. Null outside combat and in headless card tests, and every
+    /// reader must treat null as "no cover".</summary>
+    public static HexGridManager Current { get; private set; }
+
+    public override void _EnterTree()
+    {
+        base._EnterTree();
+        Current = this;
+    }
+
+    public override void _ExitTree()
+    {
+        base._ExitTree();
+        if (Current == this)
+            Current = null;
+    }
+
     public override void _Ready()
     {
         // Generation is normally driven by CombatManager, which sets the recipe /
@@ -452,6 +471,10 @@ public partial class HexGridManager : Node3D
 
         EnsureReservedTilesArePlayable();
         EnsureConnectivityBetweenSpawns();
+
+        // Tactical report (cover_and_zoc_v1 §7.6): how open the fight actually is,
+        // measured on the final walkable/cover state, before hazards are capped.
+        ComputeTacticalMetrics();
 
         // Guarantee pass (E2.1 #4): cap initial hazards AFTER connectivity so a
         // recipe (or dense element ring) can't hand the player a mostly-lava map.

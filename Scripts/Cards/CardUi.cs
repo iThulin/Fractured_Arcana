@@ -430,6 +430,43 @@ public partial class CardUi : Control
             pip.AddThemeStyleboxOverride("normal", style);
             container.AddChild(pip);
         }
+
+        // Targeting pip (cover_and_zoc_v1 §11): what the half aims at and how it
+        // travels, so the player reads "Bolt 6" or "Burst 2" before dropping it.
+        // Bolts get the darkest pip because they are the ones a wall stops.
+        var summary = TargetingSummary.Describe(half?.Targeting);
+        if (!string.IsNullOrEmpty(summary.Label))
+        {
+            var bg = summary.Delivery switch
+            {
+                Delivery.Bolt => new Color(0.24f, 0.26f, 0.30f),
+                Delivery.Burst => new Color(0.42f, 0.30f, 0.22f),
+                Delivery.Arc => new Color(0.30f, 0.30f, 0.42f),
+                _ => new Color(0.34f, 0.36f, 0.38f)
+            };
+            var pip = new Label
+            {
+                Text = summary.Label,
+                TooltipText = summary.Tooltip,
+                CustomMinimumSize = new Vector2(0, 16),
+                SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                AutowrapMode = TextServer.AutowrapMode.Off,
+                MouseFilter = MouseFilterEnum.Pass,
+            };
+            pip.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+            pip.AddThemeColorOverride("font_color", ElementColors.GetTextColor(bg));
+            var style = new StyleBoxFlat { BgColor = bg };
+            style.SetCornerRadiusAll(4);
+            style.ContentMarginLeft = 5;
+            style.ContentMarginRight = 5;
+            style.ContentMarginTop = 2;
+            style.ContentMarginBottom = 2;
+            pip.AddThemeStyleboxOverride("normal", style);
+            container.AddChild(pip);
+            container.MoveChild(pip, 0);   // first in the row: aim before flavour
+        }
     }
 
     private void SetChannelBadge(string nameBarPath, bool canChannel)
@@ -576,15 +613,16 @@ public partial class CardUi : Control
         bool canChannel = half?.CanChannel ?? false;
         string chText = canChannel ? $"[Shift+Drop] Channel: cast as Stage {(/* tier */ 0) + 1} (+1 mana)" : "";
 
-        // Channel hint: a single line at the bottom of the rules text
-        if (_fullRulesLabel != null && (half?.CanChannel ?? false))
+        // Full-view rules: the authored text, byte-for-byte what the split halves
+        // show. The aim pip lives in the art panel's tag row (PopulateElementTags
+        // above), and its tooltip carries the cover rule, so nothing is appended
+        // here. Plain text, no BBCode: the halves render it plain and the two
+        // views must read identically. The channel hint moved to the tooltip.
+        if (_fullRulesLabel != null)
         {
-            _fullRulesLabel.Text = (half?.RulesText ?? "") +
-                "\n[color=#aaccff][i]Hold Shift to channel (+1 mana)[/i][/color]";
-        }
-        else if (_fullRulesLabel != null)
-        {
+            _fullRulesLabel.BbcodeEnabled = false;
             _fullRulesLabel.Text = half?.RulesText ?? "";
+            _fullRulesLabel.TooltipText = (half?.CanChannel ?? false) ? "Hold Shift to channel (+1 mana)" : "";
         }
 
         // Hide channel panel entirely; it is no longer used

@@ -280,7 +280,25 @@ public partial class HexGridManager : Node3D
                 break;
 
             case "obstacle_band":
-                PaintObstacleBand(CoordFromOp(op, "at", _centerCoord), ResolveDir(op), Roll(op, "length", 4, 6), op.GetStr("kind", "rock"), op.GetFloat("chance", 0.7f));
+                // Per-tile density is "fill" (default 0.7). Before 2026-09-02 "chance"
+                // did double duty (RunRecipeFeatures skipped the whole op that often,
+                // THEN each tile rolled it again), which is why authored bands came out
+                // sparse or missing. "chance" now gates the op only, like every other op.
+                PaintObstacleBand(CoordFromOp(op, "at", _centerCoord), ResolveDir(op), Roll(op, "length", 4, 6), op.GetStr("kind", "rock"), op.GetFloat("fill", 0.7f));
+                break;
+
+            case "cover_line":
+                // Default: across the axis (flank direction) at the midpoint. Authors
+                // place it with "at": "axis:-2" / "axis:2" for the thirds. NOTE the
+                // op-level "chance" gates the WHOLE op (RunRecipeFeatures); per-tile
+                // density is "fill", the same as obstacle_band since 2026-09-02.
+                PaintCoverLine(
+                    CoordFromOp(op, "at", GetMidpoint(PlayerLayoutAnchor, EnemyLayoutAnchor)),
+                    op.Has("dir") ? ResolveDir(op) : FlankDirection(),
+                    Roll(op, "length", 4, 6),
+                    op.GetStr("kind", "low"),
+                    op.GetInt("gaps", 1),
+                    op.GetFloat("fill", 0.85f));
                 break;
 
             case "height_ridge":
@@ -401,7 +419,7 @@ public partial class HexGridManager : Node3D
         if (op.Has("obstacle_kind"))
         {
             string kind = op.GetStr("obstacle_kind", "wall");
-            return t => { t.IsBlocked = true; t.IsWalkable = false; t.BlocksLineOfSight = true; t.ObstacleKind = kind; };
+            return t => ApplyObstacle(t, kind);   // low kinds (low_wall, fence...) keep sight clear and give Low cover
         }
         if (op.Has("terrain"))
         {
@@ -419,6 +437,14 @@ public partial class HexGridManager : Node3D
             return t => { t.Height = System.Math.Max(t.Height, h); };
         }
         return t => { };
+    }
+
+    /// <summary>Unit step perpendicular to the player-enemy axis (the direction the
+    /// flank:N token walks). A cover line laid along it faces both spawn sides.</summary>
+    private Vector2I FlankDirection()
+    {
+        int di = HexDirection.Pick(PlayerLayoutAnchor, EnemyLayoutAnchor, 6);
+        return HexDirs[(di + 2) % 6];
     }
 
     private Vector2I ResolveDir(FeatureOp op)

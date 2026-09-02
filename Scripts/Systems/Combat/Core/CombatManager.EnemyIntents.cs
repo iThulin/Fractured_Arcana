@@ -838,7 +838,8 @@ public partial class CombatManager
         bool Viable(Unit u) =>
             u?.CurrentTile != null && u.Stats.IsAlive && !u.HasStatus("untargetable")
             && grid.Distance(enemy.CurrentTile.Axial, u.CurrentTile.Axial) <= enemy.AttackRange + 1
-            && grid.HasLineOfSight(enemy.CurrentTile.Axial, u.CurrentTile.Axial);
+            && grid.HasLineOfSight(enemy.CurrentTile.Axial, u.CurrentTile.Axial)
+            && grid.CoverBetween(u.CurrentTile.Axial, enemy.CurrentTile.Axial) != CoverKind.High;
 
         if (target.IsStructure || !Viable(target))
         {
@@ -1890,7 +1891,7 @@ public partial class CombatManager
             return null;
 
         var start = enemy.CurrentTile.Axial;
-        int bestScore = score(start);
+        int bestScore = score(start) + PositionalScore(enemy, start);
         TileData best = null;
         int bestCost = 0;
 
@@ -1902,7 +1903,7 @@ public partial class CombatManager
             if (tile == null || !tile.CanEnter(enemy))
                 continue;
 
-            int s = score(kv.Key);
+            int s = score(kv.Key) + PositionalScore(enemy, kv.Key);
             if (s > bestScore || (s == bestScore && best != null && kv.Value < bestCost))
             {
                 bestScore = s;
@@ -1912,6 +1913,52 @@ public partial class CombatManager
         }
         return best;
     }
+
+    // ── Positional scoring (cover_and_zoc_v1) ───────────────────────────────
+
+    /// <summary>Score per point of free-strike damage a walk would cost. At 15 a
+    /// typical 5-damage strike weighs 75: less than one tile of progress (100), so
+    /// a mover still breaks away when it has somewhere to be, but never for free.</summary>
+    private const int ZocDamageWeight = 15;
+
+    /// <summary>Bonus for standing with Low cover toward every nearby player threat.
+    /// Below one tile of progress on purpose: cover shapes the approach, it does not
+    /// stall it. High cover earns nothing here because an enemy that hides behind a
+    /// wall from its own mark cannot shoot it either (see the ranged penalty).</summary>
+    private const int CoverBonus = 40;
+
+    /// <summary>Position-quality term every mover inherits through
+    /// <see cref="BestMoveDestination"/>: the free strikes the walk draws, the cover
+    /// the destination offers against the players that could shoot it, and, for a
+    /// ranged unit, whether its mark would sit behind full cover from there.</summary>
+    private int PositionalScore(Unit enemy, Vector2I coord)
+    {
+        int score = 0;
+
+        // Breaking contact is paid for in hit points.
+        if (enemy.CurrentTile != null && coord != enemy.CurrentTile.Axial)
+            score -= ZocDamageWeight * ZoneOfControlCostTo(enemy, coord);
+
+        // Cover against the players who could plausibly shoot this tile.
+        var threats = new List<Vector2I>();
+        foreach (var p in playerUnits)
+        {
+            if (p == null || !IsInstanceValid(p) || !p.Stats.IsAlive || p.CurrentTile == null)
+                continue;
+            if (grid.Distance(p.CurrentTile.Axial, coord) <= 6)
+                threats.Add(p.CurrentTile.Axial);
+        }
+        if (threats.Count > 0 && grid.WorstCoverAgainst(coord, threats) == CoverKind.Low)
+            score += CoverBonus;
+
+        return score;
+    }
+
+    /// <summary>Penalty a ranged mover applies to a tile from which its mark on
+    /// <paramref name="goal"/> sits behind full cover: the shot is impossible from
+    /// there, which is worth a whole tile of standing elsewhere.</summary>
+    private int RangedCoverPenalty(Unit enemy, Vector2I coord, Vector2I goal)
+        => enemy.AttackRange > 1 && grid.CoverBetween(goal, coord) == CoverKind.High ? -100 : 0;
 
     /// <summary>Destination score for closing on a mark. Distance dominates at x100 so
     /// the pack/scout preference (max 15) still only breaks TIES, per the units-doc rule
@@ -1964,6 +2011,14 @@ public partial class CombatManager
                 await MoveAwayFrom(enemy, intent.TargetUnit, minDist);
             else if (dist > enemy.AttackRange)
                 await MoveToDistance(enemy, intent.TargetUnit, preferred);
+
+            // Flank (cover_and_zoc_v1 §12): in range but the mark sits behind full
+            // cover or out of sight from here. Spend the move on a tile with a clear
+            // shot instead of wasting the arrow. A tile that also gives the shooter
+            // Low cover against the mark wins ties.
+            if (IsValidActor(enemy) && !HasClearShot(enemy.CurrentTile.Axial, tile)
+                && CanSpendMoveAP(enemy))
+                await MoveForClearShot(enemy, tile, preferred);
         }
 
         if (!IsValidActor(enemy))
@@ -1989,8 +2044,46 @@ public partial class CombatManager
             combatUI?.AppendActionLog($"{enemy.Name} has no line of sight!");
             return;
         }
+        if (grid.CoverBetween(tile, enemy.CurrentTile.Axial) == CoverKind.High)
+        {
+            combatUI?.AppendActionLog($"{enemy.Name}'s shot thuds into full cover.");
+            return;
+        }
 
         await StrikeTile(enemy, tile, intent.Value, ranged: true);
+    }
+
+    /// <summary>A bolt from <paramref name="from"/> lands on <paramref name="target"/>:
+    /// sight is clear and the target's facing side holds no High cover.</summary>
+    private bool HasClearShot(Vector2I from, Vector2I target)
+        => grid.HasLineOfSight(from, target) && grid.CoverBetween(target, from) != CoverKind.High;
+
+    /// <summary>One or more hops toward a tile within <paramref name="preferred"/> of
+    /// the mark from which the shot is clear. Scoring: a clear shot is worth ten
+    /// tiles, distance from the preferred band costs a tile each, and the mover's
+    /// own cover against the mark (PositionalScore, via BestMoveDestination) breaks
+    /// ties. Stops as soon as the shot is clear or no hop improves it.</summary>
+    private async Task MoveForClearShot(Unit enemy, Vector2I mark, int preferred)
+    {
+        const int SafetyCap = 4;
+        int moves = 0;
+        for (int i = 0; i < SafetyCap; i++)
+        {
+            if (!IsValidActor(enemy) || !CanSpendMoveAP(enemy))
+                break;
+            if (HasClearShot(enemy.CurrentTile.Axial, mark))
+                break;
+
+            var dest = BestMoveDestination(enemy, c =>
+                (HasClearShot(c, mark) && grid.Distance(c, mark) <= enemy.AttackRange + 1 ? 1000 : 0)
+                - 100 * Math.Abs(grid.Distance(c, mark) - preferred));
+            if (dest == null || !enemy.TryMoveTo(grid, dest))
+                break;
+            moves++;
+            await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
+        }
+        if (moves > 0)
+            combatUI?.AppendActionLog($"{enemy.Name} moves for a clear shot ({moves} move{(moves == 1 ? "" : "s")}).");
     }
 
     // ── Channel start: reposition, lock the tile, begin charging ────────────
@@ -2396,7 +2489,7 @@ public partial class CombatManager
             string ff = $"{attackerName} {verb} its own ally {victim.Name} for {damage}!";
             GD.Print(ff);
             combatUI?.AppendActionLog(ff);
-            victim.ApplyDamage(damage, attacker);
+            victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
             LastStrikeVictim = victim;
         }
         else
@@ -2407,7 +2500,7 @@ public partial class CombatManager
                 : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
             GD.Print(hit);
             combatUI?.AppendActionLog(hit);
-            victim.ApplyDamage(damage, attacker);
+            victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
             LastStrikeVictim = victim;
         }
 

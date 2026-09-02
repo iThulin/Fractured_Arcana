@@ -1,0 +1,435 @@
+{
+  "id": "default",
+  "notes": [
+    "One entry per obstacle kind a recipe or generator may name. role decides the rules (low: blocks movement, not sight, Low cover; high: blocks both, High cover). silhouette decides the placeholder shape until a scene is authored: slab (wall piece aligned to its neighbours), pillar (round column), mass (hex prism), scene (load `scene`, else mass). material groups kinds that can share a sculpted mesh with a material swap.",
+    "Recipes normally name a ROLE (low, high, pillar) and let their obstacles palette pick the kind. Name a kind directly only when the layout is about that specific thing (the courtyard ring is a wall)."
+  ],
+  "kinds": [
+    {
+      "kind": "low_wall",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "masonry",
+      "color": [
+        0.58,
+        0.55,
+        0.5
+      ],
+      "label": "Low Wall"
+    },
+    {
+      "kind": "broken_wall",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "masonry",
+      "color": [
+        0.55,
+        0.52,
+        0.47
+      ],
+      "label": "Broken Wall"
+    },
+    {
+      "kind": "wall",
+      "role": "high",
+      "silhouette": "slab",
+      "material": "masonry",
+      "color": [
+        0.45,
+        0.44,
+        0.42
+      ],
+      "label": "Wall",
+      "note": "Siege recipes raise this to 3.2 (curtain wall ruling 2026-08-11)."
+    },
+    {
+      "kind": "cracked_column",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "masonry",
+      "color": [
+        0.6,
+        0.58,
+        0.53
+      ],
+      "label": "Cracked Column"
+    },
+    {
+      "kind": "barricade",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "wood",
+      "color": [
+        0.38,
+        0.28,
+        0.18
+      ],
+      "label": "Barricade"
+    },
+    {
+      "kind": "fence",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "wood",
+      "color": [
+        0.45,
+        0.34,
+        0.2
+      ],
+      "label": "Fence",
+      "height": 0.7
+    },
+    {
+      "kind": "crate",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "wood",
+      "color": [
+        0.48,
+        0.36,
+        0.22
+      ],
+      "label": "Crates"
+    },
+    {
+      "kind": "sandbag",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "cloth",
+      "color": [
+        0.55,
+        0.5,
+        0.38
+      ],
+      "label": "Sandbags"
+    },
+    {
+      "kind": "rubble_line",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "masonry",
+      "color": [
+        0.5,
+        0.48,
+        0.44
+      ],
+      "label": "Rubble"
+    },
+    {
+      "kind": "stone_pillar",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "rock",
+      "color": [
+        0.46,
+        0.44,
+        0.41
+      ],
+      "label": "Stone Pillar"
+    },
+    {
+      "kind": "rock",
+      "role": "high",
+      "silhouette": "scene",
+      "material": "rock",
+      "color": [
+        0.46,
+        0.44,
+        0.41
+      ],
+      "label": "Rock",
+      "note": "Uses the exported RockObstacleScene when set."
+    },
+    {
+      "kind": "boulder",
+      "role": "high",
+      "silhouette": "mass",
+      "material": "rock",
+      "color": [
+        0.42,
+        0.4,
+        0.37
+      ],
+      "label": "Boulder"
+    },
+    {
+      "kind": "low_boulder",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "rock",
+      "color": [
+        0.46,
+        0.44,
+        0.41
+      ],
+      "label": "Low Boulder"
+    },
+    {
+      "kind": "rock_ledge",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "rock",
+      "color": [
+        0.5,
+        0.47,
+        0.43
+      ],
+      "label": "Rock Ledge"
+    },
+    {
+      "kind": "standing_stone",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "rock",
+      "color": [
+        0.4,
+        0.39,
+        0.37
+      ],
+      "label": "Standing Stone"
+    },
+    {
+      "kind": "cooled_crust",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "basalt",
+      "color": [
+        0.28,
+        0.24,
+        0.24
+      ],
+      "label": "Cooled Crust"
+    },
+    {
+      "kind": "basalt_column",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "basalt",
+      "color": [
+        0.22,
+        0.2,
+        0.21
+      ],
+      "label": "Basalt Column"
+    },
+    {
+      "kind": "fallen_log",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "wood",
+      "color": [
+        0.42,
+        0.3,
+        0.18
+      ],
+      "label": "Fallen Log"
+    },
+    {
+      "kind": "stump",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "wood",
+      "color": [
+        0.36,
+        0.26,
+        0.16
+      ],
+      "label": "Stump",
+      "height": 0.5
+    },
+    {
+      "kind": "old_trunk",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "wood",
+      "color": [
+        0.34,
+        0.25,
+        0.16
+      ],
+      "label": "Old Trunk"
+    },
+    {
+      "kind": "hedge",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "foliage",
+      "color": [
+        0.3,
+        0.42,
+        0.22
+      ],
+      "label": "Hedge"
+    },
+    {
+      "kind": "gorse",
+      "role": "high",
+      "silhouette": "mass",
+      "material": "foliage",
+      "color": [
+        0.26,
+        0.36,
+        0.18
+      ],
+      "label": "Gorse Thicket",
+      "height": 1.6
+    },
+    {
+      "kind": "driftwood",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "wood",
+      "color": [
+        0.52,
+        0.46,
+        0.38
+      ],
+      "label": "Driftwood"
+    },
+    {
+      "kind": "reed_bank",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "foliage",
+      "color": [
+        0.4,
+        0.48,
+        0.24
+      ],
+      "label": "Reed Bank"
+    },
+    {
+      "kind": "sunk_piling",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "wood",
+      "color": [
+        0.3,
+        0.26,
+        0.2
+      ],
+      "label": "Sunk Piling"
+    },
+    {
+      "kind": "crystal",
+      "role": "high",
+      "silhouette": "scene",
+      "material": "crystal",
+      "color": [
+        0.55,
+        0.4,
+        0.85
+      ],
+      "label": "Crystal",
+      "note": "Uses the exported CrystalObstacleScene when set."
+    },
+    {
+      "kind": "ice_ridge",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "ice",
+      "color": [
+        0.78,
+        0.86,
+        0.92
+      ],
+      "label": "Ice Ridge"
+    },
+    {
+      "kind": "ice_spire",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "ice",
+      "color": [
+        0.72,
+        0.82,
+        0.9
+      ],
+      "label": "Ice Spire"
+    },
+    {
+      "kind": "sandstone_ledge",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "sand",
+      "color": [
+        0.76,
+        0.62,
+        0.4
+      ],
+      "label": "Sandstone Ledge"
+    },
+    {
+      "kind": "hoodoo",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "sand",
+      "color": [
+        0.7,
+        0.55,
+        0.36
+      ],
+      "label": "Hoodoo"
+    },
+    {
+      "kind": "drystone_wall",
+      "role": "low",
+      "silhouette": "slab",
+      "material": "rock",
+      "color": [
+        0.52,
+        0.5,
+        0.46
+      ],
+      "label": "Drystone Wall"
+    },
+    {
+      "kind": "rune_stone",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "arcane",
+      "color": [
+        0.5,
+        0.42,
+        0.7
+      ],
+      "label": "Rune Stone"
+    },
+    {
+      "kind": "ley_pillar",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "arcane",
+      "color": [
+        0.55,
+        0.4,
+        0.85
+      ],
+      "label": "Ley Pillar"
+    },
+    {
+      "kind": "tidal_rock",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "rock",
+      "color": [
+        0.4,
+        0.44,
+        0.46
+      ],
+      "label": "Tidal Rock"
+    },
+    {
+      "kind": "sea_stack",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "rock",
+      "color": [
+        0.38,
+        0.4,
+        0.42
+      ],
+      "label": "Sea Stack"
+    }
+  ]
+}

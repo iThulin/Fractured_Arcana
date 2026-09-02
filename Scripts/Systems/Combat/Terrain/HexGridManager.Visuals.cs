@@ -136,49 +136,191 @@ public partial class HexGridManager
         {
             TileData tile = kvp.Value;
 
-            if (string.IsNullOrEmpty(tile.ObstacleKind))
+            if (string.IsNullOrEmpty(tile.ObstacleKind) || tile.TileView == null)
                 continue;
+            if (!tile.IsBlocked)
+                continue;   // walkable "rubble" is a terrain scar, not a body (SetTerrainScar)
 
-            PackedScene scene = null;
-
-            switch (tile.ObstacleKind)
-            {
-                case "rock":
-                    scene = RockObstacleScene;
-                    break;
-                case "crystal":
-                    scene = CrystalObstacleScene;
-                    break;
-            }
-
-            // City siege kinds ("wall", "building:<id>") have no authored scenes
-            // yet, so spawn placeholder prisms and blocked is never invisible.
-            // (HexGridManager.CityStamps; swap for real models in the art pass.)
-            if (scene == null && tile.TileView != null &&
-                (tile.ObstacleKind == "wall" || tile.ObstacleKind.StartsWith("building:")))
+            // Building shells keep the city prism placeholder (CityStamps).
+            if (tile.ObstacleKind.StartsWith("building:"))
             {
                 SpawnCityObstaclePlaceholder(tile);
                 continue;
             }
 
-            if (scene == null || tile.TileView == null)
+            // Everything else is a catalog kind: its silhouette and colour come from
+            // Data/Obstacles/obstacle_catalog.json, so the Hills map grows rock ledges
+            // where the Ruins map grows broken masonry from the same "low" op.
+            var spec = ObstacleCatalog.GetOrFallback(tile.ObstacleKind);
+            var scene = spec.Silhouette == ObstacleSilhouette.Scene ? ResolveObstacleScene(spec) : null;
+
+            if (scene != null)
+            {
+                var obstacle = scene.Instantiate<Node3D>();
+                if (ObstacleParent != null)
+                {
+                    ObstacleParent.AddChild(obstacle);
+                    obstacle.GlobalPosition = tile.TileView.GlobalPosition + new Vector3(0f, 0.5f, 0f);
+                }
+                else
+                {
+                    AddChild(obstacle);
+                    obstacle.Position = tile.TileView.Position + new Vector3(0f, 0.5f, 0f);
+                }
+                obstacle.AddToGroup("generated_obstacle");
                 continue;
-
-            var obstacle = scene.Instantiate<Node3D>();
-
-            if (ObstacleParent != null)
-            {
-                ObstacleParent.AddChild(obstacle);
-                obstacle.GlobalPosition = tile.TileView.GlobalPosition + new Vector3(0f, 0.5f, 0f);
-            }
-            else
-            {
-                AddChild(obstacle);
-                obstacle.Position = tile.TileView.Position + new Vector3(0f, 0.5f, 0f);
             }
 
-            obstacle.AddToGroup("generated_obstacle");
+            bool low = spec.IsLow;
+            float height = spec.Height > 0f ? spec.Height : DefaultPlaceholderHeight(spec, low);
+            switch (spec.Silhouette)
+            {
+                case ObstacleSilhouette.Slab:
+                    SpawnWallPlaceholder(tile, height, spec.Color);
+                    break;
+                case ObstacleSilhouette.Pillar:
+                    SpawnPillarPlaceholder(tile, height, spec.Color);
+                    break;
+                default:   // Mass, and Scene with nothing to load
+                    SpawnMassPlaceholder(tile, height, spec.Color);
+                    break;
+            }
         }
+    }
+
+    private readonly Dictionary<string, PackedScene> _obstacleSceneCache = new();
+
+    /// <summary>Scene for a Silhouette.Scene kind: the grid's exported scene for the
+    /// two legacy kinds when set, else the catalog's res:// path (cached), else null
+    /// so the caller falls back to a Mass placeholder.</summary>
+    private PackedScene ResolveObstacleScene(ObstacleSpec spec)
+    {
+        if (spec.Kind.Equals("rock", StringComparison.OrdinalIgnoreCase) && RockObstacleScene != null)
+            return RockObstacleScene;
+        if (spec.Kind.Equals("crystal", StringComparison.OrdinalIgnoreCase) && CrystalObstacleScene != null)
+            return CrystalObstacleScene;
+        if (string.IsNullOrEmpty(spec.ScenePath))
+            return null;
+        if (_obstacleSceneCache.TryGetValue(spec.ScenePath, out var cached))
+            return cached;
+        var loaded = ResourceLoader.Exists(spec.ScenePath) ? GD.Load<PackedScene>(spec.ScenePath) : null;
+        if (loaded == null)
+            GD.PushWarning($"[ObstacleCatalog] '{spec.Kind}': scene '{spec.ScenePath}' did not load; using a mass placeholder.");
+        _obstacleSceneCache[spec.ScenePath] = loaded;
+        return loaded;
+    }
+
+    private float DefaultPlaceholderHeight(ObstacleSpec spec, bool low) => spec.Silhouette switch
+    {
+        ObstacleSilhouette.Slab => low ? LowWallHeight
+            : (spec.Kind == "wall" && _activeRecipe?.Siege != null ? 3.2f : TallWallHeight),
+        ObstacleSilhouette.Pillar => low ? LowWallHeight : PillarHeight,
+        _ => low ? LowMassHeight : TallMassHeight
+    };
+
+    /// <summary>A hex prism filling the tile: crates, sandbags, boulders, gorse.</summary>
+    private void SpawnMassPlaceholder(TileData tile, float height, Color color)
+    {
+        var mesh = new CylinderMesh
+        {
+            TopRadius = HexRadius * 0.80f,
+            BottomRadius = HexRadius * 0.92f,
+            Height = height,
+            RadialSegments = 6,
+        };
+        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 1f };
+        PlaceObstaclePlaceholder(new MeshInstance3D { Mesh = mesh, RotationDegrees = new Vector3(0f, 30f, 0f) }, tile, height);
+    }
+
+    // Placeholder proportions. A unit's capsule is ~1.5 tall (Unit.tscn), so a low
+    // wall sits at its waist and a tall wall clears its head with room to spare.
+    private const float LowWallHeight = 0.55f;
+    private const float TallWallHeight = 2.2f;
+    private const float PillarHeight = 2.4f;
+    private const float LowMassHeight = 0.6f;
+    private const float TallMassHeight = 1.8f;
+
+    /// <summary>The hex axis (0, 1, or 2) along which <paramref name="tile"/>'s
+    /// same-kind obstacle neighbours run, or -1 when it has none. Used to turn a
+    /// band of per-tile obstacles into one continuous slab.</summary>
+    private int ObstacleRunAxis(TileData tile)
+    {
+        int bestAxis = -1, bestCount = 0;
+        for (int axis = 0; axis < 3; axis++)
+        {
+            int count = 0;
+            foreach (var dir in new[] { HexDirs[axis], HexDirs[axis + 3] })
+            {
+                if (Tiles.TryGetValue(tile.Axial + dir, out var n)
+                    && n.IsBlocked && n.ObstacleKind == tile.ObstacleKind)
+                    count++;
+            }
+            if (count > bestCount)
+            { bestCount = count; bestAxis = axis; }
+        }
+        return bestAxis;
+    }
+
+    /// <summary>Y rotation (degrees) that points a box's local X along hex axis
+    /// <paramref name="axis"/> in world space.</summary>
+    private float AxisYawDegrees(int axis)
+    {
+        var w = AxialToWorld(HexDirs[axis]);
+        return Mathf.RadToDeg(Mathf.Atan2(-w.Z, w.X));
+    }
+
+    /// <summary>A wall slab spanning the tile, aligned to its run of same-kind
+    /// neighbours (or to the flank axis when isolated) so a cover_line reads as one
+    /// wall with a gate rather than a row of blocks.</summary>
+    private void SpawnWallPlaceholder(TileData tile, float height, Color color)
+    {
+        int axis = ObstacleRunAxis(tile);
+        if (axis < 0)
+            axis = 2;   // isolated: HexDirs[2] runs along world Z, across the X-aligned player-enemy axis
+        float neighbourGap = HexRadius * Mathf.Sqrt(3f);     // centre-to-centre, flat-top
+
+        var mesh = new BoxMesh
+        {
+            Size = new Vector3(neighbourGap * 1.04f, height, HexRadius * 0.45f),
+        };
+        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 1f };
+
+        var slab = new MeshInstance3D
+        {
+            Mesh = mesh,
+            RotationDegrees = new Vector3(0f, AxisYawDegrees(axis), 0f),
+        };
+        PlaceObstaclePlaceholder(slab, tile, height);
+    }
+
+    /// <summary>A round pillar for High kinds with no scene: tall enough to block
+    /// sight, narrow enough that the tile behind it is visibly reachable by a burst.</summary>
+    private void SpawnPillarPlaceholder(TileData tile, float height, Color color)
+    {
+        var mesh = new CylinderMesh
+        {
+            TopRadius = HexRadius * 0.32f,
+            BottomRadius = HexRadius * 0.40f,
+            Height = height,
+            RadialSegments = 10,
+        };
+        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 1f };
+        PlaceObstaclePlaceholder(new MeshInstance3D { Mesh = mesh }, tile, height);
+    }
+
+    private void PlaceObstaclePlaceholder(MeshInstance3D node, TileData tile, float height)
+    {
+        if (ObstacleParent != null)
+        {
+            ObstacleParent.AddChild(node);
+            node.GlobalPosition = tile.TileView.GlobalPosition + new Vector3(0f, height * 0.5f, 0f);
+        }
+        else
+        {
+            AddChild(node);
+            node.Position = tile.TileView.Position + new Vector3(0f, height * 0.5f, 0f);
+        }
+        node.AddToGroup("generated_obstacle");
     }
 
     public void ApplyVisualToTile(TileData tile)

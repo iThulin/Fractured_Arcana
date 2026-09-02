@@ -142,6 +142,79 @@ public sealed class SandSpec
     };
 }
 
+/// <summary>Obstacle dressing palette (cover_and_zoc_v1 §9): which catalog kind
+/// each ROLE resolves to on this map, so layout ops can say "low" or "pillar" and
+/// the Hills map grows rock ledges where the Ruins map grows broken masonry.
+/// Example: { "low": "rock_ledge", "high": "rock", "pillar": "standing_stone" }.
+/// Missing roles fall back to <see cref="DefaultFor"/> by dominant base terrain.</summary>
+public sealed class ObstaclePalette
+{
+    public string Low = "";
+    public string High = "";
+    public string Pillar = "";
+
+    public string Get(string role) => role switch
+    {
+        "low" => Low,
+        "high" => High,
+        "pillar" => Pillar,
+        _ => ""
+    };
+
+    public static ObstaclePalette FromDict(Godot.Collections.Dictionary d) => new()
+    {
+        Low = MapRecipe.Str(d, "low", ""),
+        High = MapRecipe.Str(d, "high", ""),
+        Pillar = MapRecipe.Str(d, "pillar", "")
+    };
+
+    /// <summary>Terrain-keyed defaults for recipes that declare no palette and for
+    /// the enum-theme generator. Every kind named here must exist in the catalog.</summary>
+    public static string DefaultFor(TileTerrainType terrain, string role)
+    {
+        switch (terrain)
+        {
+            case TileTerrainType.Forest:
+                return role == "low" ? "fallen_log" : role == "pillar" ? "old_trunk" : "old_trunk";
+            case TileTerrainType.Stone:
+                return role == "low" ? "rock_ledge" : role == "pillar" ? "standing_stone" : "rock";
+            case TileTerrainType.Lava:
+                return role == "low" ? "cooled_crust" : "basalt_column";
+            case TileTerrainType.Ice:
+                return role == "low" ? "ice_ridge" : role == "pillar" ? "ice_spire" : "crystal";
+            case TileTerrainType.Sand:
+                return role == "low" ? "sandstone_ledge" : "hoodoo";
+            case TileTerrainType.Arcane:
+                return role == "low" ? "rune_stone" : role == "pillar" ? "ley_pillar" : "crystal";
+            case TileTerrainType.Water:
+                return role == "low" ? "driftwood" : "sunk_piling";
+            default:   // Grass and anything new
+                return role == "low" ? "drystone_wall" : role == "pillar" ? "standing_stone" : "rock";
+        }
+    }
+}
+
+/// <summary>Tactical targets a recipe promises (cover_and_zoc_v1 §7.6). Checked by
+/// HexGridManager.Tactics after generation and logged as a warning when missed, so an
+/// author learns a layout is open BEFORE a playtest does. Example:
+/// { "max_visibility": 0.45, "min_cover": 0.30 }. Both optional.</summary>
+public sealed class TacticsSpec
+{
+    /// <summary>Upper bound on the fraction of player-zone to enemy-zone tile pairs
+    /// with clear line of sight. 1.0 = every deployment tile sees every enemy tile.</summary>
+    public float MaxVisibility = 1f;
+
+    /// <summary>Lower bound on the fraction of open, unreserved tiles that have cover
+    /// on at least one side.</summary>
+    public float MinCover = 0f;
+
+    public static TacticsSpec FromDict(Godot.Collections.Dictionary d) => new()
+    {
+        MaxVisibility = MapRecipe.Flt(d, "max_visibility", 1f),
+        MinCover = MapRecipe.Flt(d, "min_cover", 0f)
+    };
+}
+
 /// <summary>One feature operation. Typed convenience getters read from the raw param bag.</summary>
 public sealed class FeatureOp
 {
@@ -316,6 +389,8 @@ public sealed class MapRecipe
     public WaterSpec Water;
     public SandSpec Sand;
     public SiegeSpec Siege;
+    public TacticsSpec Tactics;
+    public ObstaclePalette Obstacles;
     public List<FeatureOp> Features = new();
     public List<MapEventDef> MapEvents = new();
 
@@ -344,6 +419,12 @@ public sealed class MapRecipe
 
         if (d.ContainsKey("siege"))
             r.Siege = SiegeSpec.FromDict(d["siege"].AsGodotDictionary());
+
+        if (d.ContainsKey("tactics"))
+            r.Tactics = TacticsSpec.FromDict(d["tactics"].AsGodotDictionary());
+
+        if (d.ContainsKey("obstacles"))
+            r.Obstacles = ObstaclePalette.FromDict(d["obstacles"].AsGodotDictionary());
 
         if (d.ContainsKey("features"))
         {

@@ -34,7 +34,9 @@ No ALL-CAPS emphasis — keywords and numbers carry the weight.
   The adverb "twice" stays a word.
 - Distance: bare "within N" ("enemies within 3"). Tile counts on movement keep
   the noun: "Move 2 tiles.", "Push target 2 tiles."
-- Range on the face only when it is the point: "(range 3)".
+- Range on the face only when it is the point: "(range 3)". Since 2026-09-02 every
+  half carries an aim pip ("Bolt 6", "Arc 6", "Burst 2", "Cone 3") beside its
+  element tags, so rules text should not restate range or delivery at all.
 - Duration: "for N turn(s)". Windows: "this turn", "next turn", "until your next
   turn". Permanence: "for the rest of the fight" (never "rest of combat",
   "Permanent:", or bare "permanently").

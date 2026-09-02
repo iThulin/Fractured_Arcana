@@ -183,6 +183,7 @@ public partial class CombatManager : Node3D
 
         SpawnTestUnits();
         RegisterSummonHandler();
+        InstallZoneOfControl();
 
         // Wire up helper nodes
         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
@@ -244,6 +245,9 @@ public partial class CombatManager : Node3D
             // dragged card crosses tiles.
             dropper.DragHoverChanged += UpdateDamagePreview;
             dropper.DragHoverCleared += ClearDamagePreview;
+            // cast_preview_v1: aim shape + trajectory follow the same hover.
+            dropper.DragHoverChanged += UpdateCastAim;
+            dropper.DragHoverCleared += ClearCastAim;
         }
         else
         {
@@ -311,8 +315,16 @@ public partial class CombatManager : Node3D
         }
     }
 
+    public override void _ExitTree()
+    {
+        base._ExitTree();
+        UninstallZoneOfControl();
+    }
+
     public override void _Process(double delta)
     {
+        SyncMoveZoneDim();   // derived every frame, so no hover-event ordering can strand it
+
         if (_pruneNeeded)
         {
             _pruneNeeded = false;
@@ -403,6 +415,18 @@ public partial class CombatManager : Node3D
                 && _hoveredUnit != inspectedEnemyUnit)
                 _hoveredUnit.SetDetailedBar(true);
 
+            // ── Martial attack preview (cast_preview_v1): a selected martial unit
+            // hovering an enemy sees its own reach, the enemies it can hit, and the
+            // shot's trajectory, the same way a dragged card does. ──
+            if (!_isCardBeingDragged)
+            {
+                if (hitUnit != null && !hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive
+                    && selectedUnit != null && selectedUnit.IsMartial && currentPhase == CombatPhase.PlayerTurn)
+                    ShowMartialPreview(selectedUnit, hitUnit);
+                else
+                    ClearMartialPreview();
+            }
+
             // ── Show/hide threat zone for hovered enemy ──
             if (hitUnit != null && !hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive)
             {
@@ -442,13 +466,28 @@ public partial class CombatManager : Node3D
                 _zoneRenderer.ShowCostLabelForTile(
                     tileHit.Value,
                     grid,
-                    selectedUnit.Stats.BaseSpeed);
+                    selectedUnit.Stats.BaseSpeed,
+                    MoveHoverSuffix(selectedUnit, tileHit.Value));
             }
             else
             {
                 _zoneRenderer.HideCostLabel();
             }
         }
+    }
+
+    /// <summary>Second line of the move hover label: the free strikes this walk
+    /// draws (cover_and_zoc_v1) and whether the destination has cover. Empty when
+    /// neither applies, so open-ground moves read exactly as before.</summary>
+    private string MoveHoverSuffix(Unit unit, Vector2I dest)
+    {
+        int zoc = ZoneOfControlCostTo(unit, dest);
+        bool cover = grid.HasAnyCover(dest);
+        if (zoc <= 0 && !cover)
+            return "";
+        string a = zoc > 0 ? $"free strike: -{zoc}" : "";
+        string b = cover ? "cover" : "";
+        return a.Length > 0 && b.Length > 0 ? a + "  " + b : a + b;
     }
 
     private void InitZoneRenderer()
@@ -736,6 +775,7 @@ public partial class CombatManager : Node3D
 
     private void RefreshEnemyRoster()
     {
+        RefreshCoverMarkers();
         // During deployment, enemies don't exist yet; keep the intel panel visible.
         if (isInDeploymentPhase)
         {
@@ -1223,9 +1263,14 @@ public partial class CombatManager : Node3D
         _zoneRenderer.ShowEnemyZone(level, grid);
     }
 
-    /// <summary>Rings 1..radius around center (attacks ignore walls, since ranged shoots
-    /// over gaps). Raises each tile's threat level to <paramref name="attacks"/> if higher.
-    /// The center (the enemy's stand-tile) is excluded: a unit can't stand on it.</summary>
+    /// <summary>Rings 1..radius around center. Raises each tile's threat level to
+    /// <paramref name="attacks"/> if higher. The center (the enemy's stand-tile) is
+    /// excluded: a unit can't stand on it. Ranged reach (radius > 1) is a Bolt
+    /// (cover_and_zoc_v1): a tile the shooter cannot see from the stand-tile, or
+    /// whose facing side holds High cover, is not threatened from there. Melee
+    /// reach ignores cover, since an adjacent attacker is already past the wall.
+    /// Ring 1 is always threatened when the unit can melee at all, so a ranged
+    /// unit that also swings still paints its neighbours.</summary>
     private void AddThreatFootprint(Vector2I center, int radius, int attacks,
         Dictionary<Vector2I, int> level)
     {
@@ -1240,7 +1285,13 @@ public partial class CombatManager : Node3D
                 {
                     if (!seen.Add(n) || grid.GetTile(n) == null)
                         continue;
-                    next.Add(n);
+                    next.Add(n);   // the ring keeps growing past a wall; only the HIT is gated
+
+                    bool shot = radius > 1 && r > 0;      // ring 2+ of a ranged footprint
+                    if (shot && (!grid.HasLineOfSight(center, n)
+                                 || grid.CoverBetween(n, center) == CoverKind.High))
+                        continue;
+
                     if (!level.TryGetValue(n, out var prev) || attacks > prev)
                         level[n] = attacks;
                 }
@@ -1496,6 +1547,7 @@ public partial class CombatManager : Node3D
         selectedUnit.SetSelected(true);
         selectedUnit.SetDetailedBar(true);
         ClearTargetHighlight();
+        RefreshCoverMarkers();
 
         // Picking a unit is the player revisiting the decision the End Turn warning
         // was about, so disarm it and the next End Turn press re-evaluates from scratch.
@@ -1863,6 +1915,13 @@ public partial class CombatManager : Node3D
                 combatUI?.AppendActionLog($"{attacker.Name} has no line of sight!");
                 return;
             }
+            // A martial shot is a Bolt: full cover on the defender's facing side
+            // stops it even when the hex line squeaks past the blocker's corner.
+            if (dist > 1 && grid.CoverBetween(target.CurrentTile.Axial, attacker.CurrentTile.Axial) == CoverKind.High)
+            {
+                combatUI?.AppendActionLog($"{attacker.Name}: {target.Name} is behind full cover from here. Flank it.");
+                return;
+            }
         }
 
         // ── AP cost ───────────────────────────────────────────────────────
@@ -1963,6 +2022,12 @@ public partial class CombatManager : Node3D
     {
         var stance = attacker.ActiveStance;
 
+        // Cover keys off how the blow travels: adjacent is a Melee swing (past the
+        // wall), anything further is a Bolt that Low cover can soak.
+        var delivery = attacker.CurrentTile != null && target.CurrentTile != null
+            && grid.Distance(attacker.CurrentTile, target.CurrentTile) > 1
+            ? Delivery.Bolt : Delivery.Melee;
+
         // ── Compute base damage ───────────────────────────────────────────
         int damage = attacker.AttackDamage;
 
@@ -2057,14 +2122,14 @@ public partial class CombatManager : Node3D
             // Bypass armor and apply directly to health
             int savedArmor = target.Stats.Armor;
             target.Stats.Armor = 0;
-            target.ApplyDamage(damage, attacker);
+            target.ApplyDamage(damage, attacker, delivery);
             if (target.Stats.IsAlive)
                 target.Stats.Armor = savedArmor;
             combatUI?.AppendActionLog($"[Aimed] Armor ignored.");
         }
         else
         {
-            target.ApplyDamage(damage, attacker);
+            target.ApplyDamage(damage, attacker, delivery);
         }
 
         // ── AoE: Reckless hits all adjacent enemies ────────────────────────
@@ -3107,7 +3172,8 @@ public partial class CombatManager : Node3D
                 break;                                  // already at the preferred band
 
             var dest = BestMoveDestination(enemy,
-                           c => -100 * Math.Abs(grid.Distance(c, goal) - desiredDist))
+                           c => -100 * Math.Abs(grid.Distance(c, goal) - desiredDist)
+                                + RangedCoverPenalty(enemy, c, goal))
                        ?? grid.GetFirstStepToDistance(enemy, goal, desiredDist);
             if (dest == null)
                 break;                                  // nowhere better to stand
@@ -3151,7 +3217,8 @@ public partial class CombatManager : Node3D
             // Cap the reward at minDist so it backs off to its band and stops, rather
             // than running for the far corner of the arena.
             var dest = BestMoveDestination(enemy,
-                           c => 100 * Math.Min(grid.Distance(c, goal), minDist))
+                           c => 100 * Math.Min(grid.Distance(c, goal), minDist)
+                                + RangedCoverPenalty(enemy, c, goal))
                        ?? grid.GetFirstStepAwayFrom(enemy, goal);
             if (dest == null)
                 break;                                  // backed into a corner
@@ -3224,7 +3291,7 @@ public partial class CombatManager : Node3D
         GD.Print(msg);
         combatUI?.AppendActionLog(msg);
 
-        target.ApplyDamage(dmg, enemy);
+        target.ApplyDamage(dmg, enemy, Delivery.Bolt);
         // Riposte moved to the single OnStruck hook (HandleUnitStruck) 2026-07-28.
         // Calling it here too would fire it twice for the one live caller of this
         // method (Tinker constructs, CombatManager.Constructs.cs).
@@ -5990,12 +6057,19 @@ public partial class CombatManager : Node3D
                     CastFail($"{resolvedHalf.Name}: no line of sight to {unit.Name}, blocked by {what}.");
                     return;
                 }
+                if (selectedUnit?.CurrentTile != null
+                    && ut.BlockedByCover(grid, selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
+                {
+                    CastFail($"{resolvedHalf.Name}: {unit.Name} is behind full cover. A bolt cannot reach; an arc or a burst could.");
+                    return;
+                }
                 if (ut.enemyOnly && unit.TeamId == selectedUnit?.TeamId)
                 {
                     CastFail($"{resolvedHalf.Name}: must target an enemy.");
                     return;
                 }
                 targets.Items.Add(unit);
+                targets.Delivery = ut.delivery;
                 break;
 
             case SelectTileTarget tt:
@@ -6617,242 +6691,5 @@ public partial class CombatManager : Node3D
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // Target highlighting logic
-    // ═══════════════════════════════════════════════════════════════════════
-
-    private void ShowTargetHighlight(CardHalf half)
-    {
-        ClearTargetHighlight();
-        ClearConstructAura();   // §8: targeting range takes over the tile highlights during a drag
-        if (half == null || selectedUnit == null || grid == null)
-            return;
-
-        _lastHighlightedHalf = half;
-        var enemyCoords = GetValidTargetCoords(half); // now also sets range highlights internally
-
-        // Target highlights go on top of range highlights for enemy tiles
-        foreach (var coord in enemyCoords)
-        {
-            _targetHighlightTiles.Add(coord);
-            grid.GetTileView(coord)?.SetTargetHighlight(true);
-        }
-    }
-
-    private void ClearTargetHighlight()
-    {
-        foreach (var coord in _targetHighlightTiles)
-        {
-            var tileView = grid.GetTileView(coord);
-            tileView?.SetTargetHighlight(false);
-            tileView?.SetRangeHighlight(false, false); // clear both interior and border
-        }
-        _targetHighlightTiles.Clear();
-        _lastHighlightedHalf = null;
-    }
-
-    private HashSet<Vector2I> GetValidTargetCoords(CardHalf half)
-    {
-        var coords = new HashSet<Vector2I>();
-        if (half?.Targeting == null || selectedUnit?.CurrentTile == null)
-            return coords;
-
-        var center = selectedUnit.CurrentTile.Axial;
-        var targeter = half.Targeting;
-
-        // Determine range from targeter type and highlight accordingly
-        if (targeter is SelectUnitTarget ut)
-        {
-            int spellRange = ut.range;
-
-            // Highlight interior tiles (within range)
-            foreach (var kvp in grid.Tiles)
-            {
-                int dist = grid.Distance(center, kvp.Key);
-                if (dist <= spellRange)
-                {
-                    _targetHighlightTiles.Add(kvp.Key);
-                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
-                        interior: dist < spellRange,   // subtle tint inside
-                        border: dist == spellRange      // strong ring at edge
-                    );
-                }
-            }
-
-            // Highlight valid enemy targets on top of range
-            foreach (var unit in State.UnitsInPlay)
-            {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
-                    continue;
-                if (ut.enemyOnly && unit.TeamId == 0)
-                    continue;
-                coords.Add(unit.CurrentTile.Axial);
-            }
-
-            return coords; // return early, since we handled tile highlighting directly
-        }
-        else if (targeter is SelectTileTarget tt)
-        {
-            // Show all tiles in range
-            foreach (var kvp in grid.Tiles)
-            {
-                int dist = grid.Distance(center, kvp.Key);
-                if (dist <= tt.range)
-                {
-                    _targetHighlightTiles.Add(kvp.Key);
-                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
-                        interior: dist < tt.range,
-                        border: dist == tt.range
-                    );
-                }
-            }
-        }
-        else if (targeter is SelectAreaTarget at)
-        {
-            // Show AoE radius centered on caster
-            foreach (var kvp in grid.Tiles)
-            {
-                int dist = grid.Distance(center, kvp.Key);
-                if (dist <= at.Radius)
-                {
-                    _targetHighlightTiles.Add(kvp.Key);
-                    grid.GetTileView(kvp.Key)?.SetTargetHighlight(true); // full fill for AoE
-                }
-            }
-        }
-        else if (targeter is SelectSelfTarget || targeter is SelectGlobalTarget)
-        {
-            // Just highlight the caster's tile
-            coords.Add(center);
-        }
-        else if (targeter is SelectElementTileTarget et)
-        {
-            // Highlight matching element tiles
-            TileElementType needed = et.Element.ToLowerInvariant() switch
-            {
-                "fire" => TileElementType.Fire,
-                "ice" => TileElementType.Frost,
-                "storm" => TileElementType.Lightning,
-                "stone" => TileElementType.Earth,
-                _ => TileElementType.None
-            };
-            foreach (var kvp in grid.Tiles)
-                if (kvp.Value?.ElementType == needed)
-                    coords.Add(kvp.Key);
-        }
-        else if (targeter is SelectConeTarget ct)
-        {
-            var hexDirs = new Vector2I[]
-            {
-                new(1, 0), new(1, -1), new(0, -1),
-                new(-1, 0), new(-1, 1), new(0, 1)
-            };
-
-            foreach (var dir in hexDirs)
-            {
-                // Only highlight the spine (center column) of each cone direction
-                for (int step = 1; step <= ct.Range; step++)
-                {
-                    var coord = center + dir * step;
-                    var tileData = grid.GetTile(coord);
-                    if (tileData == null)
-                        continue;
-
-                    bool isTip = step == ct.Range;
-                    _targetHighlightTiles.Add(coord);
-                    grid.GetTileView(coord)?.SetRangeHighlight(
-                        interior: !isTip,
-                        border: isTip
-                    );
-                }
-            }
-
-            // Highlight valid targets on top
-            foreach (var unit in State.UnitsInPlay)
-            {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
-                    continue;
-                if (ct.EnemiesOnly && unit.TeamId == 0)
-                    continue;
-                coords.Add(unit.CurrentTile.Axial);
-            }
-        }
-        else if (targeter is SelectLineTarget lt)
-        {
-            // Show all 6 possible line directions at this length
-            var hexDirs = new Vector2I[]
-            {
-                new(1, 0), new(1, -1), new(0, -1),
-                new(-1, 0), new(-1, 1), new(0, 1)
-            };
-
-            foreach (var dir in hexDirs)
-            {
-                for (int step = 1; step <= lt.Length; step++)
-                {
-                    var coord = center + dir * step;
-                    var tileData = grid.GetTile(coord);
-                    if (tileData == null)
-                        continue; // off-grid
-
-                    bool isTip = step == lt.Length;
-                    _targetHighlightTiles.Add(coord);
-                    grid.GetTileView(coord)?.SetRangeHighlight(
-                        interior: !isTip,
-                        border: isTip
-                    );
-                }
-            }
-
-            // Highlight valid targets on top
-            foreach (var unit in State.UnitsInPlay)
-            {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
-                    continue;
-                if (lt.EnemiesOnly && unit.TeamId == 0)
-                    continue;
-                coords.Add(unit.CurrentTile.Axial);
-            }
-        }
-        else if (targeter is SelectRingTarget rt)
-        {
-            // Show the ring at the exact radius, which is what the spell targets
-            foreach (var kvp in grid.Tiles)
-            {
-                int dist = grid.Distance(center, kvp.Key);
-
-                if (dist == rt.Radius)
-                {
-                    _targetHighlightTiles.Add(kvp.Key);
-                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
-                        interior: false,
-                        border: true  // all ring tiles are the border
-                    );
-                }
-                else if (dist < rt.Radius)
-                {
-                    // Subtle interior tint so the player can see the ring's context
-                    _targetHighlightTiles.Add(kvp.Key);
-                    grid.GetTileView(kvp.Key)?.SetRangeHighlight(
-                        interior: true,
-                        border: false
-                    );
-                }
-            }
-
-            // Highlight any valid targets on the ring
-            foreach (var unit in State.UnitsInPlay)
-            {
-                if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
-                    continue;
-                if (rt.IncludeTiles)
-                    continue; // tile-only targeting, no unit highlights
-                int dist = grid.Distance(center, unit.CurrentTile.Axial);
-                if (dist == rt.Radius)
-                    coords.Add(unit.CurrentTile.Axial);
-            }
-        }
-
-        return coords;
-    }
+    // Target highlighting moved to CombatManager.CastPreview.cs (cast_preview_v1).
 }

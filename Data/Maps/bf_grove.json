@@ -1,99 +1,126 @@
 {
-	"id": "bf_grove",
-	"display_name": "The Shattered Grove",
-	"shape": {
-		"type": "blob",
-		"width": 9,
-		"height": 8,
-		"radius": 5,
-		"erosion": 0.2
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.11,
-		"moisture_frequency": 0.09,
-		"detail_weight": 0.18,
-		"max_height_step": 1,
-		"min_height_step": 0,
-		"palette": [
-			{
-				"terrain": "forest",
-				"min_moisture": 0.55
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.8,
-			0.9,
-			0.7
-		],
-		"sun_energy": 1.0,
-		"ambient_color": [
-			0.4,
-			0.5,
-			0.4
-		],
-		"ambient_energy": 0.85,
-		"fog_color": [
-			0.42,
-			0.5,
-			0.4
-		],
-		"fog_density": 0.012
-	},
-	"features": [
-		{
-			"feature": "scatter_copses",
-			"phase": "skeleton",
-			"count": [
-				4,
-				5
-			],
-			"radius": 1
-		},
-		{
-			"feature": "obstacle_cluster",
-			"phase": "skeleton",
-			"at": "flank:2",
-			"kind": "crystal",
-			"size": 2
-		},
-		{
-			"feature": "obstacle_cluster",
-			"phase": "skeleton",
-			"at": "flank:-2",
-			"kind": "crystal",
-			"size": 2
-		},
-		{
-			"feature": "clearing",
-			"phase": "skeleton",
-			"at": "midpoint",
-			"radius": 2
-		},
-		{
-			"feature": "carve_lane",
-			"phase": "skeleton",
-			"from": "player_anchor",
-			"to": "enemy_anchor",
-			"width": 0
-		},
-		{
-			"feature": "map_object",
-			"phase": "accent",
-			"at": "flank:2",
-			"kind": "resonant_crystal",
-			"count": 1
-		},
-		{
-			"feature": "map_object",
-			"phase": "accent",
-			"at": "flank:-2",
-			"kind": "resonant_crystal",
-			"count": 1
-		}
-	]
+  "id": "bf_grove",
+  "display_name": "The Shattered Grove",
+  "shape": {
+    "type": "blob",
+    "width": 9,
+    "height": 8,
+    "radius": 5,
+    "erosion": 0.2
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.11,
+    "moisture_frequency": 0.09,
+    "detail_weight": 0.18,
+    "max_height_step": 1,
+    "min_height_step": 0,
+    "palette": [
+      {
+        "terrain": "forest",
+        "min_moisture": 0.55
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.8,
+      0.9,
+      0.7
+    ],
+    "sun_energy": 1.0,
+    "ambient_color": [
+      0.4,
+      0.5,
+      0.4
+    ],
+    "ambient_energy": 0.85,
+    "fog_color": [
+      0.42,
+      0.5,
+      0.4
+    ],
+    "fog_density": 0.012
+  },
+  "obstacles": {
+    "low": "fallen_log",
+    "high": "old_trunk",
+    "pillar": "old_trunk"
+  },
+  "tactics": {
+    "max_visibility": 0.5,
+    "min_cover": 0.35
+  },
+  "features": [
+    {
+      "feature": "scatter_copses",
+      "phase": "skeleton",
+      "count": [
+        4,
+        5
+      ],
+      "radius": 1
+    },
+    {
+      "feature": "obstacle_cluster",
+      "phase": "skeleton",
+      "at": "flank:2",
+      "kind": "crystal",
+      "size": 2
+    },
+    {
+      "feature": "obstacle_cluster",
+      "phase": "skeleton",
+      "at": "flank:-2",
+      "kind": "crystal",
+      "size": 2
+    },
+    {
+      "feature": "clearing",
+      "phase": "skeleton",
+      "at": "midpoint",
+      "radius": 2
+    },
+    {
+      "feature": "carve_lane",
+      "phase": "skeleton",
+      "from": "player_anchor",
+      "to": "enemy_anchor",
+      "width": 0
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 5,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.7
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 5,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.7
+    },
+    {
+      "feature": "map_object",
+      "phase": "accent",
+      "at": "flank:2",
+      "kind": "resonant_crystal",
+      "count": 1
+    },
+    {
+      "feature": "map_object",
+      "phase": "accent",
+      "at": "flank:-2",
+      "kind": "resonant_crystal",
+      "count": 1
+    }
+  ]
 }

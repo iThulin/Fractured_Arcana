@@ -408,12 +408,12 @@ Both `top` and `bottom` use the same structure. The optional `channel` field ins
 | Type | Parameters | Description |
 |------|-----------|-------------|
 | `self` | - | Caster only |
-| `unit` | `range`, `enemies_only`, `los` | Single unit within range. `los: true` requires line of sight. |
+| `unit` | `range`, `enemies_only`, `los`, `delivery` | Single unit within range. `los: true` requires line of sight. `delivery` is `arc` (default: magic goes over low cover) or `bolt` (flies straight: cannot target a unit behind full cover, and low cover soaks it; implies `los`). See `docs/cover_and_zoc_v1.md`. |
 | `tile` | `range` | Any tile within range, regardless of occupant |
-| `aoe` | `radius`, `enemies_only`, `include_tiles` | All valid targets within radius of caster |
+| `aoe` | `radius`, `enemies_only`, `include_tiles` | All valid targets within `radius` spread steps of the aim point. Burst fill: stops at walls, wraps around pillars, spends +1 step to cross low cover. |
 | `line` | `length`, `enemies_only`, `include_tiles` | All tiles/units in a line from caster |
-| `cone` | `range`, `enemies_only` | Cone pattern in a chosen direction |
-| `ring` | `radius`, `include_tiles` | Tiles/units at exactly `radius` distance |
+| `cone` | `range`, `enemies_only` | Cone pattern in a chosen direction, clipped to the burst fill |
+| `ring` | `radius`, `include_tiles` | Tiles/units at exactly `radius` spread steps (the burst fill's outer edge) |
 | `adjacent` | - | All tiles immediately adjacent to caster |
 | `nearest_to_target` | `range` | Closest enemy to the previous target. Used for chain effects inside `retarget`. |
 | `adjacent_to_target` | `include_tiles` | Tiles/units adjacent to the previous target |
@@ -430,6 +430,7 @@ Both `top` and `bottom` use the same structure. The optional `channel` field ins
 | `enemies_only` | bool | Exclude allied units from selection |
 | `allies_only` | bool | Exclude enemy units from selection |
 | `los` | bool | Require unobstructed line of sight |
+| `delivery` | string | `"arc"` (default) or `"bolt"`. Bolt respects directional cover like an arrow. |
 | `include_tiles` | bool | Include tile objects (not just unit occupants) |
 | `element` | string | Element name: `"fire"`, `"ice"`, `"storm"`, `"stone"`, `"earth"`, `"lava"` |
 
@@ -563,6 +564,16 @@ Effects that last across turns (`MaelstromEffect`, `AvatarAuraEffect`) are store
 ### Summons
 
 Summon effects fire `GameState.OnSummonRequested` delegate rather than calling `AddChild` directly. `GameRunner` subscribes to this delegate and handles instantiation. Never call `AddChild` from inside an effect class.
+
+### Cover, Delivery, and Zone of Control
+
+Full spec: `docs/cover_and_zoc_v1.md`. The short version:
+
+Cover is a property of an obstacle tile and protects units standing beside it on the side away from the shooter (`HexGridManager.CoverBetween`). High cover is any tile that blocks sight; Low cover is any obstacle kind whose catalog role is `low` (`Data/Obstacles/obstacle_catalog.json`), rubble, a sapling, or a map object that does not block sight. Recipes author it with the `cover_line` op (a gated band across the anchor axis) or on `obstacle_band`, `obstacle_cluster`, or `ring`, naming a role (`low`, `high`, `pillar`) that the recipe's `obstacles` palette resolves to a themed kind (rock ledges on hills, broken masonry in ruins, fallen logs in forest). Every generation logs a `[Tactics]` line (deployment visibility, cover fraction); a recipe's `tactics` block turns misses into warnings. Always set obstacle flags through `HexGridManager.ApplyObstacle`, never by hand, so sight and cover stay in agreement.
+
+Cover keys off `Delivery`, not off the attacker. Martial ranged strikes are Bolts: High cover on the facing side makes the shot impossible, Low cover is soaked by the defender's `Stats.CoverArmor` (2 per turn, refilled at turn start and after a walk, zeroed by any forced move). School cards default to Arc and ignore Low cover. Area shapes are Bursts and use `HexGridManager.BurstFill`, which stops at walls and climbs low cover one step slower. Pass the delivery through `TargetSet.Delivery` to `Unit.ApplyDamage`; Untyped is the safe default.
+
+Zone of control: walking out of a hostile unit's adjacency draws one free flat melee strike per enemy per walk, resolved through the `Unit.ZoneOfControlStrike` hook that CombatManager installs. Forced moves never trigger it. The move hover label shows the price.
 
 ---
 

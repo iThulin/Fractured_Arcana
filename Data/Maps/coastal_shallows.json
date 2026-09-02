@@ -1,88 +1,115 @@
 {
-	"id": "coastal_shallows",
-	"display_name": "Coastal Shallows",
-	"shape": {
-		"type": "rectangle",
-		"width": 12,
-		"height": 9
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.1,
-		"moisture_frequency": 0.09,
-		"detail_weight": 0.14,
-		"max_height_step": 2,
-		"min_height_step": -2,
-		"palette": [
-			{
-				"terrain": "water",
-				"max_elevation": 0.42
-			},
-			{
-				"terrain": "sand",
-				"max_elevation": 0.56
-			},
-			{
-				"terrain": "stone",
-				"min_elevation": 0.82
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.96,
-			0.98,
-			1.0
-		],
-		"sun_energy": 1.3,
-		"ambient_color": [
-			0.64,
-			0.72,
-			0.8
-		],
-		"ambient_energy": 0.9,
-		"fog_color": [
-			0.76,
-			0.83,
-			0.9
-		],
-		"fog_density": 0.008
-	},
-	"water": {
-		"profile": "grey_coast"
-	},
-	"features": [
-		{
-			"feature": "river",
-			"phase": "skeleton",
-			"from": "high_tile",
-			"length": 12,
-			"width": 1
-		},
-		{
-			"feature": "lake",
-			"phase": "accent",
-			"at": "random",
-			"radius": [
-				2,
-				3
-			],
-			"depth": 1
-		},
-		{
-			"feature": "meadow",
-			"phase": "accent",
-			"at": "center",
-			"radius": 3
-		},
-		{
-			"feature": "rocky_outcrop",
-			"phase": "accent",
-			"at": "random",
-			"radius": 1,
-			"chance": 0.5
-		}
-	]
+  "id": "coastal_shallows",
+  "display_name": "Coastal Shallows",
+  "shape": {
+    "type": "rectangle",
+    "width": 12,
+    "height": 9
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.1,
+    "moisture_frequency": 0.09,
+    "detail_weight": 0.14,
+    "max_height_step": 2,
+    "min_height_step": -2,
+    "palette": [
+      {
+        "terrain": "water",
+        "max_elevation": 0.42
+      },
+      {
+        "terrain": "sand",
+        "max_elevation": 0.56
+      },
+      {
+        "terrain": "stone",
+        "min_elevation": 0.82
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.96,
+      0.98,
+      1.0
+    ],
+    "sun_energy": 1.3,
+    "ambient_color": [
+      0.64,
+      0.72,
+      0.8
+    ],
+    "ambient_energy": 0.9,
+    "fog_color": [
+      0.76,
+      0.83,
+      0.9
+    ],
+    "fog_density": 0.008
+  },
+  "water": {
+    "profile": "grey_coast"
+  },
+  "obstacles": {
+    "low": "tidal_rock",
+    "high": "sea_stack",
+    "pillar": "sea_stack"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "river",
+      "phase": "skeleton",
+      "from": "high_tile",
+      "length": 12,
+      "width": 1
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "lake",
+      "phase": "accent",
+      "at": "random",
+      "radius": [
+        2,
+        3
+      ],
+      "depth": 1
+    },
+    {
+      "feature": "meadow",
+      "phase": "accent",
+      "at": "center",
+      "radius": 3
+    },
+    {
+      "feature": "rocky_outcrop",
+      "phase": "accent",
+      "at": "random",
+      "radius": 1,
+      "chance": 0.5
+    }
+  ]
 }

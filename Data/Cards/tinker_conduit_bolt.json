@@ -1,229 +1,230 @@
 {
-	"id": "tinker_conduit_bolt",
-	"status": "ready",
-	"name": "Conduit Bolt",
-	"school": "Tinker",
-	"rarity": "Common",
-	"top": {
-		"name": "Conduit Bolt",
-		"mana": 1,
-		"speed": "Studied",
-		"rules_text": "Deal 4 damage. If you control a construct, deal 6 damage instead.",
-		"tags": [],
-		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": true,
-			"enemies_only": true
-		},
-		"effect": {
-			"type": "conditional",
-			"if": {
-				"type": "has_construct"
-			},
-			"then": {
-				"type": "damage",
-				"amount": 6
-			},
-			"else": {
-				"type": "damage",
-				"amount": 4
-			}
-		}
-	},
-	"bottom": {
-		"name": "Tinker Step",
-		"mana": 1,
-		"speed": "Studied",
-		"rules_text": "Move 2 tiles. If you control a construct, gain 2 armor.",
-		"tags": [],
-		"targeting": {
-			"type": "self"
-		},
-		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "move",
-					"tiles": 2
-				},
-				{
-					"type": "conditional",
-					"if": {
-						"type": "has_construct"
-					},
-					"then": {
-						"type": "armor",
-						"amount": 2
-					},
-					"else": {
-						"type": "empty"
-					}
-				}
-			]
-		}
-	},
-	"upgrades": [
-		{
-			"tier": 1,
-			"half": "both",
-			"top_name": "Conduit Bolt+",
-			"bottom_name": "Tinker Step+",
-			"description": "The bolt hits harder. The step reaches further.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.then.amount",
-					"value": 7
-				},
-				{
-					"half": "top",
-					"field": "effect.else.amount",
-					"value": 5
-				},
-				{
-					"half": "bottom",
-					"field": "effect.steps[0].tiles",
-					"value": 3
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "top",
-			"top_name": "Overcharged Bolt",
-			"description": "More current down the wire.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.then.amount",
-					"value": 8
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "bottom",
-			"bottom_name": "Guarded Stride",
-			"description": "The step armors harder.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect.steps[1].then.amount",
-					"value": 3
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "top",
-			"top_name": "Twin Coil",
-			"description": "The bolt peaks higher.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.then.amount",
-					"value": 9
-				},
-				{
-					"half": "top",
-					"field": "effect.else.amount",
-					"value": 6
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "bottom",
-			"bottom_name": "Charged Stride",
-			"description": "Further, harder.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect.steps[0].tiles",
-					"value": 4
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "Lightning Rail",
-			"description": "With the grid behind it, devastating.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "conditional",
-						"if": {
-							"type": "construct_count",
-							"min": 2
-						},
-						"then": {
-							"type": "damage",
-							"amount": 12
-						},
-						"else": {
-							"type": "damage",
-							"amount": 6
-						}
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 6 damage. If you control 2 or more constructs, deal 12 instead."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "bottom",
-			"bottom_name": "Phase Stride",
-			"description": "The workshop walks with you.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "move",
-								"tiles": 4
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "has_construct"
-								},
-								"then": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "armor",
-											"amount": 3
-										},
-										{
-											"type": "shield",
-											"amount": 3
-										}
-									]
-								},
-								"else": {
-									"type": "empty"
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Move 4 tiles. If you control a construct, gain 3 armor and 3 shield."
-				}
-			]
-		}
-	]
+  "id": "tinker_conduit_bolt",
+  "status": "ready",
+  "name": "Conduit Bolt",
+  "school": "Tinker",
+  "rarity": "Common",
+  "top": {
+    "name": "Conduit Bolt",
+    "mana": 1,
+    "speed": "Studied",
+    "rules_text": "Deal 4 damage. If you control a construct, deal 6 damage instead.",
+    "tags": [],
+    "targeting": {
+      "type": "unit",
+      "range": 6,
+      "los": true,
+      "enemies_only": true,
+      "delivery": "bolt"
+    },
+    "effect": {
+      "type": "conditional",
+      "if": {
+        "type": "has_construct"
+      },
+      "then": {
+        "type": "damage",
+        "amount": 6
+      },
+      "else": {
+        "type": "damage",
+        "amount": 4
+      }
+    }
+  },
+  "bottom": {
+    "name": "Tinker Step",
+    "mana": 1,
+    "speed": "Studied",
+    "rules_text": "Move 2 tiles. If you control a construct, gain 2 armor.",
+    "tags": [],
+    "targeting": {
+      "type": "self"
+    },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        {
+          "type": "move",
+          "tiles": 2
+        },
+        {
+          "type": "conditional",
+          "if": {
+            "type": "has_construct"
+          },
+          "then": {
+            "type": "armor",
+            "amount": 2
+          },
+          "else": {
+            "type": "empty"
+          }
+        }
+      ]
+    }
+  },
+  "upgrades": [
+    {
+      "tier": 1,
+      "half": "both",
+      "top_name": "Conduit Bolt+",
+      "bottom_name": "Tinker Step+",
+      "description": "The bolt hits harder. The step reaches further.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect.then.amount",
+          "value": 7
+        },
+        {
+          "half": "top",
+          "field": "effect.else.amount",
+          "value": 5
+        },
+        {
+          "half": "bottom",
+          "field": "effect.steps[0].tiles",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "half": "top",
+      "top_name": "Overcharged Bolt",
+      "description": "More current down the wire.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect.then.amount",
+          "value": 8
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "half": "bottom",
+      "bottom_name": "Guarded Stride",
+      "description": "The step armors harder.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect.steps[1].then.amount",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "tier": 3,
+      "half": "top",
+      "top_name": "Twin Coil",
+      "description": "The bolt peaks higher.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect.then.amount",
+          "value": 9
+        },
+        {
+          "half": "top",
+          "field": "effect.else.amount",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "tier": 3,
+      "half": "bottom",
+      "bottom_name": "Charged Stride",
+      "description": "Further, harder.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect.steps[0].tiles",
+          "value": 4
+        }
+      ]
+    },
+    {
+      "tier": 4,
+      "half": "top",
+      "top_name": "Lightning Rail",
+      "description": "With the grid behind it, devastating.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect",
+          "value": {
+            "type": "conditional",
+            "if": {
+              "type": "construct_count",
+              "min": 2
+            },
+            "then": {
+              "type": "damage",
+              "amount": 12
+            },
+            "else": {
+              "type": "damage",
+              "amount": 6
+            }
+          }
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 6 damage. If you control 2 or more constructs, deal 12 instead."
+        }
+      ]
+    },
+    {
+      "tier": 4,
+      "half": "bottom",
+      "bottom_name": "Phase Stride",
+      "description": "The workshop walks with you.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "move",
+                "tiles": 4
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "has_construct"
+                },
+                "then": {
+                  "type": "sequence",
+                  "steps": [
+                    {
+                      "type": "armor",
+                      "amount": 3
+                    },
+                    {
+                      "type": "shield",
+                      "amount": 3
+                    }
+                  ]
+                },
+                "else": {
+                  "type": "empty"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Move 4 tiles. If you control a construct, gain 3 armor and 3 shield."
+        }
+      ]
+    }
+  ]
 }

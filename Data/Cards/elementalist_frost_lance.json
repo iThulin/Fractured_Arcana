@@ -1,409 +1,410 @@
 {
-	"id": "elementalist_frost_lance",
-	"status": "ready",
-	"name": "Frost Lance",
-	"school": "Elementalist",
-	"rarity": "Common",
-	"top": {
-		"name": "Frost Lance",
-		"mana": 2,
-		"speed": "Studied",
-		"rules_text": "Deal 7 damage. If the target stands on Ice, it is Frozen for 1 turn.",
-		"tags": [
-			"ice"
-		],
-		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": true,
-			"enemies_only": true
-		},
-		"effect": {
-			"type": "conditional",
-			"if": {
-				"type": "target_on_tile",
-				"tile": "ice"
-			},
-			"then": {
-				"type": "sequence",
-				"steps": [
-					{
-						"type": "damage",
-						"amount": 7
-					},
-					{
-						"type": "apply_status",
-						"status": "frozen",
-						"duration": 1
-					}
-				]
-			},
-			"else": {
-				"type": "damage",
-				"amount": 7
-			}
-		}
-	},
-	"bottom": {
-		"name": "Stone Wall",
-		"mana": 1,
-		"speed": "Reflex",
-		"rules_text": "Create a Stone pillar on target tile within 3. Gain 3 armor.",
-		"tags": [
-			"earth"
-		],
-		"targeting": {
-			"type": "tile",
-			"range": 3
-		},
-		"effect": {
-			"type": "sequence",
-			"steps": [
-				{
-					"type": "summon",
-					"unit": "stone_pillar",
-					"count": 1
-				},
-				{
-					"type": "retarget",
-					"targeting": {
-						"type": "self"
-					},
-					"do": {
-						"type": "armor",
-						"amount": 3
-					}
-				}
-			]
-		}
-	},
-	"upgrades": [
-		{
-			"tier": 1,
-			"half": "both",
-			"top_name": "Frost Lance+",
-			"bottom_name": "Stone Wall+",
-			"description": "Frost Lance hits harder. Stone Wall grants more armor.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.else.amount",
-					"value": 9
-				},
-				{
-					"half": "top",
-					"field": "effect.then.steps[0].amount",
-					"value": 9
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 9 damage. If target is on Ice terrain, freeze for 1 turn."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.steps[1].do.amount",
-					"value": 6
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Create a Stone pillar on target tile within 3. Gain 5 armor."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "top",
-			"top_name": "Glacial",
-			"description": "Glacial: Frost Lance now imbues the target tile with Ice. The freeze condition becomes self-fulfilling.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 9
-							},
-							{
-								"type": "imbue_tile",
-								"element": "ice"
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "target_on_tile",
-									"tile": "ice"
-								},
-								"then": {
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 1
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 9 damage. Imbue target tile with Ice. If target is on Ice, freeze for 1 turn."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "bottom",
-			"bottom_name": "Fortress Wall",
-			"description": "Fortress Wall: Stone Wall no longer requires a stone tile. You carry the earth with you.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "requires",
-					"value": []
-				},
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "summon",
-								"unit": "stone_pillar",
-								"count": 1
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
-								},
-								"do": {
-									"type": "armor",
-									"amount": 6
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
-								},
-								"do": {
-									"type": "shield",
-									"amount": 4
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Create Stone pillar on target tile (no stone required). Gain 6 armor and 4 shield."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "top",
-			"top_name": "Permafrost",
-			"description": "Permafrost: Frozen enemies shatter on kill, imbuing adjacent tiles with Ice.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 10
-							},
-							{
-								"type": "imbue_tile",
-								"element": "ice"
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "target_on_tile",
-									"tile": "ice"
-								},
-								"then": {
-									"type": "apply_status",
-									"status": "frozen",
-									"duration": 2
-								}
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "was_lethal"
-								},
-								"then": {
-									"type": "retarget",
-									"targeting": {
-										"type": "ring",
-										"radius": 1,
-										"include_tiles": true
-									},
-									"do": {
-										"type": "imbue_tile",
-										"element": "ice"
-									}
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 10 damage. Imbue tile with Ice. If on Ice, freeze for 2 turns. On kill, imbue adjacent tiles with Ice."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "bottom",
-			"bottom_name": "Ice Bastion",
-			"description": "Ice Bastion: Stone Wall now summons two pillars adjacent to each other.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "summon",
-								"unit": "stone_pillar",
-								"count": 1
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "summon",
-									"unit": "stone_pillar",
-									"count": 1
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
-								},
-								"do": {
-									"type": "armor",
-									"amount": 8
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Summon 2 Stone pillars (adjacent). Gain 8 armor. No stone required."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "Absolute Zero",
-			"description": "Absolute Zero: Frost Lance always freezes. Ice is total and inescapable.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 12
-							},
-							{
-								"type": "imbue_tile",
-								"element": "ice"
-							},
-							{
-								"type": "apply_status",
-								"status": "frozen",
-								"duration": 2
-							},
-							{
-								"type": "apply_status",
-								"status": "slowed",
-								"duration": 2
-							}
-						]
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 12 damage. Imbue tile with Ice. Always freeze (2) and slow (2)."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "bottom",
-			"bottom_name": "Iron Glacier",
-			"description": "Iron Glacier: The card fuses. Frost Lance grants armor when it freezes a target.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "summon",
-								"unit": "stone_pillar",
-								"count": 1
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "ring",
-									"radius": 1,
-									"include_tiles": true
-								},
-								"do": {
-									"type": "imbue_tile",
-									"element": "ice"
-								}
-							},
-							{
-								"type": "retarget",
-								"targeting": {
-									"type": "self"
-								},
-								"do": {
-									"type": "armor",
-									"amount": 10
-								}
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Summon Stone pillar. Imbue adjacent ring with Ice. Gain 10 armor. No stone required."
-				}
-			]
-		}
-	]
+  "id": "elementalist_frost_lance",
+  "status": "ready",
+  "name": "Frost Lance",
+  "school": "Elementalist",
+  "rarity": "Common",
+  "top": {
+    "name": "Frost Lance",
+    "mana": 2,
+    "speed": "Studied",
+    "rules_text": "Deal 7 damage. If the target stands on Ice, it is Frozen for 1 turn.",
+    "tags": [
+      "ice"
+    ],
+    "targeting": {
+      "type": "unit",
+      "range": 6,
+      "los": true,
+      "enemies_only": true,
+      "delivery": "bolt"
+    },
+    "effect": {
+      "type": "conditional",
+      "if": {
+        "type": "target_on_tile",
+        "tile": "ice"
+      },
+      "then": {
+        "type": "sequence",
+        "steps": [
+          {
+            "type": "damage",
+            "amount": 7
+          },
+          {
+            "type": "apply_status",
+            "status": "frozen",
+            "duration": 1
+          }
+        ]
+      },
+      "else": {
+        "type": "damage",
+        "amount": 7
+      }
+    }
+  },
+  "bottom": {
+    "name": "Stone Wall",
+    "mana": 1,
+    "speed": "Reflex",
+    "rules_text": "Create a Stone pillar on target tile within 3. Gain 3 armor.",
+    "tags": [
+      "earth"
+    ],
+    "targeting": {
+      "type": "tile",
+      "range": 3
+    },
+    "effect": {
+      "type": "sequence",
+      "steps": [
+        {
+          "type": "summon",
+          "unit": "stone_pillar",
+          "count": 1
+        },
+        {
+          "type": "retarget",
+          "targeting": {
+            "type": "self"
+          },
+          "do": {
+            "type": "armor",
+            "amount": 3
+          }
+        }
+      ]
+    }
+  },
+  "upgrades": [
+    {
+      "tier": 1,
+      "half": "both",
+      "top_name": "Frost Lance+",
+      "bottom_name": "Stone Wall+",
+      "description": "Frost Lance hits harder. Stone Wall grants more armor.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect.else.amount",
+          "value": 9
+        },
+        {
+          "half": "top",
+          "field": "effect.then.steps[0].amount",
+          "value": 9
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 9 damage. If target is on Ice terrain, freeze for 1 turn."
+        },
+        {
+          "half": "bottom",
+          "field": "effect.steps[1].do.amount",
+          "value": 6
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Create a Stone pillar on target tile within 3. Gain 5 armor."
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "half": "top",
+      "top_name": "Glacial",
+      "description": "Glacial: Frost Lance now imbues the target tile with Ice. The freeze condition becomes self-fulfilling.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "damage",
+                "amount": 9
+              },
+              {
+                "type": "imbue_tile",
+                "element": "ice"
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "target_on_tile",
+                  "tile": "ice"
+                },
+                "then": {
+                  "type": "apply_status",
+                  "status": "frozen",
+                  "duration": 1
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 9 damage. Imbue target tile with Ice. If target is on Ice, freeze for 1 turn."
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "half": "bottom",
+      "bottom_name": "Fortress Wall",
+      "description": "Fortress Wall: Stone Wall no longer requires a stone tile. You carry the earth with you.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "requires",
+          "value": []
+        },
+        {
+          "half": "bottom",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "summon",
+                "unit": "stone_pillar",
+                "count": 1
+              },
+              {
+                "type": "retarget",
+                "targeting": {
+                  "type": "self"
+                },
+                "do": {
+                  "type": "armor",
+                  "amount": 6
+                }
+              },
+              {
+                "type": "retarget",
+                "targeting": {
+                  "type": "self"
+                },
+                "do": {
+                  "type": "shield",
+                  "amount": 4
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Create Stone pillar on target tile (no stone required). Gain 6 armor and 4 shield."
+        }
+      ]
+    },
+    {
+      "tier": 3,
+      "half": "top",
+      "top_name": "Permafrost",
+      "description": "Permafrost: Frozen enemies shatter on kill, imbuing adjacent tiles with Ice.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "damage",
+                "amount": 10
+              },
+              {
+                "type": "imbue_tile",
+                "element": "ice"
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "target_on_tile",
+                  "tile": "ice"
+                },
+                "then": {
+                  "type": "apply_status",
+                  "status": "frozen",
+                  "duration": 2
+                }
+              },
+              {
+                "type": "conditional",
+                "if": {
+                  "type": "was_lethal"
+                },
+                "then": {
+                  "type": "retarget",
+                  "targeting": {
+                    "type": "ring",
+                    "radius": 1,
+                    "include_tiles": true
+                  },
+                  "do": {
+                    "type": "imbue_tile",
+                    "element": "ice"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 10 damage. Imbue tile with Ice. If on Ice, freeze for 2 turns. On kill, imbue adjacent tiles with Ice."
+        }
+      ]
+    },
+    {
+      "tier": 3,
+      "half": "bottom",
+      "bottom_name": "Ice Bastion",
+      "description": "Ice Bastion: Stone Wall now summons two pillars adjacent to each other.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "summon",
+                "unit": "stone_pillar",
+                "count": 1
+              },
+              {
+                "type": "retarget",
+                "targeting": {
+                  "type": "ring",
+                  "radius": 1,
+                  "include_tiles": true
+                },
+                "do": {
+                  "type": "summon",
+                  "unit": "stone_pillar",
+                  "count": 1
+                }
+              },
+              {
+                "type": "retarget",
+                "targeting": {
+                  "type": "self"
+                },
+                "do": {
+                  "type": "armor",
+                  "amount": 8
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Summon 2 Stone pillars (adjacent). Gain 8 armor. No stone required."
+        }
+      ]
+    },
+    {
+      "tier": 4,
+      "half": "top",
+      "top_name": "Absolute Zero",
+      "description": "Absolute Zero: Frost Lance always freezes. Ice is total and inescapable.",
+      "changes": [
+        {
+          "half": "top",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "damage",
+                "amount": 12
+              },
+              {
+                "type": "imbue_tile",
+                "element": "ice"
+              },
+              {
+                "type": "apply_status",
+                "status": "frozen",
+                "duration": 2
+              },
+              {
+                "type": "apply_status",
+                "status": "slowed",
+                "duration": 2
+              }
+            ]
+          }
+        },
+        {
+          "half": "top",
+          "field": "rules_text",
+          "value": "Deal 12 damage. Imbue tile with Ice. Always freeze (2) and slow (2)."
+        }
+      ]
+    },
+    {
+      "tier": 4,
+      "half": "bottom",
+      "bottom_name": "Iron Glacier",
+      "description": "Iron Glacier: The card fuses. Frost Lance grants armor when it freezes a target.",
+      "changes": [
+        {
+          "half": "bottom",
+          "field": "effect",
+          "value": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "summon",
+                "unit": "stone_pillar",
+                "count": 1
+              },
+              {
+                "type": "retarget",
+                "targeting": {
+                  "type": "ring",
+                  "radius": 1,
+                  "include_tiles": true
+                },
+                "do": {
+                  "type": "imbue_tile",
+                  "element": "ice"
+                }
+              },
+              {
+                "type": "retarget",
+                "targeting": {
+                  "type": "self"
+                },
+                "do": {
+                  "type": "armor",
+                  "amount": 10
+                }
+              }
+            ]
+          }
+        },
+        {
+          "half": "bottom",
+          "field": "rules_text",
+          "value": "Summon Stone pillar. Imbue adjacent ring with Ice. Gain 10 armor. No stone required."
+        }
+      ]
+    }
+  ]
 }
