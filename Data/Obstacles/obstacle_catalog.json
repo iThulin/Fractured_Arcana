@@ -2,7 +2,8 @@
   "id": "default",
   "notes": [
     "One entry per obstacle kind a recipe or generator may name. role decides the rules (low: blocks movement, not sight, Low cover; high: blocks both, High cover). silhouette decides the placeholder shape until a scene is authored: slab (wall piece aligned to its neighbours), pillar (round column), mass (hex prism), scene (load `scene`, else mass). material groups kinds that can share a sculpted mesh with a material swap.",
-    "Recipes normally name a ROLE (low, high, pillar) and let their obstacles palette pick the kind. Name a kind directly only when the layout is about that specific thing (the courtyard ring is a wall)."
+    "Recipes normally name a ROLE (low, high, pillar) and let their obstacles palette pick the kind. Name a kind directly only when the layout is about that specific thing (the courtyard ring is a wall).",
+    "hp: how much burst or collision damage breaks the obstacle (0 = indestructible). A broken obstacle becomes rubble (walkable, Low cover)."
   ],
   "kinds": [
     {
@@ -15,7 +16,8 @@
         0.55,
         0.5
       ],
-      "label": "Low Wall"
+      "label": "Low Wall",
+      "hp": 10
     },
     {
       "kind": "broken_wall",
@@ -27,7 +29,8 @@
         0.52,
         0.47
       ],
-      "label": "Broken Wall"
+      "label": "Broken Wall",
+      "hp": 8
     },
     {
       "kind": "wall",
@@ -40,7 +43,8 @@
         0.42
       ],
       "label": "Wall",
-      "note": "Siege recipes raise this to 3.2 (curtain wall ruling 2026-08-11)."
+      "note": "Siege recipes raise this to 3.2 (curtain wall ruling 2026-08-11).",
+      "hp": 0
     },
     {
       "kind": "cracked_column",
@@ -52,7 +56,8 @@
         0.58,
         0.53
       ],
-      "label": "Cracked Column"
+      "label": "Cracked Column",
+      "hp": 8
     },
     {
       "kind": "barricade",
@@ -64,7 +69,8 @@
         0.28,
         0.18
       ],
-      "label": "Barricade"
+      "label": "Barricade",
+      "hp": 6
     },
     {
       "kind": "fence",
@@ -77,7 +83,8 @@
         0.2
       ],
       "label": "Fence",
-      "height": 0.7
+      "height": 0.7,
+      "hp": 4
     },
     {
       "kind": "crate",
@@ -89,7 +96,8 @@
         0.36,
         0.22
       ],
-      "label": "Crates"
+      "label": "Crates",
+      "hp": 5
     },
     {
       "kind": "sandbag",
@@ -101,7 +109,8 @@
         0.5,
         0.38
       ],
-      "label": "Sandbags"
+      "label": "Sandbags",
+      "hp": 8
     },
     {
       "kind": "rubble_line",
@@ -113,7 +122,8 @@
         0.48,
         0.44
       ],
-      "label": "Rubble"
+      "label": "Rubble",
+      "hp": 6
     },
     {
       "kind": "stone_pillar",
@@ -125,7 +135,8 @@
         0.44,
         0.41
       ],
-      "label": "Stone Pillar"
+      "label": "Stone Pillar",
+      "hp": 0
     },
     {
       "kind": "rock",
@@ -138,7 +149,8 @@
         0.41
       ],
       "label": "Rock",
-      "note": "Uses the exported RockObstacleScene when set."
+      "note": "Uses the exported RockObstacleScene when set.",
+      "hp": 0
     },
     {
       "kind": "boulder",
@@ -150,7 +162,8 @@
         0.4,
         0.37
       ],
-      "label": "Boulder"
+      "label": "Boulder",
+      "hp": 12
     },
     {
       "kind": "low_boulder",
@@ -162,7 +175,8 @@
         0.44,
         0.41
       ],
-      "label": "Low Boulder"
+      "label": "Low Boulder",
+      "hp": 8
     },
     {
       "kind": "rock_ledge",
@@ -174,7 +188,8 @@
         0.47,
         0.43
       ],
-      "label": "Rock Ledge"
+      "label": "Rock Ledge",
+      "hp": 0
     },
     {
       "kind": "standing_stone",
@@ -186,7 +201,8 @@
         0.39,
         0.37
       ],
-      "label": "Standing Stone"
+      "label": "Standing Stone",
+      "hp": 0
     },
     {
       "kind": "cooled_crust",
@@ -198,7 +214,8 @@
         0.24,
         0.24
       ],
-      "label": "Cooled Crust"
+      "label": "Cooled Crust",
+      "hp": 6
     },
     {
       "kind": "basalt_column",
@@ -210,7 +227,8 @@
         0.2,
         0.21
       ],
-      "label": "Basalt Column"
+      "label": "Basalt Column",
+      "hp": 0
     },
     {
       "kind": "fallen_log",
@@ -222,7 +240,8 @@
         0.3,
         0.18
       ],
-      "label": "Fallen Log"
+      "label": "Fallen Log",
+      "hp": 6
     },
     {
       "kind": "stump",
@@ -235,7 +254,8 @@
         0.16
       ],
       "label": "Stump",
-      "height": 0.5
+      "height": 0.5,
+      "hp": 5
     },
     {
       "kind": "old_trunk",
@@ -247,7 +267,8 @@
         0.25,
         0.16
       ],
-      "label": "Old Trunk"
+      "label": "Old Trunk",
+      "hp": 10
     },
     {
       "kind": "hedge",
@@ -259,7 +280,8 @@
         0.42,
         0.22
       ],
-      "label": "Hedge"
+      "label": "Hedge",
+      "hp": 5
     },
     {
       "kind": "gorse",
@@ -272,7 +294,8 @@
         0.18
       ],
       "label": "Gorse Thicket",
-      "height": 1.6
+      "height": 1.6,
+      "hp": 6
     },
     {
       "kind": "driftwood",
@@ -284,7 +307,8 @@
         0.46,
         0.38
       ],
-      "label": "Driftwood"
+      "label": "Driftwood",
+      "hp": 4
     },
     {
       "kind": "reed_bank",
@@ -296,7 +320,8 @@
         0.48,
         0.24
       ],
-      "label": "Reed Bank"
+      "label": "Reed Bank",
+      "hp": 3
     },
     {
       "kind": "sunk_piling",
@@ -308,7 +333,8 @@
         0.26,
         0.2
       ],
-      "label": "Sunk Piling"
+      "label": "Sunk Piling",
+      "hp": 8
     },
     {
       "kind": "crystal",
@@ -321,7 +347,8 @@
         0.85
       ],
       "label": "Crystal",
-      "note": "Uses the exported CrystalObstacleScene when set."
+      "note": "Uses the exported CrystalObstacleScene when set.",
+      "hp": 6
     },
     {
       "kind": "ice_ridge",
@@ -333,7 +360,8 @@
         0.86,
         0.92
       ],
-      "label": "Ice Ridge"
+      "label": "Ice Ridge",
+      "hp": 6
     },
     {
       "kind": "ice_spire",
@@ -345,7 +373,8 @@
         0.82,
         0.9
       ],
-      "label": "Ice Spire"
+      "label": "Ice Spire",
+      "hp": 8
     },
     {
       "kind": "sandstone_ledge",
@@ -357,7 +386,8 @@
         0.62,
         0.4
       ],
-      "label": "Sandstone Ledge"
+      "label": "Sandstone Ledge",
+      "hp": 0
     },
     {
       "kind": "hoodoo",
@@ -369,7 +399,8 @@
         0.55,
         0.36
       ],
-      "label": "Hoodoo"
+      "label": "Hoodoo",
+      "hp": 0
     },
     {
       "kind": "drystone_wall",
@@ -381,7 +412,8 @@
         0.5,
         0.46
       ],
-      "label": "Drystone Wall"
+      "label": "Drystone Wall",
+      "hp": 8
     },
     {
       "kind": "rune_stone",
@@ -393,7 +425,8 @@
         0.42,
         0.7
       ],
-      "label": "Rune Stone"
+      "label": "Rune Stone",
+      "hp": 10
     },
     {
       "kind": "ley_pillar",
@@ -405,7 +438,8 @@
         0.4,
         0.85
       ],
-      "label": "Ley Pillar"
+      "label": "Ley Pillar",
+      "hp": 0
     },
     {
       "kind": "tidal_rock",
@@ -417,7 +451,8 @@
         0.44,
         0.46
       ],
-      "label": "Tidal Rock"
+      "label": "Tidal Rock",
+      "hp": 0
     },
     {
       "kind": "sea_stack",
@@ -429,7 +464,8 @@
         0.4,
         0.42
       ],
-      "label": "Sea Stack"
+      "label": "Sea Stack",
+      "hp": 0
     }
   ]
 }

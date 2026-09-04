@@ -62,10 +62,185 @@
 		},
 		"map_events": {
 			"type": "array",
+			"description": "Per-round map events (CombatManager.MapEvents). Kinds: imbue_patch, spread_element, advance_hazard_ring, spawn_object, collapse_tiles, raise_tiles, lower_tiles, weather_tick, flood, advance_front, crumble_edge, trap. Common keys: round, repeat_every, telegraph, at (recipe coord token), announce. v2 adds id, when (awaken), lever, and the kinds raise_wall, drop_wall, shift, fog, reinforce_from.",
 			"items": {
-				"type": "object"
-			},
-			"description": "Per-round map events (CombatManager.MapEvents). Validated by MapEventDef."
+				"type": "object",
+				"required": [
+					"kind"
+				],
+				"properties": {
+					"kind": {
+						"type": "string",
+						"enum": [
+							"imbue_patch",
+							"spread_element",
+							"advance_hazard_ring",
+							"spawn_object",
+							"collapse_tiles",
+							"raise_tiles",
+							"lower_tiles",
+							"weather_tick",
+							"flood",
+							"advance_front",
+							"crumble_edge",
+							"trap",
+							"raise_wall",
+							"drop_wall",
+							"shift",
+							"fog",
+							"reinforce_from"
+						]
+					},
+					"round": {
+						"type": "integer",
+						"minimum": 1
+					},
+					"repeat_every": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"telegraph": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"at": {
+						"$ref": "#/$defs/coord"
+					},
+					"announce": {
+						"type": "string"
+					},
+					"element": {
+						"type": "string"
+					},
+					"radius": {
+						"type": "integer"
+					},
+					"steps": {
+						"type": "integer"
+					},
+					"per_patch": {
+						"type": "integer"
+					},
+					"into": {
+						"type": "string",
+						"enum": [
+							"rubble",
+							"chasm",
+							"water"
+						]
+					},
+					"delta": {
+						"type": "integer"
+					},
+					"weather": {
+						"type": "string",
+						"enum": [
+							"storm",
+							"rain",
+							"snow"
+						]
+					},
+					"level": {
+						"type": "integer"
+					},
+					"rise": {
+						"type": "integer"
+					},
+					"damage": {
+						"type": "integer"
+					},
+					"count": {
+						"type": "integer"
+					},
+					"status": {
+						"type": "string"
+					},
+					"duration": {
+						"type": "integer"
+					},
+					"hidden": {
+						"type": "boolean"
+					},
+					"object": {
+						"type": "string",
+						"description": "spawn_object: the MapObjectCatalog kind to drop."
+					},
+					"id": {
+						"type": "string",
+						"description": "Name, so levers and event_fired conditions can refer to this event."
+					},
+					"when": {
+						"type": "string",
+						"description": "Awaken condition: player_enters:coord:radius, enemy_enters:coord:radius, enemy_count_below:N, player_count_below:N, first_blood, object_destroyed:kind, event_fired:id, round:N. The clock starts (round 1 = same boundary) when it first holds."
+					},
+					"wake": {
+						"type": "string",
+						"description": "Log line when the condition first holds."
+					},
+					"lever": {
+						"type": "object",
+						"additionalProperties": false,
+						"description": "A control object both sides can stand beside at the round boundary.",
+						"properties": {
+							"at": {
+								"$ref": "#/$defs/coord"
+							},
+							"mode": {
+								"type": "string",
+								"enum": [
+									"hold",
+									"delay",
+									"pull"
+								]
+							},
+							"amount": {
+								"type": "integer",
+								"minimum": 1
+							}
+						}
+					},
+					"dir": {
+						"type": "string",
+						"description": "Band direction: 0-5, axis, or flank."
+					},
+					"length": {
+						"type": "integer"
+					},
+					"width": {
+						"type": "integer"
+					},
+					"gaps": {
+						"type": "integer"
+					},
+					"wall": {
+						"type": "string",
+						"description": "raise_wall: obstacle kind or role (high, low, pillar)."
+					},
+					"push": {
+						"type": "string",
+						"description": "shift: direction to push (0-5, axis, flank)."
+					},
+					"tiles": {
+						"type": "integer"
+					},
+					"sight": {
+						"type": "integer"
+					},
+					"turns": {
+						"type": "integer"
+					},
+					"units": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "reinforce_from: unit registry ids."
+					},
+					"difficulty": {
+						"type": "number"
+					}
+				}
+			}
 		},
 		"fallback": {
 			"type": "string"

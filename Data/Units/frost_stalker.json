@@ -13,5 +13,8 @@
   "colorR": 0.55,
   "colorG": 0.65,
   "colorB": 0.75,
-  "imbueOnHit": "frost"
+  "imbueOnHit": "frost",
+  "behaviorTags": [
+    "pinner"
+  ]
 }

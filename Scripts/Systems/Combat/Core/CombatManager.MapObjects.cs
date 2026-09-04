@@ -135,6 +135,7 @@ public partial class CombatManager : Node3D
             ResolveMapObjectDeathEffect(unit.MapObjectKind, tile);
         }
         fieldObjects.Remove(unit);
+        _destroyedObjectKinds.Add(unit.MapObjectKind ?? "");   // map_pressure_v2: object_destroyed:kind
         if (!unit.IsDeathQueued)
             unit.Die();
         RefreshThreatTiles();

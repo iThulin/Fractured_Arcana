@@ -1,8 +1,17 @@
 {
   "id": "debug_stalker",
   "threatLabel": "Stalker (dbg)",
-  "maxHealth": 16, "baseSpeed": 3, "armor": 0,
-  "attackRange": 1, "attackDamage": 5, "preferredDistance": 1,
+  "maxHealth": 16,
+  "baseSpeed": 3,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 5,
+  "preferredDistance": 1,
   "behaviorKey": "melee_hunt_wounded",
-  "colorR": 0.5, "colorG": 0.1, "colorB": 0.35
+  "colorR": 0.5,
+  "colorG": 0.1,
+  "colorB": 0.35,
+  "behaviorTags": [
+    "pinner"
+  ]
 }

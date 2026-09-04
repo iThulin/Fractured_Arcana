@@ -135,6 +135,12 @@ public class EnemyIntent
     /// <summary>For <see cref="IntentKind.Imbue"/>: the element written onto every
     /// <see cref="ThreatTiles"/> tile at execution. None for every other kind.</summary>
     public TileElementType ImbueElement = TileElementType.None;
+
+    /// <summary>For <see cref="IntentKind.Shove"/>: tiles of shove (0 = the gust
+    /// default) and the authored collision floor (0 = momentum only). A brute's
+    /// body-check is 1 tile with a real collision; the gust is 3 tiles of momentum.</summary>
+    public int ShoveTiles = 0;
+    public int ShoveCollision = 0;
 }
 
 public partial class CombatManager
@@ -452,50 +458,28 @@ public partial class CombatManager
         };
     }
 
-    /// <summary>Predicts (apply=false) or performs (apply=true) a shove: the victim is
-    /// forced one tile at a time to the enterable neighbour FARTHEST from the shover,
-    /// up to <paramref name="distance"/> steps, following the same "away from source" rule the
-    /// PushEffect card uses. When applying, each step is a Forced PlaceOnTile through
-    /// <paramref name="ctx"/>, so element verbs / slides / collisions / falls all fire,
-    /// and a Frost slide or Stone anchor can legitimately change the real path.</summary>
-    private List<Vector2I> ResolveShovePath(Unit victim, Vector2I shoverPos, int distance, bool apply, MoveContext ctx)
+    /// <summary>Predicts (apply=false) or performs (apply=true) a shove through the
+    /// shared resolver (forced_movement_v1): a straight line away from the shover,
+    /// stopping at the first obstacle, unit, cask, edge, or cliff, with momentum
+    /// collision damage. The telegraph uses <see cref="ForcedMove.Predict"/>, so the
+    /// tiles the player sees are the tiles the gust will cross (slides and anchors
+    /// that only exist at resolution can still shorten or bend the real path).</summary>
+    private List<Vector2I> ResolveShovePath(Unit victim, Vector2I shoverPos, int distance, bool apply, MoveContext ctx, int collision = 0)
     {
-        var path = new List<Vector2I>();
         if (victim?.CurrentTile == null)
-            return path;
-        var cur = victim.CurrentTile.Axial;
+            return new List<Vector2I>();
+        var dir = ForcedMove.StepAwayFrom(grid, shoverPos, victim.CurrentTile.Axial);
+        if (!apply)
+            return ForcedMove.Predict(grid, victim, dir, distance);
 
-        for (int i = 0; i < distance; i++)
+        var before = victim.CurrentTile.Axial;
+        var r = ForcedMove.Push(grid, victim, dir, distance, collision, ctx, m => combatUI?.AppendActionLog(m));
+        var path = new List<Vector2I>();
+        var cur = before;
+        for (int i = 0; i < r.Pushed; i++)
         {
-            TileData best = null;
-            int bestDist = grid.Distance(shoverPos, cur);
-            foreach (var nb in grid.GetNeighbors(cur))
-            {
-                var td = grid.GetTile(nb);
-                if (td == null || !td.CanEnter(victim))
-                    continue;
-                int d = grid.Distance(shoverPos, nb);
-                if (d > bestDist)
-                {
-                    bestDist = d;
-                    best = td;
-                }
-            }
-            if (best == null)
-                break;                              // wall / edge / crowd stops the shove
-
-            path.Add(best.Axial);
-            if (apply)
-            {
-                victim.PlaceOnTile(best, MovementKind.Forced, ctx);
-                if (ctx != null && ctx.HaltForced)
-                    break;                          // Stone anchor / 10-tile cap
-                cur = victim.CurrentTile.Axial;     // a slide may have carried it further
-            }
-            else
-            {
-                cur = best.Axial;
-            }
+            cur += dir;
+            path.Add(cur);
         }
         return path;
     }
@@ -504,6 +488,24 @@ public partial class CombatManager
     {
         if (!IsValidActor(enemy) || enemy.CurrentTile == null)
             return;
+
+        // A body-check (1 tile) is a melee act: close to the locked tile first, pay
+        // the melee AP, and whiff if the victim is no longer adjacent.
+        if (intent.ShoveTiles == 1 && intent.TargetTile.HasValue)
+        {
+            if (grid.Distance(enemy.CurrentTile.Axial, intent.TargetTile.Value) > 1 && MayMove(enemy, out _))
+                await MoveTowardTile(enemy, intent.TargetTile.Value, quiet: true);
+            if (!IsValidActor(enemy) || grid.Distance(enemy.CurrentTile.Axial, intent.TargetTile.Value) > 1)
+            {
+                combatUI?.AppendActionLog($"{enemy.Name} lunges at empty air.");
+                return;
+            }
+            if (!enemy.TrySpendAP(MartialAPCosts.AttackMelee))
+            {
+                combatUI?.AppendActionLog($"{enemy.Name} has no AP left to shove.");
+                return;
+            }
+        }
 
         // Re-acquire the victim on the LOCKED tile. If they stepped off it, the gust
         // catches empty ground (the telegraphed dodge).
@@ -518,9 +520,12 @@ public partial class CombatManager
             return;
         }
 
+        int tiles = intent.ShoveTiles > 0 ? intent.ShoveTiles : ShoveDistance;
         var ctx = new MoveContext(grid);
-        var path = ResolveShovePath(victim, enemy.CurrentTile.Axial, ShoveDistance, apply: true, ctx: ctx);
-        string msg = $"{enemy.Name} hurls {victim.Name} {path.Count} tile(s) back.";
+        var path = ResolveShovePath(victim, enemy.CurrentTile.Axial, tiles, apply: true, ctx: ctx, collision: intent.ShoveCollision);
+        string msg = tiles == 1
+            ? $"{enemy.Name} body-checks {victim.Name}."
+            : $"{enemy.Name} hurls {victim.Name} {path.Count} tile(s) back.";
         GD.Print(msg);
         combatUI?.AppendActionLog(msg);
         if (path.Count > 0)
@@ -743,6 +748,14 @@ public partial class CombatManager
 
         var tile = target.CurrentTile.Axial;
         int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 5;
+
+        // Body-check (forced_movement_v1 §3): an adjacent brute shoves instead of
+        // swinging when the shove lands somewhere that hurts more than the swing
+        // would: into a cask or brazier, onto a hazard, or off a drop.
+        var shove = PlanBodyCheck(enemy, target, dmg);
+        if (shove != null)
+            return shove;
+
         return new EnemyIntent
         {
             Kind = IntentKind.Attack,
@@ -751,6 +764,65 @@ public partial class CombatManager
             ThreatTiles = { tile },
             Value = dmg,
             BaseValue = dmg
+        };
+    }
+
+    /// <summary>Collision floor a martial body-check carries: half the shover's
+    /// attack, at least 2. Shared by the player's Ctrl+click shove and the brute.</summary>
+    public static int BodyCheckCollision(Unit shover)
+        => Math.Max(2, (shover?.AttackDamage ?? 4) / 2);
+
+    /// <summary>A 1-tile shove intent when the shove is worth more than a swing, else null.
+    /// Worth it: the victim would hit a cask or brazier (it detonates or spills), land
+    /// on a hazard tile, or fall two or more height steps. A plain wall collision is
+    /// half damage for the same AP, so it stays a swing.</summary>
+    private EnemyIntent PlanBodyCheck(Unit enemy, Unit target, int swingDmg)
+    {
+        if (enemy?.CurrentTile == null || target?.CurrentTile == null)
+            return null;
+        if (grid.Distance(enemy.CurrentTile.Axial, target.CurrentTile.Axial) != 1)
+            return null;
+
+        var dir = ForcedMove.StepAwayFrom(grid, enemy.CurrentTile.Axial, target.CurrentTile.Axial);
+        var next = grid.GetTile(target.CurrentTile.Axial + dir);
+        if (next == null)
+            return null;
+
+        int collision = BodyCheckCollision(enemy);
+        int estimate = 0;
+        string why = null;
+
+        if (next.IsOccupied && next.Occupant != null && next.Occupant.IsMapObject
+            && (next.Occupant.MapObjectKind == "powder_cask" || next.Occupant.MapObjectKind == "ember_brazier"))
+        {
+            estimate = collision + 4;   // the object's own death effect on top
+            why = next.Occupant.DisplayName;
+        }
+        else if (next.CanEnter(target) && next.Height - target.CurrentTile.Height < 2)
+        {
+            int drop = target.CurrentTile.Height - next.Height;
+            if (drop >= 2)
+            { estimate = 3 * drop; why = "the drop"; }
+            else if (next.IsHazardous)
+            { estimate = 2 + 2; why = "the fire"; }   // sear on entry plus standing in it
+        }
+
+        if (why == null || estimate <= swingDmg)
+            return null;
+
+        var threat = new List<Vector2I> { target.CurrentTile.Axial };
+        if (next.CanEnter(target))
+            threat.Add(next.Axial);
+        return new EnemyIntent
+        {
+            Kind = IntentKind.Shove,
+            TargetUnit = target,
+            TargetTile = target.CurrentTile.Axial,
+            ThreatTiles = threat,
+            Value = estimate,
+            BaseValue = estimate,
+            ShoveTiles = 1,
+            ShoveCollision = collision,
         };
     }
 
@@ -864,6 +936,18 @@ public partial class CombatManager
 
         var tile = target.CurrentTile.Axial;
         int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 4;
+
+        // Volatile object (forced_movement_v1 §4): a cask or brazier the ranger can
+        // reach whose death would catch two or more players (or one, when the
+        // burst outdamages the arrow) is the better shot. The intent locks the
+        // OBJECT's tile, so the telegraph says exactly what is about to blow.
+        var boom = PickVolatileTarget(enemy, dmg);
+        if (boom != null)
+        {
+            target = boom;
+            tile = boom.CurrentTile.Axial;
+        }
+
         return new EnemyIntent
         {
             Kind = IntentKind.RangedAttack,
@@ -1043,6 +1127,10 @@ public partial class CombatManager
                       ? "PACK+1" : "PACK");
         if (enemy.HasBehaviorTag("scout"))
             parts.Add("FLANK");
+        if (enemy.HasBehaviorTag("skirmisher"))
+            parts.Add("SKIRM");     // shoots, then backs off to cover
+        if (enemy.HasBehaviorTag("pinner"))
+            parts.Add("PIN");       // ends beside a caster; leaving costs a strike
         if (enemy.HasBehaviorTag("bulwark"))
             parts.Add("BLWK");
         if (string.Equals(enemy.BehaviorKey, "melee_hunt_wounded", StringComparison.OrdinalIgnoreCase))
@@ -1828,6 +1916,13 @@ public partial class CombatManager
             }
             if (!exposed)
                 score += 3;
+
+            // A mark another friendly already holds is the better flank: the pinned
+            // unit pays a free strike to turn on the scout, and cannot back away
+            // from both. Still a tie-break, under the x100 distance term.
+            var markUnit = grid.GetTile(goal)?.Occupant;
+            if (!exposed && markUnit != null && IsHeldByFriendly(markUnit, enemy))
+                score += 4;
         }
 
         // Hazard avoidance (tile_interaction §7): penalise stepping onto / ending on
@@ -1854,6 +1949,22 @@ public partial class CombatManager
         }
 
         return score;
+    }
+
+    /// <summary>True when a living melee unit on <paramref name="enemy"/>'s side stands
+    /// adjacent to <paramref name="mark"/> (the mark is pinned).</summary>
+    private bool IsHeldByFriendly(Unit mark, Unit enemy)
+    {
+        if (mark?.CurrentTile == null)
+            return false;
+        foreach (var n in grid.GetNeighbors(mark.CurrentTile.Axial))
+        {
+            var occ = grid.GetTile(n)?.Occupant;
+            if (occ != null && occ != enemy && occ.TeamId == enemy.TeamId
+                && occ.Stats.IsAlive && !occ.IsMapObject && occ.AttackRange <= 1)
+                return true;
+        }
+        return false;
     }
 
     // ── Tier-2 movement economy (2026-07-27) ────────────────────────────────
@@ -1951,8 +2062,29 @@ public partial class CombatManager
         if (threats.Count > 0 && grid.WorstCoverAgainst(coord, threats) == CoverKind.Low)
             score += CoverBonus;
 
+        // Pinner (forced_movement_v1 §4): a melee unit that wants to END its move
+        // beside a caster, so the caster pays a free strike to leave. Worth most of
+        // a tile of progress, never more: the pin is a way of arriving, not a
+        // reason to stop short.
+        if (enemy.HasBehaviorTag("pinner") && enemy.AttackRange <= 1)
+        {
+            foreach (var n in grid.GetNeighbors(coord))
+            {
+                var occ = grid.GetTile(n)?.Occupant;
+                if (occ != null && occ.TeamId != enemy.TeamId && occ.Stats.IsAlive
+                    && occ.IsPlayerControlled && !occ.IsMartial && !occ.IsMapObject)
+                {
+                    score += PinBonus;
+                    break;
+                }
+            }
+        }
+
         return score;
     }
+
+    /// <summary>Bonus a pinner earns for a destination adjacent to an enemy caster.</summary>
+    private const int PinBonus = 60;
 
     /// <summary>Penalty a ranged mover applies to a tile from which its mark on
     /// <paramref name="goal"/> sits behind full cover: the shot is impossible from
@@ -1998,6 +2130,20 @@ public partial class CombatManager
 
         var tile = intent.TargetTile.Value;
 
+        // Skirmisher (forced_movement_v1 §4): shoot FIRST from where it stands when
+        // the shot is clear and in range, then spend what movement is left backing
+        // off to cover. Moving first drew free strikes and gave the mark a turn of
+        // breathing room; a skirmisher's whole identity is that it never stands
+        // still after the arrow. Falls through to the ordinary order when the
+        // shot is not available from here.
+        if (enemy.HasBehaviorTag("skirmisher") && RangedShotAvailable(enemy, tile))
+        {
+            await FireRangedShot(enemy, intent, tile);
+            if (IsValidActor(enemy) && IsValidActor(intent.TargetUnit) && MayMove(enemy, out _))
+                await SkirmishRetreat(enemy, intent.TargetUnit);
+            return;
+        }
+
         // Reposition relative to the living target if it still exists. This is
         // orientation only; the shot stays locked to the tile.
         // U2: immobile turrets and planted bulwarks skip the kiting move.
@@ -2024,21 +2170,36 @@ public partial class CombatManager
         if (!IsValidActor(enemy))
             return;
 
-        int tileDist = grid.Distance(enemy.CurrentTile.Axial, tile);
+        await FireRangedShot(enemy, intent, tile);
+    }
 
-        // High ground (2026-08-11 ruling): ranged shots from above reach +1.
+    /// <summary>Effective ranged reach from the shooter's current tile to
+    /// <paramref name="tile"/>: +1 from above (2026-08-11 ruling).</summary>
+    private int EffectiveRangedReach(Unit enemy, Vector2I tile)
+    {
         int effRange = enemy.AttackRange;
         var shooterTd = grid.GetTile(enemy.CurrentTile.Axial);
         var markTd = grid.GetTile(tile);
         if (shooterTd != null && markTd != null && shooterTd.Height > markTd.Height)
             effRange += 1;
+        return effRange;
+    }
 
-        if (tileDist > effRange)
+    private bool RangedShotAvailable(Unit enemy, Vector2I tile)
+        => enemy?.CurrentTile != null
+           && grid.Distance(enemy.CurrentTile.Axial, tile) <= EffectiveRangedReach(enemy, tile)
+           && HasClearShot(enemy.CurrentTile.Axial, tile);
+
+    /// <summary>The shot itself: range, sight, and cover checks, then StrikeTile.
+    /// Each refusal says why, so a wasted arrow is never silent.</summary>
+    private async Task FireRangedShot(Unit enemy, EnemyIntent intent, Vector2I tile)
+    {
+        int tileDist = grid.Distance(enemy.CurrentTile.Axial, tile);
+        if (tileDist > EffectiveRangedReach(enemy, tile))
         {
             combatUI?.AppendActionLog($"{enemy.Name} finds its mark out of range. The shot is wasted.");
             return;
         }
-
         if (!grid.HasLineOfSight(enemy.CurrentTile.Axial, tile))
         {
             combatUI?.AppendActionLog($"{enemy.Name} has no line of sight!");
@@ -2051,6 +2212,88 @@ public partial class CombatManager
         }
 
         await StrikeTile(enemy, tile, intent.Value, ranged: true);
+    }
+
+    /// <summary>After the shot: back off with what movement is left. Scores a tile
+    /// by distance from the mark up to the preferred band (further is better until
+    /// the band), and PositionalScore adds the cover bonus and the free-strike
+    /// penalty, so a skirmisher beside a low wall stays behind it and one caught in
+    /// melee only breaks away when the strike is cheaper than staying.</summary>
+    private async Task SkirmishRetreat(Unit enemy, Unit mark)
+    {
+        const int SafetyCap = 3;
+        int moves = 0;
+        int band = Math.Max(2, enemy.AttackRange);
+        for (int i = 0; i < SafetyCap; i++)
+        {
+            if (!IsValidActor(enemy) || !IsValidActor(mark) || mark.CurrentTile == null)
+                break;
+            // The shot is paid; a skirmisher may spend everything left on legs.
+            if (enemy.CurrentActionPoints < 1)
+                break;
+            var goal = mark.CurrentTile.Axial;
+            var dest = BestMoveDestination(enemy, c => 100 * Math.Min(grid.Distance(c, goal), band));
+            if (dest == null || !enemy.TryMoveTo(grid, dest))
+                break;
+            moves++;
+            await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
+        }
+        if (moves > 0)
+            combatUI?.AppendActionLog($"{enemy.Name} looses and falls back ({moves} move{(moves == 1 ? "" : "s")}).");
+    }
+
+    /// <summary>Damage a map object's death effect deals to the players it reaches,
+    /// per victim (MapObjectBurst radius 1 for casks and crystals; a brazier is
+    /// fire on the ground, counted as one sear). Zero for inert objects.</summary>
+    private static int VolatileBurstDamage(Unit obj) => obj?.MapObjectKind switch
+    {
+        "powder_cask" => 6,
+        "resonant_crystal" => 4,
+        "ember_brazier" => 2,
+        _ => 0
+    };
+
+    /// <summary>The volatile map object worth shooting instead of the mark, or null.
+    /// Candidates: within range+1 (one reposition step), a clear shot, and the burst
+    /// would reach players standing beside it. Picks the largest total expected
+    /// damage; needs 2+ victims, or 1 when the burst beats the plain arrow.</summary>
+    private Unit PickVolatileTarget(Unit enemy, int arrowDmg)
+    {
+        if (enemy?.CurrentTile == null)
+            return null;
+        Unit best = null;
+        int bestTotal = 0;
+        foreach (var obj in fieldObjects)
+        {
+            if (obj == null || !IsInstanceValid(obj) || !obj.Stats.IsAlive || obj.CurrentTile == null)
+                continue;
+            int per = VolatileBurstDamage(obj);
+            if (per <= 0)
+                continue;
+            var at = obj.CurrentTile.Axial;
+            if (grid.Distance(enemy.CurrentTile.Axial, at) > enemy.AttackRange + 1)
+                continue;
+            if (!HasClearShot(enemy.CurrentTile.Axial, at))
+                continue;
+
+            int victims = 0;
+            foreach (var coord in grid.BurstReach(at, 1))
+            {
+                var occ = grid.GetTile(coord)?.Occupant;
+                if (occ != null && occ != obj && occ.Stats.IsAlive && occ.IsPlayerControlled && !occ.IsMapObject)
+                    victims++;
+            }
+            if (victims == 0)
+                continue;
+            int total = victims * per;
+            bool worth = victims >= 2 || total > arrowDmg;
+            if (worth && total > bestTotal)
+            {
+                bestTotal = total;
+                best = obj;
+            }
+        }
+        return best;
     }
 
     /// <summary>A bolt from <paramref name="from"/> lands on <paramref name="target"/>:

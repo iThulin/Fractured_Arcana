@@ -140,5 +140,16 @@
       "element": "fire",
       "radius": 2
     }
+  ],
+  "map_events": [
+    {
+      "kind": "spread_element",
+      "round": 2,
+      "repeat_every": 2,
+      "telegraph": 1,
+      "element": "fire",
+      "per_patch": 1,
+      "announce": "The scar's fire spreads."
+    }
   ]
 }

@@ -360,6 +360,8 @@ Create `Data/Companions/{companionid}.json`.
 
 `contributedCardIds` must reference `id` fields of card JSON files with `"status": "ready"`. These cards are added to the wizard's deck during combat when this companion is in the active party.
 
+One companion is not hired: `brannoc_helm`, the castle's helmsman. `CompanionRoster.EnsureStartingDriver` (called from `CycleInitializer.EnsureSaveSeeded`) recruits him free and puts him in the active party once per cycle, flag-gated (`starting_driver_seeded`) so benching him later sticks. His template is `isAvailable: false` with an unlock text, so the hiring-hall rotation ignores him. He is a normal companion after that: injuries, death, and party removal all apply.
+
 ---
 
 ## 5. Card Schema Reference

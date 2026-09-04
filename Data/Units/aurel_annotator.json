@@ -13,5 +13,8 @@
   "behaviorKey": "ranged_kite",
   "colorR": 0.52,
   "colorG": 0.24,
-  "colorB": 0.7
+  "colorB": 0.7,
+  "behaviorTags": [
+    "skirmisher"
+  ]
 }

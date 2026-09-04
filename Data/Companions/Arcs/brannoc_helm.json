@@ -1,0 +1,59 @@
+{
+  "companionId": "brannoc_helm",
+  "arcName": "A Heading of His Own",
+  "arcSummary": "Brannoc has walked the castle since before the guild had a name and has never once asked where it was going. He steers; others choose. The arc is the distance between a man who holds a course and a man who sets one.",
+  "recruitEncounterId": "",
+  "recruitFlag": "",
+  "recruitLocation": "any",
+  "recruitRequiredFlag": "",
+  "stages": [
+    {
+      "stage": 1,
+      "title": "The Question He Never Asked",
+      "summary": "Night march. The castle walks and Brannoc holds the Helm, and for the first time in anyone's memory he wants to know why this heading and not another.",
+      "encounterId": "cm_brannoc_1",
+      "requiresParty": true,
+      "location": "expedition",
+      "completionFlag": "arc_brannoc_1",
+      "remembranceFlag": "remember_brannoc_1",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 1
+    },
+    {
+      "stage": 2,
+      "title": "Standing Still",
+      "summary": "The castle is docked at the campus and Brannoc does not know what to do with his hands. He asks for something he has never asked for: a heading that is his.",
+      "encounterId": "cm_brannoc_2",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_brannoc_2",
+      "remembranceFlag": "remember_brannoc_2",
+      "remembranceEncounterId": "",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 2
+    },
+    {
+      "stage": 3,
+      "title": "One Point Off",
+      "summary": "He held the courtyard alone until the wizard came through the waystone. Now he wants to turn the wheel one point off the plotted course, and he wants to be the one who turns it.",
+      "encounterId": "cm_brannoc_3",
+      "requiresParty": false,
+      "location": "campus",
+      "completionFlag": "arc_brannoc_3",
+      "remembranceFlag": "remember_brannoc_3",
+      "remembranceEncounterId": "cm_brannoc_3r",
+      "requiredFlag": "",
+      "setMetaFlags": [],
+      "loyaltyDelta": 3
+    }
+  ],
+  "hallEligible": true,
+  "hallBlockedText": "",
+  "hallAnchorFlag": "hall_anchor_brannoc",
+  "arcCompleteFlag": "arc_brannoc_complete",
+  "arcCompleteMetaFlag": "remember_brannoc_arc_complete",
+  "repriseEncounterId": "cm_brannoc_reprise"
+}

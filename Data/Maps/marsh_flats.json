@@ -110,5 +110,17 @@
       "at": "center",
       "radius": 2
     }
+  ],
+  "map_events": [
+    {
+      "kind": "flood",
+      "round": 2,
+      "repeat_every": 3,
+      "telegraph": 1,
+      "level": -1,
+      "rise": 1,
+      "damage": 1,
+      "announce": "The water rises."
+    }
   ]
 }

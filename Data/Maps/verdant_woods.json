@@ -121,5 +121,19 @@
       ],
       "branch": 0.35
     }
+  ],
+  "map_events": [
+    {
+      "kind": "trap",
+      "round": 1,
+      "telegraph": 0,
+      "at": "midpoint",
+      "radius": 4,
+      "count": 3,
+      "damage": 2,
+      "status": "rooted",
+      "duration": 1,
+      "announce": "Roots stir underfoot."
+    }
   ]
 }

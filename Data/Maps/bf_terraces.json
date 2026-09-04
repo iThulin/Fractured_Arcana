@@ -129,5 +129,16 @@
       "kind": "boulder",
       "count": 1
     }
+  ],
+  "map_events": [
+    {
+      "kind": "collapse_tiles",
+      "round": 4,
+      "telegraph": 1,
+      "at": "axis:2",
+      "radius": 1,
+      "into": "rubble",
+      "announce": "Rockfall on the upper terrace."
+    }
   ]
 }

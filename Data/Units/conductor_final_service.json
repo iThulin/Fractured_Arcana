@@ -1,8 +1,12 @@
 {
   "id": "conductor_final_service",
   "threatLabel": "The Final Service",
-  "maxHealth": 55, "baseSpeed": 1, "armor": 2,
-  "attackRange": 1, "attackDamage": 9, "preferredDistance": 1,
+  "maxHealth": 55,
+  "baseSpeed": 1,
+  "armor": 2,
+  "attackRange": 1,
+  "attackDamage": 9,
+  "preferredDistance": 1,
   "behaviorKey": "melee_target_highest_hp",
   "role": "elite",
   "factionId": "conductor",
@@ -13,8 +17,16 @@
       "trigger": "onDeath",
       "name": "Deathburst",
       "intelDescription": "The service ends; the guests arrive: 2 Honored Dead rise beside it on death.",
-      "params": { "count": "2", "unit": "conductor_honored_dead" }
+      "params": {
+        "count": "2",
+        "unit": "conductor_honored_dead"
+      }
     }
   ],
-  "colorR": 0.28, "colorG": 0.16, "colorB": 0.4
+  "colorR": 0.28,
+  "colorG": 0.16,
+  "colorB": 0.4,
+  "behaviorTags": [
+    "pinner"
+  ]
 }

@@ -12,7 +12,8 @@
   "preferredDistance": 4,
   "behaviorKey": "ranged_kite",
   "behaviorTags": [
-    "cautious"
+    "cautious",
+    "skirmisher"
   ],
   "intentCycle": [
     "ranged_kite",

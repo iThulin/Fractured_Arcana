@@ -114,5 +114,44 @@
       "kind": "cracked_pillar",
       "count": 1
     }
+  ],
+  "map_events": [
+    {
+      "kind": "trap",
+      "round": 1,
+      "telegraph": 0,
+      "at": "midpoint",
+      "radius": 2,
+      "count": 2,
+      "damage": 4,
+      "announce": "Caltrops scattered in the courtyard."
+    },
+    {
+      "kind": "raise_wall",
+      "id": "portcullis",
+      "round": 3,
+      "telegraph": 1,
+      "at": "midpoint",
+      "dir": "flank",
+      "length": 5,
+      "wall": "wall",
+      "gaps": 1,
+      "announce": "The portcullis drops across the courtyard."
+    },
+    {
+      "kind": "drop_wall",
+      "id": "portcullis_release",
+      "when": "event_fired:portcullis",
+      "round": 1,
+      "telegraph": 0,
+      "at": "midpoint",
+      "dir": "flank",
+      "length": 5,
+      "lever": {
+        "at": "axis:3",
+        "mode": "pull"
+      },
+      "announce": "The winch turns. The portcullis lifts."
+    }
   ]
 }

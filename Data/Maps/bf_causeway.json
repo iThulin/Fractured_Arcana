@@ -131,6 +131,17 @@
       "into": "water",
       "telegraph": 1,
       "announce": "The old span gives way."
+    },
+    {
+      "kind": "crumble_edge",
+      "round": 4,
+      "repeat_every": 3,
+      "telegraph": 1,
+      "at": "midpoint",
+      "radius": 5,
+      "steps": 1,
+      "into": "chasm",
+      "announce": "The causeway crumbles at its edges."
     }
   ]
 }

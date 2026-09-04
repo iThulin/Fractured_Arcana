@@ -139,6 +139,10 @@ public sealed class TargetSet
     /// Untyped for every selector that does not say otherwise, which keeps every
     /// pre-cover cast byte-for-byte unchanged.</summary>
     public Delivery Delivery = Delivery.Untyped;
+
+    /// <summary>For Burst casts: every tile the fill reached, obstacles included, so
+    /// damage effects can erode breakable cover in the blast (map_pressure_v2).</summary>
+    public HashSet<Vector2I> BurstTiles;
 }
 public sealed class EffectSnapshot
 {

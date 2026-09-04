@@ -1,0 +1,13 @@
+{
+  "id": "repair_winch",
+  "name": "Repair Winch",
+  "cost": 140,
+  "effect": "none",
+  "magnitude": 0,
+  "flavor": "Chains, counterweights, and a mason's patience. A manned winch keeps the gate standing.",
+  "station": {
+    "kind": "repair_winch",
+    "repair": 4,
+    "label": "Repair Winch"
+  }
+}

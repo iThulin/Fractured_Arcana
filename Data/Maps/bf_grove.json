@@ -122,5 +122,19 @@
       "kind": "resonant_crystal",
       "count": 1
     }
+  ],
+  "map_events": [
+    {
+      "kind": "trap",
+      "round": 1,
+      "telegraph": 0,
+      "at": "midpoint",
+      "radius": 3,
+      "count": 3,
+      "damage": 2,
+      "status": "rooted",
+      "duration": 1,
+      "announce": "Roots stir underfoot."
+    }
   ]
 }

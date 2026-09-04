@@ -133,5 +133,18 @@
       "element": "fire",
       "radius": 1
     }
+  ],
+  "map_events": [
+    {
+      "kind": "advance_front",
+      "round": 3,
+      "repeat_every": 2,
+      "telegraph": 1,
+      "at": "enemy_anchor",
+      "element": "fire",
+      "radius": 2,
+      "steps": 1,
+      "announce": "Wildfire rolls across the barrens."
+    }
   ]
 }

@@ -264,6 +264,36 @@ public sealed class MapEventDef
     public int RepeatEvery = 0;
     public Godot.Collections.Dictionary Raw;
 
+    // ── map_pressure_v2: scheduling that reacts to the fight ────────────────
+    /// <summary>Optional name, so levers and other events can refer to this one.</summary>
+    public string Id = "";
+    /// <summary>Awaken condition. Empty = runs on the clock from round 1. Otherwise the
+    /// event sleeps until the condition first holds at a round boundary, and `round`
+    /// counts from that round (1 = the same boundary). Forms: player_enters:coord:radius,
+    /// enemy_enters:coord:radius, enemy_count_below:N, player_count_below:N, first_blood,
+    /// object_destroyed:kind, event_fired:id.</summary>
+    public string When = "";
+    /// <summary>Lever block: a control object both sides can stand beside.
+    /// at = coord token; mode = hold (event suppressed while held), delay (each held
+    /// round pushes the clock back by amount), pull (fires once and spends the lever).</summary>
+    public string LeverAt = "";
+    public string LeverMode = "";
+    public int LeverAmount = 1;
+
+    // Runtime state, owned by CombatManager.MapEvents. Reset per combat by the
+    // recipe being re-read (MapRecipeRegistry hands out shared defs: see ResetRuntime).
+    public int AwakenedRound = -1;
+    public int Delay = 0;
+    public bool Suppressed = false;
+    public bool Spent = false;
+    public int FiredCount = 0;
+    public Unit LeverUnit;
+
+    public void ResetRuntime()
+    {
+        AwakenedRound = -1; Delay = 0; Suppressed = false; Spent = false; FiredCount = 0; LeverUnit = null;
+    }
+
     public bool Has(string key) => Raw != null && Raw.ContainsKey(key);
     public int GetInt(string key, int def) => Has(key) ? Raw[key].AsInt32() : def;
     public float GetFloat(string key, float def) => Has(key) ? Raw[key].AsSingle() : def;
@@ -272,7 +302,9 @@ public sealed class MapEventDef
 
     /// <summary>Kinds that make tiles lethal or impassable, subject to the telegraph
     /// law (must warn at least one round ahead; the loader clamps telegraph to >= 1).</summary>
-    public static bool IsDestructiveKind(string kind) => kind == "collapse_tiles";
+    public static bool IsDestructiveKind(string kind)
+        => kind == "collapse_tiles" || kind == "flood" || kind == "crumble_edge"
+           || kind == "shift" || kind == "raise_wall";
 }
 
 /// <summary>One off-map building mass for the siege backdrop.</summary>
@@ -311,6 +343,12 @@ public sealed class SiegeSpec
 
     /// <summary>VISUAL-ONLY: off-map building masses (the rest of the city).</summary>
     public List<SiegeBackdropStamp> BackdropStamps = new();
+
+    // ── castle_defense_v1 ───────────────────────────────────────────────────
+    /// <summary>Where the Castle Heart (the protect ward) stands. Null on city sieges.</summary>
+    public Vector2I? Heart;
+    /// <summary>Rampart tiles that carry a castle module station: (tile, module id).</summary>
+    public List<(Vector2I at, string module)> Stations = new();
 
     private static Vector2I? Coord(Godot.Collections.Dictionary d, string key)
     {
@@ -357,6 +395,17 @@ public sealed class SiegeSpec
                 var a = item.AsGodotArray();
                 if (a.Count >= 2)
                     s.BackdropWall.Add(new Vector2I(a[0].AsInt32(), a[1].AsInt32()));
+            }
+        }
+        s.Heart = Coord(d, "heart");
+        if (d.ContainsKey("stations"))
+        {
+            foreach (var item in d["stations"].AsGodotArray())
+            {
+                var sd = item.AsGodotDictionary();
+                var at = Coord(sd, "at");
+                if (at != null)
+                    s.Stations.Add((at.Value, MapRecipe.Str(sd, "module", "")));
             }
         }
         if (d.ContainsKey("backdrop_stamps"))
@@ -452,8 +501,17 @@ public sealed class MapRecipe
                     Round = Int(ed, "round", 1),
                     Telegraph = Int(ed, "telegraph", 1),
                     RepeatEvery = Int(ed, "repeat_every", 0),
+                    Id = Str(ed, "id", ""),
+                    When = Str(ed, "when", ""),
                     Raw = ed
                 };
+                if (ed.ContainsKey("lever"))
+                {
+                    var lv = ed["lever"].AsGodotDictionary();
+                    mev.LeverAt = Str(lv, "at", "midpoint");
+                    mev.LeverMode = Str(lv, "mode", "hold");
+                    mev.LeverAmount = Int(lv, "amount", 1);
+                }
                 // Telegraph law: a destructive event must warn a round ahead.
                 if (MapEventDef.IsDestructiveKind(mev.Kind) && mev.Telegraph < 1)
                 {

@@ -126,5 +126,18 @@
       ],
       "branch": 0.3
     }
+  ],
+  "map_events": [
+    {
+      "kind": "trap",
+      "round": 1,
+      "telegraph": 0,
+      "at": "midpoint",
+      "radius": 3,
+      "count": 2,
+      "damage": 5,
+      "hidden": true,
+      "announce": "Old wards sleep in the rubble."
+    }
   ]
 }

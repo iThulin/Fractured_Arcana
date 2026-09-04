@@ -123,6 +123,10 @@ public partial class HexGridManager
 
     // Tile Visuals
 
+    /// <summary>Rebuild every obstacle placeholder after a mid-fight change to the
+    /// obstacle set (raise_wall / drop_wall / breakables). Cheap at battlefield size.</summary>
+    public void RefreshObstacleVisuals() => SpawnObstacleVisuals();
+
     private void SpawnObstacleVisuals()
     {
         ClearObstacleVisuals();

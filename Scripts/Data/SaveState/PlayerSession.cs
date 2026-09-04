@@ -189,6 +189,11 @@ public static class PlayerSession
     /// the carry.</summary>
     public static int WizardExpeditionHP = -1;
 
+    /// <summary>castle_defense_v1: rounds shaved off the wizard's waystone arrival in
+    /// an ambush defence, from the Wardroom crew station. Set at deploy by
+    /// ExpeditionManager; 0 outside a sortie.</summary>
+    public static int AmbushWizardDelayReduction = 0;
+
     /// <summary>MaxHealth recorded alongside <see cref="WizardExpeditionHP"/> so
     /// overworld rest sites can heal a fraction without reaching into combat
     /// data.</summary>

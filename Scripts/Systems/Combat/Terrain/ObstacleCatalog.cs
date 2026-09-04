@@ -49,6 +49,8 @@ public sealed class ObstacleSpec
     public string Label = "";
     /// <summary>Placeholder height override. 0 = the silhouette's default for the role.</summary>
     public float Height = 0f;
+    /// <summary>Burst or collision damage that breaks it into rubble. 0 = indestructible.</summary>
+    public int Hp = 0;
     /// <summary>res:// path for Silhouette.Scene. Empty = use the grid's exported scene
     /// for this kind if one exists (rock, crystal), else Mass.</summary>
     public string ScenePath = "";
@@ -141,6 +143,7 @@ public static class ObstacleCatalog
                 Material = MapRecipe.Str(d, "material", "rock"),
                 Label = MapRecipe.Str(d, "label", ""),
                 Height = MapRecipe.Flt(d, "height", 0f),
+                Hp = MapRecipe.Int(d, "hp", 0),
                 ScenePath = MapRecipe.Str(d, "scene", ""),
             };
             if (string.IsNullOrEmpty(spec.Kind))

@@ -47,6 +47,10 @@ public static class MapObjectCatalog
                 spec = new MapObjectSpec { Hp = 10, BlocksLoS = false, Pushable = false,
                     BodyColor = new Color(0.85f, 0.72f, 0.25f), Label = "Ward Stone" };
                 return true;
+            case "lever":
+                spec = new MapObjectSpec { Hp = 10, BlocksLoS = false, Pushable = false,
+                    BodyColor = new Color(0.75f, 0.68f, 0.30f), Label = "Lever" };
+                return true;
             case "powder_cask":
                 spec = new MapObjectSpec { Hp = 3, BlocksLoS = false, Pushable = true,
                     BodyColor = new Color(0.35f, 0.28f, 0.22f), Label = "Powder Cask" };

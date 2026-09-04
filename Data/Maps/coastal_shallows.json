@@ -111,5 +111,17 @@
       "radius": 1,
       "chance": 0.5
     }
+  ],
+  "map_events": [
+    {
+      "kind": "flood",
+      "round": 3,
+      "repeat_every": 2,
+      "telegraph": 1,
+      "level": -1,
+      "rise": 1,
+      "damage": 2,
+      "announce": "The tide turns."
+    }
   ]
 }

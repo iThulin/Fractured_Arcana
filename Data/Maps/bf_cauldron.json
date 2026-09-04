@@ -114,14 +114,17 @@
   "map_events": [
     {
       "kind": "advance_hazard_ring",
-      "round": 3,
+      "round": 2,
       "repeat_every": 3,
       "telegraph": 1,
       "at": "midpoint",
       "element": "fire",
       "radius": 4,
       "steps": 1,
-      "announce": "The cauldron's fire ring closes inward."
+      "announce": "The cauldron's fire ring closes inward.",
+      "id": "cauldron_ring",
+      "when": "first_blood",
+      "wake": "Blood on the stone. The cauldron stirs."
     }
   ]
 }

@@ -1370,5 +1370,72 @@
         "resultText": "Shelf granted, saga placed, name entered, chapter carried: the whole deal re-struck in an afternoon. Chapter last remains unwritten, on schedule, by a keeper who fully intends to keep outliving her material, one rendering at a time."
       }
     ]
+  },
+  {
+    "id": "cm_brannoc_1",
+    "title": "The Question He Never Asked",
+    "body": "The castle walks through the second watch, and the Helm room shakes the way it always does, and Brannoc stands at the wheel the way he always does: feet planted, eyes on the dark ahead, hands that have not been anywhere else in longer than the guild has existed.\n\n'You set a heading tonight,' he says without turning. 'I took it. I always take it. Never asked why one heading and not another. Not once. Thought that was the job: you point, I walk it there.'\n\nThe wheel creaks under a correction you did not see him make. 'Tonight I want to know. Not to argue it. I want to know what the far side of this line looks like to the person who drew it.' He waits. It is the first thing he has ever waited for.",
+    "choices": [
+      {
+        "label": "Tell him plainly what waits at the end of the line",
+        "resultText": "He listens the way he steers, without moving. When you finish he nods once. 'Good. A heading is a lighter thing when it has a shape.' The castle's stride does not change. His shoulders do, a little. 'Ask me sometime what I'd point it at,' he says. 'I won't have an answer. I'd like to find out if I do.'"
+      },
+      {
+        "label": "Ask him where he would point it, if it were his",
+        "resultText": "The wheel goes still under his hands. It is the longest the castle has ever walked without a correction. 'Don't know,' he says finally, and it costs him. 'Nobody's asked. I've been walking other people's lines since before your charter was ink.' A correction, late and small. 'Give me until the docking. I'll have something. Might be wrong. Never been wrong before, because I've never been anything.'"
+      }
+    ]
+  },
+  {
+    "id": "cm_brannoc_2",
+    "title": "Standing Still",
+    "body": "The castle is docked and quiet, and Brannoc is in the courtyard with nothing in his hands, and it is the worst anyone has seen him look. He keeps reaching for a wheel that is three floors above him.\n\n'Can't do standing still,' he says. 'Walked it thirty years. When it stops, I stop. Nothing in me knows what to do that isn't a heading.' He looks at his hands, opens them, closes them. 'You asked where I'd point it. I've got a place now. Cold coast, north, where the walkers used to be built. Never seen it. Only place I ever wanted to.'\n\nHe does not ask. He never asks. But he is standing here with his hands empty, and the not-asking is as loud as it gets.",
+    "choices": [
+      {
+        "label": "Promise him the coast: one lunation's detour, when the road allows",
+        "resultText": "He does not thank you. He goes very still, the way he did at the wheel, and then he says, 'Right,' and goes up the three floors to stand at a Helm that is not moving, because now there is something to stand at it for. He is there until the lamps are lit. Every hour someone hears him check a bearing that has not changed."
+      },
+      {
+        "label": "Tell him the road decides; the guild cannot spare a lunation",
+        "resultText": "He takes it the way he takes everything. 'Fair. Guild's line, not mine.' But he keeps the heading. You know because a lunation later there is a bearing scratched into the Helm rail, small, north by a hair, that was not there before, and nobody who walks the castle scratches its rail without meaning it."
+      }
+    ]
+  },
+  {
+    "id": "cm_brannoc_3",
+    "title": "One Point Off",
+    "body": "He held the courtyard. The waystone was two rounds from opening and there were more of them than there should have been, and Brannoc stood in front of the Heart with a spear and a shield and did not move until the wizard stepped through. The Heart has scorch marks. He has worse.\n\n'Went through it at the wheel afterward,' he says. 'Every round. Where I stood, what I gave up. I chose all of it. Nobody pointed.' He looks up the three floors. 'I want to turn it one point. Just one. Off your line, toward the coast, for a day. Then back on. Not asking permission to go there. Asking to be the one who turns the wheel.'\n\nIt is, you realise, the first heading he has ever set.",
+    "choices": [
+      {
+        "label": "Stand at the Helm with him while he turns it",
+        "resultText": "One point north. His hands know the wheel so well that the turn is over before you see it start, and then he stands there with the castle walking a line that is his, and he breathes like a man who has been holding it for thirty years. 'Back on course by dusk,' he says. 'But it walked mine for a day. Write that in the log. My name.'"
+      },
+      {
+        "label": "Hand him the log and tell him to write the heading himself",
+        "resultText": "He has never written in it. His letters are square and slow and the entry says: NORTH BY ONE. HELM. He looks at it longer than at the coast, when the coast comes. Then he turns the wheel back onto your line at dusk, easily, a man who can now set a course and can therefore give one up."
+      }
+    ]
+  },
+  {
+    "id": "cm_brannoc_3r",
+    "title": "One Point Off (The Rail Remembers)",
+    "body": "Brannoc comes to find you with a rag in his hand and a look on his face that does not belong to him.\n\n'Rail's scratched,' he says. 'Helm rail. North by a hair. I never cut it. I know every mark on that wheel and that one is new and it is old at the same time.' He turns the rag over. 'I stood at it an hour. My hands went one point north on their own. They know the turn. I've never made it.'\n\nHe looks at the three floors between him and the wheel. 'Somewhere the sky shuffled off, I set a heading. First one. Feels like it was worth it.'",
+    "choices": [
+      {
+        "label": "The rail remembers. Turn it.",
+        "resultText": "He goes up and turns the wheel onto a line his hands already know, and the castle walks it a day, north by one, toward a coast he has still never seen, and he stands at the Helm like a man who was always going to. The log entry is square and slow and does not need practice this time."
+      }
+    ]
+  },
+  {
+    "id": "cm_brannoc_reprise",
+    "title": "The Heading, Settled",
+    "body": "Brannoc is at the Helm when you come up, and the wheel is already one point north, and he is not pretending otherwise.\n\n'Done this,' he says. 'Twice, by the count of my hands, which is the only count I trust. Cold coast, a day off the line, back by dusk. I know the turn and I know the log and I know what my name looks like in it.' He does not look away from the dark. 'Third time I just turn it. You can witness or not. It walks mine for a day either way.'",
+    "choices": [
+      {
+        "label": "Witness it, and write nothing; he will write it himself",
+        "resultText": "North by one, a day, back by dusk, the entry square and slow and his. The castle walks a line drawn by the man who has walked it longest, and for the first rendering in thirty years, he is not waiting for anyone to point."
+      }
+    ]
   }
 ]

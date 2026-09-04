@@ -159,6 +159,40 @@ public static class CompanionRoster
         return c.Name;
     }
 
+    /// <summary>The castle's helmsman: the one companion every timeline starts
+    /// with. Stoic, so best-in-slot at the Helm (CrewStations), and the crew that
+    /// holds the walls in a castle defence until the wizard arrives.</summary>
+    public const string StartingDriverId = "brannoc_helm";
+    private const string DriverSeededFlag = "starting_driver_seeded";
+
+    /// <summary>Grant the starting driver once per cycle: recruited, free, and in
+    /// the active party. Flag-gated on the cycle so benching him later sticks.
+    /// Companions live on the CycleState, so this runs again for every new
+    /// timeline. A driver who died in a past timeline is a new man in the next:
+    /// the roster is rebuilt from templates when the cycle is unmade.</summary>
+    public static void EnsureStartingDriver(GuildSaveData save)
+    {
+        if (save?.Cycle == null || save.Companions == null) return;
+        if (save.HasFlag(DriverSeededFlag)) return;
+
+        var c = save.Companions.FirstOrDefault(x => x.Id == StartingDriverId);
+        if (c == null)
+        {
+            GD.PushWarning($"[Companion] Starting driver '{StartingDriverId}' is not in the roster; no template?");
+            return;
+        }
+
+        c.IsAvailable = true;
+        c.IsRecruited = true;
+        if (!c.IsPermadead && !save.ActivePartyCompanionIds.Contains(c.Id)
+            && save.ActivePartyCompanionIds.Count < save.MaxPartySize)
+            save.ActivePartyCompanionIds.Add(c.Id);
+
+        save.Cycle.SetFlag(DriverSeededFlag);
+        SaveManager.MarkDirty();
+        GD.Print($"[Companion] {c.Name} takes the Helm: starting driver seeded for cycle {save.Cycle.CycleNumber}.");
+    }
+
     public static bool TryRecruit(string companionId)
     {
         var save = SaveManager.ActiveSave;

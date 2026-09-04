@@ -139,5 +139,18 @@
       ],
       "branch": 0.4
     }
+  ],
+  "map_events": [
+    {
+      "kind": "advance_hazard_ring",
+      "round": 3,
+      "repeat_every": 3,
+      "telegraph": 1,
+      "at": "midpoint",
+      "element": "arcane",
+      "radius": 4,
+      "steps": 1,
+      "announce": "The ley ring tightens."
+    }
   ]
 }

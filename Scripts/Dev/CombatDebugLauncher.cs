@@ -157,7 +157,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         _vistaOpt = AddEnumDropdown(form, "Vista border:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
             (int)OverworldHex.TerrainType.Grassland);
         // E6: force a specific battlefield archetype, or "(from terrain)" for the map dropdown's default.
-        var recipeItems = new string[BattlefieldRecipes.Length + 6];
+        var recipeItems = new string[BattlefieldRecipes.Length + 7];
         recipeItems[0] = "(from terrain)";
         for (int ri = 0; ri < BattlefieldRecipes.Length; ri++)
             recipeItems[ri + 1] = BattlefieldRecipes[ri];
@@ -166,6 +166,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         recipeItems[BattlefieldRecipes.Length + 3] = CompiledBreachLabel;        // city siege: breach attack
         recipeItems[BattlefieldRecipes.Length + 4] = CompiledDockDefenseLabel;   // city siege: quay defense
         recipeItems[BattlefieldRecipes.Length + 5] = CompiledPortalDefenseLabel; // city siege: rift defense
+        recipeItems[BattlefieldRecipes.Length + 6] = CastleDefenseLabel;         // mobile fortress: defend the castle
         _forceRecipeOpt = AddStringDropdown(form, "Force battlefield:", recipeItems);
         _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
 
@@ -275,6 +276,9 @@ public partial class CombatDebugLauncher : CanvasLayer
         foreach (var comp in CompanionLoader.LoadAll())
         {
             var chk = new CheckBox { Text = $"  {comp.Name} ({comp.School})" };
+            // The helmsman is the crew every real fight has; field him by default so
+            // a castle defence launched from here has someone to hold the walls.
+            chk.ButtonPressed = comp.Id == CompanionRoster.StartingDriverId;
             chk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             form.AddChild(chk);
             _allyChecks.Add((chk, comp));
@@ -464,6 +468,12 @@ public partial class CombatDebugLauncher : CanvasLayer
             return;   // compile failed; reason already in the status label
         else if (recipeSel == BattlefieldRecipes.Length + 5 && !TryForceCompiledGate(def, defending: true, vectorKind: "portal"))
             return;   // compile failed; reason already in the status label
+        else if (recipeSel == BattlefieldRecipes.Length + 6
+                 && !CastleDefenseCompiler.Arm(def, terrain.ToString(), CompiledGateSeed))
+        {
+            _status.Text = "castle defense: compiler emitted unparseable JSON (see log).";
+            return;
+        }
 
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(terrain, tier, neighborTerrains);

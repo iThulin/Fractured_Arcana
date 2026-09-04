@@ -1,0 +1,20 @@
+{
+  "id": "castle_heart",
+  "threatLabel": "Castle Heart",
+  "role": "summon",
+  "intelDescription": "The furnace-stone that walks the castle. It does not fight. If it breaks, the castle limps home.",
+  "maxHealth": 60,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 0,
+  "behaviorKey": "",
+  "behaviorTags": [
+    "immobile",
+    "structure"
+  ],
+  "colorR": 0.85,
+  "colorG": 0.45,
+  "colorB": 0.2
+}

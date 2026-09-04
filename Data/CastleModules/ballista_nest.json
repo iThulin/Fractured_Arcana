@@ -1,0 +1,14 @@
+{
+  "id": "ballista_nest",
+  "name": "Ballista Nest",
+  "cost": 180,
+  "effect": "none",
+  "magnitude": 0,
+  "flavor": "A crewed engine on the tower. Anyone who mans it shoots further and harder.",
+  "station": {
+    "kind": "ballista",
+    "range_bonus": 2,
+    "damage_bonus": 2,
+    "label": "Ballista"
+  }
+}

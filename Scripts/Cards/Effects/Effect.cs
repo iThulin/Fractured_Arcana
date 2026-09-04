@@ -316,6 +316,19 @@ public sealed class DealDamageEffect : EffectBase
 				s.Log($"    -> TileView: {tile.Axial}");
 		}
 
+		// Breakable cover in a burst (map_pressure_v2): the blast erodes every
+		// obstacle it reached, at full damage. Bolts and arcs never do; a wall stops
+		// an arrow, it does not fall to one.
+		if (targets.Delivery == Delivery.Burst && targets.BurstTiles != null && !CombatSim.Active)
+		{
+			foreach (var coord in targets.BurstTiles)
+			{
+				var bt = s.Grid?.GetTile(coord);
+				if (bt != null && bt.IsBlocked && bt.ObstacleHp > 0)
+					s.Grid.DamageObstacle(bt, totalDamage, s.Log);
+			}
+		}
+
 		// ── Main damage loop ─────────────────────────────────────────────
 		bool aimShape = IsAimShape(targets);   // [victim, aim-tile]: the tile is not a target
 		foreach (var obj in targets.Items)
@@ -655,62 +668,20 @@ public sealed class DashEffect : EffectBase
 		}
 		else
 		{
-			// Push: find the victim and try to move them away from caster
+			// Push: the legacy `move`-with-targets path. Routed through the shared
+			// resolver (forced_movement_v1) so it is a real Forced move: straight
+			// line, collisions, entry verbs. It used to teleport-place the victim
+			// around obstacles with no verbs and no damage.
+			var grid = s.Grid;
+			if (grid == null || casterUnit?.CurrentTile == null)
+			{ s.Log("[Push] No grid or caster."); return; }
 			foreach (var obj in targets.Items)
 			{
 				var victim = ResolveTargetUnit(s, obj);
-				if (victim == null || victim.CurrentTile == null)
+				if (victim == null || victim.CurrentTile == null || victim == casterUnit)
 					continue;
-				if (casterUnit == null || casterUnit.CurrentTile == null)
-					continue;
-
-				// Calculate push direction: away from caster
-				var grid = s.Grid;
-				if (grid == null)
-				{ s.Log("[Push] No grid."); continue; }
-
-				var from = victim.CurrentTile.Axial;
-				var casterPos = casterUnit.CurrentTile.Axial;
-
-				// Push tile by tile away from caster
-				int pushed = 0;
-				for (int i = 0; i < Tiles; i++)
-				{
-					var current = victim.CurrentTile.Axial;
-					var dir = current - casterPos;
-
-					// Normalize to one hex step: pick the neighbor furthest from caster
-					TileData bestTile = null;
-					int bestDist = -1;
-
-					foreach (var neighbor in grid.GetNeighborCoords(current))
-					{
-						var td = grid.GetTile(neighbor);
-						if (td == null || !td.CanEnter(victim))
-							continue;
-
-						int distFromCaster = grid.Distance(casterPos, neighbor);
-						if (distFromCaster > bestDist)
-						{
-							bestDist = distFromCaster;
-							bestTile = td;
-						}
-					}
-
-					if (bestTile != null)
-					{
-						victim.CurrentTile.ClearOccupant(victim);
-						victim.PlaceOnTile(bestTile);
-						pushed++;
-					}
-					else
-					{
-						// Hit a wall or edge. Could add collision damage here.
-						s.Log($"[Push] {victim.Name} hit an obstacle after {pushed} tile(s).");
-						break;
-					}
-				}
-				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s) away.");
+				var dir = ForcedMove.StepAwayFrom(grid, casterUnit.CurrentTile.Axial, victim.CurrentTile.Axial);
+				ForcedMove.Push(grid, victim, dir, Tiles, 0, null, s.Log);
 			}
 		}
 	}
@@ -797,61 +768,12 @@ public sealed class PushAimedEffect : EffectBase
 			return;
 
 		var from = victim.CurrentTile.Axial;
-		var dir = aim.Axial - from;
+		var dir = ForcedMove.StepToward(s.Grid, from, aim.Axial);
 		if (dir == Vector2I.Zero)
 		{ s.Log("[PushAimed] the aim tile is the unit's own tile, so there is no direction."); return; }
 
-		var ctx = new MoveContext(s.Grid);
-		int pushed = 0;
-		bool collided = false;
-		Unit collisionUnit = null;
-		for (int i = 0; i < Tiles; i++)
-		{
-			if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
-				break;
-			var next = s.Grid.GetTile(victim.CurrentTile.Axial + dir);
-			bool uphill = next != null && next.Height - victim.CurrentTile.Height >= 2;
-			if (next == null || !next.CanEnter(victim) || uphill)
-			{
-				collided = true;
-				if (next != null && !uphill && next.IsOccupied
-					&& next.Occupant != null && next.Occupant.Stats.IsAlive
-					&& next.Occupant != victim)
-					collisionUnit = next.Occupant;
-				break;
-			}
-			ctx.ForcedTilesRemaining--;
-			victim.PlaceOnTile(next, MovementKind.Forced, ctx);
-			pushed++;
-			if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
-				break;
-		}
-
-		s.Log($"[PushAimed] {victim.Name} shoved {pushed} tile(s)" +
-			  (collided ? ", blocked." : "."));
-
-		if (collided && CollisionDamage > 0)
-		{
-			victim.ApplyDamage(CollisionDamage);
-			if (collisionUnit != null && collisionUnit.Stats.IsAlive)
-			{
-				// Mutual collision (spec §4.1) + chain shove depth-1 (§4.2) along the aim axis.
-				collisionUnit.ApplyDamage(CollisionDamage);
-				if (!ctx.HaltForced && ctx.ForcedTilesRemaining > 0
-					&& collisionUnit.CurrentTile != null)
-				{
-					var chainNext = s.Grid.GetTile(collisionUnit.CurrentTile.Axial + dir);
-					if (chainNext != null && chainNext.CanEnter(collisionUnit)
-						&& chainNext.Height - collisionUnit.CurrentTile.Height < 2)
-					{
-						ctx.ForcedTilesRemaining--;
-						collisionUnit.PlaceOnTile(chainNext, MovementKind.Forced, ctx);
-						s.Log($"[PushAimed] chain: {collisionUnit.Name} shoved 1 tile further.");
-					}
-				}
-			}
-		}
-		if (Damage > 0)
+		ForcedMove.Push(s.Grid, victim, dir, Tiles, CollisionDamage, null, s.Log);
+		if (Damage > 0 && victim.Stats.IsAlive)
 			victim.ApplyDamage(Damage);
 	}
 }
@@ -932,6 +854,11 @@ public sealed class PushEffect : EffectBase
 		CollisionDamage = collisionDamage;
 	}
 
+	/// <summary>forced_movement_v1: a straight-line shove away from the caster
+	/// through <see cref="ForcedMove.Push"/>. The old "farthest neighbour" rule let a
+	/// unit slide along a wall instead of hitting it; now a wall, a unit, a cask, or
+	/// the map edge is a collision, and momentum (tiles not travelled) sets the
+	/// damage when the card authored none.</summary>
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = FindCasterUnit(s, caster);
@@ -943,162 +870,11 @@ public sealed class PushEffect : EffectBase
 		foreach (var obj in targets.Items)
 		{
 			var victim = ResolveTargetUnit(s, obj);
-			if (victim == null || victim.CurrentTile == null)
+			if (victim == null || victim.CurrentTile == null || victim == casterUnit)
 				continue;
 
-			// E3: neutral map objects only move when flagged pushable (pillars, crystals,
-			// ward stones are immovable and act as fixed cover).
-			if (victim.IsMapObject && !victim.Pushable)
-			{
-				s.Log($"[Push] {victim.Name} is immovable.");
-				continue;
-			}
-
-			// Per-victim resolution scope (§2.2): each unit gets its own 10-tile
-			// force budget and once-per-tile reaction guard.
-			var ctx = new MoveContext(s.Grid);
-			int pushed = 0;
-			bool collided = false;
-			Unit collisionUnit = null;
-
-			for (int i = 0; i < Tiles; i++)
-			{
-				if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
-					break;
-
-				var current = victim.CurrentTile.Axial;
-				int currentDist = s.Grid.Distance(casterPos, current);
-				int fromHeight = victim.CurrentTile.Height;
-
-				TileData bestTile = null;
-				int bestDist = -1;
-				Unit outwardBlocker = null;
-				int blockerDist = -1;
-
-				foreach (var neighbor in s.Grid.GetNeighbors(current))
-				{
-					var td = s.Grid.GetTile(neighbor);
-					if (td == null)
-						continue;
-
-					int distFromCaster = s.Grid.Distance(casterPos, neighbor);
-					if (distFromCaster <= currentDist)
-						continue; // only tiles farther from the caster
-
-					// Force-moving uphill by ≥2 is illegal (spec §4.3): a cliff, not a lane.
-					bool uphillIllegal = td.Height - fromHeight >= 2;
-
-					if (td.CanEnter(victim) && !uphillIllegal)
-					{
-						if (distFromCaster > bestDist)
-						{
-							bestDist = distFromCaster;
-							bestTile = td;
-						}
-					}
-					else if (!uphillIllegal && td.IsOccupied
-							 && td.Occupant != null && td.Occupant.Stats.IsAlive
-							 && td.Occupant != victim)
-					{
-						// A living unit blocks the outward path, making it a collision candidate.
-						if (distFromCaster > blockerDist)
-						{
-							blockerDist = distFromCaster;
-							outwardBlocker = td.Occupant;
-						}
-					}
-				}
-
-				if (bestTile != null)
-				{
-					ctx.ForcedTilesRemaining--;
-					victim.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
-					pushed++;
-					if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
-						break;
-				}
-				else
-				{
-					collided = true;
-					collisionUnit = outwardBlocker;
-					break;
-				}
-			}
-
-			if (collided && CollisionDamage > 0)
-			{
-				victim.ApplyDamage(CollisionDamage);
-				if (collisionUnit != null && collisionUnit.Stats.IsAlive)
-				{
-					// Mutual collision (spec §4.1): the unit slammed into takes it too.
-					collisionUnit.ApplyDamage(CollisionDamage);
-					// Chain shove depth-1 (spec §4.2): pass 1 tile of push to the occupant.
-					if (!ctx.HaltForced && ctx.ForcedTilesRemaining > 0)
-						ChainShoveOne(s, casterPos, collisionUnit, ctx);
-				}
-				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s), collided for {CollisionDamage} damage!");
-			}
-			else
-			{
-				s.Log($"[Push] {victim.Name} pushed {pushed} tile(s).");
-			}
-
-			// E3: a shoved Ember Brazier spills fire where it lands + one tile further
-			// out in the push direction (the coals fly on ahead).
-			if (pushed > 0 && victim.IsMapObject && victim.MapObjectKind == "ember_brazier"
-				&& victim.CurrentTile != null)
-			{
-				TileEntryReactions.ImbueTile(victim.CurrentTile, TileElementType.Fire);
-				var land = victim.CurrentTile.Axial;
-				int landDist = s.Grid.Distance(casterPos, land);
-				foreach (var nb in s.Grid.GetNeighbors(land))
-				{
-					if (s.Grid.Distance(casterPos, nb) <= landDist)
-						continue;
-					var bt = s.Grid.GetTile(nb);
-					if (bt != null && bt.IsWalkable && !bt.IsBlocked)
-						TileEntryReactions.ImbueTile(bt, TileElementType.Fire);
-				}
-			}
-		}
-	}
-
-	/// <summary>Chain shove (tile_interaction_spec §4.2), depth 1: shove a unit one
-	/// tile directly outward from the caster. Shares the MoveContext so the
-	/// occupant's own entry verbs / slide fire, but never triggers a further chain.</summary>
-	private static void ChainShoveOne(GameState s, Vector2I casterPos, Unit occ, MoveContext ctx)
-	{
-		if (occ?.CurrentTile == null)
-			return;
-
-		var current = occ.CurrentTile.Axial;
-		int currentDist = s.Grid.Distance(casterPos, current);
-		int fromHeight = occ.CurrentTile.Height;
-
-		TileData bestTile = null;
-		int bestDist = -1;
-		foreach (var neighbor in s.Grid.GetNeighbors(current))
-		{
-			var td = s.Grid.GetTile(neighbor);
-			if (td == null || !td.CanEnter(occ))
-				continue;
-			int distFromCaster = s.Grid.Distance(casterPos, neighbor);
-			if (distFromCaster <= currentDist)
-				continue;
-			if (td.Height - fromHeight >= 2)
-				continue; // uphill illegal
-			if (distFromCaster > bestDist)
-			{
-				bestDist = distFromCaster;
-				bestTile = td;
-			}
-		}
-
-		if (bestTile != null)
-		{
-			ctx.ForcedTilesRemaining--;
-			occ.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
-			s.Log($"[Push] chain: {occ.Name} shoved 1 tile further.");
+			var dir = ForcedMove.StepAwayFrom(s.Grid, casterPos, victim.CurrentTile.Axial);
+			ForcedMove.Push(s.Grid, victim, dir, Tiles, CollisionDamage, null, s.Log);
 		}
 	}
 }

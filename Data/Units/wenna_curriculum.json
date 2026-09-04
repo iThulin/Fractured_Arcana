@@ -25,5 +25,8 @@
   ],
   "colorR": 0.62,
   "colorG": 0.49,
-  "colorB": 0.26
+  "colorB": 0.26,
+  "behaviorTags": [
+    "pinner"
+  ]
 }

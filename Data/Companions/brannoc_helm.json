@@ -1,0 +1,22 @@
+{
+	"id": "brannoc_helm",
+	"name": "Brannoc Helm",
+	"school": "None",
+	"unitClass": "Fighter",
+	"personalityTrait": "Stoic",
+	"backstory": "The castle's helmsman. He was walking it before the guild had a name, and he has never once asked where it was going. When the walls are attacked he holds the courtyard until the wizard arrives, and he has not yet failed to.",
+	"recruitmentCost": 0,
+	"isAvailable": false,
+	"unlockCondition": "Starts with the guild: the castle's helmsman.",
+	"contributedCardIds": [],
+	"baseHP": 18,
+	"baseSpeed": 2,
+	"baseArmor": 1,
+	"baseAttackDamage": 5,
+	"baseAttackRange": 1,
+	"baseMana": 0,
+	"availableStanceIds": [
+		"defensive",
+		"guardian"
+	]
+}

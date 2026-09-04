@@ -374,6 +374,12 @@ public partial class HexGridManager : Node3D
         return mid + HexDirs[di] * n;
     }
 
+    /// <summary>Public resolver for the recipe coord vocabulary (center, midpoint,
+    /// player_anchor, enemy_anchor, axis:N, flank:N, random, high_tile, low_tile),
+    /// so map events can be placed with the same tokens as features.</summary>
+    public Vector2I ResolveRecipeCoord(string token)
+        => ResolveCoord(Variant.From(token ?? "center"));
+
     private Vector2I ResolveCoord(Variant spec)
     {
         if (spec.VariantType == Variant.Type.Array)
@@ -441,6 +447,18 @@ public partial class HexGridManager : Node3D
 
     /// <summary>Unit step perpendicular to the player-enemy axis (the direction the
     /// flank:N token walks). A cover line laid along it faces both spawn sides.</summary>
+    /// <summary>Public direction resolver for map events: a hex direction index
+    /// 0..5, "flank" (across the player-enemy axis), "axis" (along it), or empty
+    /// for flank.</summary>
+    public Vector2I ResolveEventDirection(string token)
+    {
+        if (int.TryParse(token, out int i))
+            return HexDirs[((i % 6) + 6) % 6];
+        if (string.Equals(token, "axis", StringComparison.OrdinalIgnoreCase))
+            return HexDirs[HexDirection.Pick(PlayerLayoutAnchor, EnemyLayoutAnchor, 6)];
+        return FlankDirection();
+    }
+
     private Vector2I FlankDirection()
     {
         int di = HexDirection.Pick(PlayerLayoutAnchor, EnemyLayoutAnchor, 6);

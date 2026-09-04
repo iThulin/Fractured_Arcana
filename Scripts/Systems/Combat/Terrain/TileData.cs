@@ -95,6 +95,10 @@ public class TileData
     /// Read the effective value through HexGridManager.CoverAt, never this field.</summary>
     public CoverKind AuthoredCover = CoverKind.None;
 
+    /// <summary>Remaining hit points of a breakable obstacle on this tile (map_pressure_v2).
+    /// 0 = indestructible or no obstacle. Set by ApplyObstacle from the catalog.</summary>
+    public int ObstacleHp = 0;
+
     /// <summary>True when standing on this tile damages the unit each turn (lava, scorched ground, etc.).</summary>
     public bool IsHazardous = false;
 

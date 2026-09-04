@@ -124,5 +124,17 @@
         2
       ]
     }
+  ],
+  "map_events": [
+    {
+      "kind": "flood",
+      "round": 4,
+      "repeat_every": 4,
+      "telegraph": 1,
+      "level": -1,
+      "rise": 1,
+      "damage": 1,
+      "announce": "The lake creeps up the shore."
+    }
   ]
 }

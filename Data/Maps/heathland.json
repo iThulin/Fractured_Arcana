@@ -109,5 +109,15 @@
       ],
       "branch": 0.35
     }
+  ],
+  "map_events": [
+    {
+      "kind": "weather_tick",
+      "round": 2,
+      "repeat_every": 2,
+      "telegraph": 1,
+      "weather": "storm",
+      "announce": "Storm over the heath."
+    }
   ]
 }

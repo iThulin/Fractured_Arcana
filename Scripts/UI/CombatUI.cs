@@ -1629,6 +1629,7 @@ public partial class CombatUI : CanvasLayer
 
 			bool isSelected = unit == selectedUnit;
 			bool isAlive = unit.Stats.IsAlive;
+			bool inTransit = unit.IsAwaitingArrival;   // castle_defense_v1: in the waystone
 
 			var panel = new PanelContainer { Name = $"UnitPanel_{i}" };
 			panel.CustomMinimumSize = new Vector2(UnitButtonWidth, 0);
@@ -1649,15 +1650,21 @@ public partial class CombatUI : CanvasLayer
 
 			// Name
 			var nameLbl = MakeLabel(
-				isAlive ? unit.DisplayName : $"✕ {unit.DisplayName}",
+				!isAlive ? $"✕ {unit.DisplayName}" : inTransit ? $"◌ {unit.DisplayName}" : unit.DisplayName,
 				UITheme.FontSizeSmall,
-				isAlive ? (isSelected ? UITheme.TextPrimary : UITheme.TextSecondary)
-						: UITheme.TextDim);
+				!isAlive || inTransit ? UITheme.TextDim
+					: (isSelected ? UITheme.TextPrimary : UITheme.TextSecondary));
 			nameLbl.HorizontalAlignment = HorizontalAlignment.Center;
 			nameLbl.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 			vbox.AddChild(nameLbl);
 
-			if (isAlive)
+			if (inTransit)
+			{
+				var transitLbl = MakeLabel("in the waystone", UITheme.FontSizeSmall - 1, UITheme.TextDim);
+				transitLbl.HorizontalAlignment = HorizontalAlignment.Center;
+				vbox.AddChild(transitLbl);
+			}
+			else if (isAlive)
 			{
 				// AP pips
 				string pips = "";

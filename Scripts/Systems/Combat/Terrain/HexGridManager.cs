@@ -75,8 +75,8 @@ public partial class HexGridManager : Node3D
     [Export] public bool UseDebugSpawnOverrides = false;
     [Export] public Vector2I DebugPlayerAnchor = new Vector2I(1, 1);
     [Export] public Vector2I DebugEnemyAnchor = new Vector2I(4, 2);
-    private Vector2I PlayerLayoutAnchor;
-    private Vector2I EnemyLayoutAnchor;
+    public Vector2I PlayerLayoutAnchor { get; private set; }
+    public Vector2I EnemyLayoutAnchor { get; private set; }
 
     // Map generation parameters
     [ExportGroup("Map Generation")]

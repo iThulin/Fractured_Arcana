@@ -1147,13 +1147,16 @@ public partial class CombatManager
     private Unit FindReactionResponder()
     {
         if (selectedUnit != null && IsInstanceValid(selectedUnit)
-            && selectedUnit.Stats.IsAlive && UnitHoldsCastableReaction(selectedUnit))
+            && selectedUnit.Stats.IsAlive && !selectedUnit.IsAwaitingArrival
+            && UnitHoldsCastableReaction(selectedUnit))
             return selectedUnit;
 
         foreach (var unit in playerUnits)
         {
             if (unit == null || unit == selectedUnit || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
                 continue;
+            if (unit.IsAwaitingArrival)
+                continue;   // castle_defense_v1: no hand to answer with from inside the waystone
             if (UnitHoldsCastableReaction(unit))
                 return unit;
         }

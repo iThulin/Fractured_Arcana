@@ -39,6 +39,11 @@ public class GuildSaveData
     /// <summary>Tier 2, the current timeline.</summary>
     public CycleState Cycle = new();
 
+    /// <summary>castle_defense_v1 (mobile fortress F5/F6): installed castle module
+    /// ids in station order. Additive, lazily backfilled by CastleLoadout when
+    /// empty, so pre-castle saves get the starter pair without a migration.</summary>
+    public List<string> CastleModules = new();
+
     // ═══════════════════════════════════════════════════════════════════
     // Forwarding shims: legacy surface, [JsonIgnore], never serialized.
     // ═══════════════════════════════════════════════════════════════════

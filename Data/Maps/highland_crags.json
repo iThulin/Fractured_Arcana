@@ -109,5 +109,17 @@
       "element": "lightning",
       "radius": 1
     }
+  ],
+  "map_events": [
+    {
+      "kind": "collapse_tiles",
+      "round": 3,
+      "repeat_every": 4,
+      "telegraph": 1,
+      "at": "random",
+      "radius": 1,
+      "into": "rubble",
+      "announce": "Rockfall."
+    }
   ]
 }

@@ -34,6 +34,8 @@ public static class CycleInitializer
         if (SaveManager.ActiveSave == null)
             return;
         CompanionRoster.EnsureRoster(SaveManager.ActiveSave);
+        // The helmsman starts every timeline recruited and in the party (flag-gated).
+        CompanionRoster.EnsureStartingDriver(SaveManager.ActiveSave);
         BuildingDatabase.EnsureBuildings(SaveManager.ActiveSave);
         EnsureStarterItems();
     }

@@ -115,6 +115,21 @@
       "per_patch": 1,
       "telegraph": 0,
       "announce": "The rain swells the ford."
+    },
+    {
+      "kind": "flood",
+      "round": 3,
+      "repeat_every": 3,
+      "telegraph": 1,
+      "level": -1,
+      "rise": 1,
+      "damage": 2,
+      "announce": "The tide comes in. A sluice gate stands on the flank.",
+      "id": "tide",
+      "lever": {
+        "at": "flank:3",
+        "mode": "hold"
+      }
     }
   ]
 }

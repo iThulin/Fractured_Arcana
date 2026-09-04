@@ -143,5 +143,33 @@
       "kind": "resonant_crystal",
       "count": 1
     }
+  ],
+  "map_events": [
+    {
+      "kind": "trap",
+      "round": 1,
+      "telegraph": 0,
+      "at": "midpoint",
+      "radius": 4,
+      "count": 2,
+      "damage": 3,
+      "status": "rooted",
+      "duration": 1,
+      "hidden": true,
+      "announce": "The warren floor is not what it seems."
+    },
+    {
+      "kind": "reinforce_from",
+      "id": "burrow",
+      "when": "enemy_count_below:2",
+      "round": 1,
+      "telegraph": 1,
+      "at": "flank:3",
+      "units": [
+        "generic_soldier",
+        "generic_ranger"
+      ],
+      "announce": "More crawl out of the burrow."
+    }
   ]
 }

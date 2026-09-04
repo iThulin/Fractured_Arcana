@@ -116,5 +116,29 @@
       "element": "frost",
       "radius": 2
     }
+  ],
+  "map_events": [
+    {
+      "kind": "weather_tick",
+      "round": 3,
+      "repeat_every": 3,
+      "telegraph": 1,
+      "weather": "snow",
+      "per_patch": 2,
+      "announce": "Ice creeps over the steppe."
+    },
+    {
+      "kind": "shift",
+      "round": 3,
+      "repeat_every": 3,
+      "telegraph": 1,
+      "at": "midpoint",
+      "dir": "axis",
+      "length": 9,
+      "width": 2,
+      "push": "flank",
+      "tiles": 1,
+      "announce": "The wind howls across the steppe."
+    }
   ]
 }

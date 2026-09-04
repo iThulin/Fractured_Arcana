@@ -562,8 +562,14 @@ public partial class CombatManager : Node3D
             }
         }
 
-        if (playerUnits.Count > 0 && playerUnits[0].DeckData != null)
-            deckManager.SetActiveDeck(playerUnits[0].DeckData);
+        // castle_defense_v1: the active deck belongs to a unit that is on the
+        // board. A wizard in the waystone keeps its deck; the hand shows on arrival.
+        var deckOwner = playerUnits.Find(u => u != null && !u.IsAwaitingArrival && u.DeckData != null)
+                        ?? (playerUnits.Count > 0 ? playerUnits[0] : null);
+        if (deckOwner?.DeckData != null && !deckOwner.IsAwaitingArrival)
+            deckManager.SetActiveDeck(deckOwner.DeckData);
+        else
+            deckManager.SetActiveDeck(null);
 
         // Post-cast player choice (2026-07-28), the third seam of this shape,
         // alongside OnSummonRequested and OnDrawCards. See CardChoice.cs.
@@ -579,6 +585,7 @@ public partial class CombatManager : Node3D
         if (_pendingSkipDeployTurnStart)
         {
             _pendingSkipDeployTurnStart = false;
+            EvaluateMapEvents();   // map_pressure_v1: round-1 events on the skip-deploy path too
 
             // Fix v4 (2026-07-09): the round-1 StartPlayerTurn THROWS in the
             // skip-deploy context (round 2+ runs the same code clean); the
@@ -603,7 +610,7 @@ public partial class CombatManager : Node3D
             try
             {
                 if (playerUnits.Count > 0 && playerUnits[0] != null)
-                    SelectUnit(playerUnits[0]);
+                    SelectUnit(FirstFieldedPlayerUnit());
                 RefreshEnemyRoster();
                 GD.Print("[SkipDeploy] eager sync OK (selected + roster pushed).");
             }
@@ -640,7 +647,7 @@ public partial class CombatManager : Node3D
             await ToSignal(GetTree(), "process_frame");
 
             if (playerUnits.Count > 0 && playerUnits[0] != null)
-                SelectUnit(playerUnits[0]);
+                SelectUnit(FirstFieldedPlayerUnit());
             RefreshEnemyRoster();
             RefreshSelectedUnitUI();
             RefreshPlayerUnitBar();
@@ -805,8 +812,8 @@ public partial class CombatManager : Node3D
             return;
         if (currentPhase != CombatPhase.PlayerTurn)
             return;
-        if (playerUnits[index] != null && playerUnits[index].IsStructure)
-            return;   // structures (gate doors) are visible but not commandable
+        if (playerUnits[index] != null && (playerUnits[index].IsStructure || playerUnits[index].IsAwaitingArrival))
+            return;   // structures (gate doors) are visible but not commandable; so is a wizard still in transit
         SelectUnit(playerUnits[index]);
     }
 
@@ -990,10 +997,13 @@ public partial class CombatManager : Node3D
                 }
                 else
                 {
-                    // If selected unit is a martial, try to attack
+                    // If selected unit is a martial, try to attack (Ctrl+click: shove)
                     if (selectedUnit != null && selectedUnit.IsMartial)
                     {
-                        TryMartialAttack(selectedUnit, unit);
+                        if (Input.IsKeyPressed(Key.Ctrl) || Input.IsKeyPressed(Key.Meta))
+                            TryMartialShove(selectedUnit, unit);
+                        else
+                            TryMartialAttack(selectedUnit, unit);
                         return;
                     }
                     InspectEnemy(unit);
@@ -1522,13 +1532,23 @@ public partial class CombatManager : Node3D
         RefreshPlayerUnitBar();
     }
 
+    /// <summary>The first player unit that can take orders right now: not a
+    /// structure, not the ward, not a wizard still in the waystone.</summary>
+    private Unit FirstFieldedPlayerUnit()
+    {
+        foreach (var u in playerUnits)
+            if (u != null && IsInstanceValid(u) && !u.IsStructure && !u.IsObjectiveWard && !u.IsAwaitingArrival)
+                return u;
+        return playerUnits.Count > 0 ? playerUnits[0] : null;
+    }
+
     private void SelectUnit(Unit unit)
     {
         // O3 + consumables (2026-08-13): the ward IS selectable now. A
         // scroll's shield needs a way to land on it, and its detailed HP bar
         // is protect-mission information. It remains un-commandable by
         // construction (0 AP, 0 move, no deck) and off the unit bar.
-        if (unit == null || !unit.IsPlayerControlled)
+        if (unit == null || !unit.IsPlayerControlled || unit.IsAwaitingArrival)
             return;
 
         // Collapse previous selection's bar
@@ -1870,6 +1890,49 @@ public partial class CombatManager : Node3D
         return true;
     }
 
+    /// <summary>Body-check (forced_movement_v1 §3): every martial can spend 1 AP to
+    /// shove an adjacent enemy one tile straight away. Collision floor is half the
+    /// shover's attack (min 2), so a shove into a wall is a weaker swing, a shove
+    /// into a cask, a fire, or off a ledge is the better one. Ctrl+click.</summary>
+    private void TryMartialShove(Unit attacker, Unit target)
+    {
+        if (attacker == null || target == null || !attacker.IsMartial)
+            return;
+        if (!attacker.CanAct())
+        {
+            combatUI?.AppendActionLog($"{attacker.Name} is frozen!");
+            return;
+        }
+        if (attacker.CurrentTile == null || target.CurrentTile == null
+            || grid.Distance(attacker.CurrentTile, target.CurrentTile) != 1)
+        {
+            combatUI?.AppendActionLog($"{attacker.Name}: a shove needs an adjacent target.");
+            return;
+        }
+        if (target.IsMapObject && !target.Pushable)
+        {
+            combatUI?.AppendActionLog($"{target.DisplayName} will not budge.");
+            return;
+        }
+        if (!attacker.TrySpendAP(MartialAPCosts.AttackMelee))
+        {
+            combatUI?.AppendActionLog($"{attacker.Name} needs {MartialAPCosts.AttackMelee} AP to shove.");
+            return;
+        }
+
+        attacker.Stats.HasActed = true;
+        var dir = ForcedMove.StepAwayFrom(grid, attacker.CurrentTile.Axial, target.CurrentTile.Axial);
+        combatUI?.AppendActionLog($"{attacker.Name} shoves {target.Name}.");
+        ForcedMove.Push(grid, target, dir, 1, BodyCheckCollision(attacker), null,
+                        m => combatUI?.AppendActionLog(m));
+
+        RefreshSelectedUnitUI();
+        RefreshEnemyRoster();
+        RefreshPlayerUnitBar();
+        ClearMoveTiles();
+        ShowMoveTilesWithCost(selectedUnit);
+    }
+
     private void TryMartialAttack(Unit attacker, Unit target)
     {
         if (attacker == null || target == null)
@@ -1882,7 +1945,7 @@ public partial class CombatManager : Node3D
             return;
         }
 
-        int effectiveRange = attacker.AttackRange;
+        int effectiveRange = attacker.AttackRange + attacker.StationRangeBonus;
         if (attacker.ActiveStance != null)
             effectiveRange += attacker.ActiveStance.AttackRangeBonus;
 
@@ -2035,6 +2098,7 @@ public partial class CombatManager : Node3D
         var loadout = EquipmentLoadout.Get(attacker.CompanionId);
         if (loadout != null)
             damage += loadout.BonusAttackDamage;
+        damage += attacker.StationDamageBonus;   // castle_defense_v1: a manned ballista
 
         // BonusDamageAboveHalfHP (implemented 2026-08-13; the tag existed
         // since Q1 with no consumer): the healthy fighter hits harder.
@@ -2378,6 +2442,8 @@ public partial class CombatManager : Node3D
                 }
             }
         }
+        ApplyStationBonuses();   // castle_defense_v1: manned stations at turn start
+
 
         // ── Board-wide upkeep: ONCE per round, not once per party member ──────────
         // (2026-08-05) These two lines lived inside the per-unit loop above, so they
@@ -3058,6 +3124,8 @@ public partial class CombatManager : Node3D
         // E4: scheduled map events resolve BEFORE objectives/waves so waves land
         // on updated terrain and zones read against reality.
         EvaluateMapEvents();
+        RunStationRoundEffects();   // castle_defense_v1: winch mends, braziers tip
+        TryArriveWizard();          // castle_defense_v1: the waystone opens
 
         // E3: Ward Stone aura, granting armour to whoever holds ground near a ward stone.
         ApplyWardStoneAuras();
@@ -3436,6 +3504,8 @@ public partial class CombatManager : Node3D
             return;
         }
 
+        _deathsThisCombat++;   // map_pressure_v2: first_blood and the like read this
+
         string deathMsg = $"{unit.Name} has died.";
         GD.Print(deathMsg);
         combatUI?.AppendActionLog(deathMsg);
@@ -3804,10 +3874,11 @@ public partial class CombatManager : Node3D
         currentPhase = CombatPhase.Deployment;
         RefreshAllUI();
 
-        // Auto-select first player unit
-        if (playerUnits.Count > 0 && playerUnits[0] != null)
+        // Auto-select first player unit that is actually on the field
+        var firstFielded = playerUnits.Find(u => u != null && !u.IsAwaitingArrival && !u.IsStructure);
+        if (firstFielded != null)
         {
-            selectedDeployUnit = playerUnits[0];
+            selectedDeployUnit = firstFielded;
             selectedDeployUnit.SetSelected(true);
             RefreshSelectedUnitUI();
         }
@@ -3834,6 +3905,11 @@ public partial class CombatManager : Node3D
 
         // ── Change 3: attunement seed from starting tile ─────────────────
         SeedAttunementFromStartingTile();
+
+        // map_pressure_v1: round-1 events (traps laid before the first move) and
+        // the first telegraphs resolve here, since the round boundary only runs
+        // from round 2 onward.
+        EvaluateMapEvents();
 
         RefreshPhaseUI();
         RefreshSelectedUnitUI();
@@ -3899,7 +3975,7 @@ public partial class CombatManager : Node3D
 
     private void TrySelectDeploymentUnit(Unit unit)
     {
-        if (unit == null || !unit.IsPlayerControlled || !playerUnits.Contains(unit))
+        if (unit == null || !unit.IsPlayerControlled || !playerUnits.Contains(unit) || unit.IsAwaitingArrival)
             return;
         if (selectedDeployUnit != null)
             selectedDeployUnit.SetSelected(false);
@@ -3941,6 +4017,8 @@ public partial class CombatManager : Node3D
         ClearDeploymentSelection();
         foreach (var kvp in originalDeployCoords)
         {
+            if (kvp.Key == null || kvp.Key.IsAwaitingArrival)
+                continue;   // castle_defense_v1: the wizard in transit has no place to reset to
             var tile = grid.GetTile(kvp.Value);
             if (tile != null && tile.IsWalkable && !tile.IsBlocked)
                 kvp.Key.PlaceOnTile(tile);
@@ -4319,6 +4397,7 @@ public partial class CombatManager : Node3D
         // "banner without a body" bug). Also deliberately after the equipment
         // loop above: the ward must not consume a companion_N loadout slot.
         SpawnObjectiveWard();
+        TranslocateWizardOut();   // castle_defense_v1: the wizard arrives late
 
         if (playerUnits.Count == 0)
         {

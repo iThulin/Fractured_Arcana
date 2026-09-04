@@ -116,5 +116,26 @@
       "kind": "ember_brazier",
       "count": 1
     }
+  ],
+  "map_events": [
+    {
+      "kind": "advance_front",
+      "round": 1,
+      "repeat_every": 2,
+      "telegraph": 1,
+      "at": "enemy_anchor",
+      "element": "fire",
+      "radius": 2,
+      "steps": 1,
+      "announce": "The kiln's fire sweeps outward.",
+      "id": "kiln_fire",
+      "when": "player_enters:midpoint:1",
+      "wake": "The kiln draws breath.",
+      "lever": {
+        "at": "flank:-3",
+        "mode": "delay",
+        "amount": 1
+      }
+    }
   ]
 }

@@ -218,7 +218,7 @@ public partial class CombatManager
     /// and +1 for a ranged shot from above the target.</summary>
     private int MartialReach(Unit attacker, Unit target)
     {
-        int reach = attacker.AttackRange + (attacker.ActiveStance?.AttackRangeBonus ?? 0);
+        int reach = attacker.AttackRange + attacker.StationRangeBonus + (attacker.ActiveStance?.AttackRangeBonus ?? 0);
         if (reach > 1 && target?.CurrentTile != null && attacker.CurrentTile != null
             && attacker.CurrentTile.Height > target.CurrentTile.Height)
             reach += 1;
@@ -291,9 +291,23 @@ public partial class CombatManager
             _markedUnits.Add(e);
         }
 
-        // Trajectory to the hovered enemy: a martial shot is a bolt.
+        // Trajectory to the hovered enemy: a martial shot is a bolt. Adjacent: the
+        // shove option is shown instead, with where the body-check would land.
         var aim = hovered.CurrentTile.Axial;
-        if (grid.Distance(center, aim) > 1)
+        if (grid.Distance(center, aim) == 1 && !(hovered.IsMapObject && !hovered.Pushable))
+        {
+            var dir = ForcedMove.StepAwayFrom(grid, center, aim);
+            var land = ForcedMove.Predict(grid, hovered, dir, 1);
+            var next = grid.GetTile(aim + dir);
+            string into = land.Count > 0 ? (next != null && next.IsHazardous ? "into the fire" : "back one tile")
+                        : next?.Occupant != null ? $"into {next.Occupant.DisplayName}"
+                        : "into the wall";
+            combatUI?.SetHintText($"Click: strike ({attacker.AttackDamage})  ·  Ctrl+click: shove {into}");
+            _martialHintSet = true;
+            if (land.Count > 0)
+                _aimZone.ShowOutline(new HashSet<Vector2I>(land), grid, AimBurstColor, 0.16f);
+        }
+        else if (grid.Distance(center, aim) > 1)
         {
             var blocker = grid.FirstLosBlocker(center, aim);
             _trace.Show(grid, center, aim, TrajectoryTrace.Style.Straight, blocker?.Axial,
@@ -301,11 +315,18 @@ public partial class CombatManager
         }
     }
 
+    private bool _martialHintSet;
+
     private void ClearMartialPreview()
     {
         if (!_martialPreviewUp)
             return;
         _martialPreviewUp = false;
+        if (_martialHintSet)
+        {
+            _martialHintSet = false;
+            combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
+        }
         ClearTargetHighlight();
     }
 

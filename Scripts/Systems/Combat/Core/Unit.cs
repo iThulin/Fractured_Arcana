@@ -430,6 +430,16 @@ public partial class Unit : Node3D
     /// </summary>
     public bool IsStructure = false;
 
+    /// <summary>castle_defense_v1: fielded but off the board until the waystone
+    /// arrival round. No tile, hidden, unselectable; still owns its deck.</summary>
+    public bool IsAwaitingArrival = false;
+
+    /// <summary>castle_defense_v1: manned-station bonuses to martial attacks,
+    /// set at turn start by CombatManager.ApplyStationBonuses while standing on
+    /// a Ballista Nest, cleared when re-evaluated.</summary>
+    public int StationRangeBonus = 0;
+    public int StationDamageBonus = 0;
+
     /// <summary>
     /// Turns of setup remaining before this construct can act. Decremented (and skipped) by the construct phase. 0 = ready.
     /// </summary>
@@ -689,6 +699,16 @@ public partial class Unit : Node3D
         RefreshHealthBar();
     }
 
+
+    /// <summary>Take the unit off the board without killing it (castle_defense_v1:
+    /// the wizard in the waystone). Frees its tile, clears the reference, hides the
+    /// node. PlaceOnTile brings it back.</summary>
+    public void LiftFromBoard()
+    {
+        CurrentTile?.ClearOccupant(this);
+        CurrentTile = null;
+        Visible = false;
+    }
 
     public void PlaceOnTile(TileData tile, MovementKind kind = MovementKind.Teleport, MoveContext ctx = null)
     {

@@ -329,6 +329,7 @@ public sealed class SelectAreaTarget : ITargetSelector
         }
 
         targets.Delivery = Delivery.Burst;
+        targets.BurstTiles = reach;
         return true;
     }
 }
@@ -387,6 +388,7 @@ public sealed class SelectRingTarget : ITargetSelector
         }
 
         targets.Delivery = Delivery.Burst;
+        targets.BurstTiles = ring;
         return targets.Items.Count > 0;
     }
 }
@@ -503,6 +505,7 @@ public sealed class SelectConeTarget : ITargetSelector
         }
 
         targets.Delivery = Delivery.Burst;
+        targets.BurstTiles = coneTiles;
         s.Log($"[ConeTarget] Direction {dirIdx}, range {Range}: found {targets.Items.Count} target(s).");
         return true;
     }

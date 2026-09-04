@@ -594,6 +594,7 @@ public partial class HexGridManager
         tile.IsBlocked = true;
         tile.IsWalkable = false;
         tile.ObstacleKind = kind ?? "";
+        tile.ObstacleHp = spec.Hp;
         if (spec.IsLow)
         {
             tile.BlocksLineOfSight = false;
@@ -817,8 +818,42 @@ public partial class HexGridManager
         ClearTileForLane(goal, width);
     }
 
+    /// <summary>Public: clear obstacle flags and make the tile walkable again
+    /// (drop_wall, breakables). Terrain and element are left as they were.</summary>
+    public void ClearObstacle(TileData tile)
+    {
+        if (tile == null)
+            return;
+        ClearTileObstacleState(tile);
+        tile.IsWalkable = true;
+    }
+
+    /// <summary>Damage a breakable obstacle (map_pressure_v2). Returns true when it
+    /// broke: the tile becomes rubble (walkable at cost 2, Low cover), visuals and
+    /// threat rebuild. Indestructible kinds (hp 0) ignore it.</summary>
+    public bool DamageObstacle(TileData tile, int amount, Action<string> log = null)
+    {
+        if (tile == null || !tile.IsBlocked || tile.ObstacleHp <= 0 || amount <= 0)
+            return false;
+        tile.ObstacleHp -= amount;
+        if (tile.ObstacleHp > 0)
+        {
+            log?.Invoke($"The {tile.ObstacleKind.Replace('_', ' ')} at {tile.Axial} cracks ({tile.ObstacleHp} left).");
+            return false;
+        }
+        string what = tile.ObstacleKind.Replace('_', ' ');
+        ClearObstacle(tile);
+        tile.ApplyTerrainModifier("rubble");
+        tile.ObstacleKind = "rubble";
+        tile.TileView?.SetTerrainScar("rubble");
+        RefreshObstacleVisuals();
+        log?.Invoke($"The {what} at {tile.Axial} breaks apart.");
+        return true;
+    }
+
     private void ClearTileObstacleState(TileData tile)
     {
+        tile.ObstacleHp = 0;
         tile.IsBlocked = false;
         tile.BlocksLineOfSight = false;
         tile.ObstacleKind = "";

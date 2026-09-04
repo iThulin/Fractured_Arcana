@@ -114,5 +114,17 @@
       "at": "midpoint",
       "radius": 2
     }
+  ],
+  "map_events": [
+    {
+      "kind": "trap",
+      "round": 1,
+      "telegraph": 0,
+      "at": "midpoint",
+      "radius": 3,
+      "count": 3,
+      "damage": 4,
+      "announce": "Spikes glint in the sand."
+    }
   ]
 }

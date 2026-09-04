@@ -1,0 +1,8 @@
+{
+  "id": "auxiliary_furnace",
+  "name": "Auxiliary Furnace",
+  "cost": 200,
+  "effect": "max_fuel",
+  "magnitude": 8,
+  "flavor": "A second firebox for the long stride."
+}

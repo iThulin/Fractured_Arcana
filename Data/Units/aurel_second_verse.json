@@ -24,5 +24,8 @@
   ],
   "colorR": 0.42,
   "colorG": 0.11,
-  "colorB": 0.6
+  "colorB": 0.6,
+  "behaviorTags": [
+    "skirmisher"
+  ]
 }

@@ -160,7 +160,8 @@ public partial class CombatManager
         }
 
         var def = UnitRegistry.Get(_objective.WardUnitId);
-        var ward = SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
+        // castle_defense_v1: a recipe with a heart tile puts the ward THERE.
+        var ward = SpawnWardAtHeart(def) ?? SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
             teamId: 0, isPlayerControlled: true,
             namePrefix: "Ward",
             maxHealth: def.MaxHealth, health: def.MaxHealth,
@@ -182,7 +183,8 @@ public partial class CombatManager
         ward.CurrentActionPoints = 0;
         ward.MoveRange = 0;
         _wardUnit = ward;
-        playerUnits.Add(ward);
+        if (!playerUnits.Contains(ward))
+            playerUnits.Add(ward);   // the heart path registers through SpawnRegistryUnit already
 
         GD.Print($"[Objective] Ward '{ward.DisplayName}' fielded " +
                  $"({def.MaxHealth} HP, {def.Armor} armor). Its death is the defeat.");
