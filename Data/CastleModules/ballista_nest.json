@@ -4,11 +4,14 @@
   "cost": 180,
   "effect": "none",
   "magnitude": 0,
-  "flavor": "A crewed engine on the tower. Anyone who mans it shoots further and harder.",
+  "flavor": "A crewed engine on the tower. Whoever mans it can fire it: a heavy bolt that hits from across the field and throws the target back.",
   "station": {
     "kind": "ballista",
-    "range_bonus": 2,
-    "damage_bonus": 2,
-    "label": "Ballista"
+    "label": "Ballista",
+    "range": 5,
+    "damage": 7,
+    "ap": 2,
+    "push": 1,
+    "shots": 1
   }
 }

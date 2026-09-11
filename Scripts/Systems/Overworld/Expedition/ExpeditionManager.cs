@@ -1368,7 +1368,9 @@ public partial class ExpeditionManager : Node2D
 
     private void ScheduleStrideTick(float delay)
     {
-        if (!_striding)
+        // A stride can be interrupted by combat: the timer that fired this step
+        // outlives the expedition scene, and there is no tree to schedule on.
+        if (!_striding || !IsInsideTree())
             return;
         GetTree().CreateTimer(delay).Timeout += StrideStep;
     }

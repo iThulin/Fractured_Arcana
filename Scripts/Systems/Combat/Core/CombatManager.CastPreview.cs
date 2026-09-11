@@ -247,6 +247,60 @@ public partial class CombatManager
         return null;
     }
 
+    private static readonly Color StationEnvelopeColor = new(0.55f, 0.95f, 1.0f, 0.95f);
+
+    /// <summary>A manned crew weapon (castle_defense_v2): the station's own reach
+    /// as a cyan envelope, its targets ringed, the bolt's trajectory, and the
+    /// Alt+click hint. A martial keeper still gets the ordinary strike on plain
+    /// click, so both are named in the hint.</summary>
+    private void ShowStationPreview(Unit crew, Unit hovered, CastleStationSpec st)
+    {
+        var center = crew.CurrentTile.Axial;
+        int reach = st.Range;
+        var envelope = new HashSet<Vector2I>();
+        foreach (var kv in grid.Tiles)
+        {
+            if (kv.Key == center)
+                continue;
+            int r = reach + (crew.CurrentTile.Height > kv.Value.Height ? 1 : 0);
+            if (grid.Distance(center, kv.Key) > r)
+                continue;
+            if (!grid.HasLineOfSight(center, kv.Key) || grid.CoverBetween(kv.Key, center) == CoverKind.High)
+                continue;
+            envelope.Add(kv.Key);
+        }
+        _castZone.ShowOutline(envelope, grid, StationEnvelopeColor, EnvelopeFill);
+
+        foreach (var e in enemyUnits)
+        {
+            if (e == null || !IsInstanceValid(e) || !e.Stats.IsAlive || e.CurrentTile == null)
+                continue;
+            string reason = StationBlockReason(crew, e);
+            if (reason == null || (crew.IsMartial && MartialBlockReason(crew, e) == null))
+                e.SetTargetable(true, TargetRingColor);
+            else if (grid.Distance(center, e.CurrentTile.Axial) <= reach + 2)
+            {
+                e.SetTargetable(true, BlockedRingColor);
+                e.SetBlockedReason(reason);
+            }
+            else
+                continue;
+            _markedUnits.Add(e);
+        }
+
+        var aim = hovered.CurrentTile.Axial;
+        string strike = crew.IsMartial && MartialBlockReason(crew, hovered) == null ? $"  ·  Click: strike ({crew.AttackDamage})" : "";
+        string shots = crew.StationShotsLeft <= 0 ? " (spent this round)" : "";
+        combatUI?.SetHintText($"Alt+click: fire the {st.Label} ({st.Damage}, {st.Ap} AP, throws {st.Push}){shots}{strike}");
+        _martialHintSet = true;
+        if (grid.Distance(center, aim) >= 1)
+        {
+            var blocker = grid.FirstLosBlocker(center, aim);
+            _trace.Show(grid, center, aim, TrajectoryTrace.Style.Straight, blocker?.Axial,
+                        StationBlockReason(crew, hovered) != null);
+        }
+    }
+
     private void ShowMartialPreview(Unit attacker, Unit hovered)
     {
         if (attacker?.CurrentTile == null || hovered?.CurrentTile == null || grid == null)
@@ -254,6 +308,17 @@ public partial class CombatManager
         EnsureCastRenderers();
         ClearMartialPreview();
         _martialPreviewUp = true;
+
+        // The armed bar action decides which envelope is shown; unarmed, a manned
+        // station shows the station (a caster has nothing else) unless the keeper
+        // is a martial, who sees the strike by default.
+        bool showStation = attacker.StationWeapon != null
+            && (_armedAction == UnitAction.Station || (!attacker.IsMartial && _armedAction == UnitAction.None));
+        if (showStation)
+        {
+            ShowStationPreview(attacker, hovered, attacker.StationWeapon);
+            return;
+        }
 
         var center = attacker.CurrentTile.Axial;
         int reach = MartialReach(attacker, hovered);

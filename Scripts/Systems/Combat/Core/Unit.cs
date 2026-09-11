@@ -439,6 +439,15 @@ public partial class Unit : Node3D
     /// a Ballista Nest, cleared when re-evaluated.</summary>
     public int StationRangeBonus = 0;
     public int StationDamageBonus = 0;
+    /// <summary>Readout for the unit panel while manning a station, else empty.</summary>
+    public string StationLabel = "";
+    /// <summary>The crew weapon under this unit's hands (a manned ballista), else null.
+    /// Fired with Alt+click on a target; its own range, damage and AP cost.</summary>
+    public CastleStationSpec StationWeapon;
+    /// <summary>Shots left on the station weapon this round.</summary>
+    public int StationShotsLeft;
+    /// <summary>Armour added by Brace, removed (what is left of it) at the next turn start.</summary>
+    public int BraceArmor;
 
     /// <summary>
     /// Turns of setup remaining before this construct can act. Decremented (and skipped) by the construct phase. 0 = ready.
@@ -671,6 +680,11 @@ public partial class Unit : Node3D
             return;
 
         CurrentActionPoints = MaxActionPoints;
+        if (BraceArmor > 0)
+        {
+            Stats.Armor = Math.Max(0, Stats.Armor - BraceArmor);   // the brace comes down
+            BraceArmor = 0;
+        }
         Stats.HasActed = false;
         Stats.HasPlayedCardThisTurn = false;   // (2026-08-05) was never cleared; see the field
         HasAttackedThisTurn = false;

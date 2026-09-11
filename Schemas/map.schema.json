@@ -62,7 +62,7 @@
 		},
 		"map_events": {
 			"type": "array",
-			"description": "Per-round map events (CombatManager.MapEvents). Kinds: imbue_patch, spread_element, advance_hazard_ring, spawn_object, collapse_tiles, raise_tiles, lower_tiles, weather_tick, flood, advance_front, crumble_edge, trap. Common keys: round, repeat_every, telegraph, at (recipe coord token), announce. v2 adds id, when (awaken), lever, and the kinds raise_wall, drop_wall, shift, fog, reinforce_from.",
+			"description": "Per-round map events (CombatManager.MapEvents). Kinds: imbue_patch, spread_element, advance_hazard_ring, spawn_object, collapse_tiles, raise_tiles, lower_tiles, weather_tick, flood, advance_front, crumble_edge, trap. Common keys: round, repeat_every, telegraph, at (recipe coord token), announce. v2 adds id, when (awaken), lever, and the kinds raise_wall, drop_wall, shift, fog, reinforce_from. castle_defense_v2 adds stomp (at, radius, damage, max_height, crater) and the ring form of shift (ring, radius, tiles, damage, max_height).",
 			"items": {
 				"type": "object",
 				"required": [
@@ -88,7 +88,8 @@
 							"drop_wall",
 							"shift",
 							"fog",
-							"reinforce_from"
+							"reinforce_from",
+							"stomp"
 						]
 					},
 					"round": {
@@ -223,6 +224,18 @@
 					"tiles": {
 						"type": "integer"
 					},
+					"ring": {
+						"type": "string",
+						"description": "shift: act on the ring at radius around this coord token instead of a band; units are pushed straight away from it."
+					},
+					"max_height": {
+						"type": "integer",
+						"description": "stomp and ring shift: tiles above this height are left alone (a raised deck beside a leg)."
+					},
+					"crater": {
+						"type": "boolean",
+						"description": "stomp: sink the footprint one step (default true)."
+					},
 					"sight": {
 						"type": "integer"
 					},
@@ -305,12 +318,18 @@
 						"high_tile",
 						"low_tile",
 						"player_anchor",
-						"enemy_anchor"
+						"enemy_anchor",
+						"heart",
+						"gangway"
 					]
 				},
 				{
 					"type": "string",
 					"pattern": "^(axis|flank):-?[0-9]+$"
+				},
+				{
+					"type": "string",
+					"pattern": "^-?[0-9]+, ?-?[0-9]+$"
 				},
 				{
 					"type": "array",

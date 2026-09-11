@@ -8,21 +8,29 @@ using System.Text.Json.Nodes;
 // CastleDefenseCompiler.cs
 //
 // Purpose:        Compiles the "Defend the Castle" battlefield
-//                 (castle_defense_v1, mobile fortress spec F6): the
-//                 walking castle sits on one rim of the map as a two-deep
-//                 half ring (outer wall, inner rampart) around a courtyard
-//                 with the Castle Heart at the rim, a three-tile gate
-//                 facing the field, station tiles on the rampart for the
-//                 installed castle modules, and backdrop towers past the
-//                 rim so the castle reads as continuing off the map. The
-//                 field in front carries cover lines and an approach lane.
+//                 (castle_defense_v2, mobile fortress spec F6). The
+//                 walking castle is a BODY on one rim of the map, not a
+//                 walled yard: a stone platform one step above the ground
+//                 around the Castle Heart, ringed by a waist-high iron
+//                 bulwark at its edge, with one gate at ground level. The
+//                 field ring around the platform is flattened so the step
+//                 is exactly one everywhere; the bulwark makes the gate the
+//                 only way up, so the gate is the fight. Past the
+//                 rim the hull continues as off-map sections, two legs,
+//                 and chimneys, so what stands on the map reads as the
+//                 flank of something huge. Station tiles sit on the deck's
+//                 outer ring; two smoke stacks on the deck break sight.
+//                 The castle also ACTS: the compiler authors map events
+//                 (leg stomps, a furnace vent onto the gangway foot, a
+//                 hull lurch) so the body moves during the fight.
 //                 Emits a MapRecipe JSON in the same shape the city
-//                 compiler does, so HexGridManager, SiegeDoors, the
-//                 objective zone, and the backdrop all consume it unchanged.
+//                 compiler does, so HexGridManager, the objective zone,
+//                 the backdrop, and MapEvents all consume it unchanged.
 // Layer:          Systems / Combat / Terrain
-// Collaborators:  MapRecipe (siege block), CombatManager.SiegeDoors (gate
-//                 door units), CombatManager.CastleDefense (Heart,
-//                 stations, wizard arrival), CastleModules (stations)
+// Collaborators:  MapRecipe (siege block, backdrop stamps), CombatManager
+//                 .CastleDefense (Heart, stations, wizard arrival, Heart
+//                 pulse), CombatManager.MapEvents (stomp, shift ring,
+//                 imbue_patch), CastleModules (stations)
 // See:            docs/castle_defense_v1.md
 // ============================================================
 
@@ -43,10 +51,11 @@ public sealed class CastleWindowResult
 public static class CastleDefenseCompiler
 {
     public const int DefaultMapRadius = 7;
-    public const int CourtyardRadius = 1;     // Heart + ring 1 = courtyard floor
-    public const int RampartRadius = 2;       // walkable, raised
-    public const int WallRadius = 3;          // the curtain wall
-    public const int RampartHeight = 2;
+    public const int DeckRadius = 2;          // Heart + rings 1..2 = the deck
+    public const int EdgeRadius = 3;          // bulwark ring at the deck's edge
+    public const int SkirtRadius = 4;         // the field ring around the edge, flattened to 0
+    public const int DeckHeight = 1;          // one step above the flattened skirt
+    public const float DeckLift = DeckHeight * 0.6f;   // HexTile.HeightStep, world Y of the deck line
 
     // Clockwise from east. MUST match HexDirection.All / HexGridManager.HexDirs.
     private static readonly (int q, int r)[] Dirs =
@@ -101,42 +110,56 @@ public static class CastleDefenseCompiler
             heart = (q: -R + 1, r: (R - 1) / 2 + ((R - 1) % 2 == 0 ? 0 : -1));
         result.Heart = heart;
 
-        var courtyard = Disk(heart, CourtyardRadius).Where(arena.Contains).ToList();
-        var rampart = Disk(heart, RampartRadius).Where(t => HexDist(t, heart) == RampartRadius).ToList();
-        var wallAll = Disk(heart, WallRadius).Where(t => HexDist(t, heart) == WallRadius).ToList();
-        var wallIn = wallAll.Where(arena.Contains).ToList();
-        var wallOut = wallAll.Where(t => !arena.Contains(t)).ToList();     // backdrop
-        var rampartIn = rampart.Where(arena.Contains).ToList();
+        var deck = Disk(heart, DeckRadius).Where(arena.Contains).ToList();
+        var edge = Disk(heart, EdgeRadius).Where(t => HexDist(t, heart) == EdgeRadius && arena.Contains(t)).ToList();
+        var outerRing = deck.Where(t => HexDist(t, heart) == DeckRadius).ToList();
 
-        // Gate: the three mutually adjacent wall tiles furthest toward +X (the field).
-        var front = wallIn.OrderByDescending(WorldX).ThenBy(t => Math.Abs(WorldZ(t) - WorldZ(heart))).ToList();
-        var gate = new List<(int q, int r)> { front[0] };
-        foreach (var t in front.Skip(1))
-        {
-            if (gate.Count >= 3) break;
-            if (gate.Any(g => HexDist(g, t) == 1))
-                gate.Add(t);
-        }
-        result.GateGap = gate;
-        result.WallTiles = wallIn.Where(t => !gate.Contains(t)).ToList();
-        result.RampartTiles = rampartIn;
-        result.Courtyard = courtyard;
+        // Gate: the edge tile furthest toward +X (the field), at ground level, and
+        // the skirt tile in front of it (the gate foot). The deck is one step up
+        // from the gate, so the gate is the only way onto it that is not a wall.
+        var gangTop = edge.OrderByDescending(WorldX).ThenBy(t => Math.Abs(WorldZ(t) - WorldZ(heart))).First();
+        var dirOut = Dirs
+            .Where(d => HexDist((gangTop.q + d.q, gangTop.r + d.r), heart) == EdgeRadius + 1)
+            .OrderByDescending(d => WorldX((gangTop.q + d.q, gangTop.r + d.r)))
+            .First();
+        var gangA = (q: gangTop.q + dirOut.q, r: gangTop.r + dirOut.r);
+        if (!arena.Contains(gangA)) gangA = gangTop;
+        var gangFoot = gangA;
+        var gangway = new List<(int q, int r)> { gangTop, gangA };
+        result.GateGap = gangway;
+        // The skirt: the field ring just outside the edge, flattened to ground so
+        // the deck is exactly one step above it everywhere.
+        var skirt = Disk(heart, SkirtRadius).Where(t => arena.Contains(t) && HexDist(t, heart) == SkirtRadius).ToList();
 
-        // Anchors: the player musters in the courtyard just inside the gate; the
-        // enemy comes from the far rim.
-        var gateCentre = gate.OrderBy(t => Math.Abs(WorldZ(t) - WorldZ(heart))).First();
-        var inside = rampartIn.Where(t => gate.Any(g => HexDist(g, t) == 1)).OrderBy(t => HexDist(t, heart)).FirstOrDefault();
-        result.PlayerAnchor = courtyard.OrderByDescending(WorldX).First();
+        // The bulwark: every edge tile but the gangway top.
+        var bulwark = edge.Where(t => t != gangTop).ToList();
+        result.WallTiles = bulwark;
+        result.RampartTiles = outerRing;
+        result.Courtyard = deck;
+
+        // Anchors: the crew musters on the deck by the gangway; the enemy comes
+        // from the far rim.
+        var inside = outerRing.Where(t => HexDist(t, gangTop) == 1).OrderBy(t => HexDist(t, heart)).FirstOrDefault();
+        result.PlayerAnchor = deck.OrderByDescending(WorldX).First();
         result.EnemyAnchor = arena.OrderByDescending(WorldX).ThenBy(t => Math.Abs(WorldZ(t))).First();
 
-        // Stations: rampart tiles, gate flanks first (the towers), then spread
-        // along the arc by distance from the gate.
-        var stationOrder = rampartIn
-            .Where(t => t != inside)
-            .OrderBy(t => gate.Min(g => HexDist(g, t)))
+        // Two smoke stacks on the deck's outer ring, one per flank, never beside
+        // the gangway. They break sight across the deck.
+        var stackCandidates = outerRing.Where(t => t != inside && HexDist(t, gangTop) > 1).ToList();
+        var stacks = new List<(int q, int r)>();
+        if (stackCandidates.Count >= 2)
+        {
+            stacks.Add(stackCandidates.OrderBy(WorldZ).First());
+            stacks.Add(stackCandidates.OrderByDescending(WorldZ).First());
+        }
+
+        // Stations: outer-ring deck tiles, nearest the gangway first, sides
+        // interleaved so two stations do not stack on one flank.
+        var stationOrder = outerRing
+            .Where(t => t != inside && !stacks.Contains(t))
+            .OrderBy(t => HexDist(t, gangTop))
             .ThenByDescending(WorldX)
             .ToList();
-        // Interleave sides so two stations do not stack on the same flank.
         var left = stationOrder.Where(t => WorldZ(t) < WorldZ(heart)).ToList();
         var right = stationOrder.Where(t => WorldZ(t) >= WorldZ(heart)).ToList();
         var slots = new List<(int q, int r)>();
@@ -148,16 +171,45 @@ public static class CastleDefenseCompiler
         for (int i = 0; i < modules.Count && i < slots.Count; i++)
             result.Stations.Add((slots[i], modules[i]));
 
+        // ── The body past the rim ─────────────────────────────────────────────
+        // One ring of hull plates where the edge ring leaves the arena (kept low:
+        // the camera sits behind this rim and must see over it), two legs further
+        // out on each flank, and two chimneys behind the Heart.
+        var hullOut = Disk(heart, EdgeRadius)
+            .Where(t => !arena.Contains(t) && HexDist(t, heart) == EdgeRadius)
+            .ToList();
+        var legRing = Disk(heart, EdgeRadius + 3).Where(t => !arena.Contains(t) && HexDist(t, heart) == EdgeRadius + 3).ToList();
+        var legs = new List<(int q, int r)>();
+        if (legRing.Count >= 2)
+        {
+            legs.Add(legRing.OrderBy(WorldZ).First());
+            legs.Add(legRing.OrderByDescending(WorldZ).First());
+        }
+        var chimneys = Disk(heart, EdgeRadius + 1)
+            .Where(t => !arena.Contains(t) && HexDist(t, heart) == 2)
+            .OrderBy(t => Math.Abs(WorldZ(t) - WorldZ(heart)))
+            .Take(2)
+            .ToList();
+
+        // ── Where the castle acts on the field ────────────────────────────────
+        // Leg stomps land on the field beside each flank; the furnace vents onto
+        // the gangway foot; the hull lurch shoves whoever presses the deck edge.
+        var fieldRing = Disk(heart, EdgeRadius + 2)
+            .Where(t => arena.Contains(t) && HexDist(t, heart) == EdgeRadius + 2 && t != gangFoot)
+            .ToList();
+        var leftFoot = fieldRing.OrderBy(WorldZ).First();
+        var rightFoot = fieldRing.OrderByDescending(WorldZ).First();
+
         // ── Features ──────────────────────────────────────────────────────────
         var features = new JsonArray();
         string terrain = FieldTerrain(overworldTerrain);
 
-        // Approach lane from the far rim to the gate, then the cover the field needs.
+        // Approach lane from the far rim to the gangway foot, then the cover the field needs.
         features.Add(new JsonObject
         {
             ["feature"] = "carve_lane", ["phase"] = "skeleton",
             ["from"] = new JsonArray(result.EnemyAnchor.q, result.EnemyAnchor.r),
-            ["to"] = new JsonArray(gateCentre.q, gateCentre.r),
+            ["to"] = new JsonArray(gangFoot.q, gangFoot.r),
             ["width"] = 0,
         });
         features.Add(new JsonObject
@@ -171,21 +223,25 @@ public static class CastleDefenseCompiler
             ["at"] = "axis:4", ["length"] = 5, ["kind"] = "low", ["gaps"] = 2, ["fill"] = 0.8,
         });
 
-        // Courtyard and rampart floors are paved stone; the rampart is raised.
-        foreach (var t in courtyard.Concat(rampartIn).Concat(gate))
+        // The ground is made normally; the skirt ring is flattened to 0; the deck
+        // and edge are a stone platform one step up; the gate and its foot stay at
+        // ground level.
+        foreach (var t in skirt)
+            features.Add(Tile(t, "height", 0));
+        foreach (var t in deck.Concat(edge))
         {
             features.Add(Tile(t, "terrain", "stone"));
+            features.Add(Tile(t, "height", DeckHeight));
         }
-        foreach (var t in rampartIn)
-            features.Add(Tile(t, "height", RampartHeight));
+        features.Add(Tile(gangTop, "height", 0));
+        features.Add(Tile(gangA, "terrain", "stone"));
+        features.Add(Tile(gangA, "height", 0));
 
-        // The curtain wall.
-        foreach (var t in result.WallTiles)
-            features.Add(Tile(t, "obstacle_kind", "wall"));
-
-        // Parapet: the wall's own tiles are High cover for anyone on the rampart
-        // beside them, so no extra op is needed. The gate tiles stay open ground;
-        // SiegeDoors fields the doors.
+        // Bulwark at the edge, stacks on the deck.
+        foreach (var t in bulwark)
+            features.Add(Tile(t, "obstacle_kind", "hull_bulwark"));
+        foreach (var t in stacks)
+            features.Add(Tile(t, "obstacle_kind", "smoke_stack"));
 
         // Field dressing: two rock clusters and a cask near the approach.
         features.Add(new JsonObject
@@ -204,12 +260,41 @@ public static class CastleDefenseCompiler
             ["kind"] = "powder_cask", ["count"] = 1,
         });
 
+        // ── The castle's beats (map events) ───────────────────────────────────
+        var events = new JsonArray
+        {
+            new JsonObject
+            {
+                ["id"] = "stomp_left", ["kind"] = "stomp", ["round"] = 2, ["repeat_every"] = 4, ["telegraph"] = 1,
+                ["at"] = $"{leftFoot.q},{leftFoot.r}", ["radius"] = 1, ["damage"] = 6,
+                ["announce"] = "The castle shifts its weight: a leg comes down on the left flank.",
+            },
+            new JsonObject
+            {
+                ["id"] = "stomp_right", ["kind"] = "stomp", ["round"] = 4, ["repeat_every"] = 4, ["telegraph"] = 1,
+                ["at"] = $"{rightFoot.q},{rightFoot.r}", ["radius"] = 1, ["damage"] = 6,
+                ["announce"] = "The castle shifts its weight: a leg comes down on the right flank.",
+            },
+            new JsonObject
+            {
+                ["id"] = "furnace_vent", ["kind"] = "imbue_patch", ["round"] = 3, ["repeat_every"] = 3, ["telegraph"] = 1,
+                ["at"] = $"{gangFoot.q},{gangFoot.r}", ["radius"] = 1, ["element"] = "fire",
+                ["announce"] = "The furnace vents: fire rolls over the gangway foot.",
+            },
+            new JsonObject
+            {
+                ["id"] = "hull_lurch", ["kind"] = "shift", ["round"] = 5, ["repeat_every"] = 5, ["telegraph"] = 1,
+                ["ring"] = "heart", ["radius"] = EdgeRadius + 1, ["tiles"] = 1, ["damage"] = 2,
+                ["announce"] = "The hull lurches: everything pressed against it is thrown back.",
+            },
+        };
+
         // ── Recipe ────────────────────────────────────────────────────────────
         result.RecipeId = $"castle_defense_{terrain}_{seed:x8}";
         var recipe = new JsonObject
         {
             ["id"] = result.RecipeId,
-            ["display_name"] = "The Castle Gate",
+            ["display_name"] = "The Gangway",
             ["shape"] = new JsonObject { ["type"] = "hexagon", ["radius"] = R },
             ["base_terrain"] = new JsonObject
             {
@@ -220,18 +305,25 @@ public static class CastleDefenseCompiler
                 ["min_height_step"] = 0,
                 ["palette"] = new JsonArray(new JsonObject { ["terrain"] = terrain }),
             },
-            ["tactics"] = new JsonObject { ["max_visibility"] = 0.5, ["min_cover"] = 0.25 },
+            // A siege is meant to be seen across: the deck overlooks the field by
+            // design, so the visibility ceiling that protects open maps is off here.
+            ["tactics"] = new JsonObject { ["max_visibility"] = 1.0, ["min_cover"] = 0.25 },
             ["features"] = features,
+            ["map_events"] = events,
             ["siege"] = new JsonObject
             {
                 ["vector"] = "CastleDefense",
-                ["entry"] = "gate",
+                ["entry"] = "gangway",
                 ["defending"] = true,
                 ["player_anchor"] = new JsonArray(result.PlayerAnchor.q, result.PlayerAnchor.r),
                 ["enemy_anchor"] = new JsonArray(result.EnemyAnchor.q, result.EnemyAnchor.r),
-                ["gate_gap"] = new JsonArray(gate.Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
-                ["objective_zone"] = new JsonArray(courtyard.Concat(rampartIn).Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
-                ["backdrop_wall"] = new JsonArray(wallOut.Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
+                ["gate_gap"] = new JsonArray(gangway.Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
+                ["objective_zone"] = new JsonArray(deck.Append(gangTop).Select(t => (JsonNode)new JsonArray(t.q, t.r)).ToArray()),
+                ["backdrop_stamps"] = new JsonArray(
+                    hullOut.Select(t => (JsonNode)Stamp(t, "hull", $"hull_{t.q}_{t.r}", 0, 2.2f, DeckLift))
+                    .Concat(legs.Select(t => (JsonNode)Stamp(t, "leg", $"leg_{t.q}_{t.r}", 0, 7f, DeckLift)))
+                    .Concat(chimneys.Select(t => (JsonNode)Stamp(t, "stack", $"stack_{t.q}_{t.r}", 0, 6f, DeckLift)))
+                    .ToArray()),
                 ["heart"] = new JsonArray(heart.q, heart.r),
                 ["stations"] = new JsonArray(result.Stations.Select(s => (JsonNode)new JsonObject
                 {
@@ -271,10 +363,20 @@ public static class CastleDefenseCompiler
             Description = "Defend the castle. If the Heart breaks, the castle limps home.",
         };
         CombatManager.NextCombatIsCastleDefense = true;
-        GD.Print($"[CastleDefense] armed '{win.RecipeId}': walls={win.WallTiles.Count} rampart={win.RampartTiles.Count} " +
-                 $"gate={win.GateGap.Count} stations={win.Stations.Count} heart=({win.Heart.q},{win.Heart.r})");
+        GD.Print($"[CastleDefense] armed '{win.RecipeId}': deck={win.Courtyard.Count} bulwark={win.WallTiles.Count} " +
+                 $"gangway={win.GateGap.Count} stations={win.Stations.Count} heart=({win.Heart.q},{win.Heart.r})");
         return true;
     }
+
+    private static JsonObject Stamp((int q, int r) t, string kind, string id, int radius, float height, float lift) => new()
+    {
+        ["at"] = new JsonArray(t.q, t.r),
+        ["kind"] = kind,
+        ["id"] = id,
+        ["radius"] = radius,
+        ["height"] = height,
+        ["lift"] = lift,
+    };
 
     private static JsonObject Tile((int q, int r) t, string key, JsonNode value) => new()
     {

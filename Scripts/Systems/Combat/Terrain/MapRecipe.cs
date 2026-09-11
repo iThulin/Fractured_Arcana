@@ -288,10 +288,13 @@ public sealed class MapEventDef
     public bool Spent = false;
     public int FiredCount = 0;
     public Unit LeverUnit;
+    /// <summary>Set by the Interact action: a unit worked the lever this round, so the
+    /// boundary reads it as held whether or not anyone still stands beside it.</summary>
+    public bool HeldByAction = false;
 
     public void ResetRuntime()
     {
-        AwakenedRound = -1; Delay = 0; Suppressed = false; Spent = false; FiredCount = 0; LeverUnit = null;
+        AwakenedRound = -1; Delay = 0; Suppressed = false; Spent = false; FiredCount = 0; LeverUnit = null; HeldByAction = false;
     }
 
     public bool Has(string key) => Raw != null && Raw.ContainsKey(key);
@@ -304,7 +307,7 @@ public sealed class MapEventDef
     /// law (must warn at least one round ahead; the loader clamps telegraph to >= 1).</summary>
     public static bool IsDestructiveKind(string kind)
         => kind == "collapse_tiles" || kind == "flood" || kind == "crumble_edge"
-           || kind == "shift" || kind == "raise_wall";
+           || kind == "shift" || kind == "raise_wall" || kind == "stomp";
 }
 
 /// <summary>One off-map building mass for the siege backdrop.</summary>
@@ -313,6 +316,14 @@ public sealed class SiegeBackdropStamp
     public Vector2I At;
     public int Radius = 2;
     public string Id = "";
+    /// <summary>castle body: "mass" (city building, default), "hull" (a hull section
+    /// rising from the deck line), "leg" (a narrow column going down past the floor),
+    /// "stack" (a thin tall chimney). Only the placeholder shape differs.</summary>
+    public string Kind = "mass";
+    /// <summary>World height of the placeholder; 0 = the kind's default.</summary>
+    public float Height = 0f;
+    /// <summary>World Y the placeholder's base sits at (deck line for hull sections).</summary>
+    public float Lift = 0f;
 }
 
 /// <summary>City-siege recipe extras (CityBattlemapCompiler): authored spawn
@@ -421,6 +432,9 @@ public sealed class SiegeSpec
                     At = at.Value,
                     Radius = MapRecipe.Int(sd, "radius", 2),
                     Id = MapRecipe.Str(sd, "id", ""),
+                    Kind = MapRecipe.Str(sd, "kind", "mass"),
+                    Height = sd.ContainsKey("height") ? sd["height"].AsSingle() : 0f,
+                    Lift = sd.ContainsKey("lift") ? sd["lift"].AsSingle() : 0f,
                 });
             }
         }

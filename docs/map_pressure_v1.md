@@ -12,7 +12,7 @@ All keyed by round / repeat_every / telegraph like the existing kinds. `at` now 
 
 | Kind | What it does | Keys |
 |---|---|---|
-| `flood` | Every walkable tile at or below the water level becomes water. Occupants are shoved to the nearest dry tile within 3 and take `damage`. Level starts at `level` (default -1) and rises `rise` per firing. | level, rise, damage |
+| `flood` | Every walkable tile at or below the water level becomes water. Occupants are shoved to the nearest dry tile within 3 and take `damage`. Level starts at `level` (default -1) and rises `rise` per firing. Dry-share cap (2026-09-08): the tide never takes more than 60 percent of the map's original dry ground; on a flat map the level is lowered until enough stays dry, and when nothing more can drown the log says so. The telegraph uses the same cap. The water plane is rebuilt after each rise so the shoreline follows. | level, rise, damage |
 | `advance_front` | A hazard shell expanding from `at` by `steps` per firing from `radius`. From a side anchor it reads as a front sweeping the field; from the midpoint it is the cauldron ring in reverse. | at, element, radius, steps |
 | `crumble_edge` | Everything at or beyond the current radius from `at` becomes `into` (chasm by default), evicting occupants inward. Radius starts at the map radius and shrinks `steps` per firing, floored at 2. | at, radius, steps, into |
 | `trap` | Plants `count` neutral glyphs (team 2: they trip for both sides) on open tiles within `radius` of `at`, biased toward the player-enemy lane and never within 2 of a deployment anchor. `damage`, optional `status` / `duration`, `hidden`. | at, radius, count, damage, status, duration, hidden |
@@ -44,6 +44,8 @@ Every recipe except `rolling_hills` and the three with existing events now carri
 bf_cauldron keeps its fire ring, bf_causeway its collapse, bf_ford its weather.
 
 ## 4. Open items
+
+0. Observed 2026-09-08 on marsh_flats: the first rise (level 0) drowned nearly the whole map because the base terrain there is almost all height 0 (min -1, max 1, low elevation frequency). The cap above stops the strand; the deeper fix is relief. Flood maps should carry real height spread (min -2, max 2, a ridge or two) so successive rises take the field in bands instead of at once.
 
 1. Not run in-engine. Watch: the flood on the Ford (does the first rise drown the deployments? spawn tiles are not exempt by design, but the anchors are picked at 12 percent of the X span, which on a river map may be low ground); the crumble on the Causeway (radius 5 on a blob shape may take the first bite too early); trap placement on maps with no clear lane.
 2. Flood eviction uses `SuppressFalling` and a flat drown damage; no swimming, no wading. Units with no dry tile within 3 take the damage and stay put in the water tile, which the tile then rejects for everyone else. Acceptable for v1; a "drowning" status per round would be the follow-up.

@@ -23,6 +23,13 @@ public sealed class CastleStationSpec
 {
     public string Kind = "";
     public string Label = "";
+    /// <summary>Crew weapon (ballista): its own attack, fired by whoever mans the
+    /// tile. Range, damage, AP cost, tiles the bolt throws the target, shots per round.</summary>
+    public int Range;
+    public int Damage;
+    public int Ap = 2;
+    public int Push;
+    public int Shots = 1;
     public int RangeBonus;
     public int DamageBonus;
     public int Shield;
@@ -140,6 +147,11 @@ public static class CastleModules
                 {
                     Kind = MapRecipe.Str(sd, "kind", ""),
                     Label = MapRecipe.Str(sd, "label", def.Name),
+                    Range = MapRecipe.Int(sd, "range", 0),
+                    Damage = MapRecipe.Int(sd, "damage", 0),
+                    Ap = MapRecipe.Int(sd, "ap", 2),
+                    Push = MapRecipe.Int(sd, "push", 0),
+                    Shots = MapRecipe.Int(sd, "shots", 1),
                     RangeBonus = MapRecipe.Int(sd, "range_bonus", 0),
                     DamageBonus = MapRecipe.Int(sd, "damage_bonus", 0),
                     Shield = MapRecipe.Int(sd, "shield", 0),

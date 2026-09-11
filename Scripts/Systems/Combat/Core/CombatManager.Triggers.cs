@@ -729,6 +729,7 @@ public partial class CombatManager
         if (mover == null || !IsInstanceValid(mover) || !mover.Stats.IsAlive
             || !mover.IsPlayerControlled || mover.CurrentTile == null)
             return;
+        ApplyStationBonusFor(mover, log: true);   // castle_defense_v2: stations are live on entry
 
         foreach (var (carrier, ab) in LivingAuraCarriers("binding_geas"))
         {

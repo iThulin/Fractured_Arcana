@@ -265,6 +265,8 @@ public partial class CombatManager : Node3D
             combatUI.ScrollsPressed += OnScrollsPressed;             // consumables (2026-08-13)
             combatUI.UseConsumablePressed += OnUseConsumablePressed;
             combatUI.StanceSwitchRequested += OnStanceSwitchRequested;   // 2026-07-29 stance switcher
+            combatUI.UnitActionRequested += OnUnitActionRequested;       // 2026-09-08 action bar
+            combatUI.ActionProvider = ActionsFor;
             combatUI.PriorityPassPressed += OnPriorityPassPressed;   // U3 trigger window
             combatUI.PriorityRespondPressed += OnPriorityRespondPressed;   // §7c Respond affordance
             combatUI.EnemyRowHovered += OnEnemyRowHovered;           // V2 roster hover → threat overlay
@@ -421,7 +423,8 @@ public partial class CombatManager : Node3D
             if (!_isCardBeingDragged)
             {
                 if (hitUnit != null && !hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive
-                    && selectedUnit != null && selectedUnit.IsMartial && currentPhase == CombatPhase.PlayerTurn)
+                    && selectedUnit != null && (selectedUnit.IsMartial || selectedUnit.StationWeapon != null)
+                    && currentPhase == CombatPhase.PlayerTurn)
                     ShowMartialPreview(selectedUnit, hitUnit);
                 else
                     ClearMartialPreview();
@@ -483,11 +486,12 @@ public partial class CombatManager : Node3D
     {
         int zoc = ZoneOfControlCostTo(unit, dest);
         bool cover = grid.HasAnyCover(dest);
-        if (zoc <= 0 && !cover)
-            return "";
-        string a = zoc > 0 ? $"free strike: -{zoc}" : "";
-        string b = cover ? "cover" : "";
-        return a.Length > 0 && b.Length > 0 ? a + "  " + b : a + b;
+        string station = StationHoverSuffix(dest);
+        var parts = new List<string>();
+        if (zoc > 0) parts.Add($"free strike: -{zoc}");
+        if (cover) parts.Add("cover");
+        if (station.Length > 0) parts.Add(station);
+        return string.Join("  ", parts);
     }
 
     private void InitZoneRenderer()
@@ -514,8 +518,8 @@ public partial class CombatManager : Node3D
         {
             if (unit == null)
                 continue;
-            if (unit.IsStructure)
-                continue;   // doors do not study: no deck, no draws
+            if (unit.IsStructure || unit.IsObjectiveWard)
+                continue;   // doors and the Castle Heart do not study: no deck, no draws
             if (unit.IsMartial)
                 continue;
 
@@ -868,6 +872,8 @@ public partial class CombatManager : Node3D
             // Right-click cancels a pending second pick before anything else reads it.
             if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && TwoStepPending)
             { CancelTwoStep(); return; }
+            if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && _armedAction != UnitAction.None)
+            { DisarmAction(); return; }
 
             if (mb.ButtonIndex == MouseButton.Left)
             {
@@ -882,6 +888,9 @@ public partial class CombatManager : Node3D
         if (e is InputEventKey esc && esc.Pressed && !esc.Echo
             && esc.Keycode == Key.Escape && TwoStepPending)
         { CancelTwoStep(); return; }
+        if (e is InputEventKey escA && escA.Pressed && !escA.Echo
+            && escA.Keycode == Key.Escape && _armedAction != UnitAction.None)
+        { DisarmAction(); return; }
 
         // (2026-07-28, PT-U3e-4) These two lines deadlocked the enemy phase.
         //
@@ -992,20 +1001,19 @@ public partial class CombatManager : Node3D
 
                 if (unit.IsPlayerControlled)
                 {
+                    if (_armedAction == UnitAction.Swap && selectedUnit != null && unit != selectedUnit)
+                    {
+                        if (TryDanceSwap(selectedUnit, unit))
+                        { DisarmAction(); return; }
+                    }
                     inspectedEnemyUnit = null;
                     SelectUnit(unit);
                 }
                 else
                 {
-                    // If selected unit is a martial, try to attack (Ctrl+click: shove)
-                    if (selectedUnit != null && selectedUnit.IsMartial)
-                    {
-                        if (Input.IsKeyPressed(Key.Ctrl) || Input.IsKeyPressed(Key.Meta))
-                            TryMartialShove(selectedUnit, unit);
-                        else
-                            TryMartialAttack(selectedUnit, unit);
+                    // The armed bar action, a modifier shortcut, or the default strike.
+                    if (TryArmedOrDefaultAction(unit))
                         return;
-                    }
                     InspectEnemy(unit);
                 }
                 return;
@@ -1013,6 +1021,13 @@ public partial class CombatManager : Node3D
 
             if (current is HexTile tile)
             {
+                // Interact armed: a click on a breakable wall is a blow, not a move.
+                if (_armedAction == UnitAction.Interact && selectedUnit != null)
+                {
+                    TryBreakObstacle(selectedUnit, tile.Axial);
+                    DisarmAction();
+                    return;
+                }
                 TryMoveSelectedUnit(tile);
                 return;
             }
@@ -1550,6 +1565,8 @@ public partial class CombatManager : Node3D
         // construction (0 AP, 0 move, no deck) and off the unit bar.
         if (unit == null || !unit.IsPlayerControlled || unit.IsAwaitingArrival)
             return;
+        if (unit != selectedUnit)
+            DisarmAction(refresh: false);   // an armed action belongs to the unit that armed it
 
         // Collapse previous selection's bar
         selectedUnit?.SetDetailedBar(false);
@@ -2443,6 +2460,7 @@ public partial class CombatManager : Node3D
             }
         }
         ApplyStationBonuses();   // castle_defense_v1: manned stations at turn start
+        ApplyArrivalShock();     // castle_defense_v1: the wizard's arrival turn has no AP
 
 
         // ── Board-wide upkeep: ONCE per round, not once per party member ──────────
@@ -2647,6 +2665,7 @@ public partial class CombatManager : Node3D
         inspectedEnemyUnit = null;
         ClearMoveTiles();
         GD.Print("=== Player Turn End ===");
+        DisarmAction(refresh: false);   // an armed bar action does not survive the turn
         RefreshPhaseUI();
 
         // ── Extra turn check ──────────────────────────────────────────────────────
@@ -3125,6 +3144,8 @@ public partial class CombatManager : Node3D
         // on updated terrain and zones read against reality.
         EvaluateMapEvents();
         RunStationRoundEffects();   // castle_defense_v1: winch mends, braziers tip
+        AssignSiegeRoles();         // castle_defense_v1: new arrivals pick a target
+        HeartPulse();               // castle_defense_v2: the Heart answers its wounds
         TryArriveWizard();          // castle_defense_v1: the waystone opens
 
         // E3: Ward Stone aura, granting armour to whoever holds ground near a ward stone.

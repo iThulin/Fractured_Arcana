@@ -466,6 +466,48 @@
       ],
       "label": "Sea Stack",
       "hp": 0
+    },
+    {
+      "kind": "hull_bulwark",
+      "role": "low",
+      "silhouette": "mass",
+      "material": "ironwork",
+      "color": [
+        0.3,
+        0.27,
+        0.25
+      ],
+      "label": "Bulwark",
+      "hp": 12,
+      "note": "The castle deck's edge rail: iron plate, waist high, one plate per tile so the curved ring never clips. Low cover for the crew on the deck; breaks under bursts and bodies like any slab."
+    },
+    {
+      "kind": "smoke_stack",
+      "role": "high",
+      "silhouette": "pillar",
+      "material": "ironwork",
+      "color": [
+        0.21,
+        0.2,
+        0.2
+      ],
+      "label": "Stack",
+      "hp": 0,
+      "note": "A furnace chimney on the deck. Blocks sight, cannot be broken."
+    },
+    {
+      "kind": "hull_plate",
+      "role": "high",
+      "silhouette": "slab",
+      "material": "ironwork",
+      "color": [
+        0.3,
+        0.27,
+        0.25
+      ],
+      "label": "Hull Plate",
+      "hp": 0,
+      "note": "Riveted hull wall where the deck meets the body. Blocks sight, cannot be broken."
     }
   ]
 }

@@ -375,8 +375,9 @@ public partial class HexGridManager : Node3D
     }
 
     /// <summary>Public resolver for the recipe coord vocabulary (center, midpoint,
-    /// player_anchor, enemy_anchor, axis:N, flank:N, random, high_tile, low_tile),
-    /// so map events can be placed with the same tokens as features.</summary>
+    /// player_anchor, enemy_anchor, axis:N, flank:N, random, high_tile, low_tile,
+    /// a literal "q,r", and on castle recipes heart and gangway), so map events
+    /// can be placed with the same tokens as features.</summary>
     public Vector2I ResolveRecipeCoord(string token)
         => ResolveCoord(Variant.From(token ?? "center"));
 
@@ -390,6 +391,16 @@ public partial class HexGridManager : Node3D
         }
 
         string s = spec.VariantType == Variant.Type.String ? spec.AsString() : "center";
+
+        // castle_defense_v2: a literal "q,r" so a compiler can pin an event to a
+        // tile it computed, and the castle's own landmarks.
+        var qr = s.Split(',');
+        if (qr.Length == 2 && int.TryParse(qr[0].Trim(), out int _q) && int.TryParse(qr[1].Trim(), out int _r))
+            return new Vector2I(_q, _r);
+        if (s == "heart" && ActiveSiege?.Heart is Vector2I heartAt)
+            return heartAt;
+        if (s == "gangway" && ActiveSiege?.GateGap != null && ActiveSiege.GateGap.Count > 0)
+            return ActiveSiege.GateGap[ActiveSiege.GateGap.Count - 1];
 
         // E2.3: axis:N shifts the midpoint N tiles along the player->enemy axis
         // (negative = toward the player); flank:N shifts it N tiles perpendicular.

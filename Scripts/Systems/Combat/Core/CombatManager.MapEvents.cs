@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // ============================================================
 // CombatManager.MapEvents.cs  (partial of CombatManager)
@@ -49,6 +50,7 @@ public partial class CombatManager : Node3D
             _deathsThisCombat = 0;
             _destroyedObjectKinds.Clear();
             _firedEventIds.Clear();
+            _floodDryBaseline = -1;
             foreach (var ev in events)
                 ev?.ResetRuntime();
         }
@@ -219,13 +221,15 @@ public partial class CombatManager : Node3D
         if (!ev.LeverUnit.Stats.IsAlive || ev.LeverUnit.CurrentTile == null)
             return;
 
-        bool held = false;
-        foreach (var n in grid.GetNeighbors(ev.LeverUnit.CurrentTile.Axial))
-        {
-            var occ = grid.GetTile(n)?.Occupant;
-            if (occ != null && occ.Stats.IsAlive && !occ.IsMapObject)
-            { held = true; break; }
-        }
+        bool held = ev.HeldByAction;
+        ev.HeldByAction = false;
+        if (!held)
+            foreach (var n in grid.GetNeighbors(ev.LeverUnit.CurrentTile.Axial))
+            {
+                var occ = grid.GetTile(n)?.Occupant;
+                if (occ != null && occ.Stats.IsAlive && !occ.IsMapObject)
+                { held = true; break; }
+            }
 
         switch (ev.LeverMode.ToLowerInvariant())
         {
@@ -241,21 +245,44 @@ public partial class CombatManager : Node3D
                 break;
             case "pull":
                 if (held)
-                {
-                    combatUI?.AppendActionLog($"⚠ The lever is pulled: {EventName(ev)}.");
-                    if (string.IsNullOrEmpty(ev.When) || ev.AwakenedRound >= 0)
-                        ExecuteMapEvent(ev);
-                    else
-                        ev.AwakenedRound = roundNumber;   // a sleeping event is woken by the pull
-                    ev.Spent = ev.RepeatEvery == 0;
-                    var lever = ev.LeverUnit;
-                    ev.LeverUnit = null;
-                    if (lever != null && IsInstanceValid(lever) && lever.Stats.IsAlive)
-                        lever.ApplyDamage(999);   // the lever breaks: its death path frees the tile
-                }
+                    PullLever(ev);
                 break;
         }
     }
+
+    /// <summary>A pull-mode lever fires its event now (or wakes it), then breaks.</summary>
+    private void PullLever(MapEventDef ev)
+    {
+        combatUI?.AppendActionLog($"⚠ The lever is pulled: {EventName(ev)}.");
+        if (string.IsNullOrEmpty(ev.When) || ev.AwakenedRound >= 0)
+            ExecuteMapEvent(ev);
+        else
+            ev.AwakenedRound = roundNumber;   // a sleeping event is woken by the pull
+        ev.Spent = ev.RepeatEvery == 0;
+        var lever = ev.LeverUnit;
+        ev.LeverUnit = null;
+        if (lever != null && IsInstanceValid(lever) && lever.Stats.IsAlive)
+            lever.ApplyDamage(999);   // the lever breaks: its death path frees the tile
+    }
+
+    /// <summary>The event whose lever this map object is, or null.</summary>
+    private MapEventDef LeverEventFor(Unit lever)
+    {
+        if (lever == null || grid?.ActiveMapEvents == null)
+            return null;
+        foreach (var ev in grid.ActiveMapEvents)
+            if (ev.LeverUnit == lever)
+                return ev;
+        return null;
+    }
+
+    /// <summary>What working this lever does, for the bar and the hint.</summary>
+    private string LeverActionText(MapEventDef ev) => ev.LeverMode.ToLowerInvariant() switch
+    {
+        "hold" => $"hold the lever: {EventName(ev)} does not fire this round",
+        "delay" => $"work the lever: {EventName(ev)} is held back {Math.Max(1, ev.LeverAmount)} round(s)",
+        _ => $"pull the lever: {EventName(ev)} fires now",
+    };
 
     private Vector2I MapEventCenter(MapEventDef ev)
         => grid.ResolveRecipeCoord(ev.GetStr("at", "midpoint"));
@@ -346,8 +373,12 @@ public partial class CombatManager : Node3D
                 what = $"the wall comes down ({count} tile(s))";
                 break;
             case "shift":
-                count = ShiftBand(ev);
+                count = ev.Has("ring") ? ShiftRing(ev) : ShiftBand(ev);
                 what = $"the ground heaves ({count} unit(s) moved)";
+                break;
+            case "stomp":
+                count = Stomp(ev);
+                what = $"the ground is crushed ({count} unit(s) struck)";
                 break;
             case "fog":
                 {
@@ -384,6 +415,7 @@ public partial class CombatManager : Node3D
             msg = what;
         GD.Print($"[MapEvent] {msg}");
         combatUI?.AppendActionLog($"⚠ {msg}");
+        OnCastleBeat(ev);   // castle_defense_v2: the body plays the beat
     }
 
     // ── E4 destructive events + telegraph ─────────────────────────────────
@@ -428,9 +460,7 @@ public partial class CombatManager : Node3D
             case "flood":
             {
                 int level = FloodLevel(ev, fireRound);
-                foreach (var t in grid.Tiles.Values)
-                    if (t != null && t.Height <= level && t.TerrainType != TileTerrainType.Water && t.IsWalkable)
-                        list.Add(t);
+                list.AddRange(FloodTilesAt(level));
                 break;
             }
             case "crumble_edge":
@@ -444,7 +474,10 @@ public partial class CombatManager : Node3D
             case "raise_wall":
             case "drop_wall":
             case "shift":
-                list.AddRange(BandTiles(ev));
+                list.AddRange(ev.Has("ring") ? RingTiles(ev) : BandTiles(ev));
+                break;
+            case "stomp":
+                list.AddRange(StompTiles(ev));
                 break;
             case "reinforce_from":
                 list.AddRange(ArrivalTilesNear(MapEventCenter(ev), CountUnits(ev)));
@@ -525,6 +558,115 @@ public partial class CombatManager : Node3D
             RefreshThreatTiles();
         }
         return n;
+    }
+
+    // ── castle_defense_v2: the castle's own beats ──────────────────────────
+
+    /// <summary>Tiles at exactly `radius` from `ring` (a coord token), no higher
+    /// than `max_height` when given. The curved counterpart of BandTiles, for
+    /// bodies that act on everything pressed against them.</summary>
+    private List<TileData> RingTiles(MapEventDef ev)
+    {
+        var list = new List<TileData>();
+        var center = grid.ResolveRecipeCoord(ev.GetStr("ring", "center"));
+        int radius = Math.Max(1, ev.GetInt("radius", 1));
+        int maxH = ev.GetInt("max_height", int.MaxValue);
+        foreach (var t in grid.Tiles.Values)
+            if (t != null && grid.Distance(center, t.Axial) == radius && t.Height <= maxH)
+                list.Add(t);
+        return list;
+    }
+
+    /// <summary>shift with a `ring`: every unit on the ring is shoved `tiles`
+    /// straight away from the ring's centre through the resolver.</summary>
+    private int ShiftRing(MapEventDef ev)
+    {
+        var center = grid.ResolveRecipeCoord(ev.GetStr("ring", "center"));
+        int tiles = Math.Max(1, ev.GetInt("tiles", 1));
+        int collision = ev.GetInt("damage", 0);
+        var movers = new List<Unit>();
+        foreach (var t in RingTiles(ev))
+            if (t.Occupant != null && t.Occupant.Stats.IsAlive && !(t.Occupant.IsMapObject && !t.Occupant.Pushable))
+                movers.Add(t.Occupant);
+        int n = 0;
+        foreach (var u in movers)
+        {
+            if (u.CurrentTile == null || !u.Stats.IsAlive)
+                continue;
+            var dir = ForcedMove.StepAwayFrom(grid, center, u.CurrentTile.Axial);
+            if (dir == Vector2I.Zero)
+                continue;
+            var r = ForcedMove.Push(grid, u, dir, tiles, collision, null, m => combatUI?.AppendActionLog(m));
+            if (r.Pushed > 0 || r.Collided)
+                n++;
+        }
+        RefreshThreatTiles();
+        return n;
+    }
+
+    /// <summary>The disk a stomp lands on: `radius` around `at`, no higher than
+    /// `max_height` (so a leg beside a raised deck never lands on the deck).</summary>
+    private List<TileData> StompTiles(MapEventDef ev)
+    {
+        var list = new List<TileData>();
+        var center = MapEventCenter(ev);
+        int radius = Math.Max(0, ev.GetInt("radius", 1));
+        int maxH = ev.GetInt("max_height", int.MaxValue);
+        foreach (var t in grid.Tiles.Values)
+            if (t != null && grid.Distance(center, t.Axial) <= radius && t.Height <= maxH)
+                list.Add(t);
+        return list;
+    }
+
+    /// <summary>A leg comes down. Everything on the disk takes `damage`; anything
+    /// still standing on the rim of the disk is thrown one tile outward through
+    /// the resolver; the ground under the foot sinks one step (a footprint) unless
+    /// `crater` is false. Telegraphed a round ahead like every destructive kind.</summary>
+    private int Stomp(MapEventDef ev)
+    {
+        var center = MapEventCenter(ev);
+        int dmg = Math.Max(0, ev.GetInt("damage", 6));
+        bool crater = !ev.Has("crater") || ev.GetVariant("crater").AsBool();
+        var disk = StompTiles(ev);
+        int struck = 0;
+        var victims = new List<Unit>();
+        foreach (var t in disk)
+            if (t.Occupant != null && t.Occupant.Stats.IsAlive)
+                victims.Add(t.Occupant);
+        foreach (var u in victims)
+        {
+            if (dmg > 0 && !u.IsMapObject)
+            {
+                u.ApplyDamage(dmg);
+                combatUI?.AppendActionLog($"{u.DisplayName} is crushed under the foot: {dmg} damage.");
+            }
+            struck++;
+            if (u.CurrentTile == null || !u.Stats.IsAlive)
+                continue;
+            if (u.IsMapObject && !u.Pushable)
+                continue;
+            var dir = ForcedMove.StepAwayFrom(grid, center, u.CurrentTile.Axial);
+            if (dir != Vector2I.Zero)
+                ForcedMove.Push(grid, u, dir, 1, 0, null, m => combatUI?.AppendActionLog(m));
+        }
+        if (crater)
+        {
+            var footprint = disk.Where(t => t.IsWalkable && !t.IsBlocked && t.TerrainType != TileTerrainType.Water)
+                                .Select(t => t.Axial).ToList();
+            var changed = new List<Vector2I>();
+            foreach (var c in footprint)
+            {
+                var t = grid.GetTile(c);
+                if (t == null || t.Height <= -2)
+                    continue;
+                t.Height -= 1;
+                changed.Add(c);
+            }
+            foreach (var c in changed)
+                grid.RebuildTileAndNeighbors(c);
+        }
+        RefreshThreatTiles();
+        return struck;
     }
 
     /// <summary>Every unit standing in the band is shoved `tiles` along `push`
@@ -639,18 +781,90 @@ public partial class CombatManager : Node3D
     /// are shoved to the nearest dry tile and take <paramref name="damage"/>; the tile
     /// becomes water (impassable, sight clear). Spawn-reserved tiles are not exempt:
     /// the tide is the point.</summary>
+    /// <summary>The share of the map's original dry ground a flood must leave dry.
+    /// Flat maps (marsh_flats: heights -1..1, mostly 0) drown almost everything at
+    /// level 0, which strands both sides in the water with nowhere to go (observed
+    /// 2026-09-08). The tide is pressure, not a wipe.</summary>
+    private const float FloodMinDryShare = 0.40f;
+    private int _floodDryBaseline = -1;
+
+    /// <summary>The tiles a flood to <paramref name="level"/> would take, after the
+    /// dry-share cap: shared by the telegraph and the firing so the warning is honest.</summary>
+    private List<TileData> FloodTilesAt(int level)
+    {
+        int baseline = _floodDryBaseline;
+        if (baseline < 0)
+        {
+            baseline = 0;
+            foreach (var t in grid.Tiles.Values)
+                if (t != null && t.IsWalkable && !t.IsBlocked && t.TerrainType != TileTerrainType.Water)
+                    baseline++;
+        }
+        int mustStayDry = Mathf.CeilToInt(baseline * FloodMinDryShare);
+        int effective = level;
+        while (true)
+        {
+            var affected = new List<TileData>();
+            int dryAfter = 0;
+            foreach (var t in grid.Tiles.Values)
+            {
+                if (t == null || !t.IsWalkable || t.IsBlocked || t.TerrainType == TileTerrainType.Water)
+                    continue;
+                if (t.Height <= effective) affected.Add(t); else dryAfter++;
+            }
+            if (dryAfter >= mustStayDry || affected.Count == 0)
+                return affected;
+            effective--;
+        }
+    }
+
     private int FloodTo(int level, int damage)
     {
-        var affected = new List<TileData>();
-        foreach (var t in grid.Tiles.Values)
-            if (t != null && t.Height <= level && t.TerrainType != TileTerrainType.Water && t.IsWalkable)
-                affected.Add(t);
+        // Baseline: the walkable ground the map started with, measured once.
+        if (_floodDryBaseline < 0)
+        {
+            _floodDryBaseline = 0;
+            foreach (var t in grid.Tiles.Values)
+                if (t != null && t.IsWalkable && !t.IsBlocked && t.TerrainType != TileTerrainType.Water)
+                    _floodDryBaseline++;
+        }
+        int mustStayDry = Mathf.CeilToInt(_floodDryBaseline * FloodMinDryShare);
+
+        // Lower the level until enough ground stays dry. Integer heights on a flat
+        // map make this all-or-nothing per step, so the cap can hold the tide at
+        // the pockets it has already taken.
+        int effective = level;
+        List<TileData> affected = null;
+        while (true)
+        {
+            affected = new List<TileData>();
+            int dryAfter = 0;
+            foreach (var t in grid.Tiles.Values)
+            {
+                if (t == null || !t.IsWalkable || t.IsBlocked || t.TerrainType == TileTerrainType.Water)
+                    continue;
+                if (t.Height <= effective)
+                    affected.Add(t);
+                else
+                    dryAfter++;
+            }
+            if (dryAfter >= mustStayDry || affected.Count == 0)
+                break;
+            effective--;
+        }
+        if (effective < level)
+            combatUI?.AppendActionLog(affected.Count > 0
+                ? $"⚠ The water can rise only so far: it holds at the low ground."
+                : "⚠ The water can rise no further.");
+
         foreach (var t in affected)
         {
             if (t.Occupant != null && t.Occupant.Stats.IsAlive)
-                EvictToDry(t.Occupant, level, damage);
+                EvictToDry(t.Occupant, effective, damage);
             ConvertTile(t, "water");
         }
+        if (affected.Count > 0)
+            grid.SpawnWaterPlane();   // the surface follows the new shoreline
         return affected.Count;
     }
 
