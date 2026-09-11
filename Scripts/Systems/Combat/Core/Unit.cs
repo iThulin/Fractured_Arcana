@@ -736,8 +736,15 @@ public partial class Unit : Node3D
         CurrentTile = tile;
         tile.TrySetOccupant(this);
 
+        // Presentation seam (spell_vfx_pipeline_v1): the rules position is final here;
+        // the BODY moves in queue order behind whatever caused the move, so a push
+        // lands after the spell that pushed. A first placement (no prior tile) snaps.
         if (tile.TileView != null)
-            GlobalPosition = tile.TileView.GlobalPosition;
+        {
+            if (previousTile == null
+                || !CombatPresenter.TryDeferMoveVisual(this, tile.TileView.GlobalPosition, kind))
+                GlobalPosition = tile.TileView.GlobalPosition;
+        }
 
         // A push, pull, slide, or teleport leaves the unit out of position: cover
         // armour is gone until it settles again (its next walk or its next turn).
@@ -1179,7 +1186,12 @@ public partial class Unit : Node3D
         Stats.Armor -= armorLoss;
         Stats.Health = Math.Max(0, Stats.Health - hpLoss);
 
-        RefreshHealthBar();
+        // Presentation seam (spell_vfx_pipeline_v1): the rules are final here; the
+        // DISPLAY of them (bar refresh + damage number) is deferred to the presenter
+        // so it lands when the projectile does. Falls back to the immediate refresh
+        // when no presenter is live (headless, campus, sim).
+        if (!CombatPresenter.TryDeferDamageVisual(this, hpLoss, shieldLoss, armorLoss))
+            RefreshHealthBar();
         GD.Print($"{Name} HP:{Stats.Health}/{Stats.MaxHealth} Shield:{Stats.Shield} Armor:{Stats.Armor}");
 
         // U3c: bookkeeping for regrowth (per round) and mode_shift (per combat).
@@ -1212,8 +1224,11 @@ public partial class Unit : Node3D
         CurrentTile?.ClearOccupant(this);
         CurrentTile = null;
 
-        // Hide visually, but DON'T QueueFree yet; leave that to GameRunner
-        Visible = false;
+        // Hide visually, but DON'T QueueFree yet; leave that to GameRunner.
+        // Presentation seam (spell_vfx_pipeline_v1): the presenter hides the body
+        // after the lethal number has been read; immediate when no presenter is live.
+        if (!CombatPresenter.TryDeferDeathVisual(this))
+            Visible = false;
 
         // Disable any input/physics so it can't be clicked or interacted with
         SetProcessInput(false);

@@ -53,6 +53,7 @@ public partial class CombatManager
         GD.Print($"[ZoC] {line}");
         combatUI?.AppendActionLog(line);
 
+        CombatPresenter.EmitStrike(striker, mover, Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
         mover.ApplyDamage(damage, striker, Delivery.Melee);
         RefreshSelectedUnitUI();
         RefreshEnemyRoster();

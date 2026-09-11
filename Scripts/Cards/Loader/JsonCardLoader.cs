@@ -1014,6 +1014,16 @@ public static class JsonCardLoader
             half.Tags = tagList.ToArray();
         }
 
+        // Optional "vfx": { "archetype": "...", "style": "..." } (spell_vfx_pipeline_v1 §4).
+        if (halfNode.TryGetProperty("vfx", out var vfxNode)
+            && vfxNode.ValueKind == JsonValueKind.Object)
+        {
+            if (vfxNode.TryGetProperty("archetype", out var va) && va.ValueKind == JsonValueKind.String)
+                half.VfxArchetype = va.GetString();
+            if (vfxNode.TryGetProperty("style", out var vs) && vs.ValueKind == JsonValueKind.String)
+                half.VfxStyle = vs.GetString();
+        }
+
         if (halfNode.TryGetProperty("requires", out var reqElement)
             && reqElement.ValueKind == JsonValueKind.Array)
         {

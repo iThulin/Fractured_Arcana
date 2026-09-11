@@ -2732,6 +2732,7 @@ public partial class CombatManager
             string ff = $"{attackerName} {verb} its own ally {victim.Name} for {damage}!";
             GD.Print(ff);
             combatUI?.AppendActionLog(ff);
+            CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);
             victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
             LastStrikeVictim = victim;
         }
@@ -2743,6 +2744,7 @@ public partial class CombatManager
                 : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
             GD.Print(hit);
             combatUI?.AppendActionLog(hit);
+            CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
             victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
             LastStrikeVictim = victim;
         }

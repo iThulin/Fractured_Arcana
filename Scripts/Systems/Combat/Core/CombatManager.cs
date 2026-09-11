@@ -168,6 +168,7 @@ public partial class CombatManager : Node3D
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
 
         State = new GameState();
+        CombatPresenter.Ensure(this);   // spell_vfx_pipeline_v1: presentation seam
         ConduitLinkSystem.Clear();
         EtchingSystem.Clear();
         TrapSystem.Clear();
@@ -2197,6 +2198,7 @@ public partial class CombatManager : Node3D
         string dmgMsg = $"{attacker.Name}{stanceName} attacks {target.Name} for {damage} damage.";
         GD.Print(dmgMsg);
         combatUI?.AppendActionLog(dmgMsg);
+        CombatPresenter.EmitStrike(attacker, target, delivery);   // spell_vfx_pipeline_v1 §5 phase 2
 
         if (ignoresArmor)
         {
@@ -3380,6 +3382,7 @@ public partial class CombatManager : Node3D
         GD.Print(msg);
         combatUI?.AppendActionLog(msg);
 
+        CombatPresenter.EmitStrike(enemy, target, Delivery.Bolt);   // spell_vfx_pipeline_v1 §5 phase 2
         target.ApplyDamage(dmg, enemy, Delivery.Bolt);
         // Riposte moved to the single OnStruck hook (HandleUnitStruck) 2026-07-28.
         // Calling it here too would fire it twice for the one live caller of this
@@ -3701,8 +3704,10 @@ public partial class CombatManager : Node3D
             if (!u.Stats.IsAlive)
             {
                 list.RemoveAt(i);
-                // Now safe to actually free the node, since nothing references it
-                u.QueueFree();
+                // Now safe to actually free the node, since nothing references it.
+                // Presentation seam (spell_vfx_pipeline_v1): unless its death visual
+                // is still queued, in which case the presenter frees it afterwards.
+                CombatPresenter.FreeAfterVisuals(u);
             }
         }
     }

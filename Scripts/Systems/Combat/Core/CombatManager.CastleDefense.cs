@@ -537,6 +537,7 @@ public partial class CombatManager
         crew.Stats.HasActed = true;
         crew.StationShotsLeft--;
         combatUI?.AppendActionLog($"{crew.DisplayName} fires the {st.Label} at {target.DisplayName}: {st.Damage} damage.");
+        CombatPresenter.EmitStrike(crew, target, Delivery.Bolt);   // spell_vfx_pipeline_v1 §5 phase 2
         target.ApplyDamage(st.Damage, crew, Delivery.Bolt);
         if (st.Push > 0 && target.Stats.IsAlive && target.CurrentTile != null && !(target.IsMapObject && !target.Pushable))
         {

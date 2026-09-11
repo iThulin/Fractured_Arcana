@@ -159,6 +159,23 @@
 				},
 				"effect": {
 					"$ref": "#/$defs/Effect"
+				},
+				"vfx": {
+					"type": "object",
+					"description": "Optional visual override (spell_vfx_pipeline_v1 §4). Absent = derived from targeting delivery, element tags and school.",
+					"additionalProperties": false,
+					"properties": {
+						"archetype": {
+							"type": "string",
+							"description": "Force the travel visual regardless of delivery. 'none' suppresses travel (numbers still show).",
+							"enum": ["bolt", "arc", "burst", "impact", "none"]
+						},
+						"style": {
+							"type": "string",
+							"description": "Palette / authored-scene key. Built-in palettes: fire, ember, frost, ice, storm, lightning, earth, stone, void, shadow, blood, holy, light, nature, growth, spirit, temporal, arcane, gold, glyph, oil, steam. Unknown strings fall back to element/school palette but still select an authored scene registered under '<archetype>/<style>'.",
+							"minLength": 1
+						}
+					}
 				}
 			}
 		},
