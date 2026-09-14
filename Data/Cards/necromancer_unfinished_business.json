@@ -8,7 +8,7 @@
 		"name": "Unfinished Business",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Immobilize target enemy for 1 turn. Requires a memorial or spirit within 2 of the target.",
+		"rules_text": "The target is Rooted for 1 turn. Requires a memorial or spirit within 2 of the target.",
 		"tags": [
 			"spirit"
 		],

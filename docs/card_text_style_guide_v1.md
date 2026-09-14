@@ -17,7 +17,9 @@ No ALL-CAPS emphasis — keywords and numbers carry the weight.
 ## Capitalization
 
 - **Capitalized — status keywords:** Slowed, Rooted, Frozen, Stunned, Burned,
-  Poisoned, Weakened, Blinded, Haunted, Hexed, Named, Delayed, Shrouded, Undying.
+  Poisoned, Weakened, Blinded, Haunted, Hexed, Named, Delayed, Shrouded, Undying,
+  Temporal Drag (half movement, spells cost 1 more; the status is named on the
+  face once, at its source, like Haunted).
 - **Capitalized — school resources:** Charge, Foresight, Wilding, Grief, Weave,
   Heat, Schematics.
 - **Capitalized — summoned unit species and named objects:** Wolf, Boar, Bear,
@@ -78,6 +80,8 @@ No ALL-CAPS emphasis — keywords and numbers carry the weight.
 
 Some school actions ARE verbs and stay verbs: **Name** (Enchanter — "Name an
 enemy for 2 turns"; the resulting condition is the Named status, "is Named" in
-riders), **Seek**, **Foretell**, **Harvest**, **Imbue**, **Scry-family "Look
+riders. Name is the one Enchanter binding verb: Mana Tithe and Geas also "Name
+an enemy for N turns:" and state their own rider after the colon. "Bind", "Lay
+a compulsion" and similar are retired, ruled 2026-09-14), **Seek**, **Foretell**, **Harvest**, **Imbue**, **Scry-family "Look
 at"**, **Rewind / Fast-Forward** (Chronomancer event control). The stated-status
 rule applies to conditions, not to these acts.

@@ -8,7 +8,7 @@
 		"name": "Geas",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Lay a compulsion on an enemy for 2 turns: if it moves, it takes 6 damage. Gain 1 Weave.",
+		"rules_text": "Name an enemy for 2 turns: if it moves, it takes 6 damage. Gain 1 Weave.",
 		"tags": [
 			"enchant"
 		],

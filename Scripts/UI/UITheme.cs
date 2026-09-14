@@ -165,6 +165,21 @@ public static class UITheme
     public const string CardBevelBottomTexture = "res://Assets/UI/Cards/bevel_bottom.png";
     public const string CardManaGemTexture = "res://Assets/UI/Cards/mana_gem.png";
 
+    // Layer 2 watermark (SchoolSigilView). Square, centred in the body box of
+    // the half (name bar to tag row), under the rules text. Alpha is the
+    // ceiling ruled for anything under text; the boosts compensate for motifs
+    // that are thin lines (cipher) or colour fills (element star) rather
+    // than ink strokes.
+    public const float CardSigilSize = 88f;
+    // Body box edges on a 148px half: inset 5 + name bar 24 + separation 2
+    // from the top; tag row 16 + separation 2 + inset 5 + frame slack at the
+    // bottom.
+    public const float CardBodyTop = 31f;
+    public const float CardTagRowHeight = 26f;
+    public const float CardSigilAlpha = 0.07f;
+    public const float CardSigilCipherBoost = 1.6f;
+    public const float CardSigilTintBoost = 3.0f;
+
     public const int CardNameFontSize = 15;
     public const int CardNameMinFontSize = 13;
     // Name bar content width minus the gem and its separation, less a little for

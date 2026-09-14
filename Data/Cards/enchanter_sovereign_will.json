@@ -8,7 +8,7 @@
 		"name": "Sovereign Pillars",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Permanently enchant 3 tiles as Sovereign Pillars: allies on them gain +2 to all stats, enemies adjacent deal 2 less and are Hexed if they end their turn there. Pillars cannot be destroyed.",
+		"rules_text": "Raise 3 indestructible Sovereign Pillars for the rest of the fight. Allies on them gain +2 to all stats. Adjacent enemies deal 2 less and end their turn Weakened.",
 		"tags": [
 			"enchant"
 		],

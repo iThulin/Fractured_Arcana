@@ -326,6 +326,11 @@ public partial class CardUi : Control
         ApplyPanelBorder(_topPanel, borderCol, true);
         ApplyPanelBorder(_bottomPanel, borderCol, false);
 
+        string sigilCardId = CardInstance?.BlueprintId;
+        if (string.IsNullOrEmpty(sigilCardId)) sigilCardId = top?.SourceCardId ?? bottom?.SourceCardId ?? "";
+        ApplySigil(_topPanel, top, sigilCardId, "top");
+        ApplySigil(_bottomPanel, bottom, sigilCardId, "bottom");
+
         if (_splitDivider != null)
         {
             var rarityCol = CardInstance != null
@@ -516,6 +521,36 @@ public partial class CardUi : Control
             panel.AddChild(bevel);
             bevel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         }
+    }
+
+    /// <summary>
+    /// The school watermark for one half (layer 2): a SchoolSigilView centred in
+    /// the body box, above the grain and below the content, so the rules text
+    /// runs over it. Created once, re-seeded on every apply.
+    /// </summary>
+    private static void ApplySigil(Panel panel, CardHalf half, string cardId, string whichHalf)
+    {
+        if (panel == null) return;
+        var sigil = panel.GetNodeOrNull<SchoolSigilView>("Sigil");
+        if (sigil == null)
+        {
+            sigil = new SchoolSigilView { Name = "Sigil", MouseFilter = MouseFilterEnum.Ignore };
+            panel.AddChild(sigil);
+            // Index 1: after Grain, before the content control.
+            panel.MoveChild(sigil, Mathf.Min(1, panel.GetChildCount() - 1));
+            // Centred in the body box (below the name bar, above the tag row),
+            // which is where a watermark belongs; the alpha, not the position,
+            // is what keeps it out of the text's way.
+            float size = UITheme.CardSigilSize;
+            float bodyTop = UITheme.CardBodyTop;
+            float bodyBottom = panel.CustomMinimumSize.Y - UITheme.CardTagRowHeight;
+            sigil.Position = new Vector2(
+                (UITheme.LibraryCardWidth - size) * 0.5f,
+                bodyTop + (bodyBottom - bodyTop - size) * 0.5f);
+            sigil.Size = new Vector2(size, size);
+        }
+        sigil.Visible = half != null;
+        if (half != null) sigil.SetHalf(half, cardId, whichHalf);
     }
 
     /// <summary>A full-rect, mouse-transparent TextureRect that scales to its parent instead of forcing its own size.</summary>

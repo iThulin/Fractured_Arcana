@@ -31,7 +31,7 @@ public static class CardTextMarkup
     {
         "Slowed", "Rooted", "Frozen", "Stunned", "Burned", "Poisoned", "Weakened",
         "Blinded", "Haunted", "Hexed", "Named", "Delayed", "Shrouded", "Undying",
-        "Hasted",
+        "Hasted", "Temporal Drag",
         "Charge", "Foresight", "Wilding", "Grief", "Weave", "Heat", "Schematics",
     };
 

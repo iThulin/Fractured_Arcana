@@ -8,7 +8,7 @@
 		"name": "Spell Prism",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Create a Prism on a tile within 2 (HP 8). When a spell passes through its line of sight it splits: resolve once on the original target and once on the nearest enemy within 2 of the Prism.",
+		"rules_text": "Create a Prism on a tile within 2 (HP 8). A spell that crosses its line of sight splits: it also resolves on the nearest enemy within 2 of the Prism.",
 		"tags": [
 			"arcane"
 		],

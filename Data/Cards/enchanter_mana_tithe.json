@@ -8,7 +8,7 @@
 		"name": "Mana Tithe",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Bind an enemy for 3 turns: its spells cost 1 more, and you gain 1 mana each time it casts. Gain 1 Weave.",
+		"rules_text": "Name an enemy for 3 turns: its spells cost 1 more, and you gain 1 mana each time it casts. Gain 1 Weave.",
 		"tags": [
 			"enchant"
 		],
