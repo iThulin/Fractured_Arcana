@@ -302,5 +302,35 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_spine",
+				"weight": 3
+			},
+			{
+				"recipe": "bf_terraces",
+				"weight": 2
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_terraces",
+				"weight": 2
+			}
+		],
+		"objectives": {
+			"battle": [
+				{
+					"kind": "hold_zone",
+					"weight": 1,
+					"rounds": 5,
+					"zoneAnchor": "midpoint",
+					"zoneRadius": 2,
+					"description": "Hold the pass"
+				}
+			]
+		}
 	}
 }

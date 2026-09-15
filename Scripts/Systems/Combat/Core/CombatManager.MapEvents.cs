@@ -394,6 +394,13 @@ public partial class CombatManager : Node3D
                 count = ReinforceFrom(ev);
                 what = count > 0 ? $"{count} enemies arrive" : "no room for arrivals";
                 break;
+            case "objective_change":
+                // battlefield_variety v1.2 §8: the field turns. Not destructive, but
+                // the loader/roster still give it telegraph >= 1 so the intel rows
+                // warn a round ahead ("telegraphs are promises").
+                count = ChangeObjectiveMidFight(ev) ? 1 : 0;
+                what = count > 0 ? "the objective changes" : "the objective could not change";
+                break;
             case "weather_tick":
                 {
                     string w = ev.GetStr("weather", "storm");

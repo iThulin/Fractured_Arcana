@@ -96,20 +96,12 @@
     {
       "feature": "cover_line",
       "phase": "skeleton",
-      "at": "axis:-2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
       "at": "axis:2",
-      "length": 4,
-      "kind": "low",
+      "dir": "flank",
+      "length": 3,
+      "kind": "sandstone_ledge",
       "gaps": 1,
-      "fill": 0.75
+      "fill": 0.85
     },
     {
       "feature": "rocky_outcrop",
@@ -145,6 +137,22 @@
       "radius": 2,
       "steps": 1,
       "announce": "Wildfire rolls across the barrens."
+    }
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "close",
+      "weight": 1,
+      "axis": "any",
+      "layout": [
+        0.22,
+        0.78
+      ]
     }
   ]
 }

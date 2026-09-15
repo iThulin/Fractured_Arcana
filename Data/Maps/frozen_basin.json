@@ -66,22 +66,11 @@
       "depth": 1
     },
     {
-      "feature": "cover_line",
+      "feature": "obstacle_cluster",
       "phase": "skeleton",
-      "at": "axis:-2",
-      "length": 4,
+      "at": "axis:-3",
       "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
+      "size": 3
     },
     {
       "feature": "crevice",
@@ -123,6 +112,22 @@
       "weather": "snow",
       "per_patch": 2,
       "announce": "The cold deepens."
+    }
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "close",
+      "weight": 1,
+      "axis": "any",
+      "layout": [
+        0.22,
+        0.78
+      ]
     }
   ]
 }

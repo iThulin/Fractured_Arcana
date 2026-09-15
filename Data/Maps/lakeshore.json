@@ -73,22 +73,11 @@
       "depth": 2
     },
     {
-      "feature": "cover_line",
+      "feature": "obstacle_cluster",
       "phase": "skeleton",
-      "at": "axis:-2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
+      "at": "flank:-2",
+      "kind": "driftwood",
+      "size": 3
     },
     {
       "feature": "lake",
@@ -135,6 +124,22 @@
       "rise": 1,
       "damage": 1,
       "announce": "The lake creeps up the shore."
+    }
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "close",
+      "weight": 1,
+      "axis": "any",
+      "layout": [
+        0.22,
+        0.78
+      ]
     }
   ]
 }

@@ -61,20 +61,12 @@
     {
       "feature": "cover_line",
       "phase": "skeleton",
-      "at": "axis:-2",
-      "length": 4,
-      "kind": "low",
+      "at": "flank:-2",
+      "dir": "axis",
+      "length": 5,
+      "kind": "ice_ridge",
       "gaps": 1,
-      "fill": 0.75
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
+      "fill": 0.8
     },
     {
       "feature": "patch",
@@ -139,6 +131,22 @@
       "push": "flank",
       "tiles": 1,
       "announce": "The wind howls across the steppe."
+    }
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "close",
+      "weight": 1,
+      "axis": "any",
+      "layout": [
+        0.22,
+        0.78
+      ]
     }
   ]
 }

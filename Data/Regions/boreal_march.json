@@ -336,5 +336,33 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_spine",
+				"weight": 2
+			},
+			{
+				"recipe": "frost_steppe",
+				"weight": 1
+			}
+		],
+		"ambush": [
+			{
+				"recipe": "frost_steppe",
+				"weight": 1
+			}
+		],
+		"objectives": {
+			"skirmish": [
+				{
+					"kind": "survive",
+					"weight": 1,
+					"rounds": 4,
+					"description": "Outlast the white wind"
+				}
+			]
+		}
 	}
 }

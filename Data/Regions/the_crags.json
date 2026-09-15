@@ -343,5 +343,67 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_spine",
+				"weight": 3
+			},
+			{
+				"recipe": "bf_terraces",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_warren",
+				"weight": 1
+			}
+		],
+		"ambush": [
+			{
+				"recipe": "bf_spine",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_warren",
+				"weight": 1
+			}
+		],
+		"objectives": {
+			"ambush": [
+				{
+					"kind": "survive",
+					"weight": 1,
+					"rounds": 5,
+					"description": "Survive the ridge"
+				}
+			]
+		},
+		"pressure": {
+			"battle": [
+				{
+					"kind": "arrival",
+					"id": "ridge_watchers",
+					"weight": 2,
+					"round": 3,
+					"at": "flank:-4",
+					"count": 2,
+					"announce": "Rangers drop from the ridge.",
+					"pool": "skirmish"
+				}
+			],
+			"ambush": [
+				{
+					"kind": "arrival",
+					"id": "ridge_watchers",
+					"weight": 2,
+					"round": 2,
+					"at": "axis:-5",
+					"count": 2,
+					"announce": "The ridge was watching. They are behind you.",
+					"pool": "skirmish"
+				}
+			]
+		}
 	}
 }

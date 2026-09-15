@@ -33,11 +33,15 @@ public partial class HexGridManager
     private void ComputeTacticalMetrics()
     {
         // Visibility across the deployment zones.
+        // Union across zones per side: a deployment variant can seat two enemy
+        // pockets (pincer), and the report must see both.
         List<Vector2I> playerTiles = null, enemyTiles = null;
         foreach (var z in SpawnZones)
         {
-            if (z.Side == SpawnSide.Player) playerTiles = z.Tiles;
-            else if (z.Side == SpawnSide.Enemy) enemyTiles = z.Tiles;
+            if (z.Side == SpawnSide.Player)
+                (playerTiles ??= new List<Vector2I>()).AddRange(z.Tiles);
+            else if (z.Side == SpawnSide.Enemy)
+                (enemyTiles ??= new List<Vector2I>()).AddRange(z.Tiles);
         }
 
         int pairs = 0, seen = 0;

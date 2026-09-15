@@ -288,5 +288,35 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_courtyard",
+				"weight": 2,
+				"terrains": [
+					"Grassland",
+					"Road"
+				]
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_courtyard",
+				"weight": 2
+			}
+		],
+		"objectives": {
+			"battle": [
+				{
+					"kind": "hold_zone",
+					"weight": 1,
+					"rounds": 5,
+					"zoneAnchor": "midpoint",
+					"zoneRadius": 2,
+					"description": "Hold the manor gate"
+				}
+			]
+		}
 	}
 }

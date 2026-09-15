@@ -332,5 +332,35 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_cauldron",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_kiln",
+				"weight": 2
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_cauldron",
+				"weight": 2
+			}
+		],
+		"objectives": {
+			"siege": [
+				{
+					"kind": "hold_zone",
+					"weight": 1,
+					"rounds": 6,
+					"zoneAnchor": "midpoint",
+					"zoneRadius": 2,
+					"description": "Hold the cauldron rim"
+				}
+			]
+		}
 	}
 }

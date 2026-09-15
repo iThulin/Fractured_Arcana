@@ -321,5 +321,23 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_grove",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_warren",
+				"weight": 1
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_grove",
+				"weight": 1
+			}
+		]
 	}
 }

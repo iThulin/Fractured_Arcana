@@ -78,20 +78,12 @@
     {
       "feature": "cover_line",
       "phase": "skeleton",
-      "at": "axis:-2",
-      "length": 4,
-      "kind": "low",
+      "at": "midpoint",
+      "dir": "axis+1",
+      "length": 5,
+      "kind": "rune_stone",
       "gaps": 1,
-      "fill": 0.75
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
+      "fill": 0.8
     },
     {
       "feature": "patch",
@@ -151,6 +143,22 @@
       "radius": 4,
       "steps": 1,
       "announce": "The ley ring tightens."
+    }
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "close",
+      "weight": 1,
+      "axis": "any",
+      "layout": [
+        0.22,
+        0.78
+      ]
     }
   ]
 }

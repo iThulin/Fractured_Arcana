@@ -323,5 +323,31 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_amphitheater",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_cauldron",
+				"weight": 1
+			},
+			{
+				"recipe": "bf_spine",
+				"weight": 1
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_amphitheater",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_courtyard",
+				"weight": 1
+			}
+		]
 	}
 }

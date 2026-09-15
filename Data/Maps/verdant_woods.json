@@ -63,24 +63,6 @@
   },
   "features": [
     {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:-2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
-    },
-    {
       "feature": "scatter_copses",
       "phase": "accent",
       "count": [
@@ -134,6 +116,22 @@
       "status": "rooted",
       "duration": 1,
       "announce": "Roots stir underfoot."
+    }
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "close",
+      "weight": 1,
+      "axis": "any",
+      "layout": [
+        0.22,
+        0.78
+      ]
     }
   ]
 }

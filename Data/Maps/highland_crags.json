@@ -60,7 +60,7 @@
       "feature": "crevice",
       "phase": "skeleton",
       "at": "center",
-      "dir": 5,
+      "dir": "axis-1",
       "length": 6,
       "depth": 4
     },
@@ -74,20 +74,12 @@
     {
       "feature": "cover_line",
       "phase": "skeleton",
-      "at": "axis:-2",
+      "at": "flank:3",
+      "dir": "axis",
       "length": 4,
-      "kind": "low",
+      "kind": "rock_ledge",
       "gaps": 1,
-      "fill": 0.75
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:2",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.75
+      "fill": 0.85
     },
     {
       "feature": "rocky_outcrop",
@@ -120,6 +112,22 @@
       "radius": 1,
       "into": "rubble",
       "announce": "Rockfall."
+    }
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "close",
+      "weight": 1,
+      "axis": "any",
+      "layout": [
+        0.22,
+        0.78
+      ]
     }
   ]
 }

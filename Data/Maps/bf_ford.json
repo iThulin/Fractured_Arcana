@@ -90,20 +90,12 @@
     {
       "feature": "cover_line",
       "phase": "skeleton",
-      "at": "axis:-3",
-      "length": 4,
-      "kind": "low",
+      "at": "axis:1",
+      "dir": "flank",
+      "length": 3,
+      "kind": "barricade",
       "gaps": 1,
-      "fill": 0.85
-    },
-    {
-      "feature": "cover_line",
-      "phase": "skeleton",
-      "at": "axis:3",
-      "length": 4,
-      "kind": "low",
-      "gaps": 1,
-      "fill": 0.85
+      "fill": 0.9
     }
   ],
   "map_events": [
@@ -131,5 +123,384 @@
         "mode": "hold"
       }
     }
-  ]
+  ],
+  "deployments": [
+    {
+      "id": "line",
+      "weight": 3,
+      "axis": "any"
+    },
+    {
+      "id": "contested_crossing",
+      "weight": 2,
+      "axis": "any",
+      "enemy_at": "axis:1"
+    }
+  ],
+  "skins": {
+    "ArcaneGround": {
+      "atmosphere": {
+        "sun_color": [
+          0.8,
+          0.78,
+          0.95
+        ],
+        "sun_energy": 1.0,
+        "ambient_color": [
+          0.62,
+          0.58,
+          0.85
+        ],
+        "ambient_energy": 0.95,
+        "fog_color": [
+          0.7,
+          0.66,
+          0.88
+        ],
+        "fog_density": 0.009
+      },
+      "obstacles": {
+        "low": "rune_stone",
+        "high": "crystal",
+        "pillar": "ley_pillar"
+      },
+      "palette": [
+        {
+          "terrain": "water",
+          "max_elevation": 0.4
+        },
+        {
+          "terrain": "arcane",
+          "min_elevation": 0.6
+        },
+        {
+          "terrain": "grass"
+        }
+      ]
+    },
+    "Desert": {
+      "atmosphere": {
+        "sun_color": [
+          1.0,
+          0.88,
+          0.66
+        ],
+        "sun_energy": 1.45,
+        "ambient_color": [
+          0.72,
+          0.62,
+          0.5
+        ],
+        "ambient_energy": 0.8,
+        "fog_color": [
+          0.86,
+          0.76,
+          0.6
+        ],
+        "fog_density": 0.007
+      },
+      "obstacles": {
+        "low": "sandstone_ledge",
+        "high": "hoodoo",
+        "pillar": "hoodoo"
+      },
+      "palette": [
+        {
+          "terrain": "water",
+          "max_elevation": 0.4
+        },
+        {
+          "terrain": "stone",
+          "min_elevation": 0.6
+        },
+        {
+          "terrain": "sand"
+        }
+      ],
+      "sand": {
+        "light": [
+          0.78,
+          0.65,
+          0.42
+        ],
+        "warm": [
+          0.56,
+          0.4,
+          0.24
+        ]
+      }
+    },
+    "Forest": {
+      "atmosphere": {
+        "sun_color": [
+          0.8,
+          0.95,
+          0.75
+        ],
+        "sun_energy": 1.1,
+        "ambient_color": [
+          0.5,
+          0.6,
+          0.45
+        ],
+        "ambient_energy": 0.85,
+        "fog_color": [
+          0.6,
+          0.7,
+          0.55
+        ],
+        "fog_density": 0.009
+      },
+      "obstacles": {
+        "low": "fallen_log",
+        "high": "old_trunk",
+        "pillar": "old_trunk"
+      },
+      "palette": [
+        {
+          "terrain": "water",
+          "max_elevation": 0.4
+        },
+        {
+          "terrain": "stone",
+          "min_elevation": 0.6
+        },
+        {
+          "terrain": "forest",
+          "min_moisture": 0.5
+        },
+        {
+          "terrain": "grass"
+        }
+      ]
+    },
+    "Marsh": {
+      "atmosphere": {
+        "sun_color": [
+          0.74,
+          0.8,
+          0.62
+        ],
+        "sun_energy": 0.9,
+        "ambient_color": [
+          0.5,
+          0.56,
+          0.46
+        ],
+        "ambient_energy": 0.95,
+        "fog_color": [
+          0.56,
+          0.62,
+          0.48
+        ],
+        "fog_density": 0.016
+      },
+      "obstacles": {
+        "low": "reed_bank",
+        "high": "sunk_piling",
+        "pillar": "sunk_piling"
+      },
+      "palette": [
+        {
+          "terrain": "water",
+          "max_elevation": 0.4
+        },
+        {
+          "terrain": "stone",
+          "min_elevation": 0.6
+        },
+        {
+          "terrain": "grass"
+        }
+      ],
+      "water": {
+        "profile": "murky_swamp"
+      }
+    },
+    "Ruins": {
+      "atmosphere": {
+        "sun_color": [
+          0.78,
+          0.82,
+          0.7
+        ],
+        "sun_energy": 1.05,
+        "ambient_color": [
+          0.42,
+          0.48,
+          0.38
+        ],
+        "ambient_energy": 0.85,
+        "fog_color": [
+          0.5,
+          0.55,
+          0.44
+        ],
+        "fog_density": 0.009
+      },
+      "obstacles": {
+        "low": "rubble_line",
+        "high": "wall",
+        "pillar": "cracked_column"
+      }
+    },
+    "Snow": {
+      "atmosphere": {
+        "sun_color": [
+          0.85,
+          0.92,
+          1.0
+        ],
+        "sun_energy": 1.3,
+        "ambient_color": [
+          0.7,
+          0.8,
+          0.95
+        ],
+        "ambient_energy": 0.95,
+        "fog_color": [
+          0.84,
+          0.89,
+          0.97
+        ],
+        "fog_density": 0.01
+      },
+      "obstacles": {
+        "low": "ice_ridge",
+        "high": "crystal",
+        "pillar": "ice_spire"
+      },
+      "palette": [
+        {
+          "terrain": "water",
+          "max_elevation": 0.4
+        },
+        {
+          "terrain": "stone",
+          "min_elevation": 0.6
+        },
+        {
+          "terrain": "ice",
+          "max_elevation": 0.35
+        },
+        {
+          "terrain": "grass"
+        }
+      ]
+    },
+    "Swamp": {
+      "atmosphere": {
+        "sun_color": [
+          0.74,
+          0.8,
+          0.62
+        ],
+        "sun_energy": 0.9,
+        "ambient_color": [
+          0.5,
+          0.56,
+          0.46
+        ],
+        "ambient_energy": 0.95,
+        "fog_color": [
+          0.56,
+          0.62,
+          0.48
+        ],
+        "fog_density": 0.016
+      },
+      "obstacles": {
+        "low": "reed_bank",
+        "high": "sunk_piling",
+        "pillar": "sunk_piling"
+      },
+      "palette": [
+        {
+          "terrain": "water",
+          "max_elevation": 0.4
+        },
+        {
+          "terrain": "stone",
+          "min_elevation": 0.6
+        },
+        {
+          "terrain": "grass"
+        }
+      ],
+      "water": {
+        "profile": "murky_swamp"
+      }
+    },
+    "Tundra": {
+      "atmosphere": {
+        "sun_color": [
+          0.85,
+          0.92,
+          1.0
+        ],
+        "sun_energy": 1.3,
+        "ambient_color": [
+          0.7,
+          0.8,
+          0.95
+        ],
+        "ambient_energy": 0.95,
+        "fog_color": [
+          0.84,
+          0.89,
+          0.97
+        ],
+        "fog_density": 0.01
+      },
+      "obstacles": {
+        "low": "ice_ridge",
+        "high": "crystal",
+        "pillar": "ice_spire"
+      },
+      "palette": [
+        {
+          "terrain": "water",
+          "max_elevation": 0.4
+        },
+        {
+          "terrain": "stone",
+          "min_elevation": 0.6
+        },
+        {
+          "terrain": "ice",
+          "max_elevation": 0.35
+        },
+        {
+          "terrain": "grass"
+        }
+      ]
+    },
+    "Volcanic": {
+      "atmosphere": {
+        "sun_color": [
+          1.0,
+          0.62,
+          0.42
+        ],
+        "sun_energy": 1.1,
+        "ambient_color": [
+          0.5,
+          0.34,
+          0.3
+        ],
+        "ambient_energy": 0.85,
+        "fog_color": [
+          0.42,
+          0.26,
+          0.2
+        ],
+        "fog_density": 0.013
+      },
+      "obstacles": {
+        "low": "cooled_crust",
+        "high": "basalt_column",
+        "pillar": "basalt_column"
+      }
+    }
+  }
 }

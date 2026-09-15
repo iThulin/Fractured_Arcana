@@ -362,5 +362,47 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_ford",
+				"weight": 3
+			},
+			{
+				"recipe": "bf_causeway",
+				"weight": 2
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_ford",
+				"weight": 2
+			}
+		],
+		"objectives": {
+			"battle": [
+				{
+					"kind": "survive",
+					"weight": 2,
+					"rounds": 6,
+					"description": "Hold the crossing"
+				}
+			]
+		},
+		"pressure": {
+			"battle": [
+				{
+					"kind": "arrival",
+					"id": "across_the_ford",
+					"weight": 2,
+					"round": 3,
+					"at": "enemy_anchor",
+					"count": 2,
+					"announce": "More wade across the ford.",
+					"pool": "skirmish"
+				}
+			]
+		}
 	}
 }

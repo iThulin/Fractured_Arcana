@@ -1,0 +1,893 @@
+{
+  "id": "battlefield_rotation",
+  "notes": "battlefield_variety_spec_v1 sections 2 and 4. terrain_pools: tier -> overworld terrain -> weighted recipe ids ('*' = any terrain). objective_pools: tier -> weighted ObjectiveData entries. Regions supplement both through their own 'battlefields' block. Pool empty for a tier/terrain -> Data/Maps/terrain_map.json decides, as before. pressure_pools (v1.1 section 7): tier -> weighted add-on templates; kind none = no add-on, kind arrival = a reinforce_from event whose units are drawn from the region's own pool at 'pool' tier. One add-on per fight, never when the composition has waves or the recipe already has a reinforce_from. kind turn (v1.2 section 8) = an objective_change event: from (objective the fight must have; default annihilate), to, rounds (relative), zoneAnchor/zoneRadius/breachLimit, description.",
+  "history_window": 2,
+  "terrain_pools": {
+    "skirmish": {
+      "Grassland": [
+        {
+          "recipe": "heathland",
+          "weight": 3
+        },
+        {
+          "recipe": "rolling_hills",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_grove",
+          "weight": 1
+        }
+      ],
+      "Road": [
+        {
+          "recipe": "heathland",
+          "weight": 3
+        },
+        {
+          "recipe": "rolling_hills",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_causeway",
+          "weight": 1
+        }
+      ],
+      "Forest": [
+        {
+          "recipe": "verdant_woods",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_grove",
+          "weight": 2
+        }
+      ],
+      "Ruins": [
+        {
+          "recipe": "overgrown_ruins",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_courtyard",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_warren",
+          "weight": 1
+        }
+      ],
+      "Mountain": [
+        {
+          "recipe": "highland_crags",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_terraces",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_spine",
+          "weight": 1
+        }
+      ],
+      "Hills": [
+        {
+          "recipe": "rolling_hills",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_warren",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_spine",
+          "weight": 1
+        }
+      ],
+      "Swamp": [
+        {
+          "recipe": "wetlands",
+          "weight": 3
+        },
+        {
+          "recipe": "marsh_flats",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        }
+      ],
+      "Marsh": [
+        {
+          "recipe": "marsh_flats",
+          "weight": 3
+        },
+        {
+          "recipe": "wetlands",
+          "weight": 1
+        }
+      ],
+      "ArcaneGround": [
+        {
+          "recipe": "arcane_meadow",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_amphitheater",
+          "weight": 1
+        }
+      ],
+      "Volcanic": [
+        {
+          "recipe": "volcanic_scar",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_cauldron",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_kiln",
+          "weight": 1
+        }
+      ],
+      "Water": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        },
+        {
+          "recipe": "lakeshore",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        }
+      ],
+      "Coast": [
+        {
+          "recipe": "coastal_shallows",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_causeway",
+          "weight": 1
+        }
+      ],
+      "Lake": [
+        {
+          "recipe": "lakeshore",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        }
+      ],
+      "Desert": [
+        {
+          "recipe": "sunbaked_barrens",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_kiln",
+          "weight": 1
+        }
+      ],
+      "Tundra": [
+        {
+          "recipe": "frost_steppe",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_spine",
+          "weight": 1
+        }
+      ],
+      "Snow": [
+        {
+          "recipe": "frozen_basin",
+          "weight": 3
+        },
+        {
+          "recipe": "frost_steppe",
+          "weight": 1
+        }
+      ]
+    },
+    "battle": {
+      "Grassland": [
+        {
+          "recipe": "bf_grove",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_courtyard",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        },
+        {
+          "recipe": "heathland",
+          "weight": 1
+        },
+        {
+          "recipe": "rolling_hills",
+          "weight": 1
+        }
+      ],
+      "Road": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_courtyard",
+          "weight": 2
+        },
+        {
+          "recipe": "heathland",
+          "weight": 1
+        }
+      ],
+      "Forest": [
+        {
+          "recipe": "bf_grove",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_warren",
+          "weight": 1
+        },
+        {
+          "recipe": "verdant_woods",
+          "weight": 1
+        }
+      ],
+      "Ruins": [
+        {
+          "recipe": "bf_courtyard",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_warren",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_amphitheater",
+          "weight": 1
+        },
+        {
+          "recipe": "overgrown_ruins",
+          "weight": 1
+        }
+      ],
+      "Mountain": [
+        {
+          "recipe": "bf_terraces",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_spine",
+          "weight": 2
+        },
+        {
+          "recipe": "highland_crags",
+          "weight": 1
+        }
+      ],
+      "Hills": [
+        {
+          "recipe": "bf_warren",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_spine",
+          "weight": 2
+        },
+        {
+          "recipe": "rolling_hills",
+          "weight": 1
+        }
+      ],
+      "Swamp": [
+        {
+          "recipe": "bf_ford",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_causeway",
+          "weight": 1
+        },
+        {
+          "recipe": "wetlands",
+          "weight": 1
+        }
+      ],
+      "Marsh": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        },
+        {
+          "recipe": "marsh_flats",
+          "weight": 1
+        }
+      ],
+      "ArcaneGround": [
+        {
+          "recipe": "bf_amphitheater",
+          "weight": 3
+        },
+        {
+          "recipe": "arcane_meadow",
+          "weight": 1
+        }
+      ],
+      "Volcanic": [
+        {
+          "recipe": "bf_cauldron",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_kiln",
+          "weight": 2
+        },
+        {
+          "recipe": "volcanic_scar",
+          "weight": 1
+        }
+      ],
+      "Water": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 2
+        }
+      ],
+      "Coast": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        },
+        {
+          "recipe": "coastal_shallows",
+          "weight": 1
+        }
+      ],
+      "Lake": [
+        {
+          "recipe": "bf_ford",
+          "weight": 2
+        },
+        {
+          "recipe": "lakeshore",
+          "weight": 1
+        }
+      ],
+      "Desert": [
+        {
+          "recipe": "bf_kiln",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_terraces",
+          "weight": 1
+        },
+        {
+          "recipe": "sunbaked_barrens",
+          "weight": 1
+        }
+      ],
+      "Tundra": [
+        {
+          "recipe": "bf_spine",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_causeway",
+          "weight": 1
+        },
+        {
+          "recipe": "frost_steppe",
+          "weight": 1
+        }
+      ],
+      "Snow": [
+        {
+          "recipe": "frozen_basin",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_spine",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        }
+      ]
+    },
+    "siege": {
+      "Grassland": [
+        {
+          "recipe": "bf_courtyard",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_grove",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_amphitheater",
+          "weight": 1
+        }
+      ],
+      "Road": [
+        {
+          "recipe": "bf_courtyard",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_causeway",
+          "weight": 1
+        }
+      ],
+      "Forest": [
+        {
+          "recipe": "bf_grove",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_warren",
+          "weight": 2
+        }
+      ],
+      "Ruins": [
+        {
+          "recipe": "bf_courtyard",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_amphitheater",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_warren",
+          "weight": 1
+        }
+      ],
+      "Mountain": [
+        {
+          "recipe": "bf_terraces",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_spine",
+          "weight": 1
+        }
+      ],
+      "Hills": [
+        {
+          "recipe": "bf_spine",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_terraces",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_warren",
+          "weight": 1
+        }
+      ],
+      "Swamp": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        }
+      ],
+      "Marsh": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        }
+      ],
+      "ArcaneGround": [
+        {
+          "recipe": "bf_amphitheater",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_courtyard",
+          "weight": 1
+        }
+      ],
+      "Volcanic": [
+        {
+          "recipe": "bf_kiln",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_cauldron",
+          "weight": 1
+        }
+      ],
+      "Water": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 3
+        }
+      ],
+      "Coast": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        }
+      ],
+      "Lake": [
+        {
+          "recipe": "bf_ford",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_causeway",
+          "weight": 1
+        }
+      ],
+      "Desert": [
+        {
+          "recipe": "bf_kiln",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_terraces",
+          "weight": 1
+        }
+      ],
+      "Tundra": [
+        {
+          "recipe": "bf_spine",
+          "weight": 2
+        },
+        {
+          "recipe": "bf_causeway",
+          "weight": 1
+        }
+      ],
+      "Snow": [
+        {
+          "recipe": "bf_spine",
+          "weight": 1
+        },
+        {
+          "recipe": "bf_terraces",
+          "weight": 1
+        },
+        {
+          "recipe": "frozen_basin",
+          "weight": 1
+        }
+      ]
+    },
+    "ambush": {
+      "*": [
+        {
+          "recipe": "bf_warren",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_grove",
+          "weight": 3
+        },
+        {
+          "recipe": "bf_kiln",
+          "weight": 2
+        }
+      ],
+      "Forest": [
+        {
+          "recipe": "bf_grove",
+          "weight": 2
+        }
+      ],
+      "Ruins": [
+        {
+          "recipe": "bf_warren",
+          "weight": 2
+        }
+      ],
+      "Mountain": [
+        {
+          "recipe": "bf_terraces",
+          "weight": 1
+        }
+      ],
+      "Volcanic": [
+        {
+          "recipe": "bf_kiln",
+          "weight": 2
+        }
+      ],
+      "Water": [
+        {
+          "recipe": "bf_causeway",
+          "weight": 2
+        }
+      ],
+      "Swamp": [
+        {
+          "recipe": "bf_ford",
+          "weight": 1
+        }
+      ]
+    }
+  },
+  "objective_pools": {
+    "skirmish": [
+      {
+        "kind": "annihilate",
+        "weight": 8
+      },
+      {
+        "kind": "survive",
+        "weight": 2,
+        "rounds": 4,
+        "description": "Hold out"
+      }
+    ],
+    "battle": [
+      {
+        "kind": "annihilate",
+        "weight": 5
+      },
+      {
+        "kind": "hold_zone",
+        "weight": 2,
+        "rounds": 5,
+        "zoneAnchor": "midpoint",
+        "zoneRadius": 2,
+        "description": "Hold the ground"
+      },
+      {
+        "kind": "survive",
+        "weight": 2,
+        "rounds": 6,
+        "description": "Hold out"
+      },
+      {
+        "kind": "protect",
+        "weight": 1,
+        "wardUnitId": "anchor_moment",
+        "description": "Protect the anchor"
+      }
+    ],
+    "siege": [
+      {
+        "kind": "annihilate",
+        "weight": 4
+      },
+      {
+        "kind": "hold_zone",
+        "weight": 3,
+        "rounds": 6,
+        "zoneAnchor": "midpoint",
+        "zoneRadius": 2,
+        "description": "Hold the ground"
+      },
+      {
+        "kind": "protect",
+        "weight": 2,
+        "wardUnitId": "anchor_moment",
+        "description": "Protect the anchor"
+      }
+    ],
+    "ambush": [
+      {
+        "kind": "survive",
+        "weight": 3,
+        "rounds": 5,
+        "description": "Survive the ambush"
+      },
+      {
+        "kind": "annihilate",
+        "weight": 3
+      }
+    ]
+  },
+  "pressure_pools": {
+    "skirmish": [
+      {
+        "kind": "none",
+        "weight": 6
+      },
+      {
+        "kind": "arrival",
+        "id": "stragglers",
+        "weight": 2,
+        "round": 3,
+        "at": "flank:3",
+        "count": 1,
+        "announce": "Stragglers join the fight.",
+        "pool": "skirmish"
+      }
+    ],
+    "battle": [
+      {
+        "kind": "none",
+        "weight": 4
+      },
+      {
+        "kind": "arrival",
+        "id": "flank_arrival",
+        "weight": 3,
+        "round": 3,
+        "at": "flank:3",
+        "count": 2,
+        "announce": "More come in from the flank.",
+        "pool": "skirmish"
+      },
+      {
+        "kind": "arrival",
+        "id": "held_back",
+        "weight": 2,
+        "round": 1,
+        "at": "enemy_anchor",
+        "count": 2,
+        "announce": "They were holding a reserve.",
+        "pool": "skirmish",
+        "when": "enemy_count_below:2",
+        "wake": "Something stirs behind their line."
+      },
+      {
+        "kind": "arrival",
+        "id": "cut_off",
+        "weight": 1,
+        "round": 4,
+        "at": "axis:-5",
+        "count": 1,
+        "announce": "They have come round behind you.",
+        "pool": "skirmish"
+      },
+      {
+        "kind": "arrival",
+        "id": "bar_the_gate",
+        "weight": 2,
+        "round": 3,
+        "at": "flank:-3",
+        "count": 2,
+        "announce": "The gate gives and more pour through.",
+        "pool": "skirmish",
+        "lever": {
+          "at": "flank:-2",
+          "mode": "delay",
+          "amount": 1
+        }
+      },
+      {
+        "kind": "turn",
+        "id": "the_sky_closes",
+        "weight": 1,
+        "round": 4,
+        "to": "survive",
+        "rounds": 3,
+        "announce": "The sky is closing over the field.",
+        "description": "Hold until the anchor reels you back"
+      },
+      {
+        "kind": "turn",
+        "id": "hold_what_you_took",
+        "weight": 1,
+        "round": 1,
+        "to": "hold_zone",
+        "rounds": 4,
+        "announce": "They mean to take this ground back.",
+        "description": "Hold the ground you took",
+        "when": "player_enters:midpoint:1",
+        "zoneAnchor": "midpoint",
+        "zoneRadius": 2,
+        "breachLimit": 2
+      }
+    ],
+    "siege": [
+      {
+        "kind": "none",
+        "weight": 2
+      },
+      {
+        "kind": "arrival",
+        "id": "siege_flank",
+        "weight": 3,
+        "round": 3,
+        "at": "flank:3",
+        "count": 2,
+        "announce": "A second column arrives.",
+        "pool": "skirmish"
+      },
+      {
+        "kind": "arrival",
+        "id": "siege_tide",
+        "weight": 2,
+        "round": 3,
+        "at": "flank:-3",
+        "count": 2,
+        "announce": "Another column arrives.",
+        "pool": "skirmish",
+        "repeat_every": 3,
+        "lever": {
+          "at": "flank:-2",
+          "mode": "hold"
+        }
+      },
+      {
+        "kind": "arrival",
+        "id": "siege_behind",
+        "weight": 1,
+        "round": 4,
+        "at": "axis:-5",
+        "count": 2,
+        "announce": "They have cut off your retreat.",
+        "pool": "skirmish"
+      },
+      {
+        "kind": "turn",
+        "id": "the_sky_closes",
+        "weight": 1,
+        "round": 4,
+        "to": "survive",
+        "rounds": 4,
+        "announce": "The sky is closing over the field.",
+        "description": "Hold until the anchor reels you back"
+      },
+      {
+        "kind": "turn",
+        "id": "hold_what_you_took",
+        "weight": 1,
+        "round": 1,
+        "to": "hold_zone",
+        "rounds": 5,
+        "announce": "They mean to take this ground back.",
+        "description": "Hold the ground you took",
+        "when": "player_enters:midpoint:1",
+        "zoneAnchor": "midpoint",
+        "zoneRadius": 2,
+        "breachLimit": 2
+      }
+    ],
+    "ambush": [
+      {
+        "kind": "none",
+        "weight": 2
+      },
+      {
+        "kind": "arrival",
+        "id": "closing_jaws",
+        "weight": 4,
+        "round": 2,
+        "at": "flank:-3",
+        "count": 2,
+        "announce": "The jaws close.",
+        "pool": "skirmish"
+      }
+    ]
+  }
+}

@@ -125,6 +125,12 @@ public static class PlayerSession
     public static string DebugMapEventKind = null;
     public static string DebugMapEventElement = "fire";
 
+    /// <summary>battlefield_variety_spec_v1 §3: when non-empty, HexGridManager uses the
+    /// recipe deployment with this id instead of rolling one (ForcedDeploymentId).
+    /// Ids not on the launched recipe fall back to the roll with a warning.
+    /// Cleared on return to campus.</summary>
+    public static string DebugDeploymentId = null;
+
     /// <summary>When set, HexGridManager.EnforceHazardCap is skipped so the
     /// guarantee-pass hazard trim can be A/B-compared against an uncapped map.</summary>
     public static bool DebugDisableHazardCap = false;

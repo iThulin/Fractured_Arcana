@@ -215,6 +215,71 @@ public partial class CombatManager
     /// and instantly discarded. That is a deviation from the spec's literal ordering,
     /// made because spawning bodies onto a board that is already won reads as
     /// a bug to the player and costs a frame of unit setup for nothing.</para></summary>
+    /// <summary>battlefield_variety v1.2 §8: the field turns. An `objective_change`
+    /// map event swaps the active objective at a round boundary. Fires from
+    /// EvaluateMapEvents, which runs BEFORE EvaluateObjectiveRoundBoundary, so the new
+    /// objective is judged from this very boundary. Keys on the event: `to` (kind:
+    /// annihilate | survive | hold_zone; protect is refused, there is no ward to
+    /// spawn mid-fight), `rounds` (RELATIVE: how many more rounds from this one),
+    /// `zoneAnchor`, `zoneRadius`, `breachLimit`, `description`. Zone state and the
+    /// breach tally reset with the change; pending waves are untouched. Returns false
+    /// (and logs) when the target is invalid, leaving the current objective as is.</summary>
+    private bool ChangeObjectiveMidFight(MapEventDef ev)
+    {
+        if (ev == null)
+            return false;
+        string to = ev.GetStr("to", "").Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(to))
+        {
+            GD.PrintErr("[Objective] objective_change with no 'to' kind. Ignored.");
+            return false;
+        }
+        if (to == CombatObjectiveDef.KindProtect)
+        {
+            GD.PrintErr("[Objective] objective_change to 'protect' is not supported mid-fight (no ward spawn). Ignored.");
+            return false;
+        }
+
+        CombatObjectiveDef next = null;
+        if (to != CombatObjectiveDef.KindAnnihilate)
+        {
+            int relRounds = ev.GetInt("rounds", 0);
+            var data = new ObjectiveData
+            {
+                Kind = to,
+                Rounds = relRounds,
+                BreachLimit = ev.GetInt("breachLimit", 2),
+                ZoneAnchor = ev.GetStr("zoneAnchor", "midpoint"),
+                ZoneRadius = ev.GetInt("zoneRadius", 2),
+                Description = ev.GetStr("description", ""),
+            };
+            next = EncounterPoolLoader.BuildObjective(data, $"objective_change:{ev.Id}");
+            if (next == null)
+                return false;   // BuildObjective already logged why
+            // Rounds on the def are ABSOLUTE (victory when roundNumber > Rounds).
+            // roundNumber is already the round now starting, so "N more rounds"
+            // means this round plus N-1 further ones.
+            if (next.Rounds > 0)
+                next.Rounds = roundNumber + next.Rounds - 1;
+        }
+
+        string was = _objective == null ? CombatObjectiveDef.KindAnnihilate : _objective.Kind;
+        _objective = next;
+        _objectiveZone = null;
+        _breaches = 0;
+        _objectiveZoneShown = false;
+        _zoneRenderer?.ClearObjectiveZone();
+        _lastObjectiveBanner = "";
+
+        string label = next == null ? "kill them all" : (string.IsNullOrEmpty(next.Description)
+            ? DefaultObjectiveLabel(next.Kind) : next.Description);
+        GD.Print($"[Objective] The field turns at round {roundNumber}: {was} → {to} ({label}" +
+                 $"{(next != null && next.Rounds > 0 ? $", until the end of round {next.Rounds}" : "")}).");
+        combatUI?.AppendActionLog($"── The objective changes: {label}. ──");
+        RefreshObjectiveBanner();
+        return true;
+    }
+
     private void EvaluateObjectiveRoundBoundary()
     {
         if (_objective == null && !ObjectiveWavesPending)
@@ -311,6 +376,18 @@ public partial class CombatManager
                 break;
             case "center":
                 seeds.Add(grid.RecipeMidpoint);
+                break;
+            case "":
+            case "player_spawn":
+                break;   // explicit default: seeds stay empty and the player zone anchor is used below
+            default:
+                // battlefield_variety_spec_v1 §3.3 / §4: any recipe coord token
+                // (midpoint, axis:N, flank:N, enemy_anchor, "q,r"...) sites the zone,
+                // so a rolled hold_zone lands on the archetype's feature whichever
+                // axis was rolled. ResolveRecipeCoord returns the map centre for an
+                // unknown token, which is still a sane zone; log it so the author sees.
+                seeds.Add(grid.ResolveRecipeCoord(_objective.ZoneAnchor));
+                GD.Print($"[Objective] hold_zone anchor token '{_objective.ZoneAnchor}' → {seeds[0]}.");
                 break;
         }
         if (seeds.Count == 0)

@@ -294,5 +294,28 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_grove",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_causeway",
+				"weight": 1,
+				"terrains": [
+					"Coast",
+					"Water",
+					"Swamp"
+				]
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_grove",
+				"weight": 1
+			}
+		]
 	}
 }

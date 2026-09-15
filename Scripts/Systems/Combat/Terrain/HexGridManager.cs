@@ -445,6 +445,7 @@ public partial class HexGridManager : Node3D
         }
 
         ApplyDensityPreset();
+        ResolveDeployment();      // battlefield_variety_spec_v1 §3: rolls the axis + variant; no-op without a deployments block
         DetermineLayoutAnchors();
 
         MapField field = _activeRecipe != null ? BuildFieldFromRecipe(_activeRecipe) : BuildField();

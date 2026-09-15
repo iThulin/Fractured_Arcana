@@ -303,5 +303,33 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_causeway",
+				"weight": 3
+			},
+			{
+				"recipe": "bf_ford",
+				"weight": 2
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_causeway",
+				"weight": 2
+			}
+		],
+		"objectives": {
+			"battle": [
+				{
+					"kind": "survive",
+					"weight": 1,
+					"rounds": 5,
+					"description": "Until the tide turns"
+				}
+			]
+		}
 	}
 }

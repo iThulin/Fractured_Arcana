@@ -316,5 +316,37 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_kiln",
+				"weight": 2,
+				"terrains": [
+					"Desert",
+					"Ruins"
+				]
+			},
+			{
+				"recipe": "sunbaked_barrens",
+				"weight": 1
+			}
+		],
+		"ambush": [
+			{
+				"recipe": "bf_terraces",
+				"weight": 1
+			}
+		],
+		"objectives": {
+			"battle": [
+				{
+					"kind": "survive",
+					"weight": 1,
+					"rounds": 5,
+					"description": "Outlast the heat"
+				}
+			]
+		}
 	}
 }

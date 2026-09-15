@@ -302,5 +302,43 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_grove",
+				"weight": 3
+			},
+			{
+				"recipe": "bf_warren",
+				"weight": 2
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_grove",
+				"weight": 2
+			}
+		],
+		"ambush": [
+			{
+				"recipe": "bf_grove",
+				"weight": 2
+			}
+		],
+		"pressure": {
+			"battle": [
+				{
+					"kind": "arrival",
+					"id": "from_the_canopy",
+					"weight": 2,
+					"round": 3,
+					"at": "axis:-5",
+					"count": 2,
+					"announce": "They drop from the canopy behind you.",
+					"pool": "skirmish"
+				}
+			]
+		}
 	}
 }

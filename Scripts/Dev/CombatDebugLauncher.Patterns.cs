@@ -38,6 +38,17 @@ public partial class CombatDebugLauncher : CanvasLayer
         "bf_spine", "bf_ford", "bf_kiln", "bf_grove", "bf_amphitheater",
     };
 
+    // battlefield_variety_spec_v1 §3: force a deployment variant by id. The list is
+    // the union of ids authored across Data/Maps; a recipe that lacks the chosen id
+    // rolls normally (HexGridManager.ResolveDeployment warns).
+    private OptionButton _forceDeploymentOpt;
+    private static readonly string[] DeploymentIds =
+    {
+        "(roll)", "line", "close",
+        "far_bank", "in_the_cauldron", "top_held", "both_lanes", "room_held", "both_doors",
+        "crest_held", "contested_crossing", "trapped", "from_the_trees", "stage_held", "on_stage",
+    };
+
     // -- Expedition-pattern picker -----------------------------------------
 
     /// <summary>Repopulate the pattern dropdown from region[regionIdx]'s encounterPools,

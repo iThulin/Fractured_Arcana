@@ -215,6 +215,119 @@ public sealed class TacticsSpec
     };
 }
 
+/// <summary>One deployment variant (battlefield_variety_spec_v1 §3). A recipe lists the
+/// ways its skeleton can be entered; generation rolls one by weight. `axis` is the
+/// player→enemy hex direction (0–5) the layout frame is built on: "any", an int, or a
+/// list of the ints a rectangle's long features survive. `layout` is the pair of
+/// fractions along that axis where the layout anchors sit (default 0.12 / 0.88).
+/// `player_at` / `enemy_at` move the SPAWN targets off the layout anchors with coord
+/// tokens resolved against the layout frame; a list makes one zone per token.
+/// Example: { "id": "pincer", "weight": 1, "axis": [0, 3], "enemy_at": ["flank:4", "flank:-4"] }</summary>
+public sealed class DeploymentSpec
+{
+    public string Id = "";
+    public float Weight = 1f;
+    public bool AnyAxis = true;
+    public List<int> Axes = new();
+    public float PlayerFraction = 0.12f;
+    public float EnemyFraction = 0.88f;
+    public List<string> PlayerAt = new();
+    public List<string> EnemyAt = new();
+
+    /// <summary>True when the spawn targets differ from the layout anchors.</summary>
+    public bool MovesTargets => PlayerAt.Count > 0 || EnemyAt.Count > 0;
+
+    private static void ReadTokens(Godot.Collections.Dictionary d, string key, List<string> into)
+    {
+        if (!d.ContainsKey(key))
+            return;
+        var v = d[key];
+        if (v.VariantType == Variant.Type.Array)
+        {
+            foreach (var item in v.AsGodotArray())
+                into.Add(item.AsString());
+        }
+        else
+        {
+            into.Add(v.AsString());
+        }
+    }
+
+    public static DeploymentSpec FromDict(Godot.Collections.Dictionary d)
+    {
+        var s = new DeploymentSpec
+        {
+            Id = MapRecipe.Str(d, "id", ""),
+            Weight = MapRecipe.Flt(d, "weight", 1f),
+        };
+
+        if (d.ContainsKey("axis"))
+        {
+            var v = d["axis"];
+            if (v.VariantType == Variant.Type.Array)
+            {
+                foreach (var item in v.AsGodotArray())
+                    s.Axes.Add(((item.AsInt32() % 6) + 6) % 6);
+                s.AnyAxis = s.Axes.Count == 0;
+            }
+            else if (v.VariantType == Variant.Type.Int || v.VariantType == Variant.Type.Float)
+            {
+                s.Axes.Add(((v.AsInt32() % 6) + 6) % 6);
+                s.AnyAxis = false;
+            }
+            // any string ("any") keeps AnyAxis = true
+        }
+
+        if (d.ContainsKey("layout"))
+        {
+            var a = d["layout"].AsGodotArray();
+            if (a.Count >= 2)
+            {
+                s.PlayerFraction = Mathf.Clamp(a[0].AsSingle(), 0f, 1f);
+                s.EnemyFraction = Mathf.Clamp(a[1].AsSingle(), 0f, 1f);
+            }
+        }
+
+        ReadTokens(d, "player_at", s.PlayerAt);
+        ReadTokens(d, "enemy_at", s.EnemyAt);
+        return s;
+    }
+}
+
+/// <summary>battlefield_variety v1.2 §9: a region skin. Keyed on the recipe by the
+/// overworld terrain name the fight came from ("Desert", "Snow", ...). Overrides
+/// only what it names: the obstacle palette, the atmosphere, the base-terrain palette
+/// rules, the water profile, the sand style. The skeleton (features, events,
+/// deployments) is untouched, so the Warren is still the Warren under ice.</summary>
+public sealed class SkinSpec
+{
+    public ObstaclePalette Obstacles;
+    public AtmosphereSpec Atmosphere;
+    public List<PaletteRule> Palette;
+    public WaterSpec Water;
+    public SandSpec Sand;
+
+    public static SkinSpec FromDict(Godot.Collections.Dictionary d)
+    {
+        var s = new SkinSpec();
+        if (d.ContainsKey("obstacles"))
+            s.Obstacles = ObstaclePalette.FromDict(d["obstacles"].AsGodotDictionary());
+        if (d.ContainsKey("atmosphere"))
+            s.Atmosphere = AtmosphereSpec.FromDict(d["atmosphere"].AsGodotDictionary());
+        if (d.ContainsKey("palette"))
+        {
+            s.Palette = new List<PaletteRule>();
+            foreach (var item in d["palette"].AsGodotArray())
+                s.Palette.Add(PaletteRule.FromDict(item.AsGodotDictionary()));
+        }
+        if (d.ContainsKey("water"))
+            s.Water = WaterSpec.FromDict(d["water"].AsGodotDictionary());
+        if (d.ContainsKey("sand"))
+            s.Sand = SandSpec.FromDict(d["sand"].AsGodotDictionary());
+        return s;
+    }
+}
+
 /// <summary>One feature operation. Typed convenience getters read from the raw param bag.</summary>
 public sealed class FeatureOp
 {
@@ -456,6 +569,50 @@ public sealed class MapRecipe
     public ObstaclePalette Obstacles;
     public List<FeatureOp> Features = new();
     public List<MapEventDef> MapEvents = new();
+    /// <summary>battlefield_variety_spec_v1 §3: deployment variants. Empty = the
+    /// pre-spec plan (axis 0, 0.12 / 0.88, one zone per side), byte for byte.</summary>
+    public List<DeploymentSpec> Deployments = new();
+    /// <summary>v1.2 §9: region skins keyed by overworld terrain name. Empty = none.</summary>
+    public Dictionary<string, SkinSpec> Skins = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>A shallow copy of this recipe with the skin's overrides applied. Lists
+    /// (features, events, deployments) are SHARED with the registry def, exactly as
+    /// the def itself is shared between fights; only the dressing fields differ.</summary>
+    public MapRecipe WithSkin(SkinSpec skin)
+    {
+        if (skin == null)
+            return this;
+        var r = new MapRecipe
+        {
+            Id = Id,
+            DisplayName = DisplayName,
+            Shape = Shape,
+            BaseTerrain = BaseTerrain,
+            Atmosphere = skin.Atmosphere ?? Atmosphere,
+            Water = skin.Water ?? Water,
+            Sand = skin.Sand ?? Sand,
+            Siege = Siege,
+            Tactics = Tactics,
+            Obstacles = skin.Obstacles ?? Obstacles,
+            Features = Features,
+            MapEvents = MapEvents,
+            Deployments = Deployments,
+            Skins = Skins,
+        };
+        if (skin.Palette != null && skin.Palette.Count > 0)
+        {
+            r.BaseTerrain = new BaseTerrainSpec
+            {
+                ElevationFrequency = BaseTerrain?.ElevationFrequency ?? 0f,
+                MoistureFrequency = BaseTerrain?.MoistureFrequency ?? 0f,
+                DetailWeight = BaseTerrain?.DetailWeight ?? -1f,
+                MaxHeightStep = BaseTerrain?.MaxHeightStep ?? 0,
+                MinHeightStep = BaseTerrain?.MinHeightStep ?? 0,
+                Palette = skin.Palette,
+            };
+        }
+        return r;
+    }
 
     public static MapRecipe FromDict(Godot.Collections.Dictionary d)
     {
@@ -533,6 +690,24 @@ public sealed class MapRecipe
                     mev.Telegraph = 1;
                 }
                 r.MapEvents.Add(mev);
+            }
+        }
+
+        if (d.ContainsKey("skins"))
+        {
+            var sk = d["skins"].AsGodotDictionary();
+            foreach (var key in sk.Keys)
+                r.Skins[key.AsString()] = SkinSpec.FromDict(sk[key].AsGodotDictionary());
+        }
+
+        if (d.ContainsKey("deployments"))
+        {
+            foreach (var item in d["deployments"].AsGodotArray())
+            {
+                var ds = DeploymentSpec.FromDict(item.AsGodotDictionary());
+                if (string.IsNullOrEmpty(ds.Id))
+                    ds.Id = $"deployment_{r.Deployments.Count}";
+                r.Deployments.Add(ds);
             }
         }
 

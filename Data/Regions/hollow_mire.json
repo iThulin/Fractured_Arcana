@@ -302,5 +302,48 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_causeway",
+				"weight": 2
+			},
+			{
+				"recipe": "bf_ford",
+				"weight": 2
+			}
+		],
+		"ambush": [
+			{
+				"recipe": "bf_causeway",
+				"weight": 2
+			}
+		],
+		"objectives": {
+			"battle": [
+				{
+					"kind": "survive",
+					"weight": 2,
+					"rounds": 6,
+					"description": "The dead keep rising"
+				}
+			]
+		},
+		"pressure": {
+			"battle": [
+				{
+					"kind": "arrival",
+					"id": "mire_dead",
+					"weight": 3,
+					"round": 2,
+					"at": "axis:1",
+					"count": 1,
+					"announce": "The mire gives up another of its dead.",
+					"pool": "skirmish",
+					"repeat_every": 2
+				}
+			]
+		}
 	}
 }

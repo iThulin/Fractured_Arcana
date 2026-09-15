@@ -20,6 +20,11 @@ public partial class HexGridManager : Node3D
 {
     private MapRecipe _activeRecipe;
 
+    /// <summary>v1.2 §9: the overworld terrain name of the fight, set by CombatManager
+    /// before GenerateMap. When the resolved recipe carries a skin under this key, the
+    /// active recipe is that recipe dressed in the skin. Empty = no skin.</summary>
+    public string SkinKey = "";
+
     /// <summary>Resolves MapRecipeId → recipe and copies its shape into the existing shape exports so GenerateBaseGrid is unchanged. Null recipe = enum path.</summary>
     private void ResolveRecipe()
     {
@@ -35,6 +40,12 @@ public partial class HexGridManager : Node3D
         {
             GD.PushWarning($"[MapRecipe] '{MapRecipeId}' not found; falling back to enum theme/layout.");
             return;
+        }
+
+        if (!string.IsNullOrEmpty(SkinKey) && _activeRecipe.Skins.TryGetValue(SkinKey, out var skin))
+        {
+            _activeRecipe = _activeRecipe.WithSkin(skin);
+            GD.Print($"[MapRecipe] '{MapRecipeId}' dressed in skin '{SkinKey}'.");
         }
 
         if (_activeRecipe.Shape is ShapeSpec s)
@@ -71,7 +82,15 @@ public partial class HexGridManager : Node3D
     public readonly System.Collections.Generic.List<(Vector2I coord, string kind, int count)> PendingMapObjects = new();
 
     private static readonly System.Collections.Generic.List<MapEventDef> _noMapEvents = new();
-    /// <summary>The active recipe's scheduled map events (E4). Empty on the enum path.</summary>
+
+    /// <summary>battlefield_variety_v1.1 §7: per-fight pressure add-ons (an arrival
+    /// from a named edge, with or without a lever) rolled by BattlefieldRoster and
+    /// handed to the grid after generation. Fresh objects each fight, so the shared-def
+    /// ResetRuntime concern does not apply. Empty = nothing injected.</summary>
+    public readonly System.Collections.Generic.List<MapEventDef> InjectedMapEvents = new();
+
+    /// <summary>The active recipe's scheduled map events (E4) plus any injected
+    /// add-ons, the debug injector and the overworld weather. Empty on the enum path.</summary>
     public System.Collections.Generic.IReadOnlyList<MapEventDef> ActiveMapEvents
     {
         get
@@ -79,9 +98,10 @@ public partial class HexGridManager : Node3D
             var baseList = _activeRecipe?.MapEvents ?? _noMapEvents;
             var dbg = BuildDebugMapEvent();
             var wx = BuildWeatherMapEvent();
-            if (dbg == null && wx == null)
+            if (dbg == null && wx == null && InjectedMapEvents.Count == 0)
                 return baseList;
             var merged = new System.Collections.Generic.List<MapEventDef>(baseList);
+            merged.AddRange(InjectedMapEvents);
             if (dbg != null) merged.Add(dbg);
             if (wx != null) merged.Add(wx);
             return merged;
@@ -369,7 +389,7 @@ public partial class HexGridManager : Node3D
     private Vector2I AxisShift(int n, bool perpendicular)
     {
         var mid = GetMidpoint(PlayerLayoutAnchor, EnemyLayoutAnchor);
-        int di = HexDirection.Pick(PlayerLayoutAnchor, EnemyLayoutAnchor, 6);
+        int di = _layoutAxis;   // = HexDirection.Pick(anchors) without a deployment; the rolled axis with one
         if (perpendicular) di = (di + 2) % 6;
         return mid + HexDirs[di] * n;
     }
@@ -465,15 +485,41 @@ public partial class HexGridManager : Node3D
     {
         if (int.TryParse(token, out int i))
             return HexDirs[((i % 6) + 6) % 6];
-        if (string.Equals(token, "axis", StringComparison.OrdinalIgnoreCase))
-            return HexDirs[HexDirection.Pick(PlayerLayoutAnchor, EnemyLayoutAnchor, 6)];
+        if (TryRelativeDir(token, out int rel))
+            return HexDirs[rel];
         return FlankDirection();
     }
 
     private Vector2I FlankDirection()
     {
-        int di = HexDirection.Pick(PlayerLayoutAnchor, EnemyLayoutAnchor, 6);
-        return HexDirs[(di + 2) % 6];
+        return HexDirs[(_layoutAxis + 2) % 6];
+    }
+
+    /// <summary>Axis-relative direction tokens (battlefield_variety_spec_v1 §3.2):
+    /// "axis" (player→enemy), "flank" (across it), "axis+N" / "axis-N" (rotated N
+    /// hex steps). These follow the rolled deployment axis, so a ridge authored along
+    /// the axis stays along it when the fight enters from the north. Literal ints
+    /// stay absolute. Before this spec a string dir fell through to a RANDOM
+    /// direction (bf_courtyard and frost_steppe were already authoring "flank"/"axis").</summary>
+    private bool TryRelativeDir(string token, out int index)
+    {
+        index = 0;
+        if (string.IsNullOrEmpty(token))
+            return false;
+        string t = token.Trim().ToLowerInvariant();
+        int offset;
+        if (t == "axis")
+            offset = 0;
+        else if (t == "flank")
+            offset = 2;
+        else if (t.StartsWith("axis+") && int.TryParse(t.Substring(5), out int plus))
+            offset = plus;
+        else if (t.StartsWith("axis-") && int.TryParse(t.Substring(5), out int minus))
+            offset = -minus;
+        else
+            return false;
+        index = (((_layoutAxis + offset) % 6) + 6) % 6;
+        return true;
     }
 
     private Vector2I ResolveDir(FeatureOp op)
@@ -481,11 +527,18 @@ public partial class HexGridManager : Node3D
         if (op.Has("dir"))
         {
             Variant v = op.GetVariant("dir");
-            if (v.VariantType == Variant.Type.Int)
+            // Godot.Json hands JSON numbers over as Float, never Int, so the Int-only
+            // test that used to live here sent every literal "dir": 5 to the random
+            // branch below. Accept both.
+            if (v.VariantType == Variant.Type.Int || v.VariantType == Variant.Type.Float)
             {
                 int i = v.AsInt32();
                 return HexDirs[((i % HexDirs.Length) + HexDirs.Length) % HexDirs.Length];
             }
+            if (v.VariantType == Variant.Type.String && TryRelativeDir(v.AsString(), out int rel))
+                return HexDirs[rel];
+            if (v.VariantType == Variant.Type.String)
+                GD.PushWarning($"[MapRecipe] {op.Feature}: unknown dir token '{v.AsString()}'; rolling a random direction.");
         }
 
         return HexDirs[_rng.RandiRange(0, HexDirs.Length - 1)];

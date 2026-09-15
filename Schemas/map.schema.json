@@ -60,6 +60,20 @@
 			"type": "object",
 			"description": "Siege layout (city_battlemap_compiler_spec). Validated by SiegeSpec.FromDict."
 		},
+		"skins": {
+			"type": "object",
+			"description": "battlefield_variety v1.2 section 9: region skins keyed by overworld terrain name (Desert, Snow, ...). Each overrides only what it names: obstacles, atmosphere, palette (replaces base_terrain.palette), water, sand. Applied when the fight's source terrain matches.",
+			"additionalProperties": {
+				"$ref": "#/$defs/skin"
+			}
+		},
+		"deployments": {
+			"type": "array",
+			"description": "battlefield_variety_spec_v1 section 3: deployment variants rolled by weight. Absent = axis 0, layout 0.12/0.88, one zone per side.",
+			"items": {
+				"$ref": "#/$defs/deployment"
+			}
+		},
 		"map_events": {
 			"type": "array",
 			"description": "Per-round map events (CombatManager.MapEvents). Kinds: imbue_patch, spread_element, advance_hazard_ring, spawn_object, collapse_tiles, raise_tiles, lower_tiles, weather_tick, flood, advance_front, crumble_edge, trap. Common keys: round, repeat_every, telegraph, at (recipe coord token), announce. v2 adds id, when (awaken), lever, and the kinds raise_wall, drop_wall, shift, fog, reinforce_from. castle_defense_v2 adds stomp (at, radius, damage, max_height, crater) and the ring form of shift (ring, radius, tiles, damage, max_height).",
@@ -552,10 +566,18 @@
 					"$ref": "#/$defs/intOrRange"
 				},
 				"dir": {
-					"type": "integer",
-					"minimum": 0,
-					"maximum": 5,
-					"description": "Hex direction index; omit for random."
+					"oneOf": [
+						{
+							"type": "integer",
+							"minimum": 0,
+							"maximum": 5
+						},
+						{
+							"type": "string",
+							"pattern": "^(axis|flank|axis[+-][0-9]+)$"
+						}
+					],
+					"description": "Hex direction: an absolute index 0-5, or axis-relative (axis, flank, axis+N, axis-N) so the feature rotates with the deployment axis. Omit for random."
 				},
 				"kind": {
 					"type": "string",
@@ -686,6 +708,122 @@
 				},
 				"warm": {
 					"$ref": "#/$defs/color"
+				}
+			}
+		},
+		"deployment": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"weight": {
+					"type": "number",
+					"minimum": 0
+				},
+				"axis": {
+					"oneOf": [
+						{
+							"type": "string",
+							"enum": [
+								"any"
+							]
+						},
+						{
+							"type": "integer",
+							"minimum": 0,
+							"maximum": 5
+						},
+						{
+							"type": "array",
+							"items": {
+								"type": "integer",
+								"minimum": 0,
+								"maximum": 5
+							},
+							"minItems": 1
+						}
+					],
+					"description": "Player-to-enemy hex direction the layout frame is built on. any = roll 0-5; a list = the axes a rectangle's long features survive."
+				},
+				"layout": {
+					"type": "array",
+					"items": {
+						"type": "number",
+						"minimum": 0,
+						"maximum": 1
+					},
+					"minItems": 2,
+					"maxItems": 2,
+					"description": "[player_fraction, enemy_fraction] along the axis; default [0.12, 0.88]."
+				},
+				"player_at": {
+					"oneOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"minItems": 1
+						}
+					],
+					"description": "Coord token(s) for the player spawn target(s), resolved against the layout frame. A list = one zone per token."
+				},
+				"enemy_at": {
+					"oneOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"minItems": 1
+						}
+					],
+					"description": "Coord token(s) for the enemy spawn target(s). A list = one zone per token (pincer, surround)."
+				}
+			}
+		},
+		"skin": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"obstacles": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Obstacle dressing palette: which Data/Obstacles catalog kind each role resolves to on this map. Ops write \"kind\": \"low\" | \"high\" | \"pillar\" and get these. Missing roles fall back to a default keyed on the dominant base terrain.",
+					"properties": {
+						"low": {
+							"type": "string"
+						},
+						"high": {
+							"type": "string"
+						},
+						"pillar": {
+							"type": "string"
+						}
+					}
+				},
+				"atmosphere": {
+					"$ref": "#/$defs/atmosphere"
+				},
+				"palette": {
+					"type": "array",
+					"items": {
+						"$ref": "#/$defs/paletteRule"
+					}
+				},
+				"water": {
+					"$ref": "#/$defs/water"
+				},
+				"sand": {
+					"$ref": "#/$defs/sand"
 				}
 			}
 		}

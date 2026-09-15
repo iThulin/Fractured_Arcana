@@ -67,6 +67,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     {
         PlayerSession.DebugCombat = false;
         PlayerSession.DebugMapEventKind = null;
+        PlayerSession.DebugDeploymentId = null;
         PlayerSession.DebugDisableHazardCap = false;
         PlayerSession.DebugMapObjects = null;
         PlayerSession.DebugMode = false;
@@ -168,6 +169,10 @@ public partial class CombatDebugLauncher : CanvasLayer
         recipeItems[BattlefieldRecipes.Length + 5] = CompiledPortalDefenseLabel; // city siege: rift defense
         recipeItems[BattlefieldRecipes.Length + 6] = CastleDefenseLabel;         // mobile fortress: defend the castle
         _forceRecipeOpt = AddStringDropdown(form, "Force battlefield:", recipeItems);
+        // battlefield_variety_spec_v1 §3: force one of the recipe's deployment
+        // variants. "(roll)" = weighted roll, as a real fight does. An id the
+        // launched recipe lacks falls back to the roll (warning in the log).
+        _forceDeploymentOpt = AddStringDropdown(form, "Force deployment:", DeploymentIds);
         _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
 
         form.AddChild(new HSeparator());
@@ -446,6 +451,8 @@ public partial class CombatDebugLauncher : CanvasLayer
         // on ReturnToCampus so a later real fight is unaffected.
         string mevKind = _mapEventKindOpt.GetItemText(_mapEventKindOpt.Selected);
         PlayerSession.DebugMapEventKind = mevKind == "(none)" ? null : mevKind;
+        string depId = _forceDeploymentOpt.GetItemText(_forceDeploymentOpt.Selected);
+        PlayerSession.DebugDeploymentId = depId == "(roll)" ? null : depId;
         PlayerSession.DebugMapEventElement = _mapEventElemOpt.GetItemText(_mapEventElemOpt.Selected);
         PlayerSession.DebugDisableHazardCap = _noHazardCapChk.ButtonPressed;
 

@@ -298,5 +298,38 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_amphitheater",
+				"weight": 3,
+				"terrains": [
+					"Ruins",
+					"ArcaneGround",
+					"Water"
+				]
+			},
+			{
+				"recipe": "bf_courtyard",
+				"weight": 1
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_amphitheater",
+				"weight": 2
+			}
+		],
+		"objectives": {
+			"battle": [
+				{
+					"kind": "protect",
+					"weight": 1,
+					"wardUnitId": "anchor_moment",
+					"description": "Protect the reading"
+				}
+			]
+		}
 	}
 }

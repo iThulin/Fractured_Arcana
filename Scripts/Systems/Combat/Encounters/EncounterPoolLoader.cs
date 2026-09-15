@@ -315,46 +315,7 @@ public static class EncounterPoolLoader
             return;
 
         if (comp.Objective != null)
-        {
-            string kind = (comp.Objective.Kind ?? "").Trim().ToLowerInvariant();
-
-            if (!CombatObjectiveDef.IsKnownKind(kind))
-            {
-                GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' declares unknown " +
-                            $"objective kind '{comp.Objective.Kind}'. Objective IGNORED " +
-                            "(this fight will run as annihilate).");
-            }
-            else if (!CombatObjectiveDef.IsImplementedKind(kind))
-            {
-                GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' declares objective " +
-                            $"kind '{kind}', which this build does not implement yet. Objective " +
-                            "IGNORED (this fight will run as annihilate).");
-            }
-            else if (kind != CombatObjectiveDef.KindAnnihilate)
-            {
-                bool needsRounds = kind == CombatObjectiveDef.KindSurvive
-                                || kind == CombatObjectiveDef.KindHoldZone;
-                if (needsRounds && comp.Objective.Rounds <= 0)
-                {
-                    GD.PrintErr($"EncounterPoolLoader: composition '{comp.Name}' objective " +
-                                $"'{kind}' needs rounds > 0 (got {comp.Objective.Rounds}). " +
-                                "Objective IGNORED.");
-                }
-                else
-                {
-                    def.Objective = new CombatObjectiveDef
-                    {
-                        Kind = kind,
-                        Rounds = comp.Objective.Rounds,
-                        WardUnitId = comp.Objective.WardUnitId ?? "",
-                        BreachLimit = comp.Objective.BreachLimit,
-                        ZoneAnchor = comp.Objective.ZoneAnchor ?? "player_spawn",
-                        ZoneRadius = comp.Objective.ZoneRadius,
-                        Description = comp.Objective.Description ?? "",
-                    };
-                }
-            }
-        }
+            def.Objective = BuildObjective(comp.Objective, comp.Name);
 
         if (comp.Waves != null)
         {
@@ -405,6 +366,66 @@ public static class EncounterPoolLoader
             GD.Print($"[Objective] Composition '{comp.Name}': kind={kindLabel}, " +
                      $"rounds={roundsLabel}, waves={def.Waves.Count}.");
         }
+    }
+
+    /// <summary>
+    /// Validates one objective block and builds its runtime def, or returns null
+    /// (annihilate) with a LOUD log naming the source. Extracted from
+    /// ApplyObjectiveAndWaves so BattlefieldRoster's rolled objectives
+    /// (battlefield_variety_spec_v1 §4) get exactly the same gate as authored ones.
+    /// <paramref name="source"/> is only for the log ("composition 'x'" or
+    /// "roster:region/tier").
+    /// </summary>
+    public static CombatObjectiveDef BuildObjective(ObjectiveData od, string source)
+    {
+        if (od == null)
+            return null;
+
+        string kind = (od.Kind ?? "").Trim().ToLowerInvariant();
+
+        if (!CombatObjectiveDef.IsKnownKind(kind))
+        {
+            GD.PrintErr($"EncounterPoolLoader: '{source}' declares unknown " +
+                        $"objective kind '{od.Kind}'. Objective IGNORED " +
+                        "(this fight will run as annihilate).");
+            return null;
+        }
+        if (!CombatObjectiveDef.IsImplementedKind(kind))
+        {
+            GD.PrintErr($"EncounterPoolLoader: '{source}' declares objective " +
+                        $"kind '{kind}', which this build does not implement yet. Objective " +
+                        "IGNORED (this fight will run as annihilate).");
+            return null;
+        }
+        if (kind == CombatObjectiveDef.KindAnnihilate)
+            return null;
+
+        bool needsRounds = kind == CombatObjectiveDef.KindSurvive
+                        || kind == CombatObjectiveDef.KindHoldZone;
+        if (needsRounds && od.Rounds <= 0)
+        {
+            GD.PrintErr($"EncounterPoolLoader: '{source}' objective " +
+                        $"'{kind}' needs rounds > 0 (got {od.Rounds}). " +
+                        "Objective IGNORED.");
+            return null;
+        }
+        if (kind == CombatObjectiveDef.KindProtect && string.IsNullOrEmpty(od.WardUnitId))
+        {
+            GD.PrintErr($"EncounterPoolLoader: '{source}' protect objective has no wardUnitId. " +
+                        "Objective IGNORED.");
+            return null;
+        }
+
+        return new CombatObjectiveDef
+        {
+            Kind = kind,
+            Rounds = od.Rounds,
+            WardUnitId = od.WardUnitId ?? "",
+            BreachLimit = od.BreachLimit,
+            ZoneAnchor = od.ZoneAnchor ?? "player_spawn",
+            ZoneRadius = od.ZoneRadius,
+            Description = od.Description ?? "",
+        };
     }
 
     /// <summary>

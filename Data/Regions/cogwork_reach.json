@@ -317,5 +317,58 @@
 				]
 			}
 		]
+	},
+	"battlefields": {
+		"battle": [
+			{
+				"recipe": "bf_kiln",
+				"weight": 3,
+				"terrains": [
+					"Ruins",
+					"Grassland",
+					"Road"
+				]
+			},
+			{
+				"recipe": "bf_courtyard",
+				"weight": 1
+			}
+		],
+		"siege": [
+			{
+				"recipe": "bf_kiln",
+				"weight": 3
+			}
+		],
+		"objectives": {
+			"siege": [
+				{
+					"kind": "hold_zone",
+					"weight": 1,
+					"rounds": 6,
+					"zoneAnchor": "midpoint",
+					"zoneRadius": 2,
+					"description": "Hold the works"
+				}
+			]
+		},
+		"pressure": {
+			"siege": [
+				{
+					"kind": "arrival",
+					"id": "works_gate",
+					"weight": 2,
+					"round": 3,
+					"at": "flank:3",
+					"count": 2,
+					"announce": "The works gate opens.",
+					"pool": "skirmish",
+					"lever": {
+						"at": "flank:2",
+						"mode": "pull"
+					}
+				}
+			]
+		}
 	}
 }

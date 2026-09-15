@@ -4611,6 +4611,20 @@ public partial class CombatManager : Node3D
         if (grid == null)
             return;
 
+        // battlefield_variety_spec_v1 §4: a composition that authored no objective
+        // rolls one from the region + global objective pools. This runs FIRST so a
+        // rolled protect still claims its ward slot in the headcount below, and
+        // before QueueEncounterFromContext → InitObjectiveState reads def.Objective.
+        // Debug launches (PlayerSession.DebugCombat) keep their authored/absent
+        // objective: the launcher's own dropdown is the source of truth there.
+        if (EncounterContextCarrier.HasEncounter &&
+            EncounterContextCarrier.Current.Objective == null &&
+            !PlayerSession.DebugCombat)
+        {
+            EncounterContextCarrier.Current.Objective = BattlefieldRoster.RollObjective(
+                EncounterContextCarrier.Current.RegionId, EncounterContextCarrier.Tier);
+        }
+
         // (2026-07-29 playtest) Spawn-zone sizing: EnemySpawnCount /
         // PlayerSpawnCount were fixed inspector exports (3/3), so a Siege
         // composition's 4th enemy silently failed to spawn ("Not enough
@@ -4651,10 +4665,23 @@ public partial class CombatManager : Node3D
         string terrain = EncounterContextCarrier.SourceTerrain;
         if (!string.IsNullOrEmpty(terrain))
         {
+            // battlefield_variety_spec_v1 §2: E5 override → region + global weighted
+            // pools (minus the recent-history window) → the 1:1 terrain table.
             string forcedRecipe = EncounterContextCarrier.Current?.MapRecipe;
-            grid.MapRecipeId = !string.IsNullOrEmpty(forcedRecipe)
-                ? forcedRecipe                               // E5: composition-paired battlefield
-                : TerrainRecipeMap.Resolve(terrain);
+            grid.MapRecipeId = BattlefieldRoster.ResolveRecipe(
+                EncounterContextCarrier.Current?.RegionId ?? "",
+                EncounterContextCarrier.Tier, terrain, forcedRecipe);
+            // §3: debug launcher may force a deployment variant; steer a real
+            // fight away from repeating the previous fight's variant.
+            grid.ForcedDeploymentId = PlayerSession.DebugDeploymentId ?? "";
+            grid.SkinKey = terrain;   // v1.2 §9: region skins are keyed by overworld terrain
+            grid.AvoidDeploymentId = PlayerSession.DebugCombat ? "" : BattlefieldRoster.LastDeploymentId;
+            // A hold_zone sited on the midpoint must not roll a deployment that
+            // seeds the enemy there (they would breach it from round 1).
+            var obj = EncounterContextCarrier.Current?.Objective;
+            grid.KeepMidpointClearOfEnemies =
+                obj != null && obj.Kind == CombatObjectiveDef.KindHoldZone &&
+                (obj.ZoneAnchor == "midpoint" || obj.ZoneAnchor == "center");
             grid.DensityControlMode = HexGridManager.DensityMode.Preset;
             grid.DensityPreset = DensityForTier(EncounterContextCarrier.Tier);
 
@@ -4672,6 +4699,33 @@ public partial class CombatManager : Node3D
         ApplyVistaBias(grid);
 
         grid.GenerateMap();
+
+        // §2.4: history window, keyed on what actually generated.
+        if (!PlayerSession.DebugCombat)
+            BattlefieldRoster.RecordFight(grid.MapRecipeId, grid.ActiveDeployment?.Id);
+
+        // battlefield_variety_v1.1 §7: one pressure add-on (an arrival from a named
+        // edge, optionally with a lever) rolled per real fight. Skipped when the
+        // composition authored waves or the recipe already carries an arrival
+        // event, so authored pressure never stacks with rolled pressure. Injected
+        // AFTER GenerateMap so its coord tokens resolve against the rolled axis at
+        // the first round boundary, like every recipe event.
+        grid.InjectedMapEvents.Clear();
+        if (EncounterContextCarrier.HasEncounter && !PlayerSession.DebugCombat)
+        {
+            var cur = EncounterContextCarrier.Current;
+            bool hasWaves = cur.Waves != null && cur.Waves.Count > 0;
+            bool recipeArrives = false;
+            foreach (var ev in grid.ActiveMapEvents)
+                if (ev != null && ev.Kind == "reinforce_from") { recipeArrives = true; break; }
+            if (!hasWaves && !recipeArrives)
+            {
+                var addOn = BattlefieldRoster.RollPressure(cur.RegionId, cur.Tier, cur.DifficultyMult,
+                    cur.Objective == null ? CombatObjectiveDef.KindAnnihilate : cur.Objective.Kind);
+                if (addOn != null)
+                    grid.InjectedMapEvents.Add(addOn);
+            }
+        }
 
         // E3: materialise recipe map objects now, before enemies deploy, so their
         // tiles read as occupied and spawns route around them.
@@ -4889,6 +4943,42 @@ public partial class CombatManager : Node3D
         enemyZoneTiles.Sort((a, b) =>
             grid.Distance(a.Axial, playerCentroid)
                 .CompareTo(grid.Distance(b.Axial, playerCentroid)));
+
+        // battlefield_variety_spec_v1 §3.3: with more than one enemy zone (pincer,
+        // surround) a single global sort fills the nearer pocket first and the
+        // split never happens. Interleave the zones instead, each still ordered by
+        // distance to the player, so the roster alternates pockets. One zone (every
+        // pre-spec map) takes the sorted list unchanged.
+        int enemyZoneCount = 0;
+        foreach (var zone in grid.SpawnZones)
+            if (zone.Side == HexGridManager.SpawnSide.Enemy) enemyZoneCount++;
+        if (enemyZoneCount > 1)
+        {
+            var perZone = new List<List<TileData>>();
+            foreach (var zone in grid.SpawnZones)
+            {
+                if (zone.Side != HexGridManager.SpawnSide.Enemy)
+                    continue;
+                var zoneSet = new HashSet<Vector2I>(zone.Tiles);
+                perZone.Add(enemyZoneTiles.Where(td => zoneSet.Contains(td.Axial)).ToList());
+            }
+            var interleaved = new List<TileData>();
+            var seenTile = new HashSet<Vector2I>();
+            for (int depth = 0; interleaved.Count < enemyZoneTiles.Count; depth++)
+            {
+                bool any = false;
+                foreach (var list in perZone)
+                {
+                    if (depth < list.Count && seenTile.Add(list[depth].Axial))
+                    { interleaved.Add(list[depth]); any = true; }
+                }
+                if (!any)
+                    break;
+            }
+            foreach (var td in enemyZoneTiles)          // tiles in no zone list (none expected) keep their order
+                if (seenTile.Add(td.Axial)) interleaved.Add(td);
+            enemyZoneTiles = interleaved;
+        }
 
         var sorted = pendingEnemySpawns
             .OrderByDescending(p => p.BaseSpeed)
