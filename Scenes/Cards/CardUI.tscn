@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://iuge2orfh1hw"]
+[gd_scene load_steps=11 format=3 uid="uid://iuge2orfh1hw"]
 
 [ext_resource type="Script" uid="uid://birxykmprpeas" path="res://Scripts/Cards/CardUi.cs" id="1_huidv"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/Caladea-Bold.ttf" id="2_namefont"]
 
 [sub_resource type="StyleBoxFlat" id="SBF_topPanel"]
 bg_color = Color(1, 1, 1, 1)
@@ -124,22 +125,22 @@ mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="NameBar" type="HBoxContainer" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer" unique_id=2073519728]
-custom_minimum_size = Vector2(190, 22)
+custom_minimum_size = Vector2(190, 24)
 layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="ManaPip" type="Panel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar" unique_id=1903319486]
-custom_minimum_size = Vector2(20, 20)
+custom_minimum_size = Vector2(24, 24)
 layout_mode = 2
 theme_override_styles/panel = SubResource("SBF_manaPip")
 
 [node name="ManaLabel" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar/ManaPip" unique_id=1255029625]
-custom_minimum_size = Vector2(20, 20)
+custom_minimum_size = Vector2(24, 24)
 layout_mode = 0
-offset_right = 20.0
-offset_bottom = 20.0
+offset_right = 24.0
+offset_bottom = 24.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -147,30 +148,24 @@ vertical_alignment = 1
 [node name="SpellName" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar" unique_id=338910836]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.102, 0.086, 0.078, 1)
+theme_override_fonts/font = ExtResource("2_namefont")
+theme_override_font_sizes/font_size = 15
 text = "Spell Name"
 vertical_alignment = 1
 text_overrun_behavior = 3
-
-[node name="SpeedLabel" type="Label" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer/NameBar" unique_id=1447378050]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
-theme_override_font_sizes/font_size = 9
-text = "Sorcery"
-vertical_alignment = 1
 
 [node name="RulesText" type="RichTextLabel" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer" unique_id=1142975533]
 custom_minimum_size = Vector2(185, 30)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_colors/default_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/normal_font_size = 12
+theme_override_colors/default_color = Color(0.102, 0.086, 0.078, 1)
+theme_override_font_sizes/bold_font_size = 13
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
 text = "Rules text"
 scroll_active = false
-vertical_alignment = 1
 
 [node name="ElementTags" type="HBoxContainer" parent="CardVisual/SplitView/TopPanel/TopControl/TopContainer"]
 layout_mode = 2
@@ -211,22 +206,22 @@ mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="NameBar" type="HBoxContainer" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer" unique_id=28056738]
-custom_minimum_size = Vector2(190, 22)
+custom_minimum_size = Vector2(190, 24)
 layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="ManaPip" type="Panel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar" unique_id=825942253]
-custom_minimum_size = Vector2(20, 20)
+custom_minimum_size = Vector2(24, 24)
 layout_mode = 2
 theme_override_styles/panel = SubResource("SBF_manaPip")
 
 [node name="ManaLabel" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar/ManaPip" unique_id=1150369552]
-custom_minimum_size = Vector2(20, 20)
+custom_minimum_size = Vector2(24, 24)
 layout_mode = 0
-offset_right = 20.0
-offset_bottom = 20.0
+offset_right = 24.0
+offset_bottom = 24.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_font_sizes/font_size = 12
 text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -234,30 +229,24 @@ vertical_alignment = 1
 [node name="SpellName" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar" unique_id=306571735]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.102, 0.086, 0.078, 1)
+theme_override_fonts/font = ExtResource("2_namefont")
+theme_override_font_sizes/font_size = 15
 text = "Spell Name"
 vertical_alignment = 1
 text_overrun_behavior = 3
-
-[node name="SpeedLabel" type="Label" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer/NameBar" unique_id=996661075]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
-theme_override_font_sizes/font_size = 9
-text = "Sorcery"
-vertical_alignment = 1
 
 [node name="RulesText" type="RichTextLabel" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer" unique_id=1283560589]
 custom_minimum_size = Vector2(185, 30)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_colors/default_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/normal_font_size = 12
+theme_override_colors/default_color = Color(0.102, 0.086, 0.078, 1)
+theme_override_font_sizes/bold_font_size = 13
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
 text = "Rules text"
 scroll_active = false
-vertical_alignment = 1
 
 [node name="ElementTags" type="HBoxContainer" parent="CardVisual/SplitView/BottomPanel/BottomControl/BottomContainer"]
 layout_mode = 2
@@ -295,7 +284,7 @@ vertical_alignment = 1
 
 [node name="ElementTagContainer" type="HBoxContainer" parent="CardVisual/FullCardView/ArtPanel" unique_id=1612581389]
 layout_mode = 0
-offset_left = 140.0
+offset_left = 26.0
 offset_top = 3.0
 offset_right = 197.0
 offset_bottom = 20.0
@@ -335,15 +324,15 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="ManaPip" type="Panel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=669849027]
-custom_minimum_size = Vector2(20, 20)
+custom_minimum_size = Vector2(24, 24)
 layout_mode = 2
 theme_override_styles/panel = SubResource("SBF_fullManaPip")
 
 [node name="ManaLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar/ManaPip" unique_id=1733622910]
-custom_minimum_size = Vector2(20, 20)
+custom_minimum_size = Vector2(24, 24)
 layout_mode = 0
-offset_right = 20.0
-offset_bottom = 20.0
+offset_right = 24.0
+offset_bottom = 24.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 12
 text = "0"
@@ -353,27 +342,21 @@ vertical_alignment = 1
 [node name="SpellName" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=1173587953]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.102, 0.086, 0.078, 1)
+theme_override_fonts/font = ExtResource("2_namefont")
+theme_override_font_sizes/font_size = 16
 text = "Spell Name"
 vertical_alignment = 1
 text_overrun_behavior = 3
-
-[node name="SpeedLabel" type="Label" parent="CardVisual/FullCardView/InfoPanel/InfoContainer/NameBar" unique_id=2025575743]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
-theme_override_font_sizes/font_size = 10
-text = "Sorcery"
-vertical_alignment = 1
 
 [node name="RulesText" type="RichTextLabel" parent="CardVisual/FullCardView/InfoPanel/InfoContainer" unique_id=167060255]
 custom_minimum_size = Vector2(185, 40)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-theme_override_colors/default_color = Color(0, 0, 0, 1)
-theme_override_font_sizes/normal_font_size = 12
+theme_override_colors/default_color = Color(0.102, 0.086, 0.078, 1)
+theme_override_font_sizes/bold_font_size = 13
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
 text = "Rules text"
 scroll_active = false
-vertical_alignment = 1

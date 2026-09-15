@@ -5,6 +5,7 @@
  "archetype": "Commander",
  "factionId": "frontier_garrison",
  "openingText": "The commander doesn't offer a seat. She stands with her back to the map, arms crossed, watching you with the patience of someone who has made harder decisions before breakfast. 'You're operating in my jurisdiction. Give me a reason not to make that a problem.'",
+ "openingTextLate": "Vael has traded her map for a newer one with more red on it. She still doesn't offer a seat. 'My jurisdiction is now the space between two things I can't fight,' she says. 'Give me a reason you're not a third.'",
  "startingTension": 5,
  "basePatience": 6,
  "npcResolve": 3,
@@ -14,10 +15,12 @@
  "dialogueStrained": "I'm still listening. Don't mistake that for patience.",
  "dialogueHostile": "You're testing my tolerance. Don't.",
  "dialogueWalkaway": "This conversation is over. Don't let me see you in this sector again.",
+ "dialogueWalkawayLate": "This conversation is over. The sector will make my argument for me.",
  "dialogueAccept": "Understood. You've earned the right to operate here. Don't make me regret it.",
  "terms": [
   {
    "id": "safe_passage",
+   "shortName": "safe passage",
    "description": "The garrison grants safe passage through the western quadrant for this run.",
    "favorPlayer": true,
    "isHidden": false,
@@ -30,6 +33,7 @@
   },
   {
    "id": "patrol_intel",
+   "shortName": "supply-line map",
    "description": "Commander Vael opens the garrison's supply-line map: every cache in the kingdom, marked.",
    "favorPlayer": true,
    "isHidden": false,
@@ -41,7 +45,9 @@
   },
   {
    "id": "tribute",
+   "shortName": "garrison tax",
    "description": "A 'tax' of 30 gold for operating in garrison territory.",
+   "rumorText": "The garrison clerks stamp every paper twice. The second stamp costs something.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -30,
@@ -51,6 +57,7 @@
   },
   {
    "id": "quartermasters_stores",
+   "shortName": "stores release",
    "description": "The quartermaster releases 20 supplies from the garrison stores to the guild.",
    "favorPlayer": true,
    "isHidden": false,

@@ -409,6 +409,7 @@ public partial class ExpeditionManager : Node2D
         // _crew for F6 / the loot pass. Recomputed every deploy from the roster.
         _crewAssign = CrewStations.AutoAssign(ActivePartyCompanions());
         _crew = CrewStations.Compute(_crewAssign);
+        PlayerSession.AmbushWizardDelayReduction = _crew.WardroomAmbushReduction;   // F6 consumer
         OverworldMovementCost.CrewFuelMultiplier = _crew.FuelBurnMultiplier;
         MaxFuel += _crew.BonusMaxFuel;
 
@@ -1367,7 +1368,9 @@ public partial class ExpeditionManager : Node2D
 
     private void ScheduleStrideTick(float delay)
     {
-        if (!_striding)
+        // A stride can be interrupted by combat: the timer that fired this step
+        // outlives the expedition scene, and there is no tree to schedule on.
+        if (!_striding || !IsInsideTree())
             return;
         GetTree().CreateTimer(delay).Timeout += StrideStep;
     }
@@ -2458,6 +2461,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // an NRE in ToastManager.Push (GetTree() on a detached node). The
         // dossier record persists either way; only the toast needed the tree.
         AnnounceDossierMet(archmageId);
+        // castle_defense_v1 (mobile fortress F6): a patrol that catches the castle
+        // fights it at the castle's gate. The compiler builds the map for this
+        // terrain and the installed modules, attaches the protect objective with
+        // the Castle Heart, and the wizard arrives by waystone on round 3 (less
+        // Wardroom / Waystone Focus). Warfront sieges keep their own routing.
+        if (!_isWarfront)
+            CastleDefenseCompiler.Arm(encounterDef, terrainType, (ulong)(coord.X * 7919 + coord.Y * 104729 + 17));
         CommitCombat(coord, encounterDef, terrainType);
         // Mark AFTER CommitCombat (which resets the flag): this combat is a
         // patrol ambush, and whose soldiers they are (C4 deed emission).
@@ -3694,7 +3704,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 // FactionReputation no longer stores kingdom feeling; court
                 // standing is the single source of truth.
                 int rep = NegotiationContext.ReputationDelta;
-                if (rep != 0)
+                // §6a (Q4 ruling): when the court's own voice sat at the
+                // table (a courtier of the counterpart's archetype), Regard
+                // moved there and then; the deal-deed echo is REPLACED, not
+                // doubled. NegotiationManager.SettleRegardAtTable sets this.
+                if (rep != 0 && !NegotiationContext.RegardSettledAtTable)
                 {
                     string tag = (rep > 0 ? CouncilEcho.DealFair : CouncilEcho.DealExploit)
                                  + ":" + NegotiationContext.NpcArchetype;

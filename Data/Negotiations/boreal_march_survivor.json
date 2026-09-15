@@ -5,6 +5,7 @@
  "archetype": "Survivor",
  "factionId": "roadbound",
  "openingText": "Four hundred and some marks are scratched on the slate by the cairn door, and Ysolt Vane has cut every one. She banks the fire, sets a second bowl out without being asked, and waits. 'Nobody crosses the March by accident,' she says eventually. 'So you want something, and I have the only warm room in ninety miles.'",
+ "openingTextLate": "The marks on the slate have grown a second column, cut shallower, as if the counting hand were tired. Ysolt banks the fire lower than she used to. 'The March is eating travelers faster than it did,' she says. 'So you want something, and quickly.'",
  "startingTension": 4,
  "basePatience": 10,
  "npcResolve": 2,
@@ -14,10 +15,12 @@
  "dialogueStrained": "Perhaps. The March has a way of making men promise more than they carry.",
  "dialogueHostile": "You are shouting in a stone room at the only person who will feed you. Think.",
  "dialogueWalkaway": "Then the door is that way, and it will be dark in an hour, and I will not come after you.",
+ "dialogueWalkawayLate": "Then the door is that way, and it will be dark sooner than you think, and lately the dark arrives first.",
  "dialogueAccept": "Agreed. Eat first. Nothing agreed on an empty stomach in this country survives the walk out.",
  "terms": [
   {
    "id": "hearth_right",
+   "shortName": "hearth right",
    "description": "A night at the cairn, fire banked, and a bowl. The first warm sleep in a week.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +32,7 @@
   },
   {
    "id": "what_stopped",
+   "shortName": "winter census",
    "description": "Where the stopped things are, in order, and which of them have moved since last winter.",
    "favorPlayer": true,
    "isHidden": false,
@@ -40,6 +44,7 @@
   },
   {
    "id": "restock_the_cairn",
+   "shortName": "restocking",
    "description": "Twenty supplies against the cairn's stores. She has kept it open four hundred nights.",
    "favorPlayer": false,
    "isHidden": false,
@@ -52,6 +57,7 @@
   },
   {
    "id": "carry_the_slate",
+   "shortName": "slate",
    "description": "You carry the tally south and tell one person in a warm place that it exists.",
    "favorPlayer": false,
    "isHidden": false,
@@ -63,7 +69,9 @@
   },
   {
    "id": "she_will_not_last",
+   "shortName": "ration count",
    "description": "The fuel stack is not going down because she has stopped eating.",
+   "rumorText": "The fuel stack has stopped shrinking. In a cold this deep, that arithmetic only works one way.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -30,

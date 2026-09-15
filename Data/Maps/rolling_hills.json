@@ -1,108 +1,135 @@
 {
-	"id": "rolling_hills",
-	"display_name": "Rolling Hills",
-	"shape": {
-		"type": "blob",
-		"width": 11,
-		"height": 9,
-		"radius": 5,
-		"erosion": 0.35
-	},
-	"base_terrain": {
-		"elevation_frequency": 0.17,
-		"moisture_frequency": 0.09,
-		"detail_weight": 0.22,
-		"max_height_step": 4,
-		"min_height_step": -1,
-		"palette": [
-			{
-				"terrain": "stone",
-				"min_elevation": 0.8
-			},
-			{
-				"terrain": "grass"
-			}
-		]
-	},
-	"atmosphere": {
-		"sun_color": [
-			0.99,
-			0.95,
-			0.85
-		],
-		"sun_energy": 1.3,
-		"ambient_color": [
-			0.58,
-			0.62,
-			0.55
-		],
-		"ambient_energy": 0.8,
-		"fog_color": [
-			0.78,
-			0.81,
-			0.76
-		],
-		"fog_density": 0.006
-	},
-	"features": [
-		{
-			"feature": "height_hill",
-			"phase": "skeleton",
-			"at": "random",
-			"radius": [
-				2,
-				3
-			],
-			"peak": [
-				2,
-				3
-			]
-		},
-		{
-			"feature": "height_hill",
-			"phase": "skeleton",
-			"at": "random",
-			"radius": [
-				2,
-				2
-			],
-			"peak": [
-				1,
-				2
-			]
-		},
-		{
-			"feature": "height_basin",
-			"phase": "skeleton",
-			"at": "random",
-			"radius": [
-				2,
-				2
-			],
-			"depth": [
-				1,
-				2
-			]
-		},
-		{
-			"feature": "meadow",
-			"phase": "accent",
-			"at": "center",
-			"radius": 3
-		},
-		{
-			"feature": "rocky_outcrop",
-			"phase": "accent",
-			"at": "random",
-			"radius": 1,
-			"chance": 0.6
-		},
-		{
-			"feature": "element_patch",
-			"phase": "accent",
-			"at": "random",
-			"element": "earth",
-			"radius": 1
-		}
-	]
+  "id": "rolling_hills",
+  "display_name": "Rolling Hills",
+  "shape": {
+    "type": "blob",
+    "width": 11,
+    "height": 9,
+    "radius": 5,
+    "erosion": 0.35
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.17,
+    "moisture_frequency": 0.09,
+    "detail_weight": 0.22,
+    "max_height_step": 4,
+    "min_height_step": -1,
+    "palette": [
+      {
+        "terrain": "stone",
+        "min_elevation": 0.8
+      },
+      {
+        "terrain": "grass"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      0.99,
+      0.95,
+      0.85
+    ],
+    "sun_energy": 1.3,
+    "ambient_color": [
+      0.58,
+      0.62,
+      0.55
+    ],
+    "ambient_energy": 0.8,
+    "fog_color": [
+      0.78,
+      0.81,
+      0.76
+    ],
+    "fog_density": 0.006
+  },
+  "obstacles": {
+    "low": "low_boulder",
+    "high": "rock",
+    "pillar": "standing_stone"
+  },
+  "tactics": {
+    "max_visibility": 0.6,
+    "min_cover": 0.2
+  },
+  "features": [
+    {
+      "feature": "height_hill",
+      "phase": "skeleton",
+      "at": "random",
+      "radius": [
+        2,
+        3
+      ],
+      "peak": [
+        2,
+        3
+      ]
+    },
+    {
+      "feature": "height_hill",
+      "phase": "skeleton",
+      "at": "random",
+      "radius": [
+        2,
+        2
+      ],
+      "peak": [
+        1,
+        2
+      ]
+    },
+    {
+      "feature": "height_basin",
+      "phase": "skeleton",
+      "at": "random",
+      "radius": [
+        2,
+        2
+      ],
+      "depth": [
+        1,
+        2
+      ]
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:-2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "cover_line",
+      "phase": "skeleton",
+      "at": "axis:2",
+      "length": 4,
+      "kind": "low",
+      "gaps": 1,
+      "fill": 0.75
+    },
+    {
+      "feature": "meadow",
+      "phase": "accent",
+      "at": "center",
+      "radius": 3
+    },
+    {
+      "feature": "rocky_outcrop",
+      "phase": "accent",
+      "at": "random",
+      "radius": 1,
+      "chance": 0.6
+    },
+    {
+      "feature": "element_patch",
+      "phase": "accent",
+      "at": "random",
+      "element": "earth",
+      "radius": 1
+    }
+  ]
 }

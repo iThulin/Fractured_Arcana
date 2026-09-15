@@ -131,6 +131,64 @@ public static class UITheme
     public const int CardBorderWidth = 4;
     public const int CardCornerRadius = 10;
 
+    // ── Card face typography (CardUI.tscn + CardUi.cs) ────────────
+    // Ink is the one dark on the parchment face. Keywords get a plum ink so a
+    // status name reads as a different kind of word from a number without
+    // adding a second hue family to the face.
+    public static readonly Color CardInk = new Color(0.102f, 0.086f, 0.078f, 1f);      // #1A1614
+    public static readonly Color CardInkMuted = new Color(0.42f, 0.38f, 0.36f, 1f);    // #6B615C
+    public static readonly Color CardKeywordInk = new Color(0.36f, 0.16f, 0.42f, 1f);  // #5C296B plum
+    public static readonly Color CardSpeedReflex = new Color(0.62f, 0.30f, 0.10f, 1f); // #9E4D1A ember
+    public static readonly Color CardSpeedStudied = new Color(0.30f, 0.30f, 0.46f, 1f); // #4D4D75 slate
+
+    // Aim chips (TargetingSummary delivery) and element chips share one style:
+    // tinted fill, one-pixel border, ink in the chip colour. Bolt stays the
+    // darkest because it is the one a wall stops.
+    public static readonly Color CardChipBolt = new Color(0.20f, 0.22f, 0.30f, 1f);
+    public static readonly Color CardChipBurst = new Color(0.52f, 0.30f, 0.14f, 1f);
+    public static readonly Color CardChipArc = new Color(0.30f, 0.28f, 0.52f, 1f);
+    public static readonly Color CardChipGround = new Color(0.36f, 0.38f, 0.40f, 1f);
+    public const float CardChipFillAlpha = 0.16f;
+    // Tag row budget (container is 190 wide; keep clear of the rough frame edge)
+    // and the swatch width element chips shrink to when the row overflows.
+    public const float CardTagRowWidth = 184f;
+    public const float CardChipSwatchWidth = 14f;
+
+    // Face decor (Assets/UI/Cards). Frame and bevel are painted at 2x the 200x148
+    // half; the frame is white and takes the school colour through Modulate, the
+    // bevel is drawn unmodulated; the grain tiles; the gem is white with an ink
+    // outline and is modulated like the frame.
+    public const string CardGrainTexture = "res://Assets/UI/Cards/paper_grain.png";
+    public const string CardFrameTopTexture = "res://Assets/UI/Cards/frame_top.png";
+    public const string CardFrameBottomTexture = "res://Assets/UI/Cards/frame_bottom.png";
+    public const string CardBevelTopTexture = "res://Assets/UI/Cards/bevel_top.png";
+    public const string CardBevelBottomTexture = "res://Assets/UI/Cards/bevel_bottom.png";
+    public const string CardManaGemTexture = "res://Assets/UI/Cards/mana_gem.png";
+
+    // Layer 2 watermark (SchoolSigilView). Square, centred in the body box of
+    // the half (name bar to tag row), under the rules text. Alpha is the
+    // ceiling ruled for anything under text; the boosts compensate for motifs
+    // that are thin lines (cipher) or colour fills (element star) rather
+    // than ink strokes.
+    public const float CardSigilSize = 88f;
+    // Body box edges on a 148px half: inset 5 + name bar 24 + separation 2
+    // from the top; tag row 16 + separation 2 + inset 5 + frame slack at the
+    // bottom.
+    public const float CardBodyTop = 31f;
+    public const float CardTagRowHeight = 26f;
+    public const float CardSigilAlpha = 0.07f;
+    public const float CardSigilCipherBoost = 1.6f;
+    public const float CardSigilTintBoost = 3.0f;
+
+    public const int CardNameFontSize = 15;
+    public const int CardNameMinFontSize = 13;
+    // Name bar content width minus the gem and its separation, less a little for
+    // the rough frame edge: 190 - 24 - 3, rounded down.
+    public const float CardNameMaxWidth = 160f;
+    public const int CardSpeedFontSize = 10;
+    public const int CardRulesFontSize = 13;
+    public const int CardChipFontSize = 11;
+
     // ════════════════════════════════════════════════════════════
     // HEALTH BAR / UNIT STATS
     // ════════════════════════════════════════════════════════════

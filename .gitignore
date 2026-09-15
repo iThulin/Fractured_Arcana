@@ -22,3 +22,7 @@ __pycache__/
 # Scratch used by the remote-file bridge, which cannot delete. Safe to remove
 # by hand at any time; ignored so it never lands in a commit.
 _to_delete/
+
+# Blender source files and backups — too large for GitHub
+*.blend
+*.blend1

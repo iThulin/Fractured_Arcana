@@ -509,6 +509,9 @@ public partial class HexTile : Node3D
     /// for the same reason: it survives Hex_mesh scale changes, blocker variants and
     /// SetHeight adjustments instead of silently sinking into or floating above them.
     /// </summary>
+    /// <summary>World-local Y of the tile's top face, for props that stand on it.</summary>
+    public float TileTopY => MeasuredTileTopY();
+
     private float MeasuredTileTopY()
     {
         var hexMesh = GetNodeOrNull<MeshInstance3D>("HexMesh");

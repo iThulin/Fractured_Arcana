@@ -155,6 +155,14 @@ public sealed class CardHalf : Ability
     /// </summary>
     public string[] Tags = Array.Empty<string>();
 
+    /// <summary>Optional visual override from the JSON "vfx" block (spell_vfx_pipeline_v1
+    /// §4): <c>archetype</c> forces the travel visual ("bolt"|"arc"|"burst"|"impact"|"none")
+    /// regardless of Delivery; <c>style</c> names a palette in VfxLibrary ("fire", "void",
+    /// "holy", …) and/or an authored scene key. Null = derive from Delivery, element tags
+    /// and school. Upgrade patches can target "vfx.style" like any other field.</summary>
+    public string VfxArchetype;
+    public string VfxStyle;
+
     /// <summary>
     /// Convenience accessor for the mana component of <see cref="Ability.Costs"/>.
     /// Returns 0 if no <see cref="ManaCost"/> is present in the cost array.

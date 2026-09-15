@@ -115,6 +115,36 @@ for p in sorted(glob.glob(D + "*.json")):
         seen.add(tm.get("id"))
         if not tm.get("id"): errs.append(f"{fn}: term with no id")
         if not tm.get("description"): errs.append(f"{tag}: no description")
+
+        # The language contract (negotiation_narrative_spec_v1 s3a): every
+        # term carries an authored shortName, a lowercase noun phrase of one
+        # to three words, no leading article or pronoun, no terminal
+        # punctuation. Barks substitute it into "the {term}" frames; a term
+        # without one falls back to a truncated description, which is
+        # exactly the broken-grammar bug the field exists to kill.
+        sn = tm.get("shortName", "")
+        if not sn:
+            errs.append(f"{tag}: no shortName - barks would fall back to truncated description")
+        else:
+            if sn != sn.strip(): errs.append(f"{tag}: shortName has leading/trailing whitespace")
+            if sn[:1].isupper(): errs.append(f"{tag}: shortName {sn!r} starts uppercase")
+            first = sn.split(" ")[0].lower()
+            if first in ("a", "an", "the", "his", "her", "their", "its", "your", "my", "our"):
+                errs.append(f"{tag}: shortName {sn!r} starts with an article/pronoun; "
+                            f"barks already prepend 'the'")
+            if len(sn.split(" ")) > 3:
+                errs.append(f"{tag}: shortName {sn!r} is over three words")
+            if sn[-1:] in ".,;:!?":
+                errs.append(f"{tag}: shortName {sn!r} ends with punctuation")
+
+        # The rumor contract (spec s4a): hidden terms carry innuendo for the
+        # card back; visible terms must not (the field would be dead data).
+        rum = tm.get("rumorText", "")
+        if tm.get("isHidden") and not rum:
+            errs.append(f"{tag}: hidden term has no rumorText - the card back "
+                        f"falls to the generic caption")
+        if not tm.get("isHidden") and rum:
+            errs.append(f"{tag}: rumorText on a visible term is dead data")
         for k in tm:
             if k.lower() not in lower_term: errs.append(f"{tag}: unknown term field {k!r}")
         sp = tm.get("startingPosition", -1)

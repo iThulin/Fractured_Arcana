@@ -142,6 +142,79 @@ public sealed class SandSpec
     };
 }
 
+/// <summary>Obstacle dressing palette (cover_and_zoc_v1 §9): which catalog kind
+/// each ROLE resolves to on this map, so layout ops can say "low" or "pillar" and
+/// the Hills map grows rock ledges where the Ruins map grows broken masonry.
+/// Example: { "low": "rock_ledge", "high": "rock", "pillar": "standing_stone" }.
+/// Missing roles fall back to <see cref="DefaultFor"/> by dominant base terrain.</summary>
+public sealed class ObstaclePalette
+{
+    public string Low = "";
+    public string High = "";
+    public string Pillar = "";
+
+    public string Get(string role) => role switch
+    {
+        "low" => Low,
+        "high" => High,
+        "pillar" => Pillar,
+        _ => ""
+    };
+
+    public static ObstaclePalette FromDict(Godot.Collections.Dictionary d) => new()
+    {
+        Low = MapRecipe.Str(d, "low", ""),
+        High = MapRecipe.Str(d, "high", ""),
+        Pillar = MapRecipe.Str(d, "pillar", "")
+    };
+
+    /// <summary>Terrain-keyed defaults for recipes that declare no palette and for
+    /// the enum-theme generator. Every kind named here must exist in the catalog.</summary>
+    public static string DefaultFor(TileTerrainType terrain, string role)
+    {
+        switch (terrain)
+        {
+            case TileTerrainType.Forest:
+                return role == "low" ? "fallen_log" : role == "pillar" ? "old_trunk" : "old_trunk";
+            case TileTerrainType.Stone:
+                return role == "low" ? "rock_ledge" : role == "pillar" ? "standing_stone" : "rock";
+            case TileTerrainType.Lava:
+                return role == "low" ? "cooled_crust" : "basalt_column";
+            case TileTerrainType.Ice:
+                return role == "low" ? "ice_ridge" : role == "pillar" ? "ice_spire" : "crystal";
+            case TileTerrainType.Sand:
+                return role == "low" ? "sandstone_ledge" : "hoodoo";
+            case TileTerrainType.Arcane:
+                return role == "low" ? "rune_stone" : role == "pillar" ? "ley_pillar" : "crystal";
+            case TileTerrainType.Water:
+                return role == "low" ? "driftwood" : "sunk_piling";
+            default:   // Grass and anything new
+                return role == "low" ? "drystone_wall" : role == "pillar" ? "standing_stone" : "rock";
+        }
+    }
+}
+
+/// <summary>Tactical targets a recipe promises (cover_and_zoc_v1 §7.6). Checked by
+/// HexGridManager.Tactics after generation and logged as a warning when missed, so an
+/// author learns a layout is open BEFORE a playtest does. Example:
+/// { "max_visibility": 0.45, "min_cover": 0.30 }. Both optional.</summary>
+public sealed class TacticsSpec
+{
+    /// <summary>Upper bound on the fraction of player-zone to enemy-zone tile pairs
+    /// with clear line of sight. 1.0 = every deployment tile sees every enemy tile.</summary>
+    public float MaxVisibility = 1f;
+
+    /// <summary>Lower bound on the fraction of open, unreserved tiles that have cover
+    /// on at least one side.</summary>
+    public float MinCover = 0f;
+
+    public static TacticsSpec FromDict(Godot.Collections.Dictionary d) => new()
+    {
+        MaxVisibility = MapRecipe.Flt(d, "max_visibility", 1f),
+        MinCover = MapRecipe.Flt(d, "min_cover", 0f)
+    };
+}
+
 /// <summary>One feature operation. Typed convenience getters read from the raw param bag.</summary>
 public sealed class FeatureOp
 {
@@ -191,6 +264,39 @@ public sealed class MapEventDef
     public int RepeatEvery = 0;
     public Godot.Collections.Dictionary Raw;
 
+    // ── map_pressure_v2: scheduling that reacts to the fight ────────────────
+    /// <summary>Optional name, so levers and other events can refer to this one.</summary>
+    public string Id = "";
+    /// <summary>Awaken condition. Empty = runs on the clock from round 1. Otherwise the
+    /// event sleeps until the condition first holds at a round boundary, and `round`
+    /// counts from that round (1 = the same boundary). Forms: player_enters:coord:radius,
+    /// enemy_enters:coord:radius, enemy_count_below:N, player_count_below:N, first_blood,
+    /// object_destroyed:kind, event_fired:id.</summary>
+    public string When = "";
+    /// <summary>Lever block: a control object both sides can stand beside.
+    /// at = coord token; mode = hold (event suppressed while held), delay (each held
+    /// round pushes the clock back by amount), pull (fires once and spends the lever).</summary>
+    public string LeverAt = "";
+    public string LeverMode = "";
+    public int LeverAmount = 1;
+
+    // Runtime state, owned by CombatManager.MapEvents. Reset per combat by the
+    // recipe being re-read (MapRecipeRegistry hands out shared defs: see ResetRuntime).
+    public int AwakenedRound = -1;
+    public int Delay = 0;
+    public bool Suppressed = false;
+    public bool Spent = false;
+    public int FiredCount = 0;
+    public Unit LeverUnit;
+    /// <summary>Set by the Interact action: a unit worked the lever this round, so the
+    /// boundary reads it as held whether or not anyone still stands beside it.</summary>
+    public bool HeldByAction = false;
+
+    public void ResetRuntime()
+    {
+        AwakenedRound = -1; Delay = 0; Suppressed = false; Spent = false; FiredCount = 0; LeverUnit = null; HeldByAction = false;
+    }
+
     public bool Has(string key) => Raw != null && Raw.ContainsKey(key);
     public int GetInt(string key, int def) => Has(key) ? Raw[key].AsInt32() : def;
     public float GetFloat(string key, float def) => Has(key) ? Raw[key].AsSingle() : def;
@@ -199,7 +305,9 @@ public sealed class MapEventDef
 
     /// <summary>Kinds that make tiles lethal or impassable, subject to the telegraph
     /// law (must warn at least one round ahead; the loader clamps telegraph to >= 1).</summary>
-    public static bool IsDestructiveKind(string kind) => kind == "collapse_tiles";
+    public static bool IsDestructiveKind(string kind)
+        => kind == "collapse_tiles" || kind == "flood" || kind == "crumble_edge"
+           || kind == "shift" || kind == "raise_wall" || kind == "stomp";
 }
 
 /// <summary>One off-map building mass for the siege backdrop.</summary>
@@ -208,6 +316,14 @@ public sealed class SiegeBackdropStamp
     public Vector2I At;
     public int Radius = 2;
     public string Id = "";
+    /// <summary>castle body: "mass" (city building, default), "hull" (a hull section
+    /// rising from the deck line), "leg" (a narrow column going down past the floor),
+    /// "stack" (a thin tall chimney). Only the placeholder shape differs.</summary>
+    public string Kind = "mass";
+    /// <summary>World height of the placeholder; 0 = the kind's default.</summary>
+    public float Height = 0f;
+    /// <summary>World Y the placeholder's base sits at (deck line for hull sections).</summary>
+    public float Lift = 0f;
 }
 
 /// <summary>City-siege recipe extras (CityBattlemapCompiler): authored spawn
@@ -238,6 +354,12 @@ public sealed class SiegeSpec
 
     /// <summary>VISUAL-ONLY: off-map building masses (the rest of the city).</summary>
     public List<SiegeBackdropStamp> BackdropStamps = new();
+
+    // ── castle_defense_v1 ───────────────────────────────────────────────────
+    /// <summary>Where the Castle Heart (the protect ward) stands. Null on city sieges.</summary>
+    public Vector2I? Heart;
+    /// <summary>Rampart tiles that carry a castle module station: (tile, module id).</summary>
+    public List<(Vector2I at, string module)> Stations = new();
 
     private static Vector2I? Coord(Godot.Collections.Dictionary d, string key)
     {
@@ -286,6 +408,17 @@ public sealed class SiegeSpec
                     s.BackdropWall.Add(new Vector2I(a[0].AsInt32(), a[1].AsInt32()));
             }
         }
+        s.Heart = Coord(d, "heart");
+        if (d.ContainsKey("stations"))
+        {
+            foreach (var item in d["stations"].AsGodotArray())
+            {
+                var sd = item.AsGodotDictionary();
+                var at = Coord(sd, "at");
+                if (at != null)
+                    s.Stations.Add((at.Value, MapRecipe.Str(sd, "module", "")));
+            }
+        }
         if (d.ContainsKey("backdrop_stamps"))
         {
             foreach (var item in d["backdrop_stamps"].AsGodotArray())
@@ -299,6 +432,9 @@ public sealed class SiegeSpec
                     At = at.Value,
                     Radius = MapRecipe.Int(sd, "radius", 2),
                     Id = MapRecipe.Str(sd, "id", ""),
+                    Kind = MapRecipe.Str(sd, "kind", "mass"),
+                    Height = sd.ContainsKey("height") ? sd["height"].AsSingle() : 0f,
+                    Lift = sd.ContainsKey("lift") ? sd["lift"].AsSingle() : 0f,
                 });
             }
         }
@@ -316,6 +452,8 @@ public sealed class MapRecipe
     public WaterSpec Water;
     public SandSpec Sand;
     public SiegeSpec Siege;
+    public TacticsSpec Tactics;
+    public ObstaclePalette Obstacles;
     public List<FeatureOp> Features = new();
     public List<MapEventDef> MapEvents = new();
 
@@ -345,6 +483,12 @@ public sealed class MapRecipe
         if (d.ContainsKey("siege"))
             r.Siege = SiegeSpec.FromDict(d["siege"].AsGodotDictionary());
 
+        if (d.ContainsKey("tactics"))
+            r.Tactics = TacticsSpec.FromDict(d["tactics"].AsGodotDictionary());
+
+        if (d.ContainsKey("obstacles"))
+            r.Obstacles = ObstaclePalette.FromDict(d["obstacles"].AsGodotDictionary());
+
         if (d.ContainsKey("features"))
         {
             foreach (var item in d["features"].AsGodotArray())
@@ -371,8 +515,17 @@ public sealed class MapRecipe
                     Round = Int(ed, "round", 1),
                     Telegraph = Int(ed, "telegraph", 1),
                     RepeatEvery = Int(ed, "repeat_every", 0),
+                    Id = Str(ed, "id", ""),
+                    When = Str(ed, "when", ""),
                     Raw = ed
                 };
+                if (ed.ContainsKey("lever"))
+                {
+                    var lv = ed["lever"].AsGodotDictionary();
+                    mev.LeverAt = Str(lv, "at", "midpoint");
+                    mev.LeverMode = Str(lv, "mode", "hold");
+                    mev.LeverAmount = Int(lv, "amount", 1);
+                }
                 // Telegraph law: a destructive event must warn a round ahead.
                 if (MapEventDef.IsDestructiveKind(mev.Kind) && mev.Telegraph < 1)
                 {

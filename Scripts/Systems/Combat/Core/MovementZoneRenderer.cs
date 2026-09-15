@@ -21,7 +21,9 @@ public partial class MovementZoneRenderer : Node3D
     [Export] public float LineHeight = 0.12f;  // Y offset above tile surface
     [Export] public float AnimSpeed = .35f;   // dash animation speed
     [Export] public float DashLength = 0.65f;  // fraction of each edge that is solid
-    [Export] public Color PlayerColor = new Color(0.20f, 0.70f, 1.00f, 1.0f); // blue
+    // Dulled 2026-09-02 (cast_preview_v1): the move zone is context, the cast
+    // envelope is the decision, so the move zone sits back in a desaturated slate.
+    [Export] public Color PlayerColor = new Color(0.22f, 0.62f, 0.95f, 0.80f); // clear blue, well off the amber envelope
     [Export] public Color EnemyColor = new Color(0.90f, 0.25f, 0.25f, 0.75f); // red
 
     /// <summary>(2026-07-29 playtest ruling) The full-hex color fill read as
@@ -146,6 +148,8 @@ public partial class MovementZoneRenderer : Node3D
             _reachableSet.Add(k);
         _isPlayerZone = true;
         _threatLevels = null;
+        _outlineColor = null;
+        _outlineFillAlpha = -1f;
         _lineMaterial.AlbedoColor = PlayerColor;
         _fillMaterial.AlbedoColor = PlayerColor;
         HideCostLabel();
@@ -160,6 +164,8 @@ public partial class MovementZoneRenderer : Node3D
         _threatLevels = null;
         _costMap.Clear();
         _isPlayerZone = false;
+        _outlineColor = null;
+        _outlineFillAlpha = -1f;
         _lineMaterial.AlbedoColor = EnemyColor;
         _fillMaterial.AlbedoColor = EnemyColor;
         HideCostLabel();
@@ -175,15 +181,56 @@ public partial class MovementZoneRenderer : Node3D
         _threatLevels = threatLevels;
         _costMap.Clear();
         _isPlayerZone = false;
+        _outlineColor = null;
+        _outlineFillAlpha = -1f;
         _lineMaterial.AlbedoColor = EnemyColor;
         _fillMaterial.AlbedoColor = EnemyColor;
         HideCostLabel();
         RebuildMesh();
     }
 
+    /// <summary>Outline mode (cast_preview_v1): a set of tiles drawn as a low lip in
+    /// <paramref name="color"/>, with an optional faint fill (<paramref name="fillAlpha"/>
+    /// 0 = none). Used for the cast envelope (what a card can actually reach) and the
+    /// cursor-follow shape of a burst, so the ground itself stays untinted.</summary>
+    public void ShowOutline(HashSet<Vector2I> tiles, HexGridManager grid, Color color, float fillAlpha = 0f)
+    {
+        _grid = grid;
+        _reachableSet = tiles != null ? new HashSet<Vector2I>(tiles) : new HashSet<Vector2I>();
+        _threatLevels = null;
+        _costMap.Clear();
+        _isPlayerZone = true;             // one tier: lip on the outer edge only
+        _outlineColor = color;
+        _outlineFillAlpha = fillAlpha;
+        _lineMaterial.AlbedoColor = color;
+        _fillMaterial.AlbedoColor = color;
+        HideCostLabel();
+        RebuildMesh();
+    }
+
+    /// <summary>Outline-mode state. ShowPlayerZone / ShowEnemyZone reset both so their
+    /// colours and DrawZoneFill behaviour are unchanged.</summary>
+    private Color? _outlineColor;
+    private float _outlineFillAlpha = -1f;
+
+    /// <summary>True while this renderer is showing a non-empty set.</summary>
+    public bool HasTiles => _reachableSet.Count > 0;
+
+    /// <summary>Recede while something more important is on the board (a card is
+    /// being aimed): 0 = full strength, 1 = invisible. No rebuild; it drives the
+    /// mesh's transparency so the cost label and set stay live.</summary>
+    public void SetDim(float dim)
+    {
+        if (_borderMesh != null)
+            _borderMesh.Transparency = Mathf.Clamp(dim, 0f, 1f);
+        if (_costLabel != null)
+            _costLabel.Modulate = new Color(_costLabel.Modulate, 1f - Mathf.Clamp(dim, 0f, 0.9f));
+    }
+
     /// <summary>Clear all zone display.</summary>
     public void Clear()
     {
+        SetDim(0f);
         _reachableSet.Clear();
         _costMap.Clear();
         _threatLevels = null;
@@ -195,18 +242,21 @@ public partial class MovementZoneRenderer : Node3D
     /// Show or update the cost label for a hovered tile.
     /// Pass null tile to hide it.
     /// </summary>
-    public void ShowCostLabelForTile(Vector2I axial, HexGridManager grid, int baseSpeed)
+    public void ShowCostLabelForTile(Vector2I axial, HexGridManager grid, int baseSpeed, string suffix = "")
     {
         if (!_reachableSet.Contains(axial))
         { HideCostLabel(); return; }
-        if (axial == _lastHoveredTile)
+        if (axial == _lastHoveredTile && suffix == _lastSuffix)
             return;
         _lastHoveredTile = axial;
+        _lastSuffix = suffix;
 
         int stepCost = _costMap.TryGetValue(axial, out var c) ? c : -1;
         string label = stepCost < 0
             ? "1 AP"
             : $"1 AP  ({stepCost}/{baseSpeed} steps)";
+        if (!string.IsNullOrEmpty(suffix))
+            label += "\n" + suffix;
 
         if (_costLabel == null)
             return;   // pre-_Ready call; label doesn't exist yet
@@ -229,18 +279,36 @@ public partial class MovementZoneRenderer : Node3D
         if (_costLabel != null)
             _costLabel.Visible = false;
         _lastHoveredTile = new Vector2I(int.MinValue, int.MinValue);
+        _lastSuffix = "";
     }
+
+    private string _lastSuffix = "";
 
     // ── Mesh building ─────────────────────────────────────────────────────
 
     private void RebuildMesh()
     {
+        // A fresh display is never dimmed: SetDim is a transient overlay state that
+        // ShowTargetHighlight applies AFTER this, and it must not survive a repaint
+        // (the cast-and-drop path repaints the move zone without clearing the aim).
+        SetDim(0f);
         _immediateMesh.ClearSurfaces();
         if (_reachableSet.Count == 0)
             return;
 
+        // ── Pass 0: outline-mode faint fill (cast envelope, cursor shapes) ──
+        if (_outlineFillAlpha > 0f && _outlineColor.HasValue)
+        {
+            var c = _outlineColor.Value;
+            var fillColor = new Color(c.R, c.G, c.B, _outlineFillAlpha);
+            _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, _fillMaterial);
+            foreach (var coord in _reachableSet)
+                DrawFilledHex(coord, fillColor);
+            _immediateMesh.SurfaceEnd();
+        }
+
         // ── Pass 1: tile fill (OFF by default, see DrawZoneFill) ─────────
-        if (DrawZoneFill)
+        if (DrawZoneFill && !_outlineColor.HasValue)
         {
             _immediateMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles, _fillMaterial);
             if (_isPlayerZone)
@@ -370,6 +438,8 @@ public partial class MovementZoneRenderer : Node3D
 
     private Color WallColor(int tier)
     {
+        if (_outlineColor.HasValue)
+            return _outlineColor.Value;
         if (_isPlayerZone)
             return PlayerColor;
         if (tier <= 0)
@@ -381,8 +451,10 @@ public partial class MovementZoneRenderer : Node3D
 
     private float WallBaseAlpha(int tier)
     {
+        if (_outlineColor.HasValue)
+            return Mathf.Clamp(_outlineColor.Value.A, 0.2f, 1f);
         if (_isPlayerZone)
-            return 0.5f;
+            return Mathf.Clamp(PlayerColor.A, 0.2f, 1f);   // the export's alpha is the lip's alpha
         int maxT = Mathf.Max(1, UITheme.ThreatMaxTier);
         float f = Mathf.Clamp((float)tier / maxT, 0f, 1f);
         return Mathf.Lerp(WallBaseAlphaMin, WallBaseAlphaMax, f);

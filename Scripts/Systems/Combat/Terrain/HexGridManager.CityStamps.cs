@@ -118,6 +118,11 @@ public partial class HexGridManager : Node3D
 
         foreach (var st in siege.BackdropStamps)
         {
+            if (st.Kind != "mass")
+            {
+                SpawnCastleBodyStamp(parent, st);
+                continue;
+            }
             int acc = 0;
             foreach (char c in st.Id)
                 acc = (acc * 31 + c) & 0xFFFF;
@@ -145,6 +150,57 @@ public partial class HexGridManager : Node3D
         if (siege.BackdropWall.Count > 0 || siege.BackdropStamps.Count > 0)
             GD.Print($"[SiegeBackdrop] {siege.BackdropWall.Count} wall tile(s), " +
                      $"{siege.BackdropStamps.Count} building mass(es) beyond the rim.");
+    }
+
+    /// <summary>castle_defense_v2: the walking castle's body past the rim. Hull
+    /// sections are wide iron prisms whose base sits on the deck line; legs are
+    /// narrow columns that go down past the vista floor; stacks are thin and
+    /// tall. Pure vista dressing, tagged generated_obstacle like the rest.</summary>
+    private void SpawnCastleBodyStamp(Node parent, SiegeBackdropStamp st)
+    {
+        float footprint = HexRadius * (1.0f + st.Radius * 1.25f);
+        float height; Color color; float top, bottom;
+        switch (st.Kind)
+        {
+            case "leg":
+                height = st.Height > 0 ? st.Height : 9f;
+                color = new Color(0.24f, 0.22f, 0.21f);
+                top = HexRadius * 0.55f; bottom = HexRadius * 0.75f;
+                break;
+            case "stack":
+                height = st.Height > 0 ? st.Height : 7f;
+                color = new Color(0.20f, 0.19f, 0.19f);
+                top = HexRadius * 0.28f; bottom = HexRadius * 0.38f;
+                break;
+            default:   // hull
+                height = st.Height > 0 ? st.Height : 4.5f;
+                color = new Color(0.33f, 0.30f, 0.28f);
+                top = footprint * 0.9f; bottom = footprint;
+                break;
+        }
+        // Mismatched parts read as a body, not a wall: vary the tint per stamp id.
+        int acc = 0;
+        foreach (char c in st.Id)
+            acc = (acc * 31 + c) & 0xFFFF;
+        float shade = 0.85f + (acc % 7) * 0.05f;
+        color = new Color(color.R * shade, color.G * shade, color.B * shade);
+
+        var mesh = new CylinderMesh
+        {
+            TopRadius = top, BottomRadius = bottom, Height = height, RadialSegments = 6,
+        };
+        mesh.Material = new StandardMaterial3D { AlbedoColor = color, Roughness = 0.9f, Metallic = 0.15f };
+        var body = new MeshInstance3D { Mesh = mesh, RotationDegrees = new Vector3(0f, 30f, 0f) };
+        parent.AddChild(body);
+        // Legs hang from the lift; hull and stacks stand on it.
+        float y = st.Kind == "leg" ? st.Lift - height * 0.5f + 0.4f : st.Lift + height * 0.5f;
+        body.GlobalPosition = AxialToWorld(st.At) + new Vector3(0f, y, 0f);
+        body.Name = string.IsNullOrEmpty(st.Id) ? st.Kind : st.Id;
+        body.AddToGroup("generated_obstacle");
+        // CastleAnimator gathers the body by these groups (breathing, smoke, stomps).
+        body.AddToGroup(st.Kind == "leg" ? CastleAnimator.LegGroup
+                      : st.Kind == "stack" ? CastleAnimator.StackGroup
+                      : CastleAnimator.HullGroup);
     }
 
     /// <summary>Placeholder visuals for city obstacle kinds until real models

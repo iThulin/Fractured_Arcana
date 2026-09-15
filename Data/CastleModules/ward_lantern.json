@@ -1,0 +1,15 @@
+{
+  "id": "ward_lantern",
+  "name": "Ward Lantern",
+  "cost": 160,
+  "effect": "none",
+  "magnitude": 0,
+  "flavor": "A lantern of bound light. Its keeper is shielded, and everyone under its glow finds the walls thicker.",
+  "station": {
+    "kind": "ward_lantern",
+    "shield": 2,
+    "cover_bonus": 1,
+    "radius": 2,
+    "label": "Ward Lantern"
+  }
+}

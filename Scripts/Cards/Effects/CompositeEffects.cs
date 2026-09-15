@@ -260,64 +260,20 @@ public sealed class PushDamageEffect : EffectBase
             if (Aimed && obj is TileData)
                 continue;   // the aim tile's occupant is a bystander, not a target
 
-            // Forced movement so tile-entry verbs (Fire Sears, Frost Slides,
-            // Stone Anchors, falling) fire per step (tile_interaction_spec §2.1).
-            var ctx = new MoveContext(s.Grid);
-            int pushed = 0;
-            for (int i = 0; i < PushTiles; i++)
-            {
-                if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
-                    break;
+            // forced_movement_v1: straight line through the shared resolver. Damage
+            // per tile travelled is this effect's own rider; collisions use momentum.
+            var dir = aimedDir.HasValue
+                ? ForcedMove.StepToward(s.Grid, victim.CurrentTile.Axial, victim.CurrentTile.Axial + aimedDir.Value)
+                : ForcedMove.StepAwayFrom(s.Grid, casterPos, victim.CurrentTile.Axial);
+            var r = ForcedMove.Push(s.Grid, victim, dir, PushTiles, 0, null, s.Log);
 
-                var current = victim.CurrentTile.Axial;
-                TileData bestTile = null;
-
-                if (aimedDir.HasValue)
-                {
-                    var td = s.Grid.GetTile(current + aimedDir.Value);
-                    if (td != null && td.CanEnter(victim))
-                        bestTile = td;
-                }
-                else
-                {
-                    int bestDist = -1;
-                    foreach (var neighbor in s.Grid.GetNeighbors(current))
-                    {
-                        var td = s.Grid.GetTile(neighbor);
-                        if (td == null || !td.CanEnter(victim))
-                            continue;
-
-                        int distFromCaster = s.Grid.Distance(casterPos, neighbor);
-                        if (distFromCaster > bestDist)
-                        {
-                            bestDist = distFromCaster;
-                            bestTile = td;
-                        }
-                    }
-                }
-
-                if (bestTile != null)
-                {
-                    ctx.ForcedTilesRemaining--;
-                    victim.PlaceOnTile(bestTile, MovementKind.Forced, ctx);
-                    pushed++;
-                    if (ctx.HaltForced) // Stone Anchors caught it, or the cap hit
-                        break;
-                }
-                else
-                {
-                    s.Log($"[PushDamage] {victim.Name} hit obstacle after {pushed} tile(s).");
-                    break;
-                }
-            }
-
-            int totalDmg = pushed * DamagePerTile;
-            if (totalDmg > 0)
+            int totalDmg = r.Pushed * DamagePerTile;
+            if (totalDmg > 0 && victim.Stats.IsAlive)
             {
                 victim.ApplyDamage(totalDmg);
-                s.Log($"[PushDamage] {victim.Name} pushed {pushed} tile(s), takes {totalDmg} damage ({DamagePerTile}/tile).");
+                s.Log($"[PushDamage] {victim.Name} pushed {r.Pushed} tile(s), takes {totalDmg} damage ({DamagePerTile}/tile).");
             }
-            else
+            else if (r.Pushed == 0 && !r.Collided)
             {
                 s.Log($"[PushDamage] {victim.Name} couldn't be pushed.");
             }
@@ -612,12 +568,13 @@ public sealed class ImbueAreaEffect : EffectBase
             _ => TileElementType.None
         };
 
+        // Burst fill (cover_and_zoc_v1 §4): the imbuement pours through open ground
+        // and stops at walls instead of soaking through them.
+        var reach = s.Grid.BurstReach(center, Radius);
         int imbued = 0;
-        foreach (var kvp in s.Grid.Tiles)
+        foreach (var coord in reach)
         {
-            if (s.Grid.Distance(center, kvp.Key) > Radius)
-                continue;
-            var tile = kvp.Value;
+            var tile = s.Grid.GetTile(coord);
             if (tile == null)
                 continue;
 
@@ -694,17 +651,18 @@ public sealed class ConsumeElementTileEffect : EffectBase
         targetTile.TileView?.SetElement(TileElementType.None);
         s.Log($"[ConsumeTile] Consumed {Element} tile at {center}.");
 
-        // Deal damage to enemies within radius
+        // Deal damage to enemies the explosion reaches (burst fill: walls stop it)
+        var blast = s.Grid.BurstReach(center, Radius);
         foreach (var unit in s.UnitsInPlay)
         {
             if (unit == null || !unit.Stats.IsAlive || unit.CurrentTile == null)
                 continue;
             if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
                 continue;
-            if (s.Grid.Distance(center, unit.CurrentTile.Axial) > Radius)
+            if (!blast.Contains(unit.CurrentTile.Axial))
                 continue;
 
-            unit.ApplyDamage(Damage);
+            unit.ApplyDamage(Damage, casterUnit, Delivery.Burst);
             s.Log($"[ConsumeTile] {unit.Name} takes {Damage} damage from {Element} explosion.");
         }
     }

@@ -1,8 +1,12 @@
 {
   "id": "conductor_wake_keeper",
   "threatLabel": "Wake-Keeper",
-  "maxHealth": 12, "baseSpeed": 2, "armor": 0,
-  "attackRange": 3, "attackDamage": 3, "preferredDistance": 3,
+  "maxHealth": 12,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 3,
+  "attackDamage": 3,
+  "preferredDistance": 3,
   "behaviorKey": "ranged_kite",
   "role": "line",
   "factionId": "conductor",
@@ -13,8 +17,15 @@
       "trigger": "onAllyDeath",
       "name": "Requiem",
       "intelDescription": "Every death is added to the tab: +2 damage, stacking, whenever an ally dies.",
-      "params": { "amount": "2" }
+      "params": {
+        "amount": "2"
+      }
     }
   ],
-  "colorR": 0.45, "colorG": 0.3, "colorB": 0.58
+  "colorR": 0.45,
+  "colorG": 0.3,
+  "colorB": 0.58,
+  "behaviorTags": [
+    "skirmisher"
+  ]
 }

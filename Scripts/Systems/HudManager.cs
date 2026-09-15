@@ -78,7 +78,12 @@ public partial class HudManager : Node
     {
         // Scene swaps add a node under the root, so re-check whether the bar
         // should be visible in the new context.
-        if (n.GetParent() == GetTree().Root && n != this)
+        if (n == null || !IsInstanceValid(n))
+            return;
+        var tree = GetTree();
+        if (tree == null)
+            return;
+        if (n.GetParent() == tree.Root && n != this)
         {
             CallDeferred(nameof(RefreshVisibility));
         }

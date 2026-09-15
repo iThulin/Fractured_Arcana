@@ -1,0 +1,10 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[ext_resource type="FontFile" path="res://Assets/Fonts/Carlito-Regular.ttf" id="1_carlito"]
+[ext_resource type="FontFile" path="res://Assets/Fonts/Carlito-Bold.ttf" id="2_carlito_bold"]
+
+[resource]
+default_font = ExtResource("1_carlito")
+default_font_size = 16
+RichTextLabel/fonts/bold_font = ExtResource("2_carlito_bold")
+RichTextLabel/fonts/normal_font = ExtResource("1_carlito")

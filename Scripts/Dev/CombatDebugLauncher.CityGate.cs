@@ -23,6 +23,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     private const string CompiledBreachLabel = "campus_breach (compiled)";
     private const string CompiledDockDefenseLabel = "campus_dock DEFENSE (hold the quay)";
     private const string CompiledPortalDefenseLabel = "campus_portal DEFENSE (seal the rift)";
+    private const string CastleDefenseLabel = "castle DEFENSE (ambush: hold the Heart)";
 
     /// <summary>Fixed debug seed → identical map every launch, so visual
     /// tuning between launches is comparing like with like.</summary>

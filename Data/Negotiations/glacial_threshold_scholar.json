@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "the_true_bearing",
+   "shortName": "true bearing",
    "description": "Vask's working: what the ring pointed at before somebody wedged it, and when.",
    "favorPlayer": true,
    "isHidden": false,
@@ -28,6 +29,7 @@
   },
   {
    "id": "archive_credit",
+   "shortName": "archive credit",
    "description": "Your name in a Lantern Order record. Doors in the Sunken Archive open on it.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +41,7 @@
   },
   {
    "id": "the_reading_lens",
+   "shortName": "reading lens",
    "description": "He teaches you to read ground the way he reads sky. It transfers better than it should.",
    "favorPlayer": true,
    "isHidden": false,
@@ -50,6 +53,7 @@
   },
   {
    "id": "carry_the_instruments",
+   "shortName": "instrument case",
    "description": "You haul his brass down the mountain. It is heavy and he is not sorry.",
    "favorPlayer": false,
    "isHidden": false,
@@ -62,7 +66,9 @@
   },
   {
    "id": "he_is_not_going_down",
+   "shortName": "provision count",
    "description": "Vask has provisioned for four days and intends to stay eleven.",
+   "rumorText": "His packs are light for a man who talks about the descent, and heavy for one who means to make it soon.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -20,

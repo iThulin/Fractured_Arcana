@@ -74,7 +74,6 @@ public partial class CardUi : Control
     // ── Split view labels (top half) ─────────────────────────────────
     private Label _topManaLabel;
     private Label _topNameLabel;
-    private Label _topSpeedLabel;
     private HBoxContainer _topElementTags;
     private RichTextLabel _topRulesLabel;
     private Panel _topChannelPanel;
@@ -83,7 +82,6 @@ public partial class CardUi : Control
     // ── Split view labels (bottom half) ──────────────────────────────
     private Label _botManaLabel;
     private Label _botNameLabel;
-    private Label _botSpeedLabel;
     private HBoxContainer _botElementTags;
     private RichTextLabel _botRulesLabel;
     private Panel _botChannelPanel;
@@ -105,7 +103,6 @@ public partial class CardUi : Control
     /// change repaints its pip without re-running the whole populate pass.</summary>
     private CardHalf _lastFullHalf;
     private Label _fullNameLabel;
-    private Label _fullSpeedLabel;
     private RichTextLabel _fullRulesLabel;
     private Panel _fullChannelPanel;
     private RichTextLabel _fullChannelLabel;
@@ -155,7 +152,6 @@ public partial class CardUi : Control
         // ── Split view: top half labels ─────────────────────────────
         _topManaLabel = GetNodeOrNull<Label>($"{SplitTop}/NameBar/ManaPip/ManaLabel");
         _topNameLabel = GetNodeOrNull<Label>($"{SplitTop}/NameBar/SpellName");
-        _topSpeedLabel = GetNodeOrNull<Label>($"{SplitTop}/NameBar/SpeedLabel");
         _topElementTags = GetNodeOrNull<HBoxContainer>($"{SplitTop}/ElementTags");
         _topRulesLabel = GetNodeOrNull<RichTextLabel>($"{SplitTop}/RulesText");
         _topChannelPanel = GetNodeOrNull<Panel>($"{SplitTop}/ChannelStrip");
@@ -164,7 +160,6 @@ public partial class CardUi : Control
         // ── Split view: bottom half labels ──────────────────────────
         _botManaLabel = GetNodeOrNull<Label>($"{SplitBot}/NameBar/ManaPip/ManaLabel");
         _botNameLabel = GetNodeOrNull<Label>($"{SplitBot}/NameBar/SpellName");
-        _botSpeedLabel = GetNodeOrNull<Label>($"{SplitBot}/NameBar/SpeedLabel");
         _botElementTags = GetNodeOrNull<HBoxContainer>($"{SplitBot}/ElementTags");
         _botRulesLabel = GetNodeOrNull<RichTextLabel>($"{SplitBot}/RulesText");
         _botChannelPanel = GetNodeOrNull<Panel>($"{SplitBot}/ChannelStrip");
@@ -179,7 +174,6 @@ public partial class CardUi : Control
         _fullInfoPanel = GetNodeOrNull<Panel>($"{Full}/InfoPanel");
         _fullManaLabel = GetNodeOrNull<Label>($"{Full}/InfoPanel/InfoContainer/NameBar/ManaPip/ManaLabel");
         _fullNameLabel = GetNodeOrNull<Label>($"{Full}/InfoPanel/InfoContainer/NameBar/SpellName");
-        _fullSpeedLabel = GetNodeOrNull<Label>($"{Full}/InfoPanel/InfoContainer/NameBar/SpeedLabel");
         _fullRulesLabel = GetNodeOrNull<RichTextLabel>($"{Full}/InfoPanel/InfoContainer/RulesText");
         _fullChannelPanel = GetNodeOrNull<Panel>($"{Full}/InfoPanel/InfoContainer/ChannelStrip");
         _fullChannelLabel = GetNodeOrNull<RichTextLabel>($"{Full}/InfoPanel/InfoContainer/ChannelStrip/ChannelLabel");
@@ -318,11 +312,11 @@ public partial class CardUi : Control
 
         // ── Populate top split half ─────────────────────────────────
         PopulateSplitHalf(top,
-            _topManaLabel, _topNameLabel, _topSpeedLabel, _topRulesLabel, _topElementTags);
+            _topManaLabel, _topNameLabel, _topRulesLabel, _topElementTags);
 
         // ── Populate bottom split half ──────────────────────────────
         PopulateSplitHalf(bottom,
-            _botManaLabel, _botNameLabel, _botSpeedLabel, _botRulesLabel, _botElementTags);
+            _botManaLabel, _botNameLabel, _botRulesLabel, _botElementTags);
 
         // ── Apply school-colored borders ────────────────────────────
         var school = top?.School ?? bottom?.School ?? CardSchool.Adept;
@@ -331,6 +325,11 @@ public partial class CardUi : Control
 
         ApplyPanelBorder(_topPanel, borderCol, true);
         ApplyPanelBorder(_bottomPanel, borderCol, false);
+
+        string sigilCardId = CardInstance?.BlueprintId;
+        if (string.IsNullOrEmpty(sigilCardId)) sigilCardId = top?.SourceCardId ?? bottom?.SourceCardId ?? "";
+        ApplySigil(_topPanel, top, sigilCardId, "top");
+        ApplySigil(_bottomPanel, bottom, sigilCardId, "bottom");
 
         if (_splitDivider != null)
         {
@@ -354,7 +353,7 @@ public partial class CardUi : Control
     }
 
     private void PopulateSplitHalf(CardHalf half,
-        Label mana, Label name, Label speed, RichTextLabel rules,
+        Label mana, Label name, RichTextLabel rules,
         HBoxContainer elementTags)
     {
         // U3e: taxed price, not printed. Routed through the same helper the
@@ -363,73 +362,377 @@ public partial class CardUi : Control
         // yet, in which case this falls back to the printed cost and the first
         // RefreshAffordability corrects it.
         ApplyManaPip(mana, half);
-        if (name != null) name.Text = half?.Name ?? "";
-        if (speed != null) speed.Text = half?.Speed.ToString() ?? "Studied";
-        if (rules != null) rules.Text = half?.RulesText ?? "";
+        FitName(name, half?.Name, UITheme.CardNameMaxWidth);
+        ApplyRulesText(rules, half);
         PopulateElementTags(elementTags, half);
     }
 
+    /// <summary>
+    /// Sets the name and steps the font size down (never below
+    /// <see cref="UITheme.CardNameMinFontSize"/>) until it fits <paramref name="maxWidth"/>,
+    /// so long names shrink a point or two instead of truncating. The label keeps
+    /// its ellipsis for anything that still does not fit at the floor.
+    /// </summary>
+    private static void FitName(Label name, string text, float maxWidth)
+    {
+        if (name == null) return;
+        name.Text = text ?? "";
+        var font = name.GetThemeFont("font");
+        int size = UITheme.CardNameFontSize;
+        while (size > UITheme.CardNameMinFontSize
+            && font.GetStringSize(name.Text, HorizontalAlignment.Left, -1, size).X > maxWidth)
+        {
+            size--;
+        }
+        name.AddThemeFontSizeOverride("font_size", size);
+    }
+
+    /// <summary>
+    /// The half's play speed as a small-caps badge in the speed colour: ember for
+    /// Reflex (the halves that can answer an enemy action), slate for Studied. It
+    /// lives in the tag row, right-aligned, so the name bar belongs to the name.
+    /// On the full view's dark art panel the badge is solid with light text.
+    /// </summary>
+    private static Label MakeSpeedBadge(CardHalf half, bool onDark)
+    {
+        bool reflex = half != null && half.Speed == PlaySpeed.Reflex;
+        var col = reflex ? UITheme.CardSpeedReflex : UITheme.CardSpeedStudied;
+        var badge = new Label
+        {
+            Name = "SpeedBadge",
+            Text = half?.Speed.ToString() ?? "Studied",
+            Uppercase = true,
+            CustomMinimumSize = new Vector2(0, 16),
+            SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        badge.AddThemeFontSizeOverride("font_size", UITheme.CardSpeedFontSize);
+
+        StyleBoxFlat style;
+        if (onDark)
+        {
+            badge.AddThemeColorOverride("font_color", ElementColors.GetTextColor(col));
+            style = new StyleBoxFlat { BgColor = col };
+        }
+        else
+        {
+            badge.AddThemeColorOverride("font_color", col);
+            var fill = col;
+            fill.A = UITheme.CardChipFillAlpha;
+            style = new StyleBoxFlat { BgColor = fill, BorderColor = col };
+            style.SetBorderWidthAll(1);
+        }
+        style.SetCornerRadiusAll(3);
+        style.ContentMarginLeft = 5;
+        style.ContentMarginRight = 5;
+        style.ContentMarginTop = 1;
+        style.ContentMarginBottom = 1;
+        badge.AddThemeStyleboxOverride("normal", style);
+        return badge;
+    }
+
+    /// <summary>
+    /// Rules text through the render-time emphasis pass (see CardTextMarkup).
+    /// The split halves and the full view both call this, so they read the same.
+    /// </summary>
+    private static void ApplyRulesText(RichTextLabel rules, CardHalf half)
+    {
+        if (rules == null) return;
+        rules.BbcodeEnabled = true;
+        rules.Text = CardTextMarkup.Emphasize(half?.RulesText);
+    }
+
+    // ── Card face decor (card_face_typography, layer 1) ───────────────────
+    // Textures are shared by every CardUi in the scene; loaded once.
+    private static Texture2D _grainTex, _frameTopTex, _frameBotTex, _bevelTopTex, _bevelBotTex, _gemTex;
+
+    private static void EnsureFaceTextures()
+    {
+        _grainTex ??= GD.Load<Texture2D>(UITheme.CardGrainTexture);
+        _frameTopTex ??= GD.Load<Texture2D>(UITheme.CardFrameTopTexture);
+        _frameBotTex ??= GD.Load<Texture2D>(UITheme.CardFrameBottomTexture);
+        _bevelTopTex ??= GD.Load<Texture2D>(UITheme.CardBevelTopTexture);
+        _bevelBotTex ??= GD.Load<Texture2D>(UITheme.CardBevelBottomTexture);
+        _gemTex ??= GD.Load<Texture2D>(UITheme.CardManaGemTexture);
+    }
+
+    /// <summary>
+    /// Dresses one split-half panel: parchment fill, paper grain, a school-tinted
+    /// header band behind the name bar, and an inked frame modulated to the school
+    /// colour in place of the old StyleBoxFlat border. Decor nodes are created on
+    /// first call and restyled after that, so re-applying card data is cheap. All
+    /// decor ignores the mouse; the half's hover control is unaffected.
+    /// </summary>
     private void ApplyPanelBorder(Panel panel, Color borderCol, bool isTop)
     {
         if (panel == null) return;
-        var style = new StyleBoxFlat();
-        style.BgColor = UITheme.SurfaceLight;
-        style.BorderColor = borderCol;
-        style.BorderWidthLeft = UITheme.BorderWidth;
-        style.BorderWidthRight = UITheme.BorderWidth;
+        EnsureFaceTextures();
+
+        // Fill only. The frame texture carries the border now.
+        var style = new StyleBoxFlat { BgColor = UITheme.SurfaceLight };
         if (isTop)
         {
-            style.BorderWidthTop = UITheme.BorderWidth;
-            style.BorderWidthBottom = 0;
             style.CornerRadiusTopLeft = UITheme.CornerRadius;
             style.CornerRadiusTopRight = UITheme.CornerRadius;
         }
         else
         {
-            style.BorderWidthTop = 0;
-            style.BorderWidthBottom = UITheme.BorderWidth;
             style.CornerRadiusBottomLeft = UITheme.CornerRadius;
             style.CornerRadiusBottomRight = UITheme.CornerRadius;
         }
         panel.AddThemeStyleboxOverride("panel", style);
+
+        // Paper grain, tiled under everything.
+        var grain = panel.GetNodeOrNull<TextureRect>("Grain");
+        if (grain == null)
+        {
+            grain = new TextureRect
+            {
+                Name = "Grain",
+                Texture = _grainTex,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.Tile,
+                MouseFilter = MouseFilterEnum.Ignore,
+            };
+            panel.AddChild(grain);
+            panel.MoveChild(grain, 0);
+            grain.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        }
+
+        // Rough-edged border in the school colour, then an unmodulated bevel
+        // (light on top/left, shadow on bottom/right) just inside it. Both are
+        // drawn after the content so they sit over the panel edges; neither reaches
+        // the text box.
+        var frame = panel.GetNodeOrNull<TextureRect>("Frame");
+        if (frame == null)
+        {
+            frame = MakeOverlay("Frame", isTop ? _frameTopTex : _frameBotTex);
+            panel.AddChild(frame);
+            frame.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        }
+        frame.Modulate = borderCol;
+
+        if (panel.GetNodeOrNull<TextureRect>("Bevel") == null)
+        {
+            var bevel = MakeOverlay("Bevel", isTop ? _bevelTopTex : _bevelBotTex);
+            panel.AddChild(bevel);
+            bevel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        }
+    }
+
+    /// <summary>
+    /// The school watermark for one half (layer 2): a SchoolSigilView centred in
+    /// the body box, above the grain and below the content, so the rules text
+    /// runs over it. Created once, re-seeded on every apply.
+    /// </summary>
+    private static void ApplySigil(Panel panel, CardHalf half, string cardId, string whichHalf)
+    {
+        if (panel == null) return;
+        var sigil = panel.GetNodeOrNull<SchoolSigilView>("Sigil");
+        if (sigil == null)
+        {
+            sigil = new SchoolSigilView { Name = "Sigil", MouseFilter = MouseFilterEnum.Ignore };
+            panel.AddChild(sigil);
+            // Index 1: after Grain, before the content control.
+            panel.MoveChild(sigil, Mathf.Min(1, panel.GetChildCount() - 1));
+            // Centred in the body box (below the name bar, above the tag row),
+            // which is where a watermark belongs; the alpha, not the position,
+            // is what keeps it out of the text's way.
+            float size = UITheme.CardSigilSize;
+            float bodyTop = UITheme.CardBodyTop;
+            float bodyBottom = panel.CustomMinimumSize.Y - UITheme.CardTagRowHeight;
+            sigil.Position = new Vector2(
+                (UITheme.LibraryCardWidth - size) * 0.5f,
+                bodyTop + (bodyBottom - bodyTop - size) * 0.5f);
+            sigil.Size = new Vector2(size, size);
+        }
+        sigil.Visible = half != null;
+        if (half != null) sigil.SetHalf(half, cardId, whichHalf);
+    }
+
+    /// <summary>A full-rect, mouse-transparent TextureRect that scales to its parent instead of forcing its own size.</summary>
+    private static TextureRect MakeOverlay(string name, Texture2D tex)
+    {
+        return new TextureRect
+        {
+            Name = name,
+            Texture = tex,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
     }
 
     private void StyleManaPip(string pipPanelPath, Color darkCol)
     {
-        var pip = GetNodeOrNull<Panel>(pipPanelPath);
-        if (pip == null) return;
-        var s = new StyleBoxFlat { BgColor = darkCol };
-        s.SetCornerRadiusAll(UITheme.CornerRadiusLg);
-        pip.AddThemeStyleboxOverride("panel", s);
+        StyleManaGem(GetNodeOrNull<Panel>(pipPanelPath), darkCol);
     }
 
-    private void PopulateElementTags(HBoxContainer container, CardHalf half)
+    /// <summary>
+    /// The mana pip as a faceted gem in the school's dark colour: the gem texture is
+    /// white with an ink outline, so Modulate does the colouring. The pip panel
+    /// itself goes transparent; the ManaLabel stays on top as before.
+    /// </summary>
+    private static void StyleManaGem(Panel pip, Color darkCol)
+    {
+        if (pip == null) return;
+        EnsureFaceTextures();
+        pip.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+
+        var gem = pip.GetNodeOrNull<TextureRect>("Gem");
+        if (gem == null)
+        {
+            // IgnoreSize: without it the 48px texture becomes the pip's minimum
+            // size and the gem swallows the name bar.
+            gem = MakeOverlay("Gem", _gemTex);
+            pip.AddChild(gem);
+            pip.MoveChild(gem, 0);
+            gem.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        }
+        gem.Modulate = darkCol;
+    }
+
+    /// <param name="onDark">True for the full view's art panel, where the chips sit on
+    /// the dark tinted art and need a solid fill to read; false on the parchment halves.</param>
+    private void PopulateElementTags(HBoxContainer container, CardHalf half, bool onDark = false)
     {
         if (container == null) return;
         foreach (Node c in container.GetChildren()) c.QueueFree();
 
+        // Element chips. Each tag is one level of attunement in that element, so
+        // every tag is shown on its own; a four-element half shows four. When the
+        // row cannot fit the words, CompactRowIfOverflowing below turns these
+        // into colour swatches rather than dropping any.
         foreach (var tag in half?.Tags ?? Array.Empty<string>())
         {
-            var pip = new Label
-            {
-                Text = ElementColors.GetLabel(tag),
-                CustomMinimumSize = new Vector2(0, 16),
-                SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                AutowrapMode = TextServer.AutowrapMode.Off,
-            };
-            pip.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
-            pip.AddThemeColorOverride("font_color", ElementColors.GetTextColor(ElementColors.Get(tag)));
-            var style = new StyleBoxFlat { BgColor = ElementColors.Get(tag) };
-            style.SetCornerRadiusAll(4);
-            style.ContentMarginLeft = 5;
-            style.ContentMarginRight = 5;
-            style.ContentMarginTop = 2;
-            style.ContentMarginBottom = 2;
-            pip.AddThemeStyleboxOverride("normal", style);
-            container.AddChild(pip);
+            var chip = MakeChip(ElementColors.GetLabel(tag), ElementColors.Get(tag), "", onDark);
+            chip.SetMeta("element", true);
+            container.AddChild(chip);
         }
+
+        // Aim chip (cover_and_zoc_v1 §11): what the half aims at and how it
+        // travels, so the player reads "Bolt 6" or "Burst 2" before dropping it.
+        // Bolts get the darkest chip because they are the ones a wall stops.
+        var summary = TargetingSummary.Describe(half?.Targeting);
+        if (!string.IsNullOrEmpty(summary.Label))
+        {
+            var tint = summary.Delivery switch
+            {
+                Delivery.Bolt => UITheme.CardChipBolt,
+                Delivery.Burst => UITheme.CardChipBurst,
+                Delivery.Arc => UITheme.CardChipArc,
+                _ => UITheme.CardChipGround
+            };
+            var chip = MakeChip(summary.Label, tint, summary.Tooltip, onDark);
+            container.AddChild(chip);
+            container.MoveChild(chip, 0);   // first in the row: aim before flavour
+        }
+
+        // Speed badge at the far right of the row. The split-view row is a plain
+        // HBox, so an expanding spacer pushes it over; the full view's row is
+        // already right-aligned and needs none.
+        if (!onDark)
+        {
+            container.AddChild(new Control
+            {
+                Name = "Spacer",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            });
+        }
+        container.AddChild(MakeSpeedBadge(half, onDark));
+
+        // A row too wide for the half (three or four element tags, or a long aim
+        // label beside two) drops the element chips to colour swatches, one per
+        // tag, so the attunement count survives. Measured from the chips' own
+        // minimum sizes, so no layout pass is needed.
+        if (!onDark) CompactRowIfOverflowing(container);
+    }
+
+    private static void CompactRowIfOverflowing(HBoxContainer row)
+    {
+        int sep = row.GetThemeConstant("separation");
+        float width = 0f;
+        int count = 0;
+        foreach (Node n in row.GetChildren())
+        {
+            if (n is not Control c || c.Name == "Spacer") continue;
+            width += c.GetCombinedMinimumSize().X;
+            count++;
+        }
+        width += sep * Mathf.Max(0, count - 1);
+        if (width <= UITheme.CardTagRowWidth) return;
+
+        foreach (Node n in row.GetChildren())
+        {
+            if (n is not Label chip || !chip.HasMeta("element")) continue;
+            chip.TooltipText = chip.Text + " (+1 attunement)";
+            chip.MouseFilter = MouseFilterEnum.Pass;
+            chip.Text = "";
+            chip.CustomMinimumSize = new Vector2(UITheme.CardChipSwatchWidth, 16);
+
+            // Solid pip. The pale fill exists to keep chip text legible; with no
+            // text it just reads as an empty box, so the swatch takes the full
+            // element colour with an ink edge.
+            if (chip.GetThemeStylebox("normal") is StyleBoxFlat old)
+            {
+                var solid = new StyleBoxFlat { BgColor = old.BorderColor, BorderColor = UITheme.CardInk };
+                solid.SetBorderWidthAll(1);
+                solid.SetCornerRadiusAll(3);
+                chip.AddThemeStyleboxOverride("normal", solid);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A footer chip. On the parchment face: tinted fill, one-pixel border and
+    /// text all in <paramref name="tint"/>, so the chip sits under the card name
+    /// in visual weight instead of over it. On a dark panel (<paramref name="onDark"/>):
+    /// solid fill with contrast text, the only thing that reads there.
+    /// Used for element tags and the aim pip.
+    /// </summary>
+    private static Label MakeChip(string text, Color tint, string tooltip, bool onDark)
+    {
+        var chip = new Label
+        {
+            Text = text,
+            TooltipText = tooltip ?? "",
+            CustomMinimumSize = new Vector2(0, 16),
+            SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+            MouseFilter = string.IsNullOrEmpty(tooltip) ? MouseFilterEnum.Ignore : MouseFilterEnum.Pass,
+        };
+        chip.AddThemeFontSizeOverride("font_size", UITheme.CardChipFontSize);
+
+        StyleBoxFlat style;
+        if (onDark)
+        {
+            chip.AddThemeColorOverride("font_color", ElementColors.GetTextColor(tint));
+            style = new StyleBoxFlat { BgColor = tint };
+        }
+        else
+        {
+            // Ink, not the tint: pale tags (Glyph, Construct, Ice) do not carry
+            // enough contrast on parchment as coloured text. The tint stays on
+            // the border and fill, which is where the colour information lives.
+            chip.AddThemeColorOverride("font_color", UITheme.CardInk);
+            var fill = tint;
+            fill.A = UITheme.CardChipFillAlpha;
+            style = new StyleBoxFlat { BgColor = fill, BorderColor = tint };
+            style.SetBorderWidthAll(1);
+        }
+        style.SetCornerRadiusAll(4);
+        style.ContentMarginLeft = 5;
+        style.ContentMarginRight = 5;
+        style.ContentMarginTop = 1;
+        style.ContentMarginBottom = 1;
+        chip.AddThemeStyleboxOverride("normal", style);
+        return chip;
     }
 
     private void SetChannelBadge(string nameBarPath, bool canChannel)
@@ -531,8 +834,8 @@ public partial class CardUi : Control
             _schoolBadge.AddThemeStyleboxOverride("normal", badgeStyle);
         }
 
-        // Element tags
-        PopulateElementTags(_elementTagContainer, half);
+        // Element tags (on the dark art panel, so solid chips)
+        PopulateElementTags(_elementTagContainer, half, onDark: true);
 
         // Divider
         if (_fullDivider != null)
@@ -557,34 +860,26 @@ public partial class CardUi : Control
         }
 
         // Mana pip
-        var manaPipPanel = _fullManaLabel?.GetParent() as Panel;
-        if (manaPipPanel != null)
-        {
-            var pipStyle = new StyleBoxFlat { BgColor = darkColor };
-            pipStyle.SetCornerRadiusAll(UITheme.CornerRadiusLg);
-            manaPipPanel.AddThemeStyleboxOverride("panel", pipStyle);
-        }
+        StyleManaGem(_fullManaLabel?.GetParent() as Panel, darkColor);
 
         // Spell info
         _lastFullHalf = half;                       // U3e: so RefreshManaPips can repaint it
         if (_fullManaLabel != null) ApplyManaPip(_fullManaLabel, half);
-        if (_fullNameLabel != null) _fullNameLabel.Text = half.Name ?? "";
-        if (_fullSpeedLabel != null) _fullSpeedLabel.Text = half.Speed.ToString();
-        if (_fullRulesLabel != null) _fullRulesLabel.Text = half.RulesText ?? "";
+        FitName(_fullNameLabel, half.Name, UITheme.CardNameMaxWidth);
 
         // Channel strip
         bool canChannel = half?.CanChannel ?? false;
         string chText = canChannel ? $"[Shift+Drop] Channel: cast as Stage {(/* tier */ 0) + 1} (+1 mana)" : "";
 
-        // Channel hint: a single line at the bottom of the rules text
-        if (_fullRulesLabel != null && (half?.CanChannel ?? false))
+        // Full-view rules: the authored text, through the same emphasis pass the
+        // split halves use (ApplyRulesText), so the two views read identically.
+        // The aim pip lives in the art panel's tag row (PopulateElementTags
+        // above), and its tooltip carries the cover rule, so nothing is appended
+        // here. The channel hint moved to the tooltip.
+        if (_fullRulesLabel != null)
         {
-            _fullRulesLabel.Text = (half?.RulesText ?? "") +
-                "\n[color=#aaccff][i]Hold Shift to channel (+1 mana)[/i][/color]";
-        }
-        else if (_fullRulesLabel != null)
-        {
-            _fullRulesLabel.Text = half?.RulesText ?? "";
+            ApplyRulesText(_fullRulesLabel, half);
+            _fullRulesLabel.TooltipText = (half?.CanChannel ?? false) ? "Hold Shift to channel (+1 mana)" : "";
         }
 
         // Hide channel panel entirely; it is no longer used

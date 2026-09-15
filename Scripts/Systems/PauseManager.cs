@@ -52,7 +52,15 @@ public partial class PauseManager : Node
 
     private void OnNodeAdded(Node n)
     {
-        if (n.GetParent() == GetTree().Root && n != this)
+        // Nodes added and freed in the same frame (label markers, tweens) can
+        // reach here already invalid; a node added during a scene swap can have
+        // no tree yet on our side.
+        if (n == null || !IsInstanceValid(n))
+            return;
+        var tree = GetTree();
+        if (tree == null)
+            return;
+        if (n.GetParent() == tree.Root && n != this)
             CallDeferred(nameof(InferContextFromCurrentScene));
     }
 

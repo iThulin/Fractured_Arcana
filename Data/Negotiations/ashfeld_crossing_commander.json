@@ -5,6 +5,7 @@
  "archetype": "Commander",
  "factionId": "ashfeld_remnant",
  "openingText": "Vane commands the rear guard of an army that surrendered before he was born, at a crossing neither side won, and he does it properly: pickets out, ground chosen, challenge given at the correct distance. 'State your business at the ford,' he says. 'I am obliged to record it.'",
+ "openingTextLate": "Vane's pickets stand closer to the ford than they used to, and there are fewer of them. 'Something has been testing my line at night,' he says, as if reporting weather. 'It is not in the book. You are. State your business at the ford.'",
  "startingTension": 6,
  "basePatience": 7,
  "npcResolve": 4,
@@ -14,10 +15,12 @@
  "dialogueStrained": "That is not a satisfactory answer. It is, I concede, an answer.",
  "dialogueHostile": "You will not raise your voice at my picket line. I have shot men for less and entered it correctly.",
  "dialogueWalkaway": "Then you are turned back at the ford. It is in the book. Good day.",
+ "dialogueWalkawayLate": "Then you are turned back at the ford. Mind the dark on your way out. It has been minding us.",
  "dialogueAccept": "Recorded and countersigned. The crossing is yours until dusk.",
  "terms": [
   {
    "id": "lawful_passage",
+   "shortName": "ford passage",
    "description": "The ford, unopposed, with his pickets stood down and the crossing entered in the book.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +32,7 @@
   },
   {
    "id": "the_ground_itself",
+   "shortName": "field survey",
    "description": "Where both armies put their reserves, their dead, and their pay chests.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +43,7 @@
   },
   {
    "id": "relieve_the_line",
+   "shortName": "relief shipment",
    "description": "Provisions for a rear guard that has not been resupplied in two hundred years.",
    "favorPlayer": false,
    "isHidden": false,
@@ -51,6 +56,7 @@
   },
   {
    "id": "carry_the_despatch",
+   "shortName": "despatch",
    "description": "You carry his despatch to a headquarters that does not exist. He knows. Carry it anyway.",
    "favorPlayer": false,
    "isHidden": false,
@@ -62,7 +68,9 @@
   },
   {
    "id": "no_relief_coming",
+   "shortName": "unspoken truth",
    "description": "He has worked out there is no army. He is asking you not to say so aloud.",
+   "rumorText": "He never once asks when the relief column arrives. Every other soldier here has asked twice.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -15,

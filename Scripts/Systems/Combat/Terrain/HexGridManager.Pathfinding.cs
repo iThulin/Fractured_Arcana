@@ -16,7 +16,10 @@ public partial class HexGridManager
     /// scorched ground. Deliberately NOT glyphs, because hidden traps are
     /// unavoidable by design (see <see cref="Unit.HazardCaution"/>).</summary>
     private bool IsPathHazard(TileData tile) =>
-        tile != null && (tile.IsHazardous || TelegraphedTiles.Contains(tile.Axial));
+        tile != null && (tile.IsHazardous || TelegraphedTiles.Contains(tile.Axial)
+                         || (tile.Glyph != null && !tile.Glyph.Consumed && tile.Glyph.OwnerTeam == 2 && !tile.Glyph.Invisible));
+                         // map_pressure_v1: a visible field trap is a hazard everyone can see;
+                         // a hidden one stays a surprise for both sides, by design.
 
     /// <summary>Extra pathfinding cost <paramref name="unit"/> pays to ENTER
     /// <paramref name="tile"/> because it is an open hazard, scaled by the unit's
@@ -261,6 +264,20 @@ public partial class HexGridManager
         return bestCost.TryGetValue(goal, out int finalCost) ? finalCost : -1;
     }
 
+    /// <summary>Scale that keeps movement cost dominant over strike count in
+    /// GetPathTo's combined key. No walk draws anywhere near this many strikes.</summary>
+    private const int ZocCostScale = 64;
+
+    /// <summary>Free strikes the step <paramref name="from"/> to <paramref name="to"/>
+    /// would draw on <paramref name="unit"/>: hostile control-exerting units adjacent
+    /// to the tile being left and not to the destination. Zero without a unit.</summary>
+    private int ZocStepStrikes(Unit unit, Vector2I from, TileData to)
+    {
+        if (unit == null || to == null || !Tiles.TryGetValue(from, out var fromTile))
+            return 0;
+        return unit.ZoneOfControlLeavers(this, fromTile, to).Count;
+    }
+
     /// <summary>Reconstructs the cheapest walkable path from <paramref name="unit"/>'s
     /// tile to <paramref name="dest"/> as an ordered list of axial coords (START
     /// EXCLUDED, dest included), or null when unreachable. Same walkability rules as
@@ -299,8 +316,14 @@ public partial class HexGridManager
                 if (tile.IsOccupied && neighbor != start && neighbor != goal)
                     continue;
 
+                // Lexicographic cost (cover_and_zoc_v1 §12): movement cost first, so
+                // the route never costs more move points than GetMoveCostTo promised,
+                // then the number of free strikes the step draws. Two routes of equal
+                // length pick the one that does not break contact; a longer safe
+                // route never beats a shorter exposed one (that is the mover's call).
                 int stepCost = Mathf.Max(1, tile.MoveCost) + HazardPenalty(unit, tile);
-                int newCost = costSoFar + stepCost;
+                int strikes = ZocStepStrikes(unit, current, tile);
+                int newCost = costSoFar + stepCost * ZocCostScale + strikes;
 
                 if (bestCost.TryGetValue(neighbor, out int oldCost) && oldCost <= newCost)
                     continue;
@@ -333,15 +356,48 @@ public partial class HexGridManager
     public bool HasLineOfSight(Vector2I from, Vector2I to)
         => FirstLosBlocker(from, to) == null;
 
+    /// <summary>The tile <paramref name="index"/> steps along the hex line from
+    /// <paramref name="from"/> toward <paramref name="to"/> (cube lerp, rounded).</summary>
+    private TileData HexLineTile(Vector2I from, Vector2I to, int index)
+    {
+        int steps = Distance(from, to);
+        if (steps == 0 || index <= 0 || index > steps)
+            return null;
+        float t = (float)index / steps;
+        float ax = from.X, az = from.Y, ay = -ax - az;
+        float bx = to.X, bz = to.Y, by = -bx - bz;
+        float lx = ax + (bx - ax) * t, ly = ay + (by - ay) * t, lz = az + (bz - az) * t;
+        int rx = Mathf.RoundToInt(lx), ry = Mathf.RoundToInt(ly), rz = Mathf.RoundToInt(lz);
+        float dx = Mathf.Abs(rx - lx), dy = Mathf.Abs(ry - ly), dz = Mathf.Abs(rz - lz);
+        if (dx > dy && dx > dz) rx = -ry - rz;
+        else if (dy > dz) ry = -rx - rz;
+        else rz = -rx - ry;
+        return Tiles.TryGetValue(new Vector2I(rx, rz), out var tile) ? tile : null;
+    }
+
     /// <summary>Same trace as HasLineOfSight, but returns the first tile that
     /// blocks the line (or null if the line is clear) so cast-failure feedback
     /// can NAME the blocker: thicket growth, rock, crystal, LOS prop.</summary>
+    /// <summary>map_pressure_v2 fog: when > 0, nothing sees further than this many
+    /// tiles. Bolts, ranged strikes, and the ranger's clear-shot test all read
+    /// HasLineOfSight, so one cap covers them. 0 = no cap.</summary>
+    public int SightCap = 0;
+
     public TileData FirstLosBlocker(Vector2I from, Vector2I to)
     {
         // Use cube coordinate lerp to trace the line between hexes
         var steps = Distance(from, to);
         if (steps == 0)
             return null;
+
+        // Fog: the first tile past the cap is the "blocker" so cast-fail text can
+        // name it, and everything closer traces normally.
+        if (SightCap > 0 && steps > SightCap)
+        {
+            var capped = HexLineTile(from, to, SightCap + 1);
+            if (capped != null)
+                return capped;
+        }
 
         for (int i = 1; i < steps; i++)
         {

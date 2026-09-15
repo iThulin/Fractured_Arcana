@@ -1,62 +1,68 @@
 {
-  "id": "generic_opportunist",
-  "title": "The Fixer at the Crossroads",
-  "npcName": "Silt",
-  "archetype": "Opportunist",
-  "factionId": "gray_market",
-  "openingText": "The fixer materializes beside your campfire as if she'd always been sitting there. 'Relax. If I wanted trouble, you'd already be having it. I move things: goods, people, information. You're carrying at least two of those. Let's talk percentages.'",
-  "startingTension": 5,
-  "basePatience": 6,
-  "npcResolve": 1,
-  "npcGuile": 3,
-  "npcPoise": 0,
-  "dialogueCordial": "See, this is nice. Everybody making money, nobody bleeding.",
-  "dialogueStrained": "You're leaving value on the table. That offends me professionally.",
-  "dialogueHostile": "Careful. I know what your route is worth to certain people.",
-  "dialogueWalkaway": "Time is inventory, and you're spoiling mine. Gone.",
-  "dialogueAccept": "Pleasure. Whatever you heard about me, this deal I keep.",
-  "terms": [
-    {
-      "id": "smugglers_path",
-      "description": "Silt marks the smugglers' path through the checkpoint ahead, saving you 2 steps.",
-      "favorPlayer": true,
-      "isHidden": false,
-      "goldDelta": 0,
-      "reputationDelta": 0,
-      "stepsDelta": 2,
-      "startingPosition": -1,
-      "weight": 2
-    },
-    {
-      "id": "fence_goods",
-      "description": "She'll fence your surplus salvage at 40 gold, better than any settlement rate.",
-      "favorPlayer": true,
-      "isHidden": false,
-      "goldDelta": 40,
-      "reputationDelta": 0,
-      "startingPosition": -1,
-      "weight": 3
-    },
-    {
-      "id": "finders_cut",
-      "description": "A 'finder's cut' of 20 gold, buried three clauses deep.",
-      "favorPlayer": false,
-      "isHidden": true,
-      "goldDelta": -20,
-      "reputationDelta": 0,
-      "startingPosition": -1,
-      "weight": 1
-    },
-    {
-      "id": "deniability",
-      "description": "A deniability clause: if her cargo is seized, the manifest names YOUR guild.",
-      "favorPlayer": false,
-      "isHidden": true,
-      "goldDelta": 0,
-      "reputationDelta": -1,
-      "factionId": "gray_market",
-      "startingPosition": -2,
-      "weight": 2
-    }
-  ]
+ "id": "generic_opportunist",
+ "title": "The Fixer at the Crossroads",
+ "npcName": "Silt",
+ "archetype": "Opportunist",
+ "factionId": "gray_market",
+ "openingText": "The fixer materializes beside your campfire as if she'd always been sitting there. 'Relax. If I wanted trouble, you'd already be having it. I move things: goods, people, information. You're carrying at least two of those. Let's talk percentages.'",
+ "startingTension": 5,
+ "basePatience": 6,
+ "npcResolve": 1,
+ "npcGuile": 3,
+ "npcPoise": 0,
+ "dialogueCordial": "See, this is nice. Everybody making money, nobody bleeding.",
+ "dialogueStrained": "You're leaving value on the table. That offends me professionally.",
+ "dialogueHostile": "Careful. I know what your route is worth to certain people.",
+ "dialogueWalkaway": "Time is inventory, and you're spoiling mine. Gone.",
+ "dialogueAccept": "Pleasure. Whatever you heard about me, this deal I keep.",
+ "terms": [
+  {
+   "id": "smugglers_path",
+   "shortName": "smugglers' path",
+   "description": "Silt marks the smugglers' path through the checkpoint ahead, saving you 2 steps.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 0,
+   "reputationDelta": 0,
+   "stepsDelta": 2,
+   "startingPosition": -1,
+   "weight": 2
+  },
+  {
+   "id": "fence_goods",
+   "shortName": "fencing deal",
+   "description": "She'll fence your surplus salvage at 40 gold, better than any settlement rate.",
+   "favorPlayer": true,
+   "isHidden": false,
+   "goldDelta": 40,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 3
+  },
+  {
+   "id": "finders_cut",
+   "shortName": "finder's cut",
+   "description": "A 'finder's cut' of 20 gold, buried three clauses deep.",
+   "rumorText": "She counts your take with her eyes while she talks, and she is not counting for you.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": -20,
+   "reputationDelta": 0,
+   "startingPosition": -1,
+   "weight": 1
+  },
+  {
+   "id": "deniability",
+   "shortName": "manifest clause",
+   "description": "A deniability clause: if her cargo is seized, the manifest names YOUR guild.",
+   "rumorText": "Her cargo has no papers you have seen, and somehow that is about to be your problem.",
+   "favorPlayer": false,
+   "isHidden": true,
+   "goldDelta": 0,
+   "reputationDelta": -1,
+   "factionId": "gray_market",
+   "startingPosition": -2,
+   "weight": 2
+  }
+ ]
 }

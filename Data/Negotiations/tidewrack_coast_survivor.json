@@ -5,6 +5,7 @@
  "archetype": "Survivor",
  "factionId": "wrackborn",
  "openingText": "Ferrant speaks for people who came ashore off ships nobody reported missing and stayed. She counts your party, counts your weapons, and does not pretend she is doing anything else. 'We have been here longer than the maps say this beach exists,' she says. 'Say what you want. Slowly.'",
+ "openingTextLate": "Ferrant counts your party, counts your weapons, and this time counts the sky. 'The surges come higher every month and the maps mean less,' she says. 'We are still here. Say what you want while that is true.'",
  "startingTension": 6,
  "basePatience": 9,
  "npcResolve": 2,
@@ -18,6 +19,7 @@
  "terms": [
   {
    "id": "shore_pilot",
+   "shortName": "pilot",
    "description": "A wrackborn pilot walks your column across ground the tide has rearranged.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +31,7 @@
   },
   {
    "id": "salvage_share",
+   "shortName": "salvage share",
    "description": "A share of what the last storm turned up, honestly weighed.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +42,7 @@
   },
   {
    "id": "winter_stores",
+   "shortName": "winter provisioning",
    "description": "Twenty supplies. They will not survive the season otherwise and both of you know it.",
    "favorPlayer": false,
    "isHidden": false,
@@ -51,6 +55,7 @@
   },
   {
    "id": "name_the_ships",
+   "shortName": "list of names",
    "description": "You carry three names inland and see whether anyone is still looking.",
    "favorPlayer": false,
    "isHidden": false,
@@ -62,7 +67,9 @@
   },
   {
    "id": "they_are_leaving",
+   "shortName": "exodus",
    "description": "Ferrant has already decided to move them. This is provisioning, not trade.",
+   "rumorText": "The camp is packed tighter than people pack for staying.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -25,

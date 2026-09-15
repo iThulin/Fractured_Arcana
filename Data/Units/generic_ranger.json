@@ -1,8 +1,17 @@
 {
   "id": "generic_ranger",
   "threatLabel": "Ranger",
-  "maxHealth": 15, "baseSpeed": 2, "armor": 0,
-  "attackRange": 3, "attackDamage": 4, "preferredDistance": 3,
+  "maxHealth": 15,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 3,
+  "attackDamage": 4,
+  "preferredDistance": 3,
   "behaviorKey": "ranged_kite",
-  "colorR": 0.2, "colorG": 0.8, "colorB": 0.3
+  "colorR": 0.2,
+  "colorG": 0.8,
+  "colorB": 0.3,
+  "behaviorTags": [
+    "skirmisher"
+  ]
 }

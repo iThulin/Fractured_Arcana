@@ -8,7 +8,7 @@
 		"name": "Maze of Mirrors",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Create 4 illusory copies of yourself on nearby tiles (2 HP each). Enemies target you and the copies at random. A destroyed copy triggers its tile's glyph. Lasts 3 turns.",
+		"rules_text": "Create 4 Mirror copies of yourself nearby (HP 2). Enemies target you or a copy at random. A destroyed copy triggers its tile's glyph. Lasts 3 turns.",
 		"tags": [
 			"enchant"
 		],

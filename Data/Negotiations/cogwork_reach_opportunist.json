@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "gap_in_the_ledger",
+   "shortName": "ledger gap",
    "description": "Blake loses your column from three sets of toll records. Nobody knows you passed.",
    "favorPlayer": true,
    "isHidden": false,
@@ -28,6 +29,7 @@
   },
   {
    "id": "who_is_buying",
+   "shortName": "buyer list",
    "description": "The names of everyone who has asked after you in the Reach this month.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +41,7 @@
   },
   {
    "id": "cache_lines",
+   "shortName": "cache map",
    "description": "Blake's people know where the Charter parks its provisions. He will draw you a map.",
    "favorPlayer": true,
    "isHidden": false,
@@ -50,6 +53,7 @@
   },
   {
    "id": "courier_favour",
+   "shortName": "courier favour",
    "description": "You carry a small sealed package two towns north. Do not open it.",
    "favorPlayer": false,
    "isHidden": false,
@@ -61,7 +65,9 @@
   },
   {
    "id": "the_other_buyer",
+   "shortName": "other buyer",
    "description": "He is already selling the same information to somebody else, tonight.",
+   "rumorText": "Blake keeps glancing at the door, like a man expecting a second appointment.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": 0,

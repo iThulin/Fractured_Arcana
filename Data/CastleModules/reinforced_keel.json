@@ -1,0 +1,8 @@
+{
+  "id": "reinforced_keel",
+  "name": "Reinforced Keel",
+  "cost": 260,
+  "effect": "max_hull_pct",
+  "magnitude": 25,
+  "flavor": "Ribs of iron under the stone."
+}

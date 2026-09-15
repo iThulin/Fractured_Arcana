@@ -1,0 +1,12 @@
+{
+  "id": "brazier_rack",
+  "name": "Brazier Rack",
+  "cost": 150,
+  "effect": "none",
+  "magnitude": 0,
+  "flavor": "Oil and coals above the gate. Manned, it makes the ground before the door unkind.",
+  "station": {
+    "kind": "brazier_rack",
+    "label": "Brazier Rack"
+  }
+}

@@ -8,7 +8,7 @@
 		"name": "The Memorial Seat",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Place the Memorial Seat on target tile (HP 30). While it stands: all spirits gain +2 damage and +2 armor, and healing and release effects trigger twice. If it is destroyed, take 8 damage.",
+		"rules_text": "Place the Memorial Seat on target tile (HP 30). While it stands, spirits gain +2 damage and +2 armor, and heal and release effects trigger twice. If destroyed, take 8 damage.",
 		"tags": [
 			"spirit"
 		],

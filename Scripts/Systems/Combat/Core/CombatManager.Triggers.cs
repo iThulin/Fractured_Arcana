@@ -725,9 +725,11 @@ public partial class CombatManager
     {
         if (CombatSim.Active)
             return;                       // preview runs mutate nothing (R22)
+        RefreshCoverMarkers();            // either side moving changes who is flanked
         if (mover == null || !IsInstanceValid(mover) || !mover.Stats.IsAlive
             || !mover.IsPlayerControlled || mover.CurrentTile == null)
             return;
+        ApplyStationBonusFor(mover, log: true);   // castle_defense_v2: stations are live on entry
 
         foreach (var (carrier, ab) in LivingAuraCarriers("binding_geas"))
         {
@@ -1146,13 +1148,16 @@ public partial class CombatManager
     private Unit FindReactionResponder()
     {
         if (selectedUnit != null && IsInstanceValid(selectedUnit)
-            && selectedUnit.Stats.IsAlive && UnitHoldsCastableReaction(selectedUnit))
+            && selectedUnit.Stats.IsAlive && !selectedUnit.IsAwaitingArrival
+            && UnitHoldsCastableReaction(selectedUnit))
             return selectedUnit;
 
         foreach (var unit in playerUnits)
         {
             if (unit == null || unit == selectedUnit || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
                 continue;
+            if (unit.IsAwaitingArrival)
+                continue;   // castle_defense_v1: no hand to answer with from inside the waystone
             if (UnitHoldsCastableReaction(unit))
                 return unit;
         }

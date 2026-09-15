@@ -131,9 +131,11 @@ public partial class CombatManager : Node3D
         if (tile != null)
         {
             tile.BlocksLineOfSight = false;    // demolished cover stops blocking sight
+            tile.AuthoredCover = CoverKind.None;
             ResolveMapObjectDeathEffect(unit.MapObjectKind, tile);
         }
         fieldObjects.Remove(unit);
+        _destroyedObjectKinds.Add(unit.MapObjectKind ?? "");   // map_pressure_v2: object_destroyed:kind
         if (!unit.IsDeathQueued)
             unit.Die();
         RefreshThreatTiles();
@@ -177,9 +179,10 @@ public partial class CombatManager : Node3D
     /// excluding other map objects so casks/crystals don't chain-detonate.</summary>
     private void MapObjectBurst(TileData center, int dmg)
     {
-        HitTileOccupant(center, dmg);
-        foreach (var nb in grid.GetNeighbors(center.Axial))
-            HitTileOccupant(grid.GetTile(nb), dmg);
+        // Burst fill, so a crystal wedged against a wall does not hurt whoever is
+        // standing on the far side of it.
+        foreach (var coord in grid.BurstReach(center.Axial, 1))
+            HitTileOccupant(grid.GetTile(coord), dmg);
     }
 
     private static void HitTileOccupant(TileData t, int dmg)

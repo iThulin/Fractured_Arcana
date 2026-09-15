@@ -1,0 +1,17 @@
+{
+  "id": "ballista_nest",
+  "name": "Ballista Nest",
+  "cost": 180,
+  "effect": "none",
+  "magnitude": 0,
+  "flavor": "A crewed engine on the tower. Whoever mans it can fire it: a heavy bolt that hits from across the field and throws the target back.",
+  "station": {
+    "kind": "ballista",
+    "label": "Ballista",
+    "range": 5,
+    "damage": 7,
+    "ap": 2,
+    "push": 1,
+    "shots": 1
+  }
+}

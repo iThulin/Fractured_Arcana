@@ -15,11 +15,72 @@
 // See:            negotiation_redesign_v1.md §3c, Phase 3b
 // ============================================================
 
+/// <summary>How the last table with this counterpart, in THIS life, ended:
+/// drives their re-meeting opener (spec §6b). Mapped from DealRecord.Outcome
+/// by NegotiationState.ApplyContinuity.</summary>
+public enum NegotiationContinuityKind
+{
+    WarmReturn,      // signed at 4 stars or better
+    CoolReturn,      // signed, unremarkably
+    WalkedBefore,    // the player walked away
+    TimedOutBefore,  // their patience ran out (TheyLeft)
+    CollapsedBefore, // the table hit maximum tension
+}
+
 /// <summary>Static content tables for the v2 negotiation: spoken-move lines
 /// (token × stance, with "{term}" substituted), stance tells, NPC-turn barks,
 /// and squeeze lines. Pure lookup, no game state.</summary>
 public static class NegotiationBarks
 {
+    // ── Continuity openers (§6b): consequences walk back in the door ─────
+
+    public static string ContinuityLine(NpcArchetypeType a, NegotiationContinuityKind k)
+    {
+        return (a, k) switch
+        {
+            (NpcArchetypeType.Merchant,    NegotiationContinuityKind.WarmReturn) => "“Back again. Our last arrangement paid exactly as written, which is my favourite kind. Sit, sit.”",
+            (NpcArchetypeType.Commander,   NegotiationContinuityKind.WarmReturn) => "“You kept terms. That is not forgotten on my ground. Say your piece.”",
+            (NpcArchetypeType.Scholar,     NegotiationContinuityKind.WarmReturn) => "“Ah, the precise one. Our last agreement is filed under 'satisfactory', which from me is high praise.”",
+            (NpcArchetypeType.Opportunist, NegotiationContinuityKind.WarmReturn) => "“My favourite guild returns. Last time worked out lovely for everybody. Mostly everybody.”",
+            (NpcArchetypeType.Idealist,    NegotiationContinuityKind.WarmReturn) => "“You dealt fairly with us once. I remember it, and so do the people I answer to.”",
+            (NpcArchetypeType.Survivor,    NegotiationContinuityKind.WarmReturn) => "The crossbow stays on its hook this time. “You dealt straight before. Talk.”",
+            (_,                            NegotiationContinuityKind.WarmReturn) => "“You again. Our last dealings ended well. Let us see if that holds.”",
+
+            (NpcArchetypeType.Merchant,    NegotiationContinuityKind.CoolReturn) => "“Back again? Last time was… adequate. Let's improve on adequate.”",
+            (NpcArchetypeType.Commander,   NegotiationContinuityKind.CoolReturn) => "“We have dealt before. It was acceptable. Begin.”",
+            (NpcArchetypeType.Scholar,     NegotiationContinuityKind.CoolReturn) => "“Our previous agreement was serviceable, if unremarkable. Proceed.”",
+            (NpcArchetypeType.Opportunist, NegotiationContinuityKind.CoolReturn) => "“Round two. No hard feelings about last time. Mostly.”",
+            (NpcArchetypeType.Idealist,    NegotiationContinuityKind.CoolReturn) => "“We have sat here before. It ended fairly, if not warmly.”",
+            (NpcArchetypeType.Survivor,    NegotiationContinuityKind.CoolReturn) => "“You've been here before. Nobody bled. Out here that counts for something.”",
+            (_,                            NegotiationContinuityKind.CoolReturn) => "“We have done business before. It went as business goes.”",
+
+            (NpcArchetypeType.Merchant,    NegotiationContinuityKind.WalkedBefore) => "“Last time you left my table with empty hands. Buyers who walk twice rarely get a third chair.”",
+            (NpcArchetypeType.Commander,   NegotiationContinuityKind.WalkedBefore) => "“You walked away from me once. State why this time is different.”",
+            (NpcArchetypeType.Scholar,     NegotiationContinuityKind.WalkedBefore) => "“As I recall, you declined to conclude. I have annotated my expectations accordingly.”",
+            (NpcArchetypeType.Opportunist, NegotiationContinuityKind.WalkedBefore) => "“The one that got away, back again. They usually come back.”",
+            (NpcArchetypeType.Idealist,    NegotiationContinuityKind.WalkedBefore) => "“You turned from us once. I hope the road has changed your mind, and not just your route.”",
+            (NpcArchetypeType.Survivor,    NegotiationContinuityKind.WalkedBefore) => "“You walked once. People who walk make me careful.”",
+            (_,                            NegotiationContinuityKind.WalkedBefore) => "“You have sat here before, and you left. Let us see what has changed.”",
+
+            (NpcArchetypeType.Merchant,    NegotiationContinuityKind.TimedOutBefore) => "“You, again. Last time you talked until I ran out of afternoon. Brevity, this time.”",
+            (NpcArchetypeType.Commander,   NegotiationContinuityKind.TimedOutBefore) => "“Last time you spent my patience and bought nothing with it. Not today.”",
+            (NpcArchetypeType.Scholar,     NegotiationContinuityKind.TimedOutBefore) => "“Our last session ended un-concluded, at considerable cost to my schedule.”",
+            (NpcArchetypeType.Opportunist, NegotiationContinuityKind.TimedOutBefore) => "“Slow play, last time. The market moved without you. Quicker now, yes?”",
+            (NpcArchetypeType.Idealist,    NegotiationContinuityKind.TimedOutBefore) => "“Last time the daylight ran out before agreement did. Let us do better by each other.”",
+            (NpcArchetypeType.Survivor,    NegotiationContinuityKind.TimedOutBefore) => "“You dithered once. Out here, dithering is how people become landmarks.”",
+            (_,                            NegotiationContinuityKind.TimedOutBefore) => "“Last time, my patience ran out before your answer arrived. Begin.”",
+
+            (NpcArchetypeType.Merchant,    NegotiationContinuityKind.CollapsedBefore) => "“You. My ledger remembers how our last meeting ended. One raised voice and this one ends the same way.”",
+            (NpcArchetypeType.Commander,   NegotiationContinuityKind.CollapsedBefore) => "“Our last exchange ended in shouting. On my ground, it will not end that way twice.”",
+            (NpcArchetypeType.Scholar,     NegotiationContinuityKind.CollapsedBefore) => "“I have not forgotten how our last conversation… concluded. Do regulate yourself.”",
+            (NpcArchetypeType.Opportunist, NegotiationContinuityKind.CollapsedBefore) => "“Look who's back. Last time got loud. Loud is bad for business.”",
+            (NpcArchetypeType.Idealist,    NegotiationContinuityKind.CollapsedBefore) => "“I remember the anger you brought to this table. Leave it outside, or leave with it.”",
+            (NpcArchetypeType.Survivor,    NegotiationContinuityKind.CollapsedBefore) => "The crossbow is already levelled when you sit. “Give me one reason to think this ends quieter.”",
+            (_,                            NegotiationContinuityKind.CollapsedBefore) => "“Our last meeting ended badly. Prove this one won't.”",
+            _                                                                        => "“We have met before. Sit.”",
+        };
+    }
+
     // ── Stance tells (portrait caption / log line on stance change) ──────
 
     public static string StanceTell(NpcArchetypeType a, NpcStance s)
@@ -90,7 +151,7 @@ public static class NegotiationBarks
             case LeverageToken.Intimidate:
                 return stance switch
                 {
-                    NpcStance.Wavering  => "You let the silence go cold. “Sign the {term} as I've drawn it. While the offer stands.”",
+                    NpcStance.Wavering  => "You let the silence go cold. “The {term}, as I've drawn it. Sign, while the offer stands.”",
                     NpcStance.Guarded   => "“Don't mistake my patience for a lack of alternatives.”",
                     _                   => "You set both hands on the table. “Consider carefully what the guild does to broken deals.”",
                 };
@@ -163,8 +224,8 @@ public static class NegotiationBarks
 
     public static string OfferResolution(NpcStance s, string resolveName) => s switch
     {
-        NpcStance.Eager   => $"Their eyes light up. An eager moment, and the goods vanish quickly. (Their {resolveName} grows.)",
-        NpcStance.Guarded => $"They pocket it without a flicker of thanks. (Their {resolveName} grows, and you got no warmth for it.)",
+        NpcStance.Eager   => $"Their eyes light up, and the goods vanish quickly. (Their {resolveName} grows.)",
+        NpcStance.Guarded => $"They pocket it without a flicker of thanks. (Their {resolveName} grows, and you get no warmth for it.)",
         _                 => $"A tangible offer. This they can work with. (Their {resolveName} grows.)",
     };
 
@@ -172,16 +233,18 @@ public static class NegotiationBarks
 
     public static string NpcPullBark(NpcArchetypeType a, string termName, bool hard)
     {
-        string tail = hard ? ", hard, while the mood is ugly" : "";
+        // The hard pull (Hostile zone / hardened) reads as its own trailing
+        // sentence: grafting it mid-clause broke half the lines' grammar.
+        string tail = hard ? " The ugly mood puts weight behind it." : "";
         return a switch
         {
-            NpcArchetypeType.Merchant    => $"They tap the {termName} and slide it back toward themselves{tail}. “My costs, you understand.”",
-            NpcArchetypeType.Commander   => $"“The {termName} is not negotiable at that figure.” They drag it back{tail}.",
-            NpcArchetypeType.Scholar     => $"“Your reading of the {termName} is… generous.” They correct it{tail}.",
-            NpcArchetypeType.Opportunist => $"Somewhere between two sentences, the {termName} slid back their way{tail}. You almost didn't catch it.",
-            NpcArchetypeType.Idealist    => $"“The {termName} feeds people. I won't soften it.” They pull it back{tail}, unapologetic.",
-            NpcArchetypeType.Survivor    => $"“I've been burned on the {termName} before.” They claw it back{tail}.",
-            _                            => $"They pull the {termName} back toward their side{tail}.",
+            NpcArchetypeType.Merchant    => $"They tap the {termName} and slide it back toward themselves. “My costs, you understand.”{tail}",
+            NpcArchetypeType.Commander   => $"“The {termName} is not negotiable at that figure.” They drag it back.{tail}",
+            NpcArchetypeType.Scholar     => $"“Your reading of the {termName} is… generous.” They correct it.{tail}",
+            NpcArchetypeType.Opportunist => $"Somewhere between two sentences, the {termName} slid back their way. You almost didn't catch it.{tail}",
+            NpcArchetypeType.Idealist    => $"“The {termName} feeds people. I won't soften it.” They pull it back, unapologetic.{tail}",
+            NpcArchetypeType.Survivor    => $"“I've been burned on the {termName} before.” They claw it back.{tail}",
+            _                            => $"They pull the {termName} back toward their side.{tail}",
         };
     }
 
@@ -219,14 +282,32 @@ public static class NegotiationBarks
         _                          => "They visibly master themselves and step back from the brink.",
     };
 
-    public static string NpcGiftBark(NpcArchetypeType a, LeverageToken gift) => a switch
+    /// <summary>Pure speech and stage direction; the mechanical grant is
+    /// logged separately by NegotiationState (Dialogue speaks, the grant
+    /// line counts; spec §3b).</summary>
+    public static string NpcGiftBark(NpcArchetypeType a) => a switch
     {
-        NpcArchetypeType.Merchant    => $"They push a token of goodwill across the table: +1 {gift}. “To a long association.”",
-        NpcArchetypeType.Scholar     => $"“You argue well. Here, something I noticed that may help us both.” +1 {gift}.",
-        NpcArchetypeType.Opportunist => $"“On the house. First one always is.” +1 {gift}.",
-        NpcArchetypeType.Idealist    => $"“The road is kinder when walked together.” +1 {gift}.",
-        NpcArchetypeType.Survivor    => $"They hand you something without a word. Out here, that means everything. +1 {gift}.",
-        _                            => $"A gesture of goodwill crosses the table: +1 {gift}.",
+        NpcArchetypeType.Merchant    => "They push something across the table, unasked. “To a long association.”",
+        NpcArchetypeType.Scholar     => "“You argue well. Here, something I noticed that may help us both.”",
+        NpcArchetypeType.Opportunist => "“On the house. First one always is.”",
+        NpcArchetypeType.Idealist    => "“The road is kinder when walked together.”",
+        NpcArchetypeType.Survivor    => "They hand you something without a word. Out here, that means everything.",
+        _                            => "A gesture of goodwill crosses the table.",
+    };
+
+    /// <summary>The tip of the hand (spec §4c): fired once per table, on the
+    /// NPC's first Hold or Guile move while a face-down clause remains. An
+    /// archetype-voiced hint that the small print exists, for players who
+    /// listen; never repeated, never an alarm.</summary>
+    public static string SmallPrintHint(NpcArchetypeType a) => a switch
+    {
+        NpcArchetypeType.Merchant    => "“Read everything before you sign. I tell all my partners that. Almost all.”",
+        NpcArchetypeType.Commander   => "“The written terms are the terms. All of them.” They square the papers, including one you haven't seen.",
+        NpcArchetypeType.Scholar     => "“You have, of course, read the incorporated appendices.” It is not phrased as a question.",
+        NpcArchetypeType.Opportunist => "“It's all in the paperwork somewhere.” Their smile rests on a page you can't see.",
+        NpcArchetypeType.Idealist    => "“Nothing here is hidden from those who trouble to look.” They mean it kindly. It is still a warning.",
+        NpcArchetypeType.Survivor    => "One paper stays angled away from you. An old habit, from people who've been robbed by contracts before.",
+        _                            => "Their fingers rest, briefly, on a paper they haven't turned over.",
     };
 
     public static string NpcHoldBark(NpcArchetypeType a) => a switch

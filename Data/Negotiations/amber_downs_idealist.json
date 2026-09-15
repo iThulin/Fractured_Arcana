@@ -18,6 +18,7 @@
  "terms": [
   {
    "id": "wardens_writ",
+   "shortName": "warden's writ",
    "description": "Munn's writ: safe passage through every manor in the downs, honoured on sight.",
    "favorPlayer": true,
    "isHidden": false,
@@ -30,6 +31,7 @@
   },
   {
    "id": "the_true_reading",
+   "shortName": "true reading",
    "description": "She teaches you what the charm-work on the stones actually binds, and to whom.",
    "favorPlayer": true,
    "isHidden": false,
@@ -42,6 +44,7 @@
   },
   {
    "id": "leave_the_stones",
+   "shortName": "oath-stone pledge",
    "description": "You undertake to break no further oath-stone in the Amber Downs.",
    "favorPlayer": false,
    "isHidden": false,
@@ -52,6 +55,7 @@
   },
   {
    "id": "provision_the_wardens",
+   "shortName": "provisioning",
    "description": "Her wardens are hungry. Fifteen supplies, and she will not ask twice.",
    "favorPlayer": false,
    "isHidden": false,
@@ -63,7 +67,9 @@
   },
   {
    "id": "she_is_recruiting",
+   "shortName": "real question",
    "description": "This is not a negotiation. It is an interview, and she has already decided.",
+   "rumorText": "She asks about your guild the way a quartermaster asks about stores: as if she already means to use them.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -15,

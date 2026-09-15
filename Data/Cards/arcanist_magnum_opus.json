@@ -8,7 +8,7 @@
 		"name": "Magnum Opus",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Choose a card in your hand. It becomes Perfected for the rest of the fight: both halves cost 0 and gain +3 to all damage and healing. Perfected cards are not discarded after use.",
+		"rules_text": "Choose a card in your hand. For the rest of the fight it is Perfected: both halves cost 0, gain +3 damage and healing, and it is not discarded after use.",
 		"tags": [
 			"arcane"
 		],

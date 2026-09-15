@@ -43,6 +43,10 @@ project/assembly_name="FracturedArcana"
 
 autoload=true
 
+[gui]
+
+theme/custom="res://Assets/UI/GameTheme.tres"
+
 [input]
 
 ui_left={

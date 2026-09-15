@@ -60,6 +60,11 @@ public partial class CombatUI : CanvasLayer
 	/// <summary>(2026-07-29) Stance switcher: the player clicked a stance button
 	/// for the selected martial unit. CombatManager routes to TrySwitchStance.</summary>
 	[Signal] public delegate void StanceSwitchRequestedEventHandler(string stanceId);
+	/// <summary>Action bar (2026-09-08): a button for a non-card action was pressed;
+	/// the int is a UnitAction. CombatManager arms it for the next target click.</summary>
+	[Signal] public delegate void UnitActionRequestedEventHandler(int action);
+	/// <summary>Set by CombatManager: the bar's contents for a unit.</summary>
+	public System.Func<Unit, System.Collections.Generic.List<UnitActionDef>> ActionProvider;
 
 	// ── Layout constants (design-space px, V1 resolution ruling) ─────────
 	private const int LeftPanelWidth = 280;
@@ -90,6 +95,7 @@ public partial class CombatUI : CanvasLayer
 	private Label _statLine;
 	private Label _stanceLine;
 	private HBoxContainer _stanceRow;   // 2026-07-29: clickable stance switcher
+	private HBoxContainer _actionRow;   // 2026-09-08: strike / shove / fire station
 	private HBoxContainer _statusIconRow;
 	private VBoxContainer _logBox;
 	private Label[] _logLines;
@@ -303,6 +309,13 @@ public partial class CombatUI : CanvasLayer
 		_stanceRow.AddThemeConstantOverride("separation", 6);
 		_stanceRow.Alignment = BoxContainer.AlignmentMode.Center;
 		vbox.AddChild(_stanceRow);
+
+		// Action bar: the unit's non-card verbs with their AP cost. A pressed button
+		// arms the action; the next click on a target performs it.
+		_actionRow = new HBoxContainer { Name = "ActionRow", Visible = false };
+		_actionRow.AddThemeConstantOverride("separation", 6);
+		_actionRow.Alignment = BoxContainer.AlignmentMode.Center;
+		vbox.AddChild(_actionRow);
 
 		// ── Status icons ─────────────────────────────────────────────
 		_statusIconRow = new HBoxContainer { Name = "StatusIcons" };
@@ -1064,6 +1077,10 @@ public partial class CombatUI : CanvasLayer
 
 			string armor = unit.Stats.Armor > 0 ? $"ARM {unit.Stats.Armor}  " : "";
 			string shield = unit.Stats.Shield > 0 ? $"SHD {unit.Stats.Shield}  " : "";
+			// COV = cover armour left this turn: only bolts from behind the wall spend it.
+			string cover = unit.Stats.CoverArmor > 0 ? $"COV {unit.Stats.CoverArmor}  " : "";
+			// A manned castle station: the bonus is live on the normal attack.
+			string station = !string.IsNullOrEmpty(unit.StationLabel) ? $"{unit.StationLabel}  " : "";
 			string ap = !isEnemy && unit.MaxActionPoints > 0 ? $"AP {apPips}  " : "";
 			// SPD = the real per-move reach (MoveRange + movespeed grants, adjusted for
 			// rooted/slowed), the same value every movement path uses. Shows base→eff
@@ -1072,7 +1089,7 @@ public partial class CombatUI : CanvasLayer
 			string spd = spdEff != unit.MoveRange
 				? $"SPD {unit.MoveRange}→{spdEff}"
 				: $"SPD {unit.MoveRange}";
-			_statLine.Text = $"{armor}{shield}{ap}{spd}";
+			_statLine.Text = $"{armor}{shield}{cover}{station}{ap}{spd}";
 		}
 
 		if (_stanceLine != null)
@@ -1089,6 +1106,7 @@ public partial class CombatUI : CanvasLayer
 		}
 
 		RefreshStanceRow(unit, isEnemy);
+		RefreshActionRow(unit, isEnemy);
 
 		RefreshStatusIcons(unit.Stats.StatusEffects);
 		RefreshInspectBlock(unit, isEnemy);
@@ -1136,6 +1154,35 @@ public partial class CombatUI : CanvasLayer
 			string sid = stance.Id;   // capture by value for the closure
 			btn.Pressed += () => EmitSignal(SignalName.StanceSwitchRequested, sid);
 			_stanceRow.AddChild(btn);
+		}
+	}
+
+	/// <summary>Rebuilds the action bar for the selected unit from ActionProvider.
+	/// Hidden for enemies and units with no non-card actions.</summary>
+	private void RefreshActionRow(Unit unit, bool isEnemy)
+	{
+		if (_actionRow == null)
+			return;
+		foreach (Node child in _actionRow.GetChildren())
+			child.QueueFree();
+		var actions = !isEnemy && unit != null && ActionProvider != null ? ActionProvider(unit) : null;
+		bool show = actions != null && actions.Count > 0;
+		_actionRow.Visible = show;
+		if (!show)
+			return;
+		foreach (var a in actions)
+		{
+			var btn = new Button
+			{
+				Text = a.Armed ? $"▸ {a.Label}" : a.Label,
+				Disabled = !a.Enabled,
+				TooltipText = a.Tooltip,
+			};
+			btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+			UITheme.ApplyButtonStyle(btn, isPrimary: a.Armed);
+			int kind = (int)a.Kind;
+			btn.Pressed += () => EmitSignal(SignalName.UnitActionRequested, kind);
+			_actionRow.AddChild(btn);
 		}
 	}
 
@@ -1627,6 +1674,7 @@ public partial class CombatUI : CanvasLayer
 
 			bool isSelected = unit == selectedUnit;
 			bool isAlive = unit.Stats.IsAlive;
+			bool inTransit = unit.IsAwaitingArrival;   // castle_defense_v1: in the waystone
 
 			var panel = new PanelContainer { Name = $"UnitPanel_{i}" };
 			panel.CustomMinimumSize = new Vector2(UnitButtonWidth, 0);
@@ -1647,15 +1695,21 @@ public partial class CombatUI : CanvasLayer
 
 			// Name
 			var nameLbl = MakeLabel(
-				isAlive ? unit.DisplayName : $"✕ {unit.DisplayName}",
+				!isAlive ? $"✕ {unit.DisplayName}" : inTransit ? $"◌ {unit.DisplayName}" : unit.DisplayName,
 				UITheme.FontSizeSmall,
-				isAlive ? (isSelected ? UITheme.TextPrimary : UITheme.TextSecondary)
-						: UITheme.TextDim);
+				!isAlive || inTransit ? UITheme.TextDim
+					: (isSelected ? UITheme.TextPrimary : UITheme.TextSecondary));
 			nameLbl.HorizontalAlignment = HorizontalAlignment.Center;
 			nameLbl.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 			vbox.AddChild(nameLbl);
 
-			if (isAlive)
+			if (inTransit)
+			{
+				var transitLbl = MakeLabel("in the waystone", UITheme.FontSizeSmall - 1, UITheme.TextDim);
+				transitLbl.HorizontalAlignment = HorizontalAlignment.Center;
+				vbox.AddChild(transitLbl);
+			}
+			else if (isAlive)
 			{
 				// AP pips
 				string pips = "";

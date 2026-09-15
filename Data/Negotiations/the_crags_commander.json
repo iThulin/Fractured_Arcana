@@ -5,6 +5,7 @@
  "archetype": "Commander",
  "factionId": "crag_wardens",
  "openingText": "Thallow lets you see her before she speaks, which in the Crags is a courtesy with a price attached. Two more on the opposite ridge do the same a moment later. 'The pass is two wide and overlooked from three sides,' she says, conversationally. 'I would like us to agree on what that costs before anybody is tired.'",
+ "openingTextLate": "Thallow lets you see her, as before. Only one shadow answers from the opposite ridge this time. 'The pass is two wide, overlooked from three sides, and lately contested from a fourth I don't put on maps,' she says. 'I would like us to be quick.'",
  "startingTension": 5,
  "basePatience": 8,
  "npcResolve": 4,
@@ -14,10 +15,12 @@
  "dialogueStrained": "You are haggling on ground you do not hold. I admire it. I am not moved by it.",
  "dialogueHostile": "My people are cold and bored and you are raising your voice. Reconsider.",
  "dialogueWalkaway": "Then the long way is open to you. It adds two days and passes under four ridges.",
+ "dialogueWalkawayLate": "Then the long way is open to you. It adds two days, and I no longer vouch for what holds the ridges above it.",
  "dialogueAccept": "Agreed. My whistle goes ahead of you to the far end. Nothing will trouble you inside it.",
  "terms": [
   {
    "id": "through_passage",
+   "shortName": "through passage",
    "description": "Safe conduct the length of the Crags, called ahead ridge by ridge.",
    "favorPlayer": true,
    "isHidden": false,
@@ -29,6 +32,7 @@
   },
   {
    "id": "the_watched_ground",
+   "shortName": "sightline survey",
    "description": "Every position with a sightline on the pass, and which are held this season.",
    "favorPlayer": true,
    "isHidden": false,
@@ -39,6 +43,7 @@
   },
   {
    "id": "cache_rights",
+   "shortName": "cache access",
    "description": "Use of the warden caches on the route. Take what you need, replace what you take.",
    "favorPlayer": true,
    "isHidden": false,
@@ -51,6 +56,7 @@
   },
   {
    "id": "the_toll",
+   "shortName": "toll",
    "description": "The toll itself, which she has not lowered for anyone in nine years.",
    "favorPlayer": false,
    "isHidden": false,
@@ -61,7 +67,9 @@
   },
   {
    "id": "she_is_short_handed",
+   "shortName": "ridge bluff",
    "description": "Three of those ridge positions are empty and she is bluffing one of them.",
+   "rumorText": "The ridge lanterns burn in the same pattern every night. Real watches rotate.",
    "favorPlayer": false,
    "isHidden": true,
    "goldDelta": -15,

@@ -36,6 +36,246 @@
 		},
 		"sand": {
 			"$ref": "#/$defs/sand"
+		},
+		"tactics": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Tactical targets checked after generation (HexGridManager.Tactics). Missed targets log a warning, never fail the map.",
+			"properties": {
+				"max_visibility": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Max fraction of player-zone x enemy-zone tile pairs with clear line of sight."
+				},
+				"min_cover": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Min fraction of open, unreserved tiles with cover on at least one side."
+				}
+			}
+		},
+		"siege": {
+			"type": "object",
+			"description": "Siege layout (city_battlemap_compiler_spec). Validated by SiegeSpec.FromDict."
+		},
+		"map_events": {
+			"type": "array",
+			"description": "Per-round map events (CombatManager.MapEvents). Kinds: imbue_patch, spread_element, advance_hazard_ring, spawn_object, collapse_tiles, raise_tiles, lower_tiles, weather_tick, flood, advance_front, crumble_edge, trap. Common keys: round, repeat_every, telegraph, at (recipe coord token), announce. v2 adds id, when (awaken), lever, and the kinds raise_wall, drop_wall, shift, fog, reinforce_from. castle_defense_v2 adds stomp (at, radius, damage, max_height, crater) and the ring form of shift (ring, radius, tiles, damage, max_height).",
+			"items": {
+				"type": "object",
+				"required": [
+					"kind"
+				],
+				"properties": {
+					"kind": {
+						"type": "string",
+						"enum": [
+							"imbue_patch",
+							"spread_element",
+							"advance_hazard_ring",
+							"spawn_object",
+							"collapse_tiles",
+							"raise_tiles",
+							"lower_tiles",
+							"weather_tick",
+							"flood",
+							"advance_front",
+							"crumble_edge",
+							"trap",
+							"raise_wall",
+							"drop_wall",
+							"shift",
+							"fog",
+							"reinforce_from",
+							"stomp"
+						]
+					},
+					"round": {
+						"type": "integer",
+						"minimum": 1
+					},
+					"repeat_every": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"telegraph": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"at": {
+						"$ref": "#/$defs/coord"
+					},
+					"announce": {
+						"type": "string"
+					},
+					"element": {
+						"type": "string"
+					},
+					"radius": {
+						"type": "integer"
+					},
+					"steps": {
+						"type": "integer"
+					},
+					"per_patch": {
+						"type": "integer"
+					},
+					"into": {
+						"type": "string",
+						"enum": [
+							"rubble",
+							"chasm",
+							"water"
+						]
+					},
+					"delta": {
+						"type": "integer"
+					},
+					"weather": {
+						"type": "string",
+						"enum": [
+							"storm",
+							"rain",
+							"snow"
+						]
+					},
+					"level": {
+						"type": "integer"
+					},
+					"rise": {
+						"type": "integer"
+					},
+					"damage": {
+						"type": "integer"
+					},
+					"count": {
+						"type": "integer"
+					},
+					"status": {
+						"type": "string"
+					},
+					"duration": {
+						"type": "integer"
+					},
+					"hidden": {
+						"type": "boolean"
+					},
+					"object": {
+						"type": "string",
+						"description": "spawn_object: the MapObjectCatalog kind to drop."
+					},
+					"id": {
+						"type": "string",
+						"description": "Name, so levers and event_fired conditions can refer to this event."
+					},
+					"when": {
+						"type": "string",
+						"description": "Awaken condition: player_enters:coord:radius, enemy_enters:coord:radius, enemy_count_below:N, player_count_below:N, first_blood, object_destroyed:kind, event_fired:id, round:N. The clock starts (round 1 = same boundary) when it first holds."
+					},
+					"wake": {
+						"type": "string",
+						"description": "Log line when the condition first holds."
+					},
+					"lever": {
+						"type": "object",
+						"additionalProperties": false,
+						"description": "A control object both sides can stand beside at the round boundary.",
+						"properties": {
+							"at": {
+								"$ref": "#/$defs/coord"
+							},
+							"mode": {
+								"type": "string",
+								"enum": [
+									"hold",
+									"delay",
+									"pull"
+								]
+							},
+							"amount": {
+								"type": "integer",
+								"minimum": 1
+							}
+						}
+					},
+					"dir": {
+						"type": "string",
+						"description": "Band direction: 0-5, axis, or flank."
+					},
+					"length": {
+						"type": "integer"
+					},
+					"width": {
+						"type": "integer"
+					},
+					"gaps": {
+						"type": "integer"
+					},
+					"wall": {
+						"type": "string",
+						"description": "raise_wall: obstacle kind or role (high, low, pillar)."
+					},
+					"push": {
+						"type": "string",
+						"description": "shift: direction to push (0-5, axis, flank)."
+					},
+					"tiles": {
+						"type": "integer"
+					},
+					"ring": {
+						"type": "string",
+						"description": "shift: act on the ring at radius around this coord token instead of a band; units are pushed straight away from it."
+					},
+					"max_height": {
+						"type": "integer",
+						"description": "stomp and ring shift: tiles above this height are left alone (a raised deck beside a leg)."
+					},
+					"crater": {
+						"type": "boolean",
+						"description": "stomp: sink the footprint one step (default true)."
+					},
+					"sight": {
+						"type": "integer"
+					},
+					"turns": {
+						"type": "integer"
+					},
+					"units": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"description": "reinforce_from: unit registry ids."
+					},
+					"difficulty": {
+						"type": "number"
+					}
+				}
+			}
+		},
+		"fallback": {
+			"type": "string"
+		},
+		"terrain": {
+			"type": "string"
+		},
+		"obstacles": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Obstacle dressing palette: which Data/Obstacles catalog kind each role resolves to on this map. Ops write \"kind\": \"low\" | \"high\" | \"pillar\" and get these. Missing roles fall back to a default keyed on the dominant base terrain.",
+			"properties": {
+				"low": {
+					"type": "string"
+				},
+				"high": {
+					"type": "string"
+				},
+				"pillar": {
+					"type": "string"
+				}
+			}
 		}
 	},
 	"$defs": {
@@ -67,18 +307,29 @@
 			"maxItems": 4
 		},
 		"coord": {
-			"description": "A named anchor or an explicit [q, r] axial coordinate.",
+			"description": "A named anchor, an axis token, or an explicit [q, r] axial coordinate. axis:N shifts the anchor midpoint N tiles along the player-to-enemy axis (negative = toward the player); flank:N shifts it N tiles perpendicular.",
 			"oneOf": [
 				{
 					"type": "string",
 					"enum": [
 						"center",
+						"midpoint",
 						"random",
 						"high_tile",
 						"low_tile",
 						"player_anchor",
-						"enemy_anchor"
+						"enemy_anchor",
+						"heart",
+						"gangway"
 					]
+				},
+				{
+					"type": "string",
+					"pattern": "^(axis|flank):-?[0-9]+$"
+				},
+				{
+					"type": "string",
+					"pattern": "^-?[0-9]+, ?-?[0-9]+$"
 				},
 				{
 					"type": "array",
@@ -246,7 +497,15 @@
 						"height_basin",
 						"carve_lane",
 						"patch",
-						"element_patch"
+						"element_patch",
+						"leyline",
+						"obstacle_band",
+						"cover_line",
+						"height_ridge",
+						"ring",
+						"filled_radius",
+						"map_object",
+						"building_stamp"
 					]
 				},
 				"phase": {
@@ -300,10 +559,7 @@
 				},
 				"kind": {
 					"type": "string",
-					"enum": [
-						"rock",
-						"crystal"
-					]
+					"description": "A role (low, high, pillar) resolved through the recipe's obstacles palette, or a concrete kind from Data/Obstacles/obstacle_catalog.json (rock, crystal, wall, broken_wall, rock_ledge, fallen_log, ...). For map_object: a MapObjectCatalog kind (cracked_pillar, resonant_crystal, ember_brazier, boulder, ward_stone, powder_cask)."
 				},
 				"terrain": {
 					"$ref": "#/$defs/terrain"
@@ -314,6 +570,32 @@
 				},
 				"strength": {
 					"type": "number"
+				},
+				"obstacle_kind": {
+					"type": "string",
+					"description": "ring / filled_radius payload: paint this obstacle kind. Low cover kinds keep sight clear."
+				},
+				"height": {
+					"$ref": "#/$defs/intOrRange"
+				},
+				"branch": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1
+				},
+				"gaps": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "cover_line: guaranteed open tiles in the band, never at the ends. Default 1."
+				},
+				"fill": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "cover_line: per-tile density on top of the gaps. Default 0.85. Distinct from chance, which gates the whole op."
+				},
+				"building_id": {
+					"type": "string"
 				}
 			}
 		},

@@ -1,0 +1,8 @@
+{
+  "id": "waystone_focus",
+  "name": "Waystone Focus",
+  "cost": 220,
+  "effect": "ambush_delay",
+  "magnitude": -1,
+  "flavor": "The wizard's step through the stone comes a breath sooner."
+}

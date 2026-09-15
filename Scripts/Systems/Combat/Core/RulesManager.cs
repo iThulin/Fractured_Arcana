@@ -171,6 +171,11 @@ public sealed class Resolver
                 item.CasterUnit.BonusSpellDamage += schoolItemBonus;
         }
 
+        // Presentation seam (spell_vfx_pipeline_v1): announce the cast BEFORE its
+        // effects run so the projectile/burst precedes the damage numbers it causes.
+        // No-op headless and inside CombatSim (the R22 preview spawns nothing).
+        CombatPresenter.EmitCast(item);
+
         s.ResolutionDepth++;   // GameState.RequestCardChoice: a resolver pass is live
         try
         {

@@ -12,5 +12,8 @@
   "behaviorKey": "melee_hunt_wounded",
   "colorR": 0.35,
   "colorG": 0.45,
-  "colorB": 0.3
+  "colorB": 0.3,
+  "behaviorTags": [
+    "pinner"
+  ]
 }
