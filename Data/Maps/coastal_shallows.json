@@ -106,7 +106,7 @@
   ],
   "map_events": [
     {
-      "kind": "flood",
+      "kind": "tide_rises",
       "round": 3,
       "repeat_every": 2,
       "telegraph": 1,

@@ -321,7 +321,7 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_kiln",
+				"recipe": "kiln",
 				"weight": 3,
 				"terrains": [
 					"Ruins",
@@ -330,13 +330,13 @@
 				]
 			},
 			{
-				"recipe": "bf_courtyard",
+				"recipe": "courtyard",
 				"weight": 1
 			}
 		],
 		"siege": [
 			{
-				"recipe": "bf_kiln",
+				"recipe": "kiln",
 				"weight": 3
 			}
 		],

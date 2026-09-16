@@ -104,7 +104,7 @@
   ],
   "map_events": [
     {
-      "kind": "collapse_tiles",
+      "kind": "ground_collapses",
       "round": 3,
       "repeat_every": 4,
       "telegraph": 1,

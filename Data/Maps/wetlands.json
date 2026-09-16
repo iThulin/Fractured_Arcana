@@ -125,7 +125,7 @@
   ],
   "map_events": [
     {
-      "kind": "flood",
+      "kind": "tide_rises",
       "round": 3,
       "repeat_every": 3,
       "telegraph": 1,
@@ -135,7 +135,7 @@
       "announce": "The marsh swallows the low ground."
     },
     {
-      "kind": "fog",
+      "kind": "fog_rolls_in",
       "round": 2,
       "repeat_every": 4,
       "telegraph": 1,

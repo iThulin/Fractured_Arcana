@@ -12,16 +12,16 @@ All keyed by round / repeat_every / telegraph like the existing kinds. `at` now 
 
 | Kind | What it does | Keys |
 |---|---|---|
-| `flood` | Every walkable tile at or below the water level becomes water. Occupants are shoved to the nearest dry tile within 3 and take `damage`. Level starts at `level` (default -1) and rises `rise` per firing. Dry-share cap (2026-09-08): the tide never takes more than 60 percent of the map's original dry ground; on a flat map the level is lowered until enough stays dry, and when nothing more can drown the log says so. The telegraph uses the same cap. The water plane is rebuilt after each rise so the shoreline follows. | level, rise, damage |
-| `advance_front` | A hazard shell expanding from `at` by `steps` per firing from `radius`. From a side anchor it reads as a front sweeping the field; from the midpoint it is the cauldron ring in reverse. | at, element, radius, steps |
-| `crumble_edge` | Everything at or beyond the current radius from `at` becomes `into` (chasm by default), evicting occupants inward. Radius starts at the map radius and shrinks `steps` per firing, floored at 2. | at, radius, steps, into |
-| `trap` | Plants `count` neutral glyphs (team 2: they trip for both sides) on open tiles within `radius` of `at`, biased toward the player-enemy lane and never within 2 of a deployment anchor. `damage`, optional `status` / `duration`, `hidden`. | at, radius, count, damage, status, duration, hidden |
+| `tide_rises` | Every walkable tile at or below the water level becomes water. Occupants are shoved to the nearest dry tile within 3 and take `damage`. Level starts at `level` (default -1) and rises `rise` per firing. Dry-share cap (2026-09-08): the tide never takes more than 60 percent of the map's original dry ground; on a flat map the level is lowered until enough stays dry, and when nothing more can drown the log says so. The telegraph uses the same cap. The water plane is rebuilt after each rise so the shoreline follows. | level, rise, damage |
+| `front_advances` | A hazard shell expanding from `at` by `steps` per firing from `radius`. From a side anchor it reads as a front sweeping the field; from the midpoint it is the cauldron ring in reverse. | at, element, radius, steps |
+| `edge_crumbles` | Everything at or beyond the current radius from `at` becomes `into` (chasm by default), evicting occupants inward. Radius starts at the map radius and shrinks `steps` per firing, floored at 2. | at, radius, steps, into |
+| `traps_arm` | Plants `count` neutral glyphs (team 2: they trip for both sides) on open tiles within `radius` of `at`, biased toward the player-enemy lane and never within 2 of a deployment anchor. `damage`, optional `status` / `duration`, `hidden`. | at, radius, count, damage, status, duration, hidden |
 
-Telegraphs now cover every kind that lands on specific ground (`imbue_patch`, `advance_hazard_ring`, `advance_front`, `flood`, `crumble_edge`, the destructive kinds, and storm strikes): the affected tiles light a round ahead and sit in `TelegraphedTiles`, so enemy pathing prices them as hazards. Visible field traps are path hazards for the AI too; hidden ones are a surprise for both sides on purpose.
+Telegraphs now cover every kind that lands on specific ground (`hazard_patch`, `ring_closes`, `front_advances`, `tide_rises`, `edge_crumbles`, the destructive kinds, and storm strikes): the affected tiles light a round ahead and sit in `TelegraphedTiles`, so enemy pathing prices them as hazards. Visible field traps are path hazards for the AI too; hidden ones are a surprise for both sides on purpose.
 
 Round-1 events now fire: `EvaluateMapEvents` runs once at the end of deployment (and on the skip-deploy path), since the round boundary only starts at round 2. That is what lets traps be on the ground before the first move.
 
-Fixed in passing: `spawn_object` read its object kind from `"kind"`, which is the event kind, so it always asked the catalog for "spawn_object". The key is `"object"` now.
+Fixed in passing: `object_drops` read its object kind from `"kind"`, which is the event kind, so it always asked the catalog for "object_drops". The key is `"object"` now.
 
 ## 3. Authored events
 
@@ -29,19 +29,19 @@ Every recipe except `rolling_hills` and the three with existing events now carri
 
 | Recipe | Event |
 |---|---|
-| bf_ford, wetlands, marsh_flats, coastal_shallows, lakeshore | flood (tide) at varying pace |
-| bf_kiln, sunbaked_barrens | advance_front fire from the enemy side |
-| bf_causeway | crumble_edge from the midpoint |
-| bf_amphitheater, bf_courtyard | visible traps in the lanes |
-| bf_warren, overgrown_ruins | hidden traps |
-| bf_grove, verdant_woods | rooting traps (2 damage, Rooted 1) |
-| bf_spine, heathland | storm strikes |
-| bf_terraces, highland_crags | rockfall (collapse_tiles) |
-| volcanic_scar | spread_element fire |
+| ford, wetlands, marsh_flats, coastal_shallows, lakeshore | flood (tide) at varying pace |
+| kiln, sunbaked_barrens | front_advances fire from the enemy side |
+| causeway | edge_crumbles from the midpoint |
+| amphitheater, courtyard | visible traps in the lanes |
+| warren, overgrown_ruins | hidden traps |
+| shattered_grove, verdant_woods | rooting traps (2 damage, Rooted 1) |
+| spine, heathland | storm strikes |
+| terraces, highland_crags | rockfall (ground_collapses) |
+| volcanic_scar | hazard_spreads fire |
 | frozen_basin, frost_steppe | snow |
-| arcane_meadow | advance_hazard_ring arcane |
+| arcane_meadow | ring_closes arcane |
 
-bf_cauldron keeps its fire ring, bf_causeway its collapse, bf_ford its weather.
+cauldron keeps its fire ring, causeway its collapse, ford its weather.
 
 ## 4. Open items
 
@@ -66,13 +66,13 @@ Events gained `id`, `when`, and `lever`. Runtime state (awakened round, lever de
 
 | Kind | What | Keys |
 |---|---|---|
-| `raise_wall` | A band of obstacle (`wall`: kind or role, default high) rises through `at` along `dir` (`0-5`, `axis`, `flank`), `length` long, `width` rows each side, optional middle `gaps`. Occupied tiles are skipped. | at, dir, length, width, wall, gaps |
-| `drop_wall` | Clears every non-building obstacle in the band. | at, dir, length, width |
-| `shift` | Every unit in the band is shoved `tiles` along `push` through the forced-move resolver, front of the shove first. Collisions use momentum or `damage`. | at, dir, length, width, push, tiles, damage |
-| `fog` | Sight capped at `sight` tiles for `turns` rounds. One cap covers bolts, martial shots, the ranger's clear-shot test, and the cast preview, since all read `HasLineOfSight`. Cast-fail text names the first tile past the cap. | sight, turns |
-| `reinforce_from` | Spawns `units` (registry ids) on the nearest open tiles to `at`; the arrival tiles telegraph a round ahead. | at, units, difficulty |
+| `wall_rises` | A band of obstacle (`wall`: kind or role, default high) rises through `at` along `dir` (`0-5`, `axis`, `flank`), `length` long, `width` rows each side, optional middle `gaps`. Occupied tiles are skipped. | at, dir, length, width, wall, gaps |
+| `wall_drops` | Clears every non-building obstacle in the band. | at, dir, length, width |
+| `ground_heaves` | Every unit in the band is shoved `tiles` along `push` through the forced-move resolver, front of the shove first. Collisions use momentum or `damage`. | at, dir, length, width, push, tiles, damage |
+| `fog_rolls_in` | Sight capped at `sight` tiles for `turns` rounds. One cap covers bolts, martial shots, the ranger's clear-shot test, and the cast preview, since all read `HasLineOfSight`. Cast-fail text names the first tile past the cap. | sight, turns |
+| `reinforcements_arrive` | Spawns `units` (registry ids) on the nearest open tiles to `at`; the arrival tiles telegraph a round ahead. | at, units, difficulty |
 
-`shift` and `raise_wall` count as destructive: telegraph is forced to at least 1.
+`ground_heaves` and `wall_rises` count as destructive: telegraph is forced to at least 1.
 
 ### 5c. Breakable obstacles
 
@@ -85,5 +85,5 @@ Ford: the tide has a sluice lever on the flank (hold). Kiln: the fire front slee
 ### 5e. Open items (v2)
 
 1. Not run in-engine. First things to watch: the Courtyard portcullis raising on tiles the ring wall already holds (it skips blocked tiles, so the gap logic may put the gate somewhere odd); the Steppe wind pushing units into the map edge for momentum damage every third round (set `damage` or shorten the band if it is too punishing).
-2. Enemy AI does not path to levers or away from telegraphed `shift` bands beyond the hazard cost.
+2. Enemy AI does not path to levers or away from telegraphed `ground_heaves` bands beyond the hazard cost.
 3. Breakable cover and the tactics report: the report counts cover at generation, not after erosion.

@@ -105,6 +105,67 @@ public partial class HexGridManager : Node3D
     private ShaderMaterial _waterMaterialCache;
     private WaterProfile _waterProfile;
 
+    /// <summary>Tide (map event "tide_rises"): every body's surface is at least this world
+    /// Y. float.MinValue = no tide. Set by <see cref="SetFloodSurface"/>, reset each
+    /// generation in DigWaterBasins. Without it a flood to level L solves to L − lip
+    /// (obstacle and vista tiles at L are still "land"), then floors to bed + 0.05: a
+    /// film the terrain noise pokes through. Observed 2026-09-16 as "blue tiles".</summary>
+    public float FloodSurfaceFloorY = float.MinValue;
+
+    /// <summary>Per-tile surface Y of the LAST plane built, so a rebuild can bake where
+    /// each vertex came from (UV2) and the shader can swell from there (rise_t).</summary>
+    private Dictionary<Vector2I, float> _lastWaterlines = new();
+
+    /// <summary>Highest waterline pushed to the splat's grid_fade_below_y so far this map.</summary>
+    private float _gridFadeBelowY = -1000f;
+
+    /// <summary>Tide: raise the resting waterline so ground at or below <paramref name="level"/>
+    /// is under <paramref name="coverDepth"/> world units of water. Call BEFORE the drowned
+    /// tiles are re-baked (they duplicate the splat template, so the grid-line fade must
+    /// already be in it) and before SpawnWaterPlane. Never lowers an existing tide.</summary>
+    public void SetFloodSurface(int level, float coverDepth)
+    {
+        float y = level * HexTile.HeightStep + coverDepth;
+        FloodSurfaceFloorY = Mathf.Max(FloodSurfaceFloorY, y);
+        if (FloodSurfaceFloorY > _gridFadeBelowY)
+        {
+            _gridFadeBelowY = FloodSurfaceFloorY;
+            GetTerrainMaterialTemplate()?.SetShaderParameter("grid_fade_below_y", _gridFadeBelowY);
+        }
+    }
+
+    /// <summary>The vegetation materials that react to the tide (grass, flowers).
+    /// Whatever exists; a map without flowers just has fewer entries.</summary>
+    private IEnumerable<ShaderMaterial> TideVegetationMaterials()
+    {
+        if (ResolvePainterlyGrassMaterial() is ShaderMaterial g) yield return g;
+        if (FlowerMaterial is ShaderMaterial f) yield return f;
+    }
+
+    /// <summary>Tide swell driver: one value pushes the water's rise_t and the
+    /// vegetation's flood_t together so the grass goes under exactly when the
+    /// front reaches it.</summary>
+    private void SetTideProgress(ShaderMaterial water, float t)
+    {
+        if (water != null && GodotObject.IsInstanceValid(water))
+            water.SetShaderParameter("rise_t", t);
+        foreach (var m in TideVegetationMaterials())
+            m.SetShaderParameter("flood_t", t);
+    }
+
+    /// <summary>Generation-time reset: no tide, vegetation whole. The grass/flower
+    /// materials can be shared resources (inspector exports), so this must run
+    /// every map or the previous map's tide would drown the next map's grass.</summary>
+    private void ResetTideUniforms()
+    {
+        foreach (var m in TideVegetationMaterials())
+        {
+            m.SetShaderParameter("flood_surface_y", -1000f);
+            m.SetShaderParameter("flood_t", 1f);
+            m.SetShaderParameter("flood_reach", 0f);
+        }
+    }
+
     // ── Water personalities (S1.5) ──────────────────────────────────────────
 
     private static readonly Dictionary<string, WaterProfile> WaterProfiles = new()
@@ -158,10 +219,14 @@ public partial class HexGridManager : Node3D
         }
     };
 
-    /// <summary>Profile for maps generated from the enum Theme path (no recipe).</summary>
-    private static string ThemeDefaultWaterProfile(MapTheme theme) => theme switch
+    /// <summary>Profile for maps generated without a recipe, keyed by the overworld
+    /// terrain the fight is in (battlefield_naming_v1 R2).</summary>
+    private static string ThemeDefaultWaterProfile(OverworldHex.TerrainType theme) => theme switch
     {
-        MapTheme.OvergrownRuins => "murky_swamp",
+        OverworldHex.TerrainType.Ruins => "murky_swamp",
+        OverworldHex.TerrainType.Swamp => "murky_swamp",
+        OverworldHex.TerrainType.Marsh => "murky_swamp",
+        OverworldHex.TerrainType.Coast => "grey_coast",
         _ => "clear_lake"
     };
 
@@ -250,7 +315,7 @@ public partial class HexGridManager : Node3D
     /// ApplyTileHeights()/ApplyTileVisuals(); the depth bake samples the
     /// final blended terrain surface under each vertex.
     /// </summary>
-    public void SpawnWaterPlane()
+    public void SpawnWaterPlane(float riseSeconds = 0f)
     {
         ClearWaterPlane();
 
@@ -287,6 +352,55 @@ public partial class HexGridManager : Node3D
         // low (Grassland at Height -1 next to a pond). Learned the hard way.
         Dictionary<Vector2I, float> surfaceYByTile = ComputeBodyWaterlines(waterTiles);
 
+        // Tide swell: where each water tile's surface WAS. Tiles the last plane
+        // covered start at that level; newly drowned ground wells up from just
+        // under its own bed. Skirts take the lowest previous level of the water
+        // they hang off (a skirt over a bank must never start ABOVE the bank).
+        var prevYByTile = new Dictionary<Vector2I, float>();
+        foreach (var tile in waterTiles)
+        {
+            prevYByTile[tile.Axial] = _lastWaterlines.TryGetValue(tile.Axial, out float py)
+                ? py
+                : tile.Height * HexTile.HeightStep - 0.05f;
+        }
+
+        // Where the tide comes FROM, so the swell sweeps in as a front instead of
+        // welling up everywhere at once: the centre of the water that was already
+        // there, or, on a dry map, the drowned tile nearest the board edge (the
+        // water arrives from outside). Reach = how far the front has to travel.
+        Vector2 tideOrigin = Vector2.Zero;
+        float tideReach = 0f;
+        if (riseSeconds > 0f)
+        {
+            if (_lastWaterlines.Count > 0)
+            {
+                foreach (var axial in _lastWaterlines.Keys)
+                {
+                    Vector3 w = AxialToWorld(axial);
+                    tideOrigin += new Vector2(w.X, w.Z);
+                }
+                tideOrigin /= _lastWaterlines.Count;
+            }
+            else
+            {
+                Vector3 bc = (GridBoundsMin + GridBoundsMax) * 0.5f;
+                float best = -1f;
+                foreach (var tile in waterTiles)
+                {
+                    Vector3 w = AxialToWorld(tile.Axial);
+                    float d = new Vector2(w.X - bc.X, w.Z - bc.Z).Length();
+                    if (d > best) { best = d; tideOrigin = new Vector2(w.X, w.Z); }
+                }
+            }
+            foreach (var tile in waterTiles)
+            {
+                Vector3 w = AxialToWorld(tile.Axial);
+                tideReach = Mathf.Max(tideReach, (new Vector2(w.X, w.Z) - tideOrigin).Length());
+            }
+            tideReach += HexRadius * 2f;   // the skirt ring past the last water tile
+        }
+        var skirtPrev = new Dictionary<TileData, float>();
+
         // Shore skirt: with ramped beaches the plane extends one tile under
         // every adjacent land tile. The buried part is depth-hidden; the part
         // where the ramp dips below the surface becomes visible water, so the
@@ -301,10 +415,13 @@ public partial class HexGridManager : Node3D
                 foreach (var dir in HexDirs)
                 {
                     var nbr = GetTileOrVista(tile.Axial + dir);
-                    if (nbr != null &&
-                        nbr.TerrainType != TileTerrainType.Water &&
-                        !skirt.ContainsKey(nbr))
+                    if (nbr == null || nbr.TerrainType == TileTerrainType.Water)
+                        continue;
+                    if (!skirt.ContainsKey(nbr))
                         skirt[nbr] = y;
+                    float pv = prevYByTile[tile.Axial];
+                    if (!skirtPrev.TryGetValue(nbr, out float cur) || pv < cur)
+                        skirtPrev[nbr] = pv;
                 }
             }
         }
@@ -318,9 +435,10 @@ public partial class HexGridManager : Node3D
         st.Begin(Mesh.PrimitiveType.Triangles);
 
         foreach (var tile in waterTiles)
-            AppendWaterHex(st, tile, surfaceYByTile[tile.Axial], isSkirt: false);
+            AppendWaterHex(st, tile, surfaceYByTile[tile.Axial], prevYByTile[tile.Axial], isSkirt: false);
         foreach (var kv in skirt)
-            AppendWaterHex(st, kv.Key, kv.Value, isSkirt: true);
+            AppendWaterHex(st, kv.Key, kv.Value, skirtPrev[kv.Key], isSkirt: true);
+        _lastWaterlines = new Dictionary<Vector2I, float>(surfaceYByTile);
 
         st.Index();
         st.GenerateTangents();
@@ -357,6 +475,30 @@ public partial class HexGridManager : Node3D
 
             if (WaterSunLight != null)
                 waterSm.SetShaderParameter("sun_direction", -WaterSunLight.GlobalTransform.Basis.Z);
+
+            // Tide swell: lerp every vertex from its previous surface (UV2) to the new
+            // one, as a front sweeping from tideOrigin. Generation passes 0 (no swell
+            // on map load); a tide on a dry map (no previous plane) wells up out of
+            // the ground from the board edge inward. The same 0->1 drives the grass
+            // and flowers under the surface (flood_t), so vegetation is swept away
+            // as the water reaches it, not before and not after.
+            waterSm.SetShaderParameter("tide_origin", tideOrigin);
+            waterSm.SetShaderParameter("tide_reach", tideReach);
+            if (riseSeconds > 0f)
+            {
+                foreach (var m in TideVegetationMaterials())
+                {
+                    m.SetShaderParameter("flood_surface_y", FloodSurfaceFloorY);
+                    m.SetShaderParameter("flood_origin", tideOrigin);
+                    m.SetShaderParameter("flood_reach", tideReach);
+                }
+                SetTideProgress(waterSm, 0f);
+                var swell = CreateTween();
+                swell.TweenMethod(Callable.From<float>(t => SetTideProgress(waterSm, t)), 0f, 1f, riseSeconds)
+                     .SetTrans(Tween.TransitionType.Linear);   // the sweep and the crest pace themselves
+            }
+            else
+                waterSm.SetShaderParameter("rise_t", 1f);
         }
     }
 
@@ -406,6 +548,10 @@ public partial class HexGridManager : Node3D
         // Reset the splat grid-line fade each generation so a dry map doesn't
         // inherit the previous map's waterline.
         GetTerrainMaterialTemplate()?.SetShaderParameter("grid_fade_below_y", -1000f);
+        _gridFadeBelowY = -1000f;
+        FloodSurfaceFloorY = float.MinValue;   // no tide on a fresh map
+        _lastWaterlines.Clear();               // nothing to swell from either
+        ResetTideUniforms();
 
         if (!EnableWaterPlane)
             return;
@@ -477,7 +623,10 @@ public partial class HexGridManager : Node3D
         foreach (float y in surfaces.Values)
             maxSurface = Mathf.Max(maxSurface, y);
         if (maxSurface > float.MinValue)
+        {
+            _gridFadeBelowY = maxSurface;
             GetTerrainMaterialTemplate()?.SetShaderParameter("grid_fade_below_y", maxSurface);
+        }
     }
 
     /// <summary>
@@ -606,6 +755,11 @@ public partial class HexGridManager : Node3D
                 : bedMinTop + WaterFillDepth;
             // Safety floor only; DigWaterBasins guarantees room below the lip.
             surfaceY = Mathf.Max(surfaceY, bedMaxTop + 0.05f);
+            // Tide: the flood event's resting level overrides the bank solve, because
+            // after a flood the "banks" at the drowned height are obstacles and vista
+            // tiles, not shoreline. Bodies already above it are unaffected.
+            if (FloodSurfaceFloorY > float.MinValue)
+                surfaceY = Mathf.Max(surfaceY, FloodSurfaceFloorY);
 
             foreach (var t in body)
                 result[t.Axial] = surfaceY;
@@ -621,7 +775,7 @@ public partial class HexGridManager : Node3D
     /// center–corner–corner wedges is split into four sub-triangles, giving
     /// the vertex shader enough resolution for the painterly ripple.
     /// </summary>
-    private void AppendWaterHex(SurfaceTool st, TileData tile, float waterY, bool isSkirt)
+    private void AppendWaterHex(SurfaceTool st, TileData tile, float waterY, float prevY, bool isSkirt)
     {
         Vector3 c = AxialToWorld(tile.Axial);
         c.Y = waterY;
@@ -663,29 +817,31 @@ public partial class HexGridManager : Node3D
             Vector3 mcb = (c + b) * 0.5f;
             Vector3 mab = (a + b) * 0.5f;
 
-            AddWaterTri(st, tile, waterCenters, c, mca, mcb);
-            AddWaterTri(st, tile, waterCenters, mca, a, mab);
-            AddWaterTri(st, tile, waterCenters, mca, mab, mcb);
-            AddWaterTri(st, tile, waterCenters, mcb, mab, b);
+            AddWaterTri(st, tile, waterCenters, prevY, c, mca, mcb);
+            AddWaterTri(st, tile, waterCenters, prevY, mca, a, mab);
+            AddWaterTri(st, tile, waterCenters, prevY, mca, mab, mcb);
+            AddWaterTri(st, tile, waterCenters, prevY, mcb, mab, b);
         }
     }
 
-    private void AddWaterTri(SurfaceTool st, TileData tile, List<Vector2> waterCenters, Vector3 p0, Vector3 p1, Vector3 p2)
+    private void AddWaterTri(SurfaceTool st, TileData tile, List<Vector2> waterCenters, float prevY, Vector3 p0, Vector3 p1, Vector3 p2)
     {
         // GODOT WINDING GOTCHA: front faces are CLOCKWISE seen from the front
         // (opposite of the OpenGL right-hand convention). The corner ring is
         // authored at 60°·i in XZ, so the natural p0→p1→p2 order is what reads
         // clockwise from +Y. Swapping any two vertices makes the whole plane
         // visible only from BELOW: it builds, logs, and renders to the fish.
-        AddWaterVertex(st, tile, waterCenters, p0);
-        AddWaterVertex(st, tile, waterCenters, p1);
-        AddWaterVertex(st, tile, waterCenters, p2);
+        AddWaterVertex(st, tile, waterCenters, prevY, p0);
+        AddWaterVertex(st, tile, waterCenters, prevY, p1);
+        AddWaterVertex(st, tile, waterCenters, prevY, p2);
     }
 
-    private void AddWaterVertex(SurfaceTool st, TileData tile, List<Vector2> waterCenters, Vector3 pos)
+    private void AddWaterVertex(SurfaceTool st, TileData tile, List<Vector2> waterCenters, float prevY, Vector3 pos)
     {
         float shore = BakeShoreDistance(tile, pos);
         float depth = BakeDepth(tile, pos, pos.Y);
+        // Tide swell: the surface this vertex rises FROM, and the depth it had there.
+        float prevDepth = BakeDepth(tile, pos, prevY);
 
         float spill = 0f;
         if (waterCenters != null && waterCenters.Count > 0)
@@ -702,6 +858,7 @@ public partial class HexGridManager : Node3D
         }
 
         st.SetColor(new Color(shore, depth, 0f, spill));
+        st.SetUV2(new Vector2(prevY, prevDepth));
         st.SetNormal(Vector3.Up);
         st.SetUV(new Vector2(pos.X, pos.Z) * 0.1f);
         st.AddVertex(pos);

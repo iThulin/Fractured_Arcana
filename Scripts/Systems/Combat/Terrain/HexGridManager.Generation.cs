@@ -819,7 +819,7 @@ public partial class HexGridManager
     }
 
     /// <summary>Public: clear obstacle flags and make the tile walkable again
-    /// (drop_wall, breakables). Terrain and element are left as they were.</summary>
+    /// (wall_drops, breakables). Terrain and element are left as they were.</summary>
     public void ClearObstacle(TileData tile)
     {
         if (tile == null)

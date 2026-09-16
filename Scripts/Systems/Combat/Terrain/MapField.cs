@@ -15,7 +15,7 @@ using System.Collections.Generic;
 //                 instead of salt-and-pepper randomness.
 // Layer:          System (generation helper)
 // Collaborators:  HexGridManager.Generation (samples this per tile),
-//                 TileData (TileTerrainType), HexGridManager.MapTheme
+//                 TileData (TileTerrainType), OverworldHex.TerrainType (the grid's Theme)
 // Notes:          Pure / deterministic. No GD.Randf calls, so the same seed
 //                 always yields the same field. Safe to construct,
 //                 sample, and discard during a single generation pass.
@@ -91,15 +91,17 @@ public sealed class MapField
     }
 
     /// <summary>
-    /// Theme-aware terrain classification from elevation + moisture. Thresholds are tuned
-    /// per theme so each map reads as its own place: low ground becomes water/lava,
-    /// high ground becomes stone, the wet mid-band becomes forest, etc.
+    /// Terrain classification from elevation + moisture, keyed by the OVERWORLD terrain
+    /// the fight is in (battlefield_naming_v1 R2). Thresholds are tuned per terrain so
+    /// each map reads as its own place: low ground becomes water/lava, high ground
+    /// becomes stone, the wet mid-band becomes forest, etc. Only the no-recipe path
+    /// uses this; every shipped recipe carries its own palette.
     /// </summary>
-    public TileTerrainType ClassifyTerrain(HexGridManager.MapTheme theme, float elevation01, float moisture01)
+    public TileTerrainType ClassifyTerrain(OverworldHex.TerrainType theme, float elevation01, float moisture01)
     {
         switch (theme)
         {
-            case HexGridManager.MapTheme.ArcaneMeadow:
+            case OverworldHex.TerrainType.ArcaneGround:
                 if (elevation01 < 0.18f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.80f)
@@ -108,21 +110,22 @@ public sealed class MapField
                     return TileTerrainType.Forest;
                 return TileTerrainType.Grass;
 
-            case HexGridManager.MapTheme.FrozenBasin:
+            case OverworldHex.TerrainType.Snow:
+            case OverworldHex.TerrainType.Tundra:
                 if (elevation01 < 0.16f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.82f)
                     return TileTerrainType.Stone;
                 return TileTerrainType.Ice;
 
-            case HexGridManager.MapTheme.VolcanicScar:
+            case OverworldHex.TerrainType.Volcanic:
                 if (elevation01 < 0.20f)
                     return TileTerrainType.Lava;
                 if (moisture01 < 0.25f && elevation01 < 0.45f)
                     return TileTerrainType.Lava;
                 return TileTerrainType.Stone;
 
-            case HexGridManager.MapTheme.OvergrownRuins:
+            case OverworldHex.TerrainType.Ruins:
                 if (elevation01 < 0.16f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.82f)
@@ -131,7 +134,7 @@ public sealed class MapField
                     return TileTerrainType.Forest;
                 return TileTerrainType.Grass;
 
-            case HexGridManager.MapTheme.VerdantWoods:
+            case OverworldHex.TerrainType.Forest:
                 if (elevation01 < 0.16f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.82f)
@@ -140,7 +143,8 @@ public sealed class MapField
                     return TileTerrainType.Forest;
                 return TileTerrainType.Grass;
 
-            case HexGridManager.MapTheme.Wetlands:
+            case OverworldHex.TerrainType.Swamp:
+            case OverworldHex.TerrainType.Marsh:
                 if (elevation01 < 0.30f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.80f)
@@ -149,12 +153,13 @@ public sealed class MapField
                     return TileTerrainType.Forest;
                 return TileTerrainType.Grass;
 
-            case HexGridManager.MapTheme.HighlandCrags:
+            case OverworldHex.TerrainType.Mountain:
                 if (elevation01 < 0.22f)
                     return TileTerrainType.Grass;
                 return TileTerrainType.Stone;
 
-            case HexGridManager.MapTheme.RiverValley:
+            case OverworldHex.TerrainType.Lake:
+            case OverworldHex.TerrainType.Water:
                 if (elevation01 < 0.14f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.80f)
@@ -163,7 +168,9 @@ public sealed class MapField
                     return TileTerrainType.Forest;
                 return TileTerrainType.Grass;
 
-            case HexGridManager.MapTheme.Heathland:
+            case OverworldHex.TerrainType.Grassland:
+            case OverworldHex.TerrainType.Road:
+            case OverworldHex.TerrainType.Hills:
                 if (elevation01 < 0.14f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.85f)
@@ -172,7 +179,7 @@ public sealed class MapField
                     return TileTerrainType.Forest;
                 return TileTerrainType.Grass;
 
-            case HexGridManager.MapTheme.CoastalShallows:
+            case OverworldHex.TerrainType.Coast:
                 if (elevation01 < 0.30f)
                     return TileTerrainType.Water;
                 if (elevation01 > 0.85f)
@@ -180,6 +187,13 @@ public sealed class MapField
                 if (moisture01 > 0.55f)
                     return TileTerrainType.Forest;
                 return TileTerrainType.Grass;
+
+            case OverworldHex.TerrainType.Desert:
+                if (moisture01 > 0.72f)
+                    return TileTerrainType.Grass;
+                if (elevation01 > 0.78f)
+                    return TileTerrainType.Stone;
+                return TileTerrainType.Sand;
 
             default:
                 return TileTerrainType.Grass;

@@ -183,6 +183,19 @@ uniform float horizon_melt_max : hint_range(0.0, 1.0) = 0.85;
 /** Board centre in world XZ (set from code). */
 uniform vec2 board_center = vec2(0.0);
 
+// ---- Tide swell (map event "flood") ----
+group_uniforms flood;
+/** 0 = every vertex sits at its PREVIOUS surface (UV2.x, depth UV2.y); 1 = at the newly solved surface. HexGridManager.SpawnWaterPlane(riseSeconds) tweens this 0→1 so the water swells up over drowned ground instead of popping. Static maps leave it at 1. */
+uniform float rise_t : hint_range(0.0, 1.0, 0.01) = 1.0;
+/** World XZ the tide comes FROM (the old shoreline's centre, or the board edge on a dry map). Vertices nearer it rise first, so the swell reads as a wave sweeping in, not a bath filling. */
+uniform vec2 tide_origin = vec2(0.0);
+/** World distance from tide_origin at which the last vertex starts rising. 0 = no sweep, everything rises together. */
+uniform float tide_reach = 0.0;
+/** Share of the rise spent sweeping the front across the reach; the rest is each vertex's own rise. */
+uniform float tide_sweep : hint_range(0.0, 0.95, 0.05) = 0.6;
+/** Height of the crest riding the front, in world units. Fades as the front settles. */
+uniform float tide_crest : hint_range(0.0, 0.5, 0.01) = 0.10;
+
 // ---- Toon lighting ----
 group_uniforms toon;
 /** Number of flat shading steps on the diffuse response. */
@@ -235,9 +248,19 @@ float surf_height(vec2 p, float t)
 void vertex()
 {
     v_shore = COLOR.r;
-    v_depth = COLOR.g;
     v_spill = COLOR.a;
     v_calm = mix(shore_calm_floor, 1.0, smoothstep(0.0, shore_calm_range, v_shore));
+
+    // Tide swell (map event tide_rises): UV2.x is where this vertex's surface WAS.
+    // Each vertex waits for the front (its distance from tide_origin, as a share
+    // of tide_reach, times tide_sweep) and then rises over the remaining share,
+    // with a crest riding the front. At rise_t = 1 all of this is the identity.
+    // Vertices are world-space (the plane's transform is identity).
+    float tide_phase = tide_reach > 0.0 ? clamp(distance(VERTEX.xz, tide_origin) / tide_reach, 0.0, 1.0) : 0.0;
+    float tide_local = smoothstep(0.0, 1.0, clamp((rise_t - tide_phase * tide_sweep) / max(1.0 - tide_sweep, 0.05), 0.0, 1.0));
+    float crest = sin(tide_local * 3.14159265) * tide_crest * (1.0 - rise_t);
+    VERTEX.y = mix(UV2.x, VERTEX.y, tide_local) + crest;
+    v_depth = mix(UV2.y, COLOR.g, tide_local);
 
     vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
     v_world_pos = wp;

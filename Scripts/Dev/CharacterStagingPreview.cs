@@ -57,8 +57,8 @@ public partial class CharacterStagingPreview : Node3D
     /// <summary>Blob radius for the preview board. 2 ≈ 19 tiles, enough terrain context without a full arena.</summary>
     [Export(PropertyHint.Range, "1,4,1")] public int PreviewRadius = 2;
 
-    /// <summary>Starting theme. The panel can change this at runtime.</summary>
-    [Export] public HexGridManager.MapTheme StartTheme = HexGridManager.MapTheme.ArcaneMeadow;
+    /// <summary>Starting overworld terrain (the grid's Theme). The panel can change this at runtime.</summary>
+    [Export] public OverworldHex.TerrainType StartTheme = OverworldHex.TerrainType.ArcaneGround;
 
     /// <summary>School used for the initial body tint. The panel can change this at runtime.</summary>
     [Export] public CardSchool StartSchool = CardSchool.Elementalist;
@@ -151,7 +151,7 @@ public partial class CharacterStagingPreview : Node3D
     }
 
     /// <summary>Sets the theme and regenerates. Keeps the current seed so only the theme accents/atmosphere change, not the underlying layout.</summary>
-    public void SetTheme(HexGridManager.MapTheme theme)
+    public void SetTheme(OverworldHex.TerrainType theme)
     {
         if (Grid == null)
             return;

@@ -93,6 +93,16 @@ uniform float flat_gradient_radius : hint_range(0.02, 1.0) = 0.5;
 /** Source of the radial distance. ON = UV distance from (0.5, 0.5) — works per-bloom in clusters, needs the centre disc UV-mapped centred. OFF = object-space distance from the mesh origin (single flowers only). */
 uniform bool flat_gradient_uv_space = true;
 
+// ---- Tide ----
+group_uniforms tide;
+/** Map event tide_rises: flowers rooted below this world Y are swept away. -1000 = no tide. Set by HexGridManager.SetFloodSurface. */
+uniform float flood_surface_y = -1000.0;
+/** 0 -> 1 over the swell (shared with the water's rise_t). At 1 every drowned flower is gone. */
+uniform float flood_t : hint_range(0.0, 1.0, 0.01) = 1.0;
+/** Where the tide comes from (world XZ) and how far it reaches; flowers nearer the origin go first, matching the water front. */
+uniform vec2 flood_origin = vec2(0.0);
+uniform float flood_reach = 0.0;
+
 // ---- Toon ----
 group_uniforms toon;
 
@@ -168,6 +178,24 @@ void vertex()
 
     float gust = wave * wave_strength + detail * detail_strength + wind_amplitude;
     float sway = gust * wind_bend * stiffness * stiffness;
+
+    // TIDE (map event tide_rises): see painterly_grass.gdshader. Flowers rooted
+    // below the flood surface lean away from the tide and are consumed.
+    float root_y = MODEL_MATRIX[3].y;
+    float drowned = 1.0 - smoothstep(flood_surface_y - 0.20, flood_surface_y + 0.02, root_y);
+    if (drowned > 0.0)
+    {
+        vec2 from_origin = world_pos.xz - flood_origin;
+        float phase = flood_reach > 0.0 ? clamp(length(from_origin) / flood_reach, 0.0, 1.0) : 0.0;
+        float stagger = hash21(floor(world_pos.xz * 3.0)) * 0.12;
+        float gone = drowned * clamp((flood_t - phase * 0.6 - stagger) / 0.25, 0.0, 1.0);
+        vec2 away = flood_reach > 0.0 ? normalize(from_origin + vec2(0.001, 0.0)) : ndir;
+        sway *= 1.0 - gone;
+        VERTEX.x += away.x * gone * stiffness * 0.5;
+        VERTEX.z += away.y * gone * stiffness * 0.5;
+        VERTEX.y *= 1.0 - gone;
+    }
+
     VERTEX.x += ndir.x * sway;
     VERTEX.z += ndir.y * sway;
     VERTEX.y -= abs(sway) * 0.15 * stiffness;

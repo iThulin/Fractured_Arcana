@@ -75,7 +75,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         PlayerDeckSave.UseDebugDeck = false;
         CompanionRoster.DebugPartyOverride = null;
         CompanionLoader.ClearCache();
-        ctx?.GetTree()?.ChangeSceneToFile(CampusScene);
+        SceneTransition.Go(ctx?.GetTree(), CampusScene, "Debug fight over", "Returning to the hub.");
     }
 
     public override void _Ready() => CallDeferred(nameof(BuildUI));
@@ -145,13 +145,15 @@ public partial class CombatDebugLauncher : CanvasLayer
             Convert.ToInt32(PlayerSession.SelectedSchool));
         _tierOpt = AddEnumDropdown(form, "Tier:", Enum.GetValues(typeof(EncounterTier)),
             (int)EncounterTier.Battle);
-        // Show the recipe each overworld terrain resolves to, so "Mountain"
-        // reads as "Mountain → highland_crags" (the debug picker uses overworld
-        // terrain names; the recipe files use their own names, and this bridges them).
+        // battlefield_naming_v1 R5: terrain AND biome. Each overworld terrain reads
+        // as "Hills → The Warren": the terrain the party stands on, then the biome
+        // (recipe display name) its 1:1 table entry resolves to. Real fights roll
+        // the weighted pools, so the biome shown is the default, not a promise.
         TerrainRecipeMap.EnsureLoaded();
-        _mapOpt = AddEnumDropdown(form, "Map / terrain:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
+        MapRecipeRegistry.EnsureLoaded();
+        _mapOpt = AddEnumDropdown(form, "Terrain → biome:", Enum.GetValues(typeof(OverworldHex.TerrainType)),
             (int)OverworldHex.TerrainType.Grassland,
-            v => $"{v} → {TerrainRecipeMap.Resolve((OverworldHex.TerrainType)v)}");
+            v => $"{v} → {BiomeName(TerrainRecipeMap.Resolve((OverworldHex.TerrainType)v))}");
         // Debug stand-in for overworld adjacency: pretends ALL six neighbouring
         // world hexes are this terrain, so the vista ring leans toward it.
         // Same as the map terrain = no bias (pure field continuation).
@@ -161,14 +163,14 @@ public partial class CombatDebugLauncher : CanvasLayer
         var recipeItems = new string[BattlefieldRecipes.Length + 7];
         recipeItems[0] = "(from terrain)";
         for (int ri = 0; ri < BattlefieldRecipes.Length; ri++)
-            recipeItems[ri + 1] = BattlefieldRecipes[ri];
+            recipeItems[ri + 1] = BiomeName(BattlefieldRecipes[ri]);   // display name; index maps back to the id
         recipeItems[BattlefieldRecipes.Length + 1] = CompiledGateLabel;          // city siege: gate attack
         recipeItems[BattlefieldRecipes.Length + 2] = CompiledGateDefenseLabel;   // city siege: hold_zone defense
         recipeItems[BattlefieldRecipes.Length + 3] = CompiledBreachLabel;        // city siege: breach attack
         recipeItems[BattlefieldRecipes.Length + 4] = CompiledDockDefenseLabel;   // city siege: quay defense
         recipeItems[BattlefieldRecipes.Length + 5] = CompiledPortalDefenseLabel; // city siege: rift defense
         recipeItems[BattlefieldRecipes.Length + 6] = CastleDefenseLabel;         // mobile fortress: defend the castle
-        _forceRecipeOpt = AddStringDropdown(form, "Force battlefield:", recipeItems);
+        _forceRecipeOpt = AddStringDropdown(form, "Force biome:", recipeItems);
         // battlefield_variety_spec_v1 §3: force one of the recipe's deployment
         // variants. "(roll)" = weighted roll, as a real fight does. An id the
         // launched recipe lacks falls back to the roll (warning in the log).
@@ -179,10 +181,10 @@ public partial class CombatDebugLauncher : CanvasLayer
         AddSectionLabel(form, "Battlefield test injectors (new mechanics):");
 
         // E4 map events: inject a synthetic scheduled event onto whatever map is
-        // launched (bf_cauldron already ships one; this lets you watch the ring /
+        // launched (cauldron already ships one; this lets you watch the ring /
         // spread / patch on any terrain). Fires round 2, then every 2 rounds.
         _mapEventKindOpt = AddStringDropdown(form, "Map event:",
-            new[] { "(none)", "advance_hazard_ring", "spread_element", "imbue_patch", "collapse_tiles", "raise_tiles", "lower_tiles", "spawn_object", "weather_tick" });
+            new[] { "(none)", "ring_closes", "hazard_spreads", "hazard_patch", "ground_collapses", "ground_rises", "ground_sinks", "object_drops", "weather_turns", "tide_rises", "front_advances", "edge_crumbles" });
         _mapEventElemOpt = AddStringDropdown(form, "  event element:",
             new[] { "fire", "frost", "lightning", "earth", "arcane" });
 
@@ -490,13 +492,20 @@ public partial class CombatDebugLauncher : CanvasLayer
                  $"skipDeploy={_skipDeployChk.ButtonPressed}.");
 
         _instance = null; // scene swap frees us
-        GetTree().ChangeSceneToFile(BattlefieldScene);
+        SceneTransition.Go(GetTree(), BattlefieldScene, "To Arms", "Debug battlefield.");
     }
 
     // ── UI helpers ────────────────────────────────────────────────────────
 
     /// <summary>Dropdown of plain strings (id = index). Used for the debug map-event
     /// kind/element pickers, which don't map to a game enum.</summary>
+    /// <summary>Recipe id → its display name (the biome). Falls back to the id.</summary>
+    private static string BiomeName(string recipeId)
+    {
+        var r = MapRecipeRegistry.Get(recipeId);
+        return string.IsNullOrEmpty(r?.DisplayName) ? recipeId : r.DisplayName;
+    }
+
     private OptionButton AddStringDropdown(VBoxContainer form, string label, string[] items)
     {
         var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };

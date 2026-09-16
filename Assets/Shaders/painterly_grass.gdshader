@@ -214,6 +214,16 @@ uniform float detail_speed : hint_range(0.0, 3.0) = 0.25;
 /** Strength of the fine flutter layer. */
 uniform float detail_strength : hint_range(0.0, 1.0) = 0.25;
 
+// ---- Tide ----
+group_uniforms tide;
+/** Map event tide_rises: blades whose base sits below this world Y are swept away. -1000 = no tide. Set by HexGridManager.SetFloodSurface. */
+uniform float flood_surface_y = -1000.0;
+/** 0 -> 1 over the swell (shared with the water's rise_t). At 1 every drowned blade is gone. */
+uniform float flood_t : hint_range(0.0, 1.0, 0.01) = 1.0;
+/** Where the tide comes from (world XZ) and how far it reaches; blades nearer the origin go first, matching the water front. */
+uniform vec2 flood_origin = vec2(0.0);
+uniform float flood_reach = 0.0;
+
 // ---- Toon lighting ----
 group_uniforms toon;
 
@@ -477,6 +487,26 @@ void vertex()
     // most "this game and no other" idea available, and it is one multiply.
     float sway = gust * wind_bend * stiffness * stiffness
                * (1.0 - clamp(v_imbue.r * snow_stiffen, 0.0, 1.0));
+
+    // TIDE (map event tide_rises): a blade rooted below the flood surface is
+    // swept flat away from the tide's origin as the front passes it, then
+    // consumed (scaled to nothing, same trick as scorch). Blades on ground
+    // that stays dry are untouched. Instance origin = the blade's root.
+    float root_y = MODEL_MATRIX[3].y;
+    float drowned = 1.0 - smoothstep(flood_surface_y - 0.20, flood_surface_y + 0.02, root_y);
+    if (drowned > 0.0)
+    {
+        vec2 from_origin = world_pos.xz - flood_origin;
+        float phase = flood_reach > 0.0 ? clamp(length(from_origin) / flood_reach, 0.0, 1.0) : 0.0;
+        float stagger = hash21(floor(world_pos.xz * 3.0)) * 0.12;
+        float gone = drowned * clamp((flood_t - phase * 0.6 - stagger) / 0.25, 0.0, 1.0);
+        vec2 away = flood_reach > 0.0 ? normalize(from_origin + vec2(0.001, 0.0)) : ndir;
+        sway *= 1.0 - gone;                       // the current, not the wind, owns it now
+        VERTEX.x += away.x * gone * stiffness * 0.6;
+        VERTEX.z += away.y * gone * stiffness * 0.6;
+        VERTEX.y *= 1.0 - gone;
+    }
+
     VERTEX.x += ndir.x * sway;
     VERTEX.z += ndir.y * sway;
     VERTEX.y -= abs(sway) * 0.15 * stiffness;

@@ -1,5 +1,5 @@
 {
-  "id": "bf_ford",
+  "id": "ford",
   "display_name": "The Ford",
   "shape": {
     "type": "blob",
@@ -100,7 +100,7 @@
   ],
   "map_events": [
     {
-      "kind": "weather_tick",
+      "kind": "weather_turns",
       "weather": "rain",
       "round": 3,
       "repeat_every": 2,
@@ -109,7 +109,7 @@
       "announce": "The rain swells the ford."
     },
     {
-      "kind": "flood",
+      "kind": "tide_rises",
       "round": 3,
       "repeat_every": 3,
       "telegraph": 1,

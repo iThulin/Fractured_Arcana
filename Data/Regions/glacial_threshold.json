@@ -306,17 +306,17 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_spine",
+				"recipe": "spine",
 				"weight": 3
 			},
 			{
-				"recipe": "bf_terraces",
+				"recipe": "terraces",
 				"weight": 2
 			}
 		],
 		"siege": [
 			{
-				"recipe": "bf_terraces",
+				"recipe": "terraces",
 				"weight": 2
 			}
 		],

@@ -1,5 +1,5 @@
 {
-  "id": "bf_courtyard",
+  "id": "courtyard",
   "display_name": "The Courtyard",
   "shape": {
     "type": "hexagon",
@@ -99,7 +99,7 @@
   ],
   "map_events": [
     {
-      "kind": "trap",
+      "kind": "traps_arm",
       "round": 1,
       "telegraph": 0,
       "at": "midpoint",
@@ -109,7 +109,7 @@
       "announce": "Caltrops scattered in the courtyard."
     },
     {
-      "kind": "raise_wall",
+      "kind": "wall_rises",
       "id": "portcullis",
       "round": 3,
       "telegraph": 1,
@@ -121,7 +121,7 @@
       "announce": "The portcullis drops across the courtyard."
     },
     {
-      "kind": "drop_wall",
+      "kind": "wall_drops",
       "id": "portcullis_release",
       "when": "event_fired:portcullis",
       "round": 1,

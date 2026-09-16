@@ -34,8 +34,8 @@ public partial class CombatDebugLauncher : CanvasLayer
     private OptionButton _forceRecipeOpt;
     private static readonly string[] BattlefieldRecipes =
     {
-        "bf_causeway", "bf_cauldron", "bf_terraces", "bf_warren", "bf_courtyard",
-        "bf_spine", "bf_ford", "bf_kiln", "bf_grove", "bf_amphitheater",
+        "causeway", "cauldron", "terraces", "warren", "courtyard",
+        "spine", "ford", "kiln", "shattered_grove", "amphitheater",
     };
 
     // battlefield_variety_spec_v1 §3: force a deployment variant by id. The list is

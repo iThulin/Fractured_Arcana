@@ -26,3 +26,4 @@ _to_delete/
 # Blender source files and backups — too large for GitHub
 *.blend
 *.blend1
+*.blend.import

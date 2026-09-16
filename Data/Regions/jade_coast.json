@@ -298,11 +298,11 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_grove",
+				"recipe": "shattered_grove",
 				"weight": 2
 			},
 			{
-				"recipe": "bf_causeway",
+				"recipe": "causeway",
 				"weight": 1,
 				"terrains": [
 					"Coast",
@@ -313,7 +313,7 @@
 		],
 		"siege": [
 			{
-				"recipe": "bf_grove",
+				"recipe": "shattered_grove",
 				"weight": 1
 			}
 		]

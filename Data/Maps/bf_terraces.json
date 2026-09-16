@@ -1,5 +1,5 @@
 {
-  "id": "bf_terraces",
+  "id": "terraces",
   "display_name": "The Terraces",
   "shape": {
     "type": "rectangle",
@@ -124,7 +124,7 @@
   ],
   "map_events": [
     {
-      "kind": "collapse_tiles",
+      "kind": "ground_collapses",
       "round": 4,
       "telegraph": 1,
       "at": "axis:2",

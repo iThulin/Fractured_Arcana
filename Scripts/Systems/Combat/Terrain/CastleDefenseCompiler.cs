@@ -30,7 +30,7 @@ using System.Text.Json.Nodes;
 // Collaborators:  MapRecipe (siege block, backdrop stamps), CombatManager
 //                 .CastleDefense (Heart, stations, wizard arrival, Heart
 //                 pulse), CombatManager.MapEvents (stomp, shift ring,
-//                 imbue_patch), CastleModules (stations)
+//                 hazard_patch), CastleModules (stations)
 // See:            docs/castle_defense_v1.md
 // ============================================================
 
@@ -265,25 +265,25 @@ public static class CastleDefenseCompiler
         {
             new JsonObject
             {
-                ["id"] = "stomp_left", ["kind"] = "stomp", ["round"] = 2, ["repeat_every"] = 4, ["telegraph"] = 1,
+                ["id"] = "stomp_left", ["kind"] = "ground_crushes", ["round"] = 2, ["repeat_every"] = 4, ["telegraph"] = 1,
                 ["at"] = $"{leftFoot.q},{leftFoot.r}", ["radius"] = 1, ["damage"] = 6,
                 ["announce"] = "The castle shifts its weight: a leg comes down on the left flank.",
             },
             new JsonObject
             {
-                ["id"] = "stomp_right", ["kind"] = "stomp", ["round"] = 4, ["repeat_every"] = 4, ["telegraph"] = 1,
+                ["id"] = "stomp_right", ["kind"] = "ground_crushes", ["round"] = 4, ["repeat_every"] = 4, ["telegraph"] = 1,
                 ["at"] = $"{rightFoot.q},{rightFoot.r}", ["radius"] = 1, ["damage"] = 6,
                 ["announce"] = "The castle shifts its weight: a leg comes down on the right flank.",
             },
             new JsonObject
             {
-                ["id"] = "furnace_vent", ["kind"] = "imbue_patch", ["round"] = 3, ["repeat_every"] = 3, ["telegraph"] = 1,
+                ["id"] = "furnace_vent", ["kind"] = "hazard_patch", ["round"] = 3, ["repeat_every"] = 3, ["telegraph"] = 1,
                 ["at"] = $"{gangFoot.q},{gangFoot.r}", ["radius"] = 1, ["element"] = "fire",
                 ["announce"] = "The furnace vents: fire rolls over the gangway foot.",
             },
             new JsonObject
             {
-                ["id"] = "hull_lurch", ["kind"] = "shift", ["round"] = 5, ["repeat_every"] = 5, ["telegraph"] = 1,
+                ["id"] = "hull_lurch", ["kind"] = "ground_heaves", ["round"] = 5, ["repeat_every"] = 5, ["telegraph"] = 1,
                 ["ring"] = "heart", ["radius"] = EdgeRadius + 1, ["tiles"] = 1, ["damage"] = 2,
                 ["announce"] = "The hull lurches: everything pressed against it is thrown back.",
             },

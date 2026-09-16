@@ -306,23 +306,23 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_grove",
+				"recipe": "shattered_grove",
 				"weight": 3
 			},
 			{
-				"recipe": "bf_warren",
+				"recipe": "warren",
 				"weight": 2
 			}
 		],
 		"siege": [
 			{
-				"recipe": "bf_grove",
+				"recipe": "shattered_grove",
 				"weight": 2
 			}
 		],
 		"ambush": [
 			{
-				"recipe": "bf_grove",
+				"recipe": "shattered_grove",
 				"weight": 2
 			}
 		],

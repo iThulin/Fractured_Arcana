@@ -1289,7 +1289,8 @@ public partial class StrategicView : Node2D
         SaveManager.SaveIfDirty();
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
-        GetTree().ChangeSceneToFile(router.CombatScenePath);
+        SceneTransition.Go(GetTree(), router.CombatScenePath, "To Arms",
+            string.IsNullOrEmpty(def.DisplayName) ? "The district is contested." : def.DisplayName);
     }
 
     /// <summary>Pick up a returning district fight (Phase 3 explore). Keyed on the
@@ -4207,7 +4208,8 @@ public partial class StrategicView : Node2D
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
         GD.Print("[Convergence] The Anchorhold opens. The Fracture begins.");
-        GetTree().ChangeSceneToFile(router.CombatScenePath);
+        SceneTransition.Go(GetTree(), router.CombatScenePath, "The Anchorhold Opens",
+            "The Fracture begins.", 1.0f);
     }
 
     /// <summary>The Fracture, placeholder form. Real content (waves, the Anchor ward

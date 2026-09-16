@@ -4675,6 +4675,10 @@ public partial class CombatManager : Node3D
             // fight away from repeating the previous fight's variant.
             grid.ForcedDeploymentId = PlayerSession.DebugDeploymentId ?? "";
             grid.SkinKey = terrain;   // v1.2 §9: region skins are keyed by overworld terrain
+            // battlefield_naming_v1 R2: the grid's Theme IS the overworld terrain the
+            // fight is in. Drives the no-recipe fallbacks and the default water profile.
+            if (Enum.TryParse<OverworldHex.TerrainType>(terrain, ignoreCase: true, out var themeTerrain))
+                grid.Theme = themeTerrain;
             grid.AvoidDeploymentId = PlayerSession.DebugCombat ? "" : BattlefieldRoster.LastDeploymentId;
             // A hold_zone sited on the midpoint must not roll a deployment that
             // seeds the enemy there (they would breach it from round 1).
@@ -4717,7 +4721,7 @@ public partial class CombatManager : Node3D
             bool hasWaves = cur.Waves != null && cur.Waves.Count > 0;
             bool recipeArrives = false;
             foreach (var ev in grid.ActiveMapEvents)
-                if (ev != null && ev.Kind == "reinforce_from") { recipeArrives = true; break; }
+                if (ev != null && ev.Kind == "reinforcements_arrive") { recipeArrives = true; break; }
             if (!hasWaves && !recipeArrives)
             {
                 var addOn = BattlefieldRoster.RollPressure(cur.RegionId, cur.Tier, cur.DifficultyMult,

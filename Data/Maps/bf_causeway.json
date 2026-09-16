@@ -1,5 +1,5 @@
 {
-  "id": "bf_causeway",
+  "id": "causeway",
   "display_name": "The Causeway",
   "shape": {
     "type": "blob",
@@ -116,7 +116,7 @@
   ],
   "map_events": [
     {
-      "kind": "collapse_tiles",
+      "kind": "ground_collapses",
       "round": 5,
       "at": "midpoint",
       "radius": 1,
@@ -125,7 +125,7 @@
       "announce": "The old span gives way."
     },
     {
-      "kind": "crumble_edge",
+      "kind": "edge_crumbles",
       "round": 4,
       "repeat_every": 3,
       "telegraph": 1,

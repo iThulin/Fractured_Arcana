@@ -292,7 +292,7 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_courtyard",
+				"recipe": "courtyard",
 				"weight": 2,
 				"terrains": [
 					"Grassland",
@@ -302,7 +302,7 @@
 		],
 		"siege": [
 			{
-				"recipe": "bf_courtyard",
+				"recipe": "courtyard",
 				"weight": 2
 			}
 		],

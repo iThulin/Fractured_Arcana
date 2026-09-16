@@ -41,7 +41,7 @@ public static class BattlefieldRoster
 
     /// <summary>One pressure add-on template (battlefield_variety_v1.1 §7). Kind
     /// "none" is a weighted blank so authors control frequency in the same list.
-    /// Kind "arrival" becomes a reinforce_from map event whose units are drawn from
+    /// Kind "arrival" becomes a reinforcements_arrive map event whose units are drawn from
     /// the REGION's own encounter pool at `Pool` tier, so the burrow on the Crags
     /// spits out crag units, not generic soldiers.</summary>
     public sealed class PressureEntry
@@ -62,7 +62,7 @@ public static class BattlefieldRoster
         public string LeverMode = "";
         public int LeverAmount = 1;
 
-        // kind "turn" (objective_change, v1.2 §8)
+        // kind "turn" (objective_turns, v1.2 §8)
         public string From = "annihilate";   // "annihilate" | "any" | a kind: the objective the fight must currently have
         public string To = "survive";
         public int Rounds = 0;               // relative
@@ -176,7 +176,7 @@ public static class BattlefieldRoster
     /// and materialises it as a map event, or returns null (a "none" roll, no pool,
     /// or nothing to draw units from). Rules the caller relies on: at most one add-on
     /// per fight; the caller skips fights whose composition authored waves or whose
-    /// recipe already carries a reinforce_from event, so the Warren's burrow and an
+    /// recipe already carries a reinforcements_arrive event, so the Warren's burrow and an
     /// authored wave never stack with a rolled arrival.</summary>
     public static MapEventDef RollPressure(string regionId, EncounterTier tier, float difficultyMult,
                                            string currentObjectiveKind = "annihilate")
@@ -236,7 +236,7 @@ public static class BattlefieldRoster
 
         var ev = new MapEventDef
         {
-            Kind = "reinforce_from",
+            Kind = "reinforcements_arrive",
             Id = string.IsNullOrEmpty(chosen.Id) ? "roster_arrival" : chosen.Id,
             Round = Math.Max(1, chosen.Round),
             RepeatEvery = Math.Max(0, chosen.RepeatEvery),
@@ -255,7 +255,7 @@ public static class BattlefieldRoster
         return ev;
     }
 
-    /// <summary>kind "turn": an objective_change event (v1.2 §8). Applies only when the
+    /// <summary>kind "turn": an objective_turns event (v1.2 §8). Applies only when the
     /// fight's current objective matches the entry's `from` ("any" = always), so a
     /// rolled hold_zone is never silently overwritten by a rolled survive.</summary>
     private static MapEventDef BuildTurn(PressureEntry chosen, string regionId, string tierKey, string currentKind)
@@ -283,7 +283,7 @@ public static class BattlefieldRoster
 
         var ev = new MapEventDef
         {
-            Kind = "objective_change",
+            Kind = "objective_turns",
             Id = string.IsNullOrEmpty(chosen.Id) ? "roster_turn" : chosen.Id,
             Round = Math.Max(1, chosen.Round),
             RepeatEvery = 0,

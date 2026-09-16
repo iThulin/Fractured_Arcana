@@ -109,7 +109,7 @@ gap=2` and `[SpawnPlan]` echoing the same anchors.
 1. **`hold_zone` objective on the gate gap** — home-defense encounter def;
    O-track machinery ships already, this is encounter JSON + context wiring.
 2. **Wall height/battlements** — curtain tiles are flat prisms; add `height`
-   dressing so walls read at combat zoom (raise_tiles or stamp height path).
+   dressing so walls read at combat zoom (ground_rises or stamp height path).
 3. **Breach vector** — rubble gap instead of door; mostly a variant flag in
    the compiler (skip gate, pick perimeter cell, rubble scatter ops).
 4. **Docks / Portal vectors** — docks needs `EntryDockType` wiring; portal =

@@ -32,7 +32,7 @@ script = ExtResource("1_grid")
 GridWidth = 15
 GridHeight = 15
 LayoutType = 3
-Theme = 9
+Theme = 10
 RandomizeLayout = true
 HexTileScene3D = ExtResource("2_3u6ok")
 TerrainSolidFactor = 0.8
@@ -90,7 +90,7 @@ Grid = NodePath("../HexGridManager")
 UnitScene = ExtResource("5_yt0nn")
 Camera = NodePath("../CameraController")
 PreviewRadius = 3
-StartTheme = 8
+StartTheme = 0
 
 [node name="PanelLayer" type="CanvasLayer" parent="." unique_id=334136645]
 

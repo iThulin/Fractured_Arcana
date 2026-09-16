@@ -1,5 +1,5 @@
 {
-  "id": "bf_grove",
+  "id": "shattered_grove",
   "display_name": "The Shattered Grove",
   "shape": {
     "type": "blob",
@@ -114,7 +114,7 @@
   ],
   "map_events": [
     {
-      "kind": "trap",
+      "kind": "traps_arm",
       "round": 1,
       "telegraph": 0,
       "at": "midpoint",

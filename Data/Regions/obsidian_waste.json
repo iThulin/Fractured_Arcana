@@ -336,17 +336,17 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_cauldron",
+				"recipe": "cauldron",
 				"weight": 2
 			},
 			{
-				"recipe": "bf_kiln",
+				"recipe": "kiln",
 				"weight": 2
 			}
 		],
 		"siege": [
 			{
-				"recipe": "bf_cauldron",
+				"recipe": "cauldron",
 				"weight": 2
 			}
 		],

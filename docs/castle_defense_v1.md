@@ -24,11 +24,11 @@ Anchors: the crew musters on the deck beside the gangway; the enemy anchor is th
 
 | Event | Kind | Clock | What |
 |---|---|---|---|
-| `stomp_left`, `stomp_right` | `stomp` (new) | rounds 2 and 4, every 4 | A leg comes down on a field tile beside the flank: 6 damage to everything in radius 1, survivors thrown one tile outward through the resolver, footprint sinks one step. The feet are on the field at distance 5 from the Heart, so the disk never reaches the deck. |
-| `furnace_vent` | `imbue_patch` | round 3, every 3 | Fire on the gangway foot, radius 1. |
-| `hull_lurch` | `shift` with `ring` (new form) | round 5, every 5 | Every unit on the ring at distance 4 from the Heart (the field tiles pressed against the hull, and the gangway ramp) is shoved one tile straight away from the Heart, 2 collision damage. |
+| `stomp_left`, `stomp_right` | `ground_crushes` (new) | rounds 2 and 4, every 4 | A leg comes down on a field tile beside the flank: 6 damage to everything in radius 1, survivors thrown one tile outward through the resolver, footprint sinks one step. The feet are on the field at distance 5 from the Heart, so the disk never reaches the deck. |
+| `furnace_vent` | `hazard_patch` | round 3, every 3 | Fire on the gangway foot, radius 1. |
+| `hull_lurch` | `ground_heaves` with `ring` (new form) | round 5, every 5 | Every unit on the ring at distance 4 from the Heart (the field tiles pressed against the hull, and the gangway ramp) is shoved one tile straight away from the Heart, 2 collision damage. |
 
-`ResolveRecipeCoord` accepts a literal `"q,r"` and, on castle recipes, `heart` and `gangway`, so the compiler can pin events to tiles it computed. Schema updated for all three (`stomp`, `ring`/`max_height`/`crater`, the coord forms).
+`ResolveRecipeCoord` accepts a literal `"q,r"` and, on castle recipes, `heart` and `gangway`, so the compiler can pin events to tiles it computed. Schema updated for all three (`ground_crushes`, `ring`/`max_height`/`crater`, the coord forms).
 
 The recipe is emitted as JSON in the city compiler's shape, registered under `castle_defense_<terrain>_<seed>`, and consumed by the existing siege machinery. `SiegeSpec` carries `heart` and `stations`; `SiegeBackdropStamp` gained `kind`, `height`, `lift`.
 

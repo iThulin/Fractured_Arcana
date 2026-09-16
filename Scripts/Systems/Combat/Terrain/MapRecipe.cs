@@ -419,8 +419,8 @@ public sealed class MapEventDef
     /// <summary>Kinds that make tiles lethal or impassable, subject to the telegraph
     /// law (must warn at least one round ahead; the loader clamps telegraph to >= 1).</summary>
     public static bool IsDestructiveKind(string kind)
-        => kind == "collapse_tiles" || kind == "flood" || kind == "crumble_edge"
-           || kind == "shift" || kind == "raise_wall" || kind == "stomp";
+        => kind == "ground_collapses" || kind == "tide_rises" || kind == "edge_crumbles"
+           || kind == "ground_heaves" || kind == "wall_rises" || kind == "ground_crushes";
 }
 
 /// <summary>One off-map building mass for the siege backdrop.</summary>

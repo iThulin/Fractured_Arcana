@@ -8,46 +8,55 @@ public partial class HexGridManager
 {
     private void ApplyThemeToLayout()
     {
+        // Keyed by the overworld terrain the fight is in (battlefield_naming_v1 R2).
+        // Terrains without a bespoke accent pass take the nearest one.
         switch (Theme)
         {
-            case MapTheme.ArcaneMeadow:
+            case OverworldHex.TerrainType.ArcaneGround:
                 ApplyArcaneMeadowTheme();
                 break;
 
-            case MapTheme.FrozenBasin:
+            case OverworldHex.TerrainType.Snow:
+            case OverworldHex.TerrainType.Tundra:
                 ApplyFrozenBasinTheme();
                 break;
 
-            case MapTheme.VolcanicScar:
+            case OverworldHex.TerrainType.Volcanic:
                 ApplyVolcanicScarTheme();
                 break;
 
-            case MapTheme.OvergrownRuins:
+            case OverworldHex.TerrainType.Ruins:
                 ApplyOvergrownRuinsTheme();
                 break;
 
-            case MapTheme.VerdantWoods:
+            case OverworldHex.TerrainType.Forest:
                 ApplyVerdantWoodsTheme();
                 break;
 
-            case MapTheme.Wetlands:
+            case OverworldHex.TerrainType.Swamp:
+            case OverworldHex.TerrainType.Marsh:
                 ApplyWetlandsTheme();
                 break;
 
-            case MapTheme.HighlandCrags:
+            case OverworldHex.TerrainType.Mountain:
                 ApplyHighlandCragsTheme();
                 break;
 
-            case MapTheme.RiverValley:
+            case OverworldHex.TerrainType.Lake:
+            case OverworldHex.TerrainType.Water:
                 ApplyRiverValleyTheme();
                 break;
 
-            case MapTheme.Heathland:
-                ApplyHeathlandTheme();
+            case OverworldHex.TerrainType.Coast:
+                ApplyCoastalShallowsTheme();
                 break;
 
-            case MapTheme.CoastalShallows:
-                ApplyCoastalShallowsTheme();
+            case OverworldHex.TerrainType.Grassland:
+            case OverworldHex.TerrainType.Road:
+            case OverworldHex.TerrainType.Hills:
+            case OverworldHex.TerrainType.Desert:
+            default:
+                ApplyHeathlandTheme();
                 break;
         }
     }
@@ -62,19 +71,20 @@ public partial class HexGridManager
     {
         switch (Theme)
         {
-            case MapTheme.ArcaneMeadow:
+            case OverworldHex.TerrainType.ArcaneGround:
                 GenerateArcaneMeadowFeature();
                 break;
 
-            case MapTheme.FrozenBasin:
+            case OverworldHex.TerrainType.Snow:
+            case OverworldHex.TerrainType.Tundra:
                 GenerateFrozenBasinFeature();
                 break;
 
-            case MapTheme.VolcanicScar:
+            case OverworldHex.TerrainType.Volcanic:
                 GenerateVolcanicScarFeature();
                 break;
 
-            case MapTheme.OvergrownRuins:
+            case OverworldHex.TerrainType.Ruins:
                 GenerateOvergrownRuinsFeature();
                 break;
         }
@@ -108,7 +118,8 @@ public partial class HexGridManager
 
         switch (Theme)
         {
-            case MapTheme.FrozenBasin:
+            case OverworldHex.TerrainType.Snow:
+            case OverworldHex.TerrainType.Tundra:
                 sunColor = new Color(0.85f, 0.92f, 1.0f);
                 sunEnergy = 1.1f;
                 ambient = new Color(0.70f, 0.80f, 1.0f);
@@ -117,7 +128,7 @@ public partial class HexGridManager
                 fogDensity = 0.02f;
                 break;
 
-            case MapTheme.VolcanicScar:
+            case OverworldHex.TerrainType.Volcanic:
                 sunColor = new Color(1.0f, 0.70f, 0.45f);
                 sunEnergy = 1.0f;
                 ambient = new Color(0.50f, 0.35f, 0.30f);
@@ -126,7 +137,8 @@ public partial class HexGridManager
                 fogDensity = 0.03f;
                 break;
 
-            case MapTheme.OvergrownRuins:
+            case OverworldHex.TerrainType.Ruins:
+            case OverworldHex.TerrainType.Swamp:
                 sunColor = new Color(0.80f, 0.95f, 0.75f);
                 sunEnergy = 0.9f;
                 ambient = new Color(0.50f, 0.60f, 0.45f);
@@ -135,7 +147,7 @@ public partial class HexGridManager
                 fogDensity = 0.015f;
                 break;
 
-            case MapTheme.ArcaneMeadow:
+            case OverworldHex.TerrainType.ArcaneGround:
             default:
                 // Retuned 2026-07-15 for the Forward+ renderer (linear lighting):
                 // ambient carries more of the lift than on Compatibility, whose

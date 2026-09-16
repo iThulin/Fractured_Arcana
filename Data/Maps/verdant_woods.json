@@ -106,7 +106,7 @@
   ],
   "map_events": [
     {
-      "kind": "trap",
+      "kind": "traps_arm",
       "round": 1,
       "telegraph": 0,
       "at": "midpoint",

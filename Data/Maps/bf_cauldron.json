@@ -1,5 +1,5 @@
 {
-  "id": "bf_cauldron",
+  "id": "cauldron",
   "display_name": "The Cauldron",
   "shape": {
     "type": "hexagon",
@@ -102,7 +102,7 @@
   ],
   "map_events": [
     {
-      "kind": "advance_hazard_ring",
+      "kind": "ring_closes",
       "round": 2,
       "repeat_every": 3,
       "telegraph": 1,

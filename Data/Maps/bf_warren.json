@@ -1,5 +1,5 @@
 {
-  "id": "bf_warren",
+  "id": "warren",
   "display_name": "The Warren",
   "shape": {
     "type": "blob",
@@ -128,7 +128,7 @@
   ],
   "map_events": [
     {
-      "kind": "trap",
+      "kind": "traps_arm",
       "round": 1,
       "telegraph": 0,
       "at": "midpoint",
@@ -141,7 +141,7 @@
       "announce": "The warren floor is not what it seems."
     },
     {
-      "kind": "reinforce_from",
+      "kind": "reinforcements_arrive",
       "id": "burrow",
       "when": "enemy_count_below:2",
       "round": 1,

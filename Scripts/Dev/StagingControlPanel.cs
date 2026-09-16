@@ -113,11 +113,11 @@ public partial class StagingControlPanel : Control
         // ── Map section ──────────────────────────────────────────────────
         Section(col, "Map");
 
-        _themePicker = AddDropdown(col, "Theme", () =>
+        _themePicker = AddDropdown(col, "Terrain", () =>
         {
-            Preview?.SetTheme((HexGridManager.MapTheme)_themePicker.Selected);
+            Preview?.SetTheme((OverworldHex.TerrainType)_themePicker.Selected);
         });
-        foreach (var name in Enum.GetNames<HexGridManager.MapTheme>())
+        foreach (var name in Enum.GetNames<OverworldHex.TerrainType>())
             _themePicker.AddItem(name);
 
         var seedRow = new HBoxContainer();

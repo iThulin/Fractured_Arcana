@@ -58,7 +58,7 @@ public partial class EncounterRouter : Node
     public Vector2I SavedCombatHexCoord;
 
     /// <summary>Weather over the combat tile at launch (Mobile Fortress W3).
-    /// The battlefield injects a matching weather_tick hazard from this. Set by
+    /// The battlefield injects a matching weather_turns hazard from this. Set by
     /// ExpeditionManager.CommitCombat; cleared on combat finish so a later
     /// non-overworld fight (debug, city gate) never inherits stale weather.</summary>
     public WeatherType SavedWeather = WeatherType.Clear;
@@ -150,19 +150,21 @@ public partial class EncounterRouter : Node
                 SplinterReward *= 2;
                 GD.Print($"EncounterRouter: Adept stipend. No draft, splinters doubled to {SplinterReward}.");
                 GetTree().CreateTimer(2.0f).Timeout += () =>
-                    GetTree().ChangeSceneToFile(ReturnScenePath);
+                    SceneTransition.Go(GetTree(), ReturnScenePath, "Victory",
+                        $"{GoldReward} gold · {SplinterReward} Arcane Splinters — the Academy's stipend.");
             }
             else
             {
                 // Show card reward screen. It routes to ReturnScenePath when done.
-                GetTree().ChangeSceneToFile("res://Scenes/UI/CardRewardScreen.tscn");
+                SceneTransition.Go(GetTree(), "res://Scenes/UI/CardRewardScreen.tscn", "Victory",
+                    $"{GoldReward} gold · {SplinterReward} Arcane Splinters. The field yields a card.");
             }
         }
         else
         {
             // Loss: skip reward, return to the launch host after brief delay
             GetTree().CreateTimer(2.0f).Timeout += () =>
-                GetTree().ChangeSceneToFile(ReturnScenePath);
+                SceneTransition.Go(GetTree(), ReturnScenePath, "Defeat", "The castle withdraws.");
         }
     }
 

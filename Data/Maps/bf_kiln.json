@@ -1,5 +1,5 @@
 {
-  "id": "bf_kiln",
+  "id": "kiln",
   "display_name": "The Kiln",
   "shape": {
     "type": "rectangle",
@@ -101,7 +101,7 @@
   ],
   "map_events": [
     {
-      "kind": "advance_front",
+      "kind": "front_advances",
       "round": 1,
       "repeat_every": 2,
       "telegraph": 1,

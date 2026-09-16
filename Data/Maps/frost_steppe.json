@@ -111,7 +111,7 @@
   ],
   "map_events": [
     {
-      "kind": "weather_tick",
+      "kind": "weather_turns",
       "round": 3,
       "repeat_every": 3,
       "telegraph": 1,
@@ -120,7 +120,7 @@
       "announce": "Ice creeps over the steppe."
     },
     {
-      "kind": "shift",
+      "kind": "ground_heaves",
       "round": 3,
       "repeat_every": 3,
       "telegraph": 1,

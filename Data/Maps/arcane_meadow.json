@@ -134,7 +134,7 @@
   ],
   "map_events": [
     {
-      "kind": "advance_hazard_ring",
+      "kind": "ring_closes",
       "round": 3,
       "repeat_every": 3,
       "telegraph": 1,

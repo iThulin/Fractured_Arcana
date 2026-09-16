@@ -215,7 +215,7 @@ public partial class CombatManager
     /// and instantly discarded. That is a deviation from the spec's literal ordering,
     /// made because spawning bodies onto a board that is already won reads as
     /// a bug to the player and costs a frame of unit setup for nothing.</para></summary>
-    /// <summary>battlefield_variety v1.2 §8: the field turns. An `objective_change`
+    /// <summary>battlefield_variety v1.2 §8: the field turns. An `objective_turns`
     /// map event swaps the active objective at a round boundary. Fires from
     /// EvaluateMapEvents, which runs BEFORE EvaluateObjectiveRoundBoundary, so the new
     /// objective is judged from this very boundary. Keys on the event: `to` (kind:
@@ -231,12 +231,12 @@ public partial class CombatManager
         string to = ev.GetStr("to", "").Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(to))
         {
-            GD.PrintErr("[Objective] objective_change with no 'to' kind. Ignored.");
+            GD.PrintErr("[Objective] objective_turns with no 'to' kind. Ignored.");
             return false;
         }
         if (to == CombatObjectiveDef.KindProtect)
         {
-            GD.PrintErr("[Objective] objective_change to 'protect' is not supported mid-fight (no ward spawn). Ignored.");
+            GD.PrintErr("[Objective] objective_turns to 'protect' is not supported mid-fight (no ward spawn). Ignored.");
             return false;
         }
 
@@ -253,7 +253,7 @@ public partial class CombatManager
                 ZoneRadius = ev.GetInt("zoneRadius", 2),
                 Description = ev.GetStr("description", ""),
             };
-            next = EncounterPoolLoader.BuildObjective(data, $"objective_change:{ev.Id}");
+            next = EncounterPoolLoader.BuildObjective(data, $"objective_turns:{ev.Id}");
             if (next == null)
                 return false;   // BuildObjective already logged why
             // Rounds on the def are ABSOLUTE (victory when roundNumber > Rounds).

@@ -8,7 +8,7 @@ using System.Linq;
 //
 // Purpose:        Battlefield E4, scheduled map events. Hazards that
 //                 spread, close, or scar the board over the course of a
-//                 fight (advance_hazard_ring, spread_element, imbue_patch).
+//                 fight (ring_closes, hazard_spreads, hazard_patch).
 // Ordering:       Resolved at the round boundary BEFORE objectives and
 //                 wave spawns (called from AdvanceRound, ahead of
 //                 EvaluateObjectiveRoundBoundary), so waves arrive onto
@@ -16,7 +16,7 @@ using System.Linq;
 // Telegraph:      Non-destructive kinds this pass, announced one
 //                 telegraph-window ahead via banner/log. A visual
 //                 tile-highlight telegraph and the destructive
-//                 collapse_tiles kind are follow-ups.
+//                 ground_collapses kind are follow-ups.
 // Collaborators:  HexGridManager (MapEvent* ops + ActiveMapEvents),
 //                 MapRecipe/MapEventDef (schema), CombatManager (grid,
 //                 roundNumber, combatUI).
@@ -295,7 +295,7 @@ public partial class CombatManager : Node3D
         return ev.RepeatEvery > 0 && round > start ? (round - start) / ev.RepeatEvery : 0;
     }
 
-    /// <summary>advance_hazard_ring closes inward: each firing tightens the ring by
+    /// <summary>ring_closes closes inward: each firing tightens the ring by
     /// <c>steps</c> from its <c>radius</c>, floored at 1.</summary>
     private int AdvanceRingRadius(MapEventDef ev) => AdvanceRingRadiusAt(ev, roundNumber);
 
@@ -307,80 +307,80 @@ public partial class CombatManager : Node3D
         string what;
         switch (ev.Kind)
         {
-            case "imbue_patch":
+            case "hazard_patch":
                 count = grid.MapEventImbuePatch(MapEventCenter(ev), radius, el);
                 what = $"{el} scars {count} tile(s)";
                 break;
-            case "spread_element":
+            case "hazard_spreads":
                 count = grid.MapEventSpreadElement(el, ev.GetInt("per_patch", 1));
                 what = $"{el} spreads across {count} more tile(s)";
                 break;
-            case "advance_hazard_ring":
+            case "ring_closes":
                 int rr = AdvanceRingRadius(ev);
                 count = grid.MapEventImbueRing(MapEventCenter(ev), rr, el);
                 what = $"the {el} ring closes to {rr} ({count} tile(s))";
                 break;
-            case "spawn_object":
+            case "object_drops":
                 {
                     // "object", not "kind": "kind" is the event kind itself, so the old
-                    // read always came back "spawn_object" and never matched the catalog.
+                    // read always came back "object_drops" and never matched the catalog.
                     string okind = ev.GetStr("object", "boulder");
                     var ot = grid.GetTile(MapEventCenter(ev));
                     count = SpawnMapObject(okind, ot) != null ? 1 : 0;
                     what = count > 0 ? $"a {okind} drops onto the field" : $"a {okind} finds no room";
                 }
                 break;
-            case "collapse_tiles":
+            case "ground_collapses":
                 count = CollapseTiles(MapEventCenter(ev), radius, ev.GetStr("into", "rubble"));
                 what = $"the ground gives way ({count} tile(s))";
                 break;
-            case "raise_tiles":
+            case "ground_rises":
                 count = ChangeTileHeights(MapEventCenter(ev), radius, System.Math.Max(1, ev.GetInt("delta", 1)));
                 what = $"the ground rises ({count} tile(s))";
                 break;
-            case "lower_tiles":
+            case "ground_sinks":
                 count = ChangeTileHeights(MapEventCenter(ev), radius, -System.Math.Max(1, ev.GetInt("delta", 1)));
                 what = $"the ground sinks ({count} tile(s))";
                 break;
             // ── Pressure clocks (map_pressure_v1) ───────────────────────────
-            case "flood":
+            case "tide_rises":
                 count = FloodTo(FloodLevel(ev, roundNumber), ev.GetInt("damage", 2));
                 what = $"the water rises ({count} tile(s) drowned)";
                 break;
-            case "advance_front":
+            case "front_advances":
                 {
                     int r = FrontRadius(ev, roundNumber);
                     count = grid.MapEventImbueRing(MapEventCenter(ev), r, el);
                     what = $"the {el} front sweeps on ({count} tile(s))";
                 }
                 break;
-            case "crumble_edge":
+            case "edge_crumbles":
                 count = CrumbleBeyond(MapEventCenter(ev), CrumbleRadius(ev, roundNumber), ev.GetStr("into", "chasm"));
                 what = $"the edge falls away ({count} tile(s))";
                 break;
-            case "trap":
+            case "traps_arm":
                 count = PlantTraps(ev);
                 what = count > 0 ? $"{count} trap(s) lie in the lanes" : "no ground for traps";
                 break;
 
             // ── map_pressure_v2 ─────────────────────────────────────────────
-            case "raise_wall":
+            case "wall_rises":
                 count = RaiseWall(ev);
                 what = $"a wall rises ({count} tile(s))";
                 break;
-            case "drop_wall":
+            case "wall_drops":
                 count = DropWall(ev);
                 what = $"the wall comes down ({count} tile(s))";
                 break;
-            case "shift":
+            case "ground_heaves":
                 count = ev.Has("ring") ? ShiftRing(ev) : ShiftBand(ev);
                 what = $"the ground heaves ({count} unit(s) moved)";
                 break;
-            case "stomp":
+            case "ground_crushes":
                 count = Stomp(ev);
                 what = $"the ground is crushed ({count} unit(s) struck)";
                 break;
-            case "fog":
+            case "fog_rolls_in":
                 {
                     int cap = Math.Max(1, ev.GetInt("sight", 2));
                     int turns = Math.Max(1, ev.GetInt("turns", 1));
@@ -390,18 +390,18 @@ public partial class CombatManager : Node3D
                     what = $"sight closes to {cap} tile(s) for {turns} round(s)";
                 }
                 break;
-            case "reinforce_from":
+            case "reinforcements_arrive":
                 count = ReinforceFrom(ev);
                 what = count > 0 ? $"{count} enemies arrive" : "no room for arrivals";
                 break;
-            case "objective_change":
+            case "objective_turns":
                 // battlefield_variety v1.2 §8: the field turns. Not destructive, but
                 // the loader/roster still give it telegraph >= 1 so the intel rows
                 // warn a round ahead ("telegraphs are promises").
                 count = ChangeObjectiveMidFight(ev) ? 1 : 0;
                 what = count > 0 ? "the objective changes" : "the objective could not change";
                 break;
-            case "weather_tick":
+            case "weather_turns":
                 {
                     string w = ev.GetStr("weather", "storm");
                     if (w == "storm") { count = StormStrike(); what = $"lightning strikes ({count})"; }
@@ -437,10 +437,10 @@ public partial class CombatManager : Node3D
         var center = MapEventCenter(ev);
         switch (ev.Kind)
         {
-            case "collapse_tiles":
-            case "raise_tiles":
-            case "lower_tiles":
-            case "imbue_patch":
+            case "ground_collapses":
+            case "ground_rises":
+            case "ground_sinks":
+            case "hazard_patch":
             {
                 int radius = ev.GetInt("radius", 1);
                 foreach (var t in grid.Tiles.Values)
@@ -448,7 +448,7 @@ public partial class CombatManager : Node3D
                         list.Add(t);
                 break;
             }
-            case "advance_hazard_ring":
+            case "ring_closes":
             {
                 int rr = AdvanceRingRadiusAt(ev, fireRound);
                 foreach (var t in grid.Tiles.Values)
@@ -456,7 +456,7 @@ public partial class CombatManager : Node3D
                         list.Add(t);
                 break;
             }
-            case "advance_front":
+            case "front_advances":
             {
                 int r = FrontRadius(ev, fireRound);
                 foreach (var t in grid.Tiles.Values)
@@ -464,13 +464,13 @@ public partial class CombatManager : Node3D
                         list.Add(t);
                 break;
             }
-            case "flood":
+            case "tide_rises":
             {
                 int level = FloodLevel(ev, fireRound);
                 list.AddRange(FloodTilesAt(level));
                 break;
             }
-            case "crumble_edge":
+            case "edge_crumbles":
             {
                 int r = CrumbleRadius(ev, fireRound);
                 foreach (var t in grid.Tiles.Values)
@@ -478,18 +478,18 @@ public partial class CombatManager : Node3D
                         list.Add(t);
                 break;
             }
-            case "raise_wall":
-            case "drop_wall":
-            case "shift":
+            case "wall_rises":
+            case "wall_drops":
+            case "ground_heaves":
                 list.AddRange(ev.Has("ring") ? RingTiles(ev) : BandTiles(ev));
                 break;
-            case "stomp":
+            case "ground_crushes":
                 list.AddRange(StompTiles(ev));
                 break;
-            case "reinforce_from":
+            case "reinforcements_arrive":
                 list.AddRange(ArrivalTilesNear(MapEventCenter(ev), CountUnits(ev)));
                 break;
-            case "weather_tick":
+            case "weather_turns":
                 if (ev.GetStr("weather", "storm") == "storm")
                 {
                     var t = StormTargetForRound(fireRound);
@@ -773,13 +773,13 @@ public partial class CombatManager : Node3D
     private int FloodLevel(MapEventDef ev, int round)
         => ev.GetInt("level", -1) + (FiringIndex(ev, round) + 1) * Math.Max(1, ev.GetInt("rise", 1));
 
-    /// <summary>advance_front: a hazard shell expanding from `at` (default enemy_anchor)
+    /// <summary>front_advances: a hazard shell expanding from `at` (default enemy_anchor)
     /// by `steps` per firing from `radius`. Read from a side anchor it is a front
     /// sweeping across the field; from the midpoint it is the cauldron ring in reverse.</summary>
     private int FrontRadius(MapEventDef ev, int round)
         => ev.GetInt("radius", 1) + FiringIndex(ev, round) * Math.Max(1, ev.GetInt("steps", 1));
 
-    /// <summary>crumble_edge: everything at or beyond this distance from `at` falls
+    /// <summary>edge_crumbles: everything at or beyond this distance from `at` falls
     /// away. Starts at `radius` (default: the map's radius) and shrinks by `steps`.</summary>
     private int CrumbleRadius(MapEventDef ev, int round)
         => Math.Max(2, ev.GetInt("radius", grid.MapRadius) - FiringIndex(ev, round) * Math.Max(1, ev.GetInt("steps", 1)));
@@ -794,6 +794,17 @@ public partial class CombatManager : Node3D
     /// 2026-09-08). The tide is pressure, not a wipe.</summary>
     private const float FloodMinDryShare = 0.40f;
     private int _floodDryBaseline = -1;
+
+    /// <summary>Water over drowned ground, world units. HeightStep (0.6) minus the grass
+    /// noise amplitude (0.18) minus margin: drowned tiles sit under real water, dry tiles
+    /// one step up keep their tops clear, and the surface just reaches their deepest
+    /// noise dips (the at-grade marsh look). Raise toward 0.5 for a deeper tide.</summary>
+    private const float FloodCoverDepth = 0.40f;
+
+    /// <summary>How long the tide takes to sweep in and settle. The front crosses the
+    /// board in the first ~60% (see painterly_water tide_sweep); 1.6 s read as a
+    /// random welling-up (playtest 2026-09-16), 5 s reads as a wave coming in.</summary>
+    private const float FloodRiseSeconds = 5.0f;
 
     /// <summary>The tiles a flood to <paramref name="level"/> would take, after the
     /// dry-share cap: shared by the telegraph and the firing so the warning is honest.</summary>
@@ -864,6 +875,10 @@ public partial class CombatManager : Node3D
                 ? $"⚠ The water can rise only so far: it holds at the low ground."
                 : "⚠ The water can rise no further.");
 
+        // Raise the resting waterline FIRST: ConvertTile re-bakes each drowned tile's
+        // splat copy, and the grid-line fade has to be in the template by then.
+        if (affected.Count > 0)
+            grid.SetFloodSurface(effective, FloodCoverDepth);
         foreach (var t in affected)
         {
             if (t.Occupant != null && t.Occupant.Stats.IsAlive)
@@ -871,7 +886,7 @@ public partial class CombatManager : Node3D
             ConvertTile(t, "water");
         }
         if (affected.Count > 0)
-            grid.SpawnWaterPlane();   // the surface follows the new shoreline
+            grid.SpawnWaterPlane(FloodRiseSeconds);   // the surface swells up over the drowned ground
         return affected.Count;
     }
 
@@ -992,7 +1007,7 @@ public partial class CombatManager : Node3D
         grid.TelegraphedTiles.Clear();
     }
 
-    /// <summary>collapse_tiles: convert every tile within radius, evicting occupants
+    /// <summary>ground_collapses: convert every tile within radius, evicting occupants
     /// (a forced 1-tile shove, with slides/fire/glyphs applying, then 3 damage). Returns the
     /// number of tiles converted.</summary>
     private int CollapseTiles(Vector2I center, int radius, string into)
@@ -1031,10 +1046,13 @@ public partial class CombatManager : Node3D
                 t.ObstacleKind = "rubble";
                 break;
         }
-        grid.GetTileView(t.Axial)?.SetTerrainScar(into);
+        // Water shows itself: the plane rises over the tile (tide swell), so the blue
+        // emission tint would only fight it. Chasm and rubble keep their scars.
+        if (into != "water")
+            grid.GetTileView(t.Axial)?.SetTerrainScar(into);
     }
 
-    /// <summary>raise_tiles / lower_tiles: shift the height of every tile within radius by
+    /// <summary>ground_rises / ground_sinks: shift the height of every tile within radius by
     /// delta and re-seat its mesh. Cliffs and LoS recompute live from Height, so no extra
     /// pass is needed.</summary>
     private int ChangeTileHeights(Vector2I center, int radius, int delta)

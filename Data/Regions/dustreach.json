@@ -320,7 +320,7 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_kiln",
+				"recipe": "kiln",
 				"weight": 2,
 				"terrains": [
 					"Desert",
@@ -334,7 +334,7 @@
 		],
 		"ambush": [
 			{
-				"recipe": "bf_terraces",
+				"recipe": "terraces",
 				"weight": 1
 			}
 		],

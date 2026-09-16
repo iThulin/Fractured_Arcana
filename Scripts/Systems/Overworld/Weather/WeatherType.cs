@@ -50,9 +50,9 @@ public sealed class WeatherDef
     public int FuelPerTile;      // W2: extra fuel burned entering a tile under this front
     public int HullPerTile;      // W2: Hull lost entering a tile under this front
     public int ScryDelta;        // W2: added to reveal/scry radius (negative shrinks)
-    /// <summary>W3: the battlefield weather_tick param this front injects into a
+    /// <summary>W3: the battlefield weather_turns param this front injects into a
     /// fight ("storm" = lightning, "snow" = ice, "rain" = rising water), or ""
-    /// for no combat hazard. Reuses the existing weather_tick map-event kind.</summary>
+    /// for no combat hazard. Reuses the existing weather_turns map-event kind.</summary>
     public string CombatHazard = "";
     public string Glyph = "";    // HUD readout marker
     public string Particle = ""; // W4: VFX style key

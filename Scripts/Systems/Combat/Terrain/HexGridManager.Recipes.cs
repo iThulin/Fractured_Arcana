@@ -109,7 +109,7 @@ public partial class HexGridManager : Node3D
     }
 
     /// <summary>Mobile Fortress W3: when the sortie deployed into a fight under
-    /// weather, the battlefield inherits a matching recurring weather_tick hazard
+    /// weather, the battlefield inherits a matching recurring weather_turns hazard
     /// (storm=lightning, snow=ice, rain=rising water). Reads the weather the
     /// overworld stashed on the router; null when the fight had no weather (or is
     /// a non-overworld combat, which clears SavedWeather on finish). Fires round 2,
@@ -127,7 +127,7 @@ public partial class HexGridManager : Node3D
         raw["weather"] = param;
         raw["per_patch"] = param == "snow" ? 2 : 1;
         raw["announce"] = $"the {WeatherCatalog.Name(router.SavedWeather).ToLower()} reaches the field";
-        return new MapEventDef { Kind = "weather_tick", Round = 2, Telegraph = 1, RepeatEvery = 3, Raw = raw };
+        return new MapEventDef { Kind = "weather_turns", Round = 2, Telegraph = 1, RepeatEvery = 3, Raw = raw };
     }
 
     /// <summary>CombatDebugLauncher hook: when PlayerSession.DebugMapEventKind is set,
@@ -141,7 +141,7 @@ public partial class HexGridManager : Node3D
         var raw = new Godot.Collections.Dictionary();
         raw["element"] = PlayerSession.DebugMapEventElement ?? "fire";
         raw["at"] = "midpoint";
-        raw["radius"] = kind.EndsWith("_tiles") ? 1 : 4;   // collapse/raise/lower stay small
+        raw["radius"] = kind.StartsWith("ground_") ? 1 : 4;   // ground_collapses/rises/sinks stay small
         raw["into"] = "rubble";                             // debug collapse -> difficult terrain, not water
         raw["steps"] = 1;
         raw["per_patch"] = 1;
@@ -156,7 +156,7 @@ public partial class HexGridManager : Node3D
     private static bool EventWritable(TileData t) =>
         t != null && t.IsWalkable && !t.IsBlocked && t.TerrainType != TileTerrainType.Water;
 
-    /// <summary>imbue_patch: write `element` onto every writable tile within `radius` of `center`.</summary>
+    /// <summary>hazard_patch: write `element` onto every writable tile within `radius` of `center`.</summary>
     public int MapEventImbuePatch(Vector2I center, int radius, TileElementType element)
     {
         int n = 0;
@@ -170,7 +170,7 @@ public partial class HexGridManager : Node3D
         return n;
     }
 
-    /// <summary>advance_hazard_ring: imbue the hex ring at exactly `ringRadius` from `center`.</summary>
+    /// <summary>ring_closes: imbue the hex ring at exactly `ringRadius` from `center`.</summary>
     public int MapEventImbueRing(Vector2I center, int ringRadius, TileElementType element)
     {
         int n = 0;
@@ -184,7 +184,7 @@ public partial class HexGridManager : Node3D
         return n;
     }
 
-    /// <summary>spread_element: each existing `element` tile spreads to up to `perPatch`
+    /// <summary>hazard_spreads: each existing `element` tile spreads to up to `perPatch`
     /// adjacent writable non-element tiles. Deterministic (lowest axial first), with no
     /// boundary RNG, so replays and saves stay honest. Targets are collected before any
     /// write so a tile imbued this tick can't seed further spread until next tick.</summary>
@@ -500,7 +500,7 @@ public partial class HexGridManager : Node3D
     /// hex steps). These follow the rolled deployment axis, so a ridge authored along
     /// the axis stays along it when the fight enters from the north. Literal ints
     /// stay absolute. Before this spec a string dir fell through to a RANDOM
-    /// direction (bf_courtyard and frost_steppe were already authoring "flank"/"axis").</summary>
+    /// direction (courtyard and frost_steppe were already authoring "flank"/"axis").</summary>
     private bool TryRelativeDir(string token, out int index)
     {
         index = 0;

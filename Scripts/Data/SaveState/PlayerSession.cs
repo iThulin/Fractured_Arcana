@@ -119,8 +119,8 @@ public static class PlayerSession
 
     // ── Battlefield debug injectors (set by CombatDebugLauncher) ─────────
     /// <summary>When non-empty, HexGridManager.ActiveMapEvents appends a synthetic
-    /// MapEventDef of this kind (imbue_patch / spread_element / advance_hazard_ring)
-    /// so E4 map events can be exercised on ANY launched map, not just bf_cauldron.
+    /// MapEventDef of this kind (hazard_patch / hazard_spreads / ring_closes)
+    /// so E4 map events can be exercised on ANY launched map, not just cauldron.
     /// Cleared on return to campus.</summary>
     public static string DebugMapEventKind = null;
     public static string DebugMapEventElement = "fire";

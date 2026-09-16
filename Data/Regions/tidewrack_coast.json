@@ -307,17 +307,17 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_causeway",
+				"recipe": "causeway",
 				"weight": 3
 			},
 			{
-				"recipe": "bf_ford",
+				"recipe": "ford",
 				"weight": 2
 			}
 		],
 		"siege": [
 			{
-				"recipe": "bf_causeway",
+				"recipe": "causeway",
 				"weight": 2
 			}
 		],

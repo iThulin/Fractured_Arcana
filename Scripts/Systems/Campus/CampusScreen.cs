@@ -1371,7 +1371,8 @@ public partial class CampusScreen : Control
         SaveManager.SaveIfDirty();
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
-        GetTree().ChangeSceneToFile(router.CombatScenePath);
+        SceneTransition.Go(GetTree(), router.CombatScenePath, "To Arms",
+            string.IsNullOrEmpty(def.DisplayName) ? "The campus answers the call." : def.DisplayName);
     }
 
     /// <summary>Step 9: consume a pending campus-combat return. Banks rewards

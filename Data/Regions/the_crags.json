@@ -347,25 +347,25 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_spine",
+				"recipe": "spine",
 				"weight": 3
 			},
 			{
-				"recipe": "bf_terraces",
+				"recipe": "terraces",
 				"weight": 2
 			},
 			{
-				"recipe": "bf_warren",
+				"recipe": "warren",
 				"weight": 1
 			}
 		],
 		"ambush": [
 			{
-				"recipe": "bf_spine",
+				"recipe": "spine",
 				"weight": 2
 			},
 			{
-				"recipe": "bf_warren",
+				"recipe": "warren",
 				"weight": 1
 			}
 		],

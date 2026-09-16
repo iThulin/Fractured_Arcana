@@ -2314,7 +2314,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedPartyCoord = _party.CurrentCoord;
         router.SavedCombatHexCoord = hexCoord;
         // W3: carry the weather over the combat tile into the fight; the
-        // battlefield injects a matching weather_tick hazard (§combat).
+        // battlefield injects a matching weather_turns hazard (§combat).
         router.SavedWeather = WeatherSystem.WeatherAt(hexCoord);
         // §3.4: record whether the castle was mid-stride at combat launch. Only an
         // ambush interrupts a march (a normal fight cancels the stride first), so
@@ -2368,7 +2368,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SetCurrentTier(encounterDef.Tier);
 
         ShowInfo("Entering combat...");
-        GetTree().ChangeSceneToFile(router.CombatScenePath);
+        string foeLine = string.IsNullOrEmpty(encounterDef.DisplayName) ? "The enemy" : encounterDef.DisplayName;
+        SceneTransition.Go(GetTree(), router.CombatScenePath, "To Arms",
+            $"{foeLine} · {encounterDef.Tier} · {terrainType}");
     }
 
     private void OnPatrolCapturedPlayer(Vector2I coord, string archmageId)

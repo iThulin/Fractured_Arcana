@@ -340,7 +340,7 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_spine",
+				"recipe": "spine",
 				"weight": 2
 			},
 			{

@@ -306,17 +306,17 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_causeway",
+				"recipe": "causeway",
 				"weight": 2
 			},
 			{
-				"recipe": "bf_ford",
+				"recipe": "ford",
 				"weight": 2
 			}
 		],
 		"ambush": [
 			{
-				"recipe": "bf_causeway",
+				"recipe": "causeway",
 				"weight": 2
 			}
 		],

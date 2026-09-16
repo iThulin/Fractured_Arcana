@@ -81,7 +81,12 @@ public partial class HexGridManager : Node3D
     // Map generation parameters
     [ExportGroup("Map Generation")]
     [Export] public MapLayoutType LayoutType = MapLayoutType.CentralClash;
-    [Export] public MapTheme Theme = MapTheme.ArcaneMeadow;
+    /// <summary>The overworld terrain this fight is located in (battlefield_naming_v1
+    /// R2). CombatManager sets it from the encounter's SourceTerrain; the inspector
+    /// value only matters for grid-only scenes (staging preview, F6). Drives the
+    /// no-recipe fallbacks: field classification, accent set-pieces, atmosphere,
+    /// and the default water profile.</summary>
+    [Export] public OverworldHex.TerrainType Theme = OverworldHex.TerrainType.Grassland;
     [Export] public bool RandomizeLayout = false;
 
     // Density controls
@@ -220,20 +225,6 @@ public partial class HexGridManager : Node3D
     private float _layoutMaxX;
 
     // Enums
-
-    public enum MapTheme
-    {
-        ArcaneMeadow,
-        FrozenBasin,
-        VolcanicScar,
-        OvergrownRuins,
-        VerdantWoods,
-        Wetlands,
-        HighlandCrags,
-        RiverValley,
-        Heathland,
-        CoastalShallows
-    }
 
     public enum MapLayoutType
     {

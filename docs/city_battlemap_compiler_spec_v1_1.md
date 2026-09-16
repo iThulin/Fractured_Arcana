@@ -98,7 +98,7 @@ district lattice (any city)          SiegeContext (vector, chain step, seed)
    └─────────────────────────────────────────────┘
         │
         ▼
-   battlefield recipe JSON (same schema as bf_causeway / bf_cauldron)
+   battlefield recipe JSON (same schema as causeway / cauldron)
         │
         ▼
    existing generator → existing CombatManager
@@ -108,7 +108,7 @@ Combat-side delta in v1 is exactly one addition: a `building_stamp` recipe op ba
 by a `PaintBuildingStamp` that implements ruling 10's tile semantics (§4.3). Every
 other op is shipped: `carve_lane`, `clearing`, `patch`, `obstacle_band` (kind "wall",
 `chance: 1.0`), `ring`, `filled_radius`, `height_ridge`, plus map events
-(`collapse_tiles`, `raise_tiles`). "Walls first, doors second" applies verbatim.
+(`ground_collapses`, `ground_rises`). "Walls first, doors second" applies verbatim.
 
 **Determinism:** compiler seed = `hash(settlementId, cycleSeed, chainStep)`. [H]
 
@@ -249,8 +249,8 @@ windows resolve `annihilate` (ruling 4); defender bindings are the home-defense 
 | Vector | Focus | Entry treatment | Signature elements | Defender objective |
 |---|---|---|---|---|
 | **WallSiege — gate assault** | `GateCell` | wall band with door gap at the gate | intact walls both sides, `height_ridge` battlements, killing-ground `clearing` inside | `hold_zone` on the gate tiles |
-| **WallSiege — breach** | perimeter cell chosen at the strategic layer (where the engine fired / walls arena was lost) | wall band with **rubble gap**, breach pre-made | rubble scatter at the gap (cover, not wall); optional scripted second breach via telegraphed `collapse_tiles` [M — cut freely] | `hold_zone` on the breach |
-| **DockRaid** | `DockCell` | open water edge attacker-side; piers as lanes over water | bf_causeway water palette; pushes toward water are lethal tempo; Skydock skins the edge as sky-piers (passive airship seam) | `hold_zone` on pier heads |
+| **WallSiege — breach** | perimeter cell chosen at the strategic layer (where the engine fired / walls arena was lost) | wall band with **rubble gap**, breach pre-made | rubble scatter at the gap (cover, not wall); optional scripted second breach via telegraphed `ground_collapses` [M — cut freely] | `hold_zone` on the breach |
+| **DockRaid** | `DockCell` | open water edge attacker-side; piers as lanes over water | causeway water palette; pushes toward water are lethal tempo; Skydock skins the edge as sky-piers (passive airship seam) | `hold_zone` on pier heads |
 | **PortalStrike** | `TeleporterCell` — interior window, skips the perimeter | no entry edge; attacker anchor at the sigil clearing | `map_object` teleport circle; **surrounded via waves, not anchors** [V — single anchor pair; enemy anchor on the dominant lane + wave rows from map edges] | `protect` the sigil keystone, or `survive` until sealed |
 
 Availability is diegetic: no `teleport_sigil` → no PortalStrike; landlocked → no

@@ -432,6 +432,6 @@ public partial class CardRewardScreen : Control
         // campus-launched fight routes home, not to the expedition map.
         string target = EncounterRouter.Instance?.ReturnScenePath
             ?? "res://Scenes/Overworld/ExpeditionScene.tscn";
-        GetTree().ChangeSceneToFile(target);
+        SceneTransition.Go(GetTree(), target, "Onward", "The castle strides on.");
     }
 }

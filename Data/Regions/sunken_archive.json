@@ -302,7 +302,7 @@
 	"battlefields": {
 		"battle": [
 			{
-				"recipe": "bf_amphitheater",
+				"recipe": "amphitheater",
 				"weight": 3,
 				"terrains": [
 					"Ruins",
@@ -311,13 +311,13 @@
 				]
 			},
 			{
-				"recipe": "bf_courtyard",
+				"recipe": "courtyard",
 				"weight": 1
 			}
 		],
 		"siege": [
 			{
-				"recipe": "bf_amphitheater",
+				"recipe": "amphitheater",
 				"weight": 2
 			}
 		],

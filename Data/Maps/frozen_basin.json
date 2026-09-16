@@ -105,7 +105,7 @@
   ],
   "map_events": [
     {
-      "kind": "weather_tick",
+      "kind": "weather_turns",
       "round": 2,
       "repeat_every": 2,
       "telegraph": 1,
