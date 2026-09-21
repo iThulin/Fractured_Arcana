@@ -4,64 +4,87 @@
  "npcName": "Aldric the Merchant",
  "archetype": "Merchant",
  "factionId": "merchant_guild",
- "openingText": "Aldric spreads his hands across a table covered in goods and ledgers. 'You've caught me at a good time,' he says. 'I've wares and I've needs, and I suspect we might find some common ground. Let's talk terms.'",
- "startingTension": 4,
  "basePatience": 8,
- "npcResolve": 2,
- "npcGuile": 2,
- "npcPoise": 1,
- "dialogueCordial": "Now this I can work with. You drive a fair bargain. I'll remember this.",
- "dialogueStrained": "I hear you. Whether I agree is another matter.",
- "dialogueHostile": "Watch yourself. I've dealt with rougher than you, and I didn't get rich by being pushed around.",
+ "startingGoodwill": 3,
+ "openingText": "Aldric spreads his hands across a table covered in goods and ledgers. 'You've caught me at a good time,' he says. 'I've wares and I've needs, and I suspect we might find some common ground. Let's talk terms.'",
  "dialogueWalkaway": "This isn't worth my time. Good day.",
  "dialogueAccept": "Pleasure doing business. Come find me again when you need something.",
- "terms": [
+ "confidence": "The discount is real. The prices it comes off were raised for you this morning.",
+ "clauses": [
   {
    "id": "gold_payment",
+   "text": "Aldric will pay 50 gold for safe passage intel about the region.",
    "shortName": "intel payment",
-   "description": "Aldric will pay 50 gold for safe passage intel about the region.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 50,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 2,
+   "goldDelta": 50
   },
   {
    "id": "supply_discount",
+   "text": "Aldric's factors sell to your guild at a tenth off, and the caravan houses hear of it.",
    "shortName": "discount",
-   "description": "Future goods from Aldric are sold at a 10% discount (tracked as faction rep).",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
+   "side": "Theirs",
+   "kind": "Honor",
+   "value": 2,
    "reputationDelta": 1,
-   "factionId": "merchant_guild",
-   "startingPosition": -1,
-   "weight": 2
+   "factionId": "merchant_guild"
   },
   {
    "id": "hidden_fee",
+   "text": "A 'processing fee' of 15 gold, buried in the small print.",
    "shortName": "processing fee",
-   "description": "A 'processing fee' of 15 gold, buried in the small print.",
-   "rumorText": "The contract runs three clauses longer than anything it needs to say.",
-   "favorPlayer": false,
-   "isHidden": true,
+   "side": "Yours",
+   "kind": "Obligation",
+   "value": 1,
    "goldDelta": -15,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 1
+   "npcValue": 2
   },
   {
    "id": "provision_contract",
+   "text": "Aldric buys 15 of your supplies at caravan rates: 45 gold on delivery.",
    "shortName": "provision contract",
-   "description": "Aldric buys 15 of your supplies at caravan rates: 45 gold on delivery.",
-   "favorPlayer": true,
-   "isHidden": false,
+   "side": "Theirs",
+   "kind": "Goods",
+   "value": 4,
    "goldDelta": 45,
    "suppliesDelta": -15,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3
+   "rider": "hidden_fee"
+  },
+  {
+   "id": "charts",
+   "text": "Their trade charts: every road and ford their factors use",
+   "shortName": "trade charts",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "chartRadius": 10
+  },
+  {
+   "id": "gold_purse",
+   "text": "A purse of 60 gold",
+   "shortName": "gold",
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 3,
+   "goldDelta": -60
+  },
+  {
+   "id": "escort_duty",
+   "text": "Your column rides escort for their next shipment",
+   "shortName": "escort duty",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -4
+  },
+  {
+   "id": "exclusive",
+   "text": "Exclusive dealing with them this cycle",
+   "shortName": "exclusivity",
+   "side": "Yours",
+   "kind": "Favor",
+   "value": 2
   }
  ]
 }

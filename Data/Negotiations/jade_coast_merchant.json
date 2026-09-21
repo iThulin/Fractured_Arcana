@@ -4,80 +4,108 @@
  "npcName": "Corvo Saldini",
  "archetype": "Merchant",
  "factionId": "saldini_combine",
- "openingText": "The factor's stall is an island of lacquered order in the steaming chaos of the port: saffron in brass tins, ledgers squared, a guard pretending to be a porter. 'Sit, sit. Saffron, escorts, secrets... everything is for sale on this coast, wizard. The only question is the price.'",
- "startingTension": 4,
  "basePatience": 8,
- "npcResolve": 2,
- "npcGuile": 2,
- "npcPoise": 1,
- "dialogueCordial": "Now this I can work with. To a long association!",
- "dialogueStrained": "I hear you. Whether the Combine agrees is another ledger.",
- "dialogueHostile": "Careful. Storms come without warning on this coast. So do accidents.",
+ "startingGoodwill": 3,
+ "openingText": "The factor's stall is an island of lacquered order in the steaming chaos of the port: saffron in brass tins, ledgers squared, a guard pretending to be a porter. 'Sit, sit. Saffron, escorts, secrets... everything is for sale on this coast, wizard. The only question is the price.'",
  "dialogueWalkaway": "We are DONE here. The Combine will remember the discourtesy.",
  "dialogueAccept": "Pleasure doing business. The Combine keeps its ink dry and its word wet.",
- "terms": [
+ "confidence": "The sloop sails whether you take the berth or not. Corvo is short a crew, not a cargo.",
+ "clauses": [
+  {
+   "id": "harbor_charts",
+   "text": "Charts of the drowned harbor and the mangrove passes: twelve hexes of coast, and the sunken customs house marked",
+   "shortName": "harbor charts",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "npcValue": 1,
+   "chartRadius": 12,
+   "revealPoiKinds": [
+    "Narrative"
+   ],
+   "loreUnlock": "drowned_harbor_charts"
+  },
   {
    "id": "saffron_contract",
+   "text": "A bulk contract on eastern saffron for the guild kitchens and alchemists",
    "shortName": "saffron contract",
-   "description": "A bulk contract on eastern saffron for the guild kitchens and alchemists, at 60 gold.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 60,
-   "reputationDelta": 0,
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 5,
+   "npcValue": 4,
+   "goldDelta": 90
+  },
+  {
+   "id": "berth",
+   "text": "A berth on the Combine's next sloop: Tidewrack harbor becomes a supply anchor this run",
+   "shortName": "berth",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 3,
+   "npcValue": 2,
+   "supplyAnchorHere": true
+  },
+  {
+   "id": "customs_seal",
+   "text": "A customs seal of the Combine: their patrols lose your trail, and the Combine remembers your name",
+   "shortName": "customs seal",
+   "side": "Theirs",
+   "kind": "Honor",
+   "value": 2,
+   "npcValue": 2,
+   "reputationDelta": 1,
    "factionId": "saldini_combine",
-   "startingPosition": -1,
-   "weight": 3
+   "safeConductSteps": 30,
+   "rider": "favor_clause"
+  },
+  {
+   "id": "gold_purse",
+   "text": "60 gold, counted onto the lacquer",
+   "shortName": "sixty gold",
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 3,
+   "npcValue": 3,
+   "goldDelta": -60
   },
   {
    "id": "escort_fee",
+   "text": "Your wizards guard his next caravan to Tidewrack, unpaid",
    "shortName": "guard duty",
-   "description": "He wants your wizards guarding his next caravan, for free. Your run slows by 3 steps.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "stepsDelta": -3,
-   "startingPosition": -1,
-   "weight": 2
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "npcValue": 4,
+   "fuelDelta": -4
   },
   {
-   "id": "route_intelligence",
-   "shortName": "route intelligence",
-   "description": "Which mangrove passes the syndicates watch this season. Saves 2 steps.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "stepsDelta": 2,
-   "startingPosition": 0,
-   "weight": 2
+   "id": "tide_tables",
+   "text": "Your tide tables for the coast, copied fair",
+   "shortName": "tide tables",
+   "side": "Yours",
+   "kind": "Lore",
+   "value": 1,
+   "npcValue": 1
+  },
+  {
+   "id": "exclusivity",
+   "text": "Exclusive dealing with the Combine this cycle",
+   "shortName": "exclusivity",
+   "side": "Yours",
+   "kind": "Favor",
+   "value": 2,
+   "npcValue": 3
   },
   {
    "id": "favor_clause",
+   "text": "The guild owes the Combine one unnamed favor, on demand",
    "shortName": "favor clause",
-   "description": "A buried clause: the guild owes the Combine one unnamed favor, on demand.",
-   "rumorText": "The Combine's contracts are famous for their generosity, and for one clause nobody remembers reading.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": -10,
-   "reputationDelta": -1,
-   "factionId": "saldini_combine",
-   "startingPosition": -2,
-   "weight": 2
-  },
-  {
-   "id": "harbor_charts",
-   "shortName": "harbor chart",
-   "description": "He also holds charts of the drowned harbor. He'd part with them, for the right partner.",
-   "rumorText": "He mentioned the drowned harbor once, then folded the thought away like a chart he was saving.",
-   "favorPlayer": true,
-   "isHidden": true,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "stepsDelta": 2,
-   "loreUnlock": "drowned_harbor_charts",
-   "startingPosition": 0,
-   "weight": 2
+   "side": "Yours",
+   "kind": "Favor",
+   "value": 2,
+   "npcValue": 2,
+   "reputationDelta": 0
   }
- ]
+ ],
+ "counterStyle": "greedy"
 }

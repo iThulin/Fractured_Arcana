@@ -3664,13 +3664,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     SaveManager.MarkDirty();
                 }
             }
-            // Steps bargained at the table (safe passage, a guide, an opened
-            // gate) pay in expedition range, applied to the live budget on
-            // return, same shape as NarrativeChoice.StepDelta, floored at 0.
+            // Fuel bargained at the table (an escort you owe, a guide, an
+            // opened gate) applies to the live budget on return, floored at 0.
             // May exceed OperatingRange, exactly like the pre-expedition
             // BonusSteps path; the range label shows the overrun honestly.
-            if (NegotiationContext.StepsDelta != 0)
-                StepsRemaining = Mathf.Max(0, StepsRemaining + NegotiationContext.StepsDelta);
+            if (NegotiationContext.FuelDelta != 0)
+                StepsRemaining = Mathf.Max(0, StepsRemaining + NegotiationContext.FuelDelta);
+
+            // Negotiation v3 reward verbs (docs/negotiation_ledger_spec_v1 §2f):
+            // services pay in the map. Each routes through the mechanism the
+            // expedition already has for it.
+            ApplyNegotiationMapRewards(hexCoord);
 
             LogRun("negotiation_end",
                    $"deal signed: {NegotiationContext.EncounterId}" +
@@ -5322,6 +5326,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // a supply anchor while it lasts: the deep-push range strategy.
         var grimW = SaveManager.ActiveSave?.Cycle?.Grimoire;
         if (grimW != null)
+        {
             foreach (var mark in grimW.ActiveWaystations)
                 if (TryParseMark(mark, out int wc, out int wr))
                 {
@@ -5329,6 +5334,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     if (d < best)
                         best = d;
                 }
+            // Negotiation v3: a bargained anchor (a berth, a waystation's
+            // hospitality) counts for the rest of the run.
+            foreach (var mark in grimW.DealAnchors)
+                if (TryParseMark(mark, out int ac, out int ar))
+                {
+                    int d = _world.HexDistance(col, row, ac, ar);
+                    if (d < best)
+                        best = d;
+                }
+        }
         return best;
     }
 
@@ -5379,7 +5394,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // S3: a standing waystation is an anchor (free extraction included;
         // it is a 5-Essence Overt cast; tuning watch noted in the docs).
         var grimA = SaveManager.ActiveSave?.Cycle?.Grimoire;
-        if (grimA != null && grimA.ActiveWaystations.Contains($"{col},{row}"))
+        if (grimA != null && (grimA.ActiveWaystations.Contains($"{col},{row}") ||
+                              grimA.DealAnchors.Contains($"{col},{row}")))
             return true;
         return false;
     }
@@ -5833,6 +5849,112 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 : $"The Spymaster's packet arrives: a {revealedKind} is revealed on already-charted ground.")
             : $"The Spymaster's packet arrives: {charted} tiles charted around your position.";
         return true;
+    }
+
+    /// <summary>Negotiation v3 map rewards, applied on return from a signed
+    /// deal: chart (Unseen → Charted disc around the table's hex), reveal
+    /// (one undiscovered POI per listed kind in the origin kingdom, charted
+    /// r3 around it, the Spymaster-packet path), anchor (the table's hex
+    /// joins the supply anchors for the rest of the expedition, drawn like a
+    /// waystation), safe conduct (every patrol stands down), lore.</summary>
+    private void ApplyNegotiationMapRewards(Vector2I hexCoord)
+    {
+        var notes = new List<string>();
+        bool haveWorld = _window.TryLocalToWorld(hexCoord, out int wc, out int wr);
+
+        if (NegotiationContext.ChartRadius > 0 && haveWorld)
+        {
+            int charted = SpellChartHexRadius(wc, wr, NegotiationContext.ChartRadius);
+            if (charted > 0) notes.Add($"{charted} tiles charted");
+        }
+
+        if (NegotiationContext.RevealPoiKinds != null && NegotiationContext.RevealPoiKinds.Count > 0)
+        {
+            string kingdom = NegotiationContext.OriginKingdomId;
+            int revealed = 0;
+            foreach (var kindName in NegotiationContext.RevealPoiKinds)
+            {
+                if (!System.Enum.TryParse<PoiKind>(kindName, true, out var kind))
+                    continue;
+                if (RevealPoiOfKind(kingdom, kind, out string word))
+                {
+                    revealed++;
+                    notes.Add($"a {word} revealed");
+                }
+            }
+            if (revealed > 0)
+            {
+                SaveManager.MarkDirty();
+                RefreshWindowSilhouettes();
+            }
+        }
+
+        if (NegotiationContext.AnchorHere && haveWorld)
+        {
+            var grim = SaveManager.ActiveSave?.Cycle?.Grimoire;
+            string mark = $"{wc},{wr}";
+            if (grim != null && !grim.DealAnchors.Contains(mark))
+            {
+                grim.DealAnchors.Add(mark);
+                SaveManager.MarkDirty();
+                SpellDrawWaystationMarker(hexCoord, wc, wr);
+                notes.Add("this hex is a supply anchor for the run");
+            }
+        }
+
+        if (NegotiationContext.SafeConductSteps > 0)
+        {
+            _factionManager?.SuppressAllPatrols(NegotiationContext.SafeConductSteps);
+            notes.Add($"patrols stand down for {NegotiationContext.SafeConductSteps} steps");
+        }
+
+        if (NegotiationContext.LoreUnlocks != null && NegotiationContext.LoreUnlocks.Count > 0)
+        {
+            var save = SaveManager.ActiveSave;
+            if (save != null)
+            {
+                int added = 0;
+                foreach (var id in NegotiationContext.LoreUnlocks)
+                    if (!string.IsNullOrEmpty(id) && !save.UnlockedLoreEntries.Contains(id))
+                    { save.UnlockedLoreEntries.Add(id); added++; }
+                if (added > 0) { SaveManager.MarkDirty(); notes.Add("lore recorded"); }
+            }
+        }
+
+        if (notes.Count > 0)
+            ShowInfo("The deal reaches the map: " + string.Join("; ", notes) + ".");
+    }
+
+    /// <summary>Discover one undiscovered POI of <paramref name="kind"/> in
+    /// <paramref name="kingdomId"/> (any kingdom when blank), charting radius
+    /// 3 around it; grants staging for settlements exactly as the chart
+    /// packet does. Returns false when none remains.</summary>
+    private bool RevealPoiOfKind(string kingdomId, PoiKind kind, out string word)
+    {
+        word = "";
+        foreach (var poi in _world.Pois)
+        {
+            if (poi.Kind != kind || poi.Discovered) continue;
+            if (!string.IsNullOrEmpty(kingdomId) && poi.KingdomId != kingdomId) continue;
+            poi.Discovered = true;
+            word = kind switch
+            {
+                PoiKind.Combat => "hostile encampment",
+                PoiKind.Rest => "refuge",
+                PoiKind.Narrative => "curious site",
+                PoiKind.Negotiation => "meeting place",
+                PoiKind.Outpost => "outpost",
+                PoiKind.Settlement => "settlement",
+                PoiKind.Seat => "seat of power",
+                PoiKind.SupplyCache => "supply cache",
+                _ => "site",
+            };
+            ChartRadius(poi.X, poi.Y, 3);
+            if (poi.Kind == PoiKind.Settlement && poi.GrantsStaging)
+                GrantStagingPointAtWorld(poi.X, poi.Y);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>Chart Unseen tiles in a square radius (never downgrades

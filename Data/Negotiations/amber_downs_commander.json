@@ -4,78 +4,91 @@
  "npcName": "Captain Hollis Aidenne",
  "archetype": "Commander",
  "factionId": "downs_levy",
+ "basePatience": 8,
+ "startingGoodwill": 3,
  "openingText": "Aidenne has four hundred charm-sworn levymen behind her and the expression of a woman who has counted them twice today. 'You are armed, you are foreign, and you are on Aidenne ground,' she says. 'I am obliged to establish which of those matters. Sit.'",
  "openingTextLate": "Aidenne still counts her levies twice a day. The count is smaller each time she says it aloud. 'You are armed, you are foreign, and half my barony answers to things I do not have a word for,' she says. 'Convince me the first two facts are useful. Sit.'",
- "startingTension": 5,
- "basePatience": 8,
- "npcResolve": 4,
- "npcGuile": 1,
- "npcPoise": 2,
- "dialogueCordial": "Good. Plain terms, plainly put. I can work with a professional.",
- "dialogueStrained": "Noted. I am not yet convinced, and I am rarely convinced quickly.",
- "dialogueHostile": "You will lower your voice on my ground or you will be escorted off it.",
- "dialogueWalkaway": "Then you will be off Aidenne land by dusk, and I will have riders confirm it.",
  "dialogueWalkawayLate": "Then be off Aidenne land by dusk. I cannot spare the riders to confirm it, and we both know what that admission costs me.",
+ "dialogueWalkaway": "Then you will be off Aidenne land by dusk, and I will have riders confirm it.",
  "dialogueAccept": "Agreed. My word holds as far as my banners do, which is further than the baron's.",
- "terms": [
+ "confidence": "The escort is not courtesy. She wants your column seen on that road.",
+ "clauses": [
   {
    "id": "column_escort",
+   "text": "A levy escort to the far boundary. Nothing on the road will trouble you.",
    "shortName": "escort",
-   "description": "A levy escort to the far boundary. Nothing on the road will trouble you.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3,
-   "stepsDelta": 4
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 4,
+   "safeConductSteps": 36,
+   "fuelDelta": 2
   },
   {
    "id": "muster_intelligence",
+   "text": "Where the neighbouring barons have put their levies this season, and why.",
    "shortName": "muster report",
-   "description": "Where the neighbouring barons have put their levies this season, and why.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 55,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 3,
+   "goldDelta": 55
   },
   {
    "id": "arms_requisition",
+   "text": "She requisitions arms and provisions from your stores at the Crown rate.",
    "shortName": "requisition",
-   "description": "She requisitions arms and provisions from your stores at the Crown rate.",
-   "favorPlayer": false,
-   "isHidden": false,
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 4,
    "goldDelta": 35,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 4,
    "suppliesDelta": -20
   },
   {
    "id": "no_dealings",
+   "text": "You will not treat with the Verrick charter factors while on her ground.",
    "shortName": "exclusivity clause",
-   "description": "You will not treat with the Verrick charter factors while on her ground.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": -35,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 2
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 2,
+   "goldDelta": -35
   },
   {
-   "id": "she_expects_a_war",
-   "shortName": "escort's purpose",
-   "description": "The escort is not courtesy. She wants your column seen on that road.",
-   "rumorText": "The escort is generous. Suspiciously generous, for a woman who counts her levies twice a day.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 2,
-   "stepsDelta": -2
+   "id": "dispositions",
+   "text": "Their dispositions: where every picket and camp on this ground stands",
+   "shortName": "dispositions",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "chartRadius": 10,
+   "revealPoiKinds": [
+    "Combat"
+   ]
+  },
+  {
+   "id": "camp_right",
+   "text": "Right to camp inside their lines: a supply anchor while you're here",
+   "shortName": "camp right",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 3,
+   "supplyAnchorHere": true
+  },
+  {
+   "id": "provisions",
+   "text": "Provisions from your stores for their line",
+   "shortName": "provisions",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": -12
+  },
+  {
+   "id": "stand_watch",
+   "text": "Your party stands a watch on their line",
+   "shortName": "watch duty",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -3
   }
  ]
 }

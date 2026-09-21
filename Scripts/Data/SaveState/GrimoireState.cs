@@ -76,6 +76,13 @@ public class GrimoireState
     /// each; also a supply anchor while standing (W-track ruling #2).</summary>
     public List<string> ActiveWaystations = new();
 
+    /// <summary>Supply anchors bargained at negotiation tables this
+    /// expedition (Clause.SupplyAnchorHere), world "col,row". Counted by
+    /// ExpeditionManager.SupplyDistanceAt / OnSupplyAnchor like waystations,
+    /// but grant no rest. Cleared on fresh deploy. Additive: old saves load
+    /// with the list empty.</summary>
+    public List<string> DealAnchors = new();
+
     /// <summary>Last spell resolved this expedition, Emulate's target.</summary>
     public string LastCastSpellId = "";
 
@@ -98,6 +105,7 @@ public class GrimoireState
         ActiveBeacons.Clear();
         ActiveRemnants.Clear();
         ActiveWaystations.Clear();
+        DealAnchors.Clear();
         LastCastSpellId = "";
         ParleyArmed = false;
         BeguileArmed = false;

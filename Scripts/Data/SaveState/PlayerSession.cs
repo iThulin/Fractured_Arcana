@@ -117,6 +117,12 @@ public static class PlayerSession
     /// run. Reset on return. Prevents the blank-screen exit from a debug fight.</summary>
     public static bool DebugCombat = false;
 
+    /// <summary>Set by NegotiationDebugLauncher: this table was launched standalone
+    /// from the hub. NegotiationManager reads NegotiationDebug overrides while it is
+    /// set, records nothing to the Hall of Records, and returns to the hub on close.
+    /// Reset on return.</summary>
+    public static bool DebugNegotiation = false;
+
     // ── Battlefield debug injectors (set by CombatDebugLauncher) ─────────
     /// <summary>When non-empty, HexGridManager.ActiveMapEvents appends a synthetic
     /// MapEventDef of this kind (hazard_patch / hazard_spreads / ring_closes)

@@ -4,68 +4,94 @@
  "npcName": "Commander Vael",
  "archetype": "Commander",
  "factionId": "frontier_garrison",
+ "basePatience": 6,
+ "startingGoodwill": 3,
  "openingText": "The commander doesn't offer a seat. She stands with her back to the map, arms crossed, watching you with the patience of someone who has made harder decisions before breakfast. 'You're operating in my jurisdiction. Give me a reason not to make that a problem.'",
  "openingTextLate": "Vael has traded her map for a newer one with more red on it. She still doesn't offer a seat. 'My jurisdiction is now the space between two things I can't fight,' she says. 'Give me a reason you're not a third.'",
- "startingTension": 5,
- "basePatience": 6,
- "npcResolve": 3,
- "npcGuile": 1,
- "npcPoise": 1,
- "dialogueCordial": "Direct. Good. I prefer people who don't waste my time.",
- "dialogueStrained": "I'm still listening. Don't mistake that for patience.",
- "dialogueHostile": "You're testing my tolerance. Don't.",
- "dialogueWalkaway": "This conversation is over. Don't let me see you in this sector again.",
  "dialogueWalkawayLate": "This conversation is over. The sector will make my argument for me.",
+ "dialogueWalkaway": "This conversation is over. Don't let me see you in this sector again.",
  "dialogueAccept": "Understood. You've earned the right to operate here. Don't make me regret it.",
- "terms": [
+ "confidence": "The supply-line map is a year old. Vael has not had the men to walk it since.",
+ "clauses": [
   {
    "id": "safe_passage",
+   "text": "The garrison grants safe passage through the western quadrant for this run.",
    "shortName": "safe passage",
-   "description": "The garrison grants safe passage through the western quadrant for this run.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 5,
    "reputationDelta": 1,
    "factionId": "frontier_garrison",
-   "stepsDelta": 3,
-   "startingPosition": -1,
-   "weight": 3
+   "safeConductSteps": 32,
+   "fuelDelta": 1,
+   "rider": "tribute"
   },
   {
    "id": "patrol_intel",
+   "text": "Commander Vael opens the garrison's supply-line map: every cache in the kingdom, marked.",
    "shortName": "supply-line map",
-   "description": "Commander Vael opens the garrison's supply-line map: every cache in the kingdom, marked.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3,
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 2,
    "revealsSupplyCaches": true
   },
   {
    "id": "tribute",
+   "text": "A 'tax' of 30 gold for operating in garrison territory.",
    "shortName": "garrison tax",
-   "description": "A 'tax' of 30 gold for operating in garrison territory.",
-   "rumorText": "The garrison clerks stamp every paper twice. The second stamp costs something.",
-   "favorPlayer": false,
-   "isHidden": true,
+   "side": "Yours",
+   "kind": "Obligation",
+   "value": 2,
    "goldDelta": -30,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 2
+   "npcValue": 3
   },
   {
    "id": "quartermasters_stores",
+   "text": "The quartermaster releases 20 supplies from the garrison stores to the guild.",
    "shortName": "stores release",
-   "description": "The quartermaster releases 20 supplies from the garrison stores to the guild.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "suppliesDelta": 20,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 2
+   "side": "Theirs",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": 20
+  },
+  {
+   "id": "dispositions",
+   "text": "Their dispositions: where every picket and camp on this ground stands",
+   "shortName": "dispositions",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "chartRadius": 10,
+   "revealPoiKinds": [
+    "Combat"
+   ]
+  },
+  {
+   "id": "provisions",
+   "text": "Provisions from your stores for their line",
+   "shortName": "provisions",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": -12
+  },
+  {
+   "id": "stand_watch",
+   "text": "Your party stands a watch on their line",
+   "shortName": "watch duty",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -3
+  },
+  {
+   "id": "dispatch",
+   "text": "You carry a dispatch to the next post",
+   "shortName": "dispatch",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 1,
+   "fuelDelta": -2
   }
  ]
 }

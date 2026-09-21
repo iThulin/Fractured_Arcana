@@ -572,6 +572,10 @@ public sealed class CampusGuildPanel : CampusPanel
     // Tab builders
     // ═══════════════════════════════════════════════════════════════════════
 
+    /// <summary>The debug panel, regrouped 2026-09-17: the two launchers (combat,
+    /// diplomacy) sit at the top under their own headers, then every cheat is
+    /// grouped by the part of the game it acts on. Adding a cheat = one line in
+    /// the section it belongs to; the helpers below own the styling.</summary>
     private PanelContainer BuildDebugPanel()
     {
         var panel = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
@@ -590,44 +594,124 @@ public sealed class CampusGuildPanel : CampusPanel
         };
         panel.AddThemeStyleboxOverride("panel", style);
 
-        var grid = new GridContainer { Columns = 2 };
-        grid.AddThemeConstantOverride("h_separation", 20);
-        grid.AddThemeConstantOverride("v_separation", 6);
-        panel.AddChild(grid);
+        var column = MakeVBox(6);
+        column.CustomMinimumSize = new Vector2(560, 0);
+        panel.AddChild(column);
 
-        CheckBox MakeDebugCheck(string label, bool current, Action<bool> onChange)
+        // ── Helpers ──────────────────────────────────────────────────────
+        // A section = gold header, one-line note, then a 3-column grid of controls.
+        GridContainer Section(string header, string note = "")
+        {
+            if (column.GetChildCount() > 0)
+                column.AddChild(new HSeparator());
+            var h = new Label { Text = header };
+            h.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            h.AddThemeColorOverride("font_color", UITheme.Gold);
+            column.AddChild(h);
+            if (!string.IsNullOrEmpty(note))
+            {
+                var n = new Label { Text = note, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                n.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+                n.AddThemeColorOverride("font_color", UITheme.TextDim);
+                column.AddChild(n);
+            }
+            var grid = new GridContainer { Columns = 3 };
+            grid.AddThemeConstantOverride("h_separation", 14);
+            grid.AddThemeConstantOverride("v_separation", 6);
+            column.AddChild(grid);
+            return grid;
+        }
+
+        CheckBox Check(GridContainer grid, string label, bool current, Action<bool> onChange)
         {
             var cb = new CheckBox { Text = label, ButtonPressed = current };
             cb.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             cb.Toggled += (on) => onChange(on);
+            grid.AddChild(cb);
             return cb;
         }
 
-        grid.AddChild(MakeDebugCheck("No Fog in Expedition", PlayerSession.NoFog,
-            on => PlayerSession.NoFog = on));
-        grid.AddChild(MakeDebugCheck("Unlimited Steps", PlayerSession.UnlimitedSteps,
-            on => PlayerSession.UnlimitedSteps = on));
-        grid.AddChild(MakeDebugCheck("God Mode HP", PlayerSession.GodModeHP,
-            on => PlayerSession.GodModeHP = on));
-        grid.AddChild(MakeDebugCheck("Start With Gold", PlayerSession.StartWithGold,
-            on => PlayerSession.StartWithGold = on));
-        grid.AddChild(MakeDebugCheck("Start With Splinters", PlayerSession.StartWithSplinters,
-            on => PlayerSession.StartWithSplinters = on));
-        grid.AddChild(MakeDebugCheck("Skip Deployment", PlayerSession.SkipDeployment,
-            on => PlayerSession.SkipDeployment = on));
-        grid.AddChild(MakeDebugCheck("Reveal Strategic Map", PlayerSession.DebugRevealStrategicMap,
-            on => PlayerSession.DebugRevealStrategicMap = on));
-        grid.AddChild(MakeDebugCheck("No Enemy Ambushes", PlayerSession.DebugNoAmbush,
-            on => PlayerSession.DebugNoAmbush = on));
-        grid.AddChild(MakeDebugCheck("Grant Staging (press G in expedition)",
-            PlayerSession.DebugGrantStagingArmed,
-            on => PlayerSession.DebugGrantStagingArmed = on));
+        Button Act(GridContainer grid, string label, Action onPress, string tooltip = "")
+        {
+            var b = new Button { Text = label, CustomMinimumSize = new Vector2(160, 28), TooltipText = tooltip };
+            b.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            b.Pressed += onPress;
+            grid.AddChild(b);
+            return b;
+        }
 
-        var forceLabel = new Label { Text = "Force Next POI:" };
-        forceLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        grid.AddChild(forceLabel);
+        // A grant writes to the EternalLedger and saves immediately: PERMANENT
+        // for that guild. Use a scratch slot.
+        Button Grant(GridContainer grid, string text, Action<GuildSaveData> apply, string tooltip = "")
+        {
+            return Act(grid, text, () =>
+            {
+                var save = Ctx.Save;
+                if (save?.Ledger == null) { GD.PrintErr("[Debug] No save loaded."); return; }
+                apply(save);
+                SaveManager.Save();
+                Ctx.RequestRefreshAll?.Invoke();
+            }, tooltip);
+        }
 
-        _forceEncounterDropdown = new OptionButton { CustomMinimumSize = new Vector2(140, 28) };
+        Label Caption(GridContainer grid, string text)
+        {
+            var l = new Label { Text = text, VerticalAlignment = VerticalAlignment.Center };
+            l.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            grid.AddChild(l);
+            return l;
+        }
+
+        // ── LAUNCHERS (top) ──────────────────────────────────────────────
+        var combat = Section("COMBAT DEBUG",
+            "Launch a standalone battlefield: school, tier, terrain, enemies, allies, objectives, map-event injectors. Returns to the hub.");
+        var combatBtn = Act(combat, "Open Combat Launcher", () => CombatDebugLauncher.Toggle(column));
+        combatBtn.CustomMinimumSize = new Vector2(200, 34);
+        UITheme.ApplyButtonStyle(combatBtn, isPrimary: true);
+        Act(combat, "Assert Deck Split", () => CombatDebugLauncher.AssertDeckSplit(),
+            "Round-trips the real/debug deck split and prints the result.");
+        Act(combat, "Assert Units", () => UnitRegistry.AssertParityAndRoundTrip(),
+            "Unit registry parity + save round-trip.");
+        Check(combat, "Skip Deployment", PlayerSession.SkipDeployment,
+            on => PlayerSession.SkipDeployment = on);
+        Check(combat, "God Mode HP", PlayerSession.GodModeHP,
+            on => PlayerSession.GodModeHP = on);
+
+        var diplomacy = Section("DIPLOMACY DEBUG",
+            "Sit at any negotiation table directly: encounter, school, standing, goodwill / patience overrides, forced grievance, extra leverage, allies. Nothing is recorded. Returns to the hub.");
+        var diplomacyBtn = Act(diplomacy, "Open Diplomacy Launcher", () => NegotiationDebugLauncher.Toggle(column));
+        diplomacyBtn.CustomMinimumSize = new Vector2(200, 34);
+        UITheme.ApplyButtonStyle(diplomacyBtn, isPrimary: true);
+        Act(diplomacy, "Verify Tables", () =>
+        {
+            // The validator lives in tools/; from here we do the cheap in-engine
+            // half: load every table through the real loader and report.
+            int ok = 0, bad = 0;
+            var dir = DirAccess.Open("res://Data/Negotiations/");
+            if (dir == null) { GD.PrintErr("[Debug] Data/Negotiations not found."); return; }
+            dir.ListDirBegin();
+            for (string f = dir.GetNext(); !string.IsNullOrEmpty(f); f = dir.GetNext())
+            {
+                if (dir.CurrentIsDir() || !f.EndsWith(".json")) continue;
+                var d = NegotiationEncounterLoader.Load(f[..^5]);
+                if (d == null || d.Clauses.Count == 0) { bad++; GD.PrintErr($"[Debug] table '{f}' failed to load or has no clauses."); }
+                else ok++;
+            }
+            dir.ListDirEnd();
+            GD.Print($"[Debug] Negotiation tables: {ok} loaded, {bad} failed. Run tools/verify_negotiations.py for the full check.");
+        }, "Loads every Data/Negotiations table through the real loader.");
+
+        // ── EXPEDITION ───────────────────────────────────────────────────
+        var expedition = Section("EXPEDITION", "Applies to the next sortie.");
+        Check(expedition, "No Fog", PlayerSession.NoFog, on => PlayerSession.NoFog = on);
+        Check(expedition, "Unlimited Fuel", PlayerSession.UnlimitedSteps, on => PlayerSession.UnlimitedSteps = on);
+        Check(expedition, "No Enemy Ambushes", PlayerSession.DebugNoAmbush, on => PlayerSession.DebugNoAmbush = on);
+        Check(expedition, "Grant Staging (press G)", PlayerSession.DebugGrantStagingArmed,
+            on => PlayerSession.DebugGrantStagingArmed = on);
+        Check(expedition, "Start With Gold", PlayerSession.StartWithGold, on => PlayerSession.StartWithGold = on);
+        Check(expedition, "Start With Splinters", PlayerSession.StartWithSplinters, on => PlayerSession.StartWithSplinters = on);
+        Caption(expedition, "Force next POI:");
+        _forceEncounterDropdown = new OptionButton { CustomMinimumSize = new Vector2(160, 28) };
         _forceEncounterDropdown.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         _forceEncounterDropdown.AddItem("None (normal)", -1);
         _forceEncounterDropdown.AddItem("Combat", (int)OverworldHex.POIType.Combat);
@@ -636,300 +720,49 @@ public sealed class CampusGuildPanel : CampusPanel
         _forceEncounterDropdown.AddItem("Negotiation", (int)OverworldHex.POIType.Negotiation);
         _forceEncounterDropdown.Selected = 0;
         _forceEncounterDropdown.ItemSelected += (idx) =>
-            PlayerSession.ForceNextEncounterType =
-                _forceEncounterDropdown.GetItemId((int)idx);
-            grid.AddChild(_forceEncounterDropdown);
+            PlayerSession.ForceNextEncounterType = _forceEncounterDropdown.GetItemId((int)idx);
+        expedition.AddChild(_forceEncounterDropdown);
+        expedition.AddChild(new Control());
 
-        // ── C4 verification dumps (CouncilDebug.cs) ──────────────────────
-        var dumpEchoesBtn = new Button
-        {
-            Text = "Dump Echoes",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        dumpEchoesBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        dumpEchoesBtn.Pressed += () => CouncilDebug.DumpEchoes();
-        grid.AddChild(dumpEchoesBtn);
+        // ── STRATEGIC MAP & COURT ────────────────────────────────────────
+        var strategic = Section("STRATEGIC MAP & COURT", "Levers take effect on the next strategic-map load; dumps print to the log.");
+        Check(strategic, "Reveal Strategic Map", PlayerSession.DebugRevealStrategicMap,
+            on => PlayerSession.DebugRevealStrategicMap = on);
+        Act(strategic, "Force Conjunction", StrategicDebug.ForceConjunction);
+        Act(strategic, "Prime Warfront", StrategicDebug.PrimeWarfront);
+        Act(strategic, "Owe +1 Lunation", () => StrategicDebug.OweLunations(1));
+        Act(strategic, "Owe +3 Lunations", () => StrategicDebug.OweLunations(3));
+        Act(strategic, "Resolve All Seats", StrategicDebug.ResolveAllSeats);
+        Act(strategic, "Dump Echoes", () => CouncilDebug.DumpEchoes());
+        Act(strategic, "Dump Regard", () => CouncilDebug.DumpRegard());
 
-        var dumpRegardBtn = new Button
-        {
-            Text = "Dump Regard",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        dumpRegardBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        dumpRegardBtn.Pressed += () => CouncilDebug.DumpRegard();
-        grid.AddChild(dumpRegardBtn);
+        // ── ESPIONAGE ────────────────────────────────────────────────────
+        var espionage = Section("ESPIONAGE (the Concord)", "E2 watchers → E3 market → E4 sabotage → E5 shadow war → E6 spine, left to right.");
+        Act(espionage, "Plant Watcher", () => ConcordDebug.DebugPlantWatcher());
+        Act(espionage, "Contact Concord", () => ConcordDebug.DebugContactConcord());
+        Act(espionage, "Dump Shadow", () => { ConcordDebug.DumpNodes(); ConcordDebug.DumpShadow(); });
+        Act(espionage, "+50 Favor", () => ConcordDebug.DebugGrantFavor());
+        Act(espionage, "Sell Secret", () => ConcordDebug.DebugSellSecret());
+        Act(espionage, "Buy: Plant", () => ConcordDebug.DebugCommissionPlant());
+        Act(espionage, "Buy: Intel", () => ConcordDebug.DebugCommissionIntel());
+        Act(espionage, "Buy: Theft", () => ConcordDebug.DebugCommissionTheft());
+        Act(espionage, "Plant Saboteur", () => ConcordDebug.DebugPlantSaboteur());
+        Act(espionage, "Saboteur Strike", () => ConcordDebug.DebugSaboteurStrike());
+        Act(espionage, "Forge Echo", () => ConcordDebug.DebugForgeEcho());
+        Act(espionage, "Buy: Sabotage Siege", () => ConcordDebug.DebugBuySabotageSiege());
+        Act(espionage, "Buy: Sabotage Corr.", () => ConcordDebug.DebugBuySabotageCorruption());
+        Act(espionage, "Marked → 9", () => ConcordDebug.DebugForceMarked());
+        Act(espionage, "Outbid", () => ConcordDebug.DebugOutbid());
+        Act(espionage, "Imprison Envoy", () => ConcordDebug.DebugImprisonEnvoy());
+        Act(espionage, "Buy: Extraction", () => ConcordDebug.DebugBuyExtraction());
+        Act(espionage, "Undercroft +1", () => ConcordDebug.DebugUndercroftUp());
+        Act(espionage, "Exfiltrate", () => ConcordDebug.DebugExfiltrate());
+        Act(espionage, "Buy: Assassination", () => ConcordDebug.DebugBuyAssassination());
 
-        // ── Save-adjacency round-trip assertions (CouncilSaveAssert.cs) ──
-        var assertRtBtn = new Button
-        {
-            Text = "Assert Round-Trips",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        assertRtBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        assertRtBtn.Pressed += () =>
-        {
-            CouncilSaveAssert.AssertAll();
-            ProgressionSaveAssert.AssertAll();
-        };
-        grid.AddChild(assertRtBtn);
-
-        // ── Espionage E2 verification (ShadowTick / ConcordDebug.cs) ─────
-        var plantWatcherBtn = new Button
-        {
-            Text = "Plant Watcher",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        plantWatcherBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        plantWatcherBtn.Pressed += () => ConcordDebug.DebugPlantWatcher();
-        grid.AddChild(plantWatcherBtn);
-
-        var contactConcordBtn = new Button
-        {
-            Text = "Contact Concord",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        contactConcordBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        contactConcordBtn.Pressed += () => ConcordDebug.DebugContactConcord();
-        grid.AddChild(contactConcordBtn);
-
-        var dumpShadowBtn = new Button
-        {
-            Text = "Dump Shadow",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        dumpShadowBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        dumpShadowBtn.Pressed += () =>
-        {
-            ConcordDebug.DumpNodes();
-            ConcordDebug.DumpShadow();
-        };
-        grid.AddChild(dumpShadowBtn);
-
-        // ── Espionage E3 marketplace (ShadowMarket / ConcordDebug.cs) ────
-        var grantFavorBtn = new Button
-        {
-            Text = "+50 Favor",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        grantFavorBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        grantFavorBtn.Pressed += () => ConcordDebug.DebugGrantFavor();
-        grid.AddChild(grantFavorBtn);
-
-        var sellSecretBtn = new Button
-        {
-            Text = "Sell Secret",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        sellSecretBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        sellSecretBtn.Pressed += () => ConcordDebug.DebugSellSecret();
-        grid.AddChild(sellSecretBtn);
-
-        var buyPlantBtn = new Button
-        {
-            Text = "Buy: Plant",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        buyPlantBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        buyPlantBtn.Pressed += () => ConcordDebug.DebugCommissionPlant();
-        grid.AddChild(buyPlantBtn);
-
-        var buyIntelBtn = new Button
-        {
-            Text = "Buy: Intel",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        buyIntelBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        buyIntelBtn.Pressed += () => ConcordDebug.DebugCommissionIntel();
-        grid.AddChild(buyIntelBtn);
-
-        var buyTheftBtn = new Button
-        {
-            Text = "Buy: Theft",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        buyTheftBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        buyTheftBtn.Pressed += () => ConcordDebug.DebugCommissionTheft();
-        grid.AddChild(buyTheftBtn);
-
-        // ── Espionage E4 sabotage & false echoes (ShadowOps / ShadowMarket) ─
-        var plantSaboteurBtn = new Button
-        {
-            Text = "Plant Saboteur",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        plantSaboteurBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        plantSaboteurBtn.Pressed += () => ConcordDebug.DebugPlantSaboteur();
-        grid.AddChild(plantSaboteurBtn);
-
-        var saboteurStrikeBtn = new Button
-        {
-            Text = "Saboteur Strike",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        saboteurStrikeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        saboteurStrikeBtn.Pressed += () => ConcordDebug.DebugSaboteurStrike();
-        grid.AddChild(saboteurStrikeBtn);
-
-        var forgeEchoBtn = new Button
-        {
-            Text = "Forge Echo",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        forgeEchoBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        forgeEchoBtn.Pressed += () => ConcordDebug.DebugForgeEcho();
-        grid.AddChild(forgeEchoBtn);
-
-        var buySabotageSiegeBtn = new Button
-        {
-            Text = "Buy: Sabotage Siege",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        buySabotageSiegeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        buySabotageSiegeBtn.Pressed += () => ConcordDebug.DebugBuySabotageSiege();
-        grid.AddChild(buySabotageSiegeBtn);
-
-        var buySabotageCorrBtn = new Button
-        {
-            Text = "Buy: Sabotage Corr.",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        buySabotageCorrBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        buySabotageCorrBtn.Pressed += () => ConcordDebug.DebugBuySabotageCorruption();
-        grid.AddChild(buySabotageCorrBtn);
-
-        // ── Espionage E5 shadow war (ShadowMarket / CouncilTick) ─────────
-        var forceMarkedBtn = new Button
-        {
-            Text = "Marked → 9",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        forceMarkedBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        forceMarkedBtn.Pressed += () => ConcordDebug.DebugForceMarked();
-        grid.AddChild(forceMarkedBtn);
-
-        var outbidBtn = new Button
-        {
-            Text = "Outbid",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        outbidBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        outbidBtn.Pressed += () => ConcordDebug.DebugOutbid();
-        grid.AddChild(outbidBtn);
-
-        var imprisonBtn = new Button
-        {
-            Text = "Imprison Envoy",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        imprisonBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        imprisonBtn.Pressed += () => ConcordDebug.DebugImprisonEnvoy();
-        grid.AddChild(imprisonBtn);
-
-        var buyExtractionBtn = new Button
-        {
-            Text = "Buy: Extraction",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        buyExtractionBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        buyExtractionBtn.Pressed += () => ConcordDebug.DebugBuyExtraction();
-        grid.AddChild(buyExtractionBtn);
-
-        // ── Espionage E6 Tier C + the spine (ShadowMarket / ShadowOps) ───
-        var undercroftBtn = new Button
-        {
-            Text = "Undercroft +1",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        undercroftBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        undercroftBtn.Pressed += () => ConcordDebug.DebugUndercroftUp();
-        grid.AddChild(undercroftBtn);
-
-        var exfilBtn = new Button
-        {
-            Text = "Exfiltrate",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        exfilBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        exfilBtn.Pressed += () => ConcordDebug.DebugExfiltrate();
-        grid.AddChild(exfilBtn);
-
-        var buyAssassinationBtn = new Button
-        {
-            Text = "Buy: Assassination",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        buyAssassinationBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        buyAssassinationBtn.Pressed += () => ConcordDebug.DebugBuyAssassination();
-        grid.AddChild(buyAssassinationBtn);
-
-        var assertUnitsBtn = new Button
-        {
-            Text = "Assert Units",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        assertUnitsBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        assertUnitsBtn.Pressed += () => UnitRegistry.AssertParityAndRoundTrip();
-        grid.AddChild(assertUnitsBtn);
-
-        // ── Strategic-layer levers (Scripts/Dev/StrategicDebug.cs) ───────
-        // The strategic systems shipped 2026-07-21 and had never been run
-        // in-engine as of 08-06 because a warfront and a Conjunction could
-        // only be reached by playing a full cycle out. All three take effect
-        // on the next strategic-map load.
-        Button MakeDebugAction(string label, Action onPress)
-        {
-            var b = new Button { Text = label, CustomMinimumSize = new Vector2(140, 28) };
-            b.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-            b.Pressed += onPress;
-            return b;
-        }
-
-        grid.AddChild(MakeDebugAction("Force Conjunction", StrategicDebug.ForceConjunction));
-        grid.AddChild(MakeDebugAction("Owe +1 Lunation", () => StrategicDebug.OweLunations(1)));
-        grid.AddChild(MakeDebugAction("Owe +3 Lunations", () => StrategicDebug.OweLunations(3)));
-        grid.AddChild(MakeDebugAction("Prime Warfront", StrategicDebug.PrimeWarfront));
-        grid.AddChild(MakeDebugAction("Resolve All Seats", StrategicDebug.ResolveAllSeats));
-
-        var combatDebugBtn = new Button
-        {
-            Text = "Combat Debug",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        combatDebugBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        combatDebugBtn.Pressed += () => CombatDebugLauncher.Toggle(grid);
-        grid.AddChild(combatDebugBtn);
-
-        var assertDeckBtn = new Button
-        {
-            Text = "Assert Deck Split",
-            CustomMinimumSize = new Vector2(140, 28),
-        };
-        assertDeckBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        assertDeckBtn.Pressed += () => CombatDebugLauncher.AssertDeckSplit();
-        grid.AddChild(assertDeckBtn);
-
-        // ── Progression bypasses ─────────────────────────────────────────
-        // The faculty gate and the unlock gate are both slow by design, which
-        // makes anything downstream of them tedious to test. These three skip
-        // straight to the end state. They write to the EternalLedger and save
-        // immediately, so they are PERMANENT for that guild. Use a scratch slot.
-        Button DebugGrant(string text, Action<GuildSaveData> apply)
-        {
-            var b = new Button { Text = text, CustomMinimumSize = new Vector2(140, 28) };
-            b.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-            b.Pressed += () =>
-            {
-                var save = Ctx.Save;
-                if (save?.Ledger == null) { GD.PrintErr("[Debug] No save loaded."); return; }
-                apply(save);
-                SaveManager.Save();
-                Ctx.RequestRefreshAll?.Invoke();
-            };
-            grid.AddChild(b);
-            return b;
-        }
-
-        DebugGrant("Declare All Schools", save =>
+        // ── PROGRESSION ──────────────────────────────────────────────────
+        var progression = Section("PROGRESSION",
+            "Skips the slow gates. These write the EternalLedger and save at once: PERMANENT for this guild. Use a scratch slot.");
+        Grant(progression, "Declare All Schools", save =>
         {
             save.Ledger.MetaNarrativeFlags ??= new List<string>();
             int n = 0;
@@ -943,8 +776,7 @@ public sealed class CampusGuildPanel : CampusPanel
             GD.Print($"[Debug] Declared {n} additional discipline(s). Every school is now " +
                      $"selectable at the next cycle.");
         });
-
-        DebugGrant("Unlock All Cards", save =>
+        Grant(progression, "Unlock All Cards", save =>
         {
             save.Ledger.UnlockedCardBlueprintIds ??= new List<string>();
             var known = new HashSet<string>(save.Ledger.UnlockedCardBlueprintIds,
@@ -962,18 +794,15 @@ public sealed class CampusGuildPanel : CampusPanel
                      $"{save.Ledger.UnlockedCardBlueprintIds.Count} known. " +
                      $"Legendaries remain undraftable (they are Regalia).");
         });
-
-        DebugGrant("Commission Random Rare", save =>
+        Grant(progression, "Commission Random Rare", save =>
         {
             // Bypasses the Archives/gold/capacity gates and uses a 1-lunation timer
-            // so a single moon-turn settles it. That lets you exercise the §8 pity-timer
-            // tick + unlock without first building the Arcane Library to tier III.
+            // so a single moon-turn settles it.
             var id = CardCommissionService.DebugCommissionRandom(save, lunations: 1);
             if (id == null)
                 GD.Print("[Debug] Nothing to commission. Every Rare is already known here.");
         });
-
-        DebugGrant("Learn All Spells", save =>
+        Grant(progression, "Learn All Spells", save =>
         {
             OverworldSpellRegistry.EnsureLoaded();
             save.Cycle ??= new CycleState();
@@ -988,10 +817,17 @@ public sealed class CampusGuildPanel : CampusPanel
                 save.Cycle.Grimoire.KnownSpellIds.Add(id);
                 n++;
             }
-            // Cycle-scoped by design, since the Grimoire dies with the timeline
-            // (overworld_spell_system_v1_1 §5), so this lasts the current cycle only.
+            // Cycle-scoped by design, since the Grimoire dies with the timeline.
             GD.Print($"[Debug] Learned {n} overworld spell(s). " +
                      $"{save.Cycle.Grimoire.KnownSpellIds.Count} known this cycle.");
+        });
+
+        // ── VERIFICATION ─────────────────────────────────────────────────
+        var verify = Section("VERIFICATION", "Save-adjacent round-trip assertions; results print to the log.");
+        Act(verify, "Assert Round-Trips", () =>
+        {
+            CouncilSaveAssert.AssertAll();
+            ProgressionSaveAssert.AssertAll();
         });
 
         return panel;

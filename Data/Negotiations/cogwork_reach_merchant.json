@@ -4,76 +4,93 @@
  "npcName": "Factor Ilse Verrick",
  "archetype": "Merchant",
  "factionId": "cogwork_charter",
- "openingText": "Verrick has your name, your last three contracts, and an opening price, all of them written down before you sat. 'I price people the way I price freight,' she says, not unkindly. 'By what it costs me if you go missing. Shall we?'",
- "startingTension": 3,
  "basePatience": 9,
- "npcResolve": 3,
- "npcGuile": 3,
- "npcPoise": 1,
- "dialogueCordial": "Good. You argue like someone who reads the small print. That is worth a line item.",
- "dialogueStrained": "I have heard the position. I have not yet heard a number attached to it.",
- "dialogueHostile": "You are costing me daylight, and daylight in the Reach is invoiced. Mind yourself.",
+ "startingGoodwill": 4,
+ "openingText": "Verrick has your name, your last three contracts, and an opening price, all of them written down before you sat. 'I price people the way I price freight,' she says, not unkindly. 'By what it costs me if you go missing. Shall we?'",
  "dialogueWalkaway": "Then we are done. I will note the terms you refused, for next time.",
  "dialogueAccept": "Signed and sealed. You will find the Charter honours its paper, which is more than most here can say.",
- "terms": [
+ "confidence": "The handling charge is not hers. The Charter skims it, and she has been told to collect.",
+ "clauses": [
   {
    "id": "charter_escort",
+   "text": "Charter outriders see your column through the canal-road towns unmolested.",
    "shortName": "outrider escort",
-   "description": "Charter outriders see your column through the canal-road towns unmolested.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3,
-   "stepsDelta": 3
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 3,
+   "safeConductSteps": 32,
+   "fuelDelta": 1
   },
   {
    "id": "bulk_purchase",
+   "text": "Verrick buys 20 of your supplies at works rates: 70 gold on the spot.",
    "shortName": "bulk purchase",
-   "description": "Verrick buys 20 of your supplies at works rates: 70 gold on the spot.",
-   "favorPlayer": true,
-   "isHidden": false,
+   "side": "Theirs",
+   "kind": "Goods",
+   "value": 6,
    "goldDelta": 70,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 4,
-   "suppliesDelta": -20
+   "suppliesDelta": -20,
+   "rider": "assay_fee",
+   "npcValue": 3
   },
   {
    "id": "seal_of_passage",
+   "text": "A provisional Charter seal: tolls waived at three gatehouses this season.",
    "shortName": "charter seal",
-   "description": "A provisional Charter seal: tolls waived at three gatehouses this season.",
-   "favorPlayer": true,
-   "isHidden": false,
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 4,
    "goldDelta": 45,
    "reputationDelta": 1,
-   "startingPosition": -1,
-   "weight": 3,
-   "factionId": "cogwork_charter"
+   "factionId": "cogwork_charter",
+   "npcValue": 3,
+   "safeConductSteps": 25
   },
   {
    "id": "exclusivity_clause",
+   "text": "You agree not to sell the same intelligence to any rival guild. Enforceable.",
    "shortName": "exclusivity clause",
-   "description": "You agree not to sell the same intelligence to any rival guild. Enforceable.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": -30,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 2
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 2,
+   "goldDelta": -30
   },
   {
    "id": "assay_fee",
+   "text": "An 'assay and handling' charge she has not mentioned aloud.",
    "shortName": "handling charge",
-   "description": "An 'assay and handling' charge she has not mentioned aloud.",
-   "rumorText": "Her clerk keeps a second slate under the first, and writes on it whenever money is mentioned.",
-   "favorPlayer": false,
-   "isHidden": true,
+   "side": "Yours",
+   "kind": "Obligation",
+   "value": 1,
    "goldDelta": -25,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 2
+   "npcValue": 2
+  },
+  {
+   "id": "charts",
+   "text": "Their trade charts: every road and ford their factors use",
+   "shortName": "trade charts",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "chartRadius": 10
+  },
+  {
+   "id": "gold_purse",
+   "text": "A purse of 60 gold",
+   "shortName": "gold",
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 3,
+   "goldDelta": -60
+  },
+  {
+   "id": "escort_duty",
+   "text": "Your column rides escort for their next shipment",
+   "shortName": "escort duty",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -4
   }
  ]
 }

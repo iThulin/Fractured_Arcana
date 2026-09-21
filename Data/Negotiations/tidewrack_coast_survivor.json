@@ -4,78 +4,90 @@
  "npcName": "Odile Ferrant",
  "archetype": "Survivor",
  "factionId": "wrackborn",
+ "basePatience": 9,
+ "startingGoodwill": 2,
  "openingText": "Ferrant speaks for people who came ashore off ships nobody reported missing and stayed. She counts your party, counts your weapons, and does not pretend she is doing anything else. 'We have been here longer than the maps say this beach exists,' she says. 'Say what you want. Slowly.'",
  "openingTextLate": "Ferrant counts your party, counts your weapons, and this time counts the sky. 'The surges come higher every month and the maps mean less,' she says. 'We are still here. Say what you want while that is true.'",
- "startingTension": 6,
- "basePatience": 9,
- "npcResolve": 2,
- "npcGuile": 1,
- "npcPoise": 3,
- "dialogueCordial": "All right. That is the first thing anyone has offered us in a season that was not a threat.",
- "dialogueStrained": "We have heard better. We have also heard worse, and we are still here.",
- "dialogueHostile": "You are standing on the only high ground for a mile and telling us about generosity.",
  "dialogueWalkaway": "Then go. The surge is due and we will not be helping you across.",
  "dialogueAccept": "Then we have terms. We keep terms. It is the only thing left that we brought with us.",
- "terms": [
+ "confidence": "Ferrant has already decided to move them. This is provisioning, not trade.",
+ "clauses": [
   {
    "id": "shore_pilot",
+   "text": "A wrackborn pilot walks your column across ground the tide has rearranged.",
    "shortName": "pilot",
-   "description": "A wrackborn pilot walks your column across ground the tide has rearranged.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3,
-   "stepsDelta": 4
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 4,
+   "fuelDelta": 3,
+   "chartRadius": 14
   },
   {
    "id": "salvage_share",
+   "text": "A share of what the last storm turned up, honestly weighed.",
    "shortName": "salvage share",
-   "description": "A share of what the last storm turned up, honestly weighed.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 50,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 2,
+   "goldDelta": 50
   },
   {
    "id": "winter_stores",
+   "text": "Twenty supplies. They will not survive the season otherwise and both of you know it.",
    "shortName": "winter provisioning",
-   "description": "Twenty supplies. They will not survive the season otherwise and both of you know it.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": 0,
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 6,
    "reputationDelta": 2,
-   "startingPosition": -1,
-   "weight": 4,
    "factionId": "wrackborn",
    "suppliesDelta": -20
   },
   {
    "id": "name_the_ships",
+   "text": "You carry three names inland and see whether anyone is still looking.",
    "shortName": "list of names",
-   "description": "You carry three names inland and see whether anyone is still looking.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 2,
-   "stepsDelta": -2
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -2
   },
   {
-   "id": "they_are_leaving",
-   "shortName": "exodus",
-   "description": "Ferrant has already decided to move them. This is provisioning, not trade.",
-   "rumorText": "The camp is packed tighter than people pack for staying.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": -25,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 2
+   "id": "hide",
+   "text": "Their hide: a place to lie up, and a supply anchor while you use it",
+   "shortName": "hide",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 2,
+   "supplyAnchorHere": true
+  },
+  {
+   "id": "what_they_saw",
+   "text": "What they saw on the way here, marked on your map",
+   "shortName": "sightings",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 2,
+   "revealPoiKinds": [
+    "Narrative"
+   ]
+  },
+  {
+   "id": "rations",
+   "text": "Rations from your stores",
+   "shortName": "rations",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": -10
+  },
+  {
+   "id": "walk_out",
+   "text": "You walk them to the next safe place",
+   "shortName": "escort out",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -3
   }
  ]
 }

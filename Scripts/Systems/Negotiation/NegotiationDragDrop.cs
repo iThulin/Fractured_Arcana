@@ -9,9 +9,10 @@ using System;
 //                 NPC-pool) token from Assets/UI/Tokens/*.png
 //                 with a ×N count tag, and CLICKING it spends it
 //                 toward the currently selected clause / action.
-//                 (Drag-and-drop plumbing is retained on the chip
-//                 and NegotiationDropZone for a future pass, but
-//                 click is the primary interaction.)
+//                 Click is the only interaction: the drag-and-drop
+//                 plumbing (_GetDragData, NegotiationDropZone) was
+//                 removed 2026-09-17 — it had no drop target and its
+//                 CanDrag gate was eating clicks.
 // Layer:          UI
 // Collaborators:  NegotiationManager.cs (creates chips, supplies
 //                 Clicked handlers + CanDrag gate),
@@ -71,7 +72,8 @@ public partial class NegotiationTokenChip : PanelContainer
     /// <summary>False hides the ×N count tag (the Bide group's free Pass
     /// chip is an action, not a stock of tokens).</summary>
     public bool ShowCount = true;
-    /// <summary>Manager-supplied gate for click/drag (e.g. table resolved).</summary>
+    /// <summary>Manager-supplied gate for clicks (e.g. table resolved).
+    /// Null = always clickable while Interactive.</summary>
     public Func<bool> CanDrag;
     /// <summary>Primary interaction: click to spend.</summary>
     public event Action Clicked;
@@ -93,7 +95,7 @@ public partial class NegotiationTokenChip : PanelContainer
             CustomMinimumSize = new Vector2(SizePx, SizePx),
             // A bare Control defaults to MOUSE_FILTER_STOP: without this
             // override the holder sits on top of the chip, swallows every
-            // press, and _GuiInput/_GetDragData below never fire, which is
+            // press, and _GuiInput below never fires, which is
             // exactly the "can't play actions in spoken-lines mode" bug.
             MouseFilter = MouseFilterEnum.Ignore,
         };
@@ -212,50 +214,5 @@ public partial class NegotiationTokenChip : PanelContainer
             AcceptEvent();
             Clicked?.Invoke();
         }
-    }
-
-    // ── Drag plumbing (secondary; retained for a future pass) ────────────
-
-    public override Variant _GetDragData(Vector2 atPosition)
-    {
-        if (!Interactive || (CanDrag != null && !CanDrag())) return default;
-        SetDragPreview(new NegotiationTokenChip
-        {
-            Token = Token,
-            ArtOverride = ArtOverride,
-            Count = Count,
-            SizePx = SizePx,
-            Interactive = false,
-            Modulate = new Color(1f, 1f, 1f, 0.85f),
-        });
-        return new Godot.Collections.Dictionary { { "negotiation_token", (int)Token } };
-    }
-
-    public static LeverageToken? ExtractToken(Variant data)
-    {
-        if (data.VariantType != Variant.Type.Dictionary) return null;
-        var d = data.AsGodotDictionary();
-        if (!d.ContainsKey("negotiation_token")) return null;
-        return (LeverageToken)(int)d["negotiation_token"];
-    }
-}
-
-/// <summary>Anything a token could be dropped ON. Unused by the current
-/// click-first interaction; kept for a future drag pass.</summary>
-public partial class NegotiationDropZone : PanelContainer
-{
-    public Func<LeverageToken, bool> CanDropToken;
-    public Action<LeverageToken> OnTokenDropped;
-
-    public override bool _CanDropData(Vector2 atPosition, Variant data)
-    {
-        var tok = NegotiationTokenChip.ExtractToken(data);
-        return tok.HasValue && (CanDropToken?.Invoke(tok.Value) ?? false);
-    }
-
-    public override void _DropData(Vector2 atPosition, Variant data)
-    {
-        var tok = NegotiationTokenChip.ExtractToken(data);
-        if (tok.HasValue) OnTokenDropped?.Invoke(tok.Value);
     }
 }

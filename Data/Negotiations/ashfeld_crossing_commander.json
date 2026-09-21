@@ -4,79 +4,92 @@
  "npcName": "Colour-Serjeant Adric Vane",
  "archetype": "Commander",
  "factionId": "ashfeld_remnant",
+ "basePatience": 7,
+ "startingGoodwill": 2,
  "openingText": "Vane commands the rear guard of an army that surrendered before he was born, at a crossing neither side won, and he does it properly: pickets out, ground chosen, challenge given at the correct distance. 'State your business at the ford,' he says. 'I am obliged to record it.'",
  "openingTextLate": "Vane's pickets stand closer to the ford than they used to, and there are fewer of them. 'Something has been testing my line at night,' he says, as if reporting weather. 'It is not in the book. You are. State your business at the ford.'",
- "startingTension": 6,
- "basePatience": 7,
- "npcResolve": 4,
- "npcGuile": 1,
- "npcPoise": 1,
- "dialogueCordial": "Then we understand each other, and I will enter it as a lawful passage.",
- "dialogueStrained": "That is not a satisfactory answer. It is, I concede, an answer.",
- "dialogueHostile": "You will not raise your voice at my picket line. I have shot men for less and entered it correctly.",
- "dialogueWalkaway": "Then you are turned back at the ford. It is in the book. Good day.",
  "dialogueWalkawayLate": "Then you are turned back at the ford. Mind the dark on your way out. It has been minding us.",
+ "dialogueWalkaway": "Then you are turned back at the ford. It is in the book. Good day.",
  "dialogueAccept": "Recorded and countersigned. The crossing is yours until dusk.",
- "terms": [
+ "confidence": "He has worked out there is no army. He is asking you not to say so aloud.",
+ "clauses": [
   {
    "id": "lawful_passage",
+   "text": "The ford, unopposed, with his pickets stood down and the crossing entered in the book.",
    "shortName": "ford passage",
-   "description": "The ford, unopposed, with his pickets stood down and the crossing entered in the book.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3,
-   "stepsDelta": 4
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 4,
+   "safeConductSteps": 36,
+   "fuelDelta": 2
   },
   {
    "id": "the_ground_itself",
+   "text": "Where both armies put their reserves, their dead, and their pay chests.",
    "shortName": "field survey",
-   "description": "Where both armies put their reserves, their dead, and their pay chests.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 70,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 4
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 4,
+   "goldDelta": 70
   },
   {
    "id": "relieve_the_line",
+   "text": "Provisions for a rear guard that has not been resupplied in two hundred years.",
    "shortName": "relief shipment",
-   "description": "Provisions for a rear guard that has not been resupplied in two hundred years.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": 0,
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 6,
    "reputationDelta": 2,
-   "startingPosition": -1,
-   "weight": 4,
    "factionId": "ashfeld_remnant",
    "suppliesDelta": -25
   },
   {
    "id": "carry_the_despatch",
+   "text": "You carry his despatch to a headquarters that does not exist. He knows. Carry it anyway.",
    "shortName": "despatch",
-   "description": "You carry his despatch to a headquarters that does not exist. He knows. Carry it anyway.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 3,
-   "stepsDelta": -3
+   "side": "Yours",
+   "kind": "Service",
+   "value": 3,
+   "fuelDelta": -3
   },
   {
-   "id": "no_relief_coming",
-   "shortName": "unspoken truth",
-   "description": "He has worked out there is no army. He is asking you not to say so aloud.",
-   "rumorText": "He never once asks when the relief column arrives. Every other soldier here has asked twice.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": -15,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 1
+   "id": "dispositions",
+   "text": "Their dispositions: where every picket and camp on this ground stands",
+   "shortName": "dispositions",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "chartRadius": 10,
+   "revealPoiKinds": [
+    "Combat"
+   ]
+  },
+  {
+   "id": "camp_right",
+   "text": "Right to camp inside their lines: a supply anchor while you're here",
+   "shortName": "camp right",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 3,
+   "supplyAnchorHere": true
+  },
+  {
+   "id": "provisions",
+   "text": "Provisions from your stores for their line",
+   "shortName": "provisions",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": -12
+  },
+  {
+   "id": "dispatch",
+   "text": "You carry a dispatch to the next post",
+   "shortName": "dispatch",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 1,
+   "fuelDelta": -2
   }
  ]
 }

@@ -4,64 +4,87 @@
  "npcName": "Old Marrow",
  "archetype": "Survivor",
  "factionId": "roadbound",
- "openingText": "He's been watching you for an hour before he lets you see him: a weathered man in a coat of stitched tarpaulin, crossbow held easy, not quite pointed away. 'Twelve of us came through here. I'm what's left. You want what I know, and I want to not die out here. So. Talk slow, and keep your hands where the light is.'",
- "startingTension": 6,
  "basePatience": 6,
- "npcResolve": 2,
- "npcGuile": 1,
- "npcPoise": 2,
- "dialogueCordial": "...You talk like someone who's buried people too. Alright.",
- "dialogueStrained": "Keep talking. The crossbow stays where it is.",
- "dialogueHostile": "I've survived worse than wizards. Don't make me prove it.",
+ "startingGoodwill": 2,
+ "openingText": "He's been watching you for an hour before he lets you see him: a weathered man in a coat of stitched tarpaulin, crossbow held easy, not quite pointed away. 'Twelve of us came through here. I'm what's left. You want what I know, and I want to not die out here. So. Talk slow, and keep your hands where the light is.'",
  "dialogueWalkaway": "Enough. I was doing fine before you, I'll do fine after.",
  "dialogueAccept": "Deal. Don't make me regret trusting somebody again.",
- "terms": [
+ "confidence": "Marrow is not going to the next settlement. He wants you to carry the others.",
+ "clauses": [
   {
    "id": "dead_wells",
+   "text": "Marrow marks which wells are dry and which route still runs: the country charted, and the fuel the castle would have burned finding out.",
    "shortName": "well map",
-   "description": "Marrow marks which wells are dry and which route still runs: 3 steps saved.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "stepsDelta": 3,
-   "startingPosition": -1,
-   "weight": 3
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "fuelDelta": 2,
+   "chartRadius": 12,
+   "npcValue": 1
   },
   {
    "id": "water_cache",
+   "text": "He'll split his water cache if you're carrying wounded.",
    "shortName": "water cache",
-   "description": "He'll split his water cache if you're carrying wounded.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 15,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 1
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 1,
+   "goldDelta": 15
   },
   {
    "id": "walk_me_out",
+   "text": "He wants escort to the next settlement: the castle burns its fuel on his road instead of yours.",
    "shortName": "escort request",
-   "description": "He wants escort to the next settlement: your pace slows by 2 steps.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "stepsDelta": -2,
-   "startingPosition": -1,
-   "weight": 2
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -2
   },
   {
    "id": "caravan_stash",
+   "text": "Where the caravan buried its strongbox before the end: 35 gold in salvage.",
    "shortName": "buried strongbox",
-   "description": "Where the caravan buried its strongbox before the end: 35 gold in salvage.",
-   "rumorText": "He keeps not-looking at a patch of ground the way other men not-look at money.",
-   "favorPlayer": true,
-   "isHidden": true,
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 3,
    "goldDelta": 35,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 2
+   "npcValue": 2
+  },
+  {
+   "id": "hide",
+   "text": "Their hide: a place to lie up, and a supply anchor while you use it",
+   "shortName": "hide",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 2,
+   "supplyAnchorHere": true,
+   "npcValue": 2
+  },
+  {
+   "id": "rations",
+   "text": "Rations from your stores",
+   "shortName": "rations",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": -10
+  },
+  {
+   "id": "walk_out",
+   "text": "You walk them to the next safe place",
+   "shortName": "escort out",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -3
+  },
+  {
+   "id": "weapon",
+   "text": "A spare blade from your armory",
+   "shortName": "spare blade",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 1
   }
  ]
 }

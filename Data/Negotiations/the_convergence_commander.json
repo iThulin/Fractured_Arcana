@@ -4,79 +4,94 @@
  "npcName": "Marshal Cazrek Oule",
  "archetype": "Commander",
  "factionId": "convergence_claimants",
+ "basePatience": 5,
+ "startingGoodwill": 1,
  "openingText": "Oule has three ages of rubble under his boots and a banner that has been struck through on every stone in sight. He does not sit and does not offer. 'Every party that has held this crossing lost it,' he says. 'I am aware of the pattern. I am going to be the exception, and you are going to help me or you are going to be part of the stratum. Speak.'",
  "openingTextLate": "Oule's banner carries new stitching over old burns, and his pickets stand where the rubble is freshest. 'The pattern is accelerating,' he says. 'Every claimant loses this crossing faster than the last. I remain determined to be the exception. Speak.'",
- "startingTension": 8,
- "basePatience": 5,
  "escalatesToCombat": true,
- "npcResolve": 5,
- "npcGuile": 2,
- "npcPoise": 0,
- "dialogueCordial": "Then you are useful, and useful things survive here longer than brave ones.",
- "dialogueStrained": "I have heard that offer from four claimants and buried three of them.",
- "dialogueHostile": "You are one word from being an incident I write up afterwards.",
  "dialogueWalkaway": "Then you are hostile by default and my pickets have your description.",
  "dialogueAccept": "Done. Hold to it. I have never yet had to explain what happens otherwise twice.",
- "terms": [
+ "confidence": "The pickets are all of it. Oule commands one under-strength company and a banner.",
+ "clauses": [
   {
    "id": "the_centre_ground",
+   "text": "Passage to the junction itself, where the ley-lines cross and nobody is permitted.",
    "shortName": "junction passage",
-   "description": "Passage to the junction itself, where the ley-lines cross and nobody is permitted.",
-   "favorPlayer": true,
-   "isHidden": false,
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 6,
    "goldDelta": 40,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 4,
-   "stepsDelta": 4
+   "fuelDelta": 4
   },
   {
    "id": "what_the_strata_hold",
+   "text": "Three ages of dropped material, and Oule's map of which layer is which.",
    "shortName": "strata map",
-   "description": "Three ages of dropped material, and Oule's map of which layer is which.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 90,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 4
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 4,
+   "goldDelta": 90
   },
   {
    "id": "swear_to_the_banner",
+   "text": "You are entered as his auxiliary. Every other claimant here learns it within the day.",
    "shortName": "banner oath",
-   "description": "You are entered as his auxiliary. Every other claimant here learns it within the day.",
-   "favorPlayer": false,
-   "isHidden": false,
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 6,
    "goldDelta": -60,
    "reputationDelta": -2,
-   "startingPosition": -2,
-   "weight": 4,
    "factionId": "aegis_concordat"
   },
   {
    "id": "provision_the_line",
+   "text": "Thirty supplies to a force that has been holding open ground for a season.",
    "shortName": "provisioning",
-   "description": "Thirty supplies to a force that has been holding open ground for a season.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": 0,
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 6,
    "reputationDelta": 2,
-   "startingPosition": -2,
-   "weight": 4,
    "factionId": "convergence_claimants",
    "suppliesDelta": -30
   },
   {
-   "id": "he_has_no_reserve",
-   "shortName": "hollow muster",
-   "description": "The pickets are all of it. Oule commands one under-strength company and a banner.",
-   "rumorText": "The same faces stand every picket, and the banner is guarded by men who should be sleeping.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": -25,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 2
+   "id": "dispositions",
+   "text": "Their dispositions: where every picket and camp on this ground stands",
+   "shortName": "dispositions",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "chartRadius": 10,
+   "revealPoiKinds": [
+    "Combat"
+   ]
+  },
+  {
+   "id": "safe_conduct",
+   "text": "Safe conduct under their banner: no patrol will trouble you",
+   "shortName": "safe conduct",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 3,
+   "safeConductSteps": 35
+  },
+  {
+   "id": "provisions",
+   "text": "Provisions from your stores for their line",
+   "shortName": "provisions",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": -12
+  },
+  {
+   "id": "stand_watch",
+   "text": "Your party stands a watch on their line",
+   "shortName": "watch duty",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -3
   }
  ]
 }

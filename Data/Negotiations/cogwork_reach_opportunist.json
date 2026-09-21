@@ -4,77 +4,80 @@
  "npcName": "Corvin Blake",
  "archetype": "Opportunist",
  "factionId": "gray_market",
- "openingText": "Blake is leaning on a toll-post that carries three separate charter seals, all valid, all voiding the other two. 'Nobody can collect here without admitting the other two exist,' he says happily. 'So nobody does. I find that sort of gap very habitable. What have you got?'",
- "startingTension": 5,
  "basePatience": 7,
- "npcResolve": 2,
- "npcGuile": 4,
- "npcPoise": 0,
- "dialogueCordial": "Now you are speaking my language. Keep going, I like where this ends up.",
- "dialogueStrained": "Mm. That is an offer. I have had offers. What else is in the bag?",
- "dialogueHostile": "Careful. I know four people who would pay to know where you are standing right now.",
+ "startingGoodwill": 3,
+ "openingText": "Blake is leaning on a toll-post that carries three separate charter seals, all valid, all voiding the other two. 'Nobody can collect here without admitting the other two exist,' he says happily. 'So nobody does. I find that sort of gap very habitable. What have you got?'",
  "dialogueWalkaway": "No deal, no hard feelings, no protection either. Watch the second gatehouse.",
  "dialogueAccept": "Done. And you never heard the name of the man who arranged it.",
- "terms": [
+ "confidence": "He is already selling the same information to somebody else, tonight.",
+ "clauses": [
   {
    "id": "gap_in_the_ledger",
+   "text": "Blake loses your column from three sets of toll records. Nobody knows you passed.",
    "shortName": "ledger gap",
-   "description": "Blake loses your column from three sets of toll records. Nobody knows you passed.",
-   "favorPlayer": true,
-   "isHidden": false,
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 3,
    "goldDelta": 40,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3
+   "safeConductSteps": 20
   },
   {
    "id": "who_is_buying",
+   "text": "The names of everyone who has asked after you in the Reach this month.",
    "shortName": "buyer list",
-   "description": "The names of everyone who has asked after you in the Reach this month.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
+   "side": "Theirs",
+   "kind": "Honor",
+   "value": 3,
    "reputationDelta": 1,
-   "startingPosition": 0,
-   "weight": 2,
    "factionId": "gray_market"
   },
   {
    "id": "cache_lines",
+   "text": "Blake's people know where the Charter parks its provisions. He will draw you a map.",
    "shortName": "cache map",
-   "description": "Blake's people know where the Charter parks its provisions. He will draw you a map.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3,
-   "revealsSupplyCaches": true
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "revealsSupplyCaches": true,
+   "revealPoiKinds": [
+    "SupplyCache"
+   ]
   },
   {
    "id": "courier_favour",
+   "text": "You carry a small sealed package two towns north. Do not open it.",
    "shortName": "courier favour",
-   "description": "You carry a small sealed package two towns north. Do not open it.",
-   "favorPlayer": false,
-   "isHidden": false,
+   "side": "Yours",
+   "kind": "Service",
+   "value": 3,
    "goldDelta": -20,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 3,
-   "stepsDelta": -2
+   "fuelDelta": -2
   },
   {
-   "id": "the_other_buyer",
-   "shortName": "other buyer",
-   "description": "He is already selling the same information to somebody else, tonight.",
-   "rumorText": "Blake keeps glancing at the door, like a man expecting a second appointment.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": 0,
-   "reputationDelta": -1,
-   "startingPosition": -1,
-   "weight": 2,
-   "factionId": "gray_market"
+   "id": "blind_spot",
+   "text": "The gap in the patrol rota, and the hour it opens",
+   "shortName": "blind spot",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 2,
+   "safeConductSteps": 25
+  },
+  {
+   "id": "cut",
+   "text": "A cut: 40 gold, no receipt",
+   "shortName": "cut",
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 2,
+   "goldDelta": -40
+  },
+  {
+   "id": "look_away",
+   "text": "You look the other way, once, when asked",
+   "shortName": "blind eye",
+   "side": "Yours",
+   "kind": "Favor",
+   "value": 2
   }
  ]
 }

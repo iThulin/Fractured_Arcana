@@ -4,78 +4,95 @@
  "npcName": "Ranger-Captain Ede Thallow",
  "archetype": "Commander",
  "factionId": "crag_wardens",
+ "basePatience": 8,
+ "startingGoodwill": 3,
  "openingText": "Thallow lets you see her before she speaks, which in the Crags is a courtesy with a price attached. Two more on the opposite ridge do the same a moment later. 'The pass is two wide and overlooked from three sides,' she says, conversationally. 'I would like us to agree on what that costs before anybody is tired.'",
  "openingTextLate": "Thallow lets you see her, as before. Only one shadow answers from the opposite ridge this time. 'The pass is two wide, overlooked from three sides, and lately contested from a fourth I don't put on maps,' she says. 'I would like us to be quick.'",
- "startingTension": 5,
- "basePatience": 8,
- "npcResolve": 4,
- "npcGuile": 2,
- "npcPoise": 1,
- "dialogueCordial": "Good. I would rather take your coin than your kit off the rocks below.",
- "dialogueStrained": "You are haggling on ground you do not hold. I admire it. I am not moved by it.",
- "dialogueHostile": "My people are cold and bored and you are raising your voice. Reconsider.",
- "dialogueWalkaway": "Then the long way is open to you. It adds two days and passes under four ridges.",
  "dialogueWalkawayLate": "Then the long way is open to you. It adds two days, and I no longer vouch for what holds the ridges above it.",
+ "dialogueWalkaway": "Then the long way is open to you. It adds two days and passes under four ridges.",
  "dialogueAccept": "Agreed. My whistle goes ahead of you to the far end. Nothing will trouble you inside it.",
- "terms": [
+ "confidence": "Three of those ridge positions are empty and she is bluffing one of them.",
+ "clauses": [
   {
    "id": "through_passage",
+   "text": "Safe conduct the length of the Crags, called ahead ridge by ridge.",
    "shortName": "through passage",
-   "description": "Safe conduct the length of the Crags, called ahead ridge by ridge.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3,
-   "stepsDelta": 4
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 4,
+   "safeConductSteps": 36,
+   "fuelDelta": 2,
+   "npcValue": 3
   },
   {
    "id": "the_watched_ground",
+   "text": "Every position with a sightline on the pass, and which are held this season.",
    "shortName": "sightline survey",
-   "description": "Every position with a sightline on the pass, and which are held this season.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 55,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 3,
+   "goldDelta": 55
   },
   {
    "id": "cache_rights",
+   "text": "Use of the warden caches on the route. Take what you need, replace what you take.",
    "shortName": "cache access",
-   "description": "Use of the warden caches on the route. Take what you need, replace what you take.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
+   "side": "Theirs",
+   "kind": "Goods",
+   "value": 4,
    "reputationDelta": 1,
-   "startingPosition": 0,
-   "weight": 3,
    "factionId": "crag_wardens",
-   "suppliesDelta": 15
+   "suppliesDelta": 15,
+   "npcValue": 3
   },
   {
    "id": "the_toll",
+   "text": "The toll itself, which she has not lowered for anyone in nine years.",
    "shortName": "toll",
-   "description": "The toll itself, which she has not lowered for anyone in nine years.",
-   "favorPlayer": false,
-   "isHidden": false,
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 2,
    "goldDelta": -50,
-   "reputationDelta": 0,
-   "startingPosition": -2,
-   "weight": 4
+   "npcValue": 3
   },
   {
-   "id": "she_is_short_handed",
-   "shortName": "ridge bluff",
-   "description": "Three of those ridge positions are empty and she is bluffing one of them.",
-   "rumorText": "The ridge lanterns burn in the same pattern every night. Real watches rotate.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": -15,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 1
+   "id": "dispositions",
+   "text": "Their dispositions: where every picket and camp on this ground stands",
+   "shortName": "dispositions",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "chartRadius": 10,
+   "revealPoiKinds": [
+    "Combat"
+   ]
+  },
+  {
+   "id": "provisions",
+   "text": "Provisions from your stores for their line",
+   "shortName": "provisions",
+   "side": "Yours",
+   "kind": "Goods",
+   "value": 2,
+   "suppliesDelta": -12
+  },
+  {
+   "id": "stand_watch",
+   "text": "Your party stands a watch on their line",
+   "shortName": "watch duty",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -3
+  },
+  {
+   "id": "dispatch",
+   "text": "You carry a dispatch to the next post",
+   "shortName": "dispatch",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 1,
+   "fuelDelta": -2
   }
  ]
 }

@@ -4,65 +4,93 @@
  "npcName": "Silt",
  "archetype": "Opportunist",
  "factionId": "gray_market",
- "openingText": "The fixer materializes beside your campfire as if she'd always been sitting there. 'Relax. If I wanted trouble, you'd already be having it. I move things: goods, people, information. You're carrying at least two of those. Let's talk percentages.'",
- "startingTension": 5,
  "basePatience": 6,
- "npcResolve": 1,
- "npcGuile": 3,
- "npcPoise": 0,
- "dialogueCordial": "See, this is nice. Everybody making money, nobody bleeding.",
- "dialogueStrained": "You're leaving value on the table. That offends me professionally.",
- "dialogueHostile": "Careful. I know what your route is worth to certain people.",
+ "startingGoodwill": 3,
+ "openingText": "The fixer materializes beside your campfire as if she'd always been sitting there. 'Relax. If I wanted trouble, you'd already be having it. I move things: goods, people, information. You're carrying at least two of those. Let's talk percentages.'",
  "dialogueWalkaway": "Time is inventory, and you're spoiling mine. Gone.",
  "dialogueAccept": "Pleasure. Whatever you heard about me, this deal I keep.",
- "terms": [
+ "confidence": "The checkpoint changed its rota last week. Silt found out the same way you would have.",
+ "clauses": [
   {
    "id": "smugglers_path",
+   "text": "Silt marks the smugglers' path through the checkpoint ahead: the route charted, a little fuel for the castle, and the patrols looking the other way for a while.",
    "shortName": "smugglers' path",
-   "description": "Silt marks the smugglers' path through the checkpoint ahead, saving you 2 steps.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "stepsDelta": 2,
-   "startingPosition": -1,
-   "weight": 2
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "fuelDelta": 1,
+   "chartRadius": 10,
+   "rider": "finders_cut",
+   "safeConductSteps": 15
   },
   {
    "id": "fence_goods",
+   "text": "She'll fence your surplus salvage at 40 gold, better than any settlement rate.",
    "shortName": "fencing deal",
-   "description": "She'll fence your surplus salvage at 40 gold, better than any settlement rate.",
-   "favorPlayer": true,
-   "isHidden": false,
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 3,
    "goldDelta": 40,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 3
+   "rider": "deniability"
   },
   {
    "id": "finders_cut",
+   "text": "A 'finder's cut' of 20 gold, buried three clauses deep.",
    "shortName": "finder's cut",
-   "description": "A 'finder's cut' of 20 gold, buried three clauses deep.",
-   "rumorText": "She counts your take with her eyes while she talks, and she is not counting for you.",
-   "favorPlayer": false,
-   "isHidden": true,
+   "side": "Yours",
+   "kind": "Obligation",
+   "value": 1,
    "goldDelta": -20,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 1
+   "npcValue": 3
   },
   {
    "id": "deniability",
+   "text": "A deniability clause: if her cargo is seized, the manifest names YOUR guild.",
    "shortName": "manifest clause",
-   "description": "A deniability clause: if her cargo is seized, the manifest names YOUR guild.",
-   "rumorText": "Her cargo has no papers you have seen, and somehow that is about to be your problem.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": 0,
+   "side": "Yours",
+   "kind": "Obligation",
+   "value": 2,
    "reputationDelta": -1,
    "factionId": "gray_market",
-   "startingPosition": -2,
-   "weight": 2
+   "npcValue": 3
+  },
+  {
+   "id": "blind_spot",
+   "text": "The gap in the patrol rota, and the hour it opens",
+   "shortName": "blind spot",
+   "side": "Theirs",
+   "kind": "Passage",
+   "value": 2,
+   "safeConductSteps": 25
+  },
+  {
+   "id": "cache_map",
+   "text": "Where the locals park what they don't want found",
+   "shortName": "cache map",
+   "side": "Theirs",
+   "kind": "Lore",
+   "value": 3,
+   "revealPoiKinds": [
+    "SupplyCache"
+   ]
+  },
+  {
+   "id": "cut",
+   "text": "A cut: 40 gold, no receipt",
+   "shortName": "cut",
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 2,
+   "goldDelta": -40
+  },
+  {
+   "id": "package",
+   "text": "You carry a small sealed package two towns on",
+   "shortName": "package",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "fuelDelta": -2
   }
  ]
 }

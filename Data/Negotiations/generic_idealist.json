@@ -4,64 +4,95 @@
  "npcName": "Sister Maretta",
  "archetype": "Idealist",
  "factionId": "wayfarers_circle",
- "openingText": "The warden meets you at the gate of the refugee waystation, sleeves rolled, ledger in hand. 'Wizards. Good... or bad, depending. We shelter forty souls and feed thirty of them. Whatever brought you here, I'll ask you plainly: will you help, and what will it cost me?'",
- "startingTension": 3,
  "basePatience": 7,
- "npcResolve": 1,
- "npcGuile": 1,
- "npcPoise": 2,
- "dialogueCordial": "The Circle remembers its friends. Longer than kings do.",
- "dialogueStrained": "I've heard promises before. Show me terms I can hold in my hand.",
- "dialogueHostile": "There are children behind that gate. Mind your tone.",
+ "startingGoodwill": 3,
+ "openingText": "The warden meets you at the gate of the refugee waystation, sleeves rolled, ledger in hand. 'Wizards. Good... or bad, depending. We shelter forty souls and feed thirty of them. Whatever brought you here, I'll ask you plainly: will you help, and what will it cost me?'",
  "dialogueWalkaway": "Then we have nothing to discuss. The road is that way.",
  "dialogueAccept": "Then it's done, and witnessed under the open sky. Walk safely.",
- "terms": [
+ "confidence": "The reliquary has been empty since spring. Maretta keeps the key so nobody checks.",
+ "clauses": [
   {
-   "id": "provision_camp",
-   "shortName": "provisioning",
-   "description": "Provision the waystation from your stores: 20 gold of supplies.",
-   "favorPlayer": false,
-   "isHidden": false,
-   "goldDelta": -20,
-   "reputationDelta": 0,
-   "startingPosition": -1,
-   "weight": 1
+   "id": "shelter",
+   "text": "Shelter at the waystation for the run: a supply anchor while its door is open, and a warm night",
+   "shortName": "shelter",
+   "side": "Theirs",
+   "kind": "Service",
+   "value": 3,
+   "npcValue": 1,
+   "supplyAnchorHere": true,
+   "fuelDelta": 3
   },
   {
    "id": "circle_marks",
+   "text": "The Circle marks your guild a friend of the road, and charts the pilgrim ways for you",
    "shortName": "circle mark",
-   "description": "The Circle marks your guild as a friend of the road. Word travels between every waystation.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 2,
+   "side": "Theirs",
+   "kind": "Honor",
+   "value": 2,
+   "npcValue": 2,
+   "reputationDelta": 1,
    "factionId": "wayfarers_circle",
-   "startingPosition": -1,
-   "weight": 3
+   "chartRadius": 9
   },
   {
-   "id": "guides_blessing",
-   "shortName": "guide",
-   "description": "A guide walks you past the flooded fords: 2 steps saved.",
-   "favorPlayer": true,
-   "isHidden": false,
-   "goldDelta": 0,
-   "reputationDelta": 0,
-   "stepsDelta": 2,
-   "startingPosition": -1,
-   "weight": 2
+   "id": "tithe_box",
+   "text": "The Circle's tithe box, opened for a friend",
+   "shortName": "tithe box",
+   "side": "Theirs",
+   "kind": "Gold",
+   "value": 3,
+   "npcValue": 4,
+   "goldDelta": 40
   },
   {
-   "id": "old_debt",
-   "shortName": "future favor",
-   "description": "A quiet request: the Circle asks a future favor of the guild, to be named when needed.",
-   "rumorText": "The Circle gives freely, and keeps a very long memory of what it has given.",
-   "favorPlayer": false,
-   "isHidden": true,
-   "goldDelta": 0,
-   "reputationDelta": -1,
-   "startingPosition": -1,
-   "weight": 1
+   "id": "reliquary_key",
+   "text": "The key to the old reliquary, and a word about the novice Tamsin who keeps it",
+   "shortName": "reliquary key",
+   "side": "Theirs",
+   "kind": "Honor",
+   "value": 4,
+   "npcValue": 3,
+   "revealPoiKinds": [
+    "Narrative"
+   ]
+  },
+  {
+   "id": "provision_camp",
+   "text": "30 gold for the poor box",
+   "shortName": "poor box",
+   "side": "Yours",
+   "kind": "Gold",
+   "value": 2,
+   "npcValue": 1,
+   "goldDelta": -30
+  },
+  {
+   "id": "vow",
+   "text": "A vow to harm no pilgrim on the road",
+   "shortName": "vow",
+   "side": "Yours",
+   "kind": "Honor",
+   "value": 1,
+   "npcValue": 4
+  },
+  {
+   "id": "tend_sick",
+   "text": "Your party tends the sick in the cloister for a day",
+   "shortName": "day's care",
+   "side": "Yours",
+   "kind": "Service",
+   "value": 2,
+   "npcValue": 3,
+   "fuelDelta": -3
+  },
+  {
+   "id": "relic",
+   "text": "The relic you carried out of the Sunken Archive",
+   "shortName": "relic",
+   "side": "Yours",
+   "kind": "Lore",
+   "value": 3,
+   "npcValue": 2
   }
  ]
 }
