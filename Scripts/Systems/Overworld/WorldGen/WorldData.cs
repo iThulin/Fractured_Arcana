@@ -140,6 +140,22 @@ public class WorldPoi
     /// <summary>True if discovering/securing this POI grants a staging point.</summary>
     public bool GrantsStaging = false;
 
+    // ── Harvestable regrowth (ruling 7, 2026-09-21) ──────────────────────
+    /// <summary>True if this POI is a renewable resource site rather than a
+    /// one-shot. An exhausted POI is gone for the cycle EXCEPT a harvestable
+    /// one, which regrows and can be worked again later.</summary>
+    public bool Harvestable = false;
+
+    /// <summary>Lunations a harvestable POI takes to regrow after being
+    /// worked. 0 with Harvestable true reads as "ready again next lunation".</summary>
+    public int RegenLunations = 0;
+
+    /// <summary>Lunation this POI becomes workable again, or 0 when it is
+    /// ready now. Set when a harvest consumes it; compared against the
+    /// calendar rather than counted down, so a quit mid-cycle cannot lose or
+    /// gain regrowth time.</summary>
+    public int RegenReadyLunation = 0;
+
     // ── Supply caches only (Kind == PoiKind.SupplyCache) ──────────────────
     /// <summary>Who harvests this cache: a kingdom id, or "guild" for the
     /// player. Empty (pre-feature saves) reads as the host KingdomId. Use

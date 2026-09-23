@@ -11,7 +11,7 @@ using System;
 //                 toward the currently selected clause / action.
 //                 Click is the only interaction: the drag-and-drop
 //                 plumbing (_GetDragData, NegotiationDropZone) was
-//                 removed 2026-09-17 — it had no drop target and its
+//                 removed 2026-09-17: it had no drop target and its
 //                 CanDrag gate was eating clicks.
 // Layer:          UI
 // Collaborators:  NegotiationManager.cs (creates chips, supplies

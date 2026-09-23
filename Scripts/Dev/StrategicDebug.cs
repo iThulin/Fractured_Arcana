@@ -237,6 +237,180 @@ public static class StrategicDebug
                  "Force Conjunction, then return to the strategic map. The Anchorhold opens.");
     }
 
+    /// <summary>Print the Expedition v2 state: the live anchor list the field
+    /// party can travel to, the lunation budget, and who is posted where. This
+    /// is a READ, not a lever: it changes nothing and fakes nothing, it just
+    /// makes the data layer observable before anything renders it.
+    ///
+    /// <para>The anchor list is the union ExpeditionAnchors builds over the
+    /// world tables (staging points, discovered shard zones, the parked castle,
+    /// built waypoints), so what prints here is exactly what a field-party
+    /// destination picker would offer.</para></summary>
+    public static void DumpExpeditionState()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            GD.PrintErr("[StrategicDebug] No active cycle.");
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("=== EXPEDITION v2 STATE ===");
+
+        sb.AppendLine(cycle.CastleX >= 0 && cycle.CastleY >= 0
+            ? $"Castle: ({cycle.CastleX},{cycle.CastleY}) " +
+              (cycle.CastleParked
+                  ? $"PARKED since lunation {cycle.CastleParkedLunation}"
+                  : "at dock")
+            : "Castle: not yet on the map this cycle");
+        sb.AppendLine($"Hold: {(cycle.CastleHold == null || cycle.CastleHold.IsEmpty ? "empty" : cycle.CastleHold.ToString())}");
+        sb.AppendLine($"Furnace: {cycle.CastleFuel}/{cycle.CastleMaxFuel} " +
+                      $"(march range {CastleMarch.RangeInTiles(cycle)} tile(s) at {CastleMarch.FuelPerTile}/tile)");
+        sb.AppendLine(cycle.CastleRepairLunations > 0
+            ? $"Resupply: {cycle.CastleRepairLunations} lunation(s) left, castle EXPOSED"
+            : "Resupply: complete");
+        if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
+        {
+            sb.AppendLine($"Castle defence owed against '{cycle.PendingCastleAssaultKingdomId}'");
+        }
+
+        var turn = cycle.ExpeditionTurn;
+        sb.AppendLine(turn == null
+            ? "Turn budget: absent"
+            : $"Turn budget: lunation {turn.Lunation}, castle move " +
+              $"{(turn.CastleMoveSpent ? "spent" : "available")}, " +
+              $"dives {turn.DivesSpent}/{turn.DivesPerLunation} " +
+              $"({turn.DivesRemaining} left)");
+
+        var anchors = ExpeditionAnchors.All(cycle);
+        sb.AppendLine($"Anchors: {anchors.Count}");
+        foreach (var a in anchors)
+        {
+            string charges = a.IsPermanent ? "permanent" : $"{a.ChargesLeft} charge(s)";
+            sb.AppendLine($"  [{a.Kind}] {a.Name} ({a.X},{a.Y}) {charges}" +
+                          $"{(a.Available ? "" : " UNAVAILABLE")}  key={a.Key}");
+        }
+
+        int campus = 0, crew = 0, field = 0;
+        if (cycle.Companions != null)
+        {
+            foreach (var c in cycle.Companions)
+            {
+                if (c == null || !c.IsRecruited)
+                {
+                    continue;
+                }
+                if (c.Posting == CompanionPosting.Crew) crew++;
+                else if (c.Posting == CompanionPosting.Field) field++;
+                else campus++;
+            }
+        }
+        sb.AppendLine($"Postings: {crew} crew, {field} field, {campus} campus " +
+                      $"(MaxPartySize {cycle.MaxPartySize}, MaxFieldParties {cycle.MaxFieldParties})");
+
+        if (cycle.FieldParties != null)
+        {
+            foreach (var p in cycle.FieldParties)
+            {
+                if (p == null)
+                {
+                    continue;
+                }
+                sb.AppendLine($"  {p.Id} '{p.Name}': {p.State}, at '{p.AnchorKey}'" +
+                              $"{(string.IsNullOrEmpty(p.DestinationAnchorKey) ? "" : $" bound for '{p.DestinationAnchorKey}' in {p.TravelPhasesRemaining} phase(s)")}" +
+                              $", members [{string.Join(", ", p.MemberCompanionIds ?? new System.Collections.Generic.List<string>())}]");
+            }
+        }
+
+        sb.AppendLine($"Signature pool: {cycle.SignaturePool?.Count ?? 0}/" +
+                      $"{cycle.SignaturePool?.MaxPoolSize ?? 0}, " +
+                      $"{cycle.SignatureGrants?.Count ?? 0} wizard grant(s)");
+
+        GD.Print(sb.ToString());
+    }
+
+    /// <summary>Bring a raid or an assault down on the parked castle now.
+    /// Uses the SAME resolution the lunation roll uses, so a forced threat costs
+    /// exactly what an organic one does. No lever reimplements game logic.</summary>
+    public static void ForceCastleThreat(CastleThreatKind kind)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            GD.PrintErr("[StrategicDebug] No active cycle.");
+            return;
+        }
+        if (!cycle.CastleParked)
+        {
+            GD.PrintErr("[StrategicDebug] The castle is not parked, so nothing can come for it.");
+            return;
+        }
+
+        var result = CastleThreats.ForceThreat(cycle, kind);
+        if (!result.Happened)
+        {
+            GD.Print("[StrategicDebug] Nothing came.");
+            return;
+        }
+        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+        cycle.PendingSiegeReports.Add(result.Report);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] {result.Kind}: {result.Report}");
+    }
+
+    /// <summary>March the parked castle to the nearest OTHER staging point it
+    /// can afford. Exercises the real CastleMarch path, refusals included, so
+    /// the lever cannot pass a march the game would reject.</summary>
+    public static void MarchCastleToNearestAnchor()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.World?.StagingPoints == null)
+        {
+            GD.PrintErr("[StrategicDebug] No world or staging points.");
+            return;
+        }
+
+        StagingPoint best = null;
+        int bestDist = int.MaxValue;
+        foreach (var sp in cycle.World.StagingPoints)
+        {
+            if (sp == null || (sp.X == cycle.CastleX && sp.Y == cycle.CastleY))
+            {
+                continue;
+            }
+            int d = cycle.World.HexDistance(cycle.CastleX, cycle.CastleY, sp.X, sp.Y);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = sp;
+            }
+        }
+
+        if (best == null)
+        {
+            GD.PrintErr("[StrategicDebug] Nowhere else to march to.");
+            return;
+        }
+
+        if (!CastleMarch.CanMarchTo(cycle, best.X, best.Y, out string why))
+        {
+            GD.Print($"[StrategicDebug] March refused: {why}");
+            return;
+        }
+
+        string line = CastleMarch.Execute(cycle, best.X, best.Y, "The castle");
+        if (!string.IsNullOrEmpty(line))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(line);
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+            GD.Print($"[StrategicDebug] {line}");
+        }
+    }
+
     private static bool HasOpenFront(CycleState cycle, string kingdomId)
     {
         var fronts = cycle.Warfronts;

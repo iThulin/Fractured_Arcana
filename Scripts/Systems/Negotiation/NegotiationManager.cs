@@ -19,7 +19,7 @@ using System.Linq;
 //                 Interaction model (v3.1, ruled 2026-09-18): the
 //                 slip is the verb (Ask for it / Give it); cards
 //                 are played from the hand, one per turn, before
-//                 the action — and act on a CATEGORY of the table
+//                 the action, and act on a CATEGORY of the table
 //                 (coin / access / standing / lore), never on one
 //                 slip, so there is no targeting mode (v3.2, ruled
 //                 2026-09-19). Tells, not numbers: their credit is a
@@ -107,7 +107,7 @@ public partial class NegotiationManager : Control
 
     private ColorRect _wash;   // full-screen school-colour wash for FX
 
-    // v3.4: no selection — the deck is the only control.
+    // v3.4: no selection, the deck is the only control.
 
     // Log
     private RichTextLabel _logLabel;
@@ -251,7 +251,7 @@ public partial class NegotiationManager : Control
             GD.Print("[Negotiation] Supply-lines intel on the table.");
         }
 
-        // S4: the social route to spells — a Warm-sealed clause.
+        // S4: the social route to spells, a Warm-sealed clause.
         var grimoire = cycle?.Grimoire;
         if (grimoire != null)
         {
@@ -992,7 +992,7 @@ public partial class NegotiationManager : Control
     }
 
     /// <summary>Hovering a card lights the terms it may touch and dims the
-    /// rest; leaving restores every term's resting look. Pure modulate — no
+    /// rest; leaving restores every term's resting look. Pure modulate, with no
     /// rebuild, so it is cheap and cannot disturb a running FX tween's node.</summary>
     private void HoverCard(ParleyCard card)
     {
@@ -1046,9 +1046,9 @@ public partial class NegotiationManager : Control
             tile.MouseFilter = MouseFilterEnum.Pass;
             tile.TooltipText = !faceUp
                 ? (n.Kind == NpcCardKind.Final ? "Face-down. They'll play it when their patience is nearly gone." : "Face-down. They'll play it partway through.")
-                : n.Played ? $"{n.Name} — played." + (target != null ? $" It named the {NegotiationState.ShortName(target)}." : "")
-                : n.Kind == NpcCardKind.Squeeze ? $"{n.Name} — they hold a grievance. At the handshake they'll want" + (target != null ? $" the {NegotiationState.ShortName(target)}." : " one more thing.")
-                : $"{n.Name} — when it plays, it names" + (target != null ? $" the {NegotiationState.ShortName(target)}." : " something of yours.");
+                : n.Played ? $"{n.Name}: played." + (target != null ? $" It named the {NegotiationState.ShortName(target)}." : "")
+                : n.Kind == NpcCardKind.Squeeze ? $"{n.Name}: they hold a grievance. At the handshake they'll want" + (target != null ? $" the {NegotiationState.ShortName(target)}." : " one more thing.")
+                : $"{n.Name}: when it plays, it names" + (target != null ? $" the {NegotiationState.ShortName(target)}." : " something of yours.");
             _npcCardRow.AddChild(tile);
             _npcCardNodes[n.Kind] = tile;
         }
@@ -1064,7 +1064,7 @@ public partial class NegotiationManager : Control
         else if (_state.PendingCounter != null) _hintLabel.Text = "They've made a counter-offer.";
         else if (_state.BundleArmed) _hintLabel.Text = "Bundle armed: your next Claim takes contested terms too.";
         else if (_state.ForceArmed) _hintLabel.Text = "Your next Claim goes through whether they like it or not.";
-        else if (_state.IsWaiting) _hintLabel.Text = "Clock held — your next card won't cost patience.";
+        else if (_state.IsWaiting) _hintLabel.Text = "Clock held. Your next card won't cost patience.";
 
         else if (_state.HasGrievance && _state.PredictSqueezeTarget() != null)
             _hintLabel.Text = $"A handshake now draws one last demand: the {NegotiationState.ShortName(_state.PredictSqueezeTarget())}.";
@@ -1081,11 +1081,11 @@ public partial class NegotiationManager : Control
         switch (r.Kind)
         {
             case ReactionKind.Agree:
-                return $"Locked — the {name(0)} is yours in the ledger. Pull more, concede for credit, or shake hands.";
+                return $"Locked. The {name(0)} is yours in the ledger. Pull more, concede for credit, or shake hands.";
             case ReactionKind.Concede:
-                return $"Conceded — the {name(0)} is theirs and your credit rose. Pull, then claim.";
+                return $"Conceded. The {name(0)} is theirs and your credit rose. Pull, then claim.";
             case ReactionKind.Refuse:
-                return $"Refused — the {name(0)} is off the table and goodwill fell. Concede for credit, or pull further before you claim.";
+                return $"Refused. The {name(0)} is off the table and goodwill fell. Concede for credit, or pull further before you claim.";
             case ReactionKind.Beat:
             {
                 var want = _state.NamedWant;
@@ -1106,7 +1106,7 @@ public partial class NegotiationManager : Control
             case ReactionKind.Charm:
                 return "Goodwill is up, which is credit. Spend it on an ask.";
             case ReactionKind.Press:
-                return "Forced through — and they'll remember it at the handshake.";
+                return "Forced through, and they'll remember it at the handshake.";
             case ReactionKind.Flip:
                 return "One of their cards is face-up. You know what it will name; decide whether to have it ready.";
             case ReactionKind.Bluff:
@@ -1226,7 +1226,7 @@ public partial class NegotiationManager : Control
     }
 
     /// <summary>After a refresh, slide the marker from where it was drawn last
-    /// time to where it is now — the pull you can watch happen.</summary>
+    /// time to where it is now: the pull you can watch happen.</summary>
     private void SlideMarker(string id)
     {
         if (!_trackMarkers.TryGetValue(id, out var m) || !GodotObject.IsInstanceValid(m)) return;
@@ -1290,8 +1290,8 @@ public partial class NegotiationManager : Control
         kind.AddThemeFontSizeOverride("font_size", UITheme.NegotiationTinyFontSize);
         kind.AddThemeColorOverride("font_color", InkSoft);
         textCol.AddChild(kind);
-        if (lockedYours) textCol.AddChild(MakeTinyLabel("✔ LOCKED — YOURS", new Color(0.13f, 0.40f, 0.20f)));
-        else if (lockedTheirs) textCol.AddChild(MakeTinyLabel("✔ LOCKED — THEIRS", new Color(0.55f, 0.18f, 0.14f)));
+        if (lockedYours) textCol.AddChild(MakeTinyLabel("✔ LOCKED: YOURS", new Color(0.13f, 0.40f, 0.20f)));
+        else if (lockedTheirs) textCol.AddChild(MakeTinyLabel("✔ LOCKED: THEIRS", new Color(0.55f, 0.18f, 0.14f)));
         else if (wanted) textCol.AddChild(MakeTinyLabel($"◀ {_data.NpcName} wants this added", UITheme.GoldDim));
         else if (asked) textCol.AddChild(MakeTinyLabel("▶ what you asked for", UITheme.VioletDim));
         else if (pc == null && open && _state.NamedWant?.Id == c.Id)
@@ -1303,13 +1303,13 @@ public partial class NegotiationManager : Control
             {
                 var rl = MakeTinyLabel(c.AnyKnown
                     ? $"↳ comes with the {NegotiationState.ShortName(r)}"
-                    : "↳ comes with a condition — named when you ask", RiderRed);
+                    : "↳ comes with a condition, named when you ask", RiderRed);
                 rl.AutowrapMode = TextServer.AutowrapMode.WordSmart;
                 textCol.AddChild(rl);
             }
         }
-        if (c.RequiresWarm) textCol.AddChild(MakeTinyLabel("✦ sealed — only signs if they're Warm", SealAmber));
-        if (refused) textCol.AddChild(MakeTinyLabel("refused — off the table", RiderRed));
+        if (c.RequiresWarm) textCol.AddChild(MakeTinyLabel("✦ sealed: only signs if they're Warm", SealAmber));
+        if (refused) textCol.AddChild(MakeTinyLabel("refused: off the table", RiderRed));
 
         var valCol = new VBoxContainer { SizeFlagsVertical = SizeFlags.ShrinkBegin };
         valCol.AddThemeConstantOverride("separation", 3);
@@ -1348,14 +1348,14 @@ public partial class NegotiationManager : Control
             bottom.AddChild(BuildTrack(c));
         }
 
-        // v3.5: terms are display only; no tell text — the track and the band say it.
+        // v3.5: terms are display only; no tell text: the track and the band say it.
         card.MouseFilter = MouseFilterEnum.Pass;
         return card;
     }
 
     private Control MakeSeal(int value)
     {
-        var seal = new Panel { CustomMinimumSize = new Vector2(30, 30), TooltipText = "Trade value — what it's worth to you.", MouseFilter = MouseFilterEnum.Pass };
+        var seal = new Panel { CustomMinimumSize = new Vector2(30, 30), TooltipText = "Trade value: what it's worth to you.", MouseFilter = MouseFilterEnum.Pass };
         seal.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = SealGold,
@@ -1393,7 +1393,7 @@ public partial class NegotiationManager : Control
         if (c.SafeConductSteps > 0) parts.Add($"patrols stand down for the next {c.SafeConductSteps} hexes");
         if (!string.IsNullOrEmpty(c.SpellId)) parts.Add("teaches a spell" + (c.RequiresWarm ? " (if Warm)" : ""));
         if (!string.IsNullOrEmpty(c.LoreUnlock)) parts.Add("lore");
-        if (parts.Count == 0) parts.Add(c.Side == ClauseSide.Yours ? "a promise" : "—");
+        if (parts.Count == 0) parts.Add(c.Side == ClauseSide.Yours ? "a promise" : "-");
         return string.Join(" · ", parts);
     }
 
@@ -1465,7 +1465,7 @@ public partial class NegotiationManager : Control
 
     private void ShowCounterModal(CounterProposal pc)
     {
-        // Plain structure, names in full, the wanted clause in gold — and the
+        // Plain structure, names in full, the wanted clause in gold, and the
         // same slip is ringed in gold on the board behind this panel.
         string gold = UITheme.Gold.ToHtml(false);
         string violet = UITheme.Violet.ToHtml(false);
@@ -1473,7 +1473,7 @@ public partial class NegotiationManager : Control
         string askName = NegotiationState.ShortName(pc.Ask);
         string wantName = NegotiationState.ShortName(pc.Demand);
         string line = string.IsNullOrEmpty(pc.Line)
-            ? $"“The {askName} — if you add the {wantName}.”"
+            ? $"“The {askName}, if you add the {wantName}.”"
             : pc.Line;
 
         var sb = new System.Text.StringBuilder();
@@ -1487,7 +1487,7 @@ public partial class NegotiationManager : Control
             sb.Append($"\n[color={RiderRed.ToHtml(false)}]↳ and the {askName} carries the {NegotiationState.ShortName(pc.Rider)}, which goes in too[/color]");
         sb.Append($"\n\n[color={dim}]Agree: everything above goes into the ledger. Decline: nothing changes and the {askName} stays open.[/color]");
         _counterLabel.Text = sb.ToString();
-        _counterAcceptBtn.Text = $"Agree — add the {wantName}";
+        _counterAcceptBtn.Text = $"Agree: add the {wantName}";
         _counterDeclineBtn.Text = "Decline";
         _counterPanel.Visible = true;   // the gold pop on the wanted slip comes from the deferred Counter FX
     }
@@ -1991,7 +1991,7 @@ public partial class NegotiationManager : Control
         }
         foreach (var c in _state.Clauses.Where(c => c.RequiresWarm && c.State == ClauseState.Refused && !c.Ephemeral))
             Row("✦ " + NegotiationState.ShortName(c), UITheme.NegotiationHiddenTerm,
-                "lapsed — they were not Warm when you signed", "—", UITheme.TermAgainstPlayer);
+                "lapsed: they were not Warm when you signed", "-", UITheme.TermAgainstPlayer);
 
         _resultContent.AddChild(new HSeparator());
 

@@ -114,6 +114,17 @@ public partial class ExpeditionWindow3D : Node3D
     private readonly List<Node3D> _entities = new();   // moving entities: enemy patrols + roamer
     private readonly List<Node3D> _moveHints = new();
     private readonly List<Node3D> _stridePath = new();   // §3.4 stride-order preview ribbon
+    private readonly List<Node3D> _targetTiles = new();  // S2 spell-targeting range
+
+    /// <summary>Road-pick pin heights. Base clears the tallest ground scatter,
+    /// and the stagger separates adjacent pins on screen when the camera is low.
+    ///
+    /// <para>Measured, not guessed: PainterlyProps.ConiferCanopy tops out at
+    /// y 0.88 + 0.38 = 1.26 at unit scale, and the forest scatter scales it by
+    /// 0.55 to 1.10, so the tallest tree reaches about 1.39. 1.7 clears it with
+    /// room for the label's outline.</para></summary>
+    private const float RoadPinBase = 1.7f;
+    private const float RoadPinStagger = 0.6f;
     private Node3D _pawn;
 
     private Vector3 _camTarget = Vector3.Zero;
@@ -2669,25 +2680,159 @@ void fragment() {
             return;
         }
         _pawn?.QueueFree();
-        _pawn = new Node3D { Name = "PartyPawn" };
-        var body = new MeshInstance3D
-        {
-            Mesh = new CylinderMesh { TopRadius = 0.16f, BottomRadius = 0.28f, Height = 0.55f, RadialSegments = 8, Rings = 0 },
-            MaterialOverride = new StandardMaterial3D
-            { AlbedoColor = new Color(0.92f, 0.9f, 0.98f), EmissionEnabled = true, Emission = UITheme.Violet, EmissionEnergyMultiplier = 0.3f },
-            Position = new Vector3(0f, 0.28f, 0f),
-        };
-        var head = new MeshInstance3D
-        {
-            Mesh = new SphereMesh { Radius = 0.15f, Height = 0.3f, RadialSegments = 10, Rings = 6 },
-            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.92f, 0.9f, 0.98f) },
-            Position = new Vector3(0f, 0.64f, 0f),
-        };
-        var lamp = new OmniLight3D { LightColor = new Color(0.8f, 0.68f, 1f), LightEnergy = 1.1f, OmniRange = 7f, Position = new Vector3(0f, 1.3f, 0f) };
-        _pawn.AddChild(body); _pawn.AddChild(head); _pawn.AddChild(lamp);
+        _pawn = FieldParty ? BuildFieldPartyToken() : BuildCastleToken();
         var p = TileOrigin(_party.X, _party.Y); p.Y = TileHeight(_party);
         _pawn.Position = p;
         AddChild(_pawn);
+    }
+
+    /// <summary>The walking castle as it reads on the overworld: a body, not a
+    /// pawn. Built from the SAME vocabulary the combat scene's castle uses
+    /// (six-sided prisms rotated 30 degrees, hull over legs under stacks, the
+    /// iron tints from SpawnCastleBodyStamp) so the fortress the player drives
+    /// is recognisably the fortress they defend. Procedural on purpose: the
+    /// combat castle is placeholder geometry too, and both can be swapped for a
+    /// sculpted mesh together rather than drifting apart in the meantime.
+    ///
+    /// <para>The school tints the Heart and the lantern, which is the one place
+    /// a Cinderhold reads differently from an Ossuary Ambulant at a glance.
+    /// CastleTypeDef already names the chassis per school; this gives it a
+    /// colour.</para></summary>
+    private Node3D BuildCastleToken()
+    {
+        var root = new Node3D { Name = "CastlePawn" };
+
+        // The combat castle's palette, so the two read as one object.
+        var hullTint = new Color(0.33f, 0.30f, 0.28f);
+        var legTint = new Color(0.24f, 0.22f, 0.21f);
+        var stackTint = new Color(0.20f, 0.19f, 0.19f);
+        Color accent = SchoolColors.GetBorderColor(PlayerSession.SelectedSchool);
+
+        // Legs: narrow columns the hull rides on. Two is enough at this scale;
+        // more just reads as noise on a one-tile token.
+        root.AddChild(Prism(legTint, 0.09f, 0.13f, 0.30f, new Vector3(-0.17f, 0.15f, 0.06f)));
+        root.AddChild(Prism(legTint, 0.09f, 0.13f, 0.30f, new Vector3(0.17f, 0.15f, -0.06f)));
+
+        // Hull: wide and tapered, the mass that says fortress rather than figure.
+        root.AddChild(Prism(hullTint, 0.34f, 0.40f, 0.30f, new Vector3(0f, 0.45f, 0f)));
+
+        // Keep: the upper block, narrower again.
+        root.AddChild(Prism(hullTint * 1.08f, 0.17f, 0.25f, 0.24f, new Vector3(0f, 0.72f, 0f)));
+
+        // Stacks: thin, tall, off-centre so the silhouette is not symmetrical.
+        root.AddChild(Prism(stackTint, 0.05f, 0.07f, 0.22f, new Vector3(-0.10f, 0.95f, 0.05f)));
+        root.AddChild(Prism(stackTint, 0.04f, 0.06f, 0.16f, new Vector3(0.09f, 0.92f, -0.04f)));
+
+        // The Heart, banked in the hull: the one warm thing on a cold body.
+        var heart = new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = 0.08f, Height = 0.16f, RadialSegments = 8, Rings = 5 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = accent,
+                EmissionEnabled = true,
+                Emission = accent,
+                EmissionEnergyMultiplier = 1.6f,
+            },
+            Position = new Vector3(0f, 0.50f, 0.30f),
+        };
+        root.AddChild(heart);
+
+        // The lantern. Only the castle carries light: a field party is a handful
+        // of people on foot, and two of these would both look wrong and cost
+        // twice as much to render.
+        root.AddChild(new OmniLight3D
+        {
+            LightColor = accent.Lerp(Colors.White, 0.35f),
+            LightEnergy = 1.2f,
+            OmniRange = 7f,
+            Position = new Vector3(0f, 1.05f, 0f),
+        });
+
+        return root;
+    }
+
+    /// <summary>Expedition v2: true when this window is showing a FIELD PARTY
+    /// rather than the fortress. Set by the host before the first build.</summary>
+    public bool FieldParty = false;
+
+    /// <summary>A field party token: three figures and a standard on the tile.
+    ///
+    /// <para>Built from the same Prism vocabulary as the castle so the two read
+    /// as one game, and deliberately NOT a small castle. The silhouette is the
+    /// only thing the player sees at survey zoom, so the distinction has to be
+    /// shape, not size: the castle is one wide mass with stacks, this is several
+    /// narrow verticals with a bright point above them. Scaling the castle down
+    /// would have been fewer lines and would have read as a castle further
+    /// away.</para>
+    ///
+    /// <para>No OmniLight3D. The castle carries the lantern because it is a
+    /// fortress with a furnace in it; a party on foot does not, and two moving
+    /// light sources in one window would both look wrong and cost twice as much
+    /// to render. The standard is emissive instead, which reads at distance
+    /// without lighting the ground.</para></summary>
+    private Node3D BuildFieldPartyToken()
+    {
+        var root = new Node3D { Name = "FieldPartyPawn" };
+
+        var cloakTint = new Color(0.30f, 0.26f, 0.32f);
+        var packTint = new Color(0.34f, 0.28f, 0.20f);
+        Color accent = SchoolColors.GetBorderColor(PlayerSession.SelectedSchool);
+
+        // Three figures, staggered so the group has a front and a back rather
+        // than reading as a single blob from above.
+        root.AddChild(Prism(cloakTint, 0.07f, 0.11f, 0.34f, new Vector3(-0.15f, 0.17f, 0.08f)));
+        root.AddChild(Prism(cloakTint * 1.12f, 0.07f, 0.11f, 0.38f, new Vector3(0.02f, 0.19f, -0.10f)));
+        root.AddChild(Prism(cloakTint * 0.92f, 0.06f, 0.10f, 0.30f, new Vector3(0.17f, 0.15f, 0.06f)));
+
+        // Packs: the load is what makes them a party and not three wanderers.
+        root.AddChild(Prism(packTint, 0.06f, 0.07f, 0.09f, new Vector3(-0.15f, 0.38f, 0.08f)));
+        root.AddChild(Prism(packTint, 0.06f, 0.07f, 0.09f, new Vector3(0.17f, 0.34f, 0.06f)));
+
+        // The standard: a thin pole with the school's colour burning at the top.
+        // This is the part that survives being two hundred units from the camera.
+        root.AddChild(Prism(new Color(0.18f, 0.16f, 0.15f), 0.018f, 0.022f, 0.62f,
+                            new Vector3(0.02f, 0.50f, -0.10f)));
+        root.AddChild(new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = 0.07f, Height = 0.14f, RadialSegments = 8, Rings = 5 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = accent,
+                EmissionEnabled = true,
+                Emission = accent,
+                EmissionEnergyMultiplier = 1.9f,
+            },
+            Position = new Vector3(0.02f, 0.84f, -0.10f),
+        });
+
+        return root;
+    }
+
+    /// <summary>One six-sided prism in the castle's material language. Rotated
+    /// 30 degrees like the combat stamps so flats face the camera.</summary>
+    private static MeshInstance3D Prism(Color tint, float top, float bottom, float height, Vector3 at)
+    {
+        var mesh = new CylinderMesh
+        {
+            TopRadius = top,
+            BottomRadius = bottom,
+            Height = height,
+            RadialSegments = 6,
+            Rings = 0,
+        };
+        mesh.Material = new StandardMaterial3D
+        {
+            AlbedoColor = tint,
+            Roughness = 0.9f,
+            Metallic = 0.15f,
+        };
+        return new MeshInstance3D
+        {
+            Mesh = mesh,
+            Position = at,
+            RotationDegrees = new Vector3(0f, 30f, 0f),
+        };
     }
 
     // ── Move-option hints (adjacent, walkable, with true cost) ───────────────
@@ -2750,6 +2895,32 @@ void fragment() {
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             };
             AddChild(under); _moveHints.Add(under);
+
+            // Hazard pip: ground that eats Hull gets a red dot in the middle of
+            // the hint. The ring's COLOUR already encodes fuel cost, so hazard
+            // needs its own channel rather than competing for the same one. Uses
+            // the pure predicate, never TerrainHPDrain, which rolls a die for
+            // Volcanic and would make the pip flicker on every redraw.
+            if (OverworldMovementCost.TerrainDrainsHull(t.Terrain))
+            {
+                var pip = new MeshInstance3D
+                {
+                    Mesh = new SphereMesh { Radius = HexR * 0.16f, Height = HexR * 0.32f,
+                                            RadialSegments = 10, Rings = 5 },
+                    MaterialOverride = new StandardMaterial3D
+                    {
+                        AlbedoColor = UITheme.Danger,
+                        EmissionEnabled = true,
+                        Emission = UITheme.Danger,
+                        EmissionEnergyMultiplier = 0.8f,
+                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                        NoDepthTest = true,
+                    },
+                    Position = pos + new Vector3(0f, 0.04f, 0f),
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                };
+                AddChild(pip); _moveHints.Add(pip);
+            }
 
             var ring = new MeshInstance3D
             {
@@ -2874,6 +3045,183 @@ void fragment() {
         foreach (var n in _stridePath)
             if (GodotObject.IsInstanceValid(n)) n.QueueFree();
         _stridePath.Clear();
+    }
+
+    /// <summary>Paint the tiles a spell could be aimed at. The 2D grid does this
+    /// by adding a Polygon2D child to each hex node; there are no hex nodes here,
+    /// so the range is drawn as unshaded discs floating just above the ground,
+    /// the same trick the stride ribbon uses to stay readable over any terrain.
+    ///
+    /// <para>Without this the 3D view showed no range at all, which made every
+    /// tile-targeted Grimoire spell a guess.</para></summary>
+    public void ShowTargetTiles(List<Vector2I> worldTiles, List<Vector2I> worldPath = null)
+    {
+        ClearTargetTiles();
+        AddTargetDiscs(worldTiles, 0.45f);
+        // A drawn path reads brighter than the candidates around it.
+        AddTargetDiscs(worldPath, 0.85f);
+    }
+
+    private void AddTargetDiscs(List<Vector2I> worldTiles, float alpha)
+    {
+        if (worldTiles == null || worldTiles.Count == 0)
+            return;
+
+        foreach (var c in worldTiles)
+        {
+            if (!InWindow(c))
+                continue;
+
+            var pos = TileOrigin(c.X, c.Y);
+            pos.Y = TileHeight(c) + 0.06f;
+            var disc = new MeshInstance3D
+            {
+                Mesh = new CylinderMesh
+                {
+                    TopRadius = ColSpacing * 0.42f,
+                    BottomRadius = ColSpacing * 0.42f,
+                    Height = 0.02f,
+                    RadialSegments = 6,
+                    Rings = 0,
+                },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(UITheme.SpellTargetHighlight, alpha),
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    NoDepthTest = true,
+                },
+                Position = pos,
+                RotationDegrees = new Vector3(0f, 30f, 0f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(disc);
+            _targetTiles.Add(disc);
+        }
+    }
+
+    /// <summary>Paint the ways on from a road junction: a disc per option, a pin
+    /// standing out of it, and a NUMBER on top. The prose describing each branch
+    /// lives in the HUD keyed by that number, not out here on the ground.
+    ///
+    /// <para>The first cut put the prose on the ground and it was unreadable
+    /// (2026-09-21, reported from a screenshot). Road junctions are adjacent
+    /// tiles by definition, so three labels of a dozen characters each were
+    /// drawn on top of one another and through the trees between them. Length is
+    /// the whole problem: a single digit cannot collide with anything, and the
+    /// HUD has a full line to spend on the sentence.</para>
+    ///
+    /// <para>Pins are STAGGERED in height by list order. Even one-character
+    /// labels sitting at a uniform height over neighbouring tiles will overlap
+    /// when the camera drops toward the horizon, which is where this view spends
+    /// most of its time. Different heights cannot.</para>
+    ///
+    /// <para>Billboarded, because the camera orbits on Q/E. RenderPriority is
+    /// raised so the numbers sit above the other unshaded overlays rather than
+    /// fighting them for the same depth-free space.</para>
+    ///
+    /// <para>Reuses the spell-target node list, so ClearTargetTiles frees these
+    /// too and the two highlights can never share the board. They are mutually
+    /// exclusive orders anyway: an armed spell cancels a pending road pick.</para></summary>
+    public void ShowRoadChoices(List<(Vector2I tile, string badge)> choices)
+    {
+        ClearTargetTiles();
+        if (choices == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < choices.Count; i++)
+        {
+            var (tile, badge) = choices[i];
+            if (!InWindow(tile))
+            {
+                continue;
+            }
+
+            float ground = TileHeight(tile);
+            var pos = TileOrigin(tile.X, tile.Y);
+            pos.Y = ground + 0.07f;
+
+            var disc = new MeshInstance3D
+            {
+                Mesh = new CylinderMesh
+                {
+                    TopRadius = ColSpacing * 0.42f,
+                    BottomRadius = ColSpacing * 0.42f,
+                    Height = 0.02f,
+                    RadialSegments = 6,
+                    Rings = 0,
+                },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(UITheme.RoadChoiceHighlight, 0.55f),
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    NoDepthTest = true,
+                },
+                Position = pos,
+                RotationDegrees = new Vector3(0f, 30f, 0f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(disc);
+            _targetTiles.Add(disc);
+
+            if (string.IsNullOrEmpty(badge))
+            {
+                continue;
+            }
+
+            // Staggered so neighbouring pins never share a screen row.
+            float top = RoadPinBase + i * RoadPinStagger;
+
+            var pin = new MeshInstance3D
+            {
+                Mesh = new CylinderMesh
+                {
+                    TopRadius = 0.035f,
+                    BottomRadius = 0.035f,
+                    Height = top,
+                    RadialSegments = 6,
+                    Rings = 0,
+                },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(UITheme.RoadChoiceHighlight, 0.85f),
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    NoDepthTest = true,
+                },
+                Position = new Vector3(pos.X, ground + top * 0.5f, pos.Z),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(pin);
+            _targetTiles.Add(pin);
+
+            var lbl = new Label3D
+            {
+                Text = badge,
+                Position = new Vector3(pos.X, ground + top + 0.22f, pos.Z),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                RenderPriority = 4,
+                OutlineRenderPriority = 3,
+                FontSize = 46,
+                PixelSize = 0.012f,
+                Modulate = UITheme.RoadChoiceHighlight,
+                OutlineSize = 16,
+                OutlineModulate = UITheme.RoadChoiceOutline,
+            };
+            AddChild(lbl);
+            _targetTiles.Add(lbl);
+        }
+    }
+
+    public void ClearTargetTiles()
+    {
+        foreach (var n in _targetTiles)
+            if (GodotObject.IsInstanceValid(n)) n.QueueFree();
+        _targetTiles.Clear();
     }
 
     private bool InWindow(Vector2I c)

@@ -154,7 +154,7 @@ public class Clause
     /// move, or the clause is agreed). v3.1: most reads give a band instead.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public bool Revealed = false;
     /// <summary>The player knows the BAND of this clause's NpcValue
-    /// (cheap / fair / dear) — a Read card, an Argue, a courier line.</summary>
+    /// (cheap / fair / dear): a Read card, an Argue, a courier line.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public bool BandKnown = false;
     /// <summary>Anything is known about their valuation (band or exact).</summary>
     [System.Text.Json.Serialization.JsonIgnore] public bool AnyKnown => Revealed || BandKnown;

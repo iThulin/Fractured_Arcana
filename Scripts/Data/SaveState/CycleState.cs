@@ -237,6 +237,98 @@ public class CycleState
     public List<string> ActivePartyCompanionIds = new();
     public int MaxPartySize = 2;
 
+    // ── Expedition v2: the split forces (2026-09-21 ruling) ──────────────
+    // The castle parks and becomes a mobile anchor; a separate field party
+    // travels to known anchors (cities, shard zones, built waypoints, the
+    // parked castle) and dives the POIs around them. Every field below is
+    // additive with a safe default, so pre-feature saves load clean and are
+    // backfilled lazily by ExpeditionAnchors.BackfillPostings. No SaveManager
+    // version bump. See docs/expedition_bastion_and_field_party_handoff_v1.md.
+
+    /// <summary>Where the fortress is parked on the world, or -1,-1 before it
+    /// has taken the field this cycle. A parked castle is a supply anchor and
+    /// a field-party destination, which is what gives parking its weight.
+    /// Distinct from LastDeployStagingKey, which records where the last sortie
+    /// LAUNCHED from rather than where the castle now stands.</summary>
+    public int CastleX = -1;
+    public int CastleY = -1;
+
+    /// <summary>True while the fortress is parked in the field rather than at
+    /// dock. Ruled 2026-09-21: running the furnace dry parks the castle where it
+    /// stands, it becomes a waypoint there, and it refuels on the next sortie.
+    /// A parked castle also owns a StagingPoint with Source "Castle", which is
+    /// what makes the whole existing deploy, marker and supply-anchor machinery
+    /// treat it as a launch point without a parallel system.</summary>
+    public bool CastleParked = false;
+
+    /// <summary>Lunation the castle parked on, for the run log and the HUD.</summary>
+    public int CastleParkedLunation = 0;
+
+    /// <summary>Lunations of resupply still owed before the fortress can sortie
+    /// again. Set on parking from how badly the hull was damaged: a pristine
+    /// castle is ready next lunation, a battered one sits while work crews
+    /// teleport in and rebuild it.
+    ///
+    /// <para>This is the cost of pushing past a dry furnace, and the reason the
+    /// player cannot simply force-march the castle wherever they like. While it
+    /// is above zero the castle is EXPOSED: its staging point is unavailable, the
+    /// crews are in the open, and the resupply is a target.</para></summary>
+    public int CastleRepairLunations = 0;
+
+    /// <summary>True while work crews are teleporting in to refuel, restock,
+    /// repair and carry the hold home. The vulnerable window.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool CastleExposed => CastleParked && CastleRepairLunations > 0;
+
+    /// <summary>Kingdom whose soldiers fell on the camp and are owed a tactical
+    /// castle defence, or empty. The assault's strategic cost is applied the
+    /// moment it lands, so leaving this unanswered sets the player back rather
+    /// than letting them off; this only records that a FIGHT is still owed.
+    /// See CastleThreats.</summary>
+    public string PendingCastleAssaultKingdomId = "";
+
+    /// <summary>True between launching a castle defence and landing back on the
+    /// strategic map. Distinguishes "a fight is owed" from "a fight is being
+    /// fought", so a mid-combat reload cannot be mistaken for a resolved one.
+    /// Serialized for exactly that reason.</summary>
+    public bool CastleDefenseLaunched = false;
+
+    /// <summary>Fuel in the furnace between sorties. Needed because a march is
+    /// ordered from the strategic map, where no ExpeditionManager exists to own
+    /// StepsRemaining. Written when the castle parks, refilled when the resupply
+    /// completes, and spent by CastleMarch.</summary>
+    public int CastleFuel = 0;
+
+    /// <summary>Tank capacity as of the last sortie, including castle type, crew
+    /// and module bonuses. Stored rather than recomputed so the strategic map can
+    /// show a truthful gauge without standing up the whole expedition rig.</summary>
+    public int CastleMaxFuel = 0;
+
+    /// <summary>Spoils the fortress carries but has not banked. Filled by
+    /// parking, emptied by a recall (and later by a field party courier run).</summary>
+    public CastleHold CastleHold = new();
+
+    /// <summary>Field parties operating away from the castle. Iterated by the
+    /// turn loop from day one even while MaxFieldParties is 1, so unlocking
+    /// another party is a data change rather than a refactor.</summary>
+    public List<FieldParty> FieldParties = new();
+
+    /// <summary>How many field parties may be fielded at once. Baseline 1;
+    /// growth is a campus upgrade (which building grants it is still open,
+    /// so nothing writes this yet).</summary>
+    public int MaxFieldParties = 1;
+
+    /// <summary>Built waypoints: the consumable access the castle conjures
+    /// over a discovered POI. Permanent anchors are NOT stored here; they come
+    /// from World.StagingPoints and World.ShardZones through
+    /// ExpeditionAnchors.All.</summary>
+    public List<Waypoint> Waypoints = new();
+
+    /// <summary>This lunation's expedition budget: one castle move plus K
+    /// field dives (ruling 2026-09-21). Keeps map reveal on the 12-lunation
+    /// clock while holding POI throughput near a radius-12 sortie's.</summary>
+    public ExpeditionTurnState ExpeditionTurn = new();
+
     // ── Equipment armory ─────────────────────────────────────────────────
     /// <summary>
     /// Items are timeline loot; they die with the cycle. (Future option:
@@ -254,6 +346,21 @@ public class CycleState
 
     /// <summary>Minimum cards that must remain in the deck.</summary>
     public int MinDeckSize = 10;
+
+    // ── Faction signature spells (handoff section 4.6) ──────────────────
+    /// <summary>The faction library: a bounded, curated set of blueprints
+    /// drawn from the collection, carrying POOL-LEVEL upgrade tiers so an
+    /// upgrade propagates to every wizard referencing the spell. Deliberately
+    /// a third tier rather than an alias of PlayerDeck: per-copy OwnedCard
+    /// tiers cannot express propagation, and aliasing would make every card
+    /// added for an ally bloat the player's own draws. See SignaturePool.cs
+    /// and the pressure test, finding 4.</summary>
+    public SignaturePoolState SignaturePool = new();
+
+    /// <summary>Signature slots the player has granted to allied wizards, one
+    /// entry per companion who has any. Bounded by slot count and a rarity
+    /// point budget (ruling 3, 2026-09-21).</summary>
+    public List<WizardSignatureSlots> SignatureGrants = new();
 
     /// <summary>
     /// Which Regalia the player chose to bring into THIS cycle. Ownership is

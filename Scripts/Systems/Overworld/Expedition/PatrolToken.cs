@@ -391,10 +391,34 @@ public partial class PatrolToken : Node2D
     /// Picks a random passable neighbor, preferring not to immediately
     /// backtrack to the previous position.
     /// </summary>
+    /// <summary>How heavily a wandering patrol prefers road ground. Higher once
+    /// the patrol is already ON a road, so a patrol that reaches one tends to walk
+    /// it rather than drift off at the first junction. Spawn weighting alone would
+    /// put patrols near roads and then let them wander away; this is what keeps
+    /// the roads actually watched over a sortie.
+    ///
+    /// <para>A corridor tile has two road neighbours, so at OnRoadWeight 8 that is
+    /// 16 weighted road entries against roughly three ordinary ones: a patrol on a
+    /// road stays on it about 84 percent of the time, and still leaves.</para></summary>
+    private const int RoadWanderWeight = 4;
+    private const int RoadWanderWeightOnRoad = 8;
+
+    private bool TileHasRoad(Vector2I coord)
+    {
+        if (TileQuery == null)
+        {
+            return false;
+        }
+        var t = TileQuery(coord);
+        return t.HasValue && t.Value.RoadEdges != 0;
+    }
+
     private Vector2I Wander()
     {
         var neighbors = _grid.GetNeighbors(CurrentCoord);
         var candidates = new List<Vector2I>();
+
+        int roadWeight = TileHasRoad(CurrentCoord) ? RoadWanderWeightOnRoad : RoadWanderWeight;
 
         foreach (var n in neighbors)
         {
@@ -403,6 +427,16 @@ public partial class PatrolToken : Node2D
             if (n == _prevCoord)
                 continue; // avoid immediate backtrack
             candidates.Add(n);
+
+            // Roads are the routes worth watching, so a wandering patrol drifts
+            // onto them and then along them.
+            if (TileHasRoad(n))
+            {
+                for (int extra = 1; extra < roadWeight; extra++)
+                {
+                    candidates.Add(n);
+                }
+            }
         }
 
         // If nothing available except the previous hex, allow backtracking

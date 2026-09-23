@@ -151,7 +151,7 @@ public partial class EncounterRouter : Node
                 GD.Print($"EncounterRouter: Adept stipend. No draft, splinters doubled to {SplinterReward}.");
                 GetTree().CreateTimer(2.0f).Timeout += () =>
                     SceneTransition.Go(GetTree(), ReturnScenePath, "Victory",
-                        $"{GoldReward} gold · {SplinterReward} Arcane Splinters — the Academy's stipend.");
+                        $"{GoldReward} gold · {SplinterReward} Arcane Splinters. The Academy's stipend.");
             }
             else
             {

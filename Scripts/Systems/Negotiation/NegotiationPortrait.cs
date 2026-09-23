@@ -307,7 +307,7 @@ public partial class NegotiationPortrait : Control
             LoadClipsFrom(VOICE_DIR + "common/");
 
         if (_bank.Count == 0)
-            GD.Print($"[NegotiationPortrait] no voice clips under {VOICE_DIR}{VoiceFolder(a)}/ or {VOICE_DIR}common/ — portrait is silent.");
+            GD.Print($"[NegotiationPortrait] no voice clips under {VOICE_DIR}{VoiceFolder(a)}/ or {VOICE_DIR}common/. The portrait is silent.");
     }
 
     private bool LoadClipsFrom(string dir)

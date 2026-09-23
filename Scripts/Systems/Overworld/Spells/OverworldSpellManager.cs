@@ -86,6 +86,17 @@ public partial class OverworldSpellManager : Node2D
     private readonly List<Vector2I> _validTargets = new();
     private readonly List<OverworldHex> _highlighted = new();
 
+    /// <summary>Raised whenever the targetable set changes: the tiles in local
+    /// coords, or an empty list when targeting ends. The 2D grid paints its own
+    /// hex children; the 3D view has no hex nodes to paint, so it subscribes to
+    /// this instead.
+    ///
+    /// <para>Added 2026-09-21. Targeting highlights were 2D-only, which meant a
+    /// player using the 3D view could arm a tile-targeted spell and see no range
+    /// at all. Another injected hook rather than a second painter, matching
+    /// TileQuery / FogQuery / StrideLockQuery above.</para></summary>
+    public System.Action<List<Vector2I>, List<Vector2I>> TargetTilesChanged;
+
     // ── S3: path targeting (Bone Scout, Beast Envoy) ─────────────────────
     private readonly List<Vector2I> _path = new();
     private int _pathMax;
@@ -607,6 +618,8 @@ public partial class OverworldSpellManager : Node2D
             _highlighted.Add(hex);
         }
 
+        TargetTilesChanged?.Invoke(new List<Vector2I>(_validTargets), new List<Vector2I>());
+
         _expedition.SpellInfo($"{def.Name}: choose a target (right-click or Esc to cancel).");
     }
 
@@ -741,6 +754,15 @@ public partial class OverworldSpellManager : Node2D
                 });
                 _highlighted.Add(hex);
             }
+
+        // The 3D view has no hex nodes to paint, so it is told the same two sets:
+        // the candidate next steps as the range, and the drawn path itself.
+        var candidates = new List<Vector2I>();
+        if (_path.Count - 1 < _pathMax)
+            foreach (var n in _grid.GetNeighbors(_path[^1]))
+                if (!_path.Contains(n) && _grid.Hexes.ContainsKey(n))
+                    candidates.Add(n);
+        TargetTilesChanged?.Invoke(candidates, new List<Vector2I>(_path));
     }
 
     private bool HandlePathClick(Vector2I axial)
@@ -820,6 +842,7 @@ public partial class OverworldSpellManager : Node2D
         _path.Clear();
         _targetingSpell = null;
         _state = CastState.Idle;
+        TargetTilesChanged?.Invoke(new List<Vector2I>(), new List<Vector2I>());
         if (message != null)
         {
             _costOverride = null;  // an aborted Emulate charges nothing

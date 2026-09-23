@@ -42,7 +42,7 @@ public enum ParleyEffect
     Bluff,     // threaten to walk: if the package is worth enough to them, they concede the cheapest open slip
     Draw,      // draw Amount
     Recall,    // return the last card you played to your hand
-    Claim,     // v3.4: lock every term of theirs in the category at "yours" (Amount 2: at contested too) — one credit check
+    Claim,     // v3.4: lock every term of theirs in the category at "yours" (Amount 2: at contested too), one credit check
     Concede,   // v3.4: lock every term of yours in the category at "theirs" as theirs (Amount 2: at contested too)
     Shake,     // v3.4 fixed card: shake hands (settlement preview, then the handshake)
     Walk,      // v3.4 fixed card: walk away
@@ -185,8 +185,8 @@ public class ParleyCard
         ParleyEffect.Draw => $"Draw {Amount}. Doesn't spend the turn.",
         ParleyEffect.Recall => "Take back the last card you played. Doesn't spend the turn.",
         ParleyEffect.Claim => Amount >= 2
-            ? $"Lock every term of theirs in {SweepWordBare} that you've pulled to contested or yours — one ask, judged together."
-            : $"Lock every term of theirs in {SweepWordBare} that you've pulled to yours — one ask, judged together. If none is there yet, the nearest one.",
+            ? $"Lock every term of theirs in {SweepWordBare} that you've pulled to contested or yours. One ask, judged together."
+            : $"Lock every term of theirs in {SweepWordBare} that you've pulled to yours. One ask, judged together. If none is there yet, the nearest one.",
         ParleyEffect.Concede => Amount >= 2
             ? $"Give up every term of yours in {SweepWordBare} they've pulled to contested or theirs. Credit rises by what they're worth to them."
             : $"Give up every term of yours in {SweepWordBare} they've pulled to theirs. Credit rises by what they're worth to them. If none is there, what they want most.",
@@ -251,7 +251,7 @@ public static class ParleyCardLibrary
         _byId = new Dictionary<string, ParleyCard>();
         if (!FileAccess.FileExists(PATH))
         {
-            GD.PrintErr($"[ParleyDeck] {PATH} missing — the parley deck will be empty.");
+            GD.PrintErr($"[ParleyDeck] {PATH} missing. The parley deck will be empty.");
             return;
         }
         try
@@ -318,7 +318,7 @@ public static class ParleyDeckBuilder
     private static string SchoolSource(CardSchool s) => $"school:{s}";
 
     /// <summary>Everyone's seven, the school's four, one per companion trait,
-    /// the building rows, the patron — as fresh instances, unshuffled.</summary>
+    /// the building rows, the patron, all as fresh instances, unshuffled.</summary>
     public static List<ParleyCard> Build(CardSchool school, List<Companion> party,
                                          LeverageToken patronToken, int patronCount,
                                          out List<string> provenance)

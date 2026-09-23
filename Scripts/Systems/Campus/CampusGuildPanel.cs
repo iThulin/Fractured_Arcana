@@ -733,6 +733,11 @@ public sealed class CampusGuildPanel : CampusPanel
         Act(strategic, "Owe +1 Lunation", () => StrategicDebug.OweLunations(1));
         Act(strategic, "Owe +3 Lunations", () => StrategicDebug.OweLunations(3));
         Act(strategic, "Resolve All Seats", StrategicDebug.ResolveAllSeats);
+        Act(strategic, "Dump Expedition State", StrategicDebug.DumpExpeditionState);
+        Act(strategic, "March Castle", StrategicDebug.MarchCastleToNearestAnchor);
+        Act(strategic, "Force Castle Raid", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.PatrolRaid));
+        Act(strategic, "Force Castle Assault", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.KingdomAssault));
+        Act(strategic, "Assert Field Save", () => FieldExpeditionSaveAssert.AssertAll());
         Act(strategic, "Dump Echoes", () => CouncilDebug.DumpEchoes());
         Act(strategic, "Dump Regard", () => CouncilDebug.DumpRegard());
 

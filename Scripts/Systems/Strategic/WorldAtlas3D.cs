@@ -2122,6 +2122,24 @@ public partial class WorldAtlas3D : Node3D
             });
             AddMarker(MakeLabel("⚔ War", UITheme.Danger, MarkerPos(wf.X, wf.Y, 5.9f)));
         }
+
+        // LAST, so the pieces draw over the places they are standing on.
+        BuildPieceMarkers();
+    }
+
+    /// <summary>Tell the atlas where the two pieces are and which one is taking
+    /// orders, then redraw. One call rather than four public setters, so the map
+    /// can never show a half-updated board.</summary>
+    public void SetPieces(Vector2I? castle, Vector2I? party, Vector2I? partyDest, bool partySelected)
+    {
+        CastleTile = castle;
+        PartyTile = party;
+        PartyDestTile = partyDest;
+        PartySelected = partySelected;
+        if (_world != null)
+        {
+            RebuildMarkers();
+        }
     }
 
     /// <summary>Pennant material for a planted banner (A7): coloured, matte,
@@ -2401,6 +2419,147 @@ public partial class WorldAtlas3D : Node3D
         AddChild(node);
         _markers.Add(node);
     }
+
+    // ── The two pieces (2026-09-22) ──────────────────────────────────────
+    //    Ruled: the castle and the field party are INDEPENDENT pieces with
+    //    their own markers and their own orders. Before this the castle was
+    //    represented only by the gold staging beacon it drops when it parks,
+    //    which is a place, not a piece, and the field party had no marker at
+    //    all: it existed as coordinates in the save that nothing drew.
+    //
+    //    Drawn here rather than as staging beacons because a piece and a place
+    //    must not share a visual language. A beacon says "you may launch from
+    //    here"; these say "this is where your force IS".
+
+    /// <summary>Where the castle stands, or null to draw no castle.</summary>
+    public Vector2I? CastleTile = null;
+
+    /// <summary>Where the field party stands, or null to draw no party.</summary>
+    public Vector2I? PartyTile = null;
+
+    /// <summary>Which piece currently takes orders. The selected one wears a
+    /// ring at its feet, because a selector the player has to remember is a
+    /// selector they will get wrong exactly once and then distrust.</summary>
+    public bool PartySelected = false;
+
+    /// <summary>Where the party is walking to, or null. Drawn as a line of
+    /// small marks so a march in progress is visible on the map rather than
+    /// only in a report.</summary>
+    public Vector2I? PartyDestTile = null;
+
+    /// <summary>Draw both pieces. Called at the end of RebuildMarkers so the
+    /// pieces sit ON TOP of the places, which is the correct reading order.</summary>
+    private void BuildPieceMarkers()
+    {
+        if (CastleTile.HasValue)
+        {
+            var c = CastleTile.Value;
+            AddMarker(PieceBody(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.9f), 1.35f, 0.95f), c.X, c.Y);
+            AddMarker(MakeLabel("Castle", UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 4.4f), 34), c.X, c.Y);
+            if (!PartySelected)
+            {
+                AddMarker(SelectionRing(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.08f)), c.X, c.Y);
+            }
+        }
+
+        if (!PartyTile.HasValue)
+        {
+            return;
+        }
+
+        var p = PartyTile.Value;
+        AddMarker(PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f), 0.55f, 1.5f), p.X, p.Y);
+        AddMarker(MakeLabel("Party", UITheme.Gold, MarkerPos(p.X, p.Y, 3.9f), 34), p.X, p.Y);
+        if (PartySelected)
+        {
+            AddMarker(SelectionRing(UITheme.Gold, MarkerPos(p.X, p.Y, 0.08f)), p.X, p.Y);
+        }
+
+        // The road they are on. Sampled along the straight line the march
+        // actually walks, so what the player sees is the route, not a guess.
+        if (PartyDestTile.HasValue && _world != null)
+        {
+            var d = PartyDestTile.Value;
+            int steps = _world.HexDistance(p.X, p.Y, d.X, d.Y);
+            var (aq, ar) = HexCoord.OffsetToAxial(p.X, p.Y);
+            var (bq, br) = HexCoord.OffsetToAxial(d.X, d.Y);
+            for (int i = 1; i <= steps; i++)
+            {
+                float t = (float)i / steps;
+                int q = Mathf.RoundToInt(Mathf.Lerp(aq, bq, t));
+                int r = Mathf.RoundToInt(Mathf.Lerp(ar, br, t));
+                var (col, row) = HexCoord.AxialToOffset(q, r);
+                if (!_world.InBounds(col, row))
+                {
+                    continue;
+                }
+                AddMarker(new MeshInstance3D
+                {
+                    Mesh = new SphereMesh
+                    {
+                        Radius = i == steps ? 0.42f : 0.22f,
+                        Height = i == steps ? 0.84f : 0.44f,
+                        RadialSegments = 8, Rings = 5,
+                    },
+                    MaterialOverride = new StandardMaterial3D
+                    {
+                        AlbedoColor = new Color(UITheme.Gold, 0.85f),
+                        EmissionEnabled = true,
+                        Emission = UITheme.Gold,
+                        EmissionEnergyMultiplier = 0.8f,
+                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                        NoDepthTest = true,
+                    },
+                    Position = MarkerPos(col, row, 1.2f),
+                });
+            }
+        }
+    }
+
+    /// <summary>A piece's body: one six-sided prism, wide and low for the
+    /// fortress, narrow and tall for the party. Silhouette carries the
+    /// distinction at whole-world zoom, where colour alone would not.</summary>
+    private static MeshInstance3D PieceBody(Color tint, Vector3 at, float radius, float height)
+        => new MeshInstance3D
+        {
+            Mesh = new CylinderMesh
+            {
+                TopRadius = radius * 0.72f,
+                BottomRadius = radius,
+                Height = height,
+                RadialSegments = 6,
+                Rings = 0,
+            },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = tint,
+                EmissionEnabled = true,
+                Emission = tint,
+                EmissionEnergyMultiplier = 0.7f,
+            },
+            Position = at,
+            RotationDegrees = new Vector3(0f, 30f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+
+    private static MeshInstance3D SelectionRing(Color tint, Vector3 at)
+        => new MeshInstance3D
+        {
+            Mesh = new TorusMesh { InnerRadius = 1.5f, OuterRadius = 1.9f, Rings = 24, RingSegments = 6 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(tint, 0.95f),
+                EmissionEnabled = true,
+                Emission = tint,
+                EmissionEnergyMultiplier = 1.4f,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                NoDepthTest = true,
+            },
+            Position = at,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
 
     /// <summary>As <see cref="AddMarker(Node3D)"/>, but for a marker standing on a KNOWN
     /// tile: if that tile belongs to the city, the marker joins the city-hidden set (not

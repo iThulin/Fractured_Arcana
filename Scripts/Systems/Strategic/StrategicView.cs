@@ -57,6 +57,21 @@ public partial class StrategicView : Node2D
     /// <summary>Operating range / window radius handed to the expedition on deploy.</summary>
     [Export] public int DeployWindowRadius = 12;
 
+    /// <summary>Window radius for a FIELD PARTY expedition.
+    ///
+    /// <para>WAS 6, on a model where the party made small "dives" around an
+    /// anchor it teleported to. Corrected 2026-09-22: the field party is the
+    /// expedition now. It gets the same window the single token always had,
+    /// because it does everything that token did. Kept as a separate export
+    /// rather than folded into DeployWindowRadius so the two forces can still be
+    /// tuned apart if play wants that.</para></summary>
+    [Export] public int FieldDeployWindowRadius = 12;
+
+    /// <summary>Which force the pending deploy sends. Reset to Castle every time
+    /// the drawer opens, so a cancelled field send cannot leak into the next
+    /// ordinary sortie.</summary>
+    private ExpeditionRunKind _pendingRunKind = ExpeditionRunKind.Castle;
+
     // Deploy cost is one whole lunation (see Deploy()): the moon turns once per
     // expedition and every deploy begins on the new moon (The Veiled). The world
     // ticks exactly once per deploy, so LunationsPerCycle (CalendarState) is the
@@ -103,6 +118,21 @@ public partial class StrategicView : Node2D
     private Button _cityLeaveBtn;          // "to the world map", shown only in city view
     private Button _annexButton;           // "annex a district" toggle (kept so we can reset it after a purchase)
     private Button _buildModeBtn;          // "build" toggle: arms bare-ground clicks to open the construct card
+    private Button _marchModeBtn;          // Expedition v2: arms map clicks as a MOVE order
+    private bool _marchMode;               // mirrors _marchModeBtn
+
+    /// <summary>Which piece takes orders. Ruled 2026-09-22: the castle and the
+    /// field party are independent pieces, each with its own marker and its own
+    /// orders, so every world-map verb has to know which one it is talking to.
+    ///
+    /// <para>ONE selector driving ONE armed-move verb, rather than a March
+    /// button and a separate Send Party button. The question "where should this
+    /// go" is the same question for both pieces; what differs is what the answer
+    /// costs, and that belongs in the refusal and the confirmation, not in two
+    /// parallel controls that can be armed at once.</para></summary>
+    private bool _partySelected;
+    private Button _pieceToggleBtn;
+    private Button _partyDeployBtn;
     private bool _buildMode;               // mirrors _buildModeBtn; gates OnHomeGroundPicked
     private Button _cityServicesBtn;       // "City Services" reopen button, NPC city view only
     private Label _hintLabel;              // bottom context hint; text swaps per view mode
@@ -138,6 +168,15 @@ public partial class StrategicView : Node2D
 
     public override void _Ready()
     {
+        // Expedition v2: the run is over. ExpeditionRunKind is a handoff static
+        // that survives the scene change, and CompanionRoster.RunRosterIds reads
+        // it to decide whose names answer "who is on the expedition". Leaving it
+        // on Field here would make the campus and this map show the field party
+        // as the active party for the rest of the session. Field is an
+        // expedition-scene state and nothing else.
+        PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Castle;
+        PlayerSession.ExpeditionFieldPartyId = "";
+
         if (_world == null)
         {
             if (Standalone)
@@ -210,6 +249,35 @@ public partial class StrategicView : Node2D
                 // Supply caches: idempotent seed so pre-feature saves (and fresh
                 // worlds) get their per-kingdom caches before markers render.
                 SupplyCacheSystem.EnsureSeeded(cycle);
+
+                // Expedition v2: idempotent, same role as the cache seed above.
+                // BackfillPostings reconstructs the castle crew on a save written
+                // before the force split (ActivePartyCompanionIds WAS the crew);
+                // it no-ops once any posting exists. BeginLunation rolls the
+                // one-move-plus-K-dives budget, and runs AFTER ProcessPendingStraggle
+                // so a straggled lunation is already on the calendar.
+                ExpeditionAnchors.EnsureCastleSited(cycle);
+                ExpeditionAnchors.BackfillPostings(cycle);
+                ExpeditionAnchors.ReconcilePostings(cycle);
+                // After the castle: the party starts where the fortress is, so
+                // it needs a sited castle to copy. Without this the party sits at
+                // (-1,-1), PartyIsAt is false everywhere, and the drawer offers
+                // travel to the tile they are already standing on.
+                ExpeditionAnchors.EnsureFieldPartySited(cycle);
+                // Waystones that spent their last charge on the dive we just
+                // came back from. Closed HERE, on the way in, rather than at the
+                // moment the charge was spent: see PruneSpentWaypoints.
+                ExpeditionAnchors.PruneSpentWaypoints(cycle);
+                cycle.ExpeditionTurn ??= new ExpeditionTurnState();
+                cycle.ExpeditionTurn.BeginLunation(cycle.Calendar?.CurrentLunation ?? 1);
+
+                // Expedition v2: a castle defence resolves BEFORE anything else
+                // reads the camp, then any still-owed assault asks to be fought.
+                // Order matters: resolving first means the offer below never
+                // re-asks about a fight that just happened.
+                ConsumeCastleDefenseReturn(cycle);
+                if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
+                    CallDeferred(nameof(OfferPendingCastleDefense));
             }
         }
 
@@ -382,6 +450,11 @@ public partial class StrategicView : Node2D
                     warTiles.Add(new Vector2I(wf.FocusCol, wf.FocusRow));
         _atlas3D.SetWarfronts(warTiles);
 
+        // Expedition v2: both pieces on the board from the first frame. Without
+        // this the party has coordinates in the save that nothing draws, which
+        // is the state the whole 2026-09-22 ruling exists to end.
+        RefreshPieceChrome();
+
         _atlas3D.AcceptInput = true;      // full-screen map, always live
 
         // Phase 3 explore: a district fight round-trip lands back INSIDE the city it
@@ -444,6 +517,143 @@ public partial class StrategicView : Node2D
     /// exact hit is unreasonable: snap to the nearest staging point within this radius.</summary>
     private const int StagingClickTolerance = 3;
 
+    /// <summary>Arm or disarm march mode. Refuses to arm when the castle cannot
+    /// march at all, and says why, rather than letting the player arm a mode that
+    /// will reject every tile they click.</summary>
+    /// <summary>Swap which piece takes orders. Disarms the move verb on the way
+    /// through: an armed order belongs to the piece it was armed for, and
+    /// silently repointing it at the other one is how a player marches the
+    /// fortress somewhere they meant to send three people on foot.</summary>
+    private void TogglePiece()
+    {
+        _partySelected = !_partySelected;
+        if (_marchModeBtn != null)
+        {
+            _marchModeBtn.ButtonPressed = false;
+        }
+        _marchMode = false;
+        RefreshPieceChrome();
+    }
+
+    /// <summary>Keep the selector, the move button and the map agreeing. Called
+    /// after anything that moves a piece or changes whose turn it is to act.</summary>
+    private void RefreshPieceChrome()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var party = ExpeditionAnchors.EnsurePrimaryParty(cycle);
+
+        if (_pieceToggleBtn != null)
+        {
+            _pieceToggleBtn.Text = _partySelected ? "\u2691  Field Party" : "\u2691  Castle";
+            _pieceToggleBtn.TooltipText = _partySelected
+                ? "The field party takes orders. Click to command the castle instead."
+                : "The castle takes orders. Click to command the field party instead.";
+        }
+
+        if (_marchModeBtn != null)
+        {
+            _marchModeBtn.Text = _partySelected ? "\u2691  Move party" : "\u2691  March castle";
+        }
+
+        if (_partyDeployBtn != null)
+        {
+            bool canField = _partySelected && party != null
+                            && party.State == FieldPartyState.AtAnchor
+                            && party.X >= 0 && party.Y >= 0
+                            && (_atlas3D == null || !_atlas3D.CityMode);
+            _partyDeployBtn.Visible = canField;
+            if (canField)
+            {
+                cycle.ExpeditionTurn ??= new ExpeditionTurnState();
+                cycle.ExpeditionTurn.BeginLunation(cycle.Calendar?.CurrentLunation ?? 0);
+                int left = cycle.ExpeditionTurn.DivesRemaining;
+                _partyDeployBtn.Disabled = left <= 0;
+                _partyDeployBtn.Text = $"\u25B6  Take the field ({left})";
+                _partyDeployBtn.TooltipText = left > 0
+                    ? $"Send the party into the field at ({party.X},{party.Y}). Costs one of this "
+                      + "moon's expeditions, not a lunation: the moon turns when the CASTLE moves."
+                    : "No expeditions left this moon. March the castle to turn it.";
+            }
+        }
+
+        if (_atlas3D != null && cycle != null)
+        {
+            Vector2I? castleAt = cycle.World != null && cycle.World.InBounds(cycle.CastleX, cycle.CastleY)
+                ? new Vector2I(cycle.CastleX, cycle.CastleY)
+                : null;
+            Vector2I? partyAt = party != null && party.X >= 0 && party.Y >= 0
+                ? new Vector2I(party.X, party.Y)
+                : null;
+            Vector2I? partyDest = party != null && party.State == FieldPartyState.Travelling
+                                  && party.DestX >= 0 && party.DestY >= 0
+                ? new Vector2I(party.DestX, party.DestY)
+                : null;
+            _atlas3D.SetPieces(castleAt, partyAt, partyDest, _partySelected);
+        }
+    }
+
+    private void OnMarchModeToggled(bool pressed)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+
+        // The party's version of the same verb. It walks rather than relocating,
+        // so its refusals are different, but the click that follows means the
+        // same thing and goes through the same mode.
+        if (_partySelected)
+        {
+            var fp = ExpeditionAnchors.EnsurePrimaryParty(cycle);
+            if (pressed && !FieldMarch.CanOrderAtAll(cycle, fp, out string partyWhy))
+            {
+                ShowStrategicNotice("The party cannot move", partyWhy);
+                if (_marchModeBtn != null) _marchModeBtn.ButtonPressed = false;
+                _marchMode = false;
+                return;
+            }
+            _marchMode = pressed;
+            if (pressed)
+            {
+                if (_buildModeBtn != null) _buildModeBtn.ButtonPressed = false;
+                if (_annexButton != null) _annexButton.ButtonPressed = false;
+                ShowStrategicNotice("Move the field party",
+                    $"Click charted ground to send them there on foot: {FieldMarch.TilesPerLunation} "
+                    + "tile(s) per turn of the moon, and the road is watched. Click the castle, a "
+                    + "raised waystone or the dock to step through instantly instead.");
+            }
+            return;
+        }
+
+        if (pressed && !CastleMarch.CanMarchAtAll(cycle, out string why))
+        {
+            ShowStrategicNotice("The castle cannot march", why);
+            if (_marchModeBtn != null) _marchModeBtn.ButtonPressed = false;
+            _marchMode = false;
+            return;
+        }
+
+        _marchMode = pressed;
+        // One ground-click mode at a time.
+        if (pressed)
+        {
+            if (_buildModeBtn != null) _buildModeBtn.ButtonPressed = false;
+            if (_annexButton != null) _annexButton.ButtonPressed = false;
+            int range = cycle != null ? CastleMarch.RangeInTiles(cycle) : 0;
+            ShowStrategicNotice("March",
+                $"Click charted ground to send the fortress there. Range {range} tile(s) " +
+                $"on the fuel in the furnace, at {CastleMarch.FuelPerTile} per tile.");
+        }
+    }
+
+    /// <summary>A one-shot informational dialog. Used where a refusal has to be
+    /// read before the player wastes a click.</summary>
+    private void ShowStrategicNotice(string title, string body)
+    {
+        var dlg = new AcceptDialog { Title = title, DialogText = body };
+        dlg.Confirmed += () => dlg.QueueFree();
+        dlg.Canceled += () => dlg.QueueFree();
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
     private void OnAtlas3DTilePicked(int col, int row)
     {
         if (_world == null)
@@ -456,6 +666,22 @@ public partial class StrategicView : Node2D
         // tile sits within StagingClickTolerance of its own beacon).
         if (_atlas3D != null && _atlas3D.CityMode)
             return;
+
+        // March mode owns the click once the city has had its say: it is an
+        // explicit armed verb, so it takes priority over the passive map
+        // behaviours below, but never over descending into a settlement.
+        if (_marchMode)
+        {
+            if (_partySelected)
+            {
+                TryMovePartyTo(col, row);
+            }
+            else
+            {
+                TryMarchTo(col, row);
+            }
+            return;
+        }
 
         // Deploy drawer open: the map is live for RETARGETING only. A click near
         // another staging beacon moves the drawer there; caches/warfronts wait
@@ -1300,6 +1526,194 @@ public partial class StrategicView : Node2D
     /// Q4.4 combat loot faucet at the kingdom's territory tier, and clears the
     /// district; either way the player lands back inside the fought city
     /// (BuildAtlas3D consumes _reenterNpcCity) with an outcome toast.</summary>
+    // ══════════════════════════════════════════════════════════════════
+    // Castle defence (Expedition v2): the fight a kingdom assault owes
+    // ══════════════════════════════════════════════════════════════════
+
+    /// <summary>Soldiers are in the camp and the player has to answer for it.
+    /// The assault's strategic cost landed when it happened (CastleThreats), so
+    /// this is not "do you want to be attacked", it is "do you stand or do you
+    /// burn the camp and go". Withdrawing is a real option with a real price,
+    /// which is what keeps a losing fight from being mandatory.</summary>
+    private void OfferPendingCastleDefense()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId)
+            || cycle.CastleDefenseLaunched)
+        {
+            return;
+        }
+
+        string kingdomId = cycle.PendingCastleAssaultKingdomId;
+        string who = FactionDisplay(kingdomId);
+
+        var dialog = new ConfirmationDialog
+        {
+            Title = "The camp is attacked",
+            OkButtonText = "Hold the camp",
+            CancelButtonText = "Withdraw",
+            DialogText =
+                $"Soldiers of {who} are among the tents and the waystone is still open.\n\n" +
+                "Hold the camp: the crew forms up at the Heart and you fight for the work " +
+                "already done. Winning puts the crews back on it.\n\n" +
+                "Withdraw: the castle breaks camp under fire. Nothing is lost that is not " +
+                "already lost, but the resupply slips another lunation.",
+        };
+        dialog.Confirmed += () => { dialog.QueueFree(); LaunchCastleDefense(kingdomId); };
+
+        // Withdrawing costs a lunation, so it hangs off the BUTTON rather than
+        // the Canceled signal. Escape and the close box also emit Canceled, and
+        // a stray keypress must not spend a lunation. Dismissing therefore just
+        // defers: the assault stays owed and is offered again on the next map
+        // load, which is the harmless reading of "the player did not answer".
+        dialog.GetCancelButton().Pressed += () => WithdrawFromCastleAssault(kingdomId);
+        dialog.Canceled += () => dialog.QueueFree();
+
+        AddChild(dialog);
+        dialog.PopupCentered();
+    }
+
+    /// <summary>Break camp under fire. The assault already took its pound of
+    /// flesh; this adds the cost of leaving work half done.</summary>
+    private void WithdrawFromCastleAssault(string kingdomId)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            return;
+        }
+        cycle.PendingCastleAssaultKingdomId = "";
+        cycle.CastleDefenseLaunched = false;
+        cycle.CastleRepairLunations = Mathf.Min(
+            cycle.CastleRepairLunations + 1, CastleThreats.MaxTotalRepairLunations);
+        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+        cycle.PendingSiegeReports.Add(
+            $"The camp is struck under fire and {FactionDisplay(kingdomId)} is left holding the ground. " +
+            $"The resupply stands at {cycle.CastleRepairLunations} lunation(s).");
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        // The report rides in PendingSiegeReports and is read by the HUD on the
+        // next build. Not forcing one here: BuildHud is not written to be
+        // re-entered and this fires from inside a dialog callback.
+    }
+
+    /// <summary>Send the player into the castle defence. Reuses the shipped
+    /// ambush fight wholesale: CastleDefenseCompiler builds the map for this
+    /// terrain and the installed modules, attaches the protect objective with the
+    /// Castle Heart, and the wizard arrives by waystone. Nothing here is a second
+    /// defence system, which was the whole point of routing through it.</summary>
+    private void LaunchCastleDefense(string kingdomId)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || _world == null)
+        {
+            return;
+        }
+
+        if (EncounterRouter.Instance == null)
+            GetTree().Root.AddChild(new EncounterRouter { Name = "EncounterRouter" });
+        var router = EncounterRouter.Instance;
+        if (router == null)
+        {
+            return;
+        }
+
+        string terrainType = _world.InBounds(cycle.CastleX, cycle.CastleY)
+            ? _world.GetTile(cycle.CastleX, cycle.CastleY).Terrain.ToString()
+            : OverworldHex.TerrainType.Grassland.ToString();
+
+        string regionId = "frontier_wilds";
+        if (_kingdoms != null && _kingdoms.TryGetValue(kingdomId, out var ks)
+            && !string.IsNullOrEmpty(ks.RegionId))
+        {
+            regionId = ks.RegionId;
+        }
+
+        // A kingdom sends soldiers, not opportunists, so this is a Siege-tier
+        // pull rather than the Ambush pool a wandering patrol draws from.
+        var def = EncounterPoolLoader.Pick(regionId, EncounterTier.Siege, terrainType,
+                                           CampaignEscalation.CombatDifficultyMult(cycle));
+        if (def == null)
+        {
+            GD.PrintErr("[CastleDefense] No encounter could be built; the assault is written off.");
+            WithdrawFromCastleAssault(kingdomId);
+            return;
+        }
+
+        CastleDefenseCompiler.Arm(def, terrainType,
+            (ulong)(cycle.CastleX * 7919 + cycle.CastleY * 104729 + 31));
+
+        cycle.CastleDefenseLaunched = true;
+        SaveManager.MarkDirty();
+
+        router.HasPendingReturn = false;
+        router.SavedCombatWasPatrolAmbush = true;   // the defence presentation
+        router.SavedCombatPatrolArchmageId = "";
+        router.SavedCombatGuardianKey = "";
+        router.SavedCombatArchmageId = "";
+        router.SavedResolutionArchmageId = "";
+        router.ReturnSceneOverride = StrategicScenePath;
+        router.SetCurrentTier(def.Tier);
+
+        SaveManager.SaveIfDirty();
+        EncounterContextCarrier.Set(def);
+        EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
+        SceneTransition.Go(GetTree(), router.CombatScenePath, "To Arms",
+            $"{FactionDisplay(kingdomId)} is in the camp.");
+    }
+
+    /// <summary>Pick up a returning castle defence. Same discipline as the
+    /// district fight: keyed on the cycle's in-progress marker AND the router's
+    /// return override being this scene, so a mid-combat reload leaves the fight
+    /// owed rather than silently resolving it.</summary>
+    private void ConsumeCastleDefenseReturn(CycleState cycle)
+    {
+        if (cycle == null || !cycle.CastleDefenseLaunched)
+        {
+            return;
+        }
+
+        var router = EncounterRouter.Instance;
+        if (router == null || !router.HasPendingReturn ||
+            router.ReturnSceneOverride != StrategicScenePath)
+        {
+            return;   // the fight never resolved; it stays owed
+        }
+
+        bool won = router.CombatWon;
+        router.HasPendingReturn = false;
+        router.ReturnSceneOverride = "";
+
+        string who = FactionDisplay(cycle.PendingCastleAssaultKingdomId);
+        cycle.PendingCastleAssaultKingdomId = "";
+        cycle.CastleDefenseLaunched = false;
+        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+
+        if (won)
+        {
+            // The crews go straight back to work, so the setback the assault
+            // bought is handed back. Floored at one: the fight still cost a beat.
+            int before = cycle.CastleRepairLunations;
+            cycle.CastleRepairLunations = Mathf.Max(
+                1, cycle.CastleRepairLunations - CastleThreats.AssaultRepairSetback);
+            cycle.PendingSiegeReports.Add(
+                $"The Heart holds. {who} is thrown out of the camp and the crews are back on the " +
+                $"waystone: the resupply falls from {before} to {cycle.CastleRepairLunations} lunation(s).");
+        }
+        else
+        {
+            cycle.CastleRepairLunations = Mathf.Min(
+                cycle.CastleRepairLunations + CastleThreats.AssaultRepairSetback,
+                CastleThreats.MaxTotalRepairLunations);
+            cycle.PendingSiegeReports.Add(
+                $"The camp is overrun. {who} burns what the crews had rebuilt: the resupply stands " +
+                $"at {cycle.CastleRepairLunations} lunation(s).");
+        }
+
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+    }
+
     private void ConsumeDistrictFightReturn(CycleState cycle)
     {
         if (cycle == null || string.IsNullOrEmpty(cycle.PendingCityFightCityId))
@@ -1628,8 +2042,42 @@ public partial class StrategicView : Node2D
         _cityServicesBtn = MakeCityChromeButton("City Services", primary: true);
         _cityServicesBtn.Visible = cityNow && !homeNow;
         _cityServicesBtn.Pressed += ShowCityServices;
+        // Expedition v2: the March control was unusable as first built. It only
+        // appeared on the deploy drawer for an EXISTING staging point, and a fresh
+        // cycle has exactly one, the tile the castle is already standing on. So
+        // there was nowhere to march to. Repositioning the fortress is precisely
+        // about going somewhere that is NOT already a launch point, so marching
+        // targets any charted ground: arm this, then click the tile.
+        _marchModeBtn = MakeCityChromeButton("\u2691  March", primary: false, toggle: true);
+        _marchModeBtn.Visible = !cityNow;   // a world-map verb; the city owns its own clicks
+        _marchModeBtn.Toggled += OnMarchModeToggled;
+
+        // Expedition v2 (ruled 2026-09-22): which piece is being commanded.
+        // A toggle rather than two buttons, because the pieces are exclusive and
+        // a pair of buttons invites the player to believe both can be armed.
+        _pieceToggleBtn = MakeCityChromeButton("\u2691  Castle", primary: false);
+        _pieceToggleBtn.Visible = !cityNow;
+        _pieceToggleBtn.Pressed += TogglePiece;
+
+        // Take the field, from wherever the party is standing.
+        //
+        // NOT on the deploy drawer any more. The drawer belongs to a STAGING
+        // POINT, and tying the party's expedition to one was the last piece of
+        // the model where the party could only act at anchors. It is its own
+        // piece: it takes the field where it is.
+        _partyDeployBtn = MakeCityChromeButton("\u25B6  Take the field", primary: true);
+        _partyDeployBtn.Visible = false;
+        _partyDeployBtn.Pressed += OnPartyTakeTheField;
+
         _helpBtn = MakeCityChromeButton("?  How this works", primary: false);
         _helpBtn.Pressed += ShowHelpCard;   // visible in every mode; orientation is never gated
+
+        // The chrome is built AFTER BuildAtlas3D, so the RefreshPieceChrome call
+        // in there ran with every one of these buttons still null and could only
+        // set the map. Run it again now that the controls exist, or the selector
+        // opens reading "Castle" by luck rather than by state and the Take the
+        // field button never appears.
+        RefreshPieceChrome();
 
         // ── Calendar readout: the doomsday clock, top-right ──────────────
         var cycle = SaveManager.ActiveSave?.Cycle;
@@ -3649,6 +4097,11 @@ public partial class StrategicView : Node2D
         vbox.AddThemeConstantOverride("separation", 12);
         margin.AddChild(vbox);
 
+        // A fresh drawer is a fresh question. Without this, opening the drawer
+        // after cancelling a field send would leave the Deploy button sending
+        // the field party.
+        _pendingRunKind = ExpeditionRunKind.Castle;
+
         var title = new Label { Text = $"Deploy from {sp.Name}" };
         title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
         title.AddThemeColorOverride("font_color", UITheme.Gold);
@@ -3762,8 +4215,376 @@ public partial class StrategicView : Node2D
 
         var deployBtn = new Button { Text = "Deploy", CustomMinimumSize = new Vector2(120, 40) };
         UITheme.ApplyButtonStyle(deployBtn, isPrimary: true);
-        deployBtn.Pressed += Deploy;
+        deployBtn.Pressed += () => { _pendingRunKind = ExpeditionRunKind.Castle; Deploy(); };
         buttons.AddChild(deployBtn);
+
+        // Expedition v2: the OTHER force. Same question ("go here"), different
+        // answer, so it sits on the same drawer as Deploy and March rather than
+        // hiding behind a mode the player has to find. Offered at any staging
+        // point, because a field party travels to KNOWN anchors and a staging
+        // point is exactly that.
+        // The field party used to have a three-state control here: dive if it
+        // was standing on this anchor, order an abstract journey if it was not,
+        // greyed out while that journey ran. All three are gone.
+        //
+        // The drawer belongs to a STAGING POINT, and the party is not a thing
+        // that happens at staging points any more. It is a piece on the map with
+        // its own marker, its own move order and its own "Take the field"
+        // button, and it acts wherever it is standing. Leaving a party control
+        // here would have been a second, worse way to command it.
+
+        // Expedition v2: the castle's OTHER move, offered on the same drawer
+        // because the question is identical ("go here") and the two answers
+        // belong side by side. Deploy sorties out and explores; March relocates
+        // the fortress and makes camp. Shown only while the castle is parked,
+        // and disabled with the refusal as its tooltip so the player learns the
+        // rule from the button rather than from a dialog after the fact.
+        var marchCycle = SaveManager.ActiveSave?.Cycle;
+        if (marchCycle != null && marchCycle.CastleParked)
+        {
+            bool canMarch = CastleMarch.CanMarchTo(marchCycle, sp.X, sp.Y, out string marchWhy);
+            int marchCost = CastleMarch.CostTo(marchCycle, sp.X, sp.Y);
+            var marchBtn = new Button
+            {
+                Text = canMarch ? $"March ({marchCost} fuel)" : "March",
+                CustomMinimumSize = new Vector2(150, 40),
+                Disabled = !canMarch,
+                TooltipText = canMarch
+                    ? $"Relocate the fortress: a flat {CastleMarch.FuelPerTile} fuel per tile, no terrain, " +
+                      $"no encounters. Arrives parked with {CastleMarch.ArrivalCampLunations} lunation(s) " +
+                      "of camp, exposed until the crews unpack."
+                    : marchWhy,
+            };
+            UITheme.ApplyButtonStyle(marchBtn, isPrimary: false);
+            marchBtn.Pressed += () => ExecuteCastleMarch(sp.X, sp.Y, panel);
+            buttons.AddChild(marchBtn);
+        }
+    }
+
+    /// <summary>Choose who goes, then send them.
+    ///
+    /// <para>The picker is the half of the force split that the data layer could
+    /// not supply: Companion.Posting has been in the schema since the first
+    /// increment and nothing in the game could WRITE it, so the field party was
+    /// permanently empty and the entire second force was inert.</para>
+    ///
+    /// <para>Postings are written straight onto the companions and reconciled,
+    /// because Companion.Posting is the single source of truth and
+    /// FieldParty.MemberCompanionIds is only the ordered view. Writing the view
+    /// and hoping is how the two drift.</para>
+    ///
+    /// <para>Crew members appear in the list and can be taken. That is the
+    /// interesting decision in the whole feature: every station a companion
+    /// vacates costs the fortress its crew effect (fuel burn, tank, scry, ambush
+    /// warning), so sending a strong party makes the next castle move worse.
+    /// Hiding crew from the list would have removed the tradeoff and left two
+    /// unrelated rosters.</para></summary>
+    private void OpenFieldPartyPicker(StagingPoint sp)
+    {
+        var save = SaveManager.ActiveSave;
+        var cycle = save?.Cycle;
+        if (cycle == null || sp == null)
+        {
+            return;
+        }
+
+        ExpeditionAnchors.EnsurePrimaryParty(cycle);
+        ExpeditionAnchors.ReconcilePostings(cycle);
+
+        var dlg = new ConfirmationDialog
+        {
+            Title = "Take the field",
+            OkButtonText = "Go",
+            CancelButtonText = "Cancel",
+            MinSize = new Vector2I(520, 460),
+        };
+
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 8);
+        dlg.AddChild(box);
+
+        int left = cycle.ExpeditionTurn?.DivesRemaining ?? 0;
+        var intro = new Label
+        {
+            Text = $"They take the field at {sp.Name} ({sp.X},{sp.Y}).\n"
+                 + $"Costs one of this moon's expeditions. {left} left.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        intro.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        intro.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        box.AddChild(intro);
+        box.AddChild(new HSeparator());
+
+        var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        box.AddChild(scroll);
+        var rows = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        rows.AddThemeConstantOverride("separation", 4);
+        scroll.AddChild(rows);
+
+        var boxes = new System.Collections.Generic.List<(CheckBox box, Companion who)>();
+        int eligible = 0;
+        if (cycle.Companions != null)
+        {
+            foreach (var c in cycle.Companions)
+            {
+                if (c == null || !c.IsRecruited || c.IsPermadead)
+                {
+                    continue;
+                }
+                eligible++;
+
+                // Injured companions are listed and DISABLED rather than hidden,
+                // so "where is Elara" has an answer on the screen that asks the
+                // question instead of in a different panel.
+                string suffix = c.IsInjured
+                    ? $"  (injured, {c.InjuredLunationsRemaining} lunation(s))"
+                    : c.Posting == CompanionPosting.Crew ? "  (castle crew)" : "";
+
+                var cb = new CheckBox
+                {
+                    Text = c.Name + suffix,
+                    ButtonPressed = c.Posting == CompanionPosting.Field,
+                    Disabled = c.IsInjured,
+                };
+                cb.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+                rows.AddChild(cb);
+                boxes.Add((cb, c));
+            }
+        }
+
+        if (eligible == 0)
+        {
+            var none = new Label { Text = "No companions are recruited yet. The wizard goes alone." };
+            none.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            none.AddThemeColorOverride("font_color", UITheme.TextDim);
+            rows.AddChild(none);
+        }
+
+        var warn = new Label
+        {
+            Text = "Anyone you take off the castle crew stops manning their station, and the "
+                 + "fortress loses that effect on its next move. Numbers also deter the patrols "
+                 + "that watch the roads.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        warn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        warn.AddThemeColorOverride("font_color", UITheme.Warning);
+        box.AddChild(warn);
+
+        dlg.Confirmed += () =>
+        {
+            foreach (var (cb, who) in boxes)
+            {
+                if (who.IsInjured)
+                {
+                    continue;   // the control was disabled; do not let it decide
+                }
+                if (cb.ButtonPressed)
+                {
+                    who.Posting = CompanionPosting.Field;
+                    who.FieldPartyId = ExpeditionAnchors.PrimaryFieldPartyId;
+                }
+                else if (who.Posting == CompanionPosting.Field)
+                {
+                    // Taken OFF the party goes back to the CAMPUS, not to the
+                    // crew: the crew is a separate decision made elsewhere, and
+                    // silently promoting someone into a station would change the
+                    // fortress's characteristics without the player asking.
+                    who.Posting = CompanionPosting.Campus;
+                    who.FieldPartyId = "";
+                }
+            }
+            ExpeditionAnchors.ReconcilePostings(cycle);
+            SaveManager.MarkDirty();
+
+            _pendingStaging = sp;
+            _pendingRunKind = ExpeditionRunKind.Field;
+            dlg.QueueFree();
+            Deploy();
+        };
+        dlg.Canceled += () => dlg.QueueFree();
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
+    /// <summary>The party takes the field where it stands. Synthesises a
+    /// staging point on its own tile and runs the shipped deploy path, exactly
+    /// as the warfront intervention does: the expedition scene is driven by a
+    /// coordinate and a radius, and it has never cared whether a real launch
+    /// point sits under it.
+    ///
+    /// <para>This is what makes the party a PIECE. It does not need permission
+    /// from the anchor list to act; it acts where it is.</para></summary>
+    private void OnPartyTakeTheField()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var party = ExpeditionAnchors.EnsurePrimaryParty(cycle);
+        if (cycle == null || party == null || party.X < 0 || party.Y < 0)
+        {
+            return;
+        }
+        if (party.State != FieldPartyState.AtAnchor)
+        {
+            ShowStrategicNotice("The party is on the road",
+                "They cannot take the field while they are walking. Wait for them to arrive.");
+            return;
+        }
+
+        var here = ExpeditionAnchors.FindAt(cycle, party.X, party.Y);
+        OpenFieldPartyPicker(new StagingPoint
+        {
+            X = party.X,
+            Y = party.Y,
+            Name = here != null && !string.IsNullOrEmpty(here.Name) ? here.Name : "the field",
+            Source = "FieldParty",
+            Available = true,
+        });
+    }
+
+    /// <summary>Move-mode click with the PARTY selected. One click, two verbs:
+    /// a waystone tile steps them through instantly, anything else is a march on
+    /// foot. The tile decides, not a second mode, because "go there" is one
+    /// intention and making the player pick the travel method first is asking
+    /// them to know the answer before they have looked at the map.</summary>
+    private void TryMovePartyTo(int col, int row)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var party = ExpeditionAnchors.EnsurePrimaryParty(cycle);
+        if (cycle == null || party == null)
+        {
+            return;
+        }
+
+        if (FieldMarch.CanTeleportTo(cycle, party, col, row, out _))
+        {
+            string jump = FieldMarch.Teleport(cycle, party, col, row);
+            if (!string.IsNullOrEmpty(jump))
+            {
+                cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+                cycle.PendingSiegeReports.Add(jump);
+                SaveManager.MarkDirty();
+                SaveManager.SaveIfDirty();
+                RefreshPieceChrome();
+                ShowStrategicNotice("Through the waystone", jump);
+            }
+            return;
+        }
+
+        if (!FieldMarch.CanMarchTo(cycle, party, col, row, out string why))
+        {
+            ShowStrategicNotice("The party cannot go there", why);
+            return;
+        }
+
+        int tiles = cycle.World.HexDistance(party.X, party.Y, col, row);
+        int lunations = FieldMarch.LunationsTo(cycle, party, col, row);
+        bool fromCastlePark = cycle.CastleParked
+                              && party.X == cycle.CastleX && party.Y == cycle.CastleY;
+        bool holdWaiting = fromCastlePark && cycle.CastleHold != null && !cycle.CastleHold.IsEmpty;
+
+        var dlg = new ConfirmationDialog
+        {
+            Title = "Move the field party",
+            OkButtonText = "March",
+            DialogText =
+                $"Send them from ({party.X},{party.Y}) to ({col},{row}).\n\n"
+                + $"{tiles} tile(s) on foot, about {lunations} lunation(s) at "
+                + $"{FieldMarch.TilesPerLunation} a turn of the moon. They advance each time the "
+                + "moon turns, and they cannot take the field while they are walking.\n\n"
+                + "The road is watched. Patrols take a share of whatever they carry and cost them "
+                + "time; in hostile ground, soldiers turn them back outright."
+                + (holdWaiting
+                    ? $"\n\nThey will carry the castle's hold ({cycle.CastleHold}) and bank it on arrival."
+                    : ""),
+        };
+        dlg.Confirmed += () =>
+        {
+            string line = FieldMarch.Order(cycle, party, col, row);
+            dlg.QueueFree();
+            if (string.IsNullOrEmpty(line))
+            {
+                return;
+            }
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(line);
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+            if (_marchModeBtn != null) _marchModeBtn.ButtonPressed = false;
+            _marchMode = false;
+            RefreshPieceChrome();
+            ShowStrategicNotice("The party sets out", line);
+        };
+        dlg.Canceled += () => dlg.QueueFree();
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
+    /// <summary>March-mode click: confirm the cost, then go. Refusals are shown
+    /// rather than swallowed, because the player armed a verb and clicked, and a
+    /// silent no-op reads as a broken control.</summary>
+    private void TryMarchTo(int col, int row)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            return;
+        }
+
+        if (!CastleMarch.CanMarchTo(cycle, col, row, out string why))
+        {
+            ShowStrategicNotice("The castle cannot march there", why);
+            return;
+        }
+
+        int cost = CastleMarch.CostTo(cycle, col, row);
+        int tiles = cycle.World.HexDistance(cycle.CastleX, cycle.CastleY, col, row);
+        var dlg = new ConfirmationDialog
+        {
+            Title = "March the fortress",
+            OkButtonText = "March",
+            DialogText =
+                $"Send the castle {tiles} tile(s) to ({col},{row}).\n\n" +
+                $"Fuel: {cost} of {cycle.CastleFuel}.\n" +
+                $"On arrival the crews make camp for {CastleMarch.ArrivalCampLunations} lunation(s), " +
+                "and the castle is exposed until they finish.",
+        };
+        dlg.Confirmed += () => { dlg.QueueFree(); ExecuteCastleMarch(col, row, null); };
+        dlg.Canceled += () => dlg.QueueFree();
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
+    /// <summary>Order the march and report it. The camp at the far end is the
+    /// time cost, so nothing advances the calendar here. Shared by the deploy
+    /// drawer's March button and march mode, so the two cannot diverge.</summary>
+    private void ExecuteCastleMarch(int col, int row, PanelContainer panel)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            return;
+        }
+
+        string name = CastleTypes.For(PlayerSession.SelectedSchool)?.Name ?? "The castle";
+        string line = CastleMarch.Execute(cycle, col, row, name);
+        if (string.IsNullOrEmpty(line))
+        {
+            return;   // refused; the caller already said why
+        }
+
+        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+        cycle.PendingSiegeReports.Add(line);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+
+        if (panel != null)
+        {
+            CloseDeploy(panel);
+        }
+
+        // The world moved: markers, beacons and the castle's own staging point
+        // all changed, so the map is rebuilt rather than patched in four places.
+        GetTree().ReloadCurrentScene();
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -3937,6 +4758,55 @@ public partial class StrategicView : Node2D
         // click reopens the drawer here directly.
         cycle.LastDeployStagingKey = $"{_pendingStaging.X},{_pendingStaging.Y}";
 
+        // Expedition v2 (ruled 2026-09-21): a lunation buys ONE castle move plus
+        // K field dives. So a FIELD dive must not turn the moon, or three dives
+        // would burn a quarter of the cycle and the split would be a downgrade.
+        // It spends a dive from this lunation's budget instead, and the world
+        // does not tick.
+        bool fieldDeploy = _pendingRunKind == ExpeditionRunKind.Field;
+        if (fieldDeploy)
+        {
+            cycle.ExpeditionTurn ??= new ExpeditionTurnState();
+            cycle.ExpeditionTurn.BeginLunation(cycle.Calendar?.CurrentLunation ?? 0);
+            if (!cycle.ExpeditionTurn.CanDive)
+            {
+                ShowStrategicNotice("No dives left this moon",
+                    $"The field party has used all {cycle.ExpeditionTurn.DivesPerLunation} of this "
+                    + "lunation's dives. Move the castle to turn the moon, or wait it out.");
+                return;
+            }
+            cycle.ExpeditionTurn.DivesSpent++;
+
+            // A built waypoint is the consumable kind of anchor, and diving from
+            // it is the only thing that consumes one. Permanent anchors ignore
+            // this; SpendWaypointCharge finds nothing and says so by returning
+            // false, which is not an error.
+            ExpeditionAnchors.SpendWaypointCharge(cycle, _pendingStaging.X, _pendingStaging.Y);
+
+            PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Field;
+            PlayerSession.ExpeditionFieldPartyId = ExpeditionAnchors.PrimaryFieldPartyId;
+            PlayerSession.ExpeditionStagingCol = _pendingStaging.X;
+            PlayerSession.ExpeditionStagingRow = _pendingStaging.Y;
+            PlayerSession.ExpeditionWindowRadius = FieldDeployWindowRadius;
+
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+
+            GD.Print($"[StrategicView] Field party dives from '{_pendingStaging.Name}' "
+                     + $"({_pendingStaging.X},{_pendingStaging.Y}). Dive "
+                     + $"{cycle.ExpeditionTurn.DivesSpent}/{cycle.ExpeditionTurn.DivesPerLunation} "
+                     + $"of lunation {cycle.Calendar?.CurrentLunation}.");
+
+            GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+            return;
+        }
+
+        // A castle sortie. Say so explicitly rather than relying on the static
+        // still holding Castle: it survives scene changes, and a field send that
+        // was cancelled halfway must not make this run a field run.
+        PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Castle;
+        PlayerSession.ExpeditionFieldPartyId = "";
+
         // ── Time advances on deploy: one expedition costs one whole lunation. ──
         // AdvanceLunation snaps the calendar to the next new moon, so every
         // expedition begins on The Veiled and the living world ticks exactly
@@ -3994,6 +4864,51 @@ public partial class StrategicView : Node2D
     /// K2 (§5b/R24): infirmary recovery last.</summary>
     private void RunLunationTick(CycleState cycle)
     {
+        // Expedition v2: while the waystone is open the camp is a target. The
+        // roll happens BEFORE the resupply ticks down, so a lunation the castle
+        // was attacked in is a lunation of work lost, not work banked.
+        var castleThreat = CastleThreats.RollForLunation(cycle);
+        if (castleThreat.Happened)
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(castleThreat.Report);
+            GD.Print($"[CastleThreats] {castleThreat.Kind}: {castleThreat.Report}");
+        }
+
+        // Expedition v2: the resupply runs on the same clock as corruption and
+        // kingdom drift, so a parked castle is on the board while it is worked
+        // on rather than sitting outside time. Completing it teleports the crews
+        // home and the hold with them.
+        if (ExpeditionAnchors.TickCastleRepair(cycle))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(
+                "The waystone closes over the camp. The castle is refuelled, restocked and whole, " +
+                "and the hold is home.");
+        }
+
+        // Expedition v2: the road is not free. Rolled BEFORE the journey
+        // advances, so a party turned back does not also step toward the place
+        // it was just turned back from.
+        string interceptReport = FieldThreats.RollForLunation(cycle);
+        if (!string.IsNullOrEmpty(interceptReport))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(interceptReport);
+        }
+
+        // Expedition v2: the party walks. Their marker advances TilesPerLunation
+        // along the road and charts a thin corridor as it goes, so a march is
+        // something the player watches happen on the map rather than a counter
+        // running down out of sight. Arrival at a staging anchor banks whatever
+        // they were carrying out of the castle's hold.
+        string travelReport = FieldMarch.Tick(cycle);
+        if (!string.IsNullOrEmpty(travelReport))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(travelReport);
+        }
+
         CouncilTick.Tick(cycle);
         CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
         // Supply envy runs BEFORE the kingdom tick so cache imbalances feed the

@@ -41,7 +41,36 @@ public partial class ExpeditionManager : Node2D
     // untouched, relabeled. The serialized/code names stay "steps" (§10: renaming
     // serialized fields is not worth a migration); only the UI says Fuel/Furnace.
     [Export] public int OperatingRange = 40;   // MaxFuel budget for one sortie (fuel-in-disguise)
+
+    /// <summary>A field party's march budget for one dive, in the same units the
+    /// castle spends as fuel. Rations, not fuel: people on foot are limited by
+    /// what they can carry and how long they can stay out, which is the same
+    /// shape of constraint and therefore the same counter.
+    ///
+    /// <para>RETUNED to 40, 2026-09-22, and the reason is a design correction
+    /// rather than a measurement. I had measured 14 against a radius-6 "dive"
+    /// window, and that window was itself wrong: the ruling is that the field
+    /// party does EVERYTHING the single expedition token used to do, in a full
+    /// window, and the castle is the scout that opens ground for it. A budget
+    /// sized for a 127-tile work area is meaningless in a 469-tile one.</para>
+    ///
+    /// <para>40 is the pre-split token's OperatingRange, which is the number the
+    /// game was balanced around for its whole life before this work. The party
+    /// gets that plus the campus supply bonus and nothing else: no chassis quirk,
+    /// no Furnace crew, because it has neither.</para>
+    ///
+    /// <para>The radius-6 tour measurement is not deleted, it is VOID: it
+    /// answered a question about a window that no longer exists. If rations need
+    /// tuning again, they need measuring again against radius 12.</para></summary>
+    [Export] public int FieldRations = 40;
     [Export] public int ExhaustionDamagePerStep = 10;
+
+    // Expedition v2 (ruled 2026-09-21): a battered castle owes a longer
+    // resupply, because work crews have to teleport in and rebuild what the
+    // march cost. Starting values; the whole point is that pushing past a dry
+    // furnace is paid for twice, in Hull now and in exposed lunations later.
+    [Export] public int MinRepairLunations = 1;
+    [Export] public int MaxRepairLunations = 4;
 
     // ── Fuel refueling tuning (Mobile Fortress §3.2 / §13) ───────────────
     /// <summary>Fuel restored on resting at a refuge (§14.4 APPROVED). Watch note
@@ -122,6 +151,20 @@ public partial class ExpeditionManager : Node2D
     /// school. Its movement signature is pushed into OverworldMovementCost; its quirks
     /// are read at the relevant sites (MaxFuel, rest refuel, corruption/weather drain,
     /// scry). Set every Deploy.</summary>
+    /// <summary>True when this run is a FIELD PARTY sortie rather than the
+    /// fortress. The two share the whole run loop (window, fog, movement cost,
+    /// weather, patrols, encounters, extraction) and differ only where the
+    /// fiction differs: a handful of people on foot have no chassis, no crew
+    /// stations, no furnace and no ability to make camp as a waypoint.
+    ///
+    /// <para>Sharing the loop is the point. A parallel field-run scene would
+    /// have to re-derive fog, supply, ambush and loot, and the two would drift
+    /// within a month. Everything below branches on this flag instead.</para></summary>
+    private bool _fieldRun;
+
+    /// <summary>Which field party is out. Empty on a castle sortie.</summary>
+    private string _fieldPartyId = "";
+
     private CastleTypeDef _castle;
 
     /// <summary>This sortie's crew effects (Mobile Fortress §5), computed at deploy
@@ -251,6 +294,16 @@ public partial class ExpeditionManager : Node2D
     /// would actually buy. Refreshed every UpdateUI; hidden on ordinary expeditions.</summary>
     private Label _objectiveLabel;
     private Button _extractButton, _returnButton, _ledgerButton;
+    private Button _roadFollowButton;                // Expedition v2: take the road
+    private Button _waypointButton;                  // Expedition v2: raise a built waypoint
+
+    /// <summary>Build materials a waypoint costs. A waystone is a real thing the
+    /// guild builds, and the cost is what stops the castle papering the map with
+    /// doors: at 40 a cycle's materials buy a handful, so each one is a claim
+    /// about where the field party will be working next, not a reflex.</summary>
+    [Export] public int WaypointMaterialCost = 40;
+    private ConfirmationDialog _dryFurnaceConfirm;   // Expedition v2: the dry-furnace decision
+    private bool _pushingOnDry;                      // the player chose Hull over camp this sortie
     private bool _cameraFreeMode = false;
     private const float CameraPanSpeed = 400f;
 
@@ -290,6 +343,16 @@ public partial class ExpeditionManager : Node2D
         if (PlayerSession.ExpeditionWindowRadius > 0)
             WindowRadius = PlayerSession.ExpeditionWindowRadius;
 
+        // Expedition v2: which force is out. Read HERE, beside the rest of the
+        // deploy handoff and before ClearRunState, so the whole run can branch on
+        // a field rather than re-reading a static that later code may have reset.
+        _fieldRun = PlayerSession.ExpeditionRunKind == ExpeditionRunKind.Field;
+        _fieldPartyId = PlayerSession.ExpeditionFieldPartyId;
+        if (_fieldRun && string.IsNullOrEmpty(_fieldPartyId))
+        {
+            _fieldPartyId = ExpeditionAnchors.PrimaryFieldPartyId;
+        }
+
         // Warfront intervention? The cycle carries the pending front id across the
         // deploy → combat → return round-trips, so this stays true for the whole run.
         _isWarfront = !string.IsNullOrEmpty(cycle.PendingWarfrontId);
@@ -314,6 +377,9 @@ public partial class ExpeditionManager : Node2D
         AddChild(_grid);
 
         _window = new WorldWindowBuilder(_world, _stagingCol, _stagingRow, WindowRadius);
+
+        // The sortie begins at the dock, so the castle stands there until it moves.
+        RecordCastleWorldPosition(_stagingCol, _stagingRow);
 
         // On a combat/negotiation return the party may be far outside the base
         // disc. Build the initial window around where they'll actually be
@@ -396,22 +462,82 @@ public partial class ExpeditionManager : Node2D
         // §4 castle: the school's chassis. Configure its movement signature (static
         // ambient read by StepCost) and fold its MaxFuel quirk into the tank. Set
         // every deploy, stateless and deterministic from the school.
+        //
+        // Expedition v2: the chassis is kept assigned on BOTH paths. It is a
+        // lookup, not state, and half a dozen sites read _castle without a null
+        // guard; leaving it null on a field run would trade one branch here for
+        // six crashes elsewhere. What the field run does NOT do is let the
+        // fortress's quirks reach the world, because the party is on foot.
         _castle = CastleTypes.For(PlayerSession.SelectedSchool);
-        OverworldMovementCost.CastleCheapTerrains = _castle.CheapTerrains;
-        OverworldMovementCost.CastleTerrainDiscount = _castle.TerrainDiscount;
-        OverworldMovementCost.CastleExtraRoadDiscount = _castle.ExtraRoadDiscount;
-        OverworldMovementCost.CastleWaiveFord = _castle.WaiveFord;
-        MaxFuel = OperatingRange + bonuses.BonusSteps + _castle.BonusMaxFuel;   // fuel tank capacity (§3.1/§4)
+        if (_fieldRun)
+        {
+            // No chassis under them, so no chassis signature. These are static
+            // ambients read by StepCost and they SURVIVE A SCENE CHANGE, so a
+            // field run that skipped this would silently inherit whatever the
+            // last castle sortie left behind (a Gearspire's doubled road
+            // discount, an Enchanter's waived ford) and cost the wrong fuel.
+            OverworldMovementCost.CastleCheapTerrains =
+                new System.Collections.Generic.HashSet<OverworldHex.TerrainType>();
+            OverworldMovementCost.CastleTerrainDiscount = 0;
+            OverworldMovementCost.CastleExtraRoadDiscount = 0;
+            OverworldMovementCost.CastleWaiveFord = false;
+            OverworldMovementCost.CrewFuelMultiplier = 1f;
 
-        // §5 crew: the active party mans the stations. Auto-assign, compute the
-        // effects, and apply Helm (fuel burn), Furnace (MaxFuel) now; Lens (scry)
-        // folds into VisionModifiers below; Wardroom/Quartermaster are stored on
-        // _crew for F6 / the loot pass. Recomputed every deploy from the roster.
-        _crewAssign = CrewStations.AutoAssign(ActivePartyCompanions());
-        _crew = CrewStations.Compute(_crewAssign);
-        PlayerSession.AmbushWizardDelayReduction = _crew.WardroomAmbushReduction;   // F6 consumer
-        OverworldMovementCost.CrewFuelMultiplier = _crew.FuelBurnMultiplier;
-        MaxFuel += _crew.BonusMaxFuel;
+            // Rations, not fuel. A flat budget plus the campus supply bonus:
+            // stores are stores whichever force draws them. Deliberately not
+            // scaled by party size, because a bigger party carries more AND eats
+            // more, and modelling both to arrive back at the same number is
+            // arithmetic nobody sees.
+            MaxFuel = FieldRations + bonuses.BonusSteps;
+
+            // Nobody mans a station on foot. Explicitly NONE rather than left
+            // over, for the same scene-change reason as the ambients above.
+            _crewAssign = new System.Collections.Generic.Dictionary<CrewStation, Companion>();
+            _crew = CrewEffects.None;
+            PlayerSession.AmbushWizardDelayReduction = 0;
+        }
+        else
+        {
+            OverworldMovementCost.CastleCheapTerrains = _castle.CheapTerrains;
+            OverworldMovementCost.CastleTerrainDiscount = _castle.TerrainDiscount;
+            OverworldMovementCost.CastleExtraRoadDiscount = _castle.ExtraRoadDiscount;
+            OverworldMovementCost.CastleWaiveFord = _castle.WaiveFord;
+            MaxFuel = OperatingRange + bonuses.BonusSteps + _castle.BonusMaxFuel;   // fuel tank capacity (§3.1/§4)
+
+            // §5 crew: the active party mans the stations. Auto-assign, compute the
+            // effects, and apply Helm (fuel burn), Furnace (MaxFuel) now; Lens (scry)
+            // folds into VisionModifiers below; Wardroom/Quartermaster are stored on
+            // _crew for F6 / the loot pass. Recomputed every deploy from the roster.
+            _crewAssign = CrewStations.AutoAssign(ActivePartyCompanions());
+            _crew = CrewStations.Compute(_crewAssign);
+            PlayerSession.AmbushWizardDelayReduction = _crew.WardroomAmbushReduction;   // F6 consumer
+            OverworldMovementCost.CrewFuelMultiplier = _crew.FuelBurnMultiplier;
+            MaxFuel += _crew.BonusMaxFuel;
+        }
+
+        // BUG (2026-09-21): the tank was FILLED at OperatingRange + BonusSteps
+        // before MaxFuel folded in the castle chassis and the Furnace crew, so a
+        // sortie began below capacity and every +MaxFuel bonus in the game was
+        // dead weight. The Adept's Bastion Errant, whose whole quirk is "+5
+        // MaxFuel, the generalist's deeper tank", handed the player a tank they
+        // started five short in. Fill it HERE, once every contribution is in.
+        // The combat-return path restores SavedStepsRemaining below and is
+        // unaffected.
+        StepsRemaining = MaxFuel;
+
+        // Record the TRUE tank the moment it is known. It was previously written
+        // only when the castle parked, so a player who always extracts kept the
+        // provisional 40 that EnsureCastleSited seeds and was refuelled to that
+        // instead of their real capacity. The strategic map reads this for the
+        // march range and the furnace gauge.
+        var fuelCycle = SaveManager.ActiveSave?.Cycle;
+        if (fuelCycle != null && !_fieldRun)
+        {
+            // Castle sorties only. A field run's MaxFuel is a ration pack, and
+            // writing it here would tell the strategic map the fortress's tank
+            // had shrunk to 18 and cut its march range to match.
+            fuelCycle.CastleMaxFuel = MaxFuel;
+        }
 
         GoldEarned += bonuses.BonusGold;
 
@@ -449,13 +575,25 @@ public partial class ExpeditionManager : Node2D
             RunEventLog.Begin(StagingTemplateRegion(),
                 PlayerSession.SelectedSchool.ToString(),
                 GoldEarned, SplinterEarned, CurrentHP, MaxHP, StepsRemaining);
-            // §4 castle: name it in the log, and seed the Chronomancer flat-move
-            // counter (fresh deploy only, so it survives combat round-trips).
-            LogRun("castle", $"{_castle.Name}: {_castle.Quirk}");
-            PlayerSession.ChronoFlatMovesLeft = _castle.ChronoFlatMoves;
-            // §5 crew: log the station assignment + the effects it yields.
-            LogRun("crew", $"{CrewSummary()} → " +
-                   $"burn ×{_crew.FuelBurnMultiplier:0.00}, +{_crew.BonusMaxFuel} fuel, +{_crew.BonusScry} scry");
+            if (_fieldRun)
+            {
+                // The Chronomancer's flat moves are a CHASSIS quirk and the
+                // counter survives the scene change, so a field run must zero it
+                // rather than inherit free steps from the last sortie.
+                PlayerSession.ChronoFlatMovesLeft = 0;
+                LogRun("field_party", $"{_fieldPartyId}: {ActiveRunCompanionIds().Count} afoot, "
+                                    + $"{MaxFuel} rations, window radius {WindowRadius}");
+            }
+            else
+            {
+                // §4 castle: name it in the log, and seed the Chronomancer flat-move
+                // counter (fresh deploy only, so it survives combat round-trips).
+                LogRun("castle", $"{_castle.Name}: {_castle.Quirk}");
+                PlayerSession.ChronoFlatMovesLeft = _castle.ChronoFlatMoves;
+                // §5 crew: log the station assignment + the effects it yields.
+                LogRun("crew", $"{CrewSummary()} → " +
+                       $"burn ×{_crew.FuelBurnMultiplier:0.00}, +{_crew.BonusMaxFuel} fuel, +{_crew.BonusScry} scry");
+            }
             if (bonuses.BonusGold != 0 || bonuses.BonusHP != 0 || bonuses.BonusSteps != 0)
                 LogRun("campus_bonus",
                     $"buildings: +{bonuses.BonusGold}g +{bonuses.BonusHP}maxHP +{bonuses.BonusSteps}fuel");
@@ -508,6 +646,22 @@ public partial class ExpeditionManager : Node2D
         _spells.OverlayQuery = local => _overlay.OverlayAt(local);
         _spells.FogWrite = (local, state) => _fog.SetFog(local, state);
         _spells.StrideLockQuery = () => _striding;   // §3.4: seal the Grimoire mid-stride
+
+        // S2 in 3D: the 2D grid paints targeting onto its own hex nodes, which the
+        // 3D view does not have. Mirror the set into the 3D overlay so a spell's
+        // range is visible in the view the player actually uses.
+        _spells.TargetTilesChanged = (range, path) =>
+        {
+            // Both highlights are drawn into the same node list, so an armed
+            // spell would repaint over a pending road pick and leave the pick
+            // invisible but still eating clicks. Drop it instead.
+            CancelRoadPick(null);
+            if (_window3D == null)
+            {
+                return;
+            }
+            _window3D.ShowTargetTiles(ToWorldList(range), ToWorldList(path));
+        };
         AddChild(_spells);
         _spells.Initialize(this, _grid, cycle.Grimoire, freshDeploy: !pendingReturn);
         _spells.ApplyAttunement(_party.CurrentCoord);
@@ -999,12 +1153,18 @@ public partial class ExpeditionManager : Node2D
         _window3D = winScene != null ? winScene.Instantiate<ExpeditionWindow3D>() : new ExpeditionWindow3D();
         _window3D.Standalone = false;
         _window3D.SelfDrive = false;
+        // Set BEFORE the view is added and builds its first pawn, or the field
+        // party spends a frame as a castle and then pops.
+        _window3D.FieldParty = _fieldRun;
         _window3D.MoveRequested += OnWindow3DMove;
         _window3D.TileHovered += OnWindow3DHover;
         _window3D.TileUnhovered += OnWindow3DUnhover;
         vp.AddChild(_window3D);
         _window3D.AcceptInput = true;
-        _window3DContainer.MouseEntered += () => { if (_window3D != null) _window3D.AcceptInput = true; };
+        // Re-arm on hover, but never after the run has ended: ShowReturnButton
+        // switches the view off and a stray mouse-over must not switch it back.
+        _window3DContainer.MouseEntered += () =>
+        { if (_window3D != null && !ExpeditionComplete) _window3D.AcceptInput = true; };
         _window3DContainer.MouseExited += () => { if (_window3D != null) _window3D.AcceptInput = false; };
 
         // Refresh after each real move: PartyMoved (fog+pos), PartyArrived (POI state).
@@ -1083,25 +1243,28 @@ public partial class ExpeditionManager : Node2D
     /// <summary>A 3D-overlay click: translate the world coord back to grid-local and run
     /// the REAL move. TryMoveTo enforces adjacency/water and no-ops if illegal, so a
     /// coordinate mismatch is harmless. It simply doesn't move.</summary>
+    /// <summary>3D click. Converts to the local frame and hands off; every rule
+    /// about what a click MEANS lives in HandleTileOrder, so this view cannot
+    /// drift from the other one again. Spell targeting in particular used to be
+    /// 2D-only, which left tile-targeted Grimoire spells silently dead for anyone
+    /// playing in 3D.</summary>
     private void OnWindow3DMove(Vector2I worldCoord)
     {
-        // A click mid-stride is the one order accepted while marching: cancel (§3.4).
-        if (_striding) { CancelStride(); return; }
-
-        var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
-        if (_party == null) return;
-
-        // Adjacent → a single ordinary step. Distant → a stride order (§3.4).
-        if (_grid.GetNeighbors(_party.CurrentCoord).Contains(local))
-            _party.TryMoveTo(local);
-        else
-            BeginStride(local);
+        if (!CanAcceptOrders())
+        {
+            return;
+        }
+        HandleTileOrder(_window.LocalOf(worldCoord.X, worldCoord.Y));
     }
 
     /// <summary>3D-view hover → drive the same tile tooltip the 2D grid drives (world→local, then
     /// the existing OnHexHovered/OnHexUnhovered path), AND preview the stride path to that tile.</summary>
     private void OnWindow3DHover(Vector2I worldCoord)
     {
+        if (!CanAcceptOrders())
+        {
+            return;
+        }
         var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
         OnHexHovered(local);
         ShowStridePreview(local);
@@ -1121,6 +1284,50 @@ public partial class ExpeditionManager : Node2D
     private const int StridePoiPenalty = 6;
     private Vector2I _strideGoal;
 
+    /// <summary>Road-follow mode: the march has no destination, it simply takes
+    /// the road. Reuses the whole stride loop (pacing, fuel, momentum, weather,
+    /// patrol interception, every halt) and only swaps the next-tile chooser, so
+    /// following a road is as dangerous as walking one. Ruled 2026-09-21.</summary>
+    private bool _roadFollow;
+
+    /// <summary>Road-follow DIRECTION control (2026-09-21). The first cut of the
+    /// order took whichever road edge came first in HexCoord.AxialDirections,
+    /// which is a fixed compass preference wearing the costume of a decision: the
+    /// castle always left a junction the same way regardless of where the player
+    /// wanted it to go. Worse, RoadFollowShouldHalt announced "the road forks,
+    /// choose a way on" and then handed the player nothing to choose with.
+    ///
+    /// <para>One mechanism fixes both. When an order has more than one way on,
+    /// the view highlights each of them with a label naming where that branch
+    /// leads, and the next click picks one. The picked tile is seeded as the
+    /// first step; from there the corridor has exactly one answer per tile and
+    /// the autopilot takes over, never doubling back. A fork halt re-arms the
+    /// same pick, so the halt text is finally true.</para>
+    ///
+    /// <para>A single way on skips the ceremony and just goes: a prompt with one
+    /// option is a click tax, not a decision.</para></summary>
+    private bool _roadPick;
+
+    /// <summary>One-shot override for the first step of a road-follow. Consumed by
+    /// TryNextRoadTile, which otherwise reads the road edges. Cleared by EndStride
+    /// so a cancelled order cannot leak a direction into the next one.</summary>
+    private Vector2I? _roadSeed;
+
+    /// <summary>The tiles a pending pick will accept. Anything else cancels the
+    /// pick and falls through to a normal order, so the mode is never a trap.</summary>
+    private readonly List<Vector2I> _roadPickOptions = new();
+
+    /// <summary>Which settlement footprint the road-follow is currently inside,
+    /// so the march halts on ENTERING one rather than on every tile of it.
+    /// -1 is open country. Seeded at the order so starting inside a settlement
+    /// does not immediately announce the settlement you are standing in.</summary>
+    private int _roadSettlementIndex = -1;
+
+    /// <summary>How far a branch is traced to name it. The generator puts roughly
+    /// eleven tiles between settlements, so twenty reaches the next one on a
+    /// normal link and gives up on a long one rather than walking the map.</summary>
+    private const int RoadPeekTiles = 20;
+
     // Stride execution (F8b) + exploratory march (F8d)
     private bool _striding;
     private bool _strideHasMoved;   // don't halt on the tile we STARTED on (e.g. a staging outpost)
@@ -1134,10 +1341,49 @@ public partial class ExpeditionManager : Node2D
     /// <summary>An ENCOUNTER POI stops a stride; a benign anchor/service (outpost,
     /// seat, settlement, rest, cache) does not: the castle may deploy on or stride
     /// past those without the march refusing to start.</summary>
+    /// <summary>How the lens reports a site the castle has charted but will not
+    /// enter. Encounter kinds only; anything else is logistics and never reaches
+    /// this path.</summary>
+    private static string PoiProse(OverworldHex.POIType p) => p switch
+    {
+        OverworldHex.POIType.Combat => "a hostile encampment",
+        OverworldHex.POIType.Narrative => "a curious site",
+        OverworldHex.POIType.Negotiation => "a meeting place",
+        OverworldHex.POIType.Prison => "a gaol",
+        OverworldHex.POIType.Objective => "the objective",
+        _ => "something",
+    };
+
     private static bool IsEncounterPoi(OverworldHex.POIType p)
         => p == OverworldHex.POIType.Combat || p == OverworldHex.POIType.Narrative
         || p == OverworldHex.POIType.Negotiation || p == OverworldHex.POIType.Prison
         || p == OverworldHex.POIType.Objective;
+
+    /// <summary>The only sites a CASTLE may still work. Everything else it
+    /// charts and leaves for the field party (ruled 2026-09-22).
+    ///
+    /// <para>The line is "does working this OPEN THE MAP, or is it SPENT FOR
+    /// REWARD". An outpost secured becomes a staging point, a settlement and a
+    /// seat are contact with a polity: those are a fortress arriving somewhere,
+    /// and they are how the anchor network the field party travels on comes to
+    /// exist at all. A rest site and a supply cache are consumed for Essence,
+    /// gold, splinters and materials, which is reward, so they moved to the
+    /// party with the rest of the content.</para>
+    ///
+    /// <para>Consequence, stated rather than discovered later: the castle has NO
+    /// mid-sortie Essence recovery any more, because Rest was the only source.
+    /// That is a real tightening of long sorties and it pushes the fortress to
+    /// park sooner, which is the direction the redesign wants. If it plays badly,
+    /// the fix is one name in this list.</para>
+    ///
+    /// <para>ONE predicate, so the split can be moved by editing three lines
+    /// rather than hunting the consumption sites. IsEncounterPoi stays for the
+    /// stride planner, which asks a different question (what is worth routing
+    /// around) and must not be made to answer this one.</para></summary>
+    private static bool IsCastleLogisticsPoi(OverworldHex.POIType p)
+        => p == OverworldHex.POIType.Outpost
+        || p == OverworldHex.POIType.Settlement
+        || p == OverworldHex.POIType.Seat;
 
     /// <summary>Can a stride traverse or stop on this local tile? In the loaded
     /// window, not water, and not Hidden fog (the lens cannot command unscried
@@ -1231,6 +1477,397 @@ public partial class ExpeditionManager : Node2D
     /// per-step move (fuel/Hull/vision/patrols/ambush all fire per step), paced
     /// ~0.25 s and haltable. The next tile is chosen fresh each step, so newly
     /// revealed ground re-routes the march automatically.</summary>
+    /// <summary>Take the road and keep going. Deliberately a STRIDE rather than a
+    /// march: the march is abstract and safe, and an abstract order into fog would
+    /// hand the player the map for free. Roads link settlements (the generator
+    /// builds a minimum spanning tree over them), and settlements are where
+    /// staging, services and courts live, so a free road-follow would be an
+    /// escalator to the best things on the map. As a stride it costs real fuel,
+    /// patrols can still catch it, and weather still bites.
+    ///
+    /// <para>It does NOT run until the furnace is dry. Dry means park, and a park
+    /// is an exposed camp, possibly in a kingdom the player has never seen.
+    /// Walking into that by default is a trap rather than a decision, so the
+    /// march halts at every place worth a decision and the player re-issues.</para></summary>
+    private void BeginRoadFollow()
+    {
+        if (_striding || !CanAcceptOrders())
+        {
+            return;
+        }
+
+        // Pressing the button again while a pick is pending means "never mind".
+        if (_roadPick)
+        {
+            CancelRoadPick("The castle holds the crossroads.");
+            return;
+        }
+
+        OfferRoadChoice(null);
+    }
+
+    /// <summary>Every viable way on from the castle's tile: a road edge that leads
+    /// somewhere loaded and dry. Water is excluded because the castle cannot swim,
+    /// and a road edge can point off the loaded window at its rim.</summary>
+    private List<Vector2I> RoadExits()
+    {
+        var exits = new List<Vector2I>();
+        if (!TryTileAt(_party.CurrentCoord, out var here) || here.RoadEdges == 0)
+        {
+            return exits;
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            if ((here.RoadEdges & (1 << i)) == 0)
+            {
+                continue;
+            }
+            var (dq, dr) = HexCoord.AxialDirections[i];
+            var nb = new Vector2I(_party.CurrentCoord.X + dq, _party.CurrentCoord.Y + dr);
+            if (!_grid.Hexes.ContainsKey(nb))
+            {
+                continue;
+            }
+            if (TryTileAt(nb, out var nt) && nt.IsWater)
+            {
+                continue;
+            }
+            exits.Add(nb);
+        }
+        return exits;
+    }
+
+    /// <summary>Put the ways on in front of the player. One exit goes immediately;
+    /// several arm the pick. <paramref name="cameFrom"/> is the tile the castle
+    /// arrived by when this is a fork halt re-arming itself, and it is LABELLED
+    /// rather than hidden: turning around at a fork is a real option, and an
+    /// option silently removed is worse than one the player can see and skip.</summary>
+    private void OfferRoadChoice(Vector2I? cameFrom)
+    {
+        var exits = RoadExits();
+        if (exits.Count == 0)
+        {
+            ShowInfo("There is no road under the castle.");
+            return;
+        }
+        if (exits.Count == 1)
+        {
+            StartRoadFollow(exits[0]);
+            return;
+        }
+
+        _roadPickOptions.Clear();
+        var choices = new List<(Vector2I tile, string badge)>();
+        var lines = new List<string>();
+        for (int i = 0; i < exits.Count; i++)
+        {
+            var e = exits[i];
+            // LETTERS, not digits. RebuildMoveHints already paints a white
+            // fuel-cost digit on every adjacent tile, and a road junction's
+            // options ARE adjacent tiles, so numbered badges put a gold "2"
+            // beside a white "2" that means something else entirely (seen in
+            // a screenshot, 2026-09-21). Letters cannot be read as a cost.
+            string badge = ((char)('A' + i)).ToString();
+            string label = cameFrom.HasValue && e == cameFrom.Value
+                ? "back the way you came"
+                : RoadBranchLabel(_party.CurrentCoord, e);
+            _roadPickOptions.Add(e);
+            lines.Add($"{badge}: {label}");
+            if (_window != null && _window.TryLocalToWorld(e, out int wc, out int wr))
+            {
+                choices.Add((new Vector2I(wc, wr), badge));
+            }
+        }
+
+        _roadPick = true;
+        _window3D?.ShowRoadChoices(choices);
+        if (_roadFollowButton != null)
+        {
+            _roadFollowButton.Text = "Cancel";
+        }
+        // The LETTER goes on the map, the sentence goes here. Junctions are
+        // adjacent tiles by definition, so prose on the ground overlaps itself
+        // and the scatter between the tiles (reported 2026-09-21).
+        string options = string.Join("\n", lines);
+        ShowInfo($"The road runs {exits.Count} ways. Click one.");
+        // The card, not just the info line: the options list wraps here and can
+        // run to three lines without being cut off by the width of a HUD strip.
+        ShowHaltNotice("Choose the way on", options, HaltTone.Choice);
+    }
+
+    /// <summary>Trace one branch far enough to name it. Stops at the first
+    /// unrevealed tile, the next settlement, a further fork, or RoadPeekTiles,
+    /// whichever comes first. Fog-gated on purpose: the label must not hand the
+    /// player a settlement name it has not earned, which would turn the pick into
+    /// a free scouting report and make road-follow the escalator the design
+    /// deliberately refused it.</summary>
+    private string RoadBranchLabel(Vector2I from, Vector2I first)
+    {
+        // A settlement is an AREA: Settlements.Claim stamps SettlementIndex onto
+        // every tile of its footprint, not just the centre. The first cut asked
+        // SettlementAt about each tile and so reported the settlement the castle
+        // was ALREADY STANDING IN, which is how three different roads out of
+        // Ashfeld Crossing all came back "a settlement, 1 on" (reported
+        // 2026-09-21 from a screenshot). Only a DIFFERENT footprint counts.
+        int homeSettlement = TryTileAt(from, out var ft) ? ft.SettlementIndex : -1;
+
+        var prev = from;
+        var cur = first;
+
+        for (int step = 1; step <= RoadPeekTiles; step++)
+        {
+            if (_fog.FogAt(cur) != OverworldHex.FogState.Revealed)
+            {
+                return step == 1 ? "into unexplored ground" : $"unexplored ground, {step} on";
+            }
+
+            if (!TryTileAt(cur, out var t) || t.RoadEdges == 0)
+            {
+                return $"the road ends, {step} on";
+            }
+
+            if (t.SettlementIndex >= 0 && t.SettlementIndex != homeSettlement)
+            {
+                return $"{SettlementLabel(t.SettlementIndex)}, {step} on";
+            }
+
+            int spurs = 0;
+            for (int i = 0; i < 6; i++)
+            {
+                if ((t.RoadEdges & (1 << i)) != 0)
+                {
+                    spurs++;
+                }
+            }
+            if (spurs >= 3)
+            {
+                return $"a fork, {step} on";
+            }
+
+            bool moved = false;
+            for (int i = 0; i < 6; i++)
+            {
+                if ((t.RoadEdges & (1 << i)) == 0)
+                {
+                    continue;
+                }
+                var (dq, dr) = HexCoord.AxialDirections[i];
+                var nb = new Vector2I(cur.X + dq, cur.Y + dr);
+                if (nb == prev || !_grid.Hexes.ContainsKey(nb))
+                {
+                    continue;
+                }
+                if (TryTileAt(nb, out var nt) && nt.IsWater)
+                {
+                    continue;   // same refusal TryNextRoadTile makes, or the
+                }               // label describes a route the castle cannot take
+                prev = cur;
+                cur = nb;
+                moved = true;
+                break;
+            }
+            if (!moved)
+            {
+                return $"the road ends, {step} on";
+            }
+        }
+        return $"on past {RoadPeekTiles} tiles";
+    }
+
+    /// <summary>Name a settlement for a one-line label. Worldgen does not write
+    /// Settlement.Name (Settlements.cs never assigns it), so almost every one of
+    /// these falls through to the tier word. Saying "a city" beats saying "a
+    /// settlement" three times: the tier is what the player is choosing between,
+    /// because cities grant staging and towns do not. If a naming pass lands
+    /// later, the name takes over here with no other change.</summary>
+    private string SettlementLabel(int settlementIndex)
+    {
+        if (_world == null || settlementIndex < 0 || settlementIndex >= _world.Settlements.Count)
+        {
+            return "a settlement";
+        }
+        var s = _world.Settlements[settlementIndex];
+        if (!string.IsNullOrEmpty(s.Name))
+        {
+            return s.Name;
+        }
+        if (s.Tier == SettlementTier.City)
+        {
+            return s.GrantsStaging ? "a city (staging)" : "a city";
+        }
+        return "a town";
+    }
+
+    /// <summary>Drop a pending pick. Cheap and idempotent, because several things
+    /// legitimately interrupt it: the button, a click off the highlighted tiles,
+    /// arming a spell, or the run ending.</summary>
+    private void CancelRoadPick(string note)
+    {
+        if (!_roadPick)
+        {
+            return;
+        }
+        _roadPick = false;
+        _roadPickOptions.Clear();
+        _window3D?.ClearTargetTiles();
+        if (_roadFollowButton != null)
+        {
+            _roadFollowButton.Text = "Take the Road";
+        }
+        if (!string.IsNullOrEmpty(note))
+        {
+            ShowInfo(note);
+        }
+    }
+
+    /// <summary>Commit the order with its first step already decided. Everything
+    /// below this line is the stride loop untouched, which is the whole point: a
+    /// road-follow is as dangerous as walking one.</summary>
+    private void StartRoadFollow(Vector2I firstTile)
+    {
+        _roadPick = false;
+        _roadPickOptions.Clear();
+        _window3D?.ClearTargetTiles();
+        if (_roadFollowButton != null)
+        {
+            _roadFollowButton.Text = "Take the Road";
+        }
+
+        HideHaltNotice();
+        _roadSeed = firstTile;
+        _roadSettlementIndex = TryTileAt(_party.CurrentCoord, out var startTile)
+            ? startTile.SettlementIndex
+            : -1;
+        _roadFollow = true;
+        _strideGoal = _party.CurrentCoord;   // unused in road mode; kept sane
+        _striding = true;
+        _strideHasMoved = false;
+        _strideConsecutive = 0;
+        _strideLastTile = new Vector2I(int.MinValue, int.MinValue);
+        _strideBestDist = int.MaxValue;
+        _strideStuck = 0;
+        _window3D?.ClearStridePath();
+        SetHaltButton(true);
+        _grimoirePanel?.Refresh();
+        ShowInfo("The castle takes the road.");
+        StrideStep();
+    }
+
+    /// <summary>Should a road-follow stop on the tile it just reached? These are
+    /// the places a decision exists: a settlement, a fork, or the end of the road.
+    /// Measured before building: the generator lays a minimum spanning tree, so
+    /// forks come from settlements of degree three or more and from mid-route
+    /// merges where a later link snaps onto an existing road. Roughly eleven tiles
+    /// between settlements, which paces at a few halts per tank.</summary>
+    private bool RoadFollowShouldHalt(out string why, out bool refork, out string title)
+    {
+        why = null;
+        refork = false;
+        title = null;
+        if (!_strideHasMoved)
+        {
+            return false;   // the tile we started on is not a discovery
+        }
+
+        if (!TryTileAt(_party.CurrentCoord, out var here))
+        {
+            why = "The road runs out of charted ground.";
+            title = "Off the map";
+            return true;
+        }
+
+        // BUG (found 2026-09-21 while fixing the labels, never reported because
+        // nobody had marched into a town yet): this asked SettlementAt about the
+        // tile underfoot and halted whenever it answered. Settlements are AREAS,
+        // so a footprint of nine tiles halted the march NINE TIMES, once per
+        // step, and re-issuing walked one tile and halted again. Halt on ENTRY:
+        // when the footprint under the castle is a different one from the tile
+        // before. Leaving and coming back still halts, which is correct.
+        int settleHere = here.SettlementIndex;
+        if (settleHere != _roadSettlementIndex)
+        {
+            _roadSettlementIndex = settleHere;
+            if (settleHere >= 0)
+            {
+                why = $"The road reaches {SettlementLabel(settleHere)}.";
+                title = "Settlement reached";
+                return true;
+            }
+        }
+
+        int spurs = 0;
+        for (int i = 0; i < 6; i++)
+        {
+            if ((here.RoadEdges & (1 << i)) != 0)
+            {
+                spurs++;
+            }
+        }
+        if (spurs >= 3)
+        {
+            why = "The road forks. Choose a way on.";
+            title = "The road forks";
+            refork = true;   // and MEAN it: the caller re-arms the pick
+            return true;
+        }
+        if (spurs <= 1)
+        {
+            why = "The road ends here.";
+            title = "The road ends";
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Next tile of a road-follow: the road edge we did not arrive by.
+    /// Junction and dead-end cases are handled by RoadFollowShouldHalt before this
+    /// is reached, so a corridor tile has exactly one answer.</summary>
+    private bool TryNextRoadTile(out Vector2I next)
+    {
+        next = default;
+
+        // The player chose the way on. One-shot: after this step the corridor
+        // has exactly one non-backtracking answer per tile, so the seed is only
+        // ever needed for the first hop out of a junction.
+        if (_roadSeed.HasValue)
+        {
+            var seed = _roadSeed.Value;
+            _roadSeed = null;
+            if (_grid.Hexes.ContainsKey(seed))
+            {
+                next = seed;
+                return true;
+            }
+        }
+
+        if (!TryTileAt(_party.CurrentCoord, out var here) || here.RoadEdges == 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            if ((here.RoadEdges & (1 << i)) == 0)
+            {
+                continue;
+            }
+            var (dq, dr) = HexCoord.AxialDirections[i];
+            var nb = new Vector2I(_party.CurrentCoord.X + dq, _party.CurrentCoord.Y + dr);
+            if (nb == _strideLastTile || !_grid.Hexes.ContainsKey(nb))
+            {
+                continue;
+            }
+            if (TryTileAt(nb, out var nt) && nt.IsWater)
+            {
+                continue;
+            }
+            next = nb;
+            return true;
+        }
+        return false;
+    }
+
     private void BeginStride(Vector2I goalLocal)
     {
         if (_striding || ExpeditionComplete || _party == null)
@@ -1243,6 +1880,7 @@ public partial class ExpeditionManager : Node2D
         if (!_grid.Hexes.ContainsKey(goalLocal) || (TryTileAt(goalLocal, out var gt) && gt.IsWater))
         { ShowInfo("The castle cannot march there."); return; }
 
+        HideHaltNotice();
         _strideGoal = goalLocal;
         _striding = true;
         _strideHasMoved = false;
@@ -1272,9 +1910,26 @@ public partial class ExpeditionManager : Node2D
         if (_party.IsMoving)
         { ScheduleStrideTick(0.05f); return; }
 
-        // Arrived at the ordered tile.
-        if (_party.CurrentCoord == _strideGoal)
-        { EndStride("Arrived."); return; }
+        // Arrived at the ordered tile. A road-follow has no destination, so it
+        // stops at the places a decision exists instead.
+        if (_roadFollow)
+        {
+            if (RoadFollowShouldHalt(out string roadWhy, out bool refork, out string roadTitle))
+            {
+                var forkFrom = _strideLastTile;
+                EndStride(roadWhy, roadTitle, refork ? HaltTone.Choice : HaltTone.Neutral);
+                if (refork)
+                {
+                    // The halt claims the player gets to choose. Make that true
+                    // in the same beat, before the castle sits idle at a junction
+                    // waiting for the player to guess that a button would help.
+                    OfferRoadChoice(forkFrom);
+                }
+                return;
+            }
+        }
+        else if (_party.CurrentCoord == _strideGoal)
+        { EndStride("The castle reaches the tile you ordered.", "Arrived"); return; }
 
         // An ENCOUNTER opened on a tile we ARRIVED on (scout report, narrative,
         // negotiation, …) stops the march so the player decides. Only checked once
@@ -1283,18 +1938,28 @@ public partial class ExpeditionManager : Node2D
         if (_strideHasMoved)
         {
             var ovHere = _overlay.OverlayAt(_party.CurrentCoord);
-            if (IsEncounterPoi(ovHere.Poi) && !ovHere.Consumed)
-            { EndStride("The castle halts as something ahead demands your attention."); return; }
+            // Expedition v2 (ruled 2026-09-21): an encounter POI no longer halts
+            // the march. The castle cannot work one, so stopping to look is pure
+            // friction. StridePoiPenalty stays, because encounter ground draws
+            // patrols and routing wide of it is still worth the fuel.
         }
 
         // Safety halt: don't grind the Hull down to nothing on a long order.
         if (MaxHull > 0 && Hull <= Mathf.CeilToInt(MaxHull * 0.25f))
-        { EndStride("The castle halts to spare its Hull."); return; }
+        {
+            EndStride("The Hull is down to a quarter. The march stops rather than grind it away on a long order.",
+                      "Hull spared", HaltTone.Trouble);
+            return;
+        }
 
         // Choose the next tile: known-ground routing first, else a blind step toward
         // the bearing (the exploratory march). Dead-end / lost-in-fog halts here.
         if (!TryNextStrideTile(out var next))
-        { EndStride("The castle can find no way onward."); return; }
+        {
+            EndStride("Nothing adjacent is passable and unvisited. The castle can find no way onward.",
+                      "No way onward", HaltTone.Trouble);
+            return;
+        }
 
         // Fuel gate: a stride never spends Hull to press on. It halts when the
         // furnace cannot cover the next tile (§3.4). Momentum discounts the gate
@@ -1303,26 +1968,43 @@ public partial class ExpeditionManager : Node2D
         if (_strideConsecutive >= 3)
             nextCost = Mathf.Max(1, nextCost - 1);
         if (StepsRemaining < nextCost)
-        { EndStride("The castle halts, out of fuel."); return; }
+        {
+            EndStride($"The next tile costs {nextCost} and the furnace holds {StepsRemaining}. A march never burns Hull to press on.",
+                      "Furnace spent", HaltTone.Trouble);
+            return;
+        }
 
         // A KNOWN encounter on the next tile (not the goal) stops the march before
         // the castle walks into it. (Fog tiles are unknown, and that is the risk.)
         var ovNext = _overlay.OverlayAt(next);
-        if (next != _strideGoal && IsEncounterPoi(ovNext.Poi) && !ovNext.Consumed)
-        { EndStride("The castle halts as the way ahead is no longer clear."); return; }
+        // Expedition v2: likewise, a known encounter POI on the next tile is not
+        // the castle's business and does not stop the march.
 
         var from = _party.CurrentCoord;
         if (!_party.TryMoveTo(next))
-        { EndStride("The castle halts; the way is blocked."); return; }
+        {
+            EndStride("The way is blocked.", "Blocked", HaltTone.Trouble);
+            return;
+        }
         _strideLastTile = from;
         _strideHasMoved = true;
         _strideConsecutive++;   // this step is now behind us; momentum builds toward step 4
 
         // Bound a blind march that wanders: if several steps pass without getting
         // any closer than our best-yet distance, the bearing is lost. Halt.
-        int d = _grid.Distance(_party.CurrentCoord, _strideGoal);
-        if (d < _strideBestDist) { _strideBestDist = d; _strideStuck = 0; }
-        else if (++_strideStuck > 5) { EndStride("The castle loses the bearing in the fog."); return; }
+        // A road-follow has no bearing to lose; the road itself is the bound, and
+        // its halts are checked at the top of the next tick.
+        if (!_roadFollow)
+        {
+            int d = _grid.Distance(_party.CurrentCoord, _strideGoal);
+            if (d < _strideBestDist) { _strideBestDist = d; _strideStuck = 0; }
+            else if (++_strideStuck > 5)
+            {
+                EndStride("Several steps have passed without closing on the destination. The castle loses the bearing in the fog.",
+                          "Bearing lost", HaltTone.Trouble);
+                return;
+            }
+        }
 
         ScheduleStrideTick(StrideStepSeconds);
     }
@@ -1335,6 +2017,11 @@ public partial class ExpeditionManager : Node2D
     private bool TryNextStrideTile(out Vector2I next)
     {
         next = default;
+
+        if (_roadFollow)
+        {
+            return TryNextRoadTile(out next);
+        }
 
         var path = PlanStride(_strideGoal);
         if (path != null && path.Count > 0)
@@ -1376,19 +2063,27 @@ public partial class ExpeditionManager : Node2D
     }
 
     /// <summary>Player cancelled the march (Halt button or a map click).</summary>
-    private void CancelStride() => EndStride("The castle holds.");
+    private void CancelStride() => EndStride("You called the halt.", "Halted");
 
-    private void EndStride(string note)
+    private void EndStride(string note, string headline = null, HaltTone tone = HaltTone.Neutral)
     {
         if (!_striding)
             return;
         _striding = false;
+        _roadFollow = false;   // a halt ends the road order; the player re-issues
+        _roadSeed = null;      // and a cancelled order never leaks a direction
         _strideConsecutive = 0;
         SetHaltButton(false);
         _window3D?.ClearStridePath();
         _grimoirePanel?.Refresh();   // §3.4: the Grimoire unseals on halt
         if (!string.IsNullOrEmpty(note) && !ExpeditionComplete)
+        {
             ShowInfo(note);
+            // Every halt gets the card, not just the road ones. The march stops
+            // for eight different reasons and a single line in the corner of the
+            // HUD could not tell them apart.
+            ShowHaltNotice(headline ?? "The castle halts", note, tone);
+        }
     }
 
     private void SetHaltButton(bool show)
@@ -1547,8 +2242,60 @@ public partial class ExpeditionManager : Node2D
     // Movement / POI handlers (lifted from OverworldRunManager, de-objectived)
     // ════════════════════════════════════════════════════════════════════
 
+    // ── Castle position (Expedition v2) ──────────────────────────────────
+    // Where the fortress stands on the world, kept live so the strategic layer
+    // and the field party can find it. A parked castle is an anchor
+    // (ExpeditionAnchors.All), which is what gives parking its weight.
+    // Non-throwing: a coord the window cannot map is ignored rather than
+    // writing a wrong position.
+
+    /// <summary>Write where the fortress is. Guarded at the ONE point every
+    /// caller funnels through, not at the five call sites, because the next
+    /// person to add a sixth will not remember the rule.
+    ///
+    /// <para>Found before shipping, 2026-09-21: this is called from OnPartyMoved,
+    /// so on a field run every step the PARTY took would have teleported the
+    /// castle to follow them. The castle would have ended the dive standing
+    /// wherever the party stopped, with its anchor, its march range, its supply
+    /// line and its threat rolls all computed from the wrong tile. The field
+    /// party moves; the castle stays where it was parked.</para></summary>
+    private void RecordCastleWorldPosition(int worldCol, int worldRow)
+    {
+        if (_fieldRun)
+        {
+            return;
+        }
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || _world == null || !_world.InBounds(worldCol, worldRow))
+        {
+            return;
+        }
+        cycle.CastleX = worldCol;
+        cycle.CastleY = worldRow;
+    }
+
+    private void RecordCastleLocalPosition(Vector2I local)
+    {
+        if (_window != null && _window.TryLocalToWorld(local, out int wc, out int wr))
+        {
+            RecordCastleWorldPosition(wc, wr);
+        }
+    }
+
 private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
+        // Nothing resolves after the run is over. The entry points are guarded,
+        // but this is where fuel, Hull, leash, weather and corruption are all
+        // charged, so it refuses too rather than trusting every caller forever.
+        if (ExpeditionComplete)
+        {
+            return;
+        }
+
+        // The fortress is wherever it last halted, so the strategic layer
+        // always knows where to draw it and the field party where to reach it.
+        RecordCastleLocalPosition(newCoord);
+
         // Border-cross feedback: name the territory being entered. Fired
         // first so hazard/corruption warnings on the same step overwrite it:
         // damage outranks geography.
@@ -1671,7 +2418,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 Hull -= hpDrain;
                 LogRun("terrain_drain", destKnown ? destTerrain.ToString() : "?",
                        hpDelta: -hpDrain, at: newCoord);
-                ShowInfo($"Hazardous terrain! The castle takes {hpDrain} Hull damage.");
+                ShowInfo($"{OverworldMovementCost.TerrainDrainProse(destTerrain)}: " +
+                         $"{hpDrain} Hull lost. Roads and wards spare you this.");
                 if (Hull <= 0)
                 { Hull = 0; EmergencyExtract("The wilds batter the castle to breaking, forcing a recall."); return; }
             }
@@ -1827,20 +2575,116 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Range warning + auto-extract offer.
         if (StepsRemaining == 0 && !ExpeditionComplete)
-            ShowInfo("Fuel spent. Recall now, or press on at the cost of HP.");
+            OfferDryFurnaceChoice();
 
         CenterCamera();
         UpdateUI();
     }
 
+    /// <summary>Is the expedition taking orders at all? ONE predicate, consulted
+    /// by every entry point.
+    ///
+    /// <para>Written 2026-09-21 after the third bug of the same shape: a finished
+    /// run could still be walked because the 3D view's click handler was the one
+    /// path that had never been given the guard the others had. Four independent
+    /// checks that each have to be remembered is not a design, it is a list of
+    /// future bugs. Anything that can act on the world asks this first.</para></summary>
+    private bool CanAcceptOrders() => !ExpeditionComplete && _party != null && _grid != null;
+
+    /// <summary>Local coords to world coords, dropping anything the window cannot
+    /// map. Used to hand tile sets to the 3D view, which thinks in world space.</summary>
+    private System.Collections.Generic.List<Vector2I> ToWorldList(
+        System.Collections.Generic.List<Vector2I> locals)
+    {
+        var world = new System.Collections.Generic.List<Vector2I>();
+        if (locals == null || _window == null)
+        {
+            return world;
+        }
+        foreach (var l in locals)
+        {
+            if (_window.TryLocalToWorld(l, out int wc, out int wr))
+            {
+                world.Add(new Vector2I(wc, wr));
+            }
+        }
+        return world;
+    }
+
+    /// <summary>THE order pipeline. Both views funnel here, so a rule written once
+    /// applies to both and neither can drift from the other again.
+    ///
+    /// <para>Order is deliberate. A click mid-stride is the one order accepted
+    /// while marching (section 3.4), so cancelling comes first. Spell targeting
+    /// comes next, because an armed spell means the click was aimed at the world,
+    /// not at a destination. Movement is the fallback: adjacent walks, distant
+    /// marches.</para></summary>
+    private void HandleTileOrder(Vector2I local)
+    {
+        if (!CanAcceptOrders())
+        {
+            return;
+        }
+
+        // A pending road pick outranks everything, because it was armed by an
+        // explicit press and the highlighted tiles are the only thing on screen
+        // asking to be clicked. A click OFF them is not an error: it drops the
+        // pick and falls through to whatever that click would normally have
+        // meant, so the mode can never strand the player.
+        if (_roadPick)
+        {
+            if (_roadPickOptions.Contains(local))
+            {
+                StartRoadFollow(local);
+                return;
+            }
+            CancelRoadPick(null);
+        }
+
+        if (_striding)
+        {
+            CancelStride();
+            return;
+        }
+
+        // S2: an active spell-targeting session consumes the click.
+        if (_spells != null && _spells.HandleHexClicked(local))
+        {
+            return;
+        }
+
+        if (_grid.GetNeighbors(_party.CurrentCoord).Contains(local))
+        {
+            HideHaltNotice();   // the player answered the halt by moving
+            _party.TryMoveTo(local);
+        }
+        else
+        {
+            BeginStride(local);
+        }
+    }
+
+    /// <summary>2D grid click. Refused outright while the 3D view is open.
+    ///
+    /// <para>REGRESSION (2026-09-21), and the reason this guard exists: the 2D
+    /// grid stays alive under the 3D view as the MODEL, and its Area2D hexes can
+    /// still emit clicks. That was harmless while this handler only ever called
+    /// TryMoveTo, which requires adjacency and so failed silently on a stray
+    /// click. Unifying the pipeline gave 2D stride orders as a free improvement,
+    /// and a stray click stopped failing: it became a march toward whichever hex
+    /// sat under the cursor in 2D screen space, which is a fixed direction from
+    /// the party. Clicking anywhere in the 3D view walked the castle up and left.
+    ///
+    /// <para>The lesson is not "add a third guard". It is that only the ACTIVE
+    /// view may issue orders, and a free improvement to a path nobody uses is
+    /// not free if that path is still wired up.</para></summary>
     private void OnHexClicked(Vector2I axial)
     {
-        if (ExpeditionComplete)
+        if (_window3D != null)
+        {
             return;
-        // S2: an active spell-targeting session consumes grid clicks first.
-        if (_spells != null && _spells.HandleHexClicked(axial))
-            return;
-        _party.TryMoveTo(axial);
+        }
+        HandleTileOrder(axial);
     }
     private Vector2I? _hoveredCoord = null;
 
@@ -1862,6 +2706,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         else
         {
             string line = TerrainDisplayName(TerrainAt(axial));   // Step 3: world read
+
+            // Hazard BEFORE the step, not a surprise after it. The tooltip is the
+            // only place the player can learn what ground costs without walking
+            // into it. Both tooltip builders carry it, because the hover path and
+            // the per-frame refresh path both reach the player.
+            var hazardTerrain = TerrainAt(axial);
+            if (OverworldMovementCost.TerrainDrainsHull(hazardTerrain))
+                line += $"  ·  {OverworldMovementCost.TerrainDrainNote(hazardTerrain)}";
             // Step 2: POI gate + label read the overlay model, not the node.
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
@@ -1963,6 +2815,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         else
         {
             string line = TerrainDisplayName(TerrainAt(axial));   // Step 3: world read
+
+            // Hazard BEFORE the step, not a surprise after it. The tooltip is the
+            // only place the player can learn what ground costs without walking
+            // into it. Both tooltip builders carry it, because the hover path and
+            // the per-frame refresh path both reach the player.
+            var hazardTerrain = TerrainAt(axial);
+            if (OverworldMovementCost.TerrainDrainsHull(hazardTerrain))
+                line += $"  ·  {OverworldMovementCost.TerrainDrainNote(hazardTerrain)}";
             // Step 2: POI gate + label read the overlay model, not the node.
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
@@ -2020,6 +2880,38 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             poiType = (OverworldHex.POIType)PlayerSession.ForceNextEncounterType;
             PlayerSession.ForceNextEncounterType = -1;
+        }
+
+        // Expedition v2 (ruled 2026-09-22): the CASTLE does not use up POIs.
+        // It charts what it finds and marches on; the site stays UNCONSUMED so a
+        // dive can still take it. Working a site is what the field party is FOR,
+        // and a fortress rolling over a bandit camp is not how any of this should
+        // read.
+        //
+        // BUG this also fixes: the first cut of this rule gated on IsEncounterPoi
+        // alone, with no run-kind test, because it was written before the field
+        // party existed. So NEITHER force could work a Combat, Narrative,
+        // Negotiation, Prison or Objective site, and that content was unreachable
+        // in the shipped game. The !_fieldRun test is the whole fix for that.
+        //
+        // The castle keeps exactly the sites that OPEN THE MAP rather than being
+        // spent for reward. See IsCastleLogisticsPoi for the line and the
+        // argument for where it sits.
+        if (!_fieldRun && !IsCastleLogisticsPoi(poiType))
+        {
+            if (_window.TryLocalToWorld(coord, out int chCol, out int chRow))
+            {
+                var chartedPoi = _world.PoiAt(chCol, chRow);
+                if (chartedPoi != null)
+                {
+                    chartedPoi.Discovered = true;
+                }
+            }
+            ShowInfo($"The lens charts {PoiProse(poiType)} below. " +
+                     "The castle cannot work it: send the field party.");
+            LogRun("charted_poi", poiType.ToString(), at: coord);
+            SaveManager.MarkDirty();
+            return;
         }
 
         switch (poiType)
@@ -3895,6 +4787,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (ExpeditionComplete)
             return;
         if (_striding) EndStride(null);   // a run-end cancels any march
+
+        // Section 2.2 turnaround: a recall DOCKS the castle, so it stands at
+        // the staging point and stops being a waypoint in the field.
+        // Parking (ruled 2026-09-21) is the other end path, below.
+        RecordCastleWorldPosition(_stagingCol, _stagingRow);
+        DockCastle(bankHold: true);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
 
@@ -3936,11 +4834,227 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     /// <summary>Voluntary or range-forced extraction: bank everything, save,
     /// return to the strategic view. Discoveries are already in World.</summary>
+    /// <summary>The furnace has run dry. Ruled 2026-09-21: this FORCES a
+    /// decision rather than quietly letting the player grind on. Making camp is
+    /// the default; pushing on is the deliberate override, and it is paid for in
+    /// Hull, which in turn lengthens the repair the castle owes when it finally
+    /// does park. Asked once per sortie: having chosen to push on, the player is
+    /// not nagged every tile.</summary>
+    private void OfferDryFurnaceChoice()
+    {
+        if (ExpeditionComplete || _pushingOnDry)
+        {
+            return;
+        }
+        // Same decision, two fictions. A field party cannot make camp and
+        // become a waypoint: a waypoint is a thing the castle CONJURES, and a
+        // handful of people out of food are not an anchor. Their version of
+        // stopping is turning back, which is what the Extract button does.
+        if (_fieldRun)
+        {
+            ShowInfo("The rations are gone.");
+            if (_dryFurnaceConfirm == null)
+            {
+                OnExtractPressed();
+                return;
+            }
+            _dryFurnaceConfirm.Title = "The rations are gone";
+            _dryFurnaceConfirm.OkButtonText = "Turn back";
+            _dryFurnaceConfirm.CancelButtonText = "Push on";
+            _dryFurnaceConfirm.DialogText =
+                "The party is out of rations and cannot work this ground any longer.\n\n" +
+                "Turn back now and they walk out with what they are carrying.\n\n" +
+                $"Or push on hungry: every further tile costs {ExhaustionDamagePerStep} Health, "
+                + "and nothing restores it out here.";
+            _dryFurnaceConfirm.PopupCentered();
+            return;
+        }
+
+        ShowInfo("The furnace is dry.");
+        if (_dryFurnaceConfirm == null)
+        {
+            ParkCastle();   // no dialog available: the ruling still stands
+            return;
+        }
+        _dryFurnaceConfirm.Title = "The furnace is dry";
+        _dryFurnaceConfirm.OkButtonText = "Make camp";
+        _dryFurnaceConfirm.CancelButtonText = "Push on";
+        _dryFurnaceConfirm.DialogText =
+            "The furnace is dry and the castle can go no further under its own power.\n\n" +
+            "Make camp here: this ground becomes a waypoint. Work crews teleport in to " +
+            "refuel, restock and carry the hold home, and the castle is exposed while they do.\n\n" +
+            $"Or push on: every further tile costs {ExhaustionDamagePerStep} Hull, and every point of " +
+            "damage lengthens the repair once you finally stop.";
+        _dryFurnaceConfirm.PopupCentered();
+    }
+
+    /// <summary>The OK button. Parks the castle, or walks the field party out:
+    /// the two are the same decision ("stop here") reached from different
+    /// fictions, so they share the dialog and split at the last moment.</summary>
+    private void OnDryFurnaceMakeCamp()
+    {
+        if (_fieldRun)
+        {
+            OnExtractPressed();
+            return;
+        }
+        ParkCastle();
+    }
+
+    private void OnDryFurnacePushOn()
+    {
+        _pushingOnDry = true;
+        ShowInfo(_fieldRun
+            ? $"They press on hungry. Every tile from here costs {ExhaustionDamagePerStep} Health."
+            : $"The crew forces the legs on. Every tile from here costs {ExhaustionDamagePerStep} Hull, "
+              + "and the repair bill grows with it.");
+        LogRun("push_on_dry", "chose Hull over camp");
+    }
+
+    /// <summary>Bring the fortress home: bank whatever is in the hold and stop
+    /// being a waypoint in the field. Failure forfeits the SORTIE's spoils (the
+    /// 2026-08-05 ruling, applied by BankResources) but leaves the hold alone,
+    /// because the hold is already aboard the castle rather than carried by the
+    /// run that just ended.</summary>
+    private void DockCastle(bool bankHold)
+    {
+        // A field party coming home does not dock the fortress. UnparkCastle
+        // would retire the castle's own staging point, refill its tank from the
+        // dock turnaround and clear its repair clock, none of which the party
+        // walking back to an anchor has any business doing. The party's own
+        // spoils bank through the ordinary expedition loot path.
+        if (_fieldRun)
+        {
+            return;
+        }
+
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            return;
+        }
+
+        var hold = cycle.CastleHold;
+        if (bankHold && hold != null && !hold.IsEmpty)
+        {
+            var save = SaveManager.ActiveSave;
+            save.Gold += hold.Gold;
+            save.ArcaneSplinters += hold.Splinters;
+            save.BuildMaterials += hold.Materials;
+            save.Supplies += hold.Supplies;
+            GD.Print($"[Expedition] The hold is unloaded: {hold}.");
+            LogRun("hold_unloaded", hold.ToString());
+            hold.Clear();
+        }
+
+        ExpeditionAnchors.UnparkCastle(cycle);
+    }
+
+    /// <summary>Park the fortress where it stands (ruled 2026-09-21). The furnace
+    /// is shut down rather than run dry against the Hull: the castle becomes a
+    /// waypoint on this tile, refuels on the next sortie, and the crew stays in
+    /// the field.
+    ///
+    /// <para>Deliberately NOT a recall. No straggle lunation, no extraction
+    /// infirmary check (the crew has not come home, so ExpeditionHP persists into
+    /// the next sortie), and nothing banks: the spoils move into the castle's
+    /// hold and wait for something to carry them back.</para></summary>
+    private void ParkCastle()
+    {
+        if (ExpeditionComplete)
+        {
+            return;
+        }
+        if (_fieldRun)
+        {
+            // Last-ditch guard. OnDryFurnaceMakeCamp already splits, but this is
+            // the method that turns a tile into a waypoint and marks the castle
+            // parked there, and a field party must never be able to reach it.
+            GD.PrintErr("[Expedition] ParkCastle reached on a field run. Extracting instead.");
+            OnExtractPressed();
+            return;
+        }
+        if (_striding) EndStride(null);   // a run-end cancels any march
+        ExpeditionComplete = true;
+        PlayerSession.IsOnExpedition = false;
+
+        if (EncounterRouter.Instance != null)
+        {
+            EncounterRouter.Instance.HasSavedSeed = false;
+            EncounterRouter.Instance.HasPendingReturn = false;
+        }
+
+        OverworldSpellEffects.Clear();
+        WeatherSystem.Reset();
+        VisionModifiers.Reset();
+        _identifiedEncounters.Clear();
+        _pinnedNegotiations.Clear();
+
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        int px = _stagingCol, py = _stagingRow;
+        if (_window != null && _window.TryLocalToWorld(_party.CurrentCoord, out int wx, out int wy))
+        {
+            px = wx;
+            py = wy;
+        }
+
+        string castleName = string.IsNullOrEmpty(_castle?.Name) ? "The castle" : _castle.Name;
+
+        // The resupply bill scales with how badly the hull was hurt. Pristine
+        // means ready next lunation; a wreck sits in the open while the waystone
+        // runs. This is what stops the castle being force-marched anywhere.
+        int missingHull = Mathf.Max(0, MaxHull - Hull);
+        int repair = MaxHull > 0
+            ? 1 + Mathf.FloorToInt(4f * missingHull / MaxHull)
+            : MinRepairLunations;
+        repair = Mathf.Clamp(repair, MinRepairLunations, MaxRepairLunations);
+
+        if (cycle != null)
+        {
+            // The strategic map owns the furnace from here: a march is ordered
+            // where no ExpeditionManager exists to read StepsRemaining.
+            cycle.CastleFuel = Mathf.Max(0, StepsRemaining);
+            cycle.CastleMaxFuel = MaxFuel;
+            cycle.CastleHold ??= new CastleHold();
+            cycle.CastleHold.Add(GoldEarned, SplinterEarned, MaterialEarned, SuppliesEarned);
+            ExpeditionAnchors.ParkCastleAt(cycle, px, py, castleName, repair);
+        }
+
+        // Stats still count the sortie; the economy does not, because nothing
+        // reached the coffers. BankResources is deliberately not called.
+        var save = SaveManager.ActiveSave;
+        if (save != null)
+        {
+            save.TotalRuns++;
+            save.TotalEncountersWon += EncountersWon;
+            save.TotalGoldEarned += GoldEarned;
+        }
+        SaveManager.Save();
+
+        RunEventLog.End("parked",
+            $"furnace shut down at ({px},{py}); the castle makes camp and becomes a waypoint.",
+            GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
+            goldBanked: false, materials: MaterialEarned, supplies: SuppliesEarned);
+
+        string held = cycle?.CastleHold?.ToString() ?? "nothing";
+        ShowInfo($"{castleName} shuts down the furnace and makes camp. This ground is a waypoint now. " +
+                 $"Work crews teleport in to refuel, restock and repair: {repair} lunation(s), " +
+                 $"and the castle is exposed for every one of them. They carry {held} home when the work is done.");
+        ShowReturnButton();
+        EmitSignal(SignalName.ExpeditionEnded, true);
+    }
+
     private void Extract()
     {
         if (ExpeditionComplete)
             return;
         if (_striding) EndStride(null);   // a run-end cancels any march
+
+        // Section 2.2 turnaround: a recall DOCKS the castle, so it stands at
+        // the staging point and stops being a waypoint in the field.
+        // Parking (ruled 2026-09-21) is the other end path, below.
+        RecordCastleWorldPosition(_stagingCol, _stagingRow);
+        DockCastle(bankHold: true);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
 
@@ -3988,6 +5102,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (ExpeditionComplete)
             return;
         if (_striding) EndStride(null);   // a run-end cancels any march
+
+        // Section 2.2 turnaround: a recall DOCKS the castle, so it stands at
+        // the staging point and stops being a waypoint in the field.
+        // Parking (ruled 2026-09-21) is the other end path, below.
+        RecordCastleWorldPosition(_stagingCol, _stagingRow);
+        DockCastle(bankHold: false);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
 
@@ -4191,6 +5311,73 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _extractButton.Pressed += OnExtractPressed;
         _hudCanvas.AddChild(_extractButton);
 
+        // Road-follow. Appears only when the castle actually stands on a road, so
+        // it teaches its own precondition instead of sitting dead most of the
+        // time. Row four: Extract 12, Ledger 60, Switch to 2D 108, this 156.
+        _roadFollowButton = new Button
+        {
+            Text = "Take the Road",
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetLeft = -150,
+            OffsetRight = -12,
+            OffsetTop = 156 + HudManager.BarHeight,
+            OffsetBottom = 196 + HudManager.BarHeight,
+            Visible = false,
+            TooltipText = "March along the road, charted or not, halting at settlements, forks and the road's end. "
+                        + "Where the road runs more than one way, pick the way on from the highlighted tiles. "
+                        + "Roads spare the castle the terrain's bite and the supply line's drag, but they are "
+                        + "the obvious route: patrols watch them.",
+        };
+        _roadFollowButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_roadFollowButton, isPrimary: false);
+        _roadFollowButton.Pressed += BeginRoadFollow;
+        _hudCanvas.AddChild(_roadFollowButton);
+
+        // Raise a waypoint. Castle only, and only standing on a charted site:
+        // this is the fortress SPENDING itself to leave a door behind, which is
+        // the whole reason built waypoints exist as a separate anchor kind.
+        // Row five: Extract 12, Ledger 60, Switch to 2D 108, Take the Road 156,
+        // this 204.
+        _waypointButton = new Button
+        {
+            Text = "Raise Waypoint",
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetLeft = -150,
+            OffsetRight = -12,
+            OffsetTop = 204 + HudManager.BarHeight,
+            OffsetBottom = 244 + HudManager.BarHeight,
+            Visible = false,
+        };
+        _waypointButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_waypointButton, isPrimary: false);
+        _waypointButton.Pressed += OnRaiseWaypointPressed;
+        _hudCanvas.AddChild(_waypointButton);
+        _uiHoverBlockers.Add(_waypointButton);
+
+        BuildHaltNotice();
+
+        // Expedition v2 (ruled 2026-09-21): a dry furnace FORCES the decision
+        // rather than offering a button the player may never notice. The dialog
+        // is the control surface: make camp, or push on and pay Hull for it.
+        _dryFurnaceConfirm = new ConfirmationDialog
+        {
+            Title = "The furnace is dry",
+            OkButtonText = "Make camp",
+            CancelButtonText = "Push on",
+            Exclusive = true,
+        };
+        _dryFurnaceConfirm.Confirmed += OnDryFurnaceMakeCamp;
+        _dryFurnaceConfirm.Canceled += OnDryFurnacePushOn;
+        _hudCanvas.AddChild(_dryFurnaceConfirm);
+
         // §3.4 Stride: a Halt button appears (top-centre) only while marching.
         _haltButton = new Button
         {
@@ -4293,6 +5480,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // (Modal panels (scout report, narrative) are caught by the
         // hovered-control query; listing them too costs nothing.)
         _uiHoverBlockers.Add(_extractButton);
+        _uiHoverBlockers.Add(_roadFollowButton);
         _uiHoverBlockers.Add(_ledgerButton);
         _uiHoverBlockers.Add(_returnButton);
         _uiHoverBlockers.Add(_scoutPanel);
@@ -4301,8 +5489,18 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     private void ShowReturnButton()
     {
+        // The run is over, so the map stops taking orders. Silently swallowing
+        // clicks reads as a broken game; refusing them at the source means the
+        // cursor and hover hints go quiet too.
+        if (_window3D != null)
+        {
+            _window3D.AcceptInput = false;
+        }
+
         if (_extractButton != null)
             _extractButton.Visible = false;
+        if (_roadFollowButton != null)
+            _roadFollowButton.Visible = false;
         if (_ledgerButton != null)
             _ledgerButton.Visible = false;
         if (_ledgerPanel != null)
@@ -4410,9 +5608,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         RefreshObjectiveBanner();
 
         bool unlimitedFuel = PlayerSession.DebugMode && PlayerSession.UnlimitedSteps;
+        // One counter, two fictions. A party on foot has no furnace, and a HUD
+        // that told them their fuel would be the clearest possible signal that
+        // the field run is the castle run wearing a hat.
+        string budgetWord = _fieldRun ? "Rations" : "Fuel";
         _stepLabel.Text = unlimitedFuel
-            ? "Fuel: ∞ [DEBUG]"
-            : $"Fuel: {StepsRemaining} / {MaxFuel}";
+            ? $"{budgetWord}: ∞ [DEBUG]"
+            : $"{budgetWord}: {StepsRemaining} / {MaxFuel}";
         _stepLabel.Modulate = StepsRemaining > 5 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
         // Furnace dial: fill = fuel/MaxFuel (clamped; a negotiation overrun reads full).
@@ -4422,7 +5624,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _fuelGauge.Value = frac < 0.0 ? 0.0 : (frac > 1.0 ? 1.0 : frac);
         }
 
-        _hpLabel.Text = $"Hull: {Hull} / {MaxHull}";
+        _hpLabel.Text = _fieldRun ? $"Health: {Hull} / {MaxHull}" : $"Hull: {Hull} / {MaxHull}";
         _hpLabel.Modulate = Hull > MaxHull / 3 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
         // Mobile Fortress weather (W1): the front over the castle. Severe
@@ -4469,6 +5671,27 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_extractButton != null && !ExpeditionComplete)
             _extractButton.Text = OnSupplyAnchor() ? "Extract" : "Emergency Extract";
 
+        // Road-follow shows only with a road underfoot and no march already
+        // running, so its precondition is visible rather than explained.
+        if (_roadFollowButton != null)
+        {
+            // Castle only. "Take the road until the furnace runs dry" is a
+            // fortress order: it exists because the castle is slow, expensive to
+            // steer and covers ground in a straight line. A field party is here
+            // to work the POIs within six tiles of an anchor, and an autopilot
+            // that walks them off the edge of their own window is a trap.
+            bool onRoad = !_fieldRun && !ExpeditionComplete && !_striding
+                          && TryTileAt(_party.CurrentCoord, out var roadHere)
+                          && roadHere.RoadEdges != 0;
+            _roadFollowButton.Visible = onRoad;
+            if (!onRoad && _roadPick)
+            {
+                CancelRoadPick(null);   // the road moved out from under the pick
+            }
+        }
+
+        RefreshWaypointButton();
+
         // S2: affordability / surcharge / active-effect readout.
         _grimoirePanel?.Refresh();
     }
@@ -4479,17 +5702,311 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         GD.Print($"[Expedition] {message}");
     }
 
+    /// <summary>Raise a waystone on this tile. The castle's contribution to the
+    /// OTHER force: a built waypoint is a destination the field party can travel
+    /// to and dive from, so the fortress's exploring turns directly into the
+    /// party's reach.
+    ///
+    /// <para>Charged in materials rather than fuel because the fortress is not
+    /// moving; this is work done while standing still.</para></summary>
+    private void OnRaiseWaypointPressed()
+    {
+        if (_fieldRun || ExpeditionComplete || _party == null)
+        {
+            return;
+        }
+
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || _window == null
+            || !_window.TryLocalToWorld(_party.CurrentCoord, out int wx, out int wy))
+        {
+            return;
+        }
+
+        if (!ExpeditionAnchors.CanConjureWaypoint(cycle, wx, wy, out string why))
+        {
+            ShowInfo(why ?? "A waypoint cannot stand here.");
+            return;
+        }
+
+        var save = SaveManager.ActiveSave;
+        if (save.BuildMaterials < WaypointMaterialCost)
+        {
+            ShowInfo($"A waystone costs {WaypointMaterialCost} materials; the guild holds {save.BuildMaterials}.");
+            return;
+        }
+
+        string line = ExpeditionAnchors.ConjureWaypoint(cycle, wx, wy);
+        if (string.IsNullOrEmpty(line))
+        {
+            return;
+        }
+
+        save.BuildMaterials -= WaypointMaterialCost;
+        SaveManager.MarkDirty();
+        LogRun("waypoint_raised", $"({wx},{wy}) for {WaypointMaterialCost} materials");
+        ShowInfo(line);
+        ShowHaltNotice("Waystone raised", line, HaltTone.Neutral);
+        RefreshWaypointButton();
+    }
+
+    /// <summary>Show the waypoint control only where it would work, and wear the
+    /// refusal as a tooltip everywhere else it could plausibly be wanted. A
+    /// button that is present but disabled teaches the rule; one that vanishes
+    /// teaches nothing.</summary>
+    private void RefreshWaypointButton()
+    {
+        if (_waypointButton == null)
+        {
+            return;
+        }
+        if (_fieldRun || ExpeditionComplete || _striding || _party == null || _window == null)
+        {
+            _waypointButton.Visible = false;
+            return;
+        }
+
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || !_window.TryLocalToWorld(_party.CurrentCoord, out int wx, out int wy))
+        {
+            _waypointButton.Visible = false;
+            return;
+        }
+
+        var poi = cycle.World?.PoiAt(wx, wy);
+        if (poi == null || !poi.Discovered)
+        {
+            // Nothing to anchor to. Hidden rather than disabled: on ordinary
+            // ground the control is not refused, it is irrelevant, and a
+            // permanently greyed button on 95% of tiles is furniture.
+            _waypointButton.Visible = false;
+            return;
+        }
+
+        bool can = ExpeditionAnchors.CanConjureWaypoint(cycle, wx, wy, out string why);
+        int materials = SaveManager.ActiveSave?.BuildMaterials ?? 0;
+        bool afford = materials >= WaypointMaterialCost;
+
+        _waypointButton.Visible = true;
+        _waypointButton.Disabled = !can || !afford;
+        _waypointButton.Text = $"Raise Waypoint ({WaypointMaterialCost})";
+        _waypointButton.TooltipText = !can
+            ? why
+            : !afford
+                ? $"Costs {WaypointMaterialCost} materials; the guild holds {materials}."
+                : $"Leave a waystone over this site: {ExpeditionAnchors.WaypointChargesFromModules()} "
+                  + "dive(s) for the field party before it closes. Costs "
+                  + $"{WaypointMaterialCost} materials.";
+    }
+
+    // ── Halt notice (2026-09-21) ─────────────────────────────────────────
+    //    Every reason the castle stops already existed as a sentence, and every
+    //    one of them went to _infoLabel, a single grey line in a corner of a
+    //    busy HUD. The march stops for eight different reasons and the player
+    //    could not tell which without hunting for that line. The card says it
+    //    once, loudly, and gets out of the way.
+    //
+    //    NOT a dialog. A fork halt re-arms the tile pick in the same beat, so a
+    //    modal would be standing in front of the thing it just told you to click.
+    //    MouseFilter.Ignore on every node here, for the same reason.
+
+    /// <summary>How a halt reads. Drives the accent only; the words do the work.</summary>
+    private enum HaltTone
+    {
+        Neutral,   // the order finished as ordered
+        Choice,    // stopped because the player has a decision to make
+        Trouble,   // stopped because something ran out or went wrong
+    }
+
+    private PanelContainer _haltNotice;
+    private Label _haltHeadline;
+    private Label _haltDetail;
+    private Label _haltState;
+    private StyleBoxFlat _haltStyle;
+
+    /// <summary>Guards the auto-dismiss timer. A second halt inside the dismiss
+    /// window would otherwise let the FIRST halt's timer close the SECOND halt's
+    /// card early. Each show takes a token; the timer only acts on its own.</summary>
+    private int _haltNoticeToken;
+
+    private const float HaltNoticeSeconds = 7f;
+
+    private void BuildHaltNotice()
+    {
+        _haltStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(UITheme.BgBase, 0.96f),
+            BorderColor = UITheme.Gold,
+            BorderWidthLeft = 5,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+            ContentMarginLeft = 18,
+            ContentMarginTop = 12,
+            ContentMarginRight = 18,
+            ContentMarginBottom = 12,
+        };
+
+        // Bottom centre: the Grimoire owns the bottom left and the toasts own
+        // the bottom right, and the middle of the screen belongs to the map.
+        _haltNotice = new PanelContainer
+        {
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            AnchorLeft = 0.5f,
+            AnchorTop = 1f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 1f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            GrowVertical = Control.GrowDirection.Begin,
+            OffsetLeft = -300,
+            OffsetRight = 300,
+            OffsetTop = -230,
+            OffsetBottom = -96,
+        };
+        _haltNotice.AddThemeStyleboxOverride("panel", _haltStyle);
+
+        var box = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        box.AddThemeConstantOverride("separation", 4);
+        _haltNotice.AddChild(box);
+
+        _haltHeadline = new Label
+        {
+            Text = "",
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _haltHeadline.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize + 6);
+        _haltHeadline.AddThemeColorOverride("font_color", UITheme.Gold);
+        box.AddChild(_haltHeadline);
+
+        _haltDetail = new Label
+        {
+            Text = "",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _haltDetail.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        _haltDetail.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        box.AddChild(_haltDetail);
+
+        _haltState = new Label
+        {
+            Text = "",
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _haltState.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 1);
+        _haltState.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        box.AddChild(_haltState);
+
+        _hudCanvas.AddChild(_haltNotice);
+    }
+
+    /// <summary>Put the halt on screen. The state line is included on every card
+    /// because the two questions that follow "why did it stop" are always "how
+    /// much fuel is left" and "how bad is the Hull", and the answer being three
+    /// panels away is what makes a halt feel arbitrary.</summary>
+    private void ShowHaltNotice(string headline, string detail, HaltTone tone)
+    {
+        if (_haltNotice == null || string.IsNullOrEmpty(headline))
+        {
+            return;
+        }
+
+        _haltHeadline.Text = headline;
+        _haltDetail.Text = detail ?? "";
+        _haltDetail.Visible = !string.IsNullOrEmpty(detail);
+        string budget = _fieldRun ? "Rations" : "Fuel";
+        string vitals = _fieldRun ? "Health" : "Hull";
+        _haltState.Text = _party == null
+            ? $"{budget} {StepsRemaining}/{MaxFuel}    {vitals} {Hull}/{MaxHull}"
+            : $"{budget} {StepsRemaining}/{MaxFuel}    {vitals} {Hull}/{MaxHull}    {TerrainDisplayName(TerrainAt(_party.CurrentCoord))}";
+
+        Color accent = tone switch
+        {
+            HaltTone.Trouble => UITheme.Warning,
+            HaltTone.Choice => UITheme.ArcaneBlue,
+            _ => UITheme.Gold,
+        };
+        _haltStyle.BorderColor = accent;
+        _haltHeadline.AddThemeColorOverride("font_color", accent);
+
+        _haltNotice.Visible = true;
+
+        int token = ++_haltNoticeToken;
+        if (!IsInsideTree())
+        {
+            return;
+        }
+        GetTree().CreateTimer(HaltNoticeSeconds).Timeout += () =>
+        {
+            // Only the timer belonging to the card currently on screen may close
+            // it, and only if the card still exists (a halt can be the last thing
+            // that happens before the scene changes into combat).
+            if (token == _haltNoticeToken && GodotObject.IsInstanceValid(_haltNotice))
+            {
+                _haltNotice.Visible = false;
+            }
+        };
+    }
+
+    /// <summary>Clear the card. Called when a new order starts: a stale reason
+    /// for a stop that the player has already answered is just noise.</summary>
+    private void HideHaltNotice()
+    {
+        _haltNoticeToken++;
+        if (GodotObject.IsInstanceValid(_haltNotice))
+        {
+            _haltNotice.Visible = false;
+        }
+    }
+
     /// <summary>RunEventLog bridge: stamps the event with the current resource
     /// totals and the party's WORLD coordinate (stable across windows). All
     /// expedition-side run logging funnels through here.</summary>
+    /// <summary>The ids of whoever is actually out this run. ONE place answers
+    /// it, so nothing downstream has to know which force deployed.
+    ///
+    /// <para>A castle sortie reads ActivePartyCompanionIds, which is what it has
+    /// always meant: the crew. A field run reads the named party's roster, which
+    /// ExpeditionAnchors.ReconcilePostings has already rebuilt from the
+    /// companions' own Posting fields, so the two views cannot disagree.</para>
+    ///
+    /// <para>Falls back to ActivePartyCompanionIds if a field run somehow names a
+    /// party that is not there. A deploy that lands with an empty roster is a
+    /// wizard alone in hostile ground, and silently is the worst way to find
+    /// out.</para></summary>
+    private System.Collections.Generic.List<string> ActiveRunCompanionIds()
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null)
+            return new System.Collections.Generic.List<string>();
+
+        if (_fieldRun && save.Cycle?.FieldParties != null)
+        {
+            foreach (var p in save.Cycle.FieldParties)
+            {
+                if (p != null && p.Id == _fieldPartyId && p.MemberCompanionIds != null)
+                    return p.MemberCompanionIds;
+            }
+            GD.PrintErr($"[Expedition] Field run named party '{_fieldPartyId}', which does not exist. "
+                        + "Falling back to the active party list.");
+        }
+
+        return save.ActivePartyCompanionIds ?? new System.Collections.Generic.List<string>();
+    }
+
     /// <summary>The active party's companions, resolved from ids (§5 crew source).</summary>
     private System.Collections.Generic.List<Companion> ActivePartyCompanions()
     {
         var list = new System.Collections.Generic.List<Companion>();
         var save = SaveManager.ActiveSave;
-        if (save?.ActivePartyCompanionIds == null || save.Companions == null)
+        if (save?.Companions == null)
             return list;
-        foreach (var id in save.ActivePartyCompanionIds)
+        foreach (var id in ActiveRunCompanionIds())
         {
             var c = save.Companions.Find(x => x.Id == id);
             if (c != null) list.Add(c);
@@ -6011,7 +7528,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return total;
 
         var readout = new System.Text.StringBuilder($"[PartyPool] wizard {WizardBaseHP}");
-        foreach (var id in save.ActivePartyCompanionIds)
+        // Whoever is OUT, not whoever is on the castle roster: a field party of
+        // two must not inherit the crew's pool (it would walk into POIs with the
+        // fortress's health and never feel the cost of going short-handed).
+        foreach (var id in ActiveRunCompanionIds())
         {
             // K2: injured companions aren't fielded → no pool contribution.
             var c = save.Companions.Find(c => c.Id == id && c.IsRecruited && !c.IsPermadead && !c.IsInjured);

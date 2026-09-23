@@ -31,7 +31,7 @@ public static class VfxLibrary
     public const string ArchBurst = "burst";   // fills from aim  (Delivery.Burst, Ground, Untyped→tile)
     public const string ArchImpact = "impact"; // lands on a unit (every projectile arrival, Melee)
     public const string ArchCast = "cast";     // caster release flash
-    public const string ArchNone = "none";     // "vfx": { "archetype": "none" } — suppress travel visuals
+    public const string ArchNone = "none";     // "vfx": { "archetype": "none" } suppresses travel visuals
 
     private static readonly Dictionary<string, PackedScene> _overrides = new();
 
@@ -40,7 +40,7 @@ public static class VfxLibrary
     public static readonly Color NeutralTint = new Color("#D8D2C4");
 
     /// <summary>Named palettes for the "style" field of a card's vfx block. These
-    /// are deliberately more saturated than the UI pip colours in ElementColors —
+    /// are deliberately more saturated than the UI pip colours in ElementColors:
     /// they are read as emissive light in the world, not as ink on a card.</summary>
     private static readonly Dictionary<string, Color> _styleTints = new()
     {

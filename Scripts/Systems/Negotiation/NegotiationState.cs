@@ -135,7 +135,7 @@ public class NegotiationState
     /// <summary>v3.4: every card play IS the turn. Kept (always false) for
     /// the snapshot and any caller that still reads it.</summary>
     public bool CardPlayedThisTurn { get; private set; } = false;
-    /// <summary>v3.4: the three cards always in hand — school move, shake, walk.</summary>
+    /// <summary>v3.4: the three cards always in hand: school move, shake, walk.</summary>
     public List<ParleyCard> FixedCards { get; private set; } = new();
     /// <summary>The last card played this table (Recall's target).</summary>
     public ParleyCard LastPlayed { get; private set; } = null;
@@ -273,7 +273,7 @@ public class NegotiationState
 
         AddLog($"Negotiation begins. {data.NpcName} lays the table.");
         AddLog(data.OpeningText, NegotiationLogKind.NpcLine);
-        AddLog($"— goodwill {Goodwill} · patience {Patience} · par +{Par}", NegotiationLogKind.Detail);
+        AddLog($"· goodwill {Goodwill} · patience {Patience} · par +{Par}", NegotiationLogKind.Detail);
 
         _firstTableGuidance = SaveManager.ActiveSave?.Ledger?.DeedCounts != null
             && !SaveManager.ActiveSave.Ledger.DeedCounts.ContainsKey("negotiation_resolved");
@@ -297,7 +297,7 @@ public class NegotiationState
     }
 
     /// <summary>Their side of the table: the mid beat, the final warning,
-    /// and (once a grievance exists) the squeeze — as face-down cards.</summary>
+    /// and (once a grievance exists) the squeeze, all as face-down cards.</summary>
     private void BuildNpcCards()
     {
         NpcCards.Clear();
@@ -414,7 +414,7 @@ public class NegotiationState
     public bool CanConcede(Clause c) =>
         !IsResolved && PendingCounter == null && c != null && c.IsOpen && c.Side == ClauseSide.Yours;
 
-    /// <summary>Can the card be played right now? (v3.2: no targets — a sweep
+    /// <summary>Can the card be played right now? (v3.2: no targets, so a sweep
     /// needs at least one slip it could touch.)</summary>
     public bool CanPlay(ParleyCard card)
     {
@@ -773,7 +773,7 @@ public class NegotiationState
     // Cards (spec v3.1 §2b, §2c, §6): free, one per turn, before the action
     // ═══════════════════════════════════════════════════════════════════
 
-    /// <summary>Play a card from the hand. v3.2: no targets — a sweep picks
+    /// <summary>Play a card from the hand. v3.2: no targets. A sweep picks
     /// its category (fixed on the card, or the busiest) and touches all or
     /// some of it. Returns false when the play is illegal. Playing never
     /// spends patience; the table action that follows does. Tone lands first
@@ -946,7 +946,7 @@ public class NegotiationState
         var y = TopWant();
         if (y == null) { AddLog("There is nothing of yours left for them to want."); return; }
         y.BandKnown = true;
-        AddLog($"What they want most of yours: the {ShortName(y)} — {ParleyTells.Band(y.NpcValue)} to them.");
+        AddLog($"What they want most of yours: the {ShortName(y)}, {ParleyTells.Band(y.NpcValue)} to them.");
         Emit(ReactionKind.Reveal, 0, y.Id);
     }
 
@@ -986,7 +986,7 @@ public class NegotiationState
     public static int ClaimBonus(Clause c) =>
         Math.Clamp((c.Position + NegotiationTuning.TrackMax) / 2, 0, NegotiationTuning.ClaimBonusMax);
 
-    /// <summary>Their pull (spec v3.3 §2): one open term a step toward them —
+    /// <summary>Their pull (spec v3.3 §2): one open term a step toward them:
     /// their top want among yours, else the term of theirs you've pulled
     /// that they value most. Spoken, and the marker slides.</summary>
     private void TheirPull(int count)
@@ -1527,7 +1527,7 @@ public class NegotiationState
     }
 
     private void StampDetail() =>
-        AddLog($"— turn {TurnNumber} · goodwill {Goodwill} · credit {Credit} · patience {Patience}",
+        AddLog($"· turn {TurnNumber} · goodwill {Goodwill} · credit {Credit} · patience {Patience}",
                NegotiationLogKind.Detail);
 
     /// <summary>Value band for barks: 0 (0–1), 1 (2–3), 2 (4–5).</summary>

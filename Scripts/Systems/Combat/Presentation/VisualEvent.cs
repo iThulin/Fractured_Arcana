@@ -35,7 +35,7 @@ public enum VisualEventKind
     Death,
 
     /// <summary>A unit's rules position changed (Unit.PlaceOnTile). Plays as a short
-    /// tween of the body to the new tile — one event per tile stepped, so a walk hops
+    /// tween of the body to the new tile. One event per tile stepped, so a walk hops
     /// tile by tile and a push lands AFTER the spell that caused it.</summary>
     Move
 }
@@ -119,7 +119,7 @@ public sealed class VisualEvent
 
     /// <summary>Builds a Cast event from a resolving stack item. Pure read: it walks
     /// the target set and snapshots positions. Safe to call with a null card (enemy
-    /// abilities) — the school is then unknown and the presenter uses the neutral
+    /// abilities). The school is then unknown and the presenter uses the neutral
     /// palette.</summary>
     public static VisualEvent ForCast(StackItem item)
     {

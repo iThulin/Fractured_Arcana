@@ -470,6 +470,12 @@ public static class UITheme
     // ── Overworld spellcasting (S2, overworld_spell_system §12) ─────
     public static readonly Color EssenceText = ArcaneBlue;
     public static readonly Color SpellTargetHighlight = new Color(0.28f, 0.55f, 0.92f, 0.35f);
+
+    // Road-follow direction pick (2026-09-21). Deliberately GOLD rather than the
+    // spell blue: the two highlights mean different things (aim a spell vs choose
+    // a way on) and must never be mistaken for each other on the same board.
+    public static readonly Color RoadChoiceHighlight = Gold;
+    public static readonly Color RoadChoiceOutline = WorldDeep;
     public static readonly Color MagnitudeSubtle = TextSecondary;
     public static readonly Color MagnitudeOvert = Warning;
     public static readonly Color MagnitudeGrand = Gold;

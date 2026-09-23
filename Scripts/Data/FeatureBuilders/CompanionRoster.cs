@@ -112,6 +112,47 @@ public static class CompanionRoster
     /// arbitrary companions. Cleared on return to campus.</summary>
     public static List<Companion> DebugPartyOverride = null;
 
+    /// <summary>The ids of whoever is ACTUALLY out on the current run.
+    ///
+    /// <para>Before the force split there was one answer and
+    /// ActivePartyCompanionIds was it. Now a run can be a FIELD PARTY dive, and
+    /// five separate systems resolve "who was on the expedition" for casualty
+    /// rolls, loyalty, perks, combat spawns and negotiation tokens. Every one of
+    /// them read the castle roster, so a field party that got wiped would have
+    /// injured the crew instead, and a fight during a dive would have spawned
+    /// the people who stayed home. One accessor, so the next system to ask the
+    /// question cannot get a different answer.</para>
+    ///
+    /// <para>Gated on PlayerSession.ExpeditionRunKind, which is Field ONLY inside
+    /// the expedition scene: StrategicView._Ready puts it back to Castle, so the
+    /// campus and the strategic map always see the ordinary party. Deliberately
+    /// NOT gated on IsOnExpedition as well, because the extraction sequence
+    /// clears that flag before the casualty rolls run.</para></summary>
+    public static List<string> RunRosterIds(GuildSaveData save)
+    {
+        if (save == null)
+        {
+            return new List<string>();
+        }
+
+        if (PlayerSession.ExpeditionRunKind == ExpeditionRunKind.Field
+            && save.Cycle?.FieldParties != null)
+        {
+            string wanted = string.IsNullOrEmpty(PlayerSession.ExpeditionFieldPartyId)
+                ? ExpeditionAnchors.PrimaryFieldPartyId
+                : PlayerSession.ExpeditionFieldPartyId;
+            foreach (var p in save.Cycle.FieldParties)
+            {
+                if (p != null && p.Id == wanted && p.MemberCompanionIds != null)
+                {
+                    return p.MemberCompanionIds;
+                }
+            }
+        }
+
+        return save.ActivePartyCompanionIds ?? new List<string>();
+    }
+
     public static List<Companion> GetActiveParty()
     {
         if (DebugPartyOverride != null) return DebugPartyOverride;
@@ -122,8 +163,13 @@ public static class CompanionRoster
         // and combat spawns, which all read the party through here).
         // K2.5: mid-expedition, a companion stabilized at 0 (downed in a won
         // fight) is out for the REST of the expedition.
+        // Expedition v2: whoever is OUT, which on a field dive is the party and
+        // not the crew. Combat spawns and negotiation tokens both read the party
+        // through here, so getting this wrong would put the people who stayed at
+        // the castle into a fight the field party started.
+        var roster = RunRosterIds(save);
         return save.Companions
-            .Where(c => save.ActivePartyCompanionIds.Contains(c.Id) && !c.IsPermadead && !c.IsInjured
+            .Where(c => roster.Contains(c.Id) && !c.IsPermadead && !c.IsInjured
                         && !(PlayerSession.IsOnExpedition && c.ExpeditionHP == 0))
             .ToList();
     }

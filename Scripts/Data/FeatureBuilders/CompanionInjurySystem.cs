@@ -73,7 +73,8 @@ public static class CompanionInjurySystem
         var died = new List<Companion>();
         var survived = new List<Companion>();
 
-        foreach (var id in save.ActivePartyCompanionIds)
+        // Whoever walked into the wipe, not whoever is on the castle roster.
+        foreach (var id in CompanionRoster.RunRosterIds(save))
         {
             var c = save.Companions.Find(x => x.Id == id && x.IsRecruited && !x.IsPermadead);
             if (c == null || c.IsInjured)
@@ -167,7 +168,7 @@ public static class CompanionInjurySystem
         AssertRoundTripOnce();
         var summary = new System.Text.StringBuilder();
 
-        foreach (var id in save.ActivePartyCompanionIds)
+        foreach (var id in CompanionRoster.RunRosterIds(save))
         {
             var c = save.Companions.Find(x => x.Id == id && x.IsRecruited && !x.IsPermadead);
             if (c == null || c.ExpeditionHP < 0)

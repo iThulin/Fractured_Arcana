@@ -61,7 +61,7 @@ public static class LoyaltyEvents
     public static void OnExtraction(GuildSaveData save)
     {
         if (save == null) return;
-        foreach (var id in save.ActivePartyCompanionIds)
+        foreach (var id in CompanionRoster.RunRosterIds(save))
         {
             var c = save.Companions.Find(x => x.Id == id && x.IsRecruited && !x.IsPermadead);
             if (c == null) continue;

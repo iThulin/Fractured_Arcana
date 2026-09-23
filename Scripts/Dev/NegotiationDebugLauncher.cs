@@ -190,7 +190,7 @@ public partial class NegotiationDebugLauncher : CanvasLayer
         for (int i = 0; i < _encounterIds.Count; i++)
         {
             var d = NegotiationEncounterLoader.Load(_encounterIds[i]);
-            names[i] = d == null ? _encounterIds[i] : $"{d.NpcName} — {d.Archetype}  ({_encounterIds[i]})";
+            names[i] = d == null ? _encounterIds[i] : $"{d.NpcName}, {d.Archetype}  ({_encounterIds[i]})";
         }
         _encounterOpt = AddStringDropdown(form, "Encounter:", names.Length > 0 ? names : new[] { "(no tables found)" });
         _encounterOpt.ItemSelected += _ => RefreshEncounterInfo();

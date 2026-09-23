@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 //                 fades, a spray of additive sparks, and (for ground bursts)
 //                 a flat ring that expands along the tile. Used for AoE
 //                 detonations, projectile impacts, melee hits and the
-//                 caster's release flash — same node, different Radius and
+//                 caster's release flash: same node, different Radius and
 //                 GroundRing. Frees itself when the sparks die.
 // Layer:          Systems / Combat / Presentation
 // Collaborators:  VfxLibrary (factory), CombatPresenter (caller)

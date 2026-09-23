@@ -41,7 +41,7 @@ public static class NegotiationBarks
     {
         (NpcArchetypeType.Merchant, 0)    => Pick("“Take it. It's a season old anyway.”", "“Fine, fine. It's yours.”"),
         (NpcArchetypeType.Merchant, 1)    => Pick("“That's fair. Done.”", "“Agreed, at that.”"),
-        (NpcArchetypeType.Merchant, _)    => Pick("“…Very well. You drive a hard line, wizard.”", "“That costs me. But — agreed.”"),
+        (NpcArchetypeType.Merchant, _)    => Pick("“…Very well. You drive a hard line, wizard.”", "“That costs me. But… agreed.”"),
         (NpcArchetypeType.Commander, 0)   => Pick("“Granted. It's nothing.”", "“Take it.”"),
         (NpcArchetypeType.Commander, 1)   => Pick("“Acceptable.”", "“Agreed.”"),
         (NpcArchetypeType.Commander, _)   => Pick("“…So be it. Don't make me regret it.”", "“That is a real concession. Note that I made it.”"),
@@ -53,7 +53,7 @@ public static class NegotiationBarks
         (NpcArchetypeType.Opportunist, _) => Pick("“…Ouch. All right. All right.”", "“You're good at this. That stings. Agreed.”"),
         (NpcArchetypeType.Idealist, 0)    => Pick("“Freely given.”", "“Of course. It was always yours to ask.”"),
         (NpcArchetypeType.Idealist, 1)    => Pick("“Yes. That is fair.”", "“Agreed, gladly.”"),
-        (NpcArchetypeType.Idealist, _)    => Pick("“…It is a great deal to ask. But yes.”", "“That will be felt here. Still — yes.”"),
+        (NpcArchetypeType.Idealist, _)    => Pick("“…It is a great deal to ask. But yes.”", "“That will be felt here. Still… yes.”"),
         (NpcArchetypeType.Survivor, 0)    => Pick("“Take it. Less to carry.”", "“Yeah. Fine.”"),
         (NpcArchetypeType.Survivor, 1)    => Pick("“Fair enough.”", "“Done.”"),
         (NpcArchetypeType.Survivor, _)    => Pick("“…That hurts. Agreed.”", "“You'd better be worth it. Agreed.”"),
@@ -62,13 +62,13 @@ public static class NegotiationBarks
 
     public static string CounterBark(NpcArchetypeType a, string ask, string demand) => a switch
     {
-        NpcArchetypeType.Merchant    => Pick($"“The {ask}? Only if you add the {demand}.”", $"“I'd give the {ask} — for the {demand}.”"),
+        NpcArchetypeType.Merchant    => Pick($"“The {ask}? Only if you add the {demand}.”", $"“I'd give the {ask}, for the {demand}.”"),
         NpcArchetypeType.Commander   => Pick($"“The {ask} is possible. Put the {demand} in and it's done.”", $"“{Cap(ask)} for the {demand}. That's the trade.”"),
         NpcArchetypeType.Scholar     => Pick($"“The {ask}, in exchange for the {demand}. That would balance.”", $"“I could see my way to the {ask}, if the {demand} were included.”"),
-        NpcArchetypeType.Opportunist => Pick($"“{Cap(ask)}? Sure — throw in the {demand}.”", $"“Tell you what. The {ask}, if I get the {demand}.”"),
+        NpcArchetypeType.Opportunist => Pick($"“{Cap(ask)}? Sure, throw in the {demand}.”", $"“Tell you what. The {ask}, if I get the {demand}.”"),
         NpcArchetypeType.Idealist    => Pick($"“The {ask} could be yours, if the {demand} came to us.”", $"“For the {demand}, I would give the {ask}.”"),
         NpcArchetypeType.Survivor    => Pick($"“The {ask}. For the {demand}. Straight swap.”", $"“Give me the {demand} and you can have the {ask}.”"),
-        _                            => $"“The {ask} — if you add the {demand}.”",
+        _                            => $"“The {ask}, if you add the {demand}.”",
     };
 
     public static string DeclineBark(NpcArchetypeType a) => a switch
@@ -114,14 +114,14 @@ public static class NegotiationBarks
         (NpcArchetypeType.Merchant, 0)    => Pick("A shrug. “If you like.”", "“Mm. Noted.”"),
         (NpcArchetypeType.Merchant, 1)    => Pick("“I'll take it.”", "“That helps, a little.”"),
         (NpcArchetypeType.Merchant, 2)    => Pick("“Now that's worth something.”", "“Good. Good.”"),
-        (NpcArchetypeType.Merchant, _)    => Pick("“That — yes. That changes things.”", "His eyes go straight to it. “You have my full attention.”"),
+        (NpcArchetypeType.Merchant, _)    => Pick("“That… yes. That changes things.”", "His eyes go straight to it. “You have my full attention.”"),
         (NpcArchetypeType.Commander, 0)   => Pick("“Noted.”", "A grunt."),
         (NpcArchetypeType.Commander, 1)   => Pick("“Useful.”", "“Accepted.”"),
         (NpcArchetypeType.Commander, 2)   => Pick("“That is worth having.”", "“Good. That I can use.”"),
         (NpcArchetypeType.Commander, _)   => Pick("“That changes the field.”", "For the first time, they sit forward. “Go on.”"),
         (NpcArchetypeType.Scholar, 0)     => Pick("“Ah. Hm.”", "A polite nod."),
         (NpcArchetypeType.Scholar, 1)     => Pick("“Of some interest.”", "“Noted, with thanks.”"),
-        (NpcArchetypeType.Scholar, 2)     => Pick("“Oh — now that is interesting.”", "“That fills a gap. Yes.”"),
+        (NpcArchetypeType.Scholar, 2)     => Pick("“Oh… now that is interesting.”", "“That fills a gap. Yes.”"),
         (NpcArchetypeType.Scholar, _)     => Pick("“…Where did you get this?” They are already reading.", "The pen stops. “Say that again.”"),
         (NpcArchetypeType.Opportunist, 0) => Pick("“Cute.”", "“Sure.”"),
         (NpcArchetypeType.Opportunist, 1) => Pick("“Okay. Okay.”", "“I can move that.”"),
@@ -142,7 +142,7 @@ public static class NegotiationBarks
 
     public static string MidDemand(NpcArchetypeType a, string want) => a switch
     {
-        NpcArchetypeType.Merchant    => $"“Before we go further — I'll want the {want} in this. Understand that.”",
+        NpcArchetypeType.Merchant    => $"“Before we go further, I'll want the {want} in this. Understand that.”",
         NpcArchetypeType.Commander   => $"“Let me be clear. The {want} matters more to me than the rest.”",
         NpcArchetypeType.Scholar     => $"“I should say plainly: the {want} is the item I care about.”",
         NpcArchetypeType.Opportunist => $"“Just so we're square: the {want}. That's the one I want.”",
@@ -156,7 +156,7 @@ public static class NegotiationBarks
         NpcArchetypeType.Merchant    => $"“I've other buyers. The {want}, or we're finished here.”",
         NpcArchetypeType.Commander   => $"“Last word. The {want}. Then I go.”",
         NpcArchetypeType.Scholar     => $"“My time is spent. The {want}, or I return to my work.”",
-        NpcArchetypeType.Opportunist => $"“Clock's run. The {want} — or I vanish. Poof.”",
+        NpcArchetypeType.Opportunist => $"“Clock's run. The {want}, or I vanish. Poof.”",
         NpcArchetypeType.Idealist    => $"“The daylight is going. The {want}, or we part here.”",
         NpcArchetypeType.Survivor    => $"“I'm done waiting. The {want}. Now. Or go.”",
         _                            => $"“The {want}, or we're finished.”",
@@ -174,18 +174,18 @@ public static class NegotiationBarks
     };
 
     public static string OpportunistTwist(string target) =>
-        Pick($"“Oh — the {target}? That comes with a finder's cut now. Standard.”",
+        Pick($"“Oh, the {target}? That comes with a finder's cut now. Standard.”",
              $"“Small thing. The {target} has a finder's cut on it. Everybody does it.”");
 
     public static string WarmReveal(NpcArchetypeType a, string want) => a switch
     {
-        NpcArchetypeType.Merchant    => $"He leans in. “Between us — the {want} is the thing I actually want.”",
+        NpcArchetypeType.Merchant    => $"He leans in. “Between us, the {want} is the thing I actually want.”",
         NpcArchetypeType.Commander   => $"“I'll say this once, because you've earned it: the {want} is what I need.”",
-        NpcArchetypeType.Scholar     => $"“Since we understand each other — it is the {want} I truly want.”",
+        NpcArchetypeType.Scholar     => $"“Since we understand each other, it is the {want} I truly want.”",
         NpcArchetypeType.Opportunist => $"“Okay, cards down. The {want}. That's the one.”",
         NpcArchetypeType.Idealist    => $"“You have been kind. So I will be honest: the {want} is what we need most.”",
         NpcArchetypeType.Survivor    => $"“Straight with you, then. The {want}. That's what keeps us alive.”",
-        _                            => $"“Between us — the {want} is what I want.”",
+        _                            => $"“Between us, the {want} is what I want.”",
     };
 
     // ── Token reactions ───────────────────────────────────────────────────
@@ -194,7 +194,7 @@ public static class NegotiationBarks
     {
         (NpcArchetypeType.Commander, false) => "“Flattery. Get on with it.”",
         (NpcArchetypeType.Scholar, false)   => "“Yes, yes. The substance, please.”",
-        (NpcArchetypeType.Merchant, _)      => "“Well. Aren't you pleasant. Doesn't change the numbers — much.”",
+        (NpcArchetypeType.Merchant, _)      => "“Well. Aren't you pleasant. Doesn't change the numbers. Much.”",
         (NpcArchetypeType.Opportunist, _)   => "“Oh, I like you. Careful, that's expensive.”",
         (NpcArchetypeType.Idealist, _)      => "“You speak kindly. It is noticed.”",
         (NpcArchetypeType.Survivor, _)      => "Something in them unclenches. “…Yeah. Okay.”",
@@ -293,7 +293,7 @@ public static class NegotiationBarks
     public static string PlayerStrikeRider(string clause) => $"“And the {clause} comes out. It never belonged in this.”";
     public static string PlayerCharm(NpcArchetypeType a) => a switch
     {
-        NpcArchetypeType.Merchant    => "“A stall like this, in a port like this — you've done well for yourself.”",
+        NpcArchetypeType.Merchant    => "“A stall like this, in a port like this… you've done well for yourself.”",
         NpcArchetypeType.Commander   => "“Your people hold this ground well. I've noticed.”",
         NpcArchetypeType.Scholar     => "“I've read your work. It deserved a wider hearing.”",
         NpcArchetypeType.Opportunist => "“I heard you were the one to talk to. Now I see why.”",

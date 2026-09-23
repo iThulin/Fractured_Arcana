@@ -71,7 +71,7 @@ public static class CompanionPerks
     {
         if (save == null) return 0;
         int gold = 0;
-        foreach (var id in save.ActivePartyCompanionIds)
+        foreach (var id in CompanionRoster.RunRosterIds(save))
         {
             var c = save.Companions.Find(x => x.Id == id && x.IsRecruited && !x.IsPermadead);
             if (PerkActive(c) && c.PersonalityTrait == "Cunning")

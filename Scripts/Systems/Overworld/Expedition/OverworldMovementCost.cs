@@ -95,6 +95,36 @@ public static class OverworldMovementCost
         _ => 0,
     };
 
+    /// <summary>Does this terrain bite at all? PURE: display code must never call
+    /// TerrainHPDrain, because Volcanic rolls a die inside it and a hint that
+    /// re-rolls every redraw flickers between "safe" and "5 Hull".</summary>
+    public static bool TerrainDrainsHull(OverworldHex.TerrainType t) =>
+        t is OverworldHex.TerrainType.Swamp or OverworldHex.TerrainType.Marsh
+          or OverworldHex.TerrainType.Snow or OverworldHex.TerrainType.Volcanic;
+
+    /// <summary>What to TELL the player this terrain costs, before they step in
+    /// it. Volcanic is a chance, not a toll, and says so.</summary>
+    public static string TerrainDrainNote(OverworldHex.TerrainType t) => t switch
+    {
+        OverworldHex.TerrainType.Swamp => "3 Hull per step",
+        OverworldHex.TerrainType.Marsh => "2 Hull per step",
+        OverworldHex.TerrainType.Snow => "2 Hull per step",
+        OverworldHex.TerrainType.Volcanic => "may erupt, 5 Hull",
+        _ => "",
+    };
+
+    /// <summary>The line shown when the toll is actually paid. Names the ground,
+    /// because "Hazardous terrain!" told the player nothing about WHY the castle
+    /// was bleeding or how to stop it.</summary>
+    public static string TerrainDrainProse(OverworldHex.TerrainType t) => t switch
+    {
+        OverworldHex.TerrainType.Swamp => "The swamp's miasma eats at the hull",
+        OverworldHex.TerrainType.Marsh => "The marsh drags at the legs",
+        OverworldHex.TerrainType.Snow => "The cold works into the seams",
+        OverworldHex.TerrainType.Volcanic => "The ground splits and vents",
+        _ => "The wilds bite",
+    };
+
     // ── Edge-adjusted step cost ──────────────────────────────────────────
 
     /// <summary>Full step cost for moving from `fromHex` across the shared edge into

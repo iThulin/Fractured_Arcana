@@ -56,6 +56,32 @@ public partial class OverworldFactionManager : Node2D
 
     /// <summary>Terrain filter shared by every spawn path: no water, no mountains.
     /// Data-first with node fallback.</summary>
+    /// <summary>How many times a road tile enters the spawn pool. Roads are the
+    /// OBVIOUS route, so they are the watched one: this is the counterweight to
+    /// S4.2, which spares a road step the terrain's bite and the supply line's
+    /// drag, and to road-follow, which lets the castle take a road through fog.
+    /// Without it roads are strictly better and there is no trade.
+    ///
+    /// <para>Measured before choosing: the generator lays about 528 road tiles
+    /// (48 links, roughly 11 tiles each) across about 9,100 land tiles, so roads
+    /// are 5.8 percent of walkable ground and a radius-12 window holds about 27
+    /// of them. At weight 10 that is 270 weighted entries against roughly 442
+    /// ordinary ones, so about 38 percent of patrols start on a road. Watched,
+    /// not exclusively patrolled.</para></summary>
+    public const int RoadSpawnWeight = 10;
+
+    /// <summary>True when the tile carries any road edge. Falls back to false
+    /// rather than guessing when the world is not queryable.</summary>
+    private bool TileHasRoad(Vector2I coord)
+    {
+        if (TileQuery == null)
+        {
+            return false;
+        }
+        var t = TileQuery(coord);
+        return t.HasValue && t.Value.RoadEdges != 0;
+    }
+
     private bool SpawnTerrainOk(Vector2I coord, OverworldHex hex)
     {
         if (TileQuery != null)
@@ -219,6 +245,19 @@ public partial class OverworldFactionManager : Node2D
                 continue;
 
             result.Add(coord);
+
+            // A road tile enters the pool several times, which is the whole of
+            // the bias: no separate road list, no special-casing downstream. The
+            // spacing filter and the deterministic sort below both still work,
+            // since duplicates share a coordinate and are excluded together once
+            // one of them is placed.
+            if (RoadSpawnWeight > 1 && TileHasRoad(coord))
+            {
+                for (int extra = 1; extra < RoadSpawnWeight; extra++)
+                {
+                    result.Add(coord);
+                }
+            }
         }
 
         // Deterministic ordering (q then r), because spawn choice must reproduce.

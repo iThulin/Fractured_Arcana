@@ -222,6 +222,26 @@ public static class PlayerSession
     /// <summary>Window radius for the next expedition (0 = use ExpeditionManager default).</summary>
     public static int ExpeditionWindowRadius = 0;
 
+    /// <summary>Which force the next run drives. Expedition v2 splits the two:
+    /// the fortress sorties to explore and relocate, and a FIELD PARTY travels
+    /// to a known anchor and walks the POIs around it.
+    ///
+    /// <para>A handoff static rather than a save field on purpose. It is read
+    /// once in ExpeditionManager._Ready and never referenced again, exactly like
+    /// ExpeditionStagingCol beside it; putting it in the save would make a
+    /// transient scene-change argument look like durable state.</para>
+    ///
+    /// <para>Deliberately NOT reset by ClearRunState: that runs AFTER the deploy
+    /// handoff is read, so clearing it there would be harmless but misleading.
+    /// StrategicView.Deploy sets it explicitly on BOTH paths instead, so a stale
+    /// Field cannot leak into the next castle sortie.</para></summary>
+    public static ExpeditionRunKind ExpeditionRunKind = ExpeditionRunKind.Castle;
+
+    /// <summary>Which field party is out, when ExpeditionRunKind is Field. Empty
+    /// on a castle sortie. Named rather than assumed, because MaxFieldParties is
+    /// a campus upgrade and the turn loop already iterates the list.</summary>
+    public static string ExpeditionFieldPartyId = "";
+
     /// <summary>Player-facing view preference: when true, an expedition run opens
     /// directly into the 3D expedition-window view and the in-run 2D/3D toggle
     /// starts in 3D. NOT debug-gated: it is a real setting that persists for the

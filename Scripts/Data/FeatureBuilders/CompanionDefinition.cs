@@ -43,6 +43,22 @@ public class Companion
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsInjured => InjuredLunationsRemaining > 0;
 
+    // ── Posting (Expedition v2 split forces, 2026-09-21) ─────────────────
+    /// <summary>Which force this companion is posted to. Crew staffs the
+    /// CrewStations that drive fortress characteristics; Field walks into
+    /// POIs; Campus is neither. THIS FIELD plus FieldPartyId is the single
+    /// source of truth for postings; FieldParty.MemberCompanionIds is the
+    /// ordered view, rebuilt by ExpeditionAnchors.ReconcilePostings.
+    /// Defaults to Campus so pre-split saves deserialize to "posted nowhere"
+    /// and BackfillPostings can reconstruct the crew from the existing
+    /// ActivePartyCompanionIds list without a migration.</summary>
+    public CompanionPosting Posting = CompanionPosting.Campus;
+
+    /// <summary>Which field party, when Posting is Field. Empty otherwise, and
+    /// empty-with-Field is read as the primary party rather than dropping the
+    /// companion.</summary>
+    public string FieldPartyId = "";
+
     // ── Expedition HP (K2.5 ruling, 2026-07-09) ──────────────────────────
     // Combat HP persists BETWEEN fights within one expedition: unit HP is
     // the fights, the party pool is the journey. -1 = fresh/full. 0 = downed
