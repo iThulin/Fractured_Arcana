@@ -289,6 +289,15 @@ public partial class ExpeditionWindow3D : Node3D
             AmbientLightColor = new Color(0.55f, 0.56f, 0.60f),
             AmbientLightEnergy = 0.5f,
         };
+        // Screen-space AO (Forward+ only, which this project is). The one
+        // post effect that adds contact and cavity shade to a lit surface
+        // without touching the palette: valleys between crests, tree bases,
+        // the foot of the barrel wall. LightAffect lets it bite into the sun's
+        // light too, not only the fill, or the toon bands would erase it.
+        _env.SsaoEnabled = ChamberSsao;
+        _env.SsaoRadius = SsaoRadius;
+        _env.SsaoIntensity = SsaoIntensity;
+        _env.SsaoLightAffect = 0.35f;
         _baseAmbient = _env.AmbientLightColor;   // W4: weather tint lerps from this
         _haveBaseAmbient = true;
         AddChild(new WorldEnvironment { Environment = _env });
@@ -296,7 +305,7 @@ public partial class ExpeditionWindow3D : Node3D
         var sun = new DirectionalLight3D
         {
             LightColor = new Color(1f, 0.97f, 0.90f, 1f),
-            LightEnergy = 1.0f,
+            LightEnergy = SunEnergy,
             ShadowEnabled = true,
             // SHADOW-MAP HYGIENE (the "lines everywhere + spotted shadows"
             // fix). The old rig projected acne artifacts across every tile:
@@ -313,10 +322,10 @@ public partial class ExpeditionWindow3D : Node3D
             DirectionalShadowMode = DirectionalLight3D.ShadowMode.Orthogonal,
             ShadowBlur = 1.0f,
             ShadowBias = 0.3f,
-            ShadowNormalBias = 3.0f,
+            ShadowNormalBias = SunShadowNormalBias,
         };
         AddChild(sun);
-        sun.RotationDegrees = new Vector3(-45f, -40f, 0f);
+        sun.RotationDegrees = new Vector3(SunPitchDeg, SunYawDeg, 0f);
         _sun = sun;
     }
 
@@ -364,8 +373,16 @@ public partial class ExpeditionWindow3D : Node3D
     // the A4b atlas-parity values so the two 3D views keep lighting the A1
     // palette identically. Fog density down (dark distance fog was eating the
     // projection), chamber ambient up.
-    [Export] public float ChamberFogDensity = 0.032f;
-    [Export] public float ChamberAmbientEnergy = 0.62f;
+    // 0.032 until 2026-09-23. At that density the far wall of the chamber
+    // (about 4.5 R from the look-up camera) kept 4% of its colour, so the room
+    // could not be seen however it was lit. Halved; the map at max zoom reads
+    // a little brighter for it.
+    [Export] public float ChamberFogDensity = 0.016f;
+    // 0.62 until 2026-09-23 ("play-dough pastel lump, no definition"). Fill
+    // that strong flattens every slope into the same tone; the brightness the
+    // 08-21 playtest wanted now comes from the sun (SunEnergy), which lights
+    // slopes unequally, which is the whole point of a sun.
+    [Export] public float ChamberAmbientEnergy = 0.45f;
     /// <summary>Arcane glow shared by the projection rim, the chamber light, and
     /// the figures' under-light, so the scene reads as one magical source.</summary>
     [Export] public Color ArcaneGlow = new Color(0.42f, 0.68f, 0.92f);
@@ -380,8 +397,8 @@ public partial class ExpeditionWindow3D : Node3D
 
     [ExportGroup("Companions")]
     [Export] public int CompanionCount = 5;
-    [Export] public float CompanionHeight = 3.2f;
-    [Export] public float CompanionRingMargin = 3.0f;   // ring radius = map radius + this
+    [Export] public float CompanionHeight = 6.0f;   // was 3.2: a figure a quarter the table's radius, not a chess piece
+    [Export] public float CompanionRingMargin = 3.6f;   // ring radius = map radius + this
     [Export] public Color CompanionRobe = new Color(0.10f, 0.10f, 0.13f);
 
     [ExportGroup("Camera")]
@@ -710,12 +727,32 @@ public partial class ExpeditionWindow3D : Node3D
     {
         float zoom01 = Mathf.InverseLerp(CamDistMin, MaxZoom, _camDist);
         float pitch = Mathf.DegToRad(Mathf.Lerp(38f, 60f, zoom01));
+        float dist = _camDist;
+        Vector3 target = _camTarget;
+
+        // Looking up (2026-09-23): the gaze lifts off the stone toward the far
+        // wall. Lower pitch, further back, and the focus slides from wherever
+        // the party was to a point above the table on the door's side, so the
+        // desk falls into the bottom of the frame and the door into the middle.
+        // Blended rather than switched, so the orbit and the look-up are one
+        // camera and Q/E still work at either end.
+        if (_lookUp > 0f)
+        {
+            Vector3 c = new Vector3(_mapCenterX, 0f, _mapCenterZ);
+            Vector3 roomTarget = c + new Vector3(0f, _mapDiscR * 0.12f, -_mapDiscR * 0.45f);
+            float roomPitch = Mathf.DegToRad(16f);
+            float roomDist = _mapDiscR * 2.6f;
+            pitch = Mathf.Lerp(pitch, roomPitch, _lookUp);
+            dist = Mathf.Lerp(dist, roomDist, _lookUp);
+            target = target.Lerp(roomTarget, _lookUp);
+        }
+
         // Base orbit offset (behind + above), yawed around the focus so Q/E rotate the view.
         float cp = Mathf.Cos(pitch), sp = Mathf.Sin(pitch);
         float cy = Mathf.Cos(_camYaw), sy = Mathf.Sin(_camYaw);
-        Vector3 offset = new Vector3(cp * sy, sp, cp * cy) * _camDist;
-        _camera.Position = _camTarget + offset;
-        _camera.LookAt(_camTarget, Vector3.Up);
+        Vector3 offset = new Vector3(cp * sy, sp, cp * cy) * dist;
+        _camera.Position = target + offset;
+        _camera.LookAt(target, Vector3.Up);
     }
 
     public override void _Process(double delta)
@@ -929,7 +966,48 @@ public partial class ExpeditionWindow3D : Node3D
     /// <summary>Per-hex fog-aware rendered height + colour, the field's sample
     /// points, plus whether the sample is water (the colour kernel weights
     /// water down so beds do not tint the land). Rebuilt each RebuildTiles.</summary>
-    private readonly Dictionary<Vector2I, (float h, Color col, bool water)> _field = new();
+    private readonly Dictionary<Vector2I, (float h, Color col, bool water, float rug)> _field = new();
+
+    /// <summary>How much crag a terrain carries, 0..1. Blended through the
+    /// wide height kernel into a smooth mask that gates RidgeRelief, so the
+    /// crags fade in over a tile's width rather than switching on at a hex
+    /// edge. Water, hidden ground and the flat wet terrains carry none.</summary>
+    private static float Ruggedness(TT t)
+    {
+        switch (t)
+        {
+            case TT.Mountain: return 1.0f;
+            case TT.Volcanic: return 0.85f;
+            case TT.Snow: return 0.6f;
+            case TT.Hills: return 0.45f;
+            case TT.Tundra: return 0.2f;
+            case TT.Ruins: return 0.15f;
+            case TT.Forest: return 0.12f;
+            case TT.Desert: return 0.10f;   // dunes
+            case TT.ArcaneGround: return 0.10f;
+            case TT.Grassland: return 0.05f;
+            case TT.Road: return 0.03f;
+            default: return 0f;   // Swamp, Marsh, Coast, Water, Lake
+        }
+    }
+
+    /// <summary>Ridged noise on two rotated domains: crests where the noise
+    /// crosses its midline, squared so the crests are narrow and the valleys
+    /// wide. Wavelengths about 1.8 and 0.9 units, both above the vertex grid
+    /// (0.33), so it cannot alias the way the brush grain did. Centred so the
+    /// average lift is near zero and the tile's own height stays the height.</summary>
+    private float RidgeRelief(float wx, float wz)
+    {
+        const float c1 = 0.8910f, s1 = 0.4540f;   // 27 degrees
+        const float c2 = 0.4540f, s2 = 0.8910f;   // 63 degrees
+        float x1 = (wx * c1 - wz * s1) * 0.55f + 17.1f, z1 = (wx * s1 + wz * c1) * 0.55f;
+        float x2 = (wx * c2 - wz * s2) * 1.15f - 42.6f, z2 = (wx * s2 + wz * c2) * 1.15f + 8.3f;
+        float r1 = 1f - Mathf.Abs(UNoise(x1, z1) * 2f - 1f);
+        float r2 = 1f - Mathf.Abs(UNoise(x2, z2) * 2f - 1f);
+        r1 *= r1;
+        r2 *= r2;
+        return (r1 - 0.33f) * RidgeAmp + (r2 - 0.33f) * RidgeDetailAmp;
+    }
     private Vector2 _fieldMin, _fieldMax;
     /// <summary>Kernel radius in WORLD units. Must exceed the hex spacing
     /// (~1.5–1.73) so kernels overlap and the blended field is smooth. Larger =
@@ -983,17 +1061,18 @@ public partial class ExpeditionWindow3D : Node3D
                 if (EnableWaterPlane && TouchesVisibleWater(c))
                 {
                     _fogWaterContinuation.Add(c);
-                    _field[c] = (WaterHiddenBed, WaterHiddenColor, true);
+                    _field[c] = (WaterHiddenBed, WaterHiddenColor, true, 0f);
                     return;
                 }
                 float edge = HasPaintedNeighbor(c) ? Hex3DPalette.WetEdgeAmount(c.X, c.Y) : 0f;
-                _field[c] = (FogSlabHeight, StyleUnexplored(Hex3DPalette.CanvasTone(c.X, c.Y, edge)), false);
+                _field[c] = (FogSlabHeight, StyleUnexplored(Hex3DPalette.CanvasTone(c.X, c.Y, edge)), false, 0f);
             }
             else
             {
                 var f = _fog.FogAt(c);
-                _field[c] = (RenderedTileHeight(c) + BankLip(c), TileColor(_world.GetTile(c.X, c.Y), c, f),
-                             _world.GetTile(c.X, c.Y).IsWater);
+                var tile = _world.GetTile(c.X, c.Y);
+                _field[c] = (RenderedTileHeight(c) + BankLip(c), TileColor(tile, c, f),
+                             tile.IsWater, tile.IsWater ? 0f : Ruggedness(tile.Terrain));
             }
         }
 
@@ -1067,7 +1146,7 @@ public partial class ExpeditionWindow3D : Node3D
     {
         var (cc, cr) = WorldToOffset(wx, wz);
         var (q0, r0) = HexCoord.OffsetToAxial(cc, cr);
-        float wsum = 0f, hsum = 0f, rr = 0f, gg = 0f, bb = 0f;
+        float wsum = 0f, hsum = 0f, rr = 0f, gg = 0f, bb = 0f, rsum = 0f;
         float cw = 0f, crr = 0f, cgg = 0f, cbb = 0f;
         float R = FieldKernelRadius, R2 = R * R;
         float Rc = ColorKernelRadius, Rc2 = Rc * Rc;
@@ -1089,7 +1168,7 @@ public partial class ExpeditionWindow3D : Node3D
                 {
                     float tt = Mathf.Sqrt(dist2) / R;             // 0 at centre, 1 at radius
                     float w = 1f - tt * tt * (3f - 2f * tt);      // smoothstep-down, C1
-                    wsum += w; hsum += w * d.h;
+                    wsum += w; hsum += w * d.h; rsum += w * d.rug;
                     rr += w * d.col.R; gg += w * d.col.G; bb += w * d.col.B;
                 }
                 float cdx = cwx - o.X, cdz = cwz - o.Z;
@@ -1119,7 +1198,10 @@ public partial class ExpeditionWindow3D : Node3D
         col = new Color(Mathf.Clamp(col.R * m, 0f, 1f),
                         Mathf.Clamp(col.G * m, 0f, 1f),
                         Mathf.Clamp(col.B * m, 0f, 1f), 1f);
-        return hsum / wsum;
+        // Crag on top of the smooth field, gated by the blended ruggedness so
+        // it belongs to mountains and hills and fades out over their skirts.
+        float rug = rsum / wsum;
+        return hsum / wsum + (rug > 0.01f ? RidgeRelief(wx, wz) * rug : 0f);
     }
 
     private float SampleFieldHeight(float wx, float wz)
@@ -1132,7 +1214,7 @@ public partial class ExpeditionWindow3D : Node3D
     /// grid-difference normals vary smoothly (no facets).</summary>
     private MeshInstance3D BuildHeightmapSurface()
     {
-        const float vertsPerUnit = 2.5f;
+        const float vertsPerUnit = 3.0f;   // 2.5 until the ridges (2026-09-23): the 0.9 unit octave needs the samples
         float wSpan = _fieldMax.X - _fieldMin.X, hSpan = _fieldMax.Y - _fieldMin.Y;
         int nx = Mathf.Max(2, Mathf.CeilToInt(wSpan * vertsPerUnit));
         int nz = Mathf.Max(2, Mathf.CeilToInt(hSpan * vertsPerUnit));
@@ -1251,7 +1333,14 @@ public partial class ExpeditionWindow3D : Node3D
             sm.SetShaderParameter("grain_fade_end", 16f);
             sm.SetShaderParameter("skirt_darken", 0.10f);
             sm.SetShaderParameter("stripe_strength", 0.06f);
-            sm.SetShaderParameter("toon_softness", 0.26f);
+            sm.SetShaderParameter("toon_softness", GroundToonSoftness);
+            sm.SetShaderParameter("toon_bands", GroundToonBands);
+            sm.SetShaderParameter("toon_jitter", GroundToonJitter);
+            sm.SetShaderParameter("slope_darken", SlopeDarken);
+            sm.SetShaderParameter("contour_strength", ContourInk);
+            sm.SetShaderParameter("contour_spacing", ContourSpacing);
+            sm.SetShaderParameter("contour_fade_start", 22f);
+            sm.SetShaderParameter("contour_fade_end", 40f);
         }
         var node = new MeshInstance3D { Name = "WinHeightmap", Mesh = st.Commit(), MaterialOverride = mat };
         AddChild(node);
@@ -1758,15 +1847,94 @@ public partial class ExpeditionWindow3D : Node3D
 
         void Add(Node3D n) { if (n is VisualInstance3D vi) vi.Layers = RigLayer; _scryRig.AddChild(n); }
 
-        // Chamber floor: a broad dark disc so the figures aren't standing in void.
+        // The chamber shell: floor, a round wall, a ceiling, a ring of pillars
+        // and the sconces between them. All of it sized off R (see the Room
+        // exports), so the room stays the same room whatever window radius the
+        // sortie was built with.
+        float chamberR = R * ChamberRadiusMul;
+        float wallH = R * ChamberWallHeightMul;
+        var wallMat = new StandardMaterial3D
+        {
+            AlbedoColor = WallColor, Roughness = 0.95f,
+            CullMode = BaseMaterial3D.CullModeEnum.Disabled,   // seen from inside
+        };
         Add(new MeshInstance3D
         {
             Name = "ChamberFloor",
-            Mesh = new CylinderMesh { TopRadius = R + 16f, BottomRadius = R + 16f, Height = 0.4f, RadialSegments = 48 },
+            Mesh = new CylinderMesh { TopRadius = chamberR, BottomRadius = chamberR, Height = 0.4f, RadialSegments = 64 },
             MaterialOverride = new StandardMaterial3D { AlbedoColor = FloorColor, Roughness = 1f },
             Position = c + new Vector3(0f, floorY - 0.2f, 0f),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         });
+        Add(new MeshInstance3D
+        {
+            Name = "ChamberWall",
+            Mesh = new CylinderMesh
+            {
+                TopRadius = chamberR, BottomRadius = chamberR, Height = wallH,
+                RadialSegments = 64, CapTop = false, CapBottom = false,
+            },
+            MaterialOverride = wallMat,
+            Position = c + new Vector3(0f, floorY + wallH * 0.5f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+        Add(new MeshInstance3D
+        {
+            Name = "ChamberCeiling",
+            Mesh = new CylinderMesh { TopRadius = chamberR, BottomRadius = chamberR, Height = 0.4f, RadialSegments = 64 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = FloorColor.Darkened(0.25f), Roughness = 1f,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,   // seen from below
+            },
+            Position = c + new Vector3(0f, floorY + wallH + 0.2f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+        // Pillars sit half a step off the cardinal angles so none stands in
+        // front of the door (which is at -Z); the sconces sit ON the cardinal
+        // angles, so one hangs directly over the door and lights it.
+        int pillars = Mathf.Max(3, ChamberPillars);
+        float pillarRing = chamberR - PillarRadius - 0.6f;
+        var pillarMat = new StandardMaterial3D { AlbedoColor = WallColor.Lightened(0.08f), Roughness = 0.9f };
+        for (int i = 0; i < pillars; i++)
+        {
+            float a = Mathf.Tau * (i + 0.5f) / pillars;
+            Add(new MeshInstance3D
+            {
+                Name = $"Pillar{i}",
+                Mesh = new CylinderMesh { TopRadius = PillarRadius, BottomRadius = PillarRadius * 1.15f, Height = wallH, RadialSegments = 12 },
+                MaterialOverride = pillarMat,
+                Position = c + new Vector3(Mathf.Cos(a) * pillarRing, floorY + wallH * 0.5f, Mathf.Sin(a) * pillarRing),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            });
+        }
+        float sconceRing = chamberR - 2.2f;
+        float sconceY = floorY + wallH * 0.48f;
+        var flameMat = new StandardMaterial3D
+        {
+            AlbedoColor = SconceColor, EmissionEnabled = true, Emission = SconceColor, EmissionEnergyMultiplier = 3.0f,
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        };
+        for (int i = 0; i < pillars; i++)
+        {
+            float a = Mathf.Tau * i / pillars;
+            Vector3 sp = c + new Vector3(Mathf.Cos(a) * sconceRing, sconceY, Mathf.Sin(a) * sconceRing);
+            Add(new MeshInstance3D
+            {
+                Name = $"SconceFlame{i}",
+                Mesh = new SphereMesh { Radius = 0.42f, Height = 0.84f, RadialSegments = 8, Rings = 4 },
+                MaterialOverride = flameMat,
+                Position = sp,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            });
+            Add(new OmniLight3D
+            {
+                Name = $"Sconce{i}",
+                LightColor = SconceColor, LightEnergy = SconceEnergy, OmniRange = R * 1.4f,
+                ShadowEnabled = false, LightCullMask = RigLayer,
+                Position = sp,
+            });
+        }
 
         // The scrying table: a round pedestal/basin the projection sits over.
         Add(new MeshInstance3D
@@ -1817,6 +1985,47 @@ public partial class ExpeditionWindow3D : Node3D
             Position = c + new Vector3(0f, tableTopY + 2.4f, 0f),
         });
 
+        // The wizard's desk, beside the stone (2026-09-23). Notes land here.
+        // Placed on the camera's side of the table so it sits at the bottom of
+        // the frame when the wizard looks up, where a desk beside you would be.
+        _deskPos = c + new Vector3(R + DeskOffset, floorY, R * 0.55f);
+        Add(new MeshInstance3D
+        {
+            Name = "ScryDesk",
+            Mesh = new BoxMesh { Size = new Vector3(7.4f, DeskHeight, 4.2f) },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = TableColor.Lightened(0.08f), Roughness = 0.9f },
+            Position = _deskPos + new Vector3(0f, DeskHeight * 0.5f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+
+        // The chamber door, set into the far wall. Messengers come in through it.
+        _doorPos = c + new Vector3(0f, floorY, -(chamberR - 0.8f));
+        Add(new MeshInstance3D
+        {
+            Name = "ChamberDoorFrame",
+            Mesh = new BoxMesh { Size = new Vector3(DoorWidth + 1.6f, DoorHeight + 0.8f, 0.9f) },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = WallColor.Lightened(0.15f), Roughness = 0.9f },
+            Position = _doorPos + new Vector3(0f, (DoorHeight + 0.8f) * 0.5f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+        Add(new MeshInstance3D
+        {
+            Name = "ChamberDoor",
+            Mesh = new BoxMesh { Size = new Vector3(DoorWidth, DoorHeight, 0.5f) },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = TableColor.Darkened(0.35f), Roughness = 0.95f,
+                EmissionEnabled = true, Emission = ArcaneGlow, EmissionEnergyMultiplier = 0.04f,
+            },
+            Position = _doorPos + new Vector3(0f, DoorHeight * 0.5f, 0.3f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+
+        // Notes already waiting are re-laid every time the rig rebuilds.
+        _noteStack = new Node3D { Name = "DeskNotes" };
+        Add(_noteStack);
+        SetDeskNotes(_deskNoteCount);
+
         // Stand-in companions around the rim, faces turned to the map.
         int n = Mathf.Max(1, CompanionCount);
         float ringR = R + CompanionRingMargin;
@@ -1861,13 +2070,211 @@ public partial class ExpeditionWindow3D : Node3D
     /// <summary>One stylised stand-in companion: a robed body + head, dark with a
     /// faint arcane under-light, turned to face the map centre. Real companion
     /// models replace these in a later pass.</summary>
+    // ── Looking up from the stone (2026-09-23) ──────────────────────────
+    //    Ruled: the wizard can look up from the palantir. News arrives as a
+    //    note on the desk, a messenger through the door, or a sending through
+    //    the stone itself. The room already existed as set dressing; this
+    //    gives it a desk, a door, and a reason to be looked at.
+
+    [ExportGroup("Scrying Chamber Desk")]
+    [Export] public float DeskOffset = 5.5f;      // desk edge past the table's rim
+    [Export] public float DeskHeight = 3.0f;      // a writing desk beside a 6 unit figure
+    [Export] public float LookUpSeconds = 0.55f;
+    [Export] public float MessengerWalkSeconds = 1.4f;
+
+    // The chamber proper (2026-09-23: "just a dark room, expand it"). Sized off
+    // the projection radius R, the one length the player has a feel for: a desk
+    // four units wide means nothing until it stands beside a table twenty four
+    // across. The wall and pillars give the fog something to sit against; the
+    // sconces give the wall something to be lit by; the ceiling keeps the
+    // look-up from staring into the void above the wall's lip.
+    [ExportGroup("Scrying Chamber Room")]
+    [Export] public float ChamberRadiusMul = 2.8f;       // wall radius = R * this (look-up camera sits at about 2.05 R)
+    [Export] public float ChamberWallHeightMul = 1.3f;   // wall height = R * this
+    [Export] public int ChamberPillars = 8;
+    [Export] public float PillarRadius = 1.6f;
+    [Export] public Color WallColor = new Color(0.17f, 0.16f, 0.20f);
+    [Export] public Color SconceColor = new Color(1.0f, 0.74f, 0.46f);
+    [Export] public float SconceEnergy = 1.8f;
+    [Export] public float DoorWidth = 4.4f;
+    [Export] public float DoorHeight = 9.6f;
+
+    // Ground definition (2026-09-23). The smooth field is C1 by design and
+    // was reading as one soft lump: nothing in the geometry for the light to
+    // catch. Three levers, each an export so the look is judged in-scene:
+    // RIDGES (per-terrain crag noise masked by a ruggedness field, so plains
+    // stay calm and mountains break into crests), the SUN (lower and stronger
+    // against a weaker fill, so slopes actually differ in tone), and INK
+    // (slope darkening and optional contour lines in the shader, the map
+    // convention a scrying table would use).
+    [ExportGroup("Ground Definition")]
+    [Export] public float RidgeAmp = 0.55f;          // crest height on full-ruggedness ground, world units
+    [Export] public float RidgeDetailAmp = 0.16f;    // finer second octave
+    [Export] public float SlopeDarken = 0.35f;       // steep faces darken toward this fraction
+    [Export] public float ContourInk = 0.22f;        // 0 = no contour lines
+    [Export] public float ContourSpacing = 0.30f;    // world units between lines
+    [Export] public float GroundToonBands = 4f;
+    [Export] public float GroundToonSoftness = 0.12f;
+    [Export] public float GroundToonJitter = 0.6f;
+
+    [ExportGroup("Chamber Sun")]
+    [Export] public float SunPitchDeg = -34f;        // was -45: a lower sun rakes the relief
+    [Export] public float SunYawDeg = -40f;
+    [Export] public float SunEnergy = 1.3f;          // was 1.0
+    [Export] public float SunShadowNormalBias = 2.0f;   // was 3.0; lower lets ridges shade themselves, raise if acne returns
+    [Export] public bool ChamberSsao = true;
+    [Export] public float SsaoRadius = 1.4f;
+    [Export] public float SsaoIntensity = 2.4f;
+
+    private Vector3 _deskPos;
+    private Vector3 _doorPos;
+    private Node3D _noteStack;
+    private int _deskNoteCount;
+    private Node3D _messenger;
+    private Tween _lookTween;
+    private Tween _messengerTween;
+
+    /// <summary>0 at the stone, 1 looking up at the room. Blended inside
+    /// PlaceCamera so the ordinary orbit and the look-up share ONE camera
+    /// function and cannot drift apart.</summary>
+    private float _lookUp;
+
+    public bool IsLookingUp => _lookUp > 0.5f;
+
+    /// <summary>Fired when a look-up or look-down finishes.</summary>
+    [Signal] public delegate void LookChangedEventHandler(bool lookingUp);
+
+    /// <summary>Lift the gaze from the stone to the room. The desk comes into
+    /// the bottom of the frame, the door into the middle distance.</summary>
+    public void LookUp()
+    {
+        AnimateLook(1f);
+    }
+
+    public void LookDown()
+    {
+        AnimateLook(0f);
+    }
+
+    private void AnimateLook(float target)
+    {
+        _lookTween?.Kill();
+        _lookTween = CreateTween();
+        _lookTween.TweenMethod(Callable.From<float>(v => { _lookUp = v; PlaceCamera(); }),
+                               _lookUp, target, LookUpSeconds)
+                  .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+        _lookTween.Finished += () => EmitSignal(SignalName.LookChanged, target > 0.5f);
+    }
+
+    /// <summary>Lay N notes on the desk. Small pale leaves, slightly fanned so
+    /// three do not read as one. Called by the host whenever the unread count
+    /// changes and by the rig when it rebuilds.</summary>
+    public void SetDeskNotes(int count)
+    {
+        _deskNoteCount = Mathf.Max(0, count);
+        if (_noteStack == null)
+        {
+            return;
+        }
+        foreach (var ch in _noteStack.GetChildren())
+        {
+            ch.QueueFree();
+        }
+        int shown = Mathf.Min(_deskNoteCount, 6);
+        for (int i = 0; i < shown; i++)
+        {
+            float fan = (i - (shown - 1) * 0.5f) * 0.18f;
+            float ns = DeskHeight / 2.4f;   // the leaves were drawn for a 2.4 desk
+            var leaf = new MeshInstance3D
+            {
+                Mesh = new BoxMesh { Size = new Vector3(1.3f * ns, 0.05f, 0.9f * ns) },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = UITheme.ScryNotePaper, Roughness = 1f,
+                    EmissionEnabled = true, Emission = UITheme.ScryNotePaper, EmissionEnergyMultiplier = 0.12f,
+                },
+                Position = _deskPos + new Vector3(0.6f * ns + i * 0.08f, DeskHeight + 0.03f + i * 0.055f, -0.3f * ns + i * 0.06f),
+                RotationDegrees = new Vector3(0f, 8f + fan * 60f, 0f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Layers = RigLayer,
+            };
+            _noteStack.AddChild(leaf);
+        }
+    }
+
+    /// <summary>A figure comes through the door and walks to the wizard's side.
+    /// <paramref name="onArrived"/> fires when they stop, which is when there
+    /// is something to say. One at a time: a second summons while one is in
+    /// the room replaces them, because two people talking over each other is
+    /// worse than one of them being late.</summary>
+    public void EnterMessenger(System.Action onArrived)
+    {
+        DismissMessenger(immediate: true);
+        if (_scryRig == null)
+        {
+            onArrived?.Invoke();
+            return;
+        }
+
+        Vector3 c = new Vector3(_mapCenterX, 0f, _mapCenterZ);
+        Vector3 stand = c + new Vector3(-(_mapDiscR + 4.2f), FloorY, -2.4f);
+        _messenger = MakeStandIn(_doorPos, c);
+        _messenger.Name = "Messenger";
+        _scryRig.AddChild(_messenger);
+
+        _messengerTween?.Kill();
+        _messengerTween = CreateTween();
+        _messengerTween.TweenProperty(_messenger, "position", stand, MessengerWalkSeconds)
+                       .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+        _messengerTween.Finished += () => onArrived?.Invoke();
+    }
+
+    /// <summary>The messenger leaves the way they came.</summary>
+    public void DismissMessenger(bool immediate = false)
+    {
+        _messengerTween?.Kill();
+        var fig = _messenger;
+        _messenger = null;
+        if (fig == null || !GodotObject.IsInstanceValid(fig))
+        {
+            return;
+        }
+        if (immediate)
+        {
+            fig.QueueFree();
+            return;
+        }
+        var t = CreateTween();
+        t.TweenProperty(fig, "position", _doorPos, MessengerWalkSeconds)
+         .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+        t.Finished += () => { if (GodotObject.IsInstanceValid(fig)) fig.QueueFree(); };
+    }
+
+    /// <summary>The stone flares: the glow light pulses up and back. The
+    /// visible half of a sending; the pause is the host's.</summary>
+    public void PulseStone(float seconds)
+    {
+        var glow = _scryRig?.GetNodeOrNull<OmniLight3D>("ScryGlow");
+        if (glow == null)
+        {
+            return;
+        }
+        float baseEnergy = glow.LightEnergy;
+        var t = CreateTween();
+        t.TweenProperty(glow, "light_energy", baseEnergy * 3.2f, seconds * 0.35f)
+         .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+        t.TweenProperty(glow, "light_energy", baseEnergy, seconds * 0.65f)
+         .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+    }
+
     private Node3D MakeStandIn(Vector3 basePos, Vector3 lookCentre)
     {
         float h = CompanionHeight;   // head clears the table rim to peer at the map
+        float k = h / 3.2f;          // girth follows height (the radii were drawn for 3.2)
         var fig = new Node3D { Position = basePos };
         var robe = new MeshInstance3D
         {
-            Mesh = new CylinderMesh { TopRadius = 0.28f, BottomRadius = 0.62f, Height = h * 0.8f, RadialSegments = 8 },
+            Mesh = new CylinderMesh { TopRadius = 0.28f * k, BottomRadius = 0.62f * k, Height = h * 0.8f, RadialSegments = 8 },
             MaterialOverride = new StandardMaterial3D
             {
                 AlbedoColor = CompanionRobe, Roughness = 1f,
@@ -1879,9 +2286,9 @@ public partial class ExpeditionWindow3D : Node3D
         };
         var head = new MeshInstance3D
         {
-            Mesh = new SphereMesh { Radius = 0.26f, Height = 0.52f, RadialSegments = 10, Rings = 6 },
+            Mesh = new SphereMesh { Radius = 0.26f * k, Height = 0.52f * k, RadialSegments = 10, Rings = 6 },
             MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.14f, 0.13f, 0.16f), Roughness = 1f },
-            Position = new Vector3(0f, h * 0.8f + 0.18f, 0f),
+            Position = new Vector3(0f, h * 0.8f + 0.18f * k, 0f),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             Layers = RigLayer,
         };

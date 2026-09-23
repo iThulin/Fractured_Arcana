@@ -76,6 +76,19 @@ uniform float stripe_strength : hint_range(0.0, 0.5) = 0.16;
 uniform float stripe_scale : hint_range(0.2, 10.0) = 2.4;
 group_uniforms;
 
+group_uniforms relief;
+/** Darken steep land faces toward this fraction (world-space normal, so it
+    reads the same from any camera). 0 = off (atlas unchanged). */
+uniform float slope_darken : hint_range(0.0, 0.8) = 0.0;
+/** Contour-line ink strength on land: iso-height lines every contour_spacing
+    world units, anti-aliased by fwidth and faded where they would crowd or
+    where the camera is too far to sample them. 0 = off. */
+uniform float contour_strength : hint_range(0.0, 0.6) = 0.0;
+uniform float contour_spacing : hint_range(0.05, 2.0) = 0.3;
+uniform float contour_fade_start = 100000.0;
+uniform float contour_fade_end = 100000.0;
+group_uniforms;
+
 group_uniforms water;
 /** Swell height in WORLD units (kept small: prism facets, not surf). */
 uniform float swell_amplitude : hint_range(0.0, 0.1) = 0.025;
@@ -215,6 +228,29 @@ void fragment()
 			                            v_world_pos.y * stripe_scale)) - 0.5;
 			base *= 1.0 - wall * skirt_darken;
 			base *= 1.0 + wall * stripes * 2.0 * stripe_strength;
+		}
+		// Slope ink (2026-09-23): the world-space normal's tilt, not the
+		// view-space one the walls use, so a crag face is dark from every
+		// angle. Starts past 5% tilt so rolling plains keep their tone.
+		if (slope_darken > 0.0)
+		{
+			vec3 wn = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+			float steep = 1.0 - clamp(wn.y, 0.0, 1.0);
+			base *= 1.0 - slope_darken * smoothstep(0.05, 0.6, steep);
+		}
+		// Contour ink: a thin dark line wherever height crosses a multiple of
+		// contour_spacing. Width is one and a half pixels by fwidth; where
+		// the lines would pack tighter than about three pixels (steep faces
+		// seen edge-on, or far away) they fade out instead of aliasing.
+		if (contour_strength > 0.0)
+		{
+			float cy = v_world_pos.y / contour_spacing;
+			float cw = fwidth(cy);
+			float dist_to_line = min(fract(cy), 1.0 - fract(cy));
+			float line = 1.0 - smoothstep(0.0, cw * 1.5, dist_to_line);
+			float density_fade = clamp(1.0 - cw * 3.0, 0.0, 1.0);
+			float far_fade = 1.0 - smoothstep(contour_fade_start, contour_fade_end, length(VERTEX));
+			base *= 1.0 - contour_strength * line * density_fade * far_fade;
 		}
 	}
 	else if (mode == 1)

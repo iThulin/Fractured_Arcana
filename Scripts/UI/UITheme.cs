@@ -476,6 +476,25 @@ public static class UITheme
     // a way on) and must never be mistaken for each other on the same board.
     public static readonly Color RoadChoiceHighlight = Gold;
     public static readonly Color RoadChoiceOutline = WorldDeep;
+
+    // The scrying veil (2026-09-23): fog over the stone while it is aimed at
+    // another force. Same grey as the window's Fog weather so the two read as
+    // one substance; the bloom is the school-neutral violet of the arcane.
+    public static readonly Color ScryVeilFog = new Color(0.78f, 0.80f, 0.85f, 1f);
+    public static readonly Color ScryVeilGlow = Violet;
+
+    // The desk beside the stone: a note's paper, and the three channels' accents.
+    public static readonly Color ScryNotePaper = SurfaceLight;
+    public static readonly Color ScryNoteAccent = Gold;
+    public static readonly Color ScryMessengerAccent = Success;
+    public static readonly Color ScrySendingAccent = Violet;
+
+    // The "elsewhere" block under the expedition HUD (2026-09-23): the other
+    // forces' readouts. Furnace colours match the main gauge's inline values.
+    public static readonly Color FurnaceBed = new Color(0.12f, 0.08f, 0.05f, 1f);
+    public static readonly Color FurnaceEmber = new Color(0.95f, 0.55f, 0.15f, 1f);
+    public static readonly Color ElsewhereHeader = TextDim;
+    public static readonly Color ElsewhereStatus = TextSecondary;
     public static readonly Color MagnitudeSubtle = TextSecondary;
     public static readonly Color MagnitudeOvert = Warning;
     public static readonly Color MagnitudeGrand = Gold;

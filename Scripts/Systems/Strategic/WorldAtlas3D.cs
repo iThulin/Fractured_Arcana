@@ -214,7 +214,17 @@ public partial class WorldAtlas3D : Node3D
     private readonly List<Node3D> _markers = new();   // POI/settlement/staging/etc, rebuilt together
     // Map labels that hold a constant on-screen size across zoom (their world PixelSize is retuned
     // from _camDist each camera move; see UpdateLabelScales). Their nodes live in _markers.
-    private readonly List<(Label3D lbl, float fontSize, float screenFrac)> _scaledLabels = new();
+    private readonly List<(Label3D lbl, float fontSize, float screenFrac, Vector3 anchor, float stackFrac)> _scaledLabels = new();
+
+    /// <summary>Per tile: where the first label on it was anchored, and how much
+    /// SCREEN height the labels already standing there take up. The next label
+    /// on the tile goes that far up the screen from the same anchor, so a
+    /// column of labels holds together at every zoom. Fixed WORLD lifts did
+    /// not (2026-09-23 screenshot): the labels keep a constant on-screen size,
+    /// so a 1.5 unit world step shrank to less than a line at whole-world zoom
+    /// and the castle, the party and the seat's own name drew on one spot.</summary>
+    private readonly Dictionary<Vector2I, (Vector3 anchor, float frac)> _labelStack = new();
+    private const float LabelLineFactor = 1.35f;   // one line plus its outline, in units of the label's screenFrac
     // ── The city (Phase 2, true geometry merge, /3 rep-tile) ────────────────
     // The campus grid is PERMANENTLY anchored in world space as the /3 subdivision of the
     // strategic tiles the city occupies: the grounds node is drawn at 1/3 scale, unrotated,
@@ -1952,6 +1962,7 @@ public partial class WorldAtlas3D : Node3D
             m.QueueFree();
         _markers.Clear();
         _scaledLabels.Clear();        // label nodes live in _markers, just freed above
+        _labelStack.Clear();
         _cityHiddenMarkers.Clear();   // its nodes live in _markers, just freed above
 
         // POIs: discovered only (or reveal), same rule as StrategicView's POI layer.
@@ -2015,7 +2026,8 @@ public partial class WorldAtlas3D : Node3D
                 string label = home
                     ? $"{(SaveManager.ActiveSave?.Ledger?.GuildName ?? "Your Guild")} (your seat)"
                     : SettlementDisplayName(s);
-                var lbl = MakeLabel(label, c, MarkerPos(s.CenterX, s.CenterY, side + 1.4f), 88, 0.028f);
+                var lbl = StackedLabel(new Vector2I(s.CenterX, s.CenterY), label, c,
+                                       MarkerPos(s.CenterX, s.CenterY, side + 1.4f), 88, 0.028f);
                 AddMarker(lbl);
                 if (home)
                 {
@@ -2130,12 +2142,14 @@ public partial class WorldAtlas3D : Node3D
     /// <summary>Tell the atlas where the two pieces are and which one is taking
     /// orders, then redraw. One call rather than four public setters, so the map
     /// can never show a half-updated board.</summary>
-    public void SetPieces(Vector2I? castle, Vector2I? party, Vector2I? partyDest, bool partySelected)
+    public void SetPieces(Vector2I? castle, List<Vector2I> partyTiles, List<string> partyNames,
+                          List<Vector2I?> partyDests, int selectedPartyIndex)
     {
         CastleTile = castle;
-        PartyTile = party;
-        PartyDestTile = partyDest;
-        PartySelected = partySelected;
+        PartyTiles = partyTiles ?? new List<Vector2I>();
+        PartyNames = partyNames ?? new List<string>();
+        PartyDestTiles = partyDests ?? new List<Vector2I?>();
+        SelectedPartyIndex = selectedPartyIndex;
         if (_world != null)
         {
             RebuildMarkers();
@@ -2434,86 +2448,147 @@ public partial class WorldAtlas3D : Node3D
     /// <summary>Where the castle stands, or null to draw no castle.</summary>
     public Vector2I? CastleTile = null;
 
-    /// <summary>Where the field party stands, or null to draw no party.</summary>
-    public Vector2I? PartyTile = null;
+    /// <summary>Every field party on the board, by tile, with its name and its
+    /// destination if it is marching. LISTS rather than single values because
+    /// MaxFieldParties is a campus upgrade and a second party must not need a
+    /// second set of fields here.</summary>
+    public List<Vector2I> PartyTiles = new();
+    public List<string> PartyNames = new();
+    public List<Vector2I?> PartyDestTiles = new();
 
-    /// <summary>Which piece currently takes orders. The selected one wears a
-    /// ring at its feet, because a selector the player has to remember is a
-    /// selector they will get wrong exactly once and then distrust.</summary>
-    public bool PartySelected = false;
+    /// <summary>Index into PartyTiles of the force taking orders, or -1 when
+    /// the castle has them. The selected piece wears a ring at its feet,
+    /// because a selector the player has to remember is a selector they will
+    /// get wrong exactly once and then distrust.</summary>
+    public int SelectedPartyIndex = -1;
 
-    /// <summary>Where the party is walking to, or null. Drawn as a line of
-    /// small marks so a march in progress is visible on the map rather than
-    /// only in a report.</summary>
-    public Vector2I? PartyDestTile = null;
+    /// <summary>Pieces START on the same hex: the party is sited with the castle
+    /// at the top of a cycle, so the very first thing the player sees is both
+    /// pieces and the seat's own name on one tile (reported from a screenshot,
+    /// 2026-09-23, twice). Labels stack in screen space (see _labelStack) and
+    /// bodies fan out around the tile's centre, castle in the middle. The
+    /// fanned body still stands on its real tile; it is drawn a step off
+    /// centre, nothing more.</summary>
+    private const float PieceFanRadius = 0.95f;
+    private const float PieceLabelLift = 2.8f;   // matches the seat label's anchor (side 1.35 + 1.4)
 
-    /// <summary>Draw both pieces. Called at the end of RebuildMarkers so the
+    /// <summary>Where the n-th body on a tile is drawn: the first at the
+    /// centre, the rest around it.</summary>
+    private static Vector3 FanOffset(int n)
+    {
+        if (n <= 0)
+        {
+            return Vector3.Zero;
+        }
+        float a = Mathf.Tau * (n - 1) / 6f + Mathf.Tau / 12f;
+        return new Vector3(Mathf.Cos(a) * PieceFanRadius, 0f, Mathf.Sin(a) * PieceFanRadius);
+    }
+
+    /// <summary>Draw every piece. Called at the end of RebuildMarkers so the
     /// pieces sit ON TOP of the places, which is the correct reading order.</summary>
     private void BuildPieceMarkers()
     {
+        // Tile -> how many piece BODIES already stand there. Only collisions
+        // cost anything: a lone piece sits dead centre. Labels stack through
+        // _labelStack, which the settlement pass has already seeded.
+        var bodies = new Dictionary<Vector2I, int>();
+
+        Vector3 Fan(Vector2I t)
+        {
+            bodies.TryGetValue(t, out int n);
+            bodies[t] = n + 1;
+            return FanOffset(n);
+        }
+
         if (CastleTile.HasValue)
         {
             var c = CastleTile.Value;
-            AddMarker(PieceBody(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.9f), 1.35f, 0.95f), c.X, c.Y);
-            AddMarker(MakeLabel("Castle", UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 4.4f), 34), c.X, c.Y);
-            if (!PartySelected)
+            Vector3 fan = Fan(c);
+            AddMarker(PieceBody(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.9f) + fan, 1.35f, 0.95f), c.X, c.Y);
+            AddMarker(StackedLabel(c, "Castle", UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, PieceLabelLift), 34, 0.02f), c.X, c.Y);
+            if (SelectedPartyIndex < 0)
             {
-                AddMarker(SelectionRing(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.08f)), c.X, c.Y);
+                AddMarker(SelectionRing(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.08f) + fan), c.X, c.Y);
             }
         }
 
-        if (!PartyTile.HasValue)
+        if (PartyTiles == null)
         {
             return;
         }
 
-        var p = PartyTile.Value;
-        AddMarker(PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f), 0.55f, 1.5f), p.X, p.Y);
-        AddMarker(MakeLabel("Party", UITheme.Gold, MarkerPos(p.X, p.Y, 3.9f), 34), p.X, p.Y);
-        if (PartySelected)
+        for (int i = 0; i < PartyTiles.Count; i++)
         {
-            AddMarker(SelectionRing(UITheme.Gold, MarkerPos(p.X, p.Y, 0.08f)), p.X, p.Y);
+            var p = PartyTiles[i];
+            string name = PartyNames != null && i < PartyNames.Count && !string.IsNullOrEmpty(PartyNames[i])
+                ? PartyNames[i]
+                : "Party";
+            Vector3 fan = Fan(p);
+
+            AddMarker(PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f) + fan, 0.55f, 1.5f), p.X, p.Y);
+            AddMarker(StackedLabel(p, name, UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 34, 0.02f), p.X, p.Y);
+            if (i == SelectedPartyIndex)
+            {
+                AddMarker(SelectionRing(UITheme.Gold, MarkerPos(p.X, p.Y, 0.08f) + fan), p.X, p.Y);
+            }
+
+            Vector2I? dest = PartyDestTiles != null && i < PartyDestTiles.Count
+                ? PartyDestTiles[i]
+                : null;
+            if (dest.HasValue)
+            {
+                DrawMarchRoute(p, dest.Value);
+            }
+        }
+    }
+
+    /// <summary>The road a party is on. Sampled along the straight line the
+    /// march actually walks, so what the player sees is the route, not a
+    /// guess.</summary>
+    private void DrawMarchRoute(Vector2I from, Vector2I to)
+    {
+        if (_world == null)
+        {
+            return;
+        }
+        int steps = _world.HexDistance(from.X, from.Y, to.X, to.Y);
+        if (steps <= 0)
+        {
+            return;
         }
 
-        // The road they are on. Sampled along the straight line the march
-        // actually walks, so what the player sees is the route, not a guess.
-        if (PartyDestTile.HasValue && _world != null)
+        var (aq, ar) = HexCoord.OffsetToAxial(from.X, from.Y);
+        var (bq, br) = HexCoord.OffsetToAxial(to.X, to.Y);
+        for (int i = 1; i <= steps; i++)
         {
-            var d = PartyDestTile.Value;
-            int steps = _world.HexDistance(p.X, p.Y, d.X, d.Y);
-            var (aq, ar) = HexCoord.OffsetToAxial(p.X, p.Y);
-            var (bq, br) = HexCoord.OffsetToAxial(d.X, d.Y);
-            for (int i = 1; i <= steps; i++)
+            float t = (float)i / steps;
+            int q = Mathf.RoundToInt(Mathf.Lerp(aq, bq, t));
+            int r = Mathf.RoundToInt(Mathf.Lerp(ar, br, t));
+            var (col, row) = HexCoord.AxialToOffset(q, r);
+            if (!_world.InBounds(col, row))
             {
-                float t = (float)i / steps;
-                int q = Mathf.RoundToInt(Mathf.Lerp(aq, bq, t));
-                int r = Mathf.RoundToInt(Mathf.Lerp(ar, br, t));
-                var (col, row) = HexCoord.AxialToOffset(q, r);
-                if (!_world.InBounds(col, row))
-                {
-                    continue;
-                }
-                AddMarker(new MeshInstance3D
-                {
-                    Mesh = new SphereMesh
-                    {
-                        Radius = i == steps ? 0.42f : 0.22f,
-                        Height = i == steps ? 0.84f : 0.44f,
-                        RadialSegments = 8, Rings = 5,
-                    },
-                    MaterialOverride = new StandardMaterial3D
-                    {
-                        AlbedoColor = new Color(UITheme.Gold, 0.85f),
-                        EmissionEnabled = true,
-                        Emission = UITheme.Gold,
-                        EmissionEnergyMultiplier = 0.8f,
-                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-                        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                        NoDepthTest = true,
-                    },
-                    Position = MarkerPos(col, row, 1.2f),
-                });
+                continue;
             }
+            AddMarker(new MeshInstance3D
+            {
+                Mesh = new SphereMesh
+                {
+                    Radius = i == steps ? 0.42f : 0.22f,
+                    Height = i == steps ? 0.84f : 0.44f,
+                    RadialSegments = 8, Rings = 5,
+                },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(UITheme.Gold, 0.85f),
+                    EmissionEnabled = true,
+                    Emission = UITheme.Gold,
+                    EmissionEnergyMultiplier = 0.8f,
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    NoDepthTest = true,
+                },
+                Position = MarkerPos(col, row, 1.2f),
+            });
         }
     }
 
@@ -2574,7 +2649,26 @@ public partial class WorldAtlas3D : Node3D
         }
     }
 
-    private Label3D MakeLabel(string text, Color color, Vector3 pos, int fontSize = 42, float screenFrac = 0.02f)
+    /// <summary>A label in a tile's column. The first label on the tile sits at
+    /// its own anchor; each later one sits one line above the last, measured in
+    /// screen height, whatever its font size or the zoom.</summary>
+    private Label3D StackedLabel(Vector2I tile, string text, Color color, Vector3 naturalAnchor,
+                                 int fontSize, float screenFrac)
+    {
+        Vector3 anchor = naturalAnchor;
+        float frac = 0f;
+        if (_labelStack.TryGetValue(tile, out var prior))
+        {
+            anchor = prior.anchor;
+            frac = prior.frac;
+        }
+        var lbl = MakeLabel(text, color, anchor, fontSize, screenFrac, frac);
+        _labelStack[tile] = (anchor, frac + screenFrac * LabelLineFactor);
+        return lbl;
+    }
+
+    private Label3D MakeLabel(string text, Color color, Vector3 pos, int fontSize = 42, float screenFrac = 0.02f,
+                              float stackFrac = 0f)
     {
         var lbl = new Label3D
         {
@@ -2591,8 +2685,8 @@ public partial class WorldAtlas3D : Node3D
         };
         // Track it so its world size follows the zoom, keeping a constant ON-SCREEN size. Without
         // this a world-sized label shimmers to a few pixels at whole-world zoom and balloons up close.
-        _scaledLabels.Add((lbl, fontSize, screenFrac));
-        ApplyLabelScale(lbl, fontSize, screenFrac);
+        _scaledLabels.Add((lbl, fontSize, screenFrac, pos, stackFrac));
+        ApplyLabelScale(lbl, fontSize, screenFrac, pos, stackFrac);
         return lbl;
     }
 
@@ -2600,10 +2694,18 @@ public partial class WorldAtlas3D : Node3D
     /// current zoom. In the orthographic map, screen fraction = worldHeight / orthoSize, with
     /// orthoSize = _camDist·OrthoSizeFactor and worldHeight = fontSize·PixelSize; solve for
     /// PixelSize. Clamped so it never collapses or explodes.</summary>
-    private void ApplyLabelScale(Label3D lbl, float fontSize, float screenFrac)
+    private void ApplyLabelScale(Label3D lbl, float fontSize, float screenFrac, Vector3 anchor, float stackFrac)
     {
-        float px = _camDist * OrthoSizeFactor * screenFrac / Mathf.Max(1f, fontSize);
+        float orthoSize = _camDist * OrthoSizeFactor;   // world units per screen height
+        float px = orthoSize * screenFrac / Mathf.Max(1f, fontSize);
         lbl.PixelSize = Mathf.Clamp(px, 0.001f, 0.5f);
+        // Stacked labels climb along the camera's own up vector, not world up:
+        // at a steep pitch a world lift is mostly foreshortened away, and the
+        // label is NoDepthTest so drifting toward the camera costs nothing.
+        if (stackFrac > 0f && _camera != null)
+        {
+            lbl.Position = anchor + _camera.GlobalTransform.Basis.Y * (orthoSize * stackFrac);
+        }
     }
 
     /// <summary>Rescale every tracked map label to the current zoom (called from PlaceCamera as the
@@ -2612,9 +2714,9 @@ public partial class WorldAtlas3D : Node3D
     {
         for (int i = _scaledLabels.Count - 1; i >= 0; i--)
         {
-            var (lbl, fs, frac) = _scaledLabels[i];
+            var (lbl, fs, frac, anchor, stackFrac) = _scaledLabels[i];
             if (lbl == null || !IsInstanceValid(lbl)) { _scaledLabels.RemoveAt(i); continue; }
-            ApplyLabelScale(lbl, fs, frac);
+            ApplyLabelScale(lbl, fs, frac, anchor, stackFrac);
         }
     }
 

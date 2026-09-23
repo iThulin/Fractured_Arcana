@@ -70,6 +70,11 @@ public enum FieldPartyState
     Travelling = 1,
     Deployed = 2,
     Returning = 3,
+    /// <summary>Doing a multi-lunation job where it stands (a shard zone, a
+    /// depot, a city). Resolved by the lunation tick through FieldWork, never
+    /// by the expedition scene, which is one lunation of walking and nothing
+    /// longer. Appended 2026-09-23; the enum is serialized by value.</summary>
+    Working = 4,
 }
 
 /// <summary>A BUILT waypoint: the consumable kind the castle conjures over a
@@ -183,6 +188,21 @@ public class FieldParty
     /// A shard zone or a built waypoint is neither, so neither banks.</para></summary>
     public CastleHold Carrying = new();
 
+    /// <summary>The job in hand while State is Working (2026-09-23 skeleton).
+    /// Kind names the verb ("survey", "salvage", "trade"; the switch in
+    /// FieldWork.OnComplete grows one case per zone type), ZoneId names the
+    /// place in whatever terms that zone type uses, and the two counters are
+    /// the clock. Nothing else about the work is stored yet: what it costs and
+    /// what it yields are the zone rulings still to be made.</summary>
+    public string WorkKind = "";
+    public string WorkZoneId = "";
+    public int WorkLunationsLeft = 0;
+    public int WorkLunationsTotal = 0;
+
+    /// <summary>This party's frozen run, when it is in the field and the table
+    /// is currently watching something else.</summary>
+    public SortieState Sortie = new();
+
     [JsonIgnore]
     public bool IsAway => State != FieldPartyState.AtAnchor;
 }
@@ -231,6 +251,151 @@ public class ExpeditionTurnState
         CastleMoveSpent = false;
         DivesSpent = 0;
     }
+}
+
+/// <summary>One force's run, frozen so another force can be driven and this one
+/// picked up exactly where it stood.
+///
+/// <para>Ruled 2026-09-23 (Magos): the scrying table commands EITHER force. One
+/// wizard, one table, two forces in different places, and aiming the table is
+/// how attention moves between them. That means a run has to survive not being
+/// watched, which means it has to leave the ExpeditionManager's fields and
+/// become state.</para>
+///
+/// <para>Modelled on the combat round-trip, which has done exactly this since
+/// the beginning: EncounterRouter freezes the run, the scene changes, and
+/// RestoreFromCombat thaws it. This is the same seam with a different reason for
+/// leaving, so it stores the same things and nothing more. Anything the combat
+/// round-trip does NOT need to save is state that lives in the world (fog,
+/// discovery, consumed POIs) and is already durable.</para></summary>
+public class SortieState
+{
+    /// <summary>True while this force is IN THE FIELD: deployed, not yet
+    /// extracted or parked. The table can only take command of a force whose
+    /// sortie is active.</summary>
+    public bool Active = false;
+
+    /// <summary>World tile the token stands on.</summary>
+    public int X = -1;
+    public int Y = -1;
+
+    /// <summary>The staging point this run launched from. The expedition window
+    /// is a slice around it, so restoring a run means restoring its origin as
+    /// well as its position.</summary>
+    public int StagingX = -1;
+    public int StagingY = -1;
+
+    public int WindowRadius = 0;
+
+    /// <summary>Fuel for the castle, rations for a party. One counter, two
+    /// fictions, exactly as the live run treats it.</summary>
+    public int StepsRemaining = 0;
+    public int MaxFuel = 0;
+
+    /// <summary>Hull for the castle, Health for a party.</summary>
+    public int CurrentHP = 0;
+    public int MaxHP = 0;
+
+    public int GoldEarned = 0;
+    public int SplinterEarned = 0;
+    public int MaterialEarned = 0;
+    public int SuppliesEarned = 0;
+    public int EncountersWon = 0;
+
+    /// <summary>Turns of the moon this force has sat in the field unwatched.
+    /// Ruled 2026-09-23: a frozen force is not safe, and the longer it sits the
+    /// more the locals notice it is not moving. Reset when the sortie ends or is
+    /// resumed and driven, so the clock counts neglect, not deployment.</summary>
+    public int LunationsFrozen = 0;
+
+    public void Clear()
+    {
+        Active = false;
+        LunationsFrozen = 0;
+        X = -1; Y = -1;
+        StagingX = -1; StagingY = -1;
+        WindowRadius = 0;
+        StepsRemaining = 0; MaxFuel = 0;
+        CurrentHP = 0; MaxHP = 0;
+        GoldEarned = 0; SplinterEarned = 0; MaterialEarned = 0; SuppliesEarned = 0;
+        EncountersWon = 0;
+    }
+
+    /// <summary>Active AND holding a run that could be resumed. A method, not a
+    /// property, so the JSON writer leaves it alone. Active alone was trusted
+    /// until 2026-09-23, when saves made under the slot-ordering bug turned out
+    /// to hold Active slots at a real position with 0/0 vitals; every reader
+    /// of Active (the strategic roster, the frozen-sortie roll, the expedition
+    /// fork) has to agree on what a live run is, and this is where they agree.</summary>
+    public bool IsLive() => Active && X >= 0 && Y >= 0 && MaxFuel > 0 && CurrentHP > 0;
+
+    public override string ToString() =>
+        Active ? $"at ({X},{Y}) {StepsRemaining}/{MaxFuel} {CurrentHP}/{MaxHP}" : "not in the field";
+}
+
+/// <summary>How a message reaches the wizard at the stone. Ruled 2026-09-23
+/// (Magos): the player looks up from the palantir, and news arrives by one of
+/// three roads, each with its own weight.</summary>
+public enum ScryChannel
+{
+    /// <summary>A note left on the desk beside the stone. Waits to be read.
+    /// Nothing interrupts; the wizard looks up when they choose to.</summary>
+    Note = 0,
+
+    /// <summary>Someone comes into the chamber with something to say. Announces
+    /// itself, waits to be dismissed, does not stop the scrying.</summary>
+    Messenger = 1,
+
+    /// <summary>Mind to mind. Arrives THROUGH the stone, which clouds for a
+    /// moment; the scrying pauses until the sending has been received.</summary>
+    Sending = 2,
+}
+
+/// <summary>One message, whichever road it took. Kept on the cycle so an
+/// unread note survives aiming the table elsewhere, a save, and a crash: a note
+/// on a desk does not vanish because the wizard looked away.</summary>
+/// <summary>The one way anything writes to the desk. Kept beside the message
+/// type so every producer (frozen-sortie rolls, field work, later the zones)
+/// stamps ids and lunations the same way.</summary>
+public static class ScryInbox
+{
+    public static void Post(CycleState cycle, ScryChannel channel, string title, string body,
+                            string forceId, string idPrefix)
+    {
+        if (cycle == null)
+        {
+            return;
+        }
+        cycle.ScryInbox ??= new List<ScryMessage>();
+        cycle.ScryInbox.Add(new ScryMessage
+        {
+            Id = $"{idPrefix}_{cycle.Calendar?.CurrentLunation ?? 0}_{cycle.ScryInbox.Count}",
+            Channel = channel,
+            Title = title,
+            Body = body,
+            Lunation = cycle.Calendar?.CurrentLunation ?? 0,
+            Read = false,
+            AboutForceId = forceId ?? "",
+        });
+    }
+}
+
+public class ScryMessage
+{
+    public string Id = "";
+    public ScryChannel Channel = ScryChannel.Note;
+    public string Title = "";
+    public string Body = "";
+
+    /// <summary>Lunation it arrived, for the desk's ordering and the log.</summary>
+    public int Lunation = 0;
+
+    public bool Read = false;
+
+    /// <summary>Which force the message concerns, or empty for the guild at
+    /// large. "" for the castle, a FieldParty.Id otherwise. Lets the desk say
+    /// whose news this is when the wizard is watching somebody else.</summary>
+    public string AboutForceId = "";
 }
 
 /// <summary>What the fortress is carrying but has not banked. A castle that

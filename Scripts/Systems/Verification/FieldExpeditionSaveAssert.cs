@@ -167,6 +167,20 @@ public static class FieldExpeditionSaveAssert
             Y = 30,
             CarriedConsumableIds = new List<string> { "exhaustion_potion" },
             Carrying = new CastleHold { Gold = 120, Splinters = 3, Materials = 45, Supplies = 7 },
+            WorkKind = "survey",
+            WorkZoneId = "(41,17)",
+            WorkLunationsLeft = 1,
+            WorkLunationsTotal = 2,
+            Sortie = new SortieState
+            {
+                Active = true,
+                X = 51, Y = 19, StagingX = 44, StagingY = 21, WindowRadius = 12,
+                StepsRemaining = 27, MaxFuel = 40,
+                CurrentHP = 31, MaxHP = 44,
+                GoldEarned = 210, SplinterEarned = 4, MaterialEarned = 9, SuppliesEarned = 2,
+                EncountersWon = 3,
+                LunationsFrozen = 2,
+            },
         };
         var rt = RoundTrip(src);
 
@@ -197,6 +211,40 @@ public static class FieldExpeditionSaveAssert
         ok &= Check(sb, "FieldParty.Carrying.Splinters", rt.Carrying?.Splinters == src.Carrying.Splinters);
         ok &= Check(sb, "FieldParty.Carrying.Materials", rt.Carrying?.Materials == src.Carrying.Materials);
         ok &= Check(sb, "FieldParty.Carrying.Supplies", rt.Carrying?.Supplies == src.Carrying.Supplies);
+
+        // The frozen run. A force the scrying table is not watching exists ONLY
+        // as this object: lose it and the player loses a sortie mid-flight, with
+        // its fuel, its Hull and everything it had earned.
+        ok &= Check(sb, "FieldParty.Sortie not null", rt.Sortie != null);
+        ok &= Check(sb, "FieldParty.Sortie.Active", rt.Sortie?.Active == true);
+        ok &= Check(sb, "FieldParty.Sortie position",
+                    rt.Sortie?.X == src.Sortie.X && rt.Sortie?.Y == src.Sortie.Y);
+        ok &= Check(sb, "FieldParty.Sortie staging + radius",
+                    rt.Sortie?.StagingX == src.Sortie.StagingX
+                    && rt.Sortie?.StagingY == src.Sortie.StagingY
+                    && rt.Sortie?.WindowRadius == src.Sortie.WindowRadius);
+        ok &= Check(sb, "FieldParty.Sortie fuel",
+                    rt.Sortie?.StepsRemaining == src.Sortie.StepsRemaining
+                    && rt.Sortie?.MaxFuel == src.Sortie.MaxFuel);
+        ok &= Check(sb, "FieldParty.Sortie hull",
+                    rt.Sortie?.CurrentHP == src.Sortie.CurrentHP
+                    && rt.Sortie?.MaxHP == src.Sortie.MaxHP);
+        ok &= Check(sb, "FieldParty.Sortie earnings",
+                    rt.Sortie?.GoldEarned == src.Sortie.GoldEarned
+                    && rt.Sortie?.SplinterEarned == src.Sortie.SplinterEarned
+                    && rt.Sortie?.MaterialEarned == src.Sortie.MaterialEarned
+                    && rt.Sortie?.SuppliesEarned == src.Sortie.SuppliesEarned
+                    && rt.Sortie?.EncountersWon == src.Sortie.EncountersWon);
+        ok &= Check(sb, "FieldParty.Sortie.LunationsFrozen",
+                    rt.Sortie?.LunationsFrozen == src.Sortie.LunationsFrozen);
+
+        // Field work (2026-09-23): a job forgotten across a save is a party
+        // standing idle with its lunations spent.
+        ok &= Check(sb, "FieldParty.WorkKind", rt.WorkKind == src.WorkKind);
+        ok &= Check(sb, "FieldParty.WorkZoneId", rt.WorkZoneId == src.WorkZoneId);
+        ok &= Check(sb, "FieldParty.WorkLunations",
+                    rt.WorkLunationsLeft == src.WorkLunationsLeft
+                    && rt.WorkLunationsTotal == src.WorkLunationsTotal);
 
         // The enum must survive as a VALUE, not an ordinal that shifts if the
         // enum is ever reordered. Pin the wire form explicitly.

@@ -165,6 +165,10 @@ public partial class ExpeditionManager : Node2D
     /// <summary>Which field party is out. Empty on a castle sortie.</summary>
     private string _fieldPartyId = "";
 
+    /// <summary>True when this scene load is the table being aimed at another
+    /// force rather than a new expedition launching.</summary>
+    private bool _tableSwitch;
+
     private CastleTypeDef _castle;
 
     /// <summary>This sortie's crew effects (Mobile Fortress §5), computed at deploy
@@ -285,6 +289,9 @@ public partial class ExpeditionManager : Node2D
     private Label _stepLabel, _hpLabel, _infoLabel, _windowLabel;
     private ProgressBar _fuelGauge;   // Mobile Fortress §3.1: furnace dial
     private Label _weatherLabel;      // Mobile Fortress weather (W1): field readout
+    private PanelContainer _hudPanel;          // the main status block; the elsewhere block hangs under it
+    private PanelContainer _elsewherePanel;    // the other forces (2026-09-23)
+    private VBoxContainer _elsewhereBox;
     private WeatherType _lastWeatherAtParty = WeatherType.Clear;
 
     /// <summary>Persistent objective line at the top of the expedition HUD. Before
@@ -296,6 +303,8 @@ public partial class ExpeditionManager : Node2D
     private Button _extractButton, _returnButton, _ledgerButton;
     private Button _roadFollowButton;                // Expedition v2: take the road
     private Button _waypointButton;                  // Expedition v2: raise a built waypoint
+    private Button _scryTableButton;                 // Expedition v2: aim the table at another force
+    private Button _makeCampButton;                  // 2026-09-23: park at any fuel level
 
     /// <summary>Build materials a waypoint costs. A waystone is a real thing the
     /// guild builds, and the cost is what stops the castle papering the map with
@@ -351,6 +360,21 @@ public partial class ExpeditionManager : Node2D
         if (_fieldRun && string.IsNullOrEmpty(_fieldPartyId))
         {
             _fieldPartyId = ExpeditionAnchors.PrimaryFieldPartyId;
+        }
+
+        // Was this scene entered by aiming the table at another force, rather
+        // than by launching a new expedition? Consumed here, once, so a later
+        // reload for any other reason is correctly treated as fresh.
+        _tableSwitch = PlayerSession.ExpeditionTableSwitch;
+        PlayerSession.ExpeditionTableSwitch = false;
+
+        // Arriving through the stone: the veil is down from the switch that
+        // brought us here. Lift it once this frame's construction has landed,
+        // not now, or the fog thins over a window that has not built yet and
+        // the player sees the rebuild the veil exists to hide.
+        if (ScryVeil.Instance != null && ScryVeil.Instance.IsCovering)
+        {
+            CallDeferred(nameof(LiftVeilDeferred));
         }
 
         // Warfront intervention? The cycle carries the pending front id across the
@@ -550,13 +574,48 @@ public partial class ExpeditionManager : Node2D
         // ── Place party / restore from combat ────────────────────────────
         // Guard on ReturnSceneOverride too: a campus-pending return must never
         // be mis-consumed as an expedition return (Step 9 hardening).
+        // Not gated on _tableSwitch. A force whose sortie is Active is IN THE
+        // FIELD however this scene was reached: through the stone, back from the
+        // strategic map, or after a crash mid-sortie. Starting it fresh would
+        // overwrite a live run with full fuel and zero earnings, which is the one
+        // outcome worse than any of the ways of getting here.
+        var tableSlot = ActiveSortieSlot();
+
         if (router != null && router.HasPendingReturn &&
             string.IsNullOrEmpty(router.ReturnSceneOverride))
         {
             RestoreFromCombat(router);
         }
+        else if (SlotIsResumable(tableSlot))
+        {
+            // The table came back to a force that was already in the field.
+            // Takes the SAME branch shape as a combat return, and for the same
+            // reason: this is not a new expedition, so carried HP must not
+            // reset, the run journal must keep appending, and the weather must
+            // not be re-rolled underneath a force that never left.
+            RestoreSortie(tableSlot);
+        }
         else
         {
+            // A force the table aimed at that was NOT in the field is a fresh
+            // deploy, and falls through to exactly the path a launch from the
+            // strategic map takes.
+
+            // This force is now IN THE FIELD. Opened HERE, on the fresh branch,
+            // AFTER the fork has decided this is a fresh deploy.
+            //
+            // BUG (2026-09-23, from the log): the first cut opened the slot
+            // ABOVE the fork. So every fresh deploy marked its own empty slot
+            // Active, the fork then read that as "already in the field", took
+            // the resume branch, and restored a slot holding nothing:
+            // "Resumed castle: at (-1,-1) 0/0 0/0". Both forces started every
+            // run with zero fuel and zero Hull, and it only looked like it
+            // worked because nobody had tried to take a step yet.
+            var openSlot = ActiveSortieSlot();
+            if (openSlot != null)
+            {
+                openSlot.Active = true;
+            }
             // K2.5: fresh expedition: everyone starts whole. (Combat returns
             // take the other branch and must NOT reset carried HP.)
             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
@@ -575,6 +634,21 @@ public partial class ExpeditionManager : Node2D
             RunEventLog.Begin(StagingTemplateRegion(),
                 PlayerSession.SelectedSchool.ToString(),
                 GoldEarned, SplinterEarned, CurrentHP, MaxHP, StepsRemaining);
+            // A SENDING from the campus: the one message that genuinely comes
+            // from far away, and the only producer this channel has until the
+            // world tick can run while a force is in the field. Fires once per
+            // run start when the cycle is nearly spent, because that is the
+            // news a guild would reach across the world to deliver.
+            var calNow = SaveManager.ActiveSave?.Cycle?.Calendar;
+            if (calNow != null && !_tableSwitch)
+            {
+                int left = calNow.LunationsPerCycle - calNow.CurrentLunation;
+                if (left >= 0 && left <= 2)
+                {
+                    CallDeferred(nameof(PostConjunctionSending), left);
+                }
+            }
+
             if (_fieldRun)
             {
                 // The Chronomancer's flat moves are a CHASSIS quirk and the
@@ -1003,6 +1077,31 @@ public partial class ExpeditionManager : Node2D
             return;
 
         // F: mint test favors for the kingdom under the party (C3 testing).
+        // F6 / F7 / F8: [DEBUG] post a sample on each of the desk's three roads,
+        // so the note, the messenger and the sending can each be seen on demand
+        // instead of waiting for the weather to turn.
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.F6 })
+        {
+            PostScryMessage(ScryChannel.Note, "[DEBUG] A note",
+                "Left on the desk beside the stone. It waited until you looked up.");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.F7 })
+        {
+            PostScryMessage(ScryChannel.Messenger, "[DEBUG] A messenger",
+                "Came in through the door and stood at your side until you dismissed them.");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.F8 })
+        {
+            PostScryMessage(ScryChannel.Sending, "[DEBUG] A sending",
+                "Reached you through the stone itself. The scrying paused for it.");
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event is InputEventKey { Pressed: true, Keycode: Key.F })
         {
             string kid = KingdomIdAt(_party.CurrentCoord);
@@ -1173,6 +1272,7 @@ public partial class ExpeditionManager : Node2D
 
         FeedWindow3D(frameCamera: true);
         UpdateView3DButton();
+        SeedDeskFromInbox();   // notes that arrived while the stone looked elsewhere
         ShowInfo("3D expedition view. Click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
     }
 
@@ -2534,9 +2634,20 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _lastWeatherAtParty = wNow;
             var wd = WeatherCatalog.Def(wNow);
             LogRun("weather", wd.Name, at: newCoord);
+            string who = _fieldRun ? "the party" : "the castle";
             ShowInfo(wNow == WeatherType.Clear
-                ? "The skies clear over the castle."
-                : $"{wd.Name} closes over the castle.");
+                ? $"The skies clear over {who}."
+                : $"{wd.Name} closes over {who}.");
+            // Weather is desk news: worth knowing, never worth an interruption.
+            if (wNow != WeatherType.Clear)
+            {
+                PostScryMessage(ScryChannel.Note,
+                    $"{wd.Name} over {who}",
+                    (wd.FuelPerTile != 0 ? $"Each tile costs {wd.FuelPerTile} more to cross. " : "")
+                    + (wd.HullPerTile != 0 ? $"The front bites for {wd.HullPerTile} a step. " : "")
+                    + "It will pass.",
+                    _fieldRun ? _fieldPartyId : "");
+            }
         }
 
         // S2: spell-effect windows tick per committed step; Arcane Ground
@@ -3373,6 +3484,193 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     // Combat return: rebuild the SAME window; no seed/fog replay
     // ════════════════════════════════════════════════════════════════════
 
+    // ── The scrying table: two forces, one wizard (2026-09-23) ───────────
+    //    Ruled: the table commands EITHER force. That means a run has to
+    //    survive not being watched, so it leaves this node's fields and becomes
+    //    SortieState on the cycle.
+    //
+    //    Built on the combat round-trip rather than beside it. That path has
+    //    frozen and thawed a run since the beginning, so the list of things
+    //    worth saving is already known and already correct: anything it does
+    //    NOT save lives in the world (fog, discovery, consumed POIs, waypoints)
+    //    and is durable without help.
+
+    /// <summary>The fog thins to show the force the stone is now aimed at.
+    /// One frame after _Ready so every node that _Ready created has been
+    /// through its own _Ready and drawn once.</summary>
+    private void LiftVeilDeferred()
+    {
+        if (ScryVeil.Instance == null)
+        {
+            return;
+        }
+        _ = ScryVeil.Instance.Dissipate();
+    }
+
+    /// <summary>The active force's sortie slot on the cycle, or null.</summary>
+    private SortieState ActiveSortieSlot()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            return null;
+        }
+        if (!_fieldRun)
+        {
+            return cycle.CastleSortie ??= new SortieState();
+        }
+        if (cycle.FieldParties != null)
+        {
+            foreach (var p in cycle.FieldParties)
+            {
+                if (p != null && p.Id == _fieldPartyId)
+                {
+                    return p.Sortie ??= new SortieState();
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Freeze this run so the other force can be driven. Called when
+    /// the table is aimed away, and NOT on any ending path: extract, park and
+    /// dock clear the slot instead, because a force that came home is not in the
+    /// field any more.</summary>
+    private void CaptureSortie()
+    {
+        var slot = ActiveSortieSlot();
+        if (slot == null || _party == null || _window == null)
+        {
+            return;
+        }
+        if (!_window.TryLocalToWorld(_party.CurrentCoord, out int wx, out int wy))
+        {
+            return;
+        }
+
+        slot.Active = true;
+        slot.X = wx;
+        slot.Y = wy;
+        slot.StagingX = _stagingCol;
+        slot.StagingY = _stagingRow;
+        slot.WindowRadius = WindowRadius;
+        slot.StepsRemaining = StepsRemaining;
+        slot.MaxFuel = MaxFuel;
+        slot.CurrentHP = CurrentHP;
+        slot.MaxHP = MaxHP;
+        slot.GoldEarned = GoldEarned;
+        slot.SplinterEarned = SplinterEarned;
+        slot.MaterialEarned = MaterialEarned;
+        slot.SuppliesEarned = SuppliesEarned;
+        slot.EncountersWon = EncountersWon;
+        SaveManager.MarkDirty();
+        GD.Print($"[Sortie] Frozen {(_fieldRun ? _fieldPartyId : "castle")}: {slot}");
+    }
+
+    /// <summary>Clear this force's sortie: it is no longer in the field. Called
+    /// from every ending path, because a slot left Active after a force came
+    /// home would let the table take command of somebody standing in the
+    /// dock.</summary>
+    private void EndSortieSlot()
+    {
+        var slot = ActiveSortieSlot();
+        if (slot == null)
+        {
+            return;
+        }
+        slot.Clear();
+        SaveManager.MarkDirty();
+    }
+
+    /// <summary>Is this slot a run that can actually be resumed? Active is
+    /// necessary and not sufficient: a slot can be Active with nothing in it
+    /// (the ordering bug above) and a run with no position and no tank is not
+    /// a run. Decided HERE, in the fork's condition, so a "no" falls through to
+    /// the fresh branch. An early return inside RestoreSortie would have
+    /// skipped the fresh branch too and left the token never placed.</summary>
+    private bool SlotIsResumable(SortieState slot)
+    {
+        if (slot == null || !slot.Active)
+        {
+            return false;
+        }
+        if (slot.X < 0 || slot.Y < 0 || slot.MaxFuel <= 0)
+        {
+            GD.PrintErr($"[Sortie] Slot marked Active but never captured ({slot}). Starting fresh.");
+            slot.Clear();
+            return false;
+        }
+        // A force at zero Hull/Health is not in the field; it is dead, and every
+        // ending path clears the slot before it could be frozen that way (the
+        // raid roll floors at 1). The only producer of such a slot was the
+        // ordering bug above: a run that resumed an EMPTY slot ran at 0/0, and
+        // when the table was aimed away CaptureSortie faithfully froze that 0/0
+        // with a real position and the recomputed tank. Saves made under that
+        // build still carry it, and on the fixed build it read as "the force
+        // spawns with no fuel" (2026-09-23): 0/40 rations, 0/20 Health, the
+        // quarter-Hull halt card up before a step was taken. Refuse it and let
+        // the fresh branch redeploy.
+        if (slot.CurrentHP <= 0)
+        {
+            GD.PrintErr($"[Sortie] Slot holds a force at zero vitals ({slot}). Poisoned by the old ordering bug; starting fresh.");
+            slot.Clear();
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>Thaw a run the table is returning to. Deliberately narrower
+    /// than RestoreFromCombat: there is no combat result to apply, no spoils
+    /// card and no negotiation return, only the run's own numbers and where the
+    /// token stood.</summary>
+    private void RestoreSortie(SortieState slot)
+    {
+        if (!SlotIsResumable(slot))
+        {
+            return;
+        }
+
+        StepsRemaining = slot.StepsRemaining;
+        MaxFuel = slot.MaxFuel > 0 ? slot.MaxFuel : MaxFuel;
+        // Same clamp as the combat restore, for the same reason: MaxHP was
+        // recomputed in _Ready from the LIVE roster, and a companion lost while
+        // the table was elsewhere shrinks the pool the saved value must fit in.
+        MaxHP = slot.MaxHP > 0 ? slot.MaxHP : MaxHP;
+        CurrentHP = Mathf.Min(slot.CurrentHP, MaxHP);
+        GoldEarned = slot.GoldEarned;
+        SplinterEarned = slot.SplinterEarned;
+        MaterialEarned = slot.MaterialEarned;
+        SuppliesEarned = slot.SuppliesEarned;
+        EncountersWon = slot.EncountersWon;
+
+        // BUG (2026-09-23, "the castle can find no way onward"): the slot holds
+        // WORLD offset coords (CaptureSortie writes TryLocalToWorld), and the
+        // first cut passed them through GridLocalOf, which is the identity
+        // because the combat router saves LOCAL coords. The party was placed
+        // at a local coordinate sixty-odd tiles off the loaded disc: no
+        // neighbours, so every stride halted at once, while the 3D token,
+        // whose local-to-world lookup failed, stayed drawn on the staging
+        // tile as if nothing were wrong. Convert properly.
+        var local = _window.LocalOf(slot.X, slot.Y);
+        if (!HardWindowMode)
+        {
+            RecenterWindow(local);
+        }
+        if (!_grid.Hexes.ContainsKey(local))
+        {
+            GD.PrintErr($"[Sortie] Resumed position ({slot.X},{slot.Y}) is local {local}, which is not in the loaded window.");
+        }
+        _party.Initialize(_grid, _fog, local);
+        _lastSupplyBand = SupplyBandAt(local);
+        WriteVisibleToWorld();
+
+        // Somebody is watching again. The neglect clock counts moons UNWATCHED,
+        // so it resets on resume, not on the next tick: a force the wizard
+        // checks on every lunation is never "sitting long enough to be noticed".
+        slot.LunationsFrozen = 0;
+        GD.Print($"[Sortie] Resumed {(_fieldRun ? _fieldPartyId : "castle")}: {slot}");
+    }
+
     private void RestoreFromCombat(EncounterRouter router)
     {
         StepsRemaining = router.SavedStepsRemaining;
@@ -3435,6 +3733,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         _toasts?.Push(qt.Text, qt.Kind);
                 }
                 _toasts?.Push("The guardian falls. The way to the fragment is open.", QuestToastKind.Progress);
+                PostScryMessage(ScryChannel.Messenger, "The guardian has fallen",
+                    "The way to the fragment is open. The sanctum waits beyond the gate.");
                 spoils.Add(("The guardian falls. The way to the fragment is open.", UITheme.Violet));
             }
 
@@ -4795,6 +5095,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         DockCastle(bankHold: true);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        EndSortieSlot();   // came home: no longer a force the table can command
 
         if (EncounterRouter.Instance != null)
         {
@@ -4959,6 +5260,34 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// infirmary check (the crew has not come home, so ExpeditionHP persists into
     /// the next sortie), and nothing banks: the spoils move into the castle's
     /// hold and wait for something to carry them back.</para></summary>
+    /// <summary>The Make Camp button: the same decision the dry-furnace dialog
+    /// forces, offered at any fuel level. Confirms, because it ends the sortie.</summary>
+    private void OnMakeCampPressed()
+    {
+        if (ExpeditionComplete || _fieldRun || !CanAcceptOrders())
+        {
+            return;
+        }
+        int repair = ExpeditionAnchors.RepairLunationsFor(Hull, MaxHull, MinRepairLunations, MaxRepairLunations);
+        var dlg = new ConfirmationDialog
+        {
+            Title = "Make camp here",
+            OkButtonText = "Make camp",
+            CancelButtonText = "Keep going",
+            Exclusive = true,
+            DialogText =
+                $"Shut the furnace down with {StepsRemaining} fuel still in it and make camp on this ground.\n\n"
+                + "The castle becomes a waypoint the field parties can step to. It burns nothing while it "
+                + $"waits. Work crews teleport in to refuel, restock and repair: {repair} lunation(s), "
+                + "and the castle is exposed for every one of them.\n\n"
+                + "This ends the sortie. Everything earned on it rides in the hold until a party carries it home.",
+        };
+        dlg.Confirmed += () => { dlg.QueueFree(); ParkCastle(); };
+        dlg.Canceled += () => dlg.QueueFree();
+        _hudCanvas.AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
     private void ParkCastle()
     {
         if (ExpeditionComplete)
@@ -4977,6 +5306,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_striding) EndStride(null);   // a run-end cancels any march
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        EndSortieSlot();   // came home: no longer a force the table can command
 
         if (EncounterRouter.Instance != null)
         {
@@ -5003,11 +5333,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // The resupply bill scales with how badly the hull was hurt. Pristine
         // means ready next lunation; a wreck sits in the open while the waystone
         // runs. This is what stops the castle being force-marched anywhere.
-        int missingHull = Mathf.Max(0, MaxHull - Hull);
-        int repair = MaxHull > 0
-            ? 1 + Mathf.FloorToInt(4f * missingHull / MaxHull)
-            : MinRepairLunations;
-        repair = Mathf.Clamp(repair, MinRepairLunations, MaxRepairLunations);
+        int repair = ExpeditionAnchors.RepairLunationsFor(Hull, MaxHull, MinRepairLunations, MaxRepairLunations);
 
         if (cycle != null)
         {
@@ -5057,6 +5383,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         DockCastle(bankHold: true);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        EndSortieSlot();   // came home: no longer a force the table can command
 
         if (EncounterRouter.Instance != null)
         {
@@ -5110,6 +5437,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         DockCastle(bankHold: false);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        EndSortieSlot();   // came home: no longer a force the table can command
 
         // K2 (§5b): the pool hit 0, an expedition wipe. One roll per fielded
         // companion at the territory tier under the party's feet. Skipped when
@@ -5218,6 +5546,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         hudPanel.AddThemeStyleboxOverride("panel", hudStyle);
         _hudCanvas.AddChild(hudPanel);
         _uiHoverBlockers.Add(hudPanel); // S4.2: stat cluster blocks tile hover
+        _hudPanel = hudPanel;
+        BuildElsewherePanel(hudStyle);
 
         // Hover tooltip: follows the mouse, names the tile under it (fog-gated).
         _hoverTooltip = new Label { Visible = false, ZIndex = 100 };
@@ -5362,6 +5692,61 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hudCanvas.AddChild(_waypointButton);
         _uiHoverBlockers.Add(_waypointButton);
 
+        // The scrying table's aim. Row six: Extract 12, Ledger 60, Switch to 2D
+        // 108, Take the Road 156, Raise Waypoint 204, this 252.
+        _scryTableButton = new Button
+        {
+            Text = "Aim the Table",
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetLeft = -150,
+            OffsetRight = -12,
+            OffsetTop = 252 + HudManager.BarHeight,
+            OffsetBottom = 292 + HudManager.BarHeight,
+            TooltipText = "Aim the scrying table at another force. This one holds where it "
+                        + "stands and resumes exactly here when you aim back.",
+        };
+        _scryTableButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_scryTableButton, isPrimary: false);
+        _scryTableButton.Pressed += OpenScryTablePicker;
+        _hudCanvas.AddChild(_scryTableButton);
+        _uiHoverBlockers.Add(_scryTableButton);
+
+        // Make camp (row eight). Castle only. Until 2026-09-23 the ONLY road to
+        // the parked state ran through the dry-furnace dialog, so a player who
+        // wanted the castle to sit beside a zone as the parties' anchor had to
+        // burn the tank to get there. Now it is an order like any other, and
+        // the frozen-sortie upkeep rule is honest: you pay for leaving the
+        // fires lit, never for waiting.
+        _makeCampButton = new Button
+        {
+            Text = "Make Camp",
+            AnchorLeft = 1f,
+            AnchorTop = 0f,
+            AnchorRight = 1f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Begin,
+            OffsetLeft = -150,
+            OffsetRight = -12,
+            OffsetTop = 348 + HudManager.BarHeight,
+            OffsetBottom = 388 + HudManager.BarHeight,
+            Visible = !_fieldRun,
+            TooltipText = "Shut the furnace down here and make camp. The castle becomes a waypoint the "
+                        + "field parties can step to, burns no fuel while it waits, and is exposed while "
+                        + "the crews resupply it. This ends the sortie.",
+        };
+        _makeCampButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
+        UITheme.ApplyButtonStyle(_makeCampButton, isPrimary: false);
+        _makeCampButton.Pressed += OnMakeCampPressed;
+        _hudCanvas.AddChild(_makeCampButton);
+        _uiHoverBlockers.Add(_makeCampButton);
+
+        // Look Up (row nine) and the desk panel. See ExpeditionManager.ScryDesk.
+        BuildScryDeskHud();
+
         BuildHaltNotice();
 
         // Expedition v2 (ruled 2026-09-21): a dry furnace FORCES the decision
@@ -5501,6 +5886,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _extractButton.Visible = false;
         if (_roadFollowButton != null)
             _roadFollowButton.Visible = false;
+        if (_makeCampButton != null)
+            _makeCampButton.Visible = false;
         if (_ledgerButton != null)
             _ledgerButton.Visible = false;
         if (_ledgerPanel != null)
@@ -5558,6 +5945,236 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ? $"⚔ WARFRONT · {stake}\nStorm the gold-starred stronghold{StrongholdBearing()}. Other fights here win you nothing."
                 : $"⚔ WARFRONT · {stake}\nWin a fight at the front, then extract.";
         _objectiveLabel.Modulate = cleared ? Colors.White : UITheme.OverworldLowResourceWarning;
+    }
+
+    // ── Elsewhere: the other forces (2026-09-23) ─────────────────────────
+    //    Asked for as "a smaller second bar with the fuel, health and status of
+    //    the second team under the main block". One entry per force the stone
+    //    is NOT aimed at: name, one status line, and the furnace bar. Frozen
+    //    forces report their slot; a parked castle reports the cycle's tank
+    //    (its Hull between sorties is not persisted, so none is shown); a
+    //    party between sorties has no stores to report, only where it is.
+
+    private void BuildElsewherePanel(StyleBoxFlat style)
+    {
+        _elsewherePanel = new PanelContainer
+        {
+            OffsetLeft = 12,
+            OffsetRight = 300,
+            Visible = false,
+        };
+        _elsewherePanel.AddThemeStyleboxOverride("panel", style);
+        _hudCanvas.AddChild(_elsewherePanel);
+        _uiHoverBlockers.Add(_elsewherePanel);
+
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 12);
+        margin.AddThemeConstantOverride("margin_right", 12);
+        margin.AddThemeConstantOverride("margin_top", 8);
+        margin.AddThemeConstantOverride("margin_bottom", 8);
+        _elsewherePanel.AddChild(margin);
+
+        _elsewhereBox = new VBoxContainer();
+        _elsewhereBox.AddThemeConstantOverride("separation", 3);
+        margin.AddChild(_elsewhereBox);
+
+        // The main block's height changes whenever the info line wraps, so the
+        // second block follows it rather than sitting at a guessed offset.
+        _hudPanel.Resized += PlaceElsewherePanel;
+        PlaceElsewherePanel();
+    }
+
+    private void PlaceElsewherePanel()
+    {
+        if (_elsewherePanel == null || _hudPanel == null)
+        {
+            return;
+        }
+        float top = _hudPanel.OffsetTop + _hudPanel.Size.Y + 6f;
+        _elsewherePanel.OffsetTop = top;
+        _elsewherePanel.OffsetBottom = top;   // grows to content, like the main block
+    }
+
+    private Label MakeElsewhereLabel(Color color, int sizeDelta)
+    {
+        var l = new Label();
+        l.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize + sizeDelta);
+        l.AddThemeColorOverride("font_color", color);
+        return l;
+    }
+
+    private void AddElsewhereEntry(string name, Color nameColor, string status,
+                                   string budgetWord, int budget, int maxBudget,
+                                   string vitalWord, int vital, int maxVital)
+    {
+        var nameRow = new HBoxContainer();
+        nameRow.AddThemeConstantOverride("separation", 6);
+        var nameLbl = MakeElsewhereLabel(nameColor, -2);
+        nameLbl.Text = name;
+        nameRow.AddChild(nameLbl);
+        var statusLbl = MakeElsewhereLabel(UITheme.ElsewhereStatus, -4);
+        statusLbl.Text = status;
+        statusLbl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        statusLbl.HorizontalAlignment = HorizontalAlignment.Right;
+        statusLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        nameRow.AddChild(statusLbl);
+        _elsewhereBox.AddChild(nameRow);
+
+        var parts = new System.Collections.Generic.List<string>();
+        if (maxBudget > 0)
+        {
+            parts.Add($"{budgetWord} {budget}/{maxBudget}");
+        }
+        if (maxVital > 0)
+        {
+            parts.Add($"{vitalWord} {vital}/{maxVital}");
+        }
+        if (parts.Count > 0)
+        {
+            var numbers = MakeElsewhereLabel(Colors.White, -3);
+            numbers.Text = string.Join("    ", parts);
+            bool low = (maxBudget > 0 && budget <= 5) || (maxVital > 0 && vital <= maxVital / 3);
+            if (low)
+            {
+                numbers.Modulate = UITheme.OverworldLowResourceWarning;
+            }
+            _elsewhereBox.AddChild(numbers);
+        }
+        if (maxBudget > 0)
+        {
+            var gauge = new ProgressBar
+            {
+                MinValue = 0,
+                MaxValue = 1,
+                Value = Mathf.Clamp((double)budget / maxBudget, 0.0, 1.0),
+                ShowPercentage = false,
+                CustomMinimumSize = new Vector2(0, 4),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            var bed = new StyleBoxFlat
+            {
+                BgColor = UITheme.FurnaceBed,
+                CornerRadiusTopLeft = 2, CornerRadiusTopRight = 2,
+                CornerRadiusBottomLeft = 2, CornerRadiusBottomRight = 2,
+            };
+            var ember = new StyleBoxFlat
+            {
+                BgColor = UITheme.FurnaceEmber,
+                CornerRadiusTopLeft = 2, CornerRadiusTopRight = 2,
+                CornerRadiusBottomLeft = 2, CornerRadiusBottomRight = 2,
+            };
+            gauge.AddThemeStyleboxOverride("background", bed);
+            gauge.AddThemeStyleboxOverride("fill", ember);
+            _elsewhereBox.AddChild(gauge);
+        }
+    }
+
+    private static string HoldingWord(SortieState slot)
+        => slot.LunationsFrozen > 0
+            ? $"holding, {slot.LunationsFrozen} moon{(slot.LunationsFrozen == 1 ? "" : "s")}"
+            : "holding station";
+
+    private void RefreshElsewhere()
+    {
+        if (_elsewhereBox == null)
+        {
+            return;
+        }
+        foreach (var child in _elsewhereBox.GetChildren())
+        {
+            // Removed now, not only queued: a freed child still counts toward
+            // the box's height until the end of the frame, and the block would
+            // draw one frame at double height on every refresh.
+            _elsewhereBox.RemoveChild(child);
+            child.QueueFree();
+        }
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            _elsewherePanel.Visible = false;
+            return;
+        }
+
+        int entries = 0;
+        var header = MakeElsewhereLabel(UITheme.ElsewhereHeader, -5);
+        header.Text = "ELSEWHERE";
+        _elsewhereBox.AddChild(header);
+
+        if (_fieldRun)
+        {
+            var slot = cycle.CastleSortie;
+            if (slot != null && slot.IsLive())
+            {
+                AddElsewhereEntry("Castle", UITheme.ArcaneBlue, $"({slot.X},{slot.Y})  {HoldingWord(slot)}",
+                                  "Fuel", slot.StepsRemaining, slot.MaxFuel, "Hull", slot.CurrentHP, slot.MaxHP);
+            }
+            else
+            {
+                string status;
+                if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
+                {
+                    status = $"({cycle.CastleX},{cycle.CastleY})  under attack";
+                }
+                else if (cycle.CastleRepairLunations > 0)
+                {
+                    status = $"({cycle.CastleX},{cycle.CastleY})  resupply, {cycle.CastleRepairLunations} lunation(s)";
+                }
+                else if (cycle.CastleParked)
+                {
+                    status = $"({cycle.CastleX},{cycle.CastleY})  parked";
+                }
+                else
+                {
+                    status = "at the dock";
+                }
+                AddElsewhereEntry("Castle", UITheme.ArcaneBlue, status,
+                                  "Fuel", cycle.CastleFuel, cycle.CastleMaxFuel, "Hull", 0, 0);
+            }
+            entries++;
+        }
+
+        if (cycle.FieldParties != null)
+        {
+            foreach (var p in cycle.FieldParties)
+            {
+                if (p == null || (_fieldRun && p.Id == _fieldPartyId))
+                {
+                    continue;
+                }
+                string name = string.IsNullOrEmpty(p.Name) ? "Field Party" : p.Name;
+                var slot = p.Sortie;
+                if (slot != null && slot.IsLive())
+                {
+                    AddElsewhereEntry(name, UITheme.Gold, $"({slot.X},{slot.Y})  {HoldingWord(slot)}",
+                                      "Rations", slot.StepsRemaining, slot.MaxFuel, "Health", slot.CurrentHP, slot.MaxHP);
+                }
+                else
+                {
+                    string status;
+                    if (p.X < 0 || p.Y < 0)
+                    {
+                        status = "not sited";
+                    }
+                    else if (p.State == FieldPartyState.Travelling)
+                    {
+                        status = $"({p.X},{p.Y})  marching to ({p.DestX},{p.DestY}), {p.TravelPhasesRemaining} tile(s)";
+                    }
+                    else if (p.State == FieldPartyState.Working)
+                    {
+                        status = $"({p.X},{p.Y})  {FieldWork.Describe(p)}";
+                    }
+                    else
+                    {
+                        status = $"({p.X},{p.Y})  awaiting orders";
+                    }
+                    AddElsewhereEntry(name, UITheme.Gold, status, "Rations", 0, 0, "Health", 0, 0);
+                }
+                entries++;
+            }
+        }
+
+        _elsewherePanel.Visible = entries > 0;
+        CallDeferred(nameof(PlaceElsewherePanel));
     }
 
     private Label MakeHudLabel()
@@ -5626,6 +6243,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         _hpLabel.Text = _fieldRun ? $"Health: {Hull} / {MaxHull}" : $"Hull: {Hull} / {MaxHull}";
         _hpLabel.Modulate = Hull > MaxHull / 3 ? Colors.White : UITheme.OverworldLowResourceWarning;
+        RefreshElsewhere();
+        if (_makeCampButton != null)
+        {
+            // Re-decided here rather than trusted from build time, the same
+            // lesson as the strategic chrome: a flag read once at construction
+            // is a flag read at whatever moment construction happened to be.
+            _makeCampButton.Visible = !_fieldRun && !ExpeditionComplete;
+        }
 
         // Mobile Fortress weather (W1): the front over the castle. Severe
         // fronts (severity ≥ 3) read in the warning tint; milder ones stay plain.
@@ -5692,6 +6317,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         RefreshWaypointButton();
 
+        if (_scryTableButton != null)
+        {
+            // Aiming away mid-march would freeze a run halfway through a step,
+            // and aiming away after the run has ended would freeze a force that
+            // has already gone home.
+            _scryTableButton.Visible = !ExpeditionComplete && !_striding;
+        }
+
         // S2: affordability / surcharge / active-effect readout.
         _grimoirePanel?.Refresh();
     }
@@ -5700,6 +6333,224 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         _infoLabel.Text = message;
         GD.Print($"[Expedition] {message}");
+    }
+
+    /// <summary>Aim the scrying table at another force.
+    ///
+    /// <para>The fiction is the mechanic: one wizard, one table, two forces in
+    /// different places. Aiming the table is how attention moves between them,
+    /// and it is why a run has to survive not being watched.</para>
+    ///
+    /// <para>Lists every force. A force IN THE FIELD can be taken command of
+    /// directly. A force that is not can be SENT, if sending it costs no turn of
+    /// the moon: a field party spends one of the lunation's expeditions, which
+    /// is free of the calendar, while the fortress sortieing turns the moon and
+    /// therefore belongs on the strategic map. That refusal is shown on the row
+    /// rather than discovered by clicking.</para></summary>
+    private void OpenScryTablePicker()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || ExpeditionComplete)
+        {
+            return;
+        }
+        if (_striding)
+        {
+            ShowInfo("Not while the march is running. Halt first.");
+            return;
+        }
+
+        var dlg = new AcceptDialog
+        {
+            Title = "Aim the scrying table",
+            OkButtonText = "Close",
+            MinSize = new Vector2I(520, 380),
+        };
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 8);
+        dlg.AddChild(box);
+
+        var intro = new Label
+        {
+            Text = "The table shows one force at a time. Aim it elsewhere and this "
+                 + "one holds where it stands.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        intro.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        intro.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        box.AddChild(intro);
+        box.AddChild(new HSeparator());
+
+        // The castle.
+        bool castleIsActiveView = !_fieldRun;
+        var castleSlot = cycle.CastleSortie;
+        AddScryRow(box, dlg, "\u25A0  The castle",
+            castleIsActiveView
+                ? "You are watching it."
+                : (castleSlot != null && castleSlot.Active
+                    ? $"In the field, {castleSlot}"
+                    : $"Parked at ({cycle.CastleX},{cycle.CastleY}). Sortieing turns the moon, "
+                      + "so it must be launched from the strategic map."),
+            enabled: !castleIsActiveView && castleSlot != null && castleSlot.Active,
+            onPick: () => SwitchToForce(ExpeditionRunKind.Castle, "",
+                                        castleSlot.StagingX, castleSlot.StagingY,
+                                        castleSlot.WindowRadius));
+
+        // The parties.
+        if (cycle.FieldParties != null)
+        {
+            foreach (var p in cycle.FieldParties)
+            {
+                if (p == null)
+                {
+                    continue;
+                }
+                bool isActiveView = _fieldRun && p.Id == _fieldPartyId;
+                var slot = p.Sortie;
+                bool inField = slot != null && slot.IsLive();
+                bool canSend = !inField && p.State == FieldPartyState.AtAnchor
+                               && p.X >= 0 && (cycle.ExpeditionTurn?.CanDive ?? false);
+
+                string line;
+                if (isActiveView) { line = "You are watching them."; }
+                else if (inField) { line = $"In the field, {slot}"; }
+                else if (p.State == FieldPartyState.Travelling)
+                { line = $"On the road, {p.TravelPhasesRemaining} tile(s) to go."; }
+                else if (!canSend)
+                { line = "No expeditions left this moon."; }
+                else
+                { line = $"At ({p.X},{p.Y}). Send them: costs one expedition, not a lunation."; }
+
+                var party = p;
+                AddScryRow(box, dlg, $"\u25B2  {p.Name}", line,
+                    enabled: !isActiveView && (inField || canSend),
+                    onPick: () =>
+                    {
+                        if (inField)
+                        {
+                            SwitchToForce(ExpeditionRunKind.Field, party.Id,
+                                          slot.StagingX, slot.StagingY, slot.WindowRadius);
+                            return;
+                        }
+                        // Sending costs an expedition, spent HERE so the cost is
+                        // paid at the moment of the decision rather than in the
+                        // scene that results from it.
+                        cycle.ExpeditionTurn ??= new ExpeditionTurnState();
+                        cycle.ExpeditionTurn.BeginLunation(cycle.Calendar?.CurrentLunation ?? 0);
+                        if (!cycle.ExpeditionTurn.CanDive)
+                        {
+                            ShowInfo("No expeditions left this moon.");
+                            return;
+                        }
+                        cycle.ExpeditionTurn.DivesSpent++;
+                        SwitchToForce(ExpeditionRunKind.Field, party.Id, party.X, party.Y, 0);
+                    });
+            }
+        }
+
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
+    /// <summary>One row of the table picker: a name, its state, and a button
+    /// that is disabled WITH ITS REASON ALREADY WRITTEN beside it.</summary>
+    private void AddScryRow(VBoxContainer box, AcceptDialog dlg, string name, string status,
+                            bool enabled, System.Action onPick)
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 10);
+        box.AddChild(row);
+
+        var col = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        col.AddThemeConstantOverride("separation", 0);
+        row.AddChild(col);
+
+        var nameLbl = new Label { Text = name };
+        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        nameLbl.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        col.AddChild(nameLbl);
+
+        var statusLbl = new Label { Text = status, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        statusLbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        statusLbl.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        col.AddChild(statusLbl);
+
+        var btn = new Button
+        {
+            Text = "Aim here",
+            Disabled = !enabled,
+            CustomMinimumSize = new Vector2(110, 36),
+        };
+        UITheme.ApplyButtonStyle(btn, isPrimary: enabled);
+        btn.Pressed += () => { dlg.QueueFree(); onPick?.Invoke(); };
+        row.AddChild(btn);
+    }
+
+    /// <summary>Freeze this force, point the handoff at another, and reload.
+    ///
+    /// <para>A scene reload rather than an in-place swap. The expedition's forty
+    /// or so run fields describe ONE force; turning them into a swappable struct
+    /// inside a seven thousand line node is the kind of refactor that breaks
+    /// things nobody was looking at. The combat round-trip already proves a run
+    /// can leave through a scene change and come back intact, so the switch
+    /// takes that road.</para></summary>
+    private async void SwitchToForce(ExpeditionRunKind kind, string partyId,
+                                     int stagingX, int stagingY, int windowRadius)
+    {
+        CaptureSortie();
+        SaveManager.SaveIfDirty();
+
+        // The stone clouds BEFORE anything changes. Ruled 2026-09-23: aiming
+        // the palantir at another force must never look like a scene loading,
+        // so the fog is fully down before the old world is torn out from under
+        // it, and it stays down until the new run says it is built.
+        //
+        // The veil is an autoload and so survives the change; nothing parented
+        // here would. Orders are refused while it is down (its rect stops
+        // clicks), so a click aimed at the old map cannot land on the new one.
+        if (ScryVeil.Instance != null)
+        {
+            await ScryVeil.Instance.RollIn();
+            ScryVeil.Instance.HoldOpaque();
+        }
+
+        // The scene may have ended while the fog rolled (the run ending, a
+        // combat launching). A frozen node must not change scene.
+        if (!IsInsideTree())
+        {
+            return;
+        }
+
+        PlayerSession.ExpeditionRunKind = kind;
+        PlayerSession.ExpeditionFieldPartyId = partyId ?? "";
+        PlayerSession.ExpeditionStagingCol = stagingX;
+        PlayerSession.ExpeditionStagingRow = stagingY;
+        PlayerSession.ExpeditionWindowRadius = windowRadius;
+        PlayerSession.ExpeditionTableSwitch = true;
+
+        // The run that is about to load is NOT returning from combat. Leaving a
+        // stale pending return set would make it restore the wrong force's
+        // numbers over the top of the one being resumed.
+        if (EncounterRouter.Instance != null)
+        {
+            EncounterRouter.Instance.HasPendingReturn = false;
+        }
+
+        GD.Print($"[Sortie] Table aimed at {(kind == ExpeditionRunKind.Castle ? "the castle" : partyId)}.");
+        GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+    }
+
+    /// <summary>The campus reaches through the stone: the Grand Conjunction is
+    /// close. Deferred from _Ready so the HUD and the 3D window exist to carry
+    /// the pulse and the pause.</summary>
+    private void PostConjunctionSending(int lunationsLeft)
+    {
+        string when = lunationsLeft <= 0
+            ? "This is the last moon."
+            : lunationsLeft == 1 ? "One moon remains." : $"{lunationsLeft} moons remain.";
+        PostScryMessage(ScryChannel.Sending, "The Conjunction draws near",
+            $"The wardens at the campus reach you through the stone. {when} "
+            + "Whatever the guild will hold when the cycle ends, it must be in hand before then.");
     }
 
     /// <summary>Raise a waystone on this tile. The castle's contribution to the
@@ -5747,6 +6598,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         LogRun("waypoint_raised", $"({wx},{wy}) for {WaypointMaterialCost} materials");
         ShowInfo(line);
         ShowHaltNotice("Waystone raised", line, HaltTone.Neutral);
+        PostScryMessage(ScryChannel.Note, "A waystone stands",
+            line + " The field party can step through to it from anywhere.");
         RefreshWaypointButton();
     }
 

@@ -457,6 +457,78 @@ public static class ExpeditionAnchors
         cycle.Waypoints.RemoveAll(w => w != null && w.IsSpent);
     }
 
+    /// <summary>Clear any sortie slot that is Active but not live (see
+    /// SortieState.IsLive). Such slots exist only in saves made under the
+    /// slot-ordering bug of 2026-09-23; nothing on the fixed build produces
+    /// one. Run on the way into the strategic map, the same moment the spent
+    /// waystones close.</summary>
+    public static void PruneDeadSorties(CycleState cycle)
+    {
+        if (cycle == null)
+        {
+            return;
+        }
+        if (cycle.CastleSortie != null && cycle.CastleSortie.Active && !cycle.CastleSortie.IsLive())
+        {
+            GD.PrintErr($"[ExpeditionAnchors] Castle sortie slot was Active but dead ({cycle.CastleSortie}); cleared.");
+            cycle.CastleSortie.Clear();
+        }
+        if (cycle.FieldParties != null)
+        {
+            foreach (var p in cycle.FieldParties)
+            {
+                if (p?.Sortie == null || !p.Sortie.Active || p.Sortie.IsLive())
+                {
+                    continue;
+                }
+                GD.PrintErr($"[ExpeditionAnchors] {p.Name} sortie slot was Active but dead ({p.Sortie}); cleared.");
+                p.Sortie.Clear();
+            }
+        }
+    }
+
+    /// <summary>The resupply bill for a castle making camp: one lunation when
+    /// pristine, up to the cap when wrecked. ONE formula for the scene's
+    /// ParkCastle and the strategic Bank the furnace, so the two ways of making
+    /// camp cannot quote different bills.</summary>
+    public static int RepairLunationsFor(int hull, int maxHull, int minRepair, int maxRepair)
+    {
+        int missing = Mathf.Max(0, maxHull - hull);
+        int repair = maxHull > 0
+            ? 1 + Mathf.FloorToInt(4f * missing / maxHull)
+            : minRepair;
+        return Mathf.Clamp(repair, minRepair, maxRepair);
+    }
+
+    /// <summary>Make camp with a FROZEN castle, from the strategic map, without
+    /// entering the scene (2026-09-23: until now the only ways out of a sortie
+    /// were walking home or running the tank dry, so the free parked state that
+    /// the field parties need as an anchor could only be reached by burning
+    /// the fuel first). Same bookkeeping as the scene's ParkCastle: tank to the
+    /// cycle, un-banked earnings to the hold, a waypoint on the tile, and the
+    /// slot cleared. Returns the report line, or null when there was nothing
+    /// to bank.</summary>
+    public static string BankFrozenCastle(CycleState cycle, string castleName, int minRepair, int maxRepair)
+    {
+        var slot = cycle?.CastleSortie;
+        if (slot == null || !slot.IsLive())
+        {
+            return null;
+        }
+        int repair = RepairLunationsFor(slot.CurrentHP, slot.MaxHP, minRepair, maxRepair);
+        int x = slot.X, y = slot.Y;
+        cycle.CastleFuel = Mathf.Max(0, slot.StepsRemaining);
+        cycle.CastleMaxFuel = slot.MaxFuel;
+        cycle.CastleHold ??= new CastleHold();
+        cycle.CastleHold.Add(slot.GoldEarned, slot.SplinterEarned, slot.MaterialEarned, slot.SuppliesEarned);
+        ParkCastleAt(cycle, x, y, castleName, repair);
+        slot.Clear();
+        GD.Print($"[ExpeditionAnchors] {castleName} banks the furnace at ({x},{y}); {repair} lunation(s) of resupply.");
+        return $"{castleName} banks the furnace at ({x},{y}) and makes camp. This ground is a waypoint now. "
+             + $"Work crews teleport in to refuel, restock and repair: {repair} lunation(s), and the castle is "
+             + "exposed for every one of them.";
+    }
+
     /// <summary>Spend one charge of the built waypoint on this tile, if there is
     /// one. Called when a field party dives from it, which is the only thing that
     /// consumes a waypoint. Returns true if a charge was spent.</summary>

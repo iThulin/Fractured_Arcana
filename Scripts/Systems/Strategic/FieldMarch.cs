@@ -81,6 +81,11 @@ public static class FieldMarch
             reason = $"The party is already on the road, {party.TravelPhasesRemaining} tile(s) out.";
             return false;
         }
+        if (party.State == FieldPartyState.Working)
+        {
+            reason = $"The party is {FieldWork.Describe(party)}. Stop the work first.";
+            return false;
+        }
         if (party.X < 0 || party.Y < 0)
         {
             reason = "The party has not taken the field yet.";

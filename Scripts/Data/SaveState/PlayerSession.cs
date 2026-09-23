@@ -242,6 +242,19 @@ public static class PlayerSession
     /// a campus upgrade and the turn loop already iterates the list.</summary>
     public static string ExpeditionFieldPartyId = "";
 
+    /// <summary>Set when the expedition scene is being reloaded because the
+    /// SCRYING TABLE was aimed at a different force, rather than because a new
+    /// expedition is launching.
+    ///
+    /// <para>The distinction matters at exactly one place: a fresh deploy resets
+    /// carried HP, opens a run journal and rolls fresh weather, and a force the
+    /// table is returning to must get none of that. It is the same fork the
+    /// combat round-trip makes with EncounterRouter.HasPendingReturn, and it is
+    /// a separate flag because the two can be true for different forces.</para>
+    ///
+    /// <para>Consumed and cleared by ExpeditionManager._Ready.</para></summary>
+    public static bool ExpeditionTableSwitch = false;
+
     /// <summary>Player-facing view preference: when true, an expedition run opens
     /// directly into the 3D expedition-window view and the in-run 2D/3D toggle
     /// starts in 3D. NOT debug-gated: it is a real setting that persists for the

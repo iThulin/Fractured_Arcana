@@ -1831,3 +1831,694 @@ No range-based deletion in a live file. Deleting a method means pasting its
 exact text as the `old` side of a replacement, however long it is. If that is
 too tedious to do carefully, that is a signal the edit is too large to be doing
 blind, not a reason to reach for a blunter tool.
+
+---
+
+# Increment 5: the FORCES roster
+
+Asked for by name, 2026-09-23: "a selector on this screen that allow you to
+select and give commands to any party or castle you control in the world".
+
+## Why the thing I shipped was not that
+
+Two faults, and the second is the one that matters.
+
+**It was invisible when it mattered.** The piece selector was a two-state button
+in the RIGHT-docked chrome stack. The deploy drawer covers that stack
+completely. So the control for choosing which force to command could not be seen
+at the exact moment the player was looking at a drawer thinking about where to
+send a force. Visible in the screenshot: the whole right column is drawer.
+
+**It could not say "any party".** `_partySelected` was a bool. `MaxFieldParties`
+is a campus upgrade and the turn loop has iterated the party list since the
+schema landed, so a boolean was always going to have to become an id. It has:
+`_selectedPieceId`, empty for the castle, otherwise a `FieldParty.Id`.
+
+## The roster
+
+Left side, under the lens row, which is the one band of chrome nothing else
+docks into and the drawer cannot reach.
+
+    FORCES
+    ▪ Castle        (66,48)  ·  fuel 40/40
+    ▲ Field Party   (66,48)  ·  3 afoot  ·  carrying spoils
+
+One row per force, name over a status line, accent bar down the left of the
+selected one matching the ring that piece wears on the map, so the panel and the
+board agree without the player having to check.
+
+The status line is not decoration. "Can I give this an order right now" is the
+question the panel exists to answer, and a name alone does not answer it, so
+each line LEADS WITH WHATEVER BLOCKS AN ORDER: under attack, then resupply
+lunations, then out on a sortie, then fuel. A marching party reports tiles
+remaining rather than a state word.
+
+Rows are rebuilt on every refresh; the panel shell is not, so it does not
+flicker. Hidden in city view, like the March control, because these are
+world-map verbs.
+
+## The map caught up
+
+`SetPieces` took a single party tile and a bool. It now takes LISTS of tiles,
+names and destinations plus a selected index, so a second party needs no second
+set of fields. Each party draws its own marker, its own name and its own march
+route.
+
+**Label stacking.** The screenshot shows "Castle", "Party" and the settlement's
+own "edce (your seat)" printed on top of one another, because the party is sited
+WITH the castle at the top of a cycle, so the first thing a new player sees is a
+smear. Piece labels now step up by `PieceLabelStep` per label already on that
+tile. Stacking the labels rather than the pieces, because the pieces have to
+stay on their real hex. Keyed by tile, so a lone piece keeps its natural height
+and only collisions pay.
+
+## Orders follow the selection
+
+`TryMovePartyTo` and `OnPartyTakeTheField` read `SelectedParty()` instead of
+`EnsurePrimaryParty`. With one party those are the same object; with two,
+reading the primary would send the wrong people. A stale selection (a party gone
+between cycles) falls back to the castle rather than commanding a force that is
+not there.
+
+## The ordering bug I reintroduced
+
+`BuildForcesPanel` went into `BuildLensButtons`, which runs LATE in `BuildHud`,
+after the `RefreshPieceChrome` that would have populated it. The roster would
+have opened empty and only appeared once something else moved a piece.
+
+This is the identical bug fixed one day earlier for the chrome buttons, caused
+again by putting a builder in a method that runs later than the refresh. The
+band-aid is another refresh call at the new end. The fix, taken instead, is a
+builder that does not depend on when it is called: `BuildForcesPanel` now ends
+by calling `RebuildForcesPanel`.
+
+## Verification
+
+Balance deltas (0,0,0) against HEAD on both files. Em-dash greps clean
+tree-wide. Residue sweep for every retired symbol (`PartySelected`,
+`_partySelected`, `_pieceToggleBtn`, `TogglePiece`, `PartyTile`,
+`PartyDestTile`): clean. Every new method has a definition and a caller.
+
+## Note on where this was built
+
+This session is now linked to the Mac (`~/Development/Fractured_Arcana`), not
+the Windows box the earlier increments were written on. The Mac has commit
+054a1b3 "Seperated party and castle navigation" with a clean tree, so the two
+machines agree; these edits are on top of that commit.
+
+---
+
+# Increment 5a: the roster was built in city mode and never told the city closed
+
+Reported: the FORCES panel did not appear. Two readings of the code did not
+explain it, so a one-shot probe was added instead of a third guess. It printed:
+
+    [Forces] rows=0 visible=False inTree=True pos=(16, 118) size=(268, 260)
+             minSize=(268, 20) parent=StrategicHud selected=''
+
+Every value is diagnostic. The panel EXISTED, was in the tree, under the right
+parent, at the right position, at the right size. It had no rows and was
+invisible. That rules out everything I had been theorising about (layout,
+minimum size, CanvasLayer ordering) and points at exactly one line.
+
+## The cause
+
+`RebuildForcesPanel` read `_atlas3D.CityMode`, set `Visible = !cityNow`, and
+returned early when true. The strategic map OPENS IN THE HOME CITY, so at
+`BuildHud` time that read was TRUE: the panel was built hidden and empty, and
+nothing ever revisited the decision.
+
+`OnCityModeChanged` is the handler that exists precisely to revisit it. It
+updates `_cityLeaveBtn`, `_annexButton`, `_buildModeBtn` and `_cityServicesBtn`
+on that signal, and simply did not know about anything added since.
+
+## The same bug had been hiding the March control since the day it was added
+
+`_marchModeBtn.Visible = !cityNow` was set once at build, from the same read,
+and `OnCityModeChanged` did not touch it either. So the armed-move verb has been
+invisible for its entire life, which is why the castle March was only ever
+reachable from the deploy drawer, and why "there is no visible way to march the
+castle" was reported once, answered with a new control, and the new control was
+never seen either.
+
+Found only because the roster failed the same way and got a probe.
+
+## Fix
+
+- `OnCityModeChanged` calls `RefreshPieceChrome()`.
+- `RefreshPieceChrome` OWNS world-map-verb visibility: it sets
+  `_marchModeBtn.Visible` (and disarms the mode on entering a city) rather than
+  the build site doing it once. The build-time assignment is deleted, not
+  merely supplemented, so there is one writer.
+- `RebuildForcesPanel` builds its rows whether or not it is visible. The early
+  return was what left the panel with nothing to show once it WAS shown.
+- Probe removed.
+
+## The general shape, worth keeping
+
+A control whose visibility is computed once at construction from a mode that
+changes is a control that will be wrong for most of the session. The codebase
+already had the correct pattern one method away: a signal handler that
+re-decides. Three controls were added over two days without being added to it.
+Anything gated on `CityMode` belongs in `OnCityModeChanged`, and the way to keep
+that true is for exactly one method to own each control's visibility.
+
+## Verification
+
+Balance delta (0,0,0) against HEAD. Em dashes clean. `cityNow` at build time now
+appears only where `OnCityModeChanged` maintains the matching control.
+
+---
+
+# Increment 6: let the moon turn
+
+Asked for: "options on the strategic screen to assign all moves before
+deploying for the phase". Built the narrow version, deliberately.
+
+## The defect underneath the request
+
+The world tick ran ONLY inside `Deploy`. So every slow process in the game was
+hostage to the castle sortieing:
+
+- a field party ordered to march took no step until the fortress deployed
+- the resupply clock, the castle threat rolls and the road interception rolls
+  were all gated the same way
+- nothing on screen said a lunation boundary was coming or what it would resolve
+
+Ordering a march and then finding that nothing happens because the OTHER force
+has not acted is not a decision, it is a puzzle about the implementation.
+
+## Why not a full commit-all-orders phase
+
+That was the other option and I argued against it. Locking every order before
+anything resolves costs the dive-then-decide loop: today you learn something in
+the field and THEN choose where the fortress goes. Simultaneous-order games
+usually give the player full information; this one deliberately does not, and
+removing "act on what you just found" from a game about fog is a real loss.
+Agreed with the narrow version.
+
+## Built
+
+**`AdvanceMoon(cycle)`**, extracted from `Deploy`. Two callers now share one
+implementation, so a castle sortie and a deliberate wait cannot resolve the
+world differently. Returns false when the cycle ended so the caller stops.
+
+**"Let the moon turn"**, docked to the FOOT OF THE ROSTER rather than the
+chrome stack. "Have I given everyone their orders" and "end the lunation" are
+the same thought; putting them on opposite sides of the screen is how a player
+turns the moon with a force standing idle.
+
+The confirmation names what will actually resolve (resupply dropping to N,
+which party walks how far and whether it arrives, the world moving) and, when
+anything is idle, names it: "Nothing is ordered for: the castle, Field Party.
+Their lunation passes unused."
+
+Deliberately NOT free: it spends a lunation of twelve and runs corruption,
+kingdom drift, sieges and every threat roll. It is the waiting move, and
+waiting costs the same clock everything else does.
+
+**Roster order lines.** Each force's status now ends in its standing order: a
+marching party reads `(66,48) -> (71,52) · 6 tile(s) to go`, an unordered force
+reads `· awaiting orders`. Blank would have been quieter and worse: "nothing is
+assigned here" is exactly what the player needs to notice.
+
+## Verification
+
+Balance delta (0,0,0) against HEAD. Em dashes clean. `crossedLunation` now
+appears only inside `AdvanceMoon`, so the inline copy in `Deploy` is gone
+rather than duplicated.
+
+---
+
+# Increment 7: the scrying table commands either force
+
+Ruled 2026-09-23 (Magos). The expedition view IS a scrying projection: a table,
+a chamber, a glowing disc of the world. Aiming it at a different force is how
+one wizard commands two forces in different places.
+
+## What this actually required
+
+A run had to survive not being watched. Until now the whole of a run lived in
+ExpeditionManager's fields and existed only while that scene did.
+
+The seam already existed and had been load-bearing since the beginning: the
+COMBAT ROUND-TRIP freezes a run into EncounterRouter, changes scene, and thaws
+it in RestoreFromCombat. Aiming the table is the same event with a different
+reason for leaving, so it takes the same road rather than a parallel one.
+
+`SortieState` therefore stores exactly what the combat round-trip stores and
+nothing more. Everything it omits (fog, discovery, consumed POIs, waypoints,
+the hold) lives in the world and is already durable. One slot on
+`CycleState.CastleSortie`, one per `FieldParty.Sortie`; additive fields with
+safe defaults, so a pre-feature save reads "not in the field", which is true.
+
+## Why a scene reload and not an in-place swap
+
+The nicer architecture is two `ForceRuntime` objects in one scene with the
+window streaming between them, and `WorldWindowBuilder.StreamTo` already
+supports the streaming. It was rejected: about forty fields in a seven thousand
+line node describe ONE force, and turning them into a swappable struct is the
+kind of refactor that breaks things nobody was looking at. This file has
+already produced one regression, one deleted method and one reintroduced
+ordering bug this week.
+
+The reload costs a rebuild of a 469-tile window. The combat path pays it
+several times a sortie and nobody has complained.
+
+## Rules
+
+- The table lists every force with its state.
+- A force IN THE FIELD can be taken command of directly.
+- A force that is not can be SENT, if sending costs no turn of the moon. A
+  field party spends one of the lunation's expeditions, which is free of the
+  calendar. The fortress sortieing TURNS THE MOON, so it belongs on the
+  strategic map, and the row says so rather than letting the player find out by
+  clicking a button that then does something enormous.
+- Aiming away mid-march is refused: halt first. Freezing a run halfway through
+  a step is a snapshot of a state the game cannot resume.
+- The control hides once the run is over, like every other order control.
+
+## The three-way fork in _Ready
+
+    combat return   -> RestoreFromCombat   (existing)
+    table return    -> RestoreSortie       (new)
+    anything else   -> fresh deploy        (existing)
+
+The middle branch takes the same SHAPE as the first for the same reasons: this
+is not a new expedition, so carried HP must not reset, the run journal must
+keep appending rather than opening a second file for one run, and the weather
+must not be re-rolled underneath a force that never left.
+
+`PlayerSession.ExpeditionTableSwitch` is a separate flag from
+`HasPendingReturn` rather than a reuse of it, because the two can be true for
+different forces at the same time: returning from a fight with the party while
+the castle sits frozen mid-sortie is an ordinary Tuesday under this design.
+`SwitchToForce` explicitly clears `HasPendingReturn`, or the force being
+resumed would have the other one's combat numbers restored over the top of it.
+
+## Slot lifecycle
+
+Opened on any fresh deploy (at deploy, not at the first move, so aiming away on
+the first frame still freezes a real run). Cleared on all FOUR ending paths,
+found by their shared `PlayerSession.IsOnExpedition = false` line rather than
+by hunting them individually. A slot left Active after a force came home would
+let the table take command of somebody standing in the dock.
+
+## Verification
+
+Balance deltas (0,0,0) against HEAD on all five changed files. Em dashes clean
+tree-wide. Every new symbol has a definition and at least one caller.
+`FieldExpeditionSaveAssert` gained round-trip coverage for `SortieState`,
+including Active, position, staging, window radius, fuel, hull and earnings: a
+force the table is not watching exists ONLY as that object, and losing it in
+serialization loses a sortie mid-flight with everything it had earned.
+
+## Not done, and worth knowing
+
+- The FORCES roster on the strategic map does not yet say "in the field" for a
+  force with an active sortie. It will read "awaiting orders", which is wrong
+  for a force that is out.
+- Returning to the strategic map from one force while another is frozen
+  mid-sortie is untested. The slot persists correctly; what the strategic map
+  offers for that force is not yet defined.
+- Turning the moon while a force is frozen mid-sortie is likewise undefined.
+
+---
+
+# Increment 8: the palantir
+
+Ruled 2026-09-23 (Magos): swap between any number of forces WITHOUT LEAVING
+THE SCENE. If loading is an issue, fog rolls in over the map and thins to show
+the new ground. The vibe: the player stares into a palantir, scries a force,
+gives it orders.
+
+## The road not taken, and why the ruling was still met
+
+The literal reading is an in-place swap: two or more force runtimes inside one
+scene, the window streaming between them. `WorldWindowBuilder.StreamTo`
+already supports the streaming. It was rejected AGAIN, for the reason given in
+increment 7: about forty fields in a seven thousand line node describe one
+force, and making them swappable is the refactor most likely to break things
+nobody is looking at, in the file that has produced a regression, a deleted
+method and a reintroduced ordering bug this week.
+
+What the ruling actually demands is that the PLAYER never sees a scene change.
+The fog was offered as the fallback, and the fog turns out to be the whole
+answer: a scene reload hidden under fog that survives the reload is
+indistinguishable, from the chair, from an in-place swap. It is also the
+thing the fiction wants. A palantir does not cut; it clouds.
+
+## ScryVeil, an autoload
+
+It has to outlive the thing it hides. The expedition scene is torn down and
+rebuilt during a switch, and anything parented inside it would vanish with it
+and expose the rebuild. `HudManager` already proves a persistent layer
+survives; the veil sits one layer beneath it (89 under 90), so the world bar
+stays readable while the vision clouds. The frame holds, the stone fogs.
+
+One full-screen `ColorRect`, one shader, one uniform (`coverage`) that a Tween
+walks 0 to 1 to 0. The fog front advances from the rim toward the centre with a
+noise-broken edge, the body drifts on a second slower noise, and a faint
+violet bloom rides just behind the front: the stone working. At full coverage
+the body is forced solid, because the rebuild underneath must not show through
+an eight percent gap. Same grey as the window's Fog weather, so the two read as
+one substance.
+
+The rect is `MouseFilter.Ignore` while clear and `Stop` while down, so it never
+costs a click on an ordinary frame and a click aimed at the old map cannot land
+on the new one.
+
+## Sequence
+
+    aim the table ->
+      CaptureSortie
+      await RollIn        (fog fully down; player can do nothing)
+      HoldOpaque          (snap, so the swap frame cannot peek)
+      set the handoff, clear HasPendingReturn
+      ChangeSceneToFile   (invisible)
+    new ExpeditionManager._Ready ->
+      sees IsCovering, defers LiftVeilDeferred one frame
+      builds the run, restores the sortie
+    frame + 1 ->
+      Dissipate           (fog thins from the centre out over the new ground)
+
+`RollIn` is awaited, so the scene only changes once the stone is blind.
+`Dissipate` is deferred a frame past `_Ready`, so the fog only thins once every
+node `_Ready` created has been through its own `_Ready` and drawn once.
+Lifting it inline would thin the fog over a window that has not built yet,
+which is the exact thing the veil exists to hide.
+
+## Watchdog
+
+`RollIn` arms a six second timer. If the scene that comes up never calls
+`Dissipate` (a crash, a route that was not the expedition), the veil lifts
+itself with an error in the log. A stuck veil is an annoyance; a stuck veil
+with no control to clear it is a soft lock.
+
+## Two things fixed on the way
+
+**Any entry into a force in the field now resumes it.** The three-way fork in
+`_Ready` was gated on `_tableSwitch`. Un-gated: a force whose sortie is Active
+is in the field however this scene was reached, through the stone, back from
+the strategic map, or after a crash mid-sortie, and starting it fresh would
+overwrite a live run with full fuel and zero earnings. That is the one outcome
+worse than any of the ways of getting here.
+
+**The FORCES roster says "in the field".** With its remaining fuel or rations.
+It had read "awaiting orders" for a force that was out, which was flagged in
+increment 7 and is now wrong nowhere.
+
+## Verification
+
+Balance deltas (0,0,0) against HEAD on every pre-existing file;
+`ScryVeil.cs` balances as a new file. Em dashes clean tree-wide including
+`project.godot`. `ScryVeil` has six call sites outside its own file. The
+autoload is registered. `async void` on a signal-driven handler has precedent
+in `CombatManager`.
+
+## Still open
+
+Turning the moon while a force is frozen mid-sortie remains undefined. The
+slot survives it correctly; what the world tick should DO to a force that is
+out (interception, weather, resupply) is a ruling, not a bug.
+
+---
+
+# Increment 9: looking up from the stone
+
+Ruled 2026-09-23 (Magos): the player can look up from the palantir, and
+mid-expedition news arrives by one of three roads: a note on the desk beside
+the stone, a messenger through the door, or a mind-to-mind sending that pauses
+the scrying.
+
+## The three roads, and why they weigh differently
+
+| Road | Arrives | Interrupts | Waits |
+| --- | --- | --- | --- |
+| Note | a leaf on the desk | never | until the wizard looks up |
+| Messenger | a figure through the door | announces, does not stop | until dismissed |
+| Sending | through the stone itself | the stone flares, orders refused for 1.2 s | no |
+
+The weight is the design. A note is for things worth knowing and never worth
+stopping for. A messenger is someone in the room, so the scrying carries on
+around them. A sending is the one road that comes from far enough away to earn
+an interruption, and it is the only one that stops the player.
+
+## The room
+
+The rig already built a chamber, a table and a ring of stand-in figures as set
+dressing. It now has a DESK on the camera's side of the table, where a desk
+beside you would be, and a DOOR across the room. Notes are laid on the desk as
+fanned pale leaves (up to six shown; the count is the truth). A messenger is a
+stand-in figure spawned at the door and tweened to the wizard's side; dismissed,
+they walk back out. A sending pulses the stone's glow light up threefold and
+back.
+
+## Looking up
+
+`_lookUp` is a 0..1 blend INSIDE `PlaceCamera`, not a second camera. Pitch,
+distance and target all lerp toward a room pose (16 degrees, 2.6 radii back,
+focus above the table on the door's side), so the desk falls into the bottom of
+the frame and the door into the middle, and Q/E still orbit at either end.
+Orders are refused while looking up: a tile click with the map at the bottom
+of the frame is a misclick waiting to happen.
+
+The desk panel lists what is waiting, unread first, newest first, and opens any
+of it. Read messages stay listed this cycle in case the wizard wants them
+again.
+
+## Storage first, presentation second
+
+Every message goes into `CycleState.ScryInbox` BEFORE it is shown. A note
+survives aiming the table elsewhere, a save, and a crash; `SeedDeskFromInbox`
+re-lays what was waiting whenever the 3D window comes up. A note on a desk
+does not vanish because the wizard looked away.
+
+## Producers wired
+
+- **Note**: weather closing over the force (with what it costs per tile); a
+  waystone raised.
+- **Messenger**: the shard guardian falling.
+- **Sending**: the campus reaching through the stone when the Conjunction is
+  within two moons, once per fresh run start. It is the one message that
+  genuinely comes from far away, and the ONLY producer the channel has until
+  the world tick can run while a force is in the field: the sendings that
+  matter most ("the castle is under assault while you drive the party") need
+  that ruling first.
+- **Debug**: F6 / F7 / F8 post a sample on each road, so all three can be seen
+  on demand rather than waiting for the weather to turn.
+
+## Shape
+
+`ExpeditionManager.ScryDesk.cs` is a PARTIAL of the manager rather than more
+lines in it, so the desk reads as one thing and the seven thousand line node
+does not grow. It shares the class and so every private field.
+
+## Verification
+
+Balance deltas (0,0,0) against HEAD on every pre-existing file; the partial
+balances as a new file. Em dashes clean tree-wide. Every new symbol has a
+definition and a caller. `ExpeditionWindow3D` is `partial`, which the new
+`[Signal]` requires.
+
+---
+
+# Increment 9a: the switch worked and every run started at zero
+
+From the play log, immediately after each fresh deploy:
+
+    [Sortie] Resumed castle: at (-1,-1) 0/0 0/0
+    ...
+    [Sortie] Frozen castle:  at (77,52) 0/40 0/20
+    [Sortie] Frozen field_1: at (65,46) 0/40 0/20
+
+Both forces at ZERO fuel and ZERO Hull. The table switch itself was working,
+which is what made this look fine.
+
+## Cause
+
+`openSlot.Active = true` (the "this force is now in the field" mark) sat ABOVE
+the three-way fork in `_Ready`. So on a fresh deploy the slot was marked Active
+while still empty, the fork read Active as "already in the field", took the
+resume branch, and `RestoreSortie` wrote a slot holding nothing over the
+freshly computed tank and hull.
+
+It only looked like it worked because nobody had tried to take a step.
+
+## Fix
+
+The slot is opened INSIDE the fresh-deploy branch, after the fork has decided
+this is a fresh deploy. One writer, on the one branch where the statement is
+true.
+
+`SlotIsResumable(slot)` now decides the fork: Active is necessary and not
+sufficient, and a slot with no position or no tank is not a run. It clears the
+slot and returns false, so the fork falls through to the fresh branch.
+
+## A second mistake caught before it shipped
+
+The first draft of that guard was an early return INSIDE `RestoreSortie`. That
+would have returned from the resume branch without ever reaching the fresh
+branch, leaving the party token never placed and the run journal never opened.
+The check has to live in the fork's CONDITION, where a "no" can still choose
+the other branch. Moved before it was built.
+
+## The exit error
+
+    NullReferenceException at GCHandleBridge.GCHandleIsTargetCollectible
+
+Fired at "Debugging process stopped", not during play. That is Godot's C# glue
+at shutdown finding a managed object, referenced by a native signal connection,
+already gone: a delegate outliving its target. Increments 8 and 9 added several
+lambdas subscribed to Tween and SceneTreeTimer signals, so one of them is the
+likeliest owner, but the log does not say which and it fired only at exit.
+Flagged rather than chased: if it appears mid-session it becomes a bug with a
+reproduction, and that is when it is worth the time.
+
+## Not mine, but in the way
+
+`[ImbuementField] cleared ...` prints several hundred lines per scene load,
+and every table switch is a scene load. The five lines that mattered in this
+log were buried under about six hundred that did not. Worth gating on
+DebugMode or removing, purely so the next log can be read.
+
+---
+
+# Increment 10: nothing dies off-screen
+
+The ruling deferred since increment 7: what the world does to a force left IN
+THE FIELD while the table looks elsewhere. Decided and built.
+
+## The gap it closes
+
+A frozen sortie was IMMUNE. `CastleThreats` gates on the castle being parked,
+`FieldThreats` on the party travelling, and a force that is neither slipped
+through both. Leaving the castle in the field was strictly safer than parking
+it, which inverts the entire point of parking, and it was the reason the
+Sending channel had one producer.
+
+## The rule above the rules
+
+**Nothing dies off-screen.** A frozen force is never reduced below one Hull,
+one Health, or zero fuel, and is never wiped. The player comes back to a
+damaged force, never to a funeral they did not watch.
+
+This is the counterargument answered before it is raised: the table
+ENCOURAGES leaving a force out while driving another, and a penalty harsh
+enough to stop that would make the table decoration. So every consequence
+here is mild alone and honest together, and none of them is terminal.
+
+## Three consequences, per lunation, per frozen force
+
+- **Upkeep**, always: the castle burns 3 fuel holding station, a party eats 4
+  rations. A month camped is not free. Desk news, not a sending.
+- **Raid**: a patrol finds a force that is not moving. 30% of what the SORTIE
+  has earned (never the banked treasury) and 15% of maximum Hull or Health.
+  The chance climbs 8 points per lunation already sat there, because the
+  locals notice. `LunationsFrozen` counts moons UNWATCHED and resets on
+  resume, so a force the wizard checks on every lunation is never "sitting
+  long enough to be noticed".
+- **Assault**, castle only, unfriendly or worse ground: soldiers. 30% of
+  maximum Hull as the opening blow, and `PendingCastleAssaultKingdomId` is
+  set, which hands the fight to the tactical castle defence that already
+  exists for a parked fortress. Never while one is already owed.
+
+## Measured, and the measurement corrected the design
+
+The first draft of this file carried a "measured behaviour" comment I wrote
+BEFORE running anything. The simulation happened to land within a point of it
+on the neutral row, which is luck, and it caught something the guess missed:
+a five-strong crew in friendly country rolled **zero percent for three straight
+lunations**. A force the locals cannot touch is a force with no reason to ever
+come home. `MinChancePercent = 3` now floors every roll.
+
+P(hit at least once over N lunations), 20,000 trials, before the floor:
+
+| ground / defenders | N=1 | N=2 | N=3 | N=4 |
+| --- | --- | --- | --- | --- |
+| friendly x1 | 2% | 12% | 27% | 47% |
+| friendly x5 | 0% | 0% | 0% | 6% |
+| neutral x1 | 12% | 29% | 50% | 68% |
+| neutral x3 | 2% | 11% | 28% | 47% |
+| hostile x1 | 35% | 62% | 82% | 92% |
+| hostile x5 | 14% | 33% | 53% | 71% |
+
+The shape: one lunation away is cheap, three is a gamble, hostile ground is
+where you do not leave things.
+
+## How the news reaches the wizard
+
+Every raid and assault is written as a SENDING into `ScryInbox`. The next time
+an expedition comes up, `DeliverPendingSendings` plays every unread sending in
+turn: the stone flares, orders are refused for a beat, the words arrive, and
+the next one waits for that to be dismissed. Sequential on purpose. Three raids
+delivered as three stacked dialogs read as a bug.
+
+This is the traffic the road was built for in increment 9: turn the moon on the
+map, aim the stone at the party, and it clouds with "The castle was raided
+while you looked away."
+
+Upkeep alone posts a Note, not a Sending. Nobody reaches through the stone to
+say the furnace is banked.
+
+## Verification
+
+Balance deltas (0,0,0) on every pre-existing file; `SortieThreats.cs`
+balances. Em dashes clean tree-wide. `LunationsFrozen` has round-trip
+coverage in the save assert. One caller for the roll, in the tick, before the
+road interception and after the parked castle.
+
+## Flagged
+
+The assault path sets `PendingCastleAssaultKingdomId` for a castle that is in
+the field rather than parked. The defence round-trip that consumes it was
+written for a parked castle; it reads `CastleX/Y`, which a mid-sortie castle
+keeps current, so the fight lands on the right tile, but the repair setback
+it applies on withdrawal means nothing to a castle with no camp. Harmless and
+slightly wrong. Worth a look when the defence is next touched.
+
+## Increment 10a: the poisoned slot, and a room worth looking up at
+
+**"Spawning with no fuel" was not a fresh-deploy bug.** The fork fix in increment 9 was correct; the screenshot (0/40 rations, 0/20 Health, quarter-Hull halt card before a step) is a RESTORE. Under the old ordering bug a run resumed an empty slot and ran at 0/0; aiming the table away then captured that 0/0 with a real position and the recomputed tank, so the saved slot passed `SlotIsResumable` on the fixed build. `SlotIsResumable` now also refuses `CurrentHP <= 0` (nothing legitimate produces it: raids floor at 1, ending paths clear the slot) and clears it, so the fresh branch redeploys. Old saves self-heal on next entry.
+
+**The chamber.** Was a floor disc in the void with a 4 unit desk beside a 24 unit table. Now sized off R: wall at 2.8 R (look-up camera sits at about 2.05 R), wall height 1.3 R, ceiling, 8 pillars half a step off the cardinals, 8 warm sconces on the cardinals (one over the door), door set into the far wall with a frame. Figures 6.0 tall (was 3.2) with girth following height; desk 7.4 x 3.0 x 4.2; note leaves scale with the desk. `ChamberFogDensity` 0.032 to 0.016: at 0.032 the far wall kept 4% of its colour and no lighting could have shown it. `DoorDistance` export removed (door lives on the wall). All new sizes are exports under "Scrying Chamber Room".
+
+## Increment 10b: the starting tile
+
+**Screen-space label stacking.** Map labels keep a constant on-screen size (PixelSize is retuned per zoom), but their stacking offsets were fixed WORLD lifts (1.5 units), which shrink to under a line at whole-world zoom. Castle, Field Party and the seat's own name all drew on one spot on every new save. `WorldAtlas3D` now keeps `_labelStack` per tile: the first label on a tile takes its natural anchor, each later one climbs `screenFrac * 1.35` of screen height along the camera's up vector (`ApplyLabelScale` re-derives the position each camera move). Settlement labels seed the stack; piece labels join it.
+
+**Bodies fan.** Co-located piece bodies (and the selection ring) are drawn offset from the tile centre: castle at the centre, parties around it at radius 0.95.
+
+**`SortieState.IsLive()`.** One definition of "a run that can be resumed" (Active, real position, tank, HP > 0), read by the strategic roster, the frozen-sortie roll and the scry picker. `ExpeditionAnchors.PruneDeadSorties` clears Active-but-dead slots on the way into the strategic map, so a poisoned save stops reporting "in the field, 0/0 fuel" for a castle standing in the dock.
+
+## Increment 10c: ground definition in the window
+
+**Diagnosis.** "Play-dough pastel lump" is three absences, none of them texture: no relief for the light to catch (the C1 field plus HeightScale 0.65 turns a mountain into a 0.78 unit bump), a fill light strong enough (0.62 ambient vs 1.0 sun at 45 degrees) that every slope lands in the same toon band, and no edge structure of any kind (the lattice-artifact hunt removed every line, intended or not). A texture on a smooth lump is a textured lump.
+
+**Levers, all exports on ExpeditionWindow3D:**
+- Ground Definition: `RidgeAmp 0.55` / `RidgeDetailAmp 0.16` (ridged noise on 27 and 63 degree domains, wavelengths 1.8 and 0.9 units, squared crests, gated by a per-terrain `Ruggedness` blended through the wide height kernel: Mountain 1.0, Volcanic 0.85, Snow 0.6, Hills 0.45, plains 0.05, wet ground and water 0); `SlopeDarken 0.35`; `ContourInk 0.22` every `ContourSpacing 0.30` units (fwidth-antialiased, fades where lines would pack under 3 px and past 22-40 view units); toon bands 4 / softness 0.12 / jitter 0.6 (jitter was 0 in the window).
+- Chamber Sun: pitch -34 (was -45), energy 1.3 (was 1.0), `ChamberAmbientEnergy` 0.45 (was 0.62), shadow normal bias 2.0 (was 3.0; raise if acne returns), SSAO on (radius 1.4, intensity 2.4, light affect 0.35).
+- vertsPerUnit 2.5 to 3.0 so the 0.9 unit octave has samples.
+- Shader gained a `relief` group (`slope_darken`, `contour_strength`, `contour_spacing`, `contour_fade_start/end`), all defaulting to off so the atlas is untouched. Slope uses the world-space normal via INV_VIEW_MATRIX.
+
+Known consequences: rivers and roads follow SampleGround and so ride the crags on hill tiles; crag from a mountain next to a shore can lift a bed above the waterline (reads as rocks in the shallows). Not measured: none of this was seen rendered; tune from a screenshot.
+
+## Increment 10d: the resumed castle stood off the map
+
+"No way onward" on a tile with six passable neighbours. `RestoreSortie` fed the slot's WORLD offset coords through `GridLocalOf`, which is the identity (the combat router saves LOCAL coords, so it never needed to convert). The party was initialised at a local coordinate far off the loaded disc: `GetNeighbors` returned nothing, both blind passes failed, and the stride halted on its first tick. The 3D token stayed drawn on the staging tile because its local-to-world lookup failed and never updated, which is why the screenshot looked like a castle refusing to leave its own seat. Now `_window.LocalOf(slot.X, slot.Y)`, plus a PrintErr if the result is not in the window after the recenter.
+
+## Increment 11: ELSEWHERE
+
+A second, smaller block under the main HUD status panel listing every force the stone is not aimed at: name (castle in arcane blue, parties in gold, matching the map markers), a right-aligned status line, the numbers, and a 4 px furnace bar. Frozen forces report their `SortieState` (fuel or rations, Hull or Health, "holding station" or "holding, N moons"); a parked castle reports `CastleFuel/CastleMaxFuel` and parked / resupply / under attack (its Hull between sorties is not persisted anywhere, so none is shown); a party between sorties reports only where it is (awaiting orders, marching to, not sited). Hangs under the main panel via its `Resized` signal so the info line wrapping cannot push the two apart or overlap them. Refreshed from `UpdateUI`. `UITheme` gained `FurnaceBed`, `FurnaceEmber`, `ElsewhereHeader`, `ElsewhereStatus`.
+
+## Increment 12: Make Camp, Bank the furnace, and the Working skeleton
+
+**The gap.** `ParkCastle` had two callers, both inside the dry-furnace dialog. The parked state (free upkeep, a waypoint the parties can step to, exposed to `CastleThreats`) could only be reached by burning the tank dry; the alternative was leaving the castle frozen mid-sortie at 3 fuel per lunation with a raid clock. For the zone loop (park the castle beside a zone, work it with parties for several moons) that is a trap.
+
+**Make Camp** (expedition HUD, row eight, castle only): confirm dialog quoting the fuel kept and the resupply bill, then `ParkCastle`. Look Up moves to row nine (396) and the desk panel to 448.
+
+**Bank the furnace** (strategic FORCES chrome, visible when the castle is selected and its slot is live): `ExpeditionAnchors.BankFrozenCastle` does the scene park's bookkeeping without the scene: tank to `CastleFuel/CastleMaxFuel`, un-banked earnings to `CastleHold`, `ParkCastleAt` on the slot's tile, slot cleared. `RepairLunationsFor` is now one formula shared by both parks. Not done from the strategic side: `RunEventLog.End` for the frozen run's journal (the log belongs to the scene that opened it).
+
+**Working state skeleton.** `FieldPartyState.Working = 4`; `FieldParty.WorkKind / WorkZoneId / WorkLunationsLeft / WorkLunationsTotal`; new `FieldWork` (`CanBegin`, `Begin`, `Cancel`, `Tick`, `Describe`, and `OnComplete` with one empty case per future zone type, default posting a desk Note). `RunLunationTick` calls `FieldWork.Tick` after `FieldMarch.Tick`. `FieldMarch.CanOrderAtAll` refuses a working party ("stop the work first"). Roster, WhatResolves and ELSEWHERE all describe work. Verbs: "Stop work" (real) and "Survey here (debug)" (DebugMode only, two lunations, the stand-in until zones exist). Save assert covers the four fields. `ScryInbox.Post` is now the single desk writer; `SortieThreats` routes through it.
+
+**Rulings still open, each with one landing spot:** cost per lunation (in `FieldWork.Tick`; needs a persisted party ration pool), yield (`OnComplete` cases), the threat table for a camped party (beside `SortieThreats`, with a parked castle within N tiles as defenders).
