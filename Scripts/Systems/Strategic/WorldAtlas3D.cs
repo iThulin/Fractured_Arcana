@@ -2146,9 +2146,11 @@ public partial class WorldAtlas3D : Node3D
                           List<Vector2I?> partyDests, int selectedPartyIndex,
                           List<string> partyBanners = null,
                           List<List<(Color tint, bool injured)>> partyFigures = null,
-                          List<(Color tint, bool injured)> castleFigures = null)
+                          List<(Color tint, bool injured)> castleFigures = null,
+                          List<string> partyIds = null)
     {
         CastleTile = castle;
+        PartyIds = partyIds ?? new List<string>();
         PartyTiles = partyTiles ?? new List<Vector2I>();
         PartyNames = partyNames ?? new List<string>();
         PartyDestTiles = partyDests ?? new List<Vector2I?>();
@@ -2474,6 +2476,26 @@ public partial class WorldAtlas3D : Node3D
     public List<List<(Color tint, bool injured)>> PartyFigures = new();
     public List<(Color tint, bool injured)> CastleFigures = new();
 
+    /// <summary>Parallel to PartyTiles: the FieldParty.Id each piece stands
+    /// for, so a playback can find a piece by who it is rather than by its
+    /// position in a list that may have been rebuilt (2026-09-25).</summary>
+    public List<string> PartyIds = new();
+
+    /// <summary>The nodes that make up each party piece (body or banner parts,
+    /// ring, figures), by index into PartyTiles, so a march can be PLAYED
+    /// rather than the piece jumping to where it ended. Labels are kept
+    /// apart: their position is re-derived on every camera move, so they are
+    /// hidden during a playback rather than moved.</summary>
+    private readonly List<List<Node3D>> _partyPieceNodes = new();
+    private readonly List<Node3D> _partyLabelNodes = new();
+    private readonly List<Node3D> _castlePieceNodes = new();
+    private Node3D _castleLabelNode;
+    private Tween _marchPlayback;
+
+    /// <summary>The key a castle path travels under in PlayMarches: parties
+    /// are keyed by FieldParty.Id, and no party has this one.</summary>
+    public const string CastlePathKey = "castle";
+
     /// <summary>Index into PartyTiles of the force taking orders, or -1 when
     /// the castle has them. The selected piece wears a ring at its feet,
     /// because a selector the player has to remember is a selector they will
@@ -2518,19 +2540,28 @@ public partial class WorldAtlas3D : Node3D
             return FanOffset(n);
         }
 
+        _castlePieceNodes.Clear();
+        _castleLabelNode = null;
         if (CastleTile.HasValue)
         {
             var c = CastleTile.Value;
             Vector3 fan = Fan(c);
-            AddMarker(PieceBody(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.9f) + fan, 1.35f, 0.95f), c.X, c.Y);
-            AddMarker(StackedLabel(c, "Castle", UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, PieceLabelLift), 34, 0.02f), c.X, c.Y);
-            PlaceFigures(CastleFigures, MarkerPos(c.X, c.Y, 0f) + fan, 1.75f, c.X, c.Y);
+            var body = PieceBody(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.9f) + fan, 1.35f, 0.95f);
+            AddMarker(body, c.X, c.Y);
+            _castlePieceNodes.Add(body);
+            _castleLabelNode = StackedLabel(c, "Castle", UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, PieceLabelLift), 34, 0.02f);
+            AddMarker(_castleLabelNode, c.X, c.Y);
+            _castlePieceNodes.AddRange(PlaceFigures(CastleFigures, MarkerPos(c.X, c.Y, 0f) + fan, 1.75f, c.X, c.Y));
             if (SelectedPartyIndex < 0)
             {
-                AddMarker(SelectionRing(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.08f) + fan), c.X, c.Y);
+                var ring = SelectionRing(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.08f) + fan);
+                AddMarker(ring, c.X, c.Y);
+                _castlePieceNodes.Add(ring);
             }
         }
 
+        _partyPieceNodes.Clear();
+        _partyLabelNodes.Clear();
         if (PartyTiles == null)
         {
             return;
@@ -2544,6 +2575,9 @@ public partial class WorldAtlas3D : Node3D
                 : "Party";
             Vector3 fan = Fan(p);
 
+            // Every node of this piece is remembered so a march can be played.
+            var mine = new List<Node3D>();
+            Node3D label;
             string banner = PartyBanners != null && i < PartyBanners.Count ? PartyBanners[i] : "";
             if (!string.IsNullOrEmpty(banner))
             {
@@ -2553,21 +2587,30 @@ public partial class WorldAtlas3D : Node3D
                 foreach (var part in BannerParts(UITheme.Gold, MarkerPos(p.X, p.Y, 0f) + fan))
                 {
                     AddMarker(part, p.X, p.Y);
+                    mine.Add(part);
                 }
-                AddMarker(StackedLabel(p, $"{banner} {name}", UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 30, 0.02f), p.X, p.Y);
+                label = StackedLabel(p, $"{banner} {name}", UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 30, 0.02f);
+                AddMarker(label, p.X, p.Y);
             }
             else
             {
-                AddMarker(PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f) + fan, 0.55f, 1.5f), p.X, p.Y);
-                AddMarker(StackedLabel(p, name, UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 34, 0.02f), p.X, p.Y);
+                var body = PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f) + fan, 0.55f, 1.5f);
+                AddMarker(body, p.X, p.Y);
+                mine.Add(body);
+                label = StackedLabel(p, name, UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 34, 0.02f);
+                AddMarker(label, p.X, p.Y);
             }
             // Who is here: one figure per member, ringed around the piece.
             var figures = PartyFigures != null && i < PartyFigures.Count ? PartyFigures[i] : null;
-            PlaceFigures(figures, MarkerPos(p.X, p.Y, 0f) + fan, 0.95f, p.X, p.Y);
+            mine.AddRange(PlaceFigures(figures, MarkerPos(p.X, p.Y, 0f) + fan, 0.95f, p.X, p.Y));
             if (i == SelectedPartyIndex)
             {
-                AddMarker(SelectionRing(UITheme.Gold, MarkerPos(p.X, p.Y, 0.08f) + fan), p.X, p.Y);
+                var ring = SelectionRing(UITheme.Gold, MarkerPos(p.X, p.Y, 0.08f) + fan);
+                AddMarker(ring, p.X, p.Y);
+                mine.Add(ring);
             }
+            _partyPieceNodes.Add(mine);
+            _partyLabelNodes.Add(label);
 
             Vector2I? dest = PartyDestTiles != null && i < PartyDestTiles.Count
                 ? PartyDestTiles[i]
@@ -2659,11 +2702,12 @@ public partial class WorldAtlas3D : Node3D
     /// (2026-09-24). Presentation only: CompanionWhereabouts decides who is
     /// where, this only draws them. Figures join the tile's marker set so
     /// they hide with the rest of it in city view.</summary>
-    private void PlaceFigures(List<(Color tint, bool injured)> figures, Vector3 centre, float radius, int x, int y)
+    private List<Node3D> PlaceFigures(List<(Color tint, bool injured)> figures, Vector3 centre, float radius, int x, int y)
     {
+        var placed = new List<Node3D>();
         if (figures == null || figures.Count == 0)
         {
-            return;
+            return placed;
         }
         for (int n = 0; n < figures.Count; n++)
         {
@@ -2671,7 +2715,103 @@ public partial class WorldAtlas3D : Node3D
             var fig = CompanionFigure.Build(tint, injured);
             fig.Position = centre + CompanionFigure.RingOffset(n, figures.Count, radius);
             AddMarker(fig, x, y);
+            placed.Add(fig);
         }
+        return placed;
+    }
+
+    /// <summary>Play the marches that a pass of time produced (2026-09-25):
+    /// each party's piece walks its recorded path, one recorded tile per
+    /// step, at a pace that fits the whole pass into a couple of seconds.
+    /// The piece's label is hidden for the walk (its position is re-derived
+    /// on every camera move, so it cannot be tweened); the reload that
+    /// follows redraws everything where it now stands.</summary>
+    public void PlayMarches(Dictionary<string, List<Vector2I>> paths, System.Action onDone)
+    {
+        _marchPlayback?.Kill();
+        _marchPlayback = null;
+
+        int longest = 0;
+        var moving = new List<(List<Node3D> nodes, Node3D label, List<Vector2I> path)>();
+        // The castle's march (2026-09-25): the same walk, keyed apart.
+        if (paths != null && paths.TryGetValue(CastlePathKey, out var castlePath)
+            && castlePath != null && castlePath.Count >= 2 && _castlePieceNodes.Count > 0)
+        {
+            moving.Add((_castlePieceNodes, _castleLabelNode, castlePath));
+            longest = Mathf.Max(longest, castlePath.Count - 1);
+        }
+        if (paths != null && PartyIds != null)
+        {
+            for (int i = 0; i < PartyIds.Count && i < _partyPieceNodes.Count; i++)
+            {
+                if (!paths.TryGetValue(PartyIds[i], out var path) || path == null || path.Count < 2)
+                {
+                    continue;
+                }
+                moving.Add((_partyPieceNodes[i], i < _partyLabelNodes.Count ? _partyLabelNodes[i] : null, path));
+                longest = Mathf.Max(longest, path.Count - 1);
+            }
+        }
+        if (moving.Count == 0 || longest == 0)
+        {
+            onDone?.Invoke();
+            return;
+        }
+
+        // Pace: the whole pass lands in about two seconds, never faster than a
+        // tenth of a second a tile or the walk reads as a jump anyway.
+        float perStep = Mathf.Clamp(2.0f / longest, 0.10f, 0.40f);
+
+        var tween = CreateTween();
+        tween.SetParallel(true);
+        // Each node's resting position, captured once: every step's target is
+        // start plus the path's offset from its first tile, so a piece that
+        // fans off-centre keeps its fan.
+        var startOf = new Dictionary<Node3D, Vector3>();
+        foreach (var (nodes, label, path) in moving)
+        {
+            if (label != null)
+            {
+                label.Visible = false;
+            }
+            foreach (var node in nodes)
+            {
+                if (node != null && IsInstanceValid(node))
+                {
+                    startOf[node] = node.Position;
+                }
+            }
+        }
+        for (int step = 1; step <= longest; step++)
+        {
+            if (step > 1)
+            {
+                tween.Chain();
+            }
+            foreach (var (nodes, label, path) in moving)
+            {
+                if (step >= path.Count)
+                {
+                    continue;   // this party finished earlier; it stands
+                }
+                Vector3 offset = MarkerPos(path[step].X, path[step].Y, 0f) - MarkerPos(path[0].X, path[0].Y, 0f);
+                foreach (var node in nodes)
+                {
+                    if (node == null || !startOf.TryGetValue(node, out var start))
+                    {
+                        continue;
+                    }
+                    tween.TweenProperty(node, "position", start + offset, perStep)
+                         .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+                }
+            }
+        }
+        _marchPlayback = tween;
+        tween.Finished += () =>
+        {
+            _marchPlayback = null;
+            onDone?.Invoke();
+        };
     }
 
     /// <summary>Placeholder banner for a detachment: a thin pole, a pennant

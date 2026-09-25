@@ -3180,3 +3180,58 @@ says "+1 ring a moon"; pass a moon: two rings open. (3) Pass four moons at a
 garrison with Brannoc: the desk says "Brannoc is now a Journeyman Warden";
 the garrison's supplies drop to 1 next moon. (4) A hall's candidates carry
 vocations.
+
+---
+
+# Increment 20: pass time plays the marches
+
+Asked 2026-09-25: pass time should animate the tokens rather than jump.
+
+**What was happening.** `PassTime` steps the days in a loop and then
+`ReloadCurrentScene`, so a party that walked eight tiles was simply found
+eight tiles on. The stepping was right; nothing recorded the walk.
+
+**Built.** `PassTime` now records every party's tile before the first day
+and after each day (`RecordTiles`, deduplicating days on which nobody moved,
+so the record is one entry per tile stepped). After the days are done and
+the save is written, `WorldAtlas3D.PlayMarches(paths, onDone)` walks each
+party's piece along its record and only then reloads. Input is off for the
+walk: the state is already advanced, and a click mid-walk would be an order
+on a map about to be redrawn.
+
+On the atlas, `BuildPieceMarkers` now remembers every node of each party
+piece (body or banner parts, ring, figures) in `_partyPieceNodes`, keyed by
+the new `PartyIds` list passed through `SetPieces`, so the playback finds a
+piece by who it is and not by a list index. Labels are kept apart and hidden
+for the walk: their position is re-derived on every camera move
+(`ApplyLabelScale`), so tweening them would fight the camera. Each step's
+target is the node's resting position plus the path's offset from its first
+tile, so a piece fanned off the tile centre keeps its fan. Pace: the whole
+pass fits in about two seconds, floored at a tenth of a second a tile.
+`PlaceFigures` returns the figures it placed so they join the piece.
+
+Not animated: the castle. Its march is instant by ruling (it relocates and
+camps); nothing moves it during a pass of time. The HUD's day counter reads
+the final day for the length of the walk, which is the day it is.
+
+**In-engine confirm owed:** order a party eight tiles off, pass time: the
+piece and its figures walk tile by tile over about two seconds, the label
+reappears at the destination after the reload. Order two parties: both walk
+at once, the shorter one stops first. Pass time with nobody moving: no
+delay before the reload.
+
+## Increment 20a: the castle's march plays too
+
+Ruled 2026-09-25: the march can be animated. `WorldAtlas3D` now remembers the
+castle piece's nodes (`_castlePieceNodes`, label apart) the way it remembers a
+party's, and `PlayMarches` accepts a path under `CastlePathKey` beside the
+party ids. `ExecuteCastleMarch` captures the fortress's tile before
+`CastleMarch.Execute`, builds the corridor (`CorridorTiles`: the same axial
+lerp `ChartCorridor` walks, deduplicated), and plays the piece along it
+before the reload, input off for the ride. The march stays instant in the
+rules (the days are the arrival camp); what changed is that it is seen.
+Balance deltas unchanged against HEAD on both files; em-dash gates clean.
+
+**In-engine confirm owed:** march the castle twenty tiles: the piece and its
+crew figures cross the map in a few seconds, then the camp beacon appears at
+the far end on the reload.

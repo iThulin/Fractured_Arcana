@@ -901,11 +901,43 @@ public partial class StrategicView : Node2D
 
         var events = new System.Collections.Generic.List<string>();
         int passed = 0;
+
+        // Where every party stood before the first day, then after each day
+        // (2026-09-25): the record the atlas plays back before the reload,
+        // so a march is watched rather than found finished.
+        var paths = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Vector2I>>();
+        void RecordTiles()
+        {
+            if (cycle.FieldParties == null)
+            {
+                return;
+            }
+            foreach (var p in cycle.FieldParties)
+            {
+                if (p == null || p.X < 0 || p.Y < 0)
+                {
+                    continue;
+                }
+                if (!paths.TryGetValue(p.Id, out var path))
+                {
+                    path = new System.Collections.Generic.List<Vector2I>();
+                    paths[p.Id] = path;
+                }
+                var tile = new Vector2I(p.X, p.Y);
+                if (path.Count == 0 || path[path.Count - 1] != tile)
+                {
+                    path.Add(tile);
+                }
+            }
+        }
+        RecordTiles();
+
         for (int i = 0; i < maxDays; i++)
         {
             bool newMoon = cal.AdvanceDay();
             passed++;
             WorldClock.StepDay(cycle, events);
+            RecordTiles();
             if (newMoon)
             {
                 GD.Print($"[Calendar] The moon turns. Lunation {cal.CurrentLunation} " +
@@ -940,6 +972,23 @@ public partial class StrategicView : Node2D
             cycle.PendingSiegeReports.Add($"{passed} day(s) pass. " + string.Join(" ", events));
         }
         SaveManager.SaveIfDirty();
+
+        // Walk the pieces along what the days did to them, THEN rebuild. The
+        // state is already advanced and saved; the playback is presentation,
+        // and a click during it would be an order on a map that is about to
+        // be redrawn, so input is off until the reload.
+        if (_atlas3D != null)
+        {
+            _atlas3D.AcceptInput = false;
+            _atlas3D.PlayMarches(paths, () =>
+            {
+                if (IsInsideTree())
+                {
+                    GetTree().ReloadCurrentScene();
+                }
+            });
+            return;
+        }
         GetTree().ReloadCurrentScene();
     }
 
@@ -1301,6 +1350,7 @@ public partial class StrategicView : Node2D
             var partyDests = new System.Collections.Generic.List<Vector2I?>();
             var partyBanners = new System.Collections.Generic.List<string>();
             var partyFigures = new System.Collections.Generic.List<System.Collections.Generic.List<(Color tint, bool injured)>>();
+            var partyIds = new System.Collections.Generic.List<string>();
             int selectedIndex = -1;
             if (cycle.FieldParties != null)
             {
@@ -1325,6 +1375,7 @@ public partial class StrategicView : Node2D
                     // sortie is drawn where its sortie stands, but its members
                     // are still its members.
                     partyFigures.Add(CompanionWhereabouts.FigureTints(cycle, p.MemberCompanionIds));
+                    partyIds.Add(p.Id);
                 }
             }
             var crewIds = new System.Collections.Generic.List<string>();
@@ -1340,7 +1391,8 @@ public partial class StrategicView : Node2D
             }
             _atlas3D.SetPieces(castleAt, partyTiles, partyNames, partyDests,
                                CastleSelected ? -1 : selectedIndex, partyBanners,
-                               partyFigures, CompanionWhereabouts.FigureTints(cycle, crewIds));
+                               partyFigures, CompanionWhereabouts.FigureTints(cycle, crewIds),
+                               partyIds);
         }
     }
 
@@ -6120,6 +6172,7 @@ public partial class StrategicView : Node2D
         }
 
         string name = CastleTypes.For(PlayerSession.SelectedSchool)?.Name ?? "The castle";
+        int fromX = cycle.CastleX, fromY = cycle.CastleY;
         string line = CastleMarch.Execute(cycle, col, row, name);
         if (string.IsNullOrEmpty(line))
         {
@@ -6138,7 +6191,50 @@ public partial class StrategicView : Node2D
 
         // The world moved: markers, beacons and the castle's own staging point
         // all changed, so the map is rebuilt rather than patched in four places.
+        // First, the fortress is seen to go (2026-09-25): its piece rides the
+        // same straight corridor the march charted, then the map rebuilds.
+        if (_atlas3D != null && _world != null && _world.InBounds(fromX, fromY))
+        {
+            var path = CorridorTiles(fromX, fromY, col, row);
+            _atlas3D.AcceptInput = false;
+            _atlas3D.PlayMarches(
+                new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Vector2I>>
+                {
+                    [WorldAtlas3D.CastlePathKey] = path,
+                },
+                () =>
+                {
+                    if (IsInsideTree())
+                    {
+                        GetTree().ReloadCurrentScene();
+                    }
+                });
+            return;
+        }
         GetTree().ReloadCurrentScene();
+    }
+
+    /// <summary>The tiles of a straight march, the same axial lerp
+    /// CastleMarch.ChartCorridor walks, deduplicated. Presentation only.</summary>
+    private System.Collections.Generic.List<Vector2I> CorridorTiles(int fromX, int fromY, int toX, int toY)
+    {
+        var tiles = new System.Collections.Generic.List<Vector2I>();
+        int steps = _world.HexDistance(fromX, fromY, toX, toY);
+        var (aq, ar) = HexCoord.OffsetToAxial(fromX, fromY);
+        var (bq, br) = HexCoord.OffsetToAxial(toX, toY);
+        for (int i = 0; i <= steps; i++)
+        {
+            float t = steps == 0 ? 1f : (float)i / steps;
+            int q = Mathf.RoundToInt(Mathf.Lerp(aq, bq, t));
+            int r = Mathf.RoundToInt(Mathf.Lerp(ar, br, t));
+            var (c, rr) = HexCoord.AxialToOffset(q, r);
+            var tile = new Vector2I(c, rr);
+            if (tiles.Count == 0 || tiles[tiles.Count - 1] != tile)
+            {
+                tiles.Add(tile);
+            }
+        }
+        return tiles;
     }
 
     // ════════════════════════════════════════════════════════════════════
