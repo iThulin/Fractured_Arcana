@@ -115,7 +115,11 @@ public partial class StrategicView : Node2D
     // without manual offset arithmetic. Buttons toggle Visible per city state; the whole
     // stack rebuilds with the HUD.
     private VBoxContainer _rightHudStack;
-    private Button _cityLeaveBtn;          // "to the world map", shown only in city view
+    // The "to the world map" button that lived in the verb stack is gone
+    // (2026-09-24): navigation is _viewToggleBtn at the head of the FORCES
+    // roster, and Escape. See OnViewTogglePressed.
+    private Button _viewToggleBtn;
+    private Button _sortieBtn;             // 2026-09-24: the castle sorties from where it stands
     private Button _annexButton;           // "annex a district" toggle (kept so we can reset it after a purchase)
     private Button _buildModeBtn;          // "build" toggle: arms bare-ground clicks to open the construct card
     private Button _marchModeBtn;          // Expedition v2: arms map clicks as a MOVE order
@@ -149,7 +153,12 @@ public partial class StrategicView : Node2D
     private Button _partyDeployBtn;
     private Button _bankFurnaceBtn;    // 2026-09-23: park a frozen castle from the map
     private Button _stopWorkBtn;       // 2026-09-23: recall a working party
-    private Button _debugWorkBtn;      // 2026-09-23: DebugMode only, until zones exist
+    private Button _postBtn;           // 2026-09-24: Field Party v1, the posting sheet
+    private Button _collectBtn;        // 2026-09-24: fold a detachment back in, standing with it
+    private Button _recallBtn;         // 2026-09-24: fold a detachment back in through a waystone
+    private Button _interveneBtn;      // 2026-09-24: storm a depot or intervene at a front, from the tile
+    private Button _audienceBtn;       // 2026-09-24: open a table with the court whose city the party stands in
+    private Button _musterBtn;         // 2026-09-24: the Forces screen, where everyone is
 
     /// <summary>True when the castle is the piece taking orders.</summary>
     private bool CastleSelected => string.IsNullOrEmpty(_selectedPieceId);
@@ -219,6 +228,10 @@ public partial class StrategicView : Node2D
         // expedition-scene state and nothing else.
         PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Castle;
         PlayerSession.ExpeditionFieldPartyId = "";
+        // An audience is a scene argument for the NEXT field deploy only. The
+        // strategic map coming up means no deploy consumed it: drop it.
+        PlayerSession.AudienceEncounterId = "";
+        PlayerSession.AudienceKingdomId = "";
 
         if (_world == null)
         {
@@ -596,7 +609,10 @@ public partial class StrategicView : Node2D
         // rule I have mispredicted twice.
         const int ForcesWidth = 268;
         const int ForcesTop = 58;
-        const int ForcesHeight = 300;
+        // 2026-09-24: was 300, which fits the castle and one party. With a
+        // second party (Grand Hall III) and detachments under each, the roster
+        // needs the room, and nothing else docks on the left below it.
+        const int ForcesHeight = 440;
         _forcesPanel = new PanelContainer
         {
             AnchorLeft = 0f,
@@ -625,6 +641,21 @@ public partial class StrategicView : Node2D
         col.AddThemeConstantOverride("separation", 6);
         margin.AddChild(col);
 
+        // Navigation lives HERE, at the head of the roster, not in the verb
+        // stack (2026-09-24). "Where am I looking" and "who do I command" are
+        // the two things the player needs in every mode, and the city/world
+        // toggle had been one of fourteen same-sized buttons on the right.
+        _viewToggleBtn = new Button
+        {
+            Text = "\u25C8  To the world map",
+            CustomMinimumSize = new Vector2(248, 34),
+        };
+        _viewToggleBtn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        UITheme.ApplyButtonStyle(_viewToggleBtn, isPrimary: true);
+        _viewToggleBtn.TooltipText = "Escape does the same.";
+        _viewToggleBtn.Pressed += OnViewTogglePressed;
+        col.AddChild(_viewToggleBtn);
+
         _forcesRows = new VBoxContainer();
         _forcesRows.AddThemeConstantOverride("separation", 4);
         col.AddChild(_forcesRows);
@@ -635,16 +666,16 @@ public partial class StrategicView : Node2D
         // a player turns the moon with a force still standing idle.
         _turnMoonBtn = new Button
         {
-            Text = "\u263D  Let the moon turn",
+            Text = "\u263D  Pass time",
             CustomMinimumSize = new Vector2(248, 34),
         };
         _turnMoonBtn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         UITheme.ApplyButtonStyle(_turnMoonBtn, isPrimary: false);
         _turnMoonBtn.TooltipText =
-            "End the lunation without sortieing the castle. Marching parties advance, "
-          + "the resupply ticks, and the world moves. Costs a lunation of the cycle, "
-          + "so it is the waiting move, not a free one.";
-        _turnMoonBtn.Pressed += OnTurnTheMoonPressed;
+            "Let the days pass until the next thing that needs you: a party arriving, work "
+          + "finishing, a force coming free, or the new moon, when the world moves. "
+          + "Stops at every one of them.";
+        _turnMoonBtn.Pressed += OnPassTimePressed;
         col.AddChild(_turnMoonBtn);
 
         // Fill itself. BuildLensButtons runs LATE in BuildHud, after the
@@ -681,9 +712,12 @@ public partial class StrategicView : Node2D
         // The early return that used to sit here is what the probe caught: the
         // panel was built during city mode, returned before adding a single row,
         // and had nothing to show even once it was made visible again.
+        // Visible in every mode since 2026-09-24: it carries the city/world
+        // toggle, and the roster is worth seeing from the city too. The rows'
+        // verbs still refuse in city view through RefreshPieceChrome.
         if (_forcesPanel != null)
         {
-            _forcesPanel.Visible = !(_atlas3D?.CityMode ?? false);
+            _forcesPanel.Visible = true;
         }
 
         var cycle = SaveManager.ActiveSave?.Cycle;
@@ -704,12 +738,19 @@ public partial class StrategicView : Node2D
         {
             foreach (var p in cycle.FieldParties)
             {
-                if (p == null)
+                if (p == null || FieldPostings.IsDetachment(p))
                 {
                     continue;
                 }
                 AddForceRow($"\u25B2  {p.Name}", PartyStatusLine(cycle, p), UITheme.Gold,
                             p.Id, _selectedPieceId == p.Id);
+                // Detachments sit under their parent, indented, so the roster
+                // reads as "this party, and the pieces of it left behind".
+                foreach (var det in FieldPostings.DetachmentsOf(cycle, p))
+                {
+                    AddForceRow($"      \u25B8  {det.Name}", PartyStatusLine(cycle, det), UITheme.Gold,
+                                det.Id, _selectedPieceId == det.Id);
+                }
             }
         }
     }
@@ -784,6 +825,10 @@ public partial class StrategicView : Node2D
         {
             return $"{at}  ·  in the field, {cycle.CastleSortie.StepsRemaining}/{cycle.CastleSortie.MaxFuel} fuel";
         }
+        if (WorldClock.CastleBusy(cycle))
+        {
+            return $"{at}  ·  returning, {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s)";
+        }
         if (!cycle.CastleParked)
         {
             return $"{at}  ·  out on a sortie";
@@ -813,7 +858,17 @@ public partial class StrategicView : Node2D
         }
         if (p.State == FieldPartyState.Working)
         {
-            return $"{at}  ·  {FieldWork.Describe(p)}";
+            return $"{at}  ·  {FieldPostings.Describe(cycle, p)}";
+        }
+        if (WorldClock.PartyBusy(cycle, p))
+        {
+            return $"{at}  ·  returning, {p.BusyUntilDay - WorldClock.Now(cycle)} day(s)";
+        }
+        if (FieldPostings.IsDetachment(p))
+        {
+            // A detachment with no job is waiting to be picked up. It is not
+            // "awaiting orders": it cannot take any.
+            return $"{at}  ·  {p.MemberCompanionIds?.Count ?? 0} posted  ·  awaiting collection";
         }
 
         int strength = p.MemberCompanionIds?.Count ?? 0;
@@ -828,6 +883,66 @@ public partial class StrategicView : Node2D
     ///
     /// <para>Returns false when the cycle ended, in which case the caller must
     /// stop: ShowConjunction has already taken over the screen.</para></summary>
+    /// <summary>Let up to <paramref name="maxDays"/> pass, one day at a time,
+    /// stopping at the FIRST day on which anything completes (ruled 2026-09-23:
+    /// stop at every event; a quieter rider that skips the harmless ones comes
+    /// later). A day that is a new moon runs the per-lunation world tick and is
+    /// always a stop, because the tick is where the kingdoms and the threats
+    /// move. Reloads the scene at the end, as the moon turn did, because the
+    /// map is rebuilt rather than patched.</summary>
+    private void PassTime(CycleState cycle, int maxDays)
+    {
+        var cal = cycle?.Calendar;
+        if (cal == null || maxDays <= 0)
+        {
+            return;
+        }
+        cycle.PendingSiegeReports?.Clear();
+
+        var events = new System.Collections.Generic.List<string>();
+        int passed = 0;
+        for (int i = 0; i < maxDays; i++)
+        {
+            bool newMoon = cal.AdvanceDay();
+            passed++;
+            WorldClock.StepDay(cycle, events);
+            if (newMoon)
+            {
+                GD.Print($"[Calendar] The moon turns. Lunation {cal.CurrentLunation} " +
+                         $"of {cal.LunationsPerCycle}: {cal.CurrentMoonName} " +
+                         $"({cal.CurrentMoonSchool} ascendant).");
+                RunLunationTick(cycle);
+                events.Insert(0, $"The new moon: {cal.CurrentMoonName}, {cal.CurrentMoonSchool} ascendant.");
+                break;
+            }
+            if (events.Count > 0)
+            {
+                break;
+            }
+        }
+        GD.Print($"[Calendar] {passed} day(s) pass. Lunation {cal.CurrentLunation}, day {cal.DayOfLunation + 1}.");
+        SaveManager.MarkDirty();
+
+        if (cal.ConjunctionReached)
+        {
+            GD.Print("[Calendar] The Grand Conjunction has come. The cycle ends.");
+            _deployUi?.QueueFree();
+            _deployUi = null;
+            _pendingStaging = null;
+            SaveManager.SaveIfDirty();
+            ShowConjunction();
+            return;
+        }
+
+        if (events.Count > 0)
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add($"{passed} day(s) pass. " + string.Join(" ", events));
+        }
+        SaveManager.SaveIfDirty();
+        GetTree().ReloadCurrentScene();
+    }
+
     private bool AdvanceMoon(CycleState cycle)
     {
         bool crossedLunation = cycle.Calendar.AdvanceLunation();
@@ -869,7 +984,7 @@ public partial class StrategicView : Node2D
     /// lunation of a twelve-lunation cycle, runs corruption, kingdom drift,
     /// sieges and every threat roll. It is the "I am waiting" move, and waiting
     /// costs the same clock everything else does.</para></summary>
-    private void OnTurnTheMoonPressed()
+    private void OnPassTimePressed()
     {
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle?.Calendar == null)
@@ -877,29 +992,30 @@ public partial class StrategicView : Node2D
             return;
         }
 
+        int now = cycle.Calendar.AbsoluteDay;
+        int nextDay = WorldClock.NextEventDay(cycle, out string what);
+        int moonIn = cycle.Calendar.DaysToNewMoon;
+        bool stopsAtEvent = nextDay > 0 && nextDay - now < moonIn;
+        int days = stopsAtEvent ? nextDay - now : moonIn;
+        string until = stopsAtEvent ? what : "the new moon";
+
         string idle = IdleForcesLine(cycle);
         var dlg = new ConfirmationDialog
         {
-            Title = "Let the moon turn",
-            OkButtonText = "Turn the moon",
+            Title = "Pass time",
+            OkButtonText = $"Pass {days} day(s)",
             DialogText =
-                $"Lunation {cycle.Calendar.CurrentLunation} of {cycle.Calendar.LunationsPerCycle} ends.\n\n"
+                $"Lunation {cycle.Calendar.CurrentLunation}, day {cycle.Calendar.DayOfLunation + 1}. "
+                + $"{days} day(s) pass, until {until}.\n\n"
                 + WhatResolvesLine(cycle)
                 + (string.IsNullOrEmpty(idle)
                     ? ""
-                    : $"\n\nNothing is ordered for: {idle}. Their lunation passes unused."),
+                    : $"\n\nNothing is ordered for: {idle}. Their days pass unused."),
         };
         dlg.Confirmed += () =>
         {
             dlg.QueueFree();
-            if (!AdvanceMoon(cycle))
-            {
-                return;   // the cycle ended; ShowConjunction owns the screen
-            }
-            // The world moved: markers, beacons, party positions and the castle's
-            // own staging point may all have changed, so the map is rebuilt
-            // rather than patched in six places.
-            GetTree().ReloadCurrentScene();
+            PassTime(cycle, days);
         };
         dlg.Canceled += () => dlg.QueueFree();
         AddChild(dlg);
@@ -916,6 +1032,7 @@ public partial class StrategicView : Node2D
 
         bool castleBusy = !cycle.CastleParked
                           || cycle.CastleRepairLunations > 0
+                          || WorldClock.CastleBusy(cycle)
                           || !string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId);
         if (!castleBusy)
         {
@@ -926,7 +1043,8 @@ public partial class StrategicView : Node2D
         {
             foreach (var p in cycle.FieldParties)
             {
-                if (p != null && p.X >= 0 && p.State == FieldPartyState.AtAnchor)
+                if (p != null && p.X >= 0 && p.State == FieldPartyState.AtAnchor
+                    && !WorldClock.PartyBusy(cycle, p) && !FieldPostings.IsDetachment(p))
                 {
                     idle.Add(p.Name);
                 }
@@ -941,34 +1059,45 @@ public partial class StrategicView : Node2D
     {
         var lines = new System.Collections.Generic.List<string>();
 
+        int now = WorldClock.Now(cycle);
         if (cycle.CastleParked && cycle.CastleRepairLunations > 0)
         {
-            lines.Add($"The castle's resupply drops to {cycle.CastleRepairLunations - 1} lunation(s).");
+            int days = cycle.CastleRepairLunations * CalendarState.DaysPerLunation - cycle.CastleRepairDayAccum;
+            lines.Add($"The castle's resupply finishes in {days} day(s).");
+        }
+        if (WorldClock.CastleBusy(cycle))
+        {
+            lines.Add($"The castle is free again in {cycle.CastleBusyUntilDay - now} day(s).");
         }
         if (cycle.FieldParties != null)
         {
             foreach (var p in cycle.FieldParties)
             {
-                if (p != null && p.State == FieldPartyState.Travelling)
+                if (p == null)
                 {
-                    int step = p.TravelPhasesRemaining <= FieldMarch.TilesPerLunation
-                        ? p.TravelPhasesRemaining
-                        : FieldMarch.TilesPerLunation;
-                    lines.Add($"{p.Name} walks {step} tile(s)"
-                            + (p.TravelPhasesRemaining <= FieldMarch.TilesPerLunation
-                                ? " and arrives." : "."));
+                    continue;
                 }
-                else if (p != null && p.State == FieldPartyState.Working)
+                if (p.State == FieldPartyState.Travelling)
                 {
-                    lines.Add(p.WorkLunationsLeft <= 1
-                        ? $"{p.Name} finishes their work."
-                        : $"{p.Name} works on; {p.WorkLunationsLeft - 1} lunation(s) after this one.");
+                    int days = p.TravelPhasesRemaining * FieldMarch.DaysPerTile - p.TravelDayAccum;
+                    lines.Add($"{p.Name} arrives at ({p.DestX},{p.DestY}) in {days} day(s).");
+                }
+                else if (p.State == FieldPartyState.Working)
+                {
+                    int cost = FieldPostings.SuppliesFor(p.WorkKind);
+                    string pay = cost > 0 ? $" ({cost} supplies at the new moon)" : "";
+                    lines.Add(p.WorkDaysTotal > 0
+                        ? $"{p.Name} finish {FieldPostings.DescribeVerb(p.WorkKind)} in {p.WorkDaysLeft} day(s){pay}."
+                        : $"{p.Name} {FieldPostings.DescribeVerb(p.WorkKind)} at ({p.X},{p.Y}){pay}.");
+                }
+                else if (WorldClock.PartyBusy(cycle, p))
+                {
+                    lines.Add($"{p.Name} are free again in {p.BusyUntilDay - now} day(s).");
                 }
             }
         }
-
-        lines.Add("Corruption spreads, the kingdoms move, and anything watching your "
-                + "camps and roads takes its chance.");
+        lines.Add($"The new moon is {cycle.Calendar.DaysToNewMoon} day(s) off: corruption spreads, the kingdoms move, "
+                + "and anything watching your camps and roads takes its chance.");
         return string.Join("\n", lines);
     }
 
@@ -1019,9 +1148,47 @@ public partial class StrategicView : Node2D
             }
         }
 
+        if (_viewToggleBtn != null)
+        {
+            bool home = _atlas3D?.ActiveCityIsHome ?? true;
+            _viewToggleBtn.Text = cityNow
+                ? "\u25C8  To the world map"
+                : "\u25C8  To the home city";
+            _viewToggleBtn.Disabled = !cityNow && (_atlas3D == null || !_atlas3D.HasCityGrounds);
+            _viewToggleBtn.TooltipText = cityNow
+                ? (home ? "Up to the world. Escape does the same." : "Leave this city. Escape does the same.")
+                : "Down into the guild's own city.";
+        }
+
+        if (_sortieBtn != null)
+        {
+            _sortieBtn.Visible = CastleSelected && !cityNow;
+            if (_sortieBtn.Visible)
+            {
+                bool can = CanSortie(cycle, out string sortieWhy);
+                _sortieBtn.Disabled = !can;
+                _sortieBtn.TooltipText = can
+                    ? "The castle strides out from where it stands. Fuel is the budget; the days it "
+                      + $"costs are charged on return at about {WorldClock.DaysPerFuel:0.##} a fuel."
+                    : sortieWhy;
+            }
+        }
+
+        // A detachment is a posted piece: it takes no orders but Stop work,
+        // Collect and Recall. Hide the move verb for it rather than letting an
+        // armed click be refused tile by tile.
+        bool isDetachment = party != null && FieldPostings.IsDetachment(party);
+        if (_marchModeBtn != null && isDetachment)
+        {
+            _marchModeBtn.Visible = false;
+            _marchModeBtn.ButtonPressed = false;
+            _marchMode = false;
+        }
+
         if (_partyDeployBtn != null)
         {
             bool canField = party != null
+                            && !isDetachment
                             && party.State == FieldPartyState.AtAnchor
                             && party.X >= 0 && party.Y >= 0
                             && (_atlas3D == null || !_atlas3D.CityMode);
@@ -1030,9 +1197,60 @@ public partial class StrategicView : Node2D
             {
                 _stopWorkBtn.Visible = party != null && party.State == FieldPartyState.Working && !cityNow;
             }
-            if (_debugWorkBtn != null)
+            bool freeNow = canField && !WorldClock.PartyBusy(cycle, party);
+            if (_postBtn != null)
             {
-                _debugWorkBtn.Visible = canField && PlayerSession.DebugMode;
+                var options = freeNow ? FieldPostings.OptionsAt(cycle, party) : null;
+                _postBtn.Visible = options != null && options.Count > 0;
+                if (_postBtn.Visible)
+                {
+                    _postBtn.TooltipText = options.Count == 1
+                        ? options[0].Title
+                        : $"{options.Count} postings are possible here.";
+                }
+            }
+            if (_collectBtn != null || _recallBtn != null)
+            {
+                var (collectable, recallable) = DetachmentVerbsFor(cycle, party);
+                if (_collectBtn != null)
+                {
+                    _collectBtn.Visible = collectable != null && !cityNow;
+                    if (collectable != null)
+                    {
+                        _collectBtn.Text = $"\u21A9  Collect {collectable.Name}";
+                    }
+                }
+                if (_recallBtn != null)
+                {
+                    _recallBtn.Visible = recallable != null && !cityNow;
+                    if (recallable != null)
+                    {
+                        _recallBtn.Text = $"\u21A9  Recall {recallable.Name} through the waystone";
+                    }
+                }
+            }
+            if (_interveneBtn != null)
+            {
+                string verb = freeNow ? InterventionVerbAt(cycle, party) : null;
+                _interveneBtn.Visible = verb != null;
+                if (verb != null)
+                {
+                    _interveneBtn.Text = verb;
+                }
+            }
+            if (_audienceBtn != null)
+            {
+                // Called unconditionally: an out parameter behind a
+                // short-circuited && is unassigned on the false path (CS0165).
+                bool courtOk = AudienceCourtAt(cycle, party, out _, out string courtWhy);
+                bool court = freeNow && courtOk;
+                bool here = freeNow && !court && !string.IsNullOrEmpty(courtWhy) && !courtWhy.StartsWith("No court");
+                _audienceBtn.Visible = court || here;
+                _audienceBtn.Disabled = !court;
+                _audienceBtn.TooltipText = court
+                    ? "Open a table with this court. A field dive: the party takes the field here and the "
+                      + "table opens before their first step."
+                    : courtWhy;
             }
             if (_bankFurnaceBtn != null)
             {
@@ -1041,15 +1259,32 @@ public partial class StrategicView : Node2D
             }
             if (canField)
             {
-                cycle.ExpeditionTurn ??= new ExpeditionTurnState();
-                cycle.ExpeditionTurn.BeginLunation(cycle.Calendar?.CurrentLunation ?? 0);
-                int left = cycle.ExpeditionTurn.DivesRemaining;
-                _partyDeployBtn.Disabled = left <= 0;
-                _partyDeployBtn.Text = $"\u25B6  Take the field ({left})";
-                _partyDeployBtn.TooltipText = left > 0
-                    ? $"Send {party.Name} into the field at ({party.X},{party.Y}). Costs one of this "
-                      + "moon's expeditions, not a lunation: the moon turns when the CASTLE moves."
-                    : "No expeditions left this moon. March the castle to turn it.";
+                bool busy = WorldClock.PartyBusy(cycle, party);
+                int freeIn = busy ? party.BusyUntilDay - WorldClock.Now(cycle) : 0;
+                _partyDeployBtn.Disabled = busy;
+                _partyDeployBtn.Text = busy
+                    ? $"\u25B6  Take the field (free in {freeIn} day(s))"
+                    : "\u25B6  Take the field";
+                _partyDeployBtn.TooltipText = busy
+                    ? $"{party.Name} are still out on their last dive. Pass time; they are free on day {party.BusyUntilDay - WorldClock.Now(cycle)} from now."
+                    : $"Send {party.Name} into the field at ({party.X},{party.Y}). The dive costs days in "
+                      + $"proportion to the rations it eats, about {WorldClock.DaysPerRation:0.##} a ration, "
+                      + "charged when they come back.";
+            }
+        }
+
+        if (_turnMoonBtn != null && cycle?.Calendar != null)
+        {
+            int nextDay = WorldClock.NextEventDay(cycle, out string what);
+            int moonIn = cycle.Calendar.DaysToNewMoon;
+            int now = cycle.Calendar.AbsoluteDay;
+            if (nextDay > 0 && nextDay - now < moonIn)
+            {
+                _turnMoonBtn.Text = $"\u263D  Pass time: {nextDay - now} day(s), {what}";
+            }
+            else
+            {
+                _turnMoonBtn.Text = $"\u263D  Pass time: {moonIn} day(s) to the new moon";
             }
         }
 
@@ -1064,6 +1299,8 @@ public partial class StrategicView : Node2D
             var partyTiles = new System.Collections.Generic.List<Vector2I>();
             var partyNames = new System.Collections.Generic.List<string>();
             var partyDests = new System.Collections.Generic.List<Vector2I?>();
+            var partyBanners = new System.Collections.Generic.List<string>();
+            var partyFigures = new System.Collections.Generic.List<System.Collections.Generic.List<(Color tint, bool injured)>>();
             int selectedIndex = -1;
             if (cycle.FieldParties != null)
             {
@@ -1082,11 +1319,46 @@ public partial class StrategicView : Node2D
                     partyDests.Add(p.State == FieldPartyState.Travelling && p.DestX >= 0 && p.DestY >= 0
                         ? new Vector2I(p.DestX, p.DestY)
                         : null);
+                    // A detachment draws as a banner with a glyph for its job.
+                    partyBanners.Add(FieldPostings.IsDetachment(p) ? BannerGlyph(p) : "");
+                    // And the people with it, one figure each. A party out on a
+                    // sortie is drawn where its sortie stands, but its members
+                    // are still its members.
+                    partyFigures.Add(CompanionWhereabouts.FigureTints(cycle, p.MemberCompanionIds));
+                }
+            }
+            var crewIds = new System.Collections.Generic.List<string>();
+            if (cycle.Companions != null)
+            {
+                foreach (var c in cycle.Companions)
+                {
+                    if (c != null && c.IsRecruited && !c.IsPermadead && c.Posting == CompanionPosting.Crew)
+                    {
+                        crewIds.Add(c.Id);
+                    }
                 }
             }
             _atlas3D.SetPieces(castleAt, partyTiles, partyNames, partyDests,
-                               CastleSelected ? -1 : selectedIndex);
+                               CastleSelected ? -1 : selectedIndex, partyBanners,
+                               partyFigures, CompanionWhereabouts.FigureTints(cycle, crewIds));
         }
+    }
+
+    /// <summary>The letter a detachment's banner carries. Letters, not
+    /// pictographs: the map's fonts have every letter and not every glyph, and
+    /// the roster row beside it spells the job out in full.</summary>
+    private static string BannerGlyph(FieldParty det)
+    {
+        string kind = det?.State == FieldPartyState.Working ? det.WorkKind : "";
+        return kind switch
+        {
+            FieldPostings.Garrison => "[G]",
+            FieldPostings.Survey => "[S]",
+            FieldPostings.HoldLine => "[H]",
+            FieldPostings.Siege => "[B]",
+            FieldPostings.Envoy => "[E]",
+            _ => "[-]",
+        };
     }
 
     private void OnMarchModeToggled(bool pressed)
@@ -1112,8 +1384,8 @@ public partial class StrategicView : Node2D
                 if (_buildModeBtn != null) _buildModeBtn.ButtonPressed = false;
                 if (_annexButton != null) _annexButton.ButtonPressed = false;
                 ShowStrategicNotice("Move the field party",
-                    $"Click charted ground to send them there on foot: {FieldMarch.TilesPerLunation} "
-                    + "tile(s) per turn of the moon, and the road is watched. Click the castle, a "
+                    $"Click charted ground to send them there on foot: {FieldMarch.DaysPerTile} "
+                    + "day(s) a tile, and the road is watched. Click the castle, a "
                     + "raised waystone or the dock to step through instantly instead.");
             }
             return;
@@ -1185,18 +1457,9 @@ public partial class StrategicView : Node2D
         // until the drawer closes (no dialog stacking over the launch screen).
         if (_deployUi != null)
         {
-            StagingPoint retarget = null;
-            int retargetD = int.MaxValue;
-            if (_world.StagingPoints != null)
-                foreach (var sp in _world.StagingPoints)
-                {
-                    if (!sp.Available) continue;
-                    int d = HexCoord.OffsetDistance(col, row, sp.X, sp.Y);
-                    if (d < retargetD) { retargetD = d; retarget = sp; }
-                }
-            if (retarget != null && retargetD <= StagingClickTolerance &&
-                retarget != _pendingStaging)
-                OnStagingClicked(retarget);   // rebuilds the drawer on the new point
+            // 2026-09-24: the confirm belongs to the castle's own tile, so
+            // there is nothing to retarget to. The map stays live to look at;
+            // clicks do nothing until the confirm closes.
             return;
         }
 
@@ -1684,7 +1947,6 @@ public partial class StrategicView : Node2D
     {
         HudManager.Instance?.RefreshVisibility();
         bool home = _atlas3D?.ActiveCityIsHome ?? true;
-        if (_cityLeaveBtn != null) _cityLeaveBtn.Visible = on;
         // Annexing/building are home-campus affordances only; hide them in an NPC city (Phase 3).
         if (_annexButton != null) _annexButton.Visible = on && home;
         if ((!on || !home) && _annexButton != null)
@@ -2537,9 +2799,6 @@ public partial class StrategicView : Node2D
 
         bool cityNow = _atlas3D?.CityMode ?? false;
         bool homeNow = _atlas3D?.ActiveCityIsHome ?? true;
-        _cityLeaveBtn = MakeCityChromeButton("↑  To the World Map", primary: true);
-        _cityLeaveBtn.Visible = cityNow;
-        _cityLeaveBtn.Pressed += () => _atlas3D?.LeaveCityMode();
         _annexButton = MakeCityChromeButton("＋  Annex a district", primary: false, toggle: true);
         _annexButton.Visible = cityNow && homeNow;
         _annexButton.Toggled += pressed =>
@@ -2565,6 +2824,14 @@ public partial class StrategicView : Node2D
         // it on every city-mode change; setting it once from `cityNow` at build
         // time is exactly the bug that kept this button hidden all session.
         _marchModeBtn.Toggled += OnMarchModeToggled;
+
+        // Sortie (2026-09-24): the castle is a piece and launches from where it
+        // stands, exactly as the party takes the field where it stands. This
+        // replaces the staging-point drawer as the way to launch the castle;
+        // the drawer's readouts moved into the confirm this opens.
+        _sortieBtn = MakeCityChromeButton("\u25B6  Sortie", primary: true);
+        _sortieBtn.Visible = false;
+        _sortieBtn.Pressed += OnSortiePressed;
 
         // The two-state piece toggle that used to live here is gone. It was in
         // the RIGHT-docked stack, which the deploy drawer covers entirely, and it
@@ -2593,12 +2860,43 @@ public partial class StrategicView : Node2D
         _stopWorkBtn = MakeCityChromeButton("\u25A0  Stop work", primary: false);
         _stopWorkBtn.Visible = false;
         _stopWorkBtn.Pressed += OnStopWorkPressed;
-        _debugWorkBtn = MakeCityChromeButton("\u2692  Survey here (debug)", primary: false);
-        _debugWorkBtn.Visible = false;
-        _debugWorkBtn.Pressed += OnDebugWorkPressed;
+
+        // Field Party v1 (2026-09-24, docs/field_party_task_force_spec_v1).
+        // The debug "Survey here" stand-in is retired: postings are real now.
+        // Visibility of all four lives in RefreshPieceChrome, never here.
+        _postBtn = MakeCityChromeButton("\u2691  Post here", primary: false);
+        _postBtn.Visible = false;
+        _postBtn.Pressed += OnPostPressed;
+        _collectBtn = MakeCityChromeButton("\u21A9  Collect detachment", primary: false);
+        _collectBtn.Visible = false;
+        _collectBtn.Pressed += OnCollectPressed;
+        _recallBtn = MakeCityChromeButton("\u21A9  Recall through the waystone", primary: false);
+        _recallBtn.Visible = false;
+        _recallBtn.Pressed += OnRecallPressed;
+        _interveneBtn = MakeCityChromeButton("\u2694  Intervene", primary: true);
+        _interveneBtn.Visible = false;
+        _interveneBtn.Pressed += OnInterveneHerePressed;
+        _audienceBtn = MakeCityChromeButton("\u2696  Seek audience", primary: false);
+        _audienceBtn.Visible = false;
+        _audienceBtn.Pressed += OnSeekAudiencePressed;
+        // The muster board is never gated: "where is everyone" is a question
+        // with an answer in every mode, city view included.
+        _musterBtn = MakeCityChromeButton("\u2637  Forces", primary: false);
+        _musterBtn.Pressed += OpenForcesScreen;
 
         _helpBtn = MakeCityChromeButton("?  How this works", primary: false);
         _helpBtn.Pressed += ShowHelpCard;   // visible in every mode; orientation is never gated
+
+        // Stack order (2026-09-24): the selected piece's verbs first, then the
+        // city's own three, then the fixed footer. Moved rather than rebuilt
+        // in place, so each button's construction stays beside its handler.
+        foreach (var tail in new Button[] { _annexButton, _buildModeBtn, _cityServicesBtn, _musterBtn, _helpBtn })
+        {
+            if (tail != null && tail.GetParent() == _rightHudStack)
+            {
+                _rightHudStack.MoveChild(tail, -1);
+            }
+        }
 
         // The chrome is built AFTER BuildAtlas3D, so the RefreshPieceChrome call
         // in there ran with every one of these buttons still null and could only
@@ -2654,7 +2952,8 @@ public partial class StrategicView : Node2D
 
             var phaseLbl = new Label
             {
-                Text = $"Lunation {cal.CurrentLunation} / {cal.LunationsPerCycle}  ·  {cal.CurrentMoonName}",
+                Text = $"Lunation {cal.CurrentLunation} / {cal.LunationsPerCycle}  ·  {cal.CurrentMoonName}"
+                     + $"  ·  day {cal.DayOfLunation + 1}",
             };
             phaseLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
             phaseLbl.AddThemeColorOverride("font_color", UITheme.Gold);
@@ -3583,6 +3882,16 @@ public partial class StrategicView : Node2D
 
     public override void _UnhandledInput(InputEvent e)
     {
+        // Escape: up from the city (2026-09-24). Only when nothing modal is up,
+        // so a dialog's own Escape still means "cancel that".
+        if (e.IsActionPressed("ui_cancel") && _atlas3D != null && _atlas3D.CityMode
+            && _deployUi == null && _warfrontUi == null && _supplyUi == null)
+        {
+            _atlas3D.LeaveCityMode();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (_camera == null)
             return;
 
@@ -3895,8 +4204,16 @@ public partial class StrategicView : Node2D
 
     private void OnStagingClicked(StagingPoint sp)
     {
-        _pendingStaging = sp;
-        ShowDeployConfirm(sp);
+        // 2026-09-24: a beacon opens the launch confirm ONLY when the castle
+        // stands on it, which is the same thing the Sortie verb does. Every
+        // other beacon is a place: see ShowPlaceCard.
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle != null && cycle.CastleX == sp.X && cycle.CastleY == sp.Y && CanSortie(cycle, out _))
+        {
+            OnSortiePressed();
+            return;
+        }
+        ShowPlaceCard(sp);
     }
 
     /// <summary>Deploy-flow streamline (2026-08-21): clicking the Gatehouse goes
@@ -3916,24 +4233,16 @@ public partial class StrategicView : Node2D
             return;
         }
 
-        // Priority: last-used staging → Home Camp → first available.
-        StagingPoint last = null, home = null, first = null;
-        foreach (var sp in _world.StagingPoints)
+        // 2026-09-24: the Gatehouse no longer opens a drawer on a remembered
+        // staging point. The castle launches from where it stands, so the
+        // Gatehouse does the one thing that is always right: up to the world
+        // with the castle selected, its Sortie verb lit if it can go.
+        _atlas3D?.LeaveCityMode();
+        SelectPiece("");
+        if (_world.InBounds(cycle.CastleX, cycle.CastleY))
         {
-            if (!sp.Available) continue;
-            if ($"{sp.X},{sp.Y}" == cycle.LastDeployStagingKey) last ??= sp;
-            if (sp.Source == "Start") home ??= sp;
-            first ??= sp;
+            _atlas3D?.FlyToTile(cycle.CastleX, cycle.CastleY, 30f, 0f);
         }
-        var pick = last ?? home ?? first;
-        if (pick == null)
-        {
-            ShowCampusOverlay(CampusPanelId.Expedition);
-            return;
-        }
-
-        _atlas3D?.LeaveCityMode();   // fly out: the drawer reads against the world
-        OnStagingClicked(pick);
     }
 
     // ── Supply caches: markers + control/overseer/siege dialog ──────────────
@@ -4118,19 +4427,23 @@ public partial class StrategicView : Node2D
         }
         else if (guildOwned)
         {
-            if (string.IsNullOrEmpty(poi.OverseerCompanionId))
-                ActionButton("Assign overseer", true, () => ShowOverseerPicker(poiIndex));
-            else
-                ActionButton("Recall overseer", false, () =>
-                {
-                    SupplyCacheSystem.RecallOverseer(SaveManager.ActiveSave, poiIndex);
-                    CloseSupplyUi();
-                    BuildSupplyMarkers();
-                });
+            // Field Party v1 (2026-09-24, ruled): overseers are no longer
+            // assigned from the map by fiat. A field party garrisons the depot
+            // and its first member oversees it. The picker (ShowOverseerPicker)
+            // is left in place but unreached.
+            var hint = new Label
+            {
+                Text = string.IsNullOrEmpty(poi.OverseerCompanionId)
+                    ? "Post a field party here (Garrison) to oversee it."
+                    : "Overseen by the garrison posted here.",
+            };
+            hint.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            hint.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            buttons.AddChild(hint);
         }
         else
         {
-            ActionButton("Lay siege (1 lunation)", true, () => CommitCacheSiege(poiIndex));
+            ActionButton("Storm the depot", true, () => CommitCacheSiege(poiIndex));
         }
 
         var close = new Button { Text = "Close", CustomMinimumSize = new Vector2(110, 40) };
@@ -4259,20 +4572,62 @@ public partial class StrategicView : Node2D
 
         CloseSupplyUi();
 
+        // Field Party v1 (2026-09-24): the castle no longer fights for depots.
+        // The party standing on the cache storms it; the run is a field dive
+        // with the Seize intervention pending, and the return path
+        // (ResolveReturnedWarfrontIntervention) is unchanged.
+        var stormer = PartyStandingAt(cycle, poi.X, poi.Y, out string why);
+        if (stormer == null)
+        {
+            ShowStrategicNotice("Send the field party", why);
+            return;
+        }
+        SelectPiece(stormer.Id);
+
         var wf = SupplyCacheSystem.OpenPlayerSiege(cycle, poiIndex);
         cycle.PendingWarfrontId = wf.Id;
         cycle.PendingWarfrontSide = WarfrontSide.Seize;
         cycle.WarfrontStrongholdCleared = false;
 
-        _pendingStaging = new StagingPoint
+        OpenFieldPartyPicker(new StagingPoint
         {
             X = poi.X,
             Y = poi.Y,
             Name = $"the supply cache in {SupplyCacheSystem.HostName(cycle, poi)}",
-            Source = "Warfront",
+            Source = "FieldParty",
             Available = true,
-        };
-        Deploy();
+        });
+    }
+
+    /// <summary>The free, unposted party standing on a tile, or null with the
+    /// reason. The verbs that used to deploy the castle to a fight now need a
+    /// party to be there first, and the refusal says so.</summary>
+    private FieldParty PartyStandingAt(CycleState cycle, int x, int y, out string why)
+    {
+        why = $"No field party stands at ({x},{y}). Walk one there first; the castle does not fight for this.";
+        if (cycle?.FieldParties == null)
+        {
+            return null;
+        }
+        var selected = SelectedParty();
+        if (selected != null && !FieldPostings.IsDetachment(selected) && selected.X == x && selected.Y == y)
+        {
+            if (selected.State != FieldPartyState.AtAnchor || WorldClock.PartyBusy(cycle, selected))
+            {
+                why = $"{selected.Name} are not standing free. Stop their work or wait for them.";
+                return null;
+            }
+            return selected;
+        }
+        foreach (var p in cycle.FieldParties)
+        {
+            if (p != null && !FieldPostings.IsDetachment(p) && p.X == x && p.Y == y
+                && p.State == FieldPartyState.AtAnchor && !WorldClock.PartyBusy(cycle, p))
+            {
+                return p;
+            }
+        }
+        return null;
     }
 
     // ── Warfronts: markers + three-sided intervention ────────────────────────
@@ -4405,12 +4760,13 @@ public partial class StrategicView : Node2D
         AddDeployStat(vbox, "Defender", wf.DefenderName);
         AddDeployStat(vbox, "Advance", $"{wf.Advance}/100  (falls at 100, repelled at 0)");
         AddDeployStat(vbox, "Front", $"({wf.FocusCol}, {wf.FocusRow})");
-        AddDeployStat(vbox, "Cost", "1 lunation (the moon turns while you march)");
+        AddDeployStat(vbox, "Cost", "a field dive: days in proportion to the rations it eats");
 
         var help = new Label
         {
-            Text = "Deploy to the front and take a side. Extract alive to swing the war; " +
-                   "a defeat swings it against you.",
+            Text = "The field party standing at the front takes a side and fights. Extract alive " +
+                   "to swing the war; a defeat swings it against you. To hold a front over " +
+                   "moons instead, post a detachment there.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         help.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -4461,22 +4817,30 @@ public partial class StrategicView : Node2D
         _warfrontUi?.QueueFree();
         _warfrontUi = null;
 
+        // Field Party v1 (2026-09-24): the party at the front intervenes, as a
+        // field dive, not the castle as a sortie. The pending fields and the
+        // return path are exactly as before.
+        var fighter = PartyStandingAt(cycle, wf.FocusCol, wf.FocusRow, out string why);
+        if (fighter == null)
+        {
+            ShowStrategicNotice("Send the field party", why);
+            return;
+        }
+        SelectPiece(fighter.Id);
+
         // Record which front + side so the outcome applies on return.
         cycle.PendingWarfrontId = wf.Id;
         cycle.PendingWarfrontSide = side;
         cycle.WarfrontStrongholdCleared = false; // fresh objective for this intervention
 
-        // Deploy to the front tile by synthesising a staging point there; reuses the
-        // whole Deploy() path (lunation cost, world tick, scene change).
-        _pendingStaging = new StagingPoint
+        OpenFieldPartyPicker(new StagingPoint
         {
             X = wf.FocusCol,
             Y = wf.FocusRow,
             Name = $"the front at {wf.DefenderName}",
-            Source = "Warfront",
+            Source = "FieldParty",
             Available = true,
-        };
-        Deploy();
+        });
     }
 
     /// <summary>Close the deploy drawer: slide it back off the right edge (reverse of the
@@ -4635,7 +4999,7 @@ public partial class StrategicView : Node2D
         // the field party.
         _pendingRunKind = ExpeditionRunKind.Castle;
 
-        var title = new Label { Text = $"Deploy from {sp.Name}" };
+        var title = new Label { Text = $"Sortie from {sp.Name}" };
         title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
         title.AddThemeColorOverride("font_color", UITheme.Gold);
         title.HorizontalAlignment = HorizontalAlignment.Center;
@@ -4662,25 +5026,12 @@ public partial class StrategicView : Node2D
         if (depCycle != null)
         {
             var depCal = depCycle.Calendar;
-            int landsLunation = depCal.CurrentLunation + 1;
-            if (landsLunation > depCal.LunationsPerCycle)
-            {
-                var conjWarn = new Label
-                {
-                    Text = "⚠ Cost: 1 lunation. This deploy brings the Grand Conjunction. " +
-                           "The cycle ends when you return.",
-                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                };
-                conjWarn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-                conjWarn.AddThemeColorOverride("font_color", UITheme.Danger);
-                vbox.AddChild(conjWarn);
-            }
-            else
-            {
-                int lunLeftAfter = depCal.LunationsPerCycle - landsLunation + 1;
-                AddDeployStat(vbox, "Time cost",
-                    $"1 lunation → Lunation {landsLunation} / {depCal.LunationsPerCycle}  ({lunLeftAfter} left)");
-            }
+            bool fieldDrawer = _pendingRunKind == ExpeditionRunKind.Field;
+            float perUnit = fieldDrawer ? WorldClock.DaysPerRation : WorldClock.DaysPerFuel;
+            AddDeployStat(vbox, "Time cost",
+                $"{perUnit:0.##} day per {(fieldDrawer ? "ration" : "fuel")}, charged on return  "
+                + $"·  day {depCal.DayOfLunation + 1} of {CalendarState.DaysPerLunation}, "
+                + $"{depCal.DaysToNewMoon} to the new moon");
         }
 
         // K2 (§5b): party manifest: who actually deploys, who's in the
@@ -4746,7 +5097,7 @@ public partial class StrategicView : Node2D
         cancelBtn.Pressed += () => CloseDeploy(panel);
         buttons.AddChild(cancelBtn);
 
-        var deployBtn = new Button { Text = "Deploy", CustomMinimumSize = new Vector2(120, 40) };
+        var deployBtn = new Button { Text = "Sortie", CustomMinimumSize = new Vector2(120, 40) };
         UITheme.ApplyButtonStyle(deployBtn, isPrimary: true);
         deployBtn.Pressed += () => { _pendingRunKind = ExpeditionRunKind.Castle; Deploy(); };
         buttons.AddChild(deployBtn);
@@ -4766,32 +5117,10 @@ public partial class StrategicView : Node2D
         // button, and it acts wherever it is standing. Leaving a party control
         // here would have been a second, worse way to command it.
 
-        // Expedition v2: the castle's OTHER move, offered on the same drawer
-        // because the question is identical ("go here") and the two answers
-        // belong side by side. Deploy sorties out and explores; March relocates
-        // the fortress and makes camp. Shown only while the castle is parked,
-        // and disabled with the refusal as its tooltip so the player learns the
-        // rule from the button rather than from a dialog after the fact.
-        var marchCycle = SaveManager.ActiveSave?.Cycle;
-        if (marchCycle != null && marchCycle.CastleParked)
-        {
-            bool canMarch = CastleMarch.CanMarchTo(marchCycle, sp.X, sp.Y, out string marchWhy);
-            int marchCost = CastleMarch.CostTo(marchCycle, sp.X, sp.Y);
-            var marchBtn = new Button
-            {
-                Text = canMarch ? $"March ({marchCost} fuel)" : "March",
-                CustomMinimumSize = new Vector2(150, 40),
-                Disabled = !canMarch,
-                TooltipText = canMarch
-                    ? $"Relocate the fortress: a flat {CastleMarch.FuelPerTile} fuel per tile, no terrain, " +
-                      $"no encounters. Arrives parked with {CastleMarch.ArrivalCampLunations} lunation(s) " +
-                      "of camp, exposed until the crews unpack."
-                    : marchWhy,
-            };
-            UITheme.ApplyButtonStyle(marchBtn, isPrimary: false);
-            marchBtn.Pressed += () => ExecuteCastleMarch(sp.X, sp.Y, panel);
-            buttons.AddChild(marchBtn);
-        }
+        // The March button that sat beside Deploy is gone (2026-09-24): the
+        // castle marches from the map (the March verb, or a beacon's place
+        // card), and this confirm is the SORTIE only, opened from where the
+        // castle stands.
     }
 
     /// <summary>Choose who goes, then send them.
@@ -4824,6 +5153,14 @@ public partial class StrategicView : Node2D
         ExpeditionAnchors.EnsurePrimaryParty(cycle);
         ExpeditionAnchors.ReconcilePostings(cycle);
 
+        // The SELECTED party, not the primary one (Field Party v1, 2026-09-24):
+        // with two parties, writing everyone to field_1 would send the wrong
+        // people and empty the other party.
+        string targetPartyId = SelectedParty() != null && !FieldPostings.IsDetachment(SelectedParty())
+            ? SelectedParty().Id
+            : ExpeditionAnchors.PrimaryFieldPartyId;
+        int partyCap = Mathf.Max(1, cycle.MaxPartySize);
+
         var dlg = new ConfirmationDialog
         {
             Title = "Take the field",
@@ -4836,11 +5173,10 @@ public partial class StrategicView : Node2D
         box.AddThemeConstantOverride("separation", 8);
         dlg.AddChild(box);
 
-        int left = cycle.ExpeditionTurn?.DivesRemaining ?? 0;
         var intro = new Label
         {
             Text = $"They take the field at {sp.Name} ({sp.X},{sp.Y}).\n"
-                 + $"Costs one of this moon's expeditions. {left} left.",
+                 + $"The dive costs about {WorldClock.DaysPerRation:0.##} day per ration eaten, charged when they return.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         intro.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -4868,16 +5204,24 @@ public partial class StrategicView : Node2D
 
                 // Injured companions are listed and DISABLED rather than hidden,
                 // so "where is Elara" has an answer on the screen that asks the
-                // question instead of in a different panel.
+                // question instead of in a different panel. So are companions
+                // posted with a detachment: they are somewhere on the map, and
+                // the roster row for that detachment is where to get them back.
+                bool postedElsewhere = c.Posting == CompanionPosting.Field
+                                       && !string.IsNullOrEmpty(c.FieldPartyId)
+                                       && c.FieldPartyId != targetPartyId
+                                       && (cycle.FieldParties?.Exists(fp => fp != null && fp.Id == c.FieldPartyId && FieldPostings.IsDetachment(fp)) ?? false);
                 string suffix = c.IsInjured
                     ? $"  (injured, {c.InjuredLunationsRemaining} lunation(s))"
+                    : postedElsewhere ? "  (posted with a detachment)"
                     : c.Posting == CompanionPosting.Crew ? "  (castle crew)" : "";
 
+                string voc = Vocations.Describe(c);
                 var cb = new CheckBox
                 {
-                    Text = c.Name + suffix,
-                    ButtonPressed = c.Posting == CompanionPosting.Field,
-                    Disabled = c.IsInjured,
+                    Text = c.Name + (string.IsNullOrEmpty(voc) ? "" : $"  ·  {voc}") + suffix,
+                    ButtonPressed = c.Posting == CompanionPosting.Field && !postedElsewhere,
+                    Disabled = c.IsInjured || postedElsewhere,
                 };
                 cb.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
                 rows.AddChild(cb);
@@ -4906,16 +5250,34 @@ public partial class StrategicView : Node2D
 
         dlg.Confirmed += () =>
         {
+            // The party is capped at MaxPartySize (Grand Hall). The picker had
+            // no cap before this and the Field Party v1 spec gives it one; the
+            // refusal names the number rather than silently dropping the last
+            // few ticked boxes.
+            int ticked = 0;
             foreach (var (cb, who) in boxes)
             {
-                if (who.IsInjured)
+                if (!who.IsInjured && !cb.Disabled && cb.ButtonPressed)
+                {
+                    ticked++;
+                }
+            }
+            if (ticked > partyCap)
+            {
+                ShowStrategicNotice("Too many for one party",
+                    $"A party holds {partyCap}. Untick {ticked - partyCap}, or grow the Grand Hall.");
+                return;
+            }
+            foreach (var (cb, who) in boxes)
+            {
+                if (who.IsInjured || cb.Disabled)
                 {
                     continue;   // the control was disabled; do not let it decide
                 }
                 if (cb.ButtonPressed)
                 {
                     who.Posting = CompanionPosting.Field;
-                    who.FieldPartyId = ExpeditionAnchors.PrimaryFieldPartyId;
+                    who.FieldPartyId = targetPartyId;
                 }
                 else if (who.Posting == CompanionPosting.Field)
                 {
@@ -4932,10 +5294,24 @@ public partial class StrategicView : Node2D
 
             _pendingStaging = sp;
             _pendingRunKind = ExpeditionRunKind.Field;
+            // An audience is spent when the party actually goes, not when
+            // the verb was pressed: a cancelled picker costs the court nothing.
+            if (!string.IsNullOrEmpty(PlayerSession.AudienceEncounterId)
+                && !string.IsNullOrEmpty(PlayerSession.AudienceKingdomId))
+            {
+                cycle.LastAudienceLunation ??= new System.Collections.Generic.Dictionary<string, int>();
+                cycle.LastAudienceLunation[PlayerSession.AudienceKingdomId] = cycle.Calendar?.CurrentLunation ?? 0;
+            }
             dlg.QueueFree();
             Deploy();
         };
-        dlg.Canceled += () => dlg.QueueFree();
+        dlg.Canceled += () =>
+        {
+            // A cancelled audience must not ride along into the next dive.
+            PlayerSession.AudienceEncounterId = "";
+            PlayerSession.AudienceKingdomId = "";
+            dlg.QueueFree();
+        };
         AddChild(dlg);
         dlg.PopupCentered();
     }
@@ -5032,7 +5408,9 @@ public partial class StrategicView : Node2D
     {
         var cycle = SaveManager.ActiveSave?.Cycle;
         var party = SelectedParty();
-        string line = FieldWork.Cancel(cycle, party);
+        // Through FieldPostings, not FieldWork: an overseer has to step down
+        // when the garrison that posted them stands down.
+        string line = FieldPostings.Stop(cycle, party);
         if (string.IsNullOrEmpty(line))
         {
             return;
@@ -5043,26 +5421,584 @@ public partial class StrategicView : Node2D
         ShowStrategicNotice("Work stopped", line);
     }
 
-    /// <summary>DebugMode stand-in for the zones: two lunations of "survey"
-    /// wherever the party stands, so the Working state can be driven end to
-    /// end before any zone exists to start it.</summary>
-    private void OnDebugWorkPressed()
+    // ── Field Party v1: postings and detachments (2026-09-24) ─────────────
+    // docs/field_party_task_force_spec_v1. The debug "Survey here" stand-in
+    // that lived here is gone: postings are real and the sheet below is how
+    // they start.
+
+    /// <summary>Which detachment the Collect and Recall verbs would act on for
+    /// the selected piece: a party names the first of its detachments that
+    /// qualifies; a selected detachment names itself.</summary>
+    private (FieldParty collectable, FieldParty recallable) DetachmentVerbsFor(CycleState cycle, FieldParty party)
+    {
+        if (cycle == null || party == null)
+        {
+            return (null, null);
+        }
+        if (FieldPostings.IsDetachment(party))
+        {
+            var parent = cycle.FieldParties?.Find(p => p != null && p.Id == party.ParentId);
+            bool c = FieldPostings.CanCollect(cycle, parent, party, out _);
+            bool r = !c && FieldPostings.CanRecall(cycle, parent, party, out _);
+            return (c ? party : null, r ? party : null);
+        }
+        FieldParty collect = null, recall = null;
+        foreach (var det in FieldPostings.DetachmentsOf(cycle, party))
+        {
+            if (collect == null && FieldPostings.CanCollect(cycle, party, det, out _))
+            {
+                collect = det;
+            }
+            else if (recall == null && FieldPostings.CanRecall(cycle, party, det, out _))
+            {
+                recall = det;
+            }
+        }
+        return (collect, recall);
+    }
+
+    /// <summary>The fight a free party could start where it stands: storming
+    /// a depot it does not hold, or intervening at a kingdom front. Null when
+    /// there is none, which hides the verb.</summary>
+    private string InterventionVerbAt(CycleState cycle, FieldParty party)
+    {
+        var world = cycle?.World;
+        if (world == null || party == null || !world.InBounds(party.X, party.Y))
+        {
+            return null;
+        }
+        int poiIndex = world.GetTile(party.X, party.Y).PoiIndex;
+        if (poiIndex >= 0 && poiIndex < world.Pois.Count)
+        {
+            var poi = world.Pois[poiIndex];
+            if (poi.Kind == PoiKind.SupplyCache && poi.Discovered
+                && SupplyCacheSystem.ControllerOf(poi) != SupplyCacheSystem.GuildId)
+            {
+                return "\u2694  Storm the depot";
+            }
+        }
+        if (cycle.Warfronts != null)
+        {
+            foreach (var wf in cycle.Warfronts)
+            {
+                if (wf != null && !wf.Closed && !wf.IsCacheSiege && wf.HasFocus
+                    && wf.FocusCol == party.X && wf.FocusRow == party.Y)
+                {
+                    return "\u2694  Intervene at the front";
+                }
+            }
+        }
+        return null;
+    }
+
+    private void OnInterveneHerePressed()
     {
         var cycle = SaveManager.ActiveSave?.Cycle;
         var party = SelectedParty();
-        if (cycle == null || party == null || !PlayerSession.DebugMode)
+        var world = cycle?.World;
+        if (world == null || party == null || !world.InBounds(party.X, party.Y))
         {
             return;
         }
-        string line = FieldWork.Begin(cycle, party, "survey", $"({party.X},{party.Y})", 2);
+        int poiIndex = world.GetTile(party.X, party.Y).PoiIndex;
+        if (poiIndex >= 0 && poiIndex < world.Pois.Count && world.Pois[poiIndex].Kind == PoiKind.SupplyCache)
+        {
+            CommitCacheSiege(poiIndex);
+            return;
+        }
+        var front = cycle.Warfronts?.Find(w => w != null && !w.Closed && !w.IsCacheSiege && w.HasFocus
+                                              && w.FocusCol == party.X && w.FocusRow == party.Y);
+        if (front != null)
+        {
+            ShowWarfrontIntervene(front);
+        }
+    }
+
+    // ── Navigation and the castle's sortie (2026-09-24) ──────────────────
+
+    /// <summary>City to world, world to home city. One control, two states,
+    /// mirrored by Escape.</summary>
+    private void OnViewTogglePressed()
+    {
+        if (_atlas3D == null)
+        {
+            return;
+        }
+        if (_atlas3D.CityMode)
+        {
+            _atlas3D.LeaveCityMode();
+            return;
+        }
+        if (_world != null && _atlas3D.HasCityGrounds && _world.InBounds(_world.HomeX, _world.HomeY))
+        {
+            _atlas3D.FlyToTile(_world.HomeX, _world.HomeY, 30f, 0f);
+            _atlas3D.EnterCityMode();
+        }
+    }
+
+    /// <summary>Can the castle stride out from where it stands, and if not why.
+    /// The same preconditions a march has, minus the fuel-per-tile check: a
+    /// sortie refuels at deploy.</summary>
+    private static bool CanSortie(CycleState cycle, out string why)
+    {
+        why = "";
+        if (cycle?.World == null)
+        {
+            why = "There is no world.";
+            return false;
+        }
+        if (cycle.CastleSortie != null && cycle.CastleSortie.IsLive())
+        {
+            why = "The castle is already in the field. Aim the stone at it.";
+            return false;
+        }
+        if (!cycle.CastleParked)
+        {
+            why = "The castle is out. Recall or make camp first.";
+            return false;
+        }
+        if (cycle.CastleRepairLunations > 0)
+        {
+            why = $"The crews are still at work: {cycle.CastleRepairLunations} lunation(s) of resupply left.";
+            return false;
+        }
+        if (WorldClock.CastleBusy(cycle))
+        {
+            why = $"The castle is still coming in from its last sortie: {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s).";
+            return false;
+        }
+        if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
+        {
+            why = "There are soldiers in the camp. Answer them before you move.";
+            return false;
+        }
+        if (!cycle.World.InBounds(cycle.CastleX, cycle.CastleY))
+        {
+            why = "The castle is not sited.";
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>The staging point the castle launches from: whatever stages
+    /// on its own tile (its park, the dock, a secured outpost it stopped on),
+    /// or a synthesised one, because the expedition scene only ever needed a
+    /// coordinate and a radius.</summary>
+    private StagingPoint CastleLaunchPoint(CycleState cycle)
+    {
+        var here = _world?.StagingPoints?.Find(s => s != null && s.X == cycle.CastleX && s.Y == cycle.CastleY);
+        if (here != null)
+        {
+            return here;
+        }
+        var anchor = ExpeditionAnchors.FindAt(cycle, cycle.CastleX, cycle.CastleY);
+        return new StagingPoint
+        {
+            X = cycle.CastleX,
+            Y = cycle.CastleY,
+            Name = anchor != null && !string.IsNullOrEmpty(anchor.Name) ? anchor.Name : "the castle",
+            Source = "Castle",
+            Available = true,
+        };
+    }
+
+    private void OnSortiePressed()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            return;
+        }
+        if (!CanSortie(cycle, out string why))
+        {
+            ShowStrategicNotice("The castle cannot sortie", why);
+            return;
+        }
+        SelectPiece("");
+        var sp = CastleLaunchPoint(cycle);
+        _pendingStaging = sp;
+        ShowDeployConfirm(sp);
+    }
+
+    /// <summary>A staging beacon is a PLACE now, not a launch dialog: what it is,
+    /// whose ground, and the two ways a force can be sent there. The castle
+    /// launches from where it stands (Sortie), never from a beacon it is not
+    /// standing on.</summary>
+    private void ShowPlaceCard(StagingPoint sp)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || _world == null || !_world.InBounds(sp.X, sp.Y))
+        {
+            return;
+        }
+        var tile = _world.GetTile(sp.X, sp.Y);
+        string kingdomLabel = string.IsNullOrEmpty(tile.KingdomId)
+            ? "Wilderness"
+            : (_kingdoms.TryGetValue(tile.KingdomId, out var ks) && !string.IsNullOrEmpty(ks.ControllingFactionId)
+                ? FactionDisplay(ks.ControllingFactionId)
+                : tile.KingdomId);
+        string kind = sp.Source switch
+        {
+            "Start" => "the guild's dock",
+            "Castle" => "the castle's camp",
+            "Waypoint" => "a raised waystone",
+            "Shard" => "a shard zone's heart",
+            "Secured" => "a secured outpost",
+            _ => "a staging point",
+        };
+
+        var dlg = new AcceptDialog
+        {
+            Title = string.IsNullOrEmpty(sp.Name) ? "Staging point" : sp.Name,
+            OkButtonText = "Close",
+            DialogText = $"({sp.X},{sp.Y})  ·  {tile.Terrain}  ·  {kingdomLabel}\n{kind}"
+                       + (sp.Available ? ", stages and supplies your forces." : ", overrun: it neither stages nor supplies you until retaken."),
+        };
+
+        // March the castle here.
+        if (cycle.CastleParked && !(cycle.CastleX == sp.X && cycle.CastleY == sp.Y))
+        {
+            bool canMarch = CastleMarch.CanMarchTo(cycle, sp.X, sp.Y, out string marchWhy);
+            int cost = canMarch ? CastleMarch.CostTo(cycle, sp.X, sp.Y) : 0;
+            var b = dlg.AddButton(canMarch ? $"March the castle here ({cost} fuel)" : "March the castle here", true, "march");
+            b.Disabled = !canMarch;
+            b.TooltipText = canMarch ? "" : marchWhy;
+        }
+        // Move the selected party here.
+        var party = SelectedParty();
+        if (party != null && !FieldPostings.IsDetachment(party) && !(party.X == sp.X && party.Y == sp.Y))
+        {
+            bool canGo = FieldMarch.CanTeleportTo(cycle, party, sp.X, sp.Y, out _)
+                         || FieldMarch.CanMarchTo(cycle, party, sp.X, sp.Y, out _);
+            FieldMarch.CanMarchTo(cycle, party, sp.X, sp.Y, out string goWhy);
+            var b = dlg.AddButton($"Move {party.Name} here", true, "party");
+            b.Disabled = !canGo;
+            b.TooltipText = canGo ? "" : goWhy;
+        }
+        dlg.CustomAction += action =>
+        {
+            dlg.QueueFree();
+            if (action == "march")
+            {
+                SelectPiece("");
+                ExecuteCastleMarch(sp.X, sp.Y, null);
+            }
+            else if (action == "party")
+            {
+                TryMovePartyTo(sp.X, sp.Y);
+            }
+        };
+        dlg.Confirmed += () => dlg.QueueFree();
+        dlg.Canceled += () => dlg.QueueFree();
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
+    /// <summary>The Forces screen (2026-09-24): every force, its members,
+    /// their stats and equipment, and the moves between campus, crew and a
+    /// free party. Opens on the selected piece. The muster drawer that stood
+    /// here for an afternoon is retired into it: one screen for one question.</summary>
+    private void OpenForcesScreen()
+    {
+        string initial = CastleSelected ? "castle" : _selectedPieceId;
+        ForcesScreen.Open(this,
+            onChanged: () =>
+            {
+                RefreshPieceChrome();
+                BuildSupplyMarkers();
+            },
+            onClose: RefreshPieceChrome,
+            initialForceId: initial);
+    }
+
+    /// <summary>Is there a court to be received by where the party stands?
+    /// A kingdom's seat always receives; another city only once the court
+    /// knows the guild. Once per court per moon. The reason is written for
+    /// the tooltip, and begins with "No court" only when the tile is simply
+    /// not a city, which is the one case the verb hides rather than greys.</summary>
+    private bool AudienceCourtAt(CycleState cycle, FieldParty party, out string kingdomId, out string why)
+    {
+        kingdomId = "";
+        why = "No court here.";
+        var world = cycle?.World;
+        if (world == null || party == null || !world.InBounds(party.X, party.Y))
+        {
+            return false;
+        }
+        var settlement = world.SettlementAt(party.X, party.Y);
+        if (settlement == null || settlement.Tier != SettlementTier.City || string.IsNullOrEmpty(settlement.KingdomId))
+        {
+            return false;
+        }
+        kingdomId = settlement.KingdomId;
+        if (cycle.Council?.Courts == null || !cycle.Council.Courts.TryGetValue(kingdomId, out var court))
+        {
+            why = "This city answers to no court.";
+            return false;
+        }
+        if (!settlement.IsSeat && !court.HasContact)
+        {
+            why = "This court does not know the guild. Attend court at their seat first, or send an envoy.";
+            return false;
+        }
+        if (court.MissionFreezeLunations > 0)
+        {
+            why = $"The court has expelled the guild's people; {court.MissionFreezeLunations} moon(s) until they receive anyone.";
+            return false;
+        }
+        int lun = cycle.Calendar?.CurrentLunation ?? 0;
+        if (cycle.LastAudienceLunation != null
+            && cycle.LastAudienceLunation.TryGetValue(kingdomId, out int last) && last == lun)
+        {
+            why = "This court has already received you this moon.";
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>Seek audience: pick a table from the region's negotiation pool
+    /// and send the party into the field with it pending. The expedition scene
+    /// opens the table before the first step (ExpeditionManager.OpenAudienceDeferred),
+    /// so every reward a table pays (gold, supplies, charted ground, revealed
+    /// places, safe conduct, tuition, the court echo) lands through the one
+    /// path that already pays them.</summary>
+    private void OnSeekAudiencePressed()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var party = SelectedParty();
+        if (cycle == null || party == null)
+        {
+            return;
+        }
+        if (!AudienceCourtAt(cycle, party, out string kid, out string why))
+        {
+            ShowStrategicNotice("No audience", why);
+            return;
+        }
+        string region = cycle.Kingdoms != null && cycle.Kingdoms.TryGetValue(kid, out var ks) ? ks.TemplateRegionId : "";
+        var encounter = NegotiationEncounterLoader.PickForTerrain("", region);
+        if (encounter == null)
+        {
+            ShowStrategicNotice("No audience", "No one at this court will sit with you.");
+            return;
+        }
+        PlayerSession.AudienceEncounterId = encounter.Id;
+        PlayerSession.AudienceKingdomId = kid;
+        GD.Print($"[StrategicView] Audience sought at {kid}: {encounter.Id}.");
+
+        var here = ExpeditionAnchors.FindAt(cycle, party.X, party.Y);
+        OpenFieldPartyPicker(new StagingPoint
+        {
+            X = party.X,
+            Y = party.Y,
+            Name = here != null && !string.IsNullOrEmpty(here.Name) ? here.Name : "the court",
+            Source = "FieldParty",
+            Available = true,
+        });
+    }
+
+    private void OnPostPressed()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var party = SelectedParty();
+        if (cycle == null || party == null)
+        {
+            return;
+        }
+        var options = FieldPostings.OptionsAt(cycle, party);
+        if (options.Count == 0)
+        {
+            ShowStrategicNotice("Nothing to post here", "No outpost, depot, shard zone or front stands on this tile.");
+            return;
+        }
+        OpenPostingSheet(cycle, party, options);
+    }
+
+    /// <summary>The posting sheet: which job, and who stays. Every member is
+    /// checked by default; unchecking some makes a detachment of the rest.
+    /// Every row is a sentence, because a posting is a decision and not a form.</summary>
+    private void OpenPostingSheet(CycleState cycle, FieldParty party, System.Collections.Generic.List<FieldPostings.Option> options)
+    {
+        var dlg = new ConfirmationDialog
+        {
+            Title = "Post here",
+            OkButtonText = "Post them",
+            CancelButtonText = "Cancel",
+            MinSize = new Vector2I(560, 520),
+        };
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 8);
+        dlg.AddChild(box);
+
+        var picker = new OptionButton();
+        foreach (var o in options)
+        {
+            picker.AddItem(o.Title);
+        }
+        picker.Selected = 0;
+        box.AddChild(picker);
+
+        var detail = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        detail.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        detail.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        box.AddChild(detail);
+
+        void ShowDetail(int i)
+        {
+            var o = options[Mathf.Clamp(i, 0, options.Count - 1)];
+            string span = o.Days > 0 ? $"{o.Days} day(s)." : "Until recalled.";
+            detail.Text = $"{o.Detail}\n{o.SuppliesPerMoon} supplies a moon, paid at the new moon; "
+                        + $"unpaid, they stall and do no work. {span}";
+        }
+        ShowDetail(0);
+        picker.ItemSelected += idx => ShowDetail((int)idx);
+
+        box.AddChild(new HSeparator());
+        var who = new Label { Text = "Who stays:" };
+        who.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        box.AddChild(who);
+
+        var boxes = new System.Collections.Generic.List<(CheckBox cb, string id)>();
+        var members = party.MemberCompanionIds ?? new System.Collections.Generic.List<string>();
+        foreach (var id in members)
+        {
+            var c = cycle.Companions?.Find(x => x != null && x.Id == id);
+            if (c == null)
+            {
+                continue;
+            }
+            var cb = new CheckBox
+            {
+                Text = c.Name + (c.IsInjured ? $"  (injured, {c.InjuredLunationsRemaining} lunation(s))" : ""),
+                ButtonPressed = true,
+            };
+            cb.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            box.AddChild(cb);
+            boxes.Add((cb, id));
+        }
+
+        // What the chosen people bring (Vocations, 2026-09-25). Re-read on
+        // every tick and every posting change, so unticking the Scout shows
+        // the survey losing its extra ring before the player commits.
+        var vocLine = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        vocLine.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        vocLine.AddThemeColorOverride("font_color", UITheme.Gold);
+        box.AddChild(vocLine);
+        void RefreshVocLine()
+        {
+            var chosenIds = new System.Collections.Generic.List<string>();
+            foreach (var (cb, id) in boxes)
+            {
+                if (cb.ButtonPressed)
+                {
+                    chosenIds.Add(id);
+                }
+            }
+            var o = options[Mathf.Clamp(picker.Selected, 0, options.Count - 1)];
+            string line = Vocations.SheetLine(cycle, party, o.Kind, chosenIds);
+            vocLine.Text = string.IsNullOrEmpty(line) ? "Nobody chosen has a vocation for this." : line;
+        }
+        RefreshVocLine();
+        picker.ItemSelected += _ => RefreshVocLine();
+        foreach (var (cb, _) in boxes)
+        {
+            cb.Toggled += _ => RefreshVocLine();
+        }
+
+        var note = new Label
+        {
+            Text = members.Count <= 1
+                ? "The whole party posts itself; there is nobody to split off."
+                : "Leave some unchecked and they carry on as the party; the checked ones stay as a detachment. "
+                  + "A detachment does not move: collect it by standing with it, or recall it through a waystone.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        note.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        note.AddThemeColorOverride("font_color", UITheme.TextDim);
+        box.AddChild(note);
+
+        dlg.Confirmed += () =>
+        {
+            var chosen = new System.Collections.Generic.List<string>();
+            foreach (var (cb, id) in boxes)
+            {
+                if (cb.ButtonPressed)
+                {
+                    chosen.Add(id);
+                }
+            }
+            var opt = options[Mathf.Clamp(picker.Selected, 0, options.Count - 1)];
+            dlg.QueueFree();
+            string line = FieldPostings.Begin(cycle, party, opt, chosen, out string why);
+            if (line == null)
+            {
+                ShowStrategicNotice("Not posted", why);
+                return;
+            }
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(line);
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+            RefreshPieceChrome();
+            ShowStrategicNotice("Posted", line);
+        };
+        dlg.Canceled += () => dlg.QueueFree();
+        AddChild(dlg);
+        dlg.PopupCentered();
+    }
+
+    private void OnCollectPressed()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var party = SelectedParty();
+        var (det, _) = DetachmentVerbsFor(cycle, party);
+        if (cycle == null || det == null)
+        {
+            return;
+        }
+        var parent = FieldPostings.IsDetachment(det)
+            ? cycle.FieldParties?.Find(p => p != null && p.Id == det.ParentId)
+            : null;
+        if (parent == null)
+        {
+            return;
+        }
+        string line = FieldPostings.Collect(cycle, parent, det);
         if (string.IsNullOrEmpty(line))
         {
             return;
         }
+        SelectPiece(parent.Id);
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
         RefreshPieceChrome();
-        ShowStrategicNotice("Work begins", line);
+        ShowStrategicNotice("Collected", line);
+    }
+
+    private void OnRecallPressed()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var party = SelectedParty();
+        var (_, det) = DetachmentVerbsFor(cycle, party);
+        if (cycle == null || det == null)
+        {
+            return;
+        }
+        var parent = cycle.FieldParties?.Find(p => p != null && p.Id == det.ParentId);
+        if (parent == null)
+        {
+            return;
+        }
+        string line = FieldPostings.Collect(cycle, parent, det);
+        if (string.IsNullOrEmpty(line))
+        {
+            return;
+        }
+        SelectPiece(parent.Id);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        RefreshPieceChrome();
+        ShowStrategicNotice("Through the waystone", line.Replace("take", "recall") );
     }
 
     private void TryMovePartyTo(int col, int row)
@@ -5096,7 +6032,7 @@ public partial class StrategicView : Node2D
         }
 
         int tiles = cycle.World.HexDistance(party.X, party.Y, col, row);
-        int lunations = FieldMarch.LunationsTo(cycle, party, col, row);
+        int marchDays = FieldMarch.DaysTo(cycle, party, col, row);
         bool fromCastlePark = cycle.CastleParked
                               && party.X == cycle.CastleX && party.Y == cycle.CastleY;
         bool holdWaiting = fromCastlePark && cycle.CastleHold != null && !cycle.CastleHold.IsEmpty;
@@ -5107,9 +6043,8 @@ public partial class StrategicView : Node2D
             OkButtonText = "March",
             DialogText =
                 $"Send them from ({party.X},{party.Y}) to ({col},{row}).\n\n"
-                + $"{tiles} tile(s) on foot, about {lunations} lunation(s) at "
-                + $"{FieldMarch.TilesPerLunation} a turn of the moon. They advance each time the "
-                + "moon turns, and they cannot take the field while they are walking.\n\n"
+                + $"{tiles} tile(s) on foot, {marchDays} day(s) at {FieldMarch.DaysPerTile} a tile. "
+                + "They walk as the days pass, and they cannot take the field while they are walking.\n\n"
                 + "The road is watched. Patrols take a share of whatever they carry and cost them "
                 + "time; in hostile ground, soldiers turn them back outright."
                 + (holdWaiting
@@ -5385,16 +6320,17 @@ public partial class StrategicView : Node2D
         bool fieldDeploy = _pendingRunKind == ExpeditionRunKind.Field;
         if (fieldDeploy)
         {
-            cycle.ExpeditionTurn ??= new ExpeditionTurnState();
-            cycle.ExpeditionTurn.BeginLunation(cycle.Calendar?.CurrentLunation ?? 0);
-            if (!cycle.ExpeditionTurn.CanDive)
+            // The day clock (2026-09-23): a dive is not budgeted, it is timed.
+            // The days it costs are charged when it ends; until then the party
+            // is busy and cannot dive again.
+            var divingParty = SelectedParty()
+                              ?? cycle.FieldParties?.Find(p => p != null && p.Id == ExpeditionAnchors.PrimaryFieldPartyId);
+            if (divingParty != null && WorldClock.PartyBusy(cycle, divingParty))
             {
-                ShowStrategicNotice("No dives left this moon",
-                    $"The field party has used all {cycle.ExpeditionTurn.DivesPerLunation} of this "
-                    + "lunation's dives. Move the castle to turn the moon, or wait it out.");
+                ShowStrategicNotice("The party is still out",
+                    $"{divingParty.Name} are {divingParty.BusyUntilDay - WorldClock.Now(cycle)} day(s) from being free. Pass time.");
                 return;
             }
-            cycle.ExpeditionTurn.DivesSpent++;
 
             // A built waypoint is the consumable kind of anchor, and diving from
             // it is the only thing that consumes one. Permanent anchors ignore
@@ -5403,7 +6339,7 @@ public partial class StrategicView : Node2D
             ExpeditionAnchors.SpendWaypointCharge(cycle, _pendingStaging.X, _pendingStaging.Y);
 
             PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Field;
-            PlayerSession.ExpeditionFieldPartyId = ExpeditionAnchors.PrimaryFieldPartyId;
+            PlayerSession.ExpeditionFieldPartyId = divingParty?.Id ?? ExpeditionAnchors.PrimaryFieldPartyId;
             PlayerSession.ExpeditionStagingCol = _pendingStaging.X;
             PlayerSession.ExpeditionStagingRow = _pendingStaging.Y;
             PlayerSession.ExpeditionWindowRadius = FieldDeployWindowRadius;
@@ -5412,9 +6348,7 @@ public partial class StrategicView : Node2D
             SaveManager.SaveIfDirty();
 
             GD.Print($"[StrategicView] Field party dives from '{_pendingStaging.Name}' "
-                     + $"({_pendingStaging.X},{_pendingStaging.Y}). Dive "
-                     + $"{cycle.ExpeditionTurn.DivesSpent}/{cycle.ExpeditionTurn.DivesPerLunation} "
-                     + $"of lunation {cycle.Calendar?.CurrentLunation}.");
+                     + $"({_pendingStaging.X},{_pendingStaging.Y}) on day {WorldClock.Now(cycle)}.");
 
             GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
             return;
@@ -5437,12 +6371,18 @@ public partial class StrategicView : Node2D
         // eclipse-interception model must key off the lunation itself (or
         // temporarily restore phase-stepping for the deploy that would cross a
         // scheduled eclipse).
-        // Shared with the explicit "let the moon turn" action, so a castle
-        // sortie and a deliberate wait cannot resolve the world differently.
-        if (!AdvanceMoon(cycle))
+        // The day clock (2026-09-23): a sortie no longer turns the moon on the
+        // way out. Its days are charged when it ends, in proportion to the fuel
+        // it burned, and the world moves when the player passes time across a
+        // new moon. The castle is gated on being free, not on a budget.
+        if (WorldClock.CastleBusy(cycle))
         {
-            return;   // the cycle ended; ShowConjunction owns the screen
+            ShowStrategicNotice("The castle is still out",
+                $"The castle is {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s) from being free. Pass time.");
+            return;
         }
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
 
         PlayerSession.ExpeditionStagingCol = _pendingStaging.X;
         PlayerSession.ExpeditionStagingRow = _pendingStaging.Y;
@@ -5477,17 +6417,9 @@ public partial class StrategicView : Node2D
             GD.Print($"[CastleThreats] {castleThreat.Kind}: {castleThreat.Report}");
         }
 
-        // Expedition v2: the resupply runs on the same clock as corruption and
-        // kingdom drift, so a parked castle is on the board while it is worked
-        // on rather than sitting outside time. Completing it teleports the crews
-        // home and the hold with them.
-        if (ExpeditionAnchors.TickCastleRepair(cycle))
-        {
-            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
-            cycle.PendingSiegeReports.Add(
-                "The waystone closes over the camp. The castle is refuelled, restocked and whole, " +
-                "and the hold is home.");
-        }
+        // The resupply used to tick here. Under the day clock (2026-09-23) it
+        // counts days from the camp in WorldClock.StepDay, so a camp made on
+        // day 3 is not done at the next new moon along with one made on day 27.
 
         // Expedition v2: a force left IN THE FIELD while the table looked
         // elsewhere is not safe. Until this call it was: CastleThreats gates on
@@ -5511,24 +6443,25 @@ public partial class StrategicView : Node2D
             cycle.PendingSiegeReports.Add(interceptReport);
         }
 
-        // Expedition v2: the party walks. Their marker advances TilesPerLunation
-        // along the road and charts a thin corridor as it goes, so a march is
-        // something the player watches happen on the map rather than a counter
-        // running down out of sight. Arrival at a staging anchor banks whatever
-        // they were carrying out of the castle's hold.
-        string travelReport = FieldMarch.Tick(cycle);
-        if (!string.IsNullOrEmpty(travelReport))
-        {
-            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
-            cycle.PendingSiegeReports.Add(travelReport);
-        }
+        // Marches and field work step by the DAY now (WorldClock.StepDay), not
+        // here. The interception roll above still fires at the new moon against
+        // tiles left, which is the same exposure it always measured.
 
-        // Field work (2026-09-23 skeleton): the working parties' clocks.
-        string workReport = FieldWork.Tick(cycle);
-        if (!string.IsNullOrEmpty(workReport))
+        // Field Party v1 (2026-09-24): postings pay, are rolled against, and
+        // work, BEFORE the kingdom and cache ticks below so a held line or a
+        // maintained siege lands in the moon it was paid for. Then the ground
+        // nobody is holding rolls to be lost.
+        string postingReport = FieldPostings.TickLunation(cycle);
+        if (!string.IsNullOrEmpty(postingReport))
         {
             cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
-            cycle.PendingSiegeReports.Add(workReport);
+            cycle.PendingSiegeReports.Add(postingReport);
+        }
+        string overrunReport = PostingThreats.RollOverruns(cycle);
+        if (!string.IsNullOrEmpty(overrunReport))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(overrunReport);
         }
 
         CouncilTick.Tick(cycle);

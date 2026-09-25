@@ -253,6 +253,19 @@ public class CycleState
     public int CastleX = -1;
     public int CastleY = -1;
 
+    /// <summary>Absolute day the castle is next free to be ordered. A sortie
+    /// costs days in proportion to the fuel it burned, charged when it ends
+    /// (WorldClock.SortieDays); until then the fortress is "still out there".
+    /// 0 means free.</summary>
+    public int CastleBusyUntilDay = 0;
+
+    /// <summary>Days accrued toward the next resupply lunation while parked.
+    /// CastleRepairLunations stays the number every reader knows; this is how
+    /// it ticks under the day clock: one lunation per DaysPerLunation days,
+    /// counted from the day the camp was made rather than from the next new
+    /// moon.</summary>
+    public int CastleRepairDayAccum = 0;
+
     /// <summary>True while the fortress is parked in the field rather than at
     /// dock. Ruled 2026-09-21: running the furnace dry parks the castle where it
     /// stands, it becomes a waypoint there, and it refuels on the next sortie.
@@ -334,6 +347,11 @@ public class CycleState
     /// from World.StagingPoints and World.ShardZones through
     /// ExpeditionAnchors.All.</summary>
     public List<Waypoint> Waypoints = new();
+
+    /// <summary>Field Party v1 (2026-09-24): the lunation each kingdom last
+    /// granted an audience (Seek audience), keyed by kingdom id. One table per
+    /// court per moon; a court that saw you yesterday does not sit again today.</summary>
+    public Dictionary<string, int> LastAudienceLunation = new();
 
     /// <summary>This lunation's expedition budget: one castle move plus K
     /// field dives (ruling 2026-09-21). Keeps map reveal on the 12-lunation

@@ -169,8 +169,14 @@ public static class FieldExpeditionSaveAssert
             Carrying = new CastleHold { Gold = 120, Splinters = 3, Materials = 45, Supplies = 7 },
             WorkKind = "survey",
             WorkZoneId = "(41,17)",
-            WorkLunationsLeft = 1,
-            WorkLunationsTotal = 2,
+            WorkDaysLeft = 5,
+            WorkDaysTotal = 14,
+            ParentId = "field_1",
+            WorkStalled = true,
+            WorkProgress = 2,
+            WorkSide = 2,
+            BusyUntilDay = 37,
+            TravelDayAccum = 3,
             Sortie = new SortieState
             {
                 Active = true,
@@ -180,6 +186,7 @@ public static class FieldExpeditionSaveAssert
                 GoldEarned = 210, SplinterEarned = 4, MaterialEarned = 9, SuppliesEarned = 2,
                 EncountersWon = 3,
                 LunationsFrozen = 2,
+                StartDay = 19,
             },
         };
         var rt = RoundTrip(src);
@@ -242,9 +249,23 @@ public static class FieldExpeditionSaveAssert
         // standing idle with its lunations spent.
         ok &= Check(sb, "FieldParty.WorkKind", rt.WorkKind == src.WorkKind);
         ok &= Check(sb, "FieldParty.WorkZoneId", rt.WorkZoneId == src.WorkZoneId);
-        ok &= Check(sb, "FieldParty.WorkLunations",
-                    rt.WorkLunationsLeft == src.WorkLunationsLeft
-                    && rt.WorkLunationsTotal == src.WorkLunationsTotal);
+        ok &= Check(sb, "FieldParty.WorkDays",
+                    rt.WorkDaysLeft == src.WorkDaysLeft
+                    && rt.WorkDaysTotal == src.WorkDaysTotal);
+
+        // Field Party v1 (2026-09-24): a detachment that comes back with an
+        // empty ParentId is a phantom PARTY the roster will offer to march. A
+        // lost WorkSide holds the wrong side of a war. These cannot default.
+        ok &= Check(sb, "FieldParty.ParentId", rt.ParentId == src.ParentId);
+        ok &= Check(sb, "FieldParty.WorkStalled", rt.WorkStalled == src.WorkStalled);
+        ok &= Check(sb, "FieldParty.WorkProgress", rt.WorkProgress == src.WorkProgress);
+        ok &= Check(sb, "FieldParty.WorkSide", rt.WorkSide == src.WorkSide);
+
+        // The day clock (2026-09-23): a lost BusyUntilDay is a free dive; a
+        // lost StartDay charges the walking on top of the moons already sat.
+        ok &= Check(sb, "FieldParty.BusyUntilDay", rt.BusyUntilDay == src.BusyUntilDay);
+        ok &= Check(sb, "FieldParty.TravelDayAccum", rt.TravelDayAccum == src.TravelDayAccum);
+        ok &= Check(sb, "FieldParty.Sortie.StartDay", rt.Sortie?.StartDay == src.Sortie.StartDay);
 
         // The enum must survive as a VALUE, not an ordinal that shifts if the
         // enum is ever reordered. Pin the wire form explicitly.
@@ -469,7 +490,10 @@ public static class FieldExpeditionSaveAssert
             CastleX = 44,
             CastleY = 21,
             MaxFieldParties = 2,
+            CastleBusyUntilDay = 61,
+            CastleRepairDayAccum = 9,
         };
+        src.Calendar.DayOfLunation = 17;
         src.FieldParties.Add(new FieldParty
         {
             Id = "field_1",
@@ -487,6 +511,9 @@ public static class FieldExpeditionSaveAssert
         bool ok = true;
         ok &= Check(sb, "CycleState.CastleX", rt.CastleX == 44);
         ok &= Check(sb, "CycleState.CastleY", rt.CastleY == 21);
+        ok &= Check(sb, "CycleState.CastleBusyUntilDay", rt.CastleBusyUntilDay == 61);
+        ok &= Check(sb, "CycleState.CastleRepairDayAccum", rt.CastleRepairDayAccum == 9);
+        ok &= Check(sb, "CycleState.Calendar.DayOfLunation", rt.Calendar != null && rt.Calendar.DayOfLunation == 17);
         ok &= Check(sb, "CycleState.MaxFieldParties", rt.MaxFieldParties == 2);
         ok &= Check(sb, "CycleState.FieldParties", rt.FieldParties != null && rt.FieldParties.Count == 1);
         ok &= Check(sb, "CycleState.FieldParties[0].State",

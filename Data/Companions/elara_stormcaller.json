@@ -4,6 +4,7 @@
 	"school": "Elementalist",
 	"unitClass": "Arcane",
 	"personalityTrait": "Reckless",
+	"vocation": "Sapper",
 	"backstory": "A former guild enforcer who burned her charter after a mission gone wrong.",
 	"recruitmentCost": 120,
 	"isAvailable": true,

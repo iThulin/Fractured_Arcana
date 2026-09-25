@@ -40,11 +40,12 @@
       "tier": 3,
       "displayName": "Seat of the Guild",
       "goldCost": 700,
-      "description": "Banners, a dais, and room for every voice. The active party grows to four.",
+      "description": "Banners, a dais, and room for every voice. The active party grows to four, and a second field party is raised.",
       "requiredBuildings": [],
       "passiveEffects": [],
       "activeEffects": [],
-      "partySizeBonus": 1
+      "partySizeBonus": 1,
+      "fieldPartyBonus": 1
     }
   ]
 }

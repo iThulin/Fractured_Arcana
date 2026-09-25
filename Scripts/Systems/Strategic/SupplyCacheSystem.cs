@@ -287,9 +287,18 @@ public static class SupplyCacheSystem
     }
 
     /// <summary>This cache's per-lunation yield (overseer bonus included).</summary>
-    public static int YieldOf(WorldPoi p) =>
-        BaseYield + (ControllerOf(p) == GuildId && !string.IsNullOrEmpty(p.OverseerCompanionId)
-            ? OverseerYieldBonus : 0);
+    public static int YieldOf(WorldPoi p)
+    {
+        if (ControllerOf(p) != GuildId || string.IsNullOrEmpty(p.OverseerCompanionId))
+        {
+            return BaseYield;
+        }
+        // A Quartermaster overseer draws more (Vocations, 2026-09-25).
+        var overseer = SaveManager.ActiveSave?.Cycle?.Companions?.Find(c => c != null && c.Id == p.OverseerCompanionId);
+        int qm = Vocations.RankIf(overseer, Vocations.Quartermaster);
+        int bonus = qm >= 3 ? Vocations.QuartermasterYieldR3 : qm >= 1 ? Vocations.QuartermasterYieldR1 : 0;
+        return BaseYield + OverseerYieldBonus + bonus;
+    }
 
     /// <summary>True if the kingdom holds at least one still-hidden cache, which
     /// gates the supply-lines-intel negotiation offer.</summary>
@@ -497,8 +506,16 @@ public static class SupplyCacheSystem
 
             string ctrl = ControllerOf(poi);
             if (ctrl == GuildId)
-                adv -= string.IsNullOrEmpty(poi.OverseerCompanionId)
+            {
+                int relief = string.IsNullOrEmpty(poi.OverseerCompanionId)
                     ? GuildBaseRelief : OverseerDefenseRelief;
+                // A Master Warden in the garrison doubles the defence (Vocations, 2026-09-25).
+                if (Vocations.GarrisonRankAt(cycle, poi.X, poi.Y, Vocations.Warden) >= 3)
+                {
+                    relief *= 2;
+                }
+                adv -= relief;
+            }
             else if (cycle.Kingdoms.TryGetValue(ctrl, out var ck))
                 adv -= ck.SupplyStock / MusclePerAdvance;
 

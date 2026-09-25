@@ -4,6 +4,7 @@
 	"school": "Adept",
 	"unitClass": "Arcane",
 	"personalityTrait": "Curious",
+	"vocation": "Scout",
 	"backstory": "Washed out of three specializations for the crime of being interested in all of them. The guild took her precisely because of it.",
 	"recruitmentCost": 100,
 	"isAvailable": true,

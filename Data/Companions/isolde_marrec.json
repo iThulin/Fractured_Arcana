@@ -4,6 +4,7 @@
   "school": "Chronomancer",
   "unitClass": "Arcane",
   "personalityTrait": "Cunning",
+  "vocation": "Courtier",
   "backstory": "A court wizard's former retainer, released as repayment of a Major favor. Her old patron still watches how she is treated.",
   "recruitmentCost": 0,
   "isAvailable": false,

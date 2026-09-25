@@ -4,6 +4,7 @@
   "school": "Tinker",
   "unitClass": "Arcane",
   "personalityTrait": "Curious",
+  "vocation": "Quartermaster",
   "backstory": "Dismantled her family's mill at nine to see how it worked, rebuilt it better by eleven. She hires on wherever the workshop is best.",
   "recruitmentCost": 120,
   "isAvailable": false,

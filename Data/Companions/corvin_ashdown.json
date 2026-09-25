@@ -4,6 +4,7 @@
   "school": "None",
   "unitClass": "Ranger",
   "personalityTrait": "Stoic",
+  "vocation": "Scout",
   "backstory": "A deserter from a war nobody won. He speaks maybe forty words a lunation and has never missed twice at the same target.",
   "recruitmentCost": 95,
   "isAvailable": false,

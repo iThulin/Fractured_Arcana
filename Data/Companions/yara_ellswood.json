@@ -4,6 +4,7 @@
 	"school": "None",
 	"unitClass": "Ranger",
 	"personalityTrait": "Loyal",
+	"vocation": "Scout",
 	"backstory": "A king's forester who quit the day she was ordered to look the other way. She reads a treeline the way clerks read contracts, and keeps her word the same way.",
 	"recruitmentCost": 85,
 	"isAvailable": true,

@@ -57,7 +57,13 @@ public static class FieldMarch
     /// is slower over a long haul and more responsive over a short one. Crossing
     /// the continent on foot is meant to be a bad idea, which is what makes the
     /// castle's node worth having.</para></summary>
-    public const int TilesPerLunation = 8;
+    public const int TilesPerLunation = CalendarState.DaysPerLunation / DaysPerTile;
+
+    /// <summary>Days on foot per world tile (2026-09-23, the day clock). Four,
+    /// so a month is seven tiles: one fewer than the eight the lunation tick
+    /// walked, and the interception table in FieldThreats counts tiles, so it
+    /// is unaffected.</summary>
+    public const int DaysPerTile = 4;
 
     /// <summary>Radius charted along the party's route. ONE, against the
     /// castle's two: a handful of people on foot see less than a fortress with a
@@ -86,6 +92,11 @@ public static class FieldMarch
             reason = $"The party is {FieldWork.Describe(party)}. Stop the work first.";
             return false;
         }
+        if (WorldClock.PartyBusy(cycle, party))
+        {
+            reason = $"The party is still out on their last dive; {party.BusyUntilDay - WorldClock.Now(cycle)} day(s) until they are free.";
+            return false;
+        }
         if (party.X < 0 || party.Y < 0)
         {
             reason = "The party has not taken the field yet.";
@@ -99,6 +110,11 @@ public static class FieldMarch
     {
         if (!CanOrderAtAll(cycle, party, out reason))
         {
+            return false;
+        }
+        if (FieldPostings.IsDetachment(party))
+        {
+            reason = "A detachment does not move. Collect it with the party, or recall it through a waystone.";
             return false;
         }
         if (!cycle.World.InBounds(x, y))
@@ -129,6 +145,15 @@ public static class FieldMarch
     }
 
     /// <summary>Lunations a march to this tile would take.</summary>
+    public static int DaysTo(CycleState cycle, FieldParty party, int x, int y)
+    {
+        if (cycle?.World == null || party == null)
+        {
+            return 0;
+        }
+        return cycle.World.HexDistance(party.X, party.Y, x, y) * DaysPerTile;
+    }
+
     public static int LunationsTo(CycleState cycle, FieldParty party, int x, int y)
     {
         if (cycle?.World == null || party == null || TilesPerLunation <= 0)
@@ -183,20 +208,22 @@ public static class FieldMarch
         // counter and it is read that way by FieldThreats, whose per-unit risk
         // means the same thing either way: a longer road is a riskier one.
         party.TravelPhasesRemaining = dist;
+        party.TravelDayAccum = 0;
 
         string line = $"{party.Name} sets out for ({x},{y}): {dist} tile(s), "
-                    + $"about {LunationsTo(cycle, party, x, y)} lunation(s).{carried}";
+                    + $"{DaysTo(cycle, party, x, y)} day(s) on foot.{carried}";
         GD.Print($"[FieldMarch] {line}");
         return line;
     }
 
-    /// <summary>Advance every marching party by one lunation. Called from the
-    /// world tick AFTER FieldThreats has rolled, so a party turned back on the
-    /// road does not also take a step along it.
-    ///
-    /// <para>Steps along the straight line toward the destination and charts a
-    /// thin corridor behind them. Returns a line for the report, or null.</para></summary>
-    public static string Tick(CycleState cycle)
+    /// <summary>Advance every marching party by ONE DAY (2026-09-23, the day
+    /// clock; this replaced the per-lunation Tick). A party steps one tile
+    /// every DaysPerTile days, along the straight line toward the destination,
+    /// charting a thin corridor behind them. Called from WorldClock.StepDay.
+    /// FieldThreats still rolls at the new moon against tiles left, so a party
+    /// turned back on the road is turned back at the moon, as before.
+    /// Returns a line for the report on arrival, or null.</summary>
+    public static string StepDay(CycleState cycle)
     {
         if (cycle?.FieldParties == null || cycle.World == null)
         {
@@ -215,21 +242,25 @@ public static class FieldMarch
                 // A destination that went missing is a stop, not a crash.
                 party.State = FieldPartyState.AtAnchor;
                 party.TravelPhasesRemaining = 0;
+                party.TravelDayAccum = 0;
                 continue;
             }
 
-            int remaining = cycle.World.HexDistance(party.X, party.Y, party.DestX, party.DestY);
-            int step = remaining <= TilesPerLunation ? remaining : TilesPerLunation;
-            int fromX = party.X, fromY = party.Y;
+            party.TravelDayAccum++;
+            if (party.TravelDayAccum < DaysPerTile)
+            {
+                continue;
+            }
+            party.TravelDayAccum = 0;
 
-            var (nx, ny) = StepToward(cycle.World, party.X, party.Y, party.DestX, party.DestY, step);
+            int fromX = party.X, fromY = party.Y;
+            var (nx, ny) = StepToward(cycle.World, party.X, party.Y, party.DestX, party.DestY, 1);
             party.X = nx;
             party.Y = ny;
             ChartCorridor(cycle.World, fromX, fromY, nx, ny);
 
-            remaining = cycle.World.HexDistance(party.X, party.Y, party.DestX, party.DestY);
+            int remaining = cycle.World.HexDistance(party.X, party.Y, party.DestX, party.DestY);
             party.TravelPhasesRemaining = remaining;
-
             if (remaining > 0)
             {
                 continue;
@@ -246,6 +277,7 @@ public static class FieldMarch
     {
         party.State = FieldPartyState.AtAnchor;
         party.TravelPhasesRemaining = 0;
+        party.TravelDayAccum = 0;
         party.DestX = -1;
         party.DestY = -1;
         party.DestinationAnchorKey = "";
@@ -268,21 +300,34 @@ public static class FieldMarch
     /// the hold rides on and the report says so rather than silently keeping it.</summary>
     public static string BankHere(CycleState cycle, FieldParty party, AnchorRef here)
     {
+        // Field Party v1 (2026-09-24): an overrun outpost is retaken by
+        // standing on it. Both arrival and teleport come through here.
+        string retaken = PostingThreats.Resecure(cycle, party.X, party.Y);
+        string prefix = string.IsNullOrEmpty(retaken) ? "" : " " + retaken;
+        // Contact by foot: reaching a Concord node once is what opens the
+        // Veiled Concord (espionage spec 3a, "mirrors court first contact").
+        // The node was unreachable outside debug until this line.
+        string concord = FieldPostings.ContactConcordAt(cycle, party.X, party.Y);
+        if (!string.IsNullOrEmpty(concord))
+        {
+            prefix += " " + concord;
+        }
+
         var carrying = party.Carrying;
         if (carrying == null || carrying.IsEmpty)
         {
-            return "";
+            return prefix;
         }
         if (here == null || here.Kind != AnchorKind.Staging)
         {
-            return $" They still carry {carrying}, with nowhere here to bank it.";
+            return $"{prefix} They still carry {carrying}, with nowhere here to bank it.";
         }
 
         cycle.Gold += carrying.Gold;
         cycle.ArcaneSplinters += carrying.Splinters;
         cycle.BuildMaterials += carrying.Materials;
         cycle.Supplies += carrying.Supplies;
-        string line = $" The hold is banked: {carrying}.";
+        string line = $"{prefix} The hold is banked: {carrying}.";
         carrying.Clear();
         return line;
     }
@@ -343,6 +388,11 @@ public static class FieldMarch
     {
         if (!CanOrderAtAll(cycle, party, out reason))
         {
+            return false;
+        }
+        if (FieldPostings.IsDetachment(party))
+        {
+            reason = "A detachment does not move. Collect it with the party, or recall it through a waystone.";
             return false;
         }
         if (x == party.X && y == party.Y)

@@ -290,19 +290,64 @@ public static class ExpeditionAnchors
     public static void EnsureFieldPartySited(CycleState cycle)
     {
         var party = EnsurePrimaryParty(cycle);
-        if (party == null || cycle?.World == null || party.X >= 0)
+        if (party == null || cycle?.World == null)
         {
             return;
         }
+        EnsureFieldParties(cycle);
         if (!cycle.World.InBounds(cycle.CastleX, cycle.CastleY))
         {
             return;   // the castle is not sited yet either; next load
         }
-        party.X = cycle.CastleX;
-        party.Y = cycle.CastleY;
-        party.AnchorKey = CastleKeyOf(cycle.CastleX, cycle.CastleY);
-        party.State = FieldPartyState.AtAnchor;
-        GD.Print($"[ExpeditionAnchors] Field party sited with the castle at ({party.X},{party.Y}).");
+        // Every PARTY (never a detachment: those are sited where they were
+        // posted) that has not yet taken the field starts with the castle.
+        foreach (var p in cycle.FieldParties)
+        {
+            if (p == null || p.X >= 0 || !string.IsNullOrEmpty(p.ParentId))
+            {
+                continue;
+            }
+            p.X = cycle.CastleX;
+            p.Y = cycle.CastleY;
+            p.AnchorKey = CastleKeyOf(cycle.CastleX, cycle.CastleY);
+            p.State = FieldPartyState.AtAnchor;
+            GD.Print($"[ExpeditionAnchors] {p.Name} sited with the castle at ({p.X},{p.Y}).");
+        }
+    }
+
+    /// <summary>Field Party v1 (2026-09-24): parties exist up to
+    /// CycleState.MaxFieldParties, which the Grand Hall raises. Never removes
+    /// one: a party the cap no longer covers keeps its people and its place,
+    /// and the cap only stops new ones being made.</summary>
+    public static void EnsureFieldParties(CycleState cycle)
+    {
+        if (cycle?.FieldParties == null)
+        {
+            return;
+        }
+        int have = 0;
+        foreach (var p in cycle.FieldParties)
+        {
+            if (p != null && string.IsNullOrEmpty(p.ParentId))
+            {
+                have++;
+            }
+        }
+        int want = Mathf.Max(1, cycle.MaxFieldParties);
+        for (int n = have + 1; n <= want; n++)
+        {
+            string id = $"field_{n}";
+            if (cycle.FieldParties.Exists(p => p != null && p.Id == id))
+            {
+                continue;
+            }
+            cycle.FieldParties.Add(new FieldParty
+            {
+                Id = id,
+                Name = n == 2 ? "Second Party" : n == 3 ? "Third Party" : $"Party {n}",
+            });
+            GD.Print($"[ExpeditionAnchors] Raised {id}: MaxFieldParties is {want}.");
+        }
     }
 
     // ── Built waypoints ──────────────────────────────────────────────────
@@ -697,6 +742,9 @@ public static class ExpeditionAnchors
         {
             return;
         }
+        // The day clock (2026-09-23): the resupply counts its days from the
+        // camp, not from the next new moon.
+        cycle.CastleRepairDayAccum = 0;
 
         cycle.CastleX = x;
         cycle.CastleY = y;

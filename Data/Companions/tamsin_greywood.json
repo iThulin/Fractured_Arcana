@@ -4,6 +4,7 @@
 	"school": "None",
 	"unitClass": "Fighter",
 	"personalityTrait": "Reckless",
+	"vocation": "Sapper",
 	"backstory": "A hedge-knight who collects stories the way others collect scars, and has plenty of both. She hires on with whoever generates the best material. A guild that argues with the sky, she reckons, is a career.",
 	"recruitmentCost": 85,
 	"isAvailable": false,

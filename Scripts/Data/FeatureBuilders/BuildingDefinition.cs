@@ -142,6 +142,12 @@ public class BuildingTier
     /// BuildingEffectApplier.ApplyCampusEffects onto CycleState.MaxPartySize.</summary>
     public int PartySizeBonus = 0;
 
+    /// <summary>Field Party v1 (2026-09-24): extra field PARTIES (independent
+    /// pieces with their own sortie), accumulated across built tiers onto
+    /// CycleState.MaxFieldParties by ApplyCampusEffects. Ruled: Grand Hall III
+    /// grants one; no new building (campus audit 5A).</summary>
+    public int FieldPartyBonus = 0;
+
     public List<string> RequiredBuildings = new();  // other building ids required
 
     // ── Effects ──────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@
 	"school": "None",
 	"unitClass": "Fighter",
 	"personalityTrait": "Stoic",
+	"vocation": "Warden",
 	"backstory": "Marshal of a province that fell. She held the gate long enough for the granaries to empty into wagons, then walked out behind the last one. Her banner burned with the siege; she has not chosen a new one yet.",
 	"recruitmentCost": 110,
 	"isAvailable": false,

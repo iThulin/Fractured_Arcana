@@ -96,6 +96,7 @@ public static class CandidateGenerator
             IsRecruited = false,
             Loyalty = 50,          // v1 locked: everyone enters at 50
             ArcStage = 0,          // hirelings have no authored arc
+            Vocation = Vocations.Roll(rng),   // 2026-09-25: the market always offers every kind
         };
 
         RollStats(c, rng, quality);

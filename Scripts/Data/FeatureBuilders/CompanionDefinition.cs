@@ -119,6 +119,20 @@ public class Companion
     public int RecruitmentCost = 100;    // gold
     public string UnlockCondition = "";  // human-readable; gameplay logic in Phase 3
 
+    // ── Vocation (2026-09-25, see Vocations.cs) ─────────────────────────
+    /// <summary>What they are good at on the MAP: Quartermaster, Scout,
+    /// Courtier, Warden, Sapper, Physician, or "" for none. Trait owns
+    /// combat; this owns the field postings and never reaches into a fight.
+    /// Authored in the companion JSON; rolled for hirelings; backfilled onto
+    /// older saves from the template.</summary>
+    public string Vocation = "";
+
+    /// <summary>Moons worked at the vocation's own posting. Rank is derived
+    /// (Vocations.RankOf): 1 with the vocation, 2 at Rank2Moons, 3 at
+    /// Rank3Moons. Never shown as a number; shown as Apprentice, Journeyman,
+    /// Master.</summary>
+    public int VocationMoons = 0;
+
     // ── Loyalty tiers (K1, 2026-07-09) ───────────────────────────────────
     // Bands per companion_item_systems v1 (locked, carried in v2.1 §2):
     // Wary 0–24 / Hired 25–49 / Trusted 50–74 / Devoted / Sworn.

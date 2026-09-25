@@ -4,6 +4,7 @@
   "school": "None",
   "unitClass": "Fighter",
   "personalityTrait": "Reckless",
+  "vocation": "Sapper",
   "backstory": "A pit fighter who caught the guild's eye after surviving three rounds against a summoned elemental.",
   "recruitmentCost": 80,
   "isAvailable": false,

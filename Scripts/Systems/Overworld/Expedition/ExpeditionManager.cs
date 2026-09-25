@@ -615,6 +615,9 @@ public partial class ExpeditionManager : Node2D
             if (openSlot != null)
             {
                 openSlot.Active = true;
+                // The day clock (2026-09-23): the sortie's days are counted
+                // from here when it ends, whatever the calendar did meanwhile.
+                openSlot.StartDay = SaveManager.ActiveSave?.Cycle?.Calendar?.AbsoluteDay ?? 0;
             }
             // K2.5: fresh expedition: everyone starts whole. (Combat returns
             // take the other branch and must NOT reset carried HP.)
@@ -678,6 +681,13 @@ public partial class ExpeditionManager : Node2D
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
             WriteVisibleToWorld();
+            // Field Party v1 (2026-09-24): an audience sought from the map
+            // opens its table before the first step. Deferred: the rest of
+            // _Ready still has to run.
+            if (_fieldRun && !string.IsNullOrEmpty(PlayerSession.AudienceEncounterId))
+            {
+                CallDeferred(nameof(OpenAudienceDeferred));
+            }
             // On a warfront the objective banner states all of this permanently and
             // with more precision (side, stakes, distance), so a second line here
             // just said the same thing twice, two inches apart.
@@ -2071,6 +2081,12 @@ public partial class ExpeditionManager : Node2D
         {
             EndStride($"The next tile costs {nextCost} and the furnace holds {StepsRemaining}. A march never burns Hull to press on.",
                       "Furnace spent", HaltTone.Trouble);
+            // If NO neighbour is within reach either, this is the dry furnace
+            // by another road, and the decision it forces is the same one.
+            if (FurnaceEffectivelyDry())
+            {
+                OfferDryFurnaceChoice();
+            }
             return;
         }
 
@@ -2684,8 +2700,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // seconds; real checkpoints (combat entry, outpost, extract) save directly.
         ThrottledAutosave();
 
-        // Range warning + auto-extract offer.
-        if (StepsRemaining == 0 && !ExpeditionComplete)
+        // The dry-furnace decision. "Dry" means CANNOT MOVE, not "reads zero"
+        // (2026-09-23): a stride halts when the next tile costs more than the
+        // tank holds, which leaves the castle at one or two fuel, short of
+        // every neighbour, and until now that state offered nothing but the
+        // Emergency Extract button. The player read that as "the castle ran
+        // out of fuel and asked me to extract", and they were right to.
+        if (!ExpeditionComplete && FurnaceEffectivelyDry())
             OfferDryFurnaceChoice();
 
         CenterCamera();
@@ -3565,6 +3586,46 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         slot.EncountersWon = EncountersWon;
         SaveManager.MarkDirty();
         GD.Print($"[Sortie] Frozen {(_fieldRun ? _fieldPartyId : "castle")}: {slot}");
+    }
+
+    /// <summary>The day clock (2026-09-23): a sortie costs days in proportion
+    /// to the fuel it burned, and the force is busy until they are spent.
+    /// Counted from the day the sortie BEGAN (slot.StartDay), so a run frozen
+    /// for two moons and then walked out is not charged its walking on top of
+    /// the moons it already sat through; never earlier than today. Called on
+    /// every ending path, just before the slot is cleared.</summary>
+    private void ChargeSortieDays()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.Calendar == null)
+        {
+            return;
+        }
+        var slot = ActiveSortieSlot();
+        int now = cycle.Calendar.AbsoluteDay;
+        int startDay = slot != null && slot.StartDay >= 0 ? slot.StartDay : now;
+        int burned = Mathf.Max(0, MaxFuel - StepsRemaining);
+        int days = WorldClock.SortieDays(burned, _fieldRun);
+        int until = Mathf.Max(now, startDay + days);
+        if (_fieldRun)
+        {
+            if (cycle.FieldParties != null)
+            {
+                foreach (var p in cycle.FieldParties)
+                {
+                    if (p != null && p.Id == _fieldPartyId)
+                    {
+                        p.BusyUntilDay = until;
+                    }
+                }
+            }
+        }
+        else
+        {
+            cycle.CastleBusyUntilDay = until;
+        }
+        LogRun("time", $"{burned} {(_fieldRun ? "rations" : "fuel")} burned: {days} day(s); free on day {until} (now {now})");
+        GD.Print($"[Sortie] {(_fieldRun ? _fieldPartyId : "castle")} burned {burned}: {days} day(s), busy until day {until}.");
     }
 
     /// <summary>Clear this force's sortie: it is no longer in the field. Called
@@ -4800,13 +4861,46 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (encounter == null)
         { ShowInfo("A potential contact slips away."); UpdateUI(); return; }
 
+        LaunchNegotiationAt(encounter, coord, KingdomIdAt(coord));
+    }
+
+    /// <summary>Field Party v1 (2026-09-24), "Seek audience": a field deploy
+    /// made from a seat or a contacted city opens its table at once, before
+    /// the party takes a step. Deferred out of _Ready so every node the scene
+    /// built has settled before the scene changes under it. The party stays
+    /// in the field afterwards with its rations, exactly as if it had walked
+    /// onto a Negotiation POI on its first step.</summary>
+    private void OpenAudienceDeferred()
+    {
+        string id = PlayerSession.AudienceEncounterId;
+        string kid = PlayerSession.AudienceKingdomId;
+        PlayerSession.AudienceEncounterId = "";
+        PlayerSession.AudienceKingdomId = "";
+        if (string.IsNullOrEmpty(id) || _party == null)
+        {
+            return;
+        }
+        var encounter = NegotiationEncounterLoader.Load(id);
+        if (encounter == null)
+        {
+            ShowInfo("The court does not receive you today.");
+            return;
+        }
+        LaunchNegotiationAt(encounter, _party.CurrentCoord, kid);
+    }
+
+    /// <summary>The table itself: fill the context, freeze the run into the
+    /// router, change scene. Shared by the Negotiation POI path and the
+    /// audience path so they cannot drift.</summary>
+    private void LaunchNegotiationAt(NegotiationEncounterData encounter, Vector2I coord, string originKingdomId)
+    {
         NegotiationContext.Clear();
         NegotiationContext.EncounterId = encounter.Id;
         NegotiationContext.HexCoordKey = $"{coord.X},{coord.Y}";
         NegotiationContext.NpcArchetype = encounter.Archetype.ToString();
         // Kingdom of the tile we're standing on: drives court-standing
         // starting tension and the deal-deed echo route. "" for wilds.
-        NegotiationContext.OriginKingdomId = KingdomIdAt(coord);
+        NegotiationContext.OriginKingdomId = originKingdomId ?? "";
         ConsumeBeguileIfArmed(); // S3
 
         var router = EncounterRouter.Instance;
@@ -5095,6 +5189,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         DockCastle(bankHold: true);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        ChargeSortieDays();
         EndSortieSlot();   // came home: no longer a force the table can command
 
         if (EncounterRouter.Instance != null)
@@ -5141,11 +5236,46 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// Hull, which in turn lengthens the repair the castle owes when it finally
     /// does park. Asked once per sortie: having chosen to push on, the player is
     /// not nagged every tile.</summary>
+    /// <summary>Out of fuel in the sense that matters: no adjacent dry tile can
+    /// be paid for. Reads zero as dry, and a tank too small for every
+    /// neighbour as dry, because the castle is equally stuck either way.</summary>
+    private bool FurnaceEffectivelyDry()
+    {
+        if (PlayerSession.DebugMode && PlayerSession.UnlimitedSteps)
+        {
+            return false;
+        }
+        if (StepsRemaining <= 0)
+        {
+            return true;
+        }
+        if (_party == null || _grid == null)
+        {
+            return false;
+        }
+        foreach (var nb in _grid.GetNeighbors(_party.CurrentCoord))
+        {
+            if (TryTileAt(nb, out var t) && t.IsWater)
+            {
+                continue;
+            }
+            if (StrideEdgeCost(_party.CurrentCoord, nb) <= StepsRemaining)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void OfferDryFurnaceChoice()
     {
         if (ExpeditionComplete || _pushingOnDry)
         {
             return;
+        }
+        if (_dryFurnaceConfirm != null && _dryFurnaceConfirm.Visible)
+        {
+            return;   // already asking
         }
         // Same decision, two fictions. A field party cannot make camp and
         // become a waypoint: a waypoint is a thing the castle CONJURES, and a
@@ -5162,9 +5292,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _dryFurnaceConfirm.Title = "The rations are gone";
             _dryFurnaceConfirm.OkButtonText = "Turn back";
             _dryFurnaceConfirm.CancelButtonText = "Push on";
+            string walkOut = OnSupplyAnchor()
+                ? "Turn back now: they are standing on an anchor and walk out clean with what they carry."
+                : "Turn back now and they straggle home overland: a lunation passes, and every "
+                  + "companion risks injury on the road. What they carry comes with them.";
             _dryFurnaceConfirm.DialogText =
                 "The party is out of rations and cannot work this ground any longer.\n\n" +
-                "Turn back now and they walk out with what they are carrying.\n\n" +
+                walkOut + "\n\n" +
                 $"Or push on hungry: every further tile costs {ExhaustionDamagePerStep} Health, "
                 + "and nothing restores it out here.";
             _dryFurnaceConfirm.PopupCentered();
@@ -5180,8 +5314,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _dryFurnaceConfirm.Title = "The furnace is dry";
         _dryFurnaceConfirm.OkButtonText = "Make camp";
         _dryFurnaceConfirm.CancelButtonText = "Push on";
+        string dryHow = StepsRemaining > 0
+            ? $"The furnace holds {StepsRemaining} fuel and no tile around the castle costs so little. It can go no further under its own power."
+            : "The furnace is dry and the castle can go no further under its own power.";
         _dryFurnaceConfirm.DialogText =
-            "The furnace is dry and the castle can go no further under its own power.\n\n" +
+            dryHow + "\n\n" +
             "Make camp here: this ground becomes a waypoint. Work crews teleport in to " +
             "refuel, restock and carry the hold home, and the castle is exposed while they do.\n\n" +
             $"Or push on: every further tile costs {ExhaustionDamagePerStep} Hull, and every point of " +
@@ -5196,7 +5333,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (_fieldRun)
         {
-            OnExtractPressed();
+            // ONE decision. The dry-rations dialog already named the straggle
+            // cost, so routing through the Emergency Extraction confirm asked
+            // the same question twice with different words (2026-09-23).
+            if (OnSupplyAnchor())
+            {
+                Extract();
+            }
+            else
+            {
+                EmergencyExtract("The rations ran out and the party turned back.");
+            }
             return;
         }
         ParkCastle();
@@ -5306,6 +5453,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_striding) EndStride(null);   // a run-end cancels any march
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        ChargeSortieDays();
         EndSortieSlot();   // came home: no longer a force the table can command
 
         if (EncounterRouter.Instance != null)
@@ -5383,6 +5531,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         DockCastle(bankHold: true);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        ChargeSortieDays();
         EndSortieSlot();   // came home: no longer a force the table can command
 
         if (EncounterRouter.Instance != null)
@@ -5437,6 +5586,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         DockCastle(bankHold: false);
         ExpeditionComplete = true;
         PlayerSession.IsOnExpedition = false;
+        ChargeSortieDays();
         EndSortieSlot();   // came home: no longer a force the table can command
 
         // K2 (§5b): the pool hit 0, an expedition wipe. One roll per fielded
@@ -6119,6 +6269,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 {
                     status = $"({cycle.CastleX},{cycle.CastleY})  resupply, {cycle.CastleRepairLunations} lunation(s)";
                 }
+                else if (WorldClock.CastleBusy(cycle))
+                {
+                    status = $"returning, {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s)";
+                }
                 else if (cycle.CastleParked)
                 {
                     status = $"({cycle.CastleX},{cycle.CastleY})  parked";
@@ -6162,6 +6316,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     else if (p.State == FieldPartyState.Working)
                     {
                         status = $"({p.X},{p.Y})  {FieldWork.Describe(p)}";
+                    }
+                    else if (WorldClock.PartyBusy(cycle, p))
+                    {
+                        status = $"({p.X},{p.Y})  returning, {p.BusyUntilDay - WorldClock.Now(cycle)} day(s)";
                     }
                     else
                     {
@@ -6409,7 +6567,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 var slot = p.Sortie;
                 bool inField = slot != null && slot.IsLive();
                 bool canSend = !inField && p.State == FieldPartyState.AtAnchor
-                               && p.X >= 0 && (cycle.ExpeditionTurn?.CanDive ?? false);
+                               && p.X >= 0 && !WorldClock.PartyBusy(cycle, p);
 
                 string line;
                 if (isActiveView) { line = "You are watching them."; }
@@ -6432,17 +6590,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                                           slot.StagingX, slot.StagingY, slot.WindowRadius);
                             return;
                         }
-                        // Sending costs an expedition, spent HERE so the cost is
-                        // paid at the moment of the decision rather than in the
-                        // scene that results from it.
-                        cycle.ExpeditionTurn ??= new ExpeditionTurnState();
-                        cycle.ExpeditionTurn.BeginLunation(cycle.Calendar?.CurrentLunation ?? 0);
-                        if (!cycle.ExpeditionTurn.CanDive)
+                        // The day clock: the dive's days are charged when it
+                        // ends; a busy party was not offered (canSend).
+                        if (WorldClock.PartyBusy(cycle, party))
                         {
-                            ShowInfo("No expeditions left this moon.");
+                            ShowInfo("They are still out from their last dive.");
                             return;
                         }
-                        cycle.ExpeditionTurn.DivesSpent++;
                         SwitchToForce(ExpeditionRunKind.Field, party.Id, party.X, party.Y, 0);
                     });
             }
@@ -8408,8 +8562,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var save = SaveManager.ActiveSave;
         if (save == null)
             return;
+        // The RUN's roster, not the castle's crew (2026-09-24): on a field
+        // dive ActivePartyCompanionIds is the crew back at the fortress, so a
+        // field party's equipment was never built for its own run.
         EquipmentLoadout.BuildForRun(save.Armory, "wizard",
-            save.ActivePartyCompanionIds ?? new List<string>());
+            CompanionRoster.RunRosterIds(save) ?? new List<string>());
 
         // Q3 (§4b) readout: party traversal resistance at a glance, once at deploy.
         int cw = EquipmentLoadout.PartyCorruptionWard();

@@ -4,6 +4,7 @@
   "school": "Enchanter",
   "unitClass": "Arcane",
   "personalityTrait": "Cunning",
+  "vocation": "Courtier",
   "backstory": "A negotiator's protégé, offered across the table as part of a bargain struck in good humor. She considers herself the best clause in that contract.",
   "recruitmentCost": 0,
   "isAvailable": false,

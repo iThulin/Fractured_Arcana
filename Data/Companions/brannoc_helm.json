@@ -4,6 +4,7 @@
 	"school": "None",
 	"unitClass": "Fighter",
 	"personalityTrait": "Stoic",
+	"vocation": "Warden",
 	"backstory": "The castle's helmsman. He was walking it before the guild had a name, and he has never once asked where it was going. When the walls are attacked he holds the courtyard until the wizard arrives, and he has not yet failed to.",
 	"recruitmentCost": 0,
 	"isAvailable": false,

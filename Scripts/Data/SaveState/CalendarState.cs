@@ -87,6 +87,18 @@ public class CalendarState
     /// <summary>Current lunation, 1-based.</summary>
     public int CurrentLunation = 1;
 
+    /// <summary>Days in a lunation. Ruled 2026-09-23 (Magos): the lunation is
+    /// a month, not the unit of decision. Orders cost DAYS; the world still
+    /// changes at the new moon. 28 because it divides cleanly by the party's
+    /// four days a tile, and because a game-day is a game unit, not an
+    /// ephemeris.</summary>
+    public const int DaysPerLunation = 28;
+
+    /// <summary>Day within the current lunation, 0-based (displayed +1). 0 is
+    /// the new moon. Additive field: saves from before the day clock read 0,
+    /// which is where whole-lunation deploys always left the calendar.</summary>
+    public int DayOfLunation = 0;
+
     /// <summary>
     /// Lunations in this cycle before the Grand Conjunction. Default 12.
     /// The single most important pacing knob in the game.
@@ -133,6 +145,16 @@ public class CalendarState
 
     [System.Text.Json.Serialization.JsonIgnore]
     public string CurrentPhaseSchool => PhaseSchools[CurrentPhase];
+
+    /// <summary>Days since the cycle began. The one number every schedule is
+    /// written against: a force is busy UNTIL an absolute day, work finishes
+    /// ON an absolute day, so nothing has to be re-based when the moon turns.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int AbsoluteDay => (CurrentLunation - 1) * DaysPerLunation + DayOfLunation;
+
+    /// <summary>Days until the next new moon (1..DaysPerLunation).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int DaysToNewMoon => DaysPerLunation - DayOfLunation;
 
     /// <summary>True when the calendar has run out: the Conjunction is here.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -190,8 +212,33 @@ public class CalendarState
         TotalPhasesElapsed += phasesToNextNewMoon;
 
         CurrentPhase = 0;
+        DayOfLunation = 0;   // a lunation jump lands on the new moon
         CurrentLunation++;
 
+        return true;
+    }
+
+    /// <summary>Advance one day. Returns true when this day is a NEW MOON,
+    /// which is the caller's signal to run the per-lunation world tick, the
+    /// same contract as AdvanceLunation. Does nothing at the Conjunction.</summary>
+    public bool AdvanceDay()
+    {
+        if (ConjunctionReached)
+        {
+            return false;
+        }
+        DayOfLunation++;
+        if (DayOfLunation < DaysPerLunation)
+        {
+            // Keep the eight named phases roughly in step with the day, so a
+            // future phase-keyed mechanic reads something sensible.
+            CurrentPhase = DayOfLunation * PhasesPerLunation / DaysPerLunation;
+            return false;
+        }
+        DayOfLunation = 0;
+        CurrentPhase = 0;
+        CurrentLunation++;
+        TotalPhasesElapsed += PhasesPerLunation;
         return true;
     }
 

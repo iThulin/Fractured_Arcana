@@ -4403,10 +4403,18 @@ public partial class CombatManager : Node3D
         // Player_1 is the wizard; companions would use their companion ID.
         // For now all player units map to "wizard" until companion units
         // are spawned as separate entities with their own IDs.
+        // 2026-09-24: loadouts are keyed by COMPANION ID (Armory.Loadouts and
+        // EquipmentLoadout.BuildForRun both use it), and the units carry it in
+        // CompanionId. "companion_{i}" matched nothing, so no companion ever
+        // received an equipment bonus in combat.
         for (int i = 0; i < playerUnits.Count; i++)
         {
-            string unitId = i == 0 ? "wizard" : $"companion_{i}";
-            ApplyEquipmentLoadout(playerUnits[i], unitId);
+            var pu = playerUnits[i];
+            // The wizard is the unit with no CompanionId, wherever it sits in
+            // the list: on a field run the wizard is not there at all and
+            // index 0 is a companion.
+            string unitId = string.IsNullOrEmpty(pu.CompanionId) ? "wizard" : pu.CompanionId;
+            ApplyEquipmentLoadout(pu, unitId);
         }
 
         // Default encounter composition, to be replaced by EncounterDefinition

@@ -226,11 +226,15 @@ public partial class HudManager : Node
         }
         var save = SaveManager.ActiveSave;
         int lun = 0;
+        int day = 0;
         var cycle = save?.Cycle;
         if (cycle != null)
         {
             lun = cycle.Calendar.CurrentLunation;
+            day = cycle.Calendar.DayOfLunation + 1;
         }
+        // The day clock (2026-09-23): lunation and day share one change key.
+        int lunKey = lun * 100 + day;
 
         // Expedition-carried spoils (2026-07-29 playtest request, extended
         // 2026-08-05 to all three currencies): a run's earnings are only
@@ -239,10 +243,10 @@ public partial class HudManager : Node
         // "+N" next to each treasury total so the stake stays visible.
         var (pGold, pSplinters, pMaterials, pSupplies) = GetExpeditionPending();
 
-        if (force || lun != _lastLunation)
+        if (force || lunKey != _lastLunation)
         {
-            _lunationLabel.Text = $"Lunation  {lun}";
-            _lastLunation = lun;
+            _lunationLabel.Text = $"Lunation  {lun}  ·  day {day}";
+            _lastLunation = lunKey;
         }
         UpdateReadout(_gold, "Gold", save?.Gold ?? 0, pGold, force);
         UpdateReadout(_splinters, "Splinters", save?.ArcaneSplinters ?? 0, pSplinters, force);

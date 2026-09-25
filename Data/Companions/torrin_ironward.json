@@ -4,6 +4,7 @@
 	"school": "None",
 	"unitClass": "Fighter",
 	"personalityTrait": "Stoic",
+	"vocation": "Warden",
 	"backstory": "A farmer who picked up a spear when bandits burned his village. He never put it down.",
 	"recruitmentCost": 60,
 	"isAvailable": true,

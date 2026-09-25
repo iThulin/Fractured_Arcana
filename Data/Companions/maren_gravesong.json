@@ -4,6 +4,7 @@
   "school": "Necromancer",
   "unitClass": "Arcane",
   "personalityTrait": "Stoic",
+  "vocation": "Physician",
   "backstory": "She walks the corrupted places to record the names of the dead nobody else will. Her ledger is longer than most libraries.",
   "recruitmentCost": 140,
   "isAvailable": false,

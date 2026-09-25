@@ -4,6 +4,7 @@
   "school": "None",
   "unitClass": "Ranger",
   "personalityTrait": "Curious",
+  "vocation": "Scout",
   "backstory": "A fletcher's apprentice who kept sneaking off to watch monsters instead of making arrows for them. He knows more bestiary than most scholars and more escape routes than most thieves.",
   "recruitmentCost": 70,
   "isAvailable": false,

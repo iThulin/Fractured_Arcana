@@ -242,6 +242,12 @@ public class ShardZone
     /// <summary>True once the shard has been taken (fragment_&lt;key&gt;_collected).</summary>
     public bool ShardCollected = false;
 
+    /// <summary>True once a field party has finished surveying the zone
+    /// (FieldPostings, 2026-09-24): every footprint tile Explored and the
+    /// guardian's composition known. The seam the acquisition spec's Commune
+    /// and Sanctioned paths will read.</summary>
+    public bool Surveyed = false;
+
     /// <summary>Every tile in this zone's footprint (offset coords).</summary>
     public List<(int x, int y)> Tiles = new();
 }

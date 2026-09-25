@@ -196,8 +196,38 @@ public class FieldParty
     /// what it yields are the zone rulings still to be made.</summary>
     public string WorkKind = "";
     public string WorkZoneId = "";
-    public int WorkLunationsLeft = 0;
-    public int WorkLunationsTotal = 0;
+    public int WorkDaysLeft = 0;
+    public int WorkDaysTotal = 0;
+
+    /// <summary>Field Party v1 (2026-09-24, docs/field_party_task_force_spec_v1):
+    /// a DETACHMENT is a FieldParty with this set to the id of the party it was
+    /// split from. It stands where it was posted, cannot march or take the
+    /// field, and does not count against MaxFieldParties. Empty for a party.
+    /// Same struct on purpose: ReconcilePostings, the roster, SetPieces and the
+    /// save assert all iterate FieldParties already, so a detachment is
+    /// reachable everywhere the moment its id exists.</summary>
+    public string ParentId = "";
+
+    /// <summary>True when the treasury could not pay this posting's Supplies at
+    /// the last new moon. A stalled posting keeps its place and does no work;
+    /// it never ends for want of coin (spec 5.2).</summary>
+    public bool WorkStalled = false;
+
+    /// <summary>Accumulator for postings that count something across moons: a
+    /// survey's explored rings, a held line's moons toward the ally's echo.</summary>
+    public int WorkProgress = 0;
+
+    /// <summary>WarfrontSide as an int for Hold the line (0 Defend, 2 Aid).
+    /// Int rather than the enum so the save carries no new enum converter.</summary>
+    public int WorkSide = 0;
+
+    /// <summary>Absolute day the party is next free to be ordered; the days a
+    /// dive cost, charged when it ends. 0 means free.</summary>
+    public int BusyUntilDay = 0;
+
+    /// <summary>Days walked toward the next tile of a march. The party steps
+    /// one tile every FieldMarch.DaysPerTile days; this is the remainder.</summary>
+    public int TravelDayAccum = 0;
 
     /// <summary>This party's frozen run, when it is in the field and the table
     /// is currently watching something else.</summary>
@@ -308,10 +338,16 @@ public class SortieState
     /// resumed and driven, so the clock counts neglect, not deployment.</summary>
     public int LunationsFrozen = 0;
 
+    /// <summary>Absolute day the sortie began. The days it costs are counted
+    /// from here, not from when it ends, so a run frozen for two moons and then
+    /// finished does not charge its walking on top of the moons it sat.</summary>
+    public int StartDay = -1;
+
     public void Clear()
     {
         Active = false;
         LunationsFrozen = 0;
+        StartDay = -1;
         X = -1; Y = -1;
         StagingX = -1; StagingY = -1;
         WindowRadius = 0;

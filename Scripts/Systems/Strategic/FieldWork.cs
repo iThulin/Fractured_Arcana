@@ -23,9 +23,9 @@ using Godot;
 
 public static class FieldWork
 {
-    /// <summary>Longest job the skeleton accepts. A guard against a typo, not
-    /// a design number.</summary>
-    public const int MaxLunations = 8;
+    /// <summary>Longest job the skeleton accepts, in days. A guard against a
+    /// typo, not a design number.</summary>
+    public const int MaxDays = 8 * CalendarState.DaysPerLunation;
 
     /// <summary>Can this party be put to work where it stands, and if not why.</summary>
     public static bool CanBegin(CycleState cycle, FieldParty party, out string reason)
@@ -44,20 +44,23 @@ public static class FieldWork
 
     /// <summary>Put the party to work. Returns the report line, or null when
     /// refused.</summary>
-    public static string Begin(CycleState cycle, FieldParty party, string kind, string zoneId, int lunations)
+    public static string Begin(CycleState cycle, FieldParty party, string kind, string zoneId, int days)
     {
         if (!CanBegin(cycle, party, out _))
         {
             return null;
         }
-        lunations = Mathf.Clamp(lunations, 1, MaxLunations);
+        // Field Party v1 (2026-09-24): 0 days is OPEN-ENDED. A garrison or a
+        // held line runs until stopped; StepDay does not count it down.
+        days = days <= 0 ? 0 : Mathf.Clamp(days, 1, MaxDays);
         party.State = FieldPartyState.Working;
         party.WorkKind = string.IsNullOrEmpty(kind) ? "work" : kind;
         party.WorkZoneId = zoneId ?? "";
-        party.WorkLunationsLeft = lunations;
-        party.WorkLunationsTotal = lunations;
-        GD.Print($"[FieldWork] {party.Name} begins {party.WorkKind} at {party.WorkZoneId} for {lunations} lunation(s).");
-        return $"{party.Name} begins {Verb(party.WorkKind)} at ({party.X},{party.Y}): {lunations} lunation(s).";
+        party.WorkDaysLeft = days;
+        party.WorkDaysTotal = days;
+        string span = days > 0 ? $"{days} day(s)" : "until recalled";
+        GD.Print($"[FieldWork] {party.Name} begins {party.WorkKind} at {party.WorkZoneId}, {span}.");
+        return $"{party.Name} begins {Verb(party.WorkKind)} at ({party.X},{party.Y}): {span}.";
     }
 
     /// <summary>Stop the job. Nothing is yielded from a job abandoned; the
@@ -69,15 +72,16 @@ public static class FieldWork
             return null;
         }
         string kind = party.WorkKind;
-        int done = party.WorkLunationsTotal - party.WorkLunationsLeft;
+        int done = party.WorkDaysTotal - party.WorkDaysLeft;
         ClearWork(party);
-        GD.Print($"[FieldWork] {party.Name} stops {kind} after {done} lunation(s).");
-        return $"{party.Name} stops {Verb(kind)} after {done} lunation(s). Nothing comes of it.";
+        GD.Print($"[FieldWork] {party.Name} stops {kind} after {done} day(s).");
+        return $"{party.Name} stops {Verb(kind)} after {done} day(s). Nothing comes of it.";
     }
 
-    /// <summary>One lunation for every working party. Returns a joined report
-    /// line for the map, or null when nobody was working.</summary>
-    public static string Tick(CycleState cycle)
+    /// <summary>One DAY for every working party. Returns a line per job that
+    /// finished, or null. Jobs in progress say nothing: the roster shows the
+    /// clock, and a line a day would bury the events that matter.</summary>
+    public static string StepDay(CycleState cycle)
     {
         if (cycle?.FieldParties == null)
         {
@@ -90,18 +94,18 @@ public static class FieldWork
             {
                 continue;
             }
-            // Cost goes HERE when the ration ruling lands: a per-party pool
-            // drawn down per lunation, refilled at a parked castle or a dock.
-            party.WorkLunationsLeft = Mathf.Max(0, party.WorkLunationsLeft - 1);
-            string line;
-            if (party.WorkLunationsLeft > 0)
+            // Cost is paid at the new moon in Supplies (FieldPostings.TickLunation),
+            // not here: the day clock only counts a timed job down.
+            if (party.WorkDaysTotal <= 0)
             {
-                line = $"{party.Name}: {Verb(party.WorkKind)}, {party.WorkLunationsLeft} lunation(s) to go.";
+                continue;   // open-ended: a garrison or a held line never "finishes"
             }
-            else
+            party.WorkDaysLeft = Mathf.Max(0, party.WorkDaysLeft - 1);
+            if (party.WorkDaysLeft > 0)
             {
-                line = OnComplete(cycle, party);
+                continue;
             }
+            string line = OnComplete(cycle, party);
             report = report == null ? line : report + "\n" + line;
         }
         return report;
@@ -114,11 +118,16 @@ public static class FieldWork
         string kind = party.WorkKind;
         string zone = party.WorkZoneId;
         ClearWork(party);
+        // Field Party v1 (2026-09-24): the postings own their completions.
+        // A survey is the only timed one so far; the open-ended kinds never
+        // reach here.
+        string posted = FieldPostings.OnComplete(cycle, party, kind, zone);
+        if (posted != null)
+        {
+            return posted;
+        }
         switch (kind)
         {
-            // case "salvage": shard fragment zone ruling goes here.
-            // case "resupply": depot ruling goes here.
-            // case "trade": city ruling goes here.
             default:
                 ScryInbox.Post(cycle, ScryChannel.Note,
                                $"{party.Name}, work done",
@@ -132,15 +141,20 @@ public static class FieldWork
     public static string Describe(FieldParty p)
         => p == null || p.State != FieldPartyState.Working
             ? ""
-            : $"{Verb(p.WorkKind)}, {p.WorkLunationsLeft} of {p.WorkLunationsTotal} lunation(s) left";
+            : p.WorkDaysTotal > 0
+                ? $"{Verb(p.WorkKind)}, {p.WorkDaysLeft} of {p.WorkDaysTotal} day(s) left"
+                : $"{Verb(p.WorkKind)}, until recalled";
 
     private static void ClearWork(FieldParty party)
     {
         party.State = FieldPartyState.AtAnchor;
         party.WorkKind = "";
         party.WorkZoneId = "";
-        party.WorkLunationsLeft = 0;
-        party.WorkLunationsTotal = 0;
+        party.WorkDaysLeft = 0;
+        party.WorkDaysTotal = 0;
+        party.WorkStalled = false;
+        party.WorkProgress = 0;
+        party.WorkSide = 0;
     }
 
     private static string Verb(string kind)
@@ -148,9 +162,9 @@ public static class FieldWork
         switch (kind)
         {
             case "survey": return "surveying";
-            case "salvage": return "salvaging";
-            case "resupply": return "resupplying";
-            case "trade": return "trading";
+            case "garrison": return "garrisoning";
+            case "hold": return "holding the line";
+            case "siege": return "besieging";
             default: return string.IsNullOrEmpty(kind) ? "working" : kind;
         }
     }

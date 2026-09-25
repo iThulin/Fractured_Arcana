@@ -4,6 +4,7 @@
 	"school": "None",
 	"unitClass": "Arcane",
 	"personalityTrait": "Curious",
+	"vocation": "Physician",
 	"backstory": "A copyist who keeps finding her own handwriting in books she never wrote. She has started leaving notes for whoever keeps borrowing her hand. Nobody has ever met her in a first rendering.",
 	"recruitmentCost": 100,
 	"isAvailable": false,

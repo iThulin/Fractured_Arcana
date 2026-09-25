@@ -176,9 +176,15 @@ public static class ImbuementField
 
         _tex.Update(_img);
 
-        GD.Print($"[ImbuementField] {(element == TileElementType.None ? "cleared" : "stamped")} " +
-                 $"({worldPos.X:F2}, {worldPos.Z:F2}) {element} -> channel {ChannelOf(element)} " +
-                 $"at {StrengthOf(element):F2}. {_stamps.Count} live.");
+        // Per-stamp trace, DebugMode only (2026-09-24). Several hundred of
+        // these print on every scene load and were burying the five lines that
+        // mattered in each play log.
+        if (PlayerSession.DebugMode)
+        {
+            GD.Print($"[ImbuementField] {(element == TileElementType.None ? "cleared" : "stamped")} " +
+                     $"({worldPos.X:F2}, {worldPos.Z:F2}) {element} -> channel {ChannelOf(element)} " +
+                     $"at {StrengthOf(element):F2}. {_stamps.Count} live.");
+        }
     }
 
     /// <summary>Forgets every stamp and clears the field. Call when leaving combat.</summary>

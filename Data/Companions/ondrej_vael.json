@@ -4,6 +4,7 @@
   "school": "Arcanist",
   "unitClass": "Arcane",
   "personalityTrait": "Stoic",
+  "vocation": "Courtier",
   "backstory": "An adept seconded to the guild when his school united behind its archmage. He treats every spell like a ledger entry: nothing cast that is not accounted for.",
   "recruitmentCost": 0,
   "isAvailable": false,

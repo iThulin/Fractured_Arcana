@@ -4,6 +4,7 @@
   "school": "None",
   "unitClass": "Ranger",
   "personalityTrait": "Cunning",
+  "vocation": "Scout",
   "backstory": "A poacher turned scout. She knows seventeen ways to kill something before it knows she's there.",
   "recruitmentCost": 80,
   "isAvailable": false,

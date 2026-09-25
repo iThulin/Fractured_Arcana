@@ -106,6 +106,10 @@ public static class BuildingEffectApplier
         // Reset to defaults before recomputing
         save.MinDeckSize = 5;
         save.MaxPartySize = 2;   // §4a baseline; growth is bought below
+        if (save.Cycle != null)
+        {
+            save.Cycle.MaxFieldParties = 1;   // Field Party v1 baseline; the Grand Hall buys more
+        }
 
         foreach (var buildingSave in save.Buildings)
         {
@@ -127,6 +131,10 @@ public static class BuildingEffectApplier
 
                 // (2026-08-13) Party-size growth via campus. §4a's lever.
                 save.MaxPartySize += tier.PartySizeBonus;
+                if (save.Cycle != null)
+                {
+                    save.Cycle.MaxFieldParties += tier.FieldPartyBonus;
+                }
             }
         }
     }

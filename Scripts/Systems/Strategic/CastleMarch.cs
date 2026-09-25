@@ -114,6 +114,11 @@ public static class CastleMarch
             reason = $"The crews are still at work: {cycle.CastleRepairLunations} lunation(s) of resupply left.";
             return false;
         }
+        if (WorldClock.CastleBusy(cycle))
+        {
+            reason = $"The castle is still coming in from its last sortie: {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s).";
+            return false;
+        }
         if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
         {
             reason = "There are soldiers in the camp. Answer them before you move.";

@@ -242,6 +242,17 @@ public static class PlayerSession
     /// a campus upgrade and the turn loop already iterates the list.</summary>
     public static string ExpeditionFieldPartyId = "";
 
+    /// <summary>Field Party v1 (2026-09-24), "Seek audience": a negotiation
+    /// encounter id the expedition scene should open at once on a fresh field
+    /// deploy, before the party takes a step. Set by StrategicView from a seat
+    /// or a contacted city; consumed and cleared by ExpeditionManager. A scene
+    /// argument, not save state, so it lives here beside the run kind.</summary>
+    public static string AudienceEncounterId = "";
+
+    /// <summary>The kingdom whose court the audience is with; becomes
+    /// NegotiationContext.OriginKingdomId so standing and echoes route.</summary>
+    public static string AudienceKingdomId = "";
+
     /// <summary>Set when the expedition scene is being reloaded because the
     /// SCRYING TABLE was aimed at a different force, rather than because a new
     /// expedition is launching.

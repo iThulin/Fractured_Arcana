@@ -4,6 +4,7 @@
 	"school": "None",
 	"unitClass": "Fighter",
 	"personalityTrait": "Loyal",
+	"vocation": "Quartermaster",
 	"backstory": "Twelve years a caravan guard on the same route, for the same family. When the family sold the route, she went looking for something else worth standing in front of.",
 	"recruitmentCost": 90,
 	"isAvailable": true,

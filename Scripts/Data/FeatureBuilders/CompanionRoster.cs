@@ -64,6 +64,7 @@ public static class CompanionRoster
                     BaseAttackRange = template.BaseAttackRange,
                     BaseMana = template.BaseMana,
                     SignatureStanceId = template.SignatureStanceId, // K4
+                    Vocation = template.Vocation,                   // 2026-09-25
                 });
             }
             else
@@ -88,6 +89,8 @@ public static class CompanionRoster
                 if (string.IsNullOrEmpty(existing.SignatureStanceId) &&
                     !string.IsNullOrEmpty(template.SignatureStanceId))
                     existing.SignatureStanceId = template.SignatureStanceId;
+                // 2026-09-25: vocations on saves that predate them.
+                Vocations.Backfill(existing, template);
             }
         }
     }

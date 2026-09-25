@@ -2143,12 +2143,18 @@ public partial class WorldAtlas3D : Node3D
     /// orders, then redraw. One call rather than four public setters, so the map
     /// can never show a half-updated board.</summary>
     public void SetPieces(Vector2I? castle, List<Vector2I> partyTiles, List<string> partyNames,
-                          List<Vector2I?> partyDests, int selectedPartyIndex)
+                          List<Vector2I?> partyDests, int selectedPartyIndex,
+                          List<string> partyBanners = null,
+                          List<List<(Color tint, bool injured)>> partyFigures = null,
+                          List<(Color tint, bool injured)> castleFigures = null)
     {
         CastleTile = castle;
         PartyTiles = partyTiles ?? new List<Vector2I>();
         PartyNames = partyNames ?? new List<string>();
         PartyDestTiles = partyDests ?? new List<Vector2I?>();
+        PartyBanners = partyBanners ?? new List<string>();
+        PartyFigures = partyFigures ?? new List<List<(Color tint, bool injured)>>();
+        CastleFigures = castleFigures ?? new List<(Color tint, bool injured)>();
         SelectedPartyIndex = selectedPartyIndex;
         if (_world != null)
         {
@@ -2456,6 +2462,18 @@ public partial class WorldAtlas3D : Node3D
     public List<string> PartyNames = new();
     public List<Vector2I?> PartyDestTiles = new();
 
+    /// <summary>Field Party v1 (2026-09-24): parallel to PartyTiles. A
+    /// non-empty entry means that piece is a DETACHMENT and draws as a planted
+    /// banner carrying this glyph, not as a party body. Placeholder art: a
+    /// pole, a pennant and a letter, until the sculpted set lands.</summary>
+    public List<string> PartyBanners = new();
+
+    /// <summary>Figures standing with each piece (2026-09-24): one per member,
+    /// school tint and whether they are hurt. Parallel to PartyTiles; the
+    /// castle's crew is CastleFigures. See CompanionFigure.</summary>
+    public List<List<(Color tint, bool injured)>> PartyFigures = new();
+    public List<(Color tint, bool injured)> CastleFigures = new();
+
     /// <summary>Index into PartyTiles of the force taking orders, or -1 when
     /// the castle has them. The selected piece wears a ring at its feet,
     /// because a selector the player has to remember is a selector they will
@@ -2506,6 +2524,7 @@ public partial class WorldAtlas3D : Node3D
             Vector3 fan = Fan(c);
             AddMarker(PieceBody(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.9f) + fan, 1.35f, 0.95f), c.X, c.Y);
             AddMarker(StackedLabel(c, "Castle", UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, PieceLabelLift), 34, 0.02f), c.X, c.Y);
+            PlaceFigures(CastleFigures, MarkerPos(c.X, c.Y, 0f) + fan, 1.75f, c.X, c.Y);
             if (SelectedPartyIndex < 0)
             {
                 AddMarker(SelectionRing(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.08f) + fan), c.X, c.Y);
@@ -2525,8 +2544,26 @@ public partial class WorldAtlas3D : Node3D
                 : "Party";
             Vector3 fan = Fan(p);
 
-            AddMarker(PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f) + fan, 0.55f, 1.5f), p.X, p.Y);
-            AddMarker(StackedLabel(p, name, UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 34, 0.02f), p.X, p.Y);
+            string banner = PartyBanners != null && i < PartyBanners.Count ? PartyBanners[i] : "";
+            if (!string.IsNullOrEmpty(banner))
+            {
+                // A detachment is a planted thing, not a piece you move: a pole
+                // and a pennant read as "left here", where a second gold body
+                // would read as a second party.
+                foreach (var part in BannerParts(UITheme.Gold, MarkerPos(p.X, p.Y, 0f) + fan))
+                {
+                    AddMarker(part, p.X, p.Y);
+                }
+                AddMarker(StackedLabel(p, $"{banner} {name}", UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 30, 0.02f), p.X, p.Y);
+            }
+            else
+            {
+                AddMarker(PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f) + fan, 0.55f, 1.5f), p.X, p.Y);
+                AddMarker(StackedLabel(p, name, UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 34, 0.02f), p.X, p.Y);
+            }
+            // Who is here: one figure per member, ringed around the piece.
+            var figures = PartyFigures != null && i < PartyFigures.Count ? PartyFigures[i] : null;
+            PlaceFigures(figures, MarkerPos(p.X, p.Y, 0f) + fan, 0.95f, p.X, p.Y);
             if (i == SelectedPartyIndex)
             {
                 AddMarker(SelectionRing(UITheme.Gold, MarkerPos(p.X, p.Y, 0.08f) + fan), p.X, p.Y);
@@ -2617,6 +2654,59 @@ public partial class WorldAtlas3D : Node3D
             RotationDegrees = new Vector3(0f, 30f, 0f),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
+
+    /// <summary>The people assigned to a piece, standing in a ring around it
+    /// (2026-09-24). Presentation only: CompanionWhereabouts decides who is
+    /// where, this only draws them. Figures join the tile's marker set so
+    /// they hide with the rest of it in city view.</summary>
+    private void PlaceFigures(List<(Color tint, bool injured)> figures, Vector3 centre, float radius, int x, int y)
+    {
+        if (figures == null || figures.Count == 0)
+        {
+            return;
+        }
+        for (int n = 0; n < figures.Count; n++)
+        {
+            var (tint, injured) = figures[n];
+            var fig = CompanionFigure.Build(tint, injured);
+            fig.Position = centre + CompanionFigure.RingOffset(n, figures.Count, radius);
+            AddMarker(fig, x, y);
+        }
+    }
+
+    /// <summary>Placeholder banner for a detachment: a thin pole, a pennant
+    /// hung from its top, both in the piece colour. The pennant reuses the
+    /// planted-flag material (A7) so it stays findable at whole-world zoom.
+    /// Swap for a sculpted mesh alongside the piece bodies.</summary>
+    private static IEnumerable<Node3D> BannerParts(Color tint, Vector3 at)
+    {
+        const float PoleHeight = 2.6f;
+        yield return new MeshInstance3D
+        {
+            Mesh = new CylinderMesh
+            {
+                TopRadius = 0.07f,
+                BottomRadius = 0.09f,
+                Height = PoleHeight,
+                RadialSegments = 6,
+                Rings = 0,
+            },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(0.32f, 0.24f, 0.16f),
+                Roughness = 0.9f,
+            },
+            Position = at + new Vector3(0f, PoleHeight * 0.5f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        yield return new MeshInstance3D
+        {
+            Mesh = new BoxMesh { Size = new Vector3(0.9f, 0.55f, 0.04f) },
+            MaterialOverride = FlagMaterial(tint, 0.9f),
+            Position = at + new Vector3(0.5f, PoleHeight - 0.32f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+    }
 
     private static MeshInstance3D SelectionRing(Color tint, Vector3 at)
         => new MeshInstance3D
