@@ -5,6 +5,8 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "druid_bramble_guard",
   "stats": {},
   "passive": "SchoolSpellDamage",
   "passiveValue": 1,

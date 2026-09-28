@@ -1,0 +1,363 @@
+diff --git a/Data/Items/apprentices_focus.json b/Data/Items/apprentices_focus.json
+index 5de52dc..a20d19a 100644
+--- a/Data/Items/apprentices_focus.json
++++ b/Data/Items/apprentices_focus.json
+@@ -5,6 +5,8 @@
+   "rarity": "Common",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "adept_magic_missile",
+   "stats": { "spellDamage": 1 },
+   "passive": "None",
+   "passiveValue": 0,
+diff --git a/Data/Items/focus_adept.json b/Data/Items/focus_adept.json
+index 3bbd95c..6a1c9cf 100644
+--- a/Data/Items/focus_adept.json
++++ b/Data/Items/focus_adept.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "adept_flare",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/focus_arcanist.json b/Data/Items/focus_arcanist.json
+index 4b2f4a2..7127e86 100644
+--- a/Data/Items/focus_arcanist.json
++++ b/Data/Items/focus_arcanist.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "arcanist_arcane_missile",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/focus_chronomancer.json b/Data/Items/focus_chronomancer.json
+index 30a4925..4870763 100644
+--- a/Data/Items/focus_chronomancer.json
++++ b/Data/Items/focus_chronomancer.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "chronomancer_borrowed_mana",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/focus_druid.json b/Data/Items/focus_druid.json
+index 01a62ed..67a6f47 100644
+--- a/Data/Items/focus_druid.json
++++ b/Data/Items/focus_druid.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "druid_bramble_guard",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/focus_elementalist.json b/Data/Items/focus_elementalist.json
+index 902a23e..ba341b2 100644
+--- a/Data/Items/focus_elementalist.json
++++ b/Data/Items/focus_elementalist.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "elementalist_ember_bolt",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/focus_enchanter.json b/Data/Items/focus_enchanter.json
+index 141d6db..e8f59b2 100644
+--- a/Data/Items/focus_enchanter.json
++++ b/Data/Items/focus_enchanter.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "enchanter_binding_rune",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/focus_necromancer.json b/Data/Items/focus_necromancer.json
+index 17bb46d..632c546 100644
+--- a/Data/Items/focus_necromancer.json
++++ b/Data/Items/focus_necromancer.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "necromancer_elegy",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/focus_tinker.json b/Data/Items/focus_tinker.json
+index 38b3d1d..a230423 100644
+--- a/Data/Items/focus_tinker.json
++++ b/Data/Items/focus_tinker.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "tinker_arc_bolt",
+   "stats": {},
+   "passive": "SchoolSpellDamage",
+   "passiveValue": 1,
+diff --git a/Data/Items/greater_focus_arcanist.json b/Data/Items/greater_focus_arcanist.json
+index 78a1096..fa034b4 100644
+--- a/Data/Items/greater_focus_arcanist.json
++++ b/Data/Items/greater_focus_arcanist.json
+@@ -5,6 +5,8 @@
+   "rarity": "Rare",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "arcanist_arcane_barrage",
+   "stats": {
+     "spellDamage": 1
+   },
+diff --git a/Data/Items/greater_focus_elementalist.json b/Data/Items/greater_focus_elementalist.json
+index 1a6164d..c14fd8d 100644
+--- a/Data/Items/greater_focus_elementalist.json
++++ b/Data/Items/greater_focus_elementalist.json
+@@ -5,6 +5,8 @@
+   "rarity": "Rare",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "elementalist_magma_surge",
+   "stats": {
+     "spellDamage": 1
+   },
+diff --git a/Data/Items/greater_focus_necromancer.json b/Data/Items/greater_focus_necromancer.json
+index 085f5ed..45d9b87 100644
+--- a/Data/Items/greater_focus_necromancer.json
++++ b/Data/Items/greater_focus_necromancer.json
+@@ -5,6 +5,8 @@
+   "rarity": "Rare",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "necromancer_communion",
+   "stats": {
+     "spellDamage": 1
+   },
+diff --git a/Data/Items/stormcaller_staff.json b/Data/Items/stormcaller_staff.json
+index fb5b1e5..9577e42 100644
+--- a/Data/Items/stormcaller_staff.json
++++ b/Data/Items/stormcaller_staff.json
+@@ -5,6 +5,8 @@
+   "rarity": "Uncommon",
+   "slot": "Weapon",
+   "unitClass": "Wizard",
++  "activeKind": "staff",
++  "boundCardId": "elementalist_chain_lightning",
+   "stats": {},
+   "passive": "SchoolSpellCostReduction",
+   "passiveValue": 1,
+diff --git a/Scripts/Cards/CardRuntime.cs b/Scripts/Cards/CardRuntime.cs
+index b713148..a244c26 100644
+--- a/Scripts/Cards/CardRuntime.cs
++++ b/Scripts/Cards/CardRuntime.cs
+@@ -55,6 +55,12 @@ public sealed class Card
+ 
+     /// <summary>Rarity tier. Drives draft odds and UI border color.</summary>
+     public CardRarity Rarity;
++
++    /// <summary>Martial Maneuvers & Edge spec v1 §11b (M7): a staff's bound card.
++    /// Always in the opening hand (UnitDeckData.Initialize puts it on top of the
++    /// shuffled pile), then it shuffles and discards like any other card. Set per
++    /// instance by CombatManager.InitializeUnitDecks; never on a blueprint.</summary>
++    public bool Innate = false;
+ }
+ 
+ /// <summary>
+diff --git a/Scripts/Cards/UnitDeckData.cs b/Scripts/Cards/UnitDeckData.cs
+index c378318..9006226 100644
+--- a/Scripts/Cards/UnitDeckData.cs
++++ b/Scripts/Cards/UnitDeckData.cs
+@@ -66,6 +66,20 @@ public class UnitDeckData
+ 	{
+ 		DrawPile = new List<Card>(cards);
+ 		Shuffle();
++		SurfaceInnates();
++	}
++
++	/// <summary>M7: Innate cards (a staff's bound spell) move to the top of the
++	/// pile after the opening shuffle, so the first draw of the fight holds them.
++	/// Called once, at Initialize; Reshuffle deliberately does not, which is the
++	/// spec's "then shuffles normally".</summary>
++	private void SurfaceInnates()
++	{
++		var innate = DrawPile.FindAll(c => c != null && c.Innate);
++		if (innate.Count == 0)
++			return;
++		DrawPile.RemoveAll(c => c != null && c.Innate);
++		DrawPile.InsertRange(0, innate);
+ 	}
+ 
+ 	/// <summary>Fisher-Yates shuffle of the draw pile in place.</summary>
+diff --git a/Scripts/Data/FeatureBuilders/ItemDefinition.cs b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+index 94ff9f4..f8c8f9d 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+@@ -188,6 +188,10 @@ public class ItemDefinition
+     public bool IsWand => string.Equals(ActiveKind, "wand", System.StringComparison.OrdinalIgnoreCase);
+     [System.Text.Json.Serialization.JsonIgnore]
+     public bool IsSpellglass => string.Equals(ActiveKind, "spellglass", System.StringComparison.OrdinalIgnoreCase);
++    /// <summary>M7: a Weapon-slot wizard focus that adds one Innate copy of its
++    /// bound card to the holder's deck (spec §11b). Deck variance is its limit.</summary>
++    [System.Text.Json.Serialization.JsonIgnore]
++    public bool IsStaff => string.Equals(ActiveKind, "staff", System.StringComparison.OrdinalIgnoreCase);
+     /// <summary>Belt items (R9): anything in the Consumable pseudo-slot: potions,
+     /// scrolls, whetstones and spellglass alike. Two per unit, assigned on the
+     /// Forces screen or the Armory tab.</summary>
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Items.cs b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+index ec93877..cfe6700 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Items.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+@@ -513,6 +513,43 @@ public partial class CombatManager
+         MaybeAdvanceToReadyUnit();
+     }
+ 
++    // ── Staves (spec §11b, M7) ───────────────────────────────────────────────
++
++    /// <summary>If <paramref name="u"/>'s equipped weapon is a staff with a bound
++    /// card, appends one Innate copy of that card to <paramref name="cards"/>
++    /// before the deck is initialised. UnitDeckData.Initialize surfaces Innate
++    /// cards to the top of the shuffled pile, so the opening draw holds it; after
++    /// that it lives and dies like any other card in the deck.</summary>
++    private void AddStaffInnate(Unit u, List<Card> cards)
++    {
++        var armory = SaveManager.ActiveSave?.Armory;
++        if (u == null || cards == null || armory == null || u.IsMartial)
++            return;
++        var weaponId = armory.GetLoadout(LoadoutKeyFor(u)).WeaponInstanceId;
++        if (string.IsNullOrEmpty(weaponId))
++            return;
++        var inst = armory.GetInstance(weaponId);
++        var def = inst != null ? ItemDatabase.Get(inst.DefinitionId) : null;
++        if (def == null || !def.IsStaff)
++            return;
++        string bound = inst.EffectiveBoundCardId(def);
++        if (string.IsNullOrEmpty(bound))
++            return;
++
++        var bp = CardDatabase.Blueprints.Find(b => b.Id == bound) ?? CardDatabase.GetByName(bound);
++        if (bp == null)
++        {
++            GD.PushWarning($"[Staff] {def.Name} binds '{bound}', which is not in the card database.");
++            return;
++        }
++        var card = CardDatabase.Instantiate(bp);
++        if (card == null)
++            return;
++        card.Innate = true;
++        cards.Add(card);
++        GD.Print($"[Staff] {u.Name} carries {def.Name}: {card.CardName} joins the deck as Innate.");
++    }
++
+     // ── Debug (D13) ──────────────────────────────────────────────────────────
+ 
+     /// <summary>Ctrl+R: every wand back to full, mid-expedition.</summary>
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index e840b3c..2ad376c 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -549,6 +549,7 @@ public partial class CombatManager : Node3D
+ 
+                 if (companionCards.Count > 0)
+                     cards.AddRange(companionCards);
++                AddStaffInnate(unit, cards);   // M7: the staff's bound card, Innate
+ 
+                 unit.DeckData.Initialize(cards);
+                 injectedCompanionCards = true;
+@@ -565,6 +566,7 @@ public partial class CombatManager : Node3D
+                 // unreliable. Their ContributedCardIds stay in the WIZARD's
+                 // deck (BuildCompanionCardList), not duplicated here.
+                 var starter = StarterDeckLoader.BuildStarterCards(unit.School);
++                AddStaffInnate(unit, starter);   // M7: arcane companions with staves too
+                 unit.DeckData.Initialize(starter);
+                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
+                          $"({unit.School}) [companion starter deck]");
+diff --git a/docs/session_log_2026-09-28_edge_m7.md b/docs/session_log_2026-09-28_edge_m7.md
+new file mode 100644
+index 0000000..cb1092b
+--- /dev/null
++++ b/docs/session_log_2026-09-28_edge_m7.md
+@@ -0,0 +1,63 @@
++# Session log, 2026-09-28: Edge M7 (staves with Innate bound cards)
++
++Martial Maneuvers & Edge spec v1, milestone 7, the last of the spec's build
++order. Delivered as `edge_m7_full.patch`, built against the tree after M6.
++
++## What shipped
++
++**Staff binding (spec §11b).** `ItemDefinition.ActiveKind = "staff"` plus the
++existing `BoundCardId` (from M6) marks a Weapon-slot wizard focus that adds one
++copy of its bound card to the holder's deck. `IsStaff` on the definition. All
++thirteen wizard foci carry a binding now: Apprentice's Focus binds Magic
++Missile; Stormcaller Staff binds Chain Lightning; each school focus binds a
++Common of its school and each greater focus an Uncommon (the full list is in
++the item JSONs). The Emberheart relic and the Emberwood Wand are left unbound:
++the relic per R1 (legendaries add riders, not cards) and the wand because it
++is a focus by slot despite its name.
++
++**Innate.** `Card.Innate` (per instance, never on a blueprint).
++`UnitDeckData.Initialize` shuffles, then moves Innate cards to the top of the
++pile, so the first draw of the fight holds them. `Reshuffle` deliberately does
++not, which is the spec's "then shuffles normally".
++
++**Deck build.** `CombatManager.AddStaffInnate(unit, cards)` runs in
++`InitializeUnitDecks` for the wizard (persistent deck plus companion cards)
++and for each arcane companion (curated starter deck), reading the equipped
++weapon from the armory loadout. A binding that names an unknown card warns
++and adds nothing.
++
++## Rulings made in-session
++
++1. The staff's card is an extra copy, not a replacement: a 10-card starter
++   deck becomes 11. The spec accepts the dilution for exactly this item type.
++2. No card-face marker for Innate. The card is an ordinary copy once drawn;
++   the log line at deck build names it.
++
++## Not done, owed
++
++- `dotnet build` and the in-engine pass. The diff is 89 lines across 18
++  files (13 of them one-line JSON bindings); it had a manual read rather
++  than an independent review.
++- `.uid` files: none new (no new scripts).
++
++## In-engine confirm owed (M7 acceptance, spec §11e)
++
++1. Equip Apprentice's Focus on the wizard (Armory tab). Start any fight: the
++   Output prints "[Staff] ... Magic Missile joins the deck as Innate" and the
++   opening hand holds Magic Missile. Every fight, not just the first.
++2. Cast it; it goes to the discard and comes back on a reshuffle at a random
++   position, like any card.
++3. An arcane companion with a school focus equipped opens with that focus's
++   card in its own hand.
++4. Unequip the staff: the deck is back to its old size and the opening hand
++   is unaffected.
++
++## The spec, end to end
++
++M1 Edge resource and stance triggers. M2 weapon classes, maneuvers, tray,
++Honed, Stagger and Poise. M3 the remaining launch maneuvers (inside M2's
++resolver). M4 reactions and enemy routing. M5 Vigilant, Opportunist and the
++choices-per-turn measurement. M6 belts, wands, spellglass, item actions. M7
++staves. Every code milestone is in the tree. What the spec still asks of you
++is play: Goal 1 by eye, Goal 2 from `martial_fights.csv`, D9's ranged
++baseline, and D14's authored teaching fight.

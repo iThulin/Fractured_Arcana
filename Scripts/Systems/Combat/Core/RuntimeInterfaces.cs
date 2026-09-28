@@ -52,6 +52,8 @@ public sealed class ManaCost : ICost
     {
         if (s == null || baseAmount <= 0)
             return baseAmount;
+        if (s.ItemCastFree)
+            return 0;   // Edge M6: a wand or spellglass cast; the item paid
 
         int amount = baseAmount;
         var u = s.ActiveCasterUnit;

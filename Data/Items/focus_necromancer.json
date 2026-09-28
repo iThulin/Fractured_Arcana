@@ -5,6 +5,8 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "necromancer_elegy",
   "stats": {},
   "passive": "SchoolSpellDamage",
   "passiveValue": 1,

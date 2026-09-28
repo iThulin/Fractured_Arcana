@@ -1,0 +1,25 @@
+{
+  "id": "shield_bash",
+  "displayName": "Shield Bash",
+  "role": "Breaker",
+  "weaponClass": "SwordShield",
+  "apCost": 1,
+  "edgeCost": 2,
+  "shape": "Adjacent",
+  "reach": 1,
+  "text": "ATK - 1 damage. Push 1. Stagger: the target's current intent is cancelled at its next activation.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": -1
+    },
+    {
+      "key": "push",
+      "value": 1
+    },
+    {
+      "key": "stagger"
+    }
+  ],
+  "vfxTag": "bash"
+}

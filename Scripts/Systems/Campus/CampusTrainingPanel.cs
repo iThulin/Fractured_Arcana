@@ -201,7 +201,7 @@ public sealed class CampusTrainingPanel : CampusPanel
         bool anyLearnable = false;
         foreach (var stance in StanceRegistry.All.Values)
         {
-            if (stance.Class != martialClass)
+            if (!stance.FitsClass(martialClass))   // M5: Opportunist fits either class
                 continue;
             // K4: signatures are earned (ArcStage 4), never bought. The
             // Training Grounds is the global floor, the signature is the

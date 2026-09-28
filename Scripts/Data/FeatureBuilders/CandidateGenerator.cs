@@ -163,8 +163,11 @@ public static class CandidateGenerator
         if (count == 0) return;
 
         var cls = c.UnitClass == "Fighter" ? MartialClass.Fighter : MartialClass.Ranger;
+        // M5: FitsClass admits Opportunist for both classes. !IsSignature was
+        // missing here: a hire could roll a K4 signature into TrainedStanceIds,
+        // which the K4 contract says never happens (2026-09-28).
         var pool = StanceRegistry.All.Values
-            .Where(s => s.Class == cls)
+            .Where(s => s.FitsClass(cls) && !s.IsSignature)
             .Select(s => s.Id)
             .ToList();
 

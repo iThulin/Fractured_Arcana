@@ -5,6 +5,8 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "enchanter_binding_rune",
   "stats": {},
   "passive": "SchoolSpellDamage",
   "passiveValue": 1,

@@ -5,6 +5,8 @@
   "rarity": "Rare",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "elementalist_magma_surge",
   "stats": {
     "spellDamage": 1
   },

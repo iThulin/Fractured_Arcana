@@ -54,8 +54,11 @@ public static class CycleInitializer
         // traversal-resistance (wardstone/cinderweave/trailwarden). Runs before
         // the fresh-armory gate below.
         bool grantedDemo = false;
+        // Edge M2: guild_crossbow joins the ensure-list so an established armory
+        // can field the Crossbow class (no crossbow item existed before 2026-09-27).
         foreach (var id in new[] { "aegis_charm", "duelists_brand", "standard_of_the_vigil",
-                                   "wardstone_amulet", "cinderweave_cloak", "trailwardens_compass" })
+                                   "wardstone_amulet", "cinderweave_cloak", "trailwardens_compass",
+                                   "guild_crossbow", "wand_of_missiles", "whetstone" })
         {
             if (save.Armory.OwnedItems.Exists(i => i.DefinitionId == id))
                 continue;
@@ -83,6 +86,7 @@ public static class CycleInitializer
             "stormcaller_staff", "warding_cloak", "spell_focus",
             "iron_sword", "leather_jerkin", "warriors_sigil",
             "hunters_bow", "chain_hauberk", "scouts_leathers",
+            "guild_crossbow", "wand_of_missiles", "whetstone",
         };
 
         foreach (var id in starterIds)

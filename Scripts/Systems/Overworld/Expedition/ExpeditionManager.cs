@@ -3640,6 +3640,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return;
         }
         slot.Clear();
+        // Edge M6 (spec §11b): wand charges are per expedition and refill at
+        // campus. Every end path (extract, park, emergency, fail) comes through here.
+        int refilled = SaveManager.ActiveSave?.Armory?.RefillWandCharges() ?? 0;
+        if (refilled > 0)
+            GD.Print($"[Armory] {refilled} wand(s) recharged on return.");
         SaveManager.MarkDirty();
     }
 

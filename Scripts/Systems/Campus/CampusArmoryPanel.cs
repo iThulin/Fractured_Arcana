@@ -103,6 +103,114 @@ public sealed class CampusArmoryPanel : CampusPanel
         _scriptoriumList = MakeVBox(6);
         _container.AddChild(_scriptoriumList);
         RefreshScriptorium();
+
+        // ── Spellglass (Edge M6, spec §11b, D6/D7). The Scribe's Tower is
+        // its eventual home; until that building exists it shares the
+        // Scriptorium section, like scroll crafting does. ────────────────
+        _container.AddChild(new HSeparator());
+        AddSectionHeader(_container, "Scriptorium: Spellglass");
+        var glassHint = new Label
+        {
+            Text = "A combat spell the guild has unlocked, sealed in glass. Any unit shatters it " +
+                   "for one cast at printed values, mana or no mana, for 1 AP. Carried on a belt.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        glassHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        glassHint.Modulate = UITheme.CampusSubtleText;
+        _container.AddChild(glassHint);
+        _spellglassList = MakeVBox(6);
+        _container.AddChild(_spellglassList);
+        RefreshSpellglass();
+    }
+
+    private VBoxContainer _spellglassList;
+
+    /// <summary>Gold to seal a card into glass, by rarity. Rares and above are
+    /// not sealable at launch: the slow reveal is the design.</summary>
+    private static int SpellglassCost(CardRarity r) => r == CardRarity.Common ? 60 : 110;
+
+    private void RefreshSpellglass()
+    {
+        if (_spellglassList == null)
+            return;
+        foreach (var child in _spellglassList.GetChildren())
+            child.QueueFree();
+
+        var save = Ctx?.Save;
+        if (save == null)
+            return;
+        var glassDef = ItemDatabase.Get("spellglass");
+        if (glassDef == null)
+        {
+            _spellglassList.AddChild(MakeStubLabel("No spellglass item definition (Data/Items/spellglass.json)."));
+            return;
+        }
+
+        var sealable = new System.Collections.Generic.List<CardBlueprint>();
+        foreach (var id in save.UnlockedCardBlueprintIds)
+        {
+            var bp = CardDatabase.Blueprints.Find(b => b.Id == id);
+            if (bp == null || bp.Prebuilt?.TopHalf == null)
+                continue;
+            if (bp.Rarity != CardRarity.Common && bp.Rarity != CardRarity.Uncommon)
+                continue;
+            if (!CombatManager.ItemCanAim(bp.Prebuilt.TopHalf.Targeting))
+                continue;   // shapes the item path cannot aim stay in the deck
+            sealable.Add(bp);
+        }
+        sealable.Sort((a, b) => string.CompareOrdinal(a.Prebuilt.TopHalf.Name, b.Prebuilt.TopHalf.Name));
+
+        if (sealable.Count == 0)
+        {
+            _spellglassList.AddChild(MakeStubLabel("Nothing the guild knows can be sealed yet."));
+            return;
+        }
+
+        foreach (var bp in sealable)
+        {
+            int cost = SpellglassCost(bp.Rarity);
+            var half = bp.Prebuilt.TopHalf;
+            int held = 0;
+            foreach (var inst in save.Armory.OwnedItems)
+                if (inst.DefinitionId == glassDef.Id && inst.BoundCardId == bp.Id)
+                    held++;
+
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 10);
+            _spellglassList.AddChild(row);
+
+            var name = new Label
+            {
+                Text = $"{half.Name}  ·  {bp.School}  ·  {bp.Rarity}" + (held > 0 ? $"  ·  ×{held} held" : ""),
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                TooltipText = half.RulesText,
+            };
+            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+            row.AddChild(name);
+
+            var craftBtn = MakeButton($"Seal ({cost} g)", 150, 34,
+                UITheme.CampusSmallFontSize, isPrimary: false);
+            craftBtn.Disabled = save.Gold < cost;
+            string cardId = bp.Id;
+            string cardName = half.Name;
+            craftBtn.Pressed += () =>
+            {
+                var s = Ctx?.Save;
+                if (s == null || s.Gold < cost)
+                    return;
+                s.Gold -= cost;
+                var inst = ItemInstance.FromDefinition(glassDef);
+                inst.BoundCardId = cardId;
+                inst.Name = $"Spellglass: {cardName}";
+                s.Armory.AddItem(inst);
+                SaveManager.MarkDirty();
+                GD.Print($"[Scriptorium] Sealed '{cardId}' in glass for {cost}g (gold {s.Gold}).");
+                Ctx.RefreshGold?.Invoke();
+                Refresh();
+            };
+            row.AddChild(craftBtn);
+        }
     }
 
     // ── Scriptorium (mirrors CampusExpeditionPanel.RefreshScriptorium) ───
@@ -260,6 +368,74 @@ public sealed class CampusArmoryPanel : CampusPanel
             var card = BuildItemSlotCard(slot, item, save);
             grid.AddChild(card);
         }
+
+        // Edge M6 (R9): the belt, two slots, under the three equipment slots.
+        var beltGrid = new GridContainer { Columns = 3 };
+        beltGrid.AddThemeConstantOverride("h_separation", UITheme.PaddingNormal);
+        beltGrid.AddThemeConstantOverride("v_separation", UITheme.PaddingNormal);
+        beltGrid.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _container.AddChild(beltGrid);
+        var belt = save.Armory.GetBelt(_selectedUnitId);
+        for (int i = 0; i < UnitLoadout.BeltSlots; i++)
+            beltGrid.AddChild(BuildBeltSlotCard(i, i < belt.Count ? belt[i] : null, save));
+    }
+
+    /// <summary>Edge M6: a belt slot card. Same frame as the equipment cards.</summary>
+    private Control BuildBeltSlotCard(int index, ItemInstance item, GuildSaveData save)
+    {
+        var panel = new PanelContainer();
+        panel.CustomMinimumSize = new Vector2(180, 90);
+        var style = new StyleBoxFlat
+        {
+            BgColor = UITheme.SurfaceLight,
+            BorderColor = item != null ? UITheme.RarityColor(item.Rarity) : UITheme.Neutral,
+            CornerRadiusTopLeft = UITheme.CornerRadius - 1,
+            CornerRadiusTopRight = UITheme.CornerRadius - 1,
+            CornerRadiusBottomLeft = UITheme.CornerRadius - 1,
+            CornerRadiusBottomRight = UITheme.CornerRadius - 1,
+            BorderWidthTop = UITheme.BorderWidth - 1,
+            BorderWidthBottom = UITheme.BorderWidth - 1,
+            BorderWidthLeft = UITheme.BorderWidth - 1,
+            BorderWidthRight = UITheme.BorderWidth - 1,
+            ContentMarginLeft = UITheme.PaddingNormal + 2,
+            ContentMarginRight = UITheme.PaddingNormal + 2,
+            ContentMarginTop = UITheme.PaddingNormal,
+            ContentMarginBottom = UITheme.PaddingNormal,
+        };
+        panel.AddThemeStyleboxOverride("panel", style);
+        var vbox = MakeVBox(4);
+        panel.AddChild(vbox);
+
+        var slotLbl = new Label { Text = $"BELT {index + 1}" };
+        slotLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        slotLbl.AddThemeColorOverride("font_color", UITheme.TextOnLight);
+        vbox.AddChild(slotLbl);
+
+        if (item == null)
+        {
+            var emptyLbl = new Label { Text = "- Empty -" };
+            emptyLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+            emptyLbl.AddThemeColorOverride("font_color", UITheme.TextDim);
+            vbox.AddChild(emptyLbl);
+            return panel;
+        }
+
+        var nameLbl = new Label { Text = item.Name, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        nameLbl.AddThemeColorOverride("font_color", UITheme.RarityColor(item.Rarity));
+        vbox.AddChild(nameLbl);
+
+        var unequipBtn = new Button { Text = "Unequip", CustomMinimumSize = new Vector2(0, 24) };
+        unequipBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        string iid = item.InstanceId;
+        unequipBtn.Pressed += () =>
+        {
+            save.Armory.UnequipBelt(_selectedUnitId, iid);
+            SaveManager.Save();
+            Refresh();
+        };
+        vbox.AddChild(unequipBtn);
+        return panel;
     }
 
     private Control BuildItemSlotCard(EquipmentSlot slot, ItemInstance item, GuildSaveData save)
@@ -359,7 +535,7 @@ public sealed class CampusArmoryPanel : CampusPanel
         filterRow.AddThemeConstantOverride("separation", 4);
         _container.AddChild(filterRow);
 
-        foreach (var filterName in new[] { "All", "Weapon", "Armor", "Trinket" })
+        foreach (var filterName in new[] { "All", "Weapon", "Armor", "Trinket", "Consumable" })
         {
             bool isActive = _slotFilter == filterName;
             var filterBtn = new Button
@@ -482,7 +658,31 @@ public sealed class CampusArmoryPanel : CampusPanel
         // Right: equip button
         if (_selectedUnitId != null && def != null)
         {
-            if (System.Enum.TryParse<EquipmentSlot>(item.Slot, true, out var itemSlot))
+            // Edge M6 (R9): belt items get a Belt button instead of a slot equip.
+            if (def.IsBeltItem)
+            {
+                bool room = save.Armory.GetBelt(_selectedUnitId).Count < UnitLoadout.BeltSlots;
+                var beltBtn = new Button
+                {
+                    Text = room ? "Belt →" : "Belt full",
+                    Disabled = !room,
+                    CustomMinimumSize = new Vector2(90, 32),
+                };
+                beltBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+                UITheme.ApplyButtonStyle(beltBtn, isPrimary: true);
+                string beltInstId = item.InstanceId;
+                beltBtn.Pressed += () =>
+                {
+                    save.Armory.EquipBelt(_selectedUnitId, beltInstId);
+                    SaveManager.Save();
+                    Refresh();
+                };
+                var beltCol = MakeVBox(4);
+                beltCol.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
+                row.AddChild(beltCol);
+                beltCol.AddChild(beltBtn);
+            }
+            else if (System.Enum.TryParse<EquipmentSlot>(item.Slot, true, out var itemSlot))
             {
                 var loadout = save.Armory.GetLoadout(_selectedUnitId);
                 string currentInstanceId = loadout.GetSlot(itemSlot);

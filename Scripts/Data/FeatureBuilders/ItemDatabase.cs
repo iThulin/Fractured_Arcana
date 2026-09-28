@@ -157,9 +157,80 @@ public class ArmoryData
                 if (loadout.GetSlot(slot) == instanceId)
                     loadout.ClearSlot(slot);
             }
+            loadout.BeltInstanceIds?.Remove(instanceId);   // M6: off the belt too
         }
         int removed = OwnedItems.RemoveAll(i => i.InstanceId == instanceId);
         return removed > 0;
+    }
+
+    // ── Belt (R9, spec v1 §11; M6) ──────────────────────────────────────
+
+    /// <summary>The instances on <paramref name="unitId"/>'s belt, in slot order,
+    /// skipping ids that no longer exist in the armory.</summary>
+    public List<ItemInstance> GetBelt(string unitId)
+    {
+        var list = new List<ItemInstance>();
+        var loadout = GetLoadout(unitId);
+        loadout.BeltInstanceIds ??= new List<string>();
+        foreach (var id in loadout.BeltInstanceIds)
+        {
+            var inst = GetInstance(id);
+            if (inst != null)
+                list.Add(inst);
+        }
+        return list;
+    }
+
+    /// <summary>Which unit carries <paramref name="instanceId"/> on its belt, or null.</summary>
+    public string BeltCarrier(string instanceId)
+    {
+        foreach (var kv in Loadouts)
+            if (kv.Value.BeltInstanceIds != null && kv.Value.BeltInstanceIds.Contains(instanceId))
+                return kv.Key;
+        return null;
+    }
+
+    /// <summary>Put a belt item (Consumable pseudo-slot) on a unit's belt. Refuses a
+    /// non-belt item, a full belt, or an item already on someone's belt.</summary>
+    public bool EquipBelt(string unitId, string instanceId)
+    {
+        var item = GetInstance(instanceId);
+        if (item == null || !string.Equals(item.Slot, "Consumable", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (BeltCarrier(instanceId) != null)
+            return false;
+        var loadout = GetLoadout(unitId);
+        loadout.BeltInstanceIds ??= new List<string>();
+        if (loadout.BeltInstanceIds.Count >= UnitLoadout.BeltSlots)
+            return false;
+        loadout.BeltInstanceIds.Add(instanceId);
+        return true;
+    }
+
+    public bool UnequipBelt(string unitId, string instanceId)
+    {
+        var loadout = GetLoadout(unitId);
+        return loadout.BeltInstanceIds != null && loadout.BeltInstanceIds.Remove(instanceId);
+    }
+
+    /// <summary>M6: every wand back to full. Called when an expedition ends (the
+    /// spec's "refilled at campus") and by the D13 debug lever. Returns how many
+    /// instances changed.</summary>
+    public int RefillWandCharges()
+    {
+        int changed = 0;
+        foreach (var inst in OwnedItems)
+        {
+            var def = ItemDatabase.Get(inst.DefinitionId);
+            if (def == null || def.MaxCharges <= 0)
+                continue;
+            if (inst.Charges != def.MaxCharges)
+            {
+                inst.Charges = def.MaxCharges;
+                changed++;
+            }
+        }
+        return changed;
     }
 
     public ItemInstance GetInstance(string instanceId)
@@ -222,11 +293,16 @@ public class ArmoryData
     {
         var equipped = new HashSet<string>();
         foreach (var loadout in Loadouts.Values)
+        {
             foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
             {
                 var id = loadout.GetSlot(slot);
                 if (id != null) equipped.Add(id);
             }
+            if (loadout.BeltInstanceIds != null)
+                foreach (var id in loadout.BeltInstanceIds)
+                    equipped.Add(id);   // M6: belted items are spoken for
+        }
         return OwnedItems.Where(i => !equipped.Contains(i.InstanceId)).ToList();
     }
 }
@@ -253,6 +329,11 @@ public class ResolvedLoadout
     public int BonusAttackDamage = 0;
     public int BonusAttackRange = 0;
     public int BonusSpellDamage = 0;
+
+    /// <summary>Spec v1 §8: the equipped Weapon-slot item's class, carried into
+    /// combat so the unit knows which maneuvers it fields. None when nothing
+    /// classed is equipped. Read once at spawn (locked at Muster, no mid-combat swap).</summary>
+    public WeaponClass WeaponClass = WeaponClass.None;
 
     // All passive tags active on this unit (one per equipped item max)
     // Param added 2026-08-13 for the school-keyed passives (empty for the rest).
@@ -341,6 +422,10 @@ public static class EquipmentLoadout
             {
                 var def = ItemDatabase.Get(instance.DefinitionId);
                 if (def == null) continue;
+
+                // Spec v1 §6: the weapon's class travels with the loadout.
+                if (slot == EquipmentSlot.Weapon)
+                    resolved.WeaponClass = def.WeaponClassValue;
 
                 // Accumulate stat modifiers
                 resolved.BonusMaxHP += def.Stats.MaxHP;

@@ -1,0 +1,24 @@
+{
+  "id": "set_against_charge",
+  "displayName": "Set Against Charge",
+  "role": "Anchor",
+  "weaponClass": "Polearm",
+  "apCost": 0,
+  "edgeCost": 1,
+  "shape": "Self",
+  "reach": 2,
+  "isReaction": true,
+  "reactionTrigger": "enemy_enter_zone",
+  "text": "Reaction. Until your next turn: an enemy that charges or moves into range 2 is struck for ATK x 2 and its movement ends there.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "damage_multiplier",
+      "value": 2
+    }
+  ],
+  "vfxTag": "thrust"
+}

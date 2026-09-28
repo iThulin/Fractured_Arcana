@@ -1,0 +1,1800 @@
+diff --git a/Data/Items/spellglass.json b/Data/Items/spellglass.json
+new file mode 100644
+index 0000000..19f6c10
+--- /dev/null
++++ b/Data/Items/spellglass.json
+@@ -0,0 +1,10 @@
++{
++  "id": "spellglass",
++  "name": "Spellglass",
++  "description": "A spell sealed in glass. Shatter it to cast the sealed spell once, at printed values, mana or no mana. Any unit. 1 AP.",
++  "rarity": "Uncommon",
++  "slot": "Consumable",
++  "unitClass": "Any",
++  "activeKind": "spellglass",
++  "goldValue": 0
++}
+diff --git a/Data/Items/wand_of_mending.json b/Data/Items/wand_of_mending.json
+new file mode 100644
+index 0000000..9f2987b
+--- /dev/null
++++ b/Data/Items/wand_of_mending.json
+@@ -0,0 +1,14 @@
++{
++  "id": "wand_of_mending",
++  "name": "Wand of Mending",
++  "description": "Three charges of Minor Restoration per expedition; refilled at campus. 1 AP to fire. A martial pays 1 Edge on top.",
++  "rarity": "Uncommon",
++  "slot": "Trinket",
++  "unitClass": "Any",
++  "activeKind": "wand",
++  "boundCardId": "adept_minor_restoration",
++  "maxCharges": 3,
++  "passive": "None",
++  "passiveValue": 0,
++  "goldValue": 140
++}
+diff --git a/Data/Items/wand_of_missiles.json b/Data/Items/wand_of_missiles.json
+new file mode 100644
+index 0000000..1bab3ea
+--- /dev/null
++++ b/Data/Items/wand_of_missiles.json
+@@ -0,0 +1,14 @@
++{
++  "id": "wand_of_missiles",
++  "name": "Wand of Missiles",
++  "description": "Three charges of Magic Missile per expedition; refilled at campus. 1 AP to fire. A martial pays 1 Edge on top.",
++  "rarity": "Uncommon",
++  "slot": "Trinket",
++  "unitClass": "Any",
++  "activeKind": "wand",
++  "boundCardId": "adept_magic_missile",
++  "maxCharges": 3,
++  "passive": "None",
++  "passiveValue": 0,
++  "goldValue": 140
++}
+diff --git a/Data/Items/whetstone.json b/Data/Items/whetstone.json
+new file mode 100644
+index 0000000..439fa10
+--- /dev/null
++++ b/Data/Items/whetstone.json
+@@ -0,0 +1,12 @@
++{
++  "id": "whetstone",
++  "name": "Whetstone",
++  "description": "A martial hones the blade: +2 Edge. Spent on use. 1 AP.",
++  "rarity": "Common",
++  "slot": "Consumable",
++  "unitClass": "Martial",
++  "consumeEffect": "edge",
++  "consumeValue": 2,
++  "consumeKind": "potion",
++  "goldValue": 35
++}
+diff --git a/Scripts/Data/FeatureBuilders/ItemDatabase.cs b/Scripts/Data/FeatureBuilders/ItemDatabase.cs
+index f84c348..02a32d7 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDatabase.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDatabase.cs
+@@ -157,11 +157,82 @@ public class ArmoryData
+                 if (loadout.GetSlot(slot) == instanceId)
+                     loadout.ClearSlot(slot);
+             }
++            loadout.BeltInstanceIds?.Remove(instanceId);   // M6: off the belt too
+         }
+         int removed = OwnedItems.RemoveAll(i => i.InstanceId == instanceId);
+         return removed > 0;
+     }
+ 
++    // ── Belt (R9, spec v1 §11; M6) ──────────────────────────────────────
++
++    /// <summary>The instances on <paramref name="unitId"/>'s belt, in slot order,
++    /// skipping ids that no longer exist in the armory.</summary>
++    public List<ItemInstance> GetBelt(string unitId)
++    {
++        var list = new List<ItemInstance>();
++        var loadout = GetLoadout(unitId);
++        loadout.BeltInstanceIds ??= new List<string>();
++        foreach (var id in loadout.BeltInstanceIds)
++        {
++            var inst = GetInstance(id);
++            if (inst != null)
++                list.Add(inst);
++        }
++        return list;
++    }
++
++    /// <summary>Which unit carries <paramref name="instanceId"/> on its belt, or null.</summary>
++    public string BeltCarrier(string instanceId)
++    {
++        foreach (var kv in Loadouts)
++            if (kv.Value.BeltInstanceIds != null && kv.Value.BeltInstanceIds.Contains(instanceId))
++                return kv.Key;
++        return null;
++    }
++
++    /// <summary>Put a belt item (Consumable pseudo-slot) on a unit's belt. Refuses a
++    /// non-belt item, a full belt, or an item already on someone's belt.</summary>
++    public bool EquipBelt(string unitId, string instanceId)
++    {
++        var item = GetInstance(instanceId);
++        if (item == null || !string.Equals(item.Slot, "Consumable", StringComparison.OrdinalIgnoreCase))
++            return false;
++        if (BeltCarrier(instanceId) != null)
++            return false;
++        var loadout = GetLoadout(unitId);
++        loadout.BeltInstanceIds ??= new List<string>();
++        if (loadout.BeltInstanceIds.Count >= UnitLoadout.BeltSlots)
++            return false;
++        loadout.BeltInstanceIds.Add(instanceId);
++        return true;
++    }
++
++    public bool UnequipBelt(string unitId, string instanceId)
++    {
++        var loadout = GetLoadout(unitId);
++        return loadout.BeltInstanceIds != null && loadout.BeltInstanceIds.Remove(instanceId);
++    }
++
++    /// <summary>M6: every wand back to full. Called when an expedition ends (the
++    /// spec's "refilled at campus") and by the D13 debug lever. Returns how many
++    /// instances changed.</summary>
++    public int RefillWandCharges()
++    {
++        int changed = 0;
++        foreach (var inst in OwnedItems)
++        {
++            var def = ItemDatabase.Get(inst.DefinitionId);
++            if (def == null || def.MaxCharges <= 0)
++                continue;
++            if (inst.Charges != def.MaxCharges)
++            {
++                inst.Charges = def.MaxCharges;
++                changed++;
++            }
++        }
++        return changed;
++    }
++
+     public ItemInstance GetInstance(string instanceId)
+         => OwnedItems.FirstOrDefault(i => i.InstanceId == instanceId);
+ 
+@@ -222,11 +293,16 @@ public class ArmoryData
+     {
+         var equipped = new HashSet<string>();
+         foreach (var loadout in Loadouts.Values)
++        {
+             foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
+             {
+                 var id = loadout.GetSlot(slot);
+                 if (id != null) equipped.Add(id);
+             }
++            if (loadout.BeltInstanceIds != null)
++                foreach (var id in loadout.BeltInstanceIds)
++                    equipped.Add(id);   // M6: belted items are spoken for
++        }
+         return OwnedItems.Where(i => !equipped.Contains(i.InstanceId)).ToList();
+     }
+ }
+diff --git a/Scripts/Data/FeatureBuilders/ItemDefinition.cs b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+index 4d1d53d..94ff9f4 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+@@ -171,6 +171,28 @@ public class ItemDefinition
+ 
+     [System.Text.Json.Serialization.JsonIgnore]
+     public bool IsConsumable => !string.IsNullOrEmpty(ConsumeEffect);
++
++    // ── Active items (Martial Maneuvers & Edge spec v1 §11, M6) ─────────────
++    /// <summary>"wand" (Trinket slot, charges per expedition, binds a combat card),
++    /// "spellglass" (Belt, single use, binds a combat card per INSTANCE), or "" for
++    /// everything else. R1b: every active item is charge-, stock- or deck-limited.</summary>
++    public string ActiveKind = "";
++    /// <summary>Card blueprint id a wand casts. Spellglass leaves this empty and
++    /// binds per instance (ItemInstance.BoundCardId), because one glass is one cast
++    /// of one spell the guild sealed.</summary>
++    public string BoundCardId = "";
++    /// <summary>Wands: charges per expedition (spec: start 3, refilled at campus).</summary>
++    public int MaxCharges = 0;
++
++    [System.Text.Json.Serialization.JsonIgnore]
++    public bool IsWand => string.Equals(ActiveKind, "wand", System.StringComparison.OrdinalIgnoreCase);
++    [System.Text.Json.Serialization.JsonIgnore]
++    public bool IsSpellglass => string.Equals(ActiveKind, "spellglass", System.StringComparison.OrdinalIgnoreCase);
++    /// <summary>Belt items (R9): anything in the Consumable pseudo-slot: potions,
++    /// scrolls, whetstones and spellglass alike. Two per unit, assigned on the
++    /// Forces screen or the Armory tab.</summary>
++    [System.Text.Json.Serialization.JsonIgnore]
++    public bool IsBeltItem => string.Equals(Slot, "Consumable", System.StringComparison.OrdinalIgnoreCase);
+ }
+ 
+ /// <summary>Q2: a triggered ability an item grants its wearer. Carried on the
+@@ -226,9 +248,22 @@ public class ItemInstance
+     /// are removed.</summary>
+     public int BlightBonus = 0;
+ 
++    // ── M6 active items. Additive save fields: old instances deserialize with
++    // Charges -1 (not a charged item) and an empty binding. ───────────────────
++    /// <summary>Wand charges left this expedition. -1 = this item has no charges.</summary>
++    public int Charges = -1;
++    /// <summary>Spellglass: the card blueprint id sealed in this glass. Wands leave
++    /// it empty and read their definition's BoundCardId.</summary>
++    public string BoundCardId = "";
++
+     [System.Text.Json.Serialization.JsonIgnore]
+     public bool IsBlighted => !string.IsNullOrEmpty(DrawbackKey);
+ 
++    /// <summary>The card this instance casts, if any: the instance binding first
++    /// (spellglass), else the definition's (wand).</summary>
++    public string EffectiveBoundCardId(ItemDefinition def)
++        => !string.IsNullOrEmpty(BoundCardId) ? BoundCardId : (def?.BoundCardId ?? "");
++
+     public static ItemInstance FromDefinition(ItemDefinition def)
+     {
+         return new ItemInstance
+@@ -240,6 +275,7 @@ public class ItemInstance
+             UnitClass = def.UnitClass,
+             Rarity = def.Rarity,
+             GoldValue = def.GoldValue,
++            Charges = def.MaxCharges > 0 ? def.MaxCharges : -1,
+         };
+     }
+ }
+@@ -255,6 +291,13 @@ public class UnitLoadout
+     public string ArmorInstanceId = null;
+     public string TrinketInstanceId = null;
+ 
++    /// <summary>R9 (spec v1 §11): the Belt, two slots of consumables or spellglass
++    /// per unit. Additive save field; old loadouts deserialize with an empty belt.
++    /// Kept as a list rather than two named slots so the enum loops over
++    /// EquipmentSlot stay untouched.</summary>
++    public List<string> BeltInstanceIds = new();
++    public const int BeltSlots = 2;
++
+     public string GetSlot(EquipmentSlot slot) => slot switch
+     {
+         EquipmentSlot.Weapon => WeaponInstanceId,
+diff --git a/Scripts/Systems/Campaign/CycleInitializer.cs b/Scripts/Systems/Campaign/CycleInitializer.cs
+index 8ccd284..55efc39 100644
+--- a/Scripts/Systems/Campaign/CycleInitializer.cs
++++ b/Scripts/Systems/Campaign/CycleInitializer.cs
+@@ -58,7 +58,7 @@ public static class CycleInitializer
+         // can field the Crossbow class (no crossbow item existed before 2026-09-27).
+         foreach (var id in new[] { "aegis_charm", "duelists_brand", "standard_of_the_vigil",
+                                    "wardstone_amulet", "cinderweave_cloak", "trailwardens_compass",
+-                                   "guild_crossbow" })
++                                   "guild_crossbow", "wand_of_missiles", "whetstone" })
+         {
+             if (save.Armory.OwnedItems.Exists(i => i.DefinitionId == id))
+                 continue;
+@@ -86,7 +86,7 @@ public static class CycleInitializer
+             "stormcaller_staff", "warding_cloak", "spell_focus",
+             "iron_sword", "leather_jerkin", "warriors_sigil",
+             "hunters_bow", "chain_hauberk", "scouts_leathers",
+-            "guild_crossbow",
++            "guild_crossbow", "wand_of_missiles", "whetstone",
+         };
+ 
+         foreach (var id in starterIds)
+diff --git a/Scripts/Systems/Campus/CampusArmoryPanel.cs b/Scripts/Systems/Campus/CampusArmoryPanel.cs
+index b4ecd5c..09a2ee6 100644
+--- a/Scripts/Systems/Campus/CampusArmoryPanel.cs
++++ b/Scripts/Systems/Campus/CampusArmoryPanel.cs
+@@ -103,6 +103,114 @@ public sealed class CampusArmoryPanel : CampusPanel
+         _scriptoriumList = MakeVBox(6);
+         _container.AddChild(_scriptoriumList);
+         RefreshScriptorium();
++
++        // ── Spellglass (Edge M6, spec §11b, D6/D7). The Scribe's Tower is
++        // its eventual home; until that building exists it shares the
++        // Scriptorium section, like scroll crafting does. ────────────────
++        _container.AddChild(new HSeparator());
++        AddSectionHeader(_container, "Scriptorium: Spellglass");
++        var glassHint = new Label
++        {
++            Text = "A combat spell the guild has unlocked, sealed in glass. Any unit shatters it " +
++                   "for one cast at printed values, mana or no mana, for 1 AP. Carried on a belt.",
++            AutowrapMode = TextServer.AutowrapMode.WordSmart,
++        };
++        glassHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        glassHint.Modulate = UITheme.CampusSubtleText;
++        _container.AddChild(glassHint);
++        _spellglassList = MakeVBox(6);
++        _container.AddChild(_spellglassList);
++        RefreshSpellglass();
++    }
++
++    private VBoxContainer _spellglassList;
++
++    /// <summary>Gold to seal a card into glass, by rarity. Rares and above are
++    /// not sealable at launch: the slow reveal is the design.</summary>
++    private static int SpellglassCost(CardRarity r) => r == CardRarity.Common ? 60 : 110;
++
++    private void RefreshSpellglass()
++    {
++        if (_spellglassList == null)
++            return;
++        foreach (var child in _spellglassList.GetChildren())
++            child.QueueFree();
++
++        var save = Ctx?.Save;
++        if (save == null)
++            return;
++        var glassDef = ItemDatabase.Get("spellglass");
++        if (glassDef == null)
++        {
++            _spellglassList.AddChild(MakeStubLabel("No spellglass item definition (Data/Items/spellglass.json)."));
++            return;
++        }
++
++        var sealable = new System.Collections.Generic.List<CardBlueprint>();
++        foreach (var id in save.UnlockedCardBlueprintIds)
++        {
++            var bp = CardDatabase.Blueprints.Find(b => b.Id == id);
++            if (bp == null || bp.Prebuilt?.TopHalf == null)
++                continue;
++            if (bp.Rarity != CardRarity.Common && bp.Rarity != CardRarity.Uncommon)
++                continue;
++            if (!CombatManager.ItemCanAim(bp.Prebuilt.TopHalf.Targeting))
++                continue;   // shapes the item path cannot aim stay in the deck
++            sealable.Add(bp);
++        }
++        sealable.Sort((a, b) => string.CompareOrdinal(a.Prebuilt.TopHalf.Name, b.Prebuilt.TopHalf.Name));
++
++        if (sealable.Count == 0)
++        {
++            _spellglassList.AddChild(MakeStubLabel("Nothing the guild knows can be sealed yet."));
++            return;
++        }
++
++        foreach (var bp in sealable)
++        {
++            int cost = SpellglassCost(bp.Rarity);
++            var half = bp.Prebuilt.TopHalf;
++            int held = 0;
++            foreach (var inst in save.Armory.OwnedItems)
++                if (inst.DefinitionId == glassDef.Id && inst.BoundCardId == bp.Id)
++                    held++;
++
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 10);
++            _spellglassList.AddChild(row);
++
++            var name = new Label
++            {
++                Text = $"{half.Name}  ·  {bp.School}  ·  {bp.Rarity}" + (held > 0 ? $"  ·  ×{held} held" : ""),
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++                TooltipText = half.RulesText,
++            };
++            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
++            row.AddChild(name);
++
++            var craftBtn = MakeButton($"Seal ({cost} g)", 150, 34,
++                UITheme.CampusSmallFontSize, isPrimary: false);
++            craftBtn.Disabled = save.Gold < cost;
++            string cardId = bp.Id;
++            string cardName = half.Name;
++            craftBtn.Pressed += () =>
++            {
++                var s = Ctx?.Save;
++                if (s == null || s.Gold < cost)
++                    return;
++                s.Gold -= cost;
++                var inst = ItemInstance.FromDefinition(glassDef);
++                inst.BoundCardId = cardId;
++                inst.Name = $"Spellglass: {cardName}";
++                s.Armory.AddItem(inst);
++                SaveManager.MarkDirty();
++                GD.Print($"[Scriptorium] Sealed '{cardId}' in glass for {cost}g (gold {s.Gold}).");
++                Ctx.RefreshGold?.Invoke();
++                Refresh();
++            };
++            row.AddChild(craftBtn);
++        }
+     }
+ 
+     // ── Scriptorium (mirrors CampusExpeditionPanel.RefreshScriptorium) ───
+@@ -260,6 +368,74 @@ public sealed class CampusArmoryPanel : CampusPanel
+             var card = BuildItemSlotCard(slot, item, save);
+             grid.AddChild(card);
+         }
++
++        // Edge M6 (R9): the belt, two slots, under the three equipment slots.
++        var beltGrid = new GridContainer { Columns = 3 };
++        beltGrid.AddThemeConstantOverride("h_separation", UITheme.PaddingNormal);
++        beltGrid.AddThemeConstantOverride("v_separation", UITheme.PaddingNormal);
++        beltGrid.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
++        _container.AddChild(beltGrid);
++        var belt = save.Armory.GetBelt(_selectedUnitId);
++        for (int i = 0; i < UnitLoadout.BeltSlots; i++)
++            beltGrid.AddChild(BuildBeltSlotCard(i, i < belt.Count ? belt[i] : null, save));
++    }
++
++    /// <summary>Edge M6: a belt slot card. Same frame as the equipment cards.</summary>
++    private Control BuildBeltSlotCard(int index, ItemInstance item, GuildSaveData save)
++    {
++        var panel = new PanelContainer();
++        panel.CustomMinimumSize = new Vector2(180, 90);
++        var style = new StyleBoxFlat
++        {
++            BgColor = UITheme.SurfaceLight,
++            BorderColor = item != null ? UITheme.RarityColor(item.Rarity) : UITheme.Neutral,
++            CornerRadiusTopLeft = UITheme.CornerRadius - 1,
++            CornerRadiusTopRight = UITheme.CornerRadius - 1,
++            CornerRadiusBottomLeft = UITheme.CornerRadius - 1,
++            CornerRadiusBottomRight = UITheme.CornerRadius - 1,
++            BorderWidthTop = UITheme.BorderWidth - 1,
++            BorderWidthBottom = UITheme.BorderWidth - 1,
++            BorderWidthLeft = UITheme.BorderWidth - 1,
++            BorderWidthRight = UITheme.BorderWidth - 1,
++            ContentMarginLeft = UITheme.PaddingNormal + 2,
++            ContentMarginRight = UITheme.PaddingNormal + 2,
++            ContentMarginTop = UITheme.PaddingNormal,
++            ContentMarginBottom = UITheme.PaddingNormal,
++        };
++        panel.AddThemeStyleboxOverride("panel", style);
++        var vbox = MakeVBox(4);
++        panel.AddChild(vbox);
++
++        var slotLbl = new Label { Text = $"BELT {index + 1}" };
++        slotLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++        slotLbl.AddThemeColorOverride("font_color", UITheme.TextOnLight);
++        vbox.AddChild(slotLbl);
++
++        if (item == null)
++        {
++            var emptyLbl = new Label { Text = "- Empty -" };
++            emptyLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++            emptyLbl.AddThemeColorOverride("font_color", UITheme.TextDim);
++            vbox.AddChild(emptyLbl);
++            return panel;
++        }
++
++        var nameLbl = new Label { Text = item.Name, AutowrapMode = TextServer.AutowrapMode.WordSmart };
++        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        nameLbl.AddThemeColorOverride("font_color", UITheme.RarityColor(item.Rarity));
++        vbox.AddChild(nameLbl);
++
++        var unequipBtn = new Button { Text = "Unequip", CustomMinimumSize = new Vector2(0, 24) };
++        unequipBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++        string iid = item.InstanceId;
++        unequipBtn.Pressed += () =>
++        {
++            save.Armory.UnequipBelt(_selectedUnitId, iid);
++            SaveManager.Save();
++            Refresh();
++        };
++        vbox.AddChild(unequipBtn);
++        return panel;
+     }
+ 
+     private Control BuildItemSlotCard(EquipmentSlot slot, ItemInstance item, GuildSaveData save)
+@@ -359,7 +535,7 @@ public sealed class CampusArmoryPanel : CampusPanel
+         filterRow.AddThemeConstantOverride("separation", 4);
+         _container.AddChild(filterRow);
+ 
+-        foreach (var filterName in new[] { "All", "Weapon", "Armor", "Trinket" })
++        foreach (var filterName in new[] { "All", "Weapon", "Armor", "Trinket", "Consumable" })
+         {
+             bool isActive = _slotFilter == filterName;
+             var filterBtn = new Button
+@@ -482,7 +658,31 @@ public sealed class CampusArmoryPanel : CampusPanel
+         // Right: equip button
+         if (_selectedUnitId != null && def != null)
+         {
+-            if (System.Enum.TryParse<EquipmentSlot>(item.Slot, true, out var itemSlot))
++            // Edge M6 (R9): belt items get a Belt button instead of a slot equip.
++            if (def.IsBeltItem)
++            {
++                bool room = save.Armory.GetBelt(_selectedUnitId).Count < UnitLoadout.BeltSlots;
++                var beltBtn = new Button
++                {
++                    Text = room ? "Belt →" : "Belt full",
++                    Disabled = !room,
++                    CustomMinimumSize = new Vector2(90, 32),
++                };
++                beltBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++                UITheme.ApplyButtonStyle(beltBtn, isPrimary: true);
++                string beltInstId = item.InstanceId;
++                beltBtn.Pressed += () =>
++                {
++                    save.Armory.EquipBelt(_selectedUnitId, beltInstId);
++                    SaveManager.Save();
++                    Refresh();
++                };
++                var beltCol = MakeVBox(4);
++                beltCol.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
++                row.AddChild(beltCol);
++                beltCol.AddChild(beltBtn);
++            }
++            else if (System.Enum.TryParse<EquipmentSlot>(item.Slot, true, out var itemSlot))
+             {
+                 var loadout = save.Armory.GetLoadout(_selectedUnitId);
+                 string currentInstanceId = loadout.GetSlot(itemSlot);
+diff --git a/Scripts/Systems/Campus/CampusGuildPanel.cs b/Scripts/Systems/Campus/CampusGuildPanel.cs
+index ff51fcf..dd9eee6 100644
+--- a/Scripts/Systems/Campus/CampusGuildPanel.cs
++++ b/Scripts/Systems/Campus/CampusGuildPanel.cs
+@@ -833,6 +833,7 @@ public sealed class CampusGuildPanel : CampusPanel
+         {
+             CouncilSaveAssert.AssertAll();
+             ProgressionSaveAssert.AssertAll();
++            ArmorySaveAssert.AssertAll();   // Edge M6: belts, charges, bindings
+         });
+ 
+         return panel;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Items.cs b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+new file mode 100644
+index 0000000..ec93877
+--- /dev/null
++++ b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+@@ -0,0 +1,528 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++using System.Linq;
++
++// ============================================================
++// CombatManager.Items.cs
++//
++// Purpose:        Pinned item actions in combat (Martial Maneuvers &
++//                 Edge spec v1 §11, M6): the selected unit's belt
++//                 (potions, scrolls, whetstones, spellglass) and its
++//                 wand, shown as cards on the right of the action tray.
++//                 Every pinned item costs 1 AP (§11c). A wand spends a
++//                 charge; a martial firing one pays 1 Edge on top (R11).
++//                 Spellglass shatters on use. Bound spells cast through
++//                 RulesManager at printed values with the mana cost
++//                 waived (GameState.ItemCastFree), so a 0-mana martial
++//                 can fire a wand.
++// Layer:          Combat rules (partial of CombatManager)
++// Collaborators:  ItemDefinition.cs / ItemDatabase.cs (ActiveKind,
++//                 BoundCardId, Charges, belts), TechniqueTray.cs (display),
++//                 CombatManager.Maneuvers.cs (shares the arming machinery:
++//                 legal tiles, rings, click routing), RulesManager
++//                 (TryCastWithTargets), CardDatabase (blueprints)
++// ============================================================
++
++public partial class CombatManager
++{
++    /// <summary>Tray card ids for items are "item:<instanceId>", so one tray
++    /// handler routes both technique and item cards.</summary>
++    private const string ItemCardPrefix = "item:";
++
++    /// <summary>The armed item card, mutually exclusive with _armedManeuver.</summary>
++    private ItemInstance _armedItem;
++    private ItemDefinition _armedItemDef;
++    private CardHalf _armedItemHalf;
++
++    /// <summary>The loadout key CombatManager already uses for equipment.</summary>
++    private static string LoadoutKeyFor(Unit u)
++        => string.IsNullOrEmpty(u?.CompanionId) ? "wizard" : u.CompanionId;
++
++    // ── What a unit carries ──────────────────────────────────────────────────
++
++    /// <summary>Belt items in slot order, then the wand if the trinket is one.</summary>
++    private List<(ItemInstance inst, ItemDefinition def)> PinnedItemsFor(Unit u)
++    {
++        var list = new List<(ItemInstance, ItemDefinition)>();
++        var armory = SaveManager.ActiveSave?.Armory;
++        if (u == null || armory == null || !u.IsPlayerControlled || u.IsObjectiveWard || u.IsStructure)
++            return list;
++        string key = LoadoutKeyFor(u);
++        foreach (var inst in armory.GetBelt(key))
++        {
++            var def = ItemDatabase.Get(inst.DefinitionId);
++            if (def != null)
++                list.Add((inst, def));
++        }
++        var trinketId = armory.GetLoadout(key).TrinketInstanceId;
++        if (!string.IsNullOrEmpty(trinketId))
++        {
++            var inst = armory.GetInstance(trinketId);
++            var def = inst != null ? ItemDatabase.Get(inst.DefinitionId) : null;
++            if (def != null && def.IsWand)
++                list.Add((inst, def));
++        }
++        return list;
++    }
++
++    /// <summary>Card view for one pinned item, costs and greying resolved for <paramref name="u"/>.</summary>
++    private TechniqueCardView ItemCardView(Unit u, ItemInstance inst, ItemDefinition def)
++    {
++        string why = ItemBlockReason(u, inst, def);
++        bool martialWand = def.IsWand && EdgeRules.UsesEdge(u);
++        string cost = def.IsWand
++            ? $"{MartialAPCosts.UseItem} AP · charge {Math.Max(0, inst.Charges)}/{def.MaxCharges}" + (martialWand ? " · 1 Edge" : "")
++            : $"{MartialAPCosts.UseItem} AP · spent on use";
++        string text = def.Description;
++        string bound = inst.EffectiveBoundCardId(def);
++        if (!string.IsNullOrEmpty(bound))
++        {
++            var half = BoundHalf(bound);
++            if (half != null)
++                text = $"{half.Name}: {half.RulesText}";
++        }
++        return new TechniqueCardView
++        {
++            Id = ItemCardPrefix + inst.InstanceId,
++            Title = inst.Name,
++            Cost = cost,
++            Text = text,
++            Role = def.IsWand ? "Wand" : def.IsSpellglass ? "Spellglass" : def.ConsumeKind == "scroll" ? "Scroll" : "Belt",
++            Enabled = why == null,
++            Armed = _armedItem == inst,
++            Tooltip = why ?? (def.IsWand || def.IsSpellglass
++                ? $"{inst.Name}: click, then click a target if the spell needs one."
++                : $"{inst.Name}: click to use on {u.Name}."),
++            IsItem = true,
++        };
++    }
++
++    /// <summary>The top half of the bound card, or null when the id is unknown.</summary>
++    private static CardHalf BoundHalf(string blueprintId)
++    {
++        if (string.IsNullOrEmpty(blueprintId))
++            return null;
++        var bp = CardDatabase.Blueprints.Find(b => b.Id == blueprintId) ?? CardDatabase.GetByName(blueprintId);
++        if (bp == null)
++            return null;
++        var card = CardDatabase.Instantiate(bp);
++        return card?.TopHalf;
++    }
++
++    /// <summary>Selectors the item path can aim without drag-and-drop. Anything
++    /// else is refused at the card, with the reason shown.</summary>
++    public static bool ItemCanAim(ITargetSelector t)
++        => t == null || t is SelectSelfTarget || t is SelectGlobalTarget || t is SelectAreaTarget
++           || t is SelectUnitTarget || t is SelectTileTarget;
++
++    private string ItemBlockReason(Unit u, ItemInstance inst, ItemDefinition def)
++    {
++        if (currentPhase != CombatPhase.PlayerTurn || isInDeploymentPhase)
++            return "Not your turn.";
++        if (!u.CanAct())
++            return $"{u.Name} cannot act.";
++        if (u.CurrentActionPoints < MartialAPCosts.UseItem)
++            return $"Needs {MartialAPCosts.UseItem} AP (has {u.CurrentActionPoints}).";
++
++        if (def.IsWand)
++        {
++            if (inst.Charges <= 0)
++                return "No charges left. Wands refill at campus.";
++            if (EdgeRules.UsesEdge(u) && u.Edge < 1)
++                return "A martial pays 1 Edge to fire a wand (has 0).";
++        }
++        string bound = inst.EffectiveBoundCardId(def);
++        if (def.IsWand || def.IsSpellglass)
++        {
++            var half = BoundHalf(bound);
++            if (half == null)
++                return $"Bound spell '{bound}' is not in the card database.";
++            if (!ItemCanAim(half.Targeting))
++                return $"{half.Name} needs a targeting shape items cannot aim yet ({half.Targeting.GetType().Name}).";
++        }
++        else if (def.IsConsumable)
++        {
++            if (def.ConsumeKind == "scroll")
++            {
++                if (_scrollReadThisTurn)
++                    return "The party's one scroll this turn is spent.";
++            }
++            else if (u.HasUsedConsumableThisTurn)
++                return $"{u.Name} has already drunk this turn.";
++            if (def.ConsumeEffect == "edge" && !EdgeRules.UsesEdge(u))
++                return "Only a classed martial can use this.";
++        }
++        return null;
++    }
++
++    // ── Tray entry ───────────────────────────────────────────────────────────
++
++    /// <summary>Route an item card press. Returns true when the id was an item id.</summary>
++    private bool TryHandleItemCardPressed(string cardId)
++    {
++        if (string.IsNullOrEmpty(cardId) || !cardId.StartsWith(ItemCardPrefix, StringComparison.Ordinal))
++            return false;
++        string instanceId = cardId.Substring(ItemCardPrefix.Length);
++        var u = selectedUnit;
++        var armory = SaveManager.ActiveSave?.Armory;
++        if (u == null || armory == null || currentPhase != CombatPhase.PlayerTurn)
++            return true;
++        var inst = armory.GetInstance(instanceId);
++        var def = inst != null ? ItemDatabase.Get(inst.DefinitionId) : null;
++        if (inst == null || def == null)
++            return true;
++
++        if (_armedItem == inst)
++        {
++            DisarmManeuver();
++            return true;
++        }
++        string why = ItemBlockReason(u, inst, def);
++        if (why != null)
++        {
++            combatUI?.AppendActionLog(why);
++            return true;
++        }
++
++        // Plain consumables resolve on the spot.
++        if (!def.IsWand && !def.IsSpellglass)
++        {
++            UsePinnedConsumable(u, inst, def);
++            return true;
++        }
++
++        var half = BoundHalf(inst.EffectiveBoundCardId(def));
++        if (half == null)
++            return true;
++
++        // Self, Global and Area spells need no board click.
++        if (half.Targeting == null || half.Targeting is SelectSelfTarget
++            || half.Targeting is SelectGlobalTarget || half.Targeting is SelectAreaTarget)
++        {
++            var targets = new TargetSet();
++            targets.Items.Add(Me);
++            ResolveItemCast(u, inst, def, half, targets);
++            return true;
++        }
++
++        ArmItem(u, inst, def, half);
++        return true;
++    }
++
++    private void ArmItem(Unit u, ItemInstance inst, ItemDefinition def, CardHalf half)
++    {
++        DisarmAction(refresh: false);
++        DisarmManeuver(refresh: false);
++        ClearManeuverHighlight();
++        _armedItem = inst;
++        _armedItemDef = def;
++        _armedItemHalf = half;
++
++        BuildItemLegalTiles(u, half);
++        if (_maneuverLegalTiles.Count == 0)
++        {
++            combatUI?.AppendActionLog($"{inst.Name}: nothing in reach for {half.Name}.");
++            ClearArmedItem();
++            RefreshSelectedUnitUI();
++            return;
++        }
++
++        EnsureCastRenderers();
++        _castZone.ShowOutline(new HashSet<Vector2I>(_maneuverLegalTiles), grid, ManeuverEnvelopeColor, ManeuverEnvelopeFill);
++        foreach (var coord in _maneuverLegalTiles)
++        {
++            var occ = grid.GetTile(coord)?.Occupant;
++            if (occ != null && occ.Stats.IsAlive)
++            {
++                occ.SetTargetable(true, ManeuverEnvelopeColor);
++                _maneuverRingedUnits.Add(occ);
++            }
++        }
++        combatUI?.SetHintText($"{inst.Name} ({half.Name}): click a target. Right-click or Esc to cancel.");
++        RefreshSelectedUnitUI();
++    }
++
++    private void ClearArmedItem()
++    {
++        _armedItem = null;
++        _armedItemDef = null;
++        _armedItemHalf = null;
++    }
++
++    /// <summary>Legal tiles for a bound spell's selector, mirroring the drop
++    /// path's checks for SelectUnitTarget (range, LOS, cover, side) and
++    /// SelectTileTarget (range).</summary>
++    private void BuildItemLegalTiles(Unit u, CardHalf half)
++    {
++        _maneuverLegalTiles.Clear();
++        if (u?.CurrentTile == null || grid == null || half == null)
++            return;
++        var origin = u.CurrentTile.Axial;
++
++        switch (half.Targeting)
++        {
++            case SelectUnitTarget ut:
++                foreach (var kv in grid.Tiles)
++                {
++                    var occ = kv.Value?.Occupant;
++                    if (occ == null || !occ.Stats.IsAlive || occ.IsMapObject)
++                        continue;
++                    int dist = grid.Distance(origin, kv.Key);
++                    if (dist > ut.range)
++                        continue;
++                    if (ut.enemyOnly && occ.TeamId == u.TeamId)
++                        continue;
++                    if (ut.friendlyOnly && occ.TeamId != u.TeamId)
++                        continue;
++                    if (ut.los && dist > 0 && !grid.HasLineOfSight(origin, kv.Key))
++                        continue;
++                    if (dist > 0 && ut.BlockedByCover(grid, origin, kv.Key))
++                        continue;
++                    _maneuverLegalTiles.Add(kv.Key);
++                }
++                break;
++
++            case SelectTileTarget tt:
++                foreach (var kv in grid.Tiles)
++                    if (grid.Distance(origin, kv.Key) <= tt.range)
++                        _maneuverLegalTiles.Add(kv.Key);
++                break;
++        }
++    }
++
++    /// <summary>Board click while an item is armed. Returns true when consumed.</summary>
++    private bool TryHandleItemClick(Unit clickedUnit, HexTile clickedTile)
++    {
++        if (_armedItem == null)
++            return false;
++        var u = selectedUnit;
++        if (u == null || !IsInstanceValid(u) || _armedItemHalf == null)
++        { DisarmManeuver(); return true; }
++
++        Vector2I? coord = clickedUnit?.CurrentTile?.Axial ?? clickedTile?.Axial;
++        if (coord == null || !_maneuverLegalTiles.Contains(coord.Value))
++        {
++            combatUI?.AppendActionLog($"{_armedItem.Name}: not a legal target. Right-click to cancel.");
++            return true;
++        }
++
++        var targets = new TargetSet();
++        switch (_armedItemHalf.Targeting)
++        {
++            case SelectUnitTarget ut:
++                var target = grid.GetTile(coord.Value)?.Occupant;
++                if (target == null || !target.Stats.IsAlive)
++                {
++                    combatUI?.AppendActionLog($"{_armedItem.Name}: no one there.");
++                    return true;
++                }
++                targets.Items.Add(target);
++                targets.Delivery = ut.delivery;
++                break;
++            case SelectTileTarget:
++                var td = grid.GetTile(coord.Value);
++                if (td == null)
++                    return true;
++                targets.Items.Add(td);
++                break;
++            default:
++                targets.Items.Add(Me);
++                break;
++        }
++
++        ResolveItemCast(u, _armedItem, _armedItemDef, _armedItemHalf, targets);
++        return true;
++    }
++
++    // ── Resolution ───────────────────────────────────────────────────────────
++
++    /// <summary>A potion, scroll or whetstone from the belt: 1 AP, then the
++    /// consumable's effect exactly as the satchel applies it.</summary>
++    private void UsePinnedConsumable(Unit u, ItemInstance inst, ItemDefinition def)
++    {
++        var save = SaveManager.ActiveSave;
++        if (save == null)
++            return;
++        if (!u.TrySpendAP(MartialAPCosts.UseItem))
++        {
++            combatUI?.AppendActionLog($"{u.Name} needs {MartialAPCosts.UseItem} AP to use {inst.Name}.");
++            return;
++        }
++        if (!ApplyConsumableEffect(u, def, out string line))
++        {
++            u.CurrentActionPoints += MartialAPCosts.UseItem;
++            return;
++        }
++        FinishConsumable(u, inst, def, line);
++    }
++
++    /// <summary>Casts the bound spell. Pays 1 AP, a charge or the glass, and a
++    /// martial's 1 Edge for a wand. Mana is waived (GameState.ItemCastFree); the
++    /// item is the cost. Everything is refunded if the rules refuse the cast.</summary>
++    private void ResolveItemCast(Unit u, ItemInstance inst, ItemDefinition def, CardHalf half, TargetSet targets)
++    {
++        var save = SaveManager.ActiveSave;
++        ClearArmedItem();
++        ClearManeuverHighlight();
++        combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
++        if (save == null || u == null || !IsInstanceValid(u))
++            return;
++
++        string why = ItemBlockReason(u, inst, def);
++        if (why != null)
++        {
++            combatUI?.AppendActionLog(why);
++            RefreshSelectedUnitUI();
++            return;
++        }
++        if (!CheckCastRequirements(half, targets, out string failReason))
++        {
++            combatUI?.AppendActionLog($"{inst.Name}: {failReason}");
++            RefreshSelectedUnitUI();
++            return;
++        }
++
++        int edgeBefore = u.Edge;
++        bool martialWand = def.IsWand && EdgeRules.UsesEdge(u);
++        if (!u.TrySpendAP(MartialAPCosts.UseItem))
++        {
++            combatUI?.AppendActionLog($"{u.Name} needs {MartialAPCosts.UseItem} AP to use {inst.Name}.");
++            return;
++        }
++        if (martialWand && !EdgeRules.TrySpend(u, 1))
++        {
++            u.CurrentActionPoints += MartialAPCosts.UseItem;
++            combatUI?.AppendActionLog($"{u.Name} needs 1 Edge to fire {inst.Name}.");
++            return;
++        }
++
++        State.ActiveCasterUnit = u;
++        State.ItemCastFree = true;
++        bool ok = false;
++        try
++        {
++            ok = Rules.TryCastWithTargets(half, State, Me, targets, null);
++        }
++        finally
++        {
++            State.ItemCastFree = false;
++            if (!ok)
++                State.ActiveCasterUnit = null;   // a refused or thrown cast leaves no pin behind
++        }
++
++        if (!ok)
++        {
++            u.CurrentActionPoints += MartialAPCosts.UseItem;
++            if (martialWand)
++                EdgeRules.Refund(u, 1);
++            combatUI?.AppendActionLog($"{inst.Name}: {half.Name} could not be cast here.");
++            RefreshSelectedUnitUI();
++            return;
++        }
++
++        combatUI?.AppendActionLog($"{u.Name} uses {inst.Name}: {half.Name}." + (martialWand ? " (1 Edge)" : ""));
++        if (!_priorityWindowOpen)
++        {
++            while (!State.Stack.IsEmpty)
++                State.Resolver.ResolveTop(State);
++        }
++        State.ActiveCasterUnit = null;
++
++        // The item is the cost.
++        if (def.IsWand)
++        {
++            inst.Charges = Math.Max(0, inst.Charges - 1);
++            combatUI?.AppendActionLog($"{inst.Name}: {inst.Charges}/{def.MaxCharges} charge(s) left.");
++        }
++        else if (def.IsSpellglass)
++        {
++            save.Armory.RemoveItem(inst.InstanceId);
++            combatUI?.AppendActionLog($"{inst.Name} shatters.");
++        }
++        SaveManager.MarkDirty();
++
++        u.Stats.HasActed = true;
++        EdgeRules.OnAction(u, EdgeActionKind.Item);
++        RecordMartial(u, "item", def.Id, edgeBefore);
++
++        u.RefreshHealthBar();
++        RefreshSelectedUnitUI();
++        RefreshEnemyRoster();
++        RefreshPlayerUnitBar();
++        MaybeAdvanceToReadyUnit();
++        _pruneNeeded = true;
++    }
++
++    /// <summary>The consumable effect table, shared by the belt cards and the
++    /// satchel popup. Returns false (nothing applied) for an unknown effect.</summary>
++    private bool ApplyConsumableEffect(Unit unit, ItemDefinition def, out string line)
++    {
++        line = "";
++        switch (def.ConsumeEffect)
++        {
++            case "heal":
++                int before = unit.Stats.Health;
++                unit.Stats.Health = Mathf.Min(unit.Stats.MaxHealth, unit.Stats.Health + def.ConsumeValue);
++                line = $"{unit.DisplayName} drinks the {def.Name} and restores {unit.Stats.Health - before} HP.";
++                return true;
++            case "shield":
++                unit.Stats.Shield += def.ConsumeValue;
++                line = $"{unit.DisplayName} reads the {def.Name} and gains {def.ConsumeValue} shield.";
++                return true;
++            case "mana":
++                unit.Stats.Mana = Mathf.Min(unit.Stats.MaxMana, unit.Stats.Mana + def.ConsumeValue);
++                line = $"{unit.DisplayName} drinks the {def.Name}. Mana restored.";
++                return true;
++            case "ap":
++                unit.CurrentActionPoints += def.ConsumeValue;
++                line = $"{unit.DisplayName} drinks the {def.Name} for +{def.ConsumeValue} action points.";
++                return true;
++            case "edge":
++                // Whetstone (spec §11c): +2 Edge. A gain, so it counts against the
++                // per-round cap and marks the window; a stone at cap grants nothing.
++                int gained = EdgeRules.TryGain(unit, def.ConsumeValue, def.Name);
++                line = $"{unit.DisplayName} works the {def.Name}: +{gained} Edge.";
++                return true;
++            default:
++                GD.PrintErr($"[Consumable] Unknown effect '{def.ConsumeEffect}' on {def.Id}.");
++                return false;
++        }
++    }
++
++    /// <summary>Post-use bookkeeping shared by belt and satchel: gates, Edge
++    /// action, telemetry, removal, refresh.</summary>
++    private void FinishConsumable(Unit unit, ItemInstance inst, ItemDefinition def, string line)
++    {
++        var save = SaveManager.ActiveSave;
++        bool isScroll = def.ConsumeKind == "scroll";
++        if (isScroll) _scrollReadThisTurn = true;
++        else unit.HasUsedConsumableThisTurn = true;
++        int edgeBeforeItem = unit.Edge;
++        EdgeRules.OnAction(unit, EdgeActionKind.Item);   // Skirmish momentum
++        RecordMartial(unit, "item", def.Id, edgeBeforeItem);
++        save?.Armory.RemoveItem(inst.InstanceId);
++        SaveManager.MarkDirty();
++        unit.Stats.HasActed = true;
++        unit.RefreshHealthBar();
++        combatUI?.AppendActionLog(line);
++        GD.Print($"[Consumable] {line}");
++        combatUI?.CloseConsumableList();
++        RefreshSelectedUnitUI();
++        RefreshPlayerUnitBar();
++        MaybeAdvanceToReadyUnit();
++    }
++
++    // ── Debug (D13) ──────────────────────────────────────────────────────────
++
++    /// <summary>Ctrl+R: every wand back to full, mid-expedition.</summary>
++    private void DebugRefillWands()
++    {
++        if (!OS.IsDebugBuild())
++            return;
++        int n = SaveManager.ActiveSave?.Armory?.RefillWandCharges() ?? 0;
++        SaveManager.MarkDirty();
++        combatUI?.AppendActionLog($"[Debug] Refilled {n} wand(s).");
++        RefreshSelectedUnitUI();
++    }
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index dcae6fb..86aa631 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -57,12 +57,29 @@ public partial class CombatManager
+         EnsureTechniqueTray();
+         var unit = selectedUnit;
+         if (unit == null || !IsInstanceValid(unit) || !unit.IsPlayerControlled || !unit.Stats.IsAlive
+-            || !EdgeRules.UsesEdge(unit) || isInDeploymentPhase)
++            || isInDeploymentPhase)
+         {
+             _techniqueTray.ShowCards(null, "");
+             return;
+         }
+ 
++        // Edge M6: pinned items (belt, wand) for ANY player unit; techniques only
++        // for classed martials. A wizard with an empty belt sees no tray.
++        var pinned = PinnedItemsFor(unit);
++        if (!EdgeRules.UsesEdge(unit))
++        {
++            if (pinned.Count == 0)
++            {
++                _techniqueTray.ShowCards(null, "");
++                return;
++            }
++            var itemCards = new List<TechniqueCardView>();
++            foreach (var (inst, def) in pinned)
++                itemCards.Add(ItemCardView(unit, inst, def));
++            _techniqueTray.ShowCards(itemCards, $"Belt: {pinned.Count} item(s). 1 AP each.");
++            return;
++        }
++
+         var cards = new List<TechniqueCardView>();
+         foreach (var m in ManeuverRegistry.ForWeaponClass(unit.WeaponClass))
+         {
+@@ -100,6 +117,8 @@ public partial class CombatManager
+         }
+         if (unit.ArmedReaction != null)
+             header += $"\nArmed: {unit.ArmedReaction.DisplayName}. {ReactionTriggerText(unit, unit.ArmedReaction)}";
++        foreach (var (inst, def) in pinned)
++            cards.Add(ItemCardView(unit, inst, def));   // Edge M6: items to the right
+         _techniqueTray.ShowCards(cards, header);
+     }
+ 
+@@ -113,6 +132,8 @@ public partial class CombatManager
+     {
+         if (selectedUnit == null || currentPhase != CombatPhase.PlayerTurn || isInDeploymentPhase)
+             return;
++        if (TryHandleItemCardPressed(maneuverId))   // Edge M6: "item:<instanceId>"
++            return;
+         var m = ManeuverRegistry.Get(maneuverId);
+         if (m == null)
+             return;
+@@ -230,6 +251,7 @@ public partial class CombatManager
+         }
+ 
+         DisarmAction(refresh: false);   // one armed thing at a time
++        ClearArmedItem();               // Edge M6: nor an armed item card
+         ClearManeuverHighlight();
+         _armedManeuver = m;
+ 
+@@ -268,11 +290,15 @@ public partial class CombatManager
+         RefreshSelectedUnitUI();
+     }
+ 
++    /// <summary>True while a technique or an item card owns the next board click.</summary>
++    private bool AnyCardArmed => _armedManeuver != null || _armedItem != null;
++
+     private void DisarmManeuver(bool refresh = true)
+     {
+-        if (_armedManeuver == null)
++        if (_armedManeuver == null && _armedItem == null)
+             return;
+         _armedManeuver = null;
++        ClearArmedItem();
+         ClearManeuverHighlight();
+         combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
+         if (refresh)
+@@ -367,6 +393,8 @@ public partial class CombatManager
+     /// was consumed (resolved or refused), false when nothing is armed.</summary>
+     private bool TryHandleManeuverClick(Unit clickedUnit, HexTile clickedTile)
+     {
++        if (_armedItem != null)
++            return TryHandleItemClick(clickedUnit, clickedTile);   // Edge M6
+         if (_armedManeuver == null)
+             return false;
+         var u = selectedUnit;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 5e761bc..e840b3c 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -425,7 +425,7 @@ public partial class CombatManager : Node3D
+             // shot's trajectory, the same way a dragged card does. ──
+             // An armed technique card owns the shared envelope renderer (Edge M2):
+             // the basic-attack preview must not wipe its target rings on hover.
+-            if (!_isCardBeingDragged && _armedManeuver == null)
++            if (!_isCardBeingDragged && !AnyCardArmed)
+             {
+                 if (hitUnit != null && !hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive
+                     && selectedUnit != null && (selectedUnit.IsMartial || selectedUnit.StationWeapon != null)
+@@ -878,7 +878,7 @@ public partial class CombatManager : Node3D
+             // Right-click cancels a pending second pick before anything else reads it.
+             if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && TwoStepPending)
+             { CancelTwoStep(); return; }
+-            if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && _armedManeuver != null)
++            if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && AnyCardArmed)
+             { DisarmManeuver(); return; }
+             if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && _armedAction != UnitAction.None)
+             { DisarmAction(); return; }
+@@ -897,7 +897,7 @@ public partial class CombatManager : Node3D
+             && esc.Keycode == Key.Escape && TwoStepPending)
+         { CancelTwoStep(); return; }
+         if (e is InputEventKey escM && escM.Pressed && !escM.Echo
+-            && escM.Keycode == Key.Escape && _armedManeuver != null)
++            && escM.Keycode == Key.Escape && AnyCardArmed)
+         { DisarmManeuver(); return; }
+         if (e is InputEventKey escA && escA.Pressed && !escA.Echo
+             && escA.Keycode == Key.Escape && _armedAction != UnitAction.None)
+@@ -921,7 +921,7 @@ public partial class CombatManager : Node3D
+         if (e is InputEventKey k && k.Pressed && !k.Echo)
+         {
+             // Existing bindings
+-            if (k.Keycode == Key.R)
++            if (k.Keycode == Key.R && !k.CtrlPressed)
+                 ResolveTop();
+ 
+             // Edge debug lever (D13): Ctrl+E fill, Ctrl+Shift+E empty.
+@@ -933,6 +933,8 @@ public partial class CombatManager : Node3D
+             { DebugStaggerInspected(); return; }
+             if (k.Keycode == Key.W && k.CtrlPressed)
+             { DebugCycleWeaponClass(); return; }
++            if (k.Keycode == Key.R && k.CtrlPressed)
++            { DebugRefillWands(); return; }   // D13 (M6): refill wand charges
+ 
+             // ── Unit selection ────────────────────────────────────────────
+             if (currentPhase == CombatPhase.PlayerTurn)
+@@ -1451,13 +1453,21 @@ public partial class CombatManager : Node3D
+ 
+         if (save != null)
+         {
+-            // Group by definition: one row per kind, consuming one instance.
++            // Edge M6 (R9): the satchel is the selected unit's BELT. A consumable
++            // reaches the field on a belt or not at all; the tray shows the same
++            // two items as cards. Grouped by definition, consuming one instance.
++            var beltIds = new HashSet<string>();
++            if (selectedUnit != null)
++                foreach (var b in save.Armory.GetBelt(LoadoutKeyFor(selectedUnit)))
++                    beltIds.Add(b.InstanceId);
+             var byDef = new Dictionary<string, (ItemInstance first, int count)>();
+             foreach (var inst in save.Armory.OwnedItems)
+             {
+                 var d = ItemDatabase.Get(inst.DefinitionId);
+                 if (d == null || !d.IsConsumable)
+                     continue;
++                if (!beltIds.Contains(inst.InstanceId))
++                    continue;
+                 // Deploy loadout (2026-08-21): kinds unchecked on the launch
+                 // drawer stay in the campus stores. They never reach the field.
+                 if (save.Cycle?.ExcludedConsumableIds != null &&
+@@ -1490,6 +1500,7 @@ public partial class CombatManager : Node3D
+         string note =
+             currentPhase != CombatPhase.PlayerTurn ? "Consumables can only be used on your turn." :
+             selectedUnit == null ? "Select a unit first." :
++            entries.Count == 0 ? $"{selectedUnit.DisplayName}'s belt is empty. Belts are packed on the Forces screen or the Armory tab. Every item costs 1 AP." :
+             selectedUnit.IsObjectiveWard
+                 ? $"Target: {selectedUnit.DisplayName}. It cannot drink; scrolls only." +
+                   (_scrollReadThisTurn ? " The party's scroll is spent this turn." : "")
+@@ -1538,45 +1549,26 @@ public partial class CombatManager : Node3D
+                 return;
+         }
+ 
+-        string line;
+-        switch (def.ConsumeEffect)
++        // Whetstones are a martial's tool (spec §11c); the tray says so, the satchel must too.
++        if (def.ConsumeEffect == "edge" && !EdgeRules.UsesEdge(unit))
+         {
+-            case "heal":
+-                int before = unit.Stats.Health;
+-                unit.Stats.Health = Mathf.Min(unit.Stats.MaxHealth,
+-                                              unit.Stats.Health + def.ConsumeValue);
+-                line = $"{unit.DisplayName} drinks the {def.Name} and restores {unit.Stats.Health - before} HP.";
+-                break;
+-            case "shield":
+-                unit.Stats.Shield += def.ConsumeValue;
+-                line = $"{unit.DisplayName} reads the {def.Name} and gains {def.ConsumeValue} shield.";
+-                break;
+-            case "mana":
+-                unit.Stats.Mana = Mathf.Min(unit.Stats.MaxMana,
+-                                            unit.Stats.Mana + def.ConsumeValue);
+-                line = $"{unit.DisplayName} drinks the {def.Name}. Mana restored.";
+-                break;
+-            case "ap":
+-                unit.CurrentActionPoints += def.ConsumeValue;
+-                line = $"{unit.DisplayName} drinks the {def.Name} for +{def.ConsumeValue} action points.";
+-                break;
+-            default:
+-                GD.PrintErr($"[Consumable] Unknown effect '{def.ConsumeEffect}' on {def.Id}.");
+-                return;
++            combatUI?.AppendActionLog($"Only a classed martial can use the {def.Name}.");
++            return;
+         }
+-
+-        if (isScroll) _scrollReadThisTurn = true;
+-        else unit.HasUsedConsumableThisTurn = true;
+-        int edgeBeforeItem = unit.Edge;
+-        EdgeRules.OnAction(unit, EdgeActionKind.Item);   // Skirmish momentum
+-        RecordMartial(unit, "item", def.Id, edgeBeforeItem);
+-        save.Armory.RemoveItem(inst.InstanceId);
+-        SaveManager.MarkDirty();
+-        unit.RefreshHealthBar();
+-        combatUI?.AppendActionLog(line);
+-        GD.Print($"[Consumable] {line}");
+-        combatUI?.CloseConsumableList();
+-        RefreshPlayerUnitBar();
++        // Edge M6 (spec §11c): every pinned item costs 1 AP, satchel or tray. The
++        // objective ward has no AP and cannot act; a scroll read over it is free,
++        // as it was before M6 (the ward reads nothing itself).
++        if (!unit.IsObjectiveWard && (!unit.CanAct() || !unit.TrySpendAP(MartialAPCosts.UseItem)))
++        {
++            combatUI?.AppendActionLog($"{unit.DisplayName} needs {MartialAPCosts.UseItem} AP to use {def.Name}.");
++            return;
++        }
++        if (!ApplyConsumableEffect(unit, def, out string line))
++        {
++            unit.CurrentActionPoints += MartialAPCosts.UseItem;
++            return;
++        }
++        FinishConsumable(unit, inst, def, line);
+     }
+ 
+     /// <summary>The first player unit that can take orders right now: not a
+diff --git a/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs b/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs
+index 8af04f9..90f565a 100644
+--- a/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs
++++ b/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs
+@@ -52,6 +52,8 @@ public sealed class ManaCost : ICost
+     {
+         if (s == null || baseAmount <= 0)
+             return baseAmount;
++        if (s.ItemCastFree)
++            return 0;   // Edge M6: a wand or spellglass cast; the item paid
+ 
+         int amount = baseAmount;
+         var u = s.ActiveCasterUnit;
+diff --git a/Scripts/Systems/GameStateManager.cs b/Scripts/Systems/GameStateManager.cs
+index e921780..90414d3 100644
+--- a/Scripts/Systems/GameStateManager.cs
++++ b/Scripts/Systems/GameStateManager.cs
+@@ -101,6 +101,11 @@ public sealed class GameState
+     /// </summary>
+     public int PlayerSpellCostIncrease = 0;
+ 
++    /// <summary>Edge M6 (spec v1 §11c): set for the duration of an item-bound cast
++    /// (wand, spellglass). ManaCost reads it and charges nothing: the item is the
++    /// cost, and a 0-mana martial must be able to fire a wand. Never left set.</summary>
++    public bool ItemCastFree = false;
++
+     /// <summary>
+     /// Turns remaining on the redirect-all effect.
+     /// When > 0, FindNearestPlayerUnit redirects enemies to attack each other.
+diff --git a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+index 3b70fe7..7832822 100644
+--- a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
++++ b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+@@ -3640,6 +3640,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+             return;
+         }
+         slot.Clear();
++        // Edge M6 (spec §11b): wand charges are per expedition and refill at
++        // campus. Every end path (extract, park, emergency, fail) comes through here.
++        int refilled = SaveManager.ActiveSave?.Armory?.RefillWandCharges() ?? 0;
++        if (refilled > 0)
++            GD.Print($"[Armory] {refilled} wand(s) recharged on return.");
+         SaveManager.MarkDirty();
+     }
+ 
+diff --git a/Scripts/Systems/Verification/ArmorySaveAssert.cs b/Scripts/Systems/Verification/ArmorySaveAssert.cs
+new file mode 100644
+index 0000000..f00b7c5
+--- /dev/null
++++ b/Scripts/Systems/Verification/ArmorySaveAssert.cs
+@@ -0,0 +1,196 @@
++using Godot;
++using System.Collections.Generic;
++using System.Text;
++using System.Text.Json;
++
++// ============================================================
++// ArmorySaveAssert.cs
++//
++// Purpose:        Save round-trip assertions for the armory structs
++//                 that Edge M6 extended: ItemInstance (Charges,
++//                 BoundCardId), UnitLoadout (BeltInstanceIds) and
++//                 ArmoryData carrying both. Same serializer, same
++//                 contract as ProgressionSaveAssert and
++//                 CouncilSaveAssert: build a struct with distinctive
++//                 non-default values, serialize with SaveManager's
++//                 options, deserialize, compare field by field.
++// Layer:          Verification
++// Collaborators:  ItemDefinition.cs (ItemInstance, UnitLoadout),
++//                 ItemDatabase.cs (ArmoryData), SaveManager.cs
++//                 (JsonOptions), CampusGuildPanel.cs (the debug button)
++// Usage:          CampusGuildPanel "Assert Round-Trips".
++// ============================================================
++
++public static class ArmorySaveAssert
++{
++    /// <summary>Run every armory round-trip assertion. Prints a PASS/FAIL report
++    /// and PushErrors on any failure. Returns true only if all passed.</summary>
++    public static bool AssertAll()
++    {
++        var sb = new StringBuilder();
++        sb.AppendLine("=== ARMORY SAVE ROUND-TRIP ASSERTIONS ===");
++
++        bool ok = AssertItemInstance(sb);
++        ok &= AssertUnitLoadout(sb);
++        ok &= AssertArmoryData(sb);
++
++        sb.AppendLine(ok
++            ? "RESULT: ALL PASSED. Armory save-adjacent structs round-trip clean."
++            : "RESULT: FAILURES ABOVE. A field is being dropped or renamed.");
++        GD.Print(sb.ToString());
++
++        if (!ok)
++            GD.PushError("[ArmorySaveAssert] Round-trip assertion FAILED. See Output panel.");
++
++        return ok;
++    }
++
++    private static bool AssertItemInstance(StringBuilder sb)
++    {
++        var src = new ItemInstance
++        {
++            DefinitionId = "wand_of_missiles",
++            InstanceId = "assert-instance-1",
++            Name = "Wand of Missiles",
++            Slot = "Trinket",
++            UnitClass = "Any",
++            Rarity = "Uncommon",
++            GoldValue = 140,
++            EnchantKey = "keen",
++            EnchantValue = 2,
++            EnchantParam = "fire",
++            EnchantTrigger = "onAttack",
++            EnchantSealed = true,
++            DrawbackKey = "brittle",
++            DrawbackValue = 1,
++            BlightBonus = 1,
++            Charges = 2,
++            BoundCardId = "adept_magic_missile",
++        };
++        var rt = RoundTrip(src);
++
++        bool ok = rt != null;
++        if (rt != null)
++        {
++            ok &= Check(sb, "ItemInstance.DefinitionId", rt.DefinitionId == src.DefinitionId);
++            ok &= Check(sb, "ItemInstance.InstanceId", rt.InstanceId == src.InstanceId);
++            ok &= Check(sb, "ItemInstance.Slot", rt.Slot == src.Slot);
++            ok &= Check(sb, "ItemInstance.EnchantKey", rt.EnchantKey == src.EnchantKey);
++            ok &= Check(sb, "ItemInstance.EnchantSealed", rt.EnchantSealed == src.EnchantSealed);
++            ok &= Check(sb, "ItemInstance.DrawbackKey", rt.DrawbackKey == src.DrawbackKey);
++            ok &= Check(sb, "ItemInstance.BlightBonus", rt.BlightBonus == src.BlightBonus);
++            ok &= Check(sb, "ItemInstance.Charges", rt.Charges == src.Charges);
++            ok &= Check(sb, "ItemInstance.BoundCardId", rt.BoundCardId == src.BoundCardId);
++        }
++        else
++        {
++            sb.AppendLine("    FAIL: ItemInstance deserialized to null.");
++        }
++
++        // The additive default: an instance written before M6 must read as uncharged.
++        var legacy = JsonSerializer.Deserialize<ItemInstance>(
++            "{\"definitionId\":\"iron_sword\",\"instanceId\":\"legacy-1\",\"slot\":\"Weapon\"}",
++            SaveManager.JsonOptions);
++        ok &= Check(sb, "ItemInstance.Charges default -1 on legacy JSON", legacy != null && legacy.Charges == -1);
++        ok &= Check(sb, "ItemInstance.BoundCardId default empty on legacy JSON",
++            legacy != null && string.IsNullOrEmpty(legacy.BoundCardId));
++
++        sb.AppendLine(ok ? "  ItemInstance: PASS" : "  ItemInstance: FAIL");
++        return ok;
++    }
++
++    private static bool AssertUnitLoadout(StringBuilder sb)
++    {
++        var src = new UnitLoadout
++        {
++            WeaponInstanceId = "w-1",
++            ArmorInstanceId = null,
++            TrinketInstanceId = "t-1",
++            BeltInstanceIds = new List<string> { "b-1", "b-2" },
++        };
++        var rt = RoundTrip(src);
++
++        bool ok = rt != null;
++        if (rt != null)
++        {
++            ok &= Check(sb, "UnitLoadout.WeaponInstanceId", rt.WeaponInstanceId == src.WeaponInstanceId);
++            ok &= Check(sb, "UnitLoadout.ArmorInstanceId null", rt.ArmorInstanceId == null);
++            ok &= Check(sb, "UnitLoadout.TrinketInstanceId", rt.TrinketInstanceId == src.TrinketInstanceId);
++            ok &= Check(sb, "UnitLoadout.BeltInstanceIds", SameList(rt.BeltInstanceIds, src.BeltInstanceIds));
++        }
++        else
++        {
++            sb.AppendLine("    FAIL: UnitLoadout deserialized to null.");
++        }
++
++        var legacy = JsonSerializer.Deserialize<UnitLoadout>(
++            "{\"weaponInstanceId\":\"w-9\"}", SaveManager.JsonOptions);
++        ok &= Check(sb, "UnitLoadout.BeltInstanceIds empty (not null) on legacy JSON",
++            legacy != null && legacy.BeltInstanceIds != null && legacy.BeltInstanceIds.Count == 0);
++
++        sb.AppendLine(ok ? "  UnitLoadout: PASS" : "  UnitLoadout: FAIL");
++        return ok;
++    }
++
++    private static bool AssertArmoryData(StringBuilder sb)
++    {
++        var src = new ArmoryData();
++        src.OwnedItems.Add(new ItemInstance { DefinitionId = "healing_draught", InstanceId = "p-1", Slot = "Consumable" });
++        src.OwnedItems.Add(new ItemInstance { DefinitionId = "whetstone", InstanceId = "p-2", Slot = "Consumable" });
++        src.OwnedItems.Add(new ItemInstance { DefinitionId = "wand_of_missiles", InstanceId = "t-1", Slot = "Trinket", Charges = 1 });
++        var lo = src.GetLoadout("torrin");
++        lo.TrinketInstanceId = "t-1";
++        bool belt1 = src.EquipBelt("torrin", "p-1");
++        bool belt2 = src.EquipBelt("torrin", "p-2");
++        bool belt3 = src.EquipBelt("torrin", "p-1");   // already carried: refused
++
++        bool ok = Check(sb, "ArmoryData.EquipBelt first", belt1);
++        ok &= Check(sb, "ArmoryData.EquipBelt second", belt2);
++        ok &= Check(sb, "ArmoryData.EquipBelt duplicate refused", !belt3);
++        ok &= Check(sb, "ArmoryData.GetUnequipped excludes belted", src.GetUnequipped().Count == 0);
++
++        var rt = RoundTrip(src);
++        if (rt != null)
++        {
++            ok &= Check(sb, "ArmoryData.OwnedItems count", rt.OwnedItems.Count == 3);
++            ok &= Check(sb, "ArmoryData belt survives", SameList(rt.GetLoadout("torrin").BeltInstanceIds, lo.BeltInstanceIds));
++            ok &= Check(sb, "ArmoryData wand charges survive", rt.GetInstance("t-1")?.Charges == 1);
++            ok &= Check(sb, "ArmoryData.BeltCarrier", rt.BeltCarrier("p-2") == "torrin");
++            rt.RemoveItem("p-1");
++            ok &= Check(sb, "ArmoryData.RemoveItem clears belt", !rt.GetLoadout("torrin").BeltInstanceIds.Contains("p-1"));
++        }
++        else
++        {
++            ok = false;
++            sb.AppendLine("    FAIL: ArmoryData deserialized to null.");
++        }
++
++        sb.AppendLine(ok ? "  ArmoryData: PASS" : "  ArmoryData: FAIL");
++        return ok;
++    }
++
++    // ── Helpers (mirror ProgressionSaveAssert: same serializer, same contract) ──
++
++    private static T RoundTrip<T>(T obj)
++    {
++        string json = JsonSerializer.Serialize(obj, SaveManager.JsonOptions);
++        return JsonSerializer.Deserialize<T>(json, SaveManager.JsonOptions);
++    }
++
++    private static bool Check(StringBuilder sb, string field, bool equal)
++    {
++        if (!equal)
++            sb.AppendLine($"    FAIL: {field} did not survive the round-trip.");
++        return equal;
++    }
++
++    private static bool SameList(List<string> a, List<string> b)
++    {
++        if (a == null || b == null || a.Count != b.Count)
++            return false;
++        for (int i = 0; i < a.Count; i++)
++            if (a[i] != b[i])
++                return false;
++        return true;
++    }
++}
+diff --git a/Scripts/UI/ForcesScreen.cs b/Scripts/UI/ForcesScreen.cs
+index 2ea1dad..70fdb7e 100644
+--- a/Scripts/UI/ForcesScreen.cs
++++ b/Scripts/UI/ForcesScreen.cs
+@@ -485,14 +485,22 @@ public partial class ForcesScreen : Control
+                 slots.AddChild(BuildSlotCard(c, slot, item, armory));
+             }
+ 
++            // Edge M6 (R9): the belt, two slots of consumables or spellglass.
++            var beltRow = new HBoxContainer();
++            beltRow.AddThemeConstantOverride("separation", 8);
++            col.AddChild(beltRow);
++            var belt = armory.GetBelt(c.Id);
++            for (int i = 0; i < UnitLoadout.BeltSlots; i++)
++                beltRow.AddChild(BuildBeltCard(c, i, i < belt.Count ? belt[i] : null, armory));
++
+             // What could be equipped: unequipped items that fit the class.
+             var fits = new List<ItemInstance>();
+             foreach (var it in armory.GetUnequipped())
+             {
+                 var def = ItemDatabase.Get(it.DefinitionId);
+-                if (def == null || def.IsConsumable || !ClassFits(c, it.UnitClass))
++                if (def == null || def.IsBeltItem || !ClassFits(c, it.UnitClass))
+                 {
+-                    continue;
++                    continue;   // belt items (potions, scrolls, spellglass) list below
+                 }
+                 fits.Add(it);
+             }
+@@ -508,6 +516,22 @@ public partial class ForcesScreen : Control
+             {
+                 AddLine(col, "Nothing in the armory fits them.", UITheme.TextDim);
+             }
++
++            // Edge M6: belt candidates, the consumables nobody carries yet.
++            var beltFits = new List<ItemInstance>();
++            foreach (var it in armory.GetUnequipped())
++            {
++                var def = ItemDatabase.Get(it.DefinitionId);
++                if (def == null || !def.IsBeltItem || !ClassFits(c, it.UnitClass))
++                    continue;
++                beltFits.Add(it);
++            }
++            if (beltFits.Count > 0)
++            {
++                AddLine(col, belt.Count >= UnitLoadout.BeltSlots ? "Belt full. In stores:" : "For the belt:", UITheme.TextSecondary);
++                foreach (var it in beltFits)
++                    col.AddChild(BuildBeltCandidateRow(c, it, armory, belt.Count < UnitLoadout.BeltSlots));
++            }
+         }
+ 
+         // Moves.
+@@ -607,6 +631,66 @@ public partial class ForcesScreen : Control
+         return panel;
+     }
+ 
++    /// <summary>Edge M6: one of the two belt slots, with what it carries.</summary>
++    private Control BuildBeltCard(Companion c, int index, ItemInstance item, ArmoryData armory)
++    {
++        var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 96) };
++        var def = item != null ? ItemDatabase.Get(item.DefinitionId) : null;
++        Color edge = item != null ? UITheme.RarityColor(item.Rarity) : UITheme.NeutralDim;
++        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, edge));
++        var margin = new MarginContainer();
++        margin.AddThemeConstantOverride("margin_left", 8);
++        margin.AddThemeConstantOverride("margin_right", 8);
++        margin.AddThemeConstantOverride("margin_top", 6);
++        margin.AddThemeConstantOverride("margin_bottom", 6);
++        panel.AddChild(margin);
++        var box = new VBoxContainer();
++        box.AddThemeConstantOverride("separation", 2);
++        margin.AddChild(box);
++        AddLine(box, $"BELT {index + 1}", UITheme.TextDim);
++        if (item == null)
++        {
++            AddLine(box, "empty", UITheme.TextDim);
++            return panel;
++        }
++        AddLine(box, item.Name, edge);
++        AddLine(box, def != null ? def.Description : "", UITheme.TextSecondary);
++        var un = new Button { Text = "Unequip", CustomMinimumSize = new Vector2(0, 30) };
++        UITheme.ApplyButtonStyle(un, isPrimary: false);
++        string cid = c.Id;
++        string iid = item.InstanceId;
++        un.Pressed += () =>
++        {
++            armory.UnequipBelt(cid, iid);
++            Changed();
++        };
++        box.AddChild(un);
++        return panel;
++    }
++
++    private Control BuildBeltCandidateRow(Companion c, ItemInstance item, ArmoryData armory, bool roomOnBelt)
++    {
++        var def = ItemDatabase.Get(item.DefinitionId);
++        var row = new HBoxContainer();
++        row.AddThemeConstantOverride("separation", 8);
++        var text = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
++        text.AddThemeConstantOverride("separation", 0);
++        row.AddChild(text);
++        AddLine(text, $"{item.Name}  [Belt]  [{item.UnitClass}]", UITheme.RarityColor(item.Rarity));
++        AddLine(text, def != null ? def.Description : "", UITheme.TextSecondary);
++        var eq = new Button { Text = "Belt", CustomMinimumSize = new Vector2(96, 30), Disabled = !roomOnBelt };
++        UITheme.ApplyButtonStyle(eq, isPrimary: true);
++        string cid = c.Id;
++        string iid = item.InstanceId;
++        eq.Pressed += () =>
++        {
++            armory.EquipBelt(cid, iid);
++            Changed();
++        };
++        row.AddChild(eq);
++        return row;
++    }
++
+     private Control BuildArmoryRow(Companion c, ItemInstance item, ArmoryData armory)
+     {
+         var def = ItemDatabase.Get(item.DefinitionId);
+diff --git a/Scripts/UI/TechniqueTray.cs b/Scripts/UI/TechniqueTray.cs
+index eb1c983..5ba5728 100644
+--- a/Scripts/UI/TechniqueTray.cs
++++ b/Scripts/UI/TechniqueTray.cs
+@@ -37,6 +37,8 @@ public sealed class TechniqueCardView
+     /// <summary>Spec §7: a reaction card has its own frame and flips to Armed.</summary>
+     public bool IsReaction = false;
+     public bool ArmedNow = false;
++    /// <summary>Spec §11d: a pinned item (belt or wand), shown right of the techniques.</summary>
++    public bool IsItem = false;
+ }
+ 
+ public partial class TechniqueTray : Control
+@@ -162,7 +164,7 @@ public partial class TechniqueTray : Control
+ 
+         var title = new Label
+         {
+-            Text = v.IsFinisher ? $"{v.Title}  ✦" : v.IsReaction ? $"{v.Title}  »" : v.Title,
++            Text = v.IsFinisher ? $"{v.Title}  ✦" : v.IsReaction ? $"{v.Title}  »" : v.IsItem ? $"{v.Title}  ◇" : v.Title,
+             HorizontalAlignment = HorizontalAlignment.Center,
+             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+             MouseFilter = MouseFilterEnum.Ignore,
+diff --git a/docs/session_log_2026-09-28_edge_m6.md b/docs/session_log_2026-09-28_edge_m6.md
+new file mode 100644
+index 0000000..5801d13
+--- /dev/null
++++ b/docs/session_log_2026-09-28_edge_m6.md
+@@ -0,0 +1,115 @@
++# Session log, 2026-09-28: Edge M6 (belt, wands, spellglass, item actions)
++
++Martial Maneuvers & Edge spec v1, milestone 6 (§11, R1b, R9, R11, D6, D7),
++built against the tree after M5. Delivered as `edge_m6_full.patch`. First
++milestone to touch save data since Edge began; the round-trip assertion is in.
++
++## What shipped
++
++**Belt (R9).** `UnitLoadout.BeltInstanceIds` (list, two slots, additive save
++field: old loadouts read as an empty belt). `ArmoryData.GetBelt / EquipBelt /
++UnequipBelt / BeltCarrier`; `RemoveItem` clears belts; `GetUnequipped`
++excludes belted items. A belt item is anything in the Consumable pseudo-slot:
++potions, scrolls, whetstones, spellglass. The Forces screen shows two belt
++cards under the three equipment slots plus a "For the belt" list; the Armory
++tab shows the same two cards (the wizard's belt is packed there, since the
++Forces screen is companions only), a "Belt →" button on belt items, and a
++Consumable filter.
++
++**Every pinned item costs 1 AP (§11c).** Both the tray and the older satchel
++popup charge `MartialAPCosts.UseItem`. The satchel now lists only the selected
++unit's belt: a consumable reaches the field on a belt or not at all. The
++deploy drawer's Provisions opt-out still applies on top. The objective ward,
++which has no AP, can still have a scroll read over it for free, as before.
++
++**Wands (§11b).** `ItemDefinition.ActiveKind = "wand"`, `BoundCardId`,
++`MaxCharges`; `ItemInstance.Charges` (additive, -1 when not a charged item).
++Trinket slot. Two authored: Wand of Missiles (adept_magic_missile) and Wand
++of Mending (adept_minor_restoration), three charges each. Charges refill in
++`EndSortieSlot`, which every expedition end path (extract, park, emergency,
++fail) passes through: that is "refilled at campus". Ctrl+R refills mid-fight
++in debug builds (D13). A martial firing a wand pays 1 Edge on top (R11).
++
++**Spellglass (§11b, D6).** Generic definition `spellglass` (Consumable slot,
++`ActiveKind = "spellglass"`); the card is bound per INSTANCE
++(`ItemInstance.BoundCardId`, name "Spellglass: <card>"). Sealed at the
++Armory tab's new "Scriptorium: Spellglass" section from the guild's unlocked
++Common and Uncommon blueprints whose top half the item path can aim, 60 or
++110 gold. Shatters on use. No Edge cost.
++
++**Item-bound casting.** `GameState.ItemCastFree`, read at the top of
++`ManaCost.EffectiveAmount`, waives mana for the duration of
++`Rules.TryCastWithTargets` on an item cast, so a 0-mana martial can fire a
++wand. The bound card's top half is instantiated from `CardDatabase`; Self,
++Global and Area spells resolve on the click, Unit and Tile spells arm like a
++technique card (range, LOS, cover and side checks mirror the drop path) and
++resolve on the board click. `CheckCastRequirements` still applies. The
++stack drains as a card cast does. Anything the rules refuse refunds AP, Edge
++and leaves the charge or glass untouched.
++
++**Whetstone (§11c).** Consumable, `consumeEffect: "edge"`, +2 Edge through
++`EdgeRules.TryGain` (respects the per-round cap and marks the window), martial
++only, spent on use. Weapon oil and smoke are not authored: each needs a
++system that does not exist (an attack-rider status and a LoS-blocking cloud).
++
++**Tray (§11d).** Items appear as cards to the right of techniques for a
++martial and alone for a wizard; a wizard with an empty belt and no wand sees
++no tray. Wand cards show charges; item cards carry a ◇ mark.
++
++**Save assertion.** `Scripts/Systems/Verification/ArmorySaveAssert.cs`, wired
++into the Guild panel's "Assert Round-Trips": ItemInstance (all fields plus the
++two new ones, and legacy-JSON defaults), UnitLoadout (belt plus legacy
++default), ArmoryData (belt rules, refusal of a double-carry, unequipped
++exclusion, removal clearing the belt, charges surviving).
++
++**Starter and ensure lists.** `wand_of_missiles` and `whetstone` join both,
++so a fresh armory and an established one can each field the systems.
++
++## Rulings made in-session
++
++1. Scribe's Tower does not exist in code (D7 names it; the only reference is
++   the spec). Spellglass sealing joins the Scriptorium section on the Armory
++   tab, where scroll crafting already waits for that building.
++2. The Muster screen was retired into the Forces screen on 2026-09-24; belts
++   are packed there and on the Armory tab, and wands are ordinary trinkets.
++3. A wand or spellglass cast is not a spell cast for attunement, mastery or
++   the school hooks: no `SpellsCastThisTurn`, no Fate or Arcane attunement
++   call, no `RecordCardCast`. It is an item action (Edge action kind Item,
++   telemetry kind item). The spec's "at printed values" is read as "the
++   spell, nothing of the caster's school".
++4. Only Self, Global, Area, Unit and Tile selectors are item-aimable. The
++   crafting list filters to those; a wand bound to anything else is refused
++   at the card with the shape named.
++5. `EquipBelt` does not check unit class; the Forces screen filters
++   candidates by class and the satchel and tray refuse a whetstone on a
++   non-martial. The wizard's Armory-tab belt can therefore hold a whetstone
++   it cannot use; that is a UI nicety left for later.
++
++## Not done, owed
++
++- `dotnet build`, then "Assert Round-Trips" on the Guild panel MUST be run
++  before this ships (ways-of-working: save-adjacent structs need the
++  assertion green, not just written). Review substitute found three defects
++  (arming a technique kept an armed item; the ward could no longer take a
++  scroll; the satchel let a wizard drink a whetstone), all fixed.
++- `.uid` files for `CombatManager.Items.cs` and `ArmorySaveAssert.cs`.
++- Weapon oil, smoke: unauthored (above). Markets: consumables already roll
++  from `IsConsumable`, so whetstones appear in market stock; wands roll as
++  Trinket gear; spellglass never rolls (gold 0, crafted only).
++- An Accelerando-style queued cost reduction is consumed by a free item cast
++  and wasted. Cosmetic until someone notices.
++
++## In-engine confirm owed (M6 acceptance, spec §11e)
++
++1. Armory tab: Wand of Missiles equips to a Fighter's trinket; Whetstone
++   gets "Belt →"; Forces screen shows BELT 1 with the whetstone.
++2. In a fight the Fighter's tray shows the whetstone and the wand cards right
++   of Shield Bash. Wand: "1 AP · charge 3/3 · 1 Edge".
++3. Fire the wand at an enemy at 0 mana: Magic Missile resolves, AP -1, Edge
++   -1, card reads 2/3. Fire three times, the fourth is grey "No charges left".
++4. Next fight in the same expedition: still 0/3. Extract to campus, open the
++   Armory: 3/3 again.
++5. Seal a spellglass at the Scriptorium, belt it on the wizard, use it in a
++   fight: the spell resolves and the glass is gone from the armory.
++6. Guild panel, Assert Round-Trips: "ARMORY SAVE ROUND-TRIP ASSERTIONS ...
++   ALL PASSED".

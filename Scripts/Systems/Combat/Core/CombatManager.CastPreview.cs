@@ -219,6 +219,7 @@ public partial class CombatManager
     private int MartialReach(Unit attacker, Unit target)
     {
         int reach = attacker.AttackRange + attacker.StationRangeBonus + (attacker.ActiveStance?.AttackRangeBonus ?? 0);
+        reach += HonedRangeBonus(attacker, reach);   // Edge M2: preview agrees with TryMartialAttack
         if (reach > 1 && target?.CurrentTile != null && attacker.CurrentTile != null
             && attacker.CurrentTile.Height > target.CurrentTile.Height)
             reach += 1;

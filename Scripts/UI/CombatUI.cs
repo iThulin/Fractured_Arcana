@@ -1096,7 +1096,20 @@ public partial class CombatUI : CanvasLayer
 		{
 			if (!isEnemy && unit.IsMartial && unit.ActiveStance != null)
 			{
-				_stanceLine.Text = $"[{unit.ActiveStance.DisplayName}]";
+				// Edge (spec v1 §3): the count rides the stance line as pips, and the
+				// stance's own Edge trigger text is the tooltip. Levies and wildlife
+				// (MaxEdge 0) keep the bare stance tag.
+				string edge = "";
+				if (unit.MaxEdge > 0)
+				{
+					string pips = "";
+					for (int i = 0; i < unit.MaxEdge; i++)
+						pips += i < unit.Edge ? "◆" : "◇";
+					edge = $"   Edge {pips} {unit.Edge}/{unit.MaxEdge}";
+				}
+				_stanceLine.Text = $"[{unit.ActiveStance.DisplayName}]{edge}";
+				_stanceLine.TooltipText = unit.ActiveStance.Description;
+				_stanceLine.MouseFilter = Control.MouseFilterEnum.Pass;
 				_stanceLine.Visible = true;
 			}
 			else

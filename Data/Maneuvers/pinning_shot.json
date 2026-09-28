@@ -1,0 +1,22 @@
+{
+  "id": "pinning_shot",
+  "displayName": "Pinning Shot",
+  "role": "Hunter",
+  "weaponClass": "Bow",
+  "apCost": 2,
+  "edgeCost": 2,
+  "shape": "Range",
+  "reach": 4,
+  "text": "ATK - 1 damage. Rooted for 1 turn.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": -1
+    },
+    {
+      "key": "root",
+      "value": 1
+    }
+  ],
+  "vfxTag": "arrow"
+}

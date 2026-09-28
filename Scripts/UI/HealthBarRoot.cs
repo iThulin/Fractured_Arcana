@@ -74,6 +74,14 @@ public partial class HealthBarRoot : Node3D
     private bool _isPlayer = true;
     private bool _isDetailed = false;
 
+    // Edge (martial resource): remembered here because SetHealth rebuilds the
+    // detail line without being told the AP or Edge values.
+    private int _edge = 0;
+    private int _maxEdge = 0;
+    private int _apCurrent = -1;
+    private int _apMax = 0;
+    private int _cover = 0;
+
     // ── Status display map ─────────────────────────────────────────
     private static readonly Dictionary<string, (string symbol, Color color)> StatusDisplay = new()
     {
@@ -91,6 +99,7 @@ public partial class HealthBarRoot : Node3D
         { "vigil",                  ("👁",  new Color(0.85f, 0.85f, 1.0f))  },
         { "undying_turn",           ("↺",  new Color(0.9f,  0.7f,  0.3f))  },
         { "undying_full_restore",   ("✙",  new Color(0.9f,  0.7f,  0.3f))  },
+        { "stagger",                ("×",  new Color(1.0f,  0.85f, 0.35f)) },   // Edge M2: staggered
     };
 
     // ── Init ────────────────────────────────────────────────────────
@@ -260,9 +269,28 @@ public partial class HealthBarRoot : Node3D
     // ── AP pips ─────────────────────────────────────────────────────
     public void SetAP(int current, int max, int armor, int shield, int cover = 0)
     {
-        if (!IsInstanceValid(this) || _detailText == null || !_isDetailed) return;
+        if (!IsInstanceValid(this)) return;
+        _apCurrent = current;
+        _apMax = max;
+        _cover = cover;
+        if (_detailText == null || !_isDetailed) return;
         UpdateDetailText(armor, shield, current, max, cover);
     }
+
+    // ── Edge pips ───────────────────────────────────────────────────
+    /// <summary>Martial Edge (spec v1 §3). max 0 means the unit runs no Edge
+    /// economy and the segment is omitted. Redraws the detail line with the
+    /// last AP values SetAP recorded.</summary>
+    public void SetEdge(int current, int max)
+    {
+        if (!IsInstanceValid(this)) return;
+        _edge = current;
+        _maxEdge = max;
+        if (_detailText == null || !_isDetailed) return;
+        UpdateDetailText(_lastArmor, _lastShield, _apCurrent, _apMax, _cover);
+    }
+    private int _lastArmor = 0;
+    private int _lastShield = 0;
 
     // ── Status icons ────────────────────────────────────────────────
     public void RefreshStatuses(Dictionary<string, int> statusEffects)
@@ -438,6 +466,8 @@ public partial class HealthBarRoot : Node3D
         // Cover armour in braces, plain ASCII: the Label3D font's glyph coverage is
         // only proven for the few symbols above (see IntentGlyph's standing note).
         if (cover > 0)  parts.Add($"{{{cover}}}");
+        _lastArmor = armor;
+        _lastShield = shield;
         if (apCurrent >= 0 && apMax > 0)
         {
             // Pip string: filled and empty circles
@@ -445,6 +475,16 @@ public partial class HealthBarRoot : Node3D
             for (int i = 0; i < apMax; i++)
                 pips += i < apCurrent ? "●" : "○";
             parts.Add(pips);
+        }
+
+        // Edge pips: "E" plus the proven ◈ glyph for a filled pip and a middle dot
+        // for an empty one. Same glyph-coverage caution as the cover braces above.
+        if (_maxEdge > 0)
+        {
+            string edgePips = "E";
+            for (int i = 0; i < _maxEdge; i++)
+                edgePips += i < _edge ? "◈" : "·";
+            parts.Add(edgePips);
         }
 
         _detailText.Text = string.Join("  ", parts);

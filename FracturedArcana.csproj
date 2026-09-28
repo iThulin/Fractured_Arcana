@@ -4,4 +4,9 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>WizardCardGame</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Claude outputs/ holds patches and drop-in copies waiting to be applied.
+         A .cs left there would compile as a second definition (2026-09-28). -->
+    <Compile Remove="Claude outputs/**" />
+  </ItemGroup>
 </Project>

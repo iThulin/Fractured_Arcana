@@ -5,6 +5,7 @@
   "rarity": "Common",
   "slot": "Weapon",
   "unitClass": "Martial",
+  "weaponClass": "SwordShield",
   "stats": { "attackDamage": 3 },
   "passive": "None",
   "passiveValue": 0,

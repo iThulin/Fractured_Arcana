@@ -485,14 +485,22 @@ public partial class ForcesScreen : Control
                 slots.AddChild(BuildSlotCard(c, slot, item, armory));
             }
 
+            // Edge M6 (R9): the belt, two slots of consumables or spellglass.
+            var beltRow = new HBoxContainer();
+            beltRow.AddThemeConstantOverride("separation", 8);
+            col.AddChild(beltRow);
+            var belt = armory.GetBelt(c.Id);
+            for (int i = 0; i < UnitLoadout.BeltSlots; i++)
+                beltRow.AddChild(BuildBeltCard(c, i, i < belt.Count ? belt[i] : null, armory));
+
             // What could be equipped: unequipped items that fit the class.
             var fits = new List<ItemInstance>();
             foreach (var it in armory.GetUnequipped())
             {
                 var def = ItemDatabase.Get(it.DefinitionId);
-                if (def == null || def.IsConsumable || !ClassFits(c, it.UnitClass))
+                if (def == null || def.IsBeltItem || !ClassFits(c, it.UnitClass))
                 {
-                    continue;
+                    continue;   // belt items (potions, scrolls, spellglass) list below
                 }
                 fits.Add(it);
             }
@@ -507,6 +515,22 @@ public partial class ForcesScreen : Control
             else
             {
                 AddLine(col, "Nothing in the armory fits them.", UITheme.TextDim);
+            }
+
+            // Edge M6: belt candidates, the consumables nobody carries yet.
+            var beltFits = new List<ItemInstance>();
+            foreach (var it in armory.GetUnequipped())
+            {
+                var def = ItemDatabase.Get(it.DefinitionId);
+                if (def == null || !def.IsBeltItem || !ClassFits(c, it.UnitClass))
+                    continue;
+                beltFits.Add(it);
+            }
+            if (beltFits.Count > 0)
+            {
+                AddLine(col, belt.Count >= UnitLoadout.BeltSlots ? "Belt full. In stores:" : "For the belt:", UITheme.TextSecondary);
+                foreach (var it in beltFits)
+                    col.AddChild(BuildBeltCandidateRow(c, it, armory, belt.Count < UnitLoadout.BeltSlots));
             }
         }
 
@@ -605,6 +629,66 @@ public partial class ForcesScreen : Control
         };
         box.AddChild(un);
         return panel;
+    }
+
+    /// <summary>Edge M6: one of the two belt slots, with what it carries.</summary>
+    private Control BuildBeltCard(Companion c, int index, ItemInstance item, ArmoryData armory)
+    {
+        var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 96) };
+        var def = item != null ? ItemDatabase.Get(item.DefinitionId) : null;
+        Color edge = item != null ? UITheme.RarityColor(item.Rarity) : UITheme.NeutralDim;
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, edge));
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 8);
+        margin.AddThemeConstantOverride("margin_right", 8);
+        margin.AddThemeConstantOverride("margin_top", 6);
+        margin.AddThemeConstantOverride("margin_bottom", 6);
+        panel.AddChild(margin);
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 2);
+        margin.AddChild(box);
+        AddLine(box, $"BELT {index + 1}", UITheme.TextDim);
+        if (item == null)
+        {
+            AddLine(box, "empty", UITheme.TextDim);
+            return panel;
+        }
+        AddLine(box, item.Name, edge);
+        AddLine(box, def != null ? def.Description : "", UITheme.TextSecondary);
+        var un = new Button { Text = "Unequip", CustomMinimumSize = new Vector2(0, 30) };
+        UITheme.ApplyButtonStyle(un, isPrimary: false);
+        string cid = c.Id;
+        string iid = item.InstanceId;
+        un.Pressed += () =>
+        {
+            armory.UnequipBelt(cid, iid);
+            Changed();
+        };
+        box.AddChild(un);
+        return panel;
+    }
+
+    private Control BuildBeltCandidateRow(Companion c, ItemInstance item, ArmoryData armory, bool roomOnBelt)
+    {
+        var def = ItemDatabase.Get(item.DefinitionId);
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 8);
+        var text = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        text.AddThemeConstantOverride("separation", 0);
+        row.AddChild(text);
+        AddLine(text, $"{item.Name}  [Belt]  [{item.UnitClass}]", UITheme.RarityColor(item.Rarity));
+        AddLine(text, def != null ? def.Description : "", UITheme.TextSecondary);
+        var eq = new Button { Text = "Belt", CustomMinimumSize = new Vector2(96, 30), Disabled = !roomOnBelt };
+        UITheme.ApplyButtonStyle(eq, isPrimary: true);
+        string cid = c.Id;
+        string iid = item.InstanceId;
+        eq.Pressed += () =>
+        {
+            armory.EquipBelt(cid, iid);
+            Changed();
+        };
+        row.AddChild(eq);
+        return row;
     }
 
     private Control BuildArmoryRow(Companion c, ItemInstance item, ArmoryData armory)

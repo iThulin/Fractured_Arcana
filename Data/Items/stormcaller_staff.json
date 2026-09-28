@@ -5,6 +5,8 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "elementalist_chain_lightning",
   "stats": {},
   "passive": "SchoolSpellCostReduction",
   "passiveValue": 1,

@@ -1,0 +1,20 @@
+{
+  "id": "brace",
+  "displayName": "Brace",
+  "role": "Anchor",
+  "weaponClass": "SwordShield",
+  "apCost": 0,
+  "edgeCost": 1,
+  "shape": "Self",
+  "reach": 1,
+  "isReaction": true,
+  "reactionTrigger": "enemy_move_end",
+  "text": "Reaction. Until your next turn: the first enemy to end its movement adjacent to you is struck for ATK before it acts.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    }
+  ],
+  "vfxTag": "swing"
+}

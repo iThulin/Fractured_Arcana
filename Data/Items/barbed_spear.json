@@ -5,6 +5,7 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Martial",
+  "weaponClass": "Polearm",
   "stats": {},
   "passive": "apply_bleed",
   "passiveValue": 1,

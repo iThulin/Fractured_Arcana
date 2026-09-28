@@ -5,6 +5,8 @@
   "rarity": "Rare",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "arcanist_arcane_barrage",
   "stats": {
     "spellDamage": 1
   },

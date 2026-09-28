@@ -1,0 +1,13 @@
+{
+  "id": "guild_crossbow",
+  "name": "Guild Crossbow",
+  "description": "A windlass crossbow from the guild's own racks. +1 attack damage, +1 attack range.",
+  "rarity": "Common",
+  "slot": "Weapon",
+  "unitClass": "Martial",
+  "weaponClass": "Crossbow",
+  "stats": { "attackDamage": 1, "attackRange": 1 },
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 60
+}

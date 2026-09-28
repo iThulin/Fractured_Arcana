@@ -833,6 +833,7 @@ public sealed class CampusGuildPanel : CampusPanel
         {
             CouncilSaveAssert.AssertAll();
             ProgressionSaveAssert.AssertAll();
+            ArmorySaveAssert.AssertAll();   // Edge M6: belts, charges, bindings
         });
 
         return panel;

@@ -101,6 +101,11 @@ public sealed class GameState
     /// </summary>
     public int PlayerSpellCostIncrease = 0;
 
+    /// <summary>Edge M6 (spec v1 §11c): set for the duration of an item-bound cast
+    /// (wand, spellglass). ManaCost reads it and charges nothing: the item is the
+    /// cost, and a 0-mana martial must be able to fire a wand. Never left set.</summary>
+    public bool ItemCastFree = false;
+
     /// <summary>
     /// Turns remaining on the redirect-all effect.
     /// When > 0, FindNearestPlayerUnit redirects enemies to attack each other.
