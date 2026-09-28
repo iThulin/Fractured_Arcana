@@ -44,18 +44,23 @@ public sealed class TechniqueCardView
 public partial class TechniqueTray : Control
 {
     [Signal] public delegate void TechniquePressedEventHandler(string maneuverId);
+    /// <summary>A stance button in the tray's stance row (moved here from the unit
+    /// panel, 2026-09-28). CombatManager routes it to TrySwitchStance.</summary>
+    [Signal] public delegate void StancePressedEventHandler(string stanceId);
 
     private const float CardWidth = 172f;
     private const float CardHeight = 196f;
-    private const float TrayHeight = 250f;
+    private const float TrayHeight = 300f;   // header (up to 2 lines) + stance row + cards
 
     private VBoxContainer _column;
     private Label _header;
+    private HBoxContainer _stanceRow;
     private HBoxContainer _row;
     private bool _built;
 
     private List<TechniqueCardView> _pendingCards;
     private string _pendingHeader = "";
+    private List<TechniqueCardView> _pendingStances;
 
     public override void _Ready()
     {
@@ -93,45 +98,89 @@ public partial class TechniqueTray : Control
         _header.AddThemeColorOverride("font_color", UITheme.Gold);
         _column.AddChild(_header);
 
+        // Stance row: a mode, not an action (spec §11d), so it sits above the
+        // cards as a strip of small buttons rather than as cards.
+        _stanceRow = new HBoxContainer { Name = "Stances", MouseFilter = MouseFilterEnum.Ignore, Visible = false };
+        _stanceRow.AddThemeConstantOverride("separation", 6);
+        _stanceRow.Alignment = BoxContainer.AlignmentMode.Center;
+        _column.AddChild(_stanceRow);
+
         _row = new HBoxContainer { Name = "Cards", MouseFilter = MouseFilterEnum.Ignore };
         _row.AddThemeConstantOverride("separation", 10);
         _row.Alignment = BoxContainer.AlignmentMode.Center;
         _column.AddChild(_row);
 
         _built = true;
-        if (_pendingCards != null || !string.IsNullOrEmpty(_pendingHeader))
-            ShowCards(_pendingCards, _pendingHeader);
+        if (_pendingCards != null || !string.IsNullOrEmpty(_pendingHeader) || _pendingStances != null)
+            ShowCards(_pendingCards, _pendingHeader, _pendingStances);
     }
 
     /// <summary>Replace the tray's contents. Null or empty <paramref name="cards"/>
-    /// with an empty header hides the tray.</summary>
-    public void ShowCards(List<TechniqueCardView> cards, string header)
+    /// with an empty header and no stances hides the tray. <paramref name="stances"/>
+    /// uses Title for the label, Armed for "the active stance", Enabled and Tooltip
+    /// as for cards.</summary>
+    public void ShowCards(List<TechniqueCardView> cards, string header, List<TechniqueCardView> stances = null)
     {
         if (!_built)
         {
             _pendingCards = cards;
             _pendingHeader = header ?? "";
+            _pendingStances = stances;
             return;
         }
         _pendingCards = null;
         _pendingHeader = "";
+        _pendingStances = null;
 
         foreach (Node child in _row.GetChildren())
             child.QueueFree();
+        foreach (Node child in _stanceRow.GetChildren())
+            child.QueueFree();
 
         bool any = cards != null && cards.Count > 0;
-        bool show = any || !string.IsNullOrEmpty(header);
+        bool anyStance = stances != null && stances.Count > 0;
+        bool show = any || anyStance || !string.IsNullOrEmpty(header);
         Visible = show;
         if (!show)
             return;
 
         _header.Text = header ?? "";
         _header.Visible = !string.IsNullOrEmpty(header);
+
+        _stanceRow.Visible = anyStance;
+        if (anyStance)
+        {
+            var lbl = new Label { Text = "Stance:", MouseFilter = MouseFilterEnum.Ignore, VerticalAlignment = VerticalAlignment.Center };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+            lbl.AddThemeColorOverride("font_color", UITheme.GoldDim);
+            _stanceRow.AddChild(lbl);
+            foreach (var st in stances)
+                _stanceRow.AddChild(MakeStanceButton(st));
+        }
+
         if (!any)
             return;
 
         foreach (var view in cards)
             _row.AddChild(MakeCard(view));
+    }
+
+    private Control MakeStanceButton(TechniqueCardView v)
+    {
+        var btn = new Button
+        {
+            Name = $"Stance_{v.Id}",
+            Text = v.Title,
+            Disabled = !v.Enabled,
+            TooltipText = v.Tooltip,
+            FocusMode = FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(0, 28),
+        };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+        UITheme.ApplyButtonStyle(btn, isPrimary: v.Armed);
+        string id = v.Id;   // capture by value for the closure
+        btn.Pressed += () => EmitSignal(SignalName.StancePressed, id);
+        return btn;
     }
 
     private Control MakeCard(TechniqueCardView v)

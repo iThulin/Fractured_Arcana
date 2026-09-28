@@ -47,6 +47,7 @@ public partial class CombatManager
         var host = deckManager?.HandContainer?.GetParent() as Node ?? this;
         _techniqueTray = new TechniqueTray { Name = "TechniqueTray" };
         _techniqueTray.TechniquePressed += OnTechniquePressed;
+        _techniqueTray.StancePressed += OnStanceSwitchRequested;   // stance row lives in the tray now
         host.CallDeferred("add_child", _techniqueTray);
     }
 
@@ -119,7 +120,37 @@ public partial class CombatManager
             header += $"\nArmed: {unit.ArmedReaction.DisplayName}. {ReactionTriggerText(unit, unit.ArmedReaction)}";
         foreach (var (inst, def) in pinned)
             cards.Add(ItemCardView(unit, inst, def));   // Edge M6: items to the right
-        _techniqueTray.ShowCards(cards, header);
+        _techniqueTray.ShowCards(cards, header, StanceViewsFor(unit));
+    }
+
+    /// <summary>The stance row for the tray (moved from the unit panel,
+    /// 2026-09-28): one button per fielded stance, the active one highlighted and
+    /// disabled. Same gates as TrySwitchStance: 1 AP, once per turn. Null for a
+    /// unit with fewer than two stances, which hides the row.</summary>
+    private List<TechniqueCardView> StanceViewsFor(Unit unit)
+    {
+        if (unit?.AvailableStances == null || unit.AvailableStances.Count < 2)
+            return null;
+        bool myTurn = currentPhase == CombatPhase.PlayerTurn && !isInDeploymentPhase;
+        var list = new List<TechniqueCardView>();
+        foreach (var st in unit.AvailableStances)
+        {
+            bool active = st == unit.ActiveStance;
+            string why = active ? "Active stance."
+                : !myTurn ? "Not your turn."
+                : unit.HasSwitchedStanceThisTurn ? "Already switched this turn."
+                : unit.CurrentActionPoints < MartialAPCosts.SwitchStance ? $"Needs {MartialAPCosts.SwitchStance} AP."
+                : null;
+            list.Add(new TechniqueCardView
+            {
+                Id = st.Id,
+                Title = st.DisplayName,
+                Armed = active,
+                Enabled = why == null,
+                Tooltip = st.Description + "\n" + (why ?? $"Switch: {MartialAPCosts.SwitchStance} AP, once per turn. Edge is kept."),
+            });
+        }
+        return list;
     }
 
     private void HideTechniqueTray()
@@ -144,6 +175,18 @@ public partial class CombatManager
         }
         ArmManeuver(selectedUnit, m);
     }
+
+    /// <summary>Spec v1 §6 access: which weapon classes each martial class may
+    /// field. Paired blades are the one both share. Used by the debug launcher's
+    /// loadout block; the armory does not enforce it yet.</summary>
+    public static bool WeaponClassAllowed(MartialClass martial, WeaponClass weapon) => martial switch
+    {
+        MartialClass.Fighter => weapon is WeaponClass.SwordShield or WeaponClass.Polearm or WeaponClass.Hammer
+                                or WeaponClass.TwoHander or WeaponClass.PairedBlades,
+        MartialClass.Ranger => weapon is WeaponClass.Bow or WeaponClass.Crossbow or WeaponClass.Sling
+                               or WeaponClass.PairedBlades,
+        _ => false,
+    };
 
     public static string WeaponClassLabel(WeaponClass c) => c switch
     {

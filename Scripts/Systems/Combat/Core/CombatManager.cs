@@ -4513,6 +4513,22 @@ public partial class CombatManager : Node3D
                 if (unit.AvailableStances.Count > 0)
                     unit.ActiveStance = unit.AvailableStances[0];
 
+                // Debug launcher stance override (2026-09-28): open in this stance,
+                // learning it for the fight if the companion does not know it.
+                if (PlayerSession.DebugCombat
+                    && PlayerSession.DebugStanceOverride.TryGetValue(companion.Id, out var dbgStanceId)
+                    && !string.IsNullOrEmpty(dbgStanceId))
+                {
+                    var dbgStance = StanceRegistry.Get(dbgStanceId);
+                    if (dbgStance != null)
+                    {
+                        if (!unit.AvailableStances.Contains(dbgStance))
+                            unit.AvailableStances.Add(dbgStance);
+                        unit.ActiveStance = dbgStance;
+                        GD.Print($"[Debug] {companion.Name} opens in {dbgStance.DisplayName} (launcher override).");
+                    }
+                }
+
                 // Edge (spec v1 §3): fresh every fight, after ActiveStance is set
                 // so Ambush's starting bonus reads the stance it opens in.
                 EdgeRules.ResetForCombat(unit, tgTier);
@@ -4561,6 +4577,19 @@ public partial class CombatManager : Node3D
         // EquipmentLoadout.BuildForRun both use it), and the units carry it in
         // CompanionId. "companion_{i}" matched nothing, so no companion ever
         // received an equipment bonus in combat.
+        // Debug fights (2026-09-28): the expedition builds loadouts in
+        // ExpeditionManager, which a launcher fight never passes through, so
+        // equipment used to vanish in every debug combat. Build them here from
+        // the real armory so a debug fight fields what the Armory tab shows.
+        if (PlayerSession.DebugCombat && SaveManager.ActiveSave?.Armory != null)
+        {
+            var dbgIds = new List<string>();
+            foreach (var pu0 in playerUnits)
+                if (pu0 != null && !string.IsNullOrEmpty(pu0.CompanionId))
+                    dbgIds.Add(pu0.CompanionId);
+            EquipmentLoadout.BuildForRun(SaveManager.ActiveSave.Armory, "wizard", dbgIds);
+        }
+
         for (int i = 0; i < playerUnits.Count; i++)
         {
             var pu = playerUnits[i];
@@ -4569,6 +4598,7 @@ public partial class CombatManager : Node3D
             // index 0 is a companion.
             string unitId = string.IsNullOrEmpty(pu.CompanionId) ? "wizard" : pu.CompanionId;
             ApplyEquipmentLoadout(pu, unitId);
+            ApplyDebugWeaponOverride(pu);   // launcher loadout block, debug fights only
 
             // D4: a classed martial with no classed weapon loses its maneuvers
             // silently. Say so once, loudly, at spawn.
@@ -5829,6 +5859,38 @@ public partial class CombatManager : Node3D
     /// Called immediately after the unit is spawned and initialized.
     /// unitId: "wizard" for the main wizard, companion ID for companions.
     /// </summary>
+    /// <summary>Debug launcher loadout block (2026-09-28): field this item
+    /// definition as the unit's weapon for the fight. Replaces whatever the
+    /// armory loadout gave: its class, and its attack damage and range deltas.
+    /// Touches nothing in the save.</summary>
+    private void ApplyDebugWeaponOverride(Unit unit)
+    {
+        if (!PlayerSession.DebugCombat || unit == null || string.IsNullOrEmpty(unit.CompanionId))
+            return;
+        if (!PlayerSession.DebugWeaponOverride.TryGetValue(unit.CompanionId, out var defId) || string.IsNullOrEmpty(defId))
+            return;
+        var def = ItemDatabase.Get(defId);
+        if (def == null)
+        {
+            GD.PushWarning($"[Debug] Weapon override '{defId}' for {unit.Name} is not in Data/Items.");
+            return;
+        }
+        // Undo the armory weapon's class and stats first, so two weapons never stack.
+        var loadout = EquipmentLoadout.Get(unit.CompanionId);
+        var armory = SaveManager.ActiveSave?.Armory;
+        var equippedId = armory?.GetLoadout(unit.CompanionId).WeaponInstanceId;
+        var equippedDef = !string.IsNullOrEmpty(equippedId) ? ItemDatabase.Get(armory.GetInstance(equippedId)?.DefinitionId ?? "") : null;
+        if (equippedDef != null && loadout != null)
+        {
+            unit.AttackDamage -= equippedDef.Stats.AttackDamage;
+            unit.AttackRange -= equippedDef.Stats.AttackRange;
+        }
+        unit.WeaponClass = def.WeaponClassValue;
+        unit.AttackDamage += def.Stats.AttackDamage;
+        unit.AttackRange = Math.Max(1, unit.AttackRange + def.Stats.AttackRange);
+        GD.Print($"[Debug] {unit.Name} fields {def.Name} ({def.WeaponClass}) by launcher override.");
+    }
+
     private void ApplyEquipmentLoadout(Unit unit, string unitId)
     {
         var loadout = EquipmentLoadout.Get(unitId);

@@ -256,6 +256,8 @@ public static class HiringHallService
         string toast = CouncilEcho.EmitDeed(cycle, city?.KingdomId,
             CouncilEcho.HireGiven, positive: true, isMajor: false);
 
+        CompanionRoster.EnsureStartingWeapons(save);   // D5: a hire arrives armed
+
         SaveManager.Save();
         GD.Print($"[HiringHall] Hired {c.Name} for {price}g at {hall.CityId}.");
         return toast ?? $"{c.Name} joins the guild.";

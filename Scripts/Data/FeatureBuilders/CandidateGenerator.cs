@@ -101,9 +101,33 @@ public static class CandidateGenerator
 
         RollStats(c, rng, quality);
         RollStances(c, rng, quality);
+        RollStartingWeapon(c, rng);   // D5: a class-legal weapon, granted on recruit
         c.RecruitmentCost = Price(c, quality);
         c.Backstory = BackstoryLine(c);
         return c;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    // Starting weapon (Martial Maneuvers & Edge spec v1, D5)
+    // ═════════════════════════════════════════════════════════════════════
+
+    private static readonly string[] FighterWeapons = { "iron_sword", "soldiers_blade", "barbed_spear" };
+    private static readonly string[] RangerWeapons = { "hunters_bow", "guild_crossbow" };
+
+    /// <summary>Martial hires arrive with a launch-class weapon; wizards with
+    /// nothing (their focus is a choice, not a role). The grant itself happens in
+    /// CompanionRoster.EnsureStartingWeapons when the hire is recruited.</summary>
+    private static void RollStartingWeapon(Companion c, RandomNumberGenerator rng)
+    {
+        string[] pool = c.UnitClass switch
+        {
+            "Fighter" => FighterWeapons,
+            "Ranger" => RangerWeapons,
+            _ => null,
+        };
+        if (pool == null || pool.Length == 0)
+            return;
+        c.StartingWeaponId = pool[rng.RandiRange(0, pool.Length - 1)];
     }
 
     // ═════════════════════════════════════════════════════════════════════

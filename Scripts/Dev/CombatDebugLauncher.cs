@@ -46,6 +46,10 @@ public partial class CombatDebugLauncher : CanvasLayer
     private Label _status;
     private readonly Dictionary<string, SpinBox> _enemySpins = new();  // unit id → count (U2: registry-driven)
     private readonly List<(CheckBox chk, Companion comp)> _allyChecks = new();
+    /// <summary>Loadout block (2026-09-28): per martial companion, the weapon and
+    /// stance dropdowns. Item 0 of each means "as the armory / as authored".</summary>
+    private readonly List<(Companion comp, OptionButton weapon, List<string> weaponIds,
+                           OptionButton stance, List<string> stanceIds)> _allyLoadouts = new();
 
     public static void Toggle(Node host)
     {
@@ -129,6 +133,8 @@ public partial class CombatDebugLauncher : CanvasLayer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            // Vertical only: every row below is built to fit the panel's width.
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
         };
         root.AddChild(scroll);
         var sm = new MarginContainer
@@ -279,7 +285,8 @@ public partial class CombatDebugLauncher : CanvasLayer
         BuildEnemyRoster(form);
         form.AddChild(new HSeparator());
 
-        AddSectionLabel(form, "Allies (bring companions with real cards + stats):");
+        AddSectionLabel(form, "Allies (bring companions with real cards + stats). Martials: weapon and opening stance for this fight only:");
+        ItemDatabase.LoadAll();
         foreach (var comp in CompanionLoader.LoadAll())
         {
             var chk = new CheckBox { Text = $"  {comp.Name} ({comp.School})" };
@@ -287,8 +294,89 @@ public partial class CombatDebugLauncher : CanvasLayer
             // a castle defence launched from here has someone to hold the walls.
             chk.ButtonPressed = comp.Id == CompanionRoster.StartingDriverId;
             chk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-            form.AddChild(chk);
             _allyChecks.Add((chk, comp));
+
+            bool martial = comp.UnitClass == "Fighter" || comp.UnitClass == "Ranger";
+            if (!martial)
+            {
+                form.AddChild(chk);
+                continue;
+            }
+
+            // Two lines per martial: the checkbox, then its two dropdowns indented
+            // beneath it. One line (checkbox + 340 px of dropdowns) overflowed the
+            // panel and forced a horizontal scrollbar.
+            form.AddChild(chk);
+            var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            row.AddThemeConstantOverride("separation", 8);
+            form.AddChild(row);
+            row.AddChild(new Control { CustomMinimumSize = new Vector2(24, 0) });   // indent under the checkbox
+
+            var martialClass = comp.UnitClass == "Fighter" ? MartialClass.Fighter : MartialClass.Ranger;
+
+            // Weapon: item 0 keeps the armory loadout; the rest are launch-legal defs.
+            // FitToLongestItem off + ClipText: the dropdown takes its share of the
+            // row instead of widening to its longest item name.
+            var weaponOpt = new OptionButton
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsStretchRatio = 1.4f,
+                FitToLongestItem = false,
+                ClipText = true,
+                CustomMinimumSize = new Vector2(0, 28),
+            };
+            weaponOpt.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            var weaponIds = new List<string> { "" };
+            weaponOpt.AddItem("Weapon: armory");
+            var defs = new List<ItemDefinition>(ItemDatabase.GetAll());
+            defs.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+            foreach (var def in defs)
+            {
+                if (!string.Equals(def.Slot, "Weapon", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (def.WeaponClassValue == WeaponClass.None)
+                    continue;
+                if (!CombatManager.WeaponClassAllowed(martialClass, def.WeaponClassValue))
+                    continue;
+                weaponIds.Add(def.Id);
+                weaponOpt.AddItem($"{def.Name} ({CombatManager.WeaponClassLabel(def.WeaponClassValue)})");
+            }
+            // Default is "armory": a debug fight fields what the Armory tab shows.
+            // Only a companion with no weapon equipped (or not yet in the save)
+            // gets its D5 starting weapon preselected, so it never fights unarmed.
+            var armoryWeapon = SaveManager.ActiveSave?.Armory?.Loadouts != null
+                && SaveManager.ActiveSave.Armory.Loadouts.TryGetValue(comp.Id, out var lo)
+                ? lo.WeaponInstanceId : null;
+            if (string.IsNullOrEmpty(armoryWeapon) && !string.IsNullOrEmpty(comp.StartingWeaponId))
+            {
+                int idx = weaponIds.IndexOf(comp.StartingWeaponId);
+                if (idx > 0) weaponOpt.Selected = idx;
+            }
+            row.AddChild(weaponOpt);
+
+            // Stance: item 0 keeps the authored list; the rest are class-legal stances.
+            var stanceOpt = new OptionButton
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                FitToLongestItem = false,
+                ClipText = true,
+                CustomMinimumSize = new Vector2(0, 28),
+            };
+            stanceOpt.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            var stanceIds = new List<string> { "" };
+            stanceOpt.AddItem("Stance: authored");
+            var stances = new List<StanceDefinition>(StanceRegistry.All.Values);
+            stances.Sort((a, b) => string.CompareOrdinal(a.DisplayName, b.DisplayName));
+            foreach (var st in stances)
+            {
+                if (st.IsSignature || !st.FitsClass(martialClass))
+                    continue;
+                stanceIds.Add(st.Id);
+                stanceOpt.AddItem(st.DisplayName);
+            }
+            row.AddChild(stanceOpt);
+
+            _allyLoadouts.Add((comp, weaponOpt, weaponIds, stanceOpt, stanceIds));
         }
         form.AddChild(new HSeparator());
 
@@ -430,6 +518,21 @@ public partial class CombatDebugLauncher : CanvasLayer
         }
         CompanionRoster.DebugPartyOverride = party.Count > 0 ? party : null;
 
+        // Loadout block: applied at spawn (CombatManager), never to the save.
+        PlayerSession.DebugWeaponOverride.Clear();
+        PlayerSession.DebugStanceOverride.Clear();
+        foreach (var (comp, weaponOpt, weaponIds, stanceOpt, stanceIds) in _allyLoadouts)
+        {
+            if (!party.Contains(comp))
+                continue;
+            int w = weaponOpt.Selected;
+            if (w > 0 && w < weaponIds.Count)
+                PlayerSession.DebugWeaponOverride[comp.Id] = weaponIds[w];
+            int s = stanceOpt.Selected;
+            if (s > 0 && s < stanceIds.Count)
+                PlayerSession.DebugStanceOverride[comp.Id] = stanceIds[s];
+        }
+
         PlayerSession.SelectedSchool = (CardSchool)_schoolOpt.GetSelectedId();
         PlayerSession.DebugCombat = true;
         PlayerSession.DebugMode = true;
@@ -567,7 +670,8 @@ public partial class CombatDebugLauncher : CanvasLayer
 
     private void AddSectionLabel(VBoxContainer form, string text)
     {
-        var l = new Label { Text = text };
+        // Wraps rather than widening the form (a long header forced a horizontal scrollbar).
+        var l = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
         l.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         l.AddThemeColorOverride("font_color", UITheme.Gold);
         form.AddChild(l);

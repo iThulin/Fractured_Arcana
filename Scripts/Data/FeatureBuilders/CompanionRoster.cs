@@ -65,6 +65,7 @@ public static class CompanionRoster
                     BaseMana = template.BaseMana,
                     SignatureStanceId = template.SignatureStanceId, // K4
                     Vocation = template.Vocation,                   // 2026-09-25
+                    StartingWeaponId = template.StartingWeaponId,   // D5 (2026-09-28)
                 });
             }
             else
@@ -91,8 +92,52 @@ public static class CompanionRoster
                     existing.SignatureStanceId = template.SignatureStanceId;
                 // 2026-09-25: vocations on saves that predate them.
                 Vocations.Backfill(existing, template);
+                // D5 (2026-09-28): starting weapons on saves that predate them.
+                if (string.IsNullOrEmpty(existing.StartingWeaponId) &&
+                    !string.IsNullOrEmpty(template.StartingWeaponId))
+                    existing.StartingWeaponId = template.StartingWeaponId;
             }
         }
+    }
+
+    /// <summary>D5: every recruited companion with a StartingWeaponId that has not
+    /// been granted yet receives that weapon in the armory, equipped, provided no
+    /// weapon is equipped already. Idempotent through StartingWeaponGranted. Run at
+    /// save seeding and after each recruitment. Returns how many were granted.</summary>
+    public static int EnsureStartingWeapons(GuildSaveData save)
+    {
+        if (save?.Armory == null) return 0;
+        ItemDatabase.LoadAll();
+        int granted = 0;
+        foreach (var c in save.Companions)
+        {
+            if (c == null || !c.IsRecruited || c.IsPermadead || c.StartingWeaponGranted)
+                continue;
+            if (string.IsNullOrEmpty(c.StartingWeaponId))
+                continue;
+            var def = ItemDatabase.Get(c.StartingWeaponId);
+            if (def == null)
+            {
+                GD.PushWarning($"[Roster] {c.Name} names starting weapon '{c.StartingWeaponId}', which is not in Data/Items.");
+                c.StartingWeaponGranted = true;   // do not warn every load
+                continue;
+            }
+            var loadout = save.Armory.GetLoadout(c.Id);
+            if (!string.IsNullOrEmpty(loadout.WeaponInstanceId))
+            {
+                c.StartingWeaponGranted = true;   // the player already chose; keep it
+                continue;
+            }
+            var inst = ItemInstance.FromDefinition(def);
+            save.Armory.AddItem(inst);
+            save.Armory.Equip(c.Id, inst.InstanceId);
+            c.StartingWeaponGranted = true;
+            granted++;
+            GD.Print($"[Roster] {c.Name} arrives with {def.Name} ({def.WeaponClass}).");
+        }
+        if (granted > 0)
+            SaveManager.MarkDirty();
+        return granted;
     }
 
     /// <summary>
@@ -203,6 +248,7 @@ public static class CompanionRoster
 
         c.IsAvailable = true;
         c.IsRecruited = true;
+        EnsureStartingWeapons(save);   // D5: found companions arrive armed too
         SaveManager.MarkDirty();
         GD.Print($"[Companion] {c.Name} recruited via exploration.");
         return c.Name;
@@ -255,6 +301,7 @@ public static class CompanionRoster
 
         save.Gold -= c.RecruitmentCost;
         c.IsRecruited = true;
+        EnsureStartingWeapons(save);   // D5: the weapon arrives with the person
         SaveManager.Save();
         GD.Print($"Recruited {c.Name} for {c.RecruitmentCost} gold.");
         return true;

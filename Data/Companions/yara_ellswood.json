@@ -3,6 +3,7 @@
 	"name": "Yara Ellswood",
 	"school": "None",
 	"unitClass": "Ranger",
+	"startingWeaponId": "hunters_bow",
 	"personalityTrait": "Loyal",
 	"vocation": "Scout",
 	"backstory": "A king's forester who quit the day she was ordered to look the other way. She reads a treeline the way clerks read contracts, and keeps her word the same way.",

@@ -38,6 +38,9 @@ public static class CycleInitializer
         CompanionRoster.EnsureStartingDriver(SaveManager.ActiveSave);
         BuildingDatabase.EnsureBuildings(SaveManager.ActiveSave);
         EnsureStarterItems();
+        // D5 (2026-09-28): recruited martials arrive armed. After the starter
+        // items, so the item database is loaded and the armory exists.
+        CompanionRoster.EnsureStartingWeapons(SaveManager.ActiveSave);
     }
 
     private static void EnsureStarterItems()

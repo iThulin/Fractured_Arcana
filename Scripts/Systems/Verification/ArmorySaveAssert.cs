@@ -33,6 +33,7 @@ public static class ArmorySaveAssert
         bool ok = AssertItemInstance(sb);
         ok &= AssertUnitLoadout(sb);
         ok &= AssertArmoryData(sb);
+        ok &= AssertCompanionWeapon(sb);
 
         sb.AppendLine(ok
             ? "RESULT: ALL PASSED. Armory save-adjacent structs round-trip clean."
@@ -166,6 +167,37 @@ public static class ArmorySaveAssert
         }
 
         sb.AppendLine(ok ? "  ArmoryData: PASS" : "  ArmoryData: FAIL");
+        return ok;
+    }
+
+    /// <summary>D5 (2026-09-28): the starting-weapon fields on Companion.</summary>
+    private static bool AssertCompanionWeapon(StringBuilder sb)
+    {
+        var src = new Companion
+        {
+            Id = "assert_fighter",
+            Name = "Assert Fighter",
+            UnitClass = "Fighter",
+            IsRecruited = true,
+            StartingWeaponId = "barbed_spear",
+            StartingWeaponGranted = true,
+        };
+        var rt = RoundTrip(src);
+        bool ok = rt != null;
+        if (rt != null)
+        {
+            ok &= Check(sb, "Companion.StartingWeaponId", rt.StartingWeaponId == src.StartingWeaponId);
+            ok &= Check(sb, "Companion.StartingWeaponGranted", rt.StartingWeaponGranted == src.StartingWeaponGranted);
+        }
+        else
+        {
+            sb.AppendLine("    FAIL: Companion deserialized to null.");
+        }
+        var legacy = JsonSerializer.Deserialize<Companion>(
+            "{\"id\":\"legacy\",\"unitClass\":\"Fighter\"}", SaveManager.JsonOptions);
+        ok &= Check(sb, "Companion.StartingWeaponGranted default false on legacy JSON",
+            legacy != null && !legacy.StartingWeaponGranted && string.IsNullOrEmpty(legacy.StartingWeaponId));
+        sb.AppendLine(ok ? "  Companion (starting weapon): PASS" : "  Companion (starting weapon): FAIL");
         return ok;
     }
 

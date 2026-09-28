@@ -1,0 +1,693 @@
+diff --git a/Data/Companions/brannoc_helm.json b/Data/Companions/brannoc_helm.json
+index 1c73e16..ddae521 100644
+--- a/Data/Companions/brannoc_helm.json
++++ b/Data/Companions/brannoc_helm.json
+@@ -3,6 +3,7 @@
+ 	"name": "Brannoc Helm",
+ 	"school": "None",
+ 	"unitClass": "Fighter",
++	"startingWeaponId": "iron_sword",
+ 	"personalityTrait": "Stoic",
+ 	"vocation": "Warden",
+ 	"backstory": "The castle's helmsman. He was walking it before the guild had a name, and he has never once asked where it was going. When the walls are attacked he holds the courtyard until the wizard arrives, and he has not yet failed to.",
+diff --git a/Data/Companions/corvin_ashdown.json b/Data/Companions/corvin_ashdown.json
+index b188859..9a73875 100644
+--- a/Data/Companions/corvin_ashdown.json
++++ b/Data/Companions/corvin_ashdown.json
+@@ -3,6 +3,7 @@
+   "name": "Corvin Ashdown",
+   "school": "None",
+   "unitClass": "Ranger",
++  "startingWeaponId": "guild_crossbow",
+   "personalityTrait": "Stoic",
+   "vocation": "Scout",
+   "backstory": "A deserter from a war nobody won. He speaks maybe forty words a lunation and has never missed twice at the same target.",
+diff --git a/Data/Companions/dagny_thornhelm.json b/Data/Companions/dagny_thornhelm.json
+index b236e9d..8aea2fd 100644
+--- a/Data/Companions/dagny_thornhelm.json
++++ b/Data/Companions/dagny_thornhelm.json
+@@ -3,6 +3,7 @@
+ 	"name": "Dagny Thornhelm",
+ 	"school": "None",
+ 	"unitClass": "Fighter",
++	"startingWeaponId": "iron_sword",
+ 	"personalityTrait": "Loyal",
+ 	"vocation": "Quartermaster",
+ 	"backstory": "Twelve years a caravan guard on the same route, for the same family. When the family sold the route, she went looking for something else worth standing in front of.",
+diff --git a/Data/Companions/harl_denner.json b/Data/Companions/harl_denner.json
+index b231f51..65ca94d 100644
+--- a/Data/Companions/harl_denner.json
++++ b/Data/Companions/harl_denner.json
+@@ -3,6 +3,7 @@
+ 	"name": "Harl Denner",
+ 	"school": "None",
+ 	"unitClass": "Ranger",
++	"startingWeaponId": "hunters_bow",
+ 	"personalityTrait": "Stoic",
+ 	"vocation": "Warden",
+ 	"backstory": "Warden of a sealed sanctum for thirty years, without ever knowing what it held. When the first fragment was taken, he felt the seal break from four kingdoms away, and came looking for whoever finally opened a door he spent his life guarding.",
+diff --git a/Data/Companions/kael_ashblade.json b/Data/Companions/kael_ashblade.json
+index c76257a..c5610d6 100644
+--- a/Data/Companions/kael_ashblade.json
++++ b/Data/Companions/kael_ashblade.json
+@@ -3,6 +3,7 @@
+   "name": "Kael Ashblade",
+   "school": "None",
+   "unitClass": "Fighter",
++  "startingWeaponId": "iron_sword",
+   "personalityTrait": "Reckless",
+   "vocation": "Sapper",
+   "backstory": "A pit fighter who caught the guild's eye after surviving three rounds against a summoned elemental.",
+diff --git a/Data/Companions/miro_fletch.json b/Data/Companions/miro_fletch.json
+index 8d0a537..ebee6ca 100644
+--- a/Data/Companions/miro_fletch.json
++++ b/Data/Companions/miro_fletch.json
+@@ -3,6 +3,7 @@
+   "name": "Miro Fletch",
+   "school": "None",
+   "unitClass": "Ranger",
++  "startingWeaponId": "hunters_bow",
+   "personalityTrait": "Curious",
+   "vocation": "Scout",
+   "backstory": "A fletcher's apprentice who kept sneaking off to watch monsters instead of making arrows for them. He knows more bestiary than most scholars and more escape routes than most thieves.",
+diff --git a/Data/Companions/odile_vantrec.json b/Data/Companions/odile_vantrec.json
+index b276dee..107245e 100644
+--- a/Data/Companions/odile_vantrec.json
++++ b/Data/Companions/odile_vantrec.json
+@@ -3,6 +3,7 @@
+ 	"name": "Odile Vantrec",
+ 	"school": "None",
+ 	"unitClass": "Fighter",
++	"startingWeaponId": "barbed_spear",
+ 	"personalityTrait": "Stoic",
+ 	"vocation": "Warden",
+ 	"backstory": "Marshal of a province that fell. She held the gate long enough for the granaries to empty into wagons, then walked out behind the last one. Her banner burned with the siege; she has not chosen a new one yet.",
+diff --git a/Data/Companions/ruslan_vane.json b/Data/Companions/ruslan_vane.json
+index faaa220..ea46591 100644
+--- a/Data/Companions/ruslan_vane.json
++++ b/Data/Companions/ruslan_vane.json
+@@ -3,6 +3,7 @@
+   "name": "Ruslan Vane",
+   "school": "None",
+   "unitClass": "Fighter",
++  "startingWeaponId": "iron_sword",
+   "personalityTrait": "Reckless",
+   "vocation": "Sapper",
+   "backstory": "His village sits under corruption now. He works cheap because he has nowhere to send the money, and fights like a man with rent already paid.",
+diff --git a/Data/Companions/sable_voss.json b/Data/Companions/sable_voss.json
+index f12d5ba..b935fb3 100644
+--- a/Data/Companions/sable_voss.json
++++ b/Data/Companions/sable_voss.json
+@@ -3,6 +3,7 @@
+   "name": "Sable Voss",
+   "school": "None",
+   "unitClass": "Ranger",
++  "startingWeaponId": "hunters_bow",
+   "personalityTrait": "Cunning",
+   "vocation": "Scout",
+   "backstory": "A poacher turned scout. She knows seventeen ways to kill something before it knows she's there.",
+diff --git a/Data/Companions/tamsin_greywood.json b/Data/Companions/tamsin_greywood.json
+index 07cc62d..55d3500 100644
+--- a/Data/Companions/tamsin_greywood.json
++++ b/Data/Companions/tamsin_greywood.json
+@@ -3,6 +3,7 @@
+ 	"name": "Tamsin Greywood",
+ 	"school": "None",
+ 	"unitClass": "Fighter",
++	"startingWeaponId": "iron_sword",
+ 	"personalityTrait": "Reckless",
+ 	"vocation": "Sapper",
+ 	"backstory": "A hedge-knight who collects stories the way others collect scars, and has plenty of both. She hires on with whoever generates the best material. A guild that argues with the sky, she reckons, is a career.",
+diff --git a/Data/Companions/torrin_ironward.json b/Data/Companions/torrin_ironward.json
+index d505290..6fe2e16 100644
+--- a/Data/Companions/torrin_ironward.json
++++ b/Data/Companions/torrin_ironward.json
+@@ -3,6 +3,7 @@
+ 	"name": "Torrin Ironward",
+ 	"school": "None",
+ 	"unitClass": "Fighter",
++	"startingWeaponId": "barbed_spear",
+ 	"personalityTrait": "Stoic",
+ 	"vocation": "Warden",
+ 	"backstory": "A farmer who picked up a spear when bandits burned his village. He never put it down.",
+diff --git a/Data/Companions/yara_ellswood.json b/Data/Companions/yara_ellswood.json
+index da03056..baa4cad 100644
+--- a/Data/Companions/yara_ellswood.json
++++ b/Data/Companions/yara_ellswood.json
+@@ -3,6 +3,7 @@
+ 	"name": "Yara Ellswood",
+ 	"school": "None",
+ 	"unitClass": "Ranger",
++	"startingWeaponId": "hunters_bow",
+ 	"personalityTrait": "Loyal",
+ 	"vocation": "Scout",
+ 	"backstory": "A king's forester who quit the day she was ordered to look the other way. She reads a treeline the way clerks read contracts, and keeps her word the same way.",
+diff --git a/Scripts/Data/FeatureBuilders/CandidateGenerator.cs b/Scripts/Data/FeatureBuilders/CandidateGenerator.cs
+index fee42fb..a1d82da 100644
+--- a/Scripts/Data/FeatureBuilders/CandidateGenerator.cs
++++ b/Scripts/Data/FeatureBuilders/CandidateGenerator.cs
+@@ -101,11 +101,35 @@ public static class CandidateGenerator
+ 
+         RollStats(c, rng, quality);
+         RollStances(c, rng, quality);
++        RollStartingWeapon(c, rng);   // D5: a class-legal weapon, granted on recruit
+         c.RecruitmentCost = Price(c, quality);
+         c.Backstory = BackstoryLine(c);
+         return c;
+     }
+ 
++    // ═════════════════════════════════════════════════════════════════════
++    // Starting weapon (Martial Maneuvers & Edge spec v1, D5)
++    // ═════════════════════════════════════════════════════════════════════
++
++    private static readonly string[] FighterWeapons = { "iron_sword", "soldiers_blade", "barbed_spear" };
++    private static readonly string[] RangerWeapons = { "hunters_bow", "guild_crossbow" };
++
++    /// <summary>Martial hires arrive with a launch-class weapon; wizards with
++    /// nothing (their focus is a choice, not a role). The grant itself happens in
++    /// CompanionRoster.EnsureStartingWeapons when the hire is recruited.</summary>
++    private static void RollStartingWeapon(Companion c, RandomNumberGenerator rng)
++    {
++        string[] pool = c.UnitClass switch
++        {
++            "Fighter" => FighterWeapons,
++            "Ranger" => RangerWeapons,
++            _ => null,
++        };
++        if (pool == null || pool.Length == 0)
++            return;
++        c.StartingWeaponId = pool[rng.RandiRange(0, pool.Length - 1)];
++    }
++
+     // ═════════════════════════════════════════════════════════════════════
+     // Stats: per-class envelopes (template range: BaseHP 12–30)
+     // ═════════════════════════════════════════════════════════════════════
+diff --git a/Scripts/Data/FeatureBuilders/CompanionDefinition.cs b/Scripts/Data/FeatureBuilders/CompanionDefinition.cs
+index 967c308..f89cb9d 100644
+--- a/Scripts/Data/FeatureBuilders/CompanionDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/CompanionDefinition.cs
+@@ -102,6 +102,16 @@ public class Companion
+     // redirects WHICH signature, never whether one is fielded.
+     public string SignatureStanceId = "";
+ 
++    // ── Starting weapon (Martial Maneuvers & Edge spec v1, D5) ──────────
++    /// <summary>Item definition id the companion arrives with (JSON
++    /// "startingWeaponId"). Character design: the weapon class sets the opening
++    /// role. Granted once, on recruitment, into the armory and equipped, only if
++    /// no weapon is already equipped. Hires roll a class-legal one.</summary>
++    public string StartingWeaponId = "";
++    /// <summary>Set when the grant has happened, so it never repeats and never
++    /// overwrites a weapon the player chose later. Additive save field.</summary>
++    public bool StartingWeaponGranted = false;
++
+     // ── Runtime state (not in JSON, set during combat) ───────────────────
+     // These are not serialized; they're rebuilt each combat from save data.
+     [System.Text.Json.Serialization.JsonIgnore]
+diff --git a/Scripts/Data/FeatureBuilders/CompanionRoster.cs b/Scripts/Data/FeatureBuilders/CompanionRoster.cs
+index 76feda2..a57d221 100644
+--- a/Scripts/Data/FeatureBuilders/CompanionRoster.cs
++++ b/Scripts/Data/FeatureBuilders/CompanionRoster.cs
+@@ -65,6 +65,7 @@ public static class CompanionRoster
+                     BaseMana = template.BaseMana,
+                     SignatureStanceId = template.SignatureStanceId, // K4
+                     Vocation = template.Vocation,                   // 2026-09-25
++                    StartingWeaponId = template.StartingWeaponId,   // D5 (2026-09-28)
+                 });
+             }
+             else
+@@ -91,10 +92,54 @@ public static class CompanionRoster
+                     existing.SignatureStanceId = template.SignatureStanceId;
+                 // 2026-09-25: vocations on saves that predate them.
+                 Vocations.Backfill(existing, template);
++                // D5 (2026-09-28): starting weapons on saves that predate them.
++                if (string.IsNullOrEmpty(existing.StartingWeaponId) &&
++                    !string.IsNullOrEmpty(template.StartingWeaponId))
++                    existing.StartingWeaponId = template.StartingWeaponId;
+             }
+         }
+     }
+ 
++    /// <summary>D5: every recruited companion with a StartingWeaponId that has not
++    /// been granted yet receives that weapon in the armory, equipped, provided no
++    /// weapon is equipped already. Idempotent through StartingWeaponGranted. Run at
++    /// save seeding and after each recruitment. Returns how many were granted.</summary>
++    public static int EnsureStartingWeapons(GuildSaveData save)
++    {
++        if (save?.Armory == null) return 0;
++        ItemDatabase.LoadAll();
++        int granted = 0;
++        foreach (var c in save.Companions)
++        {
++            if (c == null || !c.IsRecruited || c.IsPermadead || c.StartingWeaponGranted)
++                continue;
++            if (string.IsNullOrEmpty(c.StartingWeaponId))
++                continue;
++            var def = ItemDatabase.Get(c.StartingWeaponId);
++            if (def == null)
++            {
++                GD.PushWarning($"[Roster] {c.Name} names starting weapon '{c.StartingWeaponId}', which is not in Data/Items.");
++                c.StartingWeaponGranted = true;   // do not warn every load
++                continue;
++            }
++            var loadout = save.Armory.GetLoadout(c.Id);
++            if (!string.IsNullOrEmpty(loadout.WeaponInstanceId))
++            {
++                c.StartingWeaponGranted = true;   // the player already chose; keep it
++                continue;
++            }
++            var inst = ItemInstance.FromDefinition(def);
++            save.Armory.AddItem(inst);
++            save.Armory.Equip(c.Id, inst.InstanceId);
++            c.StartingWeaponGranted = true;
++            granted++;
++            GD.Print($"[Roster] {c.Name} arrives with {def.Name} ({def.WeaponClass}).");
++        }
++        if (granted > 0)
++            SaveManager.MarkDirty();
++        return granted;
++    }
++
+     /// <summary>
+     /// Get all recruited companions from the active save.
+     /// </summary>
+@@ -203,6 +248,7 @@ public static class CompanionRoster
+ 
+         c.IsAvailable = true;
+         c.IsRecruited = true;
++        EnsureStartingWeapons(save);   // D5: found companions arrive armed too
+         SaveManager.MarkDirty();
+         GD.Print($"[Companion] {c.Name} recruited via exploration.");
+         return c.Name;
+@@ -255,6 +301,7 @@ public static class CompanionRoster
+ 
+         save.Gold -= c.RecruitmentCost;
+         c.IsRecruited = true;
++        EnsureStartingWeapons(save);   // D5: the weapon arrives with the person
+         SaveManager.Save();
+         GD.Print($"Recruited {c.Name} for {c.RecruitmentCost} gold.");
+         return true;
+diff --git a/Scripts/Data/SaveState/PlayerSession.cs b/Scripts/Data/SaveState/PlayerSession.cs
+index 5f02e83..88bda8d 100644
+--- a/Scripts/Data/SaveState/PlayerSession.cs
++++ b/Scripts/Data/SaveState/PlayerSession.cs
+@@ -93,6 +93,13 @@ public static class PlayerSession
+     /// auto-pass costs zero clicks.</summary>
+     public static bool DebugStopOnTriggers = false;
+ 
++    /// <summary>Debug launcher loadout block (2026-09-28): per companion id, an
++    /// item definition id to field as the weapon this fight, and a stance id to
++    /// open in. Applied at spawn, never written to the armory or the save. Read
++    /// only while DebugCombat is set; cleared by the launcher on every launch.</summary>
++    public static readonly System.Collections.Generic.Dictionary<string, string> DebugWeaponOverride = new();
++    public static readonly System.Collections.Generic.Dictionary<string, string> DebugStanceOverride = new();
++
+     /// <summary>R22 damage-preview self-check: when set, every real player cast
+     /// re-runs the CombatSim preview for that same cast and, after it resolves,
+     /// logs whether the predicted per-enemy HP loss matched the actual delta.
+diff --git a/Scripts/Dev/CombatDebugLauncher.cs b/Scripts/Dev/CombatDebugLauncher.cs
+index 3d2d7a4..144b6f2 100644
+--- a/Scripts/Dev/CombatDebugLauncher.cs
++++ b/Scripts/Dev/CombatDebugLauncher.cs
+@@ -46,6 +46,10 @@ public partial class CombatDebugLauncher : CanvasLayer
+     private Label _status;
+     private readonly Dictionary<string, SpinBox> _enemySpins = new();  // unit id → count (U2: registry-driven)
+     private readonly List<(CheckBox chk, Companion comp)> _allyChecks = new();
++    /// <summary>Loadout block (2026-09-28): per martial companion, the weapon and
++    /// stance dropdowns. Item 0 of each means "as the armory / as authored".</summary>
++    private readonly List<(Companion comp, OptionButton weapon, List<string> weaponIds,
++                           OptionButton stance, List<string> stanceIds)> _allyLoadouts = new();
+ 
+     public static void Toggle(Node host)
+     {
+@@ -279,7 +283,8 @@ public partial class CombatDebugLauncher : CanvasLayer
+         BuildEnemyRoster(form);
+         form.AddChild(new HSeparator());
+ 
+-        AddSectionLabel(form, "Allies (bring companions with real cards + stats):");
++        AddSectionLabel(form, "Allies (bring companions with real cards + stats). Martials: weapon and opening stance for this fight only:");
++        ItemDatabase.LoadAll();
+         foreach (var comp in CompanionLoader.LoadAll())
+         {
+             var chk = new CheckBox { Text = $"  {comp.Name} ({comp.School})" };
+@@ -287,8 +292,70 @@ public partial class CombatDebugLauncher : CanvasLayer
+             // a castle defence launched from here has someone to hold the walls.
+             chk.ButtonPressed = comp.Id == CompanionRoster.StartingDriverId;
+             chk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+-            form.AddChild(chk);
+             _allyChecks.Add((chk, comp));
++
++            bool martial = comp.UnitClass == "Fighter" || comp.UnitClass == "Ranger";
++            if (!martial)
++            {
++                form.AddChild(chk);
++                continue;
++            }
++
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 8);
++            form.AddChild(row);
++            row.AddChild(chk);
++
++            var martialClass = comp.UnitClass == "Fighter" ? MartialClass.Fighter : MartialClass.Ranger;
++
++            // Weapon: item 0 keeps the armory loadout; the rest are launch-legal defs.
++            var weaponOpt = new OptionButton { CustomMinimumSize = new Vector2(190, 28) };
++            weaponOpt.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            var weaponIds = new List<string> { "" };
++            weaponOpt.AddItem("Weapon: armory");
++            var defs = new List<ItemDefinition>(ItemDatabase.GetAll());
++            defs.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
++            foreach (var def in defs)
++            {
++                if (!string.Equals(def.Slot, "Weapon", StringComparison.OrdinalIgnoreCase))
++                    continue;
++                if (def.WeaponClassValue == WeaponClass.None)
++                    continue;
++                if (!CombatManager.WeaponClassAllowed(martialClass, def.WeaponClassValue))
++                    continue;
++                weaponIds.Add(def.Id);
++                weaponOpt.AddItem($"{def.Name} ({CombatManager.WeaponClassLabel(def.WeaponClassValue)})");
++            }
++            // Default is "armory": a debug fight fields what the Armory tab shows.
++            // Only a companion with no weapon equipped (or not yet in the save)
++            // gets its D5 starting weapon preselected, so it never fights unarmed.
++            var armoryWeapon = SaveManager.ActiveSave?.Armory?.Loadouts != null
++                && SaveManager.ActiveSave.Armory.Loadouts.TryGetValue(comp.Id, out var lo)
++                ? lo.WeaponInstanceId : null;
++            if (string.IsNullOrEmpty(armoryWeapon) && !string.IsNullOrEmpty(comp.StartingWeaponId))
++            {
++                int idx = weaponIds.IndexOf(comp.StartingWeaponId);
++                if (idx > 0) weaponOpt.Selected = idx;
++            }
++            row.AddChild(weaponOpt);
++
++            // Stance: item 0 keeps the authored list; the rest are class-legal stances.
++            var stanceOpt = new OptionButton { CustomMinimumSize = new Vector2(150, 28) };
++            stanceOpt.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            var stanceIds = new List<string> { "" };
++            stanceOpt.AddItem("Stance: authored");
++            var stances = new List<StanceDefinition>(StanceRegistry.All.Values);
++            stances.Sort((a, b) => string.CompareOrdinal(a.DisplayName, b.DisplayName));
++            foreach (var st in stances)
++            {
++                if (st.IsSignature || !st.FitsClass(martialClass))
++                    continue;
++                stanceIds.Add(st.Id);
++                stanceOpt.AddItem(st.DisplayName);
++            }
++            row.AddChild(stanceOpt);
++
++            _allyLoadouts.Add((comp, weaponOpt, weaponIds, stanceOpt, stanceIds));
+         }
+         form.AddChild(new HSeparator());
+ 
+@@ -430,6 +497,21 @@ public partial class CombatDebugLauncher : CanvasLayer
+         }
+         CompanionRoster.DebugPartyOverride = party.Count > 0 ? party : null;
+ 
++        // Loadout block: applied at spawn (CombatManager), never to the save.
++        PlayerSession.DebugWeaponOverride.Clear();
++        PlayerSession.DebugStanceOverride.Clear();
++        foreach (var (comp, weaponOpt, weaponIds, stanceOpt, stanceIds) in _allyLoadouts)
++        {
++            if (!party.Contains(comp))
++                continue;
++            int w = weaponOpt.Selected;
++            if (w > 0 && w < weaponIds.Count)
++                PlayerSession.DebugWeaponOverride[comp.Id] = weaponIds[w];
++            int s = stanceOpt.Selected;
++            if (s > 0 && s < stanceIds.Count)
++                PlayerSession.DebugStanceOverride[comp.Id] = stanceIds[s];
++        }
++
+         PlayerSession.SelectedSchool = (CardSchool)_schoolOpt.GetSelectedId();
+         PlayerSession.DebugCombat = true;
+         PlayerSession.DebugMode = true;
+diff --git a/Scripts/Systems/Campaign/CycleInitializer.cs b/Scripts/Systems/Campaign/CycleInitializer.cs
+index 55efc39..de82af3 100644
+--- a/Scripts/Systems/Campaign/CycleInitializer.cs
++++ b/Scripts/Systems/Campaign/CycleInitializer.cs
+@@ -38,6 +38,9 @@ public static class CycleInitializer
+         CompanionRoster.EnsureStartingDriver(SaveManager.ActiveSave);
+         BuildingDatabase.EnsureBuildings(SaveManager.ActiveSave);
+         EnsureStarterItems();
++        // D5 (2026-09-28): recruited martials arrive armed. After the starter
++        // items, so the item database is loaded and the armory exists.
++        CompanionRoster.EnsureStartingWeapons(SaveManager.ActiveSave);
+     }
+ 
+     private static void EnsureStarterItems()
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index 86aa631..03f883e 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -145,6 +145,18 @@ public partial class CombatManager
+         ArmManeuver(selectedUnit, m);
+     }
+ 
++    /// <summary>Spec v1 §6 access: which weapon classes each martial class may
++    /// field. Paired blades are the one both share. Used by the debug launcher's
++    /// loadout block; the armory does not enforce it yet.</summary>
++    public static bool WeaponClassAllowed(MartialClass martial, WeaponClass weapon) => martial switch
++    {
++        MartialClass.Fighter => weapon is WeaponClass.SwordShield or WeaponClass.Polearm or WeaponClass.Hammer
++                                or WeaponClass.TwoHander or WeaponClass.PairedBlades,
++        MartialClass.Ranger => weapon is WeaponClass.Bow or WeaponClass.Crossbow or WeaponClass.Sling
++                               or WeaponClass.PairedBlades,
++        _ => false,
++    };
++
+     public static string WeaponClassLabel(WeaponClass c) => c switch
+     {
+         WeaponClass.SwordShield => "Sword & shield",
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 2ad376c..e43d73d 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -4513,6 +4513,22 @@ public partial class CombatManager : Node3D
+                 if (unit.AvailableStances.Count > 0)
+                     unit.ActiveStance = unit.AvailableStances[0];
+ 
++                // Debug launcher stance override (2026-09-28): open in this stance,
++                // learning it for the fight if the companion does not know it.
++                if (PlayerSession.DebugCombat
++                    && PlayerSession.DebugStanceOverride.TryGetValue(companion.Id, out var dbgStanceId)
++                    && !string.IsNullOrEmpty(dbgStanceId))
++                {
++                    var dbgStance = StanceRegistry.Get(dbgStanceId);
++                    if (dbgStance != null)
++                    {
++                        if (!unit.AvailableStances.Contains(dbgStance))
++                            unit.AvailableStances.Add(dbgStance);
++                        unit.ActiveStance = dbgStance;
++                        GD.Print($"[Debug] {companion.Name} opens in {dbgStance.DisplayName} (launcher override).");
++                    }
++                }
++
+                 // Edge (spec v1 §3): fresh every fight, after ActiveStance is set
+                 // so Ambush's starting bonus reads the stance it opens in.
+                 EdgeRules.ResetForCombat(unit, tgTier);
+@@ -4561,6 +4577,19 @@ public partial class CombatManager : Node3D
+         // EquipmentLoadout.BuildForRun both use it), and the units carry it in
+         // CompanionId. "companion_{i}" matched nothing, so no companion ever
+         // received an equipment bonus in combat.
++        // Debug fights (2026-09-28): the expedition builds loadouts in
++        // ExpeditionManager, which a launcher fight never passes through, so
++        // equipment used to vanish in every debug combat. Build them here from
++        // the real armory so a debug fight fields what the Armory tab shows.
++        if (PlayerSession.DebugCombat && SaveManager.ActiveSave?.Armory != null)
++        {
++            var dbgIds = new List<string>();
++            foreach (var pu0 in playerUnits)
++                if (pu0 != null && !string.IsNullOrEmpty(pu0.CompanionId))
++                    dbgIds.Add(pu0.CompanionId);
++            EquipmentLoadout.BuildForRun(SaveManager.ActiveSave.Armory, "wizard", dbgIds);
++        }
++
+         for (int i = 0; i < playerUnits.Count; i++)
+         {
+             var pu = playerUnits[i];
+@@ -4569,6 +4598,7 @@ public partial class CombatManager : Node3D
+             // index 0 is a companion.
+             string unitId = string.IsNullOrEmpty(pu.CompanionId) ? "wizard" : pu.CompanionId;
+             ApplyEquipmentLoadout(pu, unitId);
++            ApplyDebugWeaponOverride(pu);   // launcher loadout block, debug fights only
+ 
+             // D4: a classed martial with no classed weapon loses its maneuvers
+             // silently. Say so once, loudly, at spawn.
+@@ -5829,6 +5859,38 @@ public partial class CombatManager : Node3D
+     /// Called immediately after the unit is spawned and initialized.
+     /// unitId: "wizard" for the main wizard, companion ID for companions.
+     /// </summary>
++    /// <summary>Debug launcher loadout block (2026-09-28): field this item
++    /// definition as the unit's weapon for the fight. Replaces whatever the
++    /// armory loadout gave: its class, and its attack damage and range deltas.
++    /// Touches nothing in the save.</summary>
++    private void ApplyDebugWeaponOverride(Unit unit)
++    {
++        if (!PlayerSession.DebugCombat || unit == null || string.IsNullOrEmpty(unit.CompanionId))
++            return;
++        if (!PlayerSession.DebugWeaponOverride.TryGetValue(unit.CompanionId, out var defId) || string.IsNullOrEmpty(defId))
++            return;
++        var def = ItemDatabase.Get(defId);
++        if (def == null)
++        {
++            GD.PushWarning($"[Debug] Weapon override '{defId}' for {unit.Name} is not in Data/Items.");
++            return;
++        }
++        // Undo the armory weapon's class and stats first, so two weapons never stack.
++        var loadout = EquipmentLoadout.Get(unit.CompanionId);
++        var armory = SaveManager.ActiveSave?.Armory;
++        var equippedId = armory?.GetLoadout(unit.CompanionId).WeaponInstanceId;
++        var equippedDef = !string.IsNullOrEmpty(equippedId) ? ItemDatabase.Get(armory.GetInstance(equippedId)?.DefinitionId ?? "") : null;
++        if (equippedDef != null && loadout != null)
++        {
++            unit.AttackDamage -= equippedDef.Stats.AttackDamage;
++            unit.AttackRange -= equippedDef.Stats.AttackRange;
++        }
++        unit.WeaponClass = def.WeaponClassValue;
++        unit.AttackDamage += def.Stats.AttackDamage;
++        unit.AttackRange = Math.Max(1, unit.AttackRange + def.Stats.AttackRange);
++        GD.Print($"[Debug] {unit.Name} fields {def.Name} ({def.WeaponClass}) by launcher override.");
++    }
++
+     private void ApplyEquipmentLoadout(Unit unit, string unitId)
+     {
+         var loadout = EquipmentLoadout.Get(unitId);
+diff --git a/Scripts/Systems/Strategic/HiringHallService.cs b/Scripts/Systems/Strategic/HiringHallService.cs
+index ea8b659..51ad29d 100644
+--- a/Scripts/Systems/Strategic/HiringHallService.cs
++++ b/Scripts/Systems/Strategic/HiringHallService.cs
+@@ -256,6 +256,8 @@ public static class HiringHallService
+         string toast = CouncilEcho.EmitDeed(cycle, city?.KingdomId,
+             CouncilEcho.HireGiven, positive: true, isMajor: false);
+ 
++        CompanionRoster.EnsureStartingWeapons(save);   // D5: a hire arrives armed
++
+         SaveManager.Save();
+         GD.Print($"[HiringHall] Hired {c.Name} for {price}g at {hall.CityId}.");
+         return toast ?? $"{c.Name} joins the guild.";
+diff --git a/Scripts/Systems/Verification/ArmorySaveAssert.cs b/Scripts/Systems/Verification/ArmorySaveAssert.cs
+index f00b7c5..19ba3c9 100644
+--- a/Scripts/Systems/Verification/ArmorySaveAssert.cs
++++ b/Scripts/Systems/Verification/ArmorySaveAssert.cs
+@@ -33,6 +33,7 @@ public static class ArmorySaveAssert
+         bool ok = AssertItemInstance(sb);
+         ok &= AssertUnitLoadout(sb);
+         ok &= AssertArmoryData(sb);
++        ok &= AssertCompanionWeapon(sb);
+ 
+         sb.AppendLine(ok
+             ? "RESULT: ALL PASSED. Armory save-adjacent structs round-trip clean."
+@@ -169,6 +170,37 @@ public static class ArmorySaveAssert
+         return ok;
+     }
+ 
++    /// <summary>D5 (2026-09-28): the starting-weapon fields on Companion.</summary>
++    private static bool AssertCompanionWeapon(StringBuilder sb)
++    {
++        var src = new Companion
++        {
++            Id = "assert_fighter",
++            Name = "Assert Fighter",
++            UnitClass = "Fighter",
++            IsRecruited = true,
++            StartingWeaponId = "barbed_spear",
++            StartingWeaponGranted = true,
++        };
++        var rt = RoundTrip(src);
++        bool ok = rt != null;
++        if (rt != null)
++        {
++            ok &= Check(sb, "Companion.StartingWeaponId", rt.StartingWeaponId == src.StartingWeaponId);
++            ok &= Check(sb, "Companion.StartingWeaponGranted", rt.StartingWeaponGranted == src.StartingWeaponGranted);
++        }
++        else
++        {
++            sb.AppendLine("    FAIL: Companion deserialized to null.");
++        }
++        var legacy = JsonSerializer.Deserialize<Companion>(
++            "{\"id\":\"legacy\",\"unitClass\":\"Fighter\"}", SaveManager.JsonOptions);
++        ok &= Check(sb, "Companion.StartingWeaponGranted default false on legacy JSON",
++            legacy != null && !legacy.StartingWeaponGranted && string.IsNullOrEmpty(legacy.StartingWeaponId));
++        sb.AppendLine(ok ? "  Companion (starting weapon): PASS" : "  Companion (starting weapon): FAIL");
++        return ok;
++    }
++
+     // ── Helpers (mirror ProgressionSaveAssert: same serializer, same contract) ──
+ 
+     private static T RoundTrip<T>(T obj)
+diff --git a/docs/session_log_2026-09-28_loadouts.md b/docs/session_log_2026-09-28_loadouts.md
+new file mode 100644
+index 0000000..dcb5ba0
+--- /dev/null
++++ b/docs/session_log_2026-09-28_loadouts.md
+@@ -0,0 +1,68 @@
++# Session log, 2026-09-28: starting weapons (D5) and the debug loadout block
++
++Closes the gap found after M7: no martial ever had a weapon unless the player
++equipped one by hand, so a fresh save fielded every Fighter and Ranger with
++`WeaponClass.None` and no technique cards. Delivered as
++`loadouts_full.patch`, built against the tree after M7.
++
++## What shipped
++
++**Starting weapons (spec D5).** `Companion.StartingWeaponId` (JSON
++`startingWeaponId`) and `Companion.StartingWeaponGranted` (additive save
++field). `CompanionRoster.EnsureStartingWeapons(save)` gives every recruited,
++living companion its starting weapon once: a new instance into the armory,
++equipped, and only when no weapon is equipped already, so it never replaces a
++choice the player made. It runs at save seeding (after the starter items) and
++on every recruitment path: `TryRecruit`, `GrantFromEncounter`, and the hiring
++hall's `TryHire`. Old saves get the field backfilled from the template.
++
++Authored defaults: Brannoc, Dagny, Kael, Ruslan and Tamsin carry the Iron
++Sword (sword and shield); Torrin and Odile the Barbed Spear (polearm; Torrin's
++arc names a spear); Harl, Miro, Sable and Yara the Hunter's Bow; Corvin the
++Guild Crossbow, so every launch class is fielded by someone. Procedural
++martial hires roll one: Fighters from Iron Sword, Soldier's Blade or Barbed
++Spear, Rangers from Hunter's Bow or Guild Crossbow.
++
++**Debug launcher loadout block.** Each martial in the Allies list gets two
++dropdowns beside its checkbox. Weapon: "armory" (default) or any launch-legal
++weapon definition for that class. Stance: "authored" (default) or any
++non-signature stance the class can use, Vigilant and Opportunist included.
++A companion with no weapon equipped in the armory has its D5 weapon
++preselected so it never fights unarmed by accident. The choices live in
++`PlayerSession.DebugWeaponOverride` / `DebugStanceOverride`, are applied at
++spawn (`ApplyDebugWeaponOverride`, the stance block after
++`AvailableStances`), and never touch the armory or the save. A chosen stance
++the companion has not learned is added for that fight only.
++
++**Debug fights now field real equipment.** The expedition builds loadouts in
++`ExpeditionManager`; a launcher fight never passes through it, so every
++debug combat was silently unequipped. `SpawnTestUnits` now calls
++`EquipmentLoadout.BuildForRun` from the live armory when `DebugCombat` is set.
++
++**Class access helper.** `CombatManager.WeaponClassAllowed(MartialClass,
++WeaponClass)` encodes spec §6 access (Fighter: sword and shield, polearm,
++hammer, two-hander, paired blades; Ranger: bow, crossbow, sling, paired
++blades). The launcher uses it; the armory does not enforce it yet.
++
++**Save assertion.** `ArmorySaveAssert` gains a Companion check for the two new
++fields and their legacy defaults.
++
++## Not done, owed
++
++- `dotnet build`, then "Assert Round-Trips" (the Companion fields are save data).
++- The Armory tab and Forces screen do not enforce §6 class access; a Fighter
++  can still be handed a bow there. The launcher does enforce it.
++- Weapon override stacking: a blighted armory weapon's damage drawback stays
++  applied under a launcher override. Debug only.
++
++## In-engine confirm owed
++
++1. Fresh save: Brannoc (the starting driver) arrives with an Iron Sword
++   equipped; the Armory tab shows it, and a fight shows Shield Bash.
++2. Existing save: entering the campus arms every recruited martial that had no
++   weapon, and leaves any hand-equipped weapon alone.
++3. Recruit Torrin: he arrives with the Barbed Spear; Reach Thrust in his tray.
++4. Hire a Ranger at a hall: they arrive with a bow or crossbow.
++5. Debug launcher: tick Brannoc and Torrin, set Brannoc to Iron Sword +
++   Aggressive and Torrin to Barbed Spear + Defensive (the M5 Goal 1 pairing),
++   launch: each opens in the chosen stance with the chosen weapon's cards.

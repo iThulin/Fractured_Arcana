@@ -385,7 +385,7 @@ public static class UITheme
     public static readonly Color StatBarHealth = HealthGreen;
     public static readonly Color StatBarMove = Gold;
     public static readonly Color StatBarMana = ArcaneBlue;
-    // V2.2 (combat_ui §8): 2D HP-bar withered-max span; mirrors HealthBarRoot.WitherColor.
+    // V2.2 (combat_ui §8): withered-max span, on the 2D HP bar and the unit nameplate.
     public static readonly Color WitherFill = new Color(0.48f, 0.22f, 0.55f, 1f);
     // Threat overlay tiers (2026-07-13): blood-red darkening ramp. Level 0 = movement-
     // only (reachable, no attack affordable); higher = more attacks landable on that tile.
@@ -410,6 +410,36 @@ public static class UITheme
     public const int UnitBarStatBarWidth = 80;
     public const int UnitBarStatBarHeight = 8;
     public const int MaxActionLogLines = 6;
+
+    // Unit nameplates (UnitNameplate.cs, screen-space, one per unit).
+    // Condition families: the chip colour says what KIND of condition it is
+    // before the text is read (see StatusTone in StatusCatalog.cs).
+    public static readonly Color ConditionDebuff = new Color(0.86f, 0.30f, 0.34f, 1f); // crimson: lockouts, weakens
+    public static readonly Color ConditionDamage = new Color(0.95f, 0.52f, 0.18f, 1f); // ember: damage over time
+    public static readonly Color ConditionMark   = new Color(0.72f, 0.46f, 0.95f, 1f); // violet: pays off when hit
+    public static readonly Color ConditionBuff   = new Color(0.36f, 0.80f, 0.52f, 1f); // green: helps the bearer
+    public static readonly Color ConditionTrait  = new Color(0.62f, 0.64f, 0.72f, 1f); // slate: standing traits
+    // Defense badges: three shapes AND three hues, in the order damage spends them.
+    public static readonly Color PlateShield = new Color(0.36f, 0.82f, 0.98f, 1f); // cyan kite: temporary, spent first
+    public static readonly Color PlateArmor  = new Color(0.74f, 0.78f, 0.86f, 1f); // steel plate: lasting, spent second
+    public static readonly Color PlateCover  = new Color(0.64f, 0.76f, 0.42f, 1f); // moss wall: bolts from cover only
+    public static readonly Color PlateAllyFill    = new Color(0.30f, 0.80f, 0.42f, 1f);
+    public static readonly Color PlateEnemyFill   = new Color(0.86f, 0.26f, 0.24f, 1f);
+    public static readonly Color PlateNeutralFill = new Color(0.62f, 0.60f, 0.56f, 1f);
+    public static readonly Color PlateBarBack     = new Color(0.06f, 0.05f, 0.08f, 0.92f);
+    public static readonly Color PlatePreview     = new Color(1.00f, 0.92f, 0.85f, 1f); // near-white flash on the red/green fill
+    public static readonly Color PlateAp   = Gold;
+    public static readonly Color PlateEdge = new Color(1.00f, 0.60f, 0.20f, 1f);
+    public static readonly Color PlateNameAlly  = new Color(0.92f, 0.96f, 0.92f, 1f);
+    public static readonly Color PlateNameEnemy = new Color(1.00f, 0.76f, 0.72f, 1f);
+    // Intent pill icons (UnitNameplate.Intent.cs): one hue per IntentKind.
+    public static readonly Color IntentAttack  = new Color(1.00f, 0.40f, 0.36f, 1f); // sword
+    public static readonly Color IntentRanged  = new Color(1.00f, 0.66f, 0.30f, 1f); // arrow
+    public static readonly Color IntentChannel = new Color(0.70f, 0.52f, 1.00f, 1f); // swirl
+    public static readonly Color IntentRelease = new Color(1.00f, 0.45f, 0.88f, 1f); // burst
+    public static readonly Color IntentGuard   = PlateArmor;                          // armor plate
+    public static readonly Color IntentImbue   = new Color(0.30f, 0.85f, 0.80f, 1f); // droplet
+    public static readonly Color IntentShove   = new Color(0.98f, 0.84f, 0.38f, 1f); // push arrow
 
     // ════════════════════════════════════════════════════════════
     // OVERWORLD
