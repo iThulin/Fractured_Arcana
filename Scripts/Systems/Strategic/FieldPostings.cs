@@ -41,6 +41,40 @@ public static class FieldPostings
     public const string HoldLine = "hold";
     public const string Siege = "siege";
     public const string Envoy = "envoy";
+    /// <summary>Rest (2026-09-27): a moon of camp; the hurt mend faster. No yield.</summary>
+    public const string Rest = "rest";
+    /// <summary>Scout (2026-09-27): a moon of reading the country; charts a
+    /// radius and finds the hidden places in it.</summary>
+    public const string ScoutKind = "scout";
+    /// <summary>Ward (2026-09-28): stand guard in an ally's city that is not
+    /// at war. Steadies the kingdom and eases the pressure its neighbours put
+    /// on it, so a war that has not opened is less likely to.</summary>
+    public const string Ward = "ward";
+    public const int WardSupplies = 2;
+    public const int WardStabilityPerMoon = 3;
+    public const int WardPressureRelief = 6;
+    public const int WardEchoEveryMoons = 3;
+
+    public const int RestSupplies = 1;
+    public const int RestDays = CalendarState.DaysPerLunation;
+    public const int ScoutSupplies = 2;
+    public const int ScoutDays = CalendarState.DaysPerLunation;
+    public const int ScoutChartRadius = 3;
+    public const int ScoutRevealRadius = 2;
+
+    /// <summary>A depot or outpost held this many moons draws a local into
+    /// the guild's service, once per site (recruitment through the field,
+    /// 2026-09-27).</summary>
+    public const int MilitiaAfterMoons = 3;
+    /// <summary>A Trusted court seconds a retainer when a field envoy's
+    /// mission resolves, once per court.</summary>
+    public const CourtStandingBand RetainerBand = CourtStandingBand.Trusted;
+    /// <summary>Offers from the field come at half the hall's price.</summary>
+    public const int OfferPriceDivisor = 2;
+    /// <summary>Marks an offered companion (UnlockCondition prefix) so the
+    /// Forces screen can list them for recruitment without opening every
+    /// unrecruited authored companion to the same button.</summary>
+    public const string OfferPrefix = "Offered: ";
 
     /// <summary>Envoy from the field pays half the council's gold: no retinue
     /// to hire, they are already at the gate (ruled 2026-09-24).</summary>
@@ -92,6 +126,10 @@ public static class FieldPostings
         public int Side;
         /// <summary>Gold charged at posting, for Envoy only.</summary>
         public int Gold;
+        /// <summary>Envoy missions that need a courtier named: the choices,
+        /// and the one the sheet picked (2026-09-27).</summary>
+        public List<(string id, string name)> Targets = new();
+        public string TargetId = "";
     }
 
     /// <summary>Every posting valid on the party's tile. Empty when none is,
@@ -196,9 +234,21 @@ public static class FieldPostings
             string courtName = CouncilTick.CourtDisplayName(cycle, settlement.KingdomId);
             foreach (var def in CouncilMissions.All)
             {
+                // 2026-09-27: the targeted missions are offered too, with the
+                // courtier chosen on the sheet. Same validity the council
+                // screen applies (petition targets, courtship at Regard 2 and
+                // not already the patron, the rest any courtier).
+                var targets = new List<(string id, string name)>();
                 if (def.NeedsTargetCourtier)
                 {
-                    continue;
+                    foreach (var t in ValidTargets(court, def.Id))
+                    {
+                        targets.Add((t.Id, $"{t.DisplayName} ({t.Office}, regard {t.Regard:+0;-0;0})"));
+                    }
+                    if (targets.Count == 0)
+                    {
+                        continue;
+                    }
                 }
                 if (def.RequiresContact && !court.HasContact)
                 {
@@ -224,9 +274,53 @@ public static class FieldPostings
                     Days = 0,
                     ZoneId = $"court:{settlement.KingdomId}:{def.Id}",
                     Gold = gold,
+                    Targets = targets,
                 });
             }
         }
+
+        // Ward: a city or town of a Friendly or Allied kingdom, when no war's
+        // focus is this tile (that is Hold the line's ground) (2026-09-28).
+        var wardCity = world.SettlementAt(x, y);
+        if (wardCity != null && !string.IsNullOrEmpty(wardCity.KingdomId)
+            && cycle.Kingdoms != null && cycle.Kingdoms.ContainsKey(wardCity.KingdomId)
+            && CouncilQueries.StanceFor(cycle, wardCity.KingdomId) >= KingdomStance.Friendly
+            && !(cycle.Warfronts?.Exists(w => w != null && !w.Closed && !w.IsCacheSiege && w.HasFocus
+                                              && w.FocusCol == x && w.FocusRow == y) ?? false))
+        {
+            string court = CouncilTick.CourtDisplayName(cycle, wardCity.KingdomId);
+            list.Add(new Option
+            {
+                Kind = Ward,
+                Title = $"Ward the {(wardCity.Tier == SettlementTier.City ? "city" : "town")} for {court}",
+                Detail = $"Stand guard for an ally not yet at war. Each moon their kingdom steadies (+{WardStabilityPerMoon}) "
+                       + $"and the pressure their neighbours put on them eases ({WardPressureRelief}). "
+                       + $"Every {WardEchoEveryMoons} moons their court hears of it.",
+                SuppliesPerMoon = WardSupplies,
+                Days = 0,
+                ZoneId = $"ward:{wardCity.KingdomId}",
+            });
+        }
+
+        // Rest and Scout: anywhere the party stands free (2026-09-27).
+        list.Add(new Option
+        {
+            Kind = Rest,
+            Title = "Make camp and rest",
+            Detail = "A moon of camp. Everyone hurt mends a moon faster; a Physician faster still. Nothing is earned.",
+            SuppliesPerMoon = RestSupplies,
+            Days = RestDays,
+            ZoneId = $"tile:{x},{y}",
+        });
+        list.Add(new Option
+        {
+            Kind = ScoutKind,
+            Title = "Scout the country",
+            Detail = $"A moon of reading the ground: charts {ScoutChartRadius} tiles around and finds the hidden places within {ScoutRevealRadius}. A Scout reaches further.",
+            SuppliesPerMoon = ScoutSupplies,
+            Days = ScoutDays,
+            ZoneId = $"tile:{x},{y}",
+        });
 
         // Hold the line: an open kingdom warfront whose focus is this tile.
         if (cycle.Warfronts != null)
@@ -469,10 +563,10 @@ public static class FieldPostings
                     KingdomId = kid,
                     MissionType = def.Id,
                     LunationsRemaining = moons,
-                    TargetCourtierId = "",
+                    TargetCourtierId = opt.TargetId ?? "",
                     Recalled = false,
                 });
-                GD.Print($"[FieldPostings] {envoyId} dispatched from the field to {kid} ({def.Id}, {opt.Gold}g).");
+                GD.Print($"[FieldPostings] {envoyId} dispatched from the field to {kid} ({def.Id}, {gold}g, target '{opt.TargetId}').");
                 break;
             }
         }
@@ -706,7 +800,9 @@ public static class FieldPostings
                 var poi = PoiOf(cycle, zoneId, out int idx);
                 if (poi == null)
                 {
-                    return null;   // an outpost garrison: the overrun roll reads it, nothing to do here
+                    // An outpost garrison: the overrun roll reads it. Holding
+                    // it still draws a local to the colours.
+                    return RaiseMilitiaIfDue(cycle, force, zoneId, "the outpost");
                 }
                 if (SupplyCacheSystem.ControllerOf(poi) != SupplyCacheSystem.GuildId)
                 {
@@ -726,7 +822,7 @@ public static class FieldPostings
                         poi.OverseerCompanionId = first;
                     }
                 }
-                return null;
+                return RaiseMilitiaIfDue(cycle, force, zoneId, SupplyCacheSystem.HostName(cycle, poi));
             }
             case Survey:
             {
@@ -773,6 +869,82 @@ public static class FieldPostings
                 return $"{force.Name} {(defend ? "hold" : "press")} the line at {wf.DefenderName}: "
                      + $"the front {(defend ? "falls back" : "advances")} {delta}, now {wf.Advance}/100.{echo}";
             }
+            case Ward:
+            {
+                string kid = zoneId.StartsWith("ward:") ? zoneId.Substring(5) : "";
+                if (string.IsNullOrEmpty(kid) || cycle.Kingdoms == null || !cycle.Kingdoms.TryGetValue(kid, out var ks))
+                {
+                    Stop(cycle, force);
+                    return null;
+                }
+                ks.Stability = Math.Min(100, ks.Stability + WardStabilityPerMoon);
+                int eased = 0;
+                foreach (var kv in cycle.Kingdoms)
+                {
+                    if (kv.Key == kid || kv.Value?.BorderPressure == null
+                        || !kv.Value.BorderPressure.TryGetValue(kid, out int p) || p <= 0)
+                    {
+                        continue;
+                    }
+                    kv.Value.BorderPressure[kid] = Math.Max(0, p - WardPressureRelief);
+                    eased++;
+                }
+                force.WorkProgress++;
+                string echo = "";
+                if (force.WorkProgress % WardEchoEveryMoons == 0
+                    && CouncilEcho.EmitDeed(cycle, kid, CouncilEcho.SettlementDefended, true, false) != null)
+                {
+                    echo = " Word of it reaches their court.";
+                }
+                return $"{force.Name} ward {CouncilTick.CourtDisplayName(cycle, kid)}: stability {ks.Stability}"
+                     + (eased > 0 ? $", pressure eased on {eased} border(s)." : ".") + echo;
+            }
+            case Rest:
+            {
+                // The Physician's moon is applied by the tick; this is the
+                // camp's own. A hurt member mends a moon faster for resting.
+                int mended = 0;
+                foreach (var id in force.MemberCompanionIds ?? new List<string>())
+                {
+                    var c = cycle.Companions?.Find(x => x != null && x.Id == id);
+                    if (c != null && c.InjuredLunationsRemaining > 0)
+                    {
+                        c.InjuredLunationsRemaining--;
+                        mended++;
+                    }
+                }
+                return mended > 0
+                    ? $"{force.Name} rest at ({force.X},{force.Y}); {mended} of them mend faster for it."
+                    : $"{force.Name} rest at ({force.X},{force.Y}).";
+            }
+            case ScoutKind:
+            {
+                int scout = Vocations.BestRank(cycle, force, Vocations.Scout);
+                int chartR = ScoutChartRadius + (scout >= 1 ? Vocations.ScoutExtraRing : 0);
+                int revealR = ScoutRevealRadius + (scout >= 2 ? 1 : 0);
+                int charted = 0, found = 0;
+                if (world != null)
+                {
+                    foreach (var (cx, cy) in world.Disc(force.X, force.Y, chartR))
+                    {
+                        if (world.TryIndex(cx, cy, out int ti) && world.Tiles[ti].Discovery == TileDiscovery.Unseen)
+                        {
+                            world.Tiles[ti].Discovery = TileDiscovery.Charted;
+                            charted++;
+                        }
+                    }
+                    foreach (var poi in world.Pois)
+                    {
+                        if (poi != null && !poi.Discovered
+                            && world.HexDistance(force.X, force.Y, poi.X, poi.Y) <= revealR)
+                        {
+                            poi.Discovered = true;
+                            found++;
+                        }
+                    }
+                }
+                return $"{force.Name} scout from ({force.X},{force.Y}): {charted} tile(s) charted, {found} place(s) found.";
+            }
             case Envoy:
             {
                 if (!CourtOf(zoneId, out string kid, out _))
@@ -800,7 +972,8 @@ public static class FieldPostings
                     string back = $"{force.Name}'s envoy is back with them at ({force.X},{force.Y}). "
                                 + "The herald's report has the outcome.";
                     ScryInbox.Post(cycle, ScryChannel.Note, $"{force.Name}: envoy returns", back, force.Id, "post");
-                    return back;
+                    string seconded = SecondRetainerIfDue(cycle, force, kid);
+                    return string.IsNullOrEmpty(seconded) ? back : back + " " + seconded;
                 }
                 if (CouncilQueries.IsImprisoned(envoyId))
                 {
@@ -935,6 +1108,9 @@ public static class FieldPostings
         HoldLine => HoldSupplies,
         Siege => SiegeSupplies,
         Envoy => 0,
+        Rest => RestSupplies,
+        Ward => WardSupplies,
+        ScoutKind => ScoutSupplies,
         _ => 0,
     };
 
@@ -945,6 +1121,9 @@ public static class FieldPostings
         HoldLine => "hold the line",
         Siege => "lay siege",
         Envoy => "attend court",
+        Rest => "rest",
+        Ward => "ward",
+        ScoutKind => "scout",
         _ => "work",
     };
 
@@ -962,6 +1141,9 @@ public static class FieldPostings
             HoldLine => force.WorkSide == (int)WarfrontSide.Aid ? "pressing the line" : "holding the line",
             Siege => "besieging the depot",
             Envoy => "envoy at court",
+            Rest => "resting",
+            Ward => "warding",
+            ScoutKind => "scouting",
             _ => FieldWork.Describe(force),
         };
         string stalled = force.WorkStalled ? "  ·  stalled: no supplies" : "";
@@ -1043,6 +1225,121 @@ public static class FieldPostings
         }
         string id = zoneId.Substring(9);
         return cycle.Warfronts.Find(w => w != null && w.Id == id);
+    }
+
+    /// <summary>The courtiers a targeted mission may name, as the council
+    /// screen decides it (its ValidDispatchTargets is private; the rule is
+    /// three lines and lives here too rather than reaching into a screen).</summary>
+    private static List<CourtierState> ValidTargets(CourtState court, string missionId)
+    {
+        if (missionId == CouncilMissions.PetitionMinor)
+        {
+            return CouncilLedger.PetitionTargets(court);
+        }
+        if (missionId == CouncilMissions.CourtCourtier)
+        {
+            var list = new List<CourtierState>();
+            foreach (var c in court.Courtiers)
+            {
+                if (c.Regard >= 2 && court.PatronCourtierId != c.Id)
+                {
+                    list.Add(c);
+                }
+            }
+            return list;
+        }
+        return court.Courtiers;
+    }
+
+    /// <summary>Recruitment through the field (2026-09-27): a site held for
+    /// MilitiaAfterMoons draws one local into the guild's service, once per
+    /// site. The offer is a rolled hireling (Warden, Fighter) at half price,
+    /// listed on the Forces screen under Offers.</summary>
+    private static string RaiseMilitiaIfDue(CycleState cycle, FieldParty force, string zoneId, string placeName)
+    {
+        force.WorkProgress++;
+        if (force.WorkProgress != MilitiaAfterMoons)
+        {
+            return null;
+        }
+        cycle.FieldOffersMade ??= new List<string>();
+        string key = "militia:" + zoneId;
+        if (cycle.FieldOffersMade.Contains(key))
+        {
+            return null;
+        }
+        cycle.FieldOffersMade.Add(key);
+        var offer = MakeOffer(cycle, $"militia_{force.X}_{force.Y}", "Fighter", null, Vocations.Warden,
+                              $"{OfferPrefix}came to serve at the garrison of {placeName}");
+        if (offer == null)
+        {
+            return null;
+        }
+        string line = $"{offer.Name}, a local of {placeName}, asks to serve the guild after {MilitiaAfterMoons} moons of {force.Name}'s garrison. "
+                    + $"{offer.RecruitmentCost} gold on the Forces screen.";
+        ScryInbox.Post(cycle, ScryChannel.Messenger, "A local asks to serve", line, force.Id, "offer");
+        return line;
+    }
+
+    /// <summary>A Trusted court seconds a retainer to a field envoy's party
+    /// when their mission resolves, once per court. A Courtier, rolled.</summary>
+    private static string SecondRetainerIfDue(CycleState cycle, FieldParty force, string kingdomId)
+    {
+        if (cycle.Council?.Courts == null || !cycle.Council.Courts.TryGetValue(kingdomId, out var court)
+            || court.Band() < RetainerBand)
+        {
+            return null;
+        }
+        cycle.FieldOffersMade ??= new List<string>();
+        string key = "retainer:" + kingdomId;
+        if (cycle.FieldOffersMade.Contains(key))
+        {
+            return null;
+        }
+        cycle.FieldOffersMade.Add(key);
+        string region = cycle.Kingdoms != null && cycle.Kingdoms.TryGetValue(kingdomId, out var ks) ? ks.TemplateRegionId : "";
+        var offer = MakeOffer(cycle, $"retainer_{kingdomId}", null, null, Vocations.Courtier,
+                              $"{OfferPrefix}seconded by the court at {CouncilTick.CourtDisplayName(cycle, kingdomId)}");
+        if (offer == null)
+        {
+            return null;
+        }
+        string line = $"The court at {CouncilTick.CourtDisplayName(cycle, kingdomId)} seconds {offer.Name} to the guild's service. "
+                    + $"{offer.RecruitmentCost} gold on the Forces screen.";
+        ScryInbox.Post(cycle, ScryChannel.Messenger, "A retainer is seconded", line, force.Id, "offer");
+        return line;
+    }
+
+    /// <summary>Roll one offered companion into the roster: available, not
+    /// recruited, half the hall's price, the vocation the source implies.
+    /// The Forces screen's Offers group is where they are taken up.</summary>
+    private static Companion MakeOffer(CycleState cycle, string sourceKey, string forceClass, string forceSchool,
+                                       string vocation, string unlockText)
+    {
+        if (cycle?.Companions == null)
+        {
+            return null;
+        }
+        var rng = new RandomNumberGenerator();
+        rng.Seed = (ulong)(cycle.WorldSeed ^ (cycle.Calendar?.CurrentLunation ?? 0) * 7919 ^ sourceKey.GetHashCode());
+        int lunation = cycle.Calendar?.CurrentLunation ?? 0;
+        var c = CandidateGenerator.Generate(rng, 1, sourceKey, lunation, 0, forceClass, forceSchool);
+        if (c == null)
+        {
+            return null;
+        }
+        c.Vocation = vocation;
+        c.RecruitmentCost = System.Math.Max(10, c.RecruitmentCost / OfferPriceDivisor);
+        c.UnlockCondition = unlockText;
+        c.IsAvailable = true;
+        c.IsRecruited = false;
+        if (cycle.Companions.Exists(x => x != null && x.Id == c.Id))
+        {
+            c.Id += "_" + lunation;
+        }
+        cycle.Companions.Add(c);
+        GD.Print($"[FieldPostings] Offer: {c.Name} ({c.UnitClass} {vocation}) for {c.RecruitmentCost}g, {unlockText}");
+        return c;
     }
 
     private static bool CourtOf(string zoneId, out string kingdomId, out string missionId)

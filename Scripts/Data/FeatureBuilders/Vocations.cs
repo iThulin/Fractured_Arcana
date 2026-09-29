@@ -171,7 +171,8 @@ public static class Vocations
                 continue;
             }
             string mine = PostingKindOf(c.Vocation);
-            if (c.Vocation != Physician && mine != kind)
+            bool scoutsToo = c.Vocation == Scout && kind == FieldPostings.ScoutKind;
+            if (c.Vocation != Physician && mine != kind && !scoutsToo)
             {
                 continue;
             }
@@ -233,6 +234,11 @@ public static class Vocations
                      : rank >= 2 ? $"+{QuartermasterYieldR1} depot yield, garrison costs nothing"
                      : $"+{QuartermasterYieldR1} depot yield";
             case Scout:
+                if (kind == FieldPostings.ScoutKind)
+                {
+                    return rank >= 2 ? $"charts {ScoutExtraRing} further, finds places 1 further"
+                                     : $"charts {ScoutExtraRing} further";
+                }
                 if (kind != FieldPostings.Survey) return "";
                 return rank >= 3 ? $"+{ScoutExtraRing} ring a moon, +{ScoutExtraSplintersR2} splinters, done in {ScoutSurveyMoonsR3} moons"
                      : rank >= 2 ? $"+{ScoutExtraRing} ring a moon, +{ScoutExtraSplintersR2} splinters"

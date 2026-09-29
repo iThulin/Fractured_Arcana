@@ -353,6 +353,19 @@ public class CycleState
     /// court per moon; a court that saw you yesterday does not sit again today.</summary>
     public Dictionary<string, int> LastAudienceLunation = new();
 
+    /// <summary>Recruitment through the field (2026-09-27): the sites and
+    /// courts that have already made their one offer ("militia:<zone>",
+    /// "retainer:<kingdom>"), so a garrison held forever does not raise a
+    /// militia every third moon.</summary>
+    public List<string> FieldOffersMade = new();
+
+    /// <summary>A fight owed at a posting (2026-09-28): soldiers came for a
+    /// posted force in hostile country. Offered on the strategic map as
+    /// stand or yield, the castle defence's shape. One at a time.</summary>
+    public string PendingPostingAssaultForceId = "";
+    public string PendingPostingAssaultKingdomId = "";
+    public bool PostingDefenseLaunched = false;
+
     /// <summary>This lunation's expedition budget: one castle move plus K
     /// field dives (ruling 2026-09-21). Keeps map reveal on the 12-lunation
     /// clock while holding POI throughput near a radius-12 sortie's.</summary>

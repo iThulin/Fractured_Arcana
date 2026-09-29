@@ -68,6 +68,11 @@ public static class ProgressionSweep
         { "schema",    "Tinker"       },
     };
 
+    /// <summary>The school a fragment answers to, or "" (2026-09-27: read by
+    /// ShardPaths for the Commune passage).</summary>
+    public static string SchoolOfFragment(string key)
+        => !string.IsNullOrEmpty(key) && FragmentSchool.TryGetValue(key, out var s) ? s : "";
+
     // ── Paid-flag namespaces (on EternalLedger.MetaNarrativeFlags) ───────
     private const string PaidFragment      = "prog_paid_frag_";     // + key            (once ever)
     private const string PaidFragmentArt   = "prog_paid_fragart_";  // + key            (once ever)

@@ -1,0 +1,8 @@
+{
+  "id": "waystone_conduit",
+  "name": "Waystone Conduit",
+  "cost": 240,
+  "effect": "waypoint_charges",
+  "magnitude": 1,
+  "flavor": "A second thread through the stone. Every waystone the castle raises holds one more passage."
+}

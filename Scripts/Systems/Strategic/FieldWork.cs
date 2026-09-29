@@ -165,6 +165,9 @@ public static class FieldWork
             case "garrison": return "garrisoning";
             case "hold": return "holding the line";
             case "siege": return "besieging";
+            case "ward": return "warding";
+            case "rest": return "resting";
+            case "scout": return "scouting";
             default: return string.IsNullOrEmpty(kind) ? "working" : kind;
         }
     }

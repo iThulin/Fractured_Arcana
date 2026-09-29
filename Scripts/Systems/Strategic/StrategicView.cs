@@ -339,6 +339,12 @@ public partial class StrategicView : Node2D
                 ConsumeCastleDefenseReturn(cycle);
                 if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
                     CallDeferred(nameof(OfferPendingCastleDefense));
+                // The same for a fight owed at a posting (2026-09-28). The
+                // castle's is asked first; a posting's waits its turn.
+                ConsumePostingDefenseReturn(cycle);
+                if (string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId)
+                    && !string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId))
+                    CallDeferred(nameof(OfferPendingPostingDefense));
             }
         }
 
@@ -1409,6 +1415,9 @@ public partial class StrategicView : Node2D
             FieldPostings.HoldLine => "[H]",
             FieldPostings.Siege => "[B]",
             FieldPostings.Envoy => "[E]",
+            FieldPostings.Ward => "[W]",
+            FieldPostings.Rest => "[R]",
+            FieldPostings.ScoutKind => "[C]",
             _ => "[-]",
         };
     }
@@ -2536,6 +2545,199 @@ public partial class StrategicView : Node2D
                 $"at {cycle.CastleRepairLunations} lunation(s).");
         }
 
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Posting defence (2026-09-28): the fight owed at a posting
+    // ══════════════════════════════════════════════════════════════════
+
+    private FieldParty OwedPostingForce(CycleState cycle)
+        => cycle?.FieldParties?.Find(p => p != null && p.Id == cycle.PendingPostingAssaultForceId);
+
+    private void ClearOwedPostingFight(CycleState cycle)
+    {
+        cycle.PendingPostingAssaultForceId = "";
+        cycle.PendingPostingAssaultKingdomId = "";
+        cycle.PostingDefenseLaunched = false;
+    }
+
+    /// <summary>Soldiers came for a posted force. Stand: a skirmish fought by
+    /// that force's own members. Yield: the outcome the roll would have dealt.
+    /// Escape defers, as with the castle: an unanswered prompt is not a
+    /// decision, so the fight stays owed.</summary>
+    private void OfferPendingPostingDefense()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId) || cycle.PostingDefenseLaunched)
+        {
+            return;
+        }
+        var force = OwedPostingForce(cycle);
+        if (force == null || FieldPostings.AbleCount(cycle, force) == 0)
+        {
+            // Collected, recalled or all hurt since: the soldiers find nobody.
+            ClearOwedPostingForce(cycle);
+            return;
+        }
+        string who = FactionDisplay(cycle.PendingPostingAssaultKingdomId);
+        var names = new System.Collections.Generic.List<string>();
+        foreach (var id in force.MemberCompanionIds ?? new System.Collections.Generic.List<string>())
+        {
+            var c = cycle.Companions?.Find(x => x != null && x.Id == id);
+            if (c != null && !c.IsInjured && !c.IsPermadead)
+            {
+                names.Add(c.Name);
+            }
+        }
+        var dialog = new ConfirmationDialog
+        {
+            Title = $"{force.Name}: soldiers",
+            OkButtonText = "Stand and fight",
+            CancelButtonText = "Yield",
+            DialogText =
+                $"Soldiers of {who} have come for {force.Name} at ({force.X},{force.Y}).\n\n" +
+                $"Stand: {string.Join(", ", names)} fight where they are, and the wizard steps " +
+                "through to join them. Win and nobody is hurt; lose and the post is broken and " +
+                "two of them are hurt.\n\n" +
+                "Yield: they give ground. " +
+                (force.WorkKind == FieldPostings.HoldLine
+                    ? "The line is lost to them."
+                    : "The post holds, but one of them is hurt covering the others."),
+        };
+        dialog.Confirmed += () => { dialog.QueueFree(); LaunchPostingDefense(force); };
+        dialog.GetCancelButton().Pressed += () =>
+        {
+            string line = PostingThreats.Yield(cycle, force);
+            ClearOwedPostingFight(cycle);
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            if (!string.IsNullOrEmpty(line))
+            {
+                cycle.PendingSiegeReports.Add(line);
+                ScryInbox.Post(cycle, ScryChannel.Note, $"{force.Name}: yielded", line, force.Id, "post");
+            }
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+            RefreshPieceChrome();
+        };
+        dialog.Canceled += () => dialog.QueueFree();
+        AddChild(dialog);
+        dialog.PopupCentered();
+    }
+
+    private void ClearOwedPostingForce(CycleState cycle)
+    {
+        ClearOwedPostingFight(cycle);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+    }
+
+    /// <summary>The skirmish. The posted force is the roster: the run kind is
+    /// set to Field and the party id to the posting's own, which is all
+    /// CompanionRoster.RunRosterIds needs to spawn exactly those people.
+    /// StrategicView._Ready resets both on the way back.</summary>
+    private void LaunchPostingDefense(FieldParty force)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || _world == null || force == null)
+        {
+            return;
+        }
+        string kid = cycle.PendingPostingAssaultKingdomId;
+        string regionId = "";
+        float mult = CampaignEscalation.CombatDifficultyMult(cycle);
+        if (_kingdoms != null && !string.IsNullOrEmpty(kid) && _kingdoms.TryGetValue(kid, out var ks))
+        {
+            regionId = string.IsNullOrEmpty(ks.TemplateRegionId) ? ks.RegionId : ks.TemplateRegionId;
+        }
+        string terrain = _world.InBounds(force.X, force.Y)
+            ? _world.GetTile(force.X, force.Y).Terrain.ToString()
+            : "Plains";
+        var def = EncounterPoolLoader.Pick(regionId, EncounterTier.Skirmish, terrain, mult);
+        if (def == null || def.Enemies.Count == 0)
+        {
+            // No roster to fight: the soldiers are turned back without one.
+            ClearOwedPostingForce(cycle);
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add($"The soldiers who came for {force.Name} think better of it.");
+            return;
+        }
+
+        if (EncounterRouter.Instance == null)
+            GetTree().Root.AddChild(new EncounterRouter { Name = "EncounterRouter" });
+        var router = EncounterRouter.Instance;
+        if (router == null)
+            return;
+
+        cycle.PostingDefenseLaunched = true;
+        SaveManager.MarkDirty();
+
+        PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Field;
+        PlayerSession.ExpeditionFieldPartyId = force.Id;
+
+        router.HasPendingReturn = false;
+        router.SavedCombatWasPatrolAmbush = false;
+        router.SavedCombatPatrolArchmageId = "";
+        router.SavedCombatGuardianKey = "";
+        router.SavedCombatArchmageId = "";
+        router.SavedResolutionArchmageId = "";
+        router.ReturnSceneOverride = StrategicScenePath;
+        router.SetCurrentTier(def.Tier);
+
+        SaveManager.SaveIfDirty();
+        EncounterContextCarrier.Set(def);
+        EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
+        SceneTransition.Go(GetTree(), router.CombatScenePath, "To Arms",
+            $"{FactionDisplay(kid)} comes for {force.Name}.");
+    }
+
+    /// <summary>Pick up a returning posting defence. Keyed on the launched
+    /// marker AND the router's return being this scene, so a mid-combat
+    /// reload leaves the fight owed.</summary>
+    private void ConsumePostingDefenseReturn(CycleState cycle)
+    {
+        if (cycle == null || !cycle.PostingDefenseLaunched)
+        {
+            return;
+        }
+        var router = EncounterRouter.Instance;
+        if (router == null || !router.HasPendingReturn || router.ReturnSceneOverride != StrategicScenePath)
+        {
+            return;
+        }
+        bool won = router.CombatWon;
+        router.HasPendingReturn = false;
+        router.ReturnSceneOverride = "";
+
+        var force = OwedPostingForce(cycle);
+        string who = FactionDisplay(cycle.PendingPostingAssaultKingdomId);
+        ClearOwedPostingFight(cycle);
+        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+        var save = SaveManager.ActiveSave;
+
+        string line;
+        if (won)
+        {
+            if (save != null)
+            {
+                save.Gold += router.GoldReward;
+                save.ArcaneSplinters += router.SplinterReward;
+            }
+            line = force != null
+                ? $"{force.Name} throw back {who} and hold their post."
+                : $"The soldiers of {who} are thrown back.";
+        }
+        else
+        {
+            line = force != null ? PostingThreats.Beaten(cycle, force) : $"{who} carries the ground.";
+        }
+        cycle.PendingSiegeReports.Add(line);
+        if (force != null)
+        {
+            ScryInbox.Post(cycle, won ? ScryChannel.Note : ScryChannel.Sending,
+                           $"{force.Name}: {(won ? "held" : "driven off")}", line, force.Id, "post");
+        }
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
     }
@@ -5905,6 +6107,34 @@ public partial class StrategicView : Node2D
         ShowDetail(0);
         picker.ItemSelected += idx => ShowDetail((int)idx);
 
+        // A targeted envoy mission names a courtier here (2026-09-27). The
+        // dropdown appears only for options that carry targets, and its
+        // choice is written onto the option at confirm.
+        var targetRow = new HBoxContainer();
+        targetRow.AddThemeConstantOverride("separation", 8);
+        var targetLbl = new Label { Text = "Courtier:" };
+        targetLbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        targetRow.AddChild(targetLbl);
+        var targetPick = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        targetRow.AddChild(targetPick);
+        box.AddChild(targetRow);
+        void RefreshTargets()
+        {
+            var o = options[Mathf.Clamp(picker.Selected, 0, options.Count - 1)];
+            targetPick.Clear();
+            foreach (var (_, tname) in o.Targets)
+            {
+                targetPick.AddItem(tname);
+            }
+            targetRow.Visible = o.Targets.Count > 0;
+            if (o.Targets.Count > 0)
+            {
+                targetPick.Selected = 0;
+            }
+        }
+        RefreshTargets();
+        picker.ItemSelected += _ => RefreshTargets();
+
         box.AddChild(new HSeparator());
         var who = new Label { Text = "Who stays:" };
         who.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -5980,6 +6210,11 @@ public partial class StrategicView : Node2D
                 }
             }
             var opt = options[Mathf.Clamp(picker.Selected, 0, options.Count - 1)];
+            if (opt.Targets.Count > 0)
+            {
+                int ti = Mathf.Clamp(targetPick.Selected, 0, opt.Targets.Count - 1);
+                opt.TargetId = opt.Targets[ti].id;
+            }
             dlg.QueueFree();
             string line = FieldPostings.Begin(cycle, party, opt, chosen, out string why);
             if (line == null)

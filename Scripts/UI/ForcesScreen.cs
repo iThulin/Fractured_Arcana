@@ -156,16 +156,67 @@ public partial class ForcesScreen : Control
         {
             _forceKey = forces.Count > 0 ? forces[0].key : CampusKey;
         }
-        var members = MembersOf(cycle, _forceKey);
+        var members = _forceKey == OffersKey ? new List<Whereabout>() : MembersOf(cycle, _forceKey);
         if (string.IsNullOrEmpty(_memberId) || !members.Exists(w => w.Companion.Id == _memberId))
         {
             _memberId = members.Count > 0 ? members[0].Companion.Id : null;
         }
 
         _columns.AddChild(Column(300, "FORCES", BuildForcesColumn(cycle, forces)));
+        if (_forceKey == OffersKey)
+        {
+            _columns.AddChild(Column(0, "OFFERS", BuildOffersColumn(cycle), expand: true));
+            return;
+        }
         _columns.AddChild(Column(360, ForceTitle(cycle, _forceKey).ToUpperInvariant(), BuildMembersColumn(cycle, members)));
         var chosen = members.Find(w => w.Companion.Id == _memberId);
         _columns.AddChild(Column(0, chosen != null ? chosen.Companion.Name.ToUpperInvariant() : "", BuildDetailColumn(cycle, chosen), expand: true));
+    }
+
+    /// <summary>The people asking to serve: who they are, why they came, the
+    /// price, and Recruit. Recruited people go to the campus bench.</summary>
+    private Control BuildOffersColumn(CycleState cycle)
+    {
+        var col = new VBoxContainer();
+        col.AddThemeConstantOverride("separation", 8);
+        var save = SaveManager.ActiveSave;
+        foreach (var c in Offers(cycle))
+        {
+            var card = new VBoxContainer();
+            card.AddThemeConstantOverride("separation", 2);
+            AddLine(card, $"{c.Name}  ·  {c.UnitClass} · {c.School} · {c.PersonalityTrait}  ·  {Vocations.Describe(c)}", CompanionWhereabouts.TintFor(c));
+            AddLine(card, c.UnlockCondition.Substring(FieldPostings.OfferPrefix.Length), UITheme.TextSecondary);
+            AddLine(card, c.UnitClass == "Arcane"
+                ? $"HP {c.BaseHP} · Mana {c.BaseMana} · Speed {c.BaseSpeed}"
+                : $"HP {c.BaseHP} · Dmg {c.BaseAttackDamage} · Rng {c.BaseAttackRange} · Spd {c.BaseSpeed} · Armor {c.BaseArmor}",
+                UITheme.TextSecondary);
+            bool afford = save != null && save.Gold >= c.RecruitmentCost;
+            var btn = new Button
+            {
+                Text = $"Recruit ({c.RecruitmentCost} g)",
+                Disabled = !afford,
+                TooltipText = afford ? "" : $"The treasury holds {save?.Gold ?? 0}.",
+                CustomMinimumSize = new Vector2(0, 34),
+            };
+            UITheme.ApplyButtonStyle(btn, isPrimary: true);
+            string cid = c.Id;
+            btn.Pressed += () =>
+            {
+                if (CompanionRoster.TryRecruit(cid))
+                {
+                    _onChanged?.Invoke();
+                    Rebuild();
+                }
+            };
+            card.AddChild(btn);
+            card.AddChild(new HSeparator());
+            col.AddChild(card);
+        }
+        if (col.GetChildCount() == 0)
+        {
+            AddLine(col, "Nobody is asking.", UITheme.TextDim);
+        }
+        return col;
     }
 
     private static Control Column(int width, string heading, Control body, bool expand = false)
@@ -233,6 +284,33 @@ public partial class ForcesScreen : Control
         if (away > 0)
         {
             list.Add((ElsewhereKey, "Elsewhere", $"{away} at court, overseeing, or held", UITheme.TextSecondary));
+        }
+        // Offers (2026-09-27): people the field brought to the guild's door
+        // (militia from a held site, a court's retainer). Recruited here.
+        int offers = Offers(cycle).Count;
+        if (offers > 0)
+        {
+            list.Add((OffersKey, "Offers", $"{offers} asking to serve", UITheme.Success));
+        }
+        return list;
+    }
+
+    private const string OffersKey = "offers";
+
+    private static List<Companion> Offers(CycleState cycle)
+    {
+        var list = new List<Companion>();
+        if (cycle?.Companions == null)
+        {
+            return list;
+        }
+        foreach (var c in cycle.Companions)
+        {
+            if (c != null && !c.IsRecruited && !c.IsPermadead && c.IsAvailable
+                && (c.UnlockCondition ?? "").StartsWith(FieldPostings.OfferPrefix))
+            {
+                list.Add(c);
+            }
         }
         return list;
     }

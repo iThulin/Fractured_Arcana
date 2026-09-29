@@ -91,6 +91,23 @@ public static class PostingThreats
         result.Happened = true;
         string place = $"({force.X},{force.Y})";
 
+        // Hostile ground sends soldiers, and soldiers are a fight (2026-09-28).
+        // The moon's work is lost now; the wound is OWED, offered on the map
+        // as stand or yield. One owed at a time, as with the castle: a second
+        // assault on top of an unanswered one punishes a debt not yet paid.
+        if (stance == KingdomStance.Hostile && FieldPostings.AbleCount(cycle, force) > 0
+            && string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId))
+        {
+            cycle.PendingPostingAssaultForceId = force.Id;
+            cycle.PendingPostingAssaultKingdomId = kid ?? "";
+            cycle.PostingDefenseLaunched = false;
+            result.LosesEffect = true;
+            result.Report = $"Soldiers of {CouncilTick.CourtDisplayName(cycle, kid)} come for {force.Name} at {place}. "
+                          + "They will stand or yield when you next look at the map.";
+            ScryInbox.Post(cycle, ScryChannel.Sending, $"{force.Name}: soldiers", result.Report, force.Id, "post");
+            return result;
+        }
+
         if (force.WorkKind == FieldPostings.HoldLine && stance == KingdomStance.Hostile
             && rng.Next(100) < DrivenOffSharePercent)
         {
@@ -127,6 +144,60 @@ public static class PostingThreats
         }
         ScryInbox.Post(cycle, ScryChannel.Sending, $"{force.Name}: attacked", result.Report, force.Id, "post");
         return result;
+    }
+
+    /// <summary>The owed fight declined (2026-09-28): what the roll would have
+    /// done had it not been soldiers. A held line is driven off; any other
+    /// posting keeps its place and loses one of its people for a while.</summary>
+    public static string Yield(CycleState cycle, FieldParty force)
+    {
+        if (cycle == null || force == null)
+        {
+            return null;
+        }
+        string place = $"({force.X},{force.Y})";
+        if (force.State == FieldPartyState.Working && force.WorkKind == FieldPostings.HoldLine)
+        {
+            FieldPostings.Stop(cycle, force);
+            return $"{force.Name} give up the line at {place} rather than fight for it. They await orders.";
+        }
+        int physician = Vocations.BestRank(cycle, force, Vocations.Physician);
+        var hurt = FirstAble(cycle, force);
+        if (hurt == null || physician >= 3)
+        {
+            return $"{force.Name} give ground at {place} and nobody is hurt.";
+        }
+        int moons = physician >= 2 ? Vocations.PhysicianInjuryMoons : InjuryLunations;
+        hurt.InjuredLunationsRemaining = Math.Max(hurt.InjuredLunationsRemaining, moons);
+        return $"{force.Name} give ground at {place}; {hurt.Name} is hurt covering them, out for {moons} moon(s).";
+    }
+
+    /// <summary>The owed fight lost: two of them hurt and the posting broken.
+    /// Never a wipe; nothing dies off-screen, and this was not off-screen.</summary>
+    public static string Beaten(CycleState cycle, FieldParty force)
+    {
+        if (cycle == null || force == null)
+        {
+            return null;
+        }
+        var names = new List<string>();
+        for (int i = 0; i < 2; i++)
+        {
+            var hurt = FirstAble(cycle, force);
+            if (hurt == null)
+            {
+                break;
+            }
+            hurt.InjuredLunationsRemaining = Math.Max(hurt.InjuredLunationsRemaining, InjuryLunations);
+            names.Add(hurt.Name);
+        }
+        if (force.State == FieldPartyState.Working)
+        {
+            FieldPostings.Stop(cycle, force);
+        }
+        return names.Count == 0
+            ? $"{force.Name} are driven from their post."
+            : $"{force.Name} are driven from their post; {string.Join(" and ", names)} are hurt, out for {InjuryLunations} moon(s).";
     }
 
     /// <summary>Every Secured staging point standing in a Hostile kingdom with

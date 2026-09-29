@@ -3790,6 +3790,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     if (_world?.ShardZones != null)
                         foreach (var sz in _world.ShardZones)
                             if (sz.FragmentKey == gk) { sz.GuardianCleared = true; break; }
+                    // Won by the sword: the provenance the Convergence will read.
+                    ShardPaths.StampProvenance(gsave, gk, ShardPaths.ProvenanceTaken);
                     foreach (var qt in QuestNotifier.NotifyNew(gBefore, gsave))
                         _toasts?.Push(qt.Text, qt.Kind);
                 }
@@ -4110,6 +4112,18 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             if (!_grid.Hexes.ContainsKey(coord))
                 return false;
+            // Shard paths (2026-09-27): a surveyed zone of the guild's own
+            // school, or an Allied kingdom's zone, opens without a fight.
+            if (ShardPaths.PeacefulPassage(SaveManager.ActiveSave, z, out string how, out string why))
+            {
+                ShardPaths.OpenGate(SaveManager.ActiveSave, z, how);
+                ShowInfo(why);
+                _toasts?.Push("The gate opens. The way to the fragment is clear.", QuestToastKind.Progress);
+                PostScryMessage(ScryChannel.Messenger, "The gate opens", why + " The sanctum waits beyond.");
+                LogRun("shard_gate", $"{z.FragmentKey}: {how}", at: coord);
+                UpdateUI();
+                return true;
+            }
             ShowInfo($"The heart of {z.Name} is guarded. Its warden stirs.");
             LaunchGuardianCombat(z.FragmentKey, TerrainAt(coord));
             return true;

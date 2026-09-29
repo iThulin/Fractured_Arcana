@@ -3235,3 +3235,97 @@ Balance deltas unchanged against HEAD on both files; em-dash gates clean.
 **In-engine confirm owed:** march the castle twenty tiles: the piece and its
 crew figures cross the map in a few seconds, then the camp beacon appears at
 the far end on the reload.
+
+---
+
+# Increment 21: the six gaps (rest, targeted envoys, field recruitment, scouting, shard paths, waystone depth)
+
+Asked 2026-09-27, from the inventory of what the field party could not yet
+do. All six are built on seams that already existed; no new save struct.
+
+**1. Rest.** A posting anywhere the party stands free: one moon, 1 supply, no
+yield. Every hurt member's clock drops a moon on top of the tick's own; a
+Physician's moon stacks on it. `FieldPostings.Rest`.
+
+**2. Targeted envoy missions from the field.** Gifts, Petition, Courtship and
+Rumour are offered beside Attend Court and Gather Intelligence, each with the
+courtiers it may name (`ValidTargets`: the council screen's own rule, petition
+targets from the ledger, courtship at Regard 2 and not the patron, the rest
+any courtier). The posting sheet grows a Courtier dropdown for those options
+and writes the choice onto `EnvoyMission.TargetCourtierId`. The earlier
+deferral was about the picker, not the design; the picker is eleven lines.
+
+**3. Recruitment through the field.** Two hooks, both producing an OFFER: a
+rolled hireling (`CandidateGenerator.Generate`, deterministic per site and
+moon) added to the roster available and unrecruited at half the hall's
+price, its `UnlockCondition` prefixed `Offered:` so the Forces screen lists it
+under a new Offers group with a Recruit button (`CompanionRoster.TryRecruit`).
+The militia: a depot or outpost garrisoned for three moons raises one local
+(Fighter, Warden), once per site. The retainer: when a field envoy's mission
+resolves at a court standing Trusted or better, that court seconds one
+(Courtier), once per court. `CycleState.FieldOffersMade` remembers which
+sites and courts have given theirs. Not built: freed prisoners asked to serve
+(no capture system to free anyone but an envoy) and the Concord's mercenary
+(its buy side is debug-only). Both are one more `MakeOffer` call when their
+source exists.
+
+**4. Scouting.** A posting anywhere: one moon, 2 supplies. Charts radius 3
+(Unseen to Charted) and marks every hidden place within 2 as Discovered. A
+Scout charts one further; a Journeyman finds places one further; and Scouts
+earn vocation moons here as well as at surveys.
+
+**5. Shard paths.** `ShardPaths.cs`: the first two rows of the acquisition
+spec's matrix. COMMUNE: a SURVEYED zone whose fragment answers the guild's
+own school, or one the guild is Fluent in, opens its gate without the
+guardian fight. SANCTIONED: an Allied kingdom's zone opens likewise. Both
+stamp `<key>_trial_passed` and `GuardianCleared` exactly as the guardian's
+fall does, plus a provenance flag `fragment_<key>_provenance_<how>` that the
+guardian's fall now also stamps as `taken`. The hook is at the gate in
+`ExpeditionManager.TryHandleShardZone`, ahead of the fight.
+`ProgressionSweep.SchoolOfFragment` is the fragment-to-school map made
+readable. Not built: Forced key, Inheritance, Reclamation, the Reliquary and
+the blight clock; each is a row in `PeacefulPassage` when its condition
+exists.
+
+**6. Waystone depth.** `Data/CastleModules/waystone_conduit.json`: effect
+`waypoint_charges`, magnitude 1, cost 240. The hook
+(`ExpeditionAnchors.WaypointChargesFromModules`) has read that effect since
+increment 3b; this is the first module that carries it.
+
+## Verification
+
+Balance deltas against HEAD unchanged on the four patched tracked files; the
+four Claude-authored files balance; both JSON files parse. Em-dash gates
+clean. Every new symbol has a definition and a caller.
+
+**In-engine confirm owed:** (1) Post here on open ground offers Rest and
+Scout; a scouted moon charts a disc and names found places. (2) At a seat,
+Present Gifts appears with a courtier dropdown; dispatch; the herald names
+the target. (3) Garrison a depot three moons: a Messenger, then Offers on the
+Forces screen with a Warden at half price; Recruit puts them on the bench.
+(4) Survey a zone of your own school, walk to its gate: the gate opens
+without a fight and the log reads `shard_gate: <key>: communed`. (5) Install
+the Waystone Conduit; a raised waystone reads two charges.
+
+---
+
+# Increment 22: fights at a posting, and warding an ally
+
+Items 7 and 8 of the 2026-09-27 gap list. Full write-up mirrored to the
+project as `claude/session_log_2026-09-28_posting_fights_ward.md`.
+
+- **Owed fights.** In HOSTILE ground a posting hit is soldiers: the moon's
+  work is lost and the wound is owed (`CycleState.PendingPostingAssault*`,
+  one at a time). On the next map load: Stand and fight (a Skirmish fought by
+  that force's own members via `RunRosterIds`, round-tripped like the castle
+  defence) or Yield (`PostingThreats.Yield`, the old abstract outcome).
+  Losing: `PostingThreats.Beaten`, two hurt and the post broken. Escape
+  defers. Neutral and Friendly ground keep the abstract roll.
+- **Ward the city.** A posting in a Friendly or Allied city or town that is
+  not a warfront focus: +3 Stability a moon, neighbours' BorderPressure toward
+  it eased 6, an echo every third moon. Escort not built: nothing in transit
+  exists to escort.
+- Banner letters for Rest, Scout, Ward; FieldWork verbs increment 21 missed.
+
+Static verification only; balance and em-dash gates clean. In-engine confirm
+owed: a hostile garrison's owed fight (stand, then yield), and a ward moon.
