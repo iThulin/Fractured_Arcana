@@ -1,0 +1,19 @@
+{
+  "id": "reach_thrust",
+  "displayName": "Reach Thrust",
+  "role": "Anchor",
+  "weaponClass": "Polearm",
+  "apCost": 1,
+  "edgeCost": 1,
+  "shape": "Line",
+  "reach": 2,
+  "hitsAllies": false,
+  "text": "ATK damage to both hexes in a straight line.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    }
+  ],
+  "vfxTag": "thrust"
+}

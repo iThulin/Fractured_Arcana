@@ -5,6 +5,7 @@
   "rarity": "Common",
   "slot": "Weapon",
   "unitClass": "Martial",
+  "weaponClass": "Hammer",
   "stats": {
     "attackDamage": 2
   },

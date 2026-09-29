@@ -1,0 +1,903 @@
+diff --git a/Data/Maneuvers/brace.json b/Data/Maneuvers/brace.json
+new file mode 100644
+index 0000000..5a8b88b
+--- /dev/null
++++ b/Data/Maneuvers/brace.json
+@@ -0,0 +1,20 @@
++{
++  "id": "brace",
++  "displayName": "Brace",
++  "role": "Anchor",
++  "weaponClass": "SwordShield",
++  "apCost": 0,
++  "edgeCost": 1,
++  "shape": "Self",
++  "reach": 1,
++  "isReaction": true,
++  "reactionTrigger": "enemy_move_end",
++  "text": "Reaction. Until your next turn: the first enemy to end its movement adjacent to you is struck for ATK before it acts.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    }
++  ],
++  "vfxTag": "swing"
++}
+diff --git a/Data/Maneuvers/set_against_charge.json b/Data/Maneuvers/set_against_charge.json
+new file mode 100644
+index 0000000..eb1f4b2
+--- /dev/null
++++ b/Data/Maneuvers/set_against_charge.json
+@@ -0,0 +1,24 @@
++{
++  "id": "set_against_charge",
++  "displayName": "Set Against Charge",
++  "role": "Anchor",
++  "weaponClass": "Polearm",
++  "apCost": 0,
++  "edgeCost": 1,
++  "shape": "Self",
++  "reach": 2,
++  "isReaction": true,
++  "reactionTrigger": "enemy_enter_zone",
++  "text": "Reaction. Until your next turn: an enemy that charges or moves into range 2 is struck for ATK x 2 and its movement ends there.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "damage_multiplier",
++      "value": 2
++    }
++  ],
++  "vfxTag": "thrust"
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index 7a99cad..1cd8a3b 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -1559,6 +1559,11 @@ public partial class CombatManager
+ 
+             await ExecuteIntent(enemy);
+ 
++            // Edge M4: a beat that never strikes (Guard, Shove, a channel start)
++            // still ended its movement somewhere. Brace fires here for those; a
++            // Brace already spent on the strike above is null and does nothing.
++            FireMoveEndReactions(enemy);
++
+             // U3e overdraw_ward: the SECOND activation lands here, after the first
+             // beat is fully closed out (script position advanced, intent cleared) and
+             // BEFORE onTurnEnd is queued. Both halves of that ordering are load-bearing:
+@@ -1645,6 +1650,8 @@ public partial class CombatManager
+ 
+     private async Task ExecuteIntent(Unit enemy)
+     {
++        if (enemy != null)
++            enemy.MovementInterrupted = false;   // Edge M4: an interrupt lasts one activation, not one phase
+         var intent = enemy.CurrentIntent;
+         if (intent == null)
+         {
+@@ -2008,6 +2015,7 @@ public partial class CombatManager
+     /// strike. This is the gate every enemy mover loops on.</summary>
+     private static bool CanSpendMoveAP(Unit enemy)
+         => enemy != null && enemy.Stats.IsAlive
++           && !enemy.MovementInterrupted   // Edge M4: Set Against Charge ended this activation's movement
+            && enemy.CurrentActionPoints >= ReservedAttackAP(enemy) + 1;
+ 
+     /// <summary>Best destination reachable in ONE move action (path cost less than or
+@@ -2662,6 +2670,12 @@ public partial class CombatManager
+         // MartialAPCosts.AttackMelee (1) / AttackRanged (2). The movers reserve this
+         // before spending anything on movement, so a refusal here means the unit was
+         // drained mid-turn (Chronomancer AP burn, a status), not a budgeting bug.
++        // Edge M4 (spec §7a rule 4): Brace fires BEFORE the blow it was set for.
++        // A reaction that kills the attacker ends its activation here.
++        FireMoveEndReactions(attacker);
++        if (attacker != null && !IsValidActor(attacker))
++            return;
++
+         int apCost = ranged ? MartialAPCosts.AttackRanged : MartialAPCosts.AttackMelee;
+         if (attacker != null && !attacker.TrySpendAP(apCost))
+         {
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index b087ead..cab093c 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -77,8 +77,12 @@ public partial class CombatManager
+                 Role = m.Role,
+                 Enabled = why == null,
+                 Armed = _armedManeuver == m,
+-                Tooltip = why ?? $"{m.DisplayName}: click, then click a target. Right-click or Esc to cancel.",
++                Tooltip = why ?? (m.IsReaction
++                    ? $"{m.DisplayName}: click to arm. {ReactionTriggerText(unit, m)}"
++                    : $"{m.DisplayName}: click, then click a target. Right-click or Esc to cancel."),
+                 IsFinisher = m.IsFinisher,
++                IsReaction = m.IsReaction,
++                ArmedNow = unit.ArmedReaction == m,
+             });
+         }
+ 
+@@ -94,6 +98,8 @@ public partial class CombatManager
+                 : $"Honed at {EdgeRules.HonedThreshold} Edge: {HonedRiderText(unit.WeaponClass)}";
+             header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}   {honed}";
+         }
++        if (unit.ArmedReaction != null)
++            header += $"\nArmed: {unit.ArmedReaction.DisplayName}. {ReactionTriggerText(unit, unit.ArmedReaction)}";
+         _techniqueTray.ShowCards(cards, header);
+     }
+ 
+@@ -196,6 +202,8 @@ public partial class CombatManager
+         }
+         if (m.RequiresUnmoved && u.TilesMovedThisTurn > 0)
+             return $"{m.DisplayName} needs a planted stance: {u.Name} has moved this turn.";
++        if (m.IsReaction && u.ArmedReaction != null)
++            return $"Already armed: {u.ArmedReaction.DisplayName}. It fires in the enemy phase or refunds at your next turn.";
+         return null;
+     }
+ 
+@@ -458,6 +466,20 @@ public partial class CombatManager
+         ClearManeuverHighlight();
+         combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
+ 
++        // ── Reactions arm; they resolve in the enemy phase (spec §7, M4) ──
++        if (m.IsReaction)
++        {
++            ArmReaction(u, m, edgeCost);
++            u.ManeuversUsedThisCombat++;
++            u.Stats.HasActed = true;
++            EdgeRules.OnAction(u, EdgeActionKind.Maneuver);
++            u.RefreshHealthBar();
++            RefreshSelectedUnitUI();
++            RefreshPlayerUnitBar();
++            MaybeAdvanceToReadyUnit();
++            return;
++        }
++
+         var stance = u.ActiveStance;
+         var rider = stance?.ManeuverRider ?? StanceManeuverRider.None;
+         string tag = $"[{m.DisplayName}]";
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Reactions.cs b/Scripts/Systems/Combat/Core/CombatManager.Reactions.cs
+new file mode 100644
+index 0000000..404c868
+--- /dev/null
++++ b/Scripts/Systems/Combat/Core/CombatManager.Reactions.cs
+@@ -0,0 +1,357 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// CombatManager.Reactions.cs
++//
++// Purpose:        Armed martial reactions (Martial Maneuvers & Edge
++//                 spec v1 §7, M4). A reaction is a Self-shaped maneuver
++//                 with IsReaction: arming pays its AP and Edge on the
++//                 player's turn, the zone it covers is drawn on the
++//                 board, and it fires by itself during the enemy phase.
++//                 Unfired, it refunds its Edge at the unit's next turn
++//                 start (a refund is not a gain: idle decay still bites).
++//                 One armed reaction per unit.
++//
++//                 Two triggers at launch. enemy_move_end (Brace): the
++//                 first enemy to end its movement in the zone is struck
++//                 before it acts. enemy_enter_zone (Set Against Charge):
++//                 an enemy stepping into the zone is struck and its
++//                 movement ends on that tile.
++//
++//                 Enemy planners read the zones (§7b): scouts, stalkers
++//                 and ranged units pay extra to path through them, so a
++//                 detour of one tile wins; charge and pack units ignore
++//                 them and walk into the spear.
++// Layer:          Combat rules (partial of CombatManager)
++// Collaborators:  Unit.cs (ArmedReaction, WalkStepReaction hook,
++//                 MovementInterrupted), HexGridManager.Pathfinding.cs
++//                 (ExtraStepCost hook), CombatManager.EnemyIntents.cs
++//                 (CanSpendMoveAP gate, StrikeTile and post-intent call
++//                 sites), CombatManager.Maneuvers.cs (arming entry),
++//                 MovementZoneRenderer (the zone overlay)
++// ============================================================
++
++public partial class CombatManager
++{
++    private const string ReactionTriggerMoveEnd = "enemy_move_end";
++    private const string ReactionTriggerEnterZone = "enemy_enter_zone";
++
++    /// <summary>One overlay per armed unit; the zone follows the unit.</summary>
++    private readonly Dictionary<Unit, MovementZoneRenderer> _reactionZones = new();
++    /// <summary>Union of every armed zone, for the routing cost hook ONLY. Rebuilt
++    /// on completed walks and on arm/fire/refund/death, so it can lag a push or a
++    /// blink by one action; routing tolerates that, triggers do not use it.</summary>
++    private readonly HashSet<Vector2I> _armedZoneTiles = new();
++
++    private static readonly Color ReactionZoneColor = new(0.55f, 0.85f, 1.0f, 0.90f);   // steel, same family as the tray envelope
++    private const float ReactionZoneFill = 0.10f;
++    /// <summary>Routing cost a zone tile adds for a unit that routes around zones.
++    /// 2 makes a one-tile detour strictly cheaper and a two-tile detour a tie (§7b).</summary>
++    private const int ReactionZoneRouteCost = 2;
++
++    // ── Install ──────────────────────────────────────────────────────────────
++
++    private void InstallReactions()
++    {
++        Unit.WalkStepReaction = OnEnemyWalkStep;
++        HexGridManager.ExtraStepCost = ReactionRoutingCost;
++    }
++
++    private void UninstallReactions()
++    {
++        if (Unit.WalkStepReaction == OnEnemyWalkStep)
++            Unit.WalkStepReaction = null;
++        if (HexGridManager.ExtraStepCost == ReactionRoutingCost)
++            HexGridManager.ExtraStepCost = null;
++        ClearAllReactionZones();
++    }
++
++    // ── Arming and refund ────────────────────────────────────────────────────
++
++    /// <summary>Called by ResolveManeuver once AP and Edge are paid.</summary>
++    private void ArmReaction(Unit u, ManeuverDefinition m, int edgePaid)
++    {
++        u.ArmedReaction = m;
++        u.ArmedReactionEdge = edgePaid;
++        string msg = $"{u.Name} arms {m.DisplayName}: {ReactionTriggerText(u, m)}";
++        GD.Print($"[Reaction] {msg}");
++        combatUI?.AppendActionLog(msg);
++        RefreshAllReactionZones();
++    }
++
++    /// <summary>The trigger sentence the unit panel and the log show.</summary>
++    private static string ReactionTriggerText(Unit u, ManeuverDefinition m)
++    {
++        bool guardian = (u.ActiveStance?.ManeuverRider ?? StanceManeuverRider.None) == StanceManeuverRider.GuardianReactions;
++        string allies = guardian ? " (or beside an adjacent ally)" : "";
++        return m.ReactionTrigger switch
++        {
++            ReactionTriggerMoveEnd => $"the first enemy to end its movement adjacent{allies} is struck before it acts.",
++            ReactionTriggerEnterZone => $"an enemy moving within {m.Reach}{allies} is struck and stops there.",
++            _ => m.Text,
++        };
++    }
++
++    /// <summary>Spec §7a rule 2: an unfired reaction refunds its Edge at the unit's
++    /// next turn start. Called beside EdgeRules.OnTurnStart.</summary>
++    private void RefundUnfiredReaction(Unit u)
++    {
++        if (u?.ArmedReaction == null)
++            return;
++        var m = u.ArmedReaction;
++        int edge = u.ArmedReactionEdge;
++        u.ArmedReaction = null;
++        u.ArmedReactionEdge = 0;
++        if (edge > 0)
++            EdgeRules.Refund(u, edge);
++        combatUI?.AppendActionLog($"{u.Name}'s {m.DisplayName} lapses unfired" +
++                                  (edge > 0 ? $": {edge} Edge returned." : "."));
++        RefreshAllReactionZones();
++    }
++
++    // ── Zones ────────────────────────────────────────────────────────────────
++
++    /// <summary>Tiles the armed reaction covers: everything within the maneuver's
++    /// reach of the unit, and, with the Guardian rider, the same radius around
++    /// each adjacent friendly unit (spec §7a rule 6).</summary>
++    private HashSet<Vector2I> ReactionZone(Unit u)
++    {
++        var zone = new HashSet<Vector2I>();
++        var m = u?.ArmedReaction;
++        if (m == null || u.CurrentTile == null || grid == null)
++            return zone;
++
++        int reach = Math.Max(1, m.Reach);
++        AddRadius(zone, u.CurrentTile.Axial, reach);
++
++        if ((u.ActiveStance?.ManeuverRider ?? StanceManeuverRider.None) == StanceManeuverRider.GuardianReactions)
++        {
++            foreach (var n in grid.GetNeighbors(u.CurrentTile.Axial))
++            {
++                var ally = grid.GetTile(n)?.Occupant;
++                if (ally != null && ally != u && ally.TeamId == u.TeamId && ally.Stats.IsAlive && !ally.IsMapObject)
++                    AddRadius(zone, n, reach);
++            }
++        }
++        zone.Remove(u.CurrentTile.Axial);
++        return zone;
++    }
++
++    private void AddRadius(HashSet<Vector2I> into, Vector2I center, int radius)
++    {
++        foreach (var kv in grid.Tiles)
++        {
++            int d = grid.Distance(center, kv.Key);
++            if (d >= 1 && d <= radius)
++                into.Add(kv.Key);
++        }
++    }
++
++    /// <summary>Redraws every armed zone and rebuilds the routing union. Cheap
++    /// enough to call on any movement.</summary>
++    private void RefreshAllReactionZones()
++    {
++        _armedZoneTiles.Clear();
++        var armed = new HashSet<Unit>();
++        foreach (var u in playerUnits)
++        {
++            if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive || u.ArmedReaction == null)
++                continue;
++            armed.Add(u);
++            var zone = ReactionZone(u);
++            _armedZoneTiles.UnionWith(zone);
++            var r = ReactionRendererFor(u);
++            if (r == null)
++                continue;
++            r.Clear();
++            if (zone.Count > 0)
++                r.ShowOutline(zone, grid, ReactionZoneColor, ReactionZoneFill);
++        }
++        // Drop overlays of units no longer armed (fired, refunded, dead).
++        foreach (var kv in new List<KeyValuePair<Unit, MovementZoneRenderer>>(_reactionZones))
++        {
++            if (armed.Contains(kv.Key))
++                continue;
++            if (kv.Value != null && IsInstanceValid(kv.Value))
++                kv.Value.Clear();
++        }
++    }
++
++    private MovementZoneRenderer ReactionRendererFor(Unit u)
++    {
++        if (grid == null)
++            return null;
++        if (_reactionZones.TryGetValue(u, out var r) && r != null && IsInstanceValid(r))
++            return r;
++        r = new MovementZoneRenderer
++        {
++            Name = $"ReactionZone_{u.Name}",
++            HexRadius = grid.HexRadius,
++        };
++        grid.AddChild(r);
++        _reactionZones[u] = r;
++        return r;
++    }
++
++    private void ClearAllReactionZones()
++    {
++        foreach (var kv in _reactionZones)
++            if (kv.Value != null && IsInstanceValid(kv.Value))
++                kv.Value.Clear();
++        _reactionZones.Clear();
++        _armedZoneTiles.Clear();
++    }
++
++    /// <summary>A dead unit's reaction dies with it: no refund, no overlay.</summary>
++    private void DropReactionOnDeath(Unit u)
++    {
++        if (u == null || u.ArmedReaction == null)
++            return;
++        u.ArmedReaction = null;
++        u.ArmedReactionEdge = 0;
++        RefreshAllReactionZones();
++    }
++
++    // ── Triggers ─────────────────────────────────────────────────────────────
++
++    /// <summary>Unit.WalkStepReaction: the mover has just landed on
++    /// <paramref name="entered"/>. Every Set Against Charge whose zone holds that
++    /// tile fires. Returns true to end the walk there (spec §6a: "its movement
++    /// ends there"); the mover loops also stop, through MovementInterrupted.</summary>
++    private bool OnEnemyWalkStep(Unit mover, TileData entered)
++    {
++        if (CombatSim.Active || mover == null || entered == null || !IsInstanceValid(mover))
++            return false;
++        if (mover.IsPlayerControlled || !mover.Stats.IsAlive || mover.IsDeathQueued)
++            return false;
++        // No union precheck here: the union is rebuilt on walks, not on pushes,
++        // slides or blinks, so the per-unit zone below is the authority.
++
++        bool fired = false;
++        foreach (var p in new List<Unit>(playerUnits))
++        {
++            if (p == null || !IsInstanceValid(p) || !p.Stats.IsAlive || p.ArmedReaction == null)
++                continue;
++            if (!string.Equals(p.ArmedReaction.ReactionTrigger, ReactionTriggerEnterZone, StringComparison.OrdinalIgnoreCase))
++                continue;
++            if (!ReactionZone(p).Contains(entered.Axial))
++                continue;
++            FireReaction(p, mover);
++            fired = true;
++            if (!mover.Stats.IsAlive || mover.IsDeathQueued)
++                break;
++        }
++
++        if (fired)
++        {
++            mover.MovementInterrupted = true;
++            if (mover.Stats.IsAlive)
++                combatUI?.AppendActionLog($"{mover.Name}'s advance is stopped.");
++        }
++        return fired;
++    }
++
++    /// <summary>Brace: called when an enemy has finished moving and is about to act
++    /// (StrikeTile), and again after its intent resolves for beats that never
++    /// strike. Each armed Brace fires at most once, so the second call is a no-op
++    /// for anyone the first already paid.</summary>
++    private void FireMoveEndReactions(Unit enemy)
++    {
++        if (CombatSim.Active || enemy == null || !IsInstanceValid(enemy))
++            return;
++        if (enemy.IsPlayerControlled || !enemy.Stats.IsAlive || enemy.IsDeathQueued || enemy.CurrentTile == null)
++            return;
++
++        foreach (var p in new List<Unit>(playerUnits))
++        {
++            if (p == null || !IsInstanceValid(p) || !p.Stats.IsAlive || p.ArmedReaction == null)
++                continue;
++            if (!string.Equals(p.ArmedReaction.ReactionTrigger, ReactionTriggerMoveEnd, StringComparison.OrdinalIgnoreCase))
++                continue;
++            if (!ReactionZone(p).Contains(enemy.CurrentTile.Axial))
++                continue;
++            FireReaction(p, enemy);
++            if (!enemy.Stats.IsAlive || enemy.IsDeathQueued)
++                break;
++        }
++    }
++
++    /// <summary>The armed reaction lands on <paramref name="enemy"/> and is spent.
++    /// Damage is ATK plus the card's delta, times its multiplier, plus the stance's
++    /// maneuver damage riders. Like the zone-of-control strike it applies damage
++    /// directly, with no trigger-stack drain mid-walk; item onAttack procs do not
++    /// ride reactions at launch.</summary>
++    private void FireReaction(Unit reactor, Unit enemy)
++    {
++        var m = reactor.ArmedReaction;
++        if (m == null)
++            return;
++        reactor.ArmedReaction = null;
++        reactor.ArmedReactionEdge = 0;
++
++        var rider = reactor.ActiveStance?.ManeuverRider ?? StanceManeuverRider.None;
++        int damage = reactor.AttackDamage + (m.Effect("damage")?.Value ?? 0);
++        var mult = m.Effect("damage_multiplier");
++        if (mult != null && mult.Value >= 2)
++            damage *= mult.Value;
++        if (rider == StanceManeuverRider.DamageVsVulnerable && enemy.HasStatus("vulnerable"))
++            damage += 1;
++        if (rider == StanceManeuverRider.DamageBelowHalf && reactor.Stats.Health * 2 < reactor.Stats.MaxHealth)
++            damage += 1;
++
++        EdgeRules.OnAttackHits(reactor, new List<Unit> { enemy });
++
++        int markedBonus = 0;
++        if (enemy.HasStatus("marked"))
++        {
++            markedBonus = 3;
++            enemy.RemoveStatus("marked");
++            combatUI?.AppendActionLog($"[Mark] {enemy.Name} was marked, for +{markedBonus} damage!");
++        }
++        damage = Math.Max(1, damage + markedBonus);
++
++        string msg = $"[{m.DisplayName}] {reactor.Name} strikes {enemy.Name} for {damage} damage.";
++        GD.Print(msg);
++        combatUI?.AppendActionLog(msg);
++
++        var delivery = reactor.CurrentTile != null && enemy.CurrentTile != null
++            && grid.Distance(reactor.CurrentTile, enemy.CurrentTile) > 1
++            ? Delivery.Bolt : Delivery.Melee;
++        CombatPresenter.EmitStrike(reactor, enemy, delivery);
++        enemy.ApplyDamage(damage, reactor, delivery);
++
++        reactor.HasAttackedThisCombat = true;
++        if (rider == StanceManeuverRider.GainShield)
++        {
++            reactor.Stats.Shield += 1;
++            reactor.RefreshHealthBar();
++        }
++
++        RefreshAllReactionZones();
++        RefreshSelectedUnitUI();
++        RefreshEnemyRoster();
++        RefreshPlayerUnitBar();
++        _pruneNeeded = true;
++    }
++
++    // ── Enemy routing (spec §7b) ─────────────────────────────────────────────
++
++    /// <summary>HexGridManager.ExtraStepCost: zone tiles cost more for units that
++    /// route around them (scouts, stalkers, ranged). charge and pack ignore zones;
++    /// so does everyone on the player's side, so player pathing never changes.</summary>
++    private int ReactionRoutingCost(Unit mover, TileData tile)
++    {
++        if (_armedZoneTiles.Count == 0 || mover == null || tile == null)
++            return 0;
++        if (mover.IsPlayerControlled || !_armedZoneTiles.Contains(tile.Axial))
++            return 0;
++        if (mover.HasBehaviorTag("charge") || mover.HasBehaviorTag("pack"))
++            return 0;
++        bool routes = mover.HasBehaviorTag("scout")
++                      || string.Equals(mover.BehaviorKey, "melee_hunt_wounded", StringComparison.OrdinalIgnoreCase)
++                      || mover.AttackRange > 1;
++        return routes ? ReactionZoneRouteCost : 0;
++    }
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs b/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs
+index f43dd2b..758c615 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs
+@@ -726,6 +726,7 @@ public partial class CombatManager
+         if (CombatSim.Active)
+             return;                       // preview runs mutate nothing (R22)
+         RefreshCoverMarkers();            // either side moving changes who is flanked
++        RefreshAllReactionZones();        // Edge M4: zones follow the bracer and its adjacent allies
+         if (mover == null || !IsInstanceValid(mover) || !mover.Stats.IsAlive
+             || !mover.IsPlayerControlled || mover.CurrentTile == null)
+             return;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 1585b31..f0a98e4 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -185,6 +185,7 @@ public partial class CombatManager : Node3D
+         SpawnTestUnits();
+         RegisterSummonHandler();
+         InstallZoneOfControl();
++        InstallReactions();   // Edge M4: walk-step hook and routing cost
+ 
+         // Wire up helper nodes
+         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
+@@ -322,6 +323,7 @@ public partial class CombatManager : Node3D
+     {
+         base._ExitTree();
+         UninstallZoneOfControl();
++        UninstallReactions();
+     }
+ 
+     public override void _Process(double delta)
+@@ -2513,6 +2515,7 @@ public partial class CombatManager : Node3D
+             // triggers (Reckless, Berserk). An extra turn counts as a turn: the
+             // per-window gain cap in EdgeRules bounds what a second start can add.
+             EdgeRules.OnTurnStart(unit);
++            RefundUnfiredReaction(unit);   // Edge M4 (spec §7a rule 2): a refund is not a gain
+ 
+             unit.Attunement?.Decay();
+             State.SpellsCastThisTurn = 0;
+@@ -3659,6 +3662,7 @@ public partial class CombatManager : Node3D
+     {
+         if (unit == null)
+             return;
++        DropReactionOnDeath(unit);   // Edge M4: no overlay, no refund, for the dead
+ 
+         // E3: neutral field objects run their own death path (on-death effect,
+         // LoS clear, rubble) and skip the player/enemy death machinery entirely.
+diff --git a/Scripts/Systems/Combat/Core/ManeuverDefinition.cs b/Scripts/Systems/Combat/Core/ManeuverDefinition.cs
+index 33f5652..867ba40 100644
+--- a/Scripts/Systems/Combat/Core/ManeuverDefinition.cs
++++ b/Scripts/Systems/Combat/Core/ManeuverDefinition.cs
+@@ -86,11 +86,12 @@ public class ManeuverDefinition
+     public List<ManeuverEffectDef> Effects = new();
+ 
+     // ── Reactions and finishers ──────────────────────────────────────────
+-    /// <summary>Armed on the player's turn, fires in the enemy phase (spec §7).
+-    /// Reaction machinery lands in M4; until then the registry refuses to
+-    /// load a reaction so a half-built card can never reach the tray.</summary>
++    /// <summary>Armed on the player's turn (Self shape, its own AP and Edge),
++    /// fires in the enemy phase (spec §7). Reach is the zone radius. Resolved in
++    /// CombatManager.Reactions.cs.</summary>
+     public bool IsReaction = false;
+-    /// <summary>enemy_move_end | struck | ally_attacked (M4).</summary>
++    /// <summary>enemy_move_end (Brace) | enemy_enter_zone (Set Against Charge).
++    /// Validated against ManeuverRegistry.KnownReactionTriggers.</summary>
+     public string ReactionTrigger = "";
+     public bool IsFinisher = false;
+ 
+diff --git a/Scripts/Systems/Combat/Core/ManeuverRegistry.cs b/Scripts/Systems/Combat/Core/ManeuverRegistry.cs
+index 796cd70..2cfb271 100644
+--- a/Scripts/Systems/Combat/Core/ManeuverRegistry.cs
++++ b/Scripts/Systems/Combat/Core/ManeuverRegistry.cs
+@@ -36,6 +36,14 @@ public static class ManeuverRegistry
+     public static readonly HashSet<string> KnownEffectKeys = new(StringComparer.OrdinalIgnoreCase)
+     {
+         "damage", "push", "stagger", "root", "ignore_armor", "ignore_chitin", "finisher_scale",
++        "damage_multiplier",
++    };
++
++    /// <summary>Reaction triggers CombatManager.Reactions.cs resolves (spec §7, M4).</summary>
++    public static readonly HashSet<string> KnownReactionTriggers = new(StringComparer.OrdinalIgnoreCase)
++    {
++        "enemy_move_end",     // Brace: an enemy ends its movement in the zone
++        "enemy_enter_zone",   // Set Against Charge: an enemy steps into the zone; its movement ends there
+     };
+ 
+     private static Dictionary<string, ManeuverDefinition> _byId;
+@@ -169,7 +177,16 @@ public static class ManeuverRegistry
+             return $"'{def.Id}': edgeCost {def.EdgeCost} outside 0..{EdgeRules.BaseCap} (spec §3: 1 to 3 at launch)";
+ 
+         if (def.IsReaction)
+-            return $"'{def.Id}': reactions arrive in M4; not loadable yet";
++        {
++            if (shape != ManeuverShape.Self)
++                return $"'{def.Id}': a reaction arms on Self; its zone comes from reach";
++            if (!KnownReactionTriggers.Contains(def.ReactionTrigger ?? ""))
++                return $"'{def.Id}': reactionTrigger '{def.ReactionTrigger}' has no resolver";
++            if (def.DrainAll)
++                return $"'{def.Id}': a reaction cannot be a finisher";
++        }
++        else if (!string.IsNullOrEmpty(def.ReactionTrigger))
++            return $"'{def.Id}': reactionTrigger set on a non-reaction";
+ 
+         if (def.Effects == null || def.Effects.Count == 0)
+             return $"'{def.Id}': no effects (authoring rule: a maneuver changes where, when or whom)";
+@@ -185,6 +202,8 @@ public static class ManeuverRegistry
+                 return $"'{def.Id}': root needs value >= 1 (turns)";
+             if (e.Key.Equals("finisher_scale", StringComparison.OrdinalIgnoreCase) && !def.DrainAll)
+                 return $"'{def.Id}': finisher_scale needs drainAll";
++            if (e.Key.Equals("damage_multiplier", StringComparison.OrdinalIgnoreCase) && e.Value < 2)
++                return $"'{def.Id}': damage_multiplier needs value >= 2";
+         }
+         if (def.HasEffect("stagger") && shape == ManeuverShape.Range && def.Reach > 1
+             && cls != WeaponClass.Sling)
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index e637ba8..11851bd 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -314,6 +314,16 @@ public partial class Unit : Node3D
+     /// <summary>Ambush rider: the first maneuver each combat costs 1 less.</summary>
+     public int ManeuversUsedThisCombat = 0;
+ 
++    // ── Reactions (spec v1 §7; rules in CombatManager.Reactions.cs) ────────────
++    /// <summary>The one armed reaction (spec §7a rule 1), or null. Consumed when it
++    /// fires; refunded at this unit's next turn start if it did not.</summary>
++    public ManeuverDefinition ArmedReaction = null;
++    /// <summary>Edge paid when arming, returned by the refund (never a "gain").</summary>
++    public int ArmedReactionEdge = 0;
++    /// <summary>Set by Set Against Charge on the tile the enemy was struck on: every
++    /// mover loop gates on it, so the enemy's movement ends there. Reset in StartTurn.</summary>
++    public bool MovementInterrupted = false;
++
+     // ── Stagger and Poise (spec v1 §2a; enemies only) ──────────────────────────
+     /// <summary>Set when a stagger lands. Consumed at this unit's next non-Guard
+     /// activation: the intent is cancelled and the cycle index holds. Kept as a
+@@ -731,6 +741,7 @@ public partial class Unit : Node3D
+         HasAttackedThisTurn = false;
+         HasUsedConsumableThisTurn = false;     // consumables: one per unit per turn
+         TilesMovedThisTurn = 0;
++        MovementInterrupted = false;   // Edge M4: also cleared per activation in ExecuteIntent
+         Stats.MovePoints = Stats.BaseSpeed;
+         Stats.BonusMoveRange = 0;   // movespeed grants last one turn
+         RefreshCoverArmor();        // cover is re-read each turn: walls fall, rubble forms
+@@ -900,6 +911,11 @@ public partial class Unit : Node3D
+     /// hook. Do not route a teleport through TryMoveTo to reuse the path walk.</summary>
+     public static Func<Unit, Unit, bool> ZoneOfControlStrike;
+ 
++    /// <summary>Edge M4 (spec §7): asked AFTER each walked step lands, with the tile
++    /// entered. Returning true ends the walk on that tile (Set Against Charge:
++    /// "its movement ends there"). Installed by CombatManager.Reactions.cs.</summary>
++    public static Func<Unit, TileData, bool> WalkStepReaction;
++
+     /// <summary>True when this unit's adjacency is a threat a mover must respect:
+     /// alive, a real combatant (not a map object), able to act, and armed. A unit
+     /// with no attack (a ward, a totem) holds no ground.</summary>
+@@ -955,6 +971,11 @@ public partial class Unit : Node3D
+         if (!CanSpendAP(1))
+             return false;
+ 
++        // Edge M4: Set Against Charge ended this activation's movement on the
++        // tile it struck. Every mover, present and future, stops here.
++        if (MovementInterrupted)
++            return false;
++
+         int pathCost = grid.GetMoveCostTo(this, dest);
+         if (pathCost < 0 || pathCost > EffectiveMoveRange)
+             return false;
+@@ -1004,6 +1025,11 @@ public partial class Unit : Node3D
+                 // the walk was halted. Either way the walk ends here.
+                 if (CurrentTile != step || walkCtx.HaltForced)
+                     break;
++                // Edge M4: an armed reaction may end the walk on the tile just entered.
++                if (WalkStepReaction != null && WalkStepReaction(this, step))
++                    break;
++                if (!Stats.IsAlive || IsDeathQueued)
++                    break;
+             }
+         }
+         else
+diff --git a/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs b/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs
+index 5106625..795b4d1 100644
+--- a/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs
++++ b/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs
+@@ -12,6 +12,11 @@ public partial class HexGridManager
+     /// 4 or fewer extra move points, and eats it otherwise (battlefield §6.2).</summary>
+     public const int HazardStepCost = 4;
+ 
++    /// <summary>Edge M4: additional cost for <c>unit</c> to enter <c>tile</c>, on
++    /// top of terrain and hazards. Installed by CombatManager.Reactions.cs; null
++    /// means no extra cost anywhere. Shared by every cost loop in this file.</summary>
++    public static Func<Unit, TileData, int> ExtraStepCost;
++
+     /// <summary>Open, VISIBLE hazards an enemy can see and route around: fire, lava,
+     /// scorched ground. Deliberately NOT glyphs, because hidden traps are
+     /// unavoidable by design (see <see cref="Unit.HazardCaution"/>).</summary>
+@@ -28,12 +33,16 @@ public partial class HexGridManager
+     /// movement range and highlights are byte-for-byte unchanged.</summary>
+     private int HazardPenalty(Unit unit, TileData tile)
+     {
++        // Edge M4 (spec §7b): armed reaction zones read as a routing cost for the
++        // units that avoid them. The hook returns 0 for everyone else, so this is
++        // a no-op unless a reaction is armed and the mover is one that routes.
++        int extra = ExtraStepCost?.Invoke(unit, tile) ?? 0;
+         if (unit == null || !IsPathHazard(tile))
+-            return 0;
++            return extra;
+         float caution = unit.HazardCaution;
+         if (caution <= 0f)
+-            return 0;
+-        return Mathf.RoundToInt(HazardStepCost * caution);
++            return extra;
++        return extra + Mathf.RoundToInt(HazardStepCost * caution);
+     }
+ 
+     /// <summary>True when the height gap between two tiles exceeds the cliff threshold.</summary>
+diff --git a/Scripts/UI/TechniqueTray.cs b/Scripts/UI/TechniqueTray.cs
+index 5cff825..eb1c983 100644
+--- a/Scripts/UI/TechniqueTray.cs
++++ b/Scripts/UI/TechniqueTray.cs
+@@ -34,6 +34,9 @@ public sealed class TechniqueCardView
+     public bool Enabled = true;
+     public bool Armed = false;
+     public bool IsFinisher = false;
++    /// <summary>Spec §7: a reaction card has its own frame and flips to Armed.</summary>
++    public bool IsReaction = false;
++    public bool ArmedNow = false;
+ }
+ 
+ public partial class TechniqueTray : Control
+@@ -140,7 +143,7 @@ public partial class TechniqueTray : Control
+             Text = "",
+             FocusMode = FocusModeEnum.None,
+         };
+-        UITheme.ApplyButtonStyle(btn, isPrimary: v.Armed);
++        UITheme.ApplyButtonStyle(btn, isPrimary: v.Armed || v.ArmedNow);
+         string id = v.Id;   // capture by value for the closure
+         btn.Pressed += () => EmitSignal(SignalName.TechniquePressed, id);
+ 
+@@ -159,7 +162,7 @@ public partial class TechniqueTray : Control
+ 
+         var title = new Label
+         {
+-            Text = v.IsFinisher ? $"{v.Title}  ✦" : v.Title,
++            Text = v.IsFinisher ? $"{v.Title}  ✦" : v.IsReaction ? $"{v.Title}  »" : v.Title,
+             HorizontalAlignment = HorizontalAlignment.Center,
+             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+             MouseFilter = MouseFilterEnum.Ignore,
+@@ -193,12 +196,15 @@ public partial class TechniqueTray : Control
+ 
+         var foot = new Label
+         {
+-            Text = v.Armed ? "ARMED: click a target" : v.Role,
++            Text = v.Armed ? "ARMED: click a target"
++                 : v.ArmedNow ? "ARMED: fires in the enemy phase"
++                 : v.IsReaction ? $"Reaction · {v.Role}"
++                 : v.Role,
+             HorizontalAlignment = HorizontalAlignment.Center,
+             MouseFilter = MouseFilterEnum.Ignore,
+         };
+         foot.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 2);
+-        foot.AddThemeColorOverride("font_color", v.Armed ? UITheme.Warning : UITheme.GoldDim);
++        foot.AddThemeColorOverride("font_color", v.Armed || v.ArmedNow ? UITheme.Warning : UITheme.GoldDim);
+         box.AddChild(foot);
+ 
+         return btn;
+diff --git a/docs/session_log_2026-09-28_edge_m4.md b/docs/session_log_2026-09-28_edge_m4.md
+new file mode 100644
+index 0000000..544415e
+--- /dev/null
++++ b/docs/session_log_2026-09-28_edge_m4.md
+@@ -0,0 +1,109 @@
++# Session log, 2026-09-28: Edge M4 (reactions) and the M3 status
++
++Martial Maneuvers & Edge spec v1. Built against the tree after M2 (which
++built clean in Godot on 2026-09-28 once the stray `Claude outputs/EdgeRules.cs`
++copy was excluded from compilation). Delivered as `edge_m4_full.patch`.
++
++## M3 status
++
++M3's five maneuvers (Reach Thrust, Pinning Shot, Driving Shot, Piercing Bolt,
++Heavy Bolt) and collision damage were authored and resolved in M2's generic
++resolver. Nothing new to build; the in-engine acceptance in the M2 log covers
++them. Ctrl+W cycles a martial through the launch weapon classes to reach each.
++
++## M4: what shipped
++
++**Reactions (spec §7).** A reaction is a Self-shaped maneuver with
++`isReaction` and a `reactionTrigger`. Two at launch, both authored:
++`brace.json` (sword & shield, 0 AP, 1 Edge, `enemy_move_end`, ATK) and
++`set_against_charge.json` (polearm, 0 AP, 1 Edge, `enemy_enter_zone`, ATK x 2
++via the new `damage_multiplier` effect key). The registry now loads reactions
++and validates them: Self shape, a known trigger, never a finisher.
++
++**Arming.** Clicking the card pays AP and Edge at once and sets
++`Unit.ArmedReaction` (one per unit; the second card is grey with "Already
++armed"). The zone is drawn in steel on the board (one `MovementZoneRenderer`
++per armed unit, on the grid), the tray header shows "Armed: Brace. <trigger
++sentence>", and the card flips to "ARMED: fires in the enemy phase". Arming
++counts as an action for Skirmish momentum and the End Turn gate.
++
++**Refund (§7a rule 2).** At the unit's next turn start, an unfired reaction
++returns its Edge through `EdgeRules.Refund`, which does not mark the window,
++so idle decay still applies. A dead unit's reaction is dropped without refund.
++
++**Set Against Charge, the interrupt.** New static hook `Unit.WalkStepReaction`
++asked after each walked step lands inside `Unit.TryMoveTo` (the same loop the
++zone-of-control strike uses). If the tile is in a Set Against Charge zone the
++reactor strikes, the walk ends on that tile, and `Unit.MovementInterrupted`
++makes every mover loop stop: `Unit.TryMoveTo` refuses further hops, and
++`CanSpendMoveAP` reads it too. Cleared at the head of every `ExecuteIntent`
++and in `StartTurn`. The enemy may still act from where it stopped if its
++action is legal there (the spec ends its movement, not its activation).
++
++**Brace, before it acts.** `FireMoveEndReactions(attacker)` runs at the head
++of `StrikeTile`, before the attack's AP is spent, so the bracer's blow lands
++first and a kill ends the activation. Beats that never strike (Guard, Shove,
++a channel start) get the same call after `ExecuteIntent`. A Brace already
++spent is null and does nothing the second time.
++
++**Guardian rider (§7a rule 6).** With `GuardianReactions` the zone also covers
++the same radius around each adjacent friendly unit, so Brace beside a wizard
++punishes the enemy that closes on the wizard.
++
++**Enemy routing (§7b).** New static hook `HexGridManager.ExtraStepCost`, read
++inside `HazardPenalty` so all five cost loops see it. Zone tiles cost +2 for
++scouts (`scout` tag), stalkers (`melee_hunt_wounded` behaviour key) and
++ranged units (`AttackRange > 1`); `charge` and `pack` pay nothing and walk in.
+++2 makes a one-tile detour strictly cheaper and a two-tile detour a tie, which
++is the spec's "at most 1 extra move". Player pathing is untouched (the hook
++returns 0 for player units). Bosses with Poise preferring a ranged or Shift
++beat: not built, no boss units exist in the data.
++
++## Rulings made in-session
++
++1. Brace fires on any enemy activation that ends in its zone, whether or not
++   the enemy moved this activation. A stationary adjacent attacker is
++   punished too. The spec's "ends its movement adjacent" was read as "is
++   adjacent when it acts".
++2. Brace for non-strike beats fires after the beat, not before. Only strikes
++   have a shared pre-action seam (`StrikeTile`); the executors move inside
++   themselves.
++3. Reactions apply damage directly (Marked bonus, presenter strike, Edge
++   attack triggers included) and do not queue item onAttack procs. D2 is
++   relaxed for reactions exactly as it already is for the zone-of-control
++   strike, because both fire inside a mover's walk loop where the trigger
++   drain must not run.
++4. Stalker is matched by behaviour key, not tag, because no `stalker` tag
++   exists; the spec's word maps to `melee_hunt_wounded`.
++5. A forced move of the bracer (push, slide, blink) does not redraw the zone
++   overlay until the next completed walk anywhere; the triggers themselves
++   read the live zone, so correctness is unaffected, only the picture lags.
++
++## Not done, owed
++
++- `dotnet build` and the in-engine pass. Substitute: an independent review of
++  the diff found three defects (skirmisher retreat loop ignored the interrupt;
++  the routing union was consulted by the triggers and could lag a push; the
++  interrupt outlived one activation under overdraw), all fixed.
++- `.uid` for `CombatManager.Reactions.cs` after first import.
++- Name collision: the action bar's existing "Brace (all AP)" (+1 armour, AP
++  to 0) and the reaction Brace now coexist. Rename one. Recommendation: the
++  bar action becomes "Hold" (it is a hold, not a brace).
++- Struck-triggered reactions (spec §7a rule 4, "after the damage"): no launch
++  reaction uses the trigger, so none is wired.
++
++## In-engine confirm owed (M4 acceptance, spec §10)
++
++1. Sword-and-shield Fighter at 1+ Edge: click Brace; the six adjacent hexes
++   outline in steel, the card reads ARMED, header shows the trigger text,
++   Edge drops by 1, AP unchanged.
++2. Enemy phase: the first enemy to attack the bracer takes ATK before its
++   swing (log order: `[Brace] ... strikes` then the enemy's attack). The
++   overlay clears.
++3. Arm Brace, let no enemy come: next turn start logs "lapses unfired: 1 Edge
++   returned", and if the fighter did nothing else that round it still decays.
++4. Polearm Fighter, Set Against Charge: a `charge` brute walking in is struck
++   for ATK x 2 and stops on the first tile within 2; a `scout` or ranged
++   enemy detours around the ring when a one-tile detour exists.
++5. Guardian stance, Brace, standing beside the wizard: an enemy that ends
++   adjacent to the wizard (not the fighter) is struck.

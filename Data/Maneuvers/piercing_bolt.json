@@ -1,0 +1,25 @@
+{
+  "id": "piercing_bolt",
+  "displayName": "Piercing Bolt",
+  "role": "Executioner",
+  "weaponClass": "Crossbow",
+  "apCost": 2,
+  "edgeCost": 2,
+  "shape": "Line",
+  "reach": 4,
+  "hitsAllies": true,
+  "text": "ATK damage to every unit in a line of 4. Ignores armor and chitin.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "ignore_armor"
+    },
+    {
+      "key": "ignore_chitin"
+    }
+  ],
+  "vfxTag": "bolt"
+}

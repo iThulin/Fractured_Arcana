@@ -51,6 +51,18 @@ public static class CombatTelemetry
     private const string EventsHeader = "fight_id,ts_utc,round,blueprint_id,half,school,mana";
     private const string LifetimeHeader = "blueprint_id,total_casts,fights_cast_in,wins_when_cast,losses_when_cast,last_cast_utc";
 
+    // Martial Maneuvers & Edge spec v1 §10 (M5 measurement): every martial choice
+    // with the Edge it moved, and one summary row per fight with choices per
+    // martial turn. Goal 2 is "2+ distinct choices per turn on average".
+    private const string MartialEventsPath = Dir + "/martial_events.csv";
+    private const string MartialFightsPath = Dir + "/martial_fights.csv";
+    private const string MartialEventsHeader = "fight_id,ts_utc,round,unit,kind,id,edge_before,edge_after";
+    private const string MartialFightsHeader = "fight_id,ended_utc,result,martial_turns,distinct_choices,choices_per_turn,maneuvers,reaction_arms,reaction_fires";
+
+    private static readonly HashSet<string> _martialTurns = new();                       // "unit|round"
+    private static readonly Dictionary<string, HashSet<string>> _martialChoices = new(); // "unit|round" -> kinds
+    private static int _maneuvers, _reactionArms, _reactionFires;
+
     // ── Current-fight state ─────────────────────────────────────────
     private static string _fightId;
     private static string _startedUtc;
@@ -91,6 +103,9 @@ public static class CombatTelemetry
         _school = PlayerSession.SelectedSchool.ToString();
         _casts = 0;
         _castThisFight.Clear();
+        _martialTurns.Clear();
+        _martialChoices.Clear();
+        _maneuvers = _reactionArms = _reactionFires = 0;
 
         var kinds = new List<string>(enemyKinds ?? Array.Empty<string>());
         _enemyCount = kinds.Count;
@@ -115,6 +130,48 @@ public static class CombatTelemetry
             _fightId, Utc(), round.ToString(), blueprintId ?? "", half ?? "", school ?? "", mana.ToString()));
     }
 
+    /// <summary>M5: a classed martial started a player turn (the denominator).</summary>
+    public static void RecordMartialTurn(string unit, int round)
+    {
+        if (!Enabled) return;
+        if (_fightId == null)
+            BeginFight("unknown", "", "", null);
+        _martialTurns.Add($"{unit}|{round}");
+    }
+
+    /// <summary>M5: one martial choice. <paramref name="kind"/> is move, attack,
+    /// shove, stance, item, maneuver or reaction_arm; <paramref name="id"/> names
+    /// the maneuver, stance or item. Distinct choices per turn count kind plus id.</summary>
+    public static void RecordMartialAction(string unit, string kind, string id, int edgeBefore, int edgeAfter, int round)
+    {
+        if (!Enabled) return;
+        if (_fightId == null)
+            BeginFight("unknown", "", "", null);
+
+        string key = $"{unit}|{round}";
+        _martialTurns.Add(key);
+        if (!_martialChoices.TryGetValue(key, out var set))
+            _martialChoices[key] = set = new HashSet<string>();
+        set.Add(string.IsNullOrEmpty(id) ? kind : $"{kind}:{id}");
+        if (kind == "maneuver") _maneuvers++;
+        if (kind == "reaction_arm") _reactionArms++;
+
+        AppendLine(MartialEventsPath, MartialEventsHeader, Csv(
+            _fightId, Utc(), round.ToString(), unit ?? "", kind ?? "", id ?? "",
+            edgeBefore.ToString(), edgeAfter.ToString()));
+    }
+
+    /// <summary>M5: an armed reaction fired in the enemy phase. Logged, not a choice.</summary>
+    public static void RecordReactionFire(string unit, string id, int round)
+    {
+        if (!Enabled) return;
+        if (_fightId == null)
+            BeginFight("unknown", "", "", null);
+        _reactionFires++;
+        AppendLine(MartialEventsPath, MartialEventsHeader, Csv(
+            _fightId, Utc(), round.ToString(), unit ?? "", "reaction_fire", id ?? "", "", ""));
+    }
+
     /// <summary>Closes the fight record and folds this fight into the lifetime aggregates. No-op when no fight is open.</summary>
     public static void EndFight(bool victory, int rounds)
     {
@@ -124,6 +181,22 @@ public static class CombatTelemetry
             _fightId, _startedUtc, Utc(), _encounterId, _regionId, _tier, _school,
             _enemies, _enemyCount.ToString(), rounds.ToString(),
             victory ? "victory" : "defeat", _casts.ToString()));
+
+        if (_martialTurns.Count > 0)
+        {
+            int distinct = 0;
+            foreach (var kv in _martialChoices)
+                distinct += kv.Value.Count;
+            double perTurn = (double)distinct / _martialTurns.Count;
+            AppendLine(MartialFightsPath, MartialFightsHeader, Csv(
+                _fightId, Utc(), victory ? "victory" : "defeat",
+                _martialTurns.Count.ToString(), distinct.ToString(),
+                perTurn.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+                _maneuvers.ToString(), _reactionArms.ToString(), _reactionFires.ToString()));
+            GD.Print($"[Telemetry] Martial choices per turn: {perTurn:0.00} " +
+                     $"({distinct} distinct over {_martialTurns.Count} turns; " +
+                     $"{_maneuvers} maneuvers, {_reactionArms} reactions armed, {_reactionFires} fired). Goal 2 wants 2.00+.");
+        }
 
         UpdateLifetime(victory);
         _fightId = null;

@@ -42,6 +42,51 @@ public enum StanceSpecialTag
 }
 
 /// <summary>
+/// The one event that earns Edge for a stance (Martial Maneuvers & Edge spec v1 §5).
+/// Resolved in EdgeRules.cs.
+/// </summary>
+public enum EdgeTrigger
+{
+    None,
+    FirstHitEachTurn,      // Aggressive: first hit each turn
+    WhenStruck,            // Defensive: struck by an enemy (once per enemy activation)
+    TurnStart,             // Reckless: every turn start
+    TurnStartBelowHalfHp,  // Berserk: turn start while below 50% HP
+    AdjacentAllyAttacked,  // Guardian: an adjacent ally is attacked (once per enemy activation)
+    TurnEndNoMove,         // Aimed: end turn without having moved
+    Momentum,              // Skirmish: action differs from the previous one (max 2 per turn)
+    PerExtraTargetHit,     // Volley: per extra enemy hit by one action
+    HitUndamagedTarget,    // Ambush: hit an enemy at full HP
+    HitStatusedTarget,     // Duelist, Suppression: hit a target carrying EdgeTriggerStatus
+    AllyHitsMarkedTarget,  // Marked: any other ally hits a Marked target
+    TurnEndCounteredIntents, // Vigilant (M5): +1 per visible enemy intent this unit counters at turn end, max 2
+    Openings,              // Opportunist (M5): hits place Opening tokens on the target; maneuvers against it spend them as Edge
+}
+
+/// <summary>
+/// The stance's rider on maneuvers (Martial Maneuvers & Edge spec v1 §5, "Rider
+/// on maneuvers" column). Resolved in CombatManager.Maneuvers.cs. One per stance.
+/// </summary>
+public enum StanceManeuverRider
+{
+    None,
+    PushPlusOne,            // Aggressive: maneuver pushes go one tile further
+    GainShield,             // Defensive: gain 1 shield after a maneuver
+    EdgeDebt,               // Reckless: may spend Edge it lacks for 2 self-damage per point (not built)
+    DamageVsVulnerable,     // Duelist: +1 maneuver damage against Vulnerable targets
+    DamageBelowHalf,        // Berserk: +1 maneuver damage while below 50% HP
+    GuardianReactions,      // Guardian: reactions cover adjacent allies (M4)
+    RangePlusOne,           // Aimed: ranged maneuvers reach one further
+    StatusDurationPlusOne,  // Suppression: root and suppress from maneuvers last one turn longer
+    LinePlusOne,            // Volley: line maneuvers are one tile longer
+    SelfDisplacePlusOne,    // Skirmish: self-displacement maneuvers go one hex further (none at launch)
+    FirstManeuverCheaper,   // Ambush: the first maneuver each combat costs 1 Edge less
+    CheaperVsMarked,        // Marked: maneuvers against Marked targets cost 1 Edge less
+    IgnoreOnePoise,         // Vigilant (M5): stagger maneuvers ignore 1 Poise
+    DamageVsMostOpenings,   // Opportunist (M5): +1 maneuver damage against the enemy with the most Openings
+}
+
+/// <summary>
 /// Definition of a single stance. Loaded from StanceRegistry at startup.
 /// Never mutated at runtime.
 /// </summary>
@@ -74,6 +119,18 @@ public class StanceDefinition
     // ── Special behaviour ─────────────────────────────────────────────────
     public StanceSpecialTag SpecialTag = StanceSpecialTag.None;
     public int SpecialTagValue = 0;  // magnitude for scaling specials
+
+    // ── Edge (spec v1 §5) ─────────────────────────────────────────────────
+    public EdgeTrigger EdgeTrigger = EdgeTrigger.None;
+    public int EdgeTriggerValue = 1;         // Edge granted per trigger
+    public string EdgeTriggerStatus = null;  // for HitStatusedTarget
+    public int EdgeStartBonus = 0;           // added to starting Edge (Ambush)
+    public StanceManeuverRider ManeuverRider = StanceManeuverRider.None;
+
+    /// <summary>Spec v1 §5: Opportunist is "Either" class. Class stays the nominal
+    /// bucket; FitsClass is what the Training tab and the hiring roll read.</summary>
+    public bool EitherClass = false;
+    public bool FitsClass(MartialClass c) => c != MartialClass.None && (EitherClass || Class == c);
 
     // ── Signature (K4, v2.1 §2 carried from v1) ──────────────────────────
     /// <summary>An ArcStage-4 signature stance: never trained, never listed by
@@ -116,66 +173,80 @@ public static class StanceRegistry
         {
             Id = "aggressive",
             DisplayName = "Aggressive",
-            Description = "+2 attack damage. On hit: push target 1 tile. -1 armor.",
+            Description = "+1 attack damage. On hit: push target 1 tile. -1 armor. Edge: +1 on your first hit each turn.",
             Class = MartialClass.Fighter,
             PassiveArmorPenalty = 1,
-            AttackDamageBonus = 2,
+            AttackDamageBonus = 1,
             AttackPushTiles = 1,
+            EdgeTrigger = EdgeTrigger.FirstHitEachTurn,
+            ManeuverRider = StanceManeuverRider.PushPlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "defensive",
             DisplayName = "Defensive",
-            Description = "+4 armor. On hit: gain 2 shield. -1 attack damage.",
+            Description = "+3 armor. On hit: gain 2 shield. -1 attack damage. Edge: +1 when struck (once per enemy action).",
             Class = MartialClass.Fighter,
-            PassiveArmorBonus = 4,
+            PassiveArmorBonus = 3,
             AttackDamageBonus = -1,
             OnHitSelfShieldGain = 2,
+            EdgeTrigger = EdgeTrigger.WhenStruck,
+            ManeuverRider = StanceManeuverRider.GainShield,
         });
 
         Add(new StanceDefinition
         {
             Id = "reckless",
             DisplayName = "Reckless",
-            Description = "Attack hits all adjacent enemies. Take 2 damage after attacking. -2 armor.",
+            Description = "Attack hits all adjacent enemies. Take 2 damage after attacking. -2 armor. Edge: +2 at the start of your turn.",
             Class = MartialClass.Fighter,
             PassiveArmorPenalty = 2,
             OnHitSelfDamage = 2,
             SpecialTag = StanceSpecialTag.AoeAdjacent,
+            EdgeTrigger = EdgeTrigger.TurnStart,
+            EdgeTriggerValue = 2,
+            ManeuverRider = StanceManeuverRider.EdgeDebt,
         });
 
         Add(new StanceDefinition
         {
             Id = "duelist",
             DisplayName = "Duelist",
-            Description = "+1 attack range. On hit: apply Vulnerable for 1 turn (target takes +2 damage).",
+            Description = "+1 attack range. On hit: apply Vulnerable for 1 turn (target takes +2 damage). Edge: +1 when you hit a Vulnerable target.",
             Class = MartialClass.Fighter,
             AttackRangeBonus = 1,
             OnHitStatusName = "vulnerable",
             OnHitStatusDuration = 1,
+            EdgeTrigger = EdgeTrigger.HitStatusedTarget,
+            EdgeTriggerStatus = "vulnerable",
+            ManeuverRider = StanceManeuverRider.DamageVsVulnerable,
         });
 
         Add(new StanceDefinition
         {
             Id = "berserk",
             DisplayName = "Berserk",
-            Description = "Gain +1 damage per 5 HP missing (max +5).",
+            Description = "Gain +1 damage per 5 HP missing (max +5). Edge: +1 at turn start while below half HP.",
             Class = MartialClass.Fighter,
             SpecialTag = StanceSpecialTag.BerserkScaling,
             SpecialTagValue = 5, // cap
+            EdgeTrigger = EdgeTrigger.TurnStartBelowHalfHp,
+            ManeuverRider = StanceManeuverRider.DamageBelowHalf,
         });
 
         Add(new StanceDefinition
         {
             Id = "guardian",
             DisplayName = "Guardian",
-            Description = "Adjacent allies gain +2 armor. Attack taunts: enemies target you next turn.",
+            Description = "Adjacent allies gain +2 armor. Attack taunts: enemies target you next turn. Edge: +1 when an adjacent ally is attacked.",
             Class = MartialClass.Fighter,
             SpecialTag = StanceSpecialTag.GuardianAura,
             SpecialTagValue = 2, // armor granted to allies
             OnHitStatusName = "taunted",
             OnHitStatusDuration = 1,
+            EdgeTrigger = EdgeTrigger.AdjacentAllyAttacked,
+            ManeuverRider = StanceManeuverRider.GuardianReactions,
         });
 
         // ── Ranger stances ────────────────────────────────────────────────
@@ -184,62 +255,99 @@ public static class StanceRegistry
         {
             Id = "aimed",
             DisplayName = "Aimed",
-            Description = "+3 damage if you haven't moved this turn. Ignores armor.",
+            Description = "+3 damage if you haven't moved this turn. Ignores armor. Edge: +1 if you end your turn without moving.",
             Class = MartialClass.Ranger,
             AttackDamageBonus = 3,
             AttackIgnoresArmor = true,
             SpecialTag = StanceSpecialTag.AimedRequiresNoMove,
+            EdgeTrigger = EdgeTrigger.TurnEndNoMove,
+            ManeuverRider = StanceManeuverRider.RangePlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "suppression",
             DisplayName = "Suppression",
-            Description = "On hit: target loses 1 move point next turn.",
+            Description = "On hit: target loses 1 move point next turn. Edge: +1 when you hit a Suppressed target.",
             Class = MartialClass.Ranger,
             OnHitStatusName = "suppressed",
             OnHitStatusDuration = 1,
+            EdgeTrigger = EdgeTrigger.HitStatusedTarget,
+            EdgeTriggerStatus = "suppressed",
+            ManeuverRider = StanceManeuverRider.StatusDurationPlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "volley",
             DisplayName = "Volley",
-            Description = "Attack hits all enemies in a line. -1 damage per target after the first.",
+            Description = "Attack hits all enemies in a line. -1 damage per target after the first. Edge: +1 per extra enemy hit.",
             Class = MartialClass.Ranger,
             SpecialTag = StanceSpecialTag.LinePiercing,
+            EdgeTrigger = EdgeTrigger.PerExtraTargetHit,
+            ManeuverRider = StanceManeuverRider.LinePlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "skirmish",
             DisplayName = "Skirmish",
-            Description = "+1 speed. After attacking, move up to 2 tiles for free.",
+            Description = "+1 speed. After attacking, move 1 tile for free. Edge: +1 when your action differs from your last (max 2 per turn).",
             Class = MartialClass.Ranger,
             PassiveSpeedBonus = 1,
             SpecialTag = StanceSpecialTag.SkirmishDash,
-            SpecialTagValue = 2, // free move tiles after attack
+            SpecialTagValue = 1, // free move tiles after attack
+            EdgeTrigger = EdgeTrigger.Momentum,
+            ManeuverRider = StanceManeuverRider.SelfDisplacePlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "ambush",
             DisplayName = "Ambush",
-            Description = "First attack this combat deals double damage.",
+            Description = "First attack this combat deals +50% damage. Edge: start combat with 3; +1 when you hit an enemy at full HP.",
             Class = MartialClass.Ranger,
             SpecialTag = StanceSpecialTag.AmbushFirstStrike,
+            EdgeTrigger = EdgeTrigger.HitUndamagedTarget,
+            EdgeStartBonus = 2,
+            ManeuverRider = StanceManeuverRider.FirstManeuverCheaper,
         });
 
         Add(new StanceDefinition
         {
             Id = "marked",
             DisplayName = "Marked",
-            Description = "On hit: apply Marked. Next ally attack on that target deals +3 damage.",
+            Description = "On hit: apply Marked. Next ally attack on that target deals +3 damage. Edge: +1 when an ally hits a Marked target.",
             Class = MartialClass.Ranger,
             OnHitStatusName = "marked",
             OnHitStatusDuration = 2,
             SpecialTag = StanceSpecialTag.MarkedTarget,
             SpecialTagValue = 3, // bonus damage for next ally hit
+            EdgeTrigger = EdgeTrigger.AllyHitsMarkedTarget,
+            ManeuverRider = StanceManeuverRider.CheaperVsMarked,
+        });
+
+        // ── M5 stances (Martial Maneuvers & Edge spec v1 §5) ─────────────
+
+        Add(new StanceDefinition
+        {
+            Id = "vigilant",
+            DisplayName = "Vigilant",
+            Description = "No passive. Edge: +1 at turn end per visible enemy intent you stand ready to counter (beside a channeler, beside an attacker aimed at an ally, or in a charger's path), max 2. Stagger maneuvers ignore 1 Poise.",
+            Class = MartialClass.Fighter,
+            EdgeTrigger = EdgeTrigger.TurnEndCounteredIntents,
+            ManeuverRider = StanceManeuverRider.IgnoreOnePoise,
+        });
+
+        Add(new StanceDefinition
+        {
+            Id = "opportunist",
+            DisplayName = "Opportunist",
+            Description = "No passive. Openings: each hit places an Opening on the target; your maneuvers against it spend Openings as Edge. Maneuvers against the enemy carrying the most Openings deal +1 damage.",
+            Class = MartialClass.Fighter,
+            EitherClass = true,
+            EdgeTrigger = EdgeTrigger.Openings,
+            ManeuverRider = StanceManeuverRider.DamageVsMostOpenings,
         });
 
         // ── Signature stances (K4) ────────────────────────────────────────
@@ -253,46 +361,55 @@ public static class StanceRegistry
         {
             Id = "sig_fighter_cunning",
             DisplayName = "Feintwork ✦",
-            Description = "Signature. +1 damage. On hit: apply Vulnerable for 1 turn.",
+            Description = "Signature. +1 damage. On hit: apply Vulnerable for 1 turn. Edge: +1 when you hit a Vulnerable target.",
             Class = MartialClass.Fighter,
             IsSignature = true,
             AttackDamageBonus = 1,
             OnHitStatusName = "vulnerable",
             OnHitStatusDuration = 1,
+            EdgeTrigger = EdgeTrigger.HitStatusedTarget,
+            EdgeTriggerStatus = "vulnerable",
+            ManeuverRider = StanceManeuverRider.DamageVsVulnerable,
         });
 
         Add(new StanceDefinition
         {
             Id = "sig_fighter_loyal",
             DisplayName = "Oathwall ✦",
-            Description = "Signature. +2 armor. Adjacent allies gain +3 armor.",
+            Description = "Signature. +2 armor. Adjacent allies gain +3 armor. Edge: +1 when an adjacent ally is attacked.",
             Class = MartialClass.Fighter,
             IsSignature = true,
             PassiveArmorBonus = 2,
             SpecialTag = StanceSpecialTag.GuardianAura,
             SpecialTagValue = 3,
+            EdgeTrigger = EdgeTrigger.AdjacentAllyAttacked,
+            ManeuverRider = StanceManeuverRider.GuardianReactions,
         });
 
         Add(new StanceDefinition
         {
             Id = "sig_fighter_curious",
             DisplayName = "Openings ✦",
-            Description = "Signature. +1 damage. Attacks ignore armor.",
+            Description = "Signature. +1 damage. Attacks ignore armor. Edge: +1 on your first hit each turn.",
             Class = MartialClass.Fighter,
             IsSignature = true,
             AttackDamageBonus = 1,
             AttackIgnoresArmor = true,
+            EdgeTrigger = EdgeTrigger.FirstHitEachTurn,
+            ManeuverRider = StanceManeuverRider.PushPlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "sig_fighter_stoic",
             DisplayName = "Immovable ✦",
-            Description = "Signature. +5 armor. On hit: gain 2 shield.",
+            Description = "Signature. +5 armor. On hit: gain 2 shield. Edge: +1 when struck (once per enemy action).",
             Class = MartialClass.Fighter,
             IsSignature = true,
             PassiveArmorBonus = 5,
             OnHitSelfShieldGain = 2,
+            EdgeTrigger = EdgeTrigger.WhenStruck,
+            ManeuverRider = StanceManeuverRider.GainShield,
         });
 
         Add(new StanceDefinition
@@ -300,13 +417,16 @@ public static class StanceRegistry
             Id = "sig_fighter_reckless",
             DisplayName = "Avalanche ✦",
             Description = "Signature. Attack hits all adjacent enemies at +2 damage. " +
-                          "Take 2 damage after attacking. -1 armor.",
+                          "Take 2 damage after attacking. -1 armor. Edge: +2 at the start of your turn.",
             Class = MartialClass.Fighter,
             IsSignature = true,
             AttackDamageBonus = 2,
             PassiveArmorPenalty = 1,
             OnHitSelfDamage = 2,
             SpecialTag = StanceSpecialTag.AoeAdjacent,
+            EdgeTrigger = EdgeTrigger.TurnStart,
+            EdgeTriggerValue = 2,
+            ManeuverRider = StanceManeuverRider.EdgeDebt,
         });
 
         Add(new StanceDefinition
@@ -314,7 +434,7 @@ public static class StanceRegistry
             Id = "sig_ranger_cunning",
             DisplayName = "Killing Angle ✦",
             Description = "Signature. +1 damage. On hit: apply Marked. The next ally attack " +
-                          "on that target deals +4 damage.",
+                          "on that target deals +4 damage. Edge: +1 when an ally hits a Marked target.",
             Class = MartialClass.Ranger,
             IsSignature = true,
             AttackDamageBonus = 1,
@@ -322,6 +442,8 @@ public static class StanceRegistry
             OnHitStatusDuration = 2,
             SpecialTag = StanceSpecialTag.MarkedTarget,
             SpecialTagValue = 4,
+            EdgeTrigger = EdgeTrigger.AllyHitsMarkedTarget,
+            ManeuverRider = StanceManeuverRider.CheaperVsMarked,
         });
 
         Add(new StanceDefinition
@@ -329,35 +451,42 @@ public static class StanceRegistry
             Id = "sig_ranger_loyal",
             DisplayName = "Warding Volley ✦",
             Description = "Signature. Attack hits all enemies in a line. On hit: target " +
-                          "loses 1 move point next turn.",
+                          "loses 1 move point next turn. Edge: +1 per extra enemy hit.",
             Class = MartialClass.Ranger,
             IsSignature = true,
             OnHitStatusName = "suppressed",
             OnHitStatusDuration = 1,
             SpecialTag = StanceSpecialTag.LinePiercing,
+            EdgeTrigger = EdgeTrigger.PerExtraTargetHit,
+            ManeuverRider = StanceManeuverRider.LinePlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "sig_ranger_curious",
             DisplayName = "Read the Wind ✦",
-            Description = "Signature. +4 damage if you haven't moved this turn. Ignores armor.",
+            Description = "Signature. +4 damage if you haven't moved this turn. Ignores armor. Edge: +1 if you end your turn without moving.",
             Class = MartialClass.Ranger,
             IsSignature = true,
             AttackDamageBonus = 4,
             AttackIgnoresArmor = true,
             SpecialTag = StanceSpecialTag.AimedRequiresNoMove,
+            EdgeTrigger = EdgeTrigger.TurnEndNoMove,
+            ManeuverRider = StanceManeuverRider.RangePlusOne,
         });
 
         Add(new StanceDefinition
         {
             Id = "sig_ranger_stoic",
             DisplayName = "Patient Shot ✦",
-            Description = "Signature. +1 range. First attack this combat deals double damage.",
+            Description = "Signature. +1 range. First attack this combat deals +50% damage. Edge: start combat with 3; +1 when you hit an enemy at full HP.",
             Class = MartialClass.Ranger,
             IsSignature = true,
             AttackRangeBonus = 1,
             SpecialTag = StanceSpecialTag.AmbushFirstStrike,
+            EdgeTrigger = EdgeTrigger.HitUndamagedTarget,
+            EdgeStartBonus = 2,
+            ManeuverRider = StanceManeuverRider.FirstManeuverCheaper,
         });
 
         Add(new StanceDefinition
@@ -365,13 +494,15 @@ public static class StanceRegistry
             Id = "sig_ranger_reckless",
             DisplayName = "Storm of Shafts ✦",
             Description = "Signature. +1 damage, +1 speed. After attacking, move up to " +
-                          "3 tiles for free.",
+                          "3 tiles for free. Edge: +1 when your action differs from your last (max 2 per turn).",
             Class = MartialClass.Ranger,
             IsSignature = true,
             AttackDamageBonus = 1,
             PassiveSpeedBonus = 1,
             SpecialTag = StanceSpecialTag.SkirmishDash,
             SpecialTagValue = 3,
+            EdgeTrigger = EdgeTrigger.Momentum,
+            ManeuverRider = StanceManeuverRider.SelfDisplacePlusOne,
         });
     }
 

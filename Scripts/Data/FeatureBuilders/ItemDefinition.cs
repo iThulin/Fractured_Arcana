@@ -24,6 +24,23 @@ public enum EquipmentSlot
     Trinket,
 }
 
+/// <summary>Martial Maneuvers & Edge spec v1 §6: the CLASS of a Weapon-slot item
+/// grants maneuvers (R1: the item itself stays passive). Launch classes carry
+/// maneuvers in Data/Maneuvers; the rest are named now so items can be authored
+/// against them and gain their maneuvers post-launch (§6b).</summary>
+public enum WeaponClass
+{
+    None,
+    SwordShield,
+    Polearm,
+    Bow,
+    Crossbow,
+    Hammer,
+    TwoHander,
+    PairedBlades,
+    Sling,
+}
+
 /// <summary>
 /// Which unit class this item is designed for.
 /// "Any" means it can be equipped by either.
@@ -102,6 +119,12 @@ public class ItemDefinition
     public string Rarity = "Common";   // Common, Uncommon, Rare, Legendary
     public string Slot = "Trinket";  // "Weapon", "Armor", "Trinket"
     public string UnitClass = "Any";      // "Any", "Wizard", "Martial"
+    /// <summary>Weapon slot only (spec v1 §8). JSON "weaponClass"; a WeaponClass
+    /// name. Default None: a levy's unclassed blade, or a wizard focus. A martial
+    /// fielding a None weapon has the basic attack and no maneuvers (R8, D4).</summary>
+    public string WeaponClass = "None";
+    [System.Text.Json.Serialization.JsonIgnore] public global::WeaponClass WeaponClassValue =>
+        System.Enum.TryParse<global::WeaponClass>(WeaponClass, ignoreCase: true, out var w) ? w : global::WeaponClass.None;
 
     // ── Stat modifiers ────────────────────────────────────────────────────
     public ItemStatModifiers Stats = new();
@@ -148,6 +171,32 @@ public class ItemDefinition
 
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsConsumable => !string.IsNullOrEmpty(ConsumeEffect);
+
+    // ── Active items (Martial Maneuvers & Edge spec v1 §11, M6) ─────────────
+    /// <summary>"wand" (Trinket slot, charges per expedition, binds a combat card),
+    /// "spellglass" (Belt, single use, binds a combat card per INSTANCE), or "" for
+    /// everything else. R1b: every active item is charge-, stock- or deck-limited.</summary>
+    public string ActiveKind = "";
+    /// <summary>Card blueprint id a wand casts. Spellglass leaves this empty and
+    /// binds per instance (ItemInstance.BoundCardId), because one glass is one cast
+    /// of one spell the guild sealed.</summary>
+    public string BoundCardId = "";
+    /// <summary>Wands: charges per expedition (spec: start 3, refilled at campus).</summary>
+    public int MaxCharges = 0;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsWand => string.Equals(ActiveKind, "wand", System.StringComparison.OrdinalIgnoreCase);
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsSpellglass => string.Equals(ActiveKind, "spellglass", System.StringComparison.OrdinalIgnoreCase);
+    /// <summary>M7: a Weapon-slot wizard focus that adds one Innate copy of its
+    /// bound card to the holder's deck (spec §11b). Deck variance is its limit.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsStaff => string.Equals(ActiveKind, "staff", System.StringComparison.OrdinalIgnoreCase);
+    /// <summary>Belt items (R9): anything in the Consumable pseudo-slot: potions,
+    /// scrolls, whetstones and spellglass alike. Two per unit, assigned on the
+    /// Forces screen or the Armory tab.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsBeltItem => string.Equals(Slot, "Consumable", System.StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>Q2: a triggered ability an item grants its wearer. Carried on the
@@ -203,8 +252,21 @@ public class ItemInstance
     /// are removed.</summary>
     public int BlightBonus = 0;
 
+    // ── M6 active items. Additive save fields: old instances deserialize with
+    // Charges -1 (not a charged item) and an empty binding. ───────────────────
+    /// <summary>Wand charges left this expedition. -1 = this item has no charges.</summary>
+    public int Charges = -1;
+    /// <summary>Spellglass: the card blueprint id sealed in this glass. Wands leave
+    /// it empty and read their definition's BoundCardId.</summary>
+    public string BoundCardId = "";
+
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsBlighted => !string.IsNullOrEmpty(DrawbackKey);
+
+    /// <summary>The card this instance casts, if any: the instance binding first
+    /// (spellglass), else the definition's (wand).</summary>
+    public string EffectiveBoundCardId(ItemDefinition def)
+        => !string.IsNullOrEmpty(BoundCardId) ? BoundCardId : (def?.BoundCardId ?? "");
 
     public static ItemInstance FromDefinition(ItemDefinition def)
     {
@@ -217,6 +279,7 @@ public class ItemInstance
             UnitClass = def.UnitClass,
             Rarity = def.Rarity,
             GoldValue = def.GoldValue,
+            Charges = def.MaxCharges > 0 ? def.MaxCharges : -1,
         };
     }
 }
@@ -231,6 +294,13 @@ public class UnitLoadout
     public string WeaponInstanceId = null;
     public string ArmorInstanceId = null;
     public string TrinketInstanceId = null;
+
+    /// <summary>R9 (spec v1 §11): the Belt, two slots of consumables or spellglass
+    /// per unit. Additive save field; old loadouts deserialize with an empty belt.
+    /// Kept as a list rather than two named slots so the enum loops over
+    /// EquipmentSlot stay untouched.</summary>
+    public List<string> BeltInstanceIds = new();
+    public const int BeltSlots = 2;
 
     public string GetSlot(EquipmentSlot slot) => slot switch
     {

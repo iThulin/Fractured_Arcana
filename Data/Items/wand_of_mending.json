@@ -1,0 +1,14 @@
+{
+  "id": "wand_of_mending",
+  "name": "Wand of Mending",
+  "description": "Three charges of Minor Restoration per expedition; refilled at campus. 1 AP to fire. A martial pays 1 Edge on top.",
+  "rarity": "Uncommon",
+  "slot": "Trinket",
+  "unitClass": "Any",
+  "activeKind": "wand",
+  "boundCardId": "adept_minor_restoration",
+  "maxCharges": 3,
+  "passive": "None",
+  "passiveValue": 0,
+  "goldValue": 140
+}

@@ -3,6 +3,7 @@
   "name": "Kael Ashblade",
   "school": "None",
   "unitClass": "Fighter",
+  "startingWeaponId": "iron_sword",
   "personalityTrait": "Reckless",
   "vocation": "Sapper",
   "backstory": "A pit fighter who caught the guild's eye after surviving three rounds against a summoned elemental.",

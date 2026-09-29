@@ -185,6 +185,7 @@ public partial class CombatManager : Node3D
         SpawnTestUnits();
         RegisterSummonHandler();
         InstallZoneOfControl();
+        InstallReactions();   // Edge M4: walk-step hook and routing cost
 
         // Wire up helper nodes
         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
@@ -322,6 +323,7 @@ public partial class CombatManager : Node3D
     {
         base._ExitTree();
         UninstallZoneOfControl();
+        UninstallReactions();
     }
 
     public override void _Process(double delta)
@@ -421,7 +423,9 @@ public partial class CombatManager : Node3D
             // ── Martial attack preview (cast_preview_v1): a selected martial unit
             // hovering an enemy sees its own reach, the enemies it can hit, and the
             // shot's trajectory, the same way a dragged card does. ──
-            if (!_isCardBeingDragged)
+            // An armed technique card owns the shared envelope renderer (Edge M2):
+            // the basic-attack preview must not wipe its target rings on hover.
+            if (!_isCardBeingDragged && !AnyCardArmed)
             {
                 if (hitUnit != null && !hitUnit.IsPlayerControlled && hitUnit.Stats.IsAlive
                     && selectedUnit != null && (selectedUnit.IsMartial || selectedUnit.StationWeapon != null)
@@ -545,6 +549,7 @@ public partial class CombatManager : Node3D
 
                 if (companionCards.Count > 0)
                     cards.AddRange(companionCards);
+                AddStaffInnate(unit, cards);   // M7: the staff's bound card, Innate
 
                 unit.DeckData.Initialize(cards);
                 injectedCompanionCards = true;
@@ -561,6 +566,7 @@ public partial class CombatManager : Node3D
                 // unreliable. Their ContributedCardIds stay in the WIZARD's
                 // deck (BuildCompanionCardList), not duplicated here.
                 var starter = StarterDeckLoader.BuildStarterCards(unit.School);
+                AddStaffInnate(unit, starter);   // M7: arcane companions with staves too
                 unit.DeckData.Initialize(starter);
                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
                          $"({unit.School}) [companion starter deck]");
@@ -783,6 +789,7 @@ public partial class CombatManager : Node3D
         int manaToShow = (unitToShow != null && !unitToShow.IsPlayerControlled) ? 0 : mana;
 
         combatUI.ShowSelectedUnit(unitToShow, manaToShow);
+        RefreshTechniqueTray();   // Edge M2: the martial half of the action tray
     }
 
     private void RefreshEnemyRoster()
@@ -873,6 +880,8 @@ public partial class CombatManager : Node3D
             // Right-click cancels a pending second pick before anything else reads it.
             if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && TwoStepPending)
             { CancelTwoStep(); return; }
+            if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && AnyCardArmed)
+            { DisarmManeuver(); return; }
             if (mb.ButtonIndex == MouseButton.Right && mb.Pressed && _armedAction != UnitAction.None)
             { DisarmAction(); return; }
 
@@ -889,6 +898,9 @@ public partial class CombatManager : Node3D
         if (e is InputEventKey esc && esc.Pressed && !esc.Echo
             && esc.Keycode == Key.Escape && TwoStepPending)
         { CancelTwoStep(); return; }
+        if (e is InputEventKey escM && escM.Pressed && !escM.Echo
+            && escM.Keycode == Key.Escape && AnyCardArmed)
+        { DisarmManeuver(); return; }
         if (e is InputEventKey escA && escA.Pressed && !escA.Echo
             && escA.Keycode == Key.Escape && _armedAction != UnitAction.None)
         { DisarmAction(); return; }
@@ -911,8 +923,20 @@ public partial class CombatManager : Node3D
         if (e is InputEventKey k && k.Pressed && !k.Echo)
         {
             // Existing bindings
-            if (k.Keycode == Key.R)
+            if (k.Keycode == Key.R && !k.CtrlPressed)
                 ResolveTop();
+
+            // Edge debug lever (D13): Ctrl+E fill, Ctrl+Shift+E empty.
+            if (k.Keycode == Key.E && k.CtrlPressed)
+            { DebugSetEdge(fill: !k.ShiftPressed); return; }
+            // D13: Ctrl+G staggers the inspected enemy; Ctrl+W cycles the selected
+            // martial's weapon class.
+            if (k.Keycode == Key.G && k.CtrlPressed)
+            { DebugStaggerInspected(); return; }
+            if (k.Keycode == Key.W && k.CtrlPressed)
+            { DebugCycleWeaponClass(); return; }
+            if (k.Keycode == Key.R && k.CtrlPressed)
+            { DebugRefillWands(); return; }   // D13 (M6): refill wand charges
 
             // ── Unit selection ────────────────────────────────────────────
             if (currentPhase == CombatPhase.PlayerTurn)
@@ -993,6 +1017,10 @@ public partial class CombatManager : Node3D
         {
             if (current is Unit unit)
             {
+                // An armed technique card owns the click (Edge M2).
+                if (TryHandleManeuverClick(unit, null))
+                    return;
+
                 // The Dance (last_rite tier 4): while the caster carries `dancing`,
                 // Shift+click swaps the selected eligible mover with this unit
                 // (another eligible mover, or any enemy) as a free action.
@@ -1022,6 +1050,10 @@ public partial class CombatManager : Node3D
 
             if (current is HexTile tile)
             {
+                // An armed technique card owns the click (Edge M2): Line shapes aim at tiles.
+                if (TryHandleManeuverClick(null, tile))
+                    return;
+
                 // Interact armed: a click on a breakable wall is a blow, not a move.
                 if (_armedAction == UnitAction.Interact && selectedUnit != null)
                 {
@@ -1423,12 +1455,20 @@ public partial class CombatManager : Node3D
 
         if (save != null)
         {
-            // Group by definition: one row per kind, consuming one instance.
+            // Edge M6 (R9): the satchel is the selected unit's BELT. A consumable
+            // reaches the field on a belt or not at all; the tray shows the same
+            // two items as cards. Grouped by definition, consuming one instance.
+            var beltIds = new HashSet<string>();
+            if (selectedUnit != null)
+                foreach (var b in save.Armory.GetBelt(LoadoutKeyFor(selectedUnit)))
+                    beltIds.Add(b.InstanceId);
             var byDef = new Dictionary<string, (ItemInstance first, int count)>();
             foreach (var inst in save.Armory.OwnedItems)
             {
                 var d = ItemDatabase.Get(inst.DefinitionId);
                 if (d == null || !d.IsConsumable)
+                    continue;
+                if (!beltIds.Contains(inst.InstanceId))
                     continue;
                 // Deploy loadout (2026-08-21): kinds unchecked on the launch
                 // drawer stay in the campus stores. They never reach the field.
@@ -1462,6 +1502,7 @@ public partial class CombatManager : Node3D
         string note =
             currentPhase != CombatPhase.PlayerTurn ? "Consumables can only be used on your turn." :
             selectedUnit == null ? "Select a unit first." :
+            entries.Count == 0 ? $"{selectedUnit.DisplayName}'s belt is empty. Belts are packed on the Forces screen or the Armory tab. Every item costs 1 AP." :
             selectedUnit.IsObjectiveWard
                 ? $"Target: {selectedUnit.DisplayName}. It cannot drink; scrolls only." +
                   (_scrollReadThisTurn ? " The party's scroll is spent this turn." : "")
@@ -1510,42 +1551,26 @@ public partial class CombatManager : Node3D
                 return;
         }
 
-        string line;
-        switch (def.ConsumeEffect)
+        // Whetstones are a martial's tool (spec §11c); the tray says so, the satchel must too.
+        if (def.ConsumeEffect == "edge" && !EdgeRules.UsesEdge(unit))
         {
-            case "heal":
-                int before = unit.Stats.Health;
-                unit.Stats.Health = Mathf.Min(unit.Stats.MaxHealth,
-                                              unit.Stats.Health + def.ConsumeValue);
-                line = $"{unit.DisplayName} drinks the {def.Name} and restores {unit.Stats.Health - before} HP.";
-                break;
-            case "shield":
-                unit.Stats.Shield += def.ConsumeValue;
-                line = $"{unit.DisplayName} reads the {def.Name} and gains {def.ConsumeValue} shield.";
-                break;
-            case "mana":
-                unit.Stats.Mana = Mathf.Min(unit.Stats.MaxMana,
-                                            unit.Stats.Mana + def.ConsumeValue);
-                line = $"{unit.DisplayName} drinks the {def.Name}. Mana restored.";
-                break;
-            case "ap":
-                unit.CurrentActionPoints += def.ConsumeValue;
-                line = $"{unit.DisplayName} drinks the {def.Name} for +{def.ConsumeValue} action points.";
-                break;
-            default:
-                GD.PrintErr($"[Consumable] Unknown effect '{def.ConsumeEffect}' on {def.Id}.");
-                return;
+            combatUI?.AppendActionLog($"Only a classed martial can use the {def.Name}.");
+            return;
         }
-
-        if (isScroll) _scrollReadThisTurn = true;
-        else unit.HasUsedConsumableThisTurn = true;
-        save.Armory.RemoveItem(inst.InstanceId);
-        SaveManager.MarkDirty();
-        unit.RefreshHealthBar();
-        combatUI?.AppendActionLog(line);
-        GD.Print($"[Consumable] {line}");
-        combatUI?.CloseConsumableList();
-        RefreshPlayerUnitBar();
+        // Edge M6 (spec §11c): every pinned item costs 1 AP, satchel or tray. The
+        // objective ward has no AP and cannot act; a scroll read over it is free,
+        // as it was before M6 (the ward reads nothing itself).
+        if (!unit.IsObjectiveWard && (!unit.CanAct() || !unit.TrySpendAP(MartialAPCosts.UseItem)))
+        {
+            combatUI?.AppendActionLog($"{unit.DisplayName} needs {MartialAPCosts.UseItem} AP to use {def.Name}.");
+            return;
+        }
+        if (!ApplyConsumableEffect(unit, def, out string line))
+        {
+            unit.CurrentActionPoints += MartialAPCosts.UseItem;
+            return;
+        }
+        FinishConsumable(unit, inst, def, line);
     }
 
     /// <summary>The first player unit that can take orders right now: not a
@@ -1599,6 +1624,7 @@ public partial class CombatManager : Node3D
 
         CombatCamera?.FocusOn(unit);
 
+        DisarmManeuver(refresh: false);   // Edge M2: an armed card belongs to one unit
         ClearMoveTiles();
         ShowMoveTilesWithCost(unit);
         ShowConstructAura(unit);   // §8: ring this unit's aura radius if it has one
@@ -1776,6 +1802,9 @@ public partial class CombatManager : Node3D
         {
             GD.Print($"{selectedUnit.Name} moved to {tileData.Axial}");
             combatUI?.AppendActionLog($"{selectedUnit.Name} moves.");
+            int edgeBeforeMove = selectedUnit.Edge;
+            EdgeRules.OnAction(selectedUnit, EdgeActionKind.Move);   // Skirmish momentum
+            RecordMartial(selectedUnit, "move", "", edgeBeforeMove);
             ClearMoveTiles();
             ShowMoveTilesWithCost(selectedUnit);
             RefreshSelectedUnitUI();
@@ -1939,6 +1968,7 @@ public partial class CombatManager : Node3D
         }
 
         attacker.Stats.HasActed = true;
+        RecordMartial(attacker, "shove", "", attacker.Edge);   // M5 measurement
         var dir = ForcedMove.StepAwayFrom(grid, attacker.CurrentTile.Axial, target.CurrentTile.Axial);
         combatUI?.AppendActionLog($"{attacker.Name} shoves {target.Name}.");
         ForcedMove.Push(grid, target, dir, 1, BodyCheckCollision(attacker), null,
@@ -1966,6 +1996,10 @@ public partial class CombatManager : Node3D
         int effectiveRange = attacker.AttackRange + attacker.StationRangeBonus;
         if (attacker.ActiveStance != null)
             effectiveRange += attacker.ActiveStance.AttackRangeBonus;
+        // Whether this is a shot or a swing is the WEAPON's call, read before the
+        // Honed reach below: a Honed polearm thrusts 2 tiles at melee price.
+        bool isRangedWeapon = effectiveRange > 1;
+        effectiveRange += HonedRangeBonus(attacker, effectiveRange);   // Edge M2 (spec §4b)
 
         // Height rules (2026-08-11 ruling), symmetric with the enemy AI:
         // melee reaches where feet reach, so no swording across a cliff edge;
@@ -1977,7 +2011,7 @@ public partial class CombatManager : Node3D
                 $"{attacker.Name} cannot strike across so great a height.");
             return;
         }
-        if (effectiveRange > 1 && heightDiff > 0)
+        if (isRangedWeapon && heightDiff > 0)   // a Honed polearm is still a swing, not a shot
             effectiveRange += 1;
 
         int dist = grid.Distance(attacker.CurrentTile, target.CurrentTile);
@@ -2006,7 +2040,7 @@ public partial class CombatManager : Node3D
         }
 
         // ── AP cost ───────────────────────────────────────────────────────
-        bool isRanged = effectiveRange > 1;
+        bool isRanged = isRangedWeapon;
         int apCost = isRanged ? MartialAPCosts.AttackRanged : MartialAPCosts.AttackMelee;
 
         if (!attacker.TrySpendAP(apCost))
@@ -2087,6 +2121,9 @@ public partial class CombatManager : Node3D
         unit.ActiveStance = newStance;
         unit.HasSwitchedStanceThisTurn = true;
         unit.Stats.HasActed = true;   // it cost AP; it counts
+        int edgeBeforeSwitch = unit.Edge;
+        EdgeRules.OnAction(unit, EdgeActionKind.StanceSwitch);   // Skirmish momentum
+        RecordMartial(unit, "stance", newStance.Id, edgeBeforeSwitch);
 
         // Apply new stance passives immediately
         ApplyMartialStancePassives(unit);
@@ -2102,6 +2139,7 @@ public partial class CombatManager : Node3D
     private void ResolveMartialAttack(Unit attacker, Unit target)
     {
         var stance = attacker.ActiveStance;
+        int edgeBeforeAttack = attacker.Edge;   // M5 measurement
 
         // Cover keys off how the blow travels: adjacent is a Melee swing (past the
         // wall), anything further is a Bolt that Low cover can soak.
@@ -2112,10 +2150,11 @@ public partial class CombatManager : Node3D
         // ── Compute base damage ───────────────────────────────────────────
         int damage = attacker.AttackDamage;
 
-        // Equipment bonus (from loadout)
-        var loadout = EquipmentLoadout.Get(attacker.CompanionId);
-        if (loadout != null)
-            damage += loadout.BonusAttackDamage;
+        // Equipment bonus: ALREADY inside AttackDamage. ApplyEquipmentLoadout adds
+        // loadout.BonusAttackDamage to unit.AttackDamage at spawn (and the Q1
+        // parity assert checks exactly that), so the add that used to sit here
+        // counted every weapon twice. Removed 2026-09-27 with Edge M2, which
+        // prices maneuvers off AttackDamage and needs one truth for ATK.
         damage += attacker.StationDamageBonus;   // castle_defense_v1: a manned ballista
 
         // BonusDamageAboveHalfHP (implemented 2026-08-13; the tag existed
@@ -2139,11 +2178,12 @@ public partial class CombatManager : Node3D
             damage += berserkBonus;
         }
 
-        // Ambush: double damage on first attack of combat
+        // Ambush: +50% damage on the first attack of combat (R6 trim from double;
+        // integer floor, so 5 becomes 7). The stance now also opens at 3 Edge.
         if (stance?.SpecialTag == StanceSpecialTag.AmbushFirstStrike
             && !attacker.HasAttackedThisCombat)
         {
-            damage *= 2;
+            damage += damage / 2;
         }
 
         // Aimed: only apply bonus if unit hasn't moved. Same retarget as the gate above.
@@ -2156,6 +2196,10 @@ public partial class CombatManager : Node3D
 
         // Armor-piercing
         bool ignoresArmor = stance?.AttackIgnoresArmor ?? false;
+
+        // Honed riders (Edge M2, spec §4b): read once, before damage lands.
+        bool honed = EdgeRules.IsHoned(attacker);
+        bool honedPierceOne = honed && attacker.WeaponClass == WeaponClass.Crossbow && !ignoresArmor;
 
         // ── Wildlife behavior tags (2026-07-12) ──────────────────────────
         // Pack: +1 damage per OTHER living pack-tagged ally (wolves hunt together).
@@ -2179,6 +2223,25 @@ public partial class CombatManager : Node3D
             damage += 3;
             combatUI?.AppendActionLog($"[Charge] {attacker.Name} slams in with momentum for +3 damage.");
         }
+
+        // Edge (spec v1 §5): every enemy this action will hit, read BEFORE damage
+        // and before on-hit statuses, so "full HP" and "already Vulnerable" are the
+        // pre-hit facts. Volley has no line-piercing resolver yet, so its extra
+        // targets are always zero here; Reckless splash counts.
+        var edgeTargets = new List<Unit> { target };
+        if (stance?.SpecialTag == StanceSpecialTag.AoeAdjacent && attacker.CurrentTile != null)
+        {
+            foreach (var neighbor in grid.GetNeighbors(attacker.CurrentTile.Axial))
+            {
+                var occ = grid.GetTile(neighbor)?.Occupant;
+                if (occ == null || occ == target || occ.TeamId == attacker.TeamId || !occ.Stats.IsAlive)
+                    continue;
+                edgeTargets.Add(occ);
+            }
+        }
+        bool edgeTargetWasMarked = target.HasStatus("marked");
+        EdgeRules.OnAttackHits(attacker, edgeTargets);
+        RefreshOpeningsMarkers(attacker, edgeTargets);   // Opportunist (M5)
 
         // Marked target bonus
         int markedBonus = 0;
@@ -2210,9 +2273,25 @@ public partial class CombatManager : Node3D
                 target.Stats.Armor = savedArmor;
             combatUI?.AppendActionLog($"[Aimed] Armor ignored.");
         }
+        else if (honedPierceOne && target.Stats.Armor > 0)
+        {
+            // Crossbow, Honed: one point of armor is not there for this bolt.
+            target.Stats.Armor -= 1;
+            target.ApplyDamage(damage, attacker, delivery);
+            if (target.Stats.IsAlive)
+                target.Stats.Armor += 1;
+            combatUI?.AppendActionLog("[Honed] 1 armor ignored.");
+        }
         else
         {
             target.ApplyDamage(damage, attacker, delivery);
+        }
+
+        if (honed && attacker.WeaponClass == WeaponClass.SwordShield)
+        {
+            attacker.Stats.Shield += 1;
+            attacker.RefreshHealthBar();
+            combatUI?.AppendActionLog($"[Honed] {attacker.Name} gains 1 shield.");
         }
 
         // ── AoE: Reckless hits all adjacent enemies ────────────────────────
@@ -2310,6 +2389,13 @@ public partial class CombatManager : Node3D
         attacker.HasAttackedThisTurn = true;
         attacker.Stats.HasActed = true;
 
+        // Edge (spec v1 §5): the attack is an action for Skirmish momentum, and a
+        // hit on a target that carried Marked pays every OTHER Marked-stance ally.
+        EdgeRules.OnAction(attacker, EdgeActionKind.Attack);
+        if (edgeTargetWasMarked && attacker.IsPlayerControlled)
+            EdgeRules.OnAllyHitMarkedTarget(attacker, playerUnits);
+        RecordMartial(attacker, "attack", "", edgeBeforeAttack);
+
         // Q2 (§7a): onAttack item procs ride the trigger stack (auto-passing).
         // Queued with the struck target captured; drained now unless a priority
         // window already owns the drain. Fires only when the target survived.
@@ -2404,6 +2490,7 @@ public partial class CombatManager : Node3D
         currentPhase = CombatPhase.PlayerTurn;
         enemyPhaseRunning = false;
         _endTurnConfirmPending = false;   // a new turn never inherits last turn's warning
+        _edgeActivationId++;              // Edge: the player phase is its own activation
 
         // (2026-07-28, U3e) Ritardando's "+1 enemy spell cost" expires HERE, not at
         // the head of the enemy phase where it used to be cleared before it could
@@ -2427,6 +2514,14 @@ public partial class CombatManager : Node3D
             // ever switch once per COMBAT. Reset with the other turn-start
             // state, beside the stance passive re-apply.
             unit.HasSwitchedStanceThisTurn = false;
+
+            // Edge (spec v1 §5): per-turn bookkeeping reset, then the turn-start
+            // triggers (Reckless, Berserk). An extra turn counts as a turn: the
+            // per-window gain cap in EdgeRules bounds what a second start can add.
+            EdgeRules.OnTurnStart(unit);
+            RefundUnfiredReaction(unit);   // Edge M4 (spec §7a rule 2): a refund is not a gain
+            if (EdgeRules.UsesEdge(unit))
+                CombatTelemetry.RecordMartialTurn(unit.Name, roundNumber);   // M5 measurement denominator
 
             unit.Attunement?.Decay();
             State.SpellsCastThisTurn = 0;
@@ -2654,6 +2749,11 @@ public partial class CombatManager : Node3D
                 combatUI?.AppendActionLog($"[Bulwark] {unit.Name} braces for +4 shield until your next turn.");
             }
 
+            // Edge (spec v1 §5): end-of-turn trigger (Aimed), then idle decay.
+            // BEFORE the enemy phase, so the decay window closes here and Edge
+            // earned while the enemies act lands in next turn's window.
+            EdgeRules.OnTurnEnd(unit, CountCounteredIntents(unit));   // Vigilant reads the board (M5)
+
             unit.RefreshHealthBar();
 
             // Spirit on-kill riders last a single turn.
@@ -2668,6 +2768,7 @@ public partial class CombatManager : Node3D
         ClearMoveTiles();
         GD.Print("=== Player Turn End ===");
         DisarmAction(refresh: false);   // an armed bar action does not survive the turn
+        DisarmManeuver(refresh: false); // nor does an armed technique card
         RefreshPhaseUI();
 
         // ── Extra turn check ──────────────────────────────────────────────────────
@@ -2707,6 +2808,13 @@ public partial class CombatManager : Node3D
     /// turn and by any unit selection, so the warning can never carry across a
     /// decision the player has since revisited.</summary>
     private bool _endTurnConfirmPending = false;
+
+    /// <summary>Edge (spec v1 §5): once-per-enemy-activation claims compare
+    /// against this. Bumped at the head of every enemy activation in
+    /// RunEnemyTurn and once at the head of every player turn, so a hit
+    /// taken during the player's own phase (a retaliation, a trap) owns an
+    /// id no enemy activation shares.</summary>
+    private int _edgeActivationId = 0;
 
     /// <summary>Living player units that have done nothing this turn AND could still do
     /// something about it.
@@ -3021,6 +3129,47 @@ public partial class CombatManager : Node3D
 
         // Refresh UI and clear all discard flags
         deckManager?.DrawCards(0);
+    }
+
+    /// <summary>Edge (spec v1 §5): an enemy's blow has reached a friendly unit.
+    /// Raised by Unit.ApplyDamage BEFORE mitigation, so a hit the Defensive plate
+    /// ate whole still counts as being struck (Unit.OnStruck fires only on HP
+    /// loss, which would make the armour stance's own trigger self-defeating).
+    /// Defensive pays the target; Guardian pays its adjacent allies. Both claim
+    /// at most once per activation id.</summary>
+    private void HandleUnitAttacked(Unit target, Unit source, int amount)
+    {
+        if (target == null || !IsInstanceValid(target) || !target.IsPlayerControlled)
+            return;
+        if (source == null || !IsInstanceValid(source) || source.TeamId == target.TeamId)
+            return;
+
+        EdgeRules.OnStruck(target, _edgeActivationId);
+
+        if (target.CurrentTile == null || grid == null)
+            return;
+        var adjacentFriendlies = new List<Unit>();
+        foreach (var neighbor in grid.GetNeighbors(target.CurrentTile.Axial))
+        {
+            var occ = grid.GetTile(neighbor)?.Occupant;
+            if (occ != null && occ != target && occ.TeamId == target.TeamId && occ.Stats.IsAlive)
+                adjacentFriendlies.Add(occ);
+        }
+        EdgeRules.OnAllyAttacked(target, adjacentFriendlies, _edgeActivationId);
+    }
+
+    /// <summary>DEBUG lever (D13, debug builds only): Ctrl+E fills the selected
+    /// martial's Edge, Ctrl+Shift+E empties it. Neither counts as a gain or a
+    /// spend, so the decay window is untouched.</summary>
+    private void DebugSetEdge(bool fill)
+    {
+        if (!OS.IsDebugBuild() || selectedUnit == null || !EdgeRules.UsesEdge(selectedUnit))
+            return;
+        selectedUnit.Edge = fill ? selectedUnit.MaxEdge : 0;
+        selectedUnit.RefreshHealthBar();
+        GD.Print($"[Debug] {selectedUnit.Name} Edge set to {selectedUnit.Edge}/{selectedUnit.MaxEdge}.");
+        combatUI?.AppendActionLog($"[Debug] {selectedUnit.Name} Edge {selectedUnit.Edge}/{selectedUnit.MaxEdge}.");
+        RefreshSelectedUnitUI();
     }
 
     private void ApplyMartialStancePassives(Unit unit)
@@ -3519,6 +3668,7 @@ public partial class CombatManager : Node3D
     {
         if (unit == null)
             return;
+        DropReactionOnDeath(unit);   // Edge M4: no overlay, no refund, for the dead
 
         // E3: neutral field objects run their own death path (on-death effect,
         // LoS clear, rubble) and skip the player/enemy death machinery entirely.
@@ -4363,6 +4513,26 @@ public partial class CombatManager : Node3D
                 if (unit.AvailableStances.Count > 0)
                     unit.ActiveStance = unit.AvailableStances[0];
 
+                // Debug launcher stance override (2026-09-28): open in this stance,
+                // learning it for the fight if the companion does not know it.
+                if (PlayerSession.DebugCombat
+                    && PlayerSession.DebugStanceOverride.TryGetValue(companion.Id, out var dbgStanceId)
+                    && !string.IsNullOrEmpty(dbgStanceId))
+                {
+                    var dbgStance = StanceRegistry.Get(dbgStanceId);
+                    if (dbgStance != null)
+                    {
+                        if (!unit.AvailableStances.Contains(dbgStance))
+                            unit.AvailableStances.Add(dbgStance);
+                        unit.ActiveStance = dbgStance;
+                        GD.Print($"[Debug] {companion.Name} opens in {dbgStance.DisplayName} (launcher override).");
+                    }
+                }
+
+                // Edge (spec v1 §3): fresh every fight, after ActiveStance is set
+                // so Ambush's starting bonus reads the stance it opens in.
+                EdgeRules.ResetForCombat(unit, tgTier);
+
                 GD.Print($"[Spawn] {companion.Name} ({companion.UnitClass}) " +
                          $"AP:{unit.MaxActionPoints} ATK:{unit.AttackDamage} " +
                          $"RNG:{unit.AttackRange} Stances:{unit.AvailableStances.Count}");
@@ -4407,6 +4577,19 @@ public partial class CombatManager : Node3D
         // EquipmentLoadout.BuildForRun both use it), and the units carry it in
         // CompanionId. "companion_{i}" matched nothing, so no companion ever
         // received an equipment bonus in combat.
+        // Debug fights (2026-09-28): the expedition builds loadouts in
+        // ExpeditionManager, which a launcher fight never passes through, so
+        // equipment used to vanish in every debug combat. Build them here from
+        // the real armory so a debug fight fields what the Armory tab shows.
+        if (PlayerSession.DebugCombat && SaveManager.ActiveSave?.Armory != null)
+        {
+            var dbgIds = new List<string>();
+            foreach (var pu0 in playerUnits)
+                if (pu0 != null && !string.IsNullOrEmpty(pu0.CompanionId))
+                    dbgIds.Add(pu0.CompanionId);
+            EquipmentLoadout.BuildForRun(SaveManager.ActiveSave.Armory, "wizard", dbgIds);
+        }
+
         for (int i = 0; i < playerUnits.Count; i++)
         {
             var pu = playerUnits[i];
@@ -4415,6 +4598,13 @@ public partial class CombatManager : Node3D
             // index 0 is a companion.
             string unitId = string.IsNullOrEmpty(pu.CompanionId) ? "wizard" : pu.CompanionId;
             ApplyEquipmentLoadout(pu, unitId);
+            ApplyDebugWeaponOverride(pu);   // launcher loadout block, debug fights only
+
+            // D4: a classed martial with no classed weapon loses its maneuvers
+            // silently. Say so once, loudly, at spawn.
+            if (EdgeRules.UsesEdge(pu) && pu.WeaponClass == WeaponClass.None)
+                GD.PushWarning($"[Maneuvers] {pu.Name} fields no classed weapon: basic attack only. " +
+                               "Equip a weapon with a weaponClass, or set one on its item JSON.");
         }
 
         // Default encounter composition, to be replaced by EncounterDefinition
@@ -5067,6 +5257,7 @@ public partial class CombatManager : Node3D
             AddChild(unit);
             unit.OnDied += HandleUnitDeath;
             unit.OnStruck += HandleUnitStruck;   // U3b
+            unit.OnAttacked += HandleUnitAttacked;   // Edge: Defensive / Guardian
             unit.OnMoved += HandleUnitMoved;     // U3e: binding_geas
             unit.PlaceOnTile(tile);
 
@@ -5084,6 +5275,7 @@ public partial class CombatManager : Node3D
             unit.CycleLoops = p.Def.CycleLoops;
             unit.Abilities = p.Def.Abilities;   // defs are stateless: share, don't copy
             unit.Role = p.Def.Role;
+            unit.MaxPoise = unit.Poise = p.Def.ResolvedPoise;   // spec §2a (R5)
             unit.FactionId = p.Def.FactionId;
             unit.AttackRange = p.AttackRange;
             unit.AttackDamage = p.AttackDamage;
@@ -5172,6 +5364,7 @@ public partial class CombatManager : Node3D
 
         unit.OnDied += HandleUnitDeath;
         unit.OnStruck += HandleUnitStruck;   // U3b
+        unit.OnAttacked += HandleUnitAttacked;   // Edge: Defensive / Guardian
         unit.OnMoved += HandleUnitMoved;     // U3e: binding_geas
         unit.PlaceOnTile(tile);
 
@@ -5612,6 +5805,7 @@ public partial class CombatManager : Node3D
         AddChild(unit);
         unit.OnDied += HandleUnitDeath;
         unit.OnStruck += HandleUnitStruck;   // U3b
+        unit.OnAttacked += HandleUnitAttacked;   // Edge: Defensive / Guardian
         unit.OnMoved += HandleUnitMoved;     // U3e: binding_geas
         unit.PlaceOnTile(tile);
         // Same tier-2 budget as SpawnAndPlaceEnemies, so risen/summoned units fight
@@ -5638,6 +5832,7 @@ public partial class CombatManager : Node3D
         unit.CycleLoops = def.CycleLoops;
         unit.Abilities = def.Abilities;
         unit.Role = def.Role;
+        unit.MaxPoise = unit.Poise = def.ResolvedPoise;   // spec §2a (R5)
         unit.FactionId = def.FactionId;
         unit.CasterSpell = def.CasterSpell;
         unit.AttackRange = def.AttackRange;
@@ -5664,6 +5859,38 @@ public partial class CombatManager : Node3D
     /// Called immediately after the unit is spawned and initialized.
     /// unitId: "wizard" for the main wizard, companion ID for companions.
     /// </summary>
+    /// <summary>Debug launcher loadout block (2026-09-28): field this item
+    /// definition as the unit's weapon for the fight. Replaces whatever the
+    /// armory loadout gave: its class, and its attack damage and range deltas.
+    /// Touches nothing in the save.</summary>
+    private void ApplyDebugWeaponOverride(Unit unit)
+    {
+        if (!PlayerSession.DebugCombat || unit == null || string.IsNullOrEmpty(unit.CompanionId))
+            return;
+        if (!PlayerSession.DebugWeaponOverride.TryGetValue(unit.CompanionId, out var defId) || string.IsNullOrEmpty(defId))
+            return;
+        var def = ItemDatabase.Get(defId);
+        if (def == null)
+        {
+            GD.PushWarning($"[Debug] Weapon override '{defId}' for {unit.Name} is not in Data/Items.");
+            return;
+        }
+        // Undo the armory weapon's class and stats first, so two weapons never stack.
+        var loadout = EquipmentLoadout.Get(unit.CompanionId);
+        var armory = SaveManager.ActiveSave?.Armory;
+        var equippedId = armory?.GetLoadout(unit.CompanionId).WeaponInstanceId;
+        var equippedDef = !string.IsNullOrEmpty(equippedId) ? ItemDatabase.Get(armory.GetInstance(equippedId)?.DefinitionId ?? "") : null;
+        if (equippedDef != null && loadout != null)
+        {
+            unit.AttackDamage -= equippedDef.Stats.AttackDamage;
+            unit.AttackRange -= equippedDef.Stats.AttackRange;
+        }
+        unit.WeaponClass = def.WeaponClassValue;
+        unit.AttackDamage += def.Stats.AttackDamage;
+        unit.AttackRange = Math.Max(1, unit.AttackRange + def.Stats.AttackRange);
+        GD.Print($"[Debug] {unit.Name} fields {def.Name} ({def.WeaponClass}) by launcher override.");
+    }
+
     private void ApplyEquipmentLoadout(Unit unit, string unitId)
     {
         var loadout = EquipmentLoadout.Get(unitId);
@@ -5705,6 +5932,9 @@ public partial class CombatManager : Node3D
 
         if (loadout.BonusSpellDamage != 0)
             unit.BonusSpellDamage = loadout.BonusSpellDamage;
+
+        // Edge M2 (spec §6): the weapon's class decides the technique cards.
+        unit.WeaponClass = loadout.WeaponClass;
 
         // ── Passive tags ──────────────────────────────────────────────────
         unit.EquipmentPassives = new List<(ItemPassiveTag, int, string)>(loadout.Passives);

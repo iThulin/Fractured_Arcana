@@ -5,6 +5,8 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "tinker_arc_bolt",
   "stats": {},
   "passive": "SchoolSpellDamage",
   "passiveValue": 1,

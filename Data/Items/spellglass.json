@@ -1,0 +1,10 @@
+{
+  "id": "spellglass",
+  "name": "Spellglass",
+  "description": "A spell sealed in glass. Shatter it to cast the sealed spell once, at printed values, mana or no mana. Any unit. 1 AP.",
+  "rarity": "Uncommon",
+  "slot": "Consumable",
+  "unitClass": "Any",
+  "activeKind": "spellglass",
+  "goldValue": 0
+}

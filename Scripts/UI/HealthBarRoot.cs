@@ -4,449 +4,337 @@ using System.Collections.Generic;
 // ============================================================
 // HealthBarRoot.cs
 //
-// Purpose:        World-space (3D) health/mana/armor/shield bar
-//                 hovering above a unit. Auto-billboards to the
-//                 camera each frame.
+// Purpose:        Anchor for a unit's nameplate. The node sits
+//                 above the unit in the scene (Unit.tscn and
+//                 TargetDummy.tscn place it at y = 2); each frame it
+//                 projects that point to the screen and hangs a
+//                 UnitNameplate (screen-space Control) from it.
 //
-//                 Default (compact) mode: HP bar only.
-//                 Detail mode (hover/selected): mana bar, armor,
-//                 AP pips, and status icons also visible.
+//                 v2 (2026-09-28): replaces the world-space quad bars
+//                 and Label3D symbol line. That design could not show
+//                 more than a handful of conditions, told armor from
+//                 shield only by glyphs the shipped fonts do not
+//                 contain, and only showed conditions on hover.
+//
+//                 Data is PULLED from the parent Unit at a fixed
+//                 rate rather than trusted from the push calls, so a
+//                 code path that changes armor or a status and forgets
+//                 RefreshHealthBar still shows correctly within 0.1 s.
+//                 The push API below is kept whole so no caller has to
+//                 change: pushes just mark the plate dirty (and feed
+//                 the values when the parent is not a Unit).
+//
+//                 The unit's own NameLabel, IntentIndicator and
+//                 CoverMarker Label3Ds are mirrored into the plate and
+//                 hidden from the camera by clearing their render
+//                 layers. Unit.cs keeps writing their text, colour and
+//                 visibility exactly as before.
 //
 // Layer:          UI
-// Collaborators:  Unit.cs, UITheme.cs
+// Collaborators:  Unit.cs, UnitNameplate.cs, StatusCatalog.cs
 // ============================================================
 
 public partial class HealthBarRoot : Node3D
 {
+    // Legacy scene paths, kept so the scene's child meshes can be hidden.
     [Export] public NodePath HealthFillPath  = "HealthFill";
     [Export] public NodePath ManaFillPath    = "ManaFill";
     [Export] public NodePath HealthTextPath  = "HealthText";
     [Export] public NodePath ManaTextPath    = "ManaText";
     [Export] public NodePath SpeedTextPath   = "SpeedText";
-
-    // Back plates, kept as-is from scene
     [Export] public NodePath HealthBackPath  = "HealthBack";
     [Export] public NodePath ManaBackPath    = "ManaBack";
-
-    // Armor / shield fills still exist but we hide them. Values are shown as text.
     [Export] public NodePath ArmorFillPath   = "ArmorFill";
     [Export] public NodePath ShieldFillPath  = "ShieldFill";
-
     [Export] public float FullBarWidth = 1.6f;
 
-    // ── HP gradient colours ─────────────────────────────────────────
-    // Tinted further by isPlayer flag set at init
-    private static readonly Color HpHigh   = new Color(0.20f, 0.85f, 0.25f); // green
-    private static readonly Color HpMid    = new Color(0.95f, 0.80f, 0.10f); // yellow
-    private static readonly Color HpLow    = new Color(0.90f, 0.20f, 0.15f); // red
+    /// <summary>World-space lift above this node where the plate's bottom edge hangs.</summary>
+    [Export] public float AnchorLift = 0.05f;
 
-    // Player bars are cooler/brighter; enemy bars are warmer/redder
-    private static readonly Color PlayerTint = new Color(0.85f, 1.00f, 0.90f);
-    private static readonly Color EnemyTint  = new Color(1.00f, 0.80f, 0.75f);
+    /// <summary>Height above the unit's origin used to decide whether the unit
+    /// itself is on screen (the plate anchor can leave the view first when the
+    /// camera is close).</summary>
+    [Export] public float BodyHeight = 0.6f;
 
-    // ── Cached nodes ───────────────────────────────────────────────
-    private MeshInstance3D _healthFill;
-    private MeshInstance3D _manaFill;
-    private MeshInstance3D _healthBack;
-    private MeshInstance3D _manaBack;
-    private MeshInstance3D _armorFill;
-    private MeshInstance3D _shieldFill;
-    private Label3D        _healthText;
-    private Label3D        _manaText;
-    private Label3D        _speedText;
-    private Label3D        _detailText;   // armor / AP / shield in one line
-    private Node3D         _statusRow;
-    private Camera3D       _camera;
+    /// <summary>Seconds between pulls from the unit when nothing was pushed.</summary>
+    private const float PullInterval = 0.1f;
 
-    private float _healthFillOriginX;
-    private float _manaFillOriginX;
-
-    // Duplicated materials so we can tint per-unit
-    private StandardMaterial3D _hpMat;
-    private StandardMaterial3D _manaMat;
-
-    // Withered (poison-eaten) max HP segment: a lazily created twin of the
-    // HP fill, anchored to the RIGHT end of the bar in a sickly violet.
-    private MeshInstance3D _witherFill;
-    private StandardMaterial3D _witherMat;
-    private static readonly Color WitherColor = new Color(0.48f, 0.22f, 0.55f); // bruised violet
-
+    private Unit _unit;
+    private UnitNameplate _plate;
     private bool _isPlayer = true;
     private bool _isDetailed = false;
+    private bool _dirty = true;
+    private float _pullTimer = 0f;
 
-    // ── Status display map ─────────────────────────────────────────
-    private static readonly Dictionary<string, (string symbol, Color color)> StatusDisplay = new()
-    {
-        { "burn",                   ("🔥", new Color(1.0f,  0.45f, 0.1f))  },
-        { "frozen",                 ("❄",  new Color(0.4f,  0.8f,  1.0f))  },
-        { "poisoned",               ("☠",  new Color(0.5f,  0.9f,  0.2f))  },
-        { "stunned",                ("★",  new Color(1.0f,  0.95f, 0.3f))  },
-        { "rooted",                 ("⊕",  new Color(0.55f, 0.85f, 0.3f))  },
-        { "slowed",                 ("↓",  new Color(0.6f,  0.6f,  0.9f))  },
-        { "weakened",               ("↘",  new Color(0.7f,  0.5f,  0.8f))  },
-        { "haunted",                ("✦",  new Color(0.7f,  0.4f,  1.0f))  },
-        { "bound",                  ("⛓",  new Color(0.75f, 0.65f, 0.4f))  },
-        { "arcane_mark",            ("◈",  new Color(0.4f,  0.7f,  1.0f))  },
-        { "chaining",               ("⚡",  new Color(0.9f,  0.85f, 0.2f))  },
-        { "vigil",                  ("👁",  new Color(0.85f, 0.85f, 1.0f))  },
-        { "undying_turn",           ("↺",  new Color(0.9f,  0.7f,  0.3f))  },
-        { "undying_full_restore",   ("✙",  new Color(0.9f,  0.7f,  0.3f))  },
-    };
+    // Mirrored Label3Ds (created by Unit, some lazily, so looked up until found).
+    private Label3D _nameLabel;
+    private Label3D _intentLabel;
+    private Label3D _coverLabel;
+
+    // Pushed values: the fallback source when the parent is not a Unit.
+    private int _hp, _maxHp, _withered, _armor, _shield, _cover;
+    private int _mana, _maxMana, _ap = -1, _maxAp, _edge, _maxEdge;
+    private Dictionary<string, int> _pushedStatuses;
 
     // ── Init ────────────────────────────────────────────────────────
     public override void _Ready()
     {
-        _healthFill  = GetNodeOrNull<MeshInstance3D>(HealthFillPath);
-        _manaFill    = GetNodeOrNull<MeshInstance3D>(ManaFillPath);
-        _healthBack  = GetNodeOrNull<MeshInstance3D>(HealthBackPath);
-        _manaBack    = GetNodeOrNull<MeshInstance3D>(ManaBackPath);
-        _armorFill   = GetNodeOrNull<MeshInstance3D>(ArmorFillPath);
-        _shieldFill  = GetNodeOrNull<MeshInstance3D>(ShieldFillPath);
-        _healthText  = GetNodeOrNull<Label3D>(HealthTextPath);
-        _manaText    = GetNodeOrNull<Label3D>(ManaTextPath);
-        _speedText   = GetNodeOrNull<Label3D>(SpeedTextPath);
-        _camera      = GetViewport().GetCamera3D();
+        _unit = GetParent() as Unit;
+        // Place the plate after the camera has moved this frame, or it trails by one frame.
+        ProcessPriority = 100;
 
-        // Duplicate HP material so we can modulate per-unit
-        if (_healthFill?.GetSurfaceOverrideMaterial(0) is StandardMaterial3D srcHp)
+        // Retire the world-space bar: every mesh, label and sprite under this node.
+        foreach (Node child in GetChildren())
         {
-            _hpMat = (StandardMaterial3D)srcHp.Duplicate();
-            _healthFill.SetSurfaceOverrideMaterial(0, _hpMat);
-        }
-        else if (_healthFill != null)
-        {
-            _hpMat = new StandardMaterial3D { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
-            _healthFill.SetSurfaceOverrideMaterial(0, _hpMat);
+            if (child is Node3D n3)
+                n3.Visible = false;
         }
 
-        // Duplicate mana material
-        if (_manaFill?.GetSurfaceOverrideMaterial(0) is StandardMaterial3D srcMp)
+        var layer = NameplateLayer.For(this);
+        if (layer != null)
         {
-            _manaMat = (StandardMaterial3D)srcMp.Duplicate();
-            _manaFill.SetSurfaceOverrideMaterial(0, _manaMat);
+            _plate = new UnitNameplate { Name = $"Plate_{GetParent()?.Name}", Visible = false };
+            layer.AddChild(_plate);
         }
+    }
 
-        // Detail text label: one line below mana bar for armor/AP/shield
-        _detailText = new Label3D
-        {
-            Name        = "DetailText",
-            FontSize    = 20,
-            Billboard   = BaseMaterial3D.BillboardModeEnum.Enabled,
-            NoDepthTest = true,
-            OutlineSize = 4,
-            OutlineModulate = new Color(0f, 0f, 0f, 0.85f),
-            Position    = new Vector3(0f, -0.08f, 0.01f),
-            Visible     = false,
-        };
-        AddChild(_detailText);
-
-        // Status icon row
-        _statusRow = new Node3D { Name = "StatusRow" };
-        _statusRow.Position = new Vector3(0f, -0.32f, 0.01f);
-        _statusRow.Visible = false;
-        AddChild(_statusRow);
-
-        if (_healthFill != null)
-            _healthFillOriginX = _healthFill.Position.X;
-        if (_manaFill != null)
-            _manaFillOriginX = _manaFill.Position.X;
-
-        // Start in compact mode
-        SetDetailed(false);
+    public override void _ExitTree()
+    {
+        if (_plate != null && IsInstanceValid(_plate))
+            _plate.QueueFree();
+        _plate = null;
     }
 
     public override void _Process(double delta)
     {
-        if (_camera != null)
-            LookAt(_camera.GlobalPosition, Vector3.Up, true);
+        if (_plate == null || !IsInstanceValid(_plate))
+            return;
+
+        var vp = GetViewport();
+        var cam = vp?.GetCamera3D();
+        Vector3 anchor = GlobalPosition + new Vector3(0f, AnchorLift, 0f);
+        Vector3 body = _unit != null ? _unit.GlobalPosition + new Vector3(0f, BodyHeight, 0f) : anchor;
+        bool alive = _unit == null || (_unit.Stats != null && _unit.Stats.IsAlive && !_unit.IsDeathQueued);
+        bool show = cam != null && IsVisibleInTree() && alive && !cam.IsPositionBehind(body);
+        Rect2 screen = vp != null ? vp.GetVisibleRect() : new Rect2();
+        Vector2 bodyScreen = show ? cam.UnprojectPosition(body) : Vector2.Zero;
+        // The plate follows the UNIT onto and off the screen. Its anchor above the
+        // head may leave the view first at close zoom; PlaceAt then pins it to the edge.
+        if (show && !screen.HasPoint(bodyScreen))
+            show = false;
+        if (!show)
+        {
+            _plate.Visible = false;
+            return;
+        }
+
+        _pullTimer -= (float)delta;
+        if (_dirty || _pullTimer <= 0f)
+        {
+            _dirty = false;
+            _pullTimer = PullInterval;
+            _plate.SetData(BuildData());
+        }
+
+        _plate.Visible = true;
+        Vector2 anchorScreen = cam.IsPositionBehind(anchor) ? bodyScreen : cam.UnprojectPosition(anchor);
+        _plate.PlaceAt(anchorScreen, screen);
+
+        // Nearer units draw over farther ones; the inspected unit over everything.
+        float dist = cam.GlobalPosition.DistanceTo(anchor);
+        int z = Mathf.Clamp(2000 - Mathf.RoundToInt(dist * 20f), 0, 2000);
+        _plate.BaseZ = z + (_isDetailed ? 2000 : 0);
     }
 
-    // ── One-time setup called by Unit._Ready ────────────────────────
-    /// <summary>
-    /// Call once from Unit._Ready to establish player vs enemy tinting.
-    /// Affects HP bar colour baseline and name label colour.
-    /// </summary>
+    // ── Push API (unchanged signatures) ─────────────────────────────
+
+    /// <summary>Call once from Unit._Ready to establish player vs enemy tinting.</summary>
     public void Initialize(bool isPlayerControlled)
     {
         _isPlayer = isPlayerControlled;
+        _dirty = true;
     }
 
-    // ── Compact / detail toggle ─────────────────────────────────────
     public void SetDetailed(bool detailed)
     {
         _isDetailed = detailed;
-
-        // Mana bar, only in detail mode
-        if (_manaFill  != null) _manaFill.Visible  = detailed;
-        if (_manaBack  != null) _manaBack.Visible  = detailed;
-        if (_manaText  != null) _manaText.Visible  = detailed;
-
-        // Armor/shield fills always hidden, shown as text instead
-        if (_armorFill  != null) _armorFill.Visible  = false;
-        if (_shieldFill != null) _shieldFill.Visible = false;
-
-        // Speed text never shown in bar (it's in the side panel)
-        if (_speedText != null) _speedText.Visible = false;
-
-        // Detail line and status row
-        if (_detailText != null) _detailText.Visible = detailed;
-        if (_statusRow  != null) _statusRow.Visible  = detailed;
-
-        // HP text: show in detail mode, hide in compact
-        if (_healthText != null) _healthText.Visible = detailed;
+        _dirty = true;
     }
 
-    // ── HP ─────────────────────────────────────────────────────────
-    /// <summary>withered = max HP eaten by poison. The bar keeps the ORIGINAL
-    /// max (max + withered) as its full width: current HP fills against that,
-    /// and the withered span is painted violet at the right end, so the
-    /// effective max visibly creeps across the bar as poison ticks.</summary>
     public void SetHealth(int current, int max, int armor, int shield, int withered = 0)
     {
-        if (!IsInstanceValid(this)) return;
-
-        int originalMax = max + Mathf.Max(0, withered);
-        float pct = originalMax <= 0 ? 0f : Mathf.Clamp((float)current / originalMax, 0f, 1f);
-        ResizeBar(_healthFill, _healthFillOriginX, pct);
-
-        // Withered segment (right-anchored)
-        float witherPct = originalMax <= 0 ? 0f
-            : Mathf.Clamp((float)Mathf.Max(0, withered) / originalMax, 0f, 1f);
-        if (witherPct > 0f && _witherFill == null)
-            CreateWitherFill();
-        if (_witherFill != null)
-        {
-            _witherFill.Visible = witherPct > 0f;
-            if (witherPct > 0f)
-                ResizeBarRight(_witherFill, _healthFillOriginX, witherPct);
-        }
-
-        // Gradient: green → yellow → red
-        Color hpColor;
-        if (pct > 0.5f)
-            hpColor = HpHigh.Lerp(HpMid, (1f - pct) * 2f);
-        else
-            hpColor = HpMid.Lerp(HpLow, (0.5f - pct) * 2f);
-
-        // Apply player/enemy tint
-        Color tint = _isPlayer ? PlayerTint : EnemyTint;
-        if (_hpMat != null)
-            _hpMat.AlbedoColor = hpColor * tint;
-
-        // HP text (only visible in detail mode)
-        if (_healthText != null)
-            _healthText.Text = withered > 0 ? $"{current}/{max} (\u2212{withered})" : $"{current}/{max}";
-
-        // Detail line: armor + shield
-        if (_detailText != null && _isDetailed)
-            UpdateDetailText(armor, shield, -1, -1); // AP updated separately
+        _hp = current; _maxHp = max; _armor = armor; _shield = shield; _withered = withered;
+        _dirty = true;
     }
 
-    // ── Mana ────────────────────────────────────────────────────────
     public void SetMana(int current, int max)
     {
-        if (!IsInstanceValid(this)) return;
-        float pct = max <= 0 ? 0f : Mathf.Clamp((float)current / max, 0f, 1f);
-        ResizeBar(_manaFill, _manaFillOriginX, pct);
-        if (_manaText != null)
-            _manaText.Text = current > max ? $"{current}/{max}!" : $"{current}/{max}";
+        _mana = current; _maxMana = max;
+        _dirty = true;
     }
 
-    // ── Armor / Shield (kept for API compat, values shown in detail text) ──
-    public void SetArmor(int current, int max) { /* values shown in detail text */ }
-    public void SetShield(int current, int max) { /* values shown in detail text */ }
-    public void SetSpeed(int current) { /* shown in side panel, not above unit */ }
+    public void SetArmor(int current, int max) { _armor = current; _dirty = true; }
+    public void SetShield(int current, int max) { _shield = current; _dirty = true; }
+    public void SetSpeed(int current) { /* speed lives in the side panel */ }
 
-    // ── AP pips ─────────────────────────────────────────────────────
     public void SetAP(int current, int max, int armor, int shield, int cover = 0)
     {
-        if (!IsInstanceValid(this) || _detailText == null || !_isDetailed) return;
-        UpdateDetailText(armor, shield, current, max, cover);
+        _ap = current; _maxAp = max; _armor = armor; _shield = shield; _cover = cover;
+        _dirty = true;
     }
 
-    // ── Status icons ────────────────────────────────────────────────
+    /// <summary>Martial Edge (spec v1 §3). max 0 means no Edge economy.</summary>
+    public void SetEdge(int current, int max)
+    {
+        _edge = current; _maxEdge = max;
+        _dirty = true;
+    }
+
     public void RefreshStatuses(Dictionary<string, int> statusEffects)
     {
-        if (!IsInstanceValid(this) || _statusRow == null) return;
-
-        foreach (Node child in _statusRow.GetChildren())
-            child.QueueFree();
-
-        if (statusEffects == null || statusEffects.Count == 0) return;
-
-        var active = new List<(string symbol, Color color)>();
-        foreach (var kvp in statusEffects)
-        {
-            if (kvp.Value <= 0) continue;
-            if (StatusDisplay.TryGetValue(kvp.Key, out var d))
-                active.Add((d.symbol, d.color));
-        }
-
-        if (active.Count == 0) return;
-
-        float spacing   = 0.28f;
-        float startX    = -(active.Count - 1) * spacing * 0.5f;
-
-        for (int i = 0; i < active.Count; i++)
-        {
-            var icon = new Label3D
-            {
-                Name            = $"SI_{i}",
-                Text            = active[i].symbol,
-                FontSize        = 52,          // was 18; needs to be large to render crisply
-                Billboard       = BaseMaterial3D.BillboardModeEnum.Enabled,
-                NoDepthTest     = true,
-                Modulate        = active[i].color,
-                OutlineSize     = 6,           // was 3; scale with font size
-                OutlineModulate = new Color(0f, 0f, 0f, 0.85f),
-                Position        = new Vector3(startX + i * spacing, 0f, 0f),
-                PixelSize       = 0.004f,      // shrinks the world-space size down so it doesn't loom
-            };
-            _statusRow.AddChild(icon);
-        }
+        _pushedStatuses = statusEffects;
+        _dirty = true;
     }
 
-    // ── R22 damage preview ──────────────────────────────────────────
-    // A flashing span at the TOP (right end) of the current-HP fill equal to
-    // the predicted HP loss, so the player reads "this much of the bar goes
-    // away" in place. Red = clean prediction, amber = ⚠ (open stack / pending
-    // redirect could invalidate it).
-
-    private MeshInstance3D _previewFill;
-    private StandardMaterial3D _previewMat;
-    private Tween _previewTween;
-    private static readonly Color PreviewFlash = new Color(1.0f, 0.30f, 0.22f);
-    private static readonly Color PreviewWarn  = new Color(1.0f, 0.72f, 0.20f);
-
-    /// <summary>Flash the segment of the HP bar the predicted damage would
-    /// remove: the top <paramref name="hpLoss"/> of <paramref name="current"/>,
-    /// against the same original-max width SetHealth uses (max + withered).</summary>
+    /// <summary>R22 damage preview: flash the span of the HP bar the predicted
+    /// hit removes. Red = clean prediction, amber = could be invalidated.</summary>
     public void ShowDamagePreview(int current, int max, int withered, int hpLoss, bool warn)
     {
-        if (!IsInstanceValid(this)) return;
-        if (hpLoss <= 0 || current <= 0) { HideDamagePreview(); return; }
-
-        if (_previewFill == null)
-            CreatePreviewFill();
-        if (_previewFill == null)
+        if (_plate == null || !IsInstanceValid(_plate))
             return;
-
-        int originalMax = max + Mathf.Max(0, withered);
-        if (originalMax <= 0) { HideDamagePreview(); return; }
-
-        float hpPct   = Mathf.Clamp((float)current / originalMax, 0f, 1f);
-        float lossPct = Mathf.Clamp((float)Mathf.Min(hpLoss, current) / originalMax, 0f, 1f);
-        float left    = hpPct - lossPct;   // segment spans [left, hpPct] of the bar
-
-        // Same anchoring math as ResizeBar: bar centered on originX, width
-        // FullBarWidth; a span [a, a+w] centers at originX + W*(a + w/2 − 0.5).
-        _previewFill.Scale = new Vector3(lossPct, 1f, 1f);
-        _previewFill.Position = new Vector3(
-            _healthFillOriginX + FullBarWidth * (left + lossPct * 0.5f - 0.5f),
-            _previewFill.Position.Y,
-            _previewFill.Position.Z);
-        _previewFill.Visible = true;
-
-        // Flash: alpha pulse, looping until hidden.
-        Color c = warn ? PreviewWarn : PreviewFlash;
-        _previewTween?.Kill();
-        _previewMat.AlbedoColor = new Color(c.R, c.G, c.B, 0.9f);
-        _previewTween = CreateTween().SetLoops();
-        _previewTween.TweenProperty(_previewMat, "albedo_color",
-            new Color(c.R, c.G, c.B, 0.25f), 0.28f);
-        _previewTween.TweenProperty(_previewMat, "albedo_color",
-            new Color(c.R, c.G, c.B, 0.90f), 0.28f);
+        if (hpLoss <= 0 || current <= 0) { _plate.ClearDamagePreview(); return; }
+        _hp = current; _maxHp = max; _withered = withered;
+        _dirty = true;
+        _plate.SetDamagePreview(hpLoss, warn);
     }
 
     public void HideDamagePreview()
     {
-        _previewTween?.Kill();
-        _previewTween = null;
-        if (_previewFill != null && IsInstanceValid(_previewFill))
-            _previewFill.Visible = false;
+        if (_plate != null && IsInstanceValid(_plate))
+            _plate.ClearDamagePreview();
     }
 
-    private void CreatePreviewFill()
+    // ── Pull ────────────────────────────────────────────────────────
+
+    private NameplateData BuildData()
     {
-        if (_healthFill == null) return;
-        _previewFill = (MeshInstance3D)_healthFill.Duplicate();
-        _previewFill.Name = "DamagePreviewFill";
-        _healthFill.GetParent().AddChild(_previewFill);
-        _previewMat = new StandardMaterial3D
+        var d = new NameplateData { Detailed = _isDetailed };
+        var u = _unit;
+
+        if (u != null && IsInstanceValid(u) && u.Stats != null)
         {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            AlbedoColor = PreviewFlash,
-        };
-        _previewFill.SetSurfaceOverrideMaterial(0, _previewMat);
-        // In front of both the HP fill and the wither fill (+0.005).
-        _previewFill.Position = new Vector3(
-            _healthFillOriginX, _healthFill.Position.Y, _healthFill.Position.Z + 0.01f);
-        _previewFill.Visible = false;
-    }
-
-    // ── Private helpers ─────────────────────────────────────────────
-    private void CreateWitherFill()
-    {
-        if (_healthFill == null) return;
-        _witherFill = (MeshInstance3D)_healthFill.Duplicate();
-        _witherFill.Name = "WitherFill";
-        _healthFill.GetParent().AddChild(_witherFill);
-        _witherMat = new StandardMaterial3D
+            var s = u.Stats;
+            d.Side = u.TeamId == 0 ? 0 : (u.TeamId == 1 ? 1 : 2);
+            d.Hp = s.Health;
+            d.MaxHp = s.MaxHealth;
+            d.Withered = s.WitheredMaxHp;
+            d.Shield = s.Shield;
+            d.Armor = s.Armor;
+            d.BraceArmor = u.BraceArmor;
+            d.Cover = s.CoverArmor;
+            d.Mana = s.Mana;
+            d.MaxMana = s.MaxMana;
+            if (u.IsPlayerControlled && u.MaxActionPoints > 0)
+            {
+                d.Ap = u.CurrentActionPoints;
+                d.MaxAp = u.MaxActionPoints;
+            }
+            d.Edge = u.Edge;
+            d.MaxEdge = u.MaxEdge;
+            d.Conditions = StatusCatalog.Collect(u);
+        }
+        else
         {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            AlbedoColor = WitherColor,
-        };
-        _witherFill.SetSurfaceOverrideMaterial(0, _witherMat);
-        // Nudge toward the camera so it wins the depth tie against the HP fill
-        _witherFill.Position = new Vector3(
-            _healthFillOriginX, _healthFill.Position.Y, _healthFill.Position.Z + 0.005f);
-    }
-
-    /// <summary>Like ResizeBar but keeps the RIGHT edge pinned, so the withered
-    /// segment grows leftward as poison eats the max.</summary>
-    private void ResizeBarRight(MeshInstance3D fill, float originX, float pct)
-    {
-        if (fill == null) return;
-        float offset = (FullBarWidth * (1f - pct)) * 0.5f;
-        fill.Scale = new Vector3(pct, 1f, 1f);
-        fill.Position = new Vector3(
-            originX + offset,
-            fill.Position.Y,
-            fill.Position.Z);
-    }
-
-    private void ResizeBar(MeshInstance3D fill, float originX, float pct)
-    {
-        if (fill == null) return;
-        float offset = -(FullBarWidth * (1f - pct)) * 0.5f;
-        fill.Scale = new Vector3(pct, 1f, 1f);
-        fill.Position = new Vector3(
-            originX + offset,
-            fill.Position.Y,
-            fill.Position.Z);
-    }
-
-    private void UpdateDetailText(int armor, int shield, int apCurrent, int apMax, int cover = 0)
-    {
-        if (_detailText == null) return;
-
-        var parts = new List<string>();
-
-        if (armor > 0)  parts.Add($"[{armor}🛡]");
-        if (shield > 0) parts.Add($"({shield}◈)");
-        // Cover armour in braces, plain ASCII: the Label3D font's glyph coverage is
-        // only proven for the few symbols above (see IntentGlyph's standing note).
-        if (cover > 0)  parts.Add($"{{{cover}}}");
-        if (apCurrent >= 0 && apMax > 0)
-        {
-            // Pip string: filled and empty circles
-            string pips = "";
-            for (int i = 0; i < apMax; i++)
-                pips += i < apCurrent ? "●" : "○";
-            parts.Add(pips);
+            d.Side = _isPlayer ? 0 : 1;
+            d.Hp = _hp; d.MaxHp = _maxHp; d.Withered = _withered;
+            d.Shield = _shield; d.Armor = _armor; d.Cover = _cover;
+            d.Mana = _mana; d.MaxMana = _maxMana;
+            if (_ap >= 0 && _maxAp > 0) { d.Ap = _ap; d.MaxAp = _maxAp; }
+            d.Edge = _edge; d.MaxEdge = _maxEdge;
+            if (_pushedStatuses != null)
+            {
+                foreach (var kvp in _pushedStatuses)
+                {
+                    if (kvp.Value <= 0) continue;
+                    int count = kvp.Value >= StatusCatalog.PermanentThreshold ? 0 : kvp.Value;
+                    d.Conditions.Add(new UnitCondition(kvp.Key, StatusCatalog.Get(kvp.Key), count));
+                }
+            }
         }
 
-        _detailText.Text = string.Join("  ", parts);
+        MirrorLabels(d);
+        return d;
+    }
+
+    private void MirrorLabels(NameplateData d)
+    {
+        Node host = GetParent();
+        if (host == null)
+            return;
+
+        _nameLabel ??= Adopt(host.GetNodeOrNull<Label3D>("NameLabel"));
+        _intentLabel ??= Adopt(host.GetNodeOrNull<Label3D>("IntentIndicator"));
+        _coverLabel ??= Adopt(host.GetNodeOrNull<Label3D>("CoverMarker"));
+
+        // Name, from the unit itself. Its NameLabel is written once in _Ready,
+        // before the spawner renames the node, so it can still read "Unit".
+        // The one deliberate label override is the spirit's death-record flash.
+        string name;
+        if (_unit != null)
+        {
+            name = !string.IsNullOrEmpty(_unit.DisplayName) ? _unit.DisplayName : _unit.Name.ToString();
+            if (_unit.IsSpirit && _nameLabel != null && !string.IsNullOrEmpty(_nameLabel.Text)
+                && _nameLabel.Text != "Unit")
+                name = _nameLabel.Text;
+        }
+        else
+        {
+            name = _nameLabel != null ? _nameLabel.Text : host.Name.ToString();
+        }
+        d.Name = name ?? "";
+        if (_unit != null && _unit.IsSpirit && _nameLabel != null)
+            d.NameColor = _nameLabel.Modulate with { A = 1f };   // ghost tint from the death record
+        else
+            d.NameColor = d.Side == 0 ? UITheme.PlateNameAlly : (d.Side == 1 ? UITheme.PlateNameEnemy : UITheme.TextSecondary);
+
+        // Intent: the label's visibility is CombatManager's show/hide decision; the
+        // content comes from the intent itself, not from parsing the label glyphs.
+        var intent = _unit?.CurrentIntent;
+        if (intent != null && _intentLabel != null && IsInstanceValid(_intentLabel) && _intentLabel.Visible)
+        {
+            d.HasIntent = true;
+            d.IntentKind = intent.Kind;
+            d.IntentRevealed = intent.Revealed;
+            d.IntentValue = intent.Value;
+            d.IntentShoveTiles = intent.ShoveTiles;
+            d.IntentElement = intent.ImbueElement == TileElementType.None ? "" : intent.ImbueElement.ToString();
+            d.Staggered = _unit.IsStaggered;
+            d.Poise = _unit.Poise;
+            d.MaxPoise = _unit.MaxPoise;
+            d.Openings = _unit.Openings;
+            d.Postponed = _unit.PostponedTurns;
+            string text = _intentLabel.Text ?? "";
+            int nl = text.IndexOf('\n');
+            d.IntentMarkers = nl >= 0 ? text.Substring(nl + 1).Trim() : "";
+
+            // The channel is already the intent pill; its status chip would repeat it.
+            d.Conditions.RemoveAll(c => c.Key == "wizard_charging");
+        }
+
+        if (_coverLabel != null && IsInstanceValid(_coverLabel) && _coverLabel.Visible)
+        {
+            d.CoverTag = _coverLabel.Text ?? "";
+            d.CoverTagColor = _coverLabel.Modulate with { A = 1f };
+        }
+    }
+
+    /// <summary>Takes a Label3D off every camera without touching its Visible
+    /// flag, which the Unit still drives and this node reads.</summary>
+    private static Label3D Adopt(Label3D label)
+    {
+        if (label == null || !IsInstanceValid(label))
+            return null;
+        label.Layers = 0;
+        return label;
     }
 }

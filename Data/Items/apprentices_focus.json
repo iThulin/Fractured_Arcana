@@ -5,6 +5,8 @@
   "rarity": "Common",
   "slot": "Weapon",
   "unitClass": "Wizard",
+  "activeKind": "staff",
+  "boundCardId": "adept_magic_missile",
   "stats": { "spellDamage": 1 },
   "passive": "None",
   "passiveValue": 0,

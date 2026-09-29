@@ -93,6 +93,13 @@ public static class PlayerSession
     /// auto-pass costs zero clicks.</summary>
     public static bool DebugStopOnTriggers = false;
 
+    /// <summary>Debug launcher loadout block (2026-09-28): per companion id, an
+    /// item definition id to field as the weapon this fight, and a stance id to
+    /// open in. Applied at spawn, never written to the armory or the save. Read
+    /// only while DebugCombat is set; cleared by the launcher on every launch.</summary>
+    public static readonly System.Collections.Generic.Dictionary<string, string> DebugWeaponOverride = new();
+    public static readonly System.Collections.Generic.Dictionary<string, string> DebugStanceOverride = new();
+
     /// <summary>R22 damage-preview self-check: when set, every real player cast
     /// re-runs the CombatSim preview for that same cast and, after it resolves,
     /// logs whether the predicted per-enemy HP loss matched the actual delta.

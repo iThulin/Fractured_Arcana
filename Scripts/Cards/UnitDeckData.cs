@@ -66,6 +66,20 @@ public class UnitDeckData
 	{
 		DrawPile = new List<Card>(cards);
 		Shuffle();
+		SurfaceInnates();
+	}
+
+	/// <summary>M7: Innate cards (a staff's bound spell) move to the top of the
+	/// pile after the opening shuffle, so the first draw of the fight holds them.
+	/// Called once, at Initialize; Reshuffle deliberately does not, which is the
+	/// spec's "then shuffles normally".</summary>
+	private void SurfaceInnates()
+	{
+		var innate = DrawPile.FindAll(c => c != null && c.Innate);
+		if (innate.Count == 0)
+			return;
+		DrawPile.RemoveAll(c => c != null && c.Innate);
+		DrawPile.InsertRange(0, innate);
 	}
 
 	/// <summary>Fisher-Yates shuffle of the draw pile in place.</summary>

@@ -1287,6 +1287,13 @@ public partial class CombatManager
         string glyph = IntentGlyph(intent.Kind);
         string value = intent.Revealed ? intent.Value.ToString() : "?";
         string suffix = enemy.PostponedTurns > 0 ? "…" : "";
+        // Edge M2 (spec §2a): the crack shows BEFORE the hit lands; Poise as a count.
+        if (enemy.IsStaggered)
+            suffix += "×";
+        if (enemy.MaxPoise > 0)
+            suffix += $" P{enemy.Poise}";
+        if (enemy.Openings > 0)
+            suffix += $" O{enemy.Openings}";   // Opportunist's Openings (M5)
 
         Color color = intent.Revealed
             ? new Color(1.0f, 0.55f, 0.45f)      // revealed: hot
@@ -1439,6 +1446,11 @@ public partial class CombatManager
             if (enemy == null || !IsInstanceValid(enemy) || !enemy.Stats.IsAlive)
                 continue;
 
+            // Edge (spec v1 §5): one activation, one id. Defensive and Guardian
+            // claim against it at most once, however many blows this unit lands
+            // (an overdraw double-activation is still the one activation).
+            _edgeActivationId++;
+
             CombatCamera?.FocusOn(enemy);
             combatUI?.SetActiveEnemy(enemy);   // V2: roster row = enemy-phase progress bar
             await ToSignal(GetTree().CreateTimer(EnemyFocusBeat), "timeout");
@@ -1519,6 +1531,22 @@ public partial class CombatManager
             // is the intent the new profile will actually execute.
             ApplyPendingProfile(enemy);
 
+            // ── Stagger (Edge M2, spec §2a, D1) ─────────────────────────────
+            // The intent is cancelled, the cycle index holds, Poise refills. A
+            // Guard intent is not affected and keeps the stagger for the next beat.
+            // everyNRounds and onTurnEnd abilities (summon_cadence, ritual) are
+            // not queued: "Ritual, Summon, Shift do nothing this activation."
+            if (enemy.IsStaggered && enemy.CurrentIntent == null)
+                enemy.CurrentIntent = PlanIntent(enemy);   // so the Guard exemption reads a real intent
+            if (enemy.IsStaggered && enemy.CurrentIntent?.Kind != IntentKind.Guard)
+            {
+                await ExecuteStaggeredActivation(enemy);
+                await DrainTriggerStackAsync();
+                if (CheckCombatEnd())
+                    return;
+                continue;
+            }
+
             // U3b: everyNRounds is evaluated against the GLOBAL round counter rather
             // than a per-unit tally. Deterministic, save-safe, and legible: "every 3rd
             // round" is a fact the player can read off the phase banner, where a
@@ -1532,6 +1560,11 @@ public partial class CombatManager
             }
 
             await ExecuteIntent(enemy);
+
+            // Edge M4: a beat that never strikes (Guard, Shove, a channel start)
+            // still ended its movement somewhere. Brace fires here for those; a
+            // Brace already spent on the strike above is null and does nothing.
+            FireMoveEndReactions(enemy);
 
             // U3e overdraw_ward: the SECOND activation lands here, after the first
             // beat is fully closed out (script position advanced, intent cleared) and
@@ -1619,6 +1652,8 @@ public partial class CombatManager
 
     private async Task ExecuteIntent(Unit enemy)
     {
+        if (enemy != null)
+            enemy.MovementInterrupted = false;   // Edge M4: an interrupt lasts one activation, not one phase
         var intent = enemy.CurrentIntent;
         if (intent == null)
         {
@@ -1982,6 +2017,7 @@ public partial class CombatManager
     /// strike. This is the gate every enemy mover loops on.</summary>
     private static bool CanSpendMoveAP(Unit enemy)
         => enemy != null && enemy.Stats.IsAlive
+           && !enemy.MovementInterrupted   // Edge M4: Set Against Charge ended this activation's movement
            && enemy.CurrentActionPoints >= ReservedAttackAP(enemy) + 1;
 
     /// <summary>Best destination reachable in ONE move action (path cost less than or
@@ -2636,6 +2672,12 @@ public partial class CombatManager
         // MartialAPCosts.AttackMelee (1) / AttackRanged (2). The movers reserve this
         // before spending anything on movement, so a refusal here means the unit was
         // drained mid-turn (Chronomancer AP burn, a status), not a budgeting bug.
+        // Edge M4 (spec §7a rule 4): Brace fires BEFORE the blow it was set for.
+        // A reaction that kills the attacker ends its activation here.
+        FireMoveEndReactions(attacker);
+        if (attacker != null && !IsValidActor(attacker))
+            return;
+
         int apCost = ranged ? MartialAPCosts.AttackRanged : MartialAPCosts.AttackMelee;
         if (attacker != null && !attacker.TrySpendAP(apCost))
         {

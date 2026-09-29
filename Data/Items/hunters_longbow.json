@@ -5,6 +5,7 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Martial",
+  "weaponClass": "Bow",
   "stats": {
     "attackRange": 1
   },

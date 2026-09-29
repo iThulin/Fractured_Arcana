@@ -55,13 +55,15 @@ public partial class CombatManager
 
         if (unit.IsMartial)
         {
-            bool ranged = unit.AttackRange + (unit.ActiveStance?.AttackRangeBonus ?? 0) > 1;
+            int baseReach = unit.AttackRange + (unit.ActiveStance?.AttackRangeBonus ?? 0);
+            bool ranged = baseReach > 1;
             int cost = ranged ? MartialAPCosts.AttackRanged : MartialAPCosts.AttackMelee;
+            int shownReach = baseReach + HonedRangeBonus(unit, baseReach);   // Edge M2
             list.Add(new UnitActionDef
             {
                 Kind = UnitAction.Strike,
                 Label = $"{(ranged ? "Shoot" : "Strike")} ({cost} AP)",
-                Tooltip = $"{unit.AttackDamage} damage, range {unit.AttackRange + (unit.ActiveStance?.AttackRangeBonus ?? 0)}. Click a target. Plain click on an enemy does the same.",
+                Tooltip = $"{unit.AttackDamage} damage, range {shownReach}. Click a target. Plain click on an enemy does the same.",
                 Enabled = myTurn && unit.CurrentActionPoints >= cost && unit.CanAct(),
                 Armed = _armedAction == UnitAction.Strike,
             });

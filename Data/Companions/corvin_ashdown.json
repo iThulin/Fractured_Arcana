@@ -3,6 +3,7 @@
   "name": "Corvin Ashdown",
   "school": "None",
   "unitClass": "Ranger",
+  "startingWeaponId": "guild_crossbow",
   "personalityTrait": "Stoic",
   "vocation": "Scout",
   "backstory": "A deserter from a war nobody won. He speaks maybe forty words a lunation and has never missed twice at the same target.",

@@ -1,0 +1,224 @@
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index 03f883e..7b02a3a 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -47,6 +47,7 @@ public partial class CombatManager
+         var host = deckManager?.HandContainer?.GetParent() as Node ?? this;
+         _techniqueTray = new TechniqueTray { Name = "TechniqueTray" };
+         _techniqueTray.TechniquePressed += OnTechniquePressed;
++        _techniqueTray.StancePressed += OnStanceSwitchRequested;   // stance row lives in the tray now
+         host.CallDeferred("add_child", _techniqueTray);
+     }
+ 
+@@ -119,7 +120,37 @@ public partial class CombatManager
+             header += $"\nArmed: {unit.ArmedReaction.DisplayName}. {ReactionTriggerText(unit, unit.ArmedReaction)}";
+         foreach (var (inst, def) in pinned)
+             cards.Add(ItemCardView(unit, inst, def));   // Edge M6: items to the right
+-        _techniqueTray.ShowCards(cards, header);
++        _techniqueTray.ShowCards(cards, header, StanceViewsFor(unit));
++    }
++
++    /// <summary>The stance row for the tray (moved from the unit panel,
++    /// 2026-09-28): one button per fielded stance, the active one highlighted and
++    /// disabled. Same gates as TrySwitchStance: 1 AP, once per turn. Null for a
++    /// unit with fewer than two stances, which hides the row.</summary>
++    private List<TechniqueCardView> StanceViewsFor(Unit unit)
++    {
++        if (unit?.AvailableStances == null || unit.AvailableStances.Count < 2)
++            return null;
++        bool myTurn = currentPhase == CombatPhase.PlayerTurn && !isInDeploymentPhase;
++        var list = new List<TechniqueCardView>();
++        foreach (var st in unit.AvailableStances)
++        {
++            bool active = st == unit.ActiveStance;
++            string why = active ? "Active stance."
++                : !myTurn ? "Not your turn."
++                : unit.HasSwitchedStanceThisTurn ? "Already switched this turn."
++                : unit.CurrentActionPoints < MartialAPCosts.SwitchStance ? $"Needs {MartialAPCosts.SwitchStance} AP."
++                : null;
++            list.Add(new TechniqueCardView
++            {
++                Id = st.Id,
++                Title = st.DisplayName,
++                Armed = active,
++                Enabled = why == null,
++                Tooltip = st.Description + "\n" + (why ?? $"Switch: {MartialAPCosts.SwitchStance} AP, once per turn. Edge is kept."),
++            });
++        }
++        return list;
+     }
+ 
+     private void HideTechniqueTray()
+diff --git a/Scripts/UI/CombatUI.cs b/Scripts/UI/CombatUI.cs
+index 1e0e454..a137e42 100644
+--- a/Scripts/UI/CombatUI.cs
++++ b/Scripts/UI/CombatUI.cs
+@@ -1136,38 +1136,14 @@ public partial class CombatUI : CanvasLayer
+ 	/// Hidden for enemies, non-martials, and single-stance units.</summary>
+ 	private void RefreshStanceRow(Unit unit, bool isEnemy)
+ 	{
++		// 2026-09-28: the stance buttons moved to the technique tray on the bottom
++		// bar (TechniqueTray stance row, fed by CombatManager.StanceViewsFor). The
++		// unit panel keeps the stance line with Edge; this row stays hidden.
+ 		if (_stanceRow == null)
+ 			return;
+ 		foreach (Node child in _stanceRow.GetChildren())
+ 			child.QueueFree();
+-
+-		bool show = !isEnemy && unit != null && unit.IsMartial &&
+-		            unit.AvailableStances != null && unit.AvailableStances.Count > 1;
+-		_stanceRow.Visible = show;
+-		if (!show)
+-			return;
+-
+-		foreach (var stance in unit.AvailableStances)
+-		{
+-			bool isActive = stance == unit.ActiveStance;
+-			var btn = new Button
+-			{
+-				Text = stance.DisplayName,
+-				Disabled = isActive || unit.HasSwitchedStanceThisTurn ||
+-				           unit.CurrentActionPoints < MartialAPCosts.SwitchStance,
+-				TooltipText = stance.Description + "\n" +
+-				              (isActive
+-				                  ? "Active stance."
+-				                  : unit.HasSwitchedStanceThisTurn
+-				                      ? "Already switched this turn."
+-				                      : $"Switch: {MartialAPCosts.SwitchStance} AP, once per turn."),
+-			};
+-			btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+-			UITheme.ApplyButtonStyle(btn, isPrimary: isActive);
+-			string sid = stance.Id;   // capture by value for the closure
+-			btn.Pressed += () => EmitSignal(SignalName.StanceSwitchRequested, sid);
+-			_stanceRow.AddChild(btn);
+-		}
++		_stanceRow.Visible = false;
+ 	}
+ 
+ 	/// <summary>Rebuilds the action bar for the selected unit from ActionProvider.
+diff --git a/Scripts/UI/TechniqueTray.cs b/Scripts/UI/TechniqueTray.cs
+index 5ba5728..e9b22c4 100644
+--- a/Scripts/UI/TechniqueTray.cs
++++ b/Scripts/UI/TechniqueTray.cs
+@@ -44,18 +44,23 @@ public sealed class TechniqueCardView
+ public partial class TechniqueTray : Control
+ {
+     [Signal] public delegate void TechniquePressedEventHandler(string maneuverId);
++    /// <summary>A stance button in the tray's stance row (moved here from the unit
++    /// panel, 2026-09-28). CombatManager routes it to TrySwitchStance.</summary>
++    [Signal] public delegate void StancePressedEventHandler(string stanceId);
+ 
+     private const float CardWidth = 172f;
+     private const float CardHeight = 196f;
+-    private const float TrayHeight = 250f;
++    private const float TrayHeight = 300f;   // header (up to 2 lines) + stance row + cards
+ 
+     private VBoxContainer _column;
+     private Label _header;
++    private HBoxContainer _stanceRow;
+     private HBoxContainer _row;
+     private bool _built;
+ 
+     private List<TechniqueCardView> _pendingCards;
+     private string _pendingHeader = "";
++    private List<TechniqueCardView> _pendingStances;
+ 
+     public override void _Ready()
+     {
+@@ -93,40 +98,66 @@ public partial class TechniqueTray : Control
+         _header.AddThemeColorOverride("font_color", UITheme.Gold);
+         _column.AddChild(_header);
+ 
++        // Stance row: a mode, not an action (spec §11d), so it sits above the
++        // cards as a strip of small buttons rather than as cards.
++        _stanceRow = new HBoxContainer { Name = "Stances", MouseFilter = MouseFilterEnum.Ignore, Visible = false };
++        _stanceRow.AddThemeConstantOverride("separation", 6);
++        _stanceRow.Alignment = BoxContainer.AlignmentMode.Center;
++        _column.AddChild(_stanceRow);
++
+         _row = new HBoxContainer { Name = "Cards", MouseFilter = MouseFilterEnum.Ignore };
+         _row.AddThemeConstantOverride("separation", 10);
+         _row.Alignment = BoxContainer.AlignmentMode.Center;
+         _column.AddChild(_row);
+ 
+         _built = true;
+-        if (_pendingCards != null || !string.IsNullOrEmpty(_pendingHeader))
+-            ShowCards(_pendingCards, _pendingHeader);
++        if (_pendingCards != null || !string.IsNullOrEmpty(_pendingHeader) || _pendingStances != null)
++            ShowCards(_pendingCards, _pendingHeader, _pendingStances);
+     }
+ 
+     /// <summary>Replace the tray's contents. Null or empty <paramref name="cards"/>
+-    /// with an empty header hides the tray.</summary>
+-    public void ShowCards(List<TechniqueCardView> cards, string header)
++    /// with an empty header and no stances hides the tray. <paramref name="stances"/>
++    /// uses Title for the label, Armed for "the active stance", Enabled and Tooltip
++    /// as for cards.</summary>
++    public void ShowCards(List<TechniqueCardView> cards, string header, List<TechniqueCardView> stances = null)
+     {
+         if (!_built)
+         {
+             _pendingCards = cards;
+             _pendingHeader = header ?? "";
++            _pendingStances = stances;
+             return;
+         }
+         _pendingCards = null;
+         _pendingHeader = "";
++        _pendingStances = null;
+ 
+         foreach (Node child in _row.GetChildren())
+             child.QueueFree();
++        foreach (Node child in _stanceRow.GetChildren())
++            child.QueueFree();
+ 
+         bool any = cards != null && cards.Count > 0;
+-        bool show = any || !string.IsNullOrEmpty(header);
++        bool anyStance = stances != null && stances.Count > 0;
++        bool show = any || anyStance || !string.IsNullOrEmpty(header);
+         Visible = show;
+         if (!show)
+             return;
+ 
+         _header.Text = header ?? "";
+         _header.Visible = !string.IsNullOrEmpty(header);
++
++        _stanceRow.Visible = anyStance;
++        if (anyStance)
++        {
++            var lbl = new Label { Text = "Stance:", MouseFilter = MouseFilterEnum.Ignore, VerticalAlignment = VerticalAlignment.Center };
++            lbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
++            lbl.AddThemeColorOverride("font_color", UITheme.GoldDim);
++            _stanceRow.AddChild(lbl);
++            foreach (var st in stances)
++                _stanceRow.AddChild(MakeStanceButton(st));
++        }
++
+         if (!any)
+             return;
+ 
+@@ -134,6 +165,24 @@ public partial class TechniqueTray : Control
+             _row.AddChild(MakeCard(view));
+     }
+ 
++    private Control MakeStanceButton(TechniqueCardView v)
++    {
++        var btn = new Button
++        {
++            Name = $"Stance_{v.Id}",
++            Text = v.Title,
++            Disabled = !v.Enabled,
++            TooltipText = v.Tooltip,
++            FocusMode = FocusModeEnum.None,
++            CustomMinimumSize = new Vector2(0, 28),
++        };
++        btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
++        UITheme.ApplyButtonStyle(btn, isPrimary: v.Armed);
++        string id = v.Id;   // capture by value for the closure
++        btn.Pressed += () => EmitSignal(SignalName.StancePressed, id);
++        return btn;
++    }
++
+     private Control MakeCard(TechniqueCardView v)
+     {
+         var btn = new Button

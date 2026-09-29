@@ -3,6 +3,7 @@
   "name": "Sable Voss",
   "school": "None",
   "unitClass": "Ranger",
+  "startingWeaponId": "hunters_bow",
   "personalityTrait": "Cunning",
   "vocation": "Scout",
   "backstory": "A poacher turned scout. She knows seventeen ways to kill something before it knows she's there.",

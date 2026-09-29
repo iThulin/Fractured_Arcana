@@ -288,6 +288,53 @@ public partial class Unit : Node3D
     public StanceDefinition ActiveStance = null;
     public bool HasSwitchedStanceThisTurn = false;
     public bool HasAttackedThisCombat = false; // Ambush tracking
+
+    // ── Edge (Martial Maneuvers & Edge spec v1 §3; rules in EdgeRules.cs) ─────
+    public int Edge = 0;
+    public int MaxEdge = 0;
+
+    // Decay/cap window: end of previous turn to end of this turn (see EdgeRules header).
+    public int EdgeGainedThisWindow = 0;
+    public int EdgeSpentThisWindow = 0;
+    public bool EdgeTriggerFiredThisWindow = false;   // a clamped trigger is still activity
+
+    // Per-turn trigger bookkeeping: set AND reset in EdgeRules.
+    public bool EdgeFirstHitClaimedThisTurn = false;
+    public int EdgeMomentumGainsThisTurn = 0;
+    public EdgeActionKind EdgeLastActionKind = EdgeActionKind.None;
+
+    // Once-per-enemy-activation claims, compared to CombatManager's activation counter.
+    public int EdgeStruckClaimedActivation = -1;
+    public int EdgeGuardClaimedActivation = -1;
+
+    // ── Maneuvers (spec v1 §6; rules in CombatManager.Maneuvers.cs) ────────────
+    /// <summary>The equipped weapon's class, copied from the loadout at spawn.
+    /// Decides which technique cards the tray shows. None = basic attack only.</summary>
+    public WeaponClass WeaponClass = WeaponClass.None;
+    /// <summary>Ambush rider: the first maneuver each combat costs 1 less.</summary>
+    public int ManeuversUsedThisCombat = 0;
+
+    // ── Reactions (spec v1 §7; rules in CombatManager.Reactions.cs) ────────────
+    /// <summary>The one armed reaction (spec §7a rule 1), or null. Consumed when it
+    /// fires; refunded at this unit's next turn start if it did not.</summary>
+    public ManeuverDefinition ArmedReaction = null;
+    /// <summary>Edge paid when arming, returned by the refund (never a "gain").</summary>
+    public int ArmedReactionEdge = 0;
+    /// <summary>Set by Set Against Charge on the tile the enemy was struck on: every
+    /// mover loop gates on it, so the enemy's movement ends there. Reset in StartTurn.</summary>
+    public bool MovementInterrupted = false;
+
+    // ── Stagger and Poise (spec v1 §2a; enemies only) ──────────────────────────
+    /// <summary>Set when a stagger lands. Consumed at this unit's next non-Guard
+    /// activation: the intent is cancelled and the cycle index holds. Kept as a
+    /// bool rather than a status duration because enemy statuses tick down in
+    /// StartEnemyTurn, BEFORE the activation that has to read this.</summary>
+    public bool IsStaggered = false;
+    public int Poise = 0;
+    public int MaxPoise = 0;
+    /// <summary>Opportunist's Opening tokens on this enemy (spec §4a, §5). Placed
+    /// by hits, spent as Edge by maneuvers against this unit. Ownerless, like Marked.</summary>
+    public int Openings = 0;
     public bool HasAttackedThisTurn = false;   // Bulwark brace reads this at turn end
     public int TilesMovedThisTurn = 0;         // Charge rider reads this on attack
 
@@ -632,6 +679,13 @@ public partial class Unit : Node3D
     /// wounded must not fire on a hit the armour ate whole. CombatManager subscribes
     /// at spawn (HandleUnitStruck).</summary>
     public event Action<Unit, int, Unit> OnStruck;
+    /// <summary>Edge (spec v1 §5): raised when damage from an attributable source
+    /// reaches this unit for real, BEFORE mitigation. Unlike OnStruck it fires
+    /// even when armour or shield eat the whole blow, which is exactly the case
+    /// the Defensive stance exists to produce. Arguments: target, source, raw
+    /// amount after veil, bodyguard, plate and cover. CombatManager subscribes at
+    /// spawn (HandleUnitAttacked).</summary>
+    public event Action<Unit, Unit, int> OnAttacked;
 
     /// <summary>Tile-entry bus (tile_interaction_spec §2.1). Fires for EVERY tile a
     /// unit enters, including each intermediate tile of a push / pull / slide,
@@ -690,6 +744,7 @@ public partial class Unit : Node3D
         HasAttackedThisTurn = false;
         HasUsedConsumableThisTurn = false;     // consumables: one per unit per turn
         TilesMovedThisTurn = 0;
+        MovementInterrupted = false;   // Edge M4: also cleared per activation in ExecuteIntent
         Stats.MovePoints = Stats.BaseSpeed;
         Stats.BonusMoveRange = 0;   // movespeed grants last one turn
         RefreshCoverArmor();        // cover is re-read each turn: walls fall, rubble forms
@@ -859,6 +914,11 @@ public partial class Unit : Node3D
     /// hook. Do not route a teleport through TryMoveTo to reuse the path walk.</summary>
     public static Func<Unit, Unit, bool> ZoneOfControlStrike;
 
+    /// <summary>Edge M4 (spec §7): asked AFTER each walked step lands, with the tile
+    /// entered. Returning true ends the walk on that tile (Set Against Charge:
+    /// "its movement ends there"). Installed by CombatManager.Reactions.cs.</summary>
+    public static Func<Unit, TileData, bool> WalkStepReaction;
+
     /// <summary>True when this unit's adjacency is a threat a mover must respect:
     /// alive, a real combatant (not a map object), able to act, and armed. A unit
     /// with no attack (a ward, a totem) holds no ground.</summary>
@@ -914,6 +974,11 @@ public partial class Unit : Node3D
         if (!CanSpendAP(1))
             return false;
 
+        // Edge M4: Set Against Charge ended this activation's movement on the
+        // tile it struck. Every mover, present and future, stops here.
+        if (MovementInterrupted)
+            return false;
+
         int pathCost = grid.GetMoveCostTo(this, dest);
         if (pathCost < 0 || pathCost > EffectiveMoveRange)
             return false;
@@ -962,6 +1027,11 @@ public partial class Unit : Node3D
                 // A slide (or other forced diversion) took the unit off-route, or
                 // the walk was halted. Either way the walk ends here.
                 if (CurrentTile != step || walkCtx.HaltForced)
+                    break;
+                // Edge M4: an armed reaction may end the walk on the tile just entered.
+                if (WalkStepReaction != null && WalkStepReaction(this, step))
+                    break;
+                if (!Stats.IsAlive || IsDeathQueued)
                     break;
             }
         }
@@ -1148,6 +1218,9 @@ public partial class Unit : Node3D
             return;
         }
 
+        if (source != null && source != this)
+            OnAttacked?.Invoke(this, source, amount);
+
         if (!_skipLinkRedistribution)
         {
             // Redirector Field: shunt this hit to a designated construct.
@@ -1277,6 +1350,7 @@ public partial class Unit : Node3D
         _healthBar?.SetHealth(Stats.Health, Stats.MaxHealth, Stats.Armor, Stats.Shield, Stats.WitheredMaxHp);
         _healthBar?.SetMana(Stats.Mana, Stats.MaxMana);
         _healthBar?.SetAP(CurrentActionPoints, MaxActionPoints, Stats.Armor, Stats.Shield, Stats.CoverArmor);
+        _healthBar?.SetEdge(Edge, MaxEdge);
         _healthBar?.RefreshStatuses(Stats.StatusEffects);
     }
 

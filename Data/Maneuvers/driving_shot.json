@@ -1,0 +1,23 @@
+{
+  "id": "driving_shot",
+  "displayName": "Driving Shot",
+  "role": "Hunter",
+  "weaponClass": "Bow",
+  "apCost": 2,
+  "edgeCost": 2,
+  "shape": "Range",
+  "reach": 3,
+  "text": "ATK - 1 damage. Push 2 directly away. A collision with a unit, wall or raised tile deals 2 to each.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": -1
+    },
+    {
+      "key": "push",
+      "value": 2,
+      "collisionDamage": 2
+    }
+  ],
+  "vfxTag": "arrow"
+}

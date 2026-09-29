@@ -1,0 +1,26 @@
+{
+  "id": "heavy_bolt",
+  "displayName": "Heavy Bolt",
+  "role": "Executioner",
+  "weaponClass": "Crossbow",
+  "apCost": 2,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 2,
+  "isFinisher": true,
+  "requiresUnmoved": true,
+  "shape": "Range",
+  "reach": 4,
+  "text": "Finisher. Spend all Edge (at least 2): ATK + 2 damage per Edge spent. Refused if you moved this turn.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "finisher_scale",
+      "value": 2
+    }
+  ],
+  "vfxTag": "bolt"
+}

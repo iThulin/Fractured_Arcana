@@ -1,0 +1,691 @@
+diff --git a/Scripts/Data/FeatureBuilders/CandidateGenerator.cs b/Scripts/Data/FeatureBuilders/CandidateGenerator.cs
+index ee027c4..fee42fb 100644
+--- a/Scripts/Data/FeatureBuilders/CandidateGenerator.cs
++++ b/Scripts/Data/FeatureBuilders/CandidateGenerator.cs
+@@ -163,8 +163,11 @@ public static class CandidateGenerator
+         if (count == 0) return;
+ 
+         var cls = c.UnitClass == "Fighter" ? MartialClass.Fighter : MartialClass.Ranger;
++        // M5: FitsClass admits Opportunist for both classes. !IsSignature was
++        // missing here: a hire could roll a K4 signature into TrainedStanceIds,
++        // which the K4 contract says never happens (2026-09-28).
+         var pool = StanceRegistry.All.Values
+-            .Where(s => s.Class == cls)
++            .Where(s => s.FitsClass(cls) && !s.IsSignature)
+             .Select(s => s.Id)
+             .ToList();
+ 
+diff --git a/Scripts/Systems/Campus/CampusTrainingPanel.cs b/Scripts/Systems/Campus/CampusTrainingPanel.cs
+index 6fe831f..2ef3771 100644
+--- a/Scripts/Systems/Campus/CampusTrainingPanel.cs
++++ b/Scripts/Systems/Campus/CampusTrainingPanel.cs
+@@ -201,7 +201,7 @@ public sealed class CampusTrainingPanel : CampusPanel
+         bool anyLearnable = false;
+         foreach (var stance in StanceRegistry.All.Values)
+         {
+-            if (stance.Class != martialClass)
++            if (!stance.FitsClass(martialClass))   // M5: Opportunist fits either class
+                 continue;
+             // K4: signatures are earned (ArcStage 4), never bought. The
+             // Training Grounds is the global floor, the signature is the
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index 1cd8a3b..8d60dc7 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -1292,6 +1292,8 @@ public partial class CombatManager
+             suffix += "×";
+         if (enemy.MaxPoise > 0)
+             suffix += $" P{enemy.Poise}";
++        if (enemy.Openings > 0)
++            suffix += $" O{enemy.Openings}";   // Opportunist's Openings (M5)
+ 
+         Color color = intent.Revealed
+             ? new Color(1.0f, 0.55f, 0.45f)      // revealed: hot
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index cab093c..dcae6fb 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -197,7 +197,7 @@ public partial class CombatManager
+         else
+         {
+             int cost = ManeuverEdgeCost(u, m, null);
+-            if (u.Edge < cost)
++            if (u.Edge < cost && !OpeningsCouldCover(u, cost - u.Edge))
+                 return $"Needs {cost} Edge (has {u.Edge}).";
+         }
+         if (m.RequiresUnmoved && u.TilesMovedThisTurn > 0)
+@@ -441,7 +441,13 @@ public partial class CombatManager
+         }
+ 
+         // ── Costs ─────────────────────────────────────────────────────────
++        int edgeBefore = u.Edge;
+         int edgeCost = ManeuverEdgeCost(u, m, target);
++        // Opportunist (M5): Openings on the target pay first. A finisher drains
++        // the pool by definition, so Openings do not discount it.
++        var openingsTarget = target ?? (targets.Count > 0 ? targets[0] : null);
++        int openingsUsed = m.DrainAll ? 0 : OpeningsPayable(u, openingsTarget, edgeCost);
++        int edgeToPay = edgeCost - openingsUsed;
+         if (m.DrainAll && edgeCost < m.MinEdge)
+         {
+             combatUI?.AppendActionLog($"{m.DisplayName}: needs at least {m.MinEdge} Edge.");
+@@ -454,13 +460,19 @@ public partial class CombatManager
+             DisarmManeuver();
+             return;
+         }
+-        if (!EdgeRules.TrySpend(u, edgeCost))
++        if (!EdgeRules.TrySpend(u, edgeToPay))
+         {
+             u.CurrentActionPoints += m.ApCost;   // refund: nothing happened
+-            combatUI?.AppendActionLog($"{u.Name} needs {edgeCost} Edge for {m.DisplayName}.");
++            combatUI?.AppendActionLog($"{u.Name} needs {edgeToPay} Edge for {m.DisplayName}.");
+             DisarmManeuver();
+             return;
+         }
++        if (openingsUsed > 0 && openingsTarget != null)
++        {
++            openingsTarget.Openings -= openingsUsed;
++            combatUI?.AppendActionLog($"[Opportunist] {openingsUsed} Opening(s) on {openingsTarget.Name} spent as Edge.");
++            UpdateIntentDisplay(openingsTarget);
++        }
+ 
+         _armedManeuver = null;
+         ClearManeuverHighlight();
+@@ -473,6 +485,7 @@ public partial class CombatManager
+             u.ManeuversUsedThisCombat++;
+             u.Stats.HasActed = true;
+             EdgeRules.OnAction(u, EdgeActionKind.Maneuver);
++            RecordMartial(u, "reaction_arm", m.Id, edgeBefore);
+             u.RefreshHealthBar();
+             RefreshSelectedUnitUI();
+             RefreshPlayerUnitBar();
+@@ -504,7 +517,10 @@ public partial class CombatManager
+         // Edge triggers read the pre-hit board (spec §5): Volley's extra targets,
+         // Ambush's full-HP target, Duelist's Vulnerable target.
+         if (dealsDamage && targets.Count > 0)
+-            EdgeRules.OnAttackHits(u, targets);
++        {
++            EdgeRules.OnAttackHits(u, targets, placeOpenings: openingsUsed == 0);
++            RefreshOpeningsMarkers(u, targets);
++        }
+         bool anyMarked = false;
+ 
+         // ── Per target ────────────────────────────────────────────────────
+@@ -520,6 +536,8 @@ public partial class CombatManager
+                 int dmg = damage;
+                 if (rider == StanceManeuverRider.DamageVsVulnerable && t.HasStatus("vulnerable"))
+                     dmg += 1;
++                if (rider == StanceManeuverRider.DamageVsMostOpenings && t.Openings > 0 && t.Openings >= MaxOpeningsOnBoard())
++                    dmg += 1;
+                 ManeuverStrike(u, t, dmg, ignoreArmor, ignoreChitin, m);
+             }
+ 
+@@ -564,6 +582,7 @@ public partial class CombatManager
+         EdgeRules.OnAction(u, EdgeActionKind.Maneuver);
+         if (anyMarked && dealsDamage)
+             EdgeRules.OnAllyHitMarkedTarget(u, playerUnits);
++        RecordMartial(u, "maneuver", m.Id, edgeBefore);
+ 
+         u.RefreshHealthBar();
+         ClearMoveTiles();
+@@ -630,6 +649,108 @@ public partial class CombatManager
+         }
+     }
+ 
++    // ── Opportunist: Openings (spec §4a, §5, M5) ─────────────────────────────
++
++    private static bool StanceUsesOpenings(Unit u)
++        => u?.ActiveStance != null && u.ActiveStance.EdgeTrigger == EdgeTrigger.Openings;
++
++    /// <summary>Openings on <paramref name="target"/> that can stand in for Edge
++    /// on a maneuver costing <paramref name="edgeCost"/>.</summary>
++    private static int OpeningsPayable(Unit u, Unit target, int edgeCost)
++    {
++        if (!StanceUsesOpenings(u) || target == null || edgeCost <= 0)
++            return 0;
++        return Math.Min(edgeCost, Math.Max(0, target.Openings));
++    }
++
++    /// <summary>For the tray: could some enemy's Openings cover an Edge shortfall?</summary>
++    private bool OpeningsCouldCover(Unit u, int shortfall)
++    {
++        if (!StanceUsesOpenings(u) || shortfall <= 0)
++            return false;
++        foreach (var e in enemyUnits)
++            if (e != null && IsInstanceValid(e) && e.Stats.IsAlive && e.Openings >= shortfall)
++                return true;
++        return false;
++    }
++
++    /// <summary>The intent marker carries the Openings count; redraw it after a
++    /// hit by an Opportunist so the token shows the moment it is placed.</summary>
++    private void RefreshOpeningsMarkers(Unit attacker, IEnumerable<Unit> targets)
++    {
++        if (!StanceUsesOpenings(attacker) || targets == null)
++            return;
++        foreach (var t in targets)
++            if (t != null && IsInstanceValid(t) && !t.IsPlayerControlled)
++                UpdateIntentDisplay(t);
++    }
++
++    private int MaxOpeningsOnBoard()
++    {
++        int max = 0;
++        foreach (var e in enemyUnits)
++            if (e != null && IsInstanceValid(e) && e.Stats.IsAlive && e.Openings > max)
++                max = e.Openings;
++        return max;
++    }
++
++    // ── Vigilant: countered intents (spec §4a, §5, M5) ───────────────────────
++
++    /// <summary>How many visible enemy intents <paramref name="u"/> stands ready to
++    /// counter right now: adjacent to a channeling or releasing caster; adjacent to
++    /// an attacker whose strike is aimed at someone else; or on a shortest path
++    /// between a charger and its mark. EdgeRules caps what pays.</summary>
++    private int CountCounteredIntents(Unit u)
++    {
++        if (u?.CurrentTile == null || grid == null || !StanceCountersIntents(u))
++            return 0;
++        var here = u.CurrentTile.Axial;
++        int count = 0;
++        foreach (var e in enemyUnits)
++        {
++            if (e == null || !IsInstanceValid(e) || !e.Stats.IsAlive || e.CurrentTile == null)
++                continue;
++            var intent = e.CurrentIntent;
++            if (intent == null || !(ShowIntentKindByDefault || intent.Revealed))
++                continue;
++            bool adjacent = grid.Distance(here, e.CurrentTile.Axial) == 1;
++            switch (intent.Kind)
++            {
++                case IntentKind.Channel:
++                case IntentKind.Release:
++                    if (adjacent) count++;
++                    break;
++                case IntentKind.Attack:
++                case IntentKind.RangedAttack:
++                    if (!intent.TargetTile.HasValue)
++                        break;
++                    var mark = intent.TargetTile.Value;
++                    if (adjacent && mark != here)
++                        count++;
++                    else if (e.HasBehaviorTag("charge") && mark != here
++                             && grid.Distance(e.CurrentTile.Axial, here) + grid.Distance(here, mark)
++                                == grid.Distance(e.CurrentTile.Axial, mark))
++                        count++;   // standing in the charger's path
++                    break;
++            }
++        }
++        return count;
++    }
++
++    private static bool StanceCountersIntents(Unit u)
++        => u?.ActiveStance != null && u.ActiveStance.EdgeTrigger == EdgeTrigger.TurnEndCounteredIntents;
++
++    // ── Measurement (spec §10, M5) ───────────────────────────────────────────
++
++    /// <summary>One martial choice for the run log: kind (move, attack, shove,
++    /// stance, item, maneuver, reaction_arm) plus the Edge it moved.</summary>
++    private void RecordMartial(Unit u, string kind, string id, int edgeBefore)
++    {
++        if (u == null || !EdgeRules.UsesEdge(u))
++            return;
++        CombatTelemetry.RecordMartialAction(u.Name, kind, id ?? "", edgeBefore, u.Edge, roundNumber);
++    }
++
+     // ── Stagger and Poise (spec §2a, D1) ─────────────────────────────────────
+ 
+     /// <summary>Applies a stagger to <paramref name="target"/>, or cracks one
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Reactions.cs b/Scripts/Systems/Combat/Core/CombatManager.Reactions.cs
+index 404c868..7a8db42 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Reactions.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Reactions.cs
+@@ -302,6 +302,7 @@ public partial class CombatManager
+             damage += 1;
+ 
+         EdgeRules.OnAttackHits(reactor, new List<Unit> { enemy });
++        RefreshOpeningsMarkers(reactor, new List<Unit> { enemy });   // Opportunist (M5)
+ 
+         int markedBonus = 0;
+         if (enemy.HasStatus("marked"))
+@@ -323,6 +324,7 @@ public partial class CombatManager
+         enemy.ApplyDamage(damage, reactor, delivery);
+ 
+         reactor.HasAttackedThisCombat = true;
++        CombatTelemetry.RecordReactionFire(reactor.Name, m.Id, roundNumber);
+         if (rider == StanceManeuverRider.GainShield)
+         {
+             reactor.Stats.Shield += 1;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index f0a98e4..5e761bc 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -1567,7 +1567,9 @@ public partial class CombatManager : Node3D
+ 
+         if (isScroll) _scrollReadThisTurn = true;
+         else unit.HasUsedConsumableThisTurn = true;
++        int edgeBeforeItem = unit.Edge;
+         EdgeRules.OnAction(unit, EdgeActionKind.Item);   // Skirmish momentum
++        RecordMartial(unit, "item", def.Id, edgeBeforeItem);
+         save.Armory.RemoveItem(inst.InstanceId);
+         SaveManager.MarkDirty();
+         unit.RefreshHealthBar();
+@@ -1806,7 +1808,9 @@ public partial class CombatManager : Node3D
+         {
+             GD.Print($"{selectedUnit.Name} moved to {tileData.Axial}");
+             combatUI?.AppendActionLog($"{selectedUnit.Name} moves.");
++            int edgeBeforeMove = selectedUnit.Edge;
+             EdgeRules.OnAction(selectedUnit, EdgeActionKind.Move);   // Skirmish momentum
++            RecordMartial(selectedUnit, "move", "", edgeBeforeMove);
+             ClearMoveTiles();
+             ShowMoveTilesWithCost(selectedUnit);
+             RefreshSelectedUnitUI();
+@@ -1970,6 +1974,7 @@ public partial class CombatManager : Node3D
+         }
+ 
+         attacker.Stats.HasActed = true;
++        RecordMartial(attacker, "shove", "", attacker.Edge);   // M5 measurement
+         var dir = ForcedMove.StepAwayFrom(grid, attacker.CurrentTile.Axial, target.CurrentTile.Axial);
+         combatUI?.AppendActionLog($"{attacker.Name} shoves {target.Name}.");
+         ForcedMove.Push(grid, target, dir, 1, BodyCheckCollision(attacker), null,
+@@ -2122,7 +2127,9 @@ public partial class CombatManager : Node3D
+         unit.ActiveStance = newStance;
+         unit.HasSwitchedStanceThisTurn = true;
+         unit.Stats.HasActed = true;   // it cost AP; it counts
++        int edgeBeforeSwitch = unit.Edge;
+         EdgeRules.OnAction(unit, EdgeActionKind.StanceSwitch);   // Skirmish momentum
++        RecordMartial(unit, "stance", newStance.Id, edgeBeforeSwitch);
+ 
+         // Apply new stance passives immediately
+         ApplyMartialStancePassives(unit);
+@@ -2138,6 +2145,7 @@ public partial class CombatManager : Node3D
+     private void ResolveMartialAttack(Unit attacker, Unit target)
+     {
+         var stance = attacker.ActiveStance;
++        int edgeBeforeAttack = attacker.Edge;   // M5 measurement
+ 
+         // Cover keys off how the blow travels: adjacent is a Melee swing (past the
+         // wall), anything further is a Bolt that Low cover can soak.
+@@ -2239,6 +2247,7 @@ public partial class CombatManager : Node3D
+         }
+         bool edgeTargetWasMarked = target.HasStatus("marked");
+         EdgeRules.OnAttackHits(attacker, edgeTargets);
++        RefreshOpeningsMarkers(attacker, edgeTargets);   // Opportunist (M5)
+ 
+         // Marked target bonus
+         int markedBonus = 0;
+@@ -2391,6 +2400,7 @@ public partial class CombatManager : Node3D
+         EdgeRules.OnAction(attacker, EdgeActionKind.Attack);
+         if (edgeTargetWasMarked && attacker.IsPlayerControlled)
+             EdgeRules.OnAllyHitMarkedTarget(attacker, playerUnits);
++        RecordMartial(attacker, "attack", "", edgeBeforeAttack);
+ 
+         // Q2 (§7a): onAttack item procs ride the trigger stack (auto-passing).
+         // Queued with the struck target captured; drained now unless a priority
+@@ -2516,6 +2526,8 @@ public partial class CombatManager : Node3D
+             // per-window gain cap in EdgeRules bounds what a second start can add.
+             EdgeRules.OnTurnStart(unit);
+             RefundUnfiredReaction(unit);   // Edge M4 (spec §7a rule 2): a refund is not a gain
++            if (EdgeRules.UsesEdge(unit))
++                CombatTelemetry.RecordMartialTurn(unit.Name, roundNumber);   // M5 measurement denominator
+ 
+             unit.Attunement?.Decay();
+             State.SpellsCastThisTurn = 0;
+@@ -2746,7 +2758,7 @@ public partial class CombatManager : Node3D
+             // Edge (spec v1 §5): end-of-turn trigger (Aimed), then idle decay.
+             // BEFORE the enemy phase, so the decay window closes here and Edge
+             // earned while the enemies act lands in next turn's window.
+-            EdgeRules.OnTurnEnd(unit);
++            EdgeRules.OnTurnEnd(unit, CountCounteredIntents(unit));   // Vigilant reads the board (M5)
+ 
+             unit.RefreshHealthBar();
+ 
+diff --git a/Scripts/Systems/Combat/Core/CombatTelemetry.cs b/Scripts/Systems/Combat/Core/CombatTelemetry.cs
+index 774e031..8ff4b00 100644
+--- a/Scripts/Systems/Combat/Core/CombatTelemetry.cs
++++ b/Scripts/Systems/Combat/Core/CombatTelemetry.cs
+@@ -51,6 +51,18 @@ public static class CombatTelemetry
+     private const string EventsHeader = "fight_id,ts_utc,round,blueprint_id,half,school,mana";
+     private const string LifetimeHeader = "blueprint_id,total_casts,fights_cast_in,wins_when_cast,losses_when_cast,last_cast_utc";
+ 
++    // Martial Maneuvers & Edge spec v1 §10 (M5 measurement): every martial choice
++    // with the Edge it moved, and one summary row per fight with choices per
++    // martial turn. Goal 2 is "2+ distinct choices per turn on average".
++    private const string MartialEventsPath = Dir + "/martial_events.csv";
++    private const string MartialFightsPath = Dir + "/martial_fights.csv";
++    private const string MartialEventsHeader = "fight_id,ts_utc,round,unit,kind,id,edge_before,edge_after";
++    private const string MartialFightsHeader = "fight_id,ended_utc,result,martial_turns,distinct_choices,choices_per_turn,maneuvers,reaction_arms,reaction_fires";
++
++    private static readonly HashSet<string> _martialTurns = new();                       // "unit|round"
++    private static readonly Dictionary<string, HashSet<string>> _martialChoices = new(); // "unit|round" -> kinds
++    private static int _maneuvers, _reactionArms, _reactionFires;
++
+     // ── Current-fight state ─────────────────────────────────────────
+     private static string _fightId;
+     private static string _startedUtc;
+@@ -91,6 +103,9 @@ public static class CombatTelemetry
+         _school = PlayerSession.SelectedSchool.ToString();
+         _casts = 0;
+         _castThisFight.Clear();
++        _martialTurns.Clear();
++        _martialChoices.Clear();
++        _maneuvers = _reactionArms = _reactionFires = 0;
+ 
+         var kinds = new List<string>(enemyKinds ?? Array.Empty<string>());
+         _enemyCount = kinds.Count;
+@@ -115,6 +130,48 @@ public static class CombatTelemetry
+             _fightId, Utc(), round.ToString(), blueprintId ?? "", half ?? "", school ?? "", mana.ToString()));
+     }
+ 
++    /// <summary>M5: a classed martial started a player turn (the denominator).</summary>
++    public static void RecordMartialTurn(string unit, int round)
++    {
++        if (!Enabled) return;
++        if (_fightId == null)
++            BeginFight("unknown", "", "", null);
++        _martialTurns.Add($"{unit}|{round}");
++    }
++
++    /// <summary>M5: one martial choice. <paramref name="kind"/> is move, attack,
++    /// shove, stance, item, maneuver or reaction_arm; <paramref name="id"/> names
++    /// the maneuver, stance or item. Distinct choices per turn count kind plus id.</summary>
++    public static void RecordMartialAction(string unit, string kind, string id, int edgeBefore, int edgeAfter, int round)
++    {
++        if (!Enabled) return;
++        if (_fightId == null)
++            BeginFight("unknown", "", "", null);
++
++        string key = $"{unit}|{round}";
++        _martialTurns.Add(key);
++        if (!_martialChoices.TryGetValue(key, out var set))
++            _martialChoices[key] = set = new HashSet<string>();
++        set.Add(string.IsNullOrEmpty(id) ? kind : $"{kind}:{id}");
++        if (kind == "maneuver") _maneuvers++;
++        if (kind == "reaction_arm") _reactionArms++;
++
++        AppendLine(MartialEventsPath, MartialEventsHeader, Csv(
++            _fightId, Utc(), round.ToString(), unit ?? "", kind ?? "", id ?? "",
++            edgeBefore.ToString(), edgeAfter.ToString()));
++    }
++
++    /// <summary>M5: an armed reaction fired in the enemy phase. Logged, not a choice.</summary>
++    public static void RecordReactionFire(string unit, string id, int round)
++    {
++        if (!Enabled) return;
++        if (_fightId == null)
++            BeginFight("unknown", "", "", null);
++        _reactionFires++;
++        AppendLine(MartialEventsPath, MartialEventsHeader, Csv(
++            _fightId, Utc(), round.ToString(), unit ?? "", "reaction_fire", id ?? "", "", ""));
++    }
++
+     /// <summary>Closes the fight record and folds this fight into the lifetime aggregates. No-op when no fight is open.</summary>
+     public static void EndFight(bool victory, int rounds)
+     {
+@@ -125,6 +182,22 @@ public static class CombatTelemetry
+             _enemies, _enemyCount.ToString(), rounds.ToString(),
+             victory ? "victory" : "defeat", _casts.ToString()));
+ 
++        if (_martialTurns.Count > 0)
++        {
++            int distinct = 0;
++            foreach (var kv in _martialChoices)
++                distinct += kv.Value.Count;
++            double perTurn = (double)distinct / _martialTurns.Count;
++            AppendLine(MartialFightsPath, MartialFightsHeader, Csv(
++                _fightId, Utc(), victory ? "victory" : "defeat",
++                _martialTurns.Count.ToString(), distinct.ToString(),
++                perTurn.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
++                _maneuvers.ToString(), _reactionArms.ToString(), _reactionFires.ToString()));
++            GD.Print($"[Telemetry] Martial choices per turn: {perTurn:0.00} " +
++                     $"({distinct} distinct over {_martialTurns.Count} turns; " +
++                     $"{_maneuvers} maneuvers, {_reactionArms} reactions armed, {_reactionFires} fired). Goal 2 wants 2.00+.");
++        }
++
+         UpdateLifetime(victory);
+         _fightId = null;
+     }
+diff --git a/Scripts/Systems/Combat/Core/EdgeRules.cs b/Scripts/Systems/Combat/Core/EdgeRules.cs
+index 8e210b7..df466e9 100644
+--- a/Scripts/Systems/Combat/Core/EdgeRules.cs
++++ b/Scripts/Systems/Combat/Core/EdgeRules.cs
+@@ -57,6 +57,7 @@ public static class EdgeRules
+     public const int MaxGainPerRound = 3;
+     public const int HonedThreshold = 3;       // used from M2 (weapon-class riders)
+     public const int MomentumMaxGainsPerTurn = 2;
++    public const int VigilantMaxPerTurn = 2;
+ 
+     /// <summary>True for units that run the Edge economy: classed martials only (R8).</summary>
+     public static bool UsesEdge(Unit u)
+@@ -125,7 +126,7 @@ public static class EdgeRules
+     /// BEFORE the enemy phase starts. Fires end-of-turn triggers,
+     /// then applies idle decay and closes the window.
+     /// </summary>
+-    public static void OnTurnEnd(Unit u)
++    public static void OnTurnEnd(Unit u, int counteredIntents = 0)
+     {
+         if (u == null)
+             return;
+@@ -137,6 +138,16 @@ public static class EdgeRules
+             TryGain(u, u.ActiveStance.EdgeTriggerValue, "held position");
+         }
+ 
++        // Vigilant (M5): the caller counts the visible intents this unit stands
++        // ready to counter; at most two pay.
++        if (UsesEdge(u) && u.ActiveStance != null
++            && u.ActiveStance.EdgeTrigger == EdgeTrigger.TurnEndCounteredIntents
++            && counteredIntents > 0)
++        {
++            int n = Mathf.Min(VigilantMaxPerTurn, counteredIntents);
++            TryGain(u, n * u.ActiveStance.EdgeTriggerValue, $"countering {n} intent(s)");
++        }
++
+         if (UsesEdge(u)
+             && u.EdgeGainedThisWindow == 0
+             && u.EdgeSpentThisWindow == 0
+@@ -212,7 +223,7 @@ public static class EdgeRules
+     /// BEFORE damage and on-hit statuses are applied, so "undamaged" and
+     /// "already has status" read the pre-hit state.
+     /// </summary>
+-    public static void OnAttackHits(Unit attacker, IReadOnlyList<Unit> targetsHit)
++    public static void OnAttackHits(Unit attacker, IReadOnlyList<Unit> targetsHit, bool placeOpenings = true)
+     {
+         if (!UsesEdge(attacker) || attacker.ActiveStance == null
+             || targetsHit == null || targetsHit.Count == 0)
+@@ -247,6 +258,22 @@ public static class EdgeRules
+                 }
+                 break;
+ 
++            case EdgeTrigger.Openings:
++                // Opportunist (M5): no Edge here. Each target struck carries one
++                // more Opening; maneuvers against it spend them as Edge. A maneuver
++                // that just SPENT Openings places none (placeOpenings false), or a
++                // 1-cost maneuver would refund itself forever.
++                if (!placeOpenings)
++                    break;
++                foreach (var t in targetsHit)
++                {
++                    if (t == null || t.IsPlayerControlled || !t.Stats.IsAlive)
++                        continue;
++                    t.Openings += s.EdgeTriggerValue;
++                    GD.Print($"[Openings] {t.Name} now carries {t.Openings}.");
++                }
++                break;
++
+             case EdgeTrigger.HitStatusedTarget:
+                 if (string.IsNullOrEmpty(s.EdgeTriggerStatus))
+                     break;
+diff --git a/Scripts/Systems/Combat/Core/StanceDefinition.cs b/Scripts/Systems/Combat/Core/StanceDefinition.cs
+index bc9cc84..fed77f5 100644
+--- a/Scripts/Systems/Combat/Core/StanceDefinition.cs
++++ b/Scripts/Systems/Combat/Core/StanceDefinition.cs
+@@ -59,6 +59,8 @@ public enum EdgeTrigger
+     HitUndamagedTarget,    // Ambush: hit an enemy at full HP
+     HitStatusedTarget,     // Duelist, Suppression: hit a target carrying EdgeTriggerStatus
+     AllyHitsMarkedTarget,  // Marked: any other ally hits a Marked target
++    TurnEndCounteredIntents, // Vigilant (M5): +1 per visible enemy intent this unit counters at turn end, max 2
++    Openings,              // Opportunist (M5): hits place Opening tokens on the target; maneuvers against it spend them as Edge
+ }
+ 
+ /// <summary>
+@@ -81,6 +83,7 @@ public enum StanceManeuverRider
+     FirstManeuverCheaper,   // Ambush: the first maneuver each combat costs 1 Edge less
+     CheaperVsMarked,        // Marked: maneuvers against Marked targets cost 1 Edge less
+     IgnoreOnePoise,         // Vigilant (M5): stagger maneuvers ignore 1 Poise
++    DamageVsMostOpenings,   // Opportunist (M5): +1 maneuver damage against the enemy with the most Openings
+ }
+ 
+ /// <summary>
+@@ -124,6 +127,11 @@ public class StanceDefinition
+     public int EdgeStartBonus = 0;           // added to starting Edge (Ambush)
+     public StanceManeuverRider ManeuverRider = StanceManeuverRider.None;
+ 
++    /// <summary>Spec v1 §5: Opportunist is "Either" class. Class stays the nominal
++    /// bucket; FitsClass is what the Training tab and the hiring roll read.</summary>
++    public bool EitherClass = false;
++    public bool FitsClass(MartialClass c) => c != MartialClass.None && (EitherClass || Class == c);
++
+     // ── Signature (K4, v2.1 §2 carried from v1) ──────────────────────────
+     /// <summary>An ArcStage-4 signature stance: never trained, never listed by
+     /// the campus Training tab, granted at spawn by StanceRegistry.
+@@ -319,6 +327,29 @@ public static class StanceRegistry
+             ManeuverRider = StanceManeuverRider.CheaperVsMarked,
+         });
+ 
++        // ── M5 stances (Martial Maneuvers & Edge spec v1 §5) ─────────────
++
++        Add(new StanceDefinition
++        {
++            Id = "vigilant",
++            DisplayName = "Vigilant",
++            Description = "No passive. Edge: +1 at turn end per visible enemy intent you stand ready to counter (beside a channeler, beside an attacker aimed at an ally, or in a charger's path), max 2. Stagger maneuvers ignore 1 Poise.",
++            Class = MartialClass.Fighter,
++            EdgeTrigger = EdgeTrigger.TurnEndCounteredIntents,
++            ManeuverRider = StanceManeuverRider.IgnoreOnePoise,
++        });
++
++        Add(new StanceDefinition
++        {
++            Id = "opportunist",
++            DisplayName = "Opportunist",
++            Description = "No passive. Openings: each hit places an Opening on the target; your maneuvers against it spend Openings as Edge. Maneuvers against the enemy carrying the most Openings deal +1 damage.",
++            Class = MartialClass.Fighter,
++            EitherClass = true,
++            EdgeTrigger = EdgeTrigger.Openings,
++            ManeuverRider = StanceManeuverRider.DamageVsMostOpenings,
++        });
++
+         // ── Signature stances (K4) ────────────────────────────────────────
+         // One per Class × Trait cell: elevated versions of the base kit with
+         // a personality-shaped identity. FRESH-AUTHORED K4 STARTING VALUES
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index 11851bd..6ad8b7d 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -332,6 +332,9 @@ public partial class Unit : Node3D
+     public bool IsStaggered = false;
+     public int Poise = 0;
+     public int MaxPoise = 0;
++    /// <summary>Opportunist's Opening tokens on this enemy (spec §4a, §5). Placed
++    /// by hits, spent as Edge by maneuvers against this unit. Ownerless, like Marked.</summary>
++    public int Openings = 0;
+     public bool HasAttackedThisTurn = false;   // Bulwark brace reads this at turn end
+     public int TilesMovedThisTurn = 0;         // Charge rider reads this on attack
+ 
+diff --git a/docs/session_log_2026-09-28_edge_m5.md b/docs/session_log_2026-09-28_edge_m5.md
+new file mode 100644
+index 0000000..588faa3
+--- /dev/null
++++ b/docs/session_log_2026-09-28_edge_m5.md
+@@ -0,0 +1,91 @@
++# Session log, 2026-09-28: Edge M5 (Vigilant, Opportunist, measurement)
++
++Martial Maneuvers & Edge spec v1, milestone 5, built against the tree after
++M4 (which built and played on 2026-09-28). Delivered as `edge_m5_full.patch`.
++With this, every code milestone of the combat half of the spec (M1 to M5) is
++in. M6 and M7 (belts, wands, spellglass, staves) are the item half.
++
++## What shipped
++
++**Vigilant (Fighter, new).** No passive. Trigger `TurnEndCounteredIntents`:
++at the end of the player turn `CountCounteredIntents` reads the board and
++EdgeRules pays +1 per countered intent, max 2. A visible intent counts as
++countered when the unit is adjacent to a caster whose intent is Channel or
++Release; adjacent to an attacker whose Attack or RangedAttack is aimed at a
++tile other than the unit's own; or standing on a shortest path between a
++`charge` enemy and its mark (hex-metric collinearity). Rider: stagger
++maneuvers ignore 1 Poise (`IgnoreOnePoise`, already read by `TryStagger`).
++
++**Opportunist (either class, new).** No passive. Trigger `Openings`: each
++target an Opportunist hits carries one more Opening (`Unit.Openings`,
++ownerless like Marked, shown as ` O<n>` on the intent marker). A maneuver
++against that target spends its Openings as Edge first, then the pool. A
++finisher never discounts (it drains the pool by definition). A maneuver that
++spent Openings places none on its own hit, or a 1-cost maneuver would refund
++itself forever; basic attacks and reactions place them. Rider
++`DamageVsMostOpenings`: +1 maneuver damage against the enemy carrying the
++most Openings (ties count). The tray treats a card as affordable when some
++enemy's Openings could cover the Edge shortfall; picking a target with fewer
++fails cleanly with the AP refunded.
++
++**"Either" class.** `StanceDefinition.EitherClass` plus `FitsClass(MartialClass)`.
++The Training tab and the hiring roll now filter through `FitsClass`, so
++Opportunist is learnable by Fighters and Rangers. While there, the hiring
++roll gained the `!IsSignature` filter it was missing: a procedural hire could
++roll a K4 signature stance into `TrainedStanceIds`, which the K4 contract
++forbids.
++
++**Measurement (spec §10).** `CombatTelemetry` gains three calls and two
++files under `user://telemetry/`. `martial_events.csv` has one row per martial
++choice (`fight_id, ts_utc, round, unit, kind, id, edge_before, edge_after`)
++where kind is move, attack, shove, stance, item, maneuver, reaction_arm, or
++reaction_fire (logged, not a choice). `martial_fights.csv` has one row per
++fight: martial turns, distinct choices, choices per turn, maneuvers, reactions
++armed and fired. The denominator is every player turn a classed martial
++started; the numerator counts distinct kind-plus-id per unit per round, so
++two moves are one choice and Shield Bash plus Reach Thrust are two. The
++Output panel prints the figure at fight end: "Martial choices per turn: 1.75
++(...) Goal 2 wants 2.00+." Debug builds only, like the rest of telemetry.
++
++## Rulings made in-session
++
++1. Vigilant's three countering positions (above) are the whole definition.
++   The spec listed two examples; the third (in a charger's path) is the
++   spec's own §4a wording. Adjacent to an attacker aimed at you does not
++   count: that is being the target, not countering.
++2. Openings placement is skipped on a maneuver that spent them (the review
++   caught the self-funding loop). The spec's "hits place tokens" is kept for
++   every other hit.
++3. Openings are visible on the intent marker only, like Poise. No status
++   icon, because a count is the information and the status row shows
++   symbols.
++4. Measurement counts a stance switch and a consumable as choices. The spec's
++   Goal 2 names "which maneuver, spend or bank Edge, stance swap"; banking is
++   the absence of a row and cannot be counted, so 2.00 is a slightly strict
++   bar.
++
++## Not done, owed
++
++- `dotnet build` and the playtest pass that IS M5's acceptance: two Fighters,
++  Shield Bash plus Aggressive vs Polearm plus Defensive, visibly different
++  within two turns (Goal 1, by eye), and choices per turn at 2.00+ across a
++  full expedition (Goal 2, from `martial_fights.csv`).
++- D9: re-verify the ranged damage baseline with Edge on (Aimed plus Heavy
++  Bolt plus the 4-AP double shot). Playtest, then decide.
++- D14: one authored early fight where a telegraphed `Channel` can only be
++  stopped by Shield Bash. Content; not authored here.
++- No companion JSON lists `vigilant` or `opportunist` yet. They are learnable
++  at the Training Grounds and rollable by hires; give an authored Fighter
++  one if you want it on turn one of a new cycle.
++
++## In-engine confirm owed
++
++1. Training tab on a Ranger shows Opportunist; on a Fighter shows Vigilant
++   and Opportunist.
++2. Opportunist Fighter: basic attack an enemy, its marker gains ` O1`; Shield
++   Bash it: log says "1 Opening(s) ... spent as Edge", Edge unchanged, marker
++   loses the O.
++3. Vigilant Fighter ends its turn adjacent to a channeling caster: `+1
++   (countering 1 intent(s))`; adjacent to two, +2; three, still +2.
++4. After a fight the Output shows the choices-per-turn line and
++   `user://telemetry/martial_fights.csv` has a new row.

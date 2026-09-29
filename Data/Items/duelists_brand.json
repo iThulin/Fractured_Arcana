@@ -5,6 +5,7 @@
   "rarity": "Uncommon",
   "slot": "Weapon",
   "unitClass": "Martial",
+  "weaponClass": "SwordShield",
   "stats": { "attackDamage": 1 },
   "passive": "apply_bleed",
   "passiveValue": 2,

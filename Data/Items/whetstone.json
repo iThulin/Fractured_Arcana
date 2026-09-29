@@ -1,0 +1,12 @@
+{
+  "id": "whetstone",
+  "name": "Whetstone",
+  "description": "A martial hones the blade: +2 Edge. Spent on use. 1 AP.",
+  "rarity": "Common",
+  "slot": "Consumable",
+  "unitClass": "Martial",
+  "consumeEffect": "edge",
+  "consumeValue": 2,
+  "consumeKind": "potion",
+  "goldValue": 35
+}

@@ -55,6 +55,12 @@ public sealed class Card
 
     /// <summary>Rarity tier. Drives draft odds and UI border color.</summary>
     public CardRarity Rarity;
+
+    /// <summary>Martial Maneuvers & Edge spec v1 §11b (M7): a staff's bound card.
+    /// Always in the opening hand (UnitDeckData.Initialize puts it on top of the
+    /// shuffled pile), then it shuffles and discards like any other card. Set per
+    /// instance by CombatManager.InitializeUnitDecks; never on a blueprint.</summary>
+    public bool Innate = false;
 }
 
 /// <summary>

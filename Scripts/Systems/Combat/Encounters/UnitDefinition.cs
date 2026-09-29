@@ -109,6 +109,13 @@ public class UnitDefinition
     public bool IsElite => string.Equals(Role, "elite", System.StringComparison.OrdinalIgnoreCase);
     public bool IsBoss  => string.Equals(Role, "boss",  System.StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Martial Maneuvers & Edge spec v1 §2a: stagger resistance. Each
+    /// stagger removes one Poise instead of landing; at 0 the next lands and Poise
+    /// refills at the end of that activation. -1 (the additive default) derives
+    /// from Role: elite 1, boss 2, everyone else 0 (R5). Author a value to override.</summary>
+    public int Poise = -1;
+    public int ResolvedPoise => Poise >= 0 ? Poise : (IsBoss ? 2 : IsElite ? 1 : 0);
+
     public float ColorR = 1.0f;
     public float ColorG = 0.25f;
     public float ColorB = 0.25f;

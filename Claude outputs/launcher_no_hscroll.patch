@@ -1,0 +1,70 @@
+diff --git a/Scripts/Dev/CombatDebugLauncher.cs b/Scripts/Dev/CombatDebugLauncher.cs
+index 144b6f2..bf123d4 100644
+--- a/Scripts/Dev/CombatDebugLauncher.cs
++++ b/Scripts/Dev/CombatDebugLauncher.cs
+@@ -133,6 +133,8 @@ public partial class CombatDebugLauncher : CanvasLayer
+         {
+             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
++            // Vertical only: every row below is built to fit the panel's width.
++            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+         };
+         root.AddChild(scroll);
+         var sm = new MarginContainer
+@@ -301,15 +303,28 @@ public partial class CombatDebugLauncher : CanvasLayer
+                 continue;
+             }
+ 
+-            var row = new HBoxContainer();
++            // Two lines per martial: the checkbox, then its two dropdowns indented
++            // beneath it. One line (checkbox + 340 px of dropdowns) overflowed the
++            // panel and forced a horizontal scrollbar.
++            form.AddChild(chk);
++            var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+             row.AddThemeConstantOverride("separation", 8);
+             form.AddChild(row);
+-            row.AddChild(chk);
++            row.AddChild(new Control { CustomMinimumSize = new Vector2(24, 0) });   // indent under the checkbox
+ 
+             var martialClass = comp.UnitClass == "Fighter" ? MartialClass.Fighter : MartialClass.Ranger;
+ 
+             // Weapon: item 0 keeps the armory loadout; the rest are launch-legal defs.
+-            var weaponOpt = new OptionButton { CustomMinimumSize = new Vector2(190, 28) };
++            // FitToLongestItem off + ClipText: the dropdown takes its share of the
++            // row instead of widening to its longest item name.
++            var weaponOpt = new OptionButton
++            {
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++                SizeFlagsStretchRatio = 1.4f,
++                FitToLongestItem = false,
++                ClipText = true,
++                CustomMinimumSize = new Vector2(0, 28),
++            };
+             weaponOpt.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+             var weaponIds = new List<string> { "" };
+             weaponOpt.AddItem("Weapon: armory");
+@@ -340,7 +355,13 @@ public partial class CombatDebugLauncher : CanvasLayer
+             row.AddChild(weaponOpt);
+ 
+             // Stance: item 0 keeps the authored list; the rest are class-legal stances.
+-            var stanceOpt = new OptionButton { CustomMinimumSize = new Vector2(150, 28) };
++            var stanceOpt = new OptionButton
++            {
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++                FitToLongestItem = false,
++                ClipText = true,
++                CustomMinimumSize = new Vector2(0, 28),
++            };
+             stanceOpt.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+             var stanceIds = new List<string> { "" };
+             stanceOpt.AddItem("Stance: authored");
+@@ -649,7 +670,8 @@ public partial class CombatDebugLauncher : CanvasLayer
+ 
+     private void AddSectionLabel(VBoxContainer form, string text)
+     {
+-        var l = new Label { Text = text };
++        // Wraps rather than widening the form (a long header forced a horizontal scrollbar).
++        var l = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+         l.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+         l.AddThemeColorOverride("font_color", UITheme.Gold);
+         form.AddChild(l);

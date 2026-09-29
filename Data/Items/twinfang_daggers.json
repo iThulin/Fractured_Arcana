@@ -5,6 +5,7 @@
   "rarity": "Rare",
   "slot": "Weapon",
   "unitClass": "Martial",
+  "weaponClass": "PairedBlades",
   "stats": {
     "attackDamage": 1
   },

@@ -12,6 +12,11 @@ public partial class HexGridManager
     /// 4 or fewer extra move points, and eats it otherwise (battlefield §6.2).</summary>
     public const int HazardStepCost = 4;
 
+    /// <summary>Edge M4: additional cost for <c>unit</c> to enter <c>tile</c>, on
+    /// top of terrain and hazards. Installed by CombatManager.Reactions.cs; null
+    /// means no extra cost anywhere. Shared by every cost loop in this file.</summary>
+    public static Func<Unit, TileData, int> ExtraStepCost;
+
     /// <summary>Open, VISIBLE hazards an enemy can see and route around: fire, lava,
     /// scorched ground. Deliberately NOT glyphs, because hidden traps are
     /// unavoidable by design (see <see cref="Unit.HazardCaution"/>).</summary>
@@ -28,12 +33,16 @@ public partial class HexGridManager
     /// movement range and highlights are byte-for-byte unchanged.</summary>
     private int HazardPenalty(Unit unit, TileData tile)
     {
+        // Edge M4 (spec §7b): armed reaction zones read as a routing cost for the
+        // units that avoid them. The hook returns 0 for everyone else, so this is
+        // a no-op unless a reaction is armed and the mover is one that routes.
+        int extra = ExtraStepCost?.Invoke(unit, tile) ?? 0;
         if (unit == null || !IsPathHazard(tile))
-            return 0;
+            return extra;
         float caution = unit.HazardCaution;
         if (caution <= 0f)
-            return 0;
-        return Mathf.RoundToInt(HazardStepCost * caution);
+            return extra;
+        return extra + Mathf.RoundToInt(HazardStepCost * caution);
     }
 
     /// <summary>True when the height gap between two tiles exceeds the cliff threshold.</summary>

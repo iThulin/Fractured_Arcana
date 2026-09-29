@@ -5,6 +5,7 @@
   "rarity": "Rare",
   "slot": "Weapon",
   "unitClass": "Martial",
+  "weaponClass": "Polearm",
   "stats": {},
   "passive": "BonusDamageAboveHalfHP",
   "passiveValue": 3,

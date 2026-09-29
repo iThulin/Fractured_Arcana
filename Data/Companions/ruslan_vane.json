@@ -3,6 +3,7 @@
   "name": "Ruslan Vane",
   "school": "None",
   "unitClass": "Fighter",
+  "startingWeaponId": "iron_sword",
   "personalityTrait": "Reckless",
   "vocation": "Sapper",
   "backstory": "His village sits under corruption now. He works cheap because he has nowhere to send the money, and fights like a man with rent already paid.",

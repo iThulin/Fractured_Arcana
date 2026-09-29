@@ -102,6 +102,16 @@ public class Companion
     // redirects WHICH signature, never whether one is fielded.
     public string SignatureStanceId = "";
 
+    // ── Starting weapon (Martial Maneuvers & Edge spec v1, D5) ──────────
+    /// <summary>Item definition id the companion arrives with (JSON
+    /// "startingWeaponId"). Character design: the weapon class sets the opening
+    /// role. Granted once, on recruitment, into the armory and equipped, only if
+    /// no weapon is already equipped. Hires roll a class-legal one.</summary>
+    public string StartingWeaponId = "";
+    /// <summary>Set when the grant has happened, so it never repeats and never
+    /// overwrites a weapon the player chose later. Additive save field.</summary>
+    public bool StartingWeaponGranted = false;
+
     // ── Runtime state (not in JSON, set during combat) ───────────────────
     // These are not serialized; they're rebuilt each combat from save data.
     [System.Text.Json.Serialization.JsonIgnore]
