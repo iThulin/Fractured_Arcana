@@ -125,6 +125,7 @@ public static class FieldExpeditionSaveAssert
             CreatedLunation = 5,
             ExpiresAtLunation = 9,
             CreatedBy = "scripted",
+            Affixes = new List<string> { WaystoneAffixes.Haunted, WaystoneAffixes.FogBound },
         };
         var rt = RoundTrip(src);
 
@@ -137,6 +138,8 @@ public static class FieldExpeditionSaveAssert
         ok &= Check(sb, "Waypoint.CreatedLunation", rt.CreatedLunation == src.CreatedLunation);
         ok &= Check(sb, "Waypoint.ExpiresAtLunation", rt.ExpiresAtLunation == src.ExpiresAtLunation);
         ok &= Check(sb, "Waypoint.CreatedBy", rt.CreatedBy == src.CreatedBy);
+        ok &= Check(sb, "Waypoint.Affixes", SameList(rt.Affixes, src.Affixes));
+        ok &= Check(sb, "Waypoint.Affixes default not null", new Waypoint().Affixes != null);
         ok &= Check(sb, "Waypoint.IsSpent (derived, not persisted)", !rt.IsSpent);
         ok &= Check(sb, "Waypoint.KeyOf agrees with the stored key", Waypoint.KeyOf(41, 17) == rt.Key);
 
@@ -175,6 +178,7 @@ public static class FieldExpeditionSaveAssert
             WorkStalled = true,
             WorkProgress = 2,
             WorkSide = 2,
+            InterceptedThisMarch = true,
             BusyUntilDay = 37,
             TravelDayAccum = 3,
             Sortie = new SortieState
@@ -260,6 +264,8 @@ public static class FieldExpeditionSaveAssert
         ok &= Check(sb, "FieldParty.WorkStalled", rt.WorkStalled == src.WorkStalled);
         ok &= Check(sb, "FieldParty.WorkProgress", rt.WorkProgress == src.WorkProgress);
         ok &= Check(sb, "FieldParty.WorkSide", rt.WorkSide == src.WorkSide);
+        // 2026-09-28: a lost flag means a second robbery on the same road.
+        ok &= Check(sb, "FieldParty.InterceptedThisMarch", rt.InterceptedThisMarch == src.InterceptedThisMarch);
 
         // The day clock (2026-09-23): a lost BusyUntilDay is a free dive; a
         // lost StartDay charges the walking on top of the moons already sat.

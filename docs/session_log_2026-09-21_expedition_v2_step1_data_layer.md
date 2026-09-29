@@ -3329,3 +3329,435 @@ project as `claude/session_log_2026-09-28_posting_fights_ward.md`.
 
 Static verification only; balance and em-dash gates clean. In-engine confirm
 owed: a hostile garrison's owed fight (stand, then yield), and a ward moon.
+
+---
+
+# Increment 23: the road per tile, regrowing sites, the supply line rework
+
+**1. The road is watched a tile at a time.** The road roll ran once per new
+moon for parties still walking; at 4 days a tile, any march that started and
+ended between two moons was never rolled. `FieldThreats.RollForStep` now runs
+from `FieldMarch.StepDay` as each tile is walked (never on the destination
+tile), at most once a march (`FieldParty.InterceptedThisMarch`, reset on
+`Order`, round-trip asserted). Stance is read from the tile walked, not the
+journey's midpoint. Per-tile odds: 5%, hostile +7, unfriendly +3, friendly
+-3, allied -4, escort -2 a member past the first (cap -4), floor 2, cap 40.
+Closed-form check against the per-moon table's intent: 12 tiles neutral solo
+54.0% clear (was 54.7), 3 tiles 85.7% (83.8), 12 hostile solo 21.6% (22.8),
+12 hostile x3 36.8% (36.5). The patrol's delay was `+3 phases` onto tiles
+remaining, which the day clock recomputes from distance every step, so it
+had cost nothing; it is now 8 days off `TravelDayAccum`. An interception
+posts a Sending and, through `WorldClock.StepDay`, stops the pass of time.
+
+**2. Rest sites regrow.** `HarvestSites.cs`: rest sites are marked
+harvestable (3 moons) at load, idempotently; `ConsumeWorldPoi` starts the
+clock; the new moon restores what is due. Compared against the calendar, not
+counted down. Combat, narrative, negotiation and outposts stay one-shot.
+
+**4. The supply line, reworked for the party.** On a field dive the run's
+own launch tile no longer counts as an anchor: only real anchors do (the
+castle's camp, waystones, secured outposts, cities, the dock, bargained
+anchors, active waystations). The party beyond supply pays in RATIONS (band
+x1 per step), not Health; the castle keeps paying Hull. Roads still carry
+supply. Extraction (`OnSupplyAnchor`) is untouched: a party can still leave
+cleanly from where it took the field. Messages no longer say "castle" on a
+field run.
+
+**Known sharpness, for play:** a party that takes the field 20+ tiles from
+any anchor starts at band 3, paying 4 rations a step off a 40 pack. That is
+the rework's intent (the castle and the waystone are how far ground is
+reached) and also the number most likely to need softening.
+
+Static verification only; balance deltas unchanged against HEAD on the five
+patched tracked files, `HarvestSites.cs` balances, em-dash gates clean.
+**In-engine confirm owed:** order a three-tile march in hostile ground a few
+times: some are waylaid mid-march, the pass of time stops, the desk has the
+Sending. Work a rest site, pass three moons, dive again: it is back. Take the
+field on bare ground far from anything: the fringe message fires at once and
+rations fall faster; do it beside the parked castle: no drain.
+
+---
+
+# Increment 24: waystone affixes (read, then temper)
+
+Item 3 of the 2026-09-28 exploration list. Ruled by Magos: "read, then
+temper". A raised waystone reads its site and arrives with one affix, or two
+where the ground is corrupted (20+) or Hostile. Each affix is a danger and a
+reward in one line.
+
+| Letter | Affix | Danger | Reward |
+|---|---|---|---|
+| H | Haunted ground | every fight x1.25 | a won fight pays x1.5 splinters |
+| W | Warlords' country | every fight x1.25 | a won fight pays x1.5 gold |
+| L | Ley-crossed | every fight x1.25 | +2 Essence per fight won |
+| F | Fog-bound | 6 fewer rations at the start | the 3 nearest hidden places marked |
+| R | Far-flung | supply-line drain x2 | 10 more rations at the start |
+
+Weights lean on the site: corruption leans Haunted, Unfriendly-or-worse
+ground leans Warlords, forest, swamp and marsh lean Fog-bound, and more than
+12 tiles from any other staging point leans Far-flung. Ley-crossed is always
+possible. The roll is seeded by world seed, tile and lunation, so a reload
+cannot reroll a stone.
+
+**Place card.** A waystone's card lists each affix as `[H] Haunted ground:
+...`, its dives left and the stores. **Temper [X] (40 materials)** strips that
+affix; its reward goes with it. **Deepen (60 materials)** reads one more from
+the site, which you do not choose; at most 3. The card reopens on the result.
+
+**Map.** The letters sit on the StagingPoint's name (`Waystone (Rest)  [H][F]`),
+so the card title carries them, and the atlas draws them as a label above the
+beacon's orb.
+
+**Expedition.** `ExpeditionManager._affixes` is read on every `_Ready` from the
+waystone at the staging tile (`FindLast`, since the last charge is spent at
+deploy), for any force, castle or field party: the ground is the ground.
+`DifficultyMultAt` is now the kingdom factor (renamed `KingdomDifficultyMultAt`,
+unchanged) times `AffixFightMult`, so the multiplier holds on wilderness tiles
+too, and H, W and L stack. The bounty is added after the router's reward and
+listed on the spoils card as its own line, with a `waystone_bounty` run-log
+entry. Fog-bound and Far-flung apply once at the fresh deploy, and a card
+("The waystone's ground") names every affix, deferred so the HUD exists. The
+Far-flung drain multiplies both leash branches (rations for a party, Hull for
+the castle).
+
+Save: `Waypoint.Affixes` (additive, default empty). Old waystones read as quiet
+ground. Round-trip asserted.
+
+## Verification
+
+Balance deltas against HEAD unchanged on the six patched files;
+`WaystoneAffixes.cs` balances. Em-dash gates clean. Every new symbol has a
+definition and a caller.
+
+**In-engine confirm owed:** (1) Raise a waystone on a corrupted or hostile site:
+the log names two affixes, and the map beacon shows two letters. (2) Open its
+place card: the lines read, Temper greys under 40 materials, and Deepen adds a
+third and then greys. (3) Take the field from it: the ground card appears. On
+Fog-bound, rations are 6 down and three places are marked. (4) Win a fight on
+Haunted ground: the spoils show a second line with the bounty.
+
+---
+
+# Increment 25: dispatch rail and a map you can click
+
+Reported by Magos: forces were hard to select, and once one was selected,
+hitting a waystone was harder. He was worried a dispatch board would take
+over from the map he has been building. Ruled: build both the rail and the
+map fixes, with the map remaining where the plan is made.
+
+**Why the map fought the player.** Pieces had no pick at all: the Forces panel
+was the only way to select one. `PickTile` raycasts to the ground plane, and a
+beacon's orb floats 3.6 units above its tile. At the map's pitch, a click on
+the orb picked a tile well behind the beacon. In Move mode a step-through
+needed that exact tile.
+
+**Map (`WorldAtlas3D.Dispatch.cs`, partial).**
+- Screen-space picking runs before the ground ray. Targets are each piece's
+  body and name label, and each beacon's orb, standard and affix letters.
+  Pieces win over beacons.
+- A piece hit raises `PiecePicked(id, col, row)` (the castle's id is
+  `"castle"`). A beacon hit raises `TilePicked` on the beacon's own tile, and
+  skips the city-descent branch of `HandlePick`.
+- `DispatchMarks`: a ring on every place the selected force can reach. Blue
+  means step through; pale means walk or march. The cost label always shows
+  on a step-through, and shows on hover for the rest.
+- `HighlightDispatch` lights one ring without a rebuild. The rings are drawn
+  inside `RebuildMarkers`, so they share its lifetime, label scaling and city
+  hiding.
+
+**Rail (`StrategicView.Dispatch.cs`, partial).**
+- Docked under the Forces panel, left, full height, foldable.
+- For the selected force it shows:
+  - the one verb for where the force stands: Take the field here, or Sortie
+    from here;
+  - every reachable place with its method and cost, step-throughs first,
+    nearest first;
+  - a count of unreachable places, with one reason in the tooltip.
+- Hovering a row lights its ring. Pressing a row swings the camera there at
+  the same zoom and opens the order.
+
+**Orders.**
+- A step-through gets its own confirm: **Step through**, or **Step through
+  and take the field**, which merges the two old orders into one.
+- A walk and a castle march use the existing confirms (`TryMovePartyTo`,
+  `TryMarchTo`), so their wording lives in one place.
+
+**Clicks.**
+- Unarmed: a click on a piece selects it.
+- Move armed:
+  - a click on another piece means "go where it stands";
+  - a click on the piece taking the order disarms Move;
+  - a click within 2 tiles of a step-through target means that target, and
+    the confirm offers **Walk to (x,y) instead** so the snap never eats a real
+    walk.
+- Walk and march targets never snap: a walk to a tile beside a city is a real
+  order.
+- The place card's "Move X here" routes through the same confirm when the
+  place is a step-through.
+
+**Logic (`DispatchTargets.cs`).**
+- Builds the rows from `ExpeditionAnchors.All`, one per tile.
+- The method and each refusal come from `FieldMarch` / `CastleMarch`. There
+  are no new rules.
+- A waystone row carries its affix letters.
+
+**Live patches:**
+- `WorldAtlas3D.cs`: pick hook, target registration in the piece and staging
+  builders, `BuildDispatchMarks` after the pieces.
+- `StrategicView.cs`: `PiecePicked` subscription, `BuildDispatchRail` in
+  `BuildForcesPanel`, `RefreshDispatch` before `SetPieces`, snap in the Move
+  branch, place card route.
+
+## Verification
+
+Balance deltas against HEAD unchanged on both patched files; the three new
+files balance. Em-dash gates clean. No name collisions with existing members.
+
+**In-engine confirm owed:**
+1. Click a party's body, then its name at whole-world zoom: it selects.
+2. With a party selected, the rail lists places and blue rings show on
+   waystones. Hovering a row grows its ring.
+3. Press a waystone row: the camera swings there, and **Step through and take
+   the field** opens the party picker at the stone.
+4. Arm Move and click next to a waystone: the step-through confirm appears,
+   with Walk instead.
+5. Click the castle with Move armed on a party: it steps to the castle.
+6. Click a beacon's orb, unarmed: its place card opens.
+7. Fold the rail with the minus button: the rings stay on the map.
+
+---
+
+# Increment 26: focus a force, the clock, resupply in days
+
+Asked 2026-09-29 (Magos):
+
+- Clicking a label should swing the map onto the unit and show how far it can
+  travel, with an overlay.
+- Pass time should be more prominent.
+- Pass time should stop when new actions become possible. His example: the
+  castle showed "1" left on its resupply, and the only choice was to pass 20
+  days.
+
+**The example was a display bug, not a clock bug.** The resupply is priced in
+lunations and runs on the day clock. The status line said "resupply 1
+lunation(s)" while 20 days were really left, and Pass time correctly stopped
+at the resupply's end, 20 days out. Every readout now says days, through
+`WorldClock.ResupplyDaysLeft`. That covers:
+
+- the roster line, the Forces screen and the expedition's castle line;
+- the refusals from `CanSortie` and `CastleMarch.CanMarchAtAll`;
+- the assault and setback reports;
+- the debug panel, which shows lunations and days.
+
+The clock already stops at every completion; nothing about that changed.
+
+**Focus.** A click on a piece (body or name) or on a roster row now calls
+`FocusForce`. It selects the force, flies the camera to frame its reach
+(`WorldAtlas3D.FrameRange`, sized to the disc and nudged right of the left
+panels), and washes its reach (`SetRangeOverlay`).
+
+- Reach inside the disc is tinted; everything else darkens.
+- The castle's reach is its fuel range. A party's reach is the walk it can
+  finish before the new moon; step-throughs are the rings.
+- A readout at the bottom centre says the reach in words, or why the force
+  cannot move. Its close button, or any ordinary map click, puts it away.
+- The wash is re-applied at the end of `RecolorTiles` and `Rebuild`, so a
+  recolour cannot drop it.
+
+**The clock.** Pass time left the roster for a panel at the top centre of the
+map. It shows:
+
+- the date (lunation, day, moon);
+- "Next: <event>, in N day(s)";
+- a big primary **Pass N day(s)** button (the existing confirm);
+- a **+1 day** button, which steps one day with no confirm and still stops
+  for anything that happens on it.
+
+## Verification
+
+Balance deltas against HEAD unchanged on all eight patched files; both
+partials balance. Em-dash gates clean. `device_commit_files` silently kept the
+old partials again; they were written through a new path and moved into place,
+and md5s were verified.
+
+**In-engine confirm owed:**
+1. Click the castle's name: the camera frames its fuel range, and the rest of
+   the map darkens.
+2. Click a party: its walk-before-new-moon reach, and the readout line.
+3. Click empty ground: the wash goes.
+4. The roster says "resupply 20 day(s)", matching the clock's "Next".
+5. +1 day moves the date by one.
+
+## 26b. The resupply counts days (ruled 2026-09-29: "Price it in days")
+
+`CycleState.CastleRepairLunations` now holds DAYS. The name is kept so saves
+load, and an old save's 1 to 6 reads as that many days.
+
+- `WorldClock.StepDay` calls `ExpeditionAnchors.TickCastleRepair` once a day,
+  and the crews finish the day it reaches zero.
+- `CastleRepairDayAccum` is retired: always written 0, and kept for old saves.
+
+| Cost | Was | Now |
+|---|---|---|
+| Camp after a march | 1 lunation | `CastleMarch.ArrivalCampDays` = 4 |
+| Resupply after a sortie or a banked furnace | 1 to 4 lunations | `ExpeditionAnchors.ResupplyDaysFor`: 5 days pristine to 21 wrecked, linear in missing Hull (`MinResupplyDays` / `MaxResupplyDays`) |
+| Kingdom assault | +2 lunations | `AssaultResupplySetbackDays` = +10, won back if the camp holds |
+| Withdrawing under fire | +1 lunation | `WithdrawResupplySetbackDays` = +5 |
+| Ceiling | 6 lunations | `MaxTotalResupplyDays` = 28 |
+
+Renamed (every caller updated):
+
+- `RepairLunationsFor` → `ResupplyDaysFor`
+- `ArrivalCampLunations` → `ArrivalCampDays`
+- `AssaultRepairSetback` → `AssaultResupplySetbackDays`
+- `MaxTotalRepairLunations` → `MaxTotalResupplyDays`
+- the ExpeditionManager exports `Min/MaxRepairLunations` → `Min/MaxRepairDays` (no scene overrides them)
+
+Every player-facing line says days.
+
+**Consequence to watch.** `CastleThreats` still rolls once per lunation, and
+only if the camp is exposed AT the new moon. With 4 to 21 day windows, a camp
+is exposed at the moon far less often than before, so parking in hostile
+ground got safer. If that matters, the roll should move to a per-exposed-day
+chance.
+
+Balance deltas against HEAD are unchanged on all eight files. Em-dash gates
+clean. No stale references to the renamed symbols remain.
+
+**In-engine confirm owed:**
+1. March the castle: "The crews need 4 day(s)", and the clock's Next says the
+   resupply finishes in 4.
+2. Sortie and return undamaged: 5 days.
+
+## 26c. The open camp is rolled every day it stands open (ruled 2026-09-29)
+
+This fixes the side effect flagged in 26b. `CastleThreats.RollForLunation` is
+now `RollForDay`, called from `WorldClock.StepDay` before the day's resupply,
+so a day the camp is hit is a day of work lost. The new-moon call in
+`RunLunationTick` is gone. The RNG seeds on `AbsoluteDay` instead of the
+lunation.
+
+The tuning keeps its meaning. Each per-lunation percentage is converted to
+the daily rate that compounds to it over 28 exposed days
+(`DailyChance = 1 - (1 - P)^(1/28)`).
+
+| Stance (per lunation) | Per day | 4-day march camp | 5-day clean resupply | 21-day wreck |
+|---|---|---|---|---|
+| Neutral 25% | 1.0% | 4.0% | 5.0% | 19.4% |
+| Unfriendly 35% | 1.5% | 6.0% | 7.4% | 27.6% |
+| Hostile 50% | 2.4% | 9.4% | 11.6% | 40.5% |
+
+Risk now scales with how long the camp stands open. A wrecked castle
+resupplying in hostile ground is in real danger; a quick camp mostly is not.
+A hit is an event, so it stops Pass time, and an owed assault is offered on
+the reload as before. The rest is unchanged:
+
+- 60% of hits in Unfriendly-or-worse ground are assaults;
+- one assault at a time;
+- the crew drives raids off;
+- the resupply is capped at 28 days.
+
+Balance deltas unchanged on the three files. Em-dash gates clean. No callers
+of the old name remain.
+
+**In-engine confirm owed:** set a kingdom Hostile (debug), march the castle
+into it, and pass time a day at a time. Over a few camps a raid or an assault
+lands mid-resupply and stops the clock.
+
+## 26d. Double click the world map: deselect and pull back (2026-09-29)
+
+A left double click anywhere on the world map (not the city view) raises
+`WorldAtlas3D.MapDoubleClicked`. The release that ends it is swallowed, so it
+does not also pick a tile. `StrategicView.OnMapDoubleClicked` then:
+
+- clears the lit reach;
+- disarms Move;
+- selects NOTHING (`NoPieceId`, a new state);
+- flies the camera to the whole-world overview.
+
+With nothing selected, the castle and party verbs hide, the dispatch rail
+hides, no piece wears a ring (the atlas reads index -2), and the stale-selection
+fallback leaves it alone. Clicking a piece or a roster row selects again.
+
+`FlyTo` now kills the flight under way, so the pull-back replaces the first
+click's fly-in instead of fighting it.
+
+**Known edge:** a double click on a beacon opens its place card on the first
+click, and the modal takes the second click. On beacons the gesture is the
+card, not the pull-back.
+
+---
+
+# Increment 27: the command column (world map polish)
+
+Asked 2026-09-29 (Magos), with screenshots:
+
+- the campus should not show the dispatch window;
+- the world map should look cohesive and polished;
+- the spacing was all over the place after many added pieces.
+
+Ruled: **Command column**.
+
+**What was wrong.** It was structure more than pixels:
+
+- The selected force's orders sat in two places: the right stack and the
+  rail's "here" button.
+- The date was said three times: the top bar, the clock and the gold
+  calendar card.
+- The left side was two fixed-height panels (440 and full height), mostly
+  empty, under a lens row of a different width.
+- Roster status lines clipped mid-word.
+- Three border colours were in use (violet, gold, gold).
+
+**Now.** The left side is ONE transparent column (`_commandColumn`, 320
+wide, `MouseFilter.Ignore`, so the map between cards still takes clicks) of
+cards that each fit their content. Every card shares `CardStyle()`, `CardPadX`
+12, `CardPadY` 10, and an 8-pixel gap.
+
+1. **View.** The four lenses share the width evenly. The "View:" caption is
+   gone.
+2. **Forces.** The nav toggle and the roster. Rows fill the width, status
+   lines trim with an ellipsis and carry the full text as a tooltip. In the
+   city the roster hides and only the way back out remains.
+3. **Orders.** The selected force's name in its colour, its one-line state,
+   and the reason it cannot act (amber) if there is one. Under that, every
+   verb it has, moved from the right stack (`MoveForceVerbsToOrders`):
+   Sortie, Take the field, Intervene, March/Move, Post here, Seek audience,
+   Stop work, Collect, Recall, Bank the furnace. The buttons are moved, not
+   rebuilt, so RefreshPieceChrome still owns their visibility. "No orders to
+   give here." shows when none apply.
+4. **Destinations.** A heading with a count, and the fold button. Rows are
+   46 px, and the list grows to 340 px before scrolling. The card hides when
+   nothing is reachable (no placeholder slab). The rail's duplicate "here"
+   row is gone.
+
+**The clock.** The same card style (the gold border is gone):
+
+- the date in gold;
+- a year line carrying the old calendar card: "Year 1 · a pristine timeline ·
+  12 lunations to the Conjunction", which turns red in a hardened year or
+  within two lunations;
+- a two-line Pass button, "☽ Pass N day(s)" over "until <event>";
+- +1 day.
+
+The calendar card's block in BuildHud is removed (verified by its markers and
+contents, 72 lines). The clock and the column now fill at build time, which
+fixes the blank clock seen in the city view.
+
+The right side keeps what belongs to no force: the city's verbs, Forces,
+help, and the news (red, an alert, left as is).
+
+## Verification
+
+Balance deltas against HEAD unchanged on StrategicView.cs; the partial
+balances. Em-dash gates clean. The partial went through a new path and a
+move, md5 verified.
+
+**In-engine confirm owed:**
+1. World map: one left column of four cards with even gaps; Orders shows the
+   selected force's verbs; no verbs on the right but Forces and help.
+2. Select the field party: Orders reads its name in gold, and Destinations
+   lists places, or is absent when there are none.
+3. City view: lens and "To the world map" only.
+4. The clock shows the year line and the two-line Pass button, and is filled
+   on load.

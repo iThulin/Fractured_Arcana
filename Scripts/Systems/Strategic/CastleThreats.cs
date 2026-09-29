@@ -33,8 +33,8 @@ using System;
 //                 means. No new persisted stat is invented to say a thing
 //                 the existing two already say.
 //
-//                 Rolls are DETERMINISTIC per lunation (seeded from the
-//                 world seed, the lunation and the castle's tile), so
+//                 Rolls are DETERMINISTIC per day (seeded from the
+//                 world seed, the absolute day and the castle's tile), so
 //                 reloading a save cannot reroll a raid away. Save
 //                 scumming a threat table is the fastest way to make one
 //                 meaningless.
@@ -43,7 +43,8 @@ using System;
 //                 CastleHold, PendingCastleAssaultKingdomId),
 //                 CouncilQueries.StanceFor (the hostility source),
 //                 ExpeditionAnchors.Crew (who is aboard to fight),
-//                 StrategicView.RunLunationTick (the caller)
+//                 WorldClock.StepDay (the caller, once a day since
+//                 2026-09-29; RunLunationTick before that)
 // See:            docs/session_log_2026-09-21_expedition_v2_step1_data_layer.md
 // ============================================================
 
@@ -78,7 +79,10 @@ public static class CastleThreats
 {
     // ── Tuning (starting values, all of them) ────────────────────────────
 
-    /// <summary>Chance per exposed lunation that anything comes at all.</summary>
+    /// <summary>Chance per exposed LUNATION that anything comes at all. Since
+    /// 2026-09-29 it is rolled once per exposed DAY at the rate that compounds
+    /// to this over a lunation (see DailyChance), so a camp's risk is the time
+    /// it stands open, whether that is four days or twenty.</summary>
     public const int BaseChancePercent = 25;
 
     /// <summary>Stance shifts the odds. A kingdom that hates you is watching
@@ -96,8 +100,13 @@ public static class CastleThreats
     /// is what makes leaving the fortress thinly staffed cost something.</summary>
     public const int CrewDriveOffPercentEach = 25;
 
-    /// <summary>Lunations a kingdom assault adds to the resupply.</summary>
-    public const int AssaultRepairSetback = 2;
+    /// <summary>Days a kingdom assault adds to the resupply (ruled 2026-09-29:
+    /// the resupply counts days; was 2 lunations). Won back if the camp holds.</summary>
+    public const int AssaultResupplySetbackDays = 10;
+
+    /// <summary>Days the resupply slips when the camp is abandoned under fire
+    /// (was one lunation).</summary>
+    public const int WithdrawResupplySetbackDays = 5;
 
     /// <summary>Hard ceiling on the resupply, however many assaults land.
     ///
@@ -108,7 +117,8 @@ public static class CastleThreats
     /// a player cannot act their way out of it because being parked is the very
     /// thing drawing the attacks. The ceiling keeps a bad parking decision
     /// expensive without making it terminal.</para></summary>
-    public const int MaxTotalRepairLunations = 6;
+    /// <para>In days since 2026-09-29 (was 6 lunations): four weeks.</para>
+    public const int MaxTotalResupplyDays = 28;
 
     /// <summary>Share of the hold an assault destroys outright. Lower than a
     /// raid's: they came to break the castle, not to shop.</summary>
@@ -116,9 +126,12 @@ public static class CastleThreats
 
     // ── The roll ─────────────────────────────────────────────────────────
 
-    /// <summary>Roll one exposed lunation. Returns a result with Kind None when
-    /// the castle is not exposed or nothing came. Non-throwing.</summary>
-    public static CastleThreatResult RollForLunation(CycleState cycle)
+    /// <summary>Roll one exposed DAY (ruled 2026-09-29, when the resupply began
+    /// counting days: a camp open four days and one open twenty were both
+    /// rolled once, at the new moon, if they happened to span it). Returns a
+    /// result with Kind None when the castle is not exposed or nothing came.
+    /// Called from WorldClock.StepDay before the day's resupply. Non-throwing.</summary>
+    public static CastleThreatResult RollForDay(CycleState cycle)
     {
         var none = new CastleThreatResult();
         if (cycle == null || !cycle.CastleExposed)
@@ -140,7 +153,7 @@ public static class CastleThreats
         chance = Math.Clamp(chance, 0, 95);
 
         var rng = RngFor(cycle);
-        if (rng.Next(100) >= chance)
+        if (rng.NextDouble() >= DailyChance(chance))
         {
             return none;
         }
@@ -244,7 +257,7 @@ public static class CastleThreats
         };
 
         cycle.CastleRepairLunations = Math.Min(
-            cycle.CastleRepairLunations + AssaultRepairSetback, MaxTotalRepairLunations);
+            cycle.CastleRepairLunations + AssaultResupplySetbackDays, MaxTotalResupplyDays);
         cycle.PendingCastleAssaultKingdomId = kingdomId;
 
         var hold = cycle.CastleHold;
@@ -263,11 +276,21 @@ public static class CastleThreats
 
         result.Report = $"Soldiers of {kingdomId} fell on the camp while the waystone was open. " +
                         $"The crews scattered and the work is undone: the resupply stands at " +
-                        $"{cycle.CastleRepairLunations} lunation(s).{spoils}";
+                        $"{WorldClock.ResupplyDaysLeft(cycle)} day(s).{spoils}";
         return result;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    /// <summary>The per-day chance that compounds to <paramref name="lunationPercent"/>
+    /// over a lunation of exposed days: 1 - (1 - P)^(1/28). Rate-preserving, so
+    /// the tuning above keeps its meaning: 25 percent a lunation is about 1.0
+    /// percent a day, 50 is about 2.4, 95 is about 10.2.</summary>
+    public static double DailyChance(int lunationPercent)
+    {
+        double p = Math.Clamp(lunationPercent, 0, 99) / 100.0;
+        return 1.0 - Math.Pow(1.0 - p, 1.0 / CalendarState.DaysPerLunation);
+    }
 
     /// <summary>Remove a percentage (at least 1 when there is anything at all)
     /// and return what was taken.</summary>
@@ -290,14 +313,14 @@ public static class CastleThreats
         return taken;
     }
 
-    /// <summary>Deterministic per lunation and per parking spot, so reloading
+    /// <summary>Deterministic per DAY and per parking spot, so reloading
     /// cannot reroll a raid away.</summary>
     private static Random RngFor(CycleState cycle)
     {
         unchecked
         {
             int seed = cycle.WorldSeed;
-            seed = (seed * 397) ^ (cycle.Calendar?.CurrentLunation ?? 0);
+            seed = (seed * 397) ^ (cycle.Calendar?.AbsoluteDay ?? 0);
             seed = (seed * 397) ^ cycle.CastleX;
             seed = (seed * 397) ^ cycle.CastleY;
             seed = (seed * 397) ^ cycle.CastleRepairLunations;

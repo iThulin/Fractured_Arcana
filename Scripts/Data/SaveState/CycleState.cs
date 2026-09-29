@@ -259,7 +259,9 @@ public class CycleState
     /// 0 means free.</summary>
     public int CastleBusyUntilDay = 0;
 
-    /// <summary>Days accrued toward the next resupply lunation while parked.
+    /// <summary>RETIRED 2026-09-29, when the resupply began counting days
+    /// directly; kept so old saves load and always written 0.
+    /// Was: days accrued toward the next resupply lunation while parked.
     /// CastleRepairLunations stays the number every reader knows; this is how
     /// it ticks under the day clock: one lunation per DaysPerLunation days,
     /// counted from the day the camp was made rather than from the next new
@@ -277,8 +279,9 @@ public class CycleState
     /// <summary>Lunation the castle parked on, for the run log and the HUD.</summary>
     public int CastleParkedLunation = 0;
 
-    /// <summary>Lunations of resupply still owed before the fortress can sortie
-    /// again. Set on parking from how badly the hull was damaged: a pristine
+    /// <summary>DAYS of resupply still owed before the fortress can sortie
+    /// again (ruled 2026-09-29; it counted lunations before, and the name is
+    /// kept so saves load: an old save's 1 to 6 reads as that many days). Set on parking from how badly the hull was damaged: a pristine
     /// castle is ready next lunation, a battered one sits while work crews
     /// teleport in and rebuild it.
     ///

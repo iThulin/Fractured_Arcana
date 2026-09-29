@@ -1292,10 +1292,24 @@ public partial class WorldAtlas3D : Node3D
             }
             else if (mb.ButtonIndex == MouseButton.Left)
             {
-                if (mb.Pressed) { _dragging = true; _dragMoved = false; }
+                if (mb.Pressed)
+                {
+                    _dragging = true;
+                    _dragMoved = false;
+                    // A double click on the world map is its own gesture
+                    // (2026-09-29): drop the selection and pull back. The
+                    // release that ends it must not also pick a tile.
+                    if (mb.DoubleClick && !_cityMode)
+                    {
+                        _swallowNextRelease = true;
+                        MapDoubleClicked?.Invoke();
+                    }
+                }
                 else
                 {
-                    if (_dragging && !_dragMoved)
+                    bool swallow = _swallowNextRelease;
+                    _swallowNextRelease = false;
+                    if (_dragging && !_dragMoved && !swallow)
                     {
                         // In city view a click first tries the grounds (a building opens its
                         // panel; a hit is consumed). On the world map it's an ordinary tile pick.
@@ -1452,7 +1466,12 @@ public partial class WorldAtlas3D : Node3D
     {
         Vector3 fromTarget = _camTarget;
         float fromDist = _camDist;
+        // One flight at a time: a second fly (a double click pulling back
+        // while the first click's fly-in is under way) replaces the first
+        // instead of fighting it frame by frame.
+        _flyTween?.Kill();
         var tw = CreateTween();
+        _flyTween = tw;
         tw.TweenMethod(Callable.From((float u) =>
         {
             _camTarget = fromTarget.Lerp(toTarget, u);
@@ -1468,6 +1487,9 @@ public partial class WorldAtlas3D : Node3D
     private void PickTile(Vector2 screenPos)
     {
         if (_world == null) return;
+        // Pieces and beacons first, in screen space (WorldAtlas3D.Dispatch):
+        // the ground ray lands under the cursor, not under an orb in the air.
+        if (TryDispatchScreenPick(screenPos)) return;
         Vector3 origin = _camera.ProjectRayOrigin(screenPos);
         Vector3 dir = _camera.ProjectRayNormal(screenPos);
         if (Mathf.Abs(dir.Y) < 0.0001f) return;
@@ -1562,6 +1584,7 @@ public partial class WorldAtlas3D : Node3D
         RebuildDecorations();
         if (PreviewActive)
             ApplyWindowTint();   // fresh multimesh colors wiped the preview lift
+        ApplyRangeOverlay();     // and the reach wash, for the same reason
     }
 
     private void RebuildTiles()
@@ -1724,6 +1747,7 @@ public partial class WorldAtlas3D : Node3D
         }
         if (PreviewActive)
             ApplyWindowTint();
+        ApplyRangeOverlay();   // a force's reach, if one is lit (2026-09-29)
     }
 
     /// <summary>The MultiMesh holding a flat tile index's instance.</summary>
@@ -1963,6 +1987,7 @@ public partial class WorldAtlas3D : Node3D
         _markers.Clear();
         _scaledLabels.Clear();        // label nodes live in _markers, just freed above
         _labelStack.Clear();
+        ResetPickTargets();           // their nodes too
         _cityHiddenMarkers.Clear();   // its nodes live in _markers, just freed above
 
         // POIs: discovered only (or reveal), same rule as StrategicView's POI layer.
@@ -2069,6 +2094,25 @@ public partial class WorldAtlas3D : Node3D
                 },
                 Position = MarkerPos(sp.X, sp.Y, 3.6f),
             }, sp.X, sp.Y);
+
+            // The orb and the standard are click targets in their own right
+            // (WorldAtlas3D.Dispatch): the ground pick misses a thing in the air.
+            RegisterBeaconAt(new Vector2I(sp.X, sp.Y), MarkerPos(sp.X, sp.Y, 3.6f));
+            RegisterBeaconAt(new Vector2I(sp.X, sp.Y), MarkerPos(sp.X, sp.Y, 1.8f));
+
+            // A waystone's ground (WaystoneAffixes, 2026-09-28): its letters
+            // ride above the orb, so a haunted stone reads [H] from across the map.
+            if (sp.Source == ExpeditionAnchors.WaypointStagingSource && !string.IsNullOrEmpty(sp.Name))
+            {
+                int cut = sp.Name.IndexOf("  [", System.StringComparison.Ordinal);
+                if (cut >= 0)
+                {
+                    var letters = StackedLabel(new Vector2I(sp.X, sp.Y), sp.Name.Substring(cut).Trim(),
+                        UITheme.Gold, MarkerPos(sp.X, sp.Y, 4.6f), 28, 0.018f);
+                    AddMarker(letters, sp.X, sp.Y);
+                    RegisterBeaconLabel(new Vector2I(sp.X, sp.Y), letters, 0.018f);
+                }
+            }
         }
 
         // Shard zones: violet spikes at the gate once discovered.
@@ -2137,6 +2181,8 @@ public partial class WorldAtlas3D : Node3D
 
         // LAST, so the pieces draw over the places they are standing on.
         BuildPieceMarkers();
+        // And the selected force's destinations over everything (2026-09-28).
+        BuildDispatchMarks();
     }
 
     /// <summary>Tell the atlas where the two pieces are and which one is taking
@@ -2549,10 +2595,12 @@ public partial class WorldAtlas3D : Node3D
             var body = PieceBody(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.9f) + fan, 1.35f, 0.95f);
             AddMarker(body, c.X, c.Y);
             _castlePieceNodes.Add(body);
+            RegisterPieceTarget(CastlePieceId, c, body);
             _castleLabelNode = StackedLabel(c, "Castle", UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, PieceLabelLift), 34, 0.02f);
             AddMarker(_castleLabelNode, c.X, c.Y);
+            RegisterPieceLabel(CastlePieceId, c, _castleLabelNode as Label3D, 0.02f);
             _castlePieceNodes.AddRange(PlaceFigures(CastleFigures, MarkerPos(c.X, c.Y, 0f) + fan, 1.75f, c.X, c.Y));
-            if (SelectedPartyIndex < 0)
+            if (SelectedPartyIndex == -1)   // -2: nothing selected, no ring at all
             {
                 var ring = SelectionRing(UITheme.ArcaneBlue, MarkerPos(c.X, c.Y, 0.08f) + fan);
                 AddMarker(ring, c.X, c.Y);
@@ -2589,6 +2637,7 @@ public partial class WorldAtlas3D : Node3D
                     AddMarker(part, p.X, p.Y);
                     mine.Add(part);
                 }
+                RegisterPieceAt(PartyIdAt(i), p, MarkerPos(p.X, p.Y, 1.0f) + fan);
                 label = StackedLabel(p, $"{banner} {name}", UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 30, 0.02f);
                 AddMarker(label, p.X, p.Y);
             }
@@ -2597,6 +2646,7 @@ public partial class WorldAtlas3D : Node3D
                 var body = PieceBody(UITheme.Gold, MarkerPos(p.X, p.Y, 0.7f) + fan, 0.55f, 1.5f);
                 AddMarker(body, p.X, p.Y);
                 mine.Add(body);
+                RegisterPieceTarget(PartyIdAt(i), p, body);
                 label = StackedLabel(p, name, UITheme.Gold, MarkerPos(p.X, p.Y, PieceLabelLift), 34, 0.02f);
                 AddMarker(label, p.X, p.Y);
             }
@@ -2611,6 +2661,7 @@ public partial class WorldAtlas3D : Node3D
             }
             _partyPieceNodes.Add(mine);
             _partyLabelNodes.Add(label);
+            RegisterPieceLabel(PartyIdAt(i), p, label as Label3D, 0.02f);
 
             Vector2I? dest = PartyDestTiles != null && i < PartyDestTiles.Count
                 ? PartyDestTiles[i]

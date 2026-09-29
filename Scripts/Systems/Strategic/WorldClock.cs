@@ -49,6 +49,14 @@ public static class WorldClock
     public static bool CastleBusy(CycleState cycle)
         => cycle != null && cycle.CastleBusyUntilDay > Now(cycle);
 
+    /// <summary>Days until the castle's resupply finishes, or 0. The resupply
+    /// is priced in lunations but runs on the day clock; every readout says
+    /// days (2026-09-29: "1 lunation" read as one day and hid a 20-day wait).</summary>
+    public static int ResupplyDaysLeft(CycleState cycle)
+        => cycle == null || cycle.CastleRepairLunations <= 0
+            ? 0
+            : cycle.CastleRepairLunations;   // DAYS since 2026-09-29 (see CycleState)
+
     public static bool PartyBusy(CycleState cycle, FieldParty p)
         => p != null && p.BusyUntilDay > Now(cycle);
 
@@ -85,8 +93,7 @@ public static class WorldClock
         }
         if (cycle.CastleParked && cycle.CastleRepairLunations > 0)
         {
-            int daysLeft = cycle.CastleRepairLunations * CalendarState.DaysPerLunation - cycle.CastleRepairDayAccum;
-            Consider(now + Mathf.Max(1, daysLeft), "the castle's resupply finishes");
+            Consider(now + ResupplyDaysLeft(cycle), "the castle's resupply finishes");
         }
         if (cycle.FieldParties != null)
         {
@@ -131,22 +138,27 @@ public static class WorldClock
             events.Add("The castle is free to be ordered again.");
         }
 
+        // The resupply counts DAYS (ruled 2026-09-29): one off per day, and the
+        // day it reaches zero the crews finish and the hold goes home.
+        cycle.CastleRepairDayAccum = 0;   // retired; kept only for old saves
+
+        // An open camp is a target every day it stands open (2026-09-29), and
+        // the roll comes BEFORE the day's work: a day the camp was hit is a day
+        // of work lost, not banked.
+        var threat = CastleThreats.RollForDay(cycle);
+        if (threat.Happened)
+        {
+            events.Add(threat.Report);
+            GD.Print($"[CastleThreats] {threat.Kind}: {threat.Report}");
+        }
+
         if (cycle.CastleParked && cycle.CastleRepairLunations > 0)
         {
-            cycle.CastleRepairDayAccum++;
-            if (cycle.CastleRepairDayAccum >= CalendarState.DaysPerLunation)
+            if (ExpeditionAnchors.TickCastleRepair(cycle))
             {
-                cycle.CastleRepairDayAccum = 0;
-                if (ExpeditionAnchors.TickCastleRepair(cycle))
-                {
-                    events.Add("The waystone closes over the camp. The castle is refuelled, restocked and whole, "
-                             + "and the hold is home.");
-                }
+                events.Add("The waystone closes over the camp. The castle is refuelled, restocked and whole, "
+                         + "and the hold is home.");
             }
-        }
-        else
-        {
-            cycle.CastleRepairDayAccum = 0;
         }
 
         if (cycle.FieldParties != null)

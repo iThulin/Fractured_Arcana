@@ -163,6 +163,12 @@ public partial class StrategicView : Node2D
     /// <summary>True when the castle is the piece taking orders.</summary>
     private bool CastleSelected => string.IsNullOrEmpty(_selectedPieceId);
 
+    /// <summary>Nothing has the orders (2026-09-29): set by a double click on
+    /// the map. Not the castle and not a party; the verbs and the rail hide
+    /// until something is picked.</summary>
+    private const string NoPieceId = "~none";
+    private bool NothingSelected => _selectedPieceId == NoPieceId;
+
     /// <summary>The selected field party, or null when the castle has the
     /// orders or the named party has gone.</summary>
     private FieldParty SelectedParty()
@@ -305,6 +311,8 @@ public partial class StrategicView : Node2D
                 // Supply caches: idempotent seed so pre-feature saves (and fresh
                 // worlds) get their per-kingdom caches before markers render.
                 SupplyCacheSystem.EnsureSeeded(cycle);
+                // Rest sites regrow (2026-09-28); idempotent like the seed above.
+                HarvestSites.EnsureSeeded(cycle);
 
                 // Expedition v2: idempotent, same role as the cache seed above.
                 // BackfillPostings reconstructs the castle crew on a save written
@@ -488,6 +496,8 @@ public partial class StrategicView : Node2D
 
         _atlas3D = new WorldAtlas3D();
         _atlas3D.TilePicked += OnAtlas3DTilePicked;
+        _atlas3D.PiecePicked += OnAtlasPiecePicked;   // 2026-09-28: pieces are clickable
+        _atlas3D.MapDoubleClicked += OnMapDoubleClicked;   // 2026-09-29: deselect and pull back
         // True geometry merge (Phase 2): the campus grounds render as a model on the home
         // tile; when zoomed in, clicking a building on it opens that building's campus panel
         // in place, without the full-screen scene swap.
@@ -605,42 +615,23 @@ public partial class StrategicView : Node2D
     /// the panel is not, so the player does not watch it flicker.</summary>
     private void BuildForcesPanel()
     {
-        // EXPLICIT rect, not offsets-plus-minimum-size.
-        //
-        // The lens panel above gets away with two offsets and lets its content
-        // push the other two, and I copied that. It did not render. Rather than
-        // keep reasoning about when Godot clamps a top-level Control to its
-        // combined minimum size, the panel now states its own rectangle: a
-        // control that declares where it is cannot be zero-sized by a layout
-        // rule I have mispredicted twice.
-        const int ForcesWidth = 268;
-        const int ForcesTop = 58;
-        // 2026-09-24: was 300, which fits the castle and one party. With a
-        // second party (Grand Hall III) and detachments under each, the roster
-        // needs the room, and nothing else docks on the left below it.
-        const int ForcesHeight = 440;
-        _forcesPanel = new PanelContainer
-        {
-            AnchorLeft = 0f,
-            AnchorTop = 0f,
-            AnchorRight = 0f,
-            AnchorBottom = 0f,
-            OffsetLeft = 16,
-            OffsetRight = 16 + ForcesWidth,
-            OffsetTop = ForcesTop + HudManager.BarHeight,           // under the lens row
-            OffsetBottom = ForcesTop + ForcesHeight + HudManager.BarHeight,
-            CustomMinimumSize = new Vector2(ForcesWidth, 0),
-            MouseFilter = Control.MouseFilterEnum.Stop,
-        };
-        _forcesPanel.AddThemeStyleboxOverride("panel",
-            UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.CampusTitleBarBorder));
-        _hud.AddChild(_forcesPanel);
+        // 2026-09-29: a card in the command column, sized to its rows. It was
+        // a top-level panel with an explicit 268 x 440 rect, because a
+        // top-level Control sized by its content had collapsed to nothing
+        // twice. Inside the column's VBox a card gets exactly its content's
+        // height, which is the point: no fixed slab of mostly empty panel.
+        EnsureCommandColumn();
+        _forcesPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop };
+        _forcesPanel.AddThemeStyleboxOverride("panel", CardStyle());
+        _commandColumn.AddChild(_forcesPanel);
+        // Orders and Destinations follow it down the column (StrategicView.Dispatch).
+        BuildDispatchRail();
 
         var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 10);
-        margin.AddThemeConstantOverride("margin_right", 10);
-        margin.AddThemeConstantOverride("margin_top", 8);
-        margin.AddThemeConstantOverride("margin_bottom", 8);
+        margin.AddThemeConstantOverride("margin_left", CardPadX);
+        margin.AddThemeConstantOverride("margin_right", CardPadX);
+        margin.AddThemeConstantOverride("margin_top", CardPadY);
+        margin.AddThemeConstantOverride("margin_bottom", CardPadY);
         _forcesPanel.AddChild(margin);
 
         var col = new VBoxContainer();
@@ -654,7 +645,8 @@ public partial class StrategicView : Node2D
         _viewToggleBtn = new Button
         {
             Text = "\u25C8  To the world map",
-            CustomMinimumSize = new Vector2(248, 34),
+            CustomMinimumSize = new Vector2(0, 34),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         };
         _viewToggleBtn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         UITheme.ApplyButtonStyle(_viewToggleBtn, isPrimary: true);
@@ -682,7 +674,9 @@ public partial class StrategicView : Node2D
           + "finishing, a force coming free, or the new moon, when the world moves. "
           + "Stops at every one of them.";
         _turnMoonBtn.Pressed += OnPassTimePressed;
-        col.AddChild(_turnMoonBtn);
+        // 2026-09-29: the clock has the top centre of the map, not the foot
+        // of the roster (StrategicView.Dispatch, BuildTimeBar).
+        BuildTimeBar();
 
         // Fill itself. BuildLensButtons runs LATE in BuildHud, after the
         // RefreshPieceChrome that would otherwise have populated this, so the
@@ -769,7 +763,8 @@ public partial class StrategicView : Node2D
     {
         var btn = new Button
         {
-            CustomMinimumSize = new Vector2(248, 40),
+            CustomMinimumSize = new Vector2(0, 46),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             ToggleMode = false,
             ButtonPressed = false,
         };
@@ -780,7 +775,7 @@ public partial class StrategicView : Node2D
         btn.AddThemeStyleboxOverride("normal", style);
         btn.AddThemeStyleboxOverride("hover", style);
         btn.AddThemeStyleboxOverride("pressed", style);
-        btn.Pressed += () => SelectPiece(pieceId);
+        btn.Pressed += () => FocusForce(pieceId);   // select, fly, show the reach
         _forcesRows.AddChild(btn);
 
         // The label rides INSIDE the button rather than being its Text, so the
@@ -804,7 +799,14 @@ public partial class StrategicView : Node2D
         nameLbl.AddThemeColorOverride("font_color", selected ? accent : UITheme.TextPrimary);
         box.AddChild(nameLbl);
 
-        var statusLbl = new Label { Text = status, MouseFilter = Control.MouseFilterEnum.Ignore };
+        var statusLbl = new Label
+        {
+            Text = status,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            ClipText = true,
+            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
+        };
+        btn.TooltipText = status;
         statusLbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         statusLbl.AddThemeColorOverride("font_color", UITheme.TextSecondary);
         box.AddChild(statusLbl);
@@ -825,7 +827,7 @@ public partial class StrategicView : Node2D
         }
         if (cycle.CastleRepairLunations > 0)
         {
-            return $"{at}  ·  resupply {cycle.CastleRepairLunations} lunation(s)";
+            return $"{at}  ·  resupply {WorldClock.ResupplyDaysLeft(cycle)} day(s)";
         }
         if (cycle.CastleSortie != null && cycle.CastleSortie.IsLive())
         {
@@ -1117,8 +1119,7 @@ public partial class StrategicView : Node2D
         int now = WorldClock.Now(cycle);
         if (cycle.CastleParked && cycle.CastleRepairLunations > 0)
         {
-            int days = cycle.CastleRepairLunations * CalendarState.DaysPerLunation - cycle.CastleRepairDayAccum;
-            lines.Add($"The castle's resupply finishes in {days} day(s).");
+            lines.Add($"The castle's resupply finishes in {WorldClock.ResupplyDaysLeft(cycle)} day(s).");
         }
         if (WorldClock.CastleBusy(cycle))
         {
@@ -1181,7 +1182,7 @@ public partial class StrategicView : Node2D
         // A selection can go stale: a named party could be gone from the save
         // between cycles. Fall back to the castle rather than commanding a
         // force that is not there.
-        if (!CastleSelected && SelectedParty() == null)
+        if (!CastleSelected && !NothingSelected && SelectedParty() == null)
         {
             _selectedPieceId = "";
         }
@@ -1195,7 +1196,7 @@ public partial class StrategicView : Node2D
             // Visibility lives HERE, not at build time, so it is re-decided every
             // time anything changes rather than frozen at whatever the map
             // happened to be showing when the HUD was constructed.
-            _marchModeBtn.Visible = !cityNow;
+            _marchModeBtn.Visible = !cityNow && !NothingSelected;
             if (cityNow)
             {
                 _marchModeBtn.ButtonPressed = false;
@@ -1344,6 +1345,9 @@ public partial class StrategicView : Node2D
         }
 
         RebuildForcesPanel();
+        // Before SetPieces: it hands the atlas the rings, and SetPieces's one
+        // rebuild draws them.
+        RefreshDispatch();
 
         if (_atlas3D != null && cycle != null)
         {
@@ -1396,7 +1400,7 @@ public partial class StrategicView : Node2D
                 }
             }
             _atlas3D.SetPieces(castleAt, partyTiles, partyNames, partyDests,
-                               CastleSelected ? -1 : selectedIndex, partyBanners,
+                               CastleSelected ? -1 : NothingSelected ? -2 : selectedIndex, partyBanners,
                                partyFigures, CompanionWhereabouts.FigureTints(cycle, crewIds),
                                partyIds);
         }
@@ -1504,7 +1508,12 @@ public partial class StrategicView : Node2D
         {
             if (!CastleSelected)
             {
-                TryMovePartyTo(col, row);
+                // Near a waystone means the waystone (DispatchTargets.SnapTiles);
+                // the confirm offers the walk to the clicked tile instead.
+                if (!TryDispatchSnap(col, row))
+                {
+                    TryMovePartyTo(col, row);
+                }
             }
             else
             {
@@ -1512,6 +1521,9 @@ public partial class StrategicView : Node2D
             }
             return;
         }
+
+        // An ordinary click on the map puts the lit reach away (2026-09-29).
+        ClearRangeFocus();
 
         // Deploy drawer open: the map is live for RETARGETING only. A click near
         // another staging beacon moves the drawer there; caches/warfronts wait
@@ -2392,7 +2404,7 @@ public partial class StrategicView : Node2D
                 "Hold the camp: the crew forms up at the Heart and you fight for the work " +
                 "already done. Winning puts the crews back on it.\n\n" +
                 "Withdraw: the castle breaks camp under fire. Nothing is lost that is not " +
-                "already lost, but the resupply slips another lunation.",
+                $"already lost, but the resupply slips another {CastleThreats.WithdrawResupplySetbackDays} day(s).",
         };
         dialog.Confirmed += () => { dialog.QueueFree(); LaunchCastleDefense(kingdomId); };
 
@@ -2420,11 +2432,11 @@ public partial class StrategicView : Node2D
         cycle.PendingCastleAssaultKingdomId = "";
         cycle.CastleDefenseLaunched = false;
         cycle.CastleRepairLunations = Mathf.Min(
-            cycle.CastleRepairLunations + 1, CastleThreats.MaxTotalRepairLunations);
+            cycle.CastleRepairLunations + CastleThreats.WithdrawResupplySetbackDays, CastleThreats.MaxTotalResupplyDays);
         cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
         cycle.PendingSiegeReports.Add(
             $"The camp is struck under fire and {FactionDisplay(kingdomId)} is left holding the ground. " +
-            $"The resupply stands at {cycle.CastleRepairLunations} lunation(s).");
+            $"The resupply stands at {WorldClock.ResupplyDaysLeft(cycle)} day(s).");
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
         // The report rides in PendingSiegeReports and is read by the HUD on the
@@ -2530,19 +2542,19 @@ public partial class StrategicView : Node2D
             // bought is handed back. Floored at one: the fight still cost a beat.
             int before = cycle.CastleRepairLunations;
             cycle.CastleRepairLunations = Mathf.Max(
-                1, cycle.CastleRepairLunations - CastleThreats.AssaultRepairSetback);
+                1, cycle.CastleRepairLunations - CastleThreats.AssaultResupplySetbackDays);
             cycle.PendingSiegeReports.Add(
                 $"The Heart holds. {who} is thrown out of the camp and the crews are back on the " +
-                $"waystone: the resupply falls from {before} to {cycle.CastleRepairLunations} lunation(s).");
+                $"waystone: the resupply falls to {WorldClock.ResupplyDaysLeft(cycle)} day(s).");
         }
         else
         {
             cycle.CastleRepairLunations = Mathf.Min(
-                cycle.CastleRepairLunations + CastleThreats.AssaultRepairSetback,
-                CastleThreats.MaxTotalRepairLunations);
+                cycle.CastleRepairLunations + CastleThreats.AssaultResupplySetbackDays,
+                CastleThreats.MaxTotalResupplyDays);
             cycle.PendingSiegeReports.Add(
                 $"The camp is overrun. {who} burns what the crews had rebuilt: the resupply stands " +
-                $"at {cycle.CastleRepairLunations} lunation(s).");
+                $"at {WorldClock.ResupplyDaysLeft(cycle)} day(s).");
         }
 
         SaveManager.MarkDirty();
@@ -3159,72 +3171,12 @@ public partial class StrategicView : Node2D
         // field button never appears.
         RefreshPieceChrome();
 
-        // ── Calendar readout: the doomsday clock, top-right ──────────────
+        // ── Calendar readout: moved to the clock (2026-09-29) ─────────────
+        // The gold card that stood here said the year, the lunation and the
+        // Conjunction countdown. The clock at the top centre says all three
+        // now (StrategicView.Dispatch, RefreshTimeBar), so the date is said
+        // once on this screen instead of three times.
         var cycle = SaveManager.ActiveSave?.Cycle;
-        if (cycle != null)
-        {
-            var cal = cycle.Calendar;
-            var calPanel = new PanelContainer();
-            calPanel.AddThemeStyleboxOverride("panel",
-                UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.Gold));
-            _rightHudStack.AddChild(calPanel);
-
-            var calMargin = new MarginContainer();
-            calMargin.AddThemeConstantOverride("margin_left", 14);
-            calMargin.AddThemeConstantOverride("margin_right", 14);
-            calMargin.AddThemeConstantOverride("margin_top", 8);
-            calMargin.AddThemeConstantOverride("margin_bottom", 8);
-            calPanel.AddChild(calMargin);
-
-            var calVbox = new VBoxContainer();
-            calVbox.AddThemeConstantOverride("separation", 2);
-            calMargin.AddChild(calVbox);
-
-            // Continue-campaign legibility (progression doc §9): which year of this
-            // timeline, and how hard the world has grown, so the player can read the
-            // escalation and time the bank before a push turns unwinnable.
-            int campaignYear = cycle.CampaignYear;
-            if (campaignYear > 1)
-            {
-                int foePct = Mathf.RoundToInt(
-                    cycle.SeasonalThreatLevel * CampaignEscalation.ThreatDifficultyStep * 100f);
-                var yearLbl = new Label
-                {
-                    Text = $"⚠ Year {campaignYear}  ·  the world hardens (+{foePct}% foes)",
-                };
-                yearLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
-                yearLbl.AddThemeColorOverride("font_color", UITheme.Danger);
-                calVbox.AddChild(yearLbl);
-            }
-            else
-            {
-                var yearLbl = new Label { Text = "Year 1  ·  a pristine timeline" };
-                yearLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-                yearLbl.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.55f));
-                calVbox.AddChild(yearLbl);
-            }
-
-            var phaseLbl = new Label
-            {
-                Text = $"Lunation {cal.CurrentLunation} / {cal.LunationsPerCycle}  ·  {cal.CurrentMoonName}"
-                     + $"  ·  day {cal.DayOfLunation + 1}",
-            };
-            phaseLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
-            phaseLbl.AddThemeColorOverride("font_color", UITheme.Gold);
-            calVbox.AddChild(phaseLbl);
-
-            int lunationsLeft = cal.LunationsRemaining;
-            var remainLbl = new Label
-            {
-                Text = lunationsLeft <= 2
-                    ? $"⚠ {lunationsLeft} lunation(s) until the Conjunction"
-                    : $"{lunationsLeft} lunations until the Conjunction",
-            };
-            remainLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-            remainLbl.AddThemeColorOverride("font_color",
-                lunationsLeft <= 2 ? UITheme.Danger : new Color(1f, 1f, 1f, 0.6f));
-            calVbox.AddChild(remainLbl);
-        }
 
         // ── Word from the frontier: this-lunation siege outcomes ─────────
         // KingdomTickSimulation queued these on the tick; surface them so a
@@ -3311,35 +3263,25 @@ public partial class StrategicView : Node2D
         // Directly under the global top bar, top-left, WRAPPED in a raised panel
         // (2026-08-19): the bare row's text and inactive buttons faded into whatever
         // terrain happened to sit behind them.
-        var lensPanel = new PanelContainer
-        {
-            AnchorLeft = 0f,
-            AnchorTop = 0f,
-            AnchorRight = 0f,
-            AnchorBottom = 0f,
-            OffsetLeft = 16,
-            OffsetTop = 8 + HudManager.BarHeight,   // clear the global top bar
-        };
-        lensPanel.AddThemeStyleboxOverride("panel",
-            UITheme.MakePanelStyle(UITheme.BgRaised, UITheme.CampusTitleBarBorder));
-        _hud.AddChild(lensPanel);
+        // 2026-09-29: the first card of the command column (see
+        // StrategicView.Dispatch), full column width, the four lenses sharing
+        // it evenly. The "View:" caption went: four map lenses in a row at the
+        // top of the column say what they are.
+        EnsureCommandColumn();
+        var lensPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop };
+        lensPanel.AddThemeStyleboxOverride("panel", CardStyle());
+        _commandColumn.AddChild(lensPanel);
 
         var lensMargin = new MarginContainer();
-        lensMargin.AddThemeConstantOverride("margin_left", 10);
-        lensMargin.AddThemeConstantOverride("margin_right", 10);
-        lensMargin.AddThemeConstantOverride("margin_top", 6);
-        lensMargin.AddThemeConstantOverride("margin_bottom", 6);
+        lensMargin.AddThemeConstantOverride("margin_left", 8);
+        lensMargin.AddThemeConstantOverride("margin_right", 8);
+        lensMargin.AddThemeConstantOverride("margin_top", 8);
+        lensMargin.AddThemeConstantOverride("margin_bottom", 8);
         lensPanel.AddChild(lensMargin);
 
         var row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 6);
+        row.AddThemeConstantOverride("separation", 4);
         lensMargin.AddChild(row);
-
-        var lbl = new Label { Text = "View:" };
-        lbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-        lbl.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.6f));
-        lbl.VerticalAlignment = VerticalAlignment.Center;
-        row.AddChild(lbl);
 
         AddLensButton(row, "Political", StrategicLens.Political);
         AddLensButton(row, "Terrain", StrategicLens.Terrain);
@@ -3356,8 +3298,14 @@ public partial class StrategicView : Node2D
 
     private void AddLensButton(HBoxContainer row, string text, StrategicLens lens)
     {
-        var btn = new Button { Text = text, ToggleMode = true };
-        btn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
+        var btn = new Button
+        {
+            Text = text,
+            ToggleMode = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0, 30),
+        };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         UITheme.ApplyButtonStyle(btn, isPrimary: false);
         btn.Pressed += () => SetLens(lens);
         btn.SetMeta("lens", (int)lens);
@@ -5622,7 +5570,8 @@ public partial class StrategicView : Node2D
         {
             return;
         }
-        int repair = ExpeditionAnchors.RepairLunationsFor(slot.CurrentHP, slot.MaxHP, 1, 4);
+        int repair = ExpeditionAnchors.ResupplyDaysFor(slot.CurrentHP, slot.MaxHP,
+            ExpeditionAnchors.MinResupplyDays, ExpeditionAnchors.MaxResupplyDays);
         var dlg = new ConfirmationDialog
         {
             Title = "Bank the furnace",
@@ -5632,13 +5581,14 @@ public partial class StrategicView : Node2D
                 + $"{slot.CurrentHP}/{slot.MaxHP} Hull.\n\n"
                 + "Shut the furnace down there and make camp. The sortie ends; what it earned rides in the "
                 + "hold until a party carries it home. The castle becomes a waypoint, burns nothing while it "
-                + $"waits, and is exposed for {repair} lunation(s) of resupply.",
+                + $"waits, and is exposed for {repair} day(s) of resupply.",
         };
         dlg.Confirmed += () =>
         {
             dlg.QueueFree();
             string name = CastleTypes.For(PlayerSession.SelectedSchool)?.Name ?? "The castle";
-            string line = ExpeditionAnchors.BankFrozenCastle(cycle, name, 1, 4);
+            string line = ExpeditionAnchors.BankFrozenCastle(cycle, name,
+                ExpeditionAnchors.MinResupplyDays, ExpeditionAnchors.MaxResupplyDays);
             if (string.IsNullOrEmpty(line))
             {
                 return;
@@ -5813,7 +5763,7 @@ public partial class StrategicView : Node2D
         }
         if (cycle.CastleRepairLunations > 0)
         {
-            why = $"The crews are still at work: {cycle.CastleRepairLunations} lunation(s) of resupply left.";
+            why = $"The crews are still at work: {WorldClock.ResupplyDaysLeft(cycle)} day(s) of resupply left.";
             return false;
         }
         if (WorldClock.CastleBusy(cycle))
@@ -5929,6 +5879,54 @@ public partial class StrategicView : Node2D
             b.Disabled = !canGo;
             b.TooltipText = canGo ? "" : goWhy;
         }
+        // A waystone's ground (ruled 2026-09-28: read, then temper). Each
+        // affix is a danger and a reward in one line; Temper strips one,
+        // Deepen reads one more from the site. Both cost materials.
+        var stone = sp.Source == ExpeditionAnchors.WaypointStagingSource
+            ? WaystoneAffixes.WaypointAt(cycle, sp.X, sp.Y)
+            : null;
+        if (stone != null)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"\n\n{stone.Charges} dive(s) left. ");
+            if (stone.Affixes == null || stone.Affixes.Count == 0)
+            {
+                sb.Append("The ground is quiet: no danger, no bounty.");
+            }
+            else
+            {
+                sb.Append("The ground reads:");
+                foreach (var id in stone.Affixes)
+                {
+                    var def = WaystoneAffixes.Get(id);
+                    if (def != null)
+                    {
+                        sb.Append($"\n  [{def.Letter}] {WaystoneAffixes.Line(def)}");
+                    }
+                }
+            }
+            sb.Append($"\nStores: {cycle.BuildMaterials} materials.");
+            dlg.DialogText += sb.ToString();
+
+            bool canTemper = WaystoneAffixes.CanTemper(cycle, stone, out string temperWhy);
+            if (stone.Affixes != null)
+            {
+                foreach (var id in stone.Affixes)
+                {
+                    var def = WaystoneAffixes.Get(id);
+                    var tb = dlg.AddButton($"Temper [{def?.Letter ?? "?"}] ({WaystoneAffixes.TemperMaterials})", false, "temper:" + id);
+                    tb.Disabled = !canTemper;
+                    tb.TooltipText = canTemper
+                        ? $"Strip {def?.Name ?? id}: its danger goes, and its reward with it."
+                        : temperWhy;
+                }
+            }
+            bool canDeepen = WaystoneAffixes.CanDeepen(cycle, stone, out string deepenWhy);
+            var db = dlg.AddButton($"Deepen ({WaystoneAffixes.DeepenMaterials})", false, "deepen");
+            db.Disabled = !canDeepen;
+            db.TooltipText = canDeepen ? "Read one more affix from the site. You do not choose which." : deepenWhy;
+        }
+
         dlg.CustomAction += action =>
         {
             dlg.QueueFree();
@@ -5939,7 +5937,24 @@ public partial class StrategicView : Node2D
             }
             else if (action == "party")
             {
-                TryMovePartyTo(sp.X, sp.Y);
+                if (!TryDispatchTo(sp.X, sp.Y))
+                {
+                    TryMovePartyTo(sp.X, sp.Y);
+                }
+            }
+            else if (stone != null && (action == "deepen" || action.ToString().StartsWith("temper:")))
+            {
+                string report = action == "deepen"
+                    ? WaystoneAffixes.Deepen(cycle, stone)
+                    : WaystoneAffixes.Temper(cycle, stone, action.ToString().Substring("temper:".Length));
+                if (!string.IsNullOrEmpty(report))
+                {
+                    GD.Print($"[StrategicView] {report}");
+                    SaveManager.SaveIfDirty();
+                    RefreshPieceChrome();
+                }
+                // Reopen on the changed stone: the card is where the result reads.
+                ShowPlaceCard(sp);
             }
         };
         dlg.Confirmed += () => dlg.QueueFree();
@@ -5954,7 +5969,7 @@ public partial class StrategicView : Node2D
     /// here for an afternoon is retired into it: one screen for one question.</summary>
     private void OpenForcesScreen()
     {
-        string initial = CastleSelected ? "castle" : _selectedPieceId;
+        string initial = CastleSelected || NothingSelected ? "castle" : _selectedPieceId;
         ForcesScreen.Open(this,
             onChanged: () =>
             {
@@ -6386,7 +6401,7 @@ public partial class StrategicView : Node2D
             DialogText =
                 $"Send the castle {tiles} tile(s) to ({col},{row}).\n\n" +
                 $"Fuel: {cost} of {cycle.CastleFuel}.\n" +
-                $"On arrival the crews make camp for {CastleMarch.ArrivalCampLunations} lunation(s), " +
+                $"On arrival the crews make camp for {CastleMarch.ArrivalCampDays} day(s), " +
                 "and the castle is exposed until they finish.",
         };
         dlg.Confirmed += () => { dlg.QueueFree(); ExecuteCastleMarch(col, row, null); };
@@ -6737,16 +6752,9 @@ public partial class StrategicView : Node2D
     /// K2 (§5b/R24): infirmary recovery last.</summary>
     private void RunLunationTick(CycleState cycle)
     {
-        // Expedition v2: while the waystone is open the camp is a target. The
-        // roll happens BEFORE the resupply ticks down, so a lunation the castle
-        // was attacked in is a lunation of work lost, not work banked.
-        var castleThreat = CastleThreats.RollForLunation(cycle);
-        if (castleThreat.Happened)
-        {
-            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
-            cycle.PendingSiegeReports.Add(castleThreat.Report);
-            GD.Print($"[CastleThreats] {castleThreat.Kind}: {castleThreat.Report}");
-        }
+        // The open camp's threat roll moved to WorldClock.StepDay on
+        // 2026-09-29: it is rolled once per exposed day, before that day's
+        // resupply, now that the resupply counts days.
 
         // The resupply used to tick here. Under the day clock (2026-09-23) it
         // counts days from the camp in WorldClock.StepDay, so a camp made on
@@ -6764,15 +6772,10 @@ public partial class StrategicView : Node2D
             cycle.PendingSiegeReports.Add(frozenReport);
         }
 
-        // Expedition v2: the road is not free. Rolled BEFORE the journey
-        // advances, so a party turned back does not also step toward the place
-        // it was just turned back from.
-        string interceptReport = FieldThreats.RollForLunation(cycle);
-        if (!string.IsNullOrEmpty(interceptReport))
-        {
-            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
-            cycle.PendingSiegeReports.Add(interceptReport);
-        }
+        // The road is not free, but it is no longer rolled here (2026-09-28):
+        // FieldThreats.RollForStep runs as each tile is walked, from
+        // FieldMarch.StepDay, so a march that starts and ends between two new
+        // moons is watched like any other.
 
         // Marches and field work step by the DAY now (WorldClock.StepDay), not
         // here. The interception roll above still fires at the new moon against
@@ -6787,6 +6790,12 @@ public partial class StrategicView : Node2D
         {
             cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
             cycle.PendingSiegeReports.Add(postingReport);
+        }
+        string regrowReport = HarvestSites.Tick(cycle);
+        if (!string.IsNullOrEmpty(regrowReport))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(regrowReport);
         }
         string overrunReport = PostingThreats.RollOverruns(cycle);
         if (!string.IsNullOrEmpty(overrunReport))

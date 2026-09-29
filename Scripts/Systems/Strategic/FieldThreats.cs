@@ -76,48 +76,47 @@ public static class FieldThreats
 {
     // ── Tuning (starting values, all of them) ────────────────────────────
 
-    /// <summary>Chance that anything comes at all, before everything below
-    /// moves it. Lower than the castle's 25: a parked fortress is a fixed,
-    /// visible, valuable target that stays put for lunations, and a party on
-    /// the road is none of those things.
+    /// <summary>Chance a single TILE of road brings trouble (2026-09-28).
     ///
-    /// <para>MEASURED before shipping, 2026-09-22. The first draft was 15 with
-    /// PerPhaseChance 4, and 20,000 simulated journeys per cell said that was a
-    /// wall rather than a risk: a twelve-phase march across neutral ground was
-    /// intercepted 74% of the time, and the same march in hostile ground was
-    /// turned back 70% of the time, which means the player simply cannot cross.
-    /// A road that cannot be used is not a decision.</para></summary>
-    public const int BaseChancePercent = 10;
-
-    /// <summary>Every phase still owed is another stretch of road to be caught
-    /// on. This is what makes a long march genuinely riskier than a short one
-    /// rather than a bigger number on the same coin flip.
+    /// <para>Was a roll once per lunation for every party still walking. Under
+    /// the day clock a party walks a tile every four days, so any march that
+    /// began and ended between two new moons was never rolled at all, whatever
+    /// ground it crossed: the road was safe by accident of timing. The roll now
+    /// happens as each tile is walked, which makes distance the risk directly
+    /// and ends the timing gap.</para>
     ///
-    /// <para>2 rather than 4: at 4 the phase term dominated everything else, so
-    /// stance and escort stopped mattering and only distance did.</para></summary>
-    public const int PerPhaseChance = 2;
+    /// <para>Sized against the table below, which was the per-moon roll's
+    /// measured intent: 5% a tile on neutral ground puts a twelve-tile march at
+    /// 54% clear (was 54.7%), a three-tile hop at 86% (83.8%).</para></summary>
+    public const int TileChancePercent = 5;
 
-    /// <summary>Stance of the ground they are crossing.</summary>
-    public const int HostileBonus = 25;
-    public const int UnfriendlyBonus = 10;
-    public const int FriendlyPenalty = -10;
-    public const int AlliedPenalty = -20;
+    /// <summary>Stance of the tile they are walking.</summary>
+    public const int HostileBonus = 7;
+    public const int UnfriendlyBonus = 3;
+    public const int FriendlyPenalty = -3;
+    public const int AlliedPenalty = -4;
 
-    /// <summary>Each companion past the first lowers the odds. Numbers deter
-    /// opportunists, and this is the lever that makes the roster picker a
+    /// <summary>Each companion past the first lowers the odds a tile. Numbers
+    /// deter opportunists, and this is the lever that makes the roster picker a
     /// decision about the ROAD and not only about the dive at the far end.</summary>
-    public const int EscortPercentEach = 6;
+    public const int EscortPercentEach = 2;
 
-    /// <summary>Most the escort can ever take off. A big party is safer, never
-    /// safe: an interception the player can switch off by over-staffing is a
-    /// mechanic that stops existing the moment it is understood.</summary>
-    public const int MaxEscortReduction = 24;
+    /// <summary>Most the escort can ever take off, and the floor under the
+    /// result. A big party is safer, never safe: an interception the player can
+    /// switch off by over-staffing is a mechanic that stops existing the moment
+    /// it is understood.</summary>
+    public const int MaxEscortReduction = 4;
+    public const int MinTileChancePercent = 2;
+    public const int MaxTileChancePercent = 40;
 
     /// <summary>Share of what the party is carrying a patrol makes off with.</summary>
     public const int PatrolTakePercent = 35;
 
-    /// <summary>Phases a patrol costs them. They scatter and regroup.</summary>
-    public const int PatrolDelayPhases = 3;
+    /// <summary>Days a patrol costs them: they scatter and regroup. Two
+    /// tiles' walking. (Was "3 phases" added to the tiles remaining, which the
+    /// day clock recomputes from distance every step, so it had stopped costing
+    /// anything.)</summary>
+    public const int PatrolDelayDays = 8;
 
     /// <summary>Lunations of injury a kingdom interception inflicts on one
     /// companion. Matches the infirmary's own units so recovery runs on the
@@ -158,37 +157,49 @@ public static class FieldThreats
     //    is a decision about the ROAD and not only about the dive. Hostile
     //    ground is expensive rather than closed.
     //
-    //    The number most likely to be wrong is PerPhaseChance, because it is
-    //    the one that compounds.
+    //    That table is the per-moon roll's INTENT, kept as the target. The
+    //    per-tile roll (2026-09-28, closed-form, one interception a march)
+    //    lands on it:
+    //
+    //      journey / ground / party     clear   robbed   turned back
+    //      short   3  neutral  x1       85.7%    14.3%      0.0%
+    //      short   3  hostile  x1       68.1%    19.1%     12.7%
+    //      medium  6  neutral  x1       73.5%    26.5%      0.0%
+    //      medium  6  hostile  x1       46.4%    32.1%     21.4%
+    //      long   12  neutral  x1       54.0%    46.0%      0.0%
+    //      long   12  neutral  x3       78.5%    21.5%      0.0%
+    //      long   12  hostile  x1       21.6%    47.1%     31.4%
+    //      long   12  hostile  x3       36.8%    37.9%     25.3%
+    //
+    //    The number most likely to be wrong is TileChancePercent, because it
+    //    is the one that compounds.
 
     // ── The roll ─────────────────────────────────────────────────────────
 
-    /// <summary>Roll every travelling party for this lunation. Call IMMEDIATELY
-    /// BEFORE ExpeditionAnchors.TickFieldTravel, so a party that is turned back
-    /// does not also advance toward the place it was turned back from.
+    /// <summary>Roll one party for the tile it has just walked onto. Called by
+    /// FieldMarch.StepDay after the step and before arrival, so the last tile
+    /// of a march (the destination) is never where they are caught. At most one
+    /// interception a march: once waylaid they are watchful, and a second
+    /// robbery on the same road would be a death spiral rather than a risk.
     ///
-    /// <para>Returns one joined report, or null when nothing happened.</para></summary>
-    public static string RollForLunation(CycleState cycle)
+    /// <para>Returns the report, or null when nothing happened.</para></summary>
+    public static string RollForStep(CycleState cycle, FieldParty party)
     {
-        if (cycle?.FieldParties == null || cycle.World == null)
+        if (party == null || party.InterceptedThisMarch)
         {
             return null;
         }
-
-        string report = null;
-        foreach (var party in cycle.FieldParties)
+        var result = RollForParty(cycle, party);
+        if (!result.Happened)
         {
-            var result = RollForParty(cycle, party);
-            if (!result.Happened)
-            {
-                continue;
-            }
-            report = report == null ? result.Report : report + " " + result.Report;
+            return null;
         }
-        return report;
+        party.InterceptedThisMarch = true;
+        ScryInbox.Post(cycle, ScryChannel.Sending, $"{party.Name}: on the road", result.Report, party.Id, "road");
+        return result.Report;
     }
 
-    /// <summary>One party, one lunation. Non-throwing; a partial save degrades
+    /// <summary>One party, one tile. Non-throwing; a partial save degrades
     /// to "nothing happened" rather than breaking the world tick.</summary>
     public static FieldThreatResult RollForParty(CycleState cycle, FieldParty party)
     {
@@ -199,19 +210,11 @@ public static class FieldThreats
             return none;
         }
 
-        // The ground they are crossing, taken at the MIDPOINT of the journey
-        // rather than at either end. An interception happens on the road, and
-        // the road's character is not the character of the safe city they left
-        // or the safe city they are heading for.
-        int midX = (party.X + party.DestX) / 2;
-        int midY = (party.Y + party.DestY) / 2;
-        if (party.DestX < 0 || party.DestY < 0)
-        {
-            midX = party.X;
-            midY = party.Y;
-        }
-        string kingdomId = cycle.World.InBounds(midX, midY)
-            ? (cycle.World.GetTile(midX, midY).KingdomId ?? "")
+        // The ground they are crossing: the tile they just walked onto. Was the
+        // journey's midpoint while the roll was once a moon; a roll per tile
+        // can read the real ground at each step.
+        string kingdomId = cycle.World.InBounds(party.X, party.Y)
+            ? (cycle.World.GetTile(party.X, party.Y).KingdomId ?? "")
             : "";
         var stance = CouncilQueries.StanceFor(cycle, kingdomId);
 
@@ -219,8 +222,7 @@ public static class FieldThreats
         int reduction = Math.Min(MaxEscortReduction,
                                  Math.Max(0, escort - 1) * EscortPercentEach);
 
-        int chance = BaseChancePercent
-                   + Math.Max(0, party.TravelPhasesRemaining) * PerPhaseChance
+        int chance = TileChancePercent
                    + stance switch
                      {
                          KingdomStance.Hostile => HostileBonus,
@@ -230,7 +232,7 @@ public static class FieldThreats
                          _ => 0,
                      }
                    - reduction;
-        chance = Math.Clamp(chance, 0, 90);
+        chance = Math.Clamp(chance, MinTileChancePercent, MaxTileChancePercent);
 
         var rng = RngFor(cycle, party);
         if (rng.Next(100) >= chance)
@@ -270,16 +272,16 @@ public static class FieldThreats
             took = $"{g}g {s}sp {m}mat {u}sup";
         }
 
-        party.TravelPhasesRemaining += PatrolDelayPhases;
+        party.TravelDayAccum -= PatrolDelayDays;
 
         var result = new FieldThreatResult
         {
             Kind = FieldThreatKind.PatrolIntercept,
             Report = hadGoods
                 ? $"{party.Name} is waylaid on the road. The patrol takes {took} and rides off; "
-                  + $"the party loses {PatrolDelayPhases} phase(s) regrouping."
+                  + $"the party loses {PatrolDelayDays} days regrouping."
                 : $"{party.Name} is waylaid on the road. The patrol finds nothing worth taking "
-                  + $"and costs them {PatrolDelayPhases} phase(s).",
+                  + $"and costs them {PatrolDelayDays} days.",
         };
         GD.Print($"[FieldThreats] {result.Report}");
         return result;
@@ -369,7 +371,7 @@ public static class FieldThreats
         unchecked
         {
             int seed = cycle.WorldSeed;
-            seed = (seed * 397) ^ (cycle.Calendar?.CurrentLunation ?? 0);
+            seed = (seed * 397) ^ (cycle.Calendar?.AbsoluteDay ?? 0);
             seed = (seed * 397) ^ party.X;
             seed = (seed * 397) ^ party.Y;
             seed = (seed * 397) ^ party.TravelPhasesRemaining;

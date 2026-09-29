@@ -208,6 +208,7 @@ public static class FieldMarch
         // counter and it is read that way by FieldThreats, whose per-unit risk
         // means the same thing either way: a longer road is a riskier one.
         party.TravelPhasesRemaining = dist;
+        party.InterceptedThisMarch = false;   // a new road, a new watch (2026-09-28)
         party.TravelDayAccum = 0;
 
         string line = $"{party.Name} sets out for ({x},{y}): {dist} tile(s), "
@@ -263,6 +264,13 @@ public static class FieldMarch
             party.TravelPhasesRemaining = remaining;
             if (remaining > 0)
             {
+                // The road is watched a tile at a time (2026-09-28). Never on
+                // the destination tile: they are caught on the way, not there.
+                string waylaid = FieldThreats.RollForStep(cycle, party);
+                if (!string.IsNullOrEmpty(waylaid))
+                {
+                    report = report == null ? waylaid : report + " " + waylaid;
+                }
                 continue;
             }
 

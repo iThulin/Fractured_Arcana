@@ -288,11 +288,11 @@ public static class FieldPostings
             && !(cycle.Warfronts?.Exists(w => w != null && !w.Closed && !w.IsCacheSiege && w.HasFocus
                                               && w.FocusCol == x && w.FocusRow == y) ?? false))
         {
-            string court = CouncilTick.CourtDisplayName(cycle, wardCity.KingdomId);
+            string wardCourt = CouncilTick.CourtDisplayName(cycle, wardCity.KingdomId);
             list.Add(new Option
             {
                 Kind = Ward,
-                Title = $"Ward the {(wardCity.Tier == SettlementTier.City ? "city" : "town")} for {court}",
+                Title = $"Ward the {(wardCity.Tier == SettlementTier.City ? "city" : "town")} for {wardCourt}",
                 Detail = $"Stand guard for an ally not yet at war. Each moon their kingdom steadies (+{WardStabilityPerMoon}) "
                        + $"and the pressure their neighbours put on them eases ({WardPressureRelief}). "
                        + $"Every {WardEchoEveryMoons} moons their court hears of it.",

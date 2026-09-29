@@ -115,6 +115,12 @@ public class Waypoint
     /// <summary>"castle" or "scripted".</summary>
     public string CreatedBy = "castle";
 
+    /// <summary>The ground this waystone opens onto (WaystoneAffixes ids:
+    /// haunted, warlords, leycrossed, fogbound, farflung). Read from the site
+    /// when it is raised; tempered or deepened from the place card. Every dive
+    /// from this stone carries them. Additive 2026-09-28.</summary>
+    public List<string> Affixes = new();
+
     [JsonIgnore]
     public bool IsSpent => Charges <= 0;
 
@@ -220,6 +226,11 @@ public class FieldParty
     /// <summary>WarfrontSide as an int for Hold the line (0 Defend, 2 Aid).
     /// Int rather than the enum so the save carries no new enum converter.</summary>
     public int WorkSide = 0;
+
+    /// <summary>Waylaid once on this march already (2026-09-28): the road roll
+    /// is per tile now, and at most one interception a march. Cleared when a
+    /// new march is ordered.</summary>
+    public bool InterceptedThisMarch = false;
 
     /// <summary>Absolute day the party is next free to be ordered; the days a
     /// dive cost, charged when it ends. 0 means free.</summary>

@@ -463,7 +463,22 @@ public static class ExpeditionAnchors
             Available = true,
         });
 
+        // The ground reads itself into the stone (ruled 2026-09-28: read,
+        // then temper). The letters go onto the staging point's name.
+        var raised = cycle.Waypoints[cycle.Waypoints.Count - 1];
+        raised.Affixes = WaystoneAffixes.ReadSite(cycle, x, y);
+        WaystoneAffixes.RefreshName(cycle, raised);
+
         string line = $"A waystone rises over {what} at ({x},{y}): {charges} dive(s) before it closes.";
+        if (raised.Affixes.Count > 0)
+        {
+            var names = new List<string>();
+            foreach (var id in raised.Affixes)
+            {
+                names.Add(WaystoneAffixes.Get(id)?.Name ?? id);
+            }
+            line += $" The ground reads: {string.Join(", ", names)}.";
+        }
         GD.Print($"[ExpeditionAnchors] {line}");
         return line;
     }
@@ -532,17 +547,26 @@ public static class ExpeditionAnchors
         }
     }
 
-    /// <summary>The resupply bill for a castle making camp: one lunation when
-    /// pristine, up to the cap when wrecked. ONE formula for the scene's
-    /// ParkCastle and the strategic Bank the furnace, so the two ways of making
-    /// camp cannot quote different bills.</summary>
-    public static int RepairLunationsFor(int hull, int maxHull, int minRepair, int maxRepair)
+    /// <summary>Resupply days for a pristine castle and for a wreck (ruled
+    /// 2026-09-29: the resupply is priced in days; it was 1 to 4 lunations,
+    /// which on the day clock left the castle idle most of every month).</summary>
+    public const int MinResupplyDays = 5;
+    public const int MaxResupplyDays = 21;
+
+    /// <summary>The resupply bill for a castle making camp, in DAYS: the minimum
+    /// when pristine, rising linearly with missing Hull to the maximum when
+    /// wrecked. ONE formula for the scene's ParkCastle and the strategic Bank
+    /// the furnace, so the two ways of making camp cannot quote different
+    /// bills.</summary>
+    public static int ResupplyDaysFor(int hull, int maxHull, int minDays, int maxDays)
     {
-        int missing = Mathf.Max(0, maxHull - hull);
-        int repair = maxHull > 0
-            ? 1 + Mathf.FloorToInt(4f * missing / maxHull)
-            : minRepair;
-        return Mathf.Clamp(repair, minRepair, maxRepair);
+        if (maxHull <= 0)
+        {
+            return minDays;
+        }
+        int missing = Mathf.Clamp(maxHull - hull, 0, maxHull);
+        int days = minDays + Mathf.RoundToInt((float)(maxDays - minDays) * missing / maxHull);
+        return Mathf.Clamp(days, minDays, maxDays);
     }
 
     /// <summary>Make camp with a FROZEN castle, from the strategic map, without
@@ -560,7 +584,7 @@ public static class ExpeditionAnchors
         {
             return null;
         }
-        int repair = RepairLunationsFor(slot.CurrentHP, slot.MaxHP, minRepair, maxRepair);
+        int repair = ResupplyDaysFor(slot.CurrentHP, slot.MaxHP, minRepair, maxRepair);
         int x = slot.X, y = slot.Y;
         cycle.CastleFuel = Mathf.Max(0, slot.StepsRemaining);
         cycle.CastleMaxFuel = slot.MaxFuel;
@@ -568,9 +592,9 @@ public static class ExpeditionAnchors
         cycle.CastleHold.Add(slot.GoldEarned, slot.SplinterEarned, slot.MaterialEarned, slot.SuppliesEarned);
         ParkCastleAt(cycle, x, y, castleName, repair);
         slot.Clear();
-        GD.Print($"[ExpeditionAnchors] {castleName} banks the furnace at ({x},{y}); {repair} lunation(s) of resupply.");
+        GD.Print($"[ExpeditionAnchors] {castleName} banks the furnace at ({x},{y}); {repair} day(s) of resupply.");
         return $"{castleName} banks the furnace at ({x},{y}) and makes camp. This ground is a waypoint now. "
-             + $"Work crews teleport in to refuel, restock and repair: {repair} lunation(s), and the castle is "
+             + $"Work crews teleport in to refuel, restock and repair: {repair} day(s), and the castle is "
              + "exposed for every one of them.";
     }
 
@@ -786,7 +810,7 @@ public static class ExpeditionAnchors
 
         cycle.LastDeployStagingKey = $"{x},{y}";
         GD.Print($"[ExpeditionAnchors] {name} parks at ({x},{y}) on lunation {cycle.CastleParkedLunation}, "
-                 + $"resupply {cycle.CastleRepairLunations} lunation(s).");
+                 + $"resupply {cycle.CastleRepairLunations} day(s).");
     }
 
     /// <summary>Advance the resupply by one lunation. Called from the lunation

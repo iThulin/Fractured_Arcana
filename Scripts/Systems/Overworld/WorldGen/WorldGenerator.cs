@@ -847,6 +847,63 @@ public static class WorldGenerator
             .Take(p.PreDiscoveredPois);
         foreach (var (poi, _) in nearest)
             poi.Discovered = true;
+
+        // The home ground is known (2026-09-29): the city view a new save
+        // lands on must not sit in a black void.
+        RevealHomeGround(world, start);
+    }
+
+    /// <summary>Radius, in tiles, of the explored ground around the guild's
+    /// home at the start of a cycle, at the least. The city's own footprint can
+    /// push it wider.</summary>
+    public const int HomeExploredMinRadius = 8;
+
+    /// <summary>A charted ring beyond the explored ground: terrain and borders
+    /// known, dimmer, so zooming out from the city fades into the unknown rather
+    /// than falling off a cliff.</summary>
+    public const int HomeChartedRing = 8;
+
+    /// <summary>Ruled 2026-09-29 (Magos): founding a save and opening the city
+    /// view for the first time should show explored country, not a lone lit
+    /// tile in the dark. Worldgen only ever marked the start tile Explored.
+    ///
+    /// <para>The radius scales with the home city's footprint: the city view
+    /// frames the whole city, and at its pitch and a 16:9 screen the ground
+    /// in view reaches a little under twice the city's radius each way, so
+    /// twice the radius plus a margin covers the landing frame. Tiles only:
+    /// POI discovery keeps its own rule (PreDiscoveredPois, above), so the
+    /// home country still has things in it to find. Never downgrades a tile.</para></summary>
+    private static void RevealHomeGround(WorldData world, (int x, int y) start)
+    {
+        if (world == null || !world.InBounds(start.x, start.y))
+            return;
+
+        int cityRadius = 0;
+        var home = world.SettlementAt(start.x, start.y);
+        if (home != null)
+        {
+            foreach (var (tx, ty) in home.Tiles)
+                cityRadius = Mathf.Max(cityRadius, world.HexDistance(start.x, start.y, tx, ty));
+        }
+        int explored = Mathf.Max(HomeExploredMinRadius, 2 * cityRadius + 4);
+        int charted = explored + HomeChartedRing;
+
+        int lit = 0;
+        foreach (var (x, y) in world.Disc(start.x, start.y, charted))
+        {
+            if (!world.TryIndex(x, y, out int i))
+                continue;
+            var want = world.HexDistance(start.x, start.y, x, y) <= explored
+                ? TileDiscovery.Explored
+                : TileDiscovery.Charted;
+            if ((int)world.Tiles[i].Discovery < (int)want)
+            {
+                world.Tiles[i].Discovery = want;
+                lit++;
+            }
+        }
+        GD.Print($"[WorldGenerator] Home ground: explored radius {explored}, charted to {charted} " +
+                 $"(city radius {cityRadius}); {lit} tile(s) revealed.");
     }
 
     /// <summary>Dijkstra over the REAL expedition movement-cost function, from the

@@ -69,8 +69,9 @@ public partial class ExpeditionManager : Node2D
     // resupply, because work crews have to teleport in and rebuild what the
     // march cost. Starting values; the whole point is that pushing past a dry
     // furnace is paid for twice, in Hull now and in exposed lunations later.
-    [Export] public int MinRepairLunations = 1;
-    [Export] public int MaxRepairLunations = 4;
+    // Resupply bounds in DAYS (2026-09-29); the exports were lunations.
+    [Export] public int MinRepairDays = ExpeditionAnchors.MinResupplyDays;
+    [Export] public int MaxRepairDays = ExpeditionAnchors.MaxResupplyDays;
 
     // ── Fuel refueling tuning (Mobile Fortress §3.2 / §13) ───────────────
     /// <summary>Fuel restored on resting at a refuge (§14.4 APPROVED). Watch note
@@ -164,6 +165,13 @@ public partial class ExpeditionManager : Node2D
 
     /// <summary>Which field party is out. Empty on a castle sortie.</summary>
     private string _fieldPartyId = "";
+
+    /// <summary>The ground of the waystone this run launched from
+    /// (WaystoneAffixes, 2026-09-28). Empty from any other staging point.
+    /// Re-read on every _Ready from the save, so a combat round trip keeps it.</summary>
+    private List<string> _affixes = new();
+
+    private bool HasAffix(string id) => _affixes != null && _affixes.Contains(id);
 
     /// <summary>True when this scene load is the table being aimed at another
     /// force rather than a new expedition launching.</summary>
@@ -361,6 +369,9 @@ public partial class ExpeditionManager : Node2D
         {
             _fieldPartyId = ExpeditionAnchors.PrimaryFieldPartyId;
         }
+        // The launching stone's ground, if the launch was from a waystone.
+        // Any force: the ground is the ground, whoever stands on it.
+        _affixes = WaystoneAffixes.ActiveFor(cycle, _stagingCol, _stagingRow);
 
         // Was this scene entered by aiming the table at another force, rather
         // than by launching a new expedition? Consumed here, once, so a later
@@ -681,6 +692,8 @@ public partial class ExpeditionManager : Node2D
             _party.Initialize(_grid, _fog, _window.PartyStartLocal);
             // Reveal-on-deploy: the staging tile and its vision write to World.
             WriteVisibleToWorld();
+            // The waystone's ground, applied once at the fresh deploy and named.
+            ApplyWaystoneGroundAtDeploy();
             // Field Party v1 (2026-09-24): an audience sought from the map
             // opens its table before the first step. Deferred: the rest of
             // _Ready still has to run.
@@ -996,6 +1009,8 @@ public partial class ExpeditionManager : Node2D
         if (poi != null && !poi.Consumed)
         {
             poi.Consumed = true;
+            // A site that regrows starts its clock here (2026-09-28).
+            HarvestSites.OnConsumed(SaveManager.ActiveSave?.Cycle, poi);
             SaveManager.MarkDirty();
         }
     }
@@ -2583,7 +2598,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (band != _lastSupplyBand)
             {
                 if (band > 0 && _lastSupplyBand == 0)
-                    ShowInfo("You pass beyond your supply line. Each step out here drains the party.");
+                    ShowInfo(_fieldRun
+                        ? "You pass beyond your supply line. Out here every step eats extra rations."
+                        : "You pass beyond your supply line. Each step out here drains the castle.");
                 else if (band == 0 && _lastSupplyBand > 0)
                     ShowInfo("You are back within your supply line.");
                 _lastSupplyBand = band;
@@ -2598,9 +2615,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 {
                     ShowInfo("The road bears your supply, so the going stays safe while you follow it.");
                 }
+                else if (_fieldRun)
+                {
+                    // A party beyond its supply eats what it carries faster: the
+                    // line is priced in RATIONS, not Health (2026-09-28). Health
+                    // is what terrain, corruption and fights already take, and a
+                    // party of two on a 20-point pool was bleeding from the same
+                    // wound three ways. Rations running out hands the decision
+                    // to the dry-rations prompt, which already exists.
+                    int leashDrain = band * LeashDrainPerBand * FarFlungDrainMult();
+                    StepsRemaining = Mathf.Max(0, StepsRemaining - leashDrain);
+                    LogRun("leash_drain", $"band {band} (rations)",
+                           stepsDelta: -leashDrain, at: newCoord);
+                    ShowInfo($"Beyond your supply line ({(band > 1 ? $"band {band}" : "the fringe")}). "
+                           + $"The party eats {leashDrain} extra ration(s). Roads, waystones and the castle's camp carry supply.");
+                }
                 else
                 {
-                    int leashDrain = band * LeashDrainPerBand;
+                    int leashDrain = band * LeashDrainPerBand * FarFlungDrainMult();
                     Hull -= leashDrain;
                     LogRun("leash_drain", $"band {band}",
                            hpDelta: -leashDrain, at: newCoord);
@@ -3835,6 +3867,28 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             GoldEarned += router.GoldReward;
             SplinterEarned += router.SplinterReward;
             EncountersWon++;
+
+            // The waystone's ground pays what it promised (WaystoneAffixes).
+            if (_affixes != null && _affixes.Count > 0)
+            {
+                int bonusSplinters = HasAffix(WaystoneAffixes.Haunted)
+                    ? Mathf.RoundToInt(router.SplinterReward * (WaystoneAffixes.RewardMult - 1f)) : 0;
+                int bonusGold = HasAffix(WaystoneAffixes.Warlords)
+                    ? Mathf.RoundToInt(router.GoldReward * (WaystoneAffixes.RewardMult - 1f)) : 0;
+                if (bonusSplinters > 0 || bonusGold > 0)
+                {
+                    SplinterEarned += bonusSplinters;
+                    GoldEarned += bonusGold;
+                    LogRun("waystone_bounty", $"+{bonusGold}g +{bonusSplinters}sp",
+                           goldDelta: +bonusGold, splinterDelta: +bonusSplinters, at: resultHex);
+                    spoils.Add(($"The ground's bounty: +{bonusGold} gold   ·   +{bonusSplinters} Arcane Splinters",
+                                UITheme.Gold));
+                }
+                if (HasAffix(WaystoneAffixes.LeyCrossed))
+                {
+                    _spells?.AddEssence(WaystoneAffixes.EssencePerWin, "Ley-crossed ground");
+                }
+            }
             LogRun("combat_end",
                    $"victory{(router.SavedCombatWasPatrolAmbush ? " (patrol ambush)" : "")}" +
                    $", encounter #{EncountersWon}",
@@ -5434,7 +5488,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             return;
         }
-        int repair = ExpeditionAnchors.RepairLunationsFor(Hull, MaxHull, MinRepairLunations, MaxRepairLunations);
+        int repair = ExpeditionAnchors.ResupplyDaysFor(Hull, MaxHull, MinRepairDays, MaxRepairDays);
         var dlg = new ConfirmationDialog
         {
             Title = "Make camp here",
@@ -5444,7 +5498,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             DialogText =
                 $"Shut the furnace down with {StepsRemaining} fuel still in it and make camp on this ground.\n\n"
                 + "The castle becomes a waypoint the field parties can step to. It burns nothing while it "
-                + $"waits. Work crews teleport in to refuel, restock and repair: {repair} lunation(s), "
+                + $"waits. Work crews teleport in to refuel, restock and repair: {repair} day(s), "
                 + "and the castle is exposed for every one of them.\n\n"
                 + "This ends the sortie. Everything earned on it rides in the hold until a party carries it home.",
         };
@@ -5500,7 +5554,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // The resupply bill scales with how badly the hull was hurt. Pristine
         // means ready next lunation; a wreck sits in the open while the waystone
         // runs. This is what stops the castle being force-marched anywhere.
-        int repair = ExpeditionAnchors.RepairLunationsFor(Hull, MaxHull, MinRepairLunations, MaxRepairLunations);
+        int repair = ExpeditionAnchors.ResupplyDaysFor(Hull, MaxHull, MinRepairDays, MaxRepairDays);
 
         if (cycle != null)
         {
@@ -5531,7 +5585,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         string held = cycle?.CastleHold?.ToString() ?? "nothing";
         ShowInfo($"{castleName} shuts down the furnace and makes camp. This ground is a waypoint now. " +
-                 $"Work crews teleport in to refuel, restock and repair: {repair} lunation(s), " +
+                 $"Work crews teleport in to refuel, restock and repair: {repair} day(s), " +
                  $"and the castle is exposed for every one of them. They carry {held} home when the work is done.");
         ShowReturnButton();
         EmitSignal(SignalName.ExpeditionEnded, true);
@@ -6286,7 +6340,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
                 else if (cycle.CastleRepairLunations > 0)
                 {
-                    status = $"({cycle.CastleX},{cycle.CastleY})  resupply, {cycle.CastleRepairLunations} lunation(s)";
+                    status = $"({cycle.CastleX},{cycle.CastleY})  resupply, {WorldClock.ResupplyDaysLeft(cycle)} day(s)";
                 }
                 else if (WorldClock.CastleBusy(cycle))
                 {
@@ -6931,6 +6985,46 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hudCanvas.AddChild(_haltNotice);
     }
 
+    /// <summary>Fresh deploy from a waystone: Fog-bound takes rations and marks
+    /// the nearest hidden places, Far-flung adds rations; every affix is named
+    /// on a card, so the ground is never a hidden modifier.</summary>
+    private void ApplyWaystoneGroundAtDeploy()
+    {
+        if (_affixes == null || _affixes.Count == 0)
+        {
+            return;
+        }
+        var lines = new List<string>();
+        foreach (var id in _affixes)
+        {
+            var def = WaystoneAffixes.Get(id);
+            if (def != null)
+            {
+                lines.Add($"[{def.Letter}] {WaystoneAffixes.Line(def)}");
+            }
+        }
+        if (HasAffix(WaystoneAffixes.FogBound))
+        {
+            StepsRemaining = Mathf.Max(0, StepsRemaining - WaystoneAffixes.FogRations);
+            int found = RevealNearestPois(WaystoneAffixes.FogReveal);
+            LogRun("waystone_fog", $"-{WaystoneAffixes.FogRations} rations, {found} place(s) marked",
+                   stepsDelta: -WaystoneAffixes.FogRations);
+        }
+        if (HasAffix(WaystoneAffixes.FarFlung))
+        {
+            StepsRemaining += WaystoneAffixes.FarRations;
+            LogRun("waystone_far", $"+{WaystoneAffixes.FarRations} rations",
+                   stepsDelta: +WaystoneAffixes.FarRations);
+        }
+        LogRun("waystone_ground", string.Join(",", _affixes));
+        CallDeferred(nameof(ShowWaystoneGroundDeferred), string.Join("\n", lines));
+    }
+
+    private void ShowWaystoneGroundDeferred(string detail)
+    {
+        ShowHaltNotice("The waystone's ground", detail, HaltTone.Neutral);
+    }
+
     /// <summary>Put the halt on screen. The state line is included on every card
     /// because the two questions that follow "why did it stop" are always "how
     /// much fuel is left" and "how bad is the Hull", and the answer being three
@@ -7163,6 +7257,28 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// on. Used only for the REGION pool; archmage groups carry their own
     /// authored difficulty (see OpenScoutReport / OnPatrolCapturedPlayer).</summary>
     private float DifficultyMultAt(Vector2I local)
+        => KingdomDifficultyMultAt(local) * AffixFightMult();
+
+    /// <summary>Haunted, Warlords' and Ley-crossed ground each harden every fight
+    /// in the window by WaystoneAffixes.FightMult. They stack: that is the price
+    /// of a deepened stone.</summary>
+    private float AffixFightMult()
+    {
+        float m = 1.0f;
+        foreach (var id in new[] { WaystoneAffixes.Haunted, WaystoneAffixes.Warlords, WaystoneAffixes.LeyCrossed })
+        {
+            if (HasAffix(id))
+            {
+                m *= WaystoneAffixes.FightMult;
+            }
+        }
+        return m;
+    }
+
+    /// <summary>Far-flung ground doubles the supply-line drain.</summary>
+    private int FarFlungDrainMult() => HasAffix(WaystoneAffixes.FarFlung) ? WaystoneAffixes.FarDrainMult : 1;
+
+    private float KingdomDifficultyMultAt(Vector2I local)
     {
         if (!_window.TryLocalToWorld(local, out int col, out int row))
             return 1.0f;
@@ -7855,7 +7971,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (!_window.TryLocalToWorld(local, out int col, out int row))
             return 0;
 
-        int best = _world.HexDistance(col, row, _stagingCol, _stagingRow);
+        // The supply line rework (2026-09-28, ruling 3 of 2026-09-21). A
+        // castle sortie is supplied from where it launched, as it always was.
+        // A FIELD dive is not: a party that takes the field on bare ground has
+        // no supply there, and counting its own launch tile made the leash
+        // bind nowhere inside a radius-12 window. The party is supplied from
+        // real anchors only: the castle's camp, a waystone, a secured outpost,
+        // a city, the dock, a bargained anchor. Which is what makes moving the
+        // castle, or raising a waystone, the way to reach far ground.
+        int best = _fieldRun ? int.MaxValue : _world.HexDistance(col, row, _stagingCol, _stagingRow);
         foreach (var sp in _world.StagingPoints)
         {
             if (!sp.Available)

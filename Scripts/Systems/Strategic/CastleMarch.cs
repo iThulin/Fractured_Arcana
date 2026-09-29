@@ -61,9 +61,10 @@ public static class CastleMarch
     /// encounters and the ability to act on anything you pass.</para></summary>
     public const int FuelPerTile = 1;
 
-    /// <summary>Lunations of camp owed on arrival. One, always: the castle has
-    /// only to unpack, not to rebuild.</summary>
-    public const int ArrivalCampLunations = 1;
+    /// <summary>Days of camp owed on arrival. Always the same: the castle has
+    /// only to unpack, not to rebuild. Was one lunation until 2026-09-29, which
+    /// on the day clock left the castle idle for a month after every move.</summary>
+    public const int ArrivalCampDays = 4;
 
     /// <summary>Radius charted along the route. The lens sees while the castle
     /// walks, but a march is not a survey: Charted only, never Explored, so a
@@ -111,7 +112,7 @@ public static class CastleMarch
         }
         if (cycle.CastleRepairLunations > 0)
         {
-            reason = $"The crews are still at work: {cycle.CastleRepairLunations} lunation(s) of resupply left.";
+            reason = $"The crews are still at work: {WorldClock.ResupplyDaysLeft(cycle)} day(s) of resupply left.";
             return false;
         }
         if (WorldClock.CastleBusy(cycle))
@@ -201,13 +202,13 @@ public static class CastleMarch
 
         // Arriving IS parking: the castle makes camp wherever the march ends,
         // which is what keeps a reposition honest about its cost.
-        ExpeditionAnchors.ParkCastleAt(cycle, x, y, castleName, ArrivalCampLunations);
+        ExpeditionAnchors.ParkCastleAt(cycle, x, y, castleName, ArrivalCampDays);
 
         GD.Print($"[CastleMarch] {castleName} marches {tiles} tile(s) to ({x},{y}) for {cost} fuel; " +
                  $"{cycle.CastleFuel} left.");
         return $"{castleName} marches {tiles} tile(s) and makes camp. " +
                $"Fuel {cycle.CastleFuel}/{cycle.CastleMaxFuel}. " +
-               $"The crews need {ArrivalCampLunations} lunation(s) to unpack, and the camp is exposed until they do.";
+               $"The crews need {ArrivalCampDays} day(s) to unpack, and the camp is exposed until they do.";
     }
 
     /// <summary>Write Charted along the route. Sampled by interpolating axial

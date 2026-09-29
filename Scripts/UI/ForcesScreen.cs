@@ -256,7 +256,7 @@ public partial class ForcesScreen : Control
         var all = CompanionWhereabouts.Resolve(cycle);
         int crew = all.FindAll(w => w.Station == Station.Crew).Count;
         string castleState = cycle.CastleSortie != null && cycle.CastleSortie.IsLive() ? "in the field"
-                           : cycle.CastleRepairLunations > 0 ? $"resupply {cycle.CastleRepairLunations}"
+                           : cycle.CastleRepairLunations > 0 ? $"resupply {WorldClock.ResupplyDaysLeft(cycle)} day(s)"
                            : cycle.CastleParked ? "parked" : "out";
         list.Add((CastleKey, "Castle crew", $"{crew} aboard  ·  {castleState}", UITheme.ArcaneBlue));
 

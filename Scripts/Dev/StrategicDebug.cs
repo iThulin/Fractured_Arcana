@@ -268,7 +268,7 @@ public static class StrategicDebug
         sb.AppendLine($"Furnace: {cycle.CastleFuel}/{cycle.CastleMaxFuel} " +
                       $"(march range {CastleMarch.RangeInTiles(cycle)} tile(s) at {CastleMarch.FuelPerTile}/tile)");
         sb.AppendLine(cycle.CastleRepairLunations > 0
-            ? $"Resupply: {cycle.CastleRepairLunations} lunation(s) left, castle EXPOSED"
+            ? $"Resupply: {WorldClock.ResupplyDaysLeft(cycle)} day(s) left, castle EXPOSED"
             : "Resupply: complete");
         if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
         {
