@@ -165,11 +165,14 @@ public class GuildSaveData
         _ => 3,
     };
 
+    /// <summary>A building's tier while it works: 0 when unbuilt, unsited or
+    /// overrun by blight (campus corruption), so an overrun Training Grounds
+    /// stops drilling.</summary>
     private int GetBuildingTier(string buildingId)
     {
         foreach (var b in Ledger.Buildings)
             if (b.Id == buildingId)
-                return b.Tier;
+                return b.IsFunctional ? b.Tier : 0;
         return 0;
     }
 
@@ -376,13 +379,18 @@ public class OwnedCard
     /// </summary>
     public int CastCount = 0;
 
+    /// <summary>Refinement (Scriptorum doctrine, design §15): this card holds a
+    /// seventh upgrade point, enough for both halves to reach their final stage.
+    /// Kept for good once given. Additive save field.</summary>
+    public bool Refined = false;
+
     // ── Convenience ──────────────────────────────────────────────────
     public bool IsBaseUpgraded => TopTier >= 1 && BotTier >= 1;
     public int TotalTier => TopTier + BotTier;
     public bool IsMaxed => TopTier >= 4 && BotTier >= 4;
 
     // Points remaining after mandatory 1/1 step
-    public int PointsRemaining => 6 - PointsSpent;
+    public int PointsRemaining => (Refined ? 7 : 6) - PointsSpent;
 
     // Whether a given half can be upgraded further
     public bool CanUpgradeTop => IsBaseUpgraded && TopTier < 4 && PointsRemaining > 0;
@@ -420,7 +428,14 @@ public class BuildingSaveData
     /// siting it grants nothing, so this is the single flag anything gating building
     /// EFFECTS (BuildingEffectApplier, etc.) should check, rather than Tier alone.
     /// Tier > 0 && !IsPlaced means "owned, not yet functional."</summary>
-    public bool IsFunctional => Tier > 0 && IsPlaced;
+    public bool IsFunctional => Tier > 0 && IsPlaced && BlightLevel < CampusBlight.MaxLevel;
+
+    /// <summary>The worst corruption under this building's footprint, cached by
+    /// CampusBlight.Recompute (campus_building_upgrades_design_v1 §11): 0 clean,
+    /// 1 tainted, 2 blighted (its doctrine goes dark and its blighted form takes
+    /// over), 3 overrun (it stops working: <see cref="IsFunctional"/> is false).
+    /// Additive save field; older saves read 0.</summary>
+    public int BlightLevel = 0;
 
     /// <summary>0-5, one of the six hex rotation steps applied to the building
     /// template's Footprint before anchoring at Q/R. Not yet exposed in the placement

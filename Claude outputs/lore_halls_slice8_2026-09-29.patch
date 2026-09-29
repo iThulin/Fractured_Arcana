@@ -1,0 +1,481 @@
+From d51652ba57799b57318e92482cfe408b9facd3fd Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 15:03:35 -0600
+Subject: [PATCH] Scriptorum and Scrying Chambers doctrines; stage 4 reachable
+
+- Scriptorum T3: Refinement (once per timeline, one card is perfected: a
+  seventh upgrade point so both halves reach Stage 4); Dissemination blocked
+- Stage 4 was unreachable: Scriptorum T3 now grants Stages 3 and 4 as its
+  text says (upgrade screen and minting)
+- Scrying T3: Third Eye (the ambush portent, now once per sortie for real,
+  and every enemy intent revealed in expedition fights); The Hand blocked
+- A staggered enemy's replanned intent honours permanent reveals
+- Upgrade badges: 6 and 7 points read Transcendent
+- Save asserts for Refined and RefinementsUsed
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/scriptorum.json                | 17 +++-
+ Data/Buildings/scrying_chambers.json          | 31 ++++++-
+ .../Data/FeatureBuilders/CardMintService.cs   |  5 +-
+ Scripts/Data/FeatureBuilders/LoreHalls.cs     | 93 +++++++++++++++++++
+ Scripts/Data/SaveState/CycleState.cs          |  4 +
+ Scripts/Data/SaveState/GuildSaveData.cs       |  7 +-
+ Scripts/Data/SaveState/PlayerSession.cs       |  5 +
+ Scripts/Systems/Campus/CardUpgradeScreen.cs   | 32 ++++++-
+ .../Combat/Core/CombatManager.EnemyIntents.cs |  9 ++
+ .../Overworld/Expedition/ExpeditionManager.cs |  6 +-
+ .../Systems/Verification/CharterSaveAssert.cs | 22 +++++
+ Scripts/UI/DeckEditorUi.cs                    |  2 +-
+ 12 files changed, 219 insertions(+), 14 deletions(-)
+ create mode 100644 Scripts/Data/FeatureBuilders/LoreHalls.cs
+
+diff --git a/Data/Buildings/scriptorum.json b/Data/Buildings/scriptorum.json
+index 79bf7a9..944bc81 100644
+--- a/Data/Buildings/scriptorum.json
++++ b/Data/Buildings/scriptorum.json
+@@ -39,7 +39,7 @@
+         },
+         {
+             "tier": 3,
+-            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms.",
++            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage.",
+             "goldCost": 350,
+             "requiredBuildings": [
+                 "scriptorum"
+@@ -51,7 +51,20 @@
+             "bonusTokenType": "",
+             "unlocksFeatures": [
+                 "card_upgrade_stage_3"
++            ],
++            "doctrines": [
++                {
++                    "id": "refinement",
++                    "name": "Refinement",
++                    "description": "A deep, precise deck. Once each timeline, one card takes a seventh upgrade point, for good: enough for both halves to reach Stage 4, where every other card must choose which half goes all the way."
++                },
++                {
++                    "id": "dissemination",
++                    "name": "Dissemination",
++                    "description": "Your study becomes the kingdom's arsenal: upgrades reach allied wizards' signature slots.",
++                    "blocked": "signature slots in the deck editor are not built yet"
++                }
+             ]
+         }
+     ]
+-}
+\ No newline at end of file
++}
+diff --git a/Data/Buildings/scrying_chambers.json b/Data/Buildings/scrying_chambers.json
+index b3cc2ad..933e1bb 100644
+--- a/Data/Buildings/scrying_chambers.json
++++ b/Data/Buildings/scrying_chambers.json
+@@ -5,9 +5,18 @@
+     "category": "Magic",
+     "schoolAffinity": "",
+     "footprint": [
+-        { "q": 0, "r": 0 },
+-        { "q": 1, "r": 0 },
+-        { "q": 0, "r": 1 }
++        {
++            "q": 0,
++            "r": 0
++        },
++        {
++            "q": 1,
++            "r": 0
++        },
++        {
++            "q": 0,
++            "r": 1
++        }
+     ],
+     "maxTier": 3,
+     "tiers": [
+@@ -31,11 +40,23 @@
+         {
+             "tier": 3,
+             "displayName": "The Third Eye",
+-            "description": "Foresight sharp enough to read intent. Charts a fourth site (4 total), and once per expedition the party foresees and slips the first ambush, and the patrol passes without forcing combat.",
++            "description": "Charts a fourth site (4 total). And a doctrine, chartered at the Grand Hall. The Third Eye: the party foresees and slips the first ambush of each expedition, and every enemy's intent is read in full in expedition fights.",
+             "goldCost": 450,
+             "requiredBuildings": [],
+             "revealPoiCount": 1,
+-            "scryingPortent": true
++            "doctrines": [
++                {
++                    "id": "third_eye",
++                    "name": "The Third Eye",
++                    "description": "Information play. Once per expedition the party foresees and slips the first ambush (the patrol passes without forcing combat), and in every expedition fight each enemy's intent starts fully revealed."
++                },
++                {
++                    "id": "the_hand",
++                    "name": "The Hand",
++                    "description": "Intervention play: the wizard casts into field fights from afar, more often and further.",
++                    "blocked": "remote casting is not built yet"
++                }
++            ]
+         }
+     ]
+ }
+diff --git a/Scripts/Data/FeatureBuilders/CardMintService.cs b/Scripts/Data/FeatureBuilders/CardMintService.cs
+index 1e85ab3..9cf738c 100644
+--- a/Scripts/Data/FeatureBuilders/CardMintService.cs
++++ b/Scripts/Data/FeatureBuilders/CardMintService.cs
+@@ -140,7 +140,7 @@ public static class CardMintService
+     /// </summary>
+     public static int TierCeiling()
+     {
+-        if (PlayerSession.HasFeature("card_upgrade_stage_3")) return 3;
++        if (PlayerSession.HasFeature("card_upgrade_stage_3")) return 4;   // T3 is "Stages 3 and 4" (§15)
+         if (PlayerSession.HasFeature("card_upgrade_stage_2")) return 2;
+         if (PlayerSession.HasFeature("card_upgrade_stage_1")) return 1;
+         return 0;
+@@ -242,6 +242,9 @@ public static class CardMintService
+             // 1 for the shared 1/1 base, then 1 per half-tier above 1. Without this
+             // a minted card would read as having free upgrade points remaining.
+             PointsSpent = PointsFor(status.TopTier, status.BotTier),
++            // A proven 4/4 (one half from each copy, or a Refined card) takes the
++            // seventh point to account for; the copy carries it (design §15).
++            Refined = PointsFor(status.TopTier, status.BotTier) > 6,
+             Grafts = new List<string>(),
+             IsStarter = false,
+             IsRegalia = false,
+diff --git a/Scripts/Data/FeatureBuilders/LoreHalls.cs b/Scripts/Data/FeatureBuilders/LoreHalls.cs
+new file mode 100644
+index 0000000..1bc9f2d
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/LoreHalls.cs
+@@ -0,0 +1,93 @@
++using Godot;
++
++// ============================================================
++// LoreHalls.cs
++//
++// Purpose:        The Scriptorum's and the Scrying Chambers' doctrines
++//                 (campus_building_upgrades_design_v1 §15). Each has one
++//                 live doctrine and one blocked on an unbuilt system.
++//
++//                 Scriptorum T3:
++//                   Refinement    once per timeline, one card may take a
++//                                 seventh upgrade point, enough to bring
++//                                 BOTH halves to their final stage (4/4).
++//                                 Normally the budget (1 shared + 5) forces
++//                                 a choice of which half goes all the way.
++//                                 The card keeps the point for good.
++//                   Dissemination blocked: needs signature slots in the
++//                                 deck editor.
++//                 Scrying Chambers T3:
++//                   Third Eye     the ambush portent (was T3 itself), and
++//                                 every enemy's intent starts fully revealed
++//                                 in expedition fights.
++//                   The Hand      blocked: needs remote casting.
++// Layer:          Data / rules
++// Collaborators:  Charters (the gate), OwnedCard (Refined, PointsRemaining),
++//                 CycleState (RefinementsUsed), CardUpgradeScreen (the Refine
++//                 button), CardMintService (minted accounting),
++//                 ExpeditionManager (the portent), CombatManager.EnemyIntents
++//                 (the reveal).
++// ============================================================
++
++/// <summary>Scriptorum and Scrying Chambers doctrine rules. Stateless.</summary>
++public static class LoreHalls
++{
++    public const string ScriptorumId = "scriptorum";
++    public const string Refinement = "refinement";
++    public const string Dissemination = "dissemination";
++
++    public const string ScryingId = "scrying_chambers";
++    public const string ThirdEye = "third_eye";
++    public const string TheHand = "the_hand";
++
++    /// <summary>Cards Refinement may perfect per timeline.</summary>
++    public const int RefinementsPerCycle = 1;
++
++    public static bool RefinementActive(GuildSaveData save) => Charters.IsActive(save, ScriptorumId, Refinement);
++
++    public static bool ThirdEyeActive(GuildSaveData save) => Charters.IsActive(save, ScryingId, ThirdEye);
++
++    public static int RefinementsLeft(GuildSaveData save)
++        => System.Math.Max(0, RefinementsPerCycle - (save?.Cycle?.RefinementsUsed ?? 0));
++
++    /// <summary>Why this card cannot be refined now, or null when it can.</summary>
++    public static string CannotRefineReason(GuildSaveData save, OwnedCard card)
++    {
++        if (!RefinementActive(save))
++        {
++            return "Needs Refinement chartered at the Grand Hall.";
++        }
++        if (card == null || card.IsStarter || card.IsRegalia)
++        {
++            return "Starter cards and Regalia are not refined.";
++        }
++        if (card.Refined)
++        {
++            return "Already perfected.";
++        }
++        if (!card.IsBaseUpgraded)
++        {
++            return "Give it the shared upgrade first.";
++        }
++        if (RefinementsLeft(save) <= 0)
++        {
++            return "The Scriptorum has refined its one card this timeline.";
++        }
++        return null;
++    }
++
++    /// <summary>Refine the card: one more upgrade point, for good. Returns the
++    /// report line, or null when refused.</summary>
++    public static string TryRefine(GuildSaveData save, OwnedCard card)
++    {
++        if (CannotRefineReason(save, card) != null)
++        {
++            return null;
++        }
++        card.Refined = true;
++        save.Cycle.RefinementsUsed++;
++        SaveManager.Save();
++        GD.Print($"[Refinement] '{card.BlueprintId}' refined ({save.Cycle.RefinementsUsed}/{RefinementsPerCycle}).");
++        return "Perfected: this card may take one more upgrade point, enough for both halves to reach their final stage.";
++    }
++}
+diff --git a/Scripts/Data/SaveState/CycleState.cs b/Scripts/Data/SaveState/CycleState.cs
+index c9bce27..7ffc699 100644
+--- a/Scripts/Data/SaveState/CycleState.cs
++++ b/Scripts/Data/SaveState/CycleState.cs
+@@ -457,6 +457,10 @@ public class CycleState
+     /// </summary>
+     public int MintsThisCycle = 0;
+ 
++    /// <summary>Cards the Scriptorum's Refinement doctrine has perfected this
++    /// timeline (design §15; one allowed). Additive save field.</summary>
++    public int RefinementsUsed = 0;
++
+     // ── Overworld magic (S1) ─────────────────────────────────────────────
+     /// <summary>Known/prepared overworld spells, Essence pool, scrolls,
+     /// beacons. Spell knowledge is timeline knowledge; it dies with the cycle.
+diff --git a/Scripts/Data/SaveState/GuildSaveData.cs b/Scripts/Data/SaveState/GuildSaveData.cs
+index cac81d6..e85e2ce 100644
+--- a/Scripts/Data/SaveState/GuildSaveData.cs
++++ b/Scripts/Data/SaveState/GuildSaveData.cs
+@@ -379,13 +379,18 @@ public class OwnedCard
+     /// </summary>
+     public int CastCount = 0;
+ 
++    /// <summary>Refinement (Scriptorum doctrine, design §15): this card holds a
++    /// seventh upgrade point, enough for both halves to reach their final stage.
++    /// Kept for good once given. Additive save field.</summary>
++    public bool Refined = false;
++
+     // ── Convenience ──────────────────────────────────────────────────
+     public bool IsBaseUpgraded => TopTier >= 1 && BotTier >= 1;
+     public int TotalTier => TopTier + BotTier;
+     public bool IsMaxed => TopTier >= 4 && BotTier >= 4;
+ 
+     // Points remaining after mandatory 1/1 step
+-    public int PointsRemaining => 6 - PointsSpent;
++    public int PointsRemaining => (Refined ? 7 : 6) - PointsSpent;
+ 
+     // Whether a given half can be upgraded further
+     public bool CanUpgradeTop => IsBaseUpgraded && TopTier < 4 && PointsRemaining > 0;
+diff --git a/Scripts/Data/SaveState/PlayerSession.cs b/Scripts/Data/SaveState/PlayerSession.cs
+index 88bda8d..d9db337 100644
+--- a/Scripts/Data/SaveState/PlayerSession.cs
++++ b/Scripts/Data/SaveState/PlayerSession.cs
+@@ -195,6 +195,11 @@ public static class PlayerSession
+     /// Decremented at the charge site.</summary>
+     public static int ChronoFlatMovesLeft = 0;
+ 
++    /// <summary>The Third Eye's portent was spent this sortie. Reset on a fresh
++    /// deploy only (like ChronoFlatMovesLeft), so returning from a fight does not
++    /// re-arm it: the portent is once per expedition, as its text says.</summary>
++    public static bool ScryingPortentSpentThisSortie = false;
++
+     // ── Wizard expedition HP carry (K2.5 symmetry, 2026-07-29) ───────────
+ 
+     /// <summary>The wizard's in-combat HP carried between fights of the same
+diff --git a/Scripts/Systems/Campus/CardUpgradeScreen.cs b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+index aac65af..8af3163 100644
+--- a/Scripts/Systems/Campus/CardUpgradeScreen.cs
++++ b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+@@ -596,7 +596,7 @@ public partial class CardUpgradeScreen : Control
+         2 => "Refined",
+         3 => "Attuned",
+         4 => "Mastered",
+-        5 => "Transcendent",
++        >= 5 => "Transcendent",
+         _ => "Upgraded"
+     };
+ 
+@@ -626,7 +626,9 @@ public partial class CardUpgradeScreen : Control
+ 
+         // Scriptorum gate
+         int maxUpgradeStage = 0;
+-        if (PlayerSession.HasFeature("card_upgrade_stage_3")) maxUpgradeStage = 3;
++        // Scriptorum T3 grants "Stages 3 and 4" (its tier text); stage 4 was
++        // unreachable because this read 3 (fixed with Refinement, design §15).
++        if (PlayerSession.HasFeature("card_upgrade_stage_3")) maxUpgradeStage = 4;
+         else if (PlayerSession.HasFeature("card_upgrade_stage_2")) maxUpgradeStage = 2;
+         else if (PlayerSession.HasFeature("card_upgrade_stage_1")) maxUpgradeStage = 1;
+ 
+@@ -722,7 +724,8 @@ public partial class CardUpgradeScreen : Control
+ 
+         var pointsLabel = new Label
+         {
+-            Text = $"Upgrade points remaining: {pointsRemaining} / 5",
++            Text = $"Upgrade points remaining: {pointsRemaining} / {(_selectedOwned.Refined ? 6 : 5)}"
++                   + (_selectedOwned.Refined ? "  (perfected)" : ""),
+             HorizontalAlignment = HorizontalAlignment.Center,
+         };
+         pointsLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+@@ -730,6 +733,29 @@ public partial class CardUpgradeScreen : Control
+             pointsRemaining > 0 ? UITheme.TextSecondary : UITheme.Danger);
+         AddDynamic(pointsLabel);
+ 
++        // Refinement (Scriptorum doctrine, design §15): once per timeline, one card
++        // takes a seventh point, so both halves can reach their final stage.
++        if (LoreHalls.RefinementActive(save) && !_selectedOwned.Refined)
++        {
++            string whyNot = LoreHalls.CannotRefineReason(save, _selectedOwned);
++            var refine = new Button
++            {
++                Text = $"Perfect this card: Refinement ({LoreHalls.RefinementsLeft(save)} left this timeline)",
++                Disabled = whyNot != null,
++                TooltipText = whyNot ?? "One more upgrade point for this card, for good: enough for both halves to reach Stage 4.",
++                SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
++            };
++            refine.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            UITheme.ApplyButtonStyle(refine, isPrimary: whyNot == null);
++            var refineCard = _selectedOwned;
++            refine.Pressed += () =>
++            {
++                if (LoreHalls.TryRefine(SaveManager.ActiveSave, refineCard) != null)
++                    Refresh();   // the list's points and MAX badge too
++            };
++            AddDynamic(refine);
++        }
++
+         ShowPreview(_selectedOwned.BlueprintId,
+             _selectedOwned.TopTier, _selectedOwned.BotTier, -1, -1);
+     }
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index 47a590d..cc336f4 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -210,10 +210,15 @@ public partial class CombatManager
+     /// </summary>
+     public void PlanAllEnemyIntents()
+     {
++        // The Third Eye (Scrying Chambers doctrine, design §15): on expedition,
++        // every enemy's intent is read in full, as the Namer's true name does.
++        bool thirdEye = PlayerSession.IsOnExpedition && LoreHalls.ThirdEyeActive(SaveManager.ActiveSave);
+         foreach (var enemy in enemyUnits)
+         {
+             if (!IsValidActor(enemy))
+                 continue;
++            if (thirdEye)
++                enemy.IntentPermanentlyRevealed = true;
+ 
+             enemy.CurrentIntent = PlanIntent(enemy);
+ 
+@@ -1543,7 +1548,11 @@ public partial class CombatManager
+             // everyNRounds and onTurnEnd abilities (summon_cadence, ritual) are
+             // not queued: "Ritual, Summon, Shift do nothing this activation."
+             if (enemy.IsStaggered && enemy.CurrentIntent == null)
++            {
+                 enemy.CurrentIntent = PlanIntent(enemy);   // so the Guard exemption reads a real intent
++                if (enemy.CurrentIntent != null)
++                    enemy.CurrentIntent.Revealed = enemy.IntentPermanentlyRevealed;   // Third Eye / Namer
++            }
+             if (enemy.IsStaggered && enemy.CurrentIntent?.Kind != IntentKind.Guard)
+             {
+                 await ExecuteStaggeredActivation(enemy);
+diff --git a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+index 2baffcf..f4071dd 100644
+--- a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
++++ b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+@@ -664,6 +664,7 @@ public partial class ExpeditionManager : Node2D
+                 }
+             }
+ 
++            PlayerSession.ScryingPortentSpentThisSortie = false;   // a fresh deploy: the portent is whole again
+             if (_fieldRun)
+             {
+                 // The Chronomancer's flat moves are a CHASSIS quirk and the
+@@ -3487,6 +3488,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         if (PlayerSession.ScryingPortentAvailable)
+         {
+             PlayerSession.ScryingPortentAvailable = false;
++            PlayerSession.ScryingPortentSpentThisSortie = true;
+             ShowInfo("The scrying held true, and you foresee the patrol and slip past unseen.");
+             return;
+         }
+@@ -4499,7 +4501,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+             }
+         }
+ 
+-        if (bonuses.ScryingPortent)
++        // The portent is the Third Eye's now (Scrying Chambers doctrine, design §15).
++        if ((bonuses.ScryingPortent || LoreHalls.ThirdEyeActive(SaveManager.ActiveSave))
++            && !PlayerSession.ScryingPortentSpentThisSortie)
+             PlayerSession.ScryingPortentAvailable = true;
+     }
+ 
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+index 4675271..b15888b 100644
+--- a/Scripts/Systems/Verification/CharterSaveAssert.cs
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -36,6 +36,7 @@ public static class CharterSaveAssert
+         ok &= AssertPortalFields(sb);
+         ok &= AssertBlightFields(sb);
+         ok &= AssertCarriedWeapon(sb);
++        ok &= AssertRefinement(sb);
+ 
+         sb.AppendLine(ok
+             ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
+@@ -254,6 +255,27 @@ public static class CharterSaveAssert
+         return ok;
+     }
+ 
++    /// <summary>Refinement (Scriptorum doctrine, design §15): the card flag, the
++    /// cycle counter, the seventh point, and their legacy defaults.</summary>
++    private static bool AssertRefinement(StringBuilder sb)
++    {
++        var card = RoundTrip(new OwnedCard { BlueprintId = "fireball", InstanceId = "c-1", TopTier = 4, BotTier = 3, PointsSpent = 6, Refined = true });
++        bool ok = Check(sb, "OwnedCard.Refined", card != null && card.Refined);
++        ok &= Check(sb, "OwnedCard refined budget is 7 points", card != null && card.PointsRemaining == 1 && card.CanUpgradeBot);
++        ok &= Check(sb, "OwnedCard unrefined budget is 6 points",
++            new OwnedCard { TopTier = 4, BotTier = 3, PointsSpent = 6 }.PointsRemaining == 0);
++        var cycle = RoundTrip(new CycleState { RefinementsUsed = 1 });
++        ok &= Check(sb, "CycleState.RefinementsUsed", cycle != null && cycle.RefinementsUsed == 1);
++
++        var legacyCard = JsonSerializer.Deserialize<OwnedCard>("{\"blueprintId\":\"fireball\"}", SaveManager.JsonOptions);
++        ok &= Check(sb, "OwnedCard.Refined false on legacy JSON", legacyCard != null && !legacyCard.Refined);
++        var legacyCycle = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":5}", SaveManager.JsonOptions);
++        ok &= Check(sb, "CycleState.RefinementsUsed 0 on legacy JSON", legacyCycle != null && legacyCycle.RefinementsUsed == 0);
++
++        sb.AppendLine(ok ? "  Refinement fields: PASS" : "  Refinement fields: FAIL");
++        return ok;
++    }
++
+     // ── Helpers (mirror ArmorySaveAssert) ─────────────────────────────────
+ 
+     private static T RoundTrip<T>(T obj)
+diff --git a/Scripts/UI/DeckEditorUi.cs b/Scripts/UI/DeckEditorUi.cs
+index 9b4f68e..52490a4 100644
+--- a/Scripts/UI/DeckEditorUi.cs
++++ b/Scripts/UI/DeckEditorUi.cs
+@@ -787,7 +787,7 @@ public partial class DeckEditorUi : Control
+         2 => "Refined",
+         3 => "Attuned",
+         4 => "Mastered",
+-        5 => "Transcendent",
++        >= 5 => "Transcendent",
+         _ => "Upgraded"
+     };
+ 
+-- 
+2.43.0
+

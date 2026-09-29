@@ -213,7 +213,10 @@ public partial class HexGridManager : Node3D
     {
         // E3: reset the placement list at the first phase of each (re)generation.
         if (phase == "skeleton")
+        {
             PendingMapObjects.Clear();
+            BuildingStamps.Clear();
+        }
         if (r?.Features == null)
             return;
 

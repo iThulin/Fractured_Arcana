@@ -8,7 +8,8 @@ using static CampusUi;
 //
 // Purpose:        The Expedition tab: world status, the door out
 //                 to the strategic map, the post-Conjunction school
-//                 picker, and (interim home) the Scriptorium.
+//                 picker. (The Scriptorium moved to the Scribe's
+//                 Tower, CampusScribePanel, 2026-09-29.)
 // Layer:          UI
 // Collaborators:  CampusPanel.cs (base), CampusContext.cs,
 //                 OverworldSpellRegistry.cs, SpellAcquisition.cs,
@@ -28,17 +29,14 @@ using static CampusUi;
 /// them further from that destination. They stayed on CampusScreen and this panel reaches
 /// them as named verbs on <see cref="CampusContext"/>.</para>
 ///
-/// <para><b>Interim home for the Scriptorium.</b> R8 confirmed the Scribe's Tower as scroll
-/// crafting's real owner; it sits on this tab until the campus rework moves it. When it
-/// does, it lifts out of here as its own panel, which is part of why the scroll list is a
-/// self-contained method rather than woven into the world-status refresh.</para>
+/// <para><b>The Scriptorium has moved.</b> R8 named the Scribe's Tower as scroll crafting's
+/// owner; on 2026-09-29 it lifted out of here into <c>CampusScribePanel</c> as planned.</para>
 ///
 /// <para>Extracted from <c>CampusScreen</c> on 2026-08-03. Rendering, wording and the
 /// scribe transaction are unchanged.</para></summary>
 public sealed class CampusExpeditionPanel : CampusPanel
 {
     private Label _worldStatus;
-    private VBoxContainer _scriptoriumList;
 
     protected override void OnBuild(ScrollContainer scroll)
     {
@@ -93,30 +91,18 @@ public sealed class CampusExpeditionPanel : CampusPanel
         btnRow.AddChild(launchBtn);
         layout.AddChild(btnRow);
 
-        // ── S4: Scriptorium, scroll crafting (overworld_spell_system §8a) ──
-        // INTERIM HOME: R8 confirmed the Scribe's Tower as scroll crafting's
-        // owner, but the campus is mid-rework (R6: no building dependencies
-        // in v1), so the Scriptorium sits ungated on this tab until the
-        // rework gates/moves it. Price = SpellAcquisition.ScrollGoldCost,
-        // THE §8a balance lever; scrolls bypass the Essence economy.
+        // Scroll crafting moved to the Scribe's Tower (2026-09-29, spec D7),
+        // its promised home; see CampusScribePanel.
         layout.AddChild(new HSeparator());
-        AddSectionHeader(layout, "Scriptorium: Scrolls");
-
-        var scrollHint = new Label
+        var scribeNote = new Label
         {
-            Text = "A scroll holds one cast of a spell the guild knows, usable by any " +
-                   "school, consuming no Essence, spent on use. Overt magic on a scroll " +
-                   "is still witnessed.",
+            Text = "Scrolls are scribed at the Scribe's Tower.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        scrollHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        scrollHint.Modulate = UITheme.CampusSubtleText;
-        layout.AddChild(scrollHint);
+        scribeNote.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        scribeNote.Modulate = UITheme.CampusSubtleText;
+        layout.AddChild(scribeNote);
 
-        _scriptoriumList = MakeVBox(6);
-        layout.AddChild(_scriptoriumList);
-
-        RefreshScriptorium();
         Refresh();
     }
 
@@ -169,97 +155,6 @@ public sealed class CampusExpeditionPanel : CampusPanel
             $"Illuminated: {pct:F1}%  ({explored} tiles explored, {charted} charted)\n" +
             $"Staging points available: {staging}\n" +
             $"Points of interest discovered: {discoveredPois}";
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // Scriptorium (interim home; see class remarks)
-    // ═══════════════════════════════════════════════════════════════════════
-
-    /// <summary>S4: rebuild the Scriptorium rows, one per scribable spell
-    /// (the wizard's school innates + every learned spell; Attunements can't
-    /// be scribed, and Emulate has nothing to remember on parchment).</summary>
-    private void RefreshScriptorium()
-    {
-        if (_scriptoriumList == null)
-            return;
-        foreach (var child in _scriptoriumList.GetChildren())
-            child.QueueFree();
-
-        var save = Ctx?.Save;
-        var grim = save?.Cycle?.Grimoire;
-        if (grim == null)
-            return;
-        OverworldSpellRegistry.EnsureLoaded();
-
-        // Scribable = school innates + known list, minus Attunements/Emulate.
-        var scribable = new List<OverworldSpellDefinition>();
-        void AddDef(OverworldSpellDefinition d)
-        {
-            if (d != null && !d.IsAttunement && d.EffectKey != "emulate" && !scribable.Contains(d))
-                scribable.Add(d);
-        }
-        foreach (var innate in OverworldSpellRegistry.InnatesFor(save.Cycle.SelectedSchool))
-            AddDef(innate);
-        foreach (var id in grim.KnownSpellIds)
-            AddDef(OverworldSpellRegistry.Get(id));
-        scribable.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
-
-        if (scribable.Count == 0)
-        {
-            var none = new Label
-            {
-                Text = "The guild knows nothing worth scribing yet. Spells are learned " +
-                       "afield (lore sites, cordial deals, the dead).",
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            };
-            none.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-            none.Modulate = UITheme.CampusSubtleText;
-            _scriptoriumList.AddChild(none);
-            return;
-        }
-
-        foreach (var def in scribable)
-        {
-            int cost = SpellAcquisition.ScrollGoldCost(def);
-            grim.ScrollInventory.TryGetValue(def.Id, out int held);
-
-            var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 10);
-            _scriptoriumList.AddChild(row);
-
-            var name = new Label
-            {
-                Text = $"{def.Name}  ·  {def.Magnitude}" + (held > 0 ? $"  ·  ×{held} held" : ""),
-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-                TooltipText = def.Description,
-            };
-            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
-            row.AddChild(name);
-
-            var craftBtn = MakeButton($"Scribe ({cost} g)", 150, 34,
-                UITheme.CampusSmallFontSize, isPrimary: false);
-            craftBtn.Disabled = save.Gold < cost;
-            string id = def.Id; // capture per-iteration
-            craftBtn.Pressed += () =>
-            {
-                var s = Ctx?.Save;
-                var g = s?.Cycle?.Grimoire;
-                if (s == null || g == null || s.Gold < cost)
-                    return;
-                s.Gold -= cost;
-                g.ScrollInventory[id] = g.ScrollInventory.TryGetValue(id, out int n) ? n + 1 : 1;
-                SaveManager.MarkDirty();
-                GD.Print($"[Scriptorium] Scribed '{id}' for {cost}g " +
-                         $"(held ×{g.ScrollInventory[id]}, gold {s.Gold}).");
-                // Narrow refresh, not RequestRefreshAll: scribing changes gold and this
-                // list, nothing else. A full refresh would rebuild eight panels and drop
-                // the player's scroll position mid-shopping.
-                Ctx.RefreshGold?.Invoke();
-                RefreshScriptorium();
-            };
-            row.AddChild(craftBtn);
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════

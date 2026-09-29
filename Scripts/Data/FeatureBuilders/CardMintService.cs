@@ -140,7 +140,7 @@ public static class CardMintService
     /// </summary>
     public static int TierCeiling()
     {
-        if (PlayerSession.HasFeature("card_upgrade_stage_3")) return 3;
+        if (PlayerSession.HasFeature("card_upgrade_stage_3")) return 4;   // T3 is "Stages 3 and 4" (§15)
         if (PlayerSession.HasFeature("card_upgrade_stage_2")) return 2;
         if (PlayerSession.HasFeature("card_upgrade_stage_1")) return 1;
         return 0;
@@ -242,6 +242,9 @@ public static class CardMintService
             // 1 for the shared 1/1 base, then 1 per half-tier above 1. Without this
             // a minted card would read as having free upgrade points remaining.
             PointsSpent = PointsFor(status.TopTier, status.BotTier),
+            // A proven 4/4 (one half from each copy, or a Refined card) takes the
+            // seventh point to account for; the copy carries it (design §15).
+            Refined = PointsFor(status.TopTier, status.BotTier) > 6,
             Grafts = new List<string>(),
             IsStarter = false,
             IsRegalia = false,

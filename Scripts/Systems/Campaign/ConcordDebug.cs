@@ -360,6 +360,9 @@ public static class ConcordDebug
         GD.Print($"[ConcordDebug] Undercroft tier -> {b.Tier} " +
                  $"(informant cap {ShadowVocab.InformantCap(b.Tier)}, " +
                  $"contract cap {ShadowVocab.ContractCap(b.Tier)}).");
+        if (b.Tier >= 3)
+            GD.Print("[ConcordDebug] Assassination is the Silent Floor's now: site the Undercroft and charter "
+                   + "the Silent Floor at the Grand Hall (campus_building_upgrades_design_v1 §14).");
     }
 
     public static void DebugBuyAssassination()

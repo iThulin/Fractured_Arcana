@@ -49,6 +49,12 @@ public partial class HexGridManager : Node3D
     public IReadOnlyList<Vector2I> SiegeObjectiveZone =>
         _activeRecipe?.Siege?.ObjectiveZone ?? (IReadOnlyList<Vector2I>)System.Array.Empty<Vector2I>();
 
+    /// <summary>Every building shell the active recipe stamped: (id, centre, radius),
+    /// in recipe order. Cleared at each regeneration's skeleton phase. Read by
+    /// CombatManager.SiegeBlight to stand a foundation beside each building in a
+    /// portal strike (campus corruption, design §11).</summary>
+    public readonly List<(string id, Vector2I center, int radius)> BuildingStamps = new();
+
     /// <summary>Paints one building shell: a filled hex disk of
     /// <paramref name="radius"/> around <paramref name="center"/>. Reserved
     /// (spawn-zone) tiles are skipped like every other paint. The compiler
@@ -56,6 +62,7 @@ public partial class HexGridManager : Node3D
     /// upstream, and a playable hole beats an unusable spawn.</summary>
     private void PaintBuildingStamp(Vector2I center, int radius, string buildingId, int stampHeight)
     {
+        BuildingStamps.Add((buildingId, center, radius));
         for (int q = -radius; q <= radius; q++)
         {
             int rMin = Math.Max(-radius, -q - radius);

@@ -1,0 +1,1059 @@
+From 042a850ef93cd1a8c0672cd945fe1b8faa82b90b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 14:31:03 -0600
+Subject: [PATCH] Courier Station and Undercroft doctrines; the Undercroft
+ panel
+
+- Undercroft panel: the first player-facing espionage surface (informants
+  and their verbs, held secrets, the Concord market), floatable from the
+  building; the Undercroft is now a door on the campus
+- Undercroft T3: Silent Floor (Assassination, -1 Marked per contract) or
+  Whisper Market (sell a held secret to a rival court for gold and regard;
+  the source court grows warier)
+- Courier T3: Spy Network (+2 informants; every informant charts its court)
+  or Trade Routes (caravans home from every held anchor pay by length each
+  moon, the four best; seeded raids by length)
+- Turning a secret into an informant now spends the secret
+- Courier T3 parley text matches the 2 Connections cards it grants
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/courier_station.json           |  21 +-
+ Data/Buildings/undercroft.json                |  17 +-
+ Scripts/Systems/Campaign/ConcordDebug.cs      |   3 +
+ Scripts/Systems/Campaign/Networks.cs          | 278 +++++++++++
+ Scripts/Systems/Campaign/ShadowMarket.cs      |   6 +
+ Scripts/Systems/Campaign/ShadowTick.cs        |  34 +-
+ .../Systems/Campus/CampusLocationRegistry.cs  |   3 +
+ Scripts/Systems/Campus/CampusScreen.cs        |   9 +-
+ .../Systems/Campus/CampusUndercroftPanel.cs   | 449 ++++++++++++++++++
+ .../Strategic/HomeBuildingPanelHost.cs        |   2 +
+ Scripts/Systems/Strategic/StrategicView.cs    |   6 +
+ 11 files changed, 816 insertions(+), 12 deletions(-)
+ create mode 100644 Scripts/Systems/Campaign/Networks.cs
+ create mode 100644 Scripts/Systems/Campus/CampusUndercroftPanel.cs
+
+diff --git a/Data/Buildings/courier_station.json b/Data/Buildings/courier_station.json
+index 31b16ec..19fdef1 100644
+--- a/Data/Buildings/courier_station.json
++++ b/Data/Buildings/courier_station.json
+@@ -15,7 +15,7 @@
+     },
+     {
+       "tier": 2,
+-      "description": "Regional network. The guild's reach earns it standing at court: +1 Connections token to the negotiation pool.",
++      "description": "Regional network. The guild's reach earns it standing at court: a Connections card in every parley deck.",
+       "goldCost": 240,
+       "requiredBuildings": [],
+       "bonusNegotiationTokens": 1,
+@@ -23,11 +23,24 @@
+     },
+     {
+       "tier": 3,
+-      "description": "Spy Network. Informants in every court: +1 further Connections token (2 total).",
++      "displayName": "The Long Roads",
++      "description": "Couriers on every road: 2 Connections cards in every parley deck. And a doctrine, chartered at the Grand Hall. The Spy Network: two more informants may run, and every informant charts the ground around its court. Or Trade Routes: caravans run from home to every outpost and cache the guild holds, and pay each moon they are not raided.",
+       "goldCost": 450,
+       "requiredBuildings": [],
+-      "bonusNegotiationTokens": 1,
+-      "bonusTokenType": "Connections"
++      "bonusNegotiationTokens": 2,
++      "bonusTokenType": "Connections",
++      "doctrines": [
++        {
++          "id": "spy_network",
++          "name": "The Spy Network",
++          "description": "Intelligence becomes map. Two more informants may run at once, and every informant, not only a watcher, charts the ground around its court as it reports."
++        },
++        {
++          "id": "trade_routes",
++          "name": "Trade Routes",
++          "description": "Logistics as income, with risk. Every held supply cache, outpost, secured site and claimed shard zone runs a caravan to the guild home. Each pays gold and materials by its length each moon (the four best pay), and each can be raided on the road, the longer the likelier."
++        }
++      ]
+     }
+   ]
+ }
+diff --git a/Data/Buildings/undercroft.json b/Data/Buildings/undercroft.json
+index e9a0ef7..c3fe800 100644
+--- a/Data/Buildings/undercroft.json
++++ b/Data/Buildings/undercroft.json
+@@ -4,6 +4,7 @@
+     "description": "A hidden warren of cutouts, handlers, and dead drops beneath the campus, the spine of the guild's espionage. Each tier lets the guild run more informants and more Veiled Concord contracts at once, and the deepest tier opens the cabal's lethal work.",
+     "category": "Reputation",
+     "schoolAffinity": "",
++    "hostsSystem": "undercroft",
+     "maxTier": 3,
+     "tiers": [
+         {
+@@ -23,9 +24,21 @@
+         {
+             "tier": 3,
+             "displayName": "The Silent Floor",
+-            "description": "Tradecraft deep enough to reach the Inner cabal. Up to 6 informants and 3 contracts at once; the guild may commission Assassination from the Veiled Concord, and every contract leaves a shorter shadow (−1 Marked per completed contract).",
++            "description": "Tradecraft deep enough to reach the Inner cabal. Up to 6 informants and 3 contracts at once. And a doctrine, chartered at the Grand Hall. The Silent Floor: Assassination through the Veiled Concord, and every contract leaves a shorter shadow. Or the Whisper Market: sell the secrets your network holds to rival courts, for gold and favour.",
+             "goldCost": 500,
+-            "requiredBuildings": []
++            "requiredBuildings": [],
++            "doctrines": [
++                {
++                    "id": "silent_floor",
++                    "name": "The Silent Floor",
++                    "description": "Removal play. The guild may commission Assassination from the Veiled Concord, and every completed contract leaves a shorter shadow (1 less Marked)."
++                },
++                {
++                    "id": "whisper_market",
++                    "name": "The Whisper Market",
++                    "description": "Intelligence as currency. A secret the guild holds may be sold to a rival court instead of the Concord: gold by the courtier's weight, and their court's most influential courtier warms to the guild. The court the secret came from grows warier."
++                }
++            ]
+         }
+     ]
+ }
+diff --git a/Scripts/Systems/Campaign/ConcordDebug.cs b/Scripts/Systems/Campaign/ConcordDebug.cs
+index ad427a2..c844ef1 100644
+--- a/Scripts/Systems/Campaign/ConcordDebug.cs
++++ b/Scripts/Systems/Campaign/ConcordDebug.cs
+@@ -360,6 +360,9 @@ public static class ConcordDebug
+         GD.Print($"[ConcordDebug] Undercroft tier -> {b.Tier} " +
+                  $"(informant cap {ShadowVocab.InformantCap(b.Tier)}, " +
+                  $"contract cap {ShadowVocab.ContractCap(b.Tier)}).");
++        if (b.Tier >= 3)
++            GD.Print("[ConcordDebug] Assassination is the Silent Floor's now: site the Undercroft and charter "
++                   + "the Silent Floor at the Grand Hall (campus_building_upgrades_design_v1 §14).");
+     }
+ 
+     public static void DebugBuyAssassination()
+diff --git a/Scripts/Systems/Campaign/Networks.cs b/Scripts/Systems/Campaign/Networks.cs
+new file mode 100644
+index 0000000..6871d51
+--- /dev/null
++++ b/Scripts/Systems/Campaign/Networks.cs
+@@ -0,0 +1,278 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// Networks.cs
++//
++// Purpose:        The Courier Station's and the Undercroft's doctrines
++//                 (campus_building_upgrades_design_v1 §14).
++//
++//                 Courier Station T3:
++//                   Spy Network   +2 informant cap, and every informant (not
++//                                 only watchers) charts the ground around its
++//                                 court each moon. Intelligence becomes map.
++//                   Trade Routes  every guild-held anchor (held supply cache,
++//                                 outpost, secured site, claimed shard zone)
++//                                 runs a route to the guild home. A route pays
++//                                 gold (4 + 1 per tile) and materials (2 + 1
++//                                 per 2 tiles) each moon; the 4 best pay. Each
++//                                 route rolls a raid (3% per tile, max 45%,
++//                                 seeded per moon), and a raided route pays
++//                                 nothing that moon.
++//                 Undercroft T3:
++//                   The Silent Floor  Assassination through the Concord, and
++//                                     every contract leaves a shorter shadow
++//                                     (-1 Marked). Removal play; was T3 itself.
++//                   Whisper Market    a held secret may be sold to a RIVAL
++//                                     court instead of the Concord: gold, and
++//                                     regard at the buying court, but the court
++//                                     it came from grows warier (+Exposure).
++// Layer:          System (campaign)
++// Collaborators:  Charters (the gate), ShadowVocab / ShadowMarket / ShadowTick
++//                 (caps, Silent Floor), SupplyCacheSystem, WorldData,
++//                 StrategicView (the lunation tick), CampusUndercroftPanel.
++// ============================================================
++
++/// <summary>Courier Station and Undercroft doctrine rules.</summary>
++public static class Networks
++{
++    public const string CourierId = "courier_station";
++    public const string SpyNetwork = "spy_network";
++    public const string TradeRoutes = "trade_routes";
++
++    public const string UndercroftId = "undercroft";
++    public const string SilentFloor = "silent_floor";
++    public const string WhisperMarket = "whisper_market";
++
++    public const int SpyNetworkInformantBonus = 2;
++
++    // Trade Routes tuning (starting values).
++    public const int RouteGoldBase = 4;
++    public const int RouteMaterialsBase = 2;
++    public const int RouteRaidPercentPerTile = 3;
++    public const int RouteRaidPercentCap = 45;
++    public const int RouteMaxPaying = 4;
++    /// <summary>Tiles past which a route pays no more (it still risks more).</summary>
++    public const int RouteLengthPayCap = 20;
++
++    // Whisper Market tuning.
++    public const int WhisperGoldBase = 20;
++    public const int WhisperGoldPerInfluence = 10;
++    public const int WhisperExposure = 2;
++
++    public static bool SpyNetworkActive(GuildSaveData save) => Charters.IsActive(save, CourierId, SpyNetwork);
++
++    public static bool TradeRoutesActive(GuildSaveData save) => Charters.IsActive(save, CourierId, TradeRoutes);
++
++    public static bool SilentFloorActive(GuildSaveData save) => Charters.IsActive(save, UndercroftId, SilentFloor);
++
++    public static bool WhisperMarketActive(GuildSaveData save) => Charters.IsActive(save, UndercroftId, WhisperMarket);
++
++    /// <summary>The Undercroft's tier as the espionage rules read it.</summary>
++    public static int UndercroftTier(GuildSaveData save)
++        => save != null ? CouncilQueries.BuildingTier(save, UndercroftId) : 0;
++
++    /// <summary>Concurrent informant cap: the Undercroft's, +2 with the Spy Network.</summary>
++    public static int InformantCap(GuildSaveData save)
++        => ShadowVocab.InformantCap(UndercroftTier(save)) + (SpyNetworkActive(save) ? SpyNetworkInformantBonus : 0);
++
++    // ── Whisper Market ───────────────────────────────────────────────────
++
++    /// <summary>Gold a secret fetches at a rival court: more for a weightier courtier.</summary>
++    public static int WhisperPrice(CourtierState courtier)
++        => WhisperGoldBase + WhisperGoldPerInfluence * Math.Max(0, courtier?.Influence ?? 0);
++
++    /// <summary>Sell a held secret to a rival court. The secret is spent; the buying
++    /// court's most influential courtier warms to the guild (+1 Regard); the court
++    /// the secret came from grows warier (+Exposure).</summary>
++    public static ShadowMarketResult SellSecretToCourt(CycleState cycle, GuildSaveData save,
++        string kingdomId, string courtierId, string buyerKingdomId)
++    {
++        var council = cycle?.Council;
++        if (council == null)
++        {
++            return ShadowMarketResult.Fail("No council state.");
++        }
++        if (!WhisperMarketActive(save))
++        {
++            return ShadowMarketResult.Fail("Needs the Whisper Market chartered at the Grand Hall.");
++        }
++        if (string.IsNullOrEmpty(buyerKingdomId) || buyerKingdomId == kingdomId)
++        {
++            return ShadowMarketResult.Fail("Choose a rival court to sell to.");
++        }
++        if (!council.Courts.TryGetValue(kingdomId, out var court)
++            || !council.Courts.TryGetValue(buyerKingdomId, out var buyer))
++        {
++            return ShadowMarketResult.Fail("No such court.");
++        }
++        if (!buyer.HasContact)
++        {
++            return ShadowMarketResult.Fail("The guild has no contact at that court to sell through.");
++        }
++        var courtier = court.GetCourtier(courtierId);
++        if (courtier == null || !courtier.SecretKnown)
++        {
++            return ShadowMarketResult.Fail("No held secret to sell there.");
++        }
++
++        int gold = WhisperPrice(courtier);
++        courtier.SecretKnown = false;
++        save.Gold += gold;
++
++        CourtierState patron = null;
++        foreach (var c in buyer.Courtiers)
++        {
++            if (c != null && (patron == null || c.Influence > patron.Influence))
++            {
++                patron = c;
++            }
++        }
++        if (patron != null)
++        {
++            patron.Regard = Mathf.Clamp(patron.Regard + 1, -3, 3);
++        }
++        court.Exposure = Mathf.Clamp(court.Exposure + WhisperExposure, 0, 10);
++        SaveManager.MarkDirty();
++
++        string from = CouncilTick.CourtDisplayName(cycle, kingdomId);
++        string to = CouncilTick.CourtDisplayName(cycle, buyerKingdomId);
++        return ShadowMarketResult.Pass(
++            $"Sold {courtier.DisplayName}'s secret to {to} for {gold} gold."
++            + (patron != null ? $" {patron.DisplayName} remembers the favour." : "")
++            + $" {from} grows warier (exposure {court.Exposure}).");
++    }
++
++    // ── Trade Routes ─────────────────────────────────────────────────────
++
++    /// <summary>One route from the guild home to a held anchor.</summary>
++    public sealed class Route
++    {
++        public string Key = "";
++        public string Name = "";
++        public int Tiles;
++        public int Gold;
++        public int Materials;
++        public int RaidPercent;
++    }
++
++    /// <summary>Every route the guild runs now, best-paying first. Empty without
++    /// the doctrine or a world. Only the first RouteMaxPaying pay.</summary>
++    public static List<Route> Routes(CycleState cycle, GuildSaveData save)
++    {
++        var routes = new List<Route>();
++        var world = cycle?.World;
++        if (world == null || !TradeRoutesActive(save) || !world.InBounds(world.HomeX, world.HomeY))
++        {
++            return routes;
++        }
++        var seen = new HashSet<(int, int)>();
++
++        void Add(string key, string name, int x, int y)
++        {
++            if (!seen.Add((x, y)) || (x == world.HomeX && y == world.HomeY))
++            {
++                return;
++            }
++            int tiles = world.HexDistance(world.HomeX, world.HomeY, x, y);
++            if (tiles <= 0)
++            {
++                return;
++            }
++            int paid = Math.Min(tiles, RouteLengthPayCap);
++            routes.Add(new Route
++            {
++                Key = key,
++                Name = name,
++                Tiles = tiles,
++                Gold = RouteGoldBase + paid,
++                Materials = RouteMaterialsBase + paid / 2,
++                RaidPercent = Math.Min(RouteRaidPercentCap, RouteRaidPercentPerTile * tiles),
++            });
++        }
++
++        if (world.StagingPoints != null)
++        {
++            foreach (var sp in world.StagingPoints)
++            {
++                if (sp == null || !sp.Available)
++                {
++                    continue;
++                }
++                if (sp.Source == "Outpost" || sp.Source == "Secured" || sp.Source == "Shard")
++                {
++                    Add($"sp:{sp.X},{sp.Y}", string.IsNullOrEmpty(sp.Name) ? "a guild outpost" : sp.Name, sp.X, sp.Y);
++                }
++            }
++        }
++        if (world.Pois != null)
++        {
++            foreach (var poi in world.Pois)
++            {
++                if (poi != null && poi.Kind == PoiKind.SupplyCache
++                    && SupplyCacheSystem.ControllerOf(poi) == SupplyCacheSystem.GuildId)
++                {
++                    Add($"cache:{poi.X},{poi.Y}", "the guild's supply cache", poi.X, poi.Y);
++                }
++            }
++        }
++
++        routes.Sort((a, b) => a.Gold != b.Gold ? b.Gold.CompareTo(a.Gold) : string.CompareOrdinal(a.Key, b.Key));
++        return routes;
++    }
++
++    /// <summary>Lunation tick: the best routes pay, each after its raid roll.
++    /// Returns report lines. Seeded per moon and route, so a reload cannot reroll.</summary>
++    public static List<string> TickTradeRoutes(CycleState cycle, GuildSaveData save)
++    {
++        var lines = new List<string>();
++        var routes = Routes(cycle, save);
++        if (routes.Count == 0 || save == null)
++        {
++            return lines;
++        }
++        int lunation = cycle.Calendar?.CurrentLunation ?? 1;
++        int gold = 0, materials = 0, paying = 0;
++        var raided = new List<string>();
++        for (int i = 0; i < routes.Count && i < RouteMaxPaying; i++)
++        {
++            var r = routes[i];
++            if (RngFor(cycle, r.Key, lunation).Next(100) < r.RaidPercent)
++            {
++                raided.Add(r.Name);
++                continue;
++            }
++            gold += r.Gold;
++            materials += r.Materials;
++            paying++;
++        }
++        if (gold > 0 || materials > 0)
++        {
++            save.Gold += gold;
++            save.BuildMaterials += materials;
++            lines.Add($"Trade routes: {paying} caravan(s) came home with {gold} gold and {materials} materials.");
++        }
++        if (raided.Count > 0)
++        {
++            string line = $"Raiders took the caravans on the road to {string.Join(", ", raided)}. Nothing came home from there this moon.";
++            ScryInbox.Post(cycle, ScryChannel.Messenger, "Caravans raided", line, "", "trade");
++            lines.Add(line);
++        }
++        SaveManager.MarkDirty();
++        return lines;
++    }
++
++    private static Random RngFor(CycleState cycle, string salt, int lunation)
++    {
++        unchecked
++        {
++            int seed = (cycle.WorldSeed * 397) ^ (lunation * 7919);
++            foreach (char ch in salt ?? "")
++            {
++                seed = (seed * 31) ^ ch;
++            }
++            return new Random(seed);
++        }
++    }
++}
+diff --git a/Scripts/Systems/Campaign/ShadowMarket.cs b/Scripts/Systems/Campaign/ShadowMarket.cs
+index 90afa90..c5a46e9 100644
+--- a/Scripts/Systems/Campaign/ShadowMarket.cs
++++ b/Scripts/Systems/Campaign/ShadowMarket.cs
+@@ -176,6 +176,12 @@ public static class ShadowMarket
+                 $"Assassination needs Undercroft {ShadowVocab.AssassinationMinUndercroft} " +
+                 $"(at {undercroft}).");
+         }
++        // The Silent Floor is a doctrine now (campus_building_upgrades_design_v1 §14):
++        // the deepest tier offers it, the Grand Hall charters it.
++        if (!Networks.SilentFloorActive(SaveManager.ActiveSave))
++        {
++            return ShadowMarketResult.Fail("Assassination needs the Silent Floor chartered at the Grand Hall.");
++        }
+         if (string.IsNullOrEmpty(courtierId))
+         {
+             return ShadowMarketResult.Fail("Name the mark.");
+diff --git a/Scripts/Systems/Campaign/ShadowTick.cs b/Scripts/Systems/Campaign/ShadowTick.cs
+index d004365..eec0380 100644
+--- a/Scripts/Systems/Campaign/ShadowTick.cs
++++ b/Scripts/Systems/Campaign/ShadowTick.cs
+@@ -124,6 +124,7 @@ public static class ShadowTick
+             {
+                 changed |= ResolveCutout(cycle, inf, a, lun, reports);
+             }
++
+             else if (inf.Role == ShadowVocab.RoleSaboteur)
+             {
+                 // Passive erosion: undermine a siege pressing this kingdom a
+@@ -139,6 +140,22 @@ public static class ShadowTick
+                         $"{Court(cycle, inf.KingdomId)} ({before} → {wf.Advance}).");
+                 }
+             }
++
++            // Spy Network (Courier Station doctrine, §14): every asset, not only a
++            // watcher, charts the ground around its court as it reports. A cutout
++            // before Concord contact already charts at half budget (ResolveCutout),
++            // so it is left to that.
++            bool cutoutCharts = inf.Role == ShadowVocab.RoleCutout && !council.ConcordContacted;
++            if (inf.Role != ShadowVocab.RoleWatcher && !cutoutCharts && Networks.SpyNetworkActive(save))
++            {
++                int mapped = ChartAround(cycle.World, inf.KingdomId, 1 + a, ChartBudget[a]);
++                if (mapped > 0)
++                {
++                    changed = true;
++                    Emit(reports, lun, inf.KingdomId,
++                        $"Shadow: the Spy Network's reports chart {mapped} tiles of {Court(cycle, inf.KingdomId)}.");
++                }
++            }
+         }
+ 
+         if (changed)
+@@ -335,7 +352,8 @@ public static class ShadowTick
+             int undercroft = SaveManager.ActiveSave != null
+                 ? CouncilQueries.BuildingTier(SaveManager.ActiveSave, ShadowVocab.BuildingUndercroft) : 0;
+             int markedGain = MarkedGainFor(c.ContractType);
+-            if (undercroft >= ShadowVocab.UndercroftMarkedDiscountTier)
++            if (undercroft >= ShadowVocab.UndercroftMarkedDiscountTier
++                && Networks.SilentFloorActive(SaveManager.ActiveSave))   // a doctrine now (§14)
+             {
+                 markedGain = Mathf.Max(0, markedGain - ShadowVocab.UndercroftMarkedDiscount);
+             }
+@@ -829,9 +847,7 @@ public static class ShadowTick
+         // Undercroft concurrency cap (§6): the network cannot exceed what the
+         // spine can run. 0 tier = a minimal network is still possible.
+         var save = SaveManager.ActiveSave;
+-        int undercroft = save != null
+-            ? CouncilQueries.BuildingTier(save, ShadowVocab.BuildingUndercroft) : 0;
+-        if (council.Informants.Count >= ShadowVocab.InformantCap(undercroft))
++        if (council.Informants.Count >= Networks.InformantCap(save))   // +2 with the Spy Network (§14)
+         {
+             return null; // at capacity, so exfiltrate or build the Undercroft
+         }
+@@ -918,8 +934,16 @@ public static class ShadowTick
+         {
+             return null; // no leverage to turn
+         }
+-        return PlantInformant(cycle, kingdomId, role ?? ShadowVocab.RoleCutout,
++        var turned = PlantInformant(cycle, kingdomId, role ?? ShadowVocab.RoleCutout,
+             ShadowVocab.CoverStartTurned, courtierId);
++        if (turned != null)
++        {
++            // Leverage or gold, not both (the rule SellSecret states): the secret
++            // is spent turning them, so it cannot also be fenced or sold.
++            courtier.SecretKnown = false;
++            SaveManager.MarkDirty();
++        }
++        return turned;
+     }
+ 
+     // ── Helpers ──────────────────────────────────────────────────────────
+diff --git a/Scripts/Systems/Campus/CampusLocationRegistry.cs b/Scripts/Systems/Campus/CampusLocationRegistry.cs
+index 8def6f2..a84b5f7 100644
+--- a/Scripts/Systems/Campus/CampusLocationRegistry.cs
++++ b/Scripts/Systems/Campus/CampusLocationRegistry.cs
+@@ -37,6 +37,8 @@ public enum CampusPanelId
+     Scribe = 10,
+     /// <summary>The school seats (facets, fronts, seat doctrines; design §8).</summary>
+     Seats = 11,
++    /// <summary>The Undercroft (espionage: informants, secrets, the Concord; design §14).</summary>
++    Undercroft = 12,
+ }
+ 
+ /// <summary>What activating a campus location does. Two shapes, because the campus systems
+@@ -127,6 +129,7 @@ public static class CampusLocationRegistry
+         "workshop"   => CampusDestination.ToPanel(CampusPanelId.Workshop),
+         "scribe"     => CampusDestination.ToPanel(CampusPanelId.Scribe),
+         "seats"      => CampusDestination.ToPanel(CampusPanelId.Seats),
++        "undercroft" => CampusDestination.ToPanel(CampusPanelId.Undercroft),
+         // Scene destinations. These are the campus systems that were never tabs. They
+         // are reached today only as buttons on the Guild tab, which is exactly the
+         // arrangement the diegetic campus replaces: the Arcane Library IS the card
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index e674486..91e2b6a 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -123,6 +123,9 @@ public partial class CampusScreen : Control
+     // School Seats tab (design §8)
+     private readonly CampusSeatPanel _seatPanel = new();
+ 
++    // Undercroft tab (espionage, design §14)
++    private readonly CampusUndercroftPanel _undercroftPanel = new();
++
+     // Expedition tab
+     private readonly CampusExpeditionPanel _expeditionPanel = new();
+     // NOTE: the Atlas and Window comparison-prototype tabs were removed once their 3D
+@@ -238,7 +241,7 @@ public partial class CampusScreen : Control
+         tabBar.Visible = !DiegeticHubOnly;
+         AddChild(tabBar);
+ 
+-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe", "Seats" };
++        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe", "Seats", "Undercroft" };
+         // CampusPanelId's values ARE these indices. The map routes by enum, the bar routes
+         // by index, and nothing else ties them together. Reordering one without the other
+         // would silently send every building on the campus to the wrong room.
+@@ -333,6 +336,7 @@ public partial class CampusScreen : Control
+         _workshopPanel.Build((ScrollContainer)_tabPanels[9], _ctx);
+         _scribePanel.Build((ScrollContainer)_tabPanels[10], _ctx);
+         _seatPanel.Build((ScrollContainer)_tabPanels[11], _ctx);
++        _undercroftPanel.Build((ScrollContainer)_tabPanels[12], _ctx);
+ 
+         // Layered last. See the construction note above.
+         AddChild(_campusNarrativePanel);
+@@ -439,6 +443,9 @@ public partial class CampusScreen : Control
+             case 11:
+                 _seatPanel.Refresh();
+                 break;
++            case 12:
++                _undercroftPanel.Refresh();
++                break;
+             case 6:
+                 _recordsPanel.Refresh();
+                 break;
+diff --git a/Scripts/Systems/Campus/CampusUndercroftPanel.cs b/Scripts/Systems/Campus/CampusUndercroftPanel.cs
+new file mode 100644
+index 0000000..689cede
+--- /dev/null
++++ b/Scripts/Systems/Campus/CampusUndercroftPanel.cs
+@@ -0,0 +1,449 @@
++using Godot;
++using System.Collections.Generic;
++using static CampusUi;
++
++// ============================================================
++// CampusUndercroftPanel.cs
++//
++// Purpose:        The Undercroft room: the first player-facing surface
++//                 for espionage (campus_building_upgrades_design_v1 §14).
++//                 Until now every espionage verb (informants, the Veiled
++//                 Concord's market, selling secrets, contracts) was reached
++//                 only from debug buttons, while the monthly tick ran on
++//                 its own. This panel is a thin front on the existing
++//                 rules; it adds no rule of its own except the Whisper
++//                 Market sale (Networks).
++//
++//                 Sections:
++//                   Network     tier, informant and contract caps, Marked,
++//                               the Concord's favour and standing.
++//                   Informants  each asset with its cover and access, and
++//                               its verbs: Exfiltrate; a Saboteur strikes;
++//                               a Cutout forges a good word.
++//                   Secrets     every courtier secret the guild holds: turn
++//                               it into an informant, fence it to the
++//                               Concord, or (Whisper Market) sell it to a
++//                               rival court.
++//                   The Concord contracts in flight, the Astrologer's bid to
++//                               outbid, and the contract market by court
++//                               and courtier.
++// Layer:          UI (campus)
++// Collaborators:  ShadowTick (TryTurnSecret), ShadowOps (Exfiltrate,
++//                 SaboteurStrike, ForgeEcho), ShadowMarket (SellSecret,
++//                 Commission*, Outbid), Networks (caps, doctrines, Whisper
++//                 Market), CouncilTick.CourtDisplayName,
++//                 CampusScreen / HomeBuildingPanelHost (hosting),
++//                 CampusLocationRegistry ("undercroft" door).
++// ============================================================
++
++/// <summary>The Undercroft tab. Standard panel contract.</summary>
++public sealed class CampusUndercroftPanel : CampusPanel
++{
++    private VBoxContainer _container;
++    private Label _status;
++
++    // Pickers survive a Refresh so a choice is not lost when the panel redraws.
++    private string _pickedCourt = "";
++    private string _pickedCourtier = "";
++    private readonly Dictionary<string, string> _turnRole = new();
++    private readonly Dictionary<string, string> _sellTo = new();
++
++    protected override void OnBuild(ScrollContainer scroll)
++    {
++        var margins = MakeMargins(32, 20);
++        scroll.AddChild(margins);
++        var layout = MakeVBox(10);
++        margins.AddChild(layout);
++
++        AddSectionHeader(layout, "The Undercroft");
++        var note = new Label
++        {
++            Text = "The guild's hidden network: informants embedded in the courts, the secrets they bring "
++                 + "home, and the Veiled Concord, who sell what the guild cannot do itself. Every "
++                 + "dealing leaves a shadow (Marked); too long a shadow and the Concord sells you out.",
++            AutowrapMode = TextServer.AutowrapMode.WordSmart,
++        };
++        note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        note.Modulate = UITheme.CampusSubtleText;
++        layout.AddChild(note);
++
++        _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, Visible = false };
++        _status.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        layout.AddChild(_status);
++        layout.AddChild(new HSeparator());
++
++        _container = MakeVBox(10);
++        layout.AddChild(_container);
++    }
++
++    public override void Refresh()
++    {
++        if (_container == null)
++        {
++            return;
++        }
++        foreach (var child in _container.GetChildren())
++        {
++            child.QueueFree();
++        }
++        var save = Ctx?.Save;
++        var cycle = save?.Cycle;
++        var council = cycle?.Council;
++        if (council == null)
++        {
++            _container.AddChild(MakeStubLabel("No timeline in play."));
++            return;
++        }
++
++        BuildNetwork(save, cycle, council);
++        BuildInformants(cycle, council);
++        BuildSecrets(save, cycle, council);
++        BuildConcord(save, cycle, council);
++    }
++
++    // ── Network ──────────────────────────────────────────────────────────
++
++    private void BuildNetwork(GuildSaveData save, CycleState cycle, CouncilState council)
++    {
++        AddSubheader("Network");
++        int tier = Networks.UndercroftTier(save);
++        int guildContracts = 0;
++        foreach (var c in council.ConcordContracts)
++        {
++            if (!c.AgainstPlayer)
++            {
++                guildContracts++;
++            }
++        }
++        AddLine(tier > 0 ? $"Undercroft tier {tier}." : "The Undercroft is not built: a minimal network is all the guild can run.",
++            UITheme.TextPrimary);
++        AddLine($"Informants {council.Informants.Count}/{Networks.InformantCap(save)}"
++              + (Networks.SpyNetworkActive(save) ? " (the Spy Network runs two more)" : "")
++              + $"   ·   Concord contracts {guildContracts}/{ShadowVocab.ContractCap(tier)}"
++              + $"   ·   Marked {council.Marked}/{ShadowVocab.MarkedMax}", UITheme.TextSecondary);
++        if (Networks.SilentFloorActive(save))
++        {
++            AddLine("The Silent Floor: Assassination is on the Concord's list, and every contract leaves 1 less Marked.", UITheme.Gold);
++        }
++        if (Networks.WhisperMarketActive(save))
++        {
++            AddLine("The Whisper Market: held secrets may be sold to rival courts.", UITheme.Gold);
++        }
++    }
++
++    // ── Informants ───────────────────────────────────────────────────────
++
++    private void BuildInformants(CycleState cycle, CouncilState council)
++    {
++        AddSubheader("Informants");
++        if (council.Informants.Count == 0)
++        {
++            AddLine("No informants run. Turn a held secret below, or buy a planted asset from the Concord.", UITheme.TextDim);
++            return;
++        }
++        foreach (var inf in new List<InformantState>(council.Informants))
++        {
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 8);
++            _container.AddChild(row);
++
++            string on = "";
++            if (!string.IsNullOrEmpty(inf.CourtierId) && council.Courts.TryGetValue(inf.KingdomId, out var court))
++            {
++                var courtier = court.GetCourtier(inf.CourtierId);
++                if (courtier != null)
++                {
++                    on = $", on {courtier.DisplayName}";
++                }
++            }
++            var text = new Label
++            {
++                Text = $"{inf.Role} in {CouncilTick.CourtDisplayName(cycle, inf.KingdomId)}{on}   ·   "
++                     + $"cover {inf.Cover}/{ShadowVocab.CoverMax}   ·   access {inf.Access}/{ShadowVocab.AccessMax}",
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++                AutowrapMode = TextServer.AutowrapMode.WordSmart,
++            };
++            text.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            row.AddChild(text);
++
++            string id = inf.Id;
++            string kid = inf.KingdomId;
++            if (inf.Role == ShadowVocab.RoleSaboteur)
++            {
++                row.AddChild(Verb("Break the siege", "Spend cover to wreck a siege pressing this kingdom.",
++                    () => ShadowOps.SaboteurStrike(Ctx.Save.Cycle, id, ShadowVocab.SabotageSiege)));
++                row.AddChild(Verb("Stall the blight", "Spend cover to stall this kingdom's next corruption tick.",
++                    () => ShadowOps.SaboteurStrike(Ctx.Save.Cycle, id, ShadowVocab.SabotageCorruption)));
++            }
++            else if (inf.Role == ShadowVocab.RoleCutout)
++            {
++                row.AddChild(Verb("Forge a good word", "Spend cover to fabricate a flattering report toward this court. If traced, it becomes a scandal.",
++                    () => ShadowOps.ForgeEcho(Ctx.Save.Cycle, id, kid, positive: true)));
++            }
++            row.AddChild(Verb("Exfiltrate", "Pull the asset out before it burns; its access is banked as renown.",
++                () => ShadowOps.Exfiltrate(Ctx.Save.Cycle, id)));
++        }
++    }
++
++    // ── Secrets ──────────────────────────────────────────────────────────
++
++    private void BuildSecrets(GuildSaveData save, CycleState cycle, CouncilState council)
++    {
++        AddSubheader("Held secrets");
++        var contacted = new List<string>();
++        foreach (var kv in council.Courts)
++        {
++            if (kv.Value != null && kv.Value.HasContact)
++            {
++                contacted.Add(kv.Key);
++            }
++        }
++        contacted.Sort(string.CompareOrdinal);
++
++        bool any = false;
++        var kingdoms = new List<string>(council.Courts.Keys);
++        kingdoms.Sort(string.CompareOrdinal);
++        foreach (var kid in kingdoms)
++        {
++            var court = council.Courts[kid];
++            if (court?.Courtiers == null)
++            {
++                continue;
++            }
++            foreach (var courtier in court.Courtiers)
++            {
++                if (courtier == null || !courtier.SecretKnown)
++                {
++                    continue;
++                }
++                any = true;
++                string key = kid + "/" + courtier.Id;
++                var row = new HFlowContainer();
++                row.AddThemeConstantOverride("h_separation", 8);
++                row.AddThemeConstantOverride("v_separation", 4);
++                _container.AddChild(row);
++
++                var text = new Label { Text = $"{courtier.DisplayName}, {courtier.Office} of {CouncilTick.CourtDisplayName(cycle, kid)}" };
++                text.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++                row.AddChild(text);
++
++                // Turn into an informant, in the chosen role.
++                var roles = new[] { ShadowVocab.RoleCutout, ShadowVocab.RoleWatcher, ShadowVocab.RoleSaboteur };
++                var rolePick = new OptionButton { CustomMinimumSize = new Vector2(120, 28) };
++                rolePick.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++                _turnRole.TryGetValue(key, out string chosenRole);
++                for (int i = 0; i < roles.Length; i++)
++                {
++                    rolePick.AddItem(roles[i], i);
++                    if (roles[i] == chosenRole)
++                    {
++                        rolePick.Select(i);
++                    }
++                }
++                rolePick.ItemSelected += idx => _turnRole[key] = roles[(int)idx];
++                row.AddChild(rolePick);
++                string cid = courtier.Id;
++                string k = kid;
++                row.AddChild(Verb("Turn", "Use the secret as leverage: the courtier becomes the guild's informant.", () =>
++                {
++                    _turnRole.TryGetValue(key, out string role);
++                    var inf = ShadowTick.TryTurnSecret(Ctx.Save.Cycle, k, cid, role ?? ShadowVocab.RoleCutout);
++                    return inf != null
++                        ? ShadowMarketResult.Pass($"{courtier.DisplayName} now reports to the guild as a {inf.Role}.")
++                        : ShadowMarketResult.Fail($"Could not turn them (the network is full at {Networks.InformantCap(Ctx.Save)}, or they already report).");
++                }));
++
++                if (council.ConcordContacted)
++                {
++                    row.AddChild(Verb($"Fence to the Concord (+{ShadowVocab.FavorSellSecret} favour)",
++                        "Sell the secret to the Veiled Concord. The sale may be traced.",
++                        () => ShadowMarket.SellSecret(Ctx.Save.Cycle, k, cid)));
++                }
++
++                if (Networks.WhisperMarketActive(save))
++                {
++                    var buyers = contacted.FindAll(b => b != kid);
++                    if (buyers.Count > 0)
++                    {
++                        var buyerPick = new OptionButton { CustomMinimumSize = new Vector2(160, 28) };
++                        buyerPick.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++                        _sellTo.TryGetValue(key, out string chosenBuyer);
++                        for (int i = 0; i < buyers.Count; i++)
++                        {
++                            buyerPick.AddItem(CouncilTick.CourtDisplayName(cycle, buyers[i]), i);
++                            if (buyers[i] == chosenBuyer)
++                            {
++                                buyerPick.Select(i);
++                            }
++                        }
++                        if (string.IsNullOrEmpty(chosenBuyer) || !buyers.Contains(chosenBuyer))
++                        {
++                            _sellTo[key] = buyers[0];
++                        }
++                        buyerPick.ItemSelected += idx => _sellTo[key] = buyers[(int)idx];
++                        row.AddChild(buyerPick);
++                        row.AddChild(Verb($"Sell ({Networks.WhisperPrice(courtier)}g)",
++                            "The Whisper Market: sell to a rival court for gold and favour. The court it came from grows warier.",
++                            () => Networks.SellSecretToCourt(Ctx.Save.Cycle, Ctx.Save, k, cid, _sellTo.GetValueOrDefault(key, ""))));
++                    }
++                }
++            }
++        }
++        if (!any)
++        {
++            AddLine("The guild holds no courtier's secret. Missions at court, informants and Concord thefts bring them home.", UITheme.TextDim);
++        }
++    }
++
++    // ── The Concord ──────────────────────────────────────────────────────
++
++    private void BuildConcord(GuildSaveData save, CycleState cycle, CouncilState council)
++    {
++        AddSubheader("The Veiled Concord");
++        if (!council.ConcordContacted)
++        {
++            AddLine("The Concord has not made contact. They find the guild when its field work reaches their doors.", UITheme.TextDim);
++            return;
++        }
++        var band = ShadowVocab.EffectiveBand(council.ConcordContacted, council.ConcordDealings);
++        AddLine($"Favour {council.ConcordFavor}   ·   standing {band}   ·   dealings {council.ConcordDealings}", UITheme.TextSecondary);
++
++        foreach (var c in council.ConcordContracts)
++        {
++            string target = CouncilTick.CourtDisplayName(cycle, c.TargetKingdomId);
++            AddLine(c.AgainstPlayer
++                    ? $"Against the guild: the Astrologer's {c.ContractType} lands in {c.LunationsRemaining} moon(s)."
++                    : $"In flight: {c.ContractType} in {target}, {c.LunationsRemaining} moon(s).",
++                c.AgainstPlayer ? UITheme.Danger : UITheme.TextSecondary);
++            if (c.AgainstPlayer)
++            {
++                _container.AddChild(Verb($"Outbid the Astrologer (more than {ShadowVocab.AstrologerBidFavor} favour)",
++                    "Buy the contract back with hoarded favour.",
++                    () => ShadowMarket.Outbid(Ctx.Save.Cycle)));
++            }
++        }
++
++        // Pick a court, then (for the named work) a courtier.
++        var kingdoms = new List<string>(council.Courts.Keys);
++        kingdoms.Sort(string.CompareOrdinal);
++        if (kingdoms.Count == 0)
++        {
++            return;
++        }
++        if (!kingdoms.Contains(_pickedCourt))
++        {
++            _pickedCourt = kingdoms[0];
++            _pickedCourtier = "";
++        }
++        var pickRow = new HBoxContainer();
++        pickRow.AddThemeConstantOverride("separation", 8);
++        _container.AddChild(pickRow);
++        var courtPick = new OptionButton { CustomMinimumSize = new Vector2(200, 30) };
++        courtPick.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        for (int i = 0; i < kingdoms.Count; i++)
++        {
++            courtPick.AddItem(CouncilTick.CourtDisplayName(cycle, kingdoms[i]), i);
++            if (kingdoms[i] == _pickedCourt)
++            {
++                courtPick.Select(i);
++            }
++        }
++        courtPick.ItemSelected += idx =>
++        {
++            _pickedCourt = kingdoms[(int)idx];
++            _pickedCourtier = "";
++            Refresh();
++        };
++        pickRow.AddChild(courtPick);
++
++        var courtiers = council.Courts[_pickedCourt]?.Courtiers ?? new List<CourtierState>();
++        var courtierPick = new OptionButton { CustomMinimumSize = new Vector2(220, 30) };
++        courtierPick.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        for (int i = 0; i < courtiers.Count; i++)
++        {
++            courtierPick.AddItem($"{courtiers[i].DisplayName} ({courtiers[i].Office})", i);
++            if (courtiers[i].Id == _pickedCourtier)
++            {
++                courtierPick.Select(i);
++            }
++        }
++        if (courtiers.Count > 0 && courtiers.Find(x => x.Id == _pickedCourtier) == null)
++        {
++            _pickedCourtier = courtiers[0].Id;
++        }
++        courtierPick.ItemSelected += idx => _pickedCourtier = courtiers[(int)idx].Id;
++        pickRow.AddChild(courtierPick);
++
++        var market = new HFlowContainer();
++        market.AddThemeConstantOverride("h_separation", 8);
++        market.AddThemeConstantOverride("v_separation", 6);
++        _container.AddChild(market);
++        market.AddChild(Verb($"Plant an asset ({ShadowVocab.FavorCostPlantAsset})", "An informant planted in the chosen court.",
++            () => ShadowMarket.CommissionPlantAsset(Ctx.Save.Cycle, _pickedCourt)));
++        market.AddChild(Verb($"Buy intelligence ({ShadowVocab.FavorCostPurchaseIntel})", "The court's ground and sites, charted for you.",
++            () => ShadowMarket.CommissionPurchaseIntel(Ctx.Save.Cycle, _pickedCourt)));
++        market.AddChild(Verb($"Sabotage a siege ({ShadowVocab.FavorCostSabotage})", "Wreck a siege pressing the chosen kingdom.",
++            () => ShadowMarket.CommissionSabotage(Ctx.Save.Cycle, _pickedCourt, ShadowVocab.SabotageSiege)));
++        market.AddChild(Verb($"Stall the blight ({ShadowVocab.FavorCostSabotage})", "Delay the chosen kingdom's corruption.",
++            () => ShadowMarket.CommissionSabotage(Ctx.Save.Cycle, _pickedCourt, ShadowVocab.SabotageCorruption)));
++        market.AddChild(Verb($"Extraction ({ShadowVocab.FavorCostExtraction})", "Get an imprisoned envoy out.",
++            () => ShadowMarket.CommissionExtraction(Ctx.Save.Cycle, _pickedCourt)));
++        market.AddChild(Verb($"Steal a secret ({ShadowVocab.FavorCostTheft})", "Take the chosen courtier's secret.",
++            () => ShadowMarket.CommissionTheft(Ctx.Save.Cycle, _pickedCourt, _pickedCourtier)));
++        if (Networks.SilentFloorActive(save))
++        {
++            market.AddChild(Verb($"Assassination ({ShadowVocab.FavorCostAssassination})", "The Silent Floor: remove the chosen courtier. The court will investigate its dead.",
++                () => ShadowMarket.CommissionAssassination(Ctx.Save.Cycle, _pickedCourt, _pickedCourtier)));
++        }
++    }
++
++    // ── Helpers ──────────────────────────────────────────────────────────
++
++    /// <summary>A button that runs an espionage verb and shows its result line.</summary>
++    private Button Verb(string text, string tooltip, System.Func<ShadowMarketResult> act)
++    {
++        var btn = new Button { Text = text, TooltipText = tooltip, CustomMinimumSize = new Vector2(0, 28) };
++        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        UITheme.ApplyButtonStyle(btn, isPrimary: false);
++        btn.Pressed += () =>
++        {
++            var result = act();   // ShadowMarketResult is a struct: never null
++            ShowStatus(result.Message, result.Ok);
++            if (result.Ok)
++            {
++                SaveManager.MarkDirty();
++                SaveManager.SaveIfDirty();
++                Ctx?.RefreshGold?.Invoke();
++            }
++            Refresh();
++        };
++        return btn;
++    }
++
++    private void ShowStatus(string message, bool ok)
++    {
++        if (_status == null)
++        {
++            return;
++        }
++        _status.Text = message ?? "";
++        _status.Visible = !string.IsNullOrEmpty(message);
++        _status.AddThemeColorOverride("font_color", ok ? UITheme.Success : UITheme.Danger);
++    }
++
++    private void AddSubheader(string text)
++    {
++        var lbl = new Label { Text = text };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++        lbl.AddThemeColorOverride("font_color", UITheme.Gold);
++        _container.AddChild(lbl);
++    }
++
++    private void AddLine(string text, Color color)
++    {
++        var lbl = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        lbl.AddThemeColorOverride("font_color", color);
++        _container.AddChild(lbl);
++    }
++}
+diff --git a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+index d112d2a..98ecc44 100644
+--- a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
++++ b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+@@ -65,6 +65,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+             or CampusPanelId.Workshop
+             or CampusPanelId.Scribe
+             or CampusPanelId.Seats
++            or CampusPanelId.Undercroft
+             or CampusPanelId.Quests => true,   // session-one extraction (2026-08-13)
+         _ => false,
+     };
+@@ -347,6 +348,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+         CampusPanelId.Workshop   => new CampusWorkshopPanel(),
+         CampusPanelId.Scribe     => new CampusScribePanel(),
+         CampusPanelId.Seats      => new CampusSeatPanel(),
++        CampusPanelId.Undercroft => new CampusUndercroftPanel(),
+         CampusPanelId.Quests     => new CampusQuestsPanel(),
+         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "not a floatable panel"),
+     };
+diff --git a/Scripts/Systems/Strategic/StrategicView.cs b/Scripts/Systems/Strategic/StrategicView.cs
+index 79fab6c..e0da60d 100644
+--- a/Scripts/Systems/Strategic/StrategicView.cs
++++ b/Scripts/Systems/Strategic/StrategicView.cs
+@@ -6861,6 +6861,12 @@ public partial class StrategicView : Node2D
+             cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+             cycle.PendingSiegeReports.Add(blightLine);
+         }
++        // Trade Routes (Courier Station doctrine, design §14): caravans pay, or are raided.
++        foreach (var tradeLine in Networks.TickTradeRoutes(cycle, SaveManager.ActiveSave))
++        {
++            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
++            cycle.PendingSiegeReports.Add(tradeLine);
++        }
+         // Q4.2: a united archmage's relic arrives when the unite moon returns.
+         ArchmageRelics.TickUniteAnniversaries(cycle);
+         // §8 pity-timer: advance Library research commissions; a completed one
+-- 
+2.43.0
+

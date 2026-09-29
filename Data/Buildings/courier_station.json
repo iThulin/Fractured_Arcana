@@ -15,7 +15,7 @@
     },
     {
       "tier": 2,
-      "description": "Regional network. The guild's reach earns it standing at court: +1 Connections token to the negotiation pool.",
+      "description": "Regional network. The guild's reach earns it standing at court: a Connections card in every parley deck.",
       "goldCost": 240,
       "requiredBuildings": [],
       "bonusNegotiationTokens": 1,
@@ -23,11 +23,24 @@
     },
     {
       "tier": 3,
-      "description": "Spy Network. Informants in every court: +1 further Connections token (2 total).",
+      "displayName": "The Long Roads",
+      "description": "Couriers on every road: 2 Connections cards in every parley deck. And a doctrine, chartered at the Grand Hall. The Spy Network: two more informants may run, and every informant charts the ground around its court. Or Trade Routes: caravans run from home to every outpost and cache the guild holds, and pay each moon they are not raided.",
       "goldCost": 450,
       "requiredBuildings": [],
-      "bonusNegotiationTokens": 1,
-      "bonusTokenType": "Connections"
+      "bonusNegotiationTokens": 2,
+      "bonusTokenType": "Connections",
+      "doctrines": [
+        {
+          "id": "spy_network",
+          "name": "The Spy Network",
+          "description": "Intelligence becomes map. Two more informants may run at once, and every informant, not only a watcher, charts the ground around its court as it reports."
+        },
+        {
+          "id": "trade_routes",
+          "name": "Trade Routes",
+          "description": "Logistics as income, with risk. Every held supply cache, outpost, secured site and claimed shard zone runs a caravan to the guild home. Each pays gold and materials by its length each moon (the four best pay), and each can be raided on the road, the longer the likelier."
+        }
+      ]
     }
   ]
 }

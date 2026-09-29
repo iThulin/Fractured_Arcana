@@ -152,6 +152,9 @@ public partial class CombatManager : Node3D
     public enum CombatPhase { Deployment, PlayerTurn, EnemyTurn, Victory, Defeat }
     private CombatPhase currentPhase = CombatPhase.Deployment;
     private int roundNumber = 1;
+
+    /// <summary>Thin Deck's first-turn card is drawn once per fight.</summary>
+    private bool _thinDeckDrawn;
     private bool enemyPhaseRunning = false;
     private bool _isExtraTurn = false; // for Chronomancer's extra turn effect
 
@@ -1493,7 +1496,7 @@ public partial class CombatManager : Node3D
             foreach (var (defId, first, count, scroll) in ordered)
             {
                 var d = ItemDatabase.Get(defId);
-                string tag = scroll ? "[Scroll]" : "[Potion]";
+                string tag = scroll ? "[Tablet]" : "[Potion]";
                 string label = $"{tag} {d.Name}{(count > 1 ? $" ×{count}" : "")}: {d.Description}";
                 entries.Add(new CombatUI.ConsumableEntry(first.InstanceId, label));
             }
@@ -1504,11 +1507,11 @@ public partial class CombatManager : Node3D
             selectedUnit == null ? "Select a unit first." :
             entries.Count == 0 ? $"{selectedUnit.DisplayName}'s belt is empty. Belts are packed on the Forces screen or the Armory tab. Every item costs 1 AP." :
             selectedUnit.IsObjectiveWard
-                ? $"Target: {selectedUnit.DisplayName}. It cannot drink; scrolls only." +
-                  (_scrollReadThisTurn ? " The party's scroll is spent this turn." : "")
+                ? $"Target: {selectedUnit.DisplayName}. It cannot drink; tablets only." +
+                  (_scrollReadThisTurn ? " The party's tablet is spent this turn." : "")
                 : $"Target: {selectedUnit.DisplayName}. Potions: " +
                   (selectedUnit.HasUsedConsumableThisTurn ? "already drunk this turn." : "available.") +
-                  $" Scroll: {(_scrollReadThisTurn ? "spent this turn." : "one per turn, party-wide.")}";
+                  $" Tablet: {(_scrollReadThisTurn ? "spent this turn." : "one per turn, party-wide.")}";
         combatUI.ShowConsumableList(entries, note);
     }
 
@@ -2544,6 +2547,17 @@ public partial class CombatManager : Node3D
                 var drawn = unit.DeckData.DrawToFull();
                 foreach (var card in drawn)
                     GD.Print($"[{unit.Name}] Drew: {card.TopHalf?.Name ?? card.CardName}");
+
+                // Thin Deck (Dissolution Chamber doctrine, §13): a wizard whose deck
+                // sits exactly at the floor draws one extra card on the first turn.
+                if (roundNumber == 1 && !_thinDeckDrawn && unit.CompanionId == "wizard"
+                    && CardHalls.ThinDeckDraws(SaveManager.ActiveSave))
+                {
+                    _thinDeckDrawn = true;
+                    var extra = unit.DeckData.Draw(1);
+                    if (extra.Count > 0)
+                        combatUI?.AppendActionLog($"Thin Deck: {unit.Name} draws {extra[0].TopHalf?.Name ?? extra[0].CardName}.");
+                }
             }
 
             // ── Equipment passive: restore mana on turn start ────────────
@@ -3679,6 +3693,7 @@ public partial class CombatManager : Node3D
         }
 
         _deathsThisCombat++;   // map_pressure_v2: first_blood and the like read this
+        NoteFoundationDeath(unit);   // portal strike: a razed foundation (SiegeBlight)
 
         string deathMsg = $"{unit.Name} has died.";
         GD.Print(deathMsg);
@@ -4000,6 +4015,9 @@ public partial class CombatManager : Node3D
                          $"{u.Stats.Health}/{u.Stats.MaxHealth}, carried to the next one.");
             }
         }
+
+        // School seats: the Crucible's Standing Weather carries into the next fight.
+        SchoolSeats.RecordVictory(playerUnits, LoadoutKeyFor);
 
         // Marginalia: the fight is WON, so hand the family kill tally to the
         // router for the victory-gated deed commit (ExpeditionManager.
@@ -4473,11 +4491,10 @@ public partial class CombatManager : Node3D
                     : (save?.FighterBaseAP ?? 3);
                 unit.CurrentActionPoints = unit.MaxActionPoints;
 
-                // Training Grounds stat bonuses
+                // Training Grounds: the +1 damage (T2) and +4 HP (T3) were cut
+                // (campus_building_upgrades_design_v1 §12, ruling 4). The tiers
+                // keep their stance slots and AP steps; T3 charters a doctrine.
                 int tgTier = save?.TrainingGroundsTier ?? 0;
-                unit.AttackDamage += tgTier >= 2 ? 1 : 0;
-                unit.Stats.MaxHealth += tgTier >= 3 ? 4 : 0;
-                unit.Stats.Health = unit.Stats.MaxHealth;
 
                 // ── Stances: INNATE (2026-07-29 ruling) ───────────────────
                 // A martial always fields EVERY stance on its list: the
@@ -4705,6 +4722,10 @@ public partial class CombatManager : Node3D
                 continue;
             unit.InitializeAttunement();
         }
+
+        // School seats (design §8d): the Crucible's front, carried weather and
+        // doctrine flags land on each Elementalist before the first turn.
+        SchoolSeats.ApplyCombatStart(playerUnits, LoadoutKeyFor);
 
         // Wilding Riot fires per-unit; the attunement doesn't know its owner, so bind it here.
         foreach (var unit in playerUnits)
@@ -5310,6 +5331,9 @@ public partial class CombatManager : Node3D
         // Siege defense: bar the door AFTER both sides are placed, so the gap
         // tiles' occupancy checks see the real board.
         SpawnGateDoors();
+        // Portal strike: foundations beside the guild's buildings, and the
+        // ritualists who mean to foul them (campus corruption, SiegeBlight).
+        SpawnBuildingFoundations();
         RefreshEnemyRoster();
     }
 
@@ -5888,6 +5912,14 @@ public partial class CombatManager : Node3D
         unit.WeaponClass = def.WeaponClassValue;
         unit.AttackDamage += def.Stats.AttackDamage;
         unit.AttackRange = Math.Max(1, unit.AttackRange + def.Stats.AttackRange);
+        // Proving Grounds: a carried weapon's swap deltas were computed against the
+        // armory weapon; re-base them on the override so a swap lands exactly.
+        if (_carriedWeapons.TryGetValue(unit, out var carried))
+        {
+            carried.AttackDamageDelta += (equippedDef?.Stats.AttackDamage ?? 0) - def.Stats.AttackDamage;
+            carried.AttackRangeDelta += (equippedDef?.Stats.AttackRange ?? 0) - def.Stats.AttackRange;
+            carried.HeldName = def.Name;
+        }
         GD.Print($"[Debug] {unit.Name} fields {def.Name} ({def.WeaponClass}) by launcher override.");
     }
 
@@ -5935,6 +5967,8 @@ public partial class CombatManager : Node3D
 
         // Edge M2 (spec §6): the weapon's class decides the technique cards.
         unit.WeaponClass = loadout.WeaponClass;
+        // Proving Grounds (design §12): a carried second weapon to change to.
+        RegisterCarriedWeapon(unit, loadout);
 
         // ── Passive tags ──────────────────────────────────────────────────
         unit.EquipmentPassives = new List<(ItemPassiveTag, int, string)>(loadout.Passives);

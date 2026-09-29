@@ -82,7 +82,11 @@ public partial class CombatManager
         }
 
         var cards = new List<TechniqueCardView>();
-        foreach (var m in ManeuverRegistry.ForWeaponClass(unit.WeaponClass))
+        // Training Grounds (design §12): Levy Muster drills Brace into a weapon
+        // with no maneuvers of its own; ManeuversFor returns the class's own otherwise.
+        var save = SaveManager.ActiveSave;
+        bool levyDrill = TrainingGrounds.IsLevyDrill(save, unit.WeaponClass);
+        foreach (var m in TrainingGrounds.ManeuversFor(save, unit.WeaponClass))
         {
             string why = ManeuverBlockReason(unit, m);
             int cost = ManeuverEdgeCost(unit, m, null);
@@ -105,7 +109,9 @@ public partial class CombatManager
         }
 
         string header;
-        if (unit.WeaponClass == WeaponClass.None)
+        if (levyDrill && cards.Count > 0)
+            header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: Levy Muster drill.";
+        else if (unit.WeaponClass == WeaponClass.None)
             header = $"Edge {unit.Edge}/{unit.MaxEdge}   No classed weapon: basic attack only.";
         else if (cards.Count == 0)
             header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: maneuvers arrive post-launch.";
@@ -118,6 +124,9 @@ public partial class CombatManager
         }
         if (unit.ArmedReaction != null)
             header += $"\nArmed: {unit.ArmedReaction.DisplayName}. {ReactionTriggerText(unit, unit.ArmedReaction)}";
+        var swapCard = WeaponSwapCardFor(unit);   // Proving Grounds: the carried weapon
+        if (swapCard != null)
+            cards.Add(swapCard);
         foreach (var (inst, def) in pinned)
             cards.Add(ItemCardView(unit, inst, def));   // Edge M6: items to the right
         _techniqueTray.ShowCards(cards, header, StanceViewsFor(unit));
@@ -165,6 +174,11 @@ public partial class CombatManager
             return;
         if (TryHandleItemCardPressed(maneuverId))   // Edge M6: "item:<instanceId>"
             return;
+        if (maneuverId == SwapWeaponCardId)          // Proving Grounds: change weapons
+        {
+            TrySwapWeapon(selectedUnit);
+            return;
+        }
         var m = ManeuverRegistry.Get(maneuverId);
         if (m == null)
             return;

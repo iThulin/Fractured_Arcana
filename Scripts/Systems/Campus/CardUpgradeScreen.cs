@@ -596,7 +596,7 @@ public partial class CardUpgradeScreen : Control
         2 => "Refined",
         3 => "Attuned",
         4 => "Mastered",
-        5 => "Transcendent",
+        >= 5 => "Transcendent",
         _ => "Upgraded"
     };
 
@@ -626,7 +626,9 @@ public partial class CardUpgradeScreen : Control
 
         // Scriptorum gate
         int maxUpgradeStage = 0;
-        if (PlayerSession.HasFeature("card_upgrade_stage_3")) maxUpgradeStage = 3;
+        // Scriptorum T3 grants "Stages 3 and 4" (its tier text); stage 4 was
+        // unreachable because this read 3 (fixed with Refinement, design §15).
+        if (PlayerSession.HasFeature("card_upgrade_stage_3")) maxUpgradeStage = 4;
         else if (PlayerSession.HasFeature("card_upgrade_stage_2")) maxUpgradeStage = 2;
         else if (PlayerSession.HasFeature("card_upgrade_stage_1")) maxUpgradeStage = 1;
 
@@ -722,13 +724,37 @@ public partial class CardUpgradeScreen : Control
 
         var pointsLabel = new Label
         {
-            Text = $"Upgrade points remaining: {pointsRemaining} / 5",
+            Text = $"Upgrade points remaining: {pointsRemaining} / {(_selectedOwned.Refined ? 6 : 5)}"
+                   + (_selectedOwned.Refined ? "  (perfected)" : ""),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         pointsLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         pointsLabel.AddThemeColorOverride("font_color",
             pointsRemaining > 0 ? UITheme.TextSecondary : UITheme.Danger);
         AddDynamic(pointsLabel);
+
+        // Refinement (Scriptorum doctrine, design §15): once per timeline, one card
+        // takes a seventh point, so both halves can reach their final stage.
+        if (LoreHalls.RefinementActive(save) && !_selectedOwned.Refined)
+        {
+            string whyNot = LoreHalls.CannotRefineReason(save, _selectedOwned);
+            var refine = new Button
+            {
+                Text = $"Perfect this card: Refinement ({LoreHalls.RefinementsLeft(save)} left this timeline)",
+                Disabled = whyNot != null,
+                TooltipText = whyNot ?? "One more upgrade point for this card, for good: enough for both halves to reach Stage 4.",
+                SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            };
+            refine.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(refine, isPrimary: whyNot == null);
+            var refineCard = _selectedOwned;
+            refine.Pressed += () =>
+            {
+                if (LoreHalls.TryRefine(SaveManager.ActiveSave, refineCard) != null)
+                    Refresh();   // the list's points and MAX badge too
+            };
+            AddDynamic(refine);
+        }
 
         ShowPreview(_selectedOwned.BlueprintId,
             _selectedOwned.TopTier, _selectedOwned.BotTier, -1, -1);

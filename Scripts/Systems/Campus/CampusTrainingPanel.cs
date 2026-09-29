@@ -65,8 +65,10 @@ public sealed class CampusTrainingPanel : CampusPanel
         int tgTier = save.TrainingGroundsTier;
         if (tgTier == 0)
         {
-            _container.AddChild(MakeStubLabel(
-                "Build Training Grounds to unlock stance training."));
+            // TrainingGroundsTier reads 0 for an overrun building too (campus corruption).
+            _container.AddChild(MakeStubLabel(CampusBlight.Level(save, TrainingGrounds.Id) >= CampusBlight.MaxLevel
+                ? "The Training Grounds stand on overrun ground and have stopped working. Cleanse the land (on its campus card)."
+                : "Build Training Grounds to unlock stance training."));
             return;
         }
 

@@ -1,0 +1,81 @@
+From f17a1d804c1cfe405a0c8ca1b34722e00854a8ad Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 14:44:43 -0600
+Subject: [PATCH] Undercroft panel: how-to-begin hints and readiness in the
+ verb tooltips
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ .../Systems/Campus/CampusUndercroftPanel.cs   | 29 +++++++++++++++----
+ 1 file changed, 23 insertions(+), 6 deletions(-)
+
+diff --git a/Scripts/Systems/Campus/CampusUndercroftPanel.cs b/Scripts/Systems/Campus/CampusUndercroftPanel.cs
+index 689cede..453e10d 100644
+--- a/Scripts/Systems/Campus/CampusUndercroftPanel.cs
++++ b/Scripts/Systems/Campus/CampusUndercroftPanel.cs
+@@ -138,7 +138,11 @@ public sealed class CampusUndercroftPanel : CampusPanel
+         AddSubheader("Informants");
+         if (council.Informants.Count == 0)
+         {
+-            AddLine("No informants run. Turn a held secret below, or buy a planted asset from the Concord.", UITheme.TextDim);
++            AddLine("No informants run yet. How to begin: turn a held secret below (pick a role, press Turn), "
++                  + "or, once the Concord deals with you, buy \"Plant an asset\" in a court. An informant grows "
++                  + "access the longer it stays; Saboteur strikes need access "
++                  + $"{ShadowVocab.SaboteurStrikeMinAccess}, a Cutout's forgery access {ShadowVocab.ForgeEchoMinAccess}.",
++                UITheme.TextDim);
+             return;
+         }
+         foreach (var inf in new List<InformantState>(council.Informants))
+@@ -170,14 +174,20 @@ public sealed class CampusUndercroftPanel : CampusPanel
+             string kid = inf.KingdomId;
+             if (inf.Role == ShadowVocab.RoleSaboteur)
+             {
+-                row.AddChild(Verb("Break the siege", "Spend cover to wreck a siege pressing this kingdom.",
++                row.AddChild(Verb("Break the siege",
++                    $"Spend {ShadowVocab.SaboteurStrikeCoverCost} cover to wreck a siege pressing this kingdom. "
++                    + $"Needs access {ShadowVocab.SaboteurStrikeMinAccess} and a siege to break.",
+                     () => ShadowOps.SaboteurStrike(Ctx.Save.Cycle, id, ShadowVocab.SabotageSiege)));
+-                row.AddChild(Verb("Stall the blight", "Spend cover to stall this kingdom's next corruption tick.",
++                row.AddChild(Verb("Stall the blight",
++                    $"Spend {ShadowVocab.SaboteurStrikeCoverCost} cover to stall this kingdom's next corruption tick. "
++                    + $"Needs access {ShadowVocab.SaboteurStrikeMinAccess}.",
+                     () => ShadowOps.SaboteurStrike(Ctx.Save.Cycle, id, ShadowVocab.SabotageCorruption)));
+             }
+             else if (inf.Role == ShadowVocab.RoleCutout)
+             {
+-                row.AddChild(Verb("Forge a good word", "Spend cover to fabricate a flattering report toward this court. If traced, it becomes a scandal.",
++                row.AddChild(Verb("Forge a good word",
++                    $"Spend {ShadowVocab.ForgeEchoCoverCost} cover to fabricate a flattering report toward this court. "
++                    + $"Needs access {ShadowVocab.ForgeEchoMinAccess}. If traced, it becomes a scandal.",
+                     () => ShadowOps.ForgeEcho(Ctx.Save.Cycle, id, kid, positive: true)));
+             }
+             row.AddChild(Verb("Exfiltrate", "Pull the asset out before it burns; its access is banked as renown.",
+@@ -291,7 +301,10 @@ public sealed class CampusUndercroftPanel : CampusPanel
+         }
+         if (!any)
+         {
+-            AddLine("The guild holds no courtier's secret. Missions at court, informants and Concord thefts bring them home.", UITheme.TextDim);
++            AddLine("The guild holds no courtier's secret yet. How to begin: open the Council, choose a court, "
++                  + "and send an envoy on Gather Intelligence. On the mission's second moon it usually uncovers "
++                  + "one courtier's secret, which appears here. Cutout informants and a Concord theft bring more.",
++                UITheme.TextDim);
+         }
+     }
+ 
+@@ -302,7 +315,11 @@ public sealed class CampusUndercroftPanel : CampusPanel
+         AddSubheader("The Veiled Concord");
+         if (!council.ConcordContacted)
+         {
+-            AddLine("The Concord has not made contact. They find the guild when its field work reaches their doors.", UITheme.TextDim);
++            AddLine("The Concord has not made contact yet. How to begin: the Veiled Concord keeps a few unmarked "
++                  + "doors across the kingdoms. Gather Intelligence at a court can reveal hidden sites; walk a "
++                  + "field party onto a Concord door and they will deal with you. Their market then opens here, "
++                  + "paid in favour (fence a secret to earn it).",
++                UITheme.TextDim);
+             return;
+         }
+         var band = ShadowVocab.EffectiveBand(council.ConcordContacted, council.ConcordDealings);
+-- 
+2.43.0
+

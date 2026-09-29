@@ -95,6 +95,8 @@ public partial class CampusGridManager : HexGridManager
     public void LoadFromSave(CampusMapSaveData map, List<BuildingSaveData> buildings)
     {
         ClearTiles();
+        _loadedMap = map;
+        _loadedBuildings = buildings;
 
         bool first = true;
         Vector3 min = Vector3.Zero, max = Vector3.Zero;
@@ -134,6 +136,12 @@ public partial class CampusGridManager : HexGridManager
             Tiles[coord] = tileData; // inherited dict
 
             ApplyVisualToTile(tileData); // inherited PUBLIC method, combat's real terrain palette
+
+            // Corrupted ground (campus_building_upgrades_design_v1 §11) reads as
+            // stained: the deeper the blight, the stronger the stain.
+            _corruptionAt[coord] = tileSave.Corruption;
+            if (tileNode != null)
+                _groundColorAt[coord] = tileNode.BaseColor;   // unstained; RefreshBlight stains
 
             // Rubble is never buildable regardless of the saved flag; clearing it is
             // a separate action, not a placement-time override (same rule as before).
@@ -175,6 +183,176 @@ public partial class CampusGridManager : HexGridManager
             }
 
             StampBuilding(b.Id, anchor, footprintHexes, b.Tier, b.Rotation);
+        }
+
+        RefreshBlight();
+    }
+
+    // ── Campus corruption, placeholder visuals (§11) ──────────────────
+    // Until the building art pass, a fouled building needs to be readable at a
+    // glance: its tiles are stained toward the blight violet, flat hexagonal
+    // rings circle its anchor (one per level, pulsing and turning), and its name
+    // label turns violet and names the level. Everything here is redrawn from
+    // the save by RefreshBlight, which listens to CampusBlight.Changed, so a
+    // Cleanse, a debug foul or a moon's creep shows without reloading the grid.
+
+    private const string BlightMarkerName = "BlightMarker";
+
+    /// <summary>The map and building list this grid was loaded from (the save's own
+    /// objects for the home campus), read back by RefreshBlight.</summary>
+    private CampusMapSaveData _loadedMap;
+    private List<BuildingSaveData> _loadedBuildings;
+
+    /// <summary>Each hex's ground colour before any stain, captured at load.</summary>
+    private readonly Dictionary<Vector2I, Color> _groundColorAt = new();
+
+    /// <summary>Hexes currently showing a blight stain (so a cleansed one is restored).</summary>
+    private readonly HashSet<Vector2I> _stainedAt = new();
+
+    public override void _EnterTree()
+    {
+        base._EnterTree();
+        CampusBlight.Changed += OnBlightChanged;
+    }
+
+    public override void _ExitTree()
+    {
+        CampusBlight.Changed -= OnBlightChanged;
+        base._ExitTree();
+    }
+
+    private void OnBlightChanged()
+    {
+        if (IsInstanceValid(this) && IsInsideTree())
+            RefreshBlight();
+    }
+
+    /// <summary>Re-read corruption from the loaded map and buildings and redraw the
+    /// stain, the markers and the labels. Cheap; safe to call any time after load.</summary>
+    public void RefreshBlight()
+    {
+        if (_loadedMap?.Tiles == null)
+            return;
+
+        foreach (var t in _loadedMap.Tiles)
+        {
+            if (t == null)
+                continue;
+            var coord = new Vector2I(t.Q, t.R);
+            _corruptionAt[coord] = t.Corruption;
+            if (!Tiles.TryGetValue(coord, out var tile) || tile.TileView == null)
+                continue;
+            // Only hexes that are, or were, stained are repainted, so landmark and
+            // other tints on clean ground are left alone.
+            bool wasStained = _stainedAt.Contains(coord);
+            if (t.Corruption <= 0 && !wasStained)
+                continue;
+            bool built = !string.IsNullOrEmpty(_buildingAtHex.GetValueOrDefault(coord, ""));
+            Color baseColor = built ? BuildingTint : _groundColorAt.GetValueOrDefault(coord, tile.TileView.BaseColor);
+            if (t.Corruption > 0)
+            {
+                tile.TileView.SetBaseColor(BlightStain(baseColor, t.Corruption));
+                _stainedAt.Add(coord);
+            }
+            else
+            {
+                tile.TileView.SetBaseColor(baseColor);
+                _stainedAt.Remove(coord);
+            }
+        }
+
+        if (_loadedBuildings == null)
+            return;
+        foreach (var b in _loadedBuildings)
+        {
+            if (b == null || !b.IsPlaced || b.Tier <= 0)
+                continue;
+            if (!Tiles.TryGetValue(new Vector2I(b.Q, b.R), out var anchorTile) || anchorTile.TileView == null)
+                continue;
+            var view = anchorTile.TileView;
+
+            if (view.GetNodeOrNull(BlightMarkerName) is Node old)
+            {
+                view.RemoveChild(old);
+                old.QueueFree();
+            }
+            if (b.BlightLevel > 0)
+                AddBlightMarker(view, b.BlightLevel);
+
+            var template = BuildingDatabase.GetTemplate(b.Id);
+            if (ShowNameLabels && template != null)
+            {
+                bool isDoor = !string.IsNullOrEmpty(template.HostsSystem);
+                string text = b.BlightLevel > 0
+                    ? $"{template.EffectiveMapLabel}\n{CampusBlight.LevelName(b.BlightLevel).ToUpperInvariant()}"
+                    : template.EffectiveMapLabel;
+                Color tint = b.BlightLevel > 0 ? UITheme.CampusBlightText
+                           : isDoor ? UITheme.BuildingLabelDoor : UITheme.BuildingLabelPlain;
+                view.SetPoiLabel(text, tint, UITheme.Label3DPlaceName);
+            }
+        }
+    }
+
+    /// <summary>Flat hexagonal rings of blight laid around the anchor hex, one per
+    /// level (1 Tainted, 2 Blighted, 3 Overrun), each a little higher and wider, so
+    /// the building reads as ringed in. Opaque on purpose: transparent geometry
+    /// overlapping the building box sorted badly and flickered. The rings pulse in
+    /// colour, not alpha, and turn slowly. Placeholder art.</summary>
+    private static void AddBlightMarker(Node3D view, int level)
+    {
+        level = Mathf.Clamp(level, 1, 3);
+        var root = new Node3D { Name = BlightMarkerName };
+        view.AddChild(root);
+
+        Color dim = UITheme.CampusBlightTint;
+        Color bright = UITheme.CampusBlightText;
+        float pulse = level switch { 1 => 1.4f, 2 => 0.9f, _ => 0.5f };
+
+        for (int i = 0; i < level; i++)
+        {
+            var mat = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                AlbedoColor = dim,
+            };
+            float outer = 0.98f + 0.08f * i;
+            var ring = new MeshInstance3D
+            {
+                Name = $"Ring{i}",
+                // A 6-sided torus is a hexagonal band; flattened in Y it lies on the tile.
+                Mesh = new TorusMesh
+                {
+                    InnerRadius = outer - 0.12f,
+                    OuterRadius = outer,
+                    Rings = 6,
+                    RingSegments = 4,
+                },
+                MaterialOverride = mat,
+                Position = new Vector3(0f, 0.06f + 0.18f * i, 0f),
+                Scale = new Vector3(1f, 0.35f, 1f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            root.AddChild(ring);
+
+            if (ring.IsInsideTree())
+            {
+                // Colour pulse, staggered per ring so the band seems to climb.
+                var tween = ring.CreateTween().SetLoops();
+                if (i > 0)
+                    tween.TweenInterval(pulse * 0.3f * i);
+                tween.TweenProperty(mat, "albedo_color", bright, pulse)
+                     .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+                tween.TweenProperty(mat, "albedo_color", dim, pulse)
+                     .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+            }
+        }
+
+        // A slow turn: the ground is not still. Faster the deeper the blight.
+        if (root.IsInsideTree())
+        {
+            var spin = root.CreateTween().SetLoops();
+            spin.TweenProperty(root, "rotation_degrees:y", 360f, level switch { 1 => 24f, 2 => 16f, _ => 9f })
+                .From(0f);
         }
     }
 
@@ -307,6 +485,9 @@ public partial class CampusGridManager : HexGridManager
         Tiles.Clear();
         _buildableMask.Clear();
         _buildingAtHex.Clear();
+        _corruptionAt.Clear();
+        _groundColorAt.Clear();
+        _stainedAt.Clear();
         _landmarkAtHex.Clear();
         _landmarkStateAtHex.Clear();
     }
@@ -356,6 +537,20 @@ public partial class CampusGridManager : HexGridManager
     /// to route it through the inherited visual method.</summary>
     private static readonly Color BuildingTint = new Color(0.55f, 0.4f, 0.6f);
 
+    /// <summary>CampusTileSaveData.Corruption per hex, captured at load so a
+    /// building stamped later still shows the ground it stands on.</summary>
+    private readonly Dictionary<Vector2I, int> _corruptionAt = new();
+
+    /// <summary>A colour stained toward the blight tint by corruption level (1-3).</summary>
+    private static Color BlightStain(Color baseColor, int level)
+        => baseColor.Lerp(UITheme.CampusBlightTint, Mathf.Clamp(level, 0, 3) switch
+        {
+            1 => 0.35f,
+            2 => 0.6f,
+            3 => 0.85f,
+            _ => 0f,
+        });
+
     private void StampBuilding(string buildingId, Vector2I anchor, List<Vector2I> footprintHexes,
         int tier = 1, int rotation = 0)
     {
@@ -369,7 +564,8 @@ public partial class CampusGridManager : HexGridManager
             tile.ObstacleKind = "building:" + buildingId;
 
             _buildingAtHex[coord] = buildingId;
-            tile.TileView?.SetBaseColor(BuildingTint);
+            int blight = _corruptionAt.GetValueOrDefault(coord, 0);
+            tile.TileView?.SetBaseColor(blight > 0 ? BlightStain(BuildingTint, blight) : BuildingTint);
         }
 
         // ── Name label ────────────────────────────────────────────────────
@@ -446,9 +642,12 @@ public partial class CampusGridManager : HexGridManager
         target.R = anchor.Y;
         target.Rotation = rotation;
         target.IsPlaced = true;
+        // The ground it now stands on decides its blight (§11).
+        CampusBlight.Recompute(SaveManager.ActiveSave);
 
         StampBuilding(buildingId, anchor, GetFootprintHexes(template, anchor, rotation),
                       target.Tier, rotation);
+        RefreshBlight();   // its ground's stain and marker, if the ground is fouled
         return true;
     }
 

@@ -1,7 +1,7 @@
 {
   "id": "arcane_library",
   "name": "Arcane Library",
-  "description": "A repository of magical knowledge. Unlocks the card library browser and grants Insight tokens for negotiations.",
+  "description": "A repository of magical knowledge. Unlocks the card library browser, researches cards the guild has not yet found, and supplies Insight at the parley table.",
   "category": "Magic",
   "schoolAffinity": "",
   "hostsSystem": "card_library",
@@ -17,7 +17,8 @@
     },
     {
       "tier": 2,
-      "description": "Expanded stacks. Card Library unlocked and +1 Insight token per negotiation.",
+      "displayName": "Expanded Stacks",
+      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 lunations each). +1 Insight card in every parley deck.",
       "goldCost": 200,
       "requiredBuildings": [],
       "unlocksCardLibrary": true,
@@ -27,13 +28,26 @@
     },
     {
       "tier": 3,
-      "description": "Forbidden Archives. +2 Insight tokens and +1 Persuade token per negotiation.",
+      "displayName": "The Deep Stacks",
+      "description": "3 commissions at once, and 2 Insight cards per parley. And a doctrine, chartered at the Grand Hall. The Forbidden Archives: research takes 2 lunations. Or the Chancery: every parley opens with your school's card in hand and every Lore term's valuation already read.",
       "goldCost": 400,
       "requiredBuildings": [],
       "unlocksCardLibrary": true,
-      "unlocksFeatures": ["card_library", "forbidden_archives"],
+      "unlocksFeatures": ["card_library"],
       "bonusNegotiationTokens": 2,
-      "bonusTokenType": "Insight"
+      "bonusTokenType": "Insight",
+      "doctrines": [
+        {
+          "id": "forbidden_archives",
+          "name": "The Forbidden Archives",
+          "description": "The deck is the product. Commissioned research delivers in 2 lunations instead of 3, so the Library becomes the guild's main card faucet."
+        },
+        {
+          "id": "chancery",
+          "name": "The Chancery",
+          "description": "The Library feeds the table. Every parley opens with your school's sweeping card in hand, and every Lore term's valuation starts read."
+        }
+      ]
     }
   ]
 }

@@ -117,6 +117,15 @@ public partial class CampusScreen : Control
     // Workshop tab (Q5)
     private readonly CampusWorkshopPanel _workshopPanel = new();
 
+    // Scribe's Tower tab (spec D7; campus_building_upgrades_design_v1 §4)
+    private readonly CampusScribePanel _scribePanel = new();
+
+    // School Seats tab (design §8)
+    private readonly CampusSeatPanel _seatPanel = new();
+
+    // Undercroft tab (espionage, design §14)
+    private readonly CampusUndercroftPanel _undercroftPanel = new();
+
     // Expedition tab
     private readonly CampusExpeditionPanel _expeditionPanel = new();
     // NOTE: the Atlas and Window comparison-prototype tabs were removed once their 3D
@@ -232,7 +241,7 @@ public partial class CampusScreen : Control
         tabBar.Visible = !DiegeticHubOnly;
         AddChild(tabBar);
 
-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop" };
+        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe", "Seats", "Undercroft" };
         // CampusPanelId's values ARE these indices. The map routes by enum, the bar routes
         // by index, and nothing else ties them together. Reordering one without the other
         // would silently send every building on the campus to the wrong room.
@@ -325,6 +334,9 @@ public partial class CampusScreen : Control
         _questsPanel.Build((ScrollContainer)_tabPanels[7], _ctx);
         _councilTab.Build((ScrollContainer)_tabPanels[8], _ctx);
         _workshopPanel.Build((ScrollContainer)_tabPanels[9], _ctx);
+        _scribePanel.Build((ScrollContainer)_tabPanels[10], _ctx);
+        _seatPanel.Build((ScrollContainer)_tabPanels[11], _ctx);
+        _undercroftPanel.Build((ScrollContainer)_tabPanels[12], _ctx);
 
         // Layered last. See the construction note above.
         AddChild(_campusNarrativePanel);
@@ -424,6 +436,15 @@ public partial class CampusScreen : Control
                 break;
             case 9:
                 _workshopPanel.Refresh();
+                break;
+            case 10:
+                _scribePanel.Refresh();
+                break;
+            case 11:
+                _seatPanel.Refresh();
+                break;
+            case 12:
+                _undercroftPanel.Refresh();
                 break;
             case 6:
                 _recordsPanel.Refresh();
@@ -851,7 +872,10 @@ public partial class CampusScreen : Control
                         ? $"Build\n{goldCost}g / {materialsCost}m"
                         : $"Upgrade\n{goldCost}g / {materialsCost}m",
                     CustomMinimumSize = new Vector2(110, 44),
-                    Disabled = save.Gold < goldCost || save.BuildMaterials < materialsCost,
+                    // One gate for every door: cost, prerequisites, and the
+                    // school-seat gates (declaration, facets).
+                    Disabled = CampusConstruction.CannotBuildReason(save, buildingSave.Id) != null,
+                    TooltipText = CampusConstruction.CannotBuildReason(save, buildingSave.Id) ?? "",
                 };
                 btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
                 string capturedId = buildingSave.Id;
@@ -889,6 +913,65 @@ public partial class CampusScreen : Control
                     cardLayout.AddChild(lbl);
                 }
             }
+
+            // Doctrines (campus_building_upgrades_design_v1 §2): name both choices
+            // before the player buys the tier, and say which one is in force after.
+            var doctrineTier = Charters.DoctrineTier(template);
+            if (doctrineTier != null && buildingSave.Tier + 1 >= doctrineTier.Tier)
+            {
+                var names = new System.Collections.Generic.List<string>();
+                foreach (var d in doctrineTier.Doctrines)
+                    names.Add(d.IsBlocked ? $"{d.Name} (not yet)" : d.Name);
+                string state = "";
+                if (buildingSave.Tier >= doctrineTier.Tier)
+                {
+                    var charter = Charters.EntryFor(save, buildingSave.Id);
+                    var active = charter != null ? Charters.Doctrine(buildingSave.Id, charter.DoctrineId) : null;
+                    state = active == null ? "  No doctrine chartered; charter one at the Grand Hall."
+                          : CampusBlight.IsBlighted(save, buildingSave.Id) ? $"  {active.Name} is dark on blighted ground."
+                          : Charters.IsRefitting(save, buildingSave.Id) ? $"  {active.Name} holds from the next moon."
+                          : $"  In force: {active.Name}.";
+                }
+                var dl = new Label
+                {
+                    Text = $"Doctrines: {string.Join(" or ", names)}.{state}",
+                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                };
+                dl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
+                dl.AddThemeColorOverride("font_color", UITheme.BuildingNextText);
+                cardLayout.AddChild(dl);
+            }
+
+            // Damaged by a portal strike: mend before it grows (TeleportSigil.cs).
+            int repairCost = CampusConstruction.RepairCost(buildingSave);
+            if (repairCost > 0)
+            {
+                var repairRow = new HBoxContainer();
+                repairRow.AddThemeConstantOverride("separation", 8);
+                var dmg = new Label
+                {
+                    Text = $"Damaged: integrity {buildingSave.CurrentIntegrity}/{buildingSave.MaxIntegrity}.",
+                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                };
+                dmg.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
+                dmg.AddThemeColorOverride("font_color", UITheme.Danger);
+                repairRow.AddChild(dmg);
+                string repairWhy = CampusConstruction.CannotRepairReason(save, buildingSave);
+                var repairBtn = new Button
+                {
+                    Text = $"Repair ({repairCost}m)",
+                    Disabled = repairWhy != null,
+                    TooltipText = repairWhy ?? "",
+                };
+                repairBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+                string repairId = buildingSave.Id;
+                repairBtn.Pressed += () => { if (CampusConstruction.TryRepair(SaveManager.ActiveSave, repairId)) RefreshAll(); };
+                repairRow.AddChild(repairBtn);
+                cardLayout.AddChild(repairRow);
+            }
+
+            // Corrupted ground and rubble (campus corruption, CampusBlight).
+            AddLandRows(cardLayout, save, buildingSave);
 
             // Built but not yet sited on the map, so the map's hex slots are
             // otherwise empty for this building. Placement is separate from
@@ -1049,6 +1132,76 @@ public partial class CampusScreen : Control
     // ═══════════════════════════════════════════════════════════════════════
     // Actions
     // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>The building card's land rows (campus_building_upgrades_design_v1 §11):
+    /// the blight under a standing building with its Cleanse button, and the
+    /// rubble a destroyed one left with its Clear button.</summary>
+    private void AddLandRows(VBoxContainer cardLayout, GuildSaveData save, BuildingSaveData buildingSave)
+    {
+        if (buildingSave.Tier > 0 && buildingSave.IsPlaced && buildingSave.BlightLevel > 0)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 8);
+            string effect = buildingSave.BlightLevel switch
+            {
+                1 => "Tainted ground: it draws off a splinter each moon.",
+                2 => "Blighted ground: its doctrine is dark and it works in the blight's way. It spreads.",
+                _ => "Overrun: it has stopped working. It spreads.",
+            };
+            var lbl = new Label
+            {
+                Text = effect,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
+            lbl.AddThemeColorOverride("font_color", UITheme.CampusBlightText);
+            row.AddChild(lbl);
+            var (mats, splinters) = CampusBlight.CleanseCost(buildingSave);
+            string why = CampusBlight.CannotCleanseReason(save, buildingSave);
+            var btn = new Button
+            {
+                Text = $"Cleanse ({mats}m, {splinters}s)",
+                Disabled = why != null,
+                TooltipText = why ?? "Lift the ground under it one step.",
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            string id = buildingSave.Id;
+            btn.Pressed += () => { if (CampusBlight.TryCleanse(SaveManager.ActiveSave, id) != null) RefreshAll(); };
+            row.AddChild(btn);
+            cardLayout.AddChild(row);
+        }
+
+        int rubble = CampusBlight.RubbleCost(save, buildingSave.Id);
+        if (rubble > 0)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 8);
+            var lbl = new Label
+            {
+                Text = buildingSave.Tier == 0
+                    ? "Destroyed. Its footprint is rubble and cannot be built on until cleared."
+                    : "Where it stood before it was destroyed is still rubble, unbuildable until cleared.",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
+            lbl.AddThemeColorOverride("font_color", UITheme.Danger);
+            row.AddChild(lbl);
+            string why = CampusBlight.CannotClearRubbleReason(save, buildingSave.Id);
+            var btn = new Button
+            {
+                Text = $"Clear rubble ({rubble}m)",
+                Disabled = why != null,
+                TooltipText = why ?? "",
+            };
+            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            string id = buildingSave.Id;
+            btn.Pressed += () => { if (CampusBlight.TryClearRubble(SaveManager.ActiveSave, id)) RefreshAll(); };
+            row.AddChild(btn);
+            cardLayout.AddChild(row);
+        }
+    }
 
     private bool TryBuildOrUpgrade(string buildingId)
     {
@@ -1403,6 +1556,7 @@ public partial class CampusScreen : Control
         {
             save.Gold += router.GoldReward;
             save.ArcaneSplinters += router.SplinterReward;
+            save.BuildMaterials += router.MaterialReward;
 
             if (!string.IsNullOrEmpty(guardianKey) && save.Ledger != null &&
                 !save.Ledger.MetaNarrativeFlags.Contains($"{guardianKey}_trial_passed"))

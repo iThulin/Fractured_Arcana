@@ -35,6 +35,12 @@ public class Building
     public string Category = "";        // Core, Magic, Economy, Reputation, School
     public string SchoolAffinity = "";  // empty = any school
 
+    /// <summary>School seats (campus_building_upgrades_design_v1 §8): one building
+    /// per school, raised once that school is declared, tiered by facets, and
+    /// chartered free while it is the timeline's school. Distinct from a building
+    /// that merely carries a SchoolAffinity label.</summary>
+    public bool IsSchoolSeat = false;
+
     // ── Footprint (campus hex map) ───────────────────────────────────────
     /// <summary>Hex offsets (relative to the placement anchor, before rotation) this
     /// building occupies on the campus map. Always includes (0,0) explicitly. There's
@@ -126,15 +132,21 @@ public class BuildingTier
     public int GoldCost = 100;
 
     /// <summary>Materials cost for this tier. -1 (default/unset) means "derive from
-    /// GoldCost at the standard 3:1 ratio" (see EffectiveMaterialsCost), so none of
+    /// GoldCost at the standard ratio" (see EffectiveMaterialsCost), so none of
     /// the existing Data/Buildings/*.json files need editing. Set explicitly only when
     /// a building should deviate from the standard ratio.</summary>
     public int MaterialsCost = -1;
 
+    /// <summary>Materials per gold when a tier leaves MaterialsCost unset. Was 3
+    /// while materials were a 10,000 placeholder; 1 once they had to be earned
+    /// (2026-09-29: salvage from fights, held supply caches). At 3 a full campus
+    /// cost ~26,000 materials against ~15 a fight. A starting value: tune in play.</summary>
+    public const int StandardMaterialsPerGold = 1;
+
     /// <summary>The materials cost actually charged: MaterialsCost if explicitly set
-    /// on the tier, otherwise GoldCost * 3 (the standard ratio).</summary>
+    /// on the tier, otherwise GoldCost * StandardMaterialsPerGold.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public int EffectiveMaterialsCost => MaterialsCost >= 0 ? MaterialsCost : GoldCost * 3;
+    public int EffectiveMaterialsCost => MaterialsCost >= 0 ? MaterialsCost : GoldCost * StandardMaterialsPerGold;
 
     /// <summary>(2026-08-13) Campus-persistent party-size growth: the §4a
     /// "party-size growth via campus" lever, finally given a home (the Grand
@@ -149,6 +161,21 @@ public class BuildingTier
     public int FieldPartyBonus = 0;
 
     public List<string> RequiredBuildings = new();  // other building ids required
+
+    /// <summary>Doctrines (campus_building_upgrades_design_v1 §2a): the choice a
+    /// building's top tier offers. Authored on the tier that grants them, usually
+    /// tier 3. Only the doctrine chartered at the Grand Hall is in force; an
+    /// unchartered building works at the tier below. See Charters.cs.</summary>
+    public List<DoctrineDefinition> Doctrines = new();
+
+    /// <summary>Grand Hall charter slots this tier adds (design §2b). Summed over
+    /// built tiers by Charters.Slots, so author per-tier increments.</summary>
+    public int CharterSlots = 0;
+
+    /// <summary>School seats (design §8c): facets of the building's school the
+    /// guild must hold before this tier can be raised. 0 = no facet gate. A
+    /// seat's first tier is gated by declaration instead (CampusConstruction).</summary>
+    public int RequiredFacets = 0;
 
     // ── Effects ──────────────────────────────────────────────────────────
     // These are read by BuildingEffectApplier at run start / campus load.
@@ -171,4 +198,22 @@ public class BuildingTier
     /// Stacks across tiers. Applied by BuildingEffectApplier.</summary>
     public int SlotCostReduction = 0;
     public List<string> UnlocksFeatures = new();  // string flags for future features
+}
+
+/// <summary>One doctrine on a building's doctrine tier (design §2a). Plain data,
+/// read by Charters. A <see cref="Blocked"/> doctrine is shown with the reason
+/// and cannot be chartered until the system it needs exists (ruling 6: a
+/// building ships with the doctrine that works).</summary>
+public class DoctrineDefinition
+{
+    public string Id = "";
+    public string Name = "";
+    public string Description = "";
+
+    /// <summary>Non-empty when the doctrine waits on an unbuilt system; the text
+    /// says which. Empty means it can be chartered.</summary>
+    public string Blocked = "";
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsBlocked => !string.IsNullOrEmpty(Blocked);
 }

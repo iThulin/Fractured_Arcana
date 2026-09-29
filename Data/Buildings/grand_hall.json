@@ -20,32 +20,35 @@
   "tiers": [
     {
       "tier": 1,
-      "description": "The hall stands. Guild identity, school of study, and the record of your cycles.",
+      "description": "The hall stands. Guild identity, school of study, the record of your cycles, and one charter: the doctrine this timeline stands by.",
       "goldCost": 0,
       "materialsCost": 0,
       "requiredBuildings": [],
-      "displayName": "The Grand Hall"
+      "displayName": "The Grand Hall",
+      "charterSlots": 1
     },
     {
       "tier": 2,
       "displayName": "The Great Hall",
       "goldCost": 300,
-      "description": "The hall doubles its long tables and its ambitions. The active party grows to three.",
+      "description": "The hall doubles its long tables and its ambitions. The active party grows to three, and a second charter is held.",
       "requiredBuildings": [],
       "passiveEffects": [],
       "activeEffects": [],
-      "partySizeBonus": 1
+      "partySizeBonus": 1,
+      "charterSlots": 1
     },
     {
       "tier": 3,
       "displayName": "Seat of the Guild",
       "goldCost": 700,
-      "description": "Banners, a dais, and room for every voice. The active party grows to four, and a second field party is raised.",
+      "description": "Banners, a dais, and room for every voice. The active party grows to four, a second field party is raised, and a third charter is held.",
       "requiredBuildings": [],
       "passiveEffects": [],
       "activeEffects": [],
       "partySizeBonus": 1,
-      "fieldPartyBonus": 1
+      "fieldPartyBonus": 1,
+      "charterSlots": 1
     }
   ]
 }

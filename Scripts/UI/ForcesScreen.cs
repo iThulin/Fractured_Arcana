@@ -563,6 +563,20 @@ public partial class ForcesScreen : Control
                 slots.AddChild(BuildSlotCard(c, slot, item, armory));
             }
 
+            // Proving Grounds (Training Grounds doctrine, design §12): a second
+            // weapon to change to mid-fight. Shown while the doctrine is in force,
+            // and while anything is still carried, so it can always be put down.
+            var carried = armory.GetSecondWeapon(c.Id);
+            bool martial = c.UnitClass == "Fighter" || c.UnitClass == "Ranger";
+            if (carried != null || (martial && TrainingGrounds.ProvingGroundsActive(save)))
+            {
+                var carryRow = new HBoxContainer();
+                carryRow.AddThemeConstantOverride("separation", 8);
+                col.AddChild(carryRow);
+                carryRow.AddChild(BuildCarriedWeaponCard(c, carried, armory,
+                    TrainingGrounds.ProvingGroundsActive(save)));
+            }
+
             // Edge M6 (R9): the belt, two slots of consumables or spellglass.
             var beltRow = new HBoxContainer();
             beltRow.AddThemeConstantOverride("separation", 8);
@@ -709,6 +723,50 @@ public partial class ForcesScreen : Control
         return panel;
     }
 
+    /// <summary>Proving Grounds: the carried second weapon, with what it is.</summary>
+    private Control BuildCarriedWeaponCard(Companion c, ItemInstance item, ArmoryData armory, bool doctrineActive)
+    {
+        var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 72) };
+        var def = item != null ? ItemDatabase.Get(item.DefinitionId) : null;
+        Color edge = item != null ? UITheme.RarityColor(item.Rarity) : UITheme.NeutralDim;
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, edge));
+        var margin = new MarginContainer();
+        margin.AddThemeConstantOverride("margin_left", 8);
+        margin.AddThemeConstantOverride("margin_right", 8);
+        margin.AddThemeConstantOverride("margin_top", 6);
+        margin.AddThemeConstantOverride("margin_bottom", 6);
+        panel.AddChild(margin);
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 2);
+        margin.AddChild(box);
+        AddLine(box, "CARRIED WEAPON  (Proving Grounds)", UITheme.TextDim);
+        if (item == null)
+        {
+            AddLine(box, "empty: Carry a weapon from the armory below. Changing to it in a fight costs 1 AP.",
+                UITheme.TextDim);
+            return panel;
+        }
+        AddLine(box, item.Name, edge);
+        AddLine(box, def != null
+            ? $"{CombatManager.WeaponClassLabel(def.WeaponClassValue)}  ·  {StatSummary(def)}"
+            : "", UITheme.TextSecondary);
+        if (!doctrineActive)
+        {
+            AddLine(box, "The Proving Grounds is not in force: it stays in the armory's keeping until then.",
+                UITheme.Warning);
+        }
+        var un = new Button { Text = "Put down", CustomMinimumSize = new Vector2(0, 30) };
+        UITheme.ApplyButtonStyle(un, isPrimary: false);
+        string cid = c.Id;
+        un.Pressed += () =>
+        {
+            armory.UnequipSecondWeapon(cid);
+            Changed();
+        };
+        box.AddChild(un);
+        return panel;
+    }
+
     /// <summary>Edge M6: one of the two belt slots, with what it carries.</summary>
     private Control BuildBeltCard(Companion c, int index, ItemInstance item, ArmoryData armory)
     {
@@ -799,6 +857,21 @@ public partial class ForcesScreen : Control
             Changed();
         };
         row.AddChild(eq);
+
+        // Proving Grounds: a weapon may be carried as the second instead.
+        if (item.Slot == "Weapon"
+            && TrainingGrounds.CannotCarryReason(SaveManager.ActiveSave, c, item) == null)
+        {
+            var carry = new Button { Text = "Carry", CustomMinimumSize = new Vector2(80, 30),
+                                     TooltipText = "Carry as the second weapon (Proving Grounds)." };
+            UITheme.ApplyButtonStyle(carry, isPrimary: false);
+            carry.Pressed += () =>
+            {
+                armory.EquipSecondWeapon(cid, iid);
+                Changed();
+            };
+            row.AddChild(carry);
+        }
         return row;
     }
 

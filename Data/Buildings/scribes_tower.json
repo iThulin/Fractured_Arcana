@@ -1,0 +1,44 @@
+{
+  "id": "scribes_tower",
+  "name": "The Scribe's Tower",
+  "category": "Magic",
+  "schoolAffinity": "",
+  "hostsSystem": "scribe",
+  "description": "Ink, glass and wandwood. Every scroll the guild carries and every spell it seals for the fight is made here.",
+  "maxTier": 3,
+  "tiers": [
+    {
+      "tier": 1,
+      "displayName": "The Copying Room",
+      "goldCost": 120,
+      "description": "Scribe overworld scrolls, and seal Common spells in glass.",
+      "requiredBuildings": []
+    },
+    {
+      "tier": 2,
+      "displayName": "The Glass Loft",
+      "goldCost": 240,
+      "description": "Seal Uncommon spells. A field party's wands recharge at any staging anchor or the parked castle, not only at home.",
+      "requiredBuildings": []
+    },
+    {
+      "tier": 3,
+      "displayName": "The High Bench",
+      "goldCost": 400,
+      "description": "A doctrine, chartered at the Grand Hall. The Glasswright: Rare glass, and glass that keeps your card's upgrades. Or the Wandwright: rebind any wand to a spell the guild knows.",
+      "requiredBuildings": [],
+      "doctrines": [
+        {
+          "id": "glasswright",
+          "name": "The Glasswright",
+          "description": "Rare spells can be sealed, and a glass keeps the upgrades your best copy of the card carries. Every belt in the guild carries your finished spells."
+        },
+        {
+          "id": "wandwright",
+          "name": "The Wandwright",
+          "description": "Rebind any wand to an aimable Common or Uncommon spell the guild knows. A Fighter fires your frost three times an expedition."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2520 @@
+From fbdf918160f297d4a5d5c2656c19ed638c545d7c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 02:00:22 -0600
+Subject: [PATCH] Campus doctrines slice 1: charters, Scribe's Tower, Workshop
+ doctrines
+
+- BuildingTier.Doctrines/CharterSlots; CycleState.Charters/CharterFillsUsed; Charters service
+- Grand Hall charter section (1/2/3 slots, free first fills, refit 60 materials next moon)
+- Scribe's Tower building and panel: scrolls and spellglass move here; T2 afield wand recharge; Glasswright (Rare glass, upgrades kept) and Wandwright (rebind wands)
+- Enchanter's Workshop T3 becomes a doctrine: Unbinding Floor (Cleanse, blight bonus doubles) or Attunement Forge (rebind staff Innate)
+- Round-trip asserts for charters and glass upgrade tiers
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/enchanters_workshop.json       |  18 +-
+ Data/Buildings/grand_hall.json                |  15 +-
+ Data/Buildings/scribes_tower.json             |  44 +++
+ .../FeatureBuilders/BuildingDefinition.cs     |  30 +-
+ Scripts/Data/FeatureBuilders/Charters.cs      | 280 +++++++++++++
+ .../Data/FeatureBuilders/ItemDefinition.cs    |   6 +
+ Scripts/Data/FeatureBuilders/ScribesTower.cs  | 349 +++++++++++++++++
+ .../Data/FeatureBuilders/WorkshopEnchants.cs  |  71 +++-
+ Scripts/Data/SaveState/CycleState.cs          |  20 +-
+ Scripts/Systems/Campus/CampusArmoryPanel.cs   | 219 +----------
+ .../Systems/Campus/CampusExpeditionPanel.cs   | 127 +-----
+ Scripts/Systems/Campus/CampusGuildPanel.cs    |  20 +
+ .../Systems/Campus/CampusLocationRegistry.cs  |   3 +
+ Scripts/Systems/Campus/CampusScreen.cs        |  36 +-
+ Scripts/Systems/Campus/CampusScribePanel.cs   | 368 ++++++++++++++++++
+ Scripts/Systems/Campus/CampusWorkshopPanel.cs |  91 ++++-
+ Scripts/Systems/Campus/CharterSection.cs      | 162 ++++++++
+ .../Combat/Core/CombatManager.Items.cs        |  18 +-
+ Scripts/Systems/Strategic/FieldMarch.cs       |   7 +-
+ .../Strategic/HomeBuildingPanelHost.cs        |   2 +
+ .../Systems/Verification/ArmorySaveAssert.cs  |   6 +
+ .../Systems/Verification/CharterSaveAssert.cs | 128 ++++++
+ 22 files changed, 1655 insertions(+), 365 deletions(-)
+ create mode 100644 Data/Buildings/scribes_tower.json
+ create mode 100644 Scripts/Data/FeatureBuilders/Charters.cs
+ create mode 100644 Scripts/Data/FeatureBuilders/ScribesTower.cs
+ create mode 100644 Scripts/Systems/Campus/CampusScribePanel.cs
+ create mode 100644 Scripts/Systems/Campus/CharterSection.cs
+ create mode 100644 Scripts/Systems/Verification/CharterSaveAssert.cs
+
+diff --git a/Data/Buildings/enchanters_workshop.json b/Data/Buildings/enchanters_workshop.json
+index e4d5872..3602150 100644
+--- a/Data/Buildings/enchanters_workshop.json
++++ b/Data/Buildings/enchanters_workshop.json
+@@ -26,12 +26,24 @@
+     },
+     {
+       "tier": 3,
+-      "displayName": "The Unbinding Floor",
++      "displayName": "The Master's Floor",
+       "goldCost": 400,
+-      "description": "Cleanse: strip a blighted item's drawback and unseal its enchant slot. What the corruption improved, it keeps.",
++      "description": "A doctrine, chartered at the Grand Hall. The Unbinding Floor: Cleanse blighted items, and a cleansed item keeps twice what the corruption gave it. Or the Attunement Forge: rebind a staff's opening card to any card in your deck.",
+       "requiredBuildings": [],
+       "passiveEffects": [],
+-      "activeEffects": []
++      "activeEffects": [],
++      "doctrines": [
++        {
++          "id": "unbinding_floor",
++          "name": "The Unbinding Floor",
++          "description": "Cleanse a blighted item: the drawback lifts, the slot unseals, and the item keeps twice the strength its blight gave it. Blighted spoils become worth hunting."
++        },
++        {
++          "id": "attunement_forge",
++          "name": "The Attunement Forge",
++          "description": "Rebind a staff: its Innate opening card becomes any card in your deck. The staff becomes the first move of every fight."
++        }
++      ]
+     }
+   ]
+ }
+diff --git a/Data/Buildings/grand_hall.json b/Data/Buildings/grand_hall.json
+index a78f143..c3bf236 100644
+--- a/Data/Buildings/grand_hall.json
++++ b/Data/Buildings/grand_hall.json
+@@ -20,32 +20,35 @@
+   "tiers": [
+     {
+       "tier": 1,
+-      "description": "The hall stands. Guild identity, school of study, and the record of your cycles.",
++      "description": "The hall stands. Guild identity, school of study, the record of your cycles, and one charter: the doctrine this timeline stands by.",
+       "goldCost": 0,
+       "materialsCost": 0,
+       "requiredBuildings": [],
+-      "displayName": "The Grand Hall"
++      "displayName": "The Grand Hall",
++      "charterSlots": 1
+     },
+     {
+       "tier": 2,
+       "displayName": "The Great Hall",
+       "goldCost": 300,
+-      "description": "The hall doubles its long tables and its ambitions. The active party grows to three.",
++      "description": "The hall doubles its long tables and its ambitions. The active party grows to three, and a second charter is held.",
+       "requiredBuildings": [],
+       "passiveEffects": [],
+       "activeEffects": [],
+-      "partySizeBonus": 1
++      "partySizeBonus": 1,
++      "charterSlots": 1
+     },
+     {
+       "tier": 3,
+       "displayName": "Seat of the Guild",
+       "goldCost": 700,
+-      "description": "Banners, a dais, and room for every voice. The active party grows to four, and a second field party is raised.",
++      "description": "Banners, a dais, and room for every voice. The active party grows to four, a second field party is raised, and a third charter is held.",
+       "requiredBuildings": [],
+       "passiveEffects": [],
+       "activeEffects": [],
+       "partySizeBonus": 1,
+-      "fieldPartyBonus": 1
++      "fieldPartyBonus": 1,
++      "charterSlots": 1
+     }
+   ]
+ }
+diff --git a/Data/Buildings/scribes_tower.json b/Data/Buildings/scribes_tower.json
+new file mode 100644
+index 0000000..e29961c
+--- /dev/null
++++ b/Data/Buildings/scribes_tower.json
+@@ -0,0 +1,44 @@
++{
++  "id": "scribes_tower",
++  "name": "The Scribe's Tower",
++  "category": "Magic",
++  "schoolAffinity": "",
++  "hostsSystem": "scribe",
++  "description": "Ink, glass and wandwood. Every scroll the guild carries and every spell it seals for the fight is made here.",
++  "maxTier": 3,
++  "tiers": [
++    {
++      "tier": 1,
++      "displayName": "The Copying Room",
++      "goldCost": 120,
++      "description": "Scribe overworld scrolls, and seal Common spells in glass.",
++      "requiredBuildings": []
++    },
++    {
++      "tier": 2,
++      "displayName": "The Glass Loft",
++      "goldCost": 240,
++      "description": "Seal Uncommon spells. A field party's wands recharge at any staging anchor or the parked castle, not only at home.",
++      "requiredBuildings": []
++    },
++    {
++      "tier": 3,
++      "displayName": "The High Bench",
++      "goldCost": 400,
++      "description": "A doctrine, chartered at the Grand Hall. The Glasswright: Rare glass, and glass that keeps your card's upgrades. Or the Wandwright: rebind any wand to a spell the guild knows.",
++      "requiredBuildings": [],
++      "doctrines": [
++        {
++          "id": "glasswright",
++          "name": "The Glasswright",
++          "description": "Rare spells can be sealed, and a glass keeps the upgrades your best copy of the card carries. Every belt in the guild carries your finished spells."
++        },
++        {
++          "id": "wandwright",
++          "name": "The Wandwright",
++          "description": "Rebind any wand to an aimable Common or Uncommon spell the guild knows. A Fighter fires your frost three times an expedition."
++        }
++      ]
++    }
++  ]
++}
+diff --git a/Scripts/Data/FeatureBuilders/BuildingDefinition.cs b/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
+index 4cfb4ba..cddcb47 100644
+--- a/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
+@@ -156,6 +156,16 @@ public class BuildingTier
+ 
+     public List<string> RequiredBuildings = new();  // other building ids required
+ 
++    /// <summary>Doctrines (campus_building_upgrades_design_v1 §2a): the choice a
++    /// building's top tier offers. Authored on the tier that grants them, usually
++    /// tier 3. Only the doctrine chartered at the Grand Hall is in force; an
++    /// unchartered building works at the tier below. See Charters.cs.</summary>
++    public List<DoctrineDefinition> Doctrines = new();
++
++    /// <summary>Grand Hall charter slots this tier adds (design §2b). Summed over
++    /// built tiers by Charters.Slots, so author per-tier increments.</summary>
++    public int CharterSlots = 0;
++
+     // ── Effects ──────────────────────────────────────────────────────────
+     // These are read by BuildingEffectApplier at run start / campus load.
+     public int BonusStartingHP = 0;
+@@ -177,4 +187,22 @@ public class BuildingTier
+     /// Stacks across tiers. Applied by BuildingEffectApplier.</summary>
+     public int SlotCostReduction = 0;
+     public List<string> UnlocksFeatures = new();  // string flags for future features
+-}
+\ No newline at end of file
++}
++
++/// <summary>One doctrine on a building's doctrine tier (design §2a). Plain data,
++/// read by Charters. A <see cref="Blocked"/> doctrine is shown with the reason
++/// and cannot be chartered until the system it needs exists (ruling 6: a
++/// building ships with the doctrine that works).</summary>
++public class DoctrineDefinition
++{
++    public string Id = "";
++    public string Name = "";
++    public string Description = "";
++
++    /// <summary>Non-empty when the doctrine waits on an unbuilt system; the text
++    /// says which. Empty means it can be chartered.</summary>
++    public string Blocked = "";
++
++    [System.Text.Json.Serialization.JsonIgnore]
++    public bool IsBlocked => !string.IsNullOrEmpty(Blocked);
++}
+diff --git a/Scripts/Data/FeatureBuilders/Charters.cs b/Scripts/Data/FeatureBuilders/Charters.cs
+new file mode 100644
+index 0000000..4a3c602
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/Charters.cs
+@@ -0,0 +1,280 @@
++using Godot;
++using System.Collections.Generic;
++
++// ============================================================
++// Charters.cs
++//
++// Purpose:        Doctrines and charters (campus_building_upgrades_
++//                 design_v1 §2). A building's top tier offers two
++//                 doctrines; only the one chartered at the Grand Hall
++//                 is in force. The Grand Hall's tiers set how many
++//                 charters a timeline may hold (1/2/3). Charters live
++//                 on CycleState, so every new timeline begins with
++//                 none and its first fills are free; a fill past the
++//                 free count is a refit that costs materials and takes
++//                 effect from the next lunation.
++// Layer:          Data / Feature builder
++// Collaborators:  BuildingDefinition.cs (BuildingTier.Doctrines,
++//                 CharterSlots, DoctrineDefinition), CycleState.cs
++//                 (Charters, CharterFillsUsed), CalendarState
++//                 (CurrentLunation), CharterSection.cs (Grand Hall UI),
++//                 every doctrine consumer (IsActive).
++// Rulings:        2026-09-29, Magos: charters as designed; 1/2/3 slots.
++// Deviation:      The design says a refit "closes the building for a
++//                 lunation". Here only the DOCTRINE is dark for that
++//                 lunation (the building works at the tier below);
++//                 closing every door of a building would touch every
++//                 consumer for no extra decision.
++// ============================================================
++
++/// <summary>One chartered doctrine. Save-adjacent: round-trip asserted by
++/// CharterSaveAssert.</summary>
++public class CharterEntry
++{
++    public string BuildingId = "";
++    public string DoctrineId = "";
++
++    /// <summary>First lunation the doctrine is in force. A free fill is in force
++    /// at once (the lunation it was set); a refit waits one lunation.</summary>
++    public int ActiveFromLunation = 0;
++}
++
++/// <summary>Reads and writes charters. Stateless; state lives on CycleState.</summary>
++public static class Charters
++{
++    /// <summary>Materials a refit costs (design §2b). A starting value.</summary>
++    public const int RefitMaterials = 60;
++
++    public const string GrandHallId = "grand_hall";
++
++    // ── Reads ────────────────────────────────────────────────────────────
++
++    /// <summary>Charter slots the guild holds: CharterSlots summed over the Grand
++    /// Hall's built tiers.</summary>
++    public static int Slots(GuildSaveData save)
++    {
++        var hall = Find(save, GrandHallId);
++        var template = BuildingDatabase.GetTemplate(GrandHallId);
++        if (hall == null || template == null || !hall.IsFunctional)
++        {
++            return 0;
++        }
++        int slots = 0;
++        foreach (var t in template.Tiers)
++        {
++            if (t.Tier <= hall.Tier)
++            {
++                slots += t.CharterSlots;
++            }
++        }
++        return slots;
++    }
++
++    /// <summary>The tier that offers doctrines, or null when the building has none.</summary>
++    public static BuildingTier DoctrineTier(Building template)
++    {
++        if (template?.Tiers == null)
++        {
++            return null;
++        }
++        foreach (var t in template.Tiers)
++        {
++            if (t.Doctrines != null && t.Doctrines.Count > 0)
++            {
++                return t;
++            }
++        }
++        return null;
++    }
++
++    public static DoctrineDefinition Doctrine(string buildingId, string doctrineId)
++    {
++        var tier = DoctrineTier(BuildingDatabase.GetTemplate(buildingId));
++        if (tier == null)
++        {
++            return null;
++        }
++        foreach (var d in tier.Doctrines)
++        {
++            if (d.Id == doctrineId)
++            {
++                return d;
++            }
++        }
++        return null;
++    }
++
++    /// <summary>Has the building reached the tier that offers its doctrines, and
++    /// is it standing on the map?</summary>
++    public static bool CanHoldDoctrine(GuildSaveData save, string buildingId)
++    {
++        var entry = Find(save, buildingId);
++        var tier = DoctrineTier(BuildingDatabase.GetTemplate(buildingId));
++        return entry != null && tier != null && entry.IsFunctional && entry.Tier >= tier.Tier;
++    }
++
++    /// <summary>The charter entry for a building this timeline, or null.</summary>
++    public static CharterEntry EntryFor(GuildSaveData save, string buildingId)
++    {
++        var list = save?.Cycle?.Charters;
++        if (list == null)
++        {
++            return null;
++        }
++        foreach (var c in list)
++        {
++            if (c != null && c.BuildingId == buildingId)
++            {
++                return c;
++            }
++        }
++        return null;
++    }
++
++    /// <summary>THE doctrine gate. True when this doctrine is chartered, in force
++    /// this lunation, and the building still stands at the doctrine tier.</summary>
++    public static bool IsActive(GuildSaveData save, string buildingId, string doctrineId)
++    {
++        var c = EntryFor(save, buildingId);
++        if (c == null || c.DoctrineId != doctrineId)
++        {
++            return false;
++        }
++        if (!CanHoldDoctrine(save, buildingId))
++        {
++            return false;
++        }
++        return CurrentLunation(save) >= c.ActiveFromLunation;
++    }
++
++    /// <summary>True when the charter exists but its refit has not landed yet.</summary>
++    public static bool IsRefitting(GuildSaveData save, string buildingId)
++    {
++        var c = EntryFor(save, buildingId);
++        return c != null && CurrentLunation(save) < c.ActiveFromLunation;
++    }
++
++    public static int Used(GuildSaveData save) => save?.Cycle?.Charters?.Count ?? 0;
++
++    /// <summary>Would the next fill be free (inside this timeline's free count)?</summary>
++    public static bool NextFillIsFree(GuildSaveData save)
++        => save?.Cycle != null && save.Cycle.CharterFillsUsed < Slots(save);
++
++    // ── Writes ───────────────────────────────────────────────────────────
++
++    /// <summary>Why this doctrine cannot be chartered now, or null when it can.</summary>
++    public static string CannotCharterReason(GuildSaveData save, string buildingId, string doctrineId)
++    {
++        if (save?.Cycle == null)
++        {
++            return "No save loaded.";
++        }
++        var d = Doctrine(buildingId, doctrineId);
++        if (d == null)
++        {
++            return "No such doctrine.";
++        }
++        if (d.IsBlocked)
++        {
++            return d.Blocked;
++        }
++        if (!CanHoldDoctrine(save, buildingId))
++        {
++            return "The building has not reached its doctrine tier, or is not sited.";
++        }
++        var existing = EntryFor(save, buildingId);
++        if (existing != null && existing.DoctrineId == doctrineId)
++        {
++            return "Already chartered.";
++        }
++        if (existing == null && Used(save) >= Slots(save))
++        {
++            return $"Every charter is held ({Used(save)}/{Slots(save)}). Unseat one, or raise the Grand Hall.";
++        }
++        bool refit = existing != null || !NextFillIsFree(save);
++        if (refit && save.BuildMaterials < RefitMaterials)
++        {
++            return $"A refit costs {RefitMaterials} materials; the stores hold {save.BuildMaterials}.";
++        }
++        return null;
++    }
++
++    /// <summary>Is chartering this doctrine a refit (paid, delayed a lunation)?</summary>
++    public static bool IsRefit(GuildSaveData save, string buildingId)
++        => EntryFor(save, buildingId) != null || !NextFillIsFree(save);
++
++    /// <summary>Charter a doctrine. Returns the report line, or null if refused.</summary>
++    public static string TryCharter(GuildSaveData save, string buildingId, string doctrineId)
++    {
++        if (CannotCharterReason(save, buildingId, doctrineId) != null)
++        {
++            return null;
++        }
++        var cycle = save.Cycle;
++        cycle.Charters ??= new List<CharterEntry>();
++        int now = CurrentLunation(save);
++        bool refit = IsRefit(save, buildingId);
++        var d = Doctrine(buildingId, doctrineId);
++
++        var entry = EntryFor(save, buildingId);
++        if (entry == null)
++        {
++            entry = new CharterEntry { BuildingId = buildingId };
++            cycle.Charters.Add(entry);
++            cycle.CharterFillsUsed++;
++        }
++        entry.DoctrineId = doctrineId;
++
++        string line;
++        if (refit)
++        {
++            save.BuildMaterials -= RefitMaterials;
++            entry.ActiveFromLunation = now + 1;
++            line = $"{d.Name} is chartered. The refit costs {RefitMaterials} materials and holds from the next moon.";
++        }
++        else
++        {
++            entry.ActiveFromLunation = now;
++            line = $"{d.Name} is chartered and in force.";
++        }
++        SaveManager.MarkDirty();
++        GD.Print($"[Charters] {buildingId}: {doctrineId} (refit {refit}, from lunation {entry.ActiveFromLunation}).");
++        return line;
++    }
++
++    /// <summary>Unseat a building's charter. Frees the slot; never refunds the fill.</summary>
++    public static string Unseat(GuildSaveData save, string buildingId)
++    {
++        var entry = EntryFor(save, buildingId);
++        if (entry == null)
++        {
++            return null;
++        }
++        save.Cycle.Charters.Remove(entry);
++        SaveManager.MarkDirty();
++        GD.Print($"[Charters] {buildingId}: unseated.");
++        var d = Doctrine(buildingId, entry.DoctrineId);
++        return $"{d?.Name ?? entry.DoctrineId} is unseated. The charter is free for another doctrine.";
++    }
++
++    // ── Helpers ──────────────────────────────────────────────────────────
++
++    private static BuildingSaveData Find(GuildSaveData save, string buildingId)
++    {
++        if (save?.Buildings == null)
++        {
++            return null;
++        }
++        foreach (var b in save.Buildings)
++        {
++            if (b.Id == buildingId)
++            {
++                return b;
++            }
++        }
++        return null;
++    }
++
++    private static int CurrentLunation(GuildSaveData save)
++        => save?.Cycle?.Calendar?.CurrentLunation ?? 1;
++}
+diff --git a/Scripts/Data/FeatureBuilders/ItemDefinition.cs b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+index 7fe1fab..ae2810d 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+@@ -263,6 +263,12 @@ public class ItemInstance
+     /// it empty and read their definition's BoundCardId.</summary>
+     public string BoundCardId = "";
+ 
++    /// <summary>Glasswright (Scribe's Tower doctrine): the upgrade tiers the sealed
++    /// card carried when it went into the glass. 0/0 casts the printed card.
++    /// Additive save fields; older glass reads as printed.</summary>
++    public int BoundTopTier = 0;
++    public int BoundBotTier = 0;
++
+     [System.Text.Json.Serialization.JsonIgnore]
+     public bool IsBlighted => !string.IsNullOrEmpty(DrawbackKey);
+ 
+diff --git a/Scripts/Data/FeatureBuilders/ScribesTower.cs b/Scripts/Data/FeatureBuilders/ScribesTower.cs
+new file mode 100644
+index 0000000..f56fb95
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/ScribesTower.cs
+@@ -0,0 +1,349 @@
++using Godot;
++using System.Collections.Generic;
++
++// ============================================================
++// ScribesTower.cs
++//
++// Purpose:        The Scribe's Tower (spec D7; campus_building_
++//                 upgrades_design_v1 §4): the guild's one venue for
++//                 scrolls, spellglass and wand work. Gates and
++//                 transactions live here; CampusScribePanel draws them.
++//                   T1  scribe overworld scrolls; seal Common glass.
++//                   T2  seal Uncommon glass; a field party's wands
++//                       recharge at staging anchors and the castle
++//                       (FieldMarch.BankHere), not only at home.
++//                   T3  doctrine, chartered at the Grand Hall:
++//                       Glasswright  Rares sealable, and a glass keeps
++//                                    the sealed card's upgrades.
++//                       Wandwright   rebind a wand to any aimable
++//                                    Common/Uncommon the guild knows.
++//                 Without the Tower nothing is scribed or sealed.
++//                 Wands at home still recharge (armory upkeep), and
++//                 glass already made still works.
++// Layer:          Data / Feature builder
++// Collaborators:  Charters.cs (doctrine gate), ItemInstance
++//                 (BoundCardId, BoundTopTier, BoundBotTier, Charges),
++//                 CardUpgradeApplier (upgraded halves),
++//                 CombatManager.ItemCanAim (what an item can aim),
++//                 SpellAcquisition.ScrollGoldCost (scroll price),
++//                 CampusScribePanel.cs (UI), FieldMarch.cs (wands afield).
++// Rulings:        2026-09-29, Magos: the Tower takes over sealing and
++//                 scribing (design ruling 3).
++// ============================================================
++
++/// <summary>The Scribe's Tower's gates and verbs. Stateless.</summary>
++public static class ScribesTower
++{
++    public const string Id = "scribes_tower";
++    public const string Glasswright = "glasswright";
++    public const string Wandwright = "wandwright";
++
++    /// <summary>Gold to rebind a wand (Wandwright). A starting value.</summary>
++    public const int RebindGold = 100;
++
++    // ── Gates ────────────────────────────────────────────────────────────
++
++    /// <summary>The Tower's tier, 0 when unbuilt or unsited.</summary>
++    public static int Tier(GuildSaveData save)
++    {
++        if (save?.Buildings == null)
++        {
++            return 0;
++        }
++        foreach (var b in save.Buildings)
++        {
++            if (b.Id == Id)
++            {
++                return b.IsFunctional ? b.Tier : 0;
++            }
++        }
++        return 0;
++    }
++
++    public static bool CanScribeScrolls(GuildSaveData save) => Tier(save) >= 1;
++
++    public static bool GlasswrightActive(GuildSaveData save) => Charters.IsActive(save, Id, Glasswright);
++
++    public static bool WandwrightActive(GuildSaveData save) => Charters.IsActive(save, Id, Wandwright);
++
++    /// <summary>Tier 2: a field party's wands recharge at staging anchors and the
++    /// parked castle, not only at home.</summary>
++    public static bool RechargesAfield(GuildSaveData save) => Tier(save) >= 2;
++
++    /// <summary>Can glass of this rarity be sealed now? Legendaries never.</summary>
++    public static bool CanSealRarity(GuildSaveData save, CardRarity rarity)
++    {
++        int tier = Tier(save);
++        return rarity switch
++        {
++            CardRarity.Common => tier >= 1,
++            CardRarity.Uncommon => tier >= 2,
++            CardRarity.Rare => GlasswrightActive(save),
++            _ => false,
++        };
++    }
++
++    /// <summary>Gold to seal one glass, by the card's rarity.</summary>
++    public static int SealGold(CardRarity rarity) => rarity switch
++    {
++        CardRarity.Common => 60,
++        CardRarity.Uncommon => 110,
++        _ => 180,
++    };
++
++    // ── Spellglass ───────────────────────────────────────────────────────
++
++    /// <summary>Cards the guild could seal if the Tower allowed every rarity:
++    /// known (unlocked), below Legendary, with a top half items can aim. The
++    /// panel greys the ones the Tower's tier does not reach.</summary>
++    public static List<CardBlueprint> SealCandidates(GuildSaveData save)
++    {
++        var list = new List<CardBlueprint>();
++        if (save?.UnlockedCardBlueprintIds == null)
++        {
++            return list;
++        }
++        foreach (var id in save.UnlockedCardBlueprintIds)
++        {
++            var bp = CardDatabase.Blueprints.Find(b => b.Id == id);
++            if (bp == null || bp.Prebuilt?.TopHalf == null || bp.Rarity == CardRarity.Legendary)
++            {
++                continue;
++            }
++            if (!CombatManager.ItemCanAim(bp.Prebuilt.TopHalf.Targeting))
++            {
++                continue;
++            }
++            list.Add(bp);
++        }
++        list.Sort((a, b) => string.CompareOrdinal(a.Prebuilt.TopHalf.Name, b.Prebuilt.TopHalf.Name));
++        return list;
++    }
++
++    /// <summary>The upgrade tiers of the guild's best owned copy of a card
++    /// (highest total), or (0, 0) when none is upgraded or owned.</summary>
++    public static (int top, int bot) BestOwnedTiers(GuildSaveData save, string blueprintId)
++    {
++        int bestTop = 0;
++        int bestBot = 0;
++        var cards = save?.PlayerDeck?.Cards;
++        if (cards == null)
++        {
++            return (0, 0);
++        }
++        foreach (var c in cards)
++        {
++            if (c == null || c.BlueprintId != blueprintId)
++            {
++                continue;
++            }
++            if (c.TopTier + c.BotTier > bestTop + bestBot)
++            {
++                bestTop = c.TopTier;
++                bestBot = c.BotTier;
++            }
++        }
++        return (bestTop, bestBot);
++    }
++
++    /// <summary>The half a glass sealed now would cast: upgraded when the
++    /// Glasswright holds the charter, printed otherwise.</summary>
++    public static CardHalf SealPreview(GuildSaveData save, CardBlueprint bp)
++    {
++        if (bp == null)
++        {
++            return null;
++        }
++        if (GlasswrightActive(save))
++        {
++            var (top, bot) = BestOwnedTiers(save, bp.Id);
++            if (top > 0 || bot > 0)
++            {
++                var upgraded = CardUpgradeApplier.Apply(bp.Id, top, bot);
++                if (upgraded?.TopHalf != null)
++                {
++                    return upgraded.TopHalf;
++                }
++            }
++        }
++        return bp.Prebuilt?.TopHalf;
++    }
++
++    /// <summary>Why this card cannot be sealed now, or null when it can.</summary>
++    public static string CannotSealReason(GuildSaveData save, CardBlueprint bp)
++    {
++        if (save == null || bp == null)
++        {
++            return "Nothing to seal.";
++        }
++        if (Tier(save) < 1)
++        {
++            return "The Scribe's Tower is not built.";
++        }
++        if (!CanSealRarity(save, bp.Rarity))
++        {
++            return bp.Rarity switch
++            {
++                CardRarity.Uncommon => "Uncommon glass needs the Tower's second tier.",
++                CardRarity.Rare => "Rare glass needs the Glasswright chartered at the Grand Hall.",
++                _ => "This card cannot be sealed.",
++            };
++        }
++        if (save.Gold < SealGold(bp.Rarity))
++        {
++            return $"Sealing costs {SealGold(bp.Rarity)} gold.";
++        }
++        return null;
++    }
++
++    /// <summary>Seal one card into a new glass. Returns the report line, or null.</summary>
++    public static string TrySeal(GuildSaveData save, string blueprintId)
++    {
++        var bp = CardDatabase.Blueprints.Find(b => b.Id == blueprintId);
++        if (CannotSealReason(save, bp) != null)
++        {
++            return null;
++        }
++        var glassDef = ItemDatabase.Get("spellglass");
++        if (glassDef == null)
++        {
++            GD.PushWarning("[ScribesTower] No spellglass item definition (Data/Items/spellglass.json).");
++            return null;
++        }
++
++        int cost = SealGold(bp.Rarity);
++        save.Gold -= cost;
++        var inst = ItemInstance.FromDefinition(glassDef);
++        inst.BoundCardId = bp.Id;
++        var half = bp.Prebuilt.TopHalf;
++        if (GlasswrightActive(save))
++        {
++            var (top, bot) = BestOwnedTiers(save, bp.Id);
++            inst.BoundTopTier = top;
++            inst.BoundBotTier = bot;
++            half = SealPreview(save, bp) ?? half;
++        }
++        inst.Name = $"Spellglass: {half.Name}";
++        save.Armory.AddItem(inst);
++        SaveManager.MarkDirty();
++        GD.Print($"[ScribesTower] Sealed '{bp.Id}' ({inst.BoundTopTier}/{inst.BoundBotTier}) for {cost}g.");
++        return $"{half.Name} is sealed in glass for {cost} gold. It waits in the Armory.";
++    }
++
++    // ── Overworld scrolls ────────────────────────────────────────────────
++
++    /// <summary>Spells the guild can put on a scroll: the school's innates plus
++    /// every learned spell, never an Attunement, never Emulate.</summary>
++    public static List<OverworldSpellDefinition> Scribable(GuildSaveData save)
++    {
++        var list = new List<OverworldSpellDefinition>();
++        var grim = save?.Cycle?.Grimoire;
++        if (grim == null)
++        {
++            return list;
++        }
++        OverworldSpellRegistry.EnsureLoaded();
++        void AddDef(OverworldSpellDefinition d)
++        {
++            if (d != null && !d.IsAttunement && d.EffectKey != "emulate" && !list.Contains(d))
++            {
++                list.Add(d);
++            }
++        }
++        foreach (var innate in OverworldSpellRegistry.InnatesFor(save.Cycle.SelectedSchool))
++        {
++            AddDef(innate);
++        }
++        foreach (var id in grim.KnownSpellIds)
++        {
++            AddDef(OverworldSpellRegistry.Get(id));
++        }
++        list.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
++        return list;
++    }
++
++    /// <summary>Scribe one scroll. Returns the report line, or null.</summary>
++    public static string TryScribe(GuildSaveData save, OverworldSpellDefinition def)
++    {
++        var grim = save?.Cycle?.Grimoire;
++        if (grim == null || def == null || !CanScribeScrolls(save))
++        {
++            return null;
++        }
++        int cost = SpellAcquisition.ScrollGoldCost(def);
++        if (save.Gold < cost)
++        {
++            return null;
++        }
++        save.Gold -= cost;
++        grim.ScrollInventory[def.Id] = grim.ScrollInventory.TryGetValue(def.Id, out int n) ? n + 1 : 1;
++        SaveManager.MarkDirty();
++        GD.Print($"[ScribesTower] Scribed '{def.Id}' for {cost}g (held ×{grim.ScrollInventory[def.Id]}).");
++        return $"A scroll of {def.Name} is scribed for {cost} gold.";
++    }
++
++    // ── Wands (Wandwright) ───────────────────────────────────────────────
++
++    /// <summary>Cards a Wandwright may bind into a wand: known, Common or
++    /// Uncommon, with a top half items can aim.</summary>
++    public static List<CardBlueprint> RebindCandidates(GuildSaveData save)
++    {
++        var list = new List<CardBlueprint>();
++        foreach (var bp in SealCandidates(save))
++        {
++            if (bp.Rarity == CardRarity.Common || bp.Rarity == CardRarity.Uncommon)
++            {
++                list.Add(bp);
++            }
++        }
++        return list;
++    }
++
++    /// <summary>Why this wand cannot be rebound to this card, or null.</summary>
++    public static string CannotRebindReason(GuildSaveData save, ItemInstance wand, string blueprintId)
++    {
++        if (save == null || wand == null)
++        {
++            return "Nothing to rebind.";
++        }
++        var def = ItemDatabase.Get(wand.DefinitionId);
++        if (def == null || !def.IsWand)
++        {
++            return "Only a wand can be rebound.";
++        }
++        if (!WandwrightActive(save))
++        {
++            return "Rebinding needs the Wandwright chartered at the Grand Hall.";
++        }
++        if (wand.EffectiveBoundCardId(def) == blueprintId)
++        {
++            return "The wand already holds that spell.";
++        }
++        if (!RebindCandidates(save).Exists(b => b.Id == blueprintId))
++        {
++            return "That spell cannot be bound into a wand.";
++        }
++        if (save.Gold < RebindGold)
++        {
++            return $"Rebinding costs {RebindGold} gold.";
++        }
++        return null;
++    }
++
++    /// <summary>Rebind a wand. Charges are left as they are: the rite changes the
++    /// spell, not the wood. Returns the report line, or null.</summary>
++    public static string TryRebind(GuildSaveData save, ItemInstance wand, string blueprintId)
++    {
++        if (CannotRebindReason(save, wand, blueprintId) != null)
++        {
++            return null;
++        }
++        var bp = CardDatabase.Blueprints.Find(b => b.Id == blueprintId);
++        save.Gold -= RebindGold;
++        wand.BoundCardId = blueprintId;
++        SaveManager.MarkDirty();
++        string spell = bp?.Prebuilt?.TopHalf?.Name ?? blueprintId;
++        GD.Print($"[ScribesTower] {wand.Name} rebound to '{blueprintId}' for {RebindGold}g.");
++        return $"{wand.Name} now casts {spell}.";
++    }
++}
+diff --git a/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs b/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs
+index 1004570..4f85802 100644
+--- a/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs
++++ b/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs
+@@ -52,6 +52,20 @@ public class EnchantDef
+ /// ItemInstance (save) and the building tier (save).</summary>
+ public static class WorkshopEnchants
+ {
++    // ── Doctrines (campus_building_upgrades_design_v1 §4, 2026-09-29) ─────
++    public const string BuildingId = "enchanters_workshop";
++    public const string UnbindingFloor = "unbinding_floor";
++    public const string AttunementForge = "attunement_forge";
++
++    /// <summary>Gold to rebind a staff's Innate card (Attunement Forge). A starting value.</summary>
++    public const int AttuneGold = 120;
++
++    /// <summary>Cleanse is the Unbinding Floor's verb, not tier 3's: a Workshop
++    /// chartered to the Attunement Forge does not cleanse.</summary>
++    public static bool CanCleanse(GuildSaveData save) => Charters.IsActive(save, BuildingId, UnbindingFloor);
++
++    public static bool CanAttune(GuildSaveData save) => Charters.IsActive(save, BuildingId, AttunementForge);
++
+     // ── Cleanse pricing (R23: tier 3) ────────────────────────────────────
+     public const int CleanseGold = 150;
+     public const int CleanseSplinters = 25;
+@@ -149,14 +163,15 @@ public static class WorkshopEnchants
+         return $"{e.Name} written onto {item.Name}.";
+     }
+ 
+-    /// <summary>R23: Cleanse at Workshop tier 3. Strip the drawback, unseal
+-    /// the slot, keep the blight's innate bump. Gold + splinters. Returns the
+-    /// result line or null.</summary>
+-    public static string TryCleanse(ItemInstance item, int workshopTier)
++    /// <summary>R23, as the Unbinding Floor doctrine (2026-09-29): strip the
++    /// drawback, unseal the slot, and DOUBLE the blight's innate bump (the
++    /// doctrine's payoff: blighted spoils are worth hunting). Gold + splinters.
++    /// Returns the result line or null.</summary>
++    public static string TryCleanse(ItemInstance item)
+     {
+         var save = SaveManager.ActiveSave;
+         if (save == null || item == null || !item.IsBlighted) return null;
+-        if (workshopTier < 3) return null;
++        if (!CanCleanse(save)) return null;
+         if (save.Gold < CleanseGold || save.ArcaneSplinters < CleanseSplinters) return null;
+ 
+         save.Gold -= CleanseGold;
+@@ -164,12 +179,56 @@ public static class WorkshopEnchants
+         item.DrawbackKey = "";
+         item.DrawbackValue = 0;
+         item.EnchantSealed = false;
++        item.BlightBonus *= 2;
+         if (item.Name.StartsWith("Blighted "))
+             item.Name = item.Name.Substring("Blighted ".Length);
+         SaveManager.Save();
+         GD.Print($"[Workshop] {item.Name} cleansed ({CleanseGold}g + {CleanseSplinters} splinters).");
+         return $"{item.Name} is cleansed: the drawback lifts, the slot unseals, " +
+-               "and what the corruption improved, it keeps.";
++               "and what the corruption improved, it keeps twice over.";
++    }
++
++    /// <summary>Cards a staff may be attuned to: every distinct card in the deck
++    /// collection, by blueprint id, in name order.</summary>
++    public static List<CardBlueprint> AttuneCandidates(GuildSaveData save)
++    {
++        var list = new List<CardBlueprint>();
++        var cards = save?.PlayerDeck?.Cards;
++        if (cards == null) return list;
++        foreach (var c in cards)
++        {
++            if (c == null || list.Exists(b => b.Id == c.BlueprintId)) continue;
++            var bp = CardDatabase.Blueprints.Find(b => b.Id == c.BlueprintId);
++            if (bp != null) list.Add(bp);
++        }
++        list.Sort((a, b) => string.CompareOrdinal(CardDatabase.GetDisplayName(a), CardDatabase.GetDisplayName(b)));
++        return list;
++    }
++
++    /// <summary>Why this staff cannot be attuned to this card, or null.</summary>
++    public static string CannotAttuneReason(GuildSaveData save, ItemInstance staff, string blueprintId)
++    {
++        if (save == null || staff == null) return "Nothing to attune.";
++        var def = ItemDatabase.Get(staff.DefinitionId);
++        if (def == null || !def.IsStaff) return "Only a staff can be attuned.";
++        if (!CanAttune(save)) return "Attuning needs the Attunement Forge chartered at the Grand Hall.";
++        if (staff.EffectiveBoundCardId(def) == blueprintId) return "The staff already opens with that card.";
++        if (!AttuneCandidates(save).Exists(b => b.Id == blueprintId)) return "That card is not in your deck collection.";
++        if (save.Gold < AttuneGold) return $"Attuning costs {AttuneGold} gold.";
++        return null;
++    }
++
++    /// <summary>Attunement Forge: rebind a staff's Innate card (M7). Returns the
++    /// result line or null.</summary>
++    public static string TryAttune(GuildSaveData save, ItemInstance staff, string blueprintId)
++    {
++        if (CannotAttuneReason(save, staff, blueprintId) != null) return null;
++        var bp = CardDatabase.Blueprints.Find(b => b.Id == blueprintId);
++        save.Gold -= AttuneGold;
++        staff.BoundCardId = blueprintId;
++        SaveManager.Save();
++        GD.Print($"[Workshop] {staff.Name} attuned to '{blueprintId}' ({AttuneGold}g).");
++        return $"{staff.Name} now opens every fight with {CardDatabase.GetDisplayName(bp)}.";
+     }
+ 
+     // ═════════════════════════════════════════════════════════════════════
+diff --git a/Scripts/Data/SaveState/CycleState.cs b/Scripts/Data/SaveState/CycleState.cs
+index b161ca4..876f433 100644
+--- a/Scripts/Data/SaveState/CycleState.cs
++++ b/Scripts/Data/SaveState/CycleState.cs
+@@ -114,12 +114,24 @@ public class CycleState
+     public int Gold = 0;
+ 
+     /// <summary>Building construction/upgrade cost's second resource, alongside Gold.
+-    /// Standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
+-    /// Same tier as Gold by design (dies with the timeline). No gathering system
+-    /// exists yet, so NewGameScreen currently grants a flat starting stock as a
+-    /// placeholder.</summary>
++    /// Standard ratio is BuildingTier.StandardMaterialsPerGold. Same tier as Gold by
++    /// design (dies with the timeline). Earned from fight salvage and held supply
++    /// caches; a new guild is founded with SaveManager.FoundingMaterials.</summary>
+     public int BuildMaterials = 0;
+ 
++    // ── Charters (campus_building_upgrades_design_v1 §2b) ──────────────
++    /// <summary>The doctrines this timeline has chartered at the Grand Hall, one
++    /// entry per building. Per cycle on purpose: a new timeline starts with none,
++    /// which is what makes the first charters of a cycle free. Additive save
++    /// field; old cycles deserialize empty.</summary>
++    public List<CharterEntry> Charters = new();
++
++    /// <summary>How many charters this timeline has filled. The first Slots fills
++    /// are free; every fill past that is a refit (Charters.RefitMaterials, in force
++    /// from the next lunation). Unseating never refunds a fill, so clearing and
++    /// refilling cannot dodge the refit.</summary>
++    public int CharterFillsUsed = 0;
++
+     /// <summary>
+     /// Card upgrade currency. In-cycle power, so it dies with the timeline.
+     /// </summary>
+diff --git a/Scripts/Systems/Campus/CampusArmoryPanel.cs b/Scripts/Systems/Campus/CampusArmoryPanel.cs
+index 09a2ee6..9abeb5f 100644
+--- a/Scripts/Systems/Campus/CampusArmoryPanel.cs
++++ b/Scripts/Systems/Campus/CampusArmoryPanel.cs
+@@ -82,222 +82,17 @@ public sealed class CampusArmoryPanel : CampusPanel
+         AddSectionHeader(_container, "Armory");
+         BuildUnequippedPanel(save);
+ 
+-        // ── Scriptorium (rehomed 2026-08-21) ─────────────────────────────
+-        // Scroll crafting lived on the Expedition tab, but the deploy-flow
+-        // streamline routes the Gatehouse straight to the launch drawer, so
+-        // that tab is no longer on the normal path. Scrolls are items; the
+-        // Armory is their door now. (The Expedition tab keeps a copy for its
+-        // fallback appearances: known duplication, unify when the Scribe's
+-        // Tower claims scroll crafting per R8.)
++        // ── Scrolls and spellglass moved to the Scribe's Tower (2026-09-29,
++        // spec D7): this tab keeps a pointer so the old habit still lands. ──
+         _container.AddChild(new HSeparator());
+-        AddSectionHeader(_container, "Scriptorium: Scrolls");
+-        var scrollHint = new Label
++        var scribeNote = new Label
+         {
+-            Text = "A scroll holds one cast of a spell the guild knows, usable by any " +
+-                   "school, consuming no Essence, spent on use.",
++            Text = "Scrolls and spellglass are made at the Scribe's Tower; what it makes waits here.",
+             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+         };
+-        scrollHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+-        scrollHint.Modulate = UITheme.CampusSubtleText;
+-        _container.AddChild(scrollHint);
+-        _scriptoriumList = MakeVBox(6);
+-        _container.AddChild(_scriptoriumList);
+-        RefreshScriptorium();
+-
+-        // ── Spellglass (Edge M6, spec §11b, D6/D7). The Scribe's Tower is
+-        // its eventual home; until that building exists it shares the
+-        // Scriptorium section, like scroll crafting does. ────────────────
+-        _container.AddChild(new HSeparator());
+-        AddSectionHeader(_container, "Scriptorium: Spellglass");
+-        var glassHint = new Label
+-        {
+-            Text = "A combat spell the guild has unlocked, sealed in glass. Any unit shatters it " +
+-                   "for one cast at printed values, mana or no mana, for 1 AP. Carried on a belt.",
+-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+-        };
+-        glassHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+-        glassHint.Modulate = UITheme.CampusSubtleText;
+-        _container.AddChild(glassHint);
+-        _spellglassList = MakeVBox(6);
+-        _container.AddChild(_spellglassList);
+-        RefreshSpellglass();
+-    }
+-
+-    private VBoxContainer _spellglassList;
+-
+-    /// <summary>Gold to seal a card into glass, by rarity. Rares and above are
+-    /// not sealable at launch: the slow reveal is the design.</summary>
+-    private static int SpellglassCost(CardRarity r) => r == CardRarity.Common ? 60 : 110;
+-
+-    private void RefreshSpellglass()
+-    {
+-        if (_spellglassList == null)
+-            return;
+-        foreach (var child in _spellglassList.GetChildren())
+-            child.QueueFree();
+-
+-        var save = Ctx?.Save;
+-        if (save == null)
+-            return;
+-        var glassDef = ItemDatabase.Get("spellglass");
+-        if (glassDef == null)
+-        {
+-            _spellglassList.AddChild(MakeStubLabel("No spellglass item definition (Data/Items/spellglass.json)."));
+-            return;
+-        }
+-
+-        var sealable = new System.Collections.Generic.List<CardBlueprint>();
+-        foreach (var id in save.UnlockedCardBlueprintIds)
+-        {
+-            var bp = CardDatabase.Blueprints.Find(b => b.Id == id);
+-            if (bp == null || bp.Prebuilt?.TopHalf == null)
+-                continue;
+-            if (bp.Rarity != CardRarity.Common && bp.Rarity != CardRarity.Uncommon)
+-                continue;
+-            if (!CombatManager.ItemCanAim(bp.Prebuilt.TopHalf.Targeting))
+-                continue;   // shapes the item path cannot aim stay in the deck
+-            sealable.Add(bp);
+-        }
+-        sealable.Sort((a, b) => string.CompareOrdinal(a.Prebuilt.TopHalf.Name, b.Prebuilt.TopHalf.Name));
+-
+-        if (sealable.Count == 0)
+-        {
+-            _spellglassList.AddChild(MakeStubLabel("Nothing the guild knows can be sealed yet."));
+-            return;
+-        }
+-
+-        foreach (var bp in sealable)
+-        {
+-            int cost = SpellglassCost(bp.Rarity);
+-            var half = bp.Prebuilt.TopHalf;
+-            int held = 0;
+-            foreach (var inst in save.Armory.OwnedItems)
+-                if (inst.DefinitionId == glassDef.Id && inst.BoundCardId == bp.Id)
+-                    held++;
+-
+-            var row = new HBoxContainer();
+-            row.AddThemeConstantOverride("separation", 10);
+-            _spellglassList.AddChild(row);
+-
+-            var name = new Label
+-            {
+-                Text = $"{half.Name}  ·  {bp.School}  ·  {bp.Rarity}" + (held > 0 ? $"  ·  ×{held} held" : ""),
+-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+-                TooltipText = half.RulesText,
+-            };
+-            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+-            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+-            row.AddChild(name);
+-
+-            var craftBtn = MakeButton($"Seal ({cost} g)", 150, 34,
+-                UITheme.CampusSmallFontSize, isPrimary: false);
+-            craftBtn.Disabled = save.Gold < cost;
+-            string cardId = bp.Id;
+-            string cardName = half.Name;
+-            craftBtn.Pressed += () =>
+-            {
+-                var s = Ctx?.Save;
+-                if (s == null || s.Gold < cost)
+-                    return;
+-                s.Gold -= cost;
+-                var inst = ItemInstance.FromDefinition(glassDef);
+-                inst.BoundCardId = cardId;
+-                inst.Name = $"Spellglass: {cardName}";
+-                s.Armory.AddItem(inst);
+-                SaveManager.MarkDirty();
+-                GD.Print($"[Scriptorium] Sealed '{cardId}' in glass for {cost}g (gold {s.Gold}).");
+-                Ctx.RefreshGold?.Invoke();
+-                Refresh();
+-            };
+-            row.AddChild(craftBtn);
+-        }
+-    }
+-
+-    // ── Scriptorium (mirrors CampusExpeditionPanel.RefreshScriptorium) ───
+-
+-    private VBoxContainer _scriptoriumList;
+-
+-    /// <summary>S4: rebuild the Scriptorium rows, one per scribable spell
+-    /// (school innates + learned spells; no Attunements, no Emulate). Narrow
+-    /// refresh on scribe so the shopping scroll position survives.</summary>
+-    private void RefreshScriptorium()
+-    {
+-        if (_scriptoriumList == null)
+-            return;
+-        foreach (var child in _scriptoriumList.GetChildren())
+-            child.QueueFree();
+-
+-        var save = Ctx?.Save;
+-        var grim = save?.Cycle?.Grimoire;
+-        if (grim == null)
+-            return;
+-        OverworldSpellRegistry.EnsureLoaded();
+-
+-        var scribable = new System.Collections.Generic.List<OverworldSpellDefinition>();
+-        void AddDef(OverworldSpellDefinition d)
+-        {
+-            if (d != null && !d.IsAttunement && d.EffectKey != "emulate" && !scribable.Contains(d))
+-                scribable.Add(d);
+-        }
+-        foreach (var innate in OverworldSpellRegistry.InnatesFor(save.Cycle.SelectedSchool))
+-            AddDef(innate);
+-        foreach (var id in grim.KnownSpellIds)
+-            AddDef(OverworldSpellRegistry.Get(id));
+-        scribable.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+-
+-        if (scribable.Count == 0)
+-        {
+-            var none = new Label
+-            {
+-                Text = "The guild knows nothing worth scribing yet. Spells are learned " +
+-                       "afield (lore sites, cordial deals, the dead).",
+-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+-            };
+-            none.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+-            none.Modulate = UITheme.CampusSubtleText;
+-            _scriptoriumList.AddChild(none);
+-            return;
+-        }
+-
+-        foreach (var def in scribable)
+-        {
+-            int cost = SpellAcquisition.ScrollGoldCost(def);
+-            grim.ScrollInventory.TryGetValue(def.Id, out int held);
+-
+-            var row = new HBoxContainer();
+-            row.AddThemeConstantOverride("separation", 10);
+-            _scriptoriumList.AddChild(row);
+-
+-            var name = new Label
+-            {
+-                Text = $"{def.Name}  ·  {def.Magnitude}" + (held > 0 ? $"  ·  ×{held} held" : ""),
+-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+-                TooltipText = def.Description,
+-            };
+-            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+-            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+-            row.AddChild(name);
+-
+-            var craftBtn = MakeButton($"Scribe ({cost} g)", 150, 34,
+-                UITheme.CampusSmallFontSize, isPrimary: false);
+-            craftBtn.Disabled = save.Gold < cost;
+-            string id = def.Id; // capture per-iteration
+-            craftBtn.Pressed += () =>
+-            {
+-                var s = Ctx?.Save;
+-                var g = s?.Cycle?.Grimoire;
+-                if (s == null || g == null || s.Gold < cost)
+-                    return;
+-                s.Gold -= cost;
+-                g.ScrollInventory[id] = g.ScrollInventory.TryGetValue(id, out int n) ? n + 1 : 1;
+-                SaveManager.MarkDirty();
+-                GD.Print($"[Scriptorium] Scribed '{id}' for {cost}g " +
+-                         $"(held ×{g.ScrollInventory[id]}, gold {s.Gold}).");
+-                Ctx.RefreshGold?.Invoke();
+-                RefreshScriptorium();
+-            };
+-            row.AddChild(craftBtn);
+-        }
++        scribeNote.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        scribeNote.Modulate = UITheme.CampusSubtleText;
++        _container.AddChild(scribeNote);
+     }
+ 
+     // ── Unit selector row ────────────────────────────────────────────────
+diff --git a/Scripts/Systems/Campus/CampusExpeditionPanel.cs b/Scripts/Systems/Campus/CampusExpeditionPanel.cs
+index 7b9442d..6413d90 100644
+--- a/Scripts/Systems/Campus/CampusExpeditionPanel.cs
++++ b/Scripts/Systems/Campus/CampusExpeditionPanel.cs
+@@ -8,7 +8,8 @@ using static CampusUi;
+ //
+ // Purpose:        The Expedition tab: world status, the door out
+ //                 to the strategic map, the post-Conjunction school
+-//                 picker, and (interim home) the Scriptorium.
++//                 picker. (The Scriptorium moved to the Scribe's
++//                 Tower, CampusScribePanel, 2026-09-29.)
+ // Layer:          UI
+ // Collaborators:  CampusPanel.cs (base), CampusContext.cs,
+ //                 OverworldSpellRegistry.cs, SpellAcquisition.cs,
+@@ -28,17 +29,14 @@ using static CampusUi;
+ /// them further from that destination. They stayed on CampusScreen and this panel reaches
+ /// them as named verbs on <see cref="CampusContext"/>.</para>
+ ///
+-/// <para><b>Interim home for the Scriptorium.</b> R8 confirmed the Scribe's Tower as scroll
+-/// crafting's real owner; it sits on this tab until the campus rework moves it. When it
+-/// does, it lifts out of here as its own panel, which is part of why the scroll list is a
+-/// self-contained method rather than woven into the world-status refresh.</para>
++/// <para><b>The Scriptorium has moved.</b> R8 named the Scribe's Tower as scroll crafting's
++/// owner; on 2026-09-29 it lifted out of here into <c>CampusScribePanel</c> as planned.</para>
+ ///
+ /// <para>Extracted from <c>CampusScreen</c> on 2026-08-03. Rendering, wording and the
+ /// scribe transaction are unchanged.</para></summary>
+ public sealed class CampusExpeditionPanel : CampusPanel
+ {
+     private Label _worldStatus;
+-    private VBoxContainer _scriptoriumList;
+ 
+     protected override void OnBuild(ScrollContainer scroll)
+     {
+@@ -93,30 +91,18 @@ public sealed class CampusExpeditionPanel : CampusPanel
+         btnRow.AddChild(launchBtn);
+         layout.AddChild(btnRow);
+ 
+-        // ── S4: Scriptorium, scroll crafting (overworld_spell_system §8a) ──
+-        // INTERIM HOME: R8 confirmed the Scribe's Tower as scroll crafting's
+-        // owner, but the campus is mid-rework (R6: no building dependencies
+-        // in v1), so the Scriptorium sits ungated on this tab until the
+-        // rework gates/moves it. Price = SpellAcquisition.ScrollGoldCost,
+-        // THE §8a balance lever; scrolls bypass the Essence economy.
++        // Scroll crafting moved to the Scribe's Tower (2026-09-29, spec D7),
++        // its promised home; see CampusScribePanel.
+         layout.AddChild(new HSeparator());
+-        AddSectionHeader(layout, "Scriptorium: Scrolls");
+-
+-        var scrollHint = new Label
++        var scribeNote = new Label
+         {
+-            Text = "A scroll holds one cast of a spell the guild knows, usable by any " +
+-                   "school, consuming no Essence, spent on use. Overt magic on a scroll " +
+-                   "is still witnessed.",
++            Text = "Scrolls are scribed at the Scribe's Tower.",
+             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+         };
+-        scrollHint.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+-        scrollHint.Modulate = UITheme.CampusSubtleText;
+-        layout.AddChild(scrollHint);
+-
+-        _scriptoriumList = MakeVBox(6);
+-        layout.AddChild(_scriptoriumList);
++        scribeNote.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        scribeNote.Modulate = UITheme.CampusSubtleText;
++        layout.AddChild(scribeNote);
+ 
+-        RefreshScriptorium();
+         Refresh();
+     }
+ 
+@@ -171,97 +157,6 @@ public sealed class CampusExpeditionPanel : CampusPanel
+             $"Points of interest discovered: {discoveredPois}";
+     }
+ 
+-    // ═══════════════════════════════════════════════════════════════════════
+-    // Scriptorium (interim home; see class remarks)
+-    // ═══════════════════════════════════════════════════════════════════════
+-
+-    /// <summary>S4: rebuild the Scriptorium rows, one per scribable spell
+-    /// (the wizard's school innates + every learned spell; Attunements can't
+-    /// be scribed, and Emulate has nothing to remember on parchment).</summary>
+-    private void RefreshScriptorium()
+-    {
+-        if (_scriptoriumList == null)
+-            return;
+-        foreach (var child in _scriptoriumList.GetChildren())
+-            child.QueueFree();
+-
+-        var save = Ctx?.Save;
+-        var grim = save?.Cycle?.Grimoire;
+-        if (grim == null)
+-            return;
+-        OverworldSpellRegistry.EnsureLoaded();
+-
+-        // Scribable = school innates + known list, minus Attunements/Emulate.
+-        var scribable = new List<OverworldSpellDefinition>();
+-        void AddDef(OverworldSpellDefinition d)
+-        {
+-            if (d != null && !d.IsAttunement && d.EffectKey != "emulate" && !scribable.Contains(d))
+-                scribable.Add(d);
+-        }
+-        foreach (var innate in OverworldSpellRegistry.InnatesFor(save.Cycle.SelectedSchool))
+-            AddDef(innate);
+-        foreach (var id in grim.KnownSpellIds)
+-            AddDef(OverworldSpellRegistry.Get(id));
+-        scribable.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+-
+-        if (scribable.Count == 0)
+-        {
+-            var none = new Label
+-            {
+-                Text = "The guild knows nothing worth scribing yet. Spells are learned " +
+-                       "afield (lore sites, cordial deals, the dead).",
+-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+-            };
+-            none.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+-            none.Modulate = UITheme.CampusSubtleText;
+-            _scriptoriumList.AddChild(none);
+-            return;
+-        }
+-
+-        foreach (var def in scribable)
+-        {
+-            int cost = SpellAcquisition.ScrollGoldCost(def);
+-            grim.ScrollInventory.TryGetValue(def.Id, out int held);
+-
+-            var row = new HBoxContainer();
+-            row.AddThemeConstantOverride("separation", 10);
+-            _scriptoriumList.AddChild(row);
+-
+-            var name = new Label
+-            {
+-                Text = $"{def.Name}  ·  {def.Magnitude}" + (held > 0 ? $"  ·  ×{held} held" : ""),
+-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+-                TooltipText = def.Description,
+-            };
+-            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+-            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+-            row.AddChild(name);
+-
+-            var craftBtn = MakeButton($"Scribe ({cost} g)", 150, 34,
+-                UITheme.CampusSmallFontSize, isPrimary: false);
+-            craftBtn.Disabled = save.Gold < cost;
+-            string id = def.Id; // capture per-iteration
+-            craftBtn.Pressed += () =>
+-            {
+-                var s = Ctx?.Save;
+-                var g = s?.Cycle?.Grimoire;
+-                if (s == null || g == null || s.Gold < cost)
+-                    return;
+-                s.Gold -= cost;
+-                g.ScrollInventory[id] = g.ScrollInventory.TryGetValue(id, out int n) ? n + 1 : 1;
+-                SaveManager.MarkDirty();
+-                GD.Print($"[Scriptorium] Scribed '{id}' for {cost}g " +
+-                         $"(held ×{g.ScrollInventory[id]}, gold {s.Gold}).");
+-                // Narrow refresh, not RequestRefreshAll: scribing changes gold and this
+-                // list, nothing else. A full refresh would rebuild eight panels and drop
+-                // the player's scroll position mid-shopping.
+-                Ctx.RefreshGold?.Invoke();
+-                RefreshScriptorium();
+-            };
+-            row.AddChild(craftBtn);
+-        }
+-    }
+-
+     // ═══════════════════════════════════════════════════════════════════════
+     // Leaving campus
+     // ═══════════════════════════════════════════════════════════════════════
+diff --git a/Scripts/Systems/Campus/CampusGuildPanel.cs b/Scripts/Systems/Campus/CampusGuildPanel.cs
+index dd9eee6..0320afe 100644
+--- a/Scripts/Systems/Campus/CampusGuildPanel.cs
++++ b/Scripts/Systems/Campus/CampusGuildPanel.cs
+@@ -45,6 +45,7 @@ public sealed class CampusGuildPanel : CampusPanel
+     private VBoxContainer _guildIdentityContainer;
+     private VBoxContainer _guildResultContainer;
+     private VBoxContainer _declarationContainer;
++    private VBoxContainer _charterContainer;
+ 
+     // Last-run result snapshot (see RefreshGuildResultPanel): RunResultData is
+     // CONSUMED on first read because StrategicView's warfront resolution keys on
+@@ -79,6 +80,14 @@ public sealed class CampusGuildPanel : CampusPanel
+         _declarationContainer = MakeVBox(8);
+         layout.AddChild(_declarationContainer);
+ 
++        // ── Charters, filled by CharterSection (design §2b) ──────────────
++        // The hall is where a timeline declares what kind of guild it is:
++        // the doctrines chartered here are the only ones in force.
++        layout.AddChild(new HSeparator());
++        AddSectionHeader(layout, "Charters: the doctrines this timeline stands by");
++        _charterContainer = MakeVBox(8);
++        layout.AddChild(_charterContainer);
++
+         // ── Save slots ───────────────────────────────────────────────────
+         layout.AddChild(new HSeparator());
+         AddSectionHeader(layout, "Save Slots");
+@@ -149,9 +158,19 @@ public sealed class CampusGuildPanel : CampusPanel
+         RefreshGuildIdentityPanel();
+         RefreshGuildResultPanel();
+         RefreshDeclarations();
++        RefreshCharters();
+         RefreshSlots();
+     }
+ 
++    private void RefreshCharters()
++    {
++        CharterSection.Fill(_charterContainer, Ctx, () =>
++        {
++            Ctx?.RefreshGold?.Invoke();
++            RefreshCharters();
++        });
++    }
++
+     // ═════════════════════════════════════════════════════════════════════
+     //  Declare a Discipline (design doc §7)
+     // ═════════════════════════════════════════════════════════════════════
+@@ -834,6 +853,7 @@ public sealed class CampusGuildPanel : CampusPanel
+             CouncilSaveAssert.AssertAll();
+             ProgressionSaveAssert.AssertAll();
+             ArmorySaveAssert.AssertAll();   // Edge M6: belts, charges, bindings
++            CharterSaveAssert.AssertAll();  // campus doctrines: charters, fills
+         });
+ 
+         return panel;
+diff --git a/Scripts/Systems/Campus/CampusLocationRegistry.cs b/Scripts/Systems/Campus/CampusLocationRegistry.cs
+index f3d3637..014e176 100644
+--- a/Scripts/Systems/Campus/CampusLocationRegistry.cs
++++ b/Scripts/Systems/Campus/CampusLocationRegistry.cs
+@@ -33,6 +33,8 @@ public enum CampusPanelId
+     // a campus building, so dropping them shifts nothing else.
+     /// <summary>Q5: the Enchanter's Workshop (item enchanting + Cleanse).</summary>
+     Workshop = 9,
++    /// <summary>The Scribe's Tower (scrolls, spellglass, wands; spec D7).</summary>
++    Scribe = 10,
+ }
+ 
+ /// <summary>What activating a campus location does. Two shapes, because the campus systems
+@@ -121,6 +123,7 @@ public static class CampusLocationRegistry
+         "quests"     => CampusDestination.ToPanel(CampusPanelId.Quests),
+         "council"    => CampusDestination.ToPanel(CampusPanelId.Council),
+         "workshop"   => CampusDestination.ToPanel(CampusPanelId.Workshop),
++        "scribe"     => CampusDestination.ToPanel(CampusPanelId.Scribe),
+         // Scene destinations. These are the campus systems that were never tabs. They
+         // are reached today only as buttons on the Guild tab, which is exactly the
+         // arrangement the diegetic campus replaces: the Arcane Library IS the card
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index 1962f2c..dbc0eff 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -117,6 +117,9 @@ public partial class CampusScreen : Control
+     // Workshop tab (Q5)
+     private readonly CampusWorkshopPanel _workshopPanel = new();
+ 
++    // Scribe's Tower tab (spec D7; campus_building_upgrades_design_v1 §4)
++    private readonly CampusScribePanel _scribePanel = new();
++
+     // Expedition tab
+     private readonly CampusExpeditionPanel _expeditionPanel = new();
+     // NOTE: the Atlas and Window comparison-prototype tabs were removed once their 3D
+@@ -232,7 +235,7 @@ public partial class CampusScreen : Control
+         tabBar.Visible = !DiegeticHubOnly;
+         AddChild(tabBar);
+ 
+-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop" };
++        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe" };
+         // CampusPanelId's values ARE these indices. The map routes by enum, the bar routes
+         // by index, and nothing else ties them together. Reordering one without the other
+         // would silently send every building on the campus to the wrong room.
+@@ -325,6 +328,7 @@ public partial class CampusScreen : Control
+         _questsPanel.Build((ScrollContainer)_tabPanels[7], _ctx);
+         _councilTab.Build((ScrollContainer)_tabPanels[8], _ctx);
+         _workshopPanel.Build((ScrollContainer)_tabPanels[9], _ctx);
++        _scribePanel.Build((ScrollContainer)_tabPanels[10], _ctx);
+ 
+         // Layered last. See the construction note above.
+         AddChild(_campusNarrativePanel);
+@@ -425,6 +429,9 @@ public partial class CampusScreen : Control
+             case 9:
+                 _workshopPanel.Refresh();
+                 break;
++            case 10:
++                _scribePanel.Refresh();
++                break;
+             case 6:
+                 _recordsPanel.Refresh();
+                 break;
+@@ -890,6 +897,33 @@ public partial class CampusScreen : Control
+                 }
+             }
+ 
++            // Doctrines (campus_building_upgrades_design_v1 §2): name both choices
++            // before the player buys the tier, and say which one is in force after.
++            var doctrineTier = Charters.DoctrineTier(template);
++            if (doctrineTier != null && buildingSave.Tier + 1 >= doctrineTier.Tier)
++            {
++                var names = new System.Collections.Generic.List<string>();
++                foreach (var d in doctrineTier.Doctrines)
++                    names.Add(d.IsBlocked ? $"{d.Name} (not yet)" : d.Name);
++                string state = "";
++                if (buildingSave.Tier >= doctrineTier.Tier)
++                {
++                    var charter = Charters.EntryFor(save, buildingSave.Id);
++                    var active = charter != null ? Charters.Doctrine(buildingSave.Id, charter.DoctrineId) : null;
++                    state = active == null ? "  No doctrine chartered; charter one at the Grand Hall."
++                          : Charters.IsRefitting(save, buildingSave.Id) ? $"  {active.Name} holds from the next moon."
++                          : $"  In force: {active.Name}.";
++                }
++                var dl = new Label
++                {
++                    Text = $"Doctrines: {string.Join(" or ", names)}.{state}",
++                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
++                };
++                dl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
++                dl.AddThemeColorOverride("font_color", UITheme.BuildingNextText);
++                cardLayout.AddChild(dl);
++            }
++
+             // Built but not yet sited on the map, so the map's hex slots are
+             // otherwise empty for this building. Placement is separate from
+             // tier progression (a building can be upgraded whether or not
+diff --git a/Scripts/Systems/Campus/CampusScribePanel.cs b/Scripts/Systems/Campus/CampusScribePanel.cs
+new file mode 100644
+index 0000000..accdb5d
+--- /dev/null
++++ b/Scripts/Systems/Campus/CampusScribePanel.cs
+@@ -0,0 +1,368 @@
++using Godot;
++using System.Collections.Generic;
++using static CampusUi;
++
++// ============================================================
++// CampusScribePanel.cs
++//
++// Purpose:        The Scribe's Tower's room: overworld scrolls,
++//                 spellglass sealing and (Wandwright) wand rebinding.
++//                 Replaces the interim Scriptorium sections that lived
++//                 on the Armory and Expedition tabs (both pointed here
++//                 as the eventual home, R8/D7).
++// Layer:          UI (campus)
++// Collaborators:  ScribesTower.cs (every gate and transaction),
++//                 Charters.cs (doctrine state for the header line),
++//                 CampusPanel / CampusScreen (hosting),
++//                 CampusLocationRegistry ("scribe" door).
++// See:            docs/campus_building_upgrades_design_v1.md §4
++// ============================================================
++
++/// <summary>The Scribe's Tower tab. Standard panel contract: build empty
++/// containers, fill in Refresh, tolerate a null save.</summary>
++public sealed class CampusScribePanel : CampusPanel
++{
++    private VBoxContainer _container;
++
++    /// <summary>Wand instance id → the card chosen in its rebind picker. Kept
++    /// across refreshes so a rebuild does not reset a half-made choice.</summary>
++    private readonly Dictionary<string, string> _rebindChoice = new();
++
++    protected override void OnBuild(ScrollContainer scroll)
++    {
++        var margins = MakeMargins(32, 20);
++        scroll.AddChild(margins);
++        var layout = MakeVBox(10);
++        margins.AddChild(layout);
++
++        AddSectionHeader(layout, "The Scribe's Tower");
++        var note = new Label
++        {
++            Text = "Scrolls for the road, spells sealed in glass for the fight, and the " +
++                   "binding of wands. Glass and scrolls wait in the Armory once made.",
++            AutowrapMode = TextServer.AutowrapMode.WordSmart,
++        };
++        note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        note.Modulate = UITheme.CampusSubtleText;
++        layout.AddChild(note);
++        layout.AddChild(new HSeparator());
++
++        _container = MakeVBox(8);
++        layout.AddChild(_container);
++    }
++
++    public override void Refresh()
++    {
++        if (_container == null)
++        {
++            return;
++        }
++        foreach (var child in _container.GetChildren())
++        {
++            child.QueueFree();
++        }
++
++        var save = Ctx?.Save;
++        if (save == null)
++        {
++            _container.AddChild(MakeStubLabel("Select a save slot to open the Tower."));
++            return;
++        }
++
++        int tier = ScribesTower.Tier(save);
++        if (tier < 1)
++        {
++            _container.AddChild(MakeStubLabel(
++                "The Scribe's Tower is not yet built. Raise it on the campus to scribe scrolls and seal spellglass."));
++            return;
++        }
++
++        AddLine(_container, TierLine(save, tier), UITheme.TextPrimary);
++
++        BuildScrolls(save);
++        _container.AddChild(new HSeparator());
++        BuildSpellglass(save);
++        _container.AddChild(new HSeparator());
++        BuildWands(save, tier);
++    }
++
++    private static string TierLine(GuildSaveData save, int tier)
++    {
++        string doctrine = ScribesTower.GlasswrightActive(save) ? " Glasswright chartered."
++                        : ScribesTower.WandwrightActive(save) ? " Wandwright chartered."
++                        : Charters.IsRefitting(save, ScribesTower.Id) ? " A doctrine is being fitted; it holds from the next moon."
++                        : tier >= 3 ? " No doctrine chartered: charter one at the Grand Hall."
++                        : "";
++        return tier switch
++        {
++            1 => "Tower tier 1: scrolls, and Common spellglass.",
++            2 => "Tower tier 2: Common and Uncommon spellglass; field parties' wands recharge at staging anchors and the castle.",
++            _ => "Tower tier 3: the tier 2 craft, and a doctrine." + doctrine,
++        };
++    }
++
++    // ── Scrolls ──────────────────────────────────────────────────────────
++
++    private void BuildScrolls(GuildSaveData save)
++    {
++        AddSubheader(_container, "Scrolls");
++        AddLine(_container,
++            "A scroll holds one cast of a spell the guild knows, usable by any school, " +
++            "consuming no Essence, spent on use. Overt magic on a scroll is still witnessed.",
++            UITheme.TextDim);
++
++        var scribable = ScribesTower.Scribable(save);
++        if (scribable.Count == 0)
++        {
++            _container.AddChild(MakeStubLabel(
++                "The guild knows nothing worth scribing yet. Spells are learned afield " +
++                "(lore sites, cordial deals, the dead)."));
++            return;
++        }
++
++        var grim = save.Cycle.Grimoire;
++        foreach (var def in scribable)
++        {
++            int cost = SpellAcquisition.ScrollGoldCost(def);
++            grim.ScrollInventory.TryGetValue(def.Id, out int held);
++
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 10);
++            _container.AddChild(row);
++
++            var name = new Label
++            {
++                Text = $"{def.Name}  ·  {def.Magnitude}" + (held > 0 ? $"  ·  ×{held} held" : ""),
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++                TooltipText = def.Description,
++            };
++            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
++            row.AddChild(name);
++
++            var btn = MakeButton($"Scribe ({cost} g)", 150, 34, UITheme.CampusSmallFontSize, isPrimary: false);
++            btn.Disabled = save.Gold < cost;
++            var captured = def;
++            btn.Pressed += () =>
++            {
++                string line = ScribesTower.TryScribe(Ctx?.Save, captured);
++                if (line != null)
++                {
++                    Ctx.RefreshGold?.Invoke();
++                    Refresh();
++                }
++            };
++            row.AddChild(btn);
++        }
++    }
++
++    // ── Spellglass ───────────────────────────────────────────────────────
++
++    private void BuildSpellglass(GuildSaveData save)
++    {
++        AddSubheader(_container, "Spellglass");
++        AddLine(_container,
++            "A combat spell the guild has unlocked, sealed in glass. Any unit shatters it for " +
++            "one cast, mana or no mana, for 1 AP. Carried on a belt." +
++            (ScribesTower.GlasswrightActive(save)
++                ? " Glasswright: the glass keeps the card's upgrades as your best copy has them."
++                : ""),
++            UITheme.TextDim);
++
++        var candidates = ScribesTower.SealCandidates(save);
++        if (candidates.Count == 0)
++        {
++            _container.AddChild(MakeStubLabel("Nothing the guild knows can be sealed yet."));
++            return;
++        }
++
++        foreach (var bp in candidates)
++        {
++            // Rares only appear once the Glasswright could seal them; listing
++            // every Rare as a greyed row would bury the ones you can make.
++            if (bp.Rarity == CardRarity.Rare && !ScribesTower.GlasswrightActive(save))
++            {
++                continue;
++            }
++
++            var half = ScribesTower.SealPreview(save, bp) ?? bp.Prebuilt.TopHalf;
++            int cost = ScribesTower.SealGold(bp.Rarity);
++            int held = CountHeldGlass(save, bp.Id);
++            string why = ScribesTower.CannotSealReason(save, bp);
++
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 10);
++            _container.AddChild(row);
++
++            var name = new Label
++            {
++                Text = $"{half.Name}  ·  {bp.School}  ·  {bp.Rarity}" + (held > 0 ? $"  ·  ×{held} held" : ""),
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++                TooltipText = half.RulesText,
++            };
++            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++            name.AddThemeColorOverride("font_color", why == null ? UITheme.TextPrimary : UITheme.TextDim);
++            row.AddChild(name);
++
++            var btn = MakeButton($"Seal ({cost} g)", 150, 34, UITheme.CampusSmallFontSize, isPrimary: false);
++            btn.Disabled = why != null;
++            btn.TooltipText = why ?? "";
++            string cardId = bp.Id;
++            btn.Pressed += () =>
++            {
++                string line = ScribesTower.TrySeal(Ctx?.Save, cardId);
++                if (line != null)
++                {
++                    Ctx.Toasts?.Push(line, QuestToastKind.Progress);
++                    Ctx.RefreshGold?.Invoke();
++                    Refresh();
++                }
++            };
++            row.AddChild(btn);
++        }
++    }
++
++    private static int CountHeldGlass(GuildSaveData save, string blueprintId)
++    {
++        int n = 0;
++        foreach (var inst in save.Armory.OwnedItems)
++        {
++            if (inst.DefinitionId == "spellglass" && inst.BoundCardId == blueprintId)
++            {
++                n++;
++            }
++        }
++        return n;
++    }
++
++    // ── Wands ────────────────────────────────────────────────────────────
++
++    private void BuildWands(GuildSaveData save, int tier)
++    {
++        AddSubheader(_container, "Wands");
++        AddLine(_container,
++            "Wands recharge at home when an expedition ends and with each new moon. " +
++            (tier >= 2
++                ? "The Tower's second tier lets a field party recharge its wands at any staging anchor or the parked castle."
++                : "At the Tower's second tier, a field party also recharges its wands at staging anchors and the castle."),
++            UITheme.TextDim);
++
++        if (!ScribesTower.WandwrightActive(save))
++        {
++            AddLine(_container, tier >= 3
++                    ? "Rebinding a wand to another spell needs the Wandwright chartered at the Grand Hall."
++                    : "Rebinding wands is a tier 3 doctrine (the Wandwright).",
++                UITheme.TextDim);
++            return;
++        }
++
++        var wands = new List<(ItemInstance inst, ItemDefinition def)>();
++        foreach (var inst in save.Armory.OwnedItems)
++        {
++            var def = ItemDatabase.Get(inst.DefinitionId);
++            if (def != null && def.IsWand)
++            {
++                wands.Add((inst, def));
++            }
++        }
++        if (wands.Count == 0)
++        {
++            _container.AddChild(MakeStubLabel("The Armory holds no wands. Markets and loot carry them."));
++            return;
++        }
++
++        var candidates = ScribesTower.RebindCandidates(save);
++        if (candidates.Count == 0)
++        {
++            _container.AddChild(MakeStubLabel("The guild knows no spell a wand can hold."));
++            return;
++        }
++
++        foreach (var (inst, def) in wands)
++        {
++            string current = inst.EffectiveBoundCardId(def);
++            var currentBp = CardDatabase.Blueprints.Find(b => b.Id == current);
++            string currentName = currentBp?.Prebuilt?.TopHalf?.Name ?? current;
++
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 10);
++            _container.AddChild(row);
++
++            var name = new Label
++            {
++                Text = $"{inst.Name}  ·  casts {currentName}  ·  charge {System.Math.Max(0, inst.Charges)}/{def.MaxCharges}",
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++            };
++            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++            name.AddThemeColorOverride("font_color", UITheme.TextPrimary);
++            row.AddChild(name);
++
++            var picker = new OptionButton { CustomMinimumSize = new Vector2(220, 34) };
++            picker.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            string wandId = inst.InstanceId;
++            _rebindChoice.TryGetValue(wandId, out string chosen);
++            int selected = -1;
++            for (int i = 0; i < candidates.Count; i++)
++            {
++                var bp = candidates[i];
++                picker.AddItem($"{bp.Prebuilt.TopHalf.Name} ({bp.School})", i);
++                if (bp.Id == chosen)
++                {
++                    selected = i;
++                }
++            }
++            if (selected < 0)
++            {
++                selected = 0;
++                _rebindChoice[wandId] = candidates[0].Id;
++            }
++            picker.Select(selected);
++            picker.ItemSelected += idx =>
++            {
++                if (idx >= 0 && idx < candidates.Count)
++                {
++                    _rebindChoice[wandId] = candidates[(int)idx].Id;
++                    Refresh();
++                }
++            };
++            row.AddChild(picker);
++
++            string pick = _rebindChoice[wandId];
++            string why = ScribesTower.CannotRebindReason(save, inst, pick);
++            var btn = MakeButton($"Rebind ({ScribesTower.RebindGold} g)", 150, 34, UITheme.CampusSmallFontSize, isPrimary: false);
++            btn.Disabled = why != null;
++            btn.TooltipText = why ?? "";
++            btn.Pressed += () =>
++            {
++                var s = Ctx?.Save;
++                var wand = s?.Armory?.GetInstance(wandId);
++                string line = ScribesTower.TryRebind(s, wand, _rebindChoice[wandId]);
++                if (line != null)
++                {
++                    Ctx.Toasts?.Push(line, QuestToastKind.Progress);
++                    Ctx.RefreshGold?.Invoke();
++                    Refresh();
++                }
++            };
++            row.AddChild(btn);
++        }
++    }
++
++    // ── Small helpers ────────────────────────────────────────────────────
++
++    private static void AddSubheader(VBoxContainer parent, string text)
++    {
++        var lbl = new Label { Text = text };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++        lbl.AddThemeColorOverride("font_color", UITheme.Gold);
++        parent.AddChild(lbl);
++    }
++
++    private static void AddLine(VBoxContainer parent, string text, Color color)
++    {
++        var lbl = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        lbl.AddThemeColorOverride("font_color", color);
++        parent.AddChild(lbl);
++    }
++}
+diff --git a/Scripts/Systems/Campus/CampusWorkshopPanel.cs b/Scripts/Systems/Campus/CampusWorkshopPanel.cs
+index 974f771..d443cd3 100644
+--- a/Scripts/Systems/Campus/CampusWorkshopPanel.cs
++++ b/Scripts/Systems/Campus/CampusWorkshopPanel.cs
+@@ -35,8 +35,9 @@ public class CampusWorkshopPanel : CampusPanel
+         var note = new Label
+         {
+             Text = "The guild's sole venue for item mutation: one enchant slot per item, " +
+-                   "handcrafted scripts only. Blighted spoils can be cleansed here once " +
+-                   "the Unbinding Floor stands.",
++                   "handcrafted scripts only. At its third tier the Workshop takes a doctrine, " +
++                   "chartered at the Grand Hall: the Unbinding Floor cleanses blight, the " +
++                   "Attunement Forge rebinds staves.",
+             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+         };
+         note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+@@ -70,14 +71,19 @@ public class CampusWorkshopPanel : CampusPanel
+             return;
+         }
+ 
++        string doctrine = WorkshopEnchants.CanCleanse(save) ? "full catalog, and the Unbinding Floor (Cleanse)."
++                        : WorkshopEnchants.CanAttune(save) ? "full catalog, and the Attunement Forge (staves)."
++                        : Charters.IsRefitting(save, WorkshopEnchants.BuildingId) ? "full catalog; a doctrine is being fitted and holds from the next moon."
++                        : "full catalog; no doctrine chartered (charter one at the Grand Hall).";
+         var tierLabel = new Label
+         {
+             Text = $"Workshop tier {tier}: " + tier switch
+             {
+                 1 => "stat-line enchants.",
+                 2 => "stat lines and scripted effects.",
+-                _ => "full catalog, and the Unbinding Floor (Cleanse).",
++                _ => doctrine,
+             },
++            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+         };
+         tierLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+         _container.AddChild(tierLabel);
+@@ -136,12 +142,13 @@ public class CampusWorkshopPanel : CampusPanel
+             blight.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+             col.AddChild(blight);
+ 
++            bool canCleanse = WorkshopEnchants.CanCleanse(save);
+             var cleanse = new Button
+             {
+-                Text = tier >= 3
++                Text = canCleanse
+                     ? $"Cleanse ({WorkshopEnchants.CleanseGold}g + {WorkshopEnchants.CleanseSplinters} splinters)"
+-                    : "Cleanse (requires the Unbinding Floor, tier 3)",
+-                Disabled = tier < 3 || save.Gold < WorkshopEnchants.CleanseGold
++                    : "Cleanse (requires the Unbinding Floor, chartered at the Grand Hall)",
++                Disabled = !canCleanse || save.Gold < WorkshopEnchants.CleanseGold
+                            || save.ArcaneSplinters < WorkshopEnchants.CleanseSplinters,
+                 SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+             };
+@@ -151,14 +158,17 @@ public class CampusWorkshopPanel : CampusPanel
+             cleanse.Pressed += () =>
+             {
+                 var it = FindItem(capturedId);
+-                if (it != null && WorkshopEnchants.TryCleanse(it,
+-                        CouncilQueries.BuildingTier(Ctx?.Save, "enchanters_workshop")) != null)
++                if (it != null && WorkshopEnchants.TryCleanse(it) != null)
+                     Refresh();
+             };
+             col.AddChild(cleanse);
+             return card; // sealed slot, so no enchant verbs while blighted
+         }
+ 
++        // Attunement Forge: a staff's Innate card can be rebound (M7 binding).
++        if (def != null && def.IsStaff && WorkshopEnchants.CanAttune(save))
++            col.AddChild(BuildAttuneRow(item, def, save));
++
+         // Enchant slot state
+         var slotLabel = new Label
+         {
+@@ -204,6 +214,71 @@ public class CampusWorkshopPanel : CampusPanel
+         return card;
+     }
+ 
++    /// <summary>Wand-style picker for the Attunement Forge: choose a deck card,
++    /// pay, and the staff opens every fight with it.</summary>
++    private readonly Dictionary<string, string> _attuneChoice = new();
++
++    private Control BuildAttuneRow(ItemInstance staff, ItemDefinition def, GuildSaveData save)
++    {
++        var row = new HBoxContainer();
++        row.AddThemeConstantOverride("separation", 8);
++
++        var candidates = WorkshopEnchants.AttuneCandidates(save);
++        string bound = staff.EffectiveBoundCardId(def);
++        var boundBp = CardDatabase.Blueprints.Find(b => b.Id == bound);
++        var current = new Label
++        {
++            Text = $"Opens with: {(boundBp != null ? CardDatabase.GetDisplayName(boundBp) : "nothing")}",
++            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++            AutowrapMode = TextServer.AutowrapMode.WordSmart,
++        };
++        current.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        row.AddChild(current);
++        if (candidates.Count == 0)
++            return row;
++
++        string staffId = staff.InstanceId;
++        _attuneChoice.TryGetValue(staffId, out string chosen);
++        var picker = new OptionButton { CustomMinimumSize = new Vector2(240, 30) };
++        picker.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        int selected = 0;
++        for (int i = 0; i < candidates.Count; i++)
++        {
++            picker.AddItem(CardDatabase.GetDisplayName(candidates[i]), i);
++            if (candidates[i].Id == chosen)
++                selected = i;
++        }
++        _attuneChoice[staffId] = candidates[selected].Id;
++        picker.Select(selected);
++        picker.ItemSelected += idx =>
++        {
++            if (idx >= 0 && idx < candidates.Count)
++            {
++                _attuneChoice[staffId] = candidates[(int)idx].Id;
++                Refresh();
++            }
++        };
++        row.AddChild(picker);
++
++        string why = WorkshopEnchants.CannotAttuneReason(save, staff, _attuneChoice[staffId]);
++        var btn = new Button
++        {
++            Text = $"Attune ({WorkshopEnchants.AttuneGold}g)",
++            Disabled = why != null,
++            TooltipText = why ?? "",
++        };
++        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        UITheme.ApplyButtonStyle(btn, isPrimary: false);
++        btn.Pressed += () =>
++        {
++            var it = FindItem(staffId);
++            if (it != null && WorkshopEnchants.TryAttune(Ctx?.Save, it, _attuneChoice[staffId]) != null)
++                Refresh();
++        };
++        row.AddChild(btn);
++        return row;
++    }
++
+     private ItemInstance FindItem(string instanceId)
+     {
+         var save = Ctx?.Save;
+diff --git a/Scripts/Systems/Campus/CharterSection.cs b/Scripts/Systems/Campus/CharterSection.cs
+new file mode 100644
+index 0000000..cf4617b
+--- /dev/null
++++ b/Scripts/Systems/Campus/CharterSection.cs
+@@ -0,0 +1,162 @@
++using Godot;
++using System.Collections.Generic;
++using static CampusUi;
++
++// ============================================================
++// CharterSection.cs
++//
++// Purpose:        The Grand Hall's charter list (campus_building_
++//                 upgrades_design_v1 §2b): how many charters the hall
++//                 holds, which doctrines are chartered, and a Charter /
++//                 Unseat verb on every doctrine the campus has built.
++//                 A section, not a panel: it fills a container the
++//                 Guild panel owns, so the Grand Hall stays one room.
++// Layer:          UI (campus)
++// Collaborators:  Charters.cs (every rule), CampusGuildPanel.cs (host),
++//                 BuildingDatabase (templates), CampusContext
++//                 (refresh and toasts).
++// ============================================================
++
++/// <summary>Draws the charter list into a container. Stateless.</summary>
++public static class CharterSection
++{
++    /// <summary>Clear <paramref name="container"/> and draw the charters.
++    /// <paramref name="onChanged"/> runs after any charter changes (the host
++    /// refreshes itself and anything showing gold or materials).</summary>
++    public static void Fill(VBoxContainer container, CampusContext ctx, System.Action onChanged)
++    {
++        if (container == null)
++        {
++            return;
++        }
++        foreach (var child in container.GetChildren())
++        {
++            child.QueueFree();
++        }
++
++        var save = ctx?.Save;
++        if (save?.Cycle == null)
++        {
++            container.AddChild(MakeStubLabel("Select a save slot to see the charters."));
++            return;
++        }
++
++        int slots = Charters.Slots(save);
++        int used = Charters.Used(save);
++        string cost = Charters.NextFillIsFree(save)
++            ? "The next charter this timeline is free and holds at once."
++            : $"Every free charter this timeline is spent: a new or changed charter is a refit ({Charters.RefitMaterials} materials, holds from the next moon).";
++        AddLine(container,
++            $"Charters held: {used} / {slots}. A building's third tier offers two doctrines; only a chartered one is in force, and an unchartered building works at its second tier. {cost}",
++            UITheme.TextPrimary);
++
++        var buildings = new List<(Building template, BuildingTier tier)>();
++        foreach (var template in BuildingDatabase.LoadAll())
++        {
++            var tier = Charters.DoctrineTier(template);
++            if (tier != null && Charters.CanHoldDoctrine(save, template.Id))
++            {
++                buildings.Add((template, tier));
++            }
++        }
++        if (buildings.Count == 0)
++        {
++            container.AddChild(MakeStubLabel(
++                "No building has reached its doctrine tier yet. Raise one to its third tier to charter a doctrine."));
++            return;
++        }
++        buildings.Sort((a, b) => string.CompareOrdinal(a.template.Name, b.template.Name));
++
++        foreach (var (template, tier) in buildings)
++        {
++            container.AddChild(BuildBuildingCard(template, tier, save, ctx, onChanged));
++        }
++    }
++
++    private static Control BuildBuildingCard(Building template, BuildingTier tier, GuildSaveData save,
++                                             CampusContext ctx, System.Action onChanged)
++    {
++        var card = new PanelContainer();
++        card.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgCard, UITheme.Gold));
++        var pad = new MarginContainer();
++        pad.AddThemeConstantOverride("margin_left", 12);
++        pad.AddThemeConstantOverride("margin_right", 12);
++        pad.AddThemeConstantOverride("margin_top", 8);
++        pad.AddThemeConstantOverride("margin_bottom", 8);
++        card.AddChild(pad);
++        var col = MakeVBox(4);
++        pad.AddChild(col);
++
++        var entry = Charters.EntryFor(save, template.Id);
++        string state = entry == null ? "no charter"
++                     : Charters.IsRefitting(save, template.Id) ? "refitting, holds from the next moon"
++                     : "chartered";
++        var title = new Label { Text = $"{template.Name}  ·  {state}" };
++        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++        title.AddThemeColorOverride("font_color", UITheme.TextPrimary);
++        col.AddChild(title);
++
++        foreach (var d in tier.Doctrines)
++        {
++            bool isThis = entry != null && entry.DoctrineId == d.Id;
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 10);
++            col.AddChild(row);
++
++            var text = new Label
++            {
++                Text = $"{d.Name}: {d.Description}" + (d.IsBlocked ? $"  (Not yet: {d.Blocked})" : ""),
++                AutowrapMode = TextServer.AutowrapMode.WordSmart,
++                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
++            };
++            text.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            text.AddThemeColorOverride("font_color", isThis ? UITheme.Gold : d.IsBlocked ? UITheme.TextDim : UITheme.TextPrimary);
++            row.AddChild(text);
++
++            string buildingId = template.Id;
++            string doctrineId = d.Id;
++            if (isThis)
++            {
++                var unseat = MakeButton("Unseat", 120, 32, UITheme.CampusSmallFontSize, isPrimary: false);
++                unseat.TooltipText = "Frees this charter. The fill is not refunded.";
++                unseat.Pressed += () =>
++                {
++                    string line = Charters.Unseat(ctx?.Save, buildingId);
++                    if (line != null)
++                    {
++                        ctx.Toasts?.Push(line, QuestToastKind.Progress);
++                        onChanged?.Invoke();
++                    }
++                };
++                row.AddChild(unseat);
++                continue;
++            }
++
++            string why = Charters.CannotCharterReason(save, buildingId, doctrineId);
++            bool refit = Charters.IsRefit(save, buildingId);
++            var charter = MakeButton(refit ? $"Charter ({Charters.RefitMaterials} m)" : "Charter", 140, 32,
++                                     UITheme.CampusSmallFontSize, isPrimary: why == null);
++            charter.Disabled = why != null;
++            charter.TooltipText = why ?? (refit ? "A refit: paid in materials, in force from the next moon." : "Free, and in force at once.");
++            charter.Pressed += () =>
++            {
++                string line = Charters.TryCharter(ctx?.Save, buildingId, doctrineId);
++                if (line != null)
++                {
++                    ctx.Toasts?.Push(line, QuestToastKind.Progress);
++                    onChanged?.Invoke();
++                }
++            };
++            row.AddChild(charter);
++        }
++        return card;
++    }
++
++    private static void AddLine(VBoxContainer parent, string text, Color color)
++    {
++        var lbl = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        lbl.AddThemeColorOverride("font_color", color);
++        parent.AddChild(lbl);
++    }
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Items.cs b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+index 243556a..dbb08ff 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Items.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+@@ -78,7 +78,7 @@ public partial class CombatManager
+         string bound = inst.EffectiveBoundCardId(def);
+         if (!string.IsNullOrEmpty(bound))
+         {
+-            var half = BoundHalf(bound);
++            var half = BoundHalf(bound, inst.BoundTopTier, inst.BoundBotTier);
+             if (half != null)
+                 text = $"{half.Name}: {half.RulesText}";
+         }
+@@ -98,14 +98,22 @@ public partial class CombatManager
+         };
+     }
+ 
+-    /// <summary>The top half of the bound card, or null when the id is unknown.</summary>
+-    private static CardHalf BoundHalf(string blueprintId)
++    /// <summary>The top half of the bound card, or null when the id is unknown.
++    /// Glass sealed under the Glasswright carries upgrade tiers; the upgraded
++    /// half is cast, falling back to the printed card if the upgrade fails.</summary>
++    private static CardHalf BoundHalf(string blueprintId, int topTier = 0, int botTier = 0)
+     {
+         if (string.IsNullOrEmpty(blueprintId))
+             return null;
+         var bp = CardDatabase.Blueprints.Find(b => b.Id == blueprintId) ?? CardDatabase.GetByName(blueprintId);
+         if (bp == null)
+             return null;
++        if (topTier > 0 || botTier > 0)
++        {
++            var upgraded = CardUpgradeApplier.Apply(bp.Id, topTier, botTier);
++            if (upgraded?.TopHalf != null)
++                return upgraded.TopHalf;
++        }
+         var card = CardDatabase.Instantiate(bp);
+         return card?.TopHalf;
+     }
+@@ -135,7 +143,7 @@ public partial class CombatManager
+         string bound = inst.EffectiveBoundCardId(def);
+         if (def.IsWand || def.IsSpellglass)
+         {
+-            var half = BoundHalf(bound);
++            var half = BoundHalf(bound, inst.BoundTopTier, inst.BoundBotTier);
+             if (half == null)
+                 return $"Bound spell '{bound}' is not in the card database.";
+             if (!ItemCanAim(half.Targeting))
+@@ -192,7 +200,7 @@ public partial class CombatManager
+             return true;
+         }
+ 
+-        var half = BoundHalf(inst.EffectiveBoundCardId(def));
++        var half = BoundHalf(inst.EffectiveBoundCardId(def), inst.BoundTopTier, inst.BoundBotTier);
+         if (half == null)
+             return true;
+ 
+diff --git a/Scripts/Systems/Strategic/FieldMarch.cs b/Scripts/Systems/Strategic/FieldMarch.cs
+index 1c7b517..8999ce2 100644
+--- a/Scripts/Systems/Strategic/FieldMarch.cs
++++ b/Scripts/Systems/Strategic/FieldMarch.cs
+@@ -381,10 +381,11 @@ public static class FieldMarch
+         }
+ 
+         // Wands refill where the guild keeps people and a scribe's bench: a
+-        // staging anchor or the parked castle (2026-09-29; was "any sortie
+-        // ending anywhere refills every wand"). Before the hold check, so an
++        // staging anchor or the parked castle, once the Scribe's Tower reaches
++        // its second tier (2026-09-29, spec D7). Before the hold check, so an
+         // empty-handed arrival still recharges.
+-        if (here != null && (here.Kind == AnchorKind.Staging || here.Kind == AnchorKind.CastlePark))
++        if (here != null && (here.Kind == AnchorKind.Staging || here.Kind == AnchorKind.CastlePark)
++            && ScribesTower.RechargesAfield(SaveManager.ActiveSave))
+         {
+             int recharged = RefillPartyWands(cycle, party);
+             if (recharged > 0)
+diff --git a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+index 9002559..f8e4606 100644
+--- a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
++++ b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+@@ -60,6 +60,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+             or CampusPanelId.Training
+             or CampusPanelId.Records
+             or CampusPanelId.Workshop
++            or CampusPanelId.Scribe
+             or CampusPanelId.Quests => true,   // session-one extraction (2026-08-13)
+         _ => false,
+     };
+@@ -283,6 +284,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+         CampusPanelId.Training   => new CampusTrainingPanel(),
+         CampusPanelId.Records    => new CampusRecordsPanel(),
+         CampusPanelId.Workshop   => new CampusWorkshopPanel(),
++        CampusPanelId.Scribe     => new CampusScribePanel(),
+         CampusPanelId.Quests     => new CampusQuestsPanel(),
+         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "not a floatable panel"),
+     };
+diff --git a/Scripts/Systems/Verification/ArmorySaveAssert.cs b/Scripts/Systems/Verification/ArmorySaveAssert.cs
+index 19ba3c9..4cf1f66 100644
+--- a/Scripts/Systems/Verification/ArmorySaveAssert.cs
++++ b/Scripts/Systems/Verification/ArmorySaveAssert.cs
+@@ -67,6 +67,8 @@ public static class ArmorySaveAssert
+             BlightBonus = 1,
+             Charges = 2,
+             BoundCardId = "adept_magic_missile",
++            BoundTopTier = 2,
++            BoundBotTier = 1,
+         };
+         var rt = RoundTrip(src);
+ 
+@@ -82,6 +84,8 @@ public static class ArmorySaveAssert
+             ok &= Check(sb, "ItemInstance.BlightBonus", rt.BlightBonus == src.BlightBonus);
+             ok &= Check(sb, "ItemInstance.Charges", rt.Charges == src.Charges);
+             ok &= Check(sb, "ItemInstance.BoundCardId", rt.BoundCardId == src.BoundCardId);
++            ok &= Check(sb, "ItemInstance.BoundTopTier", rt.BoundTopTier == src.BoundTopTier);
++            ok &= Check(sb, "ItemInstance.BoundBotTier", rt.BoundBotTier == src.BoundBotTier);
+         }
+         else
+         {
+@@ -95,6 +99,8 @@ public static class ArmorySaveAssert
+         ok &= Check(sb, "ItemInstance.Charges default -1 on legacy JSON", legacy != null && legacy.Charges == -1);
+         ok &= Check(sb, "ItemInstance.BoundCardId default empty on legacy JSON",
+             legacy != null && string.IsNullOrEmpty(legacy.BoundCardId));
++        ok &= Check(sb, "ItemInstance.BoundTopTier/BotTier default 0 on legacy JSON",
++            legacy != null && legacy.BoundTopTier == 0 && legacy.BoundBotTier == 0);
+ 
+         sb.AppendLine(ok ? "  ItemInstance: PASS" : "  ItemInstance: FAIL");
+         return ok;
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+new file mode 100644
+index 0000000..a5a1afa
+--- /dev/null
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -0,0 +1,128 @@
++using Godot;
++using System.Collections.Generic;
++using System.Text;
++using System.Text.Json;
++
++// ============================================================
++// CharterSaveAssert.cs
++//
++// Purpose:        Save round-trip assertions for the charter structs
++//                 (campus_building_upgrades_design_v1 §2b): CharterEntry,
++//                 and CycleState.Charters / CharterFillsUsed. Same
++//                 serializer, same contract as ArmorySaveAssert: build
++//                 with distinctive non-default values, serialize with
++//                 SaveManager's options, deserialize, compare field by
++//                 field, and check the additive defaults on legacy JSON.
++// Layer:          Verification
++// Collaborators:  Charters.cs (CharterEntry), CycleState.cs,
++//                 SaveManager.cs (JsonOptions), CampusGuildPanel.cs
++//                 (the "Assert Round-Trips" debug button)
++// ============================================================
++
++public static class CharterSaveAssert
++{
++    /// <summary>Run every charter round-trip assertion. Prints a PASS/FAIL report
++    /// and PushErrors on any failure. Returns true only if all passed.</summary>
++    public static bool AssertAll()
++    {
++        var sb = new StringBuilder();
++        sb.AppendLine("=== CHARTER SAVE ROUND-TRIP ASSERTIONS ===");
++
++        bool ok = AssertCharterEntry(sb);
++        ok &= AssertCycleCharters(sb);
++
++        sb.AppendLine(ok
++            ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
++            : "RESULT: FAILURES ABOVE. A field is being dropped or renamed.");
++        GD.Print(sb.ToString());
++
++        if (!ok)
++        {
++            GD.PushError("[CharterSaveAssert] Round-trip assertion FAILED. See Output panel.");
++        }
++        return ok;
++    }
++
++    private static bool AssertCharterEntry(StringBuilder sb)
++    {
++        var src = new CharterEntry
++        {
++            BuildingId = "scribes_tower",
++            DoctrineId = "glasswright",
++            ActiveFromLunation = 7,
++        };
++        var rt = RoundTrip(src);
++
++        bool ok = rt != null;
++        if (rt != null)
++        {
++            ok &= Check(sb, "CharterEntry.BuildingId", rt.BuildingId == src.BuildingId);
++            ok &= Check(sb, "CharterEntry.DoctrineId", rt.DoctrineId == src.DoctrineId);
++            ok &= Check(sb, "CharterEntry.ActiveFromLunation", rt.ActiveFromLunation == src.ActiveFromLunation);
++        }
++        else
++        {
++            sb.AppendLine("    FAIL: CharterEntry deserialized to null.");
++        }
++
++        sb.AppendLine(ok ? "  CharterEntry: PASS" : "  CharterEntry: FAIL");
++        return ok;
++    }
++
++    private static bool AssertCycleCharters(StringBuilder sb)
++    {
++        var src = new CycleState
++        {
++            CharterFillsUsed = 3,
++            Charters = new List<CharterEntry>
++            {
++                new CharterEntry { BuildingId = "scribes_tower", DoctrineId = "wandwright", ActiveFromLunation = 2 },
++                new CharterEntry { BuildingId = "enchanters_workshop", DoctrineId = "unbinding_floor", ActiveFromLunation = 5 },
++            },
++        };
++        var rt = RoundTrip(src);
++
++        bool ok = rt != null;
++        if (rt != null)
++        {
++            ok &= Check(sb, "CycleState.CharterFillsUsed", rt.CharterFillsUsed == src.CharterFillsUsed);
++            ok &= Check(sb, "CycleState.Charters count", rt.Charters != null && rt.Charters.Count == 2);
++            if (rt.Charters != null && rt.Charters.Count == 2)
++            {
++                ok &= Check(sb, "CycleState.Charters[1].DoctrineId",
++                    rt.Charters[1].DoctrineId == "unbinding_floor" && rt.Charters[1].ActiveFromLunation == 5);
++            }
++        }
++        else
++        {
++            sb.AppendLine("    FAIL: CycleState deserialized to null.");
++        }
++
++        // The additive default: a cycle saved before charters existed reads as empty.
++        var legacy = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":2}", SaveManager.JsonOptions);
++        ok &= Check(sb, "CycleState.Charters empty (not null) on legacy JSON",
++            legacy != null && legacy.Charters != null && legacy.Charters.Count == 0);
++        ok &= Check(sb, "CycleState.CharterFillsUsed default 0 on legacy JSON",
++            legacy != null && legacy.CharterFillsUsed == 0);
++
++        sb.AppendLine(ok ? "  CycleState charters: PASS" : "  CycleState charters: FAIL");
++        return ok;
++    }
++
++    // ── Helpers (mirror ArmorySaveAssert) ─────────────────────────────────
++
++    private static T RoundTrip<T>(T obj)
++    {
++        string json = JsonSerializer.Serialize(obj, SaveManager.JsonOptions);
++        return JsonSerializer.Deserialize<T>(json, SaveManager.JsonOptions);
++    }
++
++    private static bool Check(StringBuilder sb, string field, bool equal)
++    {
++        if (!equal)
++        {
++            sb.AppendLine($"    FAIL: {field} did not survive the round-trip.");
++        }
++        return equal;
++    }
++}
+-- 
+2.43.0
+

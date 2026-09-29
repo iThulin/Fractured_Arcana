@@ -53,6 +53,12 @@ public static class SupplyCacheSystem
     public const int BaseYield = 6;
     /// <summary>Extra yield when a guild cache has an overseer (+50%).</summary>
     public const int OverseerYieldBonus = 3;
+    /// <summary>Build materials a GUILD cache sends home per lunation
+    /// (2026-09-29). Kingdom caches pay supplies only: materials are the
+    /// guild's building stock, and holding ground is how the campus grows.</summary>
+    public const int MaterialsYield = 15;
+    /// <summary>Extra materials when a guild cache has an overseer.</summary>
+    public const int OverseerMaterialsBonus = 10;
     /// <summary>Kingdom supply stock ceiling.</summary>
     public const int KingdomStockCap = 100;
     /// <summary>Stock every kingdom burns per lunation (armies eat).</summary>
@@ -286,6 +292,17 @@ public static class SupplyCacheSystem
         return n;
     }
 
+    /// <summary>Materials this cache sends the guild per lunation: 0 unless the
+    /// guild holds it; an overseer adds the bonus.</summary>
+    public static int MaterialsYieldOf(WorldPoi p)
+    {
+        if (ControllerOf(p) != GuildId)
+        {
+            return 0;
+        }
+        return MaterialsYield + (string.IsNullOrEmpty(p.OverseerCompanionId) ? 0 : OverseerMaterialsBonus);
+    }
+
     /// <summary>This cache's per-lunation yield (overseer bonus included).</summary>
     public static int YieldOf(WorldPoi p)
     {
@@ -416,7 +433,7 @@ public static class SupplyCacheSystem
         var world = cycle.World;
 
         // ── 1. Harvest ──────────────────────────────────────────────────────
-        int guildIncome = 0, guildCaches = 0;
+        int guildIncome = 0, guildCaches = 0, guildMaterials = 0;
         foreach (var p in world.Pois)
         {
             if (p.Kind != PoiKind.SupplyCache) continue;
@@ -427,6 +444,9 @@ public static class SupplyCacheSystem
                 cycle.Supplies += yield;
                 guildIncome += yield;
                 guildCaches++;
+                int mat = MaterialsYieldOf(p);
+                cycle.BuildMaterials += mat;
+                guildMaterials += mat;
             }
             else if (cycle.Kingdoms.TryGetValue(ctrl, out var k))
             {
@@ -436,7 +456,7 @@ public static class SupplyCacheSystem
         if (guildCaches > 0)
         {
             cycle.PendingSiegeReports.Add(
-                $"Supply lines: +{guildIncome} supplies from {guildCaches} " +
+                $"Supply lines: +{guildIncome} supplies and +{guildMaterials} materials from {guildCaches} " +
                 (guildCaches == 1 ? "cache." : "caches."));
         }
 

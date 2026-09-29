@@ -195,6 +195,11 @@ public static class PlayerSession
     /// Decremented at the charge site.</summary>
     public static int ChronoFlatMovesLeft = 0;
 
+    /// <summary>The Third Eye's portent was spent this sortie. Reset on a fresh
+    /// deploy only (like ChronoFlatMovesLeft), so returning from a fight does not
+    /// re-arm it: the portent is once per expedition, as its text says.</summary>
+    public static bool ScryingPortentSpentThisSortie = false;
+
     // ── Wizard expedition HP carry (K2.5 symmetry, 2026-07-29) ───────────
 
     /// <summary>The wizard's in-combat HP carried between fights of the same

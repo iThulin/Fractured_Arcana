@@ -487,7 +487,7 @@ public partial class CombatUI : CanvasLayer
 		_scrollsButton = new Button
 		{
 			Name = "ScrollsButton",
-			Text = "Scrolls",
+			Text = "Satchel",
 			TooltipText = "Use a consumable on the selected unit (one per unit per turn)",
 			CustomMinimumSize = new Vector2(110, 48),
 		};
@@ -821,7 +821,7 @@ public partial class CombatUI : CanvasLayer
 
 		var head = new HBoxContainer();
 		vbox.AddChild(head);
-		var title = MakeLabel("Scroll Satchel", UITheme.FontSizeSmall, UITheme.Gold);
+		var title = MakeLabel("Satchel", UITheme.FontSizeSmall, UITheme.Gold);
 		title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 		head.AddChild(title);
 		var close = new Button { Text = "✕" };

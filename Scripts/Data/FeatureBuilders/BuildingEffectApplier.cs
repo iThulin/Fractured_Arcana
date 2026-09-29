@@ -104,7 +104,9 @@ public static class BuildingEffectApplier
         if (save == null) return;
 
         // Reset to defaults before recomputing
-        save.MinDeckSize = 5;
+        // The deck floor lives in CardHalls.DeckFloor now (one floor for running
+        // and disenchanting, §13); this cached field mirrors its no-doctrine value.
+        save.MinDeckSize = CardHalls.BaseDeckFloor;
         save.MaxPartySize = 2;   // §4a baseline; growth is bought below
         if (save.Cycle != null)
         {
@@ -123,11 +125,6 @@ public static class BuildingEffectApplier
             {
                 if (tier.Tier > buildingSave.Tier) continue;
 
-                if (tier.UnlocksFeatures != null &&
-                    tier.UnlocksFeatures.Contains("deck_floor_reduced"))
-                {
-                    save.MinDeckSize = Math.Max(3, save.MinDeckSize - 2);
-                }
 
                 // (2026-08-13) Party-size growth via campus. §4a's lever.
                 save.MaxPartySize += tier.PartySizeBonus;

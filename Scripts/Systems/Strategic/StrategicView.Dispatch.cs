@@ -380,6 +380,10 @@ public partial class StrategicView
                  && !FieldMarch.CanOrderAtAll(cycle, party, out string partyWhy))
         {
             blocked = partyWhy;
+            if (CanSigilRecallHome(cycle, party))
+            {
+                blocked += " The Teleport Sigil can still call them home: press Move party.";
+            }
         }
         _ordersBlocked.Text = blocked ?? "";
         _ordersBlocked.Visible = !string.IsNullOrEmpty(blocked);

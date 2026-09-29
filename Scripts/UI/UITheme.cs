@@ -340,6 +340,14 @@ public static class UITheme
     /// Muted, because there is nothing to do there.</summary>
     public static readonly Color BuildingLabelPlain = new Color(0.74f, 0.71f, 0.67f, 1f);
 
+    /// <summary>The stain corrupted campus ground is tinted toward (CampusBlight,
+    /// campus_building_upgrades_design_v1 §11), and the text colour for a building's
+    /// blight line on its card. A sick violet, apart from every building label hue.</summary>
+    public static readonly Color CampusBlightTint = new Color(0.46f, 0.20f, 0.50f, 1f);
+
+    /// <summary>Text about blighted ground: the stain's hue, lifted to read on dark panels.</summary>
+    public static readonly Color CampusBlightText = new Color(0.80f, 0.58f, 0.88f, 1f);
+
     // ════════════════════════════════════════════════════════════
     // ELEMENT COLORS
     // ════════════════════════════════════════════════════════════

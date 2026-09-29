@@ -1,0 +1,763 @@
+From 8a2b94e4a439cfe4b84032073acb3502c2aabee2 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 14:03:25 -0600
+Subject: [PATCH] Training Grounds: stat tiers cut, Levy Muster and Proving
+ Grounds doctrines
+
+- T2 +1 attack damage and T3 +4 HP removed; stance slots and AP steps kept
+- T3 doctrine, chartered at the Grand Hall:
+  Levy Muster: a martial whose weapon has no maneuvers drills Brace;
+  garrison militia after 2 moons instead of 3
+  Proving Grounds: carry a second weapon (Forces screen), change to it in a
+  fight for 1 AP (class, maneuvers, attack damage and range); finishers later
+- Training Grounds reads its tier only while functional (sited, not overrun)
+- Martials now keep carried expedition HP (the removed HP line reset it)
+- Save assert for the carried weapon
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/training_grounds.json          |  24 +++-
+ Scripts/Data/FeatureBuilders/ItemDatabase.cs  |  63 +++++++++
+ .../Data/FeatureBuilders/ItemDefinition.cs    |   6 +
+ .../Data/FeatureBuilders/TrainingGrounds.cs   |  94 +++++++++++++
+ Scripts/Data/SaveState/GuildSaveData.cs       |   5 +-
+ Scripts/Systems/Campus/CampusTrainingPanel.cs |   6 +-
+ .../Combat/Core/CombatManager.Maneuvers.cs    |  18 ++-
+ .../Combat/Core/CombatManager.WeaponSwap.cs   | 130 ++++++++++++++++++
+ Scripts/Systems/Combat/Core/CombatManager.cs  |  17 ++-
+ Scripts/Systems/Strategic/FieldPostings.cs    |   8 +-
+ .../Systems/Verification/CharterSaveAssert.cs |  36 +++++
+ Scripts/UI/ForcesScreen.cs                    |  73 ++++++++++
+ 12 files changed, 463 insertions(+), 17 deletions(-)
+ create mode 100644 Scripts/Data/FeatureBuilders/TrainingGrounds.cs
+ create mode 100644 Scripts/Systems/Combat/Core/CombatManager.WeaponSwap.cs
+
+diff --git a/Data/Buildings/training_grounds.json b/Data/Buildings/training_grounds.json
+index a3c073c..9d53f39 100644
+--- a/Data/Buildings/training_grounds.json
++++ b/Data/Buildings/training_grounds.json
+@@ -4,13 +4,13 @@
+ 	"category": "Core",
+ 	"schoolAffinity": "",
+ 	"hostsSystem": "training",
+-	"description": "A yard where martial companions hone their skills between runs.",
++	"description": "A yard where martial companions drill between runs. Each tier opens a stance slot to learn in, and the veteran floor sets what kind of soldiers the guild raises.",
+ 	"tiers": [
+ 		{
+ 			"tier": 1,
+ 			"displayName": "Basic Training Grounds",
+ 			"goldCost": 80,
+-			"description": "Levy companions unlock their first stance slot.",
++			"description": "Martials learn a first stance here, and drill: +1 action point for Fighters, +2 for Rangers.",
+ 			"requiredBuildings": [],
+ 			"passiveEffects": [],
+ 			"activeEffects": []
+@@ -19,7 +19,7 @@
+ 			"tier": 2,
+ 			"displayName": "Drilling Yard",
+ 			"goldCost": 150,
+-			"description": "Companions unlock their second stance slot. Base attack damage +1.",
++			"description": "A second stance slot to learn in.",
+ 			"requiredBuildings": [],
+ 			"passiveEffects": [],
+ 			"activeEffects": []
+@@ -28,10 +28,22 @@
+ 			"tier": 3,
+ 			"displayName": "Veteran's Proving Grounds",
+ 			"goldCost": 280,
+-			"description": "Companions unlock their third stance slot. Base HP +4.",
++			"description": "A third stance slot and +1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight.",
+ 			"requiredBuildings": [],
+ 			"passiveEffects": [],
+-			"activeEffects": []
++			"activeEffects": [],
++			"doctrines": [
++				{
++					"id": "levy_muster",
++					"name": "Levy Muster",
++					"description": "Wide martials. A martial whose weapon teaches no maneuvers (an unclassed blade, or a class whose maneuvers are not written yet) drills Brace instead. Garrisons raise their militia after 2 moons instead of 3."
++				},
++				{
++					"id": "proving_grounds",
++					"name": "The Proving Grounds",
++					"description": "Tall martials. A martial may carry a second weapon and change to it in a fight for 1 AP, taking its class, maneuvers and attack. Stance finishers at 5 Edge are still to come."
++				}
++			]
+ 		}
+ 	]
+-}
+\ No newline at end of file
++}
+diff --git a/Scripts/Data/FeatureBuilders/ItemDatabase.cs b/Scripts/Data/FeatureBuilders/ItemDatabase.cs
+index 1005e9b..db4c91c 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDatabase.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDatabase.cs
+@@ -158,6 +158,8 @@ public class ArmoryData
+                     loadout.ClearSlot(slot);
+             }
+             loadout.BeltInstanceIds?.Remove(instanceId);   // M6: off the belt too
++            if (loadout.SecondWeaponInstanceId == instanceId)
++                loadout.SecondWeaponInstanceId = null;       // and out of the second hand
+         }
+         int removed = OwnedItems.RemoveAll(i => i.InstanceId == instanceId);
+         return removed > 0;
+@@ -213,6 +215,31 @@ public class ArmoryData
+         return loadout.BeltInstanceIds != null && loadout.BeltInstanceIds.Remove(instanceId);
+     }
+ 
++    // ── Carried second weapon (Proving Grounds, design §12) ─────────────
++
++    /// <summary>Carry a weapon as the unit's second. Refuses a non-weapon, the
++    /// weapon already in hand, or one equipped or carried by anyone. The doctrine
++    /// gate lives in TrainingGrounds.CannotCarryReason, not here.</summary>
++    public bool EquipSecondWeapon(string unitId, string instanceId)
++    {
++        var item = GetInstance(instanceId);
++        if (item == null || !string.Equals(item.Slot, "Weapon", StringComparison.OrdinalIgnoreCase))
++            return false;
++        if (!GetUnequipped().Exists(i => i.InstanceId == instanceId))
++            return false;
++        GetLoadout(unitId).SecondWeaponInstanceId = instanceId;
++        return true;
++    }
++
++    public void UnequipSecondWeapon(string unitId) => GetLoadout(unitId).SecondWeaponInstanceId = null;
++
++    /// <summary>The unit's carried second weapon, or null.</summary>
++    public ItemInstance GetSecondWeapon(string unitId)
++    {
++        string id = GetLoadout(unitId).SecondWeaponInstanceId;
++        return string.IsNullOrEmpty(id) ? null : GetInstance(id);
++    }
++
+     /// <summary>Which unit wears <paramref name="instanceId"/> in its trinket slot
+     /// (where wands go), or null when nobody does.</summary>
+     public string TrinketHolder(string instanceId)
+@@ -321,6 +348,8 @@ public class ArmoryData
+             if (loadout.BeltInstanceIds != null)
+                 foreach (var id in loadout.BeltInstanceIds)
+                     equipped.Add(id);   // M6: belted items are spoken for
++            if (!string.IsNullOrEmpty(loadout.SecondWeaponInstanceId))
++                equipped.Add(loadout.SecondWeaponInstanceId);   // carried in the second hand
+         }
+         return OwnedItems.Where(i => !equipped.Contains(i.InstanceId)).ToList();
+     }
+@@ -354,6 +383,18 @@ public class ResolvedLoadout
+     /// classed is equipped. Read once at spawn (locked at Muster, no mid-combat swap).</summary>
+     public WeaponClass WeaponClass = WeaponClass.None;
+ 
++    /// <summary>Proving Grounds (design §12): the carried second weapon, when the
++    /// doctrine is in force and one is carried. A swap trades the weapon class
++    /// and the two weapons' printed attack damage and range; enchants, drawbacks
++    /// and passives stay with the weapon the unit mustered with.</summary>
++    public bool HasSecondWeapon = false;
++    public WeaponClass SecondWeaponClass = WeaponClass.None;
++    public string SecondWeaponName = "";
++    public string PrimaryWeaponName = "";
++    /// <summary>Second minus primary, printed stats only.</summary>
++    public int SecondAttackDamageDelta = 0;
++    public int SecondAttackRangeDelta = 0;
++
+     // All passive tags active on this unit (one per equipped item max)
+     // Param added 2026-08-13 for the school-keyed passives (empty for the rest).
+     public List<(ItemPassiveTag tag, int value, string param)> Passives = new();
+@@ -520,12 +561,34 @@ public static class EquipmentLoadout
+                     resolved.Passives.Add((tag, pv, def.PassiveParam ?? ""));
+             }
+ 
++            ResolveSecondWeapon(armory, unitId, resolved);
+             _loadouts[unitId] = resolved;
+         }
+ 
+         GD.Print($"EquipmentLoadout: Built loadouts for {_loadouts.Count} unit(s).");
+     }
+ 
++    /// <summary>Proving Grounds: fill the carried-weapon fields when the doctrine is
++    /// in force and the unit carries one.</summary>
++    private static void ResolveSecondWeapon(ArmoryData armory, string unitId, ResolvedLoadout resolved)
++    {
++        if (!TrainingGrounds.ProvingGroundsActive(SaveManager.ActiveSave))
++            return;
++        var second = armory.GetSecondWeapon(unitId);
++        var secondDef = second != null ? ItemDatabase.Get(second.DefinitionId) : null;
++        if (secondDef == null)
++            return;
++        var primary = armory.GetInstance(armory.GetLoadout(unitId).WeaponInstanceId ?? "");
++        var primaryDef = primary != null ? ItemDatabase.Get(primary.DefinitionId) : null;
++
++        resolved.HasSecondWeapon = true;
++        resolved.SecondWeaponClass = secondDef.WeaponClassValue;
++        resolved.SecondWeaponName = second.Name;
++        resolved.PrimaryWeaponName = primary != null ? primary.Name : "bare hands";
++        resolved.SecondAttackDamageDelta = secondDef.Stats.AttackDamage - (primaryDef?.Stats.AttackDamage ?? 0);
++        resolved.SecondAttackRangeDelta = secondDef.Stats.AttackRange - (primaryDef?.Stats.AttackRange ?? 0);
++    }
++
+     /// <summary>Q5: route one effect line (an enchant) into the resolved
+     /// loadout, using the same key vocabulary as definitions: "stat_*" →
+     /// bonus fields, overworld keys → party-summed fields, trigger keys →
+diff --git a/Scripts/Data/FeatureBuilders/ItemDefinition.cs b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+index 82919b3..b1a530e 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+@@ -316,6 +316,12 @@ public class UnitLoadout
+     public List<string> BeltInstanceIds = new();
+     public const int BeltSlots = 2;
+ 
++    /// <summary>Proving Grounds (Training Grounds doctrine, design §12): a second
++    /// weapon the martial carries and changes to mid-fight for 1 AP. Null when
++    /// none. Additive save field; outside the EquipmentSlot enum on purpose, so
++    /// the per-slot loops (stat totals, the three slot cards) never count it.</summary>
++    public string SecondWeaponInstanceId = null;
++
+     public string GetSlot(EquipmentSlot slot) => slot switch
+     {
+         EquipmentSlot.Weapon => WeaponInstanceId,
+diff --git a/Scripts/Data/FeatureBuilders/TrainingGrounds.cs b/Scripts/Data/FeatureBuilders/TrainingGrounds.cs
+new file mode 100644
+index 0000000..cc0e73d
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/TrainingGrounds.cs
+@@ -0,0 +1,94 @@
++using System.Collections.Generic;
++
++// ============================================================
++// TrainingGrounds.cs
++//
++// Purpose:        The Training Grounds' doctrines (campus_building_
++//                 upgrades_design_v1 §12). The old +1 damage (T2) and +4 HP
++//                 (T3) are gone; the stance slots and the AP steps stay.
++//                 T3 charters one of two doctrines at the Grand Hall:
++//                   Levy Muster (wide)  a martial whose weapon teaches no
++//                                       maneuvers drills Brace instead, and
++//                                       garrisons raise militia after 2 moons
++//                                       instead of 3.
++//                   Proving Grounds     a martial may carry a second weapon
++//                   (tall)              and change to it in a fight for 1 AP:
++//                                       its class (so its maneuvers and Honed
++//                                       rider) and its attack damage and
++//                                       range. Stance finishers at 5 Edge
++//                                       are the doctrine's second half, not
++//                                       built yet.
++// Layer:          Data / rules
++// Collaborators:  Charters (the gate), UnitLoadout.SecondWeaponInstanceId,
++//                 ArmoryData (Equip/UnequipSecondWeapon), EquipmentLoadout
++//                 (resolves the carried weapon), CombatManager.Maneuvers
++//                 (the tray and the swap), FieldPostings (militia),
++//                 ForcesScreen (the carried-weapon card).
++// ============================================================
++
++/// <summary>Training Grounds doctrine rules. Stateless.</summary>
++public static class TrainingGrounds
++{
++    public const string Id = "training_grounds";
++    public const string LevyMuster = "levy_muster";
++    public const string ProvingGrounds = "proving_grounds";
++
++    /// <summary>The maneuver Levy Muster drills into a martial with none of its own.</summary>
++    public const string LevyManeuverId = "brace";
++
++    /// <summary>Moons a garrison holds before its militia offer, under Levy Muster.</summary>
++    public const int LevyMilitiaMoons = 2;
++
++    public static bool LevyMusterActive(GuildSaveData save) => Charters.IsActive(save, Id, LevyMuster);
++
++    public static bool ProvingGroundsActive(GuildSaveData save) => Charters.IsActive(save, Id, ProvingGrounds);
++
++    /// <summary>Moons of garrison before a site's militia asks to serve.</summary>
++    public static int MilitiaMoons(GuildSaveData save)
++        => LevyMusterActive(save) ? LevyMilitiaMoons : FieldPostings.MilitiaAfterMoons;
++
++    /// <summary>The maneuvers a weapon class fields for this guild: the class's
++    /// own, or, when it has none, Levy Muster's drilled Brace.</summary>
++    public static List<ManeuverDefinition> ManeuversFor(GuildSaveData save, WeaponClass cls)
++    {
++        var own = ManeuverRegistry.ForWeaponClass(cls);
++        if (own.Count > 0 || !LevyMusterActive(save))
++        {
++            return own;
++        }
++        var drill = ManeuverRegistry.Get(LevyManeuverId);
++        return drill != null ? new List<ManeuverDefinition> { drill } : own;
++    }
++
++    /// <summary>True when this weapon class has no maneuvers of its own but the
++    /// guild drills one into it (the tray says so).</summary>
++    public static bool IsLevyDrill(GuildSaveData save, WeaponClass cls)
++        => ManeuverRegistry.ForWeaponClass(cls).Count == 0 && LevyMusterActive(save);
++
++    /// <summary>Why this companion cannot carry this item as a second weapon, or null.</summary>
++    public static string CannotCarryReason(GuildSaveData save, Companion c, ItemInstance item)
++    {
++        if (!ProvingGroundsActive(save))
++        {
++            return "Needs the Proving Grounds chartered at the Grand Hall.";
++        }
++        if (c == null || (c.UnitClass != "Fighter" && c.UnitClass != "Ranger"))
++        {
++            return "Only martials carry a second weapon.";
++        }
++        if (item == null || item.Slot != "Weapon")
++        {
++            return "Not a weapon.";
++        }
++        if (item.UnitClass == "Wizard")
++        {
++            return "A wizard's focus.";
++        }
++        var armory = save?.Armory;
++        if (armory != null && armory.GetLoadout(c.Id).WeaponInstanceId == item.InstanceId)
++        {
++            return "Already in hand.";
++        }
++        return null;
++    }
++}
+diff --git a/Scripts/Data/SaveState/GuildSaveData.cs b/Scripts/Data/SaveState/GuildSaveData.cs
+index 38ba0aa..cac81d6 100644
+--- a/Scripts/Data/SaveState/GuildSaveData.cs
++++ b/Scripts/Data/SaveState/GuildSaveData.cs
+@@ -165,11 +165,14 @@ public class GuildSaveData
+         _ => 3,
+     };
+ 
++    /// <summary>A building's tier while it works: 0 when unbuilt, unsited or
++    /// overrun by blight (campus corruption), so an overrun Training Grounds
++    /// stops drilling.</summary>
+     private int GetBuildingTier(string buildingId)
+     {
+         foreach (var b in Ledger.Buildings)
+             if (b.Id == buildingId)
+-                return b.Tier;
++                return b.IsFunctional ? b.Tier : 0;
+         return 0;
+     }
+ 
+diff --git a/Scripts/Systems/Campus/CampusTrainingPanel.cs b/Scripts/Systems/Campus/CampusTrainingPanel.cs
+index 2ef3771..a1ced68 100644
+--- a/Scripts/Systems/Campus/CampusTrainingPanel.cs
++++ b/Scripts/Systems/Campus/CampusTrainingPanel.cs
+@@ -65,8 +65,10 @@ public sealed class CampusTrainingPanel : CampusPanel
+         int tgTier = save.TrainingGroundsTier;
+         if (tgTier == 0)
+         {
+-            _container.AddChild(MakeStubLabel(
+-                "Build Training Grounds to unlock stance training."));
++            // TrainingGroundsTier reads 0 for an overrun building too (campus corruption).
++            _container.AddChild(MakeStubLabel(CampusBlight.Level(save, TrainingGrounds.Id) >= CampusBlight.MaxLevel
++                ? "The Training Grounds stand on overrun ground and have stopped working. Cleanse the land (on its campus card)."
++                : "Build Training Grounds to unlock stance training."));
+             return;
+         }
+ 
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index 7b02a3a..548ef60 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -82,7 +82,11 @@ public partial class CombatManager
+         }
+ 
+         var cards = new List<TechniqueCardView>();
+-        foreach (var m in ManeuverRegistry.ForWeaponClass(unit.WeaponClass))
++        // Training Grounds (design §12): Levy Muster drills Brace into a weapon
++        // with no maneuvers of its own; ManeuversFor returns the class's own otherwise.
++        var save = SaveManager.ActiveSave;
++        bool levyDrill = TrainingGrounds.IsLevyDrill(save, unit.WeaponClass);
++        foreach (var m in TrainingGrounds.ManeuversFor(save, unit.WeaponClass))
+         {
+             string why = ManeuverBlockReason(unit, m);
+             int cost = ManeuverEdgeCost(unit, m, null);
+@@ -105,7 +109,9 @@ public partial class CombatManager
+         }
+ 
+         string header;
+-        if (unit.WeaponClass == WeaponClass.None)
++        if (levyDrill && cards.Count > 0)
++            header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: Levy Muster drill.";
++        else if (unit.WeaponClass == WeaponClass.None)
+             header = $"Edge {unit.Edge}/{unit.MaxEdge}   No classed weapon: basic attack only.";
+         else if (cards.Count == 0)
+             header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: maneuvers arrive post-launch.";
+@@ -118,6 +124,9 @@ public partial class CombatManager
+         }
+         if (unit.ArmedReaction != null)
+             header += $"\nArmed: {unit.ArmedReaction.DisplayName}. {ReactionTriggerText(unit, unit.ArmedReaction)}";
++        var swapCard = WeaponSwapCardFor(unit);   // Proving Grounds: the carried weapon
++        if (swapCard != null)
++            cards.Add(swapCard);
+         foreach (var (inst, def) in pinned)
+             cards.Add(ItemCardView(unit, inst, def));   // Edge M6: items to the right
+         _techniqueTray.ShowCards(cards, header, StanceViewsFor(unit));
+@@ -165,6 +174,11 @@ public partial class CombatManager
+             return;
+         if (TryHandleItemCardPressed(maneuverId))   // Edge M6: "item:<instanceId>"
+             return;
++        if (maneuverId == SwapWeaponCardId)          // Proving Grounds: change weapons
++        {
++            TrySwapWeapon(selectedUnit);
++            return;
++        }
+         var m = ManeuverRegistry.Get(maneuverId);
+         if (m == null)
+             return;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.WeaponSwap.cs b/Scripts/Systems/Combat/Core/CombatManager.WeaponSwap.cs
+new file mode 100644
+index 0000000..fe4aad0
+--- /dev/null
++++ b/Scripts/Systems/Combat/Core/CombatManager.WeaponSwap.cs
+@@ -0,0 +1,130 @@
++using Godot;
++using System.Collections.Generic;
++
++// ============================================================
++// CombatManager.WeaponSwap.cs  (partial)
++//
++// Purpose:        The Proving Grounds' carried weapon (Training Grounds
++//                 doctrine, campus_building_upgrades_design_v1 §12). A
++//                 martial who mustered with a second weapon sees a
++//                 "Change to <weapon>" card in the technique tray; for
++//                 1 AP it swaps the unit's weapon class (so its maneuvers
++//                 and Honed rider) and the two weapons' printed attack
++//                 damage and range. Swapping back undoes it exactly.
++//                 Enchants, drawbacks and item passives stay with the
++//                 weapon the unit mustered with (ResolvedLoadout notes).
++//                 Edge is kept, as a stance switch keeps it.
++// Layer:          Combat rules (partial of CombatManager)
++// Collaborators:  ResolvedLoadout (HasSecondWeapon and deltas),
++//                 ApplyEquipmentLoadout (registers the carry),
++//                 CombatManager.Maneuvers (tray card + press routing),
++//                 MartialAPCosts.
++// ============================================================
++
++public partial class CombatManager
++{
++    /// <summary>Tray card id for the swap (never a maneuver id).</summary>
++    private const string SwapWeaponCardId = "swap:weapon";
++
++    /// <summary>AP to change weapons mid-fight.</summary>
++    private const int SwapWeaponAP = 1;
++
++    /// <summary>What a unit is NOT holding right now, and the stat deltas that
++    /// taking it up applies. The deltas negate on every swap.</summary>
++    private sealed class CarriedWeapon
++    {
++        public WeaponClass OtherClass;
++        public string OtherName = "";
++        public string HeldName = "";
++        public int AttackDamageDelta;
++        public int AttackRangeDelta;
++    }
++
++    private readonly Dictionary<Unit, CarriedWeapon> _carriedWeapons = new();
++
++    /// <summary>ApplyEquipmentLoadout hook: remember the unit's carried weapon.</summary>
++    private void RegisterCarriedWeapon(Unit unit, ResolvedLoadout loadout)
++    {
++        if (unit == null || loadout == null || !loadout.HasSecondWeapon)
++            return;
++        _carriedWeapons[unit] = new CarriedWeapon
++        {
++            OtherClass = loadout.SecondWeaponClass,
++            OtherName = loadout.SecondWeaponName,
++            HeldName = loadout.PrimaryWeaponName,
++            AttackDamageDelta = loadout.SecondAttackDamageDelta,
++            AttackRangeDelta = loadout.SecondAttackRangeDelta,
++        };
++        GD.Print($"[ProvingGrounds] {unit.Name} carries {loadout.SecondWeaponName} "
++                 + $"({WeaponClassLabel(loadout.SecondWeaponClass)}).");
++    }
++
++    /// <summary>The tray card for a unit that carries a second weapon, or null.</summary>
++    private TechniqueCardView WeaponSwapCardFor(Unit unit)
++    {
++        if (unit == null || !_carriedWeapons.TryGetValue(unit, out var carried))
++            return null;
++        string why = WeaponSwapBlockReason(unit);
++        string atk = carried.AttackDamageDelta == 0 ? "" : $" Attack {(carried.AttackDamageDelta > 0 ? "+" : "")}{carried.AttackDamageDelta}.";
++        string rng = carried.AttackRangeDelta == 0 ? "" : $" Range {(carried.AttackRangeDelta > 0 ? "+" : "")}{carried.AttackRangeDelta}.";
++        return new TechniqueCardView
++        {
++            Id = SwapWeaponCardId,
++            Title = $"Change to {carried.OtherName}",
++            Cost = $"{SwapWeaponAP} AP",
++            Text = $"Take up {WeaponClassLabel(carried.OtherClass)}: its maneuvers and rider.{atk}{rng} Edge is kept.",
++            Role = "Utility",
++            Enabled = why == null,
++            Tooltip = why ?? $"Put away {carried.HeldName} and take up {carried.OtherName}.",
++        };
++    }
++
++    private string WeaponSwapBlockReason(Unit u)
++    {
++        if (currentPhase != CombatPhase.PlayerTurn || isInDeploymentPhase)
++            return "Not your turn.";
++        if (!u.CanAct())
++            return $"{u.Name} cannot act.";
++        if (u.CurrentActionPoints < SwapWeaponAP)
++            return $"Needs {SwapWeaponAP} AP (has {u.CurrentActionPoints}).";
++        return null;
++    }
++
++    /// <summary>Change to the carried weapon. Returns true when it happened.</summary>
++    private bool TrySwapWeapon(Unit u)
++    {
++        if (u == null || !_carriedWeapons.TryGetValue(u, out var carried))
++            return false;
++        string why = WeaponSwapBlockReason(u);
++        if (why != null)
++        {
++            combatUI?.AppendActionLog(why);
++            return false;
++        }
++        if (!u.TrySpendAP(SwapWeaponAP))
++            return false;
++
++        DisarmManeuver(refresh: false);   // an armed card belonged to the old weapon
++
++        var heldClass = u.WeaponClass;
++        u.WeaponClass = carried.OtherClass;
++        u.AttackDamage += carried.AttackDamageDelta;
++        u.AttackRange += carried.AttackRangeDelta;
++
++        // What is now in the other hand: the one just put away.
++        carried.OtherClass = heldClass;
++        (carried.OtherName, carried.HeldName) = (carried.HeldName, carried.OtherName);
++        carried.AttackDamageDelta = -carried.AttackDamageDelta;
++        carried.AttackRangeDelta = -carried.AttackRangeDelta;
++
++        u.Stats.HasActed = true;   // it cost AP; it counts
++        RecordMartial(u, "weapon", carried.HeldName, u.Edge);
++        combatUI?.AppendActionLog($"{u.Name} takes up {carried.HeldName} ({WeaponClassLabel(u.WeaponClass)}).");
++        GD.Print($"[ProvingGrounds] {u.Name} swaps to {carried.HeldName}: class {u.WeaponClass}, "
++                 + $"ATK {u.AttackDamage}, range {u.AttackRange}.");
++
++        RefreshSelectedUnitUI();
++        RefreshPlayerUnitBar();
++        return true;
++    }
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 6d12704..b9e21bf 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -4477,11 +4477,10 @@ public partial class CombatManager : Node3D
+                     : (save?.FighterBaseAP ?? 3);
+                 unit.CurrentActionPoints = unit.MaxActionPoints;
+ 
+-                // Training Grounds stat bonuses
++                // Training Grounds: the +1 damage (T2) and +4 HP (T3) were cut
++                // (campus_building_upgrades_design_v1 §12, ruling 4). The tiers
++                // keep their stance slots and AP steps; T3 charters a doctrine.
+                 int tgTier = save?.TrainingGroundsTier ?? 0;
+-                unit.AttackDamage += tgTier >= 2 ? 1 : 0;
+-                unit.Stats.MaxHealth += tgTier >= 3 ? 4 : 0;
+-                unit.Stats.Health = unit.Stats.MaxHealth;
+ 
+                 // ── Stances: INNATE (2026-07-29 ruling) ───────────────────
+                 // A martial always fields EVERY stance on its list: the
+@@ -5899,6 +5898,14 @@ public partial class CombatManager : Node3D
+         unit.WeaponClass = def.WeaponClassValue;
+         unit.AttackDamage += def.Stats.AttackDamage;
+         unit.AttackRange = Math.Max(1, unit.AttackRange + def.Stats.AttackRange);
++        // Proving Grounds: a carried weapon's swap deltas were computed against the
++        // armory weapon; re-base them on the override so a swap lands exactly.
++        if (_carriedWeapons.TryGetValue(unit, out var carried))
++        {
++            carried.AttackDamageDelta += (equippedDef?.Stats.AttackDamage ?? 0) - def.Stats.AttackDamage;
++            carried.AttackRangeDelta += (equippedDef?.Stats.AttackRange ?? 0) - def.Stats.AttackRange;
++            carried.HeldName = def.Name;
++        }
+         GD.Print($"[Debug] {unit.Name} fields {def.Name} ({def.WeaponClass}) by launcher override.");
+     }
+ 
+@@ -5946,6 +5953,8 @@ public partial class CombatManager : Node3D
+ 
+         // Edge M2 (spec §6): the weapon's class decides the technique cards.
+         unit.WeaponClass = loadout.WeaponClass;
++        // Proving Grounds (design §12): a carried second weapon to change to.
++        RegisterCarriedWeapon(unit, loadout);
+ 
+         // ── Passive tags ──────────────────────────────────────────────────
+         unit.EquipmentPassives = new List<(ItemPassiveTag, int, string)>(loadout.Passives);
+diff --git a/Scripts/Systems/Strategic/FieldPostings.cs b/Scripts/Systems/Strategic/FieldPostings.cs
+index 0c63c9b..5020628 100644
+--- a/Scripts/Systems/Strategic/FieldPostings.cs
++++ b/Scripts/Systems/Strategic/FieldPostings.cs
+@@ -1260,7 +1260,11 @@ public static class FieldPostings
+     private static string RaiseMilitiaIfDue(CycleState cycle, FieldParty force, string zoneId, string placeName)
+     {
+         force.WorkProgress++;
+-        if (force.WorkProgress != MilitiaAfterMoons)
++        // Levy Muster (Training Grounds doctrine) raises militia a moon sooner.
++        // At-or-past rather than equal, so a doctrine chartered mid-garrison still
++        // pays; the FieldOffersMade key below keeps it once per site.
++        int moons = TrainingGrounds.MilitiaMoons(SaveManager.ActiveSave);
++        if (force.WorkProgress < moons)
+         {
+             return null;
+         }
+@@ -1277,7 +1281,7 @@ public static class FieldPostings
+         {
+             return null;
+         }
+-        string line = $"{offer.Name}, a local of {placeName}, asks to serve the guild after {MilitiaAfterMoons} moons of {force.Name}'s garrison. "
++        string line = $"{offer.Name}, a local of {placeName}, asks to serve the guild after {moons} moons of {force.Name}'s garrison. "
+                     + $"{offer.RecruitmentCost} gold on the Forces screen.";
+         ScryInbox.Post(cycle, ScryChannel.Messenger, "A local asks to serve", line, force.Id, "offer");
+         return line;
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+index e629d36..4675271 100644
+--- a/Scripts/Systems/Verification/CharterSaveAssert.cs
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -35,6 +35,7 @@ public static class CharterSaveAssert
+         ok &= AssertSeatFields(sb);
+         ok &= AssertPortalFields(sb);
+         ok &= AssertBlightFields(sb);
++        ok &= AssertCarriedWeapon(sb);
+ 
+         sb.AppendLine(ok
+             ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
+@@ -218,6 +219,41 @@ public static class CharterSaveAssert
+         return ok;
+     }
+ 
++    /// <summary>Proving Grounds (design §12): the carried second weapon on the
++    /// loadout, its legacy default, and the armory rules around it.</summary>
++    private static bool AssertCarriedWeapon(StringBuilder sb)
++    {
++        var armory = new ArmoryData();
++        armory.OwnedItems.Add(new ItemInstance { InstanceId = "w-1", DefinitionId = "iron_sword", Slot = "Weapon" });
++        armory.OwnedItems.Add(new ItemInstance { InstanceId = "w-2", DefinitionId = "hunters_bow", Slot = "Weapon" });
++        armory.OwnedItems.Add(new ItemInstance { InstanceId = "t-1", DefinitionId = "warriors_sigil", Slot = "Trinket" });
++        armory.Equip("torrin", "w-1");
++
++        bool carried = armory.EquipSecondWeapon("torrin", "w-2");
++        bool refusedHeld = !armory.EquipSecondWeapon("brannoc", "w-1");      // in torrin's hand
++        bool refusedTrinket = !armory.EquipSecondWeapon("brannoc", "t-1");   // not a weapon
++        bool ok = Check(sb, "ArmoryData.EquipSecondWeapon accepts a free weapon", carried);
++        ok &= Check(sb, "ArmoryData.EquipSecondWeapon refuses a held weapon and a non-weapon", refusedHeld && refusedTrinket);
++        ok &= Check(sb, "ArmoryData.GetUnequipped excludes a carried weapon",
++            !armory.GetUnequipped().Exists(i => i.InstanceId == "w-2"));
++
++        var rt = RoundTrip(armory);
++        ok &= Check(sb, "UnitLoadout.SecondWeaponInstanceId", rt != null
++            && rt.GetLoadout("torrin").SecondWeaponInstanceId == "w-2"
++            && rt.GetLoadout("torrin").WeaponInstanceId == "w-1");
++
++        armory.RemoveItem("w-2");
++        ok &= Check(sb, "ArmoryData.RemoveItem clears the carried weapon",
++            armory.GetLoadout("torrin").SecondWeaponInstanceId == null);
++
++        var legacy = JsonSerializer.Deserialize<UnitLoadout>("{\"weaponInstanceId\":\"w-9\"}", SaveManager.JsonOptions);
++        ok &= Check(sb, "UnitLoadout.SecondWeaponInstanceId null on legacy JSON",
++            legacy != null && legacy.SecondWeaponInstanceId == null && legacy.WeaponInstanceId == "w-9");
++
++        sb.AppendLine(ok ? "  Carried weapon (Proving Grounds): PASS" : "  Carried weapon (Proving Grounds): FAIL");
++        return ok;
++    }
++
+     // ── Helpers (mirror ArmorySaveAssert) ─────────────────────────────────
+ 
+     private static T RoundTrip<T>(T obj)
+diff --git a/Scripts/UI/ForcesScreen.cs b/Scripts/UI/ForcesScreen.cs
+index e3d11e3..be88af6 100644
+--- a/Scripts/UI/ForcesScreen.cs
++++ b/Scripts/UI/ForcesScreen.cs
+@@ -563,6 +563,20 @@ public partial class ForcesScreen : Control
+                 slots.AddChild(BuildSlotCard(c, slot, item, armory));
+             }
+ 
++            // Proving Grounds (Training Grounds doctrine, design §12): a second
++            // weapon to change to mid-fight. Shown while the doctrine is in force,
++            // and while anything is still carried, so it can always be put down.
++            var carried = armory.GetSecondWeapon(c.Id);
++            bool martial = c.UnitClass == "Fighter" || c.UnitClass == "Ranger";
++            if (carried != null || (martial && TrainingGrounds.ProvingGroundsActive(save)))
++            {
++                var carryRow = new HBoxContainer();
++                carryRow.AddThemeConstantOverride("separation", 8);
++                col.AddChild(carryRow);
++                carryRow.AddChild(BuildCarriedWeaponCard(c, carried, armory,
++                    TrainingGrounds.ProvingGroundsActive(save)));
++            }
++
+             // Edge M6 (R9): the belt, two slots of consumables or spellglass.
+             var beltRow = new HBoxContainer();
+             beltRow.AddThemeConstantOverride("separation", 8);
+@@ -709,6 +723,50 @@ public partial class ForcesScreen : Control
+         return panel;
+     }
+ 
++    /// <summary>Proving Grounds: the carried second weapon, with what it is.</summary>
++    private Control BuildCarriedWeaponCard(Companion c, ItemInstance item, ArmoryData armory, bool doctrineActive)
++    {
++        var panel = new PanelContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 72) };
++        var def = item != null ? ItemDatabase.Get(item.DefinitionId) : null;
++        Color edge = item != null ? UITheme.RarityColor(item.Rarity) : UITheme.NeutralDim;
++        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgRaised, edge));
++        var margin = new MarginContainer();
++        margin.AddThemeConstantOverride("margin_left", 8);
++        margin.AddThemeConstantOverride("margin_right", 8);
++        margin.AddThemeConstantOverride("margin_top", 6);
++        margin.AddThemeConstantOverride("margin_bottom", 6);
++        panel.AddChild(margin);
++        var box = new VBoxContainer();
++        box.AddThemeConstantOverride("separation", 2);
++        margin.AddChild(box);
++        AddLine(box, "CARRIED WEAPON  (Proving Grounds)", UITheme.TextDim);
++        if (item == null)
++        {
++            AddLine(box, "empty: Carry a weapon from the armory below. Changing to it in a fight costs 1 AP.",
++                UITheme.TextDim);
++            return panel;
++        }
++        AddLine(box, item.Name, edge);
++        AddLine(box, def != null
++            ? $"{CombatManager.WeaponClassLabel(def.WeaponClassValue)}  ·  {StatSummary(def)}"
++            : "", UITheme.TextSecondary);
++        if (!doctrineActive)
++        {
++            AddLine(box, "The Proving Grounds is not in force: it stays in the armory's keeping until then.",
++                UITheme.Warning);
++        }
++        var un = new Button { Text = "Put down", CustomMinimumSize = new Vector2(0, 30) };
++        UITheme.ApplyButtonStyle(un, isPrimary: false);
++        string cid = c.Id;
++        un.Pressed += () =>
++        {
++            armory.UnequipSecondWeapon(cid);
++            Changed();
++        };
++        box.AddChild(un);
++        return panel;
++    }
++
+     /// <summary>Edge M6: one of the two belt slots, with what it carries.</summary>
+     private Control BuildBeltCard(Companion c, int index, ItemInstance item, ArmoryData armory)
+     {
+@@ -799,6 +857,21 @@ public partial class ForcesScreen : Control
+             Changed();
+         };
+         row.AddChild(eq);
++
++        // Proving Grounds: a weapon may be carried as the second instead.
++        if (item.Slot == "Weapon"
++            && TrainingGrounds.CannotCarryReason(SaveManager.ActiveSave, c, item) == null)
++        {
++            var carry = new Button { Text = "Carry", CustomMinimumSize = new Vector2(80, 30),
++                                     TooltipText = "Carry as the second weapon (Proving Grounds)." };
++            UITheme.ApplyButtonStyle(carry, isPrimary: false);
++            carry.Pressed += () =>
++            {
++                armory.EquipSecondWeapon(cid, iid);
++                Changed();
++            };
++            row.AddChild(carry);
++        }
+         return row;
+     }
+ 
+-- 
+2.43.0
+

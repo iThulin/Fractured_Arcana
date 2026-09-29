@@ -1,0 +1,1033 @@
+From c48dd4872d54694af3157020f120fe823c546b6d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 02:34:16 -0600
+Subject: [PATCH] Campus doctrines slice 3: the Teleport Sigil and portal
+ strikes
+
+- T1 Waygate: guild outposts, secured sites, claimed shard zones and held caches become waystones
+- T2 Recall: detachments recalled from anywhere; a marching party can step home to the dock
+- T3 doctrine: Gate Network (Allied settlements are waystones); Sally Port listed, blocked
+- Portal strikes: hostile kingdoms learn the pattern, strike through the Sigil; home-city fight compiled around it; loss damages buildings and takes gold; seal to refuse
+- Building repair for materials; damaged buildings mend before they upgrade
+- Debug: force a portal strike; save asserts for the portal fields
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/teleport_sigil.json            |  70 +++-
+ Scripts/Data/SaveState/CycleState.cs          |  14 +
+ Scripts/Systems/Campus/CampusConstruction.cs  |  40 ++
+ Scripts/Systems/Campus/CampusGuildPanel.cs    |  19 +
+ Scripts/Systems/Campus/CampusScreen.cs        |  28 ++
+ Scripts/Systems/Strategic/FieldMarch.cs       |  13 +-
+ Scripts/Systems/Strategic/FieldPostings.cs    |   6 +-
+ .../Strategic/HomeBuildingPanelHost.cs        |  26 ++
+ .../Strategic/StrategicView.PortalStrike.cs   | 209 +++++++++++
+ Scripts/Systems/Strategic/StrategicView.cs    |  20 +
+ Scripts/Systems/Strategic/TeleportSigil.cs    | 348 ++++++++++++++++++
+ .../Systems/Verification/CharterSaveAssert.cs |  29 ++
+ 12 files changed, 802 insertions(+), 20 deletions(-)
+ create mode 100644 Scripts/Systems/Strategic/StrategicView.PortalStrike.cs
+ create mode 100644 Scripts/Systems/Strategic/TeleportSigil.cs
+
+diff --git a/Data/Buildings/teleport_sigil.json b/Data/Buildings/teleport_sigil.json
+index 2988ba0..00c693d 100644
+--- a/Data/Buildings/teleport_sigil.json
++++ b/Data/Buildings/teleport_sigil.json
+@@ -5,33 +5,71 @@
+     "category": "Portal",
+     "schoolAffinity": "",
+     "footprint": [
+-        { "q": 0, "r": 0 },
+-        { "q": 1, "r": 0 },
+-        { "q": 1, "r": -1 },
+-        { "q": 0, "r": -1 },
+-        { "q": -1, "r": 0 },
+-        { "q": -1, "r": 1 },
+-        { "q": 0, "r": 1 }
++        {
++            "q": 0,
++            "r": 0
++        },
++        {
++            "q": 1,
++            "r": 0
++        },
++        {
++            "q": 1,
++            "r": -1
++        },
++        {
++            "q": 0,
++            "r": -1
++        },
++        {
++            "q": -1,
++            "r": 0
++        },
++        {
++            "q": -1,
++            "r": 1
++        },
++        {
++            "q": 0,
++            "r": 1
++        }
+     ],
+     "maxTier": 3,
+     "tiers": [
+         {
+             "tier": 1,
+-            "description": "Placeholder. Mechanical effects are not yet designed. Registers as an entry point for the portal attack vector (campus_siege_and_defense_v1 §3).",
+-            "goldCost": 0,
+-            "requiredBuildings": []
++            "displayName": "The Waygate",
++            "goldCost": 200,
++            "requiredBuildings": [],
++            "description": "Parties may also step to the guild's own outposts, secured sites, claimed shard zones and held supply caches. The circle can be opened from the far side too: a kingdom hostile to the guild can learn its pattern and strike the campus through it."
+         },
+         {
+             "tier": 2,
+-            "description": "Placeholder. Mechanical effects are not yet designed.",
+-            "goldCost": 300,
+-            "requiredBuildings": []
++            "displayName": "The Recall",
++            "goldCost": 350,
++            "requiredBuildings": [],
++            "description": "A detachment can be recalled to its party from anywhere, and a marching party can abandon the road and step home to the dock."
+         },
+         {
+             "tier": 3,
+-            "description": "Placeholder. Mechanical effects are not yet designed.",
++            "displayName": "The Open Circle",
+             "goldCost": 600,
+-            "requiredBuildings": []
++            "requiredBuildings": [],
++            "description": "A doctrine, chartered at the Grand Hall. The Gate Network: every settlement of an Allied kingdom is a waystone. (The Sally Port waits on the wizard's summons.)",
++            "doctrines": [
++                {
++                    "id": "gate_network",
++                    "name": "The Gate Network",
++                    "description": "Every town and city of an Allied kingdom becomes a waystone your parties can step to. Allies shrink the map."
++                },
++                {
++                    "id": "sally_port",
++                    "name": "The Sally Port",
++                    "description": "The wizard joins a field fight through the circle at no cost in days.",
++                    "blocked": "the wizard's summons to the field is not built yet"
++                }
++            ]
+         }
+-    ]
++    ],
++    "hostsSystem": ""
+ }
+diff --git a/Scripts/Data/SaveState/CycleState.cs b/Scripts/Data/SaveState/CycleState.cs
+index f965bc4..c9bce27 100644
+--- a/Scripts/Data/SaveState/CycleState.cs
++++ b/Scripts/Data/SaveState/CycleState.cs
+@@ -138,6 +138,20 @@ public class CycleState
+     /// School Seats panel. Additive; old cycles read "".</summary>
+     public string CrucibleFront = "";
+ 
++    // ── Portal strikes (TeleportSigil.cs) ──────────────────────────────
++    /// <summary>Kingdom id → how much of the Teleport Sigil's pattern it has
++    /// learned (0 to TeleportSigil.KnowledgeToStrike). Additive; old cycles
++    /// read empty.</summary>
++    public Dictionary<string, int> PortalKnowledge = new();
++
++    /// <summary>A portal strike owed: the attacking kingdom, or "" for none.
++    /// Mirrors PendingCastleAssaultKingdomId.</summary>
++    public string PendingPortalStrikeKingdomId = "";
++
++    /// <summary>True while the owed strike's fight is in progress, so a reload
++    /// mid-combat leaves it owed rather than resolved.</summary>
++    public bool PortalStrikeLaunched = false;
++
+     /// <summary>
+     /// Card upgrade currency. In-cycle power, so it dies with the timeline.
+     /// </summary>
+diff --git a/Scripts/Systems/Campus/CampusConstruction.cs b/Scripts/Systems/Campus/CampusConstruction.cs
+index d4bb967..715ad80 100644
+--- a/Scripts/Systems/Campus/CampusConstruction.cs
++++ b/Scripts/Systems/Campus/CampusConstruction.cs
+@@ -74,6 +74,9 @@ public static class CampusConstruction
+         if (seat != null)
+             return seat;
+ 
++        if (bs.Tier > 0 && bs.CurrentIntegrity < bs.MaxIntegrity)
++            return $"Damaged ({bs.CurrentIntegrity}/{bs.MaxIntegrity}). Repair it first.";
++
+         if (save.Gold < tierData.GoldCost)
+             return $"Needs {tierData.GoldCost}g.";
+         if (save.BuildMaterials < tierData.EffectiveMaterialsCost)
+@@ -123,6 +126,43 @@ public static class CampusConstruction
+         return true;
+     }
+ 
++    // ── Repair (portal strikes, TeleportSigil.cs) ────────────────────────
++
++    /// <summary>Materials per point of missing integrity. A starting value: a
++    /// strike's 10 damage costs 30 materials to mend.</summary>
++    public const int RepairMaterialsPerPoint = 3;
++
++    /// <summary>Materials to repair this building to full, 0 when it is whole.</summary>
++    public static int RepairCost(BuildingSaveData bs)
++        => bs == null || bs.Tier <= 0 ? 0
++           : System.Math.Max(0, bs.MaxIntegrity - bs.CurrentIntegrity) * RepairMaterialsPerPoint;
++
++    /// <summary>Why this building cannot be repaired now, or null when it can.</summary>
++    public static string CannotRepairReason(GuildSaveData save, BuildingSaveData bs)
++    {
++        if (save == null || bs == null) return "No save.";
++        int cost = RepairCost(bs);
++        if (cost <= 0) return "Not damaged.";
++        if (save.BuildMaterials < cost) return $"Repair needs {cost} materials.";
++        return null;
++    }
++
++    /// <summary>Mend a damaged building to full integrity for materials.</summary>
++    public static bool TryRepair(GuildSaveData save, string buildingId)
++    {
++        BuildingSaveData bs = null;
++        if (save != null)
++            foreach (var b in save.Buildings)
++                if (b.Id == buildingId) { bs = b; break; }
++        if (CannotRepairReason(save, bs) != null) return false;
++        int cost = RepairCost(bs);
++        save.BuildMaterials -= cost;
++        bs.CurrentIntegrity = bs.MaxIntegrity;
++        SaveManager.Save();
++        GD.Print($"[Construction] {bs.Name} repaired for {cost} materials.");
++        return true;
++    }
++
+     /// <summary>School seats (design §8c): tier 1 needs the school declared (not
+     /// facets: DeclarationService deliberately keeps shards off the path to a
+     /// school); later tiers need that many facets of the school. Null when clear.</summary>
+diff --git a/Scripts/Systems/Campus/CampusGuildPanel.cs b/Scripts/Systems/Campus/CampusGuildPanel.cs
+index bccd566..921e0c0 100644
+--- a/Scripts/Systems/Campus/CampusGuildPanel.cs
++++ b/Scripts/Systems/Campus/CampusGuildPanel.cs
+@@ -756,6 +756,25 @@ public sealed class CampusGuildPanel : CampusPanel
+         Act(strategic, "March Castle", StrategicDebug.MarchCastleToNearestAnchor);
+         Act(strategic, "Force Castle Raid", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.PatrolRaid));
+         Act(strategic, "Force Castle Assault", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.KingdomAssault));
++        Act(strategic, "Force Portal Strike", () =>
++        {
++            // Needs a built, sited Teleport Sigil; offered on the next strategic-map load.
++            var cycle = Ctx.Save?.Cycle;
++            if (cycle?.Kingdoms == null || TeleportSigil.Tier(Ctx.Save) < 1)
++            {
++                GD.PrintErr("[Debug] No sited Teleport Sigil, so there is no rift to strike through.");
++                return;
++            }
++            foreach (var kv in cycle.Kingdoms)
++            {
++                cycle.PendingPortalStrikeKingdomId = kv.Key;
++                cycle.PortalStrikeLaunched = false;
++                SaveManager.MarkDirty();
++                SaveManager.SaveIfDirty();
++                GD.Print($"[Debug] Portal strike owed by {kv.Key}. Open the strategic map.");
++                break;
++            }
++        });
+         Act(strategic, "Assert Field Save", () => FieldExpeditionSaveAssert.AssertAll());
+         Act(strategic, "Dump Echoes", () => CouncilDebug.DumpEchoes());
+         Act(strategic, "Dump Regard", () => CouncilDebug.DumpRegard());
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index 10ba294..d0b4b4a 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -934,6 +934,34 @@ public partial class CampusScreen : Control
+                 cardLayout.AddChild(dl);
+             }
+ 
++            // Damaged by a portal strike: mend before it grows (TeleportSigil.cs).
++            int repairCost = CampusConstruction.RepairCost(buildingSave);
++            if (repairCost > 0)
++            {
++                var repairRow = new HBoxContainer();
++                repairRow.AddThemeConstantOverride("separation", 8);
++                var dmg = new Label
++                {
++                    Text = $"Damaged: integrity {buildingSave.CurrentIntegrity}/{buildingSave.MaxIntegrity}.",
++                    SizeFlagsHorizontal = SizeFlags.ExpandFill,
++                };
++                dmg.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
++                dmg.AddThemeColorOverride("font_color", UITheme.Danger);
++                repairRow.AddChild(dmg);
++                string repairWhy = CampusConstruction.CannotRepairReason(save, buildingSave);
++                var repairBtn = new Button
++                {
++                    Text = $"Repair ({repairCost}m)",
++                    Disabled = repairWhy != null,
++                    TooltipText = repairWhy ?? "",
++                };
++                repairBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
++                string repairId = buildingSave.Id;
++                repairBtn.Pressed += () => { if (CampusConstruction.TryRepair(SaveManager.ActiveSave, repairId)) RefreshAll(); };
++                repairRow.AddChild(repairBtn);
++                cardLayout.AddChild(repairRow);
++            }
++
+             // Built but not yet sited on the map, so the map's hex slots are
+             // otherwise empty for this building. Placement is separate from
+             // tier progression (a building can be upgraded whether or not
+diff --git a/Scripts/Systems/Strategic/FieldMarch.cs b/Scripts/Systems/Strategic/FieldMarch.cs
+index 8999ce2..d9be48a 100644
+--- a/Scripts/Systems/Strategic/FieldMarch.cs
++++ b/Scripts/Systems/Strategic/FieldMarch.cs
+@@ -462,15 +462,23 @@ public static class FieldMarch
+             }
+         }
+ 
+-        return false;
++        // The Teleport Sigil widens the network (2026-09-29): the guild's own
++        // outposts and caches at T1, Allied settlements under the Gate Network.
++        return TeleportSigil.IsSigilWaystone(cycle, x, y, out what);
+     }
+ 
+     public static bool CanTeleportTo(CycleState cycle, FieldParty party, int x, int y, out string reason)
+     {
+-        if (!CanOrderAtAll(cycle, party, out reason))
++        // Teleport Sigil T2 (Recall): a party on the road may abandon the march
++        // and step home to the dock. Every other refusal still applies.
++        bool recallHome = party != null && party.State == FieldPartyState.Travelling
++                          && TeleportSigil.RecallAnywhere(SaveManager.ActiveSave)
++                          && TeleportSigil.IsDock(cycle, x, y);
++        if (!recallHome && !CanOrderAtAll(cycle, party, out reason))
+         {
+             return false;
+         }
++        reason = "";
+         if (FieldPostings.IsDetachment(party))
+         {
+             reason = "A detachment does not move. Collect it with the party, or recall it through a waystone.";
+@@ -512,6 +520,7 @@ public static class FieldMarch
+         party.Y = y;
+         party.State = FieldPartyState.AtAnchor;
+         party.TravelPhasesRemaining = 0;
++        party.TravelDayAccum = 0;   // a recalled march leaves nothing half-walked
+         party.DestX = -1;
+         party.DestY = -1;
+         party.DestinationAnchorKey = "";
+diff --git a/Scripts/Systems/Strategic/FieldPostings.cs b/Scripts/Systems/Strategic/FieldPostings.cs
+index 1a66a0e..0c63c9b 100644
+--- a/Scripts/Systems/Strategic/FieldPostings.cs
++++ b/Scripts/Systems/Strategic/FieldPostings.cs
+@@ -656,9 +656,11 @@ public static class FieldPostings
+             why = "The party is not standing free to receive them.";
+             return false;
+         }
+-        if (!FieldMarch.IsWaystone(cycle, det.X, det.Y, out _))
++        // Teleport Sigil T2 (Recall): recalled from anywhere, not only a waystone.
++        if (!FieldMarch.IsWaystone(cycle, det.X, det.Y, out _)
++            && !TeleportSigil.RecallAnywhere(SaveManager.ActiveSave))
+         {
+-            why = "They are not standing on a waystone. Walk to them.";
++            why = "They are not standing on a waystone. Walk to them, or raise the Teleport Sigil's Recall.";
+             return false;
+         }
+         return true;
+diff --git a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+index 7bccf99..f1f6ca5 100644
+--- a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
++++ b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+@@ -240,6 +240,18 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+                           (tierData != null && !string.IsNullOrEmpty(tierData.DisplayName)
+                               ? $": {tierData.DisplayName}" : "");
+ 
++        // A damaged building (portal strike) mends before it grows.
++        int repair = CampusConstruction.RepairCost(bs);
++        if (repair > 0)
++        {
++            string whyNot = CampusConstruction.CannotRepairReason(save, bs);
++            _upgradeBtn.Visible = true;
++            _upgradeBtn.Text = whyNot ?? $"Repair ({repair} mats)";
++            _upgradeBtn.Disabled = whyNot != null;
++            UITheme.ApplyButtonStyle(_upgradeBtn, isPrimary: whyNot == null);
++            return;
++        }
++
+         string reason = CampusConstruction.CannotBuildReason(save, _buildingId);
+         var next = template.Tiers.Find(t => t.Tier == bs.Tier + 1);
+         if (bs.Tier >= template.MaxTier || next == null)
+@@ -257,6 +269,20 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+ 
+     private void OnUpgradePressed()
+     {
++        var save = SaveManager.ActiveSave;
++        BuildingSaveData bs = null;
++        if (save != null)
++            foreach (var b in save.Buildings)
++                if (b.Id == _buildingId) { bs = b; break; }
++        if (CampusConstruction.RepairCost(bs) > 0)
++        {
++            if (CampusConstruction.TryRepair(save, _buildingId))
++            {
++                RefreshUpgradeStrip();
++                _panel?.Refresh();
++            }
++            return;
++        }
+         if (CampusConstruction.TryBuildOrUpgrade(SaveManager.ActiveSave, _buildingId))
+         {
+             RefreshUpgradeStrip();
+diff --git a/Scripts/Systems/Strategic/StrategicView.PortalStrike.cs b/Scripts/Systems/Strategic/StrategicView.PortalStrike.cs
+new file mode 100644
+index 0000000..7fa676e
+--- /dev/null
++++ b/Scripts/Systems/Strategic/StrategicView.PortalStrike.cs
+@@ -0,0 +1,209 @@
++using Godot;
++
++// ============================================================
++// StrategicView.PortalStrike.cs  (partial of StrategicView)
++//
++// Purpose:        The portal strike's owed-fight flow (TeleportSigil.cs):
++//                 offer it, launch the home-city defense compiled around
++//                 the Sigil, pick up the return, or seal the circle
++//                 instead. The same shape as the castle defense
++//                 (OfferPendingCastleDefense / LaunchCastleDefense /
++//                 ConsumeCastleDefenseReturn), so the three owed fights
++//                 read alike.
++// Layer:          UI + orchestration (strategic)
++// Collaborators:  TeleportSigil (rules, Resolve), CycleState
++//                 (PendingPortalStrikeKingdomId, PortalStrikeLaunched),
++//                 HomeCityCombatSource + CityBattlemapCompiler
++//                 (CompilePortalStrike), MapRecipeRegistry,
++//                 EncounterPoolLoader, EncounterRouter, SceneTransition.
++// ============================================================
++
++public partial class StrategicView
++{
++    /// <summary>True while the strike dialog is up, so it can never open twice.</summary>
++    private bool _portalOfferOpen;
++
++    /// <summary>A strike is owed: fight at the rift, or break the circle.</summary>
++    private void OfferPendingPortalStrike()
++    {
++        var cycle = SaveManager.ActiveSave?.Cycle;
++        if (_portalOfferOpen || cycle == null || string.IsNullOrEmpty(cycle.PendingPortalStrikeKingdomId)
++            || cycle.PortalStrikeLaunched)
++        {
++            return;
++        }
++        _portalOfferOpen = true;
++        string who = FactionDisplay(cycle.PendingPortalStrikeKingdomId);
++
++        var dialog = new ConfirmationDialog
++        {
++            Title = "The Sigil is open",
++            OkButtonText = "Seal the rift",
++            CancelButtonText = "Break the circle",
++            DialogText =
++                $"The Teleport Sigil is burning open from the far side. Soldiers of {who} are coming " +
++                "through into the campus.\n\n" +
++                $"Seal the rift: the wizard and the home party hold the circle for {TeleportSigil.StrikeRounds} rounds. " +
++                "Lose, and they loot the campus: the Sigil and another building are damaged and " +
++                $"{TeleportSigil.GoldTakenPercent}% of the gold goes with them.\n\n" +
++                "Break the circle: no fight. The Sigil takes the damage alone and their pattern is useless.",
++        };
++        dialog.Confirmed += () => { _portalOfferOpen = false; dialog.QueueFree(); LaunchPortalStrike(); };
++        // Breaking the circle costs the Sigil, so it hangs off the BUTTON; Escape
++        // and the close box only defer (the strike stays owed), as the castle's does.
++        dialog.GetCancelButton().Pressed += SealPortalStrike;
++        dialog.Canceled += () => { _portalOfferOpen = false; dialog.QueueFree(); };
++
++        AddChild(dialog);
++        dialog.PopupCentered();
++    }
++
++    /// <summary>Refuse the fight: the circle is broken from our side.</summary>
++    private void SealPortalStrike()
++    {
++        var save = SaveManager.ActiveSave;
++        var cycle = save?.Cycle;
++        if (cycle == null || string.IsNullOrEmpty(cycle.PendingPortalStrikeKingdomId))
++        {
++            return;
++        }
++        string who = FactionDisplay(cycle.PendingPortalStrikeKingdomId);
++        string line = TeleportSigil.Resolve(cycle, save, "sealed", who);
++        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
++        cycle.PendingSiegeReports.Add(line);
++        SaveManager.SaveIfDirty();
++    }
++
++    /// <summary>Send the home party into the campus, compiled around the Sigil.</summary>
++    private void LaunchPortalStrike()
++    {
++        var save = SaveManager.ActiveSave;
++        var cycle = save?.Cycle;
++        if (cycle == null || save.Ledger == null
++            || string.IsNullOrEmpty(cycle.PendingPortalStrikeKingdomId) || cycle.PortalStrikeLaunched)
++        {
++            return;   // nothing owed any more (a stale dialog), or already under way
++        }
++        string kid = cycle.PendingPortalStrikeKingdomId;
++        string who = FactionDisplay(kid);
++
++        string regionId = "";
++        if (_kingdoms != null && !string.IsNullOrEmpty(kid) && _kingdoms.TryGetValue(kid, out var ks))
++        {
++            regionId = string.IsNullOrEmpty(ks.TemplateRegionId) ? ks.RegionId : ks.TemplateRegionId;
++        }
++        var def = EncounterPoolLoader.Pick(regionId, EncounterTier.Siege, "Grassland",
++                                           CampaignEscalation.CombatDifficultyMult(cycle));
++
++        // The map: the home city around the Sigil. No placed Sigil (or no room
++        // around it) means no rift to fight at; the strike is sealed instead of
++        // being fought on a wrong map.
++        string recipeId = null;
++        if (def != null && def.Enemies.Count > 0)
++        {
++            try
++            {
++                ulong seed = (ulong)(cycle.WorldSeed * 31 + (cycle.Calendar?.CurrentLunation ?? 1) * 7919);
++                var win = CityBattlemapCompiler.CompilePortalStrike(
++                    new HomeCityCombatSource(save.Ledger), seed, defending: true);
++                var dict = Json.ParseString(win.RecipeJson).AsGodotDictionary();
++                if (dict != null && dict.Count > 0)
++                {
++                    MapRecipeRegistry.Register(MapRecipe.FromDict(dict));
++                    recipeId = win.RecipeId;
++                }
++            }
++            catch (System.Exception e)
++            {
++                GD.PrintErr($"[PortalStrike] Could not compile the home city: {e.Message}");
++            }
++        }
++        if (recipeId == null)
++        {
++            // No roster or no rift to fight at: they think better of it. Nothing
++            // is damaged, because the player chose to fight (as a posting's does).
++            cycle.PendingPortalStrikeKingdomId = "";
++            cycle.PortalStrikeLaunched = false;
++            if (cycle.PortalKnowledge != null && !string.IsNullOrEmpty(kid))
++                cycle.PortalKnowledge[kid] = 0;
++            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
++            cycle.PendingSiegeReports.Add($"The rift gutters and closes before {who} can come through.");
++            SaveManager.MarkDirty();
++            SaveManager.SaveIfDirty();
++            return;
++        }
++
++        def.MapRecipe = recipeId;
++        def.Objective = new CombatObjectiveDef
++        {
++            Kind = CombatObjectiveDef.KindSurvive,
++            Rounds = TeleportSigil.StrikeRounds,
++            Description = "Seal the rift. Survive.",
++        };
++
++        if (EncounterRouter.Instance == null)
++            GetTree().Root.AddChild(new EncounterRouter { Name = "EncounterRouter" });
++        var router = EncounterRouter.Instance;
++        if (router == null)
++        {
++            return;
++        }
++
++        cycle.PortalStrikeLaunched = true;
++        SaveManager.MarkDirty();
++
++        // The home party: the wizard and whoever stands at the guild, not a
++        // field party (RunRosterIds reads ActivePartyCompanionIds for Castle).
++        PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Castle;
++        PlayerSession.ExpeditionFieldPartyId = "";
++
++        router.HasPendingReturn = false;
++        router.SavedCombatWasPatrolAmbush = false;
++        router.SavedCombatPatrolArchmageId = "";
++        router.SavedCombatGuardianKey = "";
++        router.SavedCombatArchmageId = "";
++        router.SavedResolutionArchmageId = "";
++        router.ReturnSceneOverride = StrategicScenePath;
++        router.SetCurrentTier(def.Tier);
++
++        SaveManager.SaveIfDirty();
++        EncounterContextCarrier.Set(def);
++        EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
++        SceneTransition.Go(GetTree(), router.CombatScenePath, "The Rift",
++            $"{who} is coming through the Sigil.");
++    }
++
++    /// <summary>Pick up a returning portal strike. Keyed on the launched marker AND
++    /// the router's return being this scene, so a mid-combat reload leaves it owed.</summary>
++    private void ConsumePortalStrikeReturn(CycleState cycle)
++    {
++        if (cycle == null || !cycle.PortalStrikeLaunched)
++        {
++            return;
++        }
++        var router = EncounterRouter.Instance;
++        if (router == null || !router.HasPendingReturn || router.ReturnSceneOverride != StrategicScenePath)
++        {
++            return;
++        }
++        bool won = router.CombatWon;
++        router.HasPendingReturn = false;
++        router.ReturnSceneOverride = "";
++
++        var save = SaveManager.ActiveSave;
++        string who = FactionDisplay(cycle.PendingPortalStrikeKingdomId);
++        if (won && save != null)
++        {
++            save.Gold += router.GoldReward;
++            save.ArcaneSplinters += router.SplinterReward;
++            save.BuildMaterials += router.MaterialReward;
++        }
++        string line = TeleportSigil.Resolve(cycle, save, won ? "won" : "lost", who);
++        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
++        cycle.PendingSiegeReports.Add(line);
++        ScryInbox.Post(cycle, won ? ScryChannel.Note : ScryChannel.Messenger,
++            won ? "The rift is sealed" : "The campus was looted", line, "", "portal");
++        SaveManager.MarkDirty();
++        SaveManager.SaveIfDirty();
++    }
++}
+diff --git a/Scripts/Systems/Strategic/StrategicView.cs b/Scripts/Systems/Strategic/StrategicView.cs
+index 73628ca..5aa8cd7 100644
+--- a/Scripts/Systems/Strategic/StrategicView.cs
++++ b/Scripts/Systems/Strategic/StrategicView.cs
+@@ -353,6 +353,18 @@ public partial class StrategicView : Node2D
+                 if (string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId)
+                     && !string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId))
+                     CallDeferred(nameof(OfferPendingPostingDefense));
++                // And a portal strike through the Teleport Sigil (2026-09-29),
++                // asked last: the castle's and a posting's fights come first.
++                ConsumePortalStrikeReturn(cycle);
++                // A strike fight that never came back (quit or crash mid-combat)
++                // stays OWED, not stuck: clear the launched marker so it is offered again.
++                if (cycle.PortalStrikeLaunched
++                    && (EncounterRouter.Instance == null || !EncounterRouter.Instance.HasPendingReturn))
++                    cycle.PortalStrikeLaunched = false;
++                if (string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId)
++                    && string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId)
++                    && !string.IsNullOrEmpty(cycle.PendingPortalStrikeKingdomId))
++                    CallDeferred(nameof(OfferPendingPortalStrike));
+             }
+         }
+ 
+@@ -6822,6 +6834,14 @@ public partial class StrategicView : Node2D
+         // Facets: a corrupted kingdom's shard zone sheds its blight facet (the
+         // site posts its own Messenger to the scrying desk).
+         Facets.SiteBlightFacets(cycle, SaveManager.ActiveSave);
++        // Teleport Sigil: hostile kingdoms learn its pattern; one that knows it
++        // may strike through it. The owed strike is offered by _Ready, which every
++        // path after a lunation passes through, after the castle's and a posting's.
++        foreach (var portalLine in TeleportSigil.TickLunation(cycle, SaveManager.ActiveSave))
++        {
++            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
++            cycle.PendingSiegeReports.Add(portalLine);
++        }
+         // Q4.2: a united archmage's relic arrives when the unite moon returns.
+         ArchmageRelics.TickUniteAnniversaries(cycle);
+         // §8 pity-timer: advance Library research commissions; a completed one
+diff --git a/Scripts/Systems/Strategic/TeleportSigil.cs b/Scripts/Systems/Strategic/TeleportSigil.cs
+new file mode 100644
+index 0000000..59e9424
+--- /dev/null
++++ b/Scripts/Systems/Strategic/TeleportSigil.cs
+@@ -0,0 +1,348 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// TeleportSigil.cs
++//
++// Purpose:        The Teleport Sigil (campus_building_upgrades_design_v1
++//                 §10, corrected design, ruled 2026-09-29). Parties can
++//                 already step from anywhere to the parked castle, a raised
++//                 waystone or the dock for free (FieldMarch). The Sigil
++//                 extends that network, and building it opens the campus to
++//                 a portal strike.
++//                   T1 Waygate       parties may also step to the guild's
++//                                    own walk-only anchors: outposts,
++//                                    secured sites, claimed shard zones,
++//                                    and held supply caches.
++//                                    The portal vector opens (sieges).
++//                   T2 Recall        a detachment may be recalled from
++//                                    anywhere, not only from a waystone;
++//                                    a marching party may abandon the march
++//                                    and step home to the dock.
++//                   T3 doctrine      Gate Network: any settlement of an
++//                                    Allied kingdom is a waystone too.
++//                                    Sally Port: blocked (the Administrator
++//                                    summon is unbuilt).
++//
++//                 Portal strikes (the siege spec §10 asked for):
++//                   WHO    a kingdom Hostile to the guild learns the Sigil's
++//                          pattern: +2 a moon while Hostile, +1 while
++//                          Unfriendly, -1 otherwise (floor 0). At 4 it knows
++//                          the pattern and the desk is warned.
++//                   WHEN   each moon, a kingdom that knows the pattern
++//                          strikes 40% of the time (seeded per moon and
++//                          kingdom, so a reload cannot reroll it). One strike
++//                          owed at a time.
++//                   FIGHT  the home city compiled around the Sigil
++//                          (CityBattlemapCompiler.CompilePortalStrike),
++//                          Siege-tier roster from the attacker's region,
++//                          objective: survive 8 rounds. The defenders are the
++//                          wizard and the home party.
++//                   WIN    the usual fight pay; the attacker's knowledge of
++//                          the pattern resets.
++//                   LOSS   the Sigil and one other sited, non-foundational
++//                          building each take StrikeDamage integrity
++//                          (BuildingSaveData.ApplyDamage: at 0 the existing
++//                          destroy rule applies); a fifth of the guild's gold
++//                          is carried off; knowledge resets.
++//                   SEAL   refusing the fight collapses the rift: the Sigil
++//                          alone takes StrikeDamage, knowledge resets.
++//                 Damage is repaired at the campus for materials
++//                 (CampusConstruction.TryRepair).
++// Layer:          System (strategic)
++// Collaborators:  FieldMarch (IsWaystone, CanTeleportTo), FieldPostings
++//                 (CanRecall), CouncilQueries.StanceFor, SupplyCacheSystem,
++//                 CycleState (PortalKnowledge, PendingPortalStrikeKingdomId,
++//                 PortalStrikeLaunched), StrategicView (offer, launch,
++//                 return), Charters (Gate Network).
++// ============================================================
++
++/// <summary>The Teleport Sigil's gates, travel targets and portal strikes. Stateless.</summary>
++public static class TeleportSigil
++{
++    public const string Id = "teleport_sigil";
++    public const string GateNetwork = "gate_network";
++    public const string SallyPort = "sally_port";
++
++    // ── Portal strike tuning (starting values) ───────────────────────────
++    public const int KnowledgeToStrike = 4;
++    public const int HostileLearn = 2;
++    public const int UnfriendlyLearn = 1;
++    public const int StrikeChancePercent = 40;
++    /// <summary>Integrity a lost or sealed strike costs a building (flat 20 max).</summary>
++    public const int StrikeDamage = 10;
++    public const int GoldTakenPercent = 20;
++    public const int StrikeRounds = 8;
++
++    // ── Gates ────────────────────────────────────────────────────────────
++
++    /// <summary>The Sigil's tier, 0 when unbuilt or unsited.</summary>
++    public static int Tier(GuildSaveData save)
++    {
++        if (save?.Buildings == null)
++        {
++            return 0;
++        }
++        foreach (var b in save.Buildings)
++        {
++            if (b.Id == Id)
++            {
++                return b.IsFunctional ? b.Tier : 0;
++            }
++        }
++        return 0;
++    }
++
++    public static bool RecallAnywhere(GuildSaveData save) => Tier(save) >= 2;
++
++    public static bool GateNetworkActive(GuildSaveData save) => Charters.IsActive(save, Id, GateNetwork);
++
++    /// <summary>Is this tile a waystone only because of the Sigil? FieldMarch.IsWaystone
++    /// asks after its own three (castle, raised waystone, dock).</summary>
++    public static bool IsSigilWaystone(CycleState cycle, int x, int y, out string what)
++    {
++        what = "";
++        var save = SaveManager.ActiveSave;
++        if (cycle?.World == null || Tier(save) < 1)
++        {
++            return false;
++        }
++        var world = cycle.World;
++
++        // T1 Waygate: the guild's own walk-only anchors.
++        if (world.StagingPoints != null)
++        {
++            foreach (var sp in world.StagingPoints)
++            {
++                if (sp == null || !sp.Available || sp.X != x || sp.Y != y)
++                {
++                    continue;
++                }
++                if (sp.Source == "Outpost" || sp.Source == "Secured" || sp.Source == "Shard")
++                {
++                    what = string.IsNullOrEmpty(sp.Name) ? "a guild outpost" : sp.Name;
++                    return true;
++                }
++            }
++        }
++        var poi = world.PoiAt(x, y);
++        if (poi != null && poi.Kind == PoiKind.SupplyCache
++            && SupplyCacheSystem.ControllerOf(poi) == SupplyCacheSystem.GuildId)
++        {
++            what = "the guild's supply cache";
++            return true;
++        }
++
++        // T3 Gate Network: an Allied kingdom's settlements.
++        if (GateNetworkActive(save) && world.Settlements != null)
++        {
++            foreach (var s in world.Settlements)
++            {
++                if (s == null || s.IsGuildHome || s.CenterX != x || s.CenterY != y)
++                {
++                    continue;
++                }
++                if (CouncilQueries.StanceFor(cycle, s.KingdomId) == KingdomStance.Allied)
++                {
++                    what = string.IsNullOrEmpty(s.Name) ? "an allied city" : s.Name;
++                    return true;
++                }
++            }
++        }
++        return false;
++    }
++
++    /// <summary>Is this tile the guild dock (the "Start" staging point)?</summary>
++    public static bool IsDock(CycleState cycle, int x, int y)
++    {
++        if (cycle?.World?.StagingPoints == null)
++        {
++            return false;
++        }
++        foreach (var sp in cycle.World.StagingPoints)
++        {
++            if (sp != null && sp.Source == "Start" && sp.X == x && sp.Y == y)
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    // ── Portal strikes ───────────────────────────────────────────────────
++
++    /// <summary>Lunation tick: kingdoms learn or forget the pattern, and one that
++    /// knows it may strike. Returns report lines. Non-throwing by construction
++    /// (every lookup null-checked).</summary>
++    public static List<string> TickLunation(CycleState cycle, GuildSaveData save)
++    {
++        var lines = new List<string>();
++        if (cycle?.Kingdoms == null)
++        {
++            return lines;
++        }
++        cycle.PortalKnowledge ??= new Dictionary<string, int>();
++
++        if (Tier(save) < 1)
++        {
++            // No circle, no pattern to learn. What was learned fades with it.
++            cycle.PortalKnowledge.Clear();
++            return lines;
++        }
++
++        int lunation = cycle.Calendar?.CurrentLunation ?? 1;
++        var knowers = new List<string>();
++        foreach (var kv in cycle.Kingdoms)
++        {
++            string kid = kv.Key;
++            var stance = CouncilQueries.StanceFor(cycle, kid);
++            cycle.PortalKnowledge.TryGetValue(kid, out int before);
++            int after = stance switch
++            {
++                KingdomStance.Hostile => before + HostileLearn,
++                KingdomStance.Unfriendly => before + UnfriendlyLearn,
++                _ => Math.Max(0, before - 1),
++            };
++            after = Math.Min(after, KnowledgeToStrike);
++            cycle.PortalKnowledge[kid] = after;
++
++            if (before < KnowledgeToStrike && after >= KnowledgeToStrike)
++            {
++                string line = $"Word from the Undercroft: {kv.Value.DisplayName} has learned the pattern of the "
++                            + "Teleport Sigil. They can open it from their side now.";
++                ScryInbox.Post(cycle, ScryChannel.Messenger, "The Sigil's pattern is known", line, "", "portal");
++                lines.Add(line);
++            }
++            if (after >= KnowledgeToStrike)
++            {
++                knowers.Add(kid);
++            }
++        }
++
++        if (!string.IsNullOrEmpty(cycle.PendingPortalStrikeKingdomId) || knowers.Count == 0)
++        {
++            return lines;   // one strike owed at a time
++        }
++        knowers.Sort(string.CompareOrdinal);
++        foreach (var kid in knowers)
++        {
++            var rng = RngFor(cycle, kid, lunation);
++            if (rng.Next(100) >= StrikeChancePercent)
++            {
++                continue;
++            }
++            cycle.PendingPortalStrikeKingdomId = kid;
++            cycle.PortalStrikeLaunched = false;
++            string name = cycle.Kingdoms.TryGetValue(kid, out var k) ? k.DisplayName : kid;
++            lines.Add($"The Teleport Sigil burns open from the far side. Soldiers of {name} are coming through.");
++            break;
++        }
++        SaveManager.MarkDirty();
++        return lines;
++    }
++
++    /// <summary>Resolve a strike's outcome on the guild. <paramref name="outcome"/>:
++    /// "won", "lost" or "sealed". Clears the owed strike and the attacker's
++    /// knowledge. Returns the report line.</summary>
++    public static string Resolve(CycleState cycle, GuildSaveData save, string outcome, string attackerName)
++    {
++        if (cycle == null || save == null)
++        {
++            return "";
++        }
++        string kid = cycle.PendingPortalStrikeKingdomId;
++        cycle.PendingPortalStrikeKingdomId = "";
++        cycle.PortalStrikeLaunched = false;
++        if (!string.IsNullOrEmpty(kid) && cycle.PortalKnowledge != null)
++        {
++            cycle.PortalKnowledge[kid] = 0;
++        }
++
++        string line;
++        if (outcome == "won")
++        {
++            line = $"The rift is sealed from our side. {attackerName} is thrown back through, and the "
++                 + "pattern they stole is useless to them now.";
++        }
++        else if (outcome == "sealed")
++        {
++            string hit = DamageBuilding(save, Id);
++            line = $"The circle is broken by our own hands before {attackerName} can step through. " + hit;
++        }
++        else
++        {
++            string sigil = DamageBuilding(save, Id);
++            string other = DamageRandomOther(save, cycle);
++            int taken = save.Gold * GoldTakenPercent / 100;
++            save.Gold -= taken;
++            line = $"{attackerName} held the campus long enough to loot it. {sigil} {other}"
++                 + (taken > 0 ? $" {taken} gold is gone from the treasury." : "");
++        }
++        SaveManager.MarkDirty();
++        GD.Print($"[PortalStrike] {outcome}: {line}");
++        return line.Trim();
++    }
++
++    // ── Helpers ──────────────────────────────────────────────────────────
++
++    private static string DamageBuilding(GuildSaveData save, string buildingId)
++    {
++        foreach (var b in save.Buildings)
++        {
++            if (b.Id != buildingId || b.Tier <= 0)
++            {
++                continue;
++            }
++            bool destroyed = b.ApplyDamage(StrikeDamage);
++            if (destroyed)
++            {
++                // Its campus effects (party size and the like) leave with it.
++                BuildingEffectApplier.ApplyCampusEffects(save);
++            }
++            return destroyed
++                ? $"{b.Name} is destroyed."
++                : $"{b.Name} is damaged ({b.CurrentIntegrity}/{b.MaxIntegrity}).";
++        }
++        return "";
++    }
++
++    private static string DamageRandomOther(GuildSaveData save, CycleState cycle)
++    {
++        var candidates = new List<BuildingSaveData>();
++        foreach (var b in save.Buildings)
++        {
++            if (b.Id == Id || !b.IsFunctional)
++            {
++                continue;
++            }
++            var t = BuildingDatabase.GetTemplate(b.Id);
++            if (t == null || t.IsFoundational)
++            {
++                continue;
++            }
++            candidates.Add(b);
++        }
++        if (candidates.Count == 0)
++        {
++            return "";
++        }
++        candidates.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
++        var rng = RngFor(cycle, "loss", cycle.Calendar?.CurrentLunation ?? 1);
++        return DamageBuilding(save, candidates[rng.Next(candidates.Count)].Id);
++    }
++
++    private static Random RngFor(CycleState cycle, string salt, int lunation)
++    {
++        unchecked
++        {
++            int seed = cycle.WorldSeed;
++            seed = (seed * 397) ^ lunation;
++            foreach (char ch in salt ?? "")
++            {
++                seed = (seed * 31) ^ ch;
++            }
++            return new Random(seed);
++        }
++    }
++}
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+index e1cef60..2e061d1 100644
+--- a/Scripts/Systems/Verification/CharterSaveAssert.cs
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -31,6 +31,7 @@ public static class CharterSaveAssert
+         bool ok = AssertCharterEntry(sb);
+         ok &= AssertCycleCharters(sb);
+         ok &= AssertSeatFields(sb);
++        ok &= AssertPortalFields(sb);
+ 
+         sb.AppendLine(ok
+             ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
+@@ -131,6 +132,34 @@ public static class CharterSaveAssert
+         return ok;
+     }
+ 
++    /// <summary>Teleport Sigil (slice 3): the portal-strike fields on CycleState.</summary>
++    private static bool AssertPortalFields(StringBuilder sb)
++    {
++        var src = new CycleState
++        {
++            PortalKnowledge = new Dictionary<string, int> { { "kingdom_a", 4 }, { "kingdom_b", 1 } },
++            PendingPortalStrikeKingdomId = "kingdom_a",
++            PortalStrikeLaunched = true,
++        };
++        var rt = RoundTrip(src);
++        bool ok = rt != null;
++        if (rt != null)
++        {
++            ok &= Check(sb, "CycleState.PortalKnowledge", rt.PortalKnowledge != null
++                && rt.PortalKnowledge.TryGetValue("kingdom_a", out int a) && a == 4
++                && rt.PortalKnowledge.TryGetValue("kingdom_b", out int b) && b == 1);
++            ok &= Check(sb, "CycleState.PendingPortalStrikeKingdomId", rt.PendingPortalStrikeKingdomId == "kingdom_a");
++            ok &= Check(sb, "CycleState.PortalStrikeLaunched", rt.PortalStrikeLaunched);
++        }
++        var legacy = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":4}", SaveManager.JsonOptions);
++        ok &= Check(sb, "CycleState portal fields default on legacy JSON",
++            legacy != null && legacy.PortalKnowledge != null && legacy.PortalKnowledge.Count == 0
++            && legacy.PendingPortalStrikeKingdomId == "" && !legacy.PortalStrikeLaunched);
++
++        sb.AppendLine(ok ? "  Portal strike fields: PASS" : "  Portal strike fields: FAIL");
++        return ok;
++    }
++
+     // ── Helpers (mirror ArmorySaveAssert) ─────────────────────────────────
+ 
+     private static T RoundTrip<T>(T obj)
+-- 
+2.43.0
+

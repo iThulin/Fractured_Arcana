@@ -1,0 +1,686 @@
+From 30c453509b7edb291ac341f59cbd3ce02ca1b3b4 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 14:15:42 -0600
+Subject: [PATCH] Dissolution Chamber and Arcane Library doctrines; one deck
+ floor
+
+- One deck floor for running and disenchanting: 10, or 7 under Thin Deck
+  (the old T3 "floor 3" only moved the disenchant floor and did nothing)
+- Dissolution T3: Thin Deck (floor 7, a 7-card deck draws +1 on turn 1) or
+  Transmutation (seeded reroll to another unlocked card of the same school
+  and rarity, for its rarity's disenchant value; upgrades refunded)
+- Library: research opens at T2 (2 at once), T3 runs 3; T3 Forbidden Archives
+  (research in 2 lunations) or Chancery (school card in the opening parley
+  hand, Lore valuations start read); dead Persuade text removed
+- Dragging a card out of the deck now respects the floor
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/arcane_library.json            |  26 ++-
+ Data/Buildings/dissolution_chamber.json       |  21 +-
+ .../FeatureBuilders/BuildingEffectApplier.cs  |   9 +-
+ .../FeatureBuilders/CardCommissionService.cs  |  41 ++--
+ Scripts/Data/FeatureBuilders/CardHalls.cs     | 189 ++++++++++++++++++
+ .../Data/FeatureBuilders/PlayerDeckService.cs |   2 +-
+ Scripts/Systems/Campus/DisenchantValues.cs    |  13 ++
+ Scripts/Systems/Combat/Core/CombatManager.cs  |  14 ++
+ .../Systems/Negotiation/NegotiationState.cs   |  22 ++
+ Scripts/UI/CardLibraryUi.cs                   |   6 +-
+ Scripts/UI/DeckEditorUi.cs                    |  44 +++-
+ 11 files changed, 343 insertions(+), 44 deletions(-)
+ create mode 100644 Scripts/Data/FeatureBuilders/CardHalls.cs
+
+diff --git a/Data/Buildings/arcane_library.json b/Data/Buildings/arcane_library.json
+index b1436cf..f065a81 100644
+--- a/Data/Buildings/arcane_library.json
++++ b/Data/Buildings/arcane_library.json
+@@ -1,7 +1,7 @@
+ {
+   "id": "arcane_library",
+   "name": "Arcane Library",
+-  "description": "A repository of magical knowledge. Unlocks the card library browser and grants Insight tokens for negotiations.",
++  "description": "A repository of magical knowledge. Unlocks the card library browser, researches cards the guild has not yet found, and supplies Insight at the parley table.",
+   "category": "Magic",
+   "schoolAffinity": "",
+   "hostsSystem": "card_library",
+@@ -17,7 +17,8 @@
+     },
+     {
+       "tier": 2,
+-      "description": "Expanded stacks. Card Library unlocked and +1 Insight token per negotiation.",
++      "displayName": "Expanded Stacks",
++      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 lunations each). +1 Insight card in every parley deck.",
+       "goldCost": 200,
+       "requiredBuildings": [],
+       "unlocksCardLibrary": true,
+@@ -27,13 +28,26 @@
+     },
+     {
+       "tier": 3,
+-      "description": "Forbidden Archives. +2 Insight tokens and +1 Persuade token per negotiation.",
++      "displayName": "The Deep Stacks",
++      "description": "3 commissions at once, and 2 Insight cards per parley. And a doctrine, chartered at the Grand Hall. The Forbidden Archives: research takes 2 lunations. Or the Chancery: every parley opens with your school's card in hand and every Lore term's valuation already read.",
+       "goldCost": 400,
+       "requiredBuildings": [],
+       "unlocksCardLibrary": true,
+-      "unlocksFeatures": ["card_library", "forbidden_archives"],
++      "unlocksFeatures": ["card_library"],
+       "bonusNegotiationTokens": 2,
+-      "bonusTokenType": "Insight"
++      "bonusTokenType": "Insight",
++      "doctrines": [
++        {
++          "id": "forbidden_archives",
++          "name": "The Forbidden Archives",
++          "description": "The deck is the product. Commissioned research delivers in 2 lunations instead of 3, so the Library becomes the guild's main card faucet."
++        },
++        {
++          "id": "chancery",
++          "name": "The Chancery",
++          "description": "The Library feeds the table. Every parley opens with your school's sweeping card in hand, and every Lore term's valuation starts read."
++        }
++      ]
+     }
+   ]
+-}
+\ No newline at end of file
++}
+diff --git a/Data/Buildings/dissolution_chamber.json b/Data/Buildings/dissolution_chamber.json
+index f770f38..046753b 100644
+--- a/Data/Buildings/dissolution_chamber.json
++++ b/Data/Buildings/dissolution_chamber.json
+@@ -28,15 +28,26 @@
+ 		},
+ 		{
+ 			"tier": 3,
+-			"description": "Master deconstruction. +10 splinters per disenchant. Slotting cards costs 10 gold. Minimum deck floor reduced to 3.",
++			"description": "Master deconstruction. +10 splinters per disenchant. Slotting cards costs 10 gold. And a doctrine, chartered at the Grand Hall. Thin Deck: a deck may run on 7 cards, and a deck of exactly 7 draws an extra card on the first turn. Or Transmutation: turn a card into another of its school and rarity.",
+ 			"goldCost": 400,
+ 			"requiredBuildings": [],
+ 			"unlocksFeatures": [
+-				"card_disenchant",
+-				"deck_floor_reduced"
++				"card_disenchant"
+ 			],
+ 			"disenchantSplinterBonus": 10,
+-			"slotCostReduction": 20
++			"slotCostReduction": 20,
++			"doctrines": [
++				{
++					"id": "thin_deck",
++					"name": "Thin Deck",
++					"description": "Minimalism as a strategy. The deck floor drops from 10 cards to 7, and a wizard whose deck is exactly 7 draws one extra card on the first turn of every fight."
++				},
++				{
++					"id": "transmutation",
++					"name": "Transmutation",
++					"description": "A reroll engine. At the deck editor, turn a card into a random other unlocked card of the same school and rarity, for the splinters its rarity would pay on disenchanting. Its upgrades come back as splinters."
++				}
++			]
+ 		}
+ 	]
+-}
+\ No newline at end of file
++}
+diff --git a/Scripts/Data/FeatureBuilders/BuildingEffectApplier.cs b/Scripts/Data/FeatureBuilders/BuildingEffectApplier.cs
+index 8b460db..e2fa13c 100644
+--- a/Scripts/Data/FeatureBuilders/BuildingEffectApplier.cs
++++ b/Scripts/Data/FeatureBuilders/BuildingEffectApplier.cs
+@@ -104,7 +104,9 @@ public static class BuildingEffectApplier
+         if (save == null) return;
+ 
+         // Reset to defaults before recomputing
+-        save.MinDeckSize = 5;
++        // The deck floor lives in CardHalls.DeckFloor now (one floor for running
++        // and disenchanting, §13); this cached field mirrors its no-doctrine value.
++        save.MinDeckSize = CardHalls.BaseDeckFloor;
+         save.MaxPartySize = 2;   // §4a baseline; growth is bought below
+         if (save.Cycle != null)
+         {
+@@ -123,11 +125,6 @@ public static class BuildingEffectApplier
+             {
+                 if (tier.Tier > buildingSave.Tier) continue;
+ 
+-                if (tier.UnlocksFeatures != null &&
+-                    tier.UnlocksFeatures.Contains("deck_floor_reduced"))
+-                {
+-                    save.MinDeckSize = Math.Max(3, save.MinDeckSize - 2);
+-                }
+ 
+                 // (2026-08-13) Party-size growth via campus. §4a's lever.
+                 save.MaxPartySize += tier.PartySizeBonus;
+diff --git a/Scripts/Data/FeatureBuilders/CardCommissionService.cs b/Scripts/Data/FeatureBuilders/CardCommissionService.cs
+index ca1e4cb..1846733 100644
+--- a/Scripts/Data/FeatureBuilders/CardCommissionService.cs
++++ b/Scripts/Data/FeatureBuilders/CardCommissionService.cs
+@@ -25,16 +25,17 @@ using System.Linq;
+ //                 the Forbidden Archives are built, collapsing the slow reveal
+ //                 the §5 seed deliberately created by locking Rares.
+ //
+-//                 Home: the Arcane Library's "forbidden_archives" T3 feature
+-//                 flag, granted by arcane_library.json and, until now, set
+-//                 and never consumed (v1 §1, session_log_2026-08-05).
++//                 Home: the Arcane Library from its second tier (moved down
++//                 from T3, campus_building_upgrades_design_v1 §13; the old
++//                 "forbidden_archives" feature flag is retired). The Forbidden
++//                 Archives is now a T3 doctrine: research takes 2 lunations.
+ //
+ // Layer:          Data / Feature builder
+ // Collaborators:  EternalLedger.CardCommissions (the in-flight list),
+ //                 EternalLedger.UnlockedCardBlueprintIds (the payoff),
+ //                 CardDatabase (blueprint lookup + rarity),
+ //                 MarginaliaService (excluded, since its own verb owns those),
+-//                 PlayerSession.HasFeature("forbidden_archives") (the gate),
++//                 CardHalls (the gate and the Archives doctrine),
+ //                 StrategicView.RunLunationTick (the once-per-lunation tick),
+ //                 CardLibraryUi.cs (the surface)
+ // See:            docs/progression_card_acquisition_v1.md §8;
+@@ -78,17 +79,23 @@ public static class CardCommissionService
+     public const int CostCommonGold   = 60;    // edge case: Commons are seeded unlocked
+ 
+     private const string LibraryId   = "arcane_library";
+-    private const string FeatureFlag = "forbidden_archives";
+ 
+     // ── Availability ──────────────────────────────────────────────────────
+ 
+-    /// <summary>The verb is available only with the Arcane Library's Forbidden
+-    /// Archives (T3 feature flag). Recomputed features can be stale off the campus
+-    /// path, so callers on other screens should refresh before trusting this.</summary>
+-    public static bool ArchivesAvailable() => PlayerSession.HasFeature(FeatureFlag);
++    /// <summary>Research is open from the Arcane Library's second tier, while the
++    /// building works (sited, not overrun). Reads the save directly, so it is never
++    /// stale off the campus path.</summary>
++    public static bool ArchivesAvailable() => ArchivesAvailable(SaveManager.ActiveSave);
+ 
+-    /// <summary>Max commissions in flight at once, set by the Arcane Library's tier, so 3
+-    /// with the Forbidden Archives (which only exist at T3). A concurrency cap is
++    public static bool ArchivesAvailable(GuildSaveData save) => CardHalls.CommissionsOpen(save);
++
++    /// <summary>Lunations a new commission takes: 3, or 2 under the Forbidden
++    /// Archives (Arcane Library doctrine, §13).</summary>
++    public static int ResearchLunationsFor(GuildSaveData save)
++        => CardHalls.ForbiddenArchivesActive(save) ? CardHalls.ArchivesResearchLunations : ResearchLunations;
++
++    /// <summary>Max commissions in flight at once, set by the Arcane Library's tier:
++    /// 2 at T2, 3 at T3. A concurrency cap is
+     /// what keeps the pity-timer a deliberate choice rather than a bulk order that
+     /// floods discovery in a single wait.</summary>
+     public static int MaxConcurrent(GuildSaveData save)
+@@ -155,14 +162,14 @@ public static class CardCommissionService
+ 
+         CommissionStatus Fail(string why) => new()
+         {
+-            CanCommission = false, Blocker = why, GoldCost = gold, Lunations = ResearchLunations,
++            CanCommission = false, Blocker = why, GoldCost = gold, Lunations = ResearchLunationsFor(save),
+             InFlight = inFlight, MaxConcurrent = max,
+             PendingLunations = existing?.LunationsRemaining ?? -1,
+         };
+ 
+         if (bp == null) return Fail("No card selected.");
+-        if (!ArchivesAvailable())
+-            return Fail("The Forbidden Archives must stand (Arcane Library, tier III) before research can begin.");
++        if (!ArchivesAvailable(save))
++            return Fail("Research opens at the Arcane Library's second tier (Expanded Stacks).");
+         if (existing != null)
+             return Fail($"Already under research. {existing.LunationsRemaining} lunation(s) remain.");
+         if (bp.Rarity == CardRarity.Legendary || gold < 0)
+@@ -172,15 +179,15 @@ public static class CardCommissionService
+         if (!IsCommissionable(save, bp))
+             return Fail("You already know this card. The Library can copy it; see the scribing options.");
+         if (max <= 0)
+-            return Fail("The Forbidden Archives must stand before research can begin.");
++            return Fail("Research opens at the Arcane Library's second tier (Expanded Stacks).");
+         if (inFlight >= max)
+-            return Fail($"The Archives are at capacity ({inFlight}/{max}). Wait for a commission to complete.");
++            return Fail($"The Library's researchers are all busy ({inFlight}/{max}). Wait for a commission to complete.");
+         if ((save?.Cycle?.Gold ?? 0) < gold)
+             return Fail($"Not enough gold. {gold} needed.");
+ 
+         return new CommissionStatus
+         {
+-            CanCommission = true, GoldCost = gold, Lunations = ResearchLunations,
++            CanCommission = true, GoldCost = gold, Lunations = ResearchLunationsFor(save),
+             InFlight = inFlight, MaxConcurrent = max, PendingLunations = -1, Blocker = "",
+         };
+     }
+diff --git a/Scripts/Data/FeatureBuilders/CardHalls.cs b/Scripts/Data/FeatureBuilders/CardHalls.cs
+new file mode 100644
+index 0000000..0021399
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/CardHalls.cs
+@@ -0,0 +1,189 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++using System.Linq;
++
++// ============================================================
++// CardHalls.cs
++//
++// Purpose:        The two card buildings' rules (campus_building_upgrades_
++//                 design_v1 §13): the Dissolution Chamber and the Arcane
++//                 Library.
++//
++//                 One deck floor (ruled 2026-09-29). Before this, a run
++//                 needed 10 active cards (PlayerDeckSave.MinDeckSize) while
++//                 the Chamber's T3 "floor 3" only moved the DISENCHANT floor,
++//                 so it did nothing. Now there is one floor for both:
++//                 10, or 7 under Thin Deck.
++//
++//                 Dissolution Chamber T3 doctrines:
++//                   Thin Deck      the floor is 7, and a wizard whose deck
++//                                  sits exactly at the floor draws one extra
++//                                  card on the first turn of every fight.
++//                   Transmutation  a card may be turned into a random other
++//                                  unlocked card of the same school and
++//                                  rarity, for the splinters disenchanting it
++//                                  would have paid. Upgrades are refunded as
++//                                  splinters. Seeded by the card, so a reload
++//                                  shows the same result.
++//                 Arcane Library:
++//                   T2             commissions (research) open here, moved
++//                                  down from T3; T2 runs 2 at once, T3 runs 3.
++//                   T3 Forbidden Archives  research takes 2 lunations, not 3.
++//                   T3 Chancery    every parley opens with your school's
++//                                  sweep card in hand, and every Lore term's
++//                                  valuation starts read.
++// Layer:          Data / rules
++// Collaborators:  Charters (the gate), PlayerDeckService, DeckEditorUi,
++//                 CombatManager (the first-turn draw), CardCommissionService,
++//                 NegotiationState (Chancery), DisenchantValues.
++// ============================================================
++
++/// <summary>Dissolution Chamber and Arcane Library rules. Stateless.</summary>
++public static class CardHalls
++{
++    // ── Dissolution Chamber ──────────────────────────────────────────────
++    public const string DissolutionId = "dissolution_chamber";
++    public const string ThinDeck = "thin_deck";
++    public const string Transmutation = "transmutation";
++
++    /// <summary>The deck floor with no doctrine: the run minimum and the disenchant floor.</summary>
++    public const int BaseDeckFloor = 10;
++
++    /// <summary>The floor under Thin Deck.</summary>
++    public const int ThinDeckFloor = 7;
++
++    public static bool ThinDeckActive(GuildSaveData save) => Charters.IsActive(save, DissolutionId, ThinDeck);
++
++    public static bool TransmutationActive(GuildSaveData save) => Charters.IsActive(save, DissolutionId, Transmutation);
++
++    /// <summary>THE deck floor: the fewest active cards a run needs, and the
++    /// count below which an active card cannot be disenchanted.</summary>
++    public static int DeckFloor(GuildSaveData save) => ThinDeckActive(save) ? ThinDeckFloor : BaseDeckFloor;
++
++    /// <summary>Thin Deck's payoff: the active deck sits exactly at the floor.</summary>
++    public static bool ThinDeckDraws(GuildSaveData save)
++        => ThinDeckActive(save)
++           && (save?.PlayerDeck?.ActiveDeckInstanceIds?.Count ?? 0) == ThinDeckFloor;
++
++    /// <summary>Splinters a transmutation costs: what disenchanting the card
++    /// would have paid, before its upgrade refund.</summary>
++    public static int TransmuteCost(OwnedCard card) => DisenchantValues.BaseYieldOf(card);
++
++    /// <summary>The card this one would become, or null when there is none to
++    /// become (no other unlocked card of its school and rarity).</summary>
++    public static CardBlueprint TransmuteTarget(GuildSaveData save, OwnedCard card)
++    {
++        if (save?.UnlockedCardBlueprintIds == null || card == null)
++        {
++            return null;
++        }
++        var bp = CardDatabase.Blueprints.Find(b => string.Equals(b.Id, card.BlueprintId, StringComparison.OrdinalIgnoreCase));
++        if (bp == null)
++        {
++            return null;
++        }
++        var pool = new List<CardBlueprint>();
++        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++        foreach (var id in save.UnlockedCardBlueprintIds)
++        {
++            if (string.IsNullOrEmpty(id) || !seen.Add(id))
++            {
++                continue;   // a duplicate listing must not weight the roll
++            }
++            var other = CardDatabase.Blueprints.Find(b => string.Equals(b.Id, id, StringComparison.OrdinalIgnoreCase));
++            if (other == null || other.Id == bp.Id || other.School != bp.School || other.Rarity != bp.Rarity)
++            {
++                continue;
++            }
++            if (other.Rarity == CardRarity.Legendary)
++            {
++                continue;   // Regalia are never made at a bench
++            }
++            pool.Add(other);
++        }
++        if (pool.Count == 0)
++        {
++            return null;
++        }
++        pool.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
++        int seed = 17;
++        foreach (char ch in (card.InstanceId ?? "") + "|" + card.BlueprintId)
++        {
++            seed = unchecked(seed * 31 + ch);
++        }
++        return pool[(int)((uint)seed % (uint)pool.Count)];
++    }
++
++    /// <summary>Why this card cannot be transmuted now, or null.</summary>
++    public static string CannotTransmuteReason(GuildSaveData save, OwnedCard card)
++    {
++        if (!TransmutationActive(save))
++        {
++            return "Needs Transmutation chartered at the Grand Hall.";
++        }
++        if (card == null || card.IsStarter || card.IsRegalia)
++        {
++            return "Starter cards and Regalia cannot be transmuted.";
++        }
++        if (TransmuteTarget(save, card) == null)
++        {
++            return "No other unlocked card of this school and rarity to become.";
++        }
++        int cost = TransmuteCost(card);
++        if (save.ArcaneSplinters + DisenchantValues.UpgradeRefundOf(card) < cost)
++        {
++            return $"Transmuting costs {cost} splinters.";
++        }
++        return null;
++    }
++
++    /// <summary>Turn the card into its target, in place (same instance, same deck
++    /// slot). Upgrades are refunded as splinters; grafts and the cast count are
++    /// cleared. Returns the report line, or null when refused.</summary>
++    public static string TryTransmute(GuildSaveData save, OwnedCard card)
++    {
++        if (CannotTransmuteReason(save, card) != null)
++        {
++            return null;
++        }
++        var target = TransmuteTarget(save, card);
++        int cost = TransmuteCost(card);
++        int refund = DisenchantValues.UpgradeRefundOf(card);
++        string before = card.BlueprintId;
++
++        save.ArcaneSplinters += refund - cost;
++        card.BlueprintId = target.Id;
++        card.TopTier = 0;
++        card.BotTier = 0;
++        card.PointsSpent = 0;
++        card.Grafts?.Clear();
++        card.CastCount = 0;
++        SaveManager.Save();
++        GD.Print($"[Transmute] '{before}' became '{target.Id}' ({cost} splinters, {refund} refunded).");
++        return refund > 0
++            ? $"Transmuted into {target.Prebuilt?.TopHalf?.Name ?? target.Id}. Its upgrades return as {refund} splinters."
++            : $"Transmuted into {target.Prebuilt?.TopHalf?.Name ?? target.Id}.";
++    }
++
++    // ── Arcane Library ───────────────────────────────────────────────────
++    public const string LibraryId = "arcane_library";
++    public const string ForbiddenArchives = "forbidden_archives";
++    public const string Chancery = "chancery";
++
++    /// <summary>Research lunations with and without the Forbidden Archives.</summary>
++    public const int ArchivesResearchLunations = 2;
++
++    public static int LibraryTier(GuildSaveData save)
++    {
++        var b = CampusBlight.Find(save, LibraryId);
++        return b != null && b.IsFunctional ? b.Tier : 0;
++    }
++
++    public static bool ForbiddenArchivesActive(GuildSaveData save) => Charters.IsActive(save, LibraryId, ForbiddenArchives);
++
++    public static bool ChanceryActive(GuildSaveData save) => Charters.IsActive(save, LibraryId, Chancery);
++
++    /// <summary>Commissions open at the Library's second tier (moved down from T3).</summary>
++    public static bool CommissionsOpen(GuildSaveData save) => LibraryTier(save) >= 2;
++}
+diff --git a/Scripts/Data/FeatureBuilders/PlayerDeckService.cs b/Scripts/Data/FeatureBuilders/PlayerDeckService.cs
+index a083287..541e1b4 100644
+--- a/Scripts/Data/FeatureBuilders/PlayerDeckService.cs
++++ b/Scripts/Data/FeatureBuilders/PlayerDeckService.cs
+@@ -182,7 +182,7 @@ public static class PlayerDeckService
+     public static bool IsActiveDeckValid(GuildSaveData save)
+     {
+         int count = save?.PlayerDeck?.ActiveDeckInstanceIds?.Count ?? 0;
+-        return count >= PlayerDeckSave.MinDeckSize;
++        return count >= CardHalls.DeckFloor(save);   // one floor: 10, or 7 under Thin Deck
+     }
+ 
+     /// <summary>
+diff --git a/Scripts/Systems/Campus/DisenchantValues.cs b/Scripts/Systems/Campus/DisenchantValues.cs
+index f7a73dc..92147f1 100644
+--- a/Scripts/Systems/Campus/DisenchantValues.cs
++++ b/Scripts/Systems/Campus/DisenchantValues.cs
+@@ -29,6 +29,19 @@ public static class DisenchantValues
+ 
+ 	private const int UpgradeRefundPerPoint = 4;
+ 
++	/// <summary>The rarity part of the yield, before upgrades and building bonus
++	/// (Transmutation's price, CardHalls).</summary>
++	public static int BaseYieldOf(OwnedCard card)
++	{
++		var bp = CardDatabase.Blueprints.Find(b =>
++			string.Equals(b.Id, card?.BlueprintId,
++				System.StringComparison.OrdinalIgnoreCase));
++		return BaseYield(bp?.Rarity ?? CardRarity.Common);
++	}
++
++	/// <summary>Splinters the card's upgrades return.</summary>
++	public static int UpgradeRefundOf(OwnedCard card) => (card?.PointsSpent ?? 0) * UpgradeRefundPerPoint;
++
+ 	public static int GetYield(OwnedCard card)
+ 	{
+ 		var bp = CardDatabase.Blueprints.Find(b =>
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index b9e21bf..838ade2 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -152,6 +152,9 @@ public partial class CombatManager : Node3D
+     public enum CombatPhase { Deployment, PlayerTurn, EnemyTurn, Victory, Defeat }
+     private CombatPhase currentPhase = CombatPhase.Deployment;
+     private int roundNumber = 1;
++
++    /// <summary>Thin Deck's first-turn card is drawn once per fight.</summary>
++    private bool _thinDeckDrawn;
+     private bool enemyPhaseRunning = false;
+     private bool _isExtraTurn = false; // for Chronomancer's extra turn effect
+ 
+@@ -2544,6 +2547,17 @@ public partial class CombatManager : Node3D
+                 var drawn = unit.DeckData.DrawToFull();
+                 foreach (var card in drawn)
+                     GD.Print($"[{unit.Name}] Drew: {card.TopHalf?.Name ?? card.CardName}");
++
++                // Thin Deck (Dissolution Chamber doctrine, §13): a wizard whose deck
++                // sits exactly at the floor draws one extra card on the first turn.
++                if (roundNumber == 1 && !_thinDeckDrawn && unit.CompanionId == "wizard"
++                    && CardHalls.ThinDeckDraws(SaveManager.ActiveSave))
++                {
++                    _thinDeckDrawn = true;
++                    var extra = unit.DeckData.Draw(1);
++                    if (extra.Count > 0)
++                        combatUI?.AppendActionLog($"Thin Deck: {unit.Name} draws {extra[0].TopHalf?.Name ?? extra[0].CardName}.");
++                }
+             }
+ 
+             // ── Equipment passive: restore mana on turn start ────────────
+diff --git a/Scripts/Systems/Negotiation/NegotiationState.cs b/Scripts/Systems/Negotiation/NegotiationState.cs
+index e9edf37..f6c8870 100644
+--- a/Scripts/Systems/Negotiation/NegotiationState.cs
++++ b/Scripts/Systems/Negotiation/NegotiationState.cs
+@@ -247,6 +247,13 @@ public class NegotiationState
+             c.Position = c.Side == ClauseSide.Theirs ? -NegotiationTuning.TrackMax : +NegotiationTuning.TrackMax;
+             c.PulledByThem = false;
+         }
++        // Chancery (Arcane Library doctrine, §13): the Library has read the court's
++        // lore; every Lore term's valuation starts known.
++        if (CardHalls.ChanceryActive(SaveManager.ActiveSave))
++            foreach (var c in Clauses)
++                if (ClauseCategories.Of(c.Kind) == ClauseCategory.Lore)
++                    c.Revealed = true;
++
+         // A rider pointing at nothing is authored noise; drop it quietly.
+         foreach (var c in Clauses)
+             if (c.HasRider && !Clauses.Any(r => r.Id == c.Rider && r.Side == ClauseSide.Yours))
+@@ -290,6 +297,21 @@ public class NegotiationState
+         Discard.Clear();
+         _nextInstanceId = 1000;
+         ParleyDeckBuilder.Shuffle(Deck, n => (int)(GD.Randi() % (uint)Math.Max(1, n)));
++        // Chancery: your school's sweep card is on top, so the opening hand holds it.
++        if (CardHalls.ChanceryActive(SaveManager.ActiveSave))
++        {
++            // Prefer a sweeping school card; schools with none (Elementalist,
++            // Chronomancer) open with their first school card instead.
++            int i = Deck.FindIndex(c => c != null && (c.Source ?? "").StartsWith("school:", StringComparison.Ordinal) && c.Sweeps);
++            if (i < 0)
++                i = Deck.FindIndex(c => c != null && (c.Source ?? "").StartsWith("school:", StringComparison.Ordinal));
++            if (i > 0)
++            {
++                var top = Deck[i];
++                Deck.RemoveAt(i);
++                Deck.Insert(0, top);
++            }
++        }
+         AddLog("Your parley deck: " + string.Join(", ", provenance), NegotiationLogKind.Detail);
+         if (patronCount > 0)
+             AddLog("A patron at court backs you: a card of theirs is in your deck.", NegotiationLogKind.Detail);
+diff --git a/Scripts/UI/CardLibraryUi.cs b/Scripts/UI/CardLibraryUi.cs
+index 0089e25..b9d476e 100644
+--- a/Scripts/UI/CardLibraryUi.cs
++++ b/Scripts/UI/CardLibraryUi.cs
+@@ -386,7 +386,7 @@ public partial class CardLibraryUi : Control
+     }
+ 
+     /// <summary>The §8 pity-timer surface: for a locked card the player has not yet
+-    /// discovered, offer to commission its research from the Forbidden Archives.
++    /// discovered, offer to commission its research at the Library (T2+).
+     /// Pay gold now, receive the card after a fixed number of lunations. Shows the
+     /// in-flight countdown when a commission already exists, and nothing at all for
+     /// cards that are already known, are Regalia, or belong to another verb
+@@ -409,7 +409,7 @@ public partial class CardLibraryUi : Control
+         {
+             var pending = new Label
+             {
+-                Text = $"Forbidden Archives: under research, {existing.LunationsRemaining} " +
++                Text = $"Under research at the Library, {existing.LunationsRemaining} " +
+                        $"lunation(s) remain. It enters the draft pool on completion.",
+                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
+             };
+@@ -440,7 +440,7 @@ public partial class CardLibraryUi : Control
+             return;
+         }
+ 
+-        info.Text = $"Undiscovered. Commission its research from the Forbidden Archives " +
++        info.Text = $"Undiscovered. Commission its research at the Library " +
+                     $"({status.InFlight}/{status.MaxConcurrent} in progress). Delivers in " +
+                     $"{status.Lunations} lunations.";
+         info.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+diff --git a/Scripts/UI/DeckEditorUi.cs b/Scripts/UI/DeckEditorUi.cs
+index 52d4ad6..9b4f68e 100644
+--- a/Scripts/UI/DeckEditorUi.cs
++++ b/Scripts/UI/DeckEditorUi.cs
+@@ -415,7 +415,8 @@ public partial class DeckEditorUi : Control
+         Clear(_activeList);
+         var activeIds = save.PlayerDeck.ActiveDeckInstanceIds ?? new List<string>();
+         int count = activeIds.Count;
+-        bool tooFew = count < PlayerDeckSave.MinDeckSize;
++        int floor = CardHalls.DeckFloor(save);   // one floor: 10, or 7 under Thin Deck
++        bool tooFew = count < floor;
+ 
+         if (_activeDeckCountLabel != null)
+         {
+@@ -428,7 +429,7 @@ public partial class DeckEditorUi : Control
+ 
+         if (tooFew)
+             _activeList.AddChild(MakeInfoLabel(
+-                $"Need {PlayerDeckSave.MinDeckSize - count} more card(s) to run.",
++                $"Need {floor - count} more card(s) to run.",
+                 UITheme.Danger));
+ 
+         var cards = activeIds
+@@ -651,7 +652,7 @@ public partial class DeckEditorUi : Control
+         // Disenchant button (gated by feature flag, before arrow button)
+         bool canDisenchant = PlayerSession.HasFeature("card_disenchant")
+                              && !onExpedition;
+-        bool atFloor = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize;
++        bool atFloor = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= CardHalls.DeckFloor(save);
+         bool disenchantBlocked = isActive && atFloor;
+ 
+         // Regalia are as undisenchantable as starters, and for a harder reason:
+@@ -669,7 +670,7 @@ public partial class DeckEditorUi : Control
+                 CustomMinimumSize = new Vector2(64, 28),
+                 FocusMode = FocusModeEnum.None,
+                 TooltipText = disenchantBlocked
+-                    ? $"Cannot disenchant: deck at minimum size ({save.MinDeckSize})"
++                    ? $"Cannot disenchant: deck at minimum size ({CardHalls.DeckFloor(save)})"
+                     : $"Disenchant for {yield} Arcane Splinters",
+             };
+             disBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+@@ -679,12 +680,37 @@ public partial class DeckEditorUi : Control
+             var capturedOwned = owned;
+             disBtn.Pressed += () => OnDisenchantPressed(capturedOwned, save);
+             hbox.AddChild(disBtn);
++
++            // Transmutation (Dissolution Chamber doctrine): the other verb at the bench.
++            if (CardHalls.TransmutationActive(save))
++            {
++                string whyNot = CardHalls.CannotTransmuteReason(save, owned);
++                var target = CardHalls.TransmuteTarget(save, owned);
++                var trBtn = new Button
++                {
++                    Text = $"⇄ -{CardHalls.TransmuteCost(owned)}✦",
++                    Disabled = whyNot != null,
++                    CustomMinimumSize = new Vector2(64, 28),
++                    FocusMode = FocusModeEnum.None,
++                    TooltipText = whyNot ?? $"Transmute into {target?.Prebuilt?.TopHalf?.Name ?? target?.Id} "
++                                          + $"for {CardHalls.TransmuteCost(owned)} splinters.",
++                };
++                trBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++                UITheme.ApplyButtonStyle(trBtn, isPrimary: false);
++                trBtn.MouseFilter = MouseFilterEnum.Stop;
++                trBtn.Pressed += () =>
++                {
++                    if (CardHalls.TryTransmute(save, capturedOwned) != null)
++                        Refresh();
++                };
++                hbox.AddChild(trBtn);
++            }
+         }
+ 
+         // Arrow button (slot / unslot)
+         // ── Arrow button (slot / unslot) ──────────────────────────────
+         bool deckAtMin = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
+-                            <= PlayerDeckSave.MinDeckSize;
++                            <= CardHalls.DeckFloor(save);
+         bool deckFull = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
+                             >= PlayerDeckSave.MaxDeckSize;
+ 
+@@ -886,6 +912,12 @@ public partial class DeckEditorUi : Control
+     {
+         if (isActive)
+         {
++            // The deck floor holds for a drag too (CardHalls.DeckFloor, §13).
++            if ((save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= CardHalls.DeckFloor(save))
++            {
++                GD.Print($"[DeckEditor] Cannot unslot: the deck is at its floor ({CardHalls.DeckFloor(save)}).");
++                return;
++            }
+             // Unslotting is free, starters included
+             PlayerDeckService.UnslotCard(save, owned.InstanceId);
+         }
+@@ -938,7 +970,7 @@ public partial class DeckEditorUi : Control
+ 
+         // Double-check floor; button should already be disabled but belt-and-suspenders
+         bool isActive = save.PlayerDeck.ActiveDeckInstanceIds?.Contains(owned.InstanceId) ?? false;
+-        if (isActive && (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize)
++        if (isActive && (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= CardHalls.DeckFloor(save))
+         {
+             GD.Print("[Disenchant] Blocked: deck at minimum size.");
+             return;
+-- 
+2.43.0
+

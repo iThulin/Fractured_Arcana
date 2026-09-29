@@ -415,7 +415,8 @@ public partial class DeckEditorUi : Control
         Clear(_activeList);
         var activeIds = save.PlayerDeck.ActiveDeckInstanceIds ?? new List<string>();
         int count = activeIds.Count;
-        bool tooFew = count < PlayerDeckSave.MinDeckSize;
+        int floor = CardHalls.DeckFloor(save);   // one floor: 10, or 7 under Thin Deck
+        bool tooFew = count < floor;
 
         if (_activeDeckCountLabel != null)
         {
@@ -428,7 +429,7 @@ public partial class DeckEditorUi : Control
 
         if (tooFew)
             _activeList.AddChild(MakeInfoLabel(
-                $"Need {PlayerDeckSave.MinDeckSize - count} more card(s) to run.",
+                $"Need {floor - count} more card(s) to run.",
                 UITheme.Danger));
 
         var cards = activeIds
@@ -651,7 +652,7 @@ public partial class DeckEditorUi : Control
         // Disenchant button (gated by feature flag, before arrow button)
         bool canDisenchant = PlayerSession.HasFeature("card_disenchant")
                              && !onExpedition;
-        bool atFloor = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize;
+        bool atFloor = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= CardHalls.DeckFloor(save);
         bool disenchantBlocked = isActive && atFloor;
 
         // Regalia are as undisenchantable as starters, and for a harder reason:
@@ -669,7 +670,7 @@ public partial class DeckEditorUi : Control
                 CustomMinimumSize = new Vector2(64, 28),
                 FocusMode = FocusModeEnum.None,
                 TooltipText = disenchantBlocked
-                    ? $"Cannot disenchant: deck at minimum size ({save.MinDeckSize})"
+                    ? $"Cannot disenchant: deck at minimum size ({CardHalls.DeckFloor(save)})"
                     : $"Disenchant for {yield} Arcane Splinters",
             };
             disBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -679,12 +680,37 @@ public partial class DeckEditorUi : Control
             var capturedOwned = owned;
             disBtn.Pressed += () => OnDisenchantPressed(capturedOwned, save);
             hbox.AddChild(disBtn);
+
+            // Transmutation (Dissolution Chamber doctrine): the other verb at the bench.
+            if (CardHalls.TransmutationActive(save))
+            {
+                string whyNot = CardHalls.CannotTransmuteReason(save, owned);
+                var target = CardHalls.TransmuteTarget(save, owned);
+                var trBtn = new Button
+                {
+                    Text = $"⇄ -{CardHalls.TransmuteCost(owned)}✦",
+                    Disabled = whyNot != null,
+                    CustomMinimumSize = new Vector2(64, 28),
+                    FocusMode = FocusModeEnum.None,
+                    TooltipText = whyNot ?? $"Transmute into {target?.Prebuilt?.TopHalf?.Name ?? target?.Id} "
+                                          + $"for {CardHalls.TransmuteCost(owned)} splinters.",
+                };
+                trBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+                UITheme.ApplyButtonStyle(trBtn, isPrimary: false);
+                trBtn.MouseFilter = MouseFilterEnum.Stop;
+                trBtn.Pressed += () =>
+                {
+                    if (CardHalls.TryTransmute(save, capturedOwned) != null)
+                        Refresh();
+                };
+                hbox.AddChild(trBtn);
+            }
         }
 
         // Arrow button (slot / unslot)
         // ── Arrow button (slot / unslot) ──────────────────────────────
         bool deckAtMin = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
-                            <= PlayerDeckSave.MinDeckSize;
+                            <= CardHalls.DeckFloor(save);
         bool deckFull = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
                             >= PlayerDeckSave.MaxDeckSize;
 
@@ -761,7 +787,7 @@ public partial class DeckEditorUi : Control
         2 => "Refined",
         3 => "Attuned",
         4 => "Mastered",
-        5 => "Transcendent",
+        >= 5 => "Transcendent",
         _ => "Upgraded"
     };
 
@@ -886,6 +912,12 @@ public partial class DeckEditorUi : Control
     {
         if (isActive)
         {
+            // The deck floor holds for a drag too (CardHalls.DeckFloor, §13).
+            if ((save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= CardHalls.DeckFloor(save))
+            {
+                GD.Print($"[DeckEditor] Cannot unslot: the deck is at its floor ({CardHalls.DeckFloor(save)}).");
+                return;
+            }
             // Unslotting is free, starters included
             PlayerDeckService.UnslotCard(save, owned.InstanceId);
         }
@@ -938,7 +970,7 @@ public partial class DeckEditorUi : Control
 
         // Double-check floor; button should already be disabled but belt-and-suspenders
         bool isActive = save.PlayerDeck.ActiveDeckInstanceIds?.Contains(owned.InstanceId) ?? false;
-        if (isActive && (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= save.MinDeckSize)
+        if (isActive && (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) <= CardHalls.DeckFloor(save))
         {
             GD.Print("[Disenchant] Blocked: deck at minimum size.");
             return;

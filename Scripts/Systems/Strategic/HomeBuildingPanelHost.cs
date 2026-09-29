@@ -48,6 +48,9 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     // Upgrade strip widgets (relabeled after a purchase)
     private Label _tierLabel;
     private Button _upgradeBtn;
+    /// <summary>Cleanse Land (campus corruption, CampusBlight): shown beside the
+    /// upgrade button only while the ground under the building is fouled.</summary>
+    private Button _cleanseBtn;
 
     /// <summary>True when <paramref name="id"/> is a panel this host can float today, i.e. one
     /// whose <see cref="CampusContext"/> needs no shell cycle/narrative lifecycle. Guard every
@@ -60,6 +63,9 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             or CampusPanelId.Training
             or CampusPanelId.Records
             or CampusPanelId.Workshop
+            or CampusPanelId.Scribe
+            or CampusPanelId.Seats
+            or CampusPanelId.Undercroft
             or CampusPanelId.Quests => true,   // session-one extraction (2026-08-13)
         _ => false,
     };
@@ -173,6 +179,11 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             _upgradeBtn.Pressed += OnUpgradePressed;
             strip.AddChild(_upgradeBtn);
 
+            _cleanseBtn = new Button { Visible = false };
+            _cleanseBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            _cleanseBtn.Pressed += OnCleansePressed;
+            strip.AddChild(_cleanseBtn);
+
             vbox.AddChild(new HSeparator());
             RefreshUpgradeStrip();
         }
@@ -230,13 +241,41 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         {
             _tierLabel.Text = "";
             _upgradeBtn.Visible = false;
+            if (_cleanseBtn != null) _cleanseBtn.Visible = false;
             return;
         }
 
         var tierData = template.Tiers.Find(t => t.Tier == bs.Tier);
         _tierLabel.Text = $"Tier {bs.Tier}/{template.MaxTier}" +
                           (tierData != null && !string.IsNullOrEmpty(tierData.DisplayName)
-                              ? $": {tierData.DisplayName}" : "");
+                              ? $": {tierData.DisplayName}" : "") +
+                          (bs.BlightLevel > 0 ? $"  ·  {CampusBlight.LevelName(bs.BlightLevel)} ground" : "");
+
+        if (_cleanseBtn != null)
+        {
+            bool fouled = bs.Tier > 0 && bs.IsPlaced && bs.BlightLevel > 0;
+            _cleanseBtn.Visible = fouled;
+            if (fouled)
+            {
+                var (mats, splinters) = CampusBlight.CleanseCost(bs);
+                string why = CampusBlight.CannotCleanseReason(save, bs);
+                _cleanseBtn.Text = why ?? $"Cleanse land ({mats} mats + {splinters} splinters)";
+                _cleanseBtn.Disabled = why != null;
+                UITheme.ApplyButtonStyle(_cleanseBtn, isPrimary: false);
+            }
+        }
+
+        // A damaged building (portal strike) mends before it grows.
+        int repair = CampusConstruction.RepairCost(bs);
+        if (repair > 0)
+        {
+            string whyNot = CampusConstruction.CannotRepairReason(save, bs);
+            _upgradeBtn.Visible = true;
+            _upgradeBtn.Text = whyNot ?? $"Repair ({repair} mats)";
+            _upgradeBtn.Disabled = whyNot != null;
+            UITheme.ApplyButtonStyle(_upgradeBtn, isPrimary: whyNot == null);
+            return;
+        }
 
         string reason = CampusConstruction.CannotBuildReason(save, _buildingId);
         var next = template.Tiers.Find(t => t.Tier == bs.Tier + 1);
@@ -255,11 +294,35 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
 
     private void OnUpgradePressed()
     {
+        var save = SaveManager.ActiveSave;
+        BuildingSaveData bs = null;
+        if (save != null)
+            foreach (var b in save.Buildings)
+                if (b.Id == _buildingId) { bs = b; break; }
+        if (CampusConstruction.RepairCost(bs) > 0)
+        {
+            if (CampusConstruction.TryRepair(save, _buildingId))
+            {
+                RefreshUpgradeStrip();
+                _panel?.Refresh();
+            }
+            return;
+        }
         if (CampusConstruction.TryBuildOrUpgrade(SaveManager.ActiveSave, _buildingId))
         {
             RefreshUpgradeStrip();
             _panel?.Refresh();   // tier-gated panel content (e.g. Workshop verbs) updates live
             _onBuildingChanged?.Invoke();   // tier-keyed mesh re-stamps (2026-08-13)
+        }
+    }
+
+    private void OnCleansePressed()
+    {
+        if (CampusBlight.TryCleanse(SaveManager.ActiveSave, _buildingId) != null)
+        {
+            RefreshUpgradeStrip();
+            _panel?.Refresh();              // a relit doctrine changes the panel's verbs
+            _onBuildingChanged?.Invoke();   // the stain on the map lifts
         }
     }
 
@@ -283,6 +346,9 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         CampusPanelId.Training   => new CampusTrainingPanel(),
         CampusPanelId.Records    => new CampusRecordsPanel(),
         CampusPanelId.Workshop   => new CampusWorkshopPanel(),
+        CampusPanelId.Scribe     => new CampusScribePanel(),
+        CampusPanelId.Seats      => new CampusSeatPanel(),
+        CampusPanelId.Undercroft => new CampusUndercroftPanel(),
         CampusPanelId.Quests     => new CampusQuestsPanel(),
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "not a floatable panel"),
     };

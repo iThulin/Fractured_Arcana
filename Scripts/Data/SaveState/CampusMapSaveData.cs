@@ -39,6 +39,22 @@ public class CampusTileSaveData
     /// <summary>False for tiles that can never hold a building: paths, the ley line
     /// plaza, decorative water. True (default) covers most of the campus.</summary>
     public bool IsBuildable = true;
+
+    // ── Campus corruption (campus_building_upgrades_design_v1 §11) ─────────
+    // Additive save fields: tiles saved before corruption read as clean ground.
+
+    /// <summary>0 clean, 1 tainted, 2 blighted, 3 overrun. Raised by enemy sieges
+    /// (a razed foundation, a finished blight ritual, a lost portal strike) and
+    /// by blight creeping from a neighbour; lowered by Cleanse Land. A building's
+    /// blight level is the worst tile under its footprint (CampusBlight).</summary>
+    public int Corruption = 0;
+
+    /// <summary>The building whose destruction left this tile as Rubble, or "".
+    /// Clearing that building's rubble restores <see cref="PriorGround"/>.</summary>
+    public string RubbleOf = "";
+
+    /// <summary>The ground this tile had before it became Rubble ("" = not rubble).</summary>
+    public string PriorGround = "";
 }
 
 /// <summary>One campus district, a large hex (one world/city hex when the campus is
@@ -165,6 +181,13 @@ public class CampusMapSaveData
     /// across rebuilds.</summary>
     public void RebuildTilesFromDistricts()
     {
+        // What happened to the ground survives a relayout: corruption and
+        // rubble are carried over by coordinate (campus corruption, §11).
+        var scarred = new Dictionary<(int, int), CampusTileSaveData>();
+        foreach (var t in Tiles)
+            if (t != null && (t.Corruption > 0 || !string.IsNullOrEmpty(t.RubbleOf) || t.Ground == "Rubble"))
+                scarred[(t.Q, t.R)] = t;
+
         Tiles.Clear();
         var unlocked = new HashSet<(int, int)>();
         foreach (var d in Districts)
@@ -205,6 +228,17 @@ public class CampusMapSaveData
                 seen.Add((q, r));
                 Tiles.Add(new CampusTileSaveData { Q = q, R = r, Ground = "Lawn", IsBuildable = true });
             }
+        }
+
+        foreach (var t in Tiles)
+        {
+            if (!scarred.TryGetValue((t.Q, t.R), out var old))
+                continue;
+            t.Corruption = old.Corruption;
+            t.RubbleOf = old.RubbleOf;
+            t.PriorGround = old.PriorGround;
+            if (old.Ground == "Rubble")
+                t.Ground = "Rubble";
         }
     }
 

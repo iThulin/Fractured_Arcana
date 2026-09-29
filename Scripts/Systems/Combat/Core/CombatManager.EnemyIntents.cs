@@ -210,10 +210,15 @@ public partial class CombatManager
     /// </summary>
     public void PlanAllEnemyIntents()
     {
+        // The Third Eye (Scrying Chambers doctrine, design §15): on expedition,
+        // every enemy's intent is read in full, as the Namer's true name does.
+        bool thirdEye = PlayerSession.IsOnExpedition && LoreHalls.ThirdEyeActive(SaveManager.ActiveSave);
         foreach (var enemy in enemyUnits)
         {
             if (!IsValidActor(enemy))
                 continue;
+            if (thirdEye)
+                enemy.IntentPermanentlyRevealed = true;
 
             enemy.CurrentIntent = PlanIntent(enemy);
 
@@ -249,6 +254,12 @@ public partial class CombatManager
             { "warp_channeler",          PlanWarpChanneler }, // city siege: interruptible teleport assault
             { "hunt_ward",               PlanHuntWard },   // O3: protect-objective pressure
         };
+
+        // Portal strike (campus corruption, SiegeBlight): a unit picked as a blight
+        // ritualist runs the ritual routine whatever its authored key, because the
+        // role is assigned per fight, not per unit type.
+        if (IsRitualist(enemy))
+            return ApplyPlanTags(enemy, PlanBlightRitualist(enemy));
 
         // U3a: an authored IntentCycle overrides BehaviorKey for THIS activation.
         // The index counts COMPLETED beats and is advanced in RunEnemyTurn, never
@@ -1537,7 +1548,11 @@ public partial class CombatManager
             // everyNRounds and onTurnEnd abilities (summon_cadence, ritual) are
             // not queued: "Ritual, Summon, Shift do nothing this activation."
             if (enemy.IsStaggered && enemy.CurrentIntent == null)
+            {
                 enemy.CurrentIntent = PlanIntent(enemy);   // so the Guard exemption reads a real intent
+                if (enemy.CurrentIntent != null)
+                    enemy.CurrentIntent.Revealed = enemy.IntentPermanentlyRevealed;   // Third Eye / Namer
+            }
             if (enemy.IsStaggered && enemy.CurrentIntent?.Kind != IntentKind.Guard)
             {
                 await ExecuteStaggeredActivation(enemy);
@@ -1678,13 +1693,17 @@ public partial class CombatManager
                 await ExecuteRangedIntent(enemy, intent);
                 break;
             case IntentKind.Channel:
-                if (IsWarpChanneler(enemy))
+                if (IsRitualist(enemy))
+                    await ExecuteRitualStart(enemy, intent);
+                else if (IsWarpChanneler(enemy))
                     await ExecuteWarpStart(enemy, intent);
                 else
                     await ExecuteChannelStart(enemy, intent);
                 break;
             case IntentKind.Release:
-                if (IsWarpChanneler(enemy))
+                if (IsRitualist(enemy))
+                    await ExecuteRitualRelease(enemy, intent);
+                else if (IsWarpChanneler(enemy))
                     await ExecuteWarpRelease(enemy, intent);
                 else
                     await ExecuteChannelRelease(enemy, intent);

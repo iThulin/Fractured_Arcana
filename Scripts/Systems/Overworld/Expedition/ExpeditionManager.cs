@@ -634,6 +634,7 @@ public partial class ExpeditionManager : Node2D
             // take the other branch and must NOT reset carried HP.)
             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
             PlayerSession.WizardExpeditionHP = -1; // K2.5 symmetry, wizard too
+            SchoolSeats.ClearWeatherCarry();       // Crucible T2: weather is per expedition
 
             // S4 (Identify) + S5 (True Names): pinned encounters are
             // expedition-scoped. Static so they survive combat round-trips
@@ -663,6 +664,7 @@ public partial class ExpeditionManager : Node2D
                 }
             }
 
+            PlayerSession.ScryingPortentSpentThisSortie = false;   // a fresh deploy: the portent is whole again
             if (_fieldRun)
             {
                 // The Chronomancer's flat moves are a CHASSIS quirk and the
@@ -3028,6 +3030,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
         }
 
+        // Facets (2026-09-29): a blight facet site is a Narrative POI that yields
+        // a facet instead of an encounter, so it is read before the POI dispatch.
+        if (TryRetrieveFacet(coord))
+            return;
+
         // P4: shard sub-region tiles carry NO POI, so handle them BEFORE the
         // POIType early-return. Gate -> guardian; sanctum (post-clear) -> collect.
         if (TryHandleShardZone(coord))
@@ -3481,6 +3488,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (PlayerSession.ScryingPortentAvailable)
         {
             PlayerSession.ScryingPortentAvailable = false;
+            PlayerSession.ScryingPortentSpentThisSortie = true;
             ShowInfo("The scrying held true, and you foresee the patrol and slip past unseen.");
             return;
         }
@@ -3674,7 +3682,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         slot.Clear();
         // Edge M6 (spec §11b): wand charges are per expedition and refill at
         // campus. Every end path (extract, park, emergency, fail) comes through here.
-        int refilled = SaveManager.ActiveSave?.Armory?.RefillWandCharges() ?? 0;
+        // Only wands at home refill: a field party's members keep theirs spent
+        // until the party reaches a staging anchor or the castle (FieldMarch.BankHere).
+        var endSave = SaveManager.ActiveSave;
+        int refilled = FieldMarch.RefillWandsAtHome(endSave?.Cycle, endSave?.Armory);
+        SchoolSeats.ClearWeatherCarry();   // Crucible T2: the expedition's weather ends with it
         if (refilled > 0)
             GD.Print($"[Armory] {refilled} wand(s) recharged on return.");
         SaveManager.MarkDirty();
@@ -3866,6 +3878,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
             GoldEarned += router.GoldReward;
             SplinterEarned += router.SplinterReward;
+            MaterialEarned += router.MaterialReward;
             EncountersWon++;
 
             // The waystone's ground pays what it promised (WaystoneAffixes).
@@ -3894,8 +3907,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                    $", encounter #{EncountersWon}",
                    goldDelta: +router.GoldReward, splinterDelta: +router.SplinterReward,
                    at: resultHex);
-            if (router.GoldReward > 0 || router.SplinterReward > 0)
-                spoils.Add(($"+{router.GoldReward} gold   ·   +{router.SplinterReward} Arcane Splinters",
+            if (router.GoldReward > 0 || router.SplinterReward > 0 || router.MaterialReward > 0)
+                spoils.Add(($"+{router.GoldReward} gold   ·   +{router.SplinterReward} Arcane Splinters"
+                            + (router.MaterialReward > 0 ? $"   ·   +{router.MaterialReward} materials" : ""),
                             UITheme.Gold));
 
             // Q4.4 (§7c): combat pays in things. Tier-keyed drop roll: the
@@ -3949,7 +3963,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
             ConsumeWorldPoi(resultHex);
             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
-            ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
+            ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters, +{router.MaterialReward} materials.");
             EmitCombatDeed(router, resultHex);
 
             // Sentiment: winning combat in an archmage's region shifts sentiment
@@ -4151,6 +4165,28 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ResultText = "The column rolls past and is gone. The road feels emptier after." },
         },
     };
+
+    /// <summary>Facets (design §8b, source 5): standing on a zone's blight site
+    /// takes its facet and spends the site. Returns true when the tile was one.</summary>
+    private bool TryRetrieveFacet(Vector2I coord)
+    {
+        if (_world == null || !_window.TryLocalToWorld(coord, out int col, out int row))
+            return false;
+        var save = SaveManager.ActiveSave;
+        var zone = Facets.BlightSiteAt(_world, save, col, row);
+        if (zone == null)
+            return false;
+        string line = Facets.RetrieveBlight(save, _world, zone);
+        if (line == null)
+            return false;
+        ConsumeOverlayPoi(coord);
+        ShowInfo(line);
+        _toasts?.Push("A facet is the guild's.", QuestToastKind.Progress);
+        LogRun("facet", $"{zone.FragmentKey}: blight", at: coord);
+        SaveManager.MarkDirty();
+        UpdateUI();
+        return true;
+    }
 
     /// <summary>P4: standing on a shard sub-region tile. GATE (guardian not yet
     /// felled) -> launch the guardian Boss (fragment key doubles as guardian key,
@@ -4465,7 +4501,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
         }
 
-        if (bonuses.ScryingPortent)
+        // The portent is the Third Eye's now (Scrying Chambers doctrine, design §15).
+        if ((bonuses.ScryingPortent || LoreHalls.ThirdEyeActive(SaveManager.ActiveSave))
+            && !PlayerSession.ScryingPortentSpentThisSortie)
             PlayerSession.ScryingPortentAvailable = true;
     }
 

@@ -71,7 +71,9 @@ public static class CombatLootTable
         int roll = rng.RandiRange(1, c + u + r);
         string rarity = roll <= c ? "Common" : roll <= c + u ? "Uncommon" : "Rare";
 
-        var all = ItemDatabase.GetAll();
+        // Spellglass is crafted only: a glass is blank until the Scriptorium seals
+        // a card into it, and a blank one cannot be used (2026-09-29).
+        var all = ItemDatabase.GetAll()?.Where(d => !d.IsSpellglass).ToList();
         if (all == null || all.Count == 0) return null;
 
         var band = all.Where(d => d.Rarity == rarity && !exclude.Contains(d)).ToList();

@@ -303,6 +303,65 @@ public static class FieldMarch
         report = report == null ? line : report + " " + line;
     }
 
+    // ── Wand charges (spec v1 §11: per expedition, refilled at campus) ─────
+
+    /// <summary>Everyone posted to a field party or detachment. They carry their
+    /// wands with them, so the guild's bench cannot recharge those.</summary>
+    public static System.Collections.Generic.HashSet<string> FieldMemberIds(CycleState cycle)
+    {
+        var ids = new System.Collections.Generic.HashSet<string>();
+        if (cycle?.FieldParties == null)
+        {
+            return ids;
+        }
+        foreach (var p in cycle.FieldParties)
+        {
+            if (p?.MemberCompanionIds == null)
+            {
+                continue;
+            }
+            foreach (var id in p.MemberCompanionIds)
+            {
+                if (!string.IsNullOrEmpty(id))
+                {
+                    ids.Add(id);
+                }
+            }
+        }
+        return ids;
+    }
+
+    /// <summary>Recharge every wand that is at home: in the armory, or worn by
+    /// someone not posted to a field party (the wizard, the castle's crew, the
+    /// dormitory). Called when a sortie ends and at each new moon.</summary>
+    public static int RefillWandsAtHome(CycleState cycle, ArmoryData armory)
+    {
+        if (armory == null)
+        {
+            return 0;
+        }
+        var away = FieldMemberIds(cycle);
+        return armory.RefillWandCharges(holder => !away.Contains(holder));
+    }
+
+    /// <summary>Recharge the wands this party's members wear. Called from
+    /// BankHere at a staging anchor or the parked castle.</summary>
+    public static int RefillPartyWands(CycleState cycle, FieldParty party)
+    {
+        var armory = SaveManager.ActiveSave?.Armory;
+        if (armory == null || party?.MemberCompanionIds == null || party.MemberCompanionIds.Count == 0)
+        {
+            return 0;
+        }
+        var members = new System.Collections.Generic.HashSet<string>(party.MemberCompanionIds);
+        int n = armory.RefillWandCharges(holder => members.Contains(holder));
+        if (n > 0)
+        {
+            SaveManager.MarkDirty();
+        }
+        return n;
+    }
+
     /// <summary>Bank what the party is carrying, if this is somewhere with
     /// people and a counting house. A shard zone and a bare tile are neither, so
     /// the hold rides on and the report says so rather than silently keeping it.</summary>
@@ -319,6 +378,20 @@ public static class FieldMarch
         if (!string.IsNullOrEmpty(concord))
         {
             prefix += " " + concord;
+        }
+
+        // Wands refill where the guild keeps people and a scribe's bench: a
+        // staging anchor or the parked castle, once the Scribe's Tower reaches
+        // its second tier (2026-09-29, spec D7). Before the hold check, so an
+        // empty-handed arrival still recharges.
+        if (here != null && (here.Kind == AnchorKind.Staging || here.Kind == AnchorKind.CastlePark)
+            && ScribesTower.RechargesAfield(SaveManager.ActiveSave))
+        {
+            int recharged = RefillPartyWands(cycle, party);
+            if (recharged > 0)
+            {
+                prefix += $" {recharged} wand{(recharged == 1 ? " is" : "s are")} recharged.";
+            }
         }
 
         var carrying = party.Carrying;
@@ -389,21 +462,31 @@ public static class FieldMarch
             }
         }
 
-        return false;
+        // The Teleport Sigil widens the network (2026-09-29): the guild's own
+        // outposts and caches at T1, Allied settlements under the Gate Network.
+        return TeleportSigil.IsSigilWaystone(cycle, x, y, out what);
     }
 
     public static bool CanTeleportTo(CycleState cycle, FieldParty party, int x, int y, out string reason)
     {
-        if (!CanOrderAtAll(cycle, party, out reason))
+        // Teleport Sigil T2 (Recall): a party on the road may abandon the march
+        // and step home to the dock. Every other refusal still applies.
+        bool recallHome = party != null && party.State == FieldPartyState.Travelling
+                          && TeleportSigil.RecallAnywhere(SaveManager.ActiveSave)
+                          && TeleportSigil.IsDock(cycle, x, y);
+        if (!recallHome && !CanOrderAtAll(cycle, party, out reason))
         {
             return false;
         }
+        reason = "";
         if (FieldPostings.IsDetachment(party))
         {
             reason = "A detachment does not move. Collect it with the party, or recall it through a waystone.";
             return false;
         }
-        if (x == party.X && y == party.Y)
+        // A party that set out from the dock and has not stepped off it yet may
+        // still recall: stepping home there simply cancels the march.
+        if (x == party.X && y == party.Y && !recallHome)
         {
             reason = "The party is already standing there.";
             return false;
@@ -439,6 +522,7 @@ public static class FieldMarch
         party.Y = y;
         party.State = FieldPartyState.AtAnchor;
         party.TravelPhasesRemaining = 0;
+        party.TravelDayAccum = 0;   // a recalled march leaves nothing half-walked
         party.DestX = -1;
         party.DestY = -1;
         party.DestinationAnchorKey = "";

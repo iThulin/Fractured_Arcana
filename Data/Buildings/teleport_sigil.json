@@ -5,33 +5,71 @@
     "category": "Portal",
     "schoolAffinity": "",
     "footprint": [
-        { "q": 0, "r": 0 },
-        { "q": 1, "r": 0 },
-        { "q": 1, "r": -1 },
-        { "q": 0, "r": -1 },
-        { "q": -1, "r": 0 },
-        { "q": -1, "r": 1 },
-        { "q": 0, "r": 1 }
+        {
+            "q": 0,
+            "r": 0
+        },
+        {
+            "q": 1,
+            "r": 0
+        },
+        {
+            "q": 1,
+            "r": -1
+        },
+        {
+            "q": 0,
+            "r": -1
+        },
+        {
+            "q": -1,
+            "r": 0
+        },
+        {
+            "q": -1,
+            "r": 1
+        },
+        {
+            "q": 0,
+            "r": 1
+        }
     ],
     "maxTier": 3,
     "tiers": [
         {
             "tier": 1,
-            "description": "Placeholder. Mechanical effects are not yet designed. Registers as an entry point for the portal attack vector (campus_siege_and_defense_v1 §3).",
-            "goldCost": 0,
-            "requiredBuildings": []
+            "displayName": "The Waygate",
+            "goldCost": 200,
+            "requiredBuildings": [],
+            "description": "Parties may also step to the guild's own outposts, secured sites, claimed shard zones and held supply caches. The circle can be opened from the far side too: a kingdom hostile to the guild can learn its pattern and strike the campus through it."
         },
         {
             "tier": 2,
-            "description": "Placeholder. Mechanical effects are not yet designed.",
-            "goldCost": 300,
-            "requiredBuildings": []
+            "displayName": "The Recall",
+            "goldCost": 350,
+            "requiredBuildings": [],
+            "description": "A detachment can be recalled to its party from anywhere, and a marching party can abandon the road and step home to the dock."
         },
         {
             "tier": 3,
-            "description": "Placeholder. Mechanical effects are not yet designed.",
+            "displayName": "The Open Circle",
             "goldCost": 600,
-            "requiredBuildings": []
+            "requiredBuildings": [],
+            "description": "A doctrine, chartered at the Grand Hall. The Gate Network: every settlement of an Allied kingdom is a waystone. (The Sally Port waits on the wizard's summons.)",
+            "doctrines": [
+                {
+                    "id": "gate_network",
+                    "name": "The Gate Network",
+                    "description": "Every town and city of an Allied kingdom becomes a waystone your parties can step to. Allies shrink the map."
+                },
+                {
+                    "id": "sally_port",
+                    "name": "The Sally Port",
+                    "description": "The wizard joins a field fight through the circle at no cost in days.",
+                    "blocked": "the wizard's summons to the field is not built yet"
+                }
+            ]
         }
-    ]
+    ],
+    "hostsSystem": ""
 }

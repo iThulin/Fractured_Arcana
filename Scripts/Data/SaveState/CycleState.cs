@@ -114,11 +114,43 @@ public class CycleState
     public int Gold = 0;
 
     /// <summary>Building construction/upgrade cost's second resource, alongside Gold.
-    /// Standard ratio is 3 Materials : 1 Gold (BuildingTier.EffectiveMaterialsCost).
-    /// Same tier as Gold by design (dies with the timeline). No gathering system
-    /// exists yet, so NewGameScreen currently grants a flat starting stock as a
-    /// placeholder.</summary>
+    /// Standard ratio is BuildingTier.StandardMaterialsPerGold. Same tier as Gold by
+    /// design (dies with the timeline). Earned from fight salvage and held supply
+    /// caches; a new guild is founded with SaveManager.FoundingMaterials.</summary>
     public int BuildMaterials = 0;
+
+    // ── Charters (campus_building_upgrades_design_v1 §2b) ──────────────
+    /// <summary>The doctrines this timeline has chartered at the Grand Hall, one
+    /// entry per building. Per cycle on purpose: a new timeline starts with none,
+    /// which is what makes the first charters of a cycle free. Additive save
+    /// field; old cycles deserialize empty.</summary>
+    public List<CharterEntry> Charters = new();
+
+    /// <summary>How many charters this timeline has filled. The first Slots fills
+    /// are free; every fill past that is a refit (Charters.RefitMaterials, in force
+    /// from the next lunation). Unseating never refunds a fill, so clearing and
+    /// refilling cannot dodge the refit.</summary>
+    public int CharterFillsUsed = 0;
+
+    /// <summary>Crucible of Storms T1 (Fronts): the element the weather favours
+    /// this timeline, "Fire" / "Ice" / "Storm" / "Earth", or "" for none. Every
+    /// Elementalist in the guild opens a fight with 1 attunement in it. Set at the
+    /// School Seats panel. Additive; old cycles read "".</summary>
+    public string CrucibleFront = "";
+
+    // ── Portal strikes (TeleportSigil.cs) ──────────────────────────────
+    /// <summary>Kingdom id → how much of the Teleport Sigil's pattern it has
+    /// learned (0 to TeleportSigil.KnowledgeToStrike). Additive; old cycles
+    /// read empty.</summary>
+    public Dictionary<string, int> PortalKnowledge = new();
+
+    /// <summary>A portal strike owed: the attacking kingdom, or "" for none.
+    /// Mirrors PendingCastleAssaultKingdomId.</summary>
+    public string PendingPortalStrikeKingdomId = "";
+
+    /// <summary>True while the owed strike's fight is in progress, so a reload
+    /// mid-combat leaves it owed rather than resolved.</summary>
+    public bool PortalStrikeLaunched = false;
 
     /// <summary>
     /// Card upgrade currency. In-cycle power, so it dies with the timeline.
@@ -424,6 +456,10 @@ public class CycleState
     /// what persists. See docs/progression_card_acquisition_v1_2.md.
     /// </summary>
     public int MintsThisCycle = 0;
+
+    /// <summary>Cards the Scriptorum's Refinement doctrine has perfected this
+    /// timeline (design §15; one allowed). Additive save field.</summary>
+    public int RefinementsUsed = 0;
 
     // ── Overworld magic (S1) ─────────────────────────────────────────────
     /// <summary>Known/prepared overworld spells, Essence pool, scrolls,

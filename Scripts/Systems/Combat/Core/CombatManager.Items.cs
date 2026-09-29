@@ -78,7 +78,7 @@ public partial class CombatManager
         string bound = inst.EffectiveBoundCardId(def);
         if (!string.IsNullOrEmpty(bound))
         {
-            var half = BoundHalf(bound);
+            var half = BoundHalf(bound, inst.BoundTopTier, inst.BoundBotTier);
             if (half != null)
                 text = $"{half.Name}: {half.RulesText}";
         }
@@ -88,7 +88,7 @@ public partial class CombatManager
             Title = inst.Name,
             Cost = cost,
             Text = text,
-            Role = def.IsWand ? "Wand" : def.IsSpellglass ? "Spellglass" : def.ConsumeKind == "scroll" ? "Scroll" : "Belt",
+            Role = def.IsWand ? "Wand" : def.IsSpellglass ? "Spellglass" : def.ConsumeKind == "scroll" ? "Tablet" : "Belt",
             Enabled = why == null,
             Armed = _armedItem == inst,
             Tooltip = why ?? (def.IsWand || def.IsSpellglass
@@ -98,14 +98,22 @@ public partial class CombatManager
         };
     }
 
-    /// <summary>The top half of the bound card, or null when the id is unknown.</summary>
-    private static CardHalf BoundHalf(string blueprintId)
+    /// <summary>The top half of the bound card, or null when the id is unknown.
+    /// Glass sealed under the Glasswright carries upgrade tiers; the upgraded
+    /// half is cast, falling back to the printed card if the upgrade fails.</summary>
+    private static CardHalf BoundHalf(string blueprintId, int topTier = 0, int botTier = 0)
     {
         if (string.IsNullOrEmpty(blueprintId))
             return null;
         var bp = CardDatabase.Blueprints.Find(b => b.Id == blueprintId) ?? CardDatabase.GetByName(blueprintId);
         if (bp == null)
             return null;
+        if (topTier > 0 || botTier > 0)
+        {
+            var upgraded = CardUpgradeApplier.Apply(bp.Id, topTier, botTier);
+            if (upgraded?.TopHalf != null)
+                return upgraded.TopHalf;
+        }
         var card = CardDatabase.Instantiate(bp);
         return card?.TopHalf;
     }
@@ -135,7 +143,7 @@ public partial class CombatManager
         string bound = inst.EffectiveBoundCardId(def);
         if (def.IsWand || def.IsSpellglass)
         {
-            var half = BoundHalf(bound);
+            var half = BoundHalf(bound, inst.BoundTopTier, inst.BoundBotTier);
             if (half == null)
                 return $"Bound spell '{bound}' is not in the card database.";
             if (!ItemCanAim(half.Targeting))
@@ -146,7 +154,7 @@ public partial class CombatManager
             if (def.ConsumeKind == "scroll")
             {
                 if (_scrollReadThisTurn)
-                    return "The party's one scroll this turn is spent.";
+                    return "The party's one tablet this turn is spent.";
             }
             else if (u.HasUsedConsumableThisTurn)
                 return $"{u.Name} has already drunk this turn.";
@@ -192,7 +200,7 @@ public partial class CombatManager
             return true;
         }
 
-        var half = BoundHalf(inst.EffectiveBoundCardId(def));
+        var half = BoundHalf(inst.EffectiveBoundCardId(def), inst.BoundTopTier, inst.BoundBotTier);
         if (half == null)
             return true;
 
@@ -439,6 +447,16 @@ public partial class CombatManager
         {
             save.Armory.RemoveItem(inst.InstanceId);
             combatUI?.AppendActionLog($"{inst.Name} shatters.");
+            if (inst.Cracked && u.Stats.IsAlive)
+            {
+                // Cracked glass (a blighted Scribe's Tower) bites the hand that breaks it.
+                int hpBefore = u.Stats.Health;
+                u.ApplyDamage(ScribesTower.CrackedGlassBite);
+                int lost = Math.Max(0, hpBefore - u.Stats.Health);
+                combatUI?.AppendActionLog(lost > 0
+                    ? $"The cracked glass cuts {u.Name} for {lost}."
+                    : $"The cracked glass bites at {u.Name}, but nothing gets through.");
+            }
         }
         SaveManager.MarkDirty();
 

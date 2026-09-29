@@ -26,12 +26,24 @@
     },
     {
       "tier": 3,
-      "displayName": "The Unbinding Floor",
+      "displayName": "The Master's Floor",
       "goldCost": 400,
-      "description": "Cleanse: strip a blighted item's drawback and unseal its enchant slot. What the corruption improved, it keeps.",
+      "description": "A doctrine, chartered at the Grand Hall. The Unbinding Floor: Cleanse blighted items, and a cleansed item keeps twice what the corruption gave it. Or the Attunement Forge: rebind a staff's opening card to any card in your deck.",
       "requiredBuildings": [],
       "passiveEffects": [],
-      "activeEffects": []
+      "activeEffects": [],
+      "doctrines": [
+        {
+          "id": "unbinding_floor",
+          "name": "The Unbinding Floor",
+          "description": "Cleanse a blighted item: the drawback lifts, the slot unseals, and the item keeps twice the strength its blight gave it. Blighted spoils become worth hunting."
+        },
+        {
+          "id": "attunement_forge",
+          "name": "The Attunement Forge",
+          "description": "Rebind a staff: its Innate opening card becomes any card in your deck. The staff becomes the first move of every fight."
+        }
+      ]
     }
   ]
 }

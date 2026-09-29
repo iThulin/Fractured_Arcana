@@ -29,6 +29,19 @@ public static class DisenchantValues
 
 	private const int UpgradeRefundPerPoint = 4;
 
+	/// <summary>The rarity part of the yield, before upgrades and building bonus
+	/// (Transmutation's price, CardHalls).</summary>
+	public static int BaseYieldOf(OwnedCard card)
+	{
+		var bp = CardDatabase.Blueprints.Find(b =>
+			string.Equals(b.Id, card?.BlueprintId,
+				System.StringComparison.OrdinalIgnoreCase));
+		return BaseYield(bp?.Rarity ?? CardRarity.Common);
+	}
+
+	/// <summary>Splinters the card's upgrades return.</summary>
+	public static int UpgradeRefundOf(OwnedCard card) => (card?.PointsSpent ?? 0) * UpgradeRefundPerPoint;
+
 	public static int GetYield(OwnedCard card)
 	{
 		var bp = CardDatabase.Blueprints.Find(b =>

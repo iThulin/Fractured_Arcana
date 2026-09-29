@@ -33,6 +33,12 @@ public enum CampusPanelId
     // a campus building, so dropping them shifts nothing else.
     /// <summary>Q5: the Enchanter's Workshop (item enchanting + Cleanse).</summary>
     Workshop = 9,
+    /// <summary>The Scribe's Tower (scrolls, spellglass, wands; spec D7).</summary>
+    Scribe = 10,
+    /// <summary>The school seats (facets, fronts, seat doctrines; design §8).</summary>
+    Seats = 11,
+    /// <summary>The Undercroft (espionage: informants, secrets, the Concord; design §14).</summary>
+    Undercroft = 12,
 }
 
 /// <summary>What activating a campus location does. Two shapes, because the campus systems
@@ -121,6 +127,9 @@ public static class CampusLocationRegistry
         "quests"     => CampusDestination.ToPanel(CampusPanelId.Quests),
         "council"    => CampusDestination.ToPanel(CampusPanelId.Council),
         "workshop"   => CampusDestination.ToPanel(CampusPanelId.Workshop),
+        "scribe"     => CampusDestination.ToPanel(CampusPanelId.Scribe),
+        "seats"      => CampusDestination.ToPanel(CampusPanelId.Seats),
+        "undercroft" => CampusDestination.ToPanel(CampusPanelId.Undercroft),
         // Scene destinations. These are the campus systems that were never tabs. They
         // are reached today only as buttons on the Guild tab, which is exactly the
         // arrangement the diegetic campus replaces: the Arcane Library IS the card

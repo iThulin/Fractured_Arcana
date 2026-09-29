@@ -45,6 +45,10 @@ public partial class EncounterRouter : Node
     public int GoldReward { get; set; }
     public int DamageTaken { get; set; }
     public int SplinterReward { get; set; }
+    /// <summary>Build materials salvaged from a won fight (2026-09-29): the
+    /// first in-play materials faucet. Paid by every site that pays
+    /// GoldReward.</summary>
+    public int MaterialReward { get; set; }
     public int SavedSplinterEarned { get; set; }
     public int SavedMaterialEarned { get; set; }
     public int SavedSuppliesEarned { get; set; }
@@ -129,10 +133,11 @@ public partial class EncounterRouter : Node
         SavedStrideAmbush = false;        // §3.4: clear the stride-ambush flag too
         GoldReward = CalculateGoldRewardForTier(_currentTier);
         SplinterReward = SplinterDropTable.Combat(_currentTier);
+        MaterialReward = CalculateMaterialRewardForTier(_currentTier);
         HasPendingReturn = true;
 
         GD.Print($"EncounterRouter: Combat finished. Won: {playerWon}. " +
-                $"Gold: {GoldReward}, Splinters: {SplinterReward}.");
+                $"Gold: {GoldReward}, Splinters: {SplinterReward}, Materials: {MaterialReward}.");
 
         // Flush any mid-run state changes (cast counts, etc.) to disk
         SaveManager.SaveIfDirty();
@@ -187,6 +192,19 @@ public partial class EncounterRouter : Node
         // fallthrough value; made explicit now that the tier is actually routed.
         EncounterTier.Ambush => (int)GD.RandRange(15, 25),
         _ => (int)GD.RandRange(15, 25),
+    };
+
+    /// <summary>Salvage from the field: arms, harness, timber, iron. Starting
+    /// values (2026-09-29), about three quarters of the gold band, so a fight
+    /// alone pays for a building a little slower than it pays for its gold.
+    /// Held supply caches are the other faucet (SupplyCacheSystem).</summary>
+    private int CalculateMaterialRewardForTier(EncounterTier tier) => tier switch
+    {
+        EncounterTier.Skirmish => (int)GD.RandRange(6, 11),
+        EncounterTier.Battle => (int)GD.RandRange(14, 22),
+        EncounterTier.Siege => (int)GD.RandRange(30, 45),
+        EncounterTier.Ambush => (int)GD.RandRange(11, 19),
+        _ => (int)GD.RandRange(11, 19),
     };
 
     public static HexGridManager.MapDensityPreset DensityForTier(EncounterTier tier) => tier switch

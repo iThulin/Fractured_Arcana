@@ -121,6 +121,7 @@ public static class ProgressionSweep
             awards += Guarded("archmagi", () => SweepArchmagi(save, paid));
             awards += Guarded("companion arcs", () => SweepCompanionArcs(save, paid));
             awards += Guarded("marginalia", () => SweepMarginalia(save, paid));
+            awards += Guarded("facets", () => Facets.Sweep(save, paid));
 
             if (awards > 0)
                 GD.Print($"[ProgressionSweep] {awards} outstanding award(s) settled.");

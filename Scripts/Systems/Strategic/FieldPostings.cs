@@ -656,9 +656,11 @@ public static class FieldPostings
             why = "The party is not standing free to receive them.";
             return false;
         }
-        if (!FieldMarch.IsWaystone(cycle, det.X, det.Y, out _))
+        // Teleport Sigil T2 (Recall): recalled from anywhere, not only a waystone.
+        if (!FieldMarch.IsWaystone(cycle, det.X, det.Y, out _)
+            && !TeleportSigil.RecallAnywhere(SaveManager.ActiveSave))
         {
-            why = "They are not standing on a waystone. Walk to them.";
+            why = "They are not standing on a waystone. Walk to them, or raise the Teleport Sigil's Recall.";
             return false;
         }
         return true;
@@ -1258,7 +1260,11 @@ public static class FieldPostings
     private static string RaiseMilitiaIfDue(CycleState cycle, FieldParty force, string zoneId, string placeName)
     {
         force.WorkProgress++;
-        if (force.WorkProgress != MilitiaAfterMoons)
+        // Levy Muster (Training Grounds doctrine) raises militia a moon sooner.
+        // At-or-past rather than equal, so a doctrine chartered mid-garrison still
+        // pays; the FieldOffersMade key below keeps it once per site.
+        int moons = TrainingGrounds.MilitiaMoons(SaveManager.ActiveSave);
+        if (force.WorkProgress < moons)
         {
             return null;
         }
@@ -1275,7 +1281,7 @@ public static class FieldPostings
         {
             return null;
         }
-        string line = $"{offer.Name}, a local of {placeName}, asks to serve the guild after {MilitiaAfterMoons} moons of {force.Name}'s garrison. "
+        string line = $"{offer.Name}, a local of {placeName}, asks to serve the guild after {moons} moons of {force.Name}'s garrison. "
                     + $"{offer.RecruitmentCost} gold on the Forces screen.";
         ScryInbox.Post(cycle, ScryChannel.Messenger, "A local asks to serve", line, force.Id, "offer");
         return line;

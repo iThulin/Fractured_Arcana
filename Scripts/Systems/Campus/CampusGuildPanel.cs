@@ -45,6 +45,7 @@ public sealed class CampusGuildPanel : CampusPanel
     private VBoxContainer _guildIdentityContainer;
     private VBoxContainer _guildResultContainer;
     private VBoxContainer _declarationContainer;
+    private VBoxContainer _charterContainer;
 
     // Last-run result snapshot (see RefreshGuildResultPanel): RunResultData is
     // CONSUMED on first read because StrategicView's warfront resolution keys on
@@ -78,6 +79,14 @@ public sealed class CampusGuildPanel : CampusPanel
         AddSectionHeader(layout, "Disciplines: what you can play, and why");
         _declarationContainer = MakeVBox(8);
         layout.AddChild(_declarationContainer);
+
+        // ── Charters, filled by CharterSection (design §2b) ──────────────
+        // The hall is where a timeline declares what kind of guild it is:
+        // the doctrines chartered here are the only ones in force.
+        layout.AddChild(new HSeparator());
+        AddSectionHeader(layout, "Charters: the doctrines this timeline stands by");
+        _charterContainer = MakeVBox(8);
+        layout.AddChild(_charterContainer);
 
         // ── Save slots ───────────────────────────────────────────────────
         layout.AddChild(new HSeparator());
@@ -149,7 +158,17 @@ public sealed class CampusGuildPanel : CampusPanel
         RefreshGuildIdentityPanel();
         RefreshGuildResultPanel();
         RefreshDeclarations();
+        RefreshCharters();
         RefreshSlots();
+    }
+
+    private void RefreshCharters()
+    {
+        CharterSection.Fill(_charterContainer, Ctx, () =>
+        {
+            Ctx?.RefreshGold?.Invoke();
+            RefreshCharters();
+        });
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -737,6 +756,65 @@ public sealed class CampusGuildPanel : CampusPanel
         Act(strategic, "March Castle", StrategicDebug.MarchCastleToNearestAnchor);
         Act(strategic, "Force Castle Raid", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.PatrolRaid));
         Act(strategic, "Force Castle Assault", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.KingdomAssault));
+        Act(strategic, "Force Portal Strike", () =>
+        {
+            // Needs a built, sited Teleport Sigil; offered on the next strategic-map load.
+            var cycle = Ctx.Save?.Cycle;
+            if (cycle?.Kingdoms == null || TeleportSigil.Tier(Ctx.Save) < 1)
+            {
+                GD.PrintErr("[Debug] No sited Teleport Sigil, so there is no rift to strike through.");
+                return;
+            }
+            foreach (var kv in cycle.Kingdoms)
+            {
+                cycle.PendingPortalStrikeKingdomId = kv.Key;
+                cycle.PortalStrikeLaunched = false;
+                SaveManager.MarkDirty();
+                SaveManager.SaveIfDirty();
+                GD.Print($"[Debug] Portal strike owed by {kv.Key}. Open the strategic map.");
+                break;
+            }
+        });
+        Act(strategic, "Foul Campus Ground", () =>
+        {
+            // Campus corruption (§11): one step onto a sited building whose ground can
+            // still sink. Non-foundational buildings first (they go to Overrun), then
+            // foundational ones (capped at Blighted), in id order, so repeated presses
+            // walk one building through its levels before moving to the next. A new
+            // guild owns only its five foundational buildings, so those are the targets
+            // until something else is built and sited.
+            var save = Ctx.Save;
+            if (save?.Buildings == null)
+                return;
+            var ordinary = new System.Collections.Generic.List<string>();
+            var foundational = new System.Collections.Generic.List<string>();
+            foreach (var b in save.Buildings)
+            {
+                var t = BuildingDatabase.GetTemplate(b.Id);
+                if (b.Tier <= 0 || !b.IsPlaced || t == null)
+                    continue;
+                if (t.IsFoundational)
+                {
+                    if (b.BlightLevel < CampusBlight.FoundationalCap)
+                        foundational.Add(b.Id);
+                }
+                else if (b.BlightLevel < CampusBlight.MaxLevel)
+                {
+                    ordinary.Add(b.Id);
+                }
+            }
+            ordinary.Sort(string.CompareOrdinal);
+            foundational.Sort(string.CompareOrdinal);
+            string pick = ordinary.Count > 0 ? ordinary[0] : foundational.Count > 0 ? foundational[0] : null;
+            if (pick == null)
+            {
+                GD.PrintErr("[Debug] Every sited building's ground is already as foul as it can get.");
+                return;
+            }
+            string line = CampusBlight.CorruptBuildingLand(save, pick, 1);
+            GD.Print($"[Debug] Fouled '{pick}' (now {CampusBlight.LevelName(CampusBlight.Level(save, pick))}). {line}");
+            SaveManager.SaveIfDirty();
+        });
         Act(strategic, "Assert Field Save", () => FieldExpeditionSaveAssert.AssertAll());
         Act(strategic, "Dump Echoes", () => CouncilDebug.DumpEchoes());
         Act(strategic, "Dump Regard", () => CouncilDebug.DumpRegard());
@@ -767,6 +845,13 @@ public sealed class CampusGuildPanel : CampusPanel
         // ── PROGRESSION ──────────────────────────────────────────────────
         var progression = Section("PROGRESSION",
             "Skips the slow gates. These write the EternalLedger and save at once: PERMANENT for this guild. Use a scratch slot.");
+        Grant(progression, "Grant Elementalist Facets", save =>
+        {
+            int n = 0;
+            foreach (var source in Facets.FragmentSources)
+                if (Facets.Grant(save, "Elementalist", source)) n++;
+            GD.Print($"[Debug] Granted {n} Elementalist facet(s); the seat reads {Facets.Count(save, "Elementalist")}.");
+        });
         Grant(progression, "Declare All Schools", save =>
         {
             save.Ledger.MetaNarrativeFlags ??= new List<string>();
@@ -834,6 +919,7 @@ public sealed class CampusGuildPanel : CampusPanel
             CouncilSaveAssert.AssertAll();
             ProgressionSaveAssert.AssertAll();
             ArmorySaveAssert.AssertAll();   // Edge M6: belts, charges, bindings
+            CharterSaveAssert.AssertAll();  // campus doctrines: charters, fills
         });
 
         return panel;

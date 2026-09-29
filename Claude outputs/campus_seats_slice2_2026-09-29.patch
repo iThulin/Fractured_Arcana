@@ -1,0 +1,1539 @@
+From 3b2a13519508cf80f7153e22c6291deccf19ad9d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 02:18:26 -0600
+Subject: [PATCH] Campus doctrines slice 2: facets, school seats, the Crucible
+ of Storms
+
+- Facets (partial shards): eternal flags facet_<school>_<source>; state sweep for survey/gate/sanctum/seat; blight facet sited beside a corrupted kingdom's zone and retrieved by a field party
+- School seats: Building.IsSchoolSeat, BuildingTier.RequiredFacets; T1 gated by declaration, T2/T3 by 3/5 facets; the timeline's own school seat is chartered free
+- Crucible of Storms: Fronts, Standing Weather, Monoelement or Confluence doctrine
+- School Seats panel; construction gate unified in CannotBuildReason; debug facet grant; save asserts
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/crucible_of_storms.json        |  47 +++
+ .../FeatureBuilders/BuildingDefinition.cs     |  11 +
+ Scripts/Data/FeatureBuilders/Charters.cs      |  43 +-
+ Scripts/Data/FeatureBuilders/Facets.cs        | 387 ++++++++++++++++++
+ .../Data/FeatureBuilders/ProgressionSweep.cs  |   1 +
+ Scripts/Data/SaveState/CycleState.cs          |   6 +
+ Scripts/Systems/Campus/CampusConstruction.cs  |  36 +-
+ Scripts/Systems/Campus/CampusGuildPanel.cs    |   7 +
+ .../Systems/Campus/CampusLocationRegistry.cs  |   3 +
+ Scripts/Systems/Campus/CampusScreen.cs        |  14 +-
+ Scripts/Systems/Campus/CampusSeatPanel.cs     | 215 ++++++++++
+ Scripts/Systems/Campus/CharterSection.cs      |   2 +
+ .../Combat/Attunement/ElementalAttunement.cs  |  67 ++-
+ .../Systems/Combat/Attunement/SchoolSeats.cs  | 169 ++++++++
+ Scripts/Systems/Combat/Core/CombatManager.cs  |   7 +
+ .../Overworld/Expedition/ExpeditionManager.cs |  29 ++
+ .../Systems/Overworld/WorldGen/WorldData.cs   |   6 +
+ .../Overworld/WorldGen/WorldGenerator.cs      |  36 ++
+ .../Strategic/HomeBuildingPanelHost.cs        |   2 +
+ Scripts/Systems/Strategic/StrategicView.cs    |   3 +
+ .../Systems/Verification/CharterSaveAssert.cs |  22 +
+ 21 files changed, 1093 insertions(+), 20 deletions(-)
+ create mode 100644 Data/Buildings/crucible_of_storms.json
+ create mode 100644 Scripts/Data/FeatureBuilders/Facets.cs
+ create mode 100644 Scripts/Systems/Campus/CampusSeatPanel.cs
+ create mode 100644 Scripts/Systems/Combat/Attunement/SchoolSeats.cs
+
+diff --git a/Data/Buildings/crucible_of_storms.json b/Data/Buildings/crucible_of_storms.json
+new file mode 100644
+index 0000000..c3fed7c
+--- /dev/null
++++ b/Data/Buildings/crucible_of_storms.json
+@@ -0,0 +1,47 @@
++{
++  "id": "crucible_of_storms",
++  "name": "The Crucible of Storms",
++  "category": "School",
++  "schoolAffinity": "Elementalist",
++  "isSchoolSeat": true,
++  "hostsSystem": "seats",
++  "description": "An open-air tower where the four elements are let in to argue. The Elementalist seat: what the guild learns of weather here, every Elementalist it fields carries into the fight.",
++  "maxTier": 3,
++  "tiers": [
++    {
++      "tier": 1,
++      "displayName": "The Weathervane",
++      "goldCost": 150,
++      "description": "Fronts: choose the element the weather favours this timeline. Every Elementalist opens each fight with 1 attunement in it. Raised once the Elementalist discipline is declared.",
++      "requiredBuildings": []
++    },
++    {
++      "tier": 2,
++      "displayName": "The Standing Storm",
++      "goldCost": 300,
++      "requiredFacets": 3,
++      "description": "Standing Weather: attunement carries between the fights of one expedition at half. Needs 3 Elementalist facets.",
++      "requiredBuildings": []
++    },
++    {
++      "tier": 3,
++      "displayName": "The Eye",
++      "goldCost": 500,
++      "requiredFacets": 5,
++      "description": "A doctrine (free while you play Elementalist). Monoelement: bursts at 3, one element only. Or the Confluence: the third different element cast in a turn bursts for free. Needs 5 Elementalist facets.",
++      "requiredBuildings": [],
++      "doctrines": [
++        {
++          "id": "monoelement",
++          "name": "Monoelement",
++          "description": "Bursts come at 3 charges instead of 4, but only one element may hold attunement: charging one empties the rest. Pick an element and live in it."
++        },
++        {
++          "id": "confluence",
++          "name": "The Confluence",
++          "description": "The third different element you cast in one turn triggers that element's burst for free, and its charges stay. Weave the storm."
++        }
++      ]
++    }
++  ]
++}
+diff --git a/Scripts/Data/FeatureBuilders/BuildingDefinition.cs b/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
+index cddcb47..98ec14f 100644
+--- a/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
+@@ -35,6 +35,12 @@ public class Building
+     public string Category = "";        // Core, Magic, Economy, Reputation, School
+     public string SchoolAffinity = "";  // empty = any school
+ 
++    /// <summary>School seats (campus_building_upgrades_design_v1 §8): one building
++    /// per school, raised once that school is declared, tiered by facets, and
++    /// chartered free while it is the timeline's school. Distinct from a building
++    /// that merely carries a SchoolAffinity label.</summary>
++    public bool IsSchoolSeat = false;
++
+     // ── Footprint (campus hex map) ───────────────────────────────────────
+     /// <summary>Hex offsets (relative to the placement anchor, before rotation) this
+     /// building occupies on the campus map. Always includes (0,0) explicitly. There's
+@@ -166,6 +172,11 @@ public class BuildingTier
+     /// built tiers by Charters.Slots, so author per-tier increments.</summary>
+     public int CharterSlots = 0;
+ 
++    /// <summary>School seats (design §8c): facets of the building's school the
++    /// guild must hold before this tier can be raised. 0 = no facet gate. A
++    /// seat's first tier is gated by declaration instead (CampusConstruction).</summary>
++    public int RequiredFacets = 0;
++
+     // ── Effects ──────────────────────────────────────────────────────────
+     // These are read by BuildingEffectApplier at run start / campus load.
+     public int BonusStartingHP = 0;
+diff --git a/Scripts/Data/FeatureBuilders/Charters.cs b/Scripts/Data/FeatureBuilders/Charters.cs
+index 4a3c602..0cf39f7 100644
+--- a/Scripts/Data/FeatureBuilders/Charters.cs
++++ b/Scripts/Data/FeatureBuilders/Charters.cs
+@@ -154,7 +154,35 @@ public static class Charters
+         return c != null && CurrentLunation(save) < c.ActiveFromLunation;
+     }
+ 
+-    public static int Used(GuildSaveData save) => save?.Cycle?.Charters?.Count ?? 0;
++    /// <summary>Charters that occupy a Grand Hall slot. The seat of the timeline's
++    /// own school is chartered free (ruling §9.5) and does not count.</summary>
++    public static int Used(GuildSaveData save)
++    {
++        var list = save?.Cycle?.Charters;
++        if (list == null)
++        {
++            return 0;
++        }
++        int n = 0;
++        foreach (var c in list)
++        {
++            if (c != null && !IsFreeSeat(save, c.BuildingId))
++            {
++                n++;
++            }
++        }
++        return n;
++    }
++
++    /// <summary>True for the school seat of the school this timeline plays: its
++    /// charter needs no Grand Hall slot and its first fill is always free.</summary>
++    public static bool IsFreeSeat(GuildSaveData save, string buildingId)
++    {
++        var template = BuildingDatabase.GetTemplate(buildingId);
++        return template != null && template.IsSchoolSeat
++               && string.Equals(template.SchoolAffinity, save?.Cycle?.SelectedSchool,
++                                System.StringComparison.OrdinalIgnoreCase);
++    }
+ 
+     /// <summary>Would the next fill be free (inside this timeline's free count)?</summary>
+     public static bool NextFillIsFree(GuildSaveData save)
+@@ -187,11 +215,12 @@ public static class Charters
+         {
+             return "Already chartered.";
+         }
+-        if (existing == null && Used(save) >= Slots(save))
++        bool free = IsFreeSeat(save, buildingId);
++        if (existing == null && !free && Used(save) >= Slots(save))
+         {
+             return $"Every charter is held ({Used(save)}/{Slots(save)}). Unseat one, or raise the Grand Hall.";
+         }
+-        bool refit = existing != null || !NextFillIsFree(save);
++        bool refit = IsRefit(save, buildingId);
+         if (refit && save.BuildMaterials < RefitMaterials)
+         {
+             return $"A refit costs {RefitMaterials} materials; the stores hold {save.BuildMaterials}.";
+@@ -201,7 +230,8 @@ public static class Charters
+ 
+     /// <summary>Is chartering this doctrine a refit (paid, delayed a lunation)?</summary>
+     public static bool IsRefit(GuildSaveData save, string buildingId)
+-        => EntryFor(save, buildingId) != null || !NextFillIsFree(save);
++        => EntryFor(save, buildingId) != null
++           || (!IsFreeSeat(save, buildingId) && !NextFillIsFree(save));
+ 
+     /// <summary>Charter a doctrine. Returns the report line, or null if refused.</summary>
+     public static string TryCharter(GuildSaveData save, string buildingId, string doctrineId)
+@@ -221,7 +251,10 @@ public static class Charters
+         {
+             entry = new CharterEntry { BuildingId = buildingId };
+             cycle.Charters.Add(entry);
+-            cycle.CharterFillsUsed++;
++            if (!IsFreeSeat(save, buildingId))
++            {
++                cycle.CharterFillsUsed++;
++            }
+         }
+         entry.DoctrineId = doctrineId;
+ 
+diff --git a/Scripts/Data/FeatureBuilders/Facets.cs b/Scripts/Data/FeatureBuilders/Facets.cs
+new file mode 100644
+index 0000000..fe373a6
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/Facets.cs
+@@ -0,0 +1,387 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// Facets.cs
++//
++// Purpose:        Partial shards (campus_building_upgrades_design_v1
++//                 §8b, ruled 2026-09-29). A facet is a face of a
++//                 fragment, cut away by the Sundering and shed by its
++//                 leak. Five named facets per fragment school, each
++//                 earned by one deed, once per save; they gate the
++//                 school seats' second and third tiers (3 and 5).
++//
++//                 Stored as flags on EternalLedger.MetaNarrativeFlags
++//                 (facet_<school>_<source>), so no new save struct:
++//                 facets are eternal, like the fragments they come from.
++//
++//                 Sources for a fragment school:
++//                   survey   a field party surveys the school's zone
++//                   gate     the zone's guardian falls (or its gate opens)
++//                   sanctum  the fragment is claimed, by any path
++//                   seat     the school's archmage is resolved
++//                            (Allied, Coerced or Overthrown)
++//                   blight   retrieved from the site the leak sheds
++//                            beside the zone once its kingdom is
++//                            corrupted (SiteBlightFacets, TryRetrieve)
++//                 The first four are read from state by Sweep, which
++//                 ProgressionSweep runs on every save. The fifth is
++//                 granted on retrieval.
++//
++//                 Druid: seat (Hess) today. The green facets (one grown
++//                 at each claimed zone, retrieved by a field party) wait
++//                 on their story work. Adept: counts every facet the
++//                 guild holds, of any school (T2 at 5, T3 at 12).
++// Layer:          Data / Feature builder
++// Collaborators:  ProgressionSweep.cs (SchoolOfFragment, the save-time
++//                 sweep), ShardZone (Surveyed, GuardianCleared,
++//                 ShardCollected, FacetSitePoiIndex), CampaignState
++//                 (dispositions, corruption), ArchmageRegistry,
++//                 WorldGenerator.SiteRuntimePoiNear, ScryInbox,
++//                 CampusConstruction (tier gate), CampusSeatPanel (UI).
++// Owed:           story work for every source (Magos 2026-09-29): the
++//                 blight lines below are first drafts.
++// ============================================================
++
++/// <summary>Facet reads, grants and the blight site. Stateless.</summary>
++public static class Facets
++{
++    public const string Survey = "survey";
++    public const string Gate = "gate";
++    public const string Sanctum = "sanctum";
++    public const string Seat = "seat";
++    public const string Blight = "blight";
++
++    /// <summary>The five sources of a fragment school, in the order a guild
++    /// usually meets them.</summary>
++    public static readonly string[] FragmentSources = { Survey, Blight, Gate, Sanctum, Seat };
++
++    /// <summary>Facets a seat's tier 2 and tier 3 need (ruling 4). The Adept seat
++    /// reads its own thresholds from its JSON.</summary>
++    public const int SeatTier2 = 3;
++    public const int SeatTier3 = 5;
++
++    public static string Flag(string school, string source)
++        => $"facet_{Norm(school)}_{source}";
++
++    // ── Reads ────────────────────────────────────────────────────────────
++
++    public static bool Has(GuildSaveData save, string school, string source)
++        => save?.Ledger?.MetaNarrativeFlags?.Contains(Flag(school, source)) ?? false;
++
++    /// <summary>Facets a school holds. Adept counts every facet of every school.</summary>
++    public static int Count(GuildSaveData save, string school)
++    {
++        var flags = save?.Ledger?.MetaNarrativeFlags;
++        if (flags == null)
++        {
++            return 0;
++        }
++        bool all = string.Equals(Norm(school), "adept", StringComparison.Ordinal);
++        string prefix = $"facet_{Norm(school)}_";
++        int n = 0;
++        foreach (var f in flags)
++        {
++            if (f == null || !f.StartsWith("facet_", StringComparison.Ordinal))
++            {
++                continue;
++            }
++            if (all || f.StartsWith(prefix, StringComparison.Ordinal))
++            {
++                n++;
++            }
++        }
++        return n;
++    }
++
++    /// <summary>The sources a school can ever earn from, for the seat panel.</summary>
++    public static string[] SourcesFor(string school)
++    {
++        if (!string.IsNullOrEmpty(FragmentKeyOf(school)))
++        {
++            return FragmentSources;
++        }
++        if (string.Equals(Norm(school), "druid", StringComparison.Ordinal))
++        {
++            return new[] { Seat };
++        }
++        return Array.Empty<string>();
++    }
++
++    /// <summary>One line telling the player where a facet comes from.</summary>
++    public static string SourceHint(string school, string source)
++    {
++        string zone = ZoneNameOf(school);
++        return source switch
++        {
++            Survey => $"Survey {zone} with a field party.",
++            Blight => $"Retrieve what {zone} sheds once its kingdom is corrupted. The site appears beside the zone.",
++            Gate => $"Pass the guardian's gate at {zone}.",
++            Sanctum => $"Claim the fragment in {zone}.",
++            Seat => $"Resolve the {school} archmage: ally, coerce or overthrow.",
++            _ => source,
++        };
++    }
++
++    /// <summary>The fragment key a school answers to, or "".</summary>
++    public static string FragmentKeyOf(string school)
++    {
++        foreach (var key in ShardZones.FragmentKeys)
++        {
++            if (string.Equals(ProgressionSweep.SchoolOfFragment(key), school, StringComparison.OrdinalIgnoreCase))
++            {
++                return key;
++            }
++        }
++        return "";
++    }
++
++    // ── The sweep (state-derived sources) ────────────────────────────────
++
++    /// <summary>Grant every facet the save has earned from state. Idempotent;
++    /// run by ProgressionSweep before each save. Returns the number granted.</summary>
++    public static int Sweep(GuildSaveData save, HashSet<string> paid)
++    {
++        if (save?.Ledger == null || paid == null)
++        {
++            return 0;
++        }
++        int granted = 0;
++
++        // Zone deeds, this timeline.
++        var zones = save.Cycle?.World?.ShardZones;
++        if (zones != null)
++        {
++            foreach (var z in zones)
++            {
++                string school = ProgressionSweep.SchoolOfFragment(z?.FragmentKey);
++                if (string.IsNullOrEmpty(school))
++                {
++                    continue;
++                }
++                if (z.Surveyed)
++                {
++                    granted += GrantInternal(save, paid, school, Survey);
++                }
++                if (z.GuardianCleared || z.ShardCollected)
++                {
++                    granted += GrantInternal(save, paid, school, Gate);
++                }
++                if (z.ShardCollected)
++                {
++                    granted += GrantInternal(save, paid, school, Sanctum);
++                }
++            }
++        }
++
++        // Fragments claimed in an earlier timeline: the gate was passed then too.
++        foreach (var key in ShardZones.FragmentKeys)
++        {
++            if (!paid.Contains($"fragment_{key}_collected"))
++            {
++                continue;
++            }
++            string school = ProgressionSweep.SchoolOfFragment(key);
++            granted += GrantInternal(save, paid, school, Gate);
++            granted += GrantInternal(save, paid, school, Sanctum);
++        }
++
++        // Archmage seats, this timeline.
++        var campaign = save.Cycle?.Campaign;
++        if (campaign != null)
++        {
++            foreach (var kv in ArchmageRegistry.All)
++            {
++                var def = kv.Value;
++                if (def == null || string.IsNullOrEmpty(def.School))
++                {
++                    continue;
++                }
++                var d = campaign.GetDisposition(def.Id);
++                if (d == ArchmageDisposition.Allied || d == ArchmageDisposition.Coerced
++                    || d == ArchmageDisposition.Overthrown)
++                {
++                    granted += GrantInternal(save, paid, def.School, Seat);
++                }
++            }
++        }
++        return granted;
++    }
++
++    // ── The blight site (source 5) ───────────────────────────────────────
++
++    /// <summary>Lunation tick: site the blight facet beside every zone whose
++    /// kingdom has taken corruption and whose facet is still out there. One
++    /// Narrative POI per zone, sited once per timeline. Returns report lines.</summary>
++    public static List<string> SiteBlightFacets(CycleState cycle, GuildSaveData save)
++    {
++        var lines = new List<string>();
++        var world = cycle?.World;
++        var campaign = cycle?.Campaign;
++        if (world?.ShardZones == null || campaign == null || cycle.Kingdoms == null)
++        {
++            return lines;
++        }
++        foreach (var z in world.ShardZones)
++        {
++            string school = ProgressionSweep.SchoolOfFragment(z.FragmentKey);
++            if (string.IsNullOrEmpty(school))
++            {
++                continue;
++            }
++            // A site whose facet the guild already holds (another timeline, a
++            // debug grant) is spent, so it never plays as a plain encounter.
++            if (z.FacetSitePoiIndex >= 0 && z.FacetSitePoiIndex < world.Pois.Count && Has(save, school, Blight))
++            {
++                world.Pois[z.FacetSitePoiIndex].Consumed = true;
++            }
++            if (z.FacetSitePoiIndex >= 0 || Has(save, school, Blight))
++            {
++                continue;
++            }
++            if (!cycle.Kingdoms.TryGetValue(z.KingdomId, out var kingdom)
++                || campaign.GetCorruption(kingdom.TemplateRegionId) < 1)
++            {
++                continue;
++            }
++            int idx = WorldGenerator.SiteRuntimePoiNear(world, PoiKind.Narrative, z.KingdomId,
++                                                        z.CenterX, z.CenterY, minDist: 3);
++            if (idx < 0)
++            {
++                continue;
++            }
++            z.FacetSitePoiIndex = idx;
++            string line = $"{z.Name} is leaking. Something it shed lies in the open nearby: a {school} facet, "
++                        + "there for a field party to take.";
++            ScryInbox.Post(cycle, ScryChannel.Messenger, "A facet in the blight", line, "", "facet");
++            lines.Add(line);
++            GD.Print($"[Facets] Blight facet for {school} sited at POI {idx} beside {z.Name}.");
++        }
++        return lines;
++    }
++
++    /// <summary>The zone whose blight facet sits on this world tile, untaken, or null.</summary>
++    public static ShardZone BlightSiteAt(WorldData world, GuildSaveData save, int x, int y)
++    {
++        if (world?.ShardZones == null || world.Pois == null)
++        {
++            return null;
++        }
++        foreach (var z in world.ShardZones)
++        {
++            int i = z.FacetSitePoiIndex;
++            if (i < 0 || i >= world.Pois.Count)
++            {
++                continue;
++            }
++            var poi = world.Pois[i];
++            if (poi.X != x || poi.Y != y || poi.Consumed)
++            {
++                continue;
++            }
++            string school = ProgressionSweep.SchoolOfFragment(z.FragmentKey);
++            if (!Has(save, school, Blight))
++            {
++                return z;
++            }
++        }
++        return null;
++    }
++
++    /// <summary>Take the blight facet at a zone's site. Consumes the site POI.
++    /// Returns the story line to show, or null if there was nothing to take.</summary>
++    public static string RetrieveBlight(GuildSaveData save, WorldData world, ShardZone z)
++    {
++        if (save?.Ledger == null || world == null || z == null)
++        {
++            return null;
++        }
++        string school = ProgressionSweep.SchoolOfFragment(z.FragmentKey);
++        if (string.IsNullOrEmpty(school) || !Grant(save, school, Blight))
++        {
++            return null;
++        }
++        if (z.FacetSitePoiIndex >= 0 && z.FacetSitePoiIndex < world.Pois.Count)
++        {
++            world.Pois[z.FacetSitePoiIndex].Consumed = true;
++        }
++        return BlightLine(z.FragmentKey) + $" A {school} facet: {Count(save, school)} of {SeatTier3}.";
++    }
++
++    /// <summary>First-draft retrieval lines, one per fragment (story work owed).</summary>
++    private static string BlightLine(string key) => key switch
++    {
++        "primal" => "The storm that stays has thrown off a piece of itself: a shard-face still warm, "
++                  + "turning the rain around it into sleet and back.",
++        "axiom" => "Lines of a proof are cut into the ground here, and at their end, the face of the argument itself.",
++        "moment" => "Everything within a pace of it is a heartbeat behind. You take it before the delay reaches you.",
++        "binding" => "It is set in a ring of flowers nobody planted. It is glad you came.",
++        "schema" => "A little engine has built itself around the facet, and stops when you lift it out.",
++        "deathless" => "The marsh has kept it the way the dead are kept: cold, and exactly as it was.",
++        _ => "A face of the fragment lies in the open.",
++    };
++
++    // ── Grants ───────────────────────────────────────────────────────────
++
++    /// <summary>Grant one facet. True if it was new.</summary>
++    public static bool Grant(GuildSaveData save, string school, string source)
++    {
++        if (save?.Ledger == null || string.IsNullOrEmpty(school))
++        {
++            return false;
++        }
++        save.Ledger.MetaNarrativeFlags ??= new List<string>();
++        string flag = Flag(school, source);
++        if (save.Ledger.MetaNarrativeFlags.Contains(flag))
++        {
++            return false;
++        }
++        save.Ledger.MetaNarrativeFlags.Add(flag);
++        SaveManager.MarkDirty();
++        GD.Print($"[Facets] {flag} granted ({Count(save, school)} for {school}).");
++        return true;
++    }
++
++    private static int GrantInternal(GuildSaveData save, HashSet<string> paid, string school, string source)
++    {
++        string flag = Flag(school, source);
++        if (paid.Contains(flag))
++        {
++            return 0;
++        }
++        save.Ledger.MetaNarrativeFlags.Add(flag);
++        paid.Add(flag);
++        ScryInbox.Post(save.Cycle, ScryChannel.Note, "A facet recovered",
++            $"A {school} facet is the guild's ({SourceLabel(source)}). The {school} seat reads {Count(save, school)} of {SeatTier3}.",
++            "", "facet");
++        GD.Print($"[Facets] {flag} granted by the sweep.");
++        return 1;
++    }
++
++    private static string SourceLabel(string source) => source switch
++    {
++        Survey => "the survey",
++        Gate => "the guardian's gate",
++        Sanctum => "the sanctum",
++        Seat => "the archmage's seat",
++        Blight => "the blight",
++        _ => source,
++    };
++
++    private static string ZoneNameOf(string school)
++    {
++        return FragmentKeyOf(school) switch
++        {
++            "axiom" => "The Infinite Athenaeum",
++            "binding" => "The Bound Vault",
++            "deathless" => "The Deathless Reliquary",
++            "moment" => "The Stilled Hour",
++            "schema" => "The Pattern Sanctum",
++            "primal" => "The Primal Heart",
++            _ => "its zone",
++        };
++    }
++
++    private static string Norm(string school) => (school ?? "").Trim().ToLowerInvariant();
++}
+diff --git a/Scripts/Data/FeatureBuilders/ProgressionSweep.cs b/Scripts/Data/FeatureBuilders/ProgressionSweep.cs
+index 2ebff39..e4d0a31 100644
+--- a/Scripts/Data/FeatureBuilders/ProgressionSweep.cs
++++ b/Scripts/Data/FeatureBuilders/ProgressionSweep.cs
+@@ -121,6 +121,7 @@ public static class ProgressionSweep
+             awards += Guarded("archmagi", () => SweepArchmagi(save, paid));
+             awards += Guarded("companion arcs", () => SweepCompanionArcs(save, paid));
+             awards += Guarded("marginalia", () => SweepMarginalia(save, paid));
++            awards += Guarded("facets", () => Facets.Sweep(save, paid));
+ 
+             if (awards > 0)
+                 GD.Print($"[ProgressionSweep] {awards} outstanding award(s) settled.");
+diff --git a/Scripts/Data/SaveState/CycleState.cs b/Scripts/Data/SaveState/CycleState.cs
+index 876f433..f965bc4 100644
+--- a/Scripts/Data/SaveState/CycleState.cs
++++ b/Scripts/Data/SaveState/CycleState.cs
+@@ -132,6 +132,12 @@ public class CycleState
+     /// refilling cannot dodge the refit.</summary>
+     public int CharterFillsUsed = 0;
+ 
++    /// <summary>Crucible of Storms T1 (Fronts): the element the weather favours
++    /// this timeline, "Fire" / "Ice" / "Storm" / "Earth", or "" for none. Every
++    /// Elementalist in the guild opens a fight with 1 attunement in it. Set at the
++    /// School Seats panel. Additive; old cycles read "".</summary>
++    public string CrucibleFront = "";
++
+     /// <summary>
+     /// Card upgrade currency. In-cycle power, so it dies with the timeline.
+     /// </summary>
+diff --git a/Scripts/Systems/Campus/CampusConstruction.cs b/Scripts/Systems/Campus/CampusConstruction.cs
+index fe0a193..d4bb967 100644
+--- a/Scripts/Systems/Campus/CampusConstruction.cs
++++ b/Scripts/Systems/Campus/CampusConstruction.cs
+@@ -70,6 +70,10 @@ public static class CampusConstruction
+             }
+         }
+ 
++        string seat = SeatGateReason(save, template, tierData, nextTier);
++        if (seat != null)
++            return seat;
++
+         if (save.Gold < tierData.GoldCost)
+             return $"Needs {tierData.GoldCost}g.";
+         if (save.BuildMaterials < tierData.EffectiveMaterialsCost)
+@@ -96,18 +100,11 @@ public static class CampusConstruction
+         int nextTier = buildingSave.Tier + 1;
+         if (nextTier > template.MaxTier) return false;
+         var tierData = template.Tiers.Find(t => t.Tier == nextTier);
+-        if (tierData == null || save.Gold < tierData.GoldCost
+-            || save.BuildMaterials < tierData.EffectiveMaterialsCost)
++        // One gate, the same one the buttons read (cost, cap, prerequisites,
++        // and the school-seat gates).
++        if (tierData == null || CannotBuildReason(save, buildingId) != null)
+             return false;
+ 
+-        foreach (var reqId in tierData.RequiredBuildings)
+-        {
+-            bool found = false;
+-            foreach (var b in save.Buildings)
+-                if (b.Id == reqId && b.Tier > 0) { found = true; break; }
+-            if (!found) return false;
+-        }
+-
+         save.Gold -= tierData.GoldCost;
+         save.BuildMaterials -= tierData.EffectiveMaterialsCost;
+         if (buildingSave.Tier == 0)
+@@ -126,6 +123,25 @@ public static class CampusConstruction
+         return true;
+     }
+ 
++    /// <summary>School seats (design §8c): tier 1 needs the school declared (not
++    /// facets: DeclarationService deliberately keeps shards off the path to a
++    /// school); later tiers need that many facets of the school. Null when clear.</summary>
++    private static string SeatGateReason(GuildSaveData save, Building template, BuildingTier tierData, int nextTier)
++    {
++        if (template == null || !template.IsSchoolSeat)
++            return null;
++        string school = template.SchoolAffinity;
++        if (nextTier == 1 && !DeclarationService.IsDeclared(save, school))
++            return $"Declare the {school} discipline at the Grand Hall first.";
++        if (tierData.RequiredFacets > 0)
++        {
++            int held = Facets.Count(save, school);
++            if (held < tierData.RequiredFacets)
++                return $"Needs {tierData.RequiredFacets} {school} facets (the guild holds {held}).";
++        }
++        return null;
++    }
++
+     /// <summary>Undo the most recent tier purchase. This is the city construct card's
+     /// escape hatch when siting fails AFTER the buy (PlaceBuilding requires
+     /// Tier &gt; 0, so purchase must precede placement; a paid-but-unplaceable
+diff --git a/Scripts/Systems/Campus/CampusGuildPanel.cs b/Scripts/Systems/Campus/CampusGuildPanel.cs
+index 0320afe..bccd566 100644
+--- a/Scripts/Systems/Campus/CampusGuildPanel.cs
++++ b/Scripts/Systems/Campus/CampusGuildPanel.cs
+@@ -786,6 +786,13 @@ public sealed class CampusGuildPanel : CampusPanel
+         // ── PROGRESSION ──────────────────────────────────────────────────
+         var progression = Section("PROGRESSION",
+             "Skips the slow gates. These write the EternalLedger and save at once: PERMANENT for this guild. Use a scratch slot.");
++        Grant(progression, "Grant Elementalist Facets", save =>
++        {
++            int n = 0;
++            foreach (var source in Facets.FragmentSources)
++                if (Facets.Grant(save, "Elementalist", source)) n++;
++            GD.Print($"[Debug] Granted {n} Elementalist facet(s); the seat reads {Facets.Count(save, "Elementalist")}.");
++        });
+         Grant(progression, "Declare All Schools", save =>
+         {
+             save.Ledger.MetaNarrativeFlags ??= new List<string>();
+diff --git a/Scripts/Systems/Campus/CampusLocationRegistry.cs b/Scripts/Systems/Campus/CampusLocationRegistry.cs
+index 014e176..8def6f2 100644
+--- a/Scripts/Systems/Campus/CampusLocationRegistry.cs
++++ b/Scripts/Systems/Campus/CampusLocationRegistry.cs
+@@ -35,6 +35,8 @@ public enum CampusPanelId
+     Workshop = 9,
+     /// <summary>The Scribe's Tower (scrolls, spellglass, wands; spec D7).</summary>
+     Scribe = 10,
++    /// <summary>The school seats (facets, fronts, seat doctrines; design §8).</summary>
++    Seats = 11,
+ }
+ 
+ /// <summary>What activating a campus location does. Two shapes, because the campus systems
+@@ -124,6 +126,7 @@ public static class CampusLocationRegistry
+         "council"    => CampusDestination.ToPanel(CampusPanelId.Council),
+         "workshop"   => CampusDestination.ToPanel(CampusPanelId.Workshop),
+         "scribe"     => CampusDestination.ToPanel(CampusPanelId.Scribe),
++        "seats"      => CampusDestination.ToPanel(CampusPanelId.Seats),
+         // Scene destinations. These are the campus systems that were never tabs. They
+         // are reached today only as buttons on the Guild tab, which is exactly the
+         // arrangement the diegetic campus replaces: the Arcane Library IS the card
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index dbc0eff..10ba294 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -120,6 +120,9 @@ public partial class CampusScreen : Control
+     // Scribe's Tower tab (spec D7; campus_building_upgrades_design_v1 §4)
+     private readonly CampusScribePanel _scribePanel = new();
+ 
++    // School Seats tab (design §8)
++    private readonly CampusSeatPanel _seatPanel = new();
++
+     // Expedition tab
+     private readonly CampusExpeditionPanel _expeditionPanel = new();
+     // NOTE: the Atlas and Window comparison-prototype tabs were removed once their 3D
+@@ -235,7 +238,7 @@ public partial class CampusScreen : Control
+         tabBar.Visible = !DiegeticHubOnly;
+         AddChild(tabBar);
+ 
+-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe" };
++        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe", "Seats" };
+         // CampusPanelId's values ARE these indices. The map routes by enum, the bar routes
+         // by index, and nothing else ties them together. Reordering one without the other
+         // would silently send every building on the campus to the wrong room.
+@@ -329,6 +332,7 @@ public partial class CampusScreen : Control
+         _councilTab.Build((ScrollContainer)_tabPanels[8], _ctx);
+         _workshopPanel.Build((ScrollContainer)_tabPanels[9], _ctx);
+         _scribePanel.Build((ScrollContainer)_tabPanels[10], _ctx);
++        _seatPanel.Build((ScrollContainer)_tabPanels[11], _ctx);
+ 
+         // Layered last. See the construction note above.
+         AddChild(_campusNarrativePanel);
+@@ -432,6 +436,9 @@ public partial class CampusScreen : Control
+             case 10:
+                 _scribePanel.Refresh();
+                 break;
++            case 11:
++                _seatPanel.Refresh();
++                break;
+             case 6:
+                 _recordsPanel.Refresh();
+                 break;
+@@ -858,7 +865,10 @@ public partial class CampusScreen : Control
+                         ? $"Build\n{goldCost}g / {materialsCost}m"
+                         : $"Upgrade\n{goldCost}g / {materialsCost}m",
+                     CustomMinimumSize = new Vector2(110, 44),
+-                    Disabled = save.Gold < goldCost || save.BuildMaterials < materialsCost,
++                    // One gate for every door: cost, prerequisites, and the
++                    // school-seat gates (declaration, facets).
++                    Disabled = CampusConstruction.CannotBuildReason(save, buildingSave.Id) != null,
++                    TooltipText = CampusConstruction.CannotBuildReason(save, buildingSave.Id) ?? "",
+                 };
+                 btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+                 string capturedId = buildingSave.Id;
+diff --git a/Scripts/Systems/Campus/CampusSeatPanel.cs b/Scripts/Systems/Campus/CampusSeatPanel.cs
+new file mode 100644
+index 0000000..586ebc1
+--- /dev/null
++++ b/Scripts/Systems/Campus/CampusSeatPanel.cs
+@@ -0,0 +1,215 @@
++using Godot;
++using System.Collections.Generic;
++using static CampusUi;
++
++// ============================================================
++// CampusSeatPanel.cs
++//
++// Purpose:        The School Seats room (campus_building_upgrades_
++//                 design_v1 §8): one card per school seat the campus
++//                 knows, with its tier, the facets held and where the
++//                 missing ones come from, the next tier's gate, the
++//                 doctrine in force, and the seat's own controls. The
++//                 Crucible of Storms' control is the front picker.
++// Layer:          UI (campus)
++// Collaborators:  Facets.cs (counts, sources, hints), SchoolSeats.cs
++//                 (front), Charters.cs (doctrine state),
++//                 CampusConstruction (next-tier gate text),
++//                 CampusScreen / HomeBuildingPanelHost (hosting),
++//                 CampusLocationRegistry ("seats" door).
++// ============================================================
++
++/// <summary>The School Seats tab. Standard panel contract.</summary>
++public sealed class CampusSeatPanel : CampusPanel
++{
++    private VBoxContainer _container;
++
++    protected override void OnBuild(ScrollContainer scroll)
++    {
++        var margins = MakeMargins(32, 20);
++        scroll.AddChild(margins);
++        var layout = MakeVBox(10);
++        margins.AddChild(layout);
++
++        AddSectionHeader(layout, "School Seats");
++        var note = new Label
++        {
++            Text = "One seat per school. A seat is raised once its discipline is declared; its higher " +
++                   "tiers wait on facets, the faces of that school's fragment, recovered in the field. " +
++                   "The seat of the school you play this timeline is chartered free.",
++            AutowrapMode = TextServer.AutowrapMode.WordSmart,
++        };
++        note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        note.Modulate = UITheme.CampusSubtleText;
++        layout.AddChild(note);
++        layout.AddChild(new HSeparator());
++
++        _container = MakeVBox(10);
++        layout.AddChild(_container);
++    }
++
++    public override void Refresh()
++    {
++        if (_container == null)
++        {
++            return;
++        }
++        foreach (var child in _container.GetChildren())
++        {
++            child.QueueFree();
++        }
++
++        var save = Ctx?.Save;
++        if (save == null)
++        {
++            _container.AddChild(MakeStubLabel("Select a save slot to see the school seats."));
++            return;
++        }
++
++        var seats = new List<Building>();
++        foreach (var t in BuildingDatabase.LoadAll())
++        {
++            if (t.IsSchoolSeat)
++            {
++                seats.Add(t);
++            }
++        }
++        if (seats.Count == 0)
++        {
++            _container.AddChild(MakeStubLabel("No school seats are known yet."));
++            return;
++        }
++        seats.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
++        foreach (var t in seats)
++        {
++            _container.AddChild(BuildSeatCard(t, save));
++        }
++    }
++
++    private Control BuildSeatCard(Building template, GuildSaveData save)
++    {
++        string school = template.SchoolAffinity;
++        var card = new PanelContainer();
++        card.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgCard, UITheme.Gold));
++        var pad = new MarginContainer();
++        pad.AddThemeConstantOverride("margin_left", 12);
++        pad.AddThemeConstantOverride("margin_right", 12);
++        pad.AddThemeConstantOverride("margin_top", 8);
++        pad.AddThemeConstantOverride("margin_bottom", 8);
++        card.AddChild(pad);
++        var col = MakeVBox(4);
++        pad.AddChild(col);
++
++        int tier = SchoolSeats.Tier(save, template.Id);
++        int top = TopFacetGate(template);
++        int held = Facets.Count(save, school);
++        var title = new Label
++        {
++            Text = $"{template.Name}  ·  {school}  ·  "
++                 + (tier > 0 ? $"tier {tier} / {template.MaxTier}" : "not raised")
++                 + $"  ·  facets {held} / {top}",
++        };
++        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
++        title.AddThemeColorOverride("font_color", UITheme.TextPrimary);
++        col.AddChild(title);
++
++        // Facets: what is held and where the rest are.
++        foreach (var source in Facets.SourcesFor(school))
++        {
++            bool has = Facets.Has(save, school, source);
++            AddLine(col, (has ? "Held: " : "Missing: ") + Facets.SourceHint(school, source),
++                has ? UITheme.Gold : UITheme.TextDim);
++        }
++        if (Facets.SourcesFor(school).Length == 0)
++        {
++            AddLine(col, "This school holds no fragment of its own; its facets come from the whole guild's.", UITheme.TextDim);
++        }
++
++        // The next tier's gate, in the construction path's own words.
++        if (tier < template.MaxTier)
++        {
++            string why = CampusConstruction.CannotBuildReason(save, template.Id);
++            AddLine(col, why == null
++                    ? "The next tier can be raised now, from the campus build list."
++                    : $"Next tier: {why}",
++                UITheme.TextPrimary);
++        }
++
++        // Doctrine state.
++        var doctrineTier = Charters.DoctrineTier(template);
++        if (doctrineTier != null && tier >= doctrineTier.Tier)
++        {
++            var entry = Charters.EntryFor(save, template.Id);
++            var active = entry != null ? Charters.Doctrine(template.Id, entry.DoctrineId) : null;
++            AddLine(col, active == null
++                    ? "No doctrine chartered. Choose one in the Grand Hall's charters."
++                    : Charters.IsRefitting(save, template.Id)
++                        ? $"{active.Name} holds from the next moon."
++                        : $"In force: {active.Name}.",
++                UITheme.TextPrimary);
++        }
++
++        // The seat's own controls.
++        if (template.Id == SchoolSeats.CrucibleId && tier >= 1)
++        {
++            col.AddChild(BuildFrontPicker(save));
++        }
++        return card;
++    }
++
++    /// <summary>The Crucible's front: the element every Elementalist opens a fight in.</summary>
++    private Control BuildFrontPicker(GuildSaveData save)
++    {
++        var row = new HBoxContainer();
++        row.AddThemeConstantOverride("separation", 8);
++        var lbl = new Label { Text = "Front (this timeline):" };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        row.AddChild(lbl);
++
++        var options = new ElementTag?[] { null, ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth };
++        var picker = new OptionButton { CustomMinimumSize = new Vector2(160, 30) };
++        picker.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        var current = SchoolSeats.Front(save);
++        int selected = 0;
++        for (int i = 0; i < options.Length; i++)
++        {
++            picker.AddItem(options[i].HasValue ? options[i].Value.ToString() : "None", i);
++            if (options[i] == current)
++            {
++                selected = i;
++            }
++        }
++        picker.Select(selected);
++        picker.ItemSelected += idx =>
++        {
++            if (idx >= 0 && idx < options.Length)
++            {
++                SchoolSeats.SetFront(Ctx?.Save, options[(int)idx]);
++            }
++        };
++        row.AddChild(picker);
++        return row;
++    }
++
++    /// <summary>The highest facet gate on a seat's tiers (the "of N" readout).</summary>
++    private static int TopFacetGate(Building template)
++    {
++        int top = 0;
++        foreach (var t in template.Tiers)
++        {
++            if (t.RequiredFacets > top)
++            {
++                top = t.RequiredFacets;
++            }
++        }
++        return top;
++    }
++
++    private static void AddLine(VBoxContainer parent, string text, Color color)
++    {
++        var lbl = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++        lbl.AddThemeColorOverride("font_color", color);
++        parent.AddChild(lbl);
++    }
++}
+diff --git a/Scripts/Systems/Campus/CharterSection.cs b/Scripts/Systems/Campus/CharterSection.cs
+index cf4617b..b270d6c 100644
+--- a/Scripts/Systems/Campus/CharterSection.cs
++++ b/Scripts/Systems/Campus/CharterSection.cs
+@@ -91,6 +91,8 @@ public static class CharterSection
+         string state = entry == null ? "no charter"
+                      : Charters.IsRefitting(save, template.Id) ? "refitting, holds from the next moon"
+                      : "chartered";
++        if (Charters.IsFreeSeat(save, template.Id))
++            state += "  ·  your school's seat: chartered free, no slot used";
+         var title = new Label { Text = $"{template.Name}  ·  {state}" };
+         title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+         title.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+diff --git a/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs b/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
+index 2c790f7..05f6192 100644
+--- a/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
++++ b/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
+@@ -76,6 +76,24 @@ public class ElementalAttunement : ISchoolAttunement
+ 	public const int MaxCharges = 4;
+ 	public const int BurstThreshold = 4;
+ 
++	// ── Crucible of Storms doctrines (campus_building_upgrades_design_v1 §8d).
++	// Set at combat start by SchoolSeats.ApplyCombatStart; defaults are the
++	// school as it has always played. ──────────────────────────────────────
++	/// <summary>Charges at which an element bursts. 4 normally; 3 under the
++	/// Monoelement doctrine.</summary>
++	public int BurstAt = BurstThreshold;
++
++	/// <summary>Monoelement: only one element may hold attunement. Charging an
++	/// element empties every other.</summary>
++	public bool Monoelement = false;
++
++	/// <summary>Confluence: the third DIFFERENT element cast in one turn triggers
++	/// that element's burst for free (its charges are kept). Once per turn.</summary>
++	public bool Confluence = false;
++
++	private readonly HashSet<ElementTag> _elementsThisTurn = new();
++	private bool _confluenceFiredThisTurn = false;
++
+ 	// ── Opposition pairs ────────────────────────────────────────────
+ 	private static readonly Dictionary<ElementTag, ElementTag> Opposition = new()
+ 	{
+@@ -103,6 +121,8 @@ public class ElementalAttunement : ISchoolAttunement
+ 	/// </summary>
+ 	public void GainCharge(ElementTag element, int amount = 1)
+ 	{
++		if (Monoelement)
++			ClearOthers(element);
+ 		int oldValue = Charges[element];
+ 		Charges[element] = Math.Min(oldValue + amount, MaxCharges);
+ 		if (Charges[element] == oldValue)
+@@ -122,6 +142,9 @@ public class ElementalAttunement : ISchoolAttunement
+ 		{
+ 			if (!TryParseTag(tagStr, out var element)) continue;
+ 
++			if (Monoelement)
++				ClearOthers(element);
++
+ 			int oldValue = Charges[element];
+ 			Charges[element] = Math.Min(Charges[element] + 1, MaxCharges);
+ 
+@@ -137,7 +160,19 @@ public class ElementalAttunement : ISchoolAttunement
+ 			int newValue = Charges[element];
+ 			OnChargeChanged?.Invoke(element, newValue);
+ 
+-			if (newValue >= BurstThreshold)
++			// Confluence: the third different element this turn bursts for free.
++			bool confluence = false;
++			if (Confluence)
++			{
++				_elementsThisTurn.Add(element);
++				if (!_confluenceFiredThisTurn && _elementsThisTurn.Count >= 3)
++				{
++					confluence = true;
++					_confluenceFiredThisTurn = true;
++				}
++			}
++
++			if (newValue >= BurstAt)
+ 			{
+ 				effects.Add(new AttunementEffect
+ 				{
+@@ -153,11 +188,34 @@ public class ElementalAttunement : ISchoolAttunement
+ 			{
+ 				OnThresholdReached?.Invoke(element, newValue);
+ 			}
++
++			if (confluence && !effects.Exists(e => e.Element == element && e.Tier == AttunementTier.Burst))
++			{
++				effects.Add(new AttunementEffect
++				{
++					Element = element,
++					Tier = AttunementTier.Burst,
++					Description = "CONFLUENCE: " + GetBurstDescription(element)
++				});
++				OnBurstTriggered?.Invoke(element);
++			}
+ 		}
+ 
+ 		return effects;
+ 	}
+ 
++	/// <summary>Monoelement: empty every element but <paramref name="keep"/>.</summary>
++	private void ClearOthers(ElementTag keep)
++	{
++		foreach (var key in new[] { ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth })
++		{
++			if (key == keep || Charges[key] == 0)
++				continue;
++			Charges[key] = 0;
++			OnChargeChanged?.Invoke(key, 0);
++		}
++	}
++
+ 	// ── Turn decay ──────────────────────────────────────────────────
+ 	/// <summary>
+ 	/// No-op by design (2026-07-06). Per-turn decay was removed: with charges also
+@@ -169,7 +227,10 @@ public class ElementalAttunement : ISchoolAttunement
+ 	/// </summary>
+ 	public void Decay()
+ 	{
+-		// Intentionally does nothing. See summary.
++		// Charges do not decay (see summary). The Confluence count is per turn,
++		// and Decay is the per-turn call, so it resets here.
++		_elementsThisTurn.Clear();
++		_confluenceFiredThisTurn = false;
+ 	}
+ 
+ 	// ── Query methods ───────────────────────────────────────────────
+@@ -191,7 +252,7 @@ public class ElementalAttunement : ISchoolAttunement
+ 	public int PreviewBonusDamageAfterCast(ElementTag element)
+ 	{
+ 		int charges = System.Math.Min(Charges[element] + 1, MaxCharges);
+-		if (charges >= BurstThreshold) charges = 0;   // burst resets before the bonus is read
++		if (charges >= BurstAt) charges = 0;   // burst resets before the bonus is read
+ 		if (charges >= 3) return 2;
+ 		if (charges >= 1) return 1;
+ 		return 0;
+diff --git a/Scripts/Systems/Combat/Attunement/SchoolSeats.cs b/Scripts/Systems/Combat/Attunement/SchoolSeats.cs
+new file mode 100644
+index 0000000..2cba121
+--- /dev/null
++++ b/Scripts/Systems/Combat/Attunement/SchoolSeats.cs
+@@ -0,0 +1,169 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// SchoolSeats.cs
++//
++// Purpose:        The combat side of the school seats (campus_building_
++//                 upgrades_design_v1 §8d). One entry point at combat
++//                 start, one at victory, so CombatManager carries two
++//                 calls rather than a seat's worth of rules. Seats land
++//                 here one school at a time; the first is the Crucible
++//                 of Storms (Elementalist, ruled 2026-09-29).
++//
++//                 Crucible of Storms:
++//                   T1 Fronts           every Elementalist opens a fight
++//                                       with 1 attunement in the timeline's
++//                                       chosen element (CycleState.CrucibleFront)
++//                   T2 Standing Weather attunement carries between fights of
++//                                       one expedition at half, rounded down
++//                   T3 Monoelement      bursts at 3; only one element holds
++//                      or Confluence    the third different element cast in a
++//                                       turn bursts for free
++// Layer:          System (combat)
++// Collaborators:  ElementalAttunement.cs (BurstAt, Monoelement, Confluence,
++//                 GainCharge), Charters.cs (doctrine gate), CombatManager
++//                 (the two calls), ExpeditionManager (clears the carry at
++//                 a fresh expedition and when the sortie ends),
++//                 CampusSeatPanel (sets the front).
++// Notes:          The weather carry is runtime state, like the rest of an
++//                 expedition's combat round-trip: quitting mid-expedition
++//                 drops it, which costs one fight's head start at most.
++// ============================================================
++
++/// <summary>School seats in combat. Stateless apart from the weather carry.</summary>
++public static class SchoolSeats
++{
++    public const string CrucibleId = "crucible_of_storms";
++    public const string Monoelement = "monoelement";
++    public const string Confluence = "confluence";
++
++    /// <summary>Loadout key ("wizard" or companion id) → element → charges the
++    /// next fight of this expedition opens with (Standing Weather).</summary>
++    private static readonly Dictionary<string, Dictionary<ElementTag, int>> _weatherCarry = new();
++
++    // ── Reads ────────────────────────────────────────────────────────────
++
++    /// <summary>A seat's tier, 0 when unbuilt or unsited.</summary>
++    public static int Tier(GuildSaveData save, string buildingId)
++    {
++        if (save?.Buildings == null)
++        {
++            return 0;
++        }
++        foreach (var b in save.Buildings)
++        {
++            if (b.Id == buildingId)
++            {
++                return b.IsFunctional ? b.Tier : 0;
++            }
++        }
++        return 0;
++    }
++
++    /// <summary>The timeline's front as an element, or null for none.</summary>
++    public static ElementTag? Front(GuildSaveData save)
++    {
++        string f = save?.Cycle?.CrucibleFront;
++        if (string.IsNullOrEmpty(f))
++        {
++            return null;
++        }
++        return Enum.TryParse<ElementTag>(f, true, out var e) ? e : (ElementTag?)null;
++    }
++
++    /// <summary>Set (or clear, with null) the timeline's front.</summary>
++    public static void SetFront(GuildSaveData save, ElementTag? front)
++    {
++        if (save?.Cycle == null)
++        {
++            return;
++        }
++        save.Cycle.CrucibleFront = front.HasValue ? front.Value.ToString() : "";
++        SaveManager.MarkDirty();
++    }
++
++    // ── Combat hooks ─────────────────────────────────────────────────────
++
++    /// <summary>Combat start, after every unit's attunement is initialised.
++    /// <paramref name="keyFor"/> maps a unit to its loadout key.</summary>
++    public static void ApplyCombatStart(IEnumerable<Unit> units, Func<Unit, string> keyFor)
++    {
++        var save = SaveManager.ActiveSave;
++        int crucible = Tier(save, CrucibleId);
++        if (units == null || crucible <= 0)
++        {
++            return;
++        }
++        bool mono = Charters.IsActive(save, CrucibleId, Monoelement);
++        bool confluence = Charters.IsActive(save, CrucibleId, Confluence);
++        var front = Front(save);
++
++        foreach (var u in units)
++        {
++            if (u?.Attunement is not ElementalAttunement att)
++            {
++                continue;
++            }
++            att.Monoelement = mono;
++            att.BurstAt = mono ? 3 : ElementalAttunement.BurstThreshold;
++            att.Confluence = confluence;
++
++            if (front.HasValue)
++            {
++                att.GainCharge(front.Value, 1);
++            }
++
++            if (crucible >= 2 && _weatherCarry.TryGetValue(keyFor(u), out var carry))
++            {
++                foreach (var kv in carry)
++                {
++                    if (kv.Value > 0)
++                    {
++                        att.GainCharge(kv.Key, kv.Value);
++                    }
++                }
++            }
++            GD.Print($"[Crucible] {u.Name}: front {(front.HasValue ? front.Value.ToString() : "none")}, "
++                     + $"mono {mono}, confluence {confluence}.");
++        }
++        // The carry is spent by the fight that opens with it; only a win
++        // (RecordVictory) writes the next one. A loss or a retreat carries nothing.
++        _weatherCarry.Clear();
++    }
++
++    /// <summary>Victory: record what each Elementalist's weather carries into the
++    /// next fight of this expedition (Standing Weather, T2).</summary>
++    public static void RecordVictory(IEnumerable<Unit> units, Func<Unit, string> keyFor)
++    {
++        var save = SaveManager.ActiveSave;
++        _weatherCarry.Clear();
++        if (units == null || Tier(save, CrucibleId) < 2)
++        {
++            return;
++        }
++        foreach (var u in units)
++        {
++            if (u?.Attunement is not ElementalAttunement att || !u.Stats.IsAlive)
++            {
++                continue;
++            }
++            var carry = new Dictionary<ElementTag, int>();
++            foreach (var kv in att.Charges)
++            {
++                if (kv.Value / 2 > 0)
++                {
++                    carry[kv.Key] = kv.Value / 2;
++                }
++            }
++            if (carry.Count > 0)
++            {
++                _weatherCarry[keyFor(u)] = carry;
++            }
++        }
++    }
++
++    /// <summary>The expedition's weather ends: a fresh start, or the sortie over.</summary>
++    public static void ClearWeatherCarry() => _weatherCarry.Clear();
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 64122bb..0f6b553 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -4001,6 +4001,9 @@ public partial class CombatManager : Node3D
+             }
+         }
+ 
++        // School seats: the Crucible's Standing Weather carries into the next fight.
++        SchoolSeats.RecordVictory(playerUnits, LoadoutKeyFor);
++
+         // Marginalia: the fight is WON, so hand the family kill tally to the
+         // router for the victory-gated deed commit (ExpeditionManager.
+         // EmitCombatDeed, or CampusScreen.ConsumeCampusCombatReturn for
+@@ -4706,6 +4709,10 @@ public partial class CombatManager : Node3D
+             unit.InitializeAttunement();
+         }
+ 
++        // School seats (design §8d): the Crucible's front, carried weather and
++        // doctrine flags land on each Elementalist before the first turn.
++        SchoolSeats.ApplyCombatStart(playerUnits, LoadoutKeyFor);
++
+         // Wilding Riot fires per-unit; the attunement doesn't know its owner, so bind it here.
+         foreach (var unit in playerUnits)
+         {
+diff --git a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+index 51303c9..2baffcf 100644
+--- a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
++++ b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+@@ -634,6 +634,7 @@ public partial class ExpeditionManager : Node2D
+             // take the other branch and must NOT reset carried HP.)
+             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
+             PlayerSession.WizardExpeditionHP = -1; // K2.5 symmetry, wizard too
++            SchoolSeats.ClearWeatherCarry();       // Crucible T2: weather is per expedition
+ 
+             // S4 (Identify) + S5 (True Names): pinned encounters are
+             // expedition-scoped. Static so they survive combat round-trips
+@@ -3028,6 +3029,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+             }
+         }
+ 
++        // Facets (2026-09-29): a blight facet site is a Narrative POI that yields
++        // a facet instead of an encounter, so it is read before the POI dispatch.
++        if (TryRetrieveFacet(coord))
++            return;
++
+         // P4: shard sub-region tiles carry NO POI, so handle them BEFORE the
+         // POIType early-return. Gate -> guardian; sanctum (post-clear) -> collect.
+         if (TryHandleShardZone(coord))
+@@ -3678,6 +3684,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         // until the party reaches a staging anchor or the castle (FieldMarch.BankHere).
+         var endSave = SaveManager.ActiveSave;
+         int refilled = FieldMarch.RefillWandsAtHome(endSave?.Cycle, endSave?.Armory);
++        SchoolSeats.ClearWeatherCarry();   // Crucible T2: the expedition's weather ends with it
+         if (refilled > 0)
+             GD.Print($"[Armory] {refilled} wand(s) recharged on return.");
+         SaveManager.MarkDirty();
+@@ -4157,6 +4164,28 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         },
+     };
+ 
++    /// <summary>Facets (design §8b, source 5): standing on a zone's blight site
++    /// takes its facet and spends the site. Returns true when the tile was one.</summary>
++    private bool TryRetrieveFacet(Vector2I coord)
++    {
++        if (_world == null || !_window.TryLocalToWorld(coord, out int col, out int row))
++            return false;
++        var save = SaveManager.ActiveSave;
++        var zone = Facets.BlightSiteAt(_world, save, col, row);
++        if (zone == null)
++            return false;
++        string line = Facets.RetrieveBlight(save, _world, zone);
++        if (line == null)
++            return false;
++        ConsumeOverlayPoi(coord);
++        ShowInfo(line);
++        _toasts?.Push("A facet is the guild's.", QuestToastKind.Progress);
++        LogRun("facet", $"{zone.FragmentKey}: blight", at: coord);
++        SaveManager.MarkDirty();
++        UpdateUI();
++        return true;
++    }
++
+     /// <summary>P4: standing on a shard sub-region tile. GATE (guardian not yet
+     /// felled) -> launch the guardian Boss (fragment key doubles as guardian key,
+     /// so the combat-return handler stamps &lt;key&gt;_trial_passed + GuardianCleared).
+diff --git a/Scripts/Systems/Overworld/WorldGen/WorldData.cs b/Scripts/Systems/Overworld/WorldGen/WorldData.cs
+index a3f3351..3657284 100644
+--- a/Scripts/Systems/Overworld/WorldGen/WorldData.cs
++++ b/Scripts/Systems/Overworld/WorldGen/WorldData.cs
+@@ -248,6 +248,12 @@ public class ShardZone
+     /// and Sanctioned paths will read.</summary>
+     public bool Surveyed = false;
+ 
++    /// <summary>The blight facet's site (design §8b, source 5): index into
++    /// WorldData.Pois of the Narrative POI sited beside the zone when its kingdom
++    /// first takes corruption. -1 until sited. The facet itself is eternal
++    /// (facet_&lt;school&gt;_blight); this only places it in this timeline.</summary>
++    public int FacetSitePoiIndex = -1;
++
+     /// <summary>Every tile in this zone's footprint (offset coords).</summary>
+     public List<(int x, int y)> Tiles = new();
+ }
+diff --git a/Scripts/Systems/Overworld/WorldGen/WorldGenerator.cs b/Scripts/Systems/Overworld/WorldGen/WorldGenerator.cs
+index 9288d16..f44f27d 100644
+--- a/Scripts/Systems/Overworld/WorldGen/WorldGenerator.cs
++++ b/Scripts/Systems/Overworld/WorldGen/WorldGenerator.cs
+@@ -786,6 +786,42 @@ public static class WorldGenerator
+         return index;
+     }
+ 
++    /// <summary>Runtime POI creation anchored on a point rather than a seat (the
++    /// blight facet sites beside a shard zone, 2026-09-29). Places <paramref name="kind"/>
++    /// on the nearest free wild tile of the kingdom at least <paramref name="minDist"/>
++    /// from the anchor (shard footprints are never wild tiles). Discovered and charted
++    /// like SiteRuntimePoi. Returns the POI index, or -1.</summary>
++    public static int SiteRuntimePoiNear(WorldData world, PoiKind kind, string kingdomId,
++                                         int anchorX, int anchorY, int minDist)
++    {
++        if (world == null || string.IsNullOrEmpty(kingdomId))
++            return -1;
++
++        int bestX = -1, bestY = -1, bestDist = int.MaxValue;
++        foreach (var (x, y) in WildTilesOfKingdom(world, kingdomId))
++        {
++            if (world.GetTile(x, y).PoiIndex >= 0)
++                continue;
++            int d = HexCoord.OffsetDistance(anchorX, anchorY, x, y);
++            if (d < minDist || d >= bestDist)
++                continue;
++            bestDist = d; bestX = x; bestY = y;
++        }
++        if (bestX < 0)
++            return -1;
++
++        int index = world.Pois.Count;
++        AddPoi(world, bestX, bestY, kind, kingdomId, grantsStaging: false);
++        world.Pois[index].Discovered = true;
++        var t = world.GetTile(bestX, bestY);
++        if (t.Discovery == TileDiscovery.Unseen)
++        {
++            t.Discovery = TileDiscovery.Charted;
++            world.SetTile(bestX, bestY, t);
++        }
++        return index;
++    }
++
+     // ── 8. Staging ───────────────────────────────────────────────────────
+     private static void SeedStaging(WorldData world, (int x, int y) start, Params p,
+                                     RandomNumberGenerator rng)
+diff --git a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+index f8e4606..7bccf99 100644
+--- a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
++++ b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+@@ -61,6 +61,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+             or CampusPanelId.Records
+             or CampusPanelId.Workshop
+             or CampusPanelId.Scribe
++            or CampusPanelId.Seats
+             or CampusPanelId.Quests => true,   // session-one extraction (2026-08-13)
+         _ => false,
+     };
+@@ -285,6 +286,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+         CampusPanelId.Records    => new CampusRecordsPanel(),
+         CampusPanelId.Workshop   => new CampusWorkshopPanel(),
+         CampusPanelId.Scribe     => new CampusScribePanel(),
++        CampusPanelId.Seats      => new CampusSeatPanel(),
+         CampusPanelId.Quests     => new CampusQuestsPanel(),
+         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "not a floatable panel"),
+     };
+diff --git a/Scripts/Systems/Strategic/StrategicView.cs b/Scripts/Systems/Strategic/StrategicView.cs
+index cfd5208..73628ca 100644
+--- a/Scripts/Systems/Strategic/StrategicView.cs
++++ b/Scripts/Systems/Strategic/StrategicView.cs
+@@ -6819,6 +6819,9 @@ public partial class StrategicView : Node2D
+         // Wands at home recharge with the moon, so a wand spent in a castle or
+         // campus defense is not stranded until the next sortie ends (2026-09-29).
+         FieldMarch.RefillWandsAtHome(cycle, SaveManager.ActiveSave?.Armory);
++        // Facets: a corrupted kingdom's shard zone sheds its blight facet (the
++        // site posts its own Messenger to the scrying desk).
++        Facets.SiteBlightFacets(cycle, SaveManager.ActiveSave);
+         // Q4.2: a united archmage's relic arrives when the unite moon returns.
+         ArchmageRelics.TickUniteAnniversaries(cycle);
+         // §8 pity-timer: advance Library research commissions; a completed one
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+index a5a1afa..e1cef60 100644
+--- a/Scripts/Systems/Verification/CharterSaveAssert.cs
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -30,6 +30,7 @@ public static class CharterSaveAssert
+ 
+         bool ok = AssertCharterEntry(sb);
+         ok &= AssertCycleCharters(sb);
++        ok &= AssertSeatFields(sb);
+ 
+         sb.AppendLine(ok
+             ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
+@@ -109,6 +110,27 @@ public static class CharterSaveAssert
+         return ok;
+     }
+ 
++    /// <summary>School seats (slice 2): the Crucible's front on CycleState and the
++    /// blight facet site index on ShardZone, plus their legacy defaults.</summary>
++    private static bool AssertSeatFields(StringBuilder sb)
++    {
++        var cycle = RoundTrip(new CycleState { CrucibleFront = "Storm" });
++        bool ok = Check(sb, "CycleState.CrucibleFront", cycle != null && cycle.CrucibleFront == "Storm");
++
++        var zone = RoundTrip(new ShardZone { FragmentKey = "primal", FacetSitePoiIndex = 41 });
++        ok &= Check(sb, "ShardZone.FacetSitePoiIndex", zone != null && zone.FacetSitePoiIndex == 41);
++
++        var legacyCycle = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":3}", SaveManager.JsonOptions);
++        ok &= Check(sb, "CycleState.CrucibleFront default empty on legacy JSON",
++            legacyCycle != null && legacyCycle.CrucibleFront == "");
++        var legacyZone = JsonSerializer.Deserialize<ShardZone>("{\"fragmentKey\":\"axiom\"}", SaveManager.JsonOptions);
++        ok &= Check(sb, "ShardZone.FacetSitePoiIndex default -1 on legacy JSON",
++            legacyZone != null && legacyZone.FacetSitePoiIndex == -1);
++
++        sb.AppendLine(ok ? "  School seat fields: PASS" : "  School seat fields: FAIL");
++        return ok;
++    }
++
+     // ── Helpers (mirror ArmorySaveAssert) ─────────────────────────────────
+ 
+     private static T RoundTrip<T>(T obj)
+-- 
+2.43.0
+

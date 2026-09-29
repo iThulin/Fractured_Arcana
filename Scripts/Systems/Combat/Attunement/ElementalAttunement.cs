@@ -76,6 +76,24 @@ public class ElementalAttunement : ISchoolAttunement
 	public const int MaxCharges = 4;
 	public const int BurstThreshold = 4;
 
+	// ── Crucible of Storms doctrines (campus_building_upgrades_design_v1 §8d).
+	// Set at combat start by SchoolSeats.ApplyCombatStart; defaults are the
+	// school as it has always played. ──────────────────────────────────────
+	/// <summary>Charges at which an element bursts. 4 normally; 3 under the
+	/// Monoelement doctrine.</summary>
+	public int BurstAt = BurstThreshold;
+
+	/// <summary>Monoelement: only one element may hold attunement. Charging an
+	/// element empties every other.</summary>
+	public bool Monoelement = false;
+
+	/// <summary>Confluence: the third DIFFERENT element cast in one turn triggers
+	/// that element's burst for free (its charges are kept). Once per turn.</summary>
+	public bool Confluence = false;
+
+	private readonly HashSet<ElementTag> _elementsThisTurn = new();
+	private bool _confluenceFiredThisTurn = false;
+
 	// ── Opposition pairs ────────────────────────────────────────────
 	private static readonly Dictionary<ElementTag, ElementTag> Opposition = new()
 	{
@@ -103,6 +121,8 @@ public class ElementalAttunement : ISchoolAttunement
 	/// </summary>
 	public void GainCharge(ElementTag element, int amount = 1)
 	{
+		if (Monoelement)
+			ClearOthers(element);
 		int oldValue = Charges[element];
 		Charges[element] = Math.Min(oldValue + amount, MaxCharges);
 		if (Charges[element] == oldValue)
@@ -122,6 +142,9 @@ public class ElementalAttunement : ISchoolAttunement
 		{
 			if (!TryParseTag(tagStr, out var element)) continue;
 
+			if (Monoelement)
+				ClearOthers(element);
+
 			int oldValue = Charges[element];
 			Charges[element] = Math.Min(Charges[element] + 1, MaxCharges);
 
@@ -137,7 +160,19 @@ public class ElementalAttunement : ISchoolAttunement
 			int newValue = Charges[element];
 			OnChargeChanged?.Invoke(element, newValue);
 
-			if (newValue >= BurstThreshold)
+			// Confluence: the third different element this turn bursts for free.
+			bool confluence = false;
+			if (Confluence)
+			{
+				_elementsThisTurn.Add(element);
+				if (!_confluenceFiredThisTurn && _elementsThisTurn.Count >= 3)
+				{
+					confluence = true;
+					_confluenceFiredThisTurn = true;
+				}
+			}
+
+			if (newValue >= BurstAt)
 			{
 				effects.Add(new AttunementEffect
 				{
@@ -153,9 +188,32 @@ public class ElementalAttunement : ISchoolAttunement
 			{
 				OnThresholdReached?.Invoke(element, newValue);
 			}
+
+			if (confluence && !effects.Exists(e => e.Element == element && e.Tier == AttunementTier.Burst))
+			{
+				effects.Add(new AttunementEffect
+				{
+					Element = element,
+					Tier = AttunementTier.Burst,
+					Description = "CONFLUENCE: " + GetBurstDescription(element)
+				});
+				OnBurstTriggered?.Invoke(element);
+			}
 		}
 
 		return effects;
+	}
+
+	/// <summary>Monoelement: empty every element but <paramref name="keep"/>.</summary>
+	private void ClearOthers(ElementTag keep)
+	{
+		foreach (var key in new[] { ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth })
+		{
+			if (key == keep || Charges[key] == 0)
+				continue;
+			Charges[key] = 0;
+			OnChargeChanged?.Invoke(key, 0);
+		}
 	}
 
 	// ── Turn decay ──────────────────────────────────────────────────
@@ -169,7 +227,10 @@ public class ElementalAttunement : ISchoolAttunement
 	/// </summary>
 	public void Decay()
 	{
-		// Intentionally does nothing. See summary.
+		// Charges do not decay (see summary). The Confluence count is per turn,
+		// and Decay is the per-turn call, so it resets here.
+		_elementsThisTurn.Clear();
+		_confluenceFiredThisTurn = false;
 	}
 
 	// ── Query methods ───────────────────────────────────────────────
@@ -191,7 +252,7 @@ public class ElementalAttunement : ISchoolAttunement
 	public int PreviewBonusDamageAfterCast(ElementTag element)
 	{
 		int charges = System.Math.Min(Charges[element] + 1, MaxCharges);
-		if (charges >= BurstThreshold) charges = 0;   // burst resets before the bonus is read
+		if (charges >= BurstAt) charges = 0;   // burst resets before the bonus is read
 		if (charges >= 3) return 2;
 		if (charges >= 1) return 1;
 		return 0;

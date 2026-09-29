@@ -166,7 +166,10 @@ public class ItemDefinition
     /// unit per turn, body effects, the ward cannot drink); a scroll is the
     /// PARTY's resource (an arcane reading, one per player turn total,
     /// stacks with a potion on the same unit, and CAN target the ward,
-    /// the protect-mission tool).</summary>
+    /// the protect-mission tool).
+    /// <para>2026-09-29 (D6: scrolls are overworld only, spellglass is the combat
+    /// spell): players see the "scroll" kind as a TABLET. The key stays "scroll"
+    /// so item JSON and saves need no migration; only the words changed.</para></summary>
     public string ConsumeKind = "potion";
 
     [System.Text.Json.Serialization.JsonIgnore]
@@ -260,6 +263,17 @@ public class ItemInstance
     /// it empty and read their definition's BoundCardId.</summary>
     public string BoundCardId = "";
 
+    /// <summary>Glasswright (Scribe's Tower doctrine): the upgrade tiers the sealed
+    /// card carried when it went into the glass. 0/0 casts the printed card.
+    /// Additive save fields; older glass reads as printed.</summary>
+    public int BoundTopTier = 0;
+    public int BoundBotTier = 0;
+
+    /// <summary>Spellglass sealed at a blighted Scribe's Tower (campus corruption,
+    /// §11c): cheaper, any rarity, and it bites its caster when it shatters
+    /// (ScribesTower.CrackedGlassBite). Additive save field; older glass is whole.</summary>
+    public bool Cracked = false;
+
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsBlighted => !string.IsNullOrEmpty(DrawbackKey);
 
@@ -301,6 +315,12 @@ public class UnitLoadout
     /// EquipmentSlot stay untouched.</summary>
     public List<string> BeltInstanceIds = new();
     public const int BeltSlots = 2;
+
+    /// <summary>Proving Grounds (Training Grounds doctrine, design §12): a second
+    /// weapon the martial carries and changes to mid-fight for 1 AP. Null when
+    /// none. Additive save field; outside the EquipmentSlot enum on purpose, so
+    /// the per-slot loops (stat totals, the three slot cards) never count it.</summary>
+    public string SecondWeaponInstanceId = null;
 
     public string GetSlot(EquipmentSlot slot) => slot switch
     {

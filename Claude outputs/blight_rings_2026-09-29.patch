@@ -1,0 +1,132 @@
+From e721e5a68e88558076e80e32f6a57182d9e63ab2 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 13:05:10 -0600
+Subject: [PATCH] Blight marker: opaque hexagonal rings replace the translucent
+ column (sorting flicker)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Scripts/Systems/Campus/CampusGridManager.cs | 91 ++++++++++++---------
+ 1 file changed, 54 insertions(+), 37 deletions(-)
+
+diff --git a/Scripts/Systems/Campus/CampusGridManager.cs b/Scripts/Systems/Campus/CampusGridManager.cs
+index 547827e..5e7e21d 100644
+--- a/Scripts/Systems/Campus/CampusGridManager.cs
++++ b/Scripts/Systems/Campus/CampusGridManager.cs
+@@ -190,8 +190,8 @@ public partial class CampusGridManager : HexGridManager
+ 
+     // ── Campus corruption, placeholder visuals (§11) ──────────────────
+     // Until the building art pass, a fouled building needs to be readable at a
+-    // glance: its tiles are stained toward the blight violet, a pulsing violet
+-    // column rises from its anchor (taller and denser per level), and its name
++    // glance: its tiles are stained toward the blight violet, flat hexagonal
++    // rings circle its anchor (one per level, pulsing and turning), and its name
+     // label turns violet and names the level. Everything here is redrawn from
+     // the save by RefreshBlight, which listens to CampusBlight.Changed, so a
+     // Cleanse, a debug foul or a moon's creep shows without reloading the grid.
+@@ -293,49 +293,66 @@ public partial class CampusGridManager : HexGridManager
+         }
+     }
+ 
+-    /// <summary>A translucent violet column on the anchor hex: 1 Tainted (short,
+-    /// faint), 2 Blighted, 3 Overrun (tall, dense, fast pulse). Placeholder art.</summary>
++    /// <summary>Flat hexagonal rings of blight laid around the anchor hex, one per
++    /// level (1 Tainted, 2 Blighted, 3 Overrun), each a little higher and wider, so
++    /// the building reads as ringed in. Opaque on purpose: transparent geometry
++    /// overlapping the building box sorted badly and flickered. The rings pulse in
++    /// colour, not alpha, and turn slowly. Placeholder art.</summary>
+     private static void AddBlightMarker(Node3D view, int level)
+     {
+         level = Mathf.Clamp(level, 1, 3);
+         var root = new Node3D { Name = BlightMarkerName };
+-        float height = 0.5f + 0.7f * level;
+-        float alphaHi = 0.25f + 0.15f * level;
+-        float alphaLo = alphaHi * 0.45f;
+-        var c = UITheme.CampusBlightTint;
+-        var mat = new StandardMaterial3D
+-        {
+-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+-            CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+-            AlbedoColor = new Color(c.R, c.G, c.B, alphaHi),
+-        };
+-        var column = new MeshInstance3D
++        view.AddChild(root);
++
++        Color dim = UITheme.CampusBlightTint;
++        Color bright = UITheme.CampusBlightText;
++        float pulse = level switch { 1 => 1.4f, 2 => 0.9f, _ => 0.5f };
++
++        for (int i = 0; i < level; i++)
+         {
+-            Mesh = new CylinderMesh
++            var mat = new StandardMaterial3D
+             {
+-                TopRadius = 0.15f + 0.05f * level,
+-                BottomRadius = 0.55f + 0.05f * level,
+-                Height = height,
+-                RadialSegments = 6,
+-            },
+-            MaterialOverride = mat,
+-            Position = new Vector3(0f, height * 0.5f, 0f),
+-            RotationDegrees = new Vector3(0f, 30f, 0f),
+-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+-        };
+-        root.AddChild(column);
+-        view.AddChild(root);
++                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
++                AlbedoColor = dim,
++            };
++            float outer = 0.98f + 0.08f * i;
++            var ring = new MeshInstance3D
++            {
++                Name = $"Ring{i}",
++                // A 6-sided torus is a hexagonal band; flattened in Y it lies on the tile.
++                Mesh = new TorusMesh
++                {
++                    InnerRadius = outer - 0.12f,
++                    OuterRadius = outer,
++                    Rings = 6,
++                    RingSegments = 4,
++                },
++                MaterialOverride = mat,
++                Position = new Vector3(0f, 0.06f + 0.18f * i, 0f),
++                Scale = new Vector3(1f, 0.35f, 1f),
++                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
++            };
++            root.AddChild(ring);
++
++            if (ring.IsInsideTree())
++            {
++                // Colour pulse, staggered per ring so the band seems to climb.
++                var tween = ring.CreateTween().SetLoops();
++                if (i > 0)
++                    tween.TweenInterval(pulse * 0.3f * i);
++                tween.TweenProperty(mat, "albedo_color", bright, pulse)
++                     .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
++                tween.TweenProperty(mat, "albedo_color", dim, pulse)
++                     .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
++            }
++        }
+ 
+-        // Breathe: faster the deeper the blight. Bound to the column, so it dies with it.
+-        if (column.IsInsideTree())
++        // A slow turn: the ground is not still. Faster the deeper the blight.
++        if (root.IsInsideTree())
+         {
+-            float half = level switch { 1 => 1.2f, 2 => 0.8f, _ => 0.45f };
+-            var tween = column.CreateTween().SetLoops();
+-            tween.TweenProperty(mat, "albedo_color:a", alphaLo, half)
+-                 .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+-            tween.TweenProperty(mat, "albedo_color:a", alphaHi, half)
+-                 .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
++            var spin = root.CreateTween().SetLoops();
++            spin.TweenProperty(root, "rotation_degrees:y", 360f, level switch { 1 => 24f, 2 => 16f, _ => 9f })
++                .From(0f);
+         }
+     }
+ 
+-- 
+2.43.0
+

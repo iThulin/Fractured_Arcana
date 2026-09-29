@@ -386,7 +386,7 @@ public partial class CardLibraryUi : Control
     }
 
     /// <summary>The §8 pity-timer surface: for a locked card the player has not yet
-    /// discovered, offer to commission its research from the Forbidden Archives.
+    /// discovered, offer to commission its research at the Library (T2+).
     /// Pay gold now, receive the card after a fixed number of lunations. Shows the
     /// in-flight countdown when a commission already exists, and nothing at all for
     /// cards that are already known, are Regalia, or belong to another verb
@@ -409,7 +409,7 @@ public partial class CardLibraryUi : Control
         {
             var pending = new Label
             {
-                Text = $"Forbidden Archives: under research, {existing.LunationsRemaining} " +
+                Text = $"Under research at the Library, {existing.LunationsRemaining} " +
                        $"lunation(s) remain. It enters the draft pool on completion.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
@@ -440,7 +440,7 @@ public partial class CardLibraryUi : Control
             return;
         }
 
-        info.Text = $"Undiscovered. Commission its research from the Forbidden Archives " +
+        info.Text = $"Undiscovered. Commission its research at the Library " +
                     $"({status.InFlight}/{status.MaxConcurrent} in progress). Delivers in " +
                     $"{status.Lunations} lunations.";
         info.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);

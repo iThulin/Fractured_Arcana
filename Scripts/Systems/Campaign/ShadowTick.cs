@@ -124,6 +124,7 @@ public static class ShadowTick
             {
                 changed |= ResolveCutout(cycle, inf, a, lun, reports);
             }
+
             else if (inf.Role == ShadowVocab.RoleSaboteur)
             {
                 // Passive erosion: undermine a siege pressing this kingdom a
@@ -137,6 +138,22 @@ public static class ShadowTick
                     Emit(reports, lun, inf.KingdomId,
                         $"Shadow: your saboteur bleeds the siege pressing " +
                         $"{Court(cycle, inf.KingdomId)} ({before} → {wf.Advance}).");
+                }
+            }
+
+            // Spy Network (Courier Station doctrine, §14): every asset, not only a
+            // watcher, charts the ground around its court as it reports. A cutout
+            // before Concord contact already charts at half budget (ResolveCutout),
+            // so it is left to that.
+            bool cutoutCharts = inf.Role == ShadowVocab.RoleCutout && !council.ConcordContacted;
+            if (inf.Role != ShadowVocab.RoleWatcher && !cutoutCharts && Networks.SpyNetworkActive(save))
+            {
+                int mapped = ChartAround(cycle.World, inf.KingdomId, 1 + a, ChartBudget[a]);
+                if (mapped > 0)
+                {
+                    changed = true;
+                    Emit(reports, lun, inf.KingdomId,
+                        $"Shadow: the Spy Network's reports chart {mapped} tiles of {Court(cycle, inf.KingdomId)}.");
                 }
             }
         }
@@ -335,7 +352,8 @@ public static class ShadowTick
             int undercroft = SaveManager.ActiveSave != null
                 ? CouncilQueries.BuildingTier(SaveManager.ActiveSave, ShadowVocab.BuildingUndercroft) : 0;
             int markedGain = MarkedGainFor(c.ContractType);
-            if (undercroft >= ShadowVocab.UndercroftMarkedDiscountTier)
+            if (undercroft >= ShadowVocab.UndercroftMarkedDiscountTier
+                && Networks.SilentFloorActive(SaveManager.ActiveSave))   // a doctrine now (§14)
             {
                 markedGain = Mathf.Max(0, markedGain - ShadowVocab.UndercroftMarkedDiscount);
             }
@@ -829,9 +847,7 @@ public static class ShadowTick
         // Undercroft concurrency cap (§6): the network cannot exceed what the
         // spine can run. 0 tier = a minimal network is still possible.
         var save = SaveManager.ActiveSave;
-        int undercroft = save != null
-            ? CouncilQueries.BuildingTier(save, ShadowVocab.BuildingUndercroft) : 0;
-        if (council.Informants.Count >= ShadowVocab.InformantCap(undercroft))
+        if (council.Informants.Count >= Networks.InformantCap(save))   // +2 with the Spy Network (§14)
         {
             return null; // at capacity, so exfiltrate or build the Undercroft
         }
@@ -918,8 +934,16 @@ public static class ShadowTick
         {
             return null; // no leverage to turn
         }
-        return PlantInformant(cycle, kingdomId, role ?? ShadowVocab.RoleCutout,
+        var turned = PlantInformant(cycle, kingdomId, role ?? ShadowVocab.RoleCutout,
             ShadowVocab.CoverStartTurned, courtierId);
+        if (turned != null)
+        {
+            // Leverage or gold, not both (the rule SellSecret states): the secret
+            // is spent turning them, so it cannot also be fenced or sold.
+            courtier.SecretKnown = false;
+            SaveManager.MarkDirty();
+        }
+        return turned;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

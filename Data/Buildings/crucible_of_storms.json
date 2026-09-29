@@ -1,0 +1,47 @@
+{
+  "id": "crucible_of_storms",
+  "name": "The Crucible of Storms",
+  "category": "School",
+  "schoolAffinity": "Elementalist",
+  "isSchoolSeat": true,
+  "hostsSystem": "seats",
+  "description": "An open-air tower where the four elements are let in to argue. The Elementalist seat: what the guild learns of weather here, every Elementalist it fields carries into the fight.",
+  "maxTier": 3,
+  "tiers": [
+    {
+      "tier": 1,
+      "displayName": "The Weathervane",
+      "goldCost": 150,
+      "description": "Fronts: choose the element the weather favours this timeline. Every Elementalist opens each fight with 1 attunement in it. Raised once the Elementalist discipline is declared.",
+      "requiredBuildings": []
+    },
+    {
+      "tier": 2,
+      "displayName": "The Standing Storm",
+      "goldCost": 300,
+      "requiredFacets": 3,
+      "description": "Standing Weather: attunement carries between the fights of one expedition at half. Needs 3 Elementalist facets.",
+      "requiredBuildings": []
+    },
+    {
+      "tier": 3,
+      "displayName": "The Eye",
+      "goldCost": 500,
+      "requiredFacets": 5,
+      "description": "A doctrine (free while you play Elementalist). Monoelement: bursts at 3, one element only. Or the Confluence: the third different element cast in a turn bursts for free. Needs 5 Elementalist facets.",
+      "requiredBuildings": [],
+      "doctrines": [
+        {
+          "id": "monoelement",
+          "name": "Monoelement",
+          "description": "Bursts come at 3 charges instead of 4, but only one element may hold attunement: charging one empties the rest. Pick an element and live in it."
+        },
+        {
+          "id": "confluence",
+          "name": "The Confluence",
+          "description": "The third different element you cast in one turn triggers that element's burst for free, and its charges stay. Weave the storm."
+        }
+      ]
+    }
+  ]
+}

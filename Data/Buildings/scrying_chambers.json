@@ -5,9 +5,18 @@
     "category": "Magic",
     "schoolAffinity": "",
     "footprint": [
-        { "q": 0, "r": 0 },
-        { "q": 1, "r": 0 },
-        { "q": 0, "r": 1 }
+        {
+            "q": 0,
+            "r": 0
+        },
+        {
+            "q": 1,
+            "r": 0
+        },
+        {
+            "q": 0,
+            "r": 1
+        }
     ],
     "maxTier": 3,
     "tiers": [
@@ -31,11 +40,23 @@
         {
             "tier": 3,
             "displayName": "The Third Eye",
-            "description": "Foresight sharp enough to read intent. Charts a fourth site (4 total), and once per expedition the party foresees and slips the first ambush, and the patrol passes without forcing combat.",
+            "description": "Charts a fourth site (4 total). And a doctrine, chartered at the Grand Hall. The Third Eye: the party foresees and slips the first ambush of each expedition, and every enemy's intent is read in full in expedition fights.",
             "goldCost": 450,
             "requiredBuildings": [],
             "revealPoiCount": 1,
-            "scryingPortent": true
+            "doctrines": [
+                {
+                    "id": "third_eye",
+                    "name": "The Third Eye",
+                    "description": "Information play. Once per expedition the party foresees and slips the first ambush (the patrol passes without forcing combat), and in every expedition fight each enemy's intent starts fully revealed."
+                },
+                {
+                    "id": "the_hand",
+                    "name": "The Hand",
+                    "description": "Intervention play: the wizard casts into field fights from afar, more often and further.",
+                    "blocked": "remote casting is not built yet"
+                }
+            ]
         }
     ]
 }

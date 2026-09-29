@@ -1,0 +1,2368 @@
+From c630c52c1615677444b65ae6d7e0200f482341cd Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 12:29:15 -0600
+Subject: [PATCH] Campus corruption: sieges foul the guild's land; siege
+ leftovers finished
+
+- Corruption lives on campus tiles (0-3): tainted drains splinters, blighted
+  darkens the doctrine and swaps in the building's blighted form, overrun stops it
+- Portal strikes: a foundation beside each nearby building to raze, and blight
+  ritualists who channel into the ground (damage breaks the channel)
+- A lost strike fouls the Sigil's ground; blight creeps one tile a moon
+- Blighted forms: cracked spellglass, tainting Workshop, wild Crucible front,
+  leaking Sigil (and loose gates at T3), Grand Hall loses a charter slot
+- Cleanse Land and Clear Rubble; destroyed buildings leave rubble
+- Undercroft: early word at pattern knowledge 2 (T1), slower learning (T2)
+- Marching parties can step home through a T2 Sigil from the Move verb
+- Stale castle and posting defense launch markers are cleared on load
+- Debug: Foul Campus Ground; round-trip asserts for the new fields
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/undercroft.json                |   4 +-
+ Data/Units/building_foundation.json           |  20 +
+ Scripts/Data/FeatureBuilders/Charters.cs      |  12 +
+ .../Data/FeatureBuilders/ItemDefinition.cs    |   5 +
+ Scripts/Data/FeatureBuilders/ScribesTower.cs  |  32 +-
+ .../Data/FeatureBuilders/WorkshopEnchants.cs  |  46 +-
+ Scripts/Data/SaveState/CampusMapSaveData.cs   |  34 ++
+ Scripts/Data/SaveState/GuildSaveData.cs       |   9 +-
+ Scripts/Systems/Campus/CampusBlight.cs        | 517 ++++++++++++++++++
+ Scripts/Systems/Campus/CampusGridManager.cs   |  20 +-
+ Scripts/Systems/Campus/CampusGuildPanel.cs    |  24 +
+ Scripts/Systems/Campus/CampusScreen.cs        |  74 +++
+ Scripts/Systems/Campus/CampusScribePanel.cs   |  20 +-
+ Scripts/Systems/Campus/CampusSeatPanel.cs     |  16 +-
+ Scripts/Systems/Campus/CampusWorkshopPanel.cs |  17 +-
+ Scripts/Systems/Campus/CharterSection.cs      |   1 +
+ .../Systems/Combat/Attunement/SchoolSeats.cs  |  26 +-
+ .../Combat/Core/CombatManager.EnemyIntents.cs |  14 +-
+ .../Combat/Core/CombatManager.Items.cs        |  10 +
+ .../Combat/Core/CombatManager.SiegeBlight.cs  | 344 ++++++++++++
+ .../Combat/Core/CombatManager.Triggers.cs     |   1 +
+ Scripts/Systems/Combat/Core/CombatManager.cs  |   4 +
+ .../Terrain/HexGridManager.CityStamps.cs      |   7 +
+ .../Combat/Terrain/HexGridManager.Recipes.cs  |   3 +
+ Scripts/Systems/Strategic/FieldMarch.cs       |   4 +-
+ .../Strategic/HomeBuildingPanelHost.cs        |  36 +-
+ .../Strategic/StrategicView.Dispatch.cs       |   4 +
+ .../Strategic/StrategicView.PortalStrike.cs   |  58 +-
+ Scripts/Systems/Strategic/StrategicView.cs    |  21 +-
+ Scripts/Systems/Strategic/TeleportSigil.cs    | 161 +++++-
+ .../Systems/Verification/CharterSaveAssert.cs |  60 +-
+ Scripts/UI/UITheme.cs                         |   8 +
+ 32 files changed, 1572 insertions(+), 40 deletions(-)
+ create mode 100644 Data/Units/building_foundation.json
+ create mode 100644 Scripts/Systems/Campus/CampusBlight.cs
+ create mode 100644 Scripts/Systems/Combat/Core/CombatManager.SiegeBlight.cs
+
+diff --git a/Data/Buildings/undercroft.json b/Data/Buildings/undercroft.json
+index e10d06d..e9a0ef7 100644
+--- a/Data/Buildings/undercroft.json
++++ b/Data/Buildings/undercroft.json
+@@ -9,14 +9,14 @@
+         {
+             "tier": 1,
+             "displayName": "The Dead Drop",
+-            "description": "A first quiet room and a handful of trusted couriers. Up to 2 informants may run at once and 1 Veiled Concord contract may be in play.",
++            "description": "A first quiet room and a handful of trusted couriers. Up to 2 informants may run at once and 1 Veiled Concord contract may be in play. Its couriers bring early word when a kingdom is halfway to the Teleport Sigil's pattern.",
+             "goldCost": 150,
+             "requiredBuildings": []
+         },
+         {
+             "tier": 2,
+             "displayName": "The Handler's Table",
+-            "description": "A standing corps of handlers works the networks so companions need not. Up to 4 informants and 2 contracts at once, and the Undercroft itself runs your assets, so unhandled informants take less heat from counter-intelligence.",
++            "description": "A standing corps of handlers works the networks so companions need not. Up to 4 informants and 2 contracts at once, and the Undercroft itself runs your assets, so unhandled informants take less heat from counter-intelligence. The handlers feed false patterns to anyone studying the Teleport Sigil: they learn it one step slower each moon, and a merely Unfriendly kingdom makes no progress at all.",
+             "goldCost": 300,
+             "requiredBuildings": []
+         },
+diff --git a/Data/Units/building_foundation.json b/Data/Units/building_foundation.json
+new file mode 100644
+index 0000000..7653466
+--- /dev/null
++++ b/Data/Units/building_foundation.json
+@@ -0,0 +1,20 @@
++{
++  "id": "building_foundation",
++  "threatLabel": "Foundation",
++  "role": "summon",
++  "intelDescription": "The warded footing of a guild building, where its enchantments meet the ground. It does not fight back. Raze it and the building above is broken and the ground beneath it fouled.",
++  "maxHealth": 18,
++  "baseSpeed": 0,
++  "armor": 2,
++  "attackRange": 0,
++  "attackDamage": 0,
++  "preferredDistance": 0,
++  "behaviorKey": "",
++  "behaviorTags": [
++    "immobile",
++    "structure"
++  ],
++  "colorR": 0.52,
++  "colorG": 0.46,
++  "colorB": 0.40
++}
+diff --git a/Scripts/Data/FeatureBuilders/Charters.cs b/Scripts/Data/FeatureBuilders/Charters.cs
+index 0cf39f7..dc08ef7 100644
+--- a/Scripts/Data/FeatureBuilders/Charters.cs
++++ b/Scripts/Data/FeatureBuilders/Charters.cs
+@@ -67,6 +67,12 @@ public static class Charters
+                 slots += t.CharterSlots;
+             }
+         }
++        // A blighted Grand Hall (campus corruption, §11c) holds one fewer:
++        // the blight sits in a chair at the council table.
++        if (CampusBlight.IsBlighted(save, GrandHallId))
++        {
++            slots = System.Math.Max(0, slots - 1);
++        }
+         return slots;
+     }
+ 
+@@ -144,6 +150,12 @@ public static class Charters
+         {
+             return false;
+         }
++        // Blighted ground (campus corruption, §11): the doctrine goes dark and the
++        // building's blighted form takes over. Cleansing the land relights it.
++        if (CampusBlight.IsBlighted(save, buildingId))
++        {
++            return false;
++        }
+         return CurrentLunation(save) >= c.ActiveFromLunation;
+     }
+ 
+diff --git a/Scripts/Data/FeatureBuilders/ItemDefinition.cs b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+index ae2810d..82919b3 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+@@ -269,6 +269,11 @@ public class ItemInstance
+     public int BoundTopTier = 0;
+     public int BoundBotTier = 0;
+ 
++    /// <summary>Spellglass sealed at a blighted Scribe's Tower (campus corruption,
++    /// §11c): cheaper, any rarity, and it bites its caster when it shatters
++    /// (ScribesTower.CrackedGlassBite). Additive save field; older glass is whole.</summary>
++    public bool Cracked = false;
++
+     [System.Text.Json.Serialization.JsonIgnore]
+     public bool IsBlighted => !string.IsNullOrEmpty(DrawbackKey);
+ 
+diff --git a/Scripts/Data/FeatureBuilders/ScribesTower.cs b/Scripts/Data/FeatureBuilders/ScribesTower.cs
+index f56fb95..8290bc5 100644
+--- a/Scripts/Data/FeatureBuilders/ScribesTower.cs
++++ b/Scripts/Data/FeatureBuilders/ScribesTower.cs
+@@ -74,6 +74,12 @@ public static class ScribesTower
+     public static bool CanSealRarity(GuildSaveData save, CardRarity rarity)
+     {
+         int tier = Tier(save);
++        // Blighted (campus corruption, §11c): the Tower seals any rarity below
++        // Legendary, in cracked glass (see Cracked below).
++        if (tier >= 1 && IsCracking(save))
++        {
++            return rarity != CardRarity.Legendary;
++        }
+         return rarity switch
+         {
+             CardRarity.Common => tier >= 1,
+@@ -83,6 +89,16 @@ public static class ScribesTower
+         };
+     }
+ 
++    /// <summary>Damage cracked glass deals its caster when it shatters.</summary>
++    public const int CrackedGlassBite = 3;
++
++    /// <summary>The Tower stands on blighted ground: its glass comes out cracked.</summary>
++    public static bool IsCracking(GuildSaveData save) => CampusBlight.IsBlighted(save, Id);
++
++    /// <summary>What sealing costs this guild now: half, in cracked glass.</summary>
++    public static int SealCost(GuildSaveData save, CardRarity rarity)
++        => IsCracking(save) ? SealGold(rarity) / 2 : SealGold(rarity);
++
+     /// <summary>Gold to seal one glass, by the card's rarity.</summary>
+     public static int SealGold(CardRarity rarity) => rarity switch
+     {
+@@ -189,9 +205,9 @@ public static class ScribesTower
+                 _ => "This card cannot be sealed.",
+             };
+         }
+-        if (save.Gold < SealGold(bp.Rarity))
++        if (save.Gold < SealCost(save, bp.Rarity))
+         {
+-            return $"Sealing costs {SealGold(bp.Rarity)} gold.";
++            return $"Sealing costs {SealCost(save, bp.Rarity)} gold.";
+         }
+         return null;
+     }
+@@ -211,10 +227,11 @@ public static class ScribesTower
+             return null;
+         }
+ 
+-        int cost = SealGold(bp.Rarity);
++        int cost = SealCost(save, bp.Rarity);
+         save.Gold -= cost;
+         var inst = ItemInstance.FromDefinition(glassDef);
+         inst.BoundCardId = bp.Id;
++        inst.Cracked = IsCracking(save);
+         var half = bp.Prebuilt.TopHalf;
+         if (GlasswrightActive(save))
+         {
+@@ -223,11 +240,14 @@ public static class ScribesTower
+             inst.BoundBotTier = bot;
+             half = SealPreview(save, bp) ?? half;
+         }
+-        inst.Name = $"Spellglass: {half.Name}";
++        inst.Name = inst.Cracked ? $"Cracked Spellglass: {half.Name}" : $"Spellglass: {half.Name}";
+         save.Armory.AddItem(inst);
+         SaveManager.MarkDirty();
+-        GD.Print($"[ScribesTower] Sealed '{bp.Id}' ({inst.BoundTopTier}/{inst.BoundBotTier}) for {cost}g.");
+-        return $"{half.Name} is sealed in glass for {cost} gold. It waits in the Armory.";
++        GD.Print($"[ScribesTower] Sealed '{bp.Id}' ({inst.BoundTopTier}/{inst.BoundBotTier}) for {cost}g"
++                 + (inst.Cracked ? ", cracked." : "."));
++        return inst.Cracked
++            ? $"{half.Name} is sealed in cracked glass for {cost} gold. It bites whoever breaks it ({CrackedGlassBite} damage)."
++            : $"{half.Name} is sealed in glass for {cost} gold. It waits in the Armory.";
+     }
+ 
+     // ── Overworld scrolls ────────────────────────────────────────────────
+diff --git a/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs b/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs
+index 4f85802..509bdc9 100644
+--- a/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs
++++ b/Scripts/Data/FeatureBuilders/WorkshopEnchants.cs
+@@ -147,20 +147,58 @@ public static class WorkshopEnchants
+     {
+         var save = SaveManager.ActiveSave;
+         if (save == null || item == null || item.EnchantSealed) return null;
++        if (IsOverrun(save)) return null;   // campus corruption: it has stopped working
+ 
+         var e = Catalog.FirstOrDefault(x => x.Id == enchantId);
+         if (e == null || e.MinTier > workshopTier) return null;
+         if (e.AllowedSlot != "Any" && e.AllowedSlot != item.Slot) return null;
+-        if (save.Gold < e.GoldCost) return null;
++        int cost = EnchantCost(save, e);
++        if (save.Gold < cost) return null;
+ 
+-        save.Gold -= e.GoldCost;
++        save.Gold -= cost;
+         item.EnchantKey = e.Key;
+         item.EnchantValue = e.Value;
+         item.EnchantParam = e.Param;
+         item.EnchantTrigger = e.Trigger;
++
++        // A blighted Workshop (campus corruption, §11c) writes cheap, and the
++        // blight writes with it: the item takes a drawback and its slot seals,
++        // exactly as a blighted drop does, but with no innate bump to keep.
++        string tail = "";
++        if (IsTainting(save) && !item.IsBlighted)
++        {
++            var (key, value, text) = Drawbacks[DrawbackIndexFor(item)];
++            item.DrawbackKey = key;
++            item.DrawbackValue = value;
++            item.EnchantSealed = true;
++            if (!item.Name.StartsWith("Blighted "))
++                item.Name = $"Blighted {item.Name}";
++            tail = $" The blight writes with it: {text}. The slot is sealed.";
++        }
+         SaveManager.Save();
+-        GD.Print($"[Workshop] {item.Name} enchanted: {e.Name} ({e.GoldCost}g).");
+-        return $"{e.Name} written onto {item.Name}.";
++        GD.Print($"[Workshop] {item.Name} enchanted: {e.Name} ({cost}g).{tail}");
++        return $"{e.Name} written onto {item.Name}.{tail}";
++    }
++
++    /// <summary>The Workshop stands on blighted ground (campus corruption, §11c).</summary>
++    public static bool IsTainting(GuildSaveData save)
++        => CampusBlight.IsBlighted(save, BuildingId) && !IsOverrun(save);
++
++    /// <summary>The Workshop stands on overrun ground and has stopped working.</summary>
++    public static bool IsOverrun(GuildSaveData save) => CampusBlight.Level(save, BuildingId) >= CampusBlight.MaxLevel;
++
++    /// <summary>What an enchant costs this guild now: half on blighted ground.</summary>
++    public static int EnchantCost(GuildSaveData save, EnchantDef e)
++        => e == null ? 0 : IsTainting(save) ? e.GoldCost / 2 : e.GoldCost;
++
++    /// <summary>Which authored drawback the blight writes onto this item. Keyed on
++    /// the instance id, so it is fixed per item and a reload cannot reroll it.</summary>
++    private static int DrawbackIndexFor(ItemInstance item)
++    {
++        int h = 17;
++        foreach (char ch in item.InstanceId ?? "")
++            h = unchecked(h * 31 + ch);
++        return (int)((uint)h % (uint)Drawbacks.Length);
+     }
+ 
+     /// <summary>R23, as the Unbinding Floor doctrine (2026-09-29): strip the
+diff --git a/Scripts/Data/SaveState/CampusMapSaveData.cs b/Scripts/Data/SaveState/CampusMapSaveData.cs
+index 43cef77..bb8ed59 100644
+--- a/Scripts/Data/SaveState/CampusMapSaveData.cs
++++ b/Scripts/Data/SaveState/CampusMapSaveData.cs
+@@ -39,6 +39,22 @@ public class CampusTileSaveData
+     /// <summary>False for tiles that can never hold a building: paths, the ley line
+     /// plaza, decorative water. True (default) covers most of the campus.</summary>
+     public bool IsBuildable = true;
++
++    // ── Campus corruption (campus_building_upgrades_design_v1 §11) ─────────
++    // Additive save fields: tiles saved before corruption read as clean ground.
++
++    /// <summary>0 clean, 1 tainted, 2 blighted, 3 overrun. Raised by enemy sieges
++    /// (a razed foundation, a finished blight ritual, a lost portal strike) and
++    /// by blight creeping from a neighbour; lowered by Cleanse Land. A building's
++    /// blight level is the worst tile under its footprint (CampusBlight).</summary>
++    public int Corruption = 0;
++
++    /// <summary>The building whose destruction left this tile as Rubble, or "".
++    /// Clearing that building's rubble restores <see cref="PriorGround"/>.</summary>
++    public string RubbleOf = "";
++
++    /// <summary>The ground this tile had before it became Rubble ("" = not rubble).</summary>
++    public string PriorGround = "";
+ }
+ 
+ /// <summary>One campus district, a large hex (one world/city hex when the campus is
+@@ -165,6 +181,13 @@ public class CampusMapSaveData
+     /// across rebuilds.</summary>
+     public void RebuildTilesFromDistricts()
+     {
++        // What happened to the ground survives a relayout: corruption and
++        // rubble are carried over by coordinate (campus corruption, §11).
++        var scarred = new Dictionary<(int, int), CampusTileSaveData>();
++        foreach (var t in Tiles)
++            if (t != null && (t.Corruption > 0 || !string.IsNullOrEmpty(t.RubbleOf) || t.Ground == "Rubble"))
++                scarred[(t.Q, t.R)] = t;
++
+         Tiles.Clear();
+         var unlocked = new HashSet<(int, int)>();
+         foreach (var d in Districts)
+@@ -206,6 +229,17 @@ public class CampusMapSaveData
+                 Tiles.Add(new CampusTileSaveData { Q = q, R = r, Ground = "Lawn", IsBuildable = true });
+             }
+         }
++
++        foreach (var t in Tiles)
++        {
++            if (!scarred.TryGetValue((t.Q, t.R), out var old))
++                continue;
++            t.Corruption = old.Corruption;
++            t.RubbleOf = old.RubbleOf;
++            t.PriorGround = old.PriorGround;
++            if (old.Ground == "Rubble")
++                t.Ground = "Rubble";
++        }
+     }
+ 
+     /// <summary>Unlock a district (adding it to the lattice if not listed) and rebuild the
+diff --git a/Scripts/Data/SaveState/GuildSaveData.cs b/Scripts/Data/SaveState/GuildSaveData.cs
+index c1d5db3..38ba0aa 100644
+--- a/Scripts/Data/SaveState/GuildSaveData.cs
++++ b/Scripts/Data/SaveState/GuildSaveData.cs
+@@ -420,7 +420,14 @@ public class BuildingSaveData
+     /// siting it grants nothing, so this is the single flag anything gating building
+     /// EFFECTS (BuildingEffectApplier, etc.) should check, rather than Tier alone.
+     /// Tier > 0 && !IsPlaced means "owned, not yet functional."</summary>
+-    public bool IsFunctional => Tier > 0 && IsPlaced;
++    public bool IsFunctional => Tier > 0 && IsPlaced && BlightLevel < CampusBlight.MaxLevel;
++
++    /// <summary>The worst corruption under this building's footprint, cached by
++    /// CampusBlight.Recompute (campus_building_upgrades_design_v1 §11): 0 clean,
++    /// 1 tainted, 2 blighted (its doctrine goes dark and its blighted form takes
++    /// over), 3 overrun (it stops working: <see cref="IsFunctional"/> is false).
++    /// Additive save field; older saves read 0.</summary>
++    public int BlightLevel = 0;
+ 
+     /// <summary>0-5, one of the six hex rotation steps applied to the building
+     /// template's Footprint before anchoring at Q/R. Not yet exposed in the placement
+diff --git a/Scripts/Systems/Campus/CampusBlight.cs b/Scripts/Systems/Campus/CampusBlight.cs
+new file mode 100644
+index 0000000..525205c
+--- /dev/null
++++ b/Scripts/Systems/Campus/CampusBlight.cs
+@@ -0,0 +1,517 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// CampusBlight.cs
++//
++// Purpose:        Corrupted campus land (campus_building_upgrades_design_v1
++//                 §11). An enemy siege does not only break buildings: it
++//                 poisons the ground they stand on. Corruption lives on
++//                 the campus TILES (CampusTileSaveData.Corruption, 0-3),
++//                 so it outlasts the building above it: tear a blighted
++//                 hall down and rebuild it on the same spot, and it is
++//                 still blighted. A building's level is the worst tile
++//                 under its footprint, cached on BuildingSaveData.BlightLevel.
++//
++//                   1 Tainted   the ground draws off splinters each moon
++//                   2 Blighted  the chartered doctrine goes dark, and the
++//                               building's blighted form takes over (a
++//                               different way of working, not a penalty
++//                               table: see the design doc §11c)
++//                   3 Overrun   the building stops working (IsFunctional)
++//
++//                 Blighted ground creeps: every moon a blighted or overrun
++//                 patch taints one clean neighbouring tile. Cleanse Land
++//                 lowers a footprint one step for materials and splinters.
++//                 Destroyed buildings leave Rubble on their footprint, which
++//                 is cleared from the destroyed building's card.
++// Layer:          System (campus)
++// Collaborators:  CampusMapSaveData (tiles), BuildingSaveData (BlightLevel,
++//                 Q/R/Rotation), CampusGridManager.GetFootprintHexes,
++//                 BuildingEffectApplier (recompute when a building is
++//                 overrun or recovers), TeleportSigil + StrategicView.
++//                 PortalStrike (the sources), CampusScreen and
++//                 HomeBuildingPanelHost (the Cleanse and Clear buttons).
++// ============================================================
++
++/// <summary>Campus land corruption. Stateless: everything lives on the save.</summary>
++public static class CampusBlight
++{
++    public const int MaxLevel = 3;
++
++    /// <summary>Foundational buildings (the Grand Hall and its kind) are the
++    /// guild's heart: their land can be blighted, never overrun.</summary>
++    public const int FoundationalCap = 2;
++
++    /// <summary>Splinters each tainted-or-worse building draws off per moon.</summary>
++    public const int DrainSplintersPerBuilding = 1;
++
++    /// <summary>Cleanse Land, per step, scaled by the level being lifted.</summary>
++    public const int CleanseMaterialsPerLevel = 20;
++    public const int CleanseSplintersPerLevel = 5;
++
++    /// <summary>Materials to clear one tile of rubble.</summary>
++    public const int RubbleMaterialsPerTile = 8;
++
++    private static readonly (int dq, int dr)[] Dirs =
++        { (1, 0), (-1, 0), (0, 1), (0, -1), (1, -1), (-1, 1) };
++
++    // ── Reads ────────────────────────────────────────────────────────────
++
++    public static string LevelName(int level) => level switch
++    {
++        1 => "Tainted",
++        2 => "Blighted",
++        >= 3 => "Overrun",
++        _ => "Clean",
++    };
++
++    public static BuildingSaveData Find(GuildSaveData save, string buildingId)
++    {
++        if (save?.Buildings == null)
++        {
++            return null;
++        }
++        foreach (var b in save.Buildings)
++        {
++            if (b != null && b.Id == buildingId)
++            {
++                return b;
++            }
++        }
++        return null;
++    }
++
++    /// <summary>The building's cached blight level (0 when unknown).</summary>
++    public static int Level(GuildSaveData save, string buildingId) => Find(save, buildingId)?.BlightLevel ?? 0;
++
++    /// <summary>Blighted (level 2) or worse: the doctrine is dark and the
++    /// blighted form is in force. An overrun building is not functional at all,
++    /// so its blighted form never fires either (callers check IsFunctional first).</summary>
++    public static bool IsBlighted(GuildSaveData save, string buildingId) => Level(save, buildingId) >= 2;
++
++    private static CampusMapSaveData Map(GuildSaveData save) => save?.Ledger?.CampusMap;
++
++    private static Dictionary<(int, int), CampusTileSaveData> TileIndex(CampusMapSaveData map)
++    {
++        var index = new Dictionary<(int, int), CampusTileSaveData>();
++        if (map?.Tiles == null)
++        {
++            return index;
++        }
++        foreach (var t in map.Tiles)
++        {
++            if (t != null)
++            {
++                index[(t.Q, t.R)] = t;
++            }
++        }
++        return index;
++    }
++
++    /// <summary>The campus tiles under a building's footprint, sited or not (a
++    /// destroyed building keeps its last Q/R/Rotation). Tiles off the grid are skipped.</summary>
++    public static List<CampusTileSaveData> FootprintTiles(GuildSaveData save, BuildingSaveData b)
++    {
++        var list = new List<CampusTileSaveData>();
++        var map = Map(save);
++        if (b == null || map == null)
++        {
++            return list;
++        }
++        // Unsited and not destroyed (bought but never placed, or rebuilt and not yet
++        // re-sited): its Q/R mean nothing. A destroyed building keeps integrity 0
++        // until it is rebuilt, and its Q/R still mark where it stood.
++        if (!b.IsPlaced && b.CurrentIntegrity > 0)
++        {
++            return list;
++        }
++        var index = TileIndex(map);
++        var template = BuildingDatabase.GetTemplate(b.Id);
++        foreach (var hex in CampusGridManager.GetFootprintHexes(template, new Vector2I(b.Q, b.R), b.Rotation))
++        {
++            if (index.TryGetValue((hex.X, hex.Y), out var tile))
++            {
++                list.Add(tile);
++            }
++        }
++        return list;
++    }
++
++    // ── Recompute ────────────────────────────────────────────────────────
++
++    /// <summary>Refresh every building's cached level from the tiles. When any
++    /// building crosses into or out of Overrun, campus effects are recomputed,
++    /// because IsFunctional changed under them.</summary>
++    public static void Recompute(GuildSaveData save)
++    {
++        if (save?.Buildings == null)
++        {
++            return;
++        }
++        bool functionalChanged = false;
++        foreach (var b in save.Buildings)
++        {
++            if (b == null)
++            {
++                continue;
++            }
++            bool wasFunctional = b.IsFunctional;
++            int level = 0;
++            if (b.IsPlaced)
++            {
++                foreach (var t in FootprintTiles(save, b))
++                {
++                    level = Math.Max(level, t.Corruption);
++                }
++            }
++            var template = BuildingDatabase.GetTemplate(b.Id);
++            if (template != null && template.IsFoundational)
++            {
++                level = Math.Min(level, FoundationalCap);
++            }
++            b.BlightLevel = Math.Clamp(level, 0, MaxLevel);
++            if (b.IsFunctional != wasFunctional)
++            {
++                functionalChanged = true;
++            }
++        }
++        if (functionalChanged)
++        {
++            BuildingEffectApplier.ApplyCampusEffects(save);
++        }
++    }
++
++    // ── Corruption sources ───────────────────────────────────────────────
++
++    /// <summary>Corrupt the ground under a building by <paramref name="steps"/>
++    /// (every footprint tile, capped at Overrun). Returns the report line, "" when
++    /// the building has no ground on the campus.</summary>
++    public static string CorruptBuildingLand(GuildSaveData save, string buildingId, int steps)
++    {
++        var b = Find(save, buildingId);
++        if (b == null || steps <= 0)
++        {
++            return "";
++        }
++        var tiles = FootprintTiles(save, b);
++        if (tiles.Count == 0)
++        {
++            return "";
++        }
++        // A standing building reads its cached level; the ground a destroyed one
++        // left reads the tiles themselves (its cached level is 0 once unsited).
++        int before = b.IsPlaced ? b.BlightLevel : WorstOf(tiles);
++        foreach (var t in tiles)
++        {
++            t.Corruption = Math.Min(MaxLevel, t.Corruption + steps);
++        }
++        Recompute(save);
++        SaveManager.MarkDirty();
++        int after = b.IsPlaced ? b.BlightLevel : WorstOf(tiles);
++        if (!b.IsPlaced)
++        {
++            return after > before
++                ? $"The ground where {b.Name} stood is {LevelName(after).ToLowerInvariant()}."
++                : "";
++        }
++        if (after <= before)
++        {
++            return $"The ground under {b.Name} is fouled further, though it can sink no lower.";
++        }
++        return after switch
++        {
++            1 => $"The ground under {b.Name} is tainted.",
++            2 => $"The ground under {b.Name} is blighted. Its doctrine goes dark and it works in the blight's way now.",
++            _ => $"The ground under {b.Name} is overrun. It has stopped working.",
++        };
++    }
++
++    private static int WorstOf(List<CampusTileSaveData> tiles)
++    {
++        int worst = 0;
++        foreach (var t in tiles)
++        {
++            worst = Math.Max(worst, t.Corruption);
++        }
++        return worst;
++    }
++
++    // ── Cleanse Land ─────────────────────────────────────────────────────
++
++    /// <summary>(materials, splinters) to lift this building's land one step.</summary>
++    public static (int materials, int splinters) CleanseCost(BuildingSaveData b)
++    {
++        int level = b?.BlightLevel ?? 0;
++        return (level * CleanseMaterialsPerLevel, level * CleanseSplintersPerLevel);
++    }
++
++    public static string CannotCleanseReason(GuildSaveData save, BuildingSaveData b)
++    {
++        if (save == null || b == null)
++        {
++            return "No save.";
++        }
++        if (b.BlightLevel <= 0)
++        {
++            return "The ground is clean.";
++        }
++        var (mats, splinters) = CleanseCost(b);
++        if (save.BuildMaterials < mats)
++        {
++            return $"Cleansing needs {mats} materials.";
++        }
++        if (save.ArcaneSplinters < splinters)
++        {
++            return $"Cleansing needs {splinters} splinters.";
++        }
++        return null;
++    }
++
++    /// <summary>Lower every footprint tile one step. Returns the report line or null.</summary>
++    public static string TryCleanse(GuildSaveData save, string buildingId)
++    {
++        var b = Find(save, buildingId);
++        if (CannotCleanseReason(save, b) != null)
++        {
++            return null;
++        }
++        var (mats, splinters) = CleanseCost(b);
++        save.BuildMaterials -= mats;
++        save.ArcaneSplinters -= splinters;
++        // A foundational building reads at most Blighted, so ground deeper than that
++        // under it is first brought to the cap: one paid step always shows.
++        var template = BuildingDatabase.GetTemplate(b.Id);
++        int cap = template != null && template.IsFoundational ? FoundationalCap : MaxLevel;
++        foreach (var t in FootprintTiles(save, b))
++        {
++            t.Corruption = Math.Max(0, Math.Min(t.Corruption, cap) - 1);
++        }
++        Recompute(save);
++        SaveManager.Save();
++        GD.Print($"[CampusBlight] {b.Name} cleansed to {LevelName(b.BlightLevel)} ({mats}m, {splinters} splinters).");
++        return b.BlightLevel == 0
++            ? $"The ground under {b.Name} is clean again."
++            : $"The ground under {b.Name} lifts to {LevelName(b.BlightLevel).ToLowerInvariant()}.";
++    }
++
++    // ── Rubble ───────────────────────────────────────────────────────────
++
++    /// <summary>A building was destroyed: its footprint becomes Rubble, unbuildable
++    /// until cleared. Call once, the moment ApplyDamage reports the destruction.</summary>
++    public static void MarkRubble(GuildSaveData save, BuildingSaveData b)
++    {
++        if (b == null)
++        {
++            return;
++        }
++        foreach (var t in FootprintTiles(save, b))
++        {
++            if (t.Ground == "Rubble")
++            {
++                continue;
++            }
++            t.PriorGround = t.Ground;
++            t.Ground = "Rubble";
++            t.RubbleOf = b.Id;
++        }
++        SaveManager.MarkDirty();
++    }
++
++    /// <summary>Rubble tiles a destroyed building left behind.</summary>
++    public static List<CampusTileSaveData> RubbleTiles(GuildSaveData save, string buildingId)
++    {
++        var list = new List<CampusTileSaveData>();
++        var map = Map(save);
++        if (map?.Tiles == null || string.IsNullOrEmpty(buildingId))
++        {
++            return list;
++        }
++        foreach (var t in map.Tiles)
++        {
++            if (t != null && t.Ground == "Rubble" && t.RubbleOf == buildingId)
++            {
++                list.Add(t);
++            }
++        }
++        return list;
++    }
++
++    public static int RubbleCost(GuildSaveData save, string buildingId)
++        => RubbleTiles(save, buildingId).Count * RubbleMaterialsPerTile;
++
++    public static string CannotClearRubbleReason(GuildSaveData save, string buildingId)
++    {
++        int cost = RubbleCost(save, buildingId);
++        if (save == null || cost <= 0)
++        {
++            return "No rubble.";
++        }
++        if (save.BuildMaterials < cost)
++        {
++            return $"Clearing needs {cost} materials.";
++        }
++        return null;
++    }
++
++    /// <summary>Clear a destroyed building's rubble. Corruption stays: rubble is
++    /// broken stone, blight is poisoned ground.</summary>
++    public static bool TryClearRubble(GuildSaveData save, string buildingId)
++    {
++        if (CannotClearRubbleReason(save, buildingId) != null)
++        {
++            return false;
++        }
++        int cost = RubbleCost(save, buildingId);
++        save.BuildMaterials -= cost;
++        foreach (var t in RubbleTiles(save, buildingId))
++        {
++            t.Ground = string.IsNullOrEmpty(t.PriorGround) ? "Lawn" : t.PriorGround;
++            t.PriorGround = "";
++            t.RubbleOf = "";
++        }
++        SaveManager.Save();
++        GD.Print($"[CampusBlight] Rubble of '{buildingId}' cleared for {cost} materials.");
++        return true;
++    }
++
++    // ── The moon ─────────────────────────────────────────────────────────
++
++    /// <summary>Lunation tick: tainted ground drains splinters, and every blighted
++    /// patch taints one clean neighbouring tile (deterministic). Returns report lines.</summary>
++    public static List<string> TickLunation(CycleState cycle, GuildSaveData save)
++    {
++        var lines = new List<string>();
++        var map = Map(save);
++        if (cycle == null || save?.Buildings == null || map?.Tiles == null)
++        {
++            return lines;
++        }
++        Recompute(save);
++        var index = TileIndex(map);
++        int lunation = cycle.Calendar?.CurrentLunation ?? 1;
++
++        // Drain: every standing building on tainted-or-worse ground.
++        int drained = 0;
++        foreach (var b in save.Buildings)
++        {
++            if (b != null && b.Tier > 0 && b.IsPlaced && b.BlightLevel >= 1)
++            {
++                drained += DrainSplintersPerBuilding;
++            }
++        }
++        drained = Math.Min(drained, Math.Max(0, save.ArcaneSplinters));
++        if (drained > 0)
++        {
++            save.ArcaneSplinters -= drained;
++            lines.Add($"The fouled ground under the campus draws off {drained} splinter(s).");
++        }
++
++        // Creep: one clean neighbour per blighted patch. A patch is a building's
++        // footprint, or the rubble it left.
++        var sources = new List<(string id, List<CampusTileSaveData> tiles)>();
++        foreach (var b in save.Buildings)
++        {
++            if (b == null)
++            {
++                continue;
++            }
++            var tiles = b.IsPlaced && b.Tier > 0 ? FootprintTiles(save, b) : RubbleTiles(save, b.Id);
++            int worst = 0;
++            foreach (var t in tiles)
++            {
++                worst = Math.Max(worst, t.Corruption);
++            }
++            if (worst >= 2)
++            {
++                sources.Add((b.Id, tiles));
++            }
++        }
++        sources.Sort((a, c) => string.CompareOrdinal(a.id, c.id));
++
++        var tainted = new List<string>();
++        foreach (var (id, tiles) in sources)
++        {
++            var own = new HashSet<(int, int)>();
++            foreach (var t in tiles)
++            {
++                own.Add((t.Q, t.R));
++            }
++            var candidates = new List<CampusTileSaveData>();
++            var seen = new HashSet<(int, int)>();
++            foreach (var t in tiles)
++            {
++                foreach (var (dq, dr) in Dirs)
++                {
++                    var key = (t.Q + dq, t.R + dr);
++                    if (own.Contains(key) || !seen.Add(key))
++                    {
++                        continue;
++                    }
++                    if (index.TryGetValue(key, out var n) && n.Corruption == 0)
++                    {
++                        candidates.Add(n);
++                    }
++                }
++            }
++            if (candidates.Count == 0)
++            {
++                continue;
++            }
++            candidates.Sort((a, c) => a.Q != c.Q ? a.Q.CompareTo(c.Q) : a.R.CompareTo(c.R));
++            var pick = candidates[RngFor(cycle, id, lunation).Next(candidates.Count)];
++            pick.Corruption = 1;
++            string above = BuildingOn(save, pick);
++            if (!string.IsNullOrEmpty(above))
++            {
++                tainted.Add(above);
++            }
++        }
++        Recompute(save);
++        if (sources.Count > 0)
++        {
++            lines.Add(tainted.Count > 0
++                ? $"The blight creeps across the campus. It reaches the ground under {string.Join(", ", tainted)}."
++                : "The blight creeps a little further across the campus grounds.");
++        }
++        if (drained > 0 || sources.Count > 0)
++        {
++            SaveManager.MarkDirty();
++        }
++        return lines;
++    }
++
++    /// <summary>The name of the standing building over this tile, or "".</summary>
++    private static string BuildingOn(GuildSaveData save, CampusTileSaveData tile)
++    {
++        foreach (var b in save.Buildings)
++        {
++            if (b == null || !b.IsPlaced || b.Tier <= 0)
++            {
++                continue;
++            }
++            foreach (var t in FootprintTiles(save, b))
++            {
++                if (ReferenceEquals(t, tile))
++                {
++                    return b.Name;
++                }
++            }
++        }
++        return "";
++    }
++
++    private static Random RngFor(CycleState cycle, string salt, int lunation)
++    {
++        unchecked
++        {
++            int seed = (cycle.WorldSeed * 397) ^ (lunation * 7919);
++            foreach (char ch in salt ?? "")
++            {
++                seed = (seed * 31) ^ ch;
++            }
++            return new Random(seed);
++        }
++    }
++}
+diff --git a/Scripts/Systems/Campus/CampusGridManager.cs b/Scripts/Systems/Campus/CampusGridManager.cs
+index 97a0889..53e2a44 100644
+--- a/Scripts/Systems/Campus/CampusGridManager.cs
++++ b/Scripts/Systems/Campus/CampusGridManager.cs
+@@ -135,6 +135,12 @@ public partial class CampusGridManager : HexGridManager
+ 
+             ApplyVisualToTile(tileData); // inherited PUBLIC method, combat's real terrain palette
+ 
++            // Corrupted ground (campus_building_upgrades_design_v1 §11) reads as
++            // stained: the deeper the blight, the stronger the stain.
++            _corruptionAt[coord] = tileSave.Corruption;
++            if (tileSave.Corruption > 0 && tileNode != null)
++                tileNode.SetBaseColor(BlightStain(tileNode.BaseColor, tileSave.Corruption));
++
+             // Rubble is never buildable regardless of the saved flag; clearing it is
+             // a separate action, not a placement-time override (same rule as before).
+             _buildableMask[coord] = tileSave.Ground == "Rubble" ? false : tileSave.IsBuildable;
+@@ -307,6 +313,7 @@ public partial class CampusGridManager : HexGridManager
+         Tiles.Clear();
+         _buildableMask.Clear();
+         _buildingAtHex.Clear();
++        _corruptionAt.Clear();
+         _landmarkAtHex.Clear();
+         _landmarkStateAtHex.Clear();
+     }
+@@ -356,6 +363,14 @@ public partial class CampusGridManager : HexGridManager
+     /// to route it through the inherited visual method.</summary>
+     private static readonly Color BuildingTint = new Color(0.55f, 0.4f, 0.6f);
+ 
++    /// <summary>CampusTileSaveData.Corruption per hex, captured at load so a
++    /// building stamped later still shows the ground it stands on.</summary>
++    private readonly Dictionary<Vector2I, int> _corruptionAt = new();
++
++    /// <summary>A colour stained toward the blight tint by corruption level (1-3).</summary>
++    private static Color BlightStain(Color baseColor, int level)
++        => baseColor.Lerp(UITheme.CampusBlightTint, Mathf.Clamp(level, 0, 3) * 0.22f);
++
+     private void StampBuilding(string buildingId, Vector2I anchor, List<Vector2I> footprintHexes,
+         int tier = 1, int rotation = 0)
+     {
+@@ -369,7 +384,8 @@ public partial class CampusGridManager : HexGridManager
+             tile.ObstacleKind = "building:" + buildingId;
+ 
+             _buildingAtHex[coord] = buildingId;
+-            tile.TileView?.SetBaseColor(BuildingTint);
++            int blight = _corruptionAt.GetValueOrDefault(coord, 0);
++            tile.TileView?.SetBaseColor(blight > 0 ? BlightStain(BuildingTint, blight) : BuildingTint);
+         }
+ 
+         // ── Name label ────────────────────────────────────────────────────
+@@ -446,6 +462,8 @@ public partial class CampusGridManager : HexGridManager
+         target.R = anchor.Y;
+         target.Rotation = rotation;
+         target.IsPlaced = true;
++        // The ground it now stands on decides its blight (§11).
++        CampusBlight.Recompute(SaveManager.ActiveSave);
+ 
+         StampBuilding(buildingId, anchor, GetFootprintHexes(template, anchor, rotation),
+                       target.Tier, rotation);
+diff --git a/Scripts/Systems/Campus/CampusGuildPanel.cs b/Scripts/Systems/Campus/CampusGuildPanel.cs
+index 921e0c0..e646c81 100644
+--- a/Scripts/Systems/Campus/CampusGuildPanel.cs
++++ b/Scripts/Systems/Campus/CampusGuildPanel.cs
+@@ -775,6 +775,30 @@ public sealed class CampusGuildPanel : CampusPanel
+                 break;
+             }
+         });
++        Act(strategic, "Foul Campus Ground", () =>
++        {
++            // Campus corruption (§11): one step onto the sited, non-foundational
++            // building first in id order that is not yet overrun. Press repeatedly
++            // to walk it through Tainted, Blighted and Overrun.
++            var save = Ctx.Save;
++            if (save?.Buildings == null)
++                return;
++            var ids = new System.Collections.Generic.List<string>();
++            foreach (var b in save.Buildings)
++            {
++                var t = BuildingDatabase.GetTemplate(b.Id);
++                if (b.Tier > 0 && b.IsPlaced && b.BlightLevel < CampusBlight.MaxLevel && t != null && !t.IsFoundational)
++                    ids.Add(b.Id);
++            }
++            if (ids.Count == 0)
++            {
++                GD.PrintErr("[Debug] No sited building left to foul.");
++                return;
++            }
++            ids.Sort(string.CompareOrdinal);
++            GD.Print("[Debug] " + CampusBlight.CorruptBuildingLand(save, ids[0], 1));
++            SaveManager.SaveIfDirty();
++        });
+         Act(strategic, "Assert Field Save", () => FieldExpeditionSaveAssert.AssertAll());
+         Act(strategic, "Dump Echoes", () => CouncilDebug.DumpEchoes());
+         Act(strategic, "Dump Regard", () => CouncilDebug.DumpRegard());
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index d0b4b4a..e674486 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -921,6 +921,7 @@ public partial class CampusScreen : Control
+                     var charter = Charters.EntryFor(save, buildingSave.Id);
+                     var active = charter != null ? Charters.Doctrine(buildingSave.Id, charter.DoctrineId) : null;
+                     state = active == null ? "  No doctrine chartered; charter one at the Grand Hall."
++                          : CampusBlight.IsBlighted(save, buildingSave.Id) ? $"  {active.Name} is dark on blighted ground."
+                           : Charters.IsRefitting(save, buildingSave.Id) ? $"  {active.Name} holds from the next moon."
+                           : $"  In force: {active.Name}.";
+                 }
+@@ -962,6 +963,9 @@ public partial class CampusScreen : Control
+                 cardLayout.AddChild(repairRow);
+             }
+ 
++            // Corrupted ground and rubble (campus corruption, CampusBlight).
++            AddLandRows(cardLayout, save, buildingSave);
++
+             // Built but not yet sited on the map, so the map's hex slots are
+             // otherwise empty for this building. Placement is separate from
+             // tier progression (a building can be upgraded whether or not
+@@ -1122,6 +1126,76 @@ public partial class CampusScreen : Control
+     // Actions
+     // ═══════════════════════════════════════════════════════════════════════
+ 
++    /// <summary>The building card's land rows (campus_building_upgrades_design_v1 §11):
++    /// the blight under a standing building with its Cleanse button, and the
++    /// rubble a destroyed one left with its Clear button.</summary>
++    private void AddLandRows(VBoxContainer cardLayout, GuildSaveData save, BuildingSaveData buildingSave)
++    {
++        if (buildingSave.Tier > 0 && buildingSave.IsPlaced && buildingSave.BlightLevel > 0)
++        {
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 8);
++            string effect = buildingSave.BlightLevel switch
++            {
++                1 => "Tainted ground: it draws off a splinter each moon.",
++                2 => "Blighted ground: its doctrine is dark and it works in the blight's way. It spreads.",
++                _ => "Overrun: it has stopped working. It spreads.",
++            };
++            var lbl = new Label
++            {
++                Text = effect,
++                SizeFlagsHorizontal = SizeFlags.ExpandFill,
++                AutowrapMode = TextServer.AutowrapMode.WordSmart,
++            };
++            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
++            lbl.AddThemeColorOverride("font_color", UITheme.CampusBlightText);
++            row.AddChild(lbl);
++            var (mats, splinters) = CampusBlight.CleanseCost(buildingSave);
++            string why = CampusBlight.CannotCleanseReason(save, buildingSave);
++            var btn = new Button
++            {
++                Text = $"Cleanse ({mats}m, {splinters}s)",
++                Disabled = why != null,
++                TooltipText = why ?? "Lift the ground under it one step.",
++            };
++            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
++            string id = buildingSave.Id;
++            btn.Pressed += () => { if (CampusBlight.TryCleanse(SaveManager.ActiveSave, id) != null) RefreshAll(); };
++            row.AddChild(btn);
++            cardLayout.AddChild(row);
++        }
++
++        int rubble = CampusBlight.RubbleCost(save, buildingSave.Id);
++        if (rubble > 0)
++        {
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 8);
++            var lbl = new Label
++            {
++                Text = buildingSave.Tier == 0
++                    ? "Destroyed. Its footprint is rubble and cannot be built on until cleared."
++                    : "Where it stood before it was destroyed is still rubble, unbuildable until cleared.",
++                SizeFlagsHorizontal = SizeFlags.ExpandFill,
++                AutowrapMode = TextServer.AutowrapMode.WordSmart,
++            };
++            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildTinyFontSize);
++            lbl.AddThemeColorOverride("font_color", UITheme.Danger);
++            row.AddChild(lbl);
++            string why = CampusBlight.CannotClearRubbleReason(save, buildingSave.Id);
++            var btn = new Button
++            {
++                Text = $"Clear rubble ({rubble}m)",
++                Disabled = why != null,
++                TooltipText = why ?? "",
++            };
++            btn.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
++            string id = buildingSave.Id;
++            btn.Pressed += () => { if (CampusBlight.TryClearRubble(SaveManager.ActiveSave, id)) RefreshAll(); };
++            row.AddChild(btn);
++            cardLayout.AddChild(row);
++        }
++    }
++
+     private bool TryBuildOrUpgrade(string buildingId)
+     {
+         // Purchase core extracted to CampusConstruction (2026-08-13) so the
+diff --git a/Scripts/Systems/Campus/CampusScribePanel.cs b/Scripts/Systems/Campus/CampusScribePanel.cs
+index accdb5d..07552bb 100644
+--- a/Scripts/Systems/Campus/CampusScribePanel.cs
++++ b/Scripts/Systems/Campus/CampusScribePanel.cs
+@@ -70,6 +70,13 @@ public sealed class CampusScribePanel : CampusPanel
+         }
+ 
+         int tier = ScribesTower.Tier(save);
++        if (tier < 1 && CampusBlight.Level(save, ScribesTower.Id) >= CampusBlight.MaxLevel)
++        {
++            _container.AddChild(MakeStubLabel(
++                "The Scribe's Tower stands on overrun ground and has stopped working. Cleanse the land " +
++                "(on its campus card) to bring it back."));
++            return;
++        }
+         if (tier < 1)
+         {
+             _container.AddChild(MakeStubLabel(
+@@ -168,6 +175,14 @@ public sealed class CampusScribePanel : CampusPanel
+                 ? " Glasswright: the glass keeps the card's upgrades as your best copy has them."
+                 : ""),
+             UITheme.TextDim);
++        if (ScribesTower.IsCracking(save))
++        {
++            AddLine(_container,
++                "The Tower stands on blighted ground. Its glass comes out cracked: any rarity below " +
++                $"Legendary, at half the gold, but the shards cut the caster for {ScribesTower.CrackedGlassBite} " +
++                "when it breaks. Cleanse the land to seal whole glass again.",
++                UITheme.CampusBlightText);
++        }
+ 
+         var candidates = ScribesTower.SealCandidates(save);
+         if (candidates.Count == 0)
+@@ -180,13 +195,14 @@ public sealed class CampusScribePanel : CampusPanel
+         {
+             // Rares only appear once the Glasswright could seal them; listing
+             // every Rare as a greyed row would bury the ones you can make.
+-            if (bp.Rarity == CardRarity.Rare && !ScribesTower.GlasswrightActive(save))
++            if (bp.Rarity == CardRarity.Rare && !ScribesTower.GlasswrightActive(save)
++                && !ScribesTower.IsCracking(save))
+             {
+                 continue;
+             }
+ 
+             var half = ScribesTower.SealPreview(save, bp) ?? bp.Prebuilt.TopHalf;
+-            int cost = ScribesTower.SealGold(bp.Rarity);
++            int cost = ScribesTower.SealCost(save, bp.Rarity);
+             int held = CountHeldGlass(save, bp.Id);
+             string why = ScribesTower.CannotSealReason(save, bp);
+ 
+diff --git a/Scripts/Systems/Campus/CampusSeatPanel.cs b/Scripts/Systems/Campus/CampusSeatPanel.cs
+index 586ebc1..bdb0f9d 100644
+--- a/Scripts/Systems/Campus/CampusSeatPanel.cs
++++ b/Scripts/Systems/Campus/CampusSeatPanel.cs
+@@ -143,6 +143,8 @@ public sealed class CampusSeatPanel : CampusPanel
+             var active = entry != null ? Charters.Doctrine(template.Id, entry.DoctrineId) : null;
+             AddLine(col, active == null
+                     ? "No doctrine chartered. Choose one in the Grand Hall's charters."
++                    : CampusBlight.IsBlighted(save, template.Id)
++                        ? $"{active.Name} is dark: the ground under the seat is blighted."
+                     : Charters.IsRefitting(save, template.Id)
+                         ? $"{active.Name} holds from the next moon."
+                         : $"In force: {active.Name}.",
+@@ -152,7 +154,19 @@ public sealed class CampusSeatPanel : CampusPanel
+         // The seat's own controls.
+         if (template.Id == SchoolSeats.CrucibleId && tier >= 1)
+         {
+-            col.AddChild(BuildFrontPicker(save));
++            if (SchoolSeats.IsWildStorm(save))
++            {
++                // Blighted ground (§11c): the storm will not be steered.
++                AddLine(col,
++                    $"The Crucible stands on blighted ground and the storm has slipped its leash. This moon's " +
++                    $"front is {SchoolSeats.WildFront(save)}, and every Elementalist opens a fight with " +
++                    $"{SchoolSeats.BlightedFrontCharges} of it. Its doctrine is dark. Cleanse the land to steer it again.",
++                    UITheme.CampusBlightText);
++            }
++            else
++            {
++                col.AddChild(BuildFrontPicker(save));
++            }
+         }
+         return card;
+     }
+diff --git a/Scripts/Systems/Campus/CampusWorkshopPanel.cs b/Scripts/Systems/Campus/CampusWorkshopPanel.cs
+index d443cd3..3336f2a 100644
+--- a/Scripts/Systems/Campus/CampusWorkshopPanel.cs
++++ b/Scripts/Systems/Campus/CampusWorkshopPanel.cs
+@@ -70,6 +70,13 @@ public class CampusWorkshopPanel : CampusPanel
+                 "The Enchanter's Workshop is not yet built. Raise it on the campus to begin."));
+             return;
+         }
++        if (WorkshopEnchants.IsOverrun(save))
++        {
++            _container.AddChild(MakeStubLabel(
++                "The Workshop stands on overrun ground and has stopped working. Cleanse the land " +
++                "(on its campus card) to bring it back."));
++            return;
++        }
+ 
+         string doctrine = WorkshopEnchants.CanCleanse(save) ? "full catalog, and the Unbinding Floor (Cleanse)."
+                         : WorkshopEnchants.CanAttune(save) ? "full catalog, and the Attunement Forge (staves)."
+@@ -190,11 +197,15 @@ public class CampusWorkshopPanel : CampusPanel
+ 
+             foreach (var e in verbs)
+             {
++                int cost = WorkshopEnchants.EnchantCost(save, e);
++                bool tainting = WorkshopEnchants.IsTainting(save);
+                 var btn = new Button
+                 {
+-                    Text = $"{e.Name} ({e.GoldCost}g)",
+-                    TooltipText = e.Description,
+-                    Disabled = save.Gold < e.GoldCost,
++                    Text = $"{e.Name} ({cost}g)",
++                    TooltipText = e.Description + (tainting
++                        ? " Blighted Workshop: half price, but the item takes a drawback and its slot seals."
++                        : ""),
++                    Disabled = save.Gold < cost,
+                 };
+                 btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+                 UITheme.ApplyButtonStyle(btn, isPrimary: false);
+diff --git a/Scripts/Systems/Campus/CharterSection.cs b/Scripts/Systems/Campus/CharterSection.cs
+index b270d6c..0a6ddb1 100644
+--- a/Scripts/Systems/Campus/CharterSection.cs
++++ b/Scripts/Systems/Campus/CharterSection.cs
+@@ -89,6 +89,7 @@ public static class CharterSection
+ 
+         var entry = Charters.EntryFor(save, template.Id);
+         string state = entry == null ? "no charter"
++                     : CampusBlight.IsBlighted(save, template.Id) ? "chartered, but dark on blighted ground"
+                      : Charters.IsRefitting(save, template.Id) ? "refitting, holds from the next moon"
+                      : "chartered";
+         if (Charters.IsFreeSeat(save, template.Id))
+diff --git a/Scripts/Systems/Combat/Attunement/SchoolSeats.cs b/Scripts/Systems/Combat/Attunement/SchoolSeats.cs
+index 2cba121..c8d5ca0 100644
+--- a/Scripts/Systems/Combat/Attunement/SchoolSeats.cs
++++ b/Scripts/Systems/Combat/Attunement/SchoolSeats.cs
+@@ -73,6 +73,24 @@ public static class SchoolSeats
+         return Enum.TryParse<ElementTag>(f, true, out var e) ? e : (ElementTag?)null;
+     }
+ 
++    /// <summary>A blighted Crucible (campus corruption, §11c) no longer takes
++    /// orders: the storm picks its own front each moon, but hits twice as hard.</summary>
++    public const int BlightedFrontCharges = 2;
++
++    private static readonly ElementTag[] FrontElements =
++        { ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth };
++
++    public static bool IsWildStorm(GuildSaveData save) => CampusBlight.IsBlighted(save, CrucibleId);
++
++    /// <summary>This moon's wild front: seeded by the world and the moon, so it
++    /// holds for the whole moon and a reload cannot reroll it.</summary>
++    public static ElementTag WildFront(GuildSaveData save)
++    {
++        int lunation = save?.Cycle?.Calendar?.CurrentLunation ?? 1;
++        int seed = unchecked((save?.Cycle?.WorldSeed ?? 0) * 397 ^ lunation * 7919);
++        return FrontElements[(int)((uint)seed % (uint)FrontElements.Length)];
++    }
++
+     /// <summary>Set (or clear, with null) the timeline's front.</summary>
+     public static void SetFront(GuildSaveData save, ElementTag? front)
+     {
+@@ -99,6 +117,12 @@ public static class SchoolSeats
+         bool mono = Charters.IsActive(save, CrucibleId, Monoelement);
+         bool confluence = Charters.IsActive(save, CrucibleId, Confluence);
+         var front = Front(save);
++        int frontCharges = 1;
++        if (IsWildStorm(save))
++        {
++            front = WildFront(save);
++            frontCharges = BlightedFrontCharges;
++        }
+ 
+         foreach (var u in units)
+         {
+@@ -112,7 +136,7 @@ public static class SchoolSeats
+ 
+             if (front.HasValue)
+             {
+-                att.GainCharge(front.Value, 1);
++                att.GainCharge(front.Value, frontCharges);
+             }
+ 
+             if (crucible >= 2 && _weatherCarry.TryGetValue(keyFor(u), out var carry))
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index 8d60dc7..47a590d 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -250,6 +250,12 @@ public partial class CombatManager
+             { "hunt_ward",               PlanHuntWard },   // O3: protect-objective pressure
+         };
+ 
++        // Portal strike (campus corruption, SiegeBlight): a unit picked as a blight
++        // ritualist runs the ritual routine whatever its authored key, because the
++        // role is assigned per fight, not per unit type.
++        if (IsRitualist(enemy))
++            return ApplyPlanTags(enemy, PlanBlightRitualist(enemy));
++
+         // U3a: an authored IntentCycle overrides BehaviorKey for THIS activation.
+         // The index counts COMPLETED beats and is advanced in RunEnemyTurn, never
+         // here. PlanAllEnemyIntents runs at the tail of every enemy phase and would
+@@ -1678,13 +1684,17 @@ public partial class CombatManager
+                 await ExecuteRangedIntent(enemy, intent);
+                 break;
+             case IntentKind.Channel:
+-                if (IsWarpChanneler(enemy))
++                if (IsRitualist(enemy))
++                    await ExecuteRitualStart(enemy, intent);
++                else if (IsWarpChanneler(enemy))
+                     await ExecuteWarpStart(enemy, intent);
+                 else
+                     await ExecuteChannelStart(enemy, intent);
+                 break;
+             case IntentKind.Release:
+-                if (IsWarpChanneler(enemy))
++                if (IsRitualist(enemy))
++                    await ExecuteRitualRelease(enemy, intent);
++                else if (IsWarpChanneler(enemy))
+                     await ExecuteWarpRelease(enemy, intent);
+                 else
+                     await ExecuteChannelRelease(enemy, intent);
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Items.cs b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+index dbb08ff..cd710fe 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Items.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+@@ -447,6 +447,16 @@ public partial class CombatManager
+         {
+             save.Armory.RemoveItem(inst.InstanceId);
+             combatUI?.AppendActionLog($"{inst.Name} shatters.");
++            if (inst.Cracked && u.Stats.IsAlive)
++            {
++                // Cracked glass (a blighted Scribe's Tower) bites the hand that breaks it.
++                int hpBefore = u.Stats.Health;
++                u.ApplyDamage(ScribesTower.CrackedGlassBite);
++                int lost = Math.Max(0, hpBefore - u.Stats.Health);
++                combatUI?.AppendActionLog(lost > 0
++                    ? $"The cracked glass cuts {u.Name} for {lost}."
++                    : $"The cracked glass bites at {u.Name}, but nothing gets through.");
++            }
+         }
+         SaveManager.MarkDirty();
+ 
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.SiegeBlight.cs b/Scripts/Systems/Combat/Core/CombatManager.SiegeBlight.cs
+new file mode 100644
+index 0000000..2464c3a
+--- /dev/null
++++ b/Scripts/Systems/Combat/Core/CombatManager.SiegeBlight.cs
+@@ -0,0 +1,344 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++using System.Threading.Tasks;
++
++// ============================================================
++// CombatManager.SiegeBlight.cs  (partial)
++//
++// Purpose:        What a portal strike is FOR (campus_building_upgrades_
++//                 design_v1 §11): the attackers come to foul the guild's
++//                 land, and they do it two ways.
++//                   Raze     every guild building in the window gets a
++//                            FOUNDATION: a structure unit standing at its
++//                            edge (the gate door's pattern: team 0, so the
++//                            enemy AI already hunts it, and IsStructure, so
++//                            it is never a survivor and never commandable).
++//                            A razed foundation breaks the building and fouls
++//                            its ground.
++//                   Ritual   one or two attackers (the longest reach) are
++//                            BLIGHT RITUALISTS: they walk to a foundation and
++//                            channel over it for two activations, telegraphed
++//                            on its tile. A finished ritual fouls that
++//                            building's ground. ANY damage breaks the channel
++//                            (the warp channeler's counter-play, reused).
++//                 Nothing here touches the save: results go to
++//                 SiegeBlightReport, which the strategic layer reads when
++//                 the fight returns (StrategicView.ConsumePortalStrikeReturn).
++// Layer:          Combat / runtime
++// Collaborators:  HexGridManager.BuildingStamps (where the buildings stand),
++//                 Data/Units/building_foundation.json, SpawnRegistryUnit,
++//                 CombatManager.EnemyIntents (planner + execute branches),
++//                 CombatManager.Triggers (interrupt), HandleUnitDeath (raze),
++//                 SiegeBlightReport (the hand-off), CampusBlight (applies it).
++// ============================================================
++
++public partial class CombatManager
++{
++    private const string FoundationUnitId = "building_foundation";
++
++    /// <summary>How many attackers turn ritualist at the start of a strike.</summary>
++    private const int RitualistCount = 2;
++
++    /// <summary>Tiles from a foundation a ritualist may channel over it.</summary>
++    private const int RitualRange = 3;
++
++    /// <summary>Foundation unit → the guild building id it stands for.</summary>
++    private readonly Dictionary<Unit, string> _foundations = new();
++
++    /// <summary>The attackers channelling blight this fight.</summary>
++    private readonly HashSet<Unit> _ritualists = new();
++
++    /// <summary>Ritualist → the building id its current channel is fouling.</summary>
++    private readonly Dictionary<Unit, string> _ritualTarget = new();
++
++    private bool IsRitualist(Unit u) => u != null && _ritualists.Contains(u);
++
++    // ── Setup ────────────────────────────────────────────────────────────
++
++    /// <summary>Portal strike defense only: a foundation beside every stamped guild
++    /// building (not the Sigil: the rift is the fight's centre, and its fate is the
++    /// fight's outcome; not foundational buildings: the guild's heart is not razed
++    /// in one fight), then pick the ritualists. Call after both sides are placed.</summary>
++    private void SpawnBuildingFoundations()
++    {
++        _foundations.Clear();
++        _ritualists.Clear();
++        _ritualTarget.Clear();
++
++        var siege = grid?.ActiveSiege;
++        if (siege == null || !siege.Defending || siege.Vector != "PortalStrike")
++            return;
++        SiegeBlightReport.Begin();
++
++        var done = new HashSet<string>();
++        foreach (var (id, center, radius) in grid.BuildingStamps)
++        {
++            if (string.IsNullOrEmpty(id) || !done.Add(id) || id == TeleportSigil.Id)
++                continue;
++            var template = BuildingDatabase.GetTemplate(id);
++            if (template == null || template.IsFoundational)
++                continue;
++
++            var tile = PickFoundationTile(center, radius);
++            if (tile == null)
++            {
++                GD.Print($"[SiegeBlight] No free ground beside '{id}' for its foundation.");
++                continue;
++            }
++            var f = SpawnRegistryUnit(FoundationUnitId, tile, teamId: 0);
++            if (f == null)
++                continue;
++            f.IsStructure = true;
++            f.IsPlayerControlled = false;   // commandable by nobody
++            f.Name = $"{template.Name} Foundation";
++            f.DisplayName = f.Name;
++            f.RefreshNameLabel();
++            _foundations[f] = id;
++        }
++
++        if (_foundations.Count == 0)
++            return;
++
++        // The ritualists: the attackers with the longest reach (they can channel
++        // from behind the line), ties by name so the pick is stable.
++        var pool = new List<Unit>();
++        foreach (var e in enemyUnits)
++            if (e != null && IsInstanceValid(e) && e.Stats.IsAlive && !e.IsStructure)
++                pool.Add(e);
++        pool.Sort((a, b) => a.AttackRange != b.AttackRange
++            ? b.AttackRange.CompareTo(a.AttackRange)
++            : string.CompareOrdinal(a.Name, b.Name));
++        for (int i = 0; i < pool.Count && i < RitualistCount; i++)
++        {
++            _ritualists.Add(pool[i]);
++            GD.Print($"[SiegeBlight] {pool[i].Name} carries the blight ritual.");
++        }
++
++        string msg = $"{_foundations.Count} building foundation(s) stand in the fight. The attackers mean to raze "
++                   + "them and foul the ground: strike any ritualist mid-channel to break it.";
++        GD.Print("[SiegeBlight] " + msg);
++        combatUI?.AppendActionLog(msg);
++    }
++
++    /// <summary>The nearest free walkable tile at the stamp's edge (radius + 1),
++    /// then one further out. Deterministic.</summary>
++    private TileData PickFoundationTile(Vector2I center, int radius)
++    {
++        for (int ring = radius + 1; ring <= radius + 2; ring++)
++        {
++            TileData best = null;
++            int bestKey = int.MaxValue;
++            foreach (var kvp in grid.Tiles)
++            {
++                var td = kvp.Value;
++                if (td == null || !td.IsWalkable || td.IsBlocked || td.IsOccupied)
++                    continue;
++                if (grid.Distance(kvp.Key, center) != ring)
++                    continue;
++                int key = (kvp.Key.X + 500) * 1000 + (kvp.Key.Y + 500);
++                if (key < bestKey)
++                {
++                    bestKey = key;
++                    best = td;
++                }
++            }
++            if (best != null)
++                return best;
++        }
++        return null;
++    }
++
++    private string FoundationNameFor(string buildingId)
++    {
++        var t = BuildingDatabase.GetTemplate(buildingId);
++        return t != null ? t.Name : buildingId;
++    }
++
++    // ── Raze ─────────────────────────────────────────────────────────────
++
++    /// <summary>HandleUnitDeath hook: a foundation fell.</summary>
++    private void NoteFoundationDeath(Unit unit)
++    {
++        if (unit == null || !_foundations.TryGetValue(unit, out string id))
++            return;
++        _foundations.Remove(unit);
++        SiegeBlightReport.Raze(id);
++        string msg = $"The foundation of {FoundationNameFor(id)} is razed. The building above it cracks, and the ground goes sour.";
++        GD.Print("[SiegeBlight] " + msg);
++        combatUI?.AppendActionLog($"── {msg} ──");
++    }
++
++    // ── Ritualist planner ────────────────────────────────────────────────
++
++    private Unit NearestFoundation(Unit enemy)
++    {
++        Unit best = null;
++        int bestD = int.MaxValue;
++        foreach (var kv in _foundations)
++        {
++            var f = kv.Key;
++            if (f == null || !IsInstanceValid(f) || !f.Stats.IsAlive || f.CurrentTile == null)
++                continue;
++            int d = grid.Distance(enemy.CurrentTile.Axial, f.CurrentTile.Axial);
++            if (d < bestD || (d == bestD && best != null && string.CompareOrdinal(f.Name, best.Name) < 0))
++            {
++                bestD = d;
++                best = f;
++            }
++        }
++        return best;
++    }
++
++    private EnemyIntent PlanBlightRitualist(Unit enemy)
++    {
++        // Charging: the ritual completes this activation, on the tile it locked.
++        if (enemy.HasStatus("wizard_charging") && enemy.ChannelTile.HasValue)
++        {
++            var locked = enemy.ChannelTile.Value;
++            return new EnemyIntent
++            {
++                Kind = IntentKind.Release,
++                TargetTile = locked,
++                ThreatTiles = { locked },
++                Value = 0,
++                BaseValue = 0,
++            };
++        }
++
++        if (enemy.CurrentTile == null)
++            return PlanSoldier(enemy);
++        var target = NearestFoundation(enemy);
++        if (target == null)
++        {
++            // Nothing left to foul: fight like anyone else.
++            return enemy.AttackRange > 1 ? PlanRanger(enemy) : PlanSoldier(enemy);
++        }
++
++        var tile = target.CurrentTile.Axial;
++        if (grid.Distance(enemy.CurrentTile.Axial, tile) <= RitualRange)
++        {
++            return new EnemyIntent
++            {
++                Kind = IntentKind.Channel,
++                TargetUnit = target,
++                TargetTile = tile,
++                ThreatTiles = { tile },
++                Value = 0,
++                BaseValue = 0,
++            };
++        }
++
++        // Out of reach: go to it (and strike it on arrival, which is razing too).
++        int dmg = enemy.AttackDamage > 0 ? enemy.AttackDamage : 4;
++        return new EnemyIntent
++        {
++            Kind = IntentKind.Attack,
++            TargetUnit = target,
++            TargetTile = tile,
++            ThreatTiles = { tile },
++            Value = dmg,
++            BaseValue = dmg,
++        };
++    }
++
++    // ── Ritualist executors ──────────────────────────────────────────────
++
++    private async Task ExecuteRitualStart(Unit enemy, EnemyIntent intent)
++    {
++        if (!IsValidActor(enemy) || intent.TargetTile == null)
++            return;
++        var foundation = intent.TargetUnit;
++        if (foundation == null || !_foundations.TryGetValue(foundation, out string id))
++            return;
++
++        enemy.ChannelTile = intent.TargetTile;
++        enemy.ApplyStatus("wizard_charging", 2);
++        _ritualTarget[enemy] = id;
++
++        string msg = $"{enemy.Name} begins a blight ritual over the foundation of {FoundationNameFor(id)}. Strike them to break it!";
++        GD.Print($"[SiegeBlight] {enemy.Name} channels blight into '{id}'.");
++        combatUI?.AppendActionLog(msg);
++        await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
++    }
++
++    private async Task ExecuteRitualRelease(Unit enemy, EnemyIntent intent)
++    {
++        if (!IsValidActor(enemy))
++            return;
++        enemy.ChannelTile = null;
++        enemy.RemoveStatus("wizard_charging");
++        if (!_ritualTarget.TryGetValue(enemy, out string id))
++            return;
++        _ritualTarget.Remove(enemy);
++
++        // The ground is the target, not the stone: a foundation razed mid-ritual
++        // does not save the land under it.
++        SiegeBlightReport.Foul(id);
++        string msg = $"{enemy.Name} completes the ritual. Blight soaks into the ground under {FoundationNameFor(id)}.";
++        GD.Print("[SiegeBlight] " + msg);
++        combatUI?.AppendActionLog($"── {msg} ──");
++        await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
++    }
++
++    // ── Interrupt (called from HandleUnitStruck) ─────────────────────────
++
++    /// <summary>Damage breaks a blight ritual, exactly as it collapses a warp rift.</summary>
++    private void TryInterruptRitual(Unit struck, int hpLoss)
++    {
++        if (hpLoss <= 0 || !IsRitualist(struck))
++            return;
++        if (!struck.HasStatus("wizard_charging") || struck.ChannelTile == null)
++            return;
++
++        struck.ChannelTile = null;
++        struck.RemoveStatus("wizard_charging");
++        struck.CurrentIntent = null;
++        struck.ClearIntentDisplay();
++        _ritualTarget.Remove(struck);
++
++        string msg = $"{struck.Name}'s blight ritual is broken!";
++        GD.Print("[SiegeBlight] " + msg);
++        combatUI?.AppendActionLog($"── {msg} ──");
++    }
++}
++
++/// <summary>The hand-off from a portal-strike fight to the strategic layer: which
++/// buildings' foundations were razed and how many rituals fouled each building's
++/// ground. Runtime only (a quit mid-fight leaves the strike owed and this empty).
++/// Begin() at fight setup; the strategic return reads it once and Clear()s it.</summary>
++public static class SiegeBlightReport
++{
++    public static readonly List<string> Razed = new();
++    public static readonly Dictionary<string, int> Fouled = new();
++
++    /// <summary>True from a portal strike's setup until the strategic side reads it.</summary>
++    public static bool Active { get; private set; }
++
++    public static void Begin()
++    {
++        Clear();
++        Active = true;
++    }
++
++    public static void Clear()
++    {
++        Razed.Clear();
++        Fouled.Clear();
++        Active = false;
++    }
++
++    public static void Raze(string buildingId)
++    {
++        if (!string.IsNullOrEmpty(buildingId) && !Razed.Contains(buildingId))
++            Razed.Add(buildingId);
++    }
++
++    public static void Foul(string buildingId)
++    {
++        if (string.IsNullOrEmpty(buildingId))
++            return;
++        Fouled.TryGetValue(buildingId, out int n);
++        Fouled[buildingId] = n + 1;
++    }
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs b/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs
+index 758c615..58d9407 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Triggers.cs
+@@ -304,6 +304,7 @@ public partial class CombatManager
+         // Same one-call-site rationale as Riposte below: OnStruck fires on ANY
+         // damage, so every card, attack and hazard can interrupt the rift.
+         TryInterruptWarpChannel(struck, hpLoss);
++        TryInterruptRitual(struck, hpLoss);   // portal strike: a blight ritual breaks the same way
+ 
+         // Riposte re-hook (2026-07-28). ResolveRetaliation was called from
+         // PerformAttack / PerformRangedAttack, but the U2 intent-AI migration routed
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 0f6b553..6d12704 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -3679,6 +3679,7 @@ public partial class CombatManager : Node3D
+         }
+ 
+         _deathsThisCombat++;   // map_pressure_v2: first_blood and the like read this
++        NoteFoundationDeath(unit);   // portal strike: a razed foundation (SiegeBlight)
+ 
+         string deathMsg = $"{unit.Name} has died.";
+         GD.Print(deathMsg);
+@@ -5317,6 +5318,9 @@ public partial class CombatManager : Node3D
+         // Siege defense: bar the door AFTER both sides are placed, so the gap
+         // tiles' occupancy checks see the real board.
+         SpawnGateDoors();
++        // Portal strike: foundations beside the guild's buildings, and the
++        // ritualists who mean to foul them (campus corruption, SiegeBlight).
++        SpawnBuildingFoundations();
+         RefreshEnemyRoster();
+     }
+ 
+diff --git a/Scripts/Systems/Combat/Terrain/HexGridManager.CityStamps.cs b/Scripts/Systems/Combat/Terrain/HexGridManager.CityStamps.cs
+index 1e14ffb..b677f86 100644
+--- a/Scripts/Systems/Combat/Terrain/HexGridManager.CityStamps.cs
++++ b/Scripts/Systems/Combat/Terrain/HexGridManager.CityStamps.cs
+@@ -49,6 +49,12 @@ public partial class HexGridManager : Node3D
+     public IReadOnlyList<Vector2I> SiegeObjectiveZone =>
+         _activeRecipe?.Siege?.ObjectiveZone ?? (IReadOnlyList<Vector2I>)System.Array.Empty<Vector2I>();
+ 
++    /// <summary>Every building shell the active recipe stamped: (id, centre, radius),
++    /// in recipe order. Cleared at each regeneration's skeleton phase. Read by
++    /// CombatManager.SiegeBlight to stand a foundation beside each building in a
++    /// portal strike (campus corruption, design §11).</summary>
++    public readonly List<(string id, Vector2I center, int radius)> BuildingStamps = new();
++
+     /// <summary>Paints one building shell: a filled hex disk of
+     /// <paramref name="radius"/> around <paramref name="center"/>. Reserved
+     /// (spawn-zone) tiles are skipped like every other paint. The compiler
+@@ -56,6 +62,7 @@ public partial class HexGridManager : Node3D
+     /// upstream, and a playable hole beats an unusable spawn.</summary>
+     private void PaintBuildingStamp(Vector2I center, int radius, string buildingId, int stampHeight)
+     {
++        BuildingStamps.Add((buildingId, center, radius));
+         for (int q = -radius; q <= radius; q++)
+         {
+             int rMin = Math.Max(-radius, -q - radius);
+diff --git a/Scripts/Systems/Combat/Terrain/HexGridManager.Recipes.cs b/Scripts/Systems/Combat/Terrain/HexGridManager.Recipes.cs
+index 33c2f44..9052f90 100644
+--- a/Scripts/Systems/Combat/Terrain/HexGridManager.Recipes.cs
++++ b/Scripts/Systems/Combat/Terrain/HexGridManager.Recipes.cs
+@@ -213,7 +213,10 @@ public partial class HexGridManager : Node3D
+     {
+         // E3: reset the placement list at the first phase of each (re)generation.
+         if (phase == "skeleton")
++        {
+             PendingMapObjects.Clear();
++            BuildingStamps.Clear();
++        }
+         if (r?.Features == null)
+             return;
+ 
+diff --git a/Scripts/Systems/Strategic/FieldMarch.cs b/Scripts/Systems/Strategic/FieldMarch.cs
+index d9be48a..0a4e974 100644
+--- a/Scripts/Systems/Strategic/FieldMarch.cs
++++ b/Scripts/Systems/Strategic/FieldMarch.cs
+@@ -484,7 +484,9 @@ public static class FieldMarch
+             reason = "A detachment does not move. Collect it with the party, or recall it through a waystone.";
+             return false;
+         }
+-        if (x == party.X && y == party.Y)
++        // A party that set out from the dock and has not stepped off it yet may
++        // still recall: stepping home there simply cancels the march.
++        if (x == party.X && y == party.Y && !recallHome)
+         {
+             reason = "The party is already standing there.";
+             return false;
+diff --git a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+index f1f6ca5..d112d2a 100644
+--- a/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
++++ b/Scripts/Systems/Strategic/HomeBuildingPanelHost.cs
+@@ -48,6 +48,9 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+     // Upgrade strip widgets (relabeled after a purchase)
+     private Label _tierLabel;
+     private Button _upgradeBtn;
++    /// <summary>Cleanse Land (campus corruption, CampusBlight): shown beside the
++    /// upgrade button only while the ground under the building is fouled.</summary>
++    private Button _cleanseBtn;
+ 
+     /// <summary>True when <paramref name="id"/> is a panel this host can float today, i.e. one
+     /// whose <see cref="CampusContext"/> needs no shell cycle/narrative lifecycle. Guard every
+@@ -175,6 +178,11 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+             _upgradeBtn.Pressed += OnUpgradePressed;
+             strip.AddChild(_upgradeBtn);
+ 
++            _cleanseBtn = new Button { Visible = false };
++            _cleanseBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            _cleanseBtn.Pressed += OnCleansePressed;
++            strip.AddChild(_cleanseBtn);
++
+             vbox.AddChild(new HSeparator());
+             RefreshUpgradeStrip();
+         }
+@@ -232,13 +240,29 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+         {
+             _tierLabel.Text = "";
+             _upgradeBtn.Visible = false;
++            if (_cleanseBtn != null) _cleanseBtn.Visible = false;
+             return;
+         }
+ 
+         var tierData = template.Tiers.Find(t => t.Tier == bs.Tier);
+         _tierLabel.Text = $"Tier {bs.Tier}/{template.MaxTier}" +
+                           (tierData != null && !string.IsNullOrEmpty(tierData.DisplayName)
+-                              ? $": {tierData.DisplayName}" : "");
++                              ? $": {tierData.DisplayName}" : "") +
++                          (bs.BlightLevel > 0 ? $"  ·  {CampusBlight.LevelName(bs.BlightLevel)} ground" : "");
++
++        if (_cleanseBtn != null)
++        {
++            bool fouled = bs.Tier > 0 && bs.IsPlaced && bs.BlightLevel > 0;
++            _cleanseBtn.Visible = fouled;
++            if (fouled)
++            {
++                var (mats, splinters) = CampusBlight.CleanseCost(bs);
++                string why = CampusBlight.CannotCleanseReason(save, bs);
++                _cleanseBtn.Text = why ?? $"Cleanse land ({mats} mats + {splinters} splinters)";
++                _cleanseBtn.Disabled = why != null;
++                UITheme.ApplyButtonStyle(_cleanseBtn, isPrimary: false);
++            }
++        }
+ 
+         // A damaged building (portal strike) mends before it grows.
+         int repair = CampusConstruction.RepairCost(bs);
+@@ -291,6 +315,16 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
+         }
+     }
+ 
++    private void OnCleansePressed()
++    {
++        if (CampusBlight.TryCleanse(SaveManager.ActiveSave, _buildingId) != null)
++        {
++            RefreshUpgradeStrip();
++            _panel?.Refresh();              // a relit doctrine changes the panel's verbs
++            _onBuildingChanged?.Invoke();   // the stain on the map lifts
++        }
++    }
++
+     /// <summary>Close the floated panel and hand control back to the city view via
+     /// <see cref="_onClosed"/>. Idempotent: the callback fires at most once.</summary>
+     public void Close()
+diff --git a/Scripts/Systems/Strategic/StrategicView.Dispatch.cs b/Scripts/Systems/Strategic/StrategicView.Dispatch.cs
+index 6801d5f..80950bf 100644
+--- a/Scripts/Systems/Strategic/StrategicView.Dispatch.cs
++++ b/Scripts/Systems/Strategic/StrategicView.Dispatch.cs
+@@ -380,6 +380,10 @@ public partial class StrategicView
+                  && !FieldMarch.CanOrderAtAll(cycle, party, out string partyWhy))
+         {
+             blocked = partyWhy;
++            if (CanSigilRecallHome(cycle, party))
++            {
++                blocked += " The Teleport Sigil can still call them home: press Move party.";
++            }
+         }
+         _ordersBlocked.Text = blocked ?? "";
+         _ordersBlocked.Visible = !string.IsNullOrEmpty(blocked);
+diff --git a/Scripts/Systems/Strategic/StrategicView.PortalStrike.cs b/Scripts/Systems/Strategic/StrategicView.PortalStrike.cs
+index 7fa676e..67637db 100644
+--- a/Scripts/Systems/Strategic/StrategicView.PortalStrike.cs
++++ b/Scripts/Systems/Strategic/StrategicView.PortalStrike.cs
+@@ -44,7 +44,9 @@ public partial class StrategicView
+                 $"The Teleport Sigil is burning open from the far side. Soldiers of {who} are coming " +
+                 "through into the campus.\n\n" +
+                 $"Seal the rift: the wizard and the home party hold the circle for {TeleportSigil.StrikeRounds} rounds. " +
+-                "Lose, and they loot the campus: the Sigil and another building are damaged and " +
++                "They have come to foul the guild's land: they will raze the foundations of the buildings " +
++                "near the rift, and their ritualists will channel blight into the ground. Strike a ritualist to " +
++                "break the channel. Lose, and they loot the campus too: the Sigil and another building are damaged and " +
+                 $"{TeleportSigil.GoldTakenPercent}% of the gold goes with them.\n\n" +
+                 "Break the circle: no fight. The Sigil takes the damage alone and their pattern is useless.",
+         };
+@@ -151,6 +153,8 @@ public partial class StrategicView
+ 
+         cycle.PortalStrikeLaunched = true;
+         SaveManager.MarkDirty();
++        // The fight fills this afresh at setup; nothing from an earlier one may leak in.
++        SiegeBlightReport.Clear();
+ 
+         // The home party: the wizard and whoever stands at the guild, not a
+         // field party (RunRosterIds reads ActivePartyCompanionIds for Castle).
+@@ -173,6 +177,52 @@ public partial class StrategicView
+             $"{who} is coming through the Sigil.");
+     }
+ 
++    // ── Recall home (Sigil T2) ──────────────────────────────────────────
++
++    /// <summary>Can this marching party abandon the road and step home to the dock?</summary>
++    private static bool CanSigilRecallHome(CycleState cycle, FieldParty party)
++    {
++        if (party == null || party.State != FieldPartyState.Travelling)
++        {
++            return false;
++        }
++        var dock = TeleportSigil.DockTile(cycle);
++        return dock.HasValue && FieldMarch.CanTeleportTo(cycle, party, dock.Value.x, dock.Value.y, out _);
++    }
++
++    /// <summary>The Move verb on a marching party: every other order is refused on
++    /// the road, but a Sigil at T2 can call them home. Returns false when it cannot,
++    /// so the caller shows its usual refusal.</summary>
++    private bool OfferSigilRecallHome(CycleState cycle, FieldParty party)
++    {
++        if (!CanSigilRecallHome(cycle, party))
++        {
++            return false;
++        }
++        var dock = TeleportSigil.DockTile(cycle).Value;
++        var dialog = new ConfirmationDialog
++        {
++            Title = "Recall through the Sigil",
++            OkButtonText = "Step home",
++            CancelButtonText = "Keep marching",
++            DialogText = $"{party.Name} is on the road, {party.TravelPhasesRemaining} tile(s) from where they are going. "
++                       + "The Teleport Sigil can open a way under their feet and bring them home to the dock now. "
++                       + "The march is abandoned.",
++        };
++        string partyId = party.Id;
++        dialog.Confirmed += () =>
++        {
++            dialog.QueueFree();
++            // The same selection the offer was made for: TryMovePartyTo reads it.
++            SelectPiece(partyId);
++            TryMovePartyTo(dock.x, dock.y);
++        };
++        dialog.Canceled += () => dialog.QueueFree();
++        AddChild(dialog);
++        dialog.PopupCentered();
++        return true;
++    }
++
+     /// <summary>Pick up a returning portal strike. Keyed on the launched marker AND
+     /// the router's return being this scene, so a mid-combat reload leaves it owed.</summary>
+     private void ConsumePortalStrikeReturn(CycleState cycle)
+@@ -199,6 +249,12 @@ public partial class StrategicView
+             save.BuildMaterials += router.MaterialReward;
+         }
+         string line = TeleportSigil.Resolve(cycle, save, won ? "won" : "lost", who);
++        // What the attackers did to the ground stands either way (campus corruption).
++        string blight = TeleportSigil.ApplySiegeBlight(save);
++        if (!string.IsNullOrEmpty(blight))
++        {
++            line = $"{line} {blight}";
++        }
+         cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+         cycle.PendingSiegeReports.Add(line);
+         ScryInbox.Post(cycle, won ? ScryChannel.Note : ScryChannel.Messenger,
+diff --git a/Scripts/Systems/Strategic/StrategicView.cs b/Scripts/Systems/Strategic/StrategicView.cs
+index 5aa8cd7..79fab6c 100644
+--- a/Scripts/Systems/Strategic/StrategicView.cs
++++ b/Scripts/Systems/Strategic/StrategicView.cs
+@@ -345,11 +345,21 @@ public partial class StrategicView : Node2D
+                 // Order matters: resolving first means the offer below never
+                 // re-asks about a fight that just happened.
+                 ConsumeCastleDefenseReturn(cycle);
++                // A defense that never came back (quit or crash mid-combat) stays
++                // OWED, not stuck: OfferPendingCastleDefense refuses while the
++                // launched marker is set, so a stale one is cleared here (the same
++                // fix as the portal strike's below, 2026-09-29).
++                bool castleNoReturn = EncounterRouter.Instance == null || !EncounterRouter.Instance.HasPendingReturn;
++                if (cycle.CastleDefenseLaunched && castleNoReturn)
++                    cycle.CastleDefenseLaunched = false;
+                 if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
+                     CallDeferred(nameof(OfferPendingCastleDefense));
+                 // The same for a fight owed at a posting (2026-09-28). The
+                 // castle's is asked first; a posting's waits its turn.
+                 ConsumePostingDefenseReturn(cycle);
++                if (cycle.PostingDefenseLaunched
++                    && (EncounterRouter.Instance == null || !EncounterRouter.Instance.HasPendingReturn))
++                    cycle.PostingDefenseLaunched = false;
+                 if (string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId)
+                     && !string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId))
+                     CallDeferred(nameof(OfferPendingPostingDefense));
+@@ -1450,9 +1460,11 @@ public partial class StrategicView : Node2D
+             var fp = SelectedParty();
+             if (pressed && !FieldMarch.CanOrderAtAll(cycle, fp, out string partyWhy))
+             {
+-                ShowStrategicNotice("The party cannot move", partyWhy);
+                 if (_marchModeBtn != null) _marchModeBtn.ButtonPressed = false;
+                 _marchMode = false;
++                // Teleport Sigil T2: a party on the road may still step home.
++                if (!OfferSigilRecallHome(cycle, fp))
++                    ShowStrategicNotice("The party cannot move", partyWhy);
+                 return;
+             }
+             _marchMode = pressed;
+@@ -6842,6 +6854,13 @@ public partial class StrategicView : Node2D
+             cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+             cycle.PendingSiegeReports.Add(portalLine);
+         }
++        // Campus corruption (design §11): fouled ground drains splinters and the
++        // blight creeps one tile outward from every blighted patch.
++        foreach (var blightLine in CampusBlight.TickLunation(cycle, SaveManager.ActiveSave))
++        {
++            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
++            cycle.PendingSiegeReports.Add(blightLine);
++        }
+         // Q4.2: a united archmage's relic arrives when the unite moon returns.
+         ArchmageRelics.TickUniteAnniversaries(cycle);
+         // §8 pity-timer: advance Library research commissions; a completed one
+diff --git a/Scripts/Systems/Strategic/TeleportSigil.cs b/Scripts/Systems/Strategic/TeleportSigil.cs
+index 59e9424..53ed878 100644
+--- a/Scripts/Systems/Strategic/TeleportSigil.cs
++++ b/Scripts/Systems/Strategic/TeleportSigil.cs
+@@ -50,6 +50,16 @@ using System.Collections.Generic;
+ //                          alone takes StrikeDamage, knowledge resets.
+ //                 Damage is repaired at the campus for materials
+ //                 (CampusConstruction.TryRepair).
++//
++//                 Corruption (design §11, 2026-09-29): the strike is an
++//                 attempt to foul the guild's land. In the fight, each
++//                 building nearby has a foundation the attackers can raze
++//                 and their ritualists channel blight into; a LOSS also
++//                 fouls the Sigil's own ground. A blighted Sigil leaks its
++//                 pattern (learning doubles) and, at T3, opens its gates on
++//                 Allied and Friendly cities with no charter. The Undercroft
++//                 sends early word at knowledge 2 (T1+) and slows learning by
++//                 one (T2+). Destroyed buildings leave Rubble (CampusBlight).
+ // Layer:          System (strategic)
+ // Collaborators:  FieldMarch (IsWaystone, CanTeleportTo), FieldPostings
+ //                 (CanRecall), CouncilQueries.StanceFor, SupplyCacheSystem,
+@@ -74,6 +84,9 @@ public static class TeleportSigil
+     public const int StrikeDamage = 10;
+     public const int GoldTakenPercent = 20;
+     public const int StrikeRounds = 8;
++    /// <summary>Pattern knowledge at which the Undercroft (T1+) sends early word.</summary>
++    public const int UndercroftWarnAt = 2;
++    public const string UndercroftId = "undercroft";
+ 
+     // ── Gates ────────────────────────────────────────────────────────────
+ 
+@@ -96,6 +109,38 @@ public static class TeleportSigil
+ 
+     public static bool RecallAnywhere(GuildSaveData save) => Tier(save) >= 2;
+ 
++    /// <summary>The Sigil's tier when built and sited, working or not (an overrun
++    /// Sigil still stands to be struck through). 0 when unbuilt or unsited.</summary>
++    public static int SitedTier(GuildSaveData save)
++    {
++        var b = CampusBlight.Find(save, Id);
++        return b != null && b.Tier > 0 && b.IsPlaced ? b.Tier : 0;
++    }
++
++    /// <summary>The Undercroft's tier (0 when unbuilt, unsited or overrun).</summary>
++    public static int UndercroftTier(GuildSaveData save)
++    {
++        var b = CampusBlight.Find(save, UndercroftId);
++        return b != null && b.IsFunctional ? b.Tier : 0;
++    }
++
++    /// <summary>The guild dock's tile (the "Start" staging point), or null.</summary>
++    public static (int x, int y)? DockTile(CycleState cycle)
++    {
++        if (cycle?.World?.StagingPoints == null)
++        {
++            return null;
++        }
++        foreach (var sp in cycle.World.StagingPoints)
++        {
++            if (sp != null && sp.Source == "Start")
++            {
++                return (sp.X, sp.Y);
++            }
++        }
++        return null;
++    }
++
+     public static bool GateNetworkActive(GuildSaveData save) => Charters.IsActive(save, Id, GateNetwork);
+ 
+     /// <summary>Is this tile a waystone only because of the Sigil? FieldMarch.IsWaystone
+@@ -134,8 +179,11 @@ public static class TeleportSigil
+             return true;
+         }
+ 
+-        // T3 Gate Network: an Allied kingdom's settlements.
+-        if (GateNetworkActive(save) && world.Settlements != null)
++        // T3 Gate Network: an Allied kingdom's settlements. A BLIGHTED Sigil at
++        // T3 (campus corruption, §11c) needs no charter: the rift is loose, and
++        // it opens on Friendly kingdoms' cities too.
++        bool looseRift = Tier(save) >= 3 && CampusBlight.IsBlighted(save, Id);
++        if ((GateNetworkActive(save) || looseRift) && world.Settlements != null)
+         {
+             foreach (var s in world.Settlements)
+             {
+@@ -143,7 +191,8 @@ public static class TeleportSigil
+                 {
+                     continue;
+                 }
+-                if (CouncilQueries.StanceFor(cycle, s.KingdomId) == KingdomStance.Allied)
++                var stance = CouncilQueries.StanceFor(cycle, s.KingdomId);
++                if (stance == KingdomStance.Allied || (looseRift && stance == KingdomStance.Friendly))
+                 {
+                     what = string.IsNullOrEmpty(s.Name) ? "an allied city" : s.Name;
+                     return true;
+@@ -184,7 +233,10 @@ public static class TeleportSigil
+         }
+         cycle.PortalKnowledge ??= new Dictionary<string, int>();
+ 
+-        if (Tier(save) < 1)
++        // The circle only has to STAND for its pattern to be learned: an overrun
++        // Sigil (campus corruption) no longer carries the guild's parties, but the
++        // rift is still there to be opened from the far side.
++        if (SitedTier(save) < 1)
+         {
+             // No circle, no pattern to learn. What was learned fades with it.
+             cycle.PortalKnowledge.Clear();
+@@ -192,24 +244,51 @@ public static class TeleportSigil
+         }
+ 
+         int lunation = cycle.Calendar?.CurrentLunation ?? 1;
++        // A blighted Sigil (§11c) leaks its pattern: learning doubles. The
++        // Undercroft's handlers (T2+) feed false patterns back and slow it by one.
++        bool leaking = CampusBlight.IsBlighted(save, Id);
++        int undercroft = UndercroftTier(save);
+         var knowers = new List<string>();
+         foreach (var kv in cycle.Kingdoms)
+         {
+             string kid = kv.Key;
+             var stance = CouncilQueries.StanceFor(cycle, kid);
+             cycle.PortalKnowledge.TryGetValue(kid, out int before);
+-            int after = stance switch
++            int learn = stance switch
+             {
+-                KingdomStance.Hostile => before + HostileLearn,
+-                KingdomStance.Unfriendly => before + UnfriendlyLearn,
+-                _ => Math.Max(0, before - 1),
++                KingdomStance.Hostile => HostileLearn,
++                KingdomStance.Unfriendly => UnfriendlyLearn,
++                _ => 0,
+             };
++            if (learn > 0)
++            {
++                if (leaking)
++                {
++                    learn *= 2;
++                }
++                if (undercroft >= 2)
++                {
++                    learn = Math.Max(0, learn - 1);
++                }
++            }
++            int after = learn > 0 ? before + learn
++                      : stance == KingdomStance.Hostile || stance == KingdomStance.Unfriendly ? before
++                      : Math.Max(0, before - 1);
+             after = Math.Min(after, KnowledgeToStrike);
+             cycle.PortalKnowledge[kid] = after;
+ 
++            // The Undercroft's early word (T1+): a kingdom halfway to the pattern.
++            if (undercroft >= 1 && before < UndercroftWarnAt && after >= UndercroftWarnAt && after < KnowledgeToStrike)
++            {
++                string warn = $"Word from the Undercroft: agents of {kv.Value.DisplayName} are studying the Teleport "
++                            + "Sigil's pattern. They are halfway to it. Mend relations, or be ready at the rift.";
++                ScryInbox.Post(cycle, ScryChannel.Note, "The Sigil is being studied", warn, "", "portal");
++                lines.Add(warn);
++            }
++
+             if (before < KnowledgeToStrike && after >= KnowledgeToStrike)
+             {
+-                string line = $"Word from the Undercroft: {kv.Value.DisplayName} has learned the pattern of the "
++                string line = $"{kv.Value.DisplayName} has learned the pattern of the "
+                             + "Teleport Sigil. They can open it from their side now.";
+                 ScryInbox.Post(cycle, ScryChannel.Messenger, "The Sigil's pattern is known", line, "", "portal");
+                 lines.Add(line);
+@@ -272,11 +351,14 @@ public static class TeleportSigil
+         }
+         else
+         {
++            // A held rift is a finished ritual: the ground under the Sigil is
++            // fouled (campus corruption, §11) before anything is broken.
++            string fouled = CampusBlight.CorruptBuildingLand(save, Id, 1);
+             string sigil = DamageBuilding(save, Id);
+             string other = DamageRandomOther(save, cycle);
+             int taken = save.Gold * GoldTakenPercent / 100;
+             save.Gold -= taken;
+-            line = $"{attackerName} held the campus long enough to loot it. {sigil} {other}"
++            line = $"{attackerName} held the campus long enough to loot it. {fouled} {sigil} {other}"
+                  + (taken > 0 ? $" {taken} gold is gone from the treasury." : "");
+         }
+         SaveManager.MarkDirty();
+@@ -284,20 +366,75 @@ public static class TeleportSigil
+         return line.Trim();
+     }
+ 
++    /// <summary>Apply what the attackers did to the ground during the fight
++    /// (SiegeBlightReport, filled by CombatManager.SiegeBlight): each razed
++    /// foundation damages its building and fouls its ground one step, and each
++    /// finished ritual fouls it one step more. Win or lose, what they did stands.
++    /// Clears the report. Returns the report text, "" when nothing happened.</summary>
++    public static string ApplySiegeBlight(GuildSaveData save)
++    {
++        if (save == null || !SiegeBlightReport.Active)
++        {
++            SiegeBlightReport.Clear();
++            return "";
++        }
++        // Rituals first, then razes, so each building's report line reads in one
++        // place: the ground is fouled by rituals and razing together, then the
++        // stone takes the damage.
++        var parts = new List<string>();
++        var steps = new Dictionary<string, int>(SiegeBlightReport.Fouled);
++        foreach (var id in SiegeBlightReport.Razed)
++        {
++            steps.TryGetValue(id, out int n);
++            steps[id] = n + 1;
++        }
++        var ids = new List<string>(steps.Keys);
++        ids.Sort(string.CompareOrdinal);
++        foreach (var id in ids)
++        {
++            string fouled = CampusBlight.CorruptBuildingLand(save, id, steps[id]);
++            string hit = SiegeBlightReport.Razed.Contains(id) ? DamageBuilding(save, id, StrikeDamage) : "";
++            string both = $"{fouled} {hit}".Trim();
++            if (!string.IsNullOrEmpty(both))
++            {
++                parts.Add(both);
++            }
++        }
++        SiegeBlightReport.Clear();
++        if (parts.Count > 0)
++        {
++            SaveManager.MarkDirty();
++        }
++        return string.Join(" ", parts);
++    }
++
+     // ── Helpers ──────────────────────────────────────────────────────────
+ 
+     private static string DamageBuilding(GuildSaveData save, string buildingId)
++        => DamageBuilding(save, buildingId, StrikeDamage);
++
++    /// <summary>Damage a standing building. On destruction its campus effects
++    /// leave with it and its footprint becomes Rubble (CampusBlight). Returns the
++    /// report line, "" when there is no standing building by that id.</summary>
++    public static string DamageBuilding(GuildSaveData save, string buildingId, int amount)
+     {
++        if (save?.Buildings == null)
++        {
++            return "";
++        }
+         foreach (var b in save.Buildings)
+         {
+             if (b.Id != buildingId || b.Tier <= 0)
+             {
+                 continue;
+             }
+-            bool destroyed = b.ApplyDamage(StrikeDamage);
++            bool destroyed = b.ApplyDamage(amount);
+             if (destroyed)
+             {
+-                // Its campus effects (party size and the like) leave with it.
++                // Its campus effects (party size and the like) leave with it,
++                // and the ground it stood on is broken stone until cleared.
++                CampusBlight.MarkRubble(save, b);
++                CampusBlight.Recompute(save);
+                 BuildingEffectApplier.ApplyCampusEffects(save);
+             }
+             return destroyed
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+index 2e061d1..e629d36 100644
+--- a/Scripts/Systems/Verification/CharterSaveAssert.cs
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -8,7 +8,9 @@ using System.Text.Json;
+ //
+ // Purpose:        Save round-trip assertions for the charter structs
+ //                 (campus_building_upgrades_design_v1 §2b): CharterEntry,
+-//                 and CycleState.Charters / CharterFillsUsed. Same
++//                 and CycleState.Charters / CharterFillsUsed. Also the later
++//                 campus slices' fields: school seats, the portal strike,
++//                 and campus corruption (§11). Same
+ //                 serializer, same contract as ArmorySaveAssert: build
+ //                 with distinctive non-default values, serialize with
+ //                 SaveManager's options, deserialize, compare field by
+@@ -32,6 +34,7 @@ public static class CharterSaveAssert
+         ok &= AssertCycleCharters(sb);
+         ok &= AssertSeatFields(sb);
+         ok &= AssertPortalFields(sb);
++        ok &= AssertBlightFields(sb);
+ 
+         sb.AppendLine(ok
+             ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
+@@ -160,6 +163,61 @@ public static class CharterSaveAssert
+         return ok;
+     }
+ 
++    /// <summary>Campus corruption (design §11): the tile, building and item fields,
++    /// their legacy defaults, and that a district relayout keeps scarred ground.</summary>
++    private static bool AssertBlightFields(StringBuilder sb)
++    {
++        var tile = RoundTrip(new CampusTileSaveData
++        {
++            Q = 2, R = -1, Ground = "Rubble", Corruption = 2, RubbleOf = "enchanters_workshop", PriorGround = "Plaza",
++        });
++        bool ok = Check(sb, "CampusTileSaveData.Corruption/RubbleOf/PriorGround", tile != null
++            && tile.Corruption == 2 && tile.RubbleOf == "enchanters_workshop"
++            && tile.PriorGround == "Plaza" && tile.Ground == "Rubble");
++
++        var building = RoundTrip(new BuildingSaveData { Id = "scribes_tower", Tier = 2, BlightLevel = 3 });
++        ok &= Check(sb, "BuildingSaveData.BlightLevel", building != null && building.BlightLevel == 3);
++        ok &= Check(sb, "BuildingSaveData overrun is not functional",
++            building != null && !new BuildingSaveData { Tier = 2, IsPlaced = true, BlightLevel = 3 }.IsFunctional
++            && new BuildingSaveData { Tier = 2, IsPlaced = true, BlightLevel = 2 }.IsFunctional);
++
++        var item = RoundTrip(new ItemInstance { DefinitionId = "spellglass", BoundCardId = "fireball", Cracked = true });
++        ok &= Check(sb, "ItemInstance.Cracked", item != null && item.Cracked);
++
++        var legacyTile = JsonSerializer.Deserialize<CampusTileSaveData>("{\"q\":1,\"r\":1}", SaveManager.JsonOptions);
++        ok &= Check(sb, "CampusTileSaveData blight defaults on legacy JSON", legacyTile != null
++            && legacyTile.Corruption == 0 && legacyTile.RubbleOf == "" && legacyTile.PriorGround == "");
++        var legacyBuilding = JsonSerializer.Deserialize<BuildingSaveData>("{\"id\":\"armory\",\"tier\":1}", SaveManager.JsonOptions);
++        ok &= Check(sb, "BuildingSaveData.BlightLevel default 0 on legacy JSON",
++            legacyBuilding != null && legacyBuilding.BlightLevel == 0);
++        var legacyItem = JsonSerializer.Deserialize<ItemInstance>("{\"definitionId\":\"spellglass\"}", SaveManager.JsonOptions);
++        ok &= Check(sb, "ItemInstance.Cracked default false on legacy JSON", legacyItem != null && !legacyItem.Cracked);
++
++        // A district unlock rebuilds every tile; the scars must survive it.
++        var map = CampusMapSaveData.GenerateDefault();
++        var scar = map.Tiles[0];
++        scar.Corruption = 3;
++        scar.PriorGround = scar.Ground;
++        scar.Ground = "Rubble";
++        scar.RubbleOf = "armory";
++        int q = scar.Q, r = scar.R;
++        bool unlocked = false;
++        foreach (var d in map.Districts)
++        {
++            if (!d.Unlocked)
++            {
++                unlocked = map.UnlockDistrict(d.Q, d.R);
++                break;
++            }
++        }
++        var after = map.Tiles.Find(t => t.Q == q && t.R == r);
++        ok &= Check(sb, "CampusMapSaveData relayout keeps corruption and rubble", unlocked && after != null
++            && after.Corruption == 3 && after.Ground == "Rubble" && after.RubbleOf == "armory");
++
++        sb.AppendLine(ok ? "  Campus blight fields: PASS" : "  Campus blight fields: FAIL");
++        return ok;
++    }
++
+     // ── Helpers (mirror ArmorySaveAssert) ─────────────────────────────────
+ 
+     private static T RoundTrip<T>(T obj)
+diff --git a/Scripts/UI/UITheme.cs b/Scripts/UI/UITheme.cs
+index c48ef55..fbcded0 100644
+--- a/Scripts/UI/UITheme.cs
++++ b/Scripts/UI/UITheme.cs
+@@ -340,6 +340,14 @@ public static class UITheme
+     /// Muted, because there is nothing to do there.</summary>
+     public static readonly Color BuildingLabelPlain = new Color(0.74f, 0.71f, 0.67f, 1f);
+ 
++    /// <summary>The stain corrupted campus ground is tinted toward (CampusBlight,
++    /// campus_building_upgrades_design_v1 §11), and the text colour for a building's
++    /// blight line on its card. A sick violet, apart from every building label hue.</summary>
++    public static readonly Color CampusBlightTint = new Color(0.46f, 0.20f, 0.50f, 1f);
++
++    /// <summary>Text about blighted ground: the stain's hue, lifted to read on dark panels.</summary>
++    public static readonly Color CampusBlightText = new Color(0.80f, 0.58f, 0.88f, 1f);
++
+     // ════════════════════════════════════════════════════════════
+     // ELEMENT COLORS
+     // ════════════════════════════════════════════════════════════
+-- 
+2.43.0
+

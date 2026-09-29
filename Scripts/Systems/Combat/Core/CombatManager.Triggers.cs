@@ -304,6 +304,7 @@ public partial class CombatManager
         // Same one-call-site rationale as Riposte below: OnStruck fires on ANY
         // damage, so every card, attack and hazard can interrupt the rift.
         TryInterruptWarpChannel(struck, hpLoss);
+        TryInterruptRitual(struck, hpLoss);   // portal strike: a blight ritual breaks the same way
 
         // Riposte re-hook (2026-07-28). ResolveRetaliation was called from
         // PerformAttack / PerformRangedAttack, but the U2 intent-AI migration routed

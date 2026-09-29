@@ -52,6 +52,20 @@ public class EnchantDef
 /// ItemInstance (save) and the building tier (save).</summary>
 public static class WorkshopEnchants
 {
+    // ── Doctrines (campus_building_upgrades_design_v1 §4, 2026-09-29) ─────
+    public const string BuildingId = "enchanters_workshop";
+    public const string UnbindingFloor = "unbinding_floor";
+    public const string AttunementForge = "attunement_forge";
+
+    /// <summary>Gold to rebind a staff's Innate card (Attunement Forge). A starting value.</summary>
+    public const int AttuneGold = 120;
+
+    /// <summary>Cleanse is the Unbinding Floor's verb, not tier 3's: a Workshop
+    /// chartered to the Attunement Forge does not cleanse.</summary>
+    public static bool CanCleanse(GuildSaveData save) => Charters.IsActive(save, BuildingId, UnbindingFloor);
+
+    public static bool CanAttune(GuildSaveData save) => Charters.IsActive(save, BuildingId, AttunementForge);
+
     // ── Cleanse pricing (R23: tier 3) ────────────────────────────────────
     public const int CleanseGold = 150;
     public const int CleanseSplinters = 25;
@@ -133,30 +147,69 @@ public static class WorkshopEnchants
     {
         var save = SaveManager.ActiveSave;
         if (save == null || item == null || item.EnchantSealed) return null;
+        if (IsOverrun(save)) return null;   // campus corruption: it has stopped working
 
         var e = Catalog.FirstOrDefault(x => x.Id == enchantId);
         if (e == null || e.MinTier > workshopTier) return null;
         if (e.AllowedSlot != "Any" && e.AllowedSlot != item.Slot) return null;
-        if (save.Gold < e.GoldCost) return null;
+        int cost = EnchantCost(save, e);
+        if (save.Gold < cost) return null;
 
-        save.Gold -= e.GoldCost;
+        save.Gold -= cost;
         item.EnchantKey = e.Key;
         item.EnchantValue = e.Value;
         item.EnchantParam = e.Param;
         item.EnchantTrigger = e.Trigger;
+
+        // A blighted Workshop (campus corruption, §11c) writes cheap, and the
+        // blight writes with it: the item takes a drawback and its slot seals,
+        // exactly as a blighted drop does, but with no innate bump to keep.
+        string tail = "";
+        if (IsTainting(save) && !item.IsBlighted)
+        {
+            var (key, value, text) = Drawbacks[DrawbackIndexFor(item)];
+            item.DrawbackKey = key;
+            item.DrawbackValue = value;
+            item.EnchantSealed = true;
+            if (!item.Name.StartsWith("Blighted "))
+                item.Name = $"Blighted {item.Name}";
+            tail = $" The blight writes with it: {text}. The slot is sealed.";
+        }
         SaveManager.Save();
-        GD.Print($"[Workshop] {item.Name} enchanted: {e.Name} ({e.GoldCost}g).");
-        return $"{e.Name} written onto {item.Name}.";
+        GD.Print($"[Workshop] {item.Name} enchanted: {e.Name} ({cost}g).{tail}");
+        return $"{e.Name} written onto {item.Name}.{tail}";
     }
 
-    /// <summary>R23: Cleanse at Workshop tier 3. Strip the drawback, unseal
-    /// the slot, keep the blight's innate bump. Gold + splinters. Returns the
-    /// result line or null.</summary>
-    public static string TryCleanse(ItemInstance item, int workshopTier)
+    /// <summary>The Workshop stands on blighted ground (campus corruption, §11c).</summary>
+    public static bool IsTainting(GuildSaveData save)
+        => CampusBlight.IsBlighted(save, BuildingId) && !IsOverrun(save);
+
+    /// <summary>The Workshop stands on overrun ground and has stopped working.</summary>
+    public static bool IsOverrun(GuildSaveData save) => CampusBlight.Level(save, BuildingId) >= CampusBlight.MaxLevel;
+
+    /// <summary>What an enchant costs this guild now: half on blighted ground.</summary>
+    public static int EnchantCost(GuildSaveData save, EnchantDef e)
+        => e == null ? 0 : IsTainting(save) ? e.GoldCost / 2 : e.GoldCost;
+
+    /// <summary>Which authored drawback the blight writes onto this item. Keyed on
+    /// the instance id, so it is fixed per item and a reload cannot reroll it.</summary>
+    private static int DrawbackIndexFor(ItemInstance item)
+    {
+        int h = 17;
+        foreach (char ch in item.InstanceId ?? "")
+            h = unchecked(h * 31 + ch);
+        return (int)((uint)h % (uint)Drawbacks.Length);
+    }
+
+    /// <summary>R23, as the Unbinding Floor doctrine (2026-09-29): strip the
+    /// drawback, unseal the slot, and DOUBLE the blight's innate bump (the
+    /// doctrine's payoff: blighted spoils are worth hunting). Gold + splinters.
+    /// Returns the result line or null.</summary>
+    public static string TryCleanse(ItemInstance item)
     {
         var save = SaveManager.ActiveSave;
         if (save == null || item == null || !item.IsBlighted) return null;
-        if (workshopTier < 3) return null;
+        if (!CanCleanse(save)) return null;
         if (save.Gold < CleanseGold || save.ArcaneSplinters < CleanseSplinters) return null;
 
         save.Gold -= CleanseGold;
@@ -164,12 +217,56 @@ public static class WorkshopEnchants
         item.DrawbackKey = "";
         item.DrawbackValue = 0;
         item.EnchantSealed = false;
+        item.BlightBonus *= 2;
         if (item.Name.StartsWith("Blighted "))
             item.Name = item.Name.Substring("Blighted ".Length);
         SaveManager.Save();
         GD.Print($"[Workshop] {item.Name} cleansed ({CleanseGold}g + {CleanseSplinters} splinters).");
         return $"{item.Name} is cleansed: the drawback lifts, the slot unseals, " +
-               "and what the corruption improved, it keeps.";
+               "and what the corruption improved, it keeps twice over.";
+    }
+
+    /// <summary>Cards a staff may be attuned to: every distinct card in the deck
+    /// collection, by blueprint id, in name order.</summary>
+    public static List<CardBlueprint> AttuneCandidates(GuildSaveData save)
+    {
+        var list = new List<CardBlueprint>();
+        var cards = save?.PlayerDeck?.Cards;
+        if (cards == null) return list;
+        foreach (var c in cards)
+        {
+            if (c == null || list.Exists(b => b.Id == c.BlueprintId)) continue;
+            var bp = CardDatabase.Blueprints.Find(b => b.Id == c.BlueprintId);
+            if (bp != null) list.Add(bp);
+        }
+        list.Sort((a, b) => string.CompareOrdinal(CardDatabase.GetDisplayName(a), CardDatabase.GetDisplayName(b)));
+        return list;
+    }
+
+    /// <summary>Why this staff cannot be attuned to this card, or null.</summary>
+    public static string CannotAttuneReason(GuildSaveData save, ItemInstance staff, string blueprintId)
+    {
+        if (save == null || staff == null) return "Nothing to attune.";
+        var def = ItemDatabase.Get(staff.DefinitionId);
+        if (def == null || !def.IsStaff) return "Only a staff can be attuned.";
+        if (!CanAttune(save)) return "Attuning needs the Attunement Forge chartered at the Grand Hall.";
+        if (staff.EffectiveBoundCardId(def) == blueprintId) return "The staff already opens with that card.";
+        if (!AttuneCandidates(save).Exists(b => b.Id == blueprintId)) return "That card is not in your deck collection.";
+        if (save.Gold < AttuneGold) return $"Attuning costs {AttuneGold} gold.";
+        return null;
+    }
+
+    /// <summary>Attunement Forge: rebind a staff's Innate card (M7). Returns the
+    /// result line or null.</summary>
+    public static string TryAttune(GuildSaveData save, ItemInstance staff, string blueprintId)
+    {
+        if (CannotAttuneReason(save, staff, blueprintId) != null) return null;
+        var bp = CardDatabase.Blueprints.Find(b => b.Id == blueprintId);
+        save.Gold -= AttuneGold;
+        staff.BoundCardId = blueprintId;
+        SaveManager.Save();
+        GD.Print($"[Workshop] {staff.Name} attuned to '{blueprintId}' ({AttuneGold}g).");
+        return $"{staff.Name} now opens every fight with {CardDatabase.GetDisplayName(bp)}.";
     }
 
     // ═════════════════════════════════════════════════════════════════════

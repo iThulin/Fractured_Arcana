@@ -36,6 +36,9 @@ public static class SaveManager
     private const string SAVE_DIR = "user://saves/";
     private const int MAX_SLOTS = 3;
 
+    /// <summary>Build materials a new guild is founded with (see NewGame).</summary>
+    public const int FoundingMaterials = 150;
+
     /// <summary>
     /// Schema version for BOTH tier files. v100 marks the three-tier era;
     /// anything older is a legacy save and is rejected, not migrated.
@@ -492,6 +495,10 @@ public static class SaveManager
                 // so a positive base lets negative scenario deltas actually bite
                 // (e.g. Brutal −200 → 0 cushion) instead of being inert. Tune freely.
                 Gold = 200,
+                // Founding materials (2026-09-29), replacing the 10,000 placeholder
+                // now that fights and held caches pay materials: enough for one
+                // first-tier building or a few waystones. Tune freely.
+                BuildMaterials = FoundingMaterials,
             },
         };
 

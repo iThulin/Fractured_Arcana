@@ -786,6 +786,42 @@ public static class WorldGenerator
         return index;
     }
 
+    /// <summary>Runtime POI creation anchored on a point rather than a seat (the
+    /// blight facet sites beside a shard zone, 2026-09-29). Places <paramref name="kind"/>
+    /// on the nearest free wild tile of the kingdom at least <paramref name="minDist"/>
+    /// from the anchor (shard footprints are never wild tiles). Discovered and charted
+    /// like SiteRuntimePoi. Returns the POI index, or -1.</summary>
+    public static int SiteRuntimePoiNear(WorldData world, PoiKind kind, string kingdomId,
+                                         int anchorX, int anchorY, int minDist)
+    {
+        if (world == null || string.IsNullOrEmpty(kingdomId))
+            return -1;
+
+        int bestX = -1, bestY = -1, bestDist = int.MaxValue;
+        foreach (var (x, y) in WildTilesOfKingdom(world, kingdomId))
+        {
+            if (world.GetTile(x, y).PoiIndex >= 0)
+                continue;
+            int d = HexCoord.OffsetDistance(anchorX, anchorY, x, y);
+            if (d < minDist || d >= bestDist)
+                continue;
+            bestDist = d; bestX = x; bestY = y;
+        }
+        if (bestX < 0)
+            return -1;
+
+        int index = world.Pois.Count;
+        AddPoi(world, bestX, bestY, kind, kingdomId, grantsStaging: false);
+        world.Pois[index].Discovered = true;
+        var t = world.GetTile(bestX, bestY);
+        if (t.Discovery == TileDiscovery.Unseen)
+        {
+            t.Discovery = TileDiscovery.Charted;
+            world.SetTile(bestX, bestY, t);
+        }
+        return index;
+    }
+
     // ── 8. Staging ───────────────────────────────────────────────────────
     private static void SeedStaging(WorldData world, (int x, int y) start, Params p,
                                     RandomNumberGenerator rng)

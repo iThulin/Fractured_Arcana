@@ -67,6 +67,8 @@ public static class ArmorySaveAssert
             BlightBonus = 1,
             Charges = 2,
             BoundCardId = "adept_magic_missile",
+            BoundTopTier = 2,
+            BoundBotTier = 1,
         };
         var rt = RoundTrip(src);
 
@@ -82,6 +84,8 @@ public static class ArmorySaveAssert
             ok &= Check(sb, "ItemInstance.BlightBonus", rt.BlightBonus == src.BlightBonus);
             ok &= Check(sb, "ItemInstance.Charges", rt.Charges == src.Charges);
             ok &= Check(sb, "ItemInstance.BoundCardId", rt.BoundCardId == src.BoundCardId);
+            ok &= Check(sb, "ItemInstance.BoundTopTier", rt.BoundTopTier == src.BoundTopTier);
+            ok &= Check(sb, "ItemInstance.BoundBotTier", rt.BoundBotTier == src.BoundBotTier);
         }
         else
         {
@@ -95,6 +99,8 @@ public static class ArmorySaveAssert
         ok &= Check(sb, "ItemInstance.Charges default -1 on legacy JSON", legacy != null && legacy.Charges == -1);
         ok &= Check(sb, "ItemInstance.BoundCardId default empty on legacy JSON",
             legacy != null && string.IsNullOrEmpty(legacy.BoundCardId));
+        ok &= Check(sb, "ItemInstance.BoundTopTier/BotTier default 0 on legacy JSON",
+            legacy != null && legacy.BoundTopTier == 0 && legacy.BoundBotTier == 0);
 
         sb.AppendLine(ok ? "  ItemInstance: PASS" : "  ItemInstance: FAIL");
         return ok;

@@ -248,6 +248,12 @@ public class ShardZone
     /// and Sanctioned paths will read.</summary>
     public bool Surveyed = false;
 
+    /// <summary>The blight facet's site (design §8b, source 5): index into
+    /// WorldData.Pois of the Narrative POI sited beside the zone when its kingdom
+    /// first takes corruption. -1 until sited. The facet itself is eternal
+    /// (facet_&lt;school&gt;_blight); this only places it in this timeline.</summary>
+    public int FacetSitePoiIndex = -1;
+
     /// <summary>Every tile in this zone's footprint (offset coords).</summary>
     public List<(int x, int y)> Tiles = new();
 }

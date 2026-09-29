@@ -1,0 +1,20 @@
+{
+  "id": "building_foundation",
+  "threatLabel": "Foundation",
+  "role": "summon",
+  "intelDescription": "The warded footing of a guild building, where its enchantments meet the ground. It does not fight back. Raze it and the building above is broken and the ground beneath it fouled.",
+  "maxHealth": 18,
+  "baseSpeed": 0,
+  "armor": 2,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 0,
+  "behaviorKey": "",
+  "behaviorTags": [
+    "immobile",
+    "structure"
+  ],
+  "colorR": 0.52,
+  "colorG": 0.46,
+  "colorB": 0.40
+}

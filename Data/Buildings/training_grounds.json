@@ -4,13 +4,13 @@
 	"category": "Core",
 	"schoolAffinity": "",
 	"hostsSystem": "training",
-	"description": "A yard where martial companions hone their skills between runs.",
+	"description": "A yard where martial companions drill between runs. Each tier opens a stance slot to learn in, and the veteran floor sets what kind of soldiers the guild raises.",
 	"tiers": [
 		{
 			"tier": 1,
 			"displayName": "Basic Training Grounds",
 			"goldCost": 80,
-			"description": "Levy companions unlock their first stance slot.",
+			"description": "Martials learn a first stance here, and drill: +1 action point for Fighters, +2 for Rangers.",
 			"requiredBuildings": [],
 			"passiveEffects": [],
 			"activeEffects": []
@@ -19,7 +19,7 @@
 			"tier": 2,
 			"displayName": "Drilling Yard",
 			"goldCost": 150,
-			"description": "Companions unlock their second stance slot. Base attack damage +1.",
+			"description": "A second stance slot to learn in.",
 			"requiredBuildings": [],
 			"passiveEffects": [],
 			"activeEffects": []
@@ -28,10 +28,22 @@
 			"tier": 3,
 			"displayName": "Veteran's Proving Grounds",
 			"goldCost": 280,
-			"description": "Companions unlock their third stance slot. Base HP +4.",
+			"description": "A third stance slot and +1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight.",
 			"requiredBuildings": [],
 			"passiveEffects": [],
-			"activeEffects": []
+			"activeEffects": [],
+			"doctrines": [
+				{
+					"id": "levy_muster",
+					"name": "Levy Muster",
+					"description": "Wide martials. A martial whose weapon teaches no maneuvers (an unclassed blade, or a class whose maneuvers are not written yet) drills Brace instead. Garrisons raise their militia after 2 moons instead of 3."
+				},
+				{
+					"id": "proving_grounds",
+					"name": "The Proving Grounds",
+					"description": "Tall martials. A martial may carry a second weapon and change to it in a fight for 1 AP, taking its class, maneuvers and attack. Stance finishers at 5 Edge are still to come."
+				}
+			]
 		}
 	]
 }

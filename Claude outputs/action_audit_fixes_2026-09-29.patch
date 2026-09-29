@@ -1,0 +1,610 @@
+From 3217fce40036b092fd27788daa07b33c5d62f3f7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 01:14:39 -0600
+Subject: [PATCH] Fix action-audit defects: materials income, blank spellglass
+ drops, location-aware wand refill, combat scrolls renamed tablets
+
+- EncounterRouter.MaterialReward paid at every GoldReward site; guild-held supply caches send materials each moon
+- Standard materials ratio 3:1 -> 1:1; founding stock 150 replaces the 10,000 placeholder
+- Spellglass excluded from combat loot and market stock
+- Wands refill at home (sortie end, new moon) except on field-party members, whose wands refill at staging anchors or the parked castle
+- D6: player-facing 'scroll' combat consumables are now tablets; ids and consumeKind key unchanged
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Items/barrier_scroll.json                |  4 +-
+ Data/Items/stoneskin_scroll.json              |  2 +-
+ Data/Items/warding_scroll.json                |  4 +-
+ .../FeatureBuilders/BuildingDefinition.cs     | 12 +++-
+ .../Data/FeatureBuilders/CombatLootTable.cs   |  4 +-
+ Scripts/Data/FeatureBuilders/ItemDatabase.cs  | 27 +++++--
+ .../Data/FeatureBuilders/ItemDefinition.cs    |  5 +-
+ Scripts/Data/SaveState/SaveManager.cs         |  7 ++
+ Scripts/Systems/Campus/CampusScreen.cs        |  1 +
+ .../Combat/Core/CombatManager.Items.cs        |  4 +-
+ Scripts/Systems/Combat/Core/CombatManager.cs  |  8 +--
+ .../Overworld/Expedition/EncounterRouter.cs   | 20 +++++-
+ .../Overworld/Expedition/ExpeditionManager.cs | 13 ++--
+ .../Systems/Strategic/CityMarketService.cs    |  4 +-
+ Scripts/Systems/Strategic/FieldMarch.cs       | 72 +++++++++++++++++++
+ Scripts/Systems/Strategic/StrategicView.cs    |  7 +-
+ .../Systems/Strategic/SupplyCacheSystem.cs    | 24 ++++++-
+ Scripts/UI/CombatUI.cs                        |  4 +-
+ Scripts/UI/NewGameScreen.cs                   |  6 --
+ 19 files changed, 191 insertions(+), 37 deletions(-)
+
+diff --git a/Data/Items/barrier_scroll.json b/Data/Items/barrier_scroll.json
+index 4d76057..6c32b08 100644
+--- a/Data/Items/barrier_scroll.json
++++ b/Data/Items/barrier_scroll.json
+@@ -1,7 +1,7 @@
+ {
+   "id": "barrier_scroll",
+-  "name": "Barrier Scroll",
+-  "description": "Read aloud, it stands where you do. Gain 5 shield.",
++  "name": "Barrier Tablet",
++  "description": "Spoken over, it stands where you do. Gain 5 shield.",
+   "rarity": "Uncommon",
+   "slot": "Consumable",
+   "unitClass": "Any",
+diff --git a/Data/Items/stoneskin_scroll.json b/Data/Items/stoneskin_scroll.json
+index 5d558ac..263f339 100644
+--- a/Data/Items/stoneskin_scroll.json
++++ b/Data/Items/stoneskin_scroll.json
+@@ -1,6 +1,6 @@
+ {
+   "id": "stoneskin_scroll",
+-  "name": "Stoneskin Scroll",
++  "name": "Stoneskin Tablet",
+   "description": "The mountain lends what it can spare. Gain 9 shield.",
+   "rarity": "Rare",
+   "slot": "Consumable",
+diff --git a/Data/Items/warding_scroll.json b/Data/Items/warding_scroll.json
+index 68ad565..ee699df 100644
+--- a/Data/Items/warding_scroll.json
++++ b/Data/Items/warding_scroll.json
+@@ -1,7 +1,7 @@
+ {
+   "id": "warding_scroll",
+-  "name": "Warding Scroll",
+-  "description": "A prentice's copy of an old rite. It holds. Gain 3 shield.",
++  "name": "Warding Tablet",
++  "description": "A prentice's cutting of an old rite. It holds. Gain 3 shield.",
+   "rarity": "Common",
+   "slot": "Consumable",
+   "unitClass": "Any",
+diff --git a/Scripts/Data/FeatureBuilders/BuildingDefinition.cs b/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
+index ac3e5fe..4cfb4ba 100644
+--- a/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/BuildingDefinition.cs
+@@ -126,15 +126,21 @@ public class BuildingTier
+     public int GoldCost = 100;
+ 
+     /// <summary>Materials cost for this tier. -1 (default/unset) means "derive from
+-    /// GoldCost at the standard 3:1 ratio" (see EffectiveMaterialsCost), so none of
++    /// GoldCost at the standard ratio" (see EffectiveMaterialsCost), so none of
+     /// the existing Data/Buildings/*.json files need editing. Set explicitly only when
+     /// a building should deviate from the standard ratio.</summary>
+     public int MaterialsCost = -1;
+ 
++    /// <summary>Materials per gold when a tier leaves MaterialsCost unset. Was 3
++    /// while materials were a 10,000 placeholder; 1 once they had to be earned
++    /// (2026-09-29: salvage from fights, held supply caches). At 3 a full campus
++    /// cost ~26,000 materials against ~15 a fight. A starting value: tune in play.</summary>
++    public const int StandardMaterialsPerGold = 1;
++
+     /// <summary>The materials cost actually charged: MaterialsCost if explicitly set
+-    /// on the tier, otherwise GoldCost * 3 (the standard ratio).</summary>
++    /// on the tier, otherwise GoldCost * StandardMaterialsPerGold.</summary>
+     [System.Text.Json.Serialization.JsonIgnore]
+-    public int EffectiveMaterialsCost => MaterialsCost >= 0 ? MaterialsCost : GoldCost * 3;
++    public int EffectiveMaterialsCost => MaterialsCost >= 0 ? MaterialsCost : GoldCost * StandardMaterialsPerGold;
+ 
+     /// <summary>(2026-08-13) Campus-persistent party-size growth: the §4a
+     /// "party-size growth via campus" lever, finally given a home (the Grand
+diff --git a/Scripts/Data/FeatureBuilders/CombatLootTable.cs b/Scripts/Data/FeatureBuilders/CombatLootTable.cs
+index b84f35f..3d3fa63 100644
+--- a/Scripts/Data/FeatureBuilders/CombatLootTable.cs
++++ b/Scripts/Data/FeatureBuilders/CombatLootTable.cs
+@@ -71,7 +71,9 @@ public static class CombatLootTable
+         int roll = rng.RandiRange(1, c + u + r);
+         string rarity = roll <= c ? "Common" : roll <= c + u ? "Uncommon" : "Rare";
+ 
+-        var all = ItemDatabase.GetAll();
++        // Spellglass is crafted only: a glass is blank until the Scriptorium seals
++        // a card into it, and a blank one cannot be used (2026-09-29).
++        var all = ItemDatabase.GetAll()?.Where(d => !d.IsSpellglass).ToList();
+         if (all == null || all.Count == 0) return null;
+ 
+         var band = all.Where(d => d.Rarity == rarity && !exclude.Contains(d)).ToList();
+diff --git a/Scripts/Data/FeatureBuilders/ItemDatabase.cs b/Scripts/Data/FeatureBuilders/ItemDatabase.cs
+index 02a32d7..1005e9b 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDatabase.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDatabase.cs
+@@ -213,10 +213,23 @@ public class ArmoryData
+         return loadout.BeltInstanceIds != null && loadout.BeltInstanceIds.Remove(instanceId);
+     }
+ 
+-    /// <summary>M6: every wand back to full. Called when an expedition ends (the
+-    /// spec's "refilled at campus") and by the D13 debug lever. Returns how many
+-    /// instances changed.</summary>
+-    public int RefillWandCharges()
++    /// <summary>Which unit wears <paramref name="instanceId"/> in its trinket slot
++    /// (where wands go), or null when nobody does.</summary>
++    public string TrinketHolder(string instanceId)
++    {
++        foreach (var kv in Loadouts)
++            if (kv.Value != null && kv.Value.TrinketInstanceId == instanceId)
++                return kv.Key;
++        return null;
++    }
++
++    /// <summary>M6: wands back to full. With no filter, every wand the guild owns
++    /// (the D13 debug lever). With <paramref name="refillHolder"/>, a wand worn by
++    /// a unit refills only when the filter says yes for that unit; a wand nobody
++    /// wears sits in the armory at home and always refills. The where-and-when
++    /// policy lives in FieldMarch (RefillWandsAtHome, RefillPartyWands), not here.
++    /// Returns how many instances changed.</summary>
++    public int RefillWandCharges(Func<string, bool> refillHolder = null)
+     {
+         int changed = 0;
+         foreach (var inst in OwnedItems)
+@@ -224,6 +237,12 @@ public class ArmoryData
+             var def = ItemDatabase.Get(inst.DefinitionId);
+             if (def == null || def.MaxCharges <= 0)
+                 continue;
++            if (refillHolder != null)
++            {
++                string holder = TrinketHolder(inst.InstanceId);
++                if (holder != null && !refillHolder(holder))
++                    continue;
++            }
+             if (inst.Charges != def.MaxCharges)
+             {
+                 inst.Charges = def.MaxCharges;
+diff --git a/Scripts/Data/FeatureBuilders/ItemDefinition.cs b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+index f8c8f9d..7fe1fab 100644
+--- a/Scripts/Data/FeatureBuilders/ItemDefinition.cs
++++ b/Scripts/Data/FeatureBuilders/ItemDefinition.cs
+@@ -166,7 +166,10 @@ public class ItemDefinition
+     /// unit per turn, body effects, the ward cannot drink); a scroll is the
+     /// PARTY's resource (an arcane reading, one per player turn total,
+     /// stacks with a potion on the same unit, and CAN target the ward,
+-    /// the protect-mission tool).</summary>
++    /// the protect-mission tool).
++    /// <para>2026-09-29 (D6: scrolls are overworld only, spellglass is the combat
++    /// spell): players see the "scroll" kind as a TABLET. The key stays "scroll"
++    /// so item JSON and saves need no migration; only the words changed.</para></summary>
+     public string ConsumeKind = "potion";
+ 
+     [System.Text.Json.Serialization.JsonIgnore]
+diff --git a/Scripts/Data/SaveState/SaveManager.cs b/Scripts/Data/SaveState/SaveManager.cs
+index a895603..55d629b 100644
+--- a/Scripts/Data/SaveState/SaveManager.cs
++++ b/Scripts/Data/SaveState/SaveManager.cs
+@@ -36,6 +36,9 @@ public static class SaveManager
+     private const string SAVE_DIR = "user://saves/";
+     private const int MAX_SLOTS = 3;
+ 
++    /// <summary>Build materials a new guild is founded with (see NewGame).</summary>
++    public const int FoundingMaterials = 150;
++
+     /// <summary>
+     /// Schema version for BOTH tier files. v100 marks the three-tier era;
+     /// anything older is a legacy save and is rejected, not migrated.
+@@ -492,6 +495,10 @@ public static class SaveManager
+                 // so a positive base lets negative scenario deltas actually bite
+                 // (e.g. Brutal −200 → 0 cushion) instead of being inert. Tune freely.
+                 Gold = 200,
++                // Founding materials (2026-09-29), replacing the 10,000 placeholder
++                // now that fights and held caches pay materials: enough for one
++                // first-tier building or a few waystones. Tune freely.
++                BuildMaterials = FoundingMaterials,
+             },
+         };
+ 
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index 2f341d3..1962f2c 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -1403,6 +1403,7 @@ public partial class CampusScreen : Control
+         {
+             save.Gold += router.GoldReward;
+             save.ArcaneSplinters += router.SplinterReward;
++            save.BuildMaterials += router.MaterialReward;
+ 
+             if (!string.IsNullOrEmpty(guardianKey) && save.Ledger != null &&
+                 !save.Ledger.MetaNarrativeFlags.Contains($"{guardianKey}_trial_passed"))
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Items.cs b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+index cfe6700..243556a 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Items.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Items.cs
+@@ -88,7 +88,7 @@ public partial class CombatManager
+             Title = inst.Name,
+             Cost = cost,
+             Text = text,
+-            Role = def.IsWand ? "Wand" : def.IsSpellglass ? "Spellglass" : def.ConsumeKind == "scroll" ? "Scroll" : "Belt",
++            Role = def.IsWand ? "Wand" : def.IsSpellglass ? "Spellglass" : def.ConsumeKind == "scroll" ? "Tablet" : "Belt",
+             Enabled = why == null,
+             Armed = _armedItem == inst,
+             Tooltip = why ?? (def.IsWand || def.IsSpellglass
+@@ -146,7 +146,7 @@ public partial class CombatManager
+             if (def.ConsumeKind == "scroll")
+             {
+                 if (_scrollReadThisTurn)
+-                    return "The party's one scroll this turn is spent.";
++                    return "The party's one tablet this turn is spent.";
+             }
+             else if (u.HasUsedConsumableThisTurn)
+                 return $"{u.Name} has already drunk this turn.";
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index e43d73d..64122bb 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -1493,7 +1493,7 @@ public partial class CombatManager : Node3D
+             foreach (var (defId, first, count, scroll) in ordered)
+             {
+                 var d = ItemDatabase.Get(defId);
+-                string tag = scroll ? "[Scroll]" : "[Potion]";
++                string tag = scroll ? "[Tablet]" : "[Potion]";
+                 string label = $"{tag} {d.Name}{(count > 1 ? $" ×{count}" : "")}: {d.Description}";
+                 entries.Add(new CombatUI.ConsumableEntry(first.InstanceId, label));
+             }
+@@ -1504,11 +1504,11 @@ public partial class CombatManager : Node3D
+             selectedUnit == null ? "Select a unit first." :
+             entries.Count == 0 ? $"{selectedUnit.DisplayName}'s belt is empty. Belts are packed on the Forces screen or the Armory tab. Every item costs 1 AP." :
+             selectedUnit.IsObjectiveWard
+-                ? $"Target: {selectedUnit.DisplayName}. It cannot drink; scrolls only." +
+-                  (_scrollReadThisTurn ? " The party's scroll is spent this turn." : "")
++                ? $"Target: {selectedUnit.DisplayName}. It cannot drink; tablets only." +
++                  (_scrollReadThisTurn ? " The party's tablet is spent this turn." : "")
+                 : $"Target: {selectedUnit.DisplayName}. Potions: " +
+                   (selectedUnit.HasUsedConsumableThisTurn ? "already drunk this turn." : "available.") +
+-                  $" Scroll: {(_scrollReadThisTurn ? "spent this turn." : "one per turn, party-wide.")}";
++                  $" Tablet: {(_scrollReadThisTurn ? "spent this turn." : "one per turn, party-wide.")}";
+         combatUI.ShowConsumableList(entries, note);
+     }
+ 
+diff --git a/Scripts/Systems/Overworld/Expedition/EncounterRouter.cs b/Scripts/Systems/Overworld/Expedition/EncounterRouter.cs
+index 9cf5c0d..2e0ad59 100644
+--- a/Scripts/Systems/Overworld/Expedition/EncounterRouter.cs
++++ b/Scripts/Systems/Overworld/Expedition/EncounterRouter.cs
+@@ -45,6 +45,10 @@ public partial class EncounterRouter : Node
+     public int GoldReward { get; set; }
+     public int DamageTaken { get; set; }
+     public int SplinterReward { get; set; }
++    /// <summary>Build materials salvaged from a won fight (2026-09-29): the
++    /// first in-play materials faucet. Paid by every site that pays
++    /// GoldReward.</summary>
++    public int MaterialReward { get; set; }
+     public int SavedSplinterEarned { get; set; }
+     public int SavedMaterialEarned { get; set; }
+     public int SavedSuppliesEarned { get; set; }
+@@ -129,10 +133,11 @@ public partial class EncounterRouter : Node
+         SavedStrideAmbush = false;        // §3.4: clear the stride-ambush flag too
+         GoldReward = CalculateGoldRewardForTier(_currentTier);
+         SplinterReward = SplinterDropTable.Combat(_currentTier);
++        MaterialReward = CalculateMaterialRewardForTier(_currentTier);
+         HasPendingReturn = true;
+ 
+         GD.Print($"EncounterRouter: Combat finished. Won: {playerWon}. " +
+-                $"Gold: {GoldReward}, Splinters: {SplinterReward}.");
++                $"Gold: {GoldReward}, Splinters: {SplinterReward}, Materials: {MaterialReward}.");
+ 
+         // Flush any mid-run state changes (cast counts, etc.) to disk
+         SaveManager.SaveIfDirty();
+@@ -189,6 +194,19 @@ public partial class EncounterRouter : Node
+         _ => (int)GD.RandRange(15, 25),
+     };
+ 
++    /// <summary>Salvage from the field: arms, harness, timber, iron. Starting
++    /// values (2026-09-29), about three quarters of the gold band, so a fight
++    /// alone pays for a building a little slower than it pays for its gold.
++    /// Held supply caches are the other faucet (SupplyCacheSystem).</summary>
++    private int CalculateMaterialRewardForTier(EncounterTier tier) => tier switch
++    {
++        EncounterTier.Skirmish => (int)GD.RandRange(6, 11),
++        EncounterTier.Battle => (int)GD.RandRange(14, 22),
++        EncounterTier.Siege => (int)GD.RandRange(30, 45),
++        EncounterTier.Ambush => (int)GD.RandRange(11, 19),
++        _ => (int)GD.RandRange(11, 19),
++    };
++
+     public static HexGridManager.MapDensityPreset DensityForTier(EncounterTier tier) => tier switch
+     {
+         EncounterTier.Skirmish => HexGridManager.MapDensityPreset.Sparse,
+diff --git a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+index e81dead..51303c9 100644
+--- a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
++++ b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+@@ -3674,7 +3674,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         slot.Clear();
+         // Edge M6 (spec §11b): wand charges are per expedition and refill at
+         // campus. Every end path (extract, park, emergency, fail) comes through here.
+-        int refilled = SaveManager.ActiveSave?.Armory?.RefillWandCharges() ?? 0;
++        // Only wands at home refill: a field party's members keep theirs spent
++        // until the party reaches a staging anchor or the castle (FieldMarch.BankHere).
++        var endSave = SaveManager.ActiveSave;
++        int refilled = FieldMarch.RefillWandsAtHome(endSave?.Cycle, endSave?.Armory);
+         if (refilled > 0)
+             GD.Print($"[Armory] {refilled} wand(s) recharged on return.");
+         SaveManager.MarkDirty();
+@@ -3866,6 +3869,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+ 
+             GoldEarned += router.GoldReward;
+             SplinterEarned += router.SplinterReward;
++            MaterialEarned += router.MaterialReward;
+             EncountersWon++;
+ 
+             // The waystone's ground pays what it promised (WaystoneAffixes).
+@@ -3894,8 +3898,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+                    $", encounter #{EncountersWon}",
+                    goldDelta: +router.GoldReward, splinterDelta: +router.SplinterReward,
+                    at: resultHex);
+-            if (router.GoldReward > 0 || router.SplinterReward > 0)
+-                spoils.Add(($"+{router.GoldReward} gold   ·   +{router.SplinterReward} Arcane Splinters",
++            if (router.GoldReward > 0 || router.SplinterReward > 0 || router.MaterialReward > 0)
++                spoils.Add(($"+{router.GoldReward} gold   ·   +{router.SplinterReward} Arcane Splinters"
++                            + (router.MaterialReward > 0 ? $"   ·   +{router.MaterialReward} materials" : ""),
+                             UITheme.Gold));
+ 
+             // Q4.4 (§7c): combat pays in things. Tier-keyed drop roll: the
+@@ -3949,7 +3954,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+             ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
+             ConsumeWorldPoi(resultHex);
+             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
+-            ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters.");
++            ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters, +{router.MaterialReward} materials.");
+             EmitCombatDeed(router, resultHex);
+ 
+             // Sentiment: winning combat in an archmage's region shifts sentiment
+diff --git a/Scripts/Systems/Strategic/CityMarketService.cs b/Scripts/Systems/Strategic/CityMarketService.cs
+index e3458b3..6a0388a 100644
+--- a/Scripts/Systems/Strategic/CityMarketService.cs
++++ b/Scripts/Systems/Strategic/CityMarketService.cs
+@@ -82,7 +82,9 @@ public static class CityMarketService
+         var rng = new RandomNumberGenerator();
+         rng.Seed = Fnv1a(market.CityId) ^ (ulong)(lunation * 40503L + 7);
+ 
+-        var all = ItemDatabase.GetAll();
++        // Spellglass is crafted only: a glass is blank until the Scriptorium seals
++        // a card into it, and a blank one cannot be used (2026-09-29).
++        var all = ItemDatabase.GetAll()?.Where(d => !d.IsSpellglass).ToList();
+         if (all == null || all.Count == 0) return;
+ 
+         int slots = city.IsSeat ? SeatStock
+diff --git a/Scripts/Systems/Strategic/FieldMarch.cs b/Scripts/Systems/Strategic/FieldMarch.cs
+index 87fa8a3..1c7b517 100644
+--- a/Scripts/Systems/Strategic/FieldMarch.cs
++++ b/Scripts/Systems/Strategic/FieldMarch.cs
+@@ -303,6 +303,65 @@ public static class FieldMarch
+         report = report == null ? line : report + " " + line;
+     }
+ 
++    // ── Wand charges (spec v1 §11: per expedition, refilled at campus) ─────
++
++    /// <summary>Everyone posted to a field party or detachment. They carry their
++    /// wands with them, so the guild's bench cannot recharge those.</summary>
++    public static System.Collections.Generic.HashSet<string> FieldMemberIds(CycleState cycle)
++    {
++        var ids = new System.Collections.Generic.HashSet<string>();
++        if (cycle?.FieldParties == null)
++        {
++            return ids;
++        }
++        foreach (var p in cycle.FieldParties)
++        {
++            if (p?.MemberCompanionIds == null)
++            {
++                continue;
++            }
++            foreach (var id in p.MemberCompanionIds)
++            {
++                if (!string.IsNullOrEmpty(id))
++                {
++                    ids.Add(id);
++                }
++            }
++        }
++        return ids;
++    }
++
++    /// <summary>Recharge every wand that is at home: in the armory, or worn by
++    /// someone not posted to a field party (the wizard, the castle's crew, the
++    /// dormitory). Called when a sortie ends and at each new moon.</summary>
++    public static int RefillWandsAtHome(CycleState cycle, ArmoryData armory)
++    {
++        if (armory == null)
++        {
++            return 0;
++        }
++        var away = FieldMemberIds(cycle);
++        return armory.RefillWandCharges(holder => !away.Contains(holder));
++    }
++
++    /// <summary>Recharge the wands this party's members wear. Called from
++    /// BankHere at a staging anchor or the parked castle.</summary>
++    public static int RefillPartyWands(CycleState cycle, FieldParty party)
++    {
++        var armory = SaveManager.ActiveSave?.Armory;
++        if (armory == null || party?.MemberCompanionIds == null || party.MemberCompanionIds.Count == 0)
++        {
++            return 0;
++        }
++        var members = new System.Collections.Generic.HashSet<string>(party.MemberCompanionIds);
++        int n = armory.RefillWandCharges(holder => members.Contains(holder));
++        if (n > 0)
++        {
++            SaveManager.MarkDirty();
++        }
++        return n;
++    }
++
+     /// <summary>Bank what the party is carrying, if this is somewhere with
+     /// people and a counting house. A shard zone and a bare tile are neither, so
+     /// the hold rides on and the report says so rather than silently keeping it.</summary>
+@@ -321,6 +380,19 @@ public static class FieldMarch
+             prefix += " " + concord;
+         }
+ 
++        // Wands refill where the guild keeps people and a scribe's bench: a
++        // staging anchor or the parked castle (2026-09-29; was "any sortie
++        // ending anywhere refills every wand"). Before the hold check, so an
++        // empty-handed arrival still recharges.
++        if (here != null && (here.Kind == AnchorKind.Staging || here.Kind == AnchorKind.CastlePark))
++        {
++            int recharged = RefillPartyWands(cycle, party);
++            if (recharged > 0)
++            {
++                prefix += $" {recharged} wand{(recharged == 1 ? " is" : "s are")} recharged.";
++            }
++        }
++
+         var carrying = party.Carrying;
+         if (carrying == null || carrying.IsEmpty)
+         {
+diff --git a/Scripts/Systems/Strategic/StrategicView.cs b/Scripts/Systems/Strategic/StrategicView.cs
+index b60cead..cfd5208 100644
+--- a/Scripts/Systems/Strategic/StrategicView.cs
++++ b/Scripts/Systems/Strategic/StrategicView.cs
+@@ -2735,6 +2735,7 @@ public partial class StrategicView : Node2D
+             {
+                 save.Gold += router.GoldReward;
+                 save.ArcaneSplinters += router.SplinterReward;
++                save.BuildMaterials += router.MaterialReward;
+             }
+             line = force != null
+                 ? $"{force.Name} throw back {who} and hold their post."
+@@ -2789,6 +2790,7 @@ public partial class StrategicView : Node2D
+         {
+             save.Gold += router.GoldReward;
+             save.ArcaneSplinters += router.SplinterReward;
++            save.BuildMaterials += router.MaterialReward;
+ 
+             // Q4.4 loot faucet, tiered by the owning kingdom (expedition parity).
+             // City ground is not corrupted, so no blight roll.
+@@ -2807,7 +2809,7 @@ public partial class StrategicView : Node2D
+             var entry = st != null ? CityExploreService.FindDistrict(st, district) : null;
+             if (entry != null) entry.Cleared = true;
+ 
+-            _reenterToast = $"The enclave is broken. (+{router.GoldReward} gold, +{router.SplinterReward} splinters"
++            _reenterToast = $"The enclave is broken. (+{router.GoldReward} gold, +{router.SplinterReward} splinters, +{router.MaterialReward} materials"
+                           + (items > 0 ? $", {items} item{(items == 1 ? "" : "s")})" : ")");
+             _reenterToastKind = QuestToastKind.Complete;
+ 
+@@ -6814,6 +6816,9 @@ public partial class StrategicView : Node2D
+         KingdomTickSimulation.Tick(cycle, FactionDisplay);
+         SupplyCacheSystem.Tick(cycle, FactionDisplay);
+         CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
++        // Wands at home recharge with the moon, so a wand spent in a castle or
++        // campus defense is not stranded until the next sortie ends (2026-09-29).
++        FieldMarch.RefillWandsAtHome(cycle, SaveManager.ActiveSave?.Armory);
+         // Q4.2: a united archmage's relic arrives when the unite moon returns.
+         ArchmageRelics.TickUniteAnniversaries(cycle);
+         // §8 pity-timer: advance Library research commissions; a completed one
+diff --git a/Scripts/Systems/Strategic/SupplyCacheSystem.cs b/Scripts/Systems/Strategic/SupplyCacheSystem.cs
+index 0867734..72f6636 100644
+--- a/Scripts/Systems/Strategic/SupplyCacheSystem.cs
++++ b/Scripts/Systems/Strategic/SupplyCacheSystem.cs
+@@ -53,6 +53,12 @@ public static class SupplyCacheSystem
+     public const int BaseYield = 6;
+     /// <summary>Extra yield when a guild cache has an overseer (+50%).</summary>
+     public const int OverseerYieldBonus = 3;
++    /// <summary>Build materials a GUILD cache sends home per lunation
++    /// (2026-09-29). Kingdom caches pay supplies only: materials are the
++    /// guild's building stock, and holding ground is how the campus grows.</summary>
++    public const int MaterialsYield = 15;
++    /// <summary>Extra materials when a guild cache has an overseer.</summary>
++    public const int OverseerMaterialsBonus = 10;
+     /// <summary>Kingdom supply stock ceiling.</summary>
+     public const int KingdomStockCap = 100;
+     /// <summary>Stock every kingdom burns per lunation (armies eat).</summary>
+@@ -286,6 +292,17 @@ public static class SupplyCacheSystem
+         return n;
+     }
+ 
++    /// <summary>Materials this cache sends the guild per lunation: 0 unless the
++    /// guild holds it; an overseer adds the bonus.</summary>
++    public static int MaterialsYieldOf(WorldPoi p)
++    {
++        if (ControllerOf(p) != GuildId)
++        {
++            return 0;
++        }
++        return MaterialsYield + (string.IsNullOrEmpty(p.OverseerCompanionId) ? 0 : OverseerMaterialsBonus);
++    }
++
+     /// <summary>This cache's per-lunation yield (overseer bonus included).</summary>
+     public static int YieldOf(WorldPoi p)
+     {
+@@ -416,7 +433,7 @@ public static class SupplyCacheSystem
+         var world = cycle.World;
+ 
+         // ── 1. Harvest ──────────────────────────────────────────────────────
+-        int guildIncome = 0, guildCaches = 0;
++        int guildIncome = 0, guildCaches = 0, guildMaterials = 0;
+         foreach (var p in world.Pois)
+         {
+             if (p.Kind != PoiKind.SupplyCache) continue;
+@@ -427,6 +444,9 @@ public static class SupplyCacheSystem
+                 cycle.Supplies += yield;
+                 guildIncome += yield;
+                 guildCaches++;
++                int mat = MaterialsYieldOf(p);
++                cycle.BuildMaterials += mat;
++                guildMaterials += mat;
+             }
+             else if (cycle.Kingdoms.TryGetValue(ctrl, out var k))
+             {
+@@ -436,7 +456,7 @@ public static class SupplyCacheSystem
+         if (guildCaches > 0)
+         {
+             cycle.PendingSiegeReports.Add(
+-                $"Supply lines: +{guildIncome} supplies from {guildCaches} " +
++                $"Supply lines: +{guildIncome} supplies and +{guildMaterials} materials from {guildCaches} " +
+                 (guildCaches == 1 ? "cache." : "caches."));
+         }
+ 
+diff --git a/Scripts/UI/CombatUI.cs b/Scripts/UI/CombatUI.cs
+index 8cf8a66..de65e22 100644
+--- a/Scripts/UI/CombatUI.cs
++++ b/Scripts/UI/CombatUI.cs
+@@ -487,7 +487,7 @@ public partial class CombatUI : CanvasLayer
+ 		_scrollsButton = new Button
+ 		{
+ 			Name = "ScrollsButton",
+-			Text = "Scrolls",
++			Text = "Satchel",
+ 			TooltipText = "Use a consumable on the selected unit (one per unit per turn)",
+ 			CustomMinimumSize = new Vector2(110, 48),
+ 		};
+@@ -821,7 +821,7 @@ public partial class CombatUI : CanvasLayer
+ 
+ 		var head = new HBoxContainer();
+ 		vbox.AddChild(head);
+-		var title = MakeLabel("Scroll Satchel", UITheme.FontSizeSmall, UITheme.Gold);
++		var title = MakeLabel("Satchel", UITheme.FontSizeSmall, UITheme.Gold);
+ 		title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+ 		head.AddChild(title);
+ 		var close = new Button { Text = "✕" };
+diff --git a/Scripts/UI/NewGameScreen.cs b/Scripts/UI/NewGameScreen.cs
+index 763efa8..c88f142 100644
+--- a/Scripts/UI/NewGameScreen.cs
++++ b/Scripts/UI/NewGameScreen.cs
+@@ -896,12 +896,6 @@ public partial class NewGameScreen : Control
+         if (save == null)
+         { ShowError("Failed to create save."); return; }
+ 
+-        // Temporary: BuildMaterials has no gathering system yet (the terrain-drip
+-        // collection from run_structure_v2 §12b isn't built), so every new guild
+-        // starts with a flat stock. Remove this once materials are actually earnable
+-        // in play. It's a placeholder, not an intended starting balance.
+-        save.BuildMaterials = 10000;
+-
+         // Apply the founding scenario: guild-level difficulty (re-applied to every
+         // cycle's world generation) + the founding gold stipend. Gold floors at 0.
+         // Base starting gold is 0, so a negative delta means "no cushion", not debt.
+-- 
+2.43.0
+

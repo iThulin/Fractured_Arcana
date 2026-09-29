@@ -39,7 +39,7 @@
         },
         {
             "tier": 3,
-            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms.",
+            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage.",
             "goldCost": 350,
             "requiredBuildings": [
                 "scriptorum"
@@ -51,6 +51,19 @@
             "bonusTokenType": "",
             "unlocksFeatures": [
                 "card_upgrade_stage_3"
+            ],
+            "doctrines": [
+                {
+                    "id": "refinement",
+                    "name": "Refinement",
+                    "description": "A deep, precise deck. Once each timeline, one card takes a seventh upgrade point, for good: enough for both halves to reach Stage 4, where every other card must choose which half goes all the way."
+                },
+                {
+                    "id": "dissemination",
+                    "name": "Dissemination",
+                    "description": "Your study becomes the kingdom's arsenal: upgrades reach allied wizards' signature slots.",
+                    "blocked": "signature slots in the deck editor are not built yet"
+                }
             ]
         }
     ]

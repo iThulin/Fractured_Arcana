@@ -158,6 +158,8 @@ public class ArmoryData
                     loadout.ClearSlot(slot);
             }
             loadout.BeltInstanceIds?.Remove(instanceId);   // M6: off the belt too
+            if (loadout.SecondWeaponInstanceId == instanceId)
+                loadout.SecondWeaponInstanceId = null;       // and out of the second hand
         }
         int removed = OwnedItems.RemoveAll(i => i.InstanceId == instanceId);
         return removed > 0;
@@ -213,10 +215,48 @@ public class ArmoryData
         return loadout.BeltInstanceIds != null && loadout.BeltInstanceIds.Remove(instanceId);
     }
 
-    /// <summary>M6: every wand back to full. Called when an expedition ends (the
-    /// spec's "refilled at campus") and by the D13 debug lever. Returns how many
-    /// instances changed.</summary>
-    public int RefillWandCharges()
+    // ── Carried second weapon (Proving Grounds, design §12) ─────────────
+
+    /// <summary>Carry a weapon as the unit's second. Refuses a non-weapon, the
+    /// weapon already in hand, or one equipped or carried by anyone. The doctrine
+    /// gate lives in TrainingGrounds.CannotCarryReason, not here.</summary>
+    public bool EquipSecondWeapon(string unitId, string instanceId)
+    {
+        var item = GetInstance(instanceId);
+        if (item == null || !string.Equals(item.Slot, "Weapon", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (!GetUnequipped().Exists(i => i.InstanceId == instanceId))
+            return false;
+        GetLoadout(unitId).SecondWeaponInstanceId = instanceId;
+        return true;
+    }
+
+    public void UnequipSecondWeapon(string unitId) => GetLoadout(unitId).SecondWeaponInstanceId = null;
+
+    /// <summary>The unit's carried second weapon, or null.</summary>
+    public ItemInstance GetSecondWeapon(string unitId)
+    {
+        string id = GetLoadout(unitId).SecondWeaponInstanceId;
+        return string.IsNullOrEmpty(id) ? null : GetInstance(id);
+    }
+
+    /// <summary>Which unit wears <paramref name="instanceId"/> in its trinket slot
+    /// (where wands go), or null when nobody does.</summary>
+    public string TrinketHolder(string instanceId)
+    {
+        foreach (var kv in Loadouts)
+            if (kv.Value != null && kv.Value.TrinketInstanceId == instanceId)
+                return kv.Key;
+        return null;
+    }
+
+    /// <summary>M6: wands back to full. With no filter, every wand the guild owns
+    /// (the D13 debug lever). With <paramref name="refillHolder"/>, a wand worn by
+    /// a unit refills only when the filter says yes for that unit; a wand nobody
+    /// wears sits in the armory at home and always refills. The where-and-when
+    /// policy lives in FieldMarch (RefillWandsAtHome, RefillPartyWands), not here.
+    /// Returns how many instances changed.</summary>
+    public int RefillWandCharges(Func<string, bool> refillHolder = null)
     {
         int changed = 0;
         foreach (var inst in OwnedItems)
@@ -224,6 +264,12 @@ public class ArmoryData
             var def = ItemDatabase.Get(inst.DefinitionId);
             if (def == null || def.MaxCharges <= 0)
                 continue;
+            if (refillHolder != null)
+            {
+                string holder = TrinketHolder(inst.InstanceId);
+                if (holder != null && !refillHolder(holder))
+                    continue;
+            }
             if (inst.Charges != def.MaxCharges)
             {
                 inst.Charges = def.MaxCharges;
@@ -302,6 +348,8 @@ public class ArmoryData
             if (loadout.BeltInstanceIds != null)
                 foreach (var id in loadout.BeltInstanceIds)
                     equipped.Add(id);   // M6: belted items are spoken for
+            if (!string.IsNullOrEmpty(loadout.SecondWeaponInstanceId))
+                equipped.Add(loadout.SecondWeaponInstanceId);   // carried in the second hand
         }
         return OwnedItems.Where(i => !equipped.Contains(i.InstanceId)).ToList();
     }
@@ -334,6 +382,18 @@ public class ResolvedLoadout
     /// combat so the unit knows which maneuvers it fields. None when nothing
     /// classed is equipped. Read once at spawn (locked at Muster, no mid-combat swap).</summary>
     public WeaponClass WeaponClass = WeaponClass.None;
+
+    /// <summary>Proving Grounds (design §12): the carried second weapon, when the
+    /// doctrine is in force and one is carried. A swap trades the weapon class
+    /// and the two weapons' printed attack damage and range; enchants, drawbacks
+    /// and passives stay with the weapon the unit mustered with.</summary>
+    public bool HasSecondWeapon = false;
+    public WeaponClass SecondWeaponClass = WeaponClass.None;
+    public string SecondWeaponName = "";
+    public string PrimaryWeaponName = "";
+    /// <summary>Second minus primary, printed stats only.</summary>
+    public int SecondAttackDamageDelta = 0;
+    public int SecondAttackRangeDelta = 0;
 
     // All passive tags active on this unit (one per equipped item max)
     // Param added 2026-08-13 for the school-keyed passives (empty for the rest).
@@ -501,10 +561,32 @@ public static class EquipmentLoadout
                     resolved.Passives.Add((tag, pv, def.PassiveParam ?? ""));
             }
 
+            ResolveSecondWeapon(armory, unitId, resolved);
             _loadouts[unitId] = resolved;
         }
 
         GD.Print($"EquipmentLoadout: Built loadouts for {_loadouts.Count} unit(s).");
+    }
+
+    /// <summary>Proving Grounds: fill the carried-weapon fields when the doctrine is
+    /// in force and the unit carries one.</summary>
+    private static void ResolveSecondWeapon(ArmoryData armory, string unitId, ResolvedLoadout resolved)
+    {
+        if (!TrainingGrounds.ProvingGroundsActive(SaveManager.ActiveSave))
+            return;
+        var second = armory.GetSecondWeapon(unitId);
+        var secondDef = second != null ? ItemDatabase.Get(second.DefinitionId) : null;
+        if (secondDef == null)
+            return;
+        var primary = armory.GetInstance(armory.GetLoadout(unitId).WeaponInstanceId ?? "");
+        var primaryDef = primary != null ? ItemDatabase.Get(primary.DefinitionId) : null;
+
+        resolved.HasSecondWeapon = true;
+        resolved.SecondWeaponClass = secondDef.WeaponClassValue;
+        resolved.SecondWeaponName = second.Name;
+        resolved.PrimaryWeaponName = primary != null ? primary.Name : "bare hands";
+        resolved.SecondAttackDamageDelta = secondDef.Stats.AttackDamage - (primaryDef?.Stats.AttackDamage ?? 0);
+        resolved.SecondAttackRangeDelta = secondDef.Stats.AttackRange - (primaryDef?.Stats.AttackRange ?? 0);
     }
 
     /// <summary>Q5: route one effect line (an enchant) into the resolved

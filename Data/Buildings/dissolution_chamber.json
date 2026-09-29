@@ -28,15 +28,26 @@
 		},
 		{
 			"tier": 3,
-			"description": "Master deconstruction. +10 splinters per disenchant. Slotting cards costs 10 gold. Minimum deck floor reduced to 3.",
+			"description": "Master deconstruction. +10 splinters per disenchant. Slotting cards costs 10 gold. And a doctrine, chartered at the Grand Hall. Thin Deck: a deck may run on 7 cards, and a deck of exactly 7 draws an extra card on the first turn. Or Transmutation: turn a card into another of its school and rarity.",
 			"goldCost": 400,
 			"requiredBuildings": [],
 			"unlocksFeatures": [
-				"card_disenchant",
-				"deck_floor_reduced"
+				"card_disenchant"
 			],
 			"disenchantSplinterBonus": 10,
-			"slotCostReduction": 20
+			"slotCostReduction": 20,
+			"doctrines": [
+				{
+					"id": "thin_deck",
+					"name": "Thin Deck",
+					"description": "Minimalism as a strategy. The deck floor drops from 10 cards to 7, and a wizard whose deck is exactly 7 draws one extra card on the first turn of every fight."
+				},
+				{
+					"id": "transmutation",
+					"name": "Transmutation",
+					"description": "A reroll engine. At the deck editor, turn a card into a random other unlocked card of the same school and rarity, for the splinters its rarity would pay on disenchanting. Its upgrades come back as splinters."
+				}
+			]
 		}
 	]
 }

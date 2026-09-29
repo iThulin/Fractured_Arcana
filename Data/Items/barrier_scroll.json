@@ -1,7 +1,7 @@
 {
   "id": "barrier_scroll",
-  "name": "Barrier Scroll",
-  "description": "Read aloud, it stands where you do. Gain 5 shield.",
+  "name": "Barrier Tablet",
+  "description": "Spoken over, it stands where you do. Gain 5 shield.",
   "rarity": "Uncommon",
   "slot": "Consumable",
   "unitClass": "Any",

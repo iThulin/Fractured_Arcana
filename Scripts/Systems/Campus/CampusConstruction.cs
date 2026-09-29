@@ -70,6 +70,13 @@ public static class CampusConstruction
             }
         }
 
+        string seat = SeatGateReason(save, template, tierData, nextTier);
+        if (seat != null)
+            return seat;
+
+        if (bs.Tier > 0 && bs.CurrentIntegrity < bs.MaxIntegrity)
+            return $"Damaged ({bs.CurrentIntegrity}/{bs.MaxIntegrity}). Repair it first.";
+
         if (save.Gold < tierData.GoldCost)
             return $"Needs {tierData.GoldCost}g.";
         if (save.BuildMaterials < tierData.EffectiveMaterialsCost)
@@ -96,17 +103,10 @@ public static class CampusConstruction
         int nextTier = buildingSave.Tier + 1;
         if (nextTier > template.MaxTier) return false;
         var tierData = template.Tiers.Find(t => t.Tier == nextTier);
-        if (tierData == null || save.Gold < tierData.GoldCost
-            || save.BuildMaterials < tierData.EffectiveMaterialsCost)
+        // One gate, the same one the buttons read (cost, cap, prerequisites,
+        // and the school-seat gates).
+        if (tierData == null || CannotBuildReason(save, buildingId) != null)
             return false;
-
-        foreach (var reqId in tierData.RequiredBuildings)
-        {
-            bool found = false;
-            foreach (var b in save.Buildings)
-                if (b.Id == reqId && b.Tier > 0) { found = true; break; }
-            if (!found) return false;
-        }
 
         save.Gold -= tierData.GoldCost;
         save.BuildMaterials -= tierData.EffectiveMaterialsCost;
@@ -124,6 +124,62 @@ public static class CampusConstruction
         GD.Print($"[Construction] {buildingSave.Name} tier {nextTier}. " +
                  $"Gold: {save.Gold}, Materials: {save.BuildMaterials}");
         return true;
+    }
+
+    // ── Repair (portal strikes, TeleportSigil.cs) ────────────────────────
+
+    /// <summary>Materials per point of missing integrity. A starting value: a
+    /// strike's 10 damage costs 30 materials to mend.</summary>
+    public const int RepairMaterialsPerPoint = 3;
+
+    /// <summary>Materials to repair this building to full, 0 when it is whole.</summary>
+    public static int RepairCost(BuildingSaveData bs)
+        => bs == null || bs.Tier <= 0 ? 0
+           : System.Math.Max(0, bs.MaxIntegrity - bs.CurrentIntegrity) * RepairMaterialsPerPoint;
+
+    /// <summary>Why this building cannot be repaired now, or null when it can.</summary>
+    public static string CannotRepairReason(GuildSaveData save, BuildingSaveData bs)
+    {
+        if (save == null || bs == null) return "No save.";
+        int cost = RepairCost(bs);
+        if (cost <= 0) return "Not damaged.";
+        if (save.BuildMaterials < cost) return $"Repair needs {cost} materials.";
+        return null;
+    }
+
+    /// <summary>Mend a damaged building to full integrity for materials.</summary>
+    public static bool TryRepair(GuildSaveData save, string buildingId)
+    {
+        BuildingSaveData bs = null;
+        if (save != null)
+            foreach (var b in save.Buildings)
+                if (b.Id == buildingId) { bs = b; break; }
+        if (CannotRepairReason(save, bs) != null) return false;
+        int cost = RepairCost(bs);
+        save.BuildMaterials -= cost;
+        bs.CurrentIntegrity = bs.MaxIntegrity;
+        SaveManager.Save();
+        GD.Print($"[Construction] {bs.Name} repaired for {cost} materials.");
+        return true;
+    }
+
+    /// <summary>School seats (design §8c): tier 1 needs the school declared (not
+    /// facets: DeclarationService deliberately keeps shards off the path to a
+    /// school); later tiers need that many facets of the school. Null when clear.</summary>
+    private static string SeatGateReason(GuildSaveData save, Building template, BuildingTier tierData, int nextTier)
+    {
+        if (template == null || !template.IsSchoolSeat)
+            return null;
+        string school = template.SchoolAffinity;
+        if (nextTier == 1 && !DeclarationService.IsDeclared(save, school))
+            return $"Declare the {school} discipline at the Grand Hall first.";
+        if (tierData.RequiredFacets > 0)
+        {
+            int held = Facets.Count(save, school);
+            if (held < tierData.RequiredFacets)
+                return $"Needs {tierData.RequiredFacets} {school} facets (the guild holds {held}).";
+        }
+        return null;
     }
 
     /// <summary>Undo the most recent tier purchase. This is the city construct card's

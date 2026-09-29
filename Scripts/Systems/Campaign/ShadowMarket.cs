@@ -176,6 +176,12 @@ public static class ShadowMarket
                 $"Assassination needs Undercroft {ShadowVocab.AssassinationMinUndercroft} " +
                 $"(at {undercroft}).");
         }
+        // The Silent Floor is a doctrine now (campus_building_upgrades_design_v1 §14):
+        // the deepest tier offers it, the Grand Hall charters it.
+        if (!Networks.SilentFloorActive(SaveManager.ActiveSave))
+        {
+            return ShadowMarketResult.Fail("Assassination needs the Silent Floor chartered at the Grand Hall.");
+        }
         if (string.IsNullOrEmpty(courtierId))
         {
             return ShadowMarketResult.Fail("Name the mark.");

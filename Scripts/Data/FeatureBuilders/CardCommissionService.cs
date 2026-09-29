@@ -25,16 +25,17 @@ using System.Linq;
 //                 the Forbidden Archives are built, collapsing the slow reveal
 //                 the §5 seed deliberately created by locking Rares.
 //
-//                 Home: the Arcane Library's "forbidden_archives" T3 feature
-//                 flag, granted by arcane_library.json and, until now, set
-//                 and never consumed (v1 §1, session_log_2026-08-05).
+//                 Home: the Arcane Library from its second tier (moved down
+//                 from T3, campus_building_upgrades_design_v1 §13; the old
+//                 "forbidden_archives" feature flag is retired). The Forbidden
+//                 Archives is now a T3 doctrine: research takes 2 lunations.
 //
 // Layer:          Data / Feature builder
 // Collaborators:  EternalLedger.CardCommissions (the in-flight list),
 //                 EternalLedger.UnlockedCardBlueprintIds (the payoff),
 //                 CardDatabase (blueprint lookup + rarity),
 //                 MarginaliaService (excluded, since its own verb owns those),
-//                 PlayerSession.HasFeature("forbidden_archives") (the gate),
+//                 CardHalls (the gate and the Archives doctrine),
 //                 StrategicView.RunLunationTick (the once-per-lunation tick),
 //                 CardLibraryUi.cs (the surface)
 // See:            docs/progression_card_acquisition_v1.md §8;
@@ -78,17 +79,23 @@ public static class CardCommissionService
     public const int CostCommonGold   = 60;    // edge case: Commons are seeded unlocked
 
     private const string LibraryId   = "arcane_library";
-    private const string FeatureFlag = "forbidden_archives";
 
     // ── Availability ──────────────────────────────────────────────────────
 
-    /// <summary>The verb is available only with the Arcane Library's Forbidden
-    /// Archives (T3 feature flag). Recomputed features can be stale off the campus
-    /// path, so callers on other screens should refresh before trusting this.</summary>
-    public static bool ArchivesAvailable() => PlayerSession.HasFeature(FeatureFlag);
+    /// <summary>Research is open from the Arcane Library's second tier, while the
+    /// building works (sited, not overrun). Reads the save directly, so it is never
+    /// stale off the campus path.</summary>
+    public static bool ArchivesAvailable() => ArchivesAvailable(SaveManager.ActiveSave);
 
-    /// <summary>Max commissions in flight at once, set by the Arcane Library's tier, so 3
-    /// with the Forbidden Archives (which only exist at T3). A concurrency cap is
+    public static bool ArchivesAvailable(GuildSaveData save) => CardHalls.CommissionsOpen(save);
+
+    /// <summary>Lunations a new commission takes: 3, or 2 under the Forbidden
+    /// Archives (Arcane Library doctrine, §13).</summary>
+    public static int ResearchLunationsFor(GuildSaveData save)
+        => CardHalls.ForbiddenArchivesActive(save) ? CardHalls.ArchivesResearchLunations : ResearchLunations;
+
+    /// <summary>Max commissions in flight at once, set by the Arcane Library's tier:
+    /// 2 at T2, 3 at T3. A concurrency cap is
     /// what keeps the pity-timer a deliberate choice rather than a bulk order that
     /// floods discovery in a single wait.</summary>
     public static int MaxConcurrent(GuildSaveData save)
@@ -155,14 +162,14 @@ public static class CardCommissionService
 
         CommissionStatus Fail(string why) => new()
         {
-            CanCommission = false, Blocker = why, GoldCost = gold, Lunations = ResearchLunations,
+            CanCommission = false, Blocker = why, GoldCost = gold, Lunations = ResearchLunationsFor(save),
             InFlight = inFlight, MaxConcurrent = max,
             PendingLunations = existing?.LunationsRemaining ?? -1,
         };
 
         if (bp == null) return Fail("No card selected.");
-        if (!ArchivesAvailable())
-            return Fail("The Forbidden Archives must stand (Arcane Library, tier III) before research can begin.");
+        if (!ArchivesAvailable(save))
+            return Fail("Research opens at the Arcane Library's second tier (Expanded Stacks).");
         if (existing != null)
             return Fail($"Already under research. {existing.LunationsRemaining} lunation(s) remain.");
         if (bp.Rarity == CardRarity.Legendary || gold < 0)
@@ -172,15 +179,15 @@ public static class CardCommissionService
         if (!IsCommissionable(save, bp))
             return Fail("You already know this card. The Library can copy it; see the scribing options.");
         if (max <= 0)
-            return Fail("The Forbidden Archives must stand before research can begin.");
+            return Fail("Research opens at the Arcane Library's second tier (Expanded Stacks).");
         if (inFlight >= max)
-            return Fail($"The Archives are at capacity ({inFlight}/{max}). Wait for a commission to complete.");
+            return Fail($"The Library's researchers are all busy ({inFlight}/{max}). Wait for a commission to complete.");
         if ((save?.Cycle?.Gold ?? 0) < gold)
             return Fail($"Not enough gold. {gold} needed.");
 
         return new CommissionStatus
         {
-            CanCommission = true, GoldCost = gold, Lunations = ResearchLunations,
+            CanCommission = true, GoldCost = gold, Lunations = ResearchLunationsFor(save),
             InFlight = inFlight, MaxConcurrent = max, PendingLunations = -1, Blocker = "",
         };
     }

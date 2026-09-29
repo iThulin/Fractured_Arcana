@@ -35,8 +35,9 @@ public class CampusWorkshopPanel : CampusPanel
         var note = new Label
         {
             Text = "The guild's sole venue for item mutation: one enchant slot per item, " +
-                   "handcrafted scripts only. Blighted spoils can be cleansed here once " +
-                   "the Unbinding Floor stands.",
+                   "handcrafted scripts only. At its third tier the Workshop takes a doctrine, " +
+                   "chartered at the Grand Hall: the Unbinding Floor cleanses blight, the " +
+                   "Attunement Forge rebinds staves.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -69,15 +70,27 @@ public class CampusWorkshopPanel : CampusPanel
                 "The Enchanter's Workshop is not yet built. Raise it on the campus to begin."));
             return;
         }
+        if (WorkshopEnchants.IsOverrun(save))
+        {
+            _container.AddChild(MakeStubLabel(
+                "The Workshop stands on overrun ground and has stopped working. Cleanse the land " +
+                "(on its campus card) to bring it back."));
+            return;
+        }
 
+        string doctrine = WorkshopEnchants.CanCleanse(save) ? "full catalog, and the Unbinding Floor (Cleanse)."
+                        : WorkshopEnchants.CanAttune(save) ? "full catalog, and the Attunement Forge (staves)."
+                        : Charters.IsRefitting(save, WorkshopEnchants.BuildingId) ? "full catalog; a doctrine is being fitted and holds from the next moon."
+                        : "full catalog; no doctrine chartered (charter one at the Grand Hall).";
         var tierLabel = new Label
         {
             Text = $"Workshop tier {tier}: " + tier switch
             {
                 1 => "stat-line enchants.",
                 2 => "stat lines and scripted effects.",
-                _ => "full catalog, and the Unbinding Floor (Cleanse).",
+                _ => doctrine,
             },
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         tierLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         _container.AddChild(tierLabel);
@@ -136,12 +149,13 @@ public class CampusWorkshopPanel : CampusPanel
             blight.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             col.AddChild(blight);
 
+            bool canCleanse = WorkshopEnchants.CanCleanse(save);
             var cleanse = new Button
             {
-                Text = tier >= 3
+                Text = canCleanse
                     ? $"Cleanse ({WorkshopEnchants.CleanseGold}g + {WorkshopEnchants.CleanseSplinters} splinters)"
-                    : "Cleanse (requires the Unbinding Floor, tier 3)",
-                Disabled = tier < 3 || save.Gold < WorkshopEnchants.CleanseGold
+                    : "Cleanse (requires the Unbinding Floor, chartered at the Grand Hall)",
+                Disabled = !canCleanse || save.Gold < WorkshopEnchants.CleanseGold
                            || save.ArcaneSplinters < WorkshopEnchants.CleanseSplinters,
                 SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
             };
@@ -151,13 +165,16 @@ public class CampusWorkshopPanel : CampusPanel
             cleanse.Pressed += () =>
             {
                 var it = FindItem(capturedId);
-                if (it != null && WorkshopEnchants.TryCleanse(it,
-                        CouncilQueries.BuildingTier(Ctx?.Save, "enchanters_workshop")) != null)
+                if (it != null && WorkshopEnchants.TryCleanse(it) != null)
                     Refresh();
             };
             col.AddChild(cleanse);
             return card; // sealed slot, so no enchant verbs while blighted
         }
+
+        // Attunement Forge: a staff's Innate card can be rebound (M7 binding).
+        if (def != null && def.IsStaff && WorkshopEnchants.CanAttune(save))
+            col.AddChild(BuildAttuneRow(item, def, save));
 
         // Enchant slot state
         var slotLabel = new Label
@@ -180,11 +197,15 @@ public class CampusWorkshopPanel : CampusPanel
 
             foreach (var e in verbs)
             {
+                int cost = WorkshopEnchants.EnchantCost(save, e);
+                bool tainting = WorkshopEnchants.IsTainting(save);
                 var btn = new Button
                 {
-                    Text = $"{e.Name} ({e.GoldCost}g)",
-                    TooltipText = e.Description,
-                    Disabled = save.Gold < e.GoldCost,
+                    Text = $"{e.Name} ({cost}g)",
+                    TooltipText = e.Description + (tainting
+                        ? " Blighted Workshop: half price, but the item takes a drawback and its slot seals."
+                        : ""),
+                    Disabled = save.Gold < cost,
                 };
                 btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
                 UITheme.ApplyButtonStyle(btn, isPrimary: false);
@@ -202,6 +223,71 @@ public class CampusWorkshopPanel : CampusPanel
         }
 
         return card;
+    }
+
+    /// <summary>Wand-style picker for the Attunement Forge: choose a deck card,
+    /// pay, and the staff opens every fight with it.</summary>
+    private readonly Dictionary<string, string> _attuneChoice = new();
+
+    private Control BuildAttuneRow(ItemInstance staff, ItemDefinition def, GuildSaveData save)
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 8);
+
+        var candidates = WorkshopEnchants.AttuneCandidates(save);
+        string bound = staff.EffectiveBoundCardId(def);
+        var boundBp = CardDatabase.Blueprints.Find(b => b.Id == bound);
+        var current = new Label
+        {
+            Text = $"Opens with: {(boundBp != null ? CardDatabase.GetDisplayName(boundBp) : "nothing")}",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        current.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        row.AddChild(current);
+        if (candidates.Count == 0)
+            return row;
+
+        string staffId = staff.InstanceId;
+        _attuneChoice.TryGetValue(staffId, out string chosen);
+        var picker = new OptionButton { CustomMinimumSize = new Vector2(240, 30) };
+        picker.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        int selected = 0;
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            picker.AddItem(CardDatabase.GetDisplayName(candidates[i]), i);
+            if (candidates[i].Id == chosen)
+                selected = i;
+        }
+        _attuneChoice[staffId] = candidates[selected].Id;
+        picker.Select(selected);
+        picker.ItemSelected += idx =>
+        {
+            if (idx >= 0 && idx < candidates.Count)
+            {
+                _attuneChoice[staffId] = candidates[(int)idx].Id;
+                Refresh();
+            }
+        };
+        row.AddChild(picker);
+
+        string why = WorkshopEnchants.CannotAttuneReason(save, staff, _attuneChoice[staffId]);
+        var btn = new Button
+        {
+            Text = $"Attune ({WorkshopEnchants.AttuneGold}g)",
+            Disabled = why != null,
+            TooltipText = why ?? "",
+        };
+        btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(btn, isPrimary: false);
+        btn.Pressed += () =>
+        {
+            var it = FindItem(staffId);
+            if (it != null && WorkshopEnchants.TryAttune(Ctx?.Save, it, _attuneChoice[staffId]) != null)
+                Refresh();
+        };
+        row.AddChild(btn);
+        return row;
     }
 
     private ItemInstance FindItem(string instanceId)

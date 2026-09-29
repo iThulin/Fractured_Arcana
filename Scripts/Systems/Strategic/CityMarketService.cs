@@ -82,7 +82,9 @@ public static class CityMarketService
         var rng = new RandomNumberGenerator();
         rng.Seed = Fnv1a(market.CityId) ^ (ulong)(lunation * 40503L + 7);
 
-        var all = ItemDatabase.GetAll();
+        // Spellglass is crafted only: a glass is blank until the Scriptorium seals
+        // a card into it, and a blank one cannot be used (2026-09-29).
+        var all = ItemDatabase.GetAll()?.Where(d => !d.IsSpellglass).ToList();
         if (all == null || all.Count == 0) return;
 
         int slots = city.IsSeat ? SeatStock

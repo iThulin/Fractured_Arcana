@@ -1,0 +1,72 @@
+From 43639f138f26bea687f5cc6ffd3aa030480fbb71 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 12:47:25 -0600
+Subject: [PATCH] Debug Foul Campus Ground: target foundational buildings when
+ nothing else is sited
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Scripts/Systems/Campus/CampusGuildPanel.cs | 36 ++++++++++++++++------
+ 1 file changed, 26 insertions(+), 10 deletions(-)
+
+diff --git a/Scripts/Systems/Campus/CampusGuildPanel.cs b/Scripts/Systems/Campus/CampusGuildPanel.cs
+index e646c81..c3ee32b 100644
+--- a/Scripts/Systems/Campus/CampusGuildPanel.cs
++++ b/Scripts/Systems/Campus/CampusGuildPanel.cs
+@@ -777,26 +777,42 @@ public sealed class CampusGuildPanel : CampusPanel
+         });
+         Act(strategic, "Foul Campus Ground", () =>
+         {
+-            // Campus corruption (§11): one step onto the sited, non-foundational
+-            // building first in id order that is not yet overrun. Press repeatedly
+-            // to walk it through Tainted, Blighted and Overrun.
++            // Campus corruption (§11): one step onto a sited building whose ground can
++            // still sink. Non-foundational buildings first (they go to Overrun), then
++            // foundational ones (capped at Blighted), in id order, so repeated presses
++            // walk one building through its levels before moving to the next. A new
++            // guild owns only its five foundational buildings, so those are the targets
++            // until something else is built and sited.
+             var save = Ctx.Save;
+             if (save?.Buildings == null)
+                 return;
+-            var ids = new System.Collections.Generic.List<string>();
++            var ordinary = new System.Collections.Generic.List<string>();
++            var foundational = new System.Collections.Generic.List<string>();
+             foreach (var b in save.Buildings)
+             {
+                 var t = BuildingDatabase.GetTemplate(b.Id);
+-                if (b.Tier > 0 && b.IsPlaced && b.BlightLevel < CampusBlight.MaxLevel && t != null && !t.IsFoundational)
+-                    ids.Add(b.Id);
++                if (b.Tier <= 0 || !b.IsPlaced || t == null)
++                    continue;
++                if (t.IsFoundational)
++                {
++                    if (b.BlightLevel < CampusBlight.FoundationalCap)
++                        foundational.Add(b.Id);
++                }
++                else if (b.BlightLevel < CampusBlight.MaxLevel)
++                {
++                    ordinary.Add(b.Id);
++                }
+             }
+-            if (ids.Count == 0)
++            ordinary.Sort(string.CompareOrdinal);
++            foundational.Sort(string.CompareOrdinal);
++            string pick = ordinary.Count > 0 ? ordinary[0] : foundational.Count > 0 ? foundational[0] : null;
++            if (pick == null)
+             {
+-                GD.PrintErr("[Debug] No sited building left to foul.");
++                GD.PrintErr("[Debug] Every sited building's ground is already as foul as it can get.");
+                 return;
+             }
+-            ids.Sort(string.CompareOrdinal);
+-            GD.Print("[Debug] " + CampusBlight.CorruptBuildingLand(save, ids[0], 1));
++            string line = CampusBlight.CorruptBuildingLand(save, pick, 1);
++            GD.Print($"[Debug] Fouled '{pick}' (now {CampusBlight.LevelName(CampusBlight.Level(save, pick))}). {line}");
+             SaveManager.SaveIfDirty();
+         });
+         Act(strategic, "Assert Field Save", () => FieldExpeditionSaveAssert.AssertAll());
+-- 
+2.43.0
+

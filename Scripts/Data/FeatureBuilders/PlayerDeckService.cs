@@ -182,7 +182,7 @@ public static class PlayerDeckService
     public static bool IsActiveDeckValid(GuildSaveData save)
     {
         int count = save?.PlayerDeck?.ActiveDeckInstanceIds?.Count ?? 0;
-        return count >= PlayerDeckSave.MinDeckSize;
+        return count >= CardHalls.DeckFloor(save);   // one floor: 10, or 7 under Thin Deck
     }
 
     /// <summary>

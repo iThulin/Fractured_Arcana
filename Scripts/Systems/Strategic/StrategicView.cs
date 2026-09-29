@@ -345,14 +345,36 @@ public partial class StrategicView : Node2D
                 // Order matters: resolving first means the offer below never
                 // re-asks about a fight that just happened.
                 ConsumeCastleDefenseReturn(cycle);
+                // A defense that never came back (quit or crash mid-combat) stays
+                // OWED, not stuck: OfferPendingCastleDefense refuses while the
+                // launched marker is set, so a stale one is cleared here (the same
+                // fix as the portal strike's below, 2026-09-29).
+                bool castleNoReturn = EncounterRouter.Instance == null || !EncounterRouter.Instance.HasPendingReturn;
+                if (cycle.CastleDefenseLaunched && castleNoReturn)
+                    cycle.CastleDefenseLaunched = false;
                 if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
                     CallDeferred(nameof(OfferPendingCastleDefense));
                 // The same for a fight owed at a posting (2026-09-28). The
                 // castle's is asked first; a posting's waits its turn.
                 ConsumePostingDefenseReturn(cycle);
+                if (cycle.PostingDefenseLaunched
+                    && (EncounterRouter.Instance == null || !EncounterRouter.Instance.HasPendingReturn))
+                    cycle.PostingDefenseLaunched = false;
                 if (string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId)
                     && !string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId))
                     CallDeferred(nameof(OfferPendingPostingDefense));
+                // And a portal strike through the Teleport Sigil (2026-09-29),
+                // asked last: the castle's and a posting's fights come first.
+                ConsumePortalStrikeReturn(cycle);
+                // A strike fight that never came back (quit or crash mid-combat)
+                // stays OWED, not stuck: clear the launched marker so it is offered again.
+                if (cycle.PortalStrikeLaunched
+                    && (EncounterRouter.Instance == null || !EncounterRouter.Instance.HasPendingReturn))
+                    cycle.PortalStrikeLaunched = false;
+                if (string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId)
+                    && string.IsNullOrEmpty(cycle.PendingPostingAssaultForceId)
+                    && !string.IsNullOrEmpty(cycle.PendingPortalStrikeKingdomId))
+                    CallDeferred(nameof(OfferPendingPortalStrike));
             }
         }
 
@@ -1438,9 +1460,11 @@ public partial class StrategicView : Node2D
             var fp = SelectedParty();
             if (pressed && !FieldMarch.CanOrderAtAll(cycle, fp, out string partyWhy))
             {
-                ShowStrategicNotice("The party cannot move", partyWhy);
                 if (_marchModeBtn != null) _marchModeBtn.ButtonPressed = false;
                 _marchMode = false;
+                // Teleport Sigil T2: a party on the road may still step home.
+                if (!OfferSigilRecallHome(cycle, fp))
+                    ShowStrategicNotice("The party cannot move", partyWhy);
                 return;
             }
             _marchMode = pressed;
@@ -2735,6 +2759,7 @@ public partial class StrategicView : Node2D
             {
                 save.Gold += router.GoldReward;
                 save.ArcaneSplinters += router.SplinterReward;
+                save.BuildMaterials += router.MaterialReward;
             }
             line = force != null
                 ? $"{force.Name} throw back {who} and hold their post."
@@ -2789,6 +2814,7 @@ public partial class StrategicView : Node2D
         {
             save.Gold += router.GoldReward;
             save.ArcaneSplinters += router.SplinterReward;
+            save.BuildMaterials += router.MaterialReward;
 
             // Q4.4 loot faucet, tiered by the owning kingdom (expedition parity).
             // City ground is not corrupted, so no blight roll.
@@ -2807,7 +2833,7 @@ public partial class StrategicView : Node2D
             var entry = st != null ? CityExploreService.FindDistrict(st, district) : null;
             if (entry != null) entry.Cleared = true;
 
-            _reenterToast = $"The enclave is broken. (+{router.GoldReward} gold, +{router.SplinterReward} splinters"
+            _reenterToast = $"The enclave is broken. (+{router.GoldReward} gold, +{router.SplinterReward} splinters, +{router.MaterialReward} materials"
                           + (items > 0 ? $", {items} item{(items == 1 ? "" : "s")})" : ")");
             _reenterToastKind = QuestToastKind.Complete;
 
@@ -6814,6 +6840,33 @@ public partial class StrategicView : Node2D
         KingdomTickSimulation.Tick(cycle, FactionDisplay);
         SupplyCacheSystem.Tick(cycle, FactionDisplay);
         CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
+        // Wands at home recharge with the moon, so a wand spent in a castle or
+        // campus defense is not stranded until the next sortie ends (2026-09-29).
+        FieldMarch.RefillWandsAtHome(cycle, SaveManager.ActiveSave?.Armory);
+        // Facets: a corrupted kingdom's shard zone sheds its blight facet (the
+        // site posts its own Messenger to the scrying desk).
+        Facets.SiteBlightFacets(cycle, SaveManager.ActiveSave);
+        // Teleport Sigil: hostile kingdoms learn its pattern; one that knows it
+        // may strike through it. The owed strike is offered by _Ready, which every
+        // path after a lunation passes through, after the castle's and a posting's.
+        foreach (var portalLine in TeleportSigil.TickLunation(cycle, SaveManager.ActiveSave))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(portalLine);
+        }
+        // Campus corruption (design §11): fouled ground drains splinters and the
+        // blight creeps one tile outward from every blighted patch.
+        foreach (var blightLine in CampusBlight.TickLunation(cycle, SaveManager.ActiveSave))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(blightLine);
+        }
+        // Trade Routes (Courier Station doctrine, design §14): caravans pay, or are raided.
+        foreach (var tradeLine in Networks.TickTradeRoutes(cycle, SaveManager.ActiveSave))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(tradeLine);
+        }
         // Q4.2: a united archmage's relic arrives when the unite moon returns.
         ArchmageRelics.TickUniteAnniversaries(cycle);
         // §8 pity-timer: advance Library research commissions; a completed one

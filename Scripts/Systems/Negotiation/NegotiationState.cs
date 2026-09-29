@@ -247,6 +247,13 @@ public class NegotiationState
             c.Position = c.Side == ClauseSide.Theirs ? -NegotiationTuning.TrackMax : +NegotiationTuning.TrackMax;
             c.PulledByThem = false;
         }
+        // Chancery (Arcane Library doctrine, §13): the Library has read the court's
+        // lore; every Lore term's valuation starts known.
+        if (CardHalls.ChanceryActive(SaveManager.ActiveSave))
+            foreach (var c in Clauses)
+                if (ClauseCategories.Of(c.Kind) == ClauseCategory.Lore)
+                    c.Revealed = true;
+
         // A rider pointing at nothing is authored noise; drop it quietly.
         foreach (var c in Clauses)
             if (c.HasRider && !Clauses.Any(r => r.Id == c.Rider && r.Side == ClauseSide.Yours))
@@ -290,6 +297,21 @@ public class NegotiationState
         Discard.Clear();
         _nextInstanceId = 1000;
         ParleyDeckBuilder.Shuffle(Deck, n => (int)(GD.Randi() % (uint)Math.Max(1, n)));
+        // Chancery: your school's sweep card is on top, so the opening hand holds it.
+        if (CardHalls.ChanceryActive(SaveManager.ActiveSave))
+        {
+            // Prefer a sweeping school card; schools with none (Elementalist,
+            // Chronomancer) open with their first school card instead.
+            int i = Deck.FindIndex(c => c != null && (c.Source ?? "").StartsWith("school:", StringComparison.Ordinal) && c.Sweeps);
+            if (i < 0)
+                i = Deck.FindIndex(c => c != null && (c.Source ?? "").StartsWith("school:", StringComparison.Ordinal));
+            if (i > 0)
+            {
+                var top = Deck[i];
+                Deck.RemoveAt(i);
+                Deck.Insert(0, top);
+            }
+        }
         AddLog("Your parley deck: " + string.Join(", ", provenance), NegotiationLogKind.Detail);
         if (patronCount > 0)
             AddLog("A patron at court backs you: a card of theirs is in your deck.", NegotiationLogKind.Detail);
