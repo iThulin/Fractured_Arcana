@@ -215,11 +215,9 @@ public static class FieldPostings
         }
 
         // Envoy: a kingdom's seat, or any city where the court already knows
-        // us. Only the two UNTARGETED missions are offered from the field;
-        // gifts, petitions, courtship and rumour need a courtier chosen, and
-        // that picker lives on the council screen where the court is laid out.
-        // Choosing a rumour's target for the player would be a decision made
-        // for them, so it is not made here.
+        // us. Every council mission is offered here, with the same gates as
+        // the council screen; a targeted mission's courtier is chosen on the
+        // posting sheet (2026-09-27).
         var settlement = world.SettlementAt(x, y);
         var save = SaveManager.ActiveSave;
         if (settlement != null && settlement.Tier == SettlementTier.City && save != null
@@ -262,7 +260,11 @@ public static class FieldPostings
                 {
                     continue;
                 }
-                int gold = def.GoldCost / EnvoyGoldDivisor;
+                if (CouncilMissions.ExtraRefusal(cycle, court, def.Id) != null)
+                {
+                    continue;
+                }
+                int gold = CouncilMissions.GoldFor(save, def) / EnvoyGoldDivisor;
                 list.Add(new Option
                 {
                     Kind = Envoy,
@@ -332,12 +334,19 @@ public static class FieldPostings
                 {
                     continue;
                 }
+                string AlliesLine(bool defendSide)
+                {
+                    int n = Statecraft.ConcordatCourts(cycle, save, wf, defendSide).Count;
+                    return n > 0
+                        ? $" Under the Concordat, {n} court(s) bound by the Compact send soldiers: +{Statecraft.ConcordatAdvance(n)} a moon."
+                        : "";
+                }
                 list.Add(new Option
                 {
                     Kind = HoldLine,
                     Title = $"Hold the line for {wf.DefenderName}",
                     Detail = $"The front falls back {HoldAdvancePerMember} per body a moon (cap {HoldAdvanceCap}). "
-                           + "Every third moon held, their court hears of it.",
+                           + "Every third moon held, their court hears of it." + AlliesLine(true),
                     SuppliesPerMoon = HoldSupplies,
                     Days = 0,
                     ZoneId = $"warfront:{wf.Id}",
@@ -348,7 +357,7 @@ public static class FieldPostings
                     Kind = HoldLine,
                     Title = $"Press the attack with {wf.AggressorName}",
                     Detail = $"The front advances {HoldAdvancePerMember} per body a moon (cap {HoldAdvanceCap}). "
-                           + "Every third moon, the attacker's court hears of it.",
+                           + "Every third moon, the attacker's court hears of it." + AlliesLine(false),
                     SuppliesPerMoon = HoldSupplies,
                     Days = 0,
                     ZoneId = $"warfront:{wf.Id}",
@@ -548,7 +557,9 @@ public static class FieldPostings
                 // moon faster, a Master is known at the door (2026-09-25).
                 var envoyC = cycle.Companions?.Find(x => x != null && x.Id == envoyId);
                 int courtier = Vocations.RankIf(envoyC, Vocations.Courtier);
-                int gold = courtier >= 1 ? def.GoldCost / Vocations.CourtierGoldDivisor : opt.Gold;
+                int gold = courtier >= 1
+                    ? CouncilMissions.GoldFor(SaveManager.ActiveSave, def) / Vocations.CourtierGoldDivisor
+                    : opt.Gold;
                 int moons = courtier >= 2 ? Math.Max(1, def.Lunations - 1) : def.Lunations;
                 cycle.Gold = Math.Max(0, cycle.Gold - gold);
                 if (courtier >= 3 && cycle.Council.Courts.TryGetValue(kid, out var courtNow))
@@ -857,6 +868,11 @@ public static class FieldPostings
                 int able = AbleCount(cycle, force);
                 int delta = Math.Min(HoldAdvanceCap, able * HoldAdvancePerMember);
                 bool defend = force.WorkSide != (int)WarfrontSide.Aid;
+                // Concordat (Embassy doctrine, design §17): courts bound by the
+                // Compact send soldiers to the guild's line, on top of its cap.
+                var allies = Statecraft.ConcordatCourts(cycle, SaveManager.ActiveSave, wf, defend);
+                int allied = able > 0 ? Statecraft.ConcordatAdvance(allies.Count) : 0;
+                delta += allied;
                 wf.Advance = Math.Clamp(wf.Advance + (defend ? -delta : delta), 0, 100);
                 force.WorkProgress++;
                 string echo = "";
@@ -868,8 +884,11 @@ public static class FieldPostings
                         echo = " Word of it reaches their court.";
                     }
                 }
+                string alliedText = allied > 0
+                    ? $" Soldiers of {string.Join(", ", allies.ConvertAll(k => CouncilTick.CourtDisplayName(cycle, k)))} stand with them (+{allied})."
+                    : "";
                 return $"{force.Name} {(defend ? "hold" : "press")} the line at {wf.DefenderName}: "
-                     + $"the front {(defend ? "falls back" : "advances")} {delta}, now {wf.Advance}/100.{echo}";
+                     + $"the front {(defend ? "falls back" : "advances")} {delta}, now {wf.Advance}/100.{alliedText}{echo}";
             }
             case Ward:
             {
@@ -1243,7 +1262,7 @@ public static class FieldPostings
             var list = new List<CourtierState>();
             foreach (var c in court.Courtiers)
             {
-                if (c.Regard >= 2 && court.PatronCourtierId != c.Id)
+                if (c.Regard >= 2 && !court.IsPatron(c.Id))
                 {
                     list.Add(c);
                 }

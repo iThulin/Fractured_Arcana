@@ -240,6 +240,7 @@ public static class ShadowTick
         // Marked >= Sold Out: the Concord fences the guild's movements, so the
         // Astrologer's agents get one free extra burn roll per lunation (§3d).
         bool soldOut = council.Marked >= ShadowVocab.MarkedSoldOut;
+        bool rottenCellar = BlightedForms.Active(save, BlightedForms.Undercroft);
         bool changed = false;
 
         // Iterate a copy, because burns remove entries.
@@ -261,6 +262,7 @@ public static class ShadowTick
             bool courtEmbedded = !string.IsNullOrEmpty(inf.CourtierId);
             if (courtEmbedded && embassyTier > 0) { hit -= BurnEmbassyCourtCover; }
             if (inf.Role == ShadowVocab.RoleSaboteur) { hit += BurnSaboteurLoud; }
+            if (rottenCellar) { hit += BlightedForms.RottenCellarBurn; }   // blighted Undercroft (§21)
             hit = Mathf.Clamp(hit, BurnHitMin, BurnHitMax);
 
             bool caught = (int)(GD.Randi() % 100) < hit;
@@ -436,10 +438,7 @@ public static class ShadowTick
         }
 
         court.Courtiers.Remove(mark);
-        if (court.PatronCourtierId == courtierId)
-        {
-            court.PatronCourtierId = "";
-        }
+        court.RemovePatron(courtierId);
         court.Exposure = Mathf.Clamp(court.Exposure + ShadowVocab.AssassinationExposureSpike, 0, 10);
 
         Emit(reports, lun, kingdomId,

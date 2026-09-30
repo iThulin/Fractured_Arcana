@@ -50,11 +50,11 @@ using System.Text.Json.Serialization;
 //                 finding 4; handoff section 4.6
 // ============================================================
 
-/// <summary>One spell in the faction library. The upgrade tiers here are the
-/// POOL-level record: this is what makes an upgrade propagate to every wizard
-/// referencing the blueprint, which per-instance OwnedCard tiers cannot do.
-/// The player's own owned copies keep their own tiers for their own deck;
-/// these are the tiers an ALLY gets when the spell is slotted to them.</summary>
+/// <summary>One spell in the faction library. As built (2026-09-29, design
+/// §16) an ally's copy is fielded at its printed tiers, or under Dissemination
+/// at the tiers of the guild's best owned copy (ScribesTower.BestOwnedTiers),
+/// read fresh at each fight. So propagation needs no stored pool tiers, and
+/// TopTier / BotTier below are reserved and currently unused.</summary>
 public class SignatureSpell
 {
     /// <summary>CardBlueprint.Id, "school:TopName|BotName". Decks reference
@@ -67,7 +67,10 @@ public class SignatureSpell
 
     public int BotTier = 0;
 
-    /// <summary>Ruling 2 (2026-09-21): remote casting is a FLAG on a signature
+    /// <summary>UNUSED as stored data (2026-09-29, design §20): whether a spell
+    /// can be cast remotely is DERIVED from what it does (RemoteCasting.
+    /// IsCastableRemotely), so it can never disagree with the card.
+    /// Ruling 2 (2026-09-21): remote casting is a FLAG on a signature
     /// spell, not a separate pool. Damage spells never carry it. Note that the
     /// cast itself should spend Essence through the existing overworld spell
     /// system (GrimoireState / OverworldSpellManager) rather than inventing a

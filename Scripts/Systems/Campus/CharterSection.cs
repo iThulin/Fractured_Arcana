@@ -90,6 +90,7 @@ public static class CharterSection
         var entry = Charters.EntryFor(save, template.Id);
         string state = entry == null ? "no charter"
                      : CampusBlight.IsBlighted(save, template.Id) ? "chartered, but dark on blighted ground"
+                     : Charters.IsOverSlots(save, template.Id) ? "chartered, but dark: the Grand Hall is short a seat"
                      : Charters.IsRefitting(save, template.Id) ? "refitting, holds from the next moon"
                      : "chartered";
         if (Charters.IsFreeSeat(save, template.Id))

@@ -1,0 +1,722 @@
+From 2dcb4b8f290ce84acf99b8b304d2e19050be3720 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 16:30:15 -0600
+Subject: [PATCH] Remote casting through the lens, and The Hand (building slice
+ 12b)
+
+When the wizard is not on the board, any fielded ally's tray shows The
+Lens: the wizard casts a spell from their own deck through that ally,
+from the campus. A remote spell never deals damage: what qualifies is
+derived from the spell's effects (an allowlist of movement, terrain and
+hazard, protection, cleansing, non-damaging conditions and intent
+reading), never from an authored flag.
+
+- RemoteCasting.cs: reach (dive, or a defense), budget (1 a fight, 2 with
+  The Hand), 2 Essence in a dive, the damage-free test, the spell list.
+- CombatManager.RemoteCast.cs: tray card, spell picker, aiming from the
+  ally, casting through the item seam (mana waived, no AP).
+- Tray, arming, cancel and click routing know the armed remote spell.
+- The Hand (Scrying Chambers T3) unblocked: two casts a fight, and the
+  lens reaches posting defenses and castle defenses before the wizard
+  arrives. Scrying Chambers T1 text names the lens.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/scrying_chambers.json          |   7 +-
+ Scripts/Data/FeatureBuilders/Administrator.cs |   2 +-
+ Scripts/Data/FeatureBuilders/LoreHalls.cs     |   7 +-
+ Scripts/Data/FeatureBuilders/RemoteCasting.cs | 203 ++++++++++++
+ Scripts/Data/SaveState/SignaturePool.cs       |   5 +-
+ .../Combat/Core/CombatManager.Maneuvers.cs    |  23 +-
+ .../Combat/Core/CombatManager.RemoteCast.cs   | 306 ++++++++++++++++++
+ 7 files changed, 540 insertions(+), 13 deletions(-)
+ create mode 100644 Scripts/Data/FeatureBuilders/RemoteCasting.cs
+ create mode 100644 Scripts/Systems/Combat/Core/CombatManager.RemoteCast.cs
+
+diff --git a/Data/Buildings/scrying_chambers.json b/Data/Buildings/scrying_chambers.json
+index 933e1bb..75663c1 100644
+--- a/Data/Buildings/scrying_chambers.json
++++ b/Data/Buildings/scrying_chambers.json
+@@ -23,7 +23,7 @@
+         {
+             "tier": 1,
+             "displayName": "The Still Water",
+-            "description": "The lenses find the nearest hidden sites. At the start of each expedition, the 2 nearest undiscovered points of interest are charted as beacons.",
++            "description": "The lenses find the nearest hidden sites. At the start of each expedition, the 2 nearest undiscovered points of interest are charted as beacons. And the lens: when a field party fights without the wizard, the wizard may cast one spell a fight through an ally, from the campus (never one that deals damage; 2 Essence).",
+             "goldCost": 150,
+             "requiredBuildings": [],
+             "revealPoiCount": 2
+@@ -40,7 +40,7 @@
+         {
+             "tier": 3,
+             "displayName": "The Third Eye",
+-            "description": "Charts a fourth site (4 total). And a doctrine, chartered at the Grand Hall. The Third Eye: the party foresees and slips the first ambush of each expedition, and every enemy's intent is read in full in expedition fights.",
++            "description": "Charts a fourth site (4 total). And a doctrine, chartered at the Grand Hall. The Third Eye: the party foresees and slips the first ambush of each expedition, and every enemy's intent is read in full in expedition fights. Or The Hand: the lens casts twice a fight, and reaches posting and castle defenses too.",
+             "goldCost": 450,
+             "requiredBuildings": [],
+             "revealPoiCount": 1,
+@@ -53,8 +53,7 @@
+                 {
+                     "id": "the_hand",
+                     "name": "The Hand",
+-                    "description": "Intervention play: the wizard casts into field fights from afar, more often and further.",
+-                    "blocked": "remote casting is not built yet"
++                    "description": "Intervention play. The wizard's lens casts two spells a fight instead of one, and reaches every fight the wizard is not in: a posting's defense, and a castle defense before the wizard arrives, as well as a field party's dive. Remote spells never deal damage."
+                 }
+             ]
+         }
+diff --git a/Scripts/Data/FeatureBuilders/Administrator.cs b/Scripts/Data/FeatureBuilders/Administrator.cs
+index 6dc70d0..b549ba0 100644
+--- a/Scripts/Data/FeatureBuilders/Administrator.cs
++++ b/Scripts/Data/FeatureBuilders/Administrator.cs
+@@ -176,7 +176,7 @@ public static class Administrator
+             why = "No one in the party can fight: the wizard comes through the circle at once.";
+             return true;
+         }
+-        why = "The wizard directs from the campus. Summon them from the expedition map to fight in person.";
++        why = "The wizard directs from the campus (the Lens in an ally's tray casts through them). Summon them from the expedition map to fight in person.";
+         return false;
+     }
+ }
+diff --git a/Scripts/Data/FeatureBuilders/LoreHalls.cs b/Scripts/Data/FeatureBuilders/LoreHalls.cs
+index e6f7835..6353a7e 100644
+--- a/Scripts/Data/FeatureBuilders/LoreHalls.cs
++++ b/Scripts/Data/FeatureBuilders/LoreHalls.cs
+@@ -4,8 +4,8 @@ using Godot;
+ // LoreHalls.cs
+ //
+ // Purpose:        The Scriptorum's and the Scrying Chambers' doctrines
+-//                 (campus_building_upgrades_design_v1 §15). The Hand is
+-//                 still blocked on remote casting.
++//                 (campus_building_upgrades_design_v1 §15). The Hand's
++//                 rules live in RemoteCasting (§20).
+ //
+ //                 Scriptorum T3:
+ //                   Refinement    once per timeline, one card may take a
+@@ -21,7 +21,8 @@ using Godot;
+ //                   Third Eye     the ambush portent (was T3 itself), and
+ //                                 every enemy's intent starts fully revealed
+ //                                 in expedition fights.
+-//                   The Hand      blocked: needs remote casting.
++//                   The Hand      the lens casts twice a fight and reaches
++//                                 posting and castle defenses (RemoteCasting).
+ // Layer:          Data / rules
+ // Collaborators:  Charters (the gate), OwnedCard (Refined, PointsRemaining),
+ //                 CycleState (RefinementsUsed), CardUpgradeScreen (the Refine
+diff --git a/Scripts/Data/FeatureBuilders/RemoteCasting.cs b/Scripts/Data/FeatureBuilders/RemoteCasting.cs
+new file mode 100644
+index 0000000..d7e01de
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/RemoteCasting.cs
+@@ -0,0 +1,203 @@
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// RemoteCasting.cs
++//
++// Purpose:        Remote casting through the lens (campus_building_upgrades_
++//                 design_v1 §20; expedition handoff §4.5). When the wizard is
++//                 not on the board, they can still reach into a fight from the
++//                 campus: a few times a fight, a spell from the wizard's own
++//                 deck is cast through a fielded ally, who is the focus (range
++//                 and line of sight are measured from them). The ally spends
++//                 nothing; the lens does.
++//
++//                 Hard rule (handoff §4.5): a remote spell never deals damage.
++//                 Which spells qualify is decided by what they DO, not by an
++//                 authored list: every effect in the half must be on the
++//                 allowlist below (movement, terrain and hazards, shields and
++//                 armour and healing, cleansing, non-damaging conditions,
++//                 reading intent), and the targeting must be one the item
++//                 path can aim. SignatureSpell.CastableRemotely is the derived
++//                 fact's old name; nothing sets it by hand.
++//
++//                 Where it works:
++//                   a field party's dive without the wizard   Scrying Chambers
++//                                                             T1+, 1 cast a
++//                                                             fight, 2 Essence
++//                   a posting's defense, a castle defense     The Hand only
++//                   before the wizard arrives
++//                 The Hand (Scrying Chambers T3 doctrine): +1 cast a fight,
++//                 and the lens reaches posting and castle defenses.
++// Layer:          Data / rules
++// Collaborators:  CombatManager.RemoteCast.cs (tray card, picker, casting
++//                 through the item seam), LoreHalls (The Hand), Charters,
++//                 CampusBlight (functional tier), GrimoireState (Essence),
++//                 StatusCatalog (which conditions hurt).
++// ============================================================
++
++/// <summary>Remote casting rules. Stateless.</summary>
++public static class RemoteCasting
++{
++    public const int BaseCastsPerFight = 1;
++    public const int TheHandBonusCasts = 1;
++
++    /// <summary>Essence a remote cast draws in a dive (the expedition's pool).</summary>
++    public const int EssenceCost = 2;
++
++    /// <summary>Where the lens is being asked to reach.</summary>
++    public enum Reach
++    {
++        None,          // the wizard is on the board: they cast in person
++        Dive,          // a field party's dive
++        Defense,       // a posting's defense, or a castle defense before the wizard arrives
++    }
++
++    public static int ScryingTier(GuildSaveData save)
++    {
++        var b = CampusBlight.Find(save, LoreHalls.ScryingId);
++        return b != null && b.IsFunctional ? b.Tier : 0;
++    }
++
++    public static bool TheHandActive(GuildSaveData save)
++        => Charters.IsActive(save, LoreHalls.ScryingId, LoreHalls.TheHand);
++
++    public static int CastsPerFight(GuildSaveData save)
++        => BaseCastsPerFight + (TheHandActive(save) ? TheHandBonusCasts : 0);
++
++    /// <summary>Why the lens cannot reach this fight at all, or null when it can.</summary>
++    public static string UnavailableReason(GuildSaveData save, Reach reach)
++    {
++        switch (reach)
++        {
++            case Reach.None:
++                return "The wizard is on the field and casts in person.";
++            case Reach.Dive:
++                return ScryingTier(save) >= 1 ? null : "Needs working Scrying Chambers: the lens is theirs.";
++            case Reach.Defense:
++                return TheHandActive(save) ? null : "Only The Hand (Scrying Chambers doctrine) reaches a defense.";
++        }
++        return "The lens cannot reach here.";
++    }
++
++    // ── What qualifies ───────────────────────────────────────────────────
++
++    /// <summary>Leaf effects a remote spell may carry: none deals damage itself.
++    /// Hazards (imbued tiles, glyphs) are placements; the ground does the rest.
++    /// Left out on review because they hurt on their own: Push and aimed push
++    /// (collision damage), Raise Terrain (crushes whoever stands there). Dash
++    /// only on the caster (aimed at a unit it shoves), an imbued tile only
++    /// without its bonus damage: both checked in EffectAllowed.</summary>
++    private static readonly HashSet<string> AllowedEffects = new(StringComparer.Ordinal)
++    {
++        // Movement
++        "TeleportEffect", "PullEffect", "MoveToTileEffect",
++        // Terrain and hazards
++        "CreateRubbleEffect", "ImbueAreaEffect", "ImbuePathEffect",
++        "SeedGrowthEffect", "AdvanceGrowthEffect", "SpreadGrowthEffect", "EntangleEffect",
++        "CreatePhaseTilesEffect", "HallowTileEffect", "HallowAreaEffect",
++        "PlaceGlyphEffect", "PrepareGlyphEffect", "PrepareGlyphAreaEffect", "EtchWardEffect",
++        "CreateMemorialEffect", "CreateMemorialGroundEffect", "CreateMemorialGroundAreaEffect",
++        // Protection and mending
++        "GiveShieldEffect", "GiveArmorEffect", "GiveTargetArmorEffect", "HealEffect", "TempBuffEffect",
++        "CleanseDebuffsEffect",
++        // Weakening and reading
++        "RemoveArmorEffect", "DispelEffect", "PeekIntentEffect",
++    };
++
++    /// <summary>Composites whose children decide.</summary>
++    private static readonly HashSet<string> Composites = new(StringComparer.Ordinal)
++    {
++        "SequenceEffect", "ConditionalEffect", "ForEachTargetEffect",
++    };
++
++    /// <summary>Conditions a remote spell may not lay even though they do not
++    /// tick damage: turning an enemy on its friends, and a geas that draws blood.</summary>
++    private static readonly HashSet<string> DeniedStatuses = new(StringComparer.OrdinalIgnoreCase)
++    {
++        "dominated", "geas",
++    };
++
++    /// <summary>Can this half be cast through the lens? No damage anywhere in
++    /// it, and a targeting shape the item path can aim.</summary>
++    public static bool IsCastableRemotely(CardHalf half)
++    {
++        if (half == null || half.Effects == null || half.Effects.Length == 0)
++            return false;
++        if (!CombatManager.ItemCanAim(half.Targeting))
++            return false;
++        bool selfAimed = half.Targeting == null || half.Targeting is SelectSelfTarget;
++        foreach (var e in half.Effects)
++            if (!EffectAllowed(e, 0, selfAimed))
++                return false;
++        return true;
++    }
++
++    private static bool EffectAllowed(IEffect e, int depth, bool selfAimed)
++    {
++        if (e == null || depth > 8)
++            return false;
++        if (e.Tags != null)
++            foreach (var t in e.Tags)
++                if (t == "Damage" || t == "SelfDamage")
++                    return false;
++        string name = e.GetType().Name;
++        if (Composites.Contains(name))
++        {
++            bool any = false;
++            foreach (var c in e.Children)
++            {
++                any = true;
++                if (!EffectAllowed(c, depth + 1, selfAimed))
++                    return false;
++            }
++            return any;
++        }
++        if (e is ApplyStatusEffect st)
++        {
++            // A condition that hurts every turn is damage by another name.
++            return StatusCatalog.IsKnown(st.StatusName)
++                   && !DeniedStatuses.Contains(st.StatusName)
++                   && StatusCatalog.Get(st.StatusName).Tone != StatusTone.Damage;
++        }
++        if (e is DashEffect)
++            return selfAimed;                 // aimed at a unit, a dash is a shove
++        if (e is ImbueTileEffect imbue)
++            return imbue.BonusDamage == 0;    // the bonus lands at once
++        return AllowedEffects.Contains(name);
++    }
++
++    /// <summary>The wizard's deck as remote spells: every distinct castable half
++    /// of the active deck, upgrades applied. Fresh instances, never the deck's own.</summary>
++    public static List<CardHalf> Spells(GuildSaveData save)
++    {
++        var list = new List<CardHalf>();
++        var deck = save?.PlayerDeck;
++        if (deck?.Cards == null || deck.Cards.Count == 0)
++            return list;
++        // HydrateActiveDeck deals a RANDOM deck when nothing resolves; the lens
++        // must never offer spells the guild does not own, so check first.
++        var owned = new HashSet<string>(StringComparer.Ordinal);
++        foreach (var oc in deck.Cards)
++            if (oc != null && !string.IsNullOrEmpty(oc.InstanceId))
++                owned.Add(oc.InstanceId);
++        bool anyResolves = deck.ActiveDeckInstanceIds == null || deck.ActiveDeckInstanceIds.Count == 0
++            ? owned.Count > 0
++            : deck.ActiveDeckInstanceIds.Exists(owned.Contains);
++        if (!anyResolves)
++            return list;
++        var seen = new HashSet<string>(StringComparer.Ordinal);
++        foreach (var card in PlayerDeckService.HydrateActiveDeck(save))
++        {
++            foreach (var half in new[] { card?.TopHalf, card?.BottomHalf })
++            {
++                if (half == null || !seen.Add(half.Name + "|" + half.RulesText))
++                    continue;
++                if (IsCastableRemotely(half))
++                    list.Add(half);
++            }
++        }
++        list.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
++        return list;
++    }
++}
+diff --git a/Scripts/Data/SaveState/SignaturePool.cs b/Scripts/Data/SaveState/SignaturePool.cs
+index 0ba7164..386f3e9 100644
+--- a/Scripts/Data/SaveState/SignaturePool.cs
++++ b/Scripts/Data/SaveState/SignaturePool.cs
+@@ -67,7 +67,10 @@ public class SignatureSpell
+ 
+     public int BotTier = 0;
+ 
+-    /// <summary>Ruling 2 (2026-09-21): remote casting is a FLAG on a signature
++    /// <summary>UNUSED as stored data (2026-09-29, design §20): whether a spell
++    /// can be cast remotely is DERIVED from what it does (RemoteCasting.
++    /// IsCastableRemotely), so it can never disagree with the card.
++    /// Ruling 2 (2026-09-21): remote casting is a FLAG on a signature
+     /// spell, not a separate pool. Damage spells never carry it. Note that the
+     /// cast itself should spend Essence through the existing overworld spell
+     /// system (GrimoireState / OverworldSpellManager) rather than inventing a
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index dfad424..98584c4 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -67,17 +67,22 @@ public partial class CombatManager
+         // Edge M6: pinned items (belt, wand) for ANY player unit; techniques only
+         // for classed martials. A wizard with an empty belt sees no tray.
+         var pinned = PinnedItemsFor(unit);
++        var lens = RemoteCardViewFor(unit);   // the wizard's lens, when they are not here (§20)
+         if (!EdgeRules.UsesEdge(unit))
+         {
+-            if (pinned.Count == 0)
++            if (pinned.Count == 0 && lens == null)
+             {
+                 _techniqueTray.ShowCards(null, "");
+                 return;
+             }
+             var itemCards = new List<TechniqueCardView>();
++            if (lens != null)
++                itemCards.Add(lens);
+             foreach (var (inst, def) in pinned)
+                 itemCards.Add(ItemCardView(unit, inst, def));
+-            _techniqueTray.ShowCards(itemCards, $"Belt: {pinned.Count} item(s). 1 AP each.");
++            _techniqueTray.ShowCards(itemCards, pinned.Count > 0
++                ? $"Belt: {pinned.Count} item(s). 1 AP each."
++                : "The wizard watches through the lens.");
+             return;
+         }
+ 
+@@ -132,6 +137,8 @@ public partial class CombatManager
+         var swapCard = WeaponSwapCardFor(unit);   // Proving Grounds: the carried weapon
+         if (swapCard != null)
+             cards.Add(swapCard);
++        if (lens != null)
++            cards.Add(lens);
+         foreach (var (inst, def) in pinned)
+             cards.Add(ItemCardView(unit, inst, def));   // Edge M6: items to the right
+         _techniqueTray.ShowCards(cards, header, StanceViewsFor(unit));
+@@ -179,6 +186,11 @@ public partial class CombatManager
+             return;
+         if (TryHandleItemCardPressed(maneuverId))   // Edge M6: "item:<instanceId>"
+             return;
++        if (maneuverId == RemoteCardId)              // the wizard's lens (§20)
++        {
++            OpenRemotePicker(selectedUnit);
++            return;
++        }
+         if (maneuverId == SwapWeaponCardId)          // Proving Grounds: change weapons
+         {
+             TrySwapWeapon(selectedUnit);
+@@ -365,13 +377,14 @@ public partial class CombatManager
+     }
+ 
+     /// <summary>True while a technique or an item card owns the next board click.</summary>
+-    private bool AnyCardArmed => _armedManeuver != null || _armedItem != null;
++    private bool AnyCardArmed => _armedManeuver != null || _armedItem != null || _armedRemote != null;
+ 
+     private void DisarmManeuver(bool refresh = true)
+     {
+-        if (_armedManeuver == null && _armedItem == null)
++        if (_armedManeuver == null && _armedItem == null && _armedRemote == null)
+             return;
+         _armedManeuver = null;
++        _armedRemote = null;
+         ClearArmedItem();
+         ClearManeuverHighlight();
+         combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
+@@ -467,6 +480,8 @@ public partial class CombatManager
+     /// was consumed (resolved or refused), false when nothing is armed.</summary>
+     private bool TryHandleManeuverClick(Unit clickedUnit, HexTile clickedTile)
+     {
++        if (_armedRemote != null)
++            return TryHandleRemoteClick(clickedUnit, clickedTile);  // the lens (§20)
+         if (_armedItem != null)
+             return TryHandleItemClick(clickedUnit, clickedTile);   // Edge M6
+         if (_armedManeuver == null)
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.RemoteCast.cs b/Scripts/Systems/Combat/Core/CombatManager.RemoteCast.cs
+new file mode 100644
+index 0000000..b98d838
+--- /dev/null
++++ b/Scripts/Systems/Combat/Core/CombatManager.RemoteCast.cs
+@@ -0,0 +1,306 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// CombatManager.RemoteCast.cs  (partial of CombatManager)
++//
++// Purpose:        The lens in combat (campus_building_upgrades_design_v1
++//                 §20). When the wizard is not on the board, the tray of any
++//                 fielded ally shows "The Lens": pick a spell from the
++//                 wizard's deck that deals no damage (RemoteCasting decides),
++//                 then aim it from that ally. It is cast through the item
++//                 seam (mana waived, the ally as the focus), costs the ally
++//                 nothing, and uses one of the fight's remote casts (and 2
++//                 Essence in a dive).
++// Layer:          Combat rules (partial of CombatManager)
++// Collaborators:  RemoteCasting.cs (rules, which spells), CombatManager.Items
++//                 (BuildItemLegalTiles, ItemCanAim, the cast call),
++//                 CombatManager.Maneuvers (tray, arming, click routing),
++//                 GrimoireState (Essence)
++// ============================================================
++
++public partial class CombatManager
++{
++    private const string RemoteCardId = "lens:open";
++
++    private int _remoteCastsUsed = 0;
++    private CardHalf _armedRemote;
++    private List<CardHalf> _remoteSpells;       // cached per fight
++    private PopupMenu _remotePicker;
++    private Unit _remotePickerFocus;
++    private Unit _remoteFocus;                  // the ally an armed remote spell is aimed from
++
++    /// <summary>Where the lens reaches this fight, from who is on the board.</summary>
++    private RemoteCasting.Reach CurrentRemoteReach()
++    {
++        foreach (var u in playerUnits)
++            if (u != null && IsInstanceValid(u) && u.CompanionId == "wizard" && !u.IsAwaitingArrival)
++                return RemoteCasting.Reach.None;   // the wizard is here in person (fallen or not)
++        if (IsCastleDefense && !_wizardArrived)
++            return RemoteCasting.Reach.Defense;
++        if (PlayerSession.ExpeditionRunKind == ExpeditionRunKind.Field)
++            return PlayerSession.IsOnExpedition ? RemoteCasting.Reach.Dive : RemoteCasting.Reach.Defense;
++        return RemoteCasting.Reach.None;
++    }
++
++    private List<CardHalf> RemoteSpells()
++        => _remoteSpells ??= RemoteCasting.Spells(SaveManager.ActiveSave);
++
++    private int RemoteCastsLeft()
++        => Math.Max(0, RemoteCasting.CastsPerFight(SaveManager.ActiveSave) - _remoteCastsUsed);
++
++    /// <summary>Essence the lens costs here: in a dive only, and only when the
++    /// expedition keeps an Essence pool at all.</summary>
++    private static int RemoteEssenceCost(RemoteCasting.Reach reach)
++    {
++        var g = SaveManager.ActiveSave?.Cycle?.Grimoire;
++        return reach == RemoteCasting.Reach.Dive && g != null && g.EssenceMax > 0 ? RemoteCasting.EssenceCost : 0;
++    }
++
++    /// <summary>Why the lens cannot be used through <paramref name="u"/> now, or null.</summary>
++    private string RemoteBlockReason(Unit u)
++    {
++        var reach = CurrentRemoteReach();
++        string why = RemoteCasting.UnavailableReason(SaveManager.ActiveSave, reach);
++        if (why != null)
++            return why;
++        if (currentPhase != CombatPhase.PlayerTurn || isInDeploymentPhase)
++            return "Not your turn.";
++        if (u == null || !IsInstanceValid(u) || !u.Stats.IsAlive || !u.IsPlayerControlled
++            || u.IsObjectiveWard || u.IsStructure || u.CurrentTile == null)
++            return "The lens needs a living ally on the field to look through.";
++        if (!u.CanAct())
++            return $"{u.Name} cannot act, and the lens cannot look through them.";
++        if (RemoteCastsLeft() <= 0)
++            return "The lens is spent for this fight.";
++        int essence = RemoteEssenceCost(reach);
++        var g = SaveManager.ActiveSave?.Cycle?.Grimoire;
++        if (essence > 0 && (g == null || g.EssenceCurrent < essence))
++            return $"The lens draws {essence} Essence (the expedition has {g?.EssenceCurrent ?? 0}).";
++        if (RemoteSpells().Count == 0)
++            return "No spell in the wizard's deck can be cast from afar (a remote spell never deals damage).";
++        return null;
++    }
++
++    /// <summary>The Lens tray card for the selected ally, or null when the wizard
++    /// is on the board (they cast in person).</summary>
++    private TechniqueCardView RemoteCardViewFor(Unit u)
++    {
++        var reach = CurrentRemoteReach();
++        if (reach == RemoteCasting.Reach.None)
++            return null;
++        string why = RemoteBlockReason(u);
++        int essence = RemoteEssenceCost(reach);
++        return new TechniqueCardView
++        {
++            Id = RemoteCardId,
++            Title = "The Lens",
++            Cost = $"{RemoteCastsLeft()} left" + (essence > 0 ? $" · {essence} Essence" : "") + " · no AP",
++            Text = "The wizard casts from the campus through this ally: a spell from their deck that deals no damage.",
++            Role = "Remote",
++            Enabled = why == null,
++            Armed = _armedRemote != null,
++            Tooltip = why ?? "Click to choose a spell, then aim it from this ally. Right-click or Esc to cancel.",
++            IsItem = true,
++        };
++    }
++
++    // ── Picking ────────────────────────────────────────────────────────────
++
++    private void OpenRemotePicker(Unit u)
++    {
++        string why = RemoteBlockReason(u);
++        if (why != null)
++        {
++            combatUI?.AppendActionLog(why);
++            return;
++        }
++        if (_armedRemote != null)
++        {
++            DisarmManeuver();
++            return;
++        }
++        if (_remotePicker == null || !IsInstanceValid(_remotePicker))
++        {
++            _remotePicker = new PopupMenu { Name = "RemotePicker" };
++            _remotePicker.IdPressed += OnRemoteSpellPicked;
++            AddChild(_remotePicker);
++        }
++        _remotePicker.Clear();
++        var spells = RemoteSpells();
++        for (int i = 0; i < spells.Count; i++)
++            _remotePicker.AddItem($"{spells[i].Name}: {spells[i].RulesText}", i);
++        _remotePickerFocus = u;
++        _remotePicker.Position = (Vector2I)GetViewport().GetMousePosition();
++        _remotePicker.ResetSize();
++        _remotePicker.Popup();
++    }
++
++    private void OnRemoteSpellPicked(long id)
++    {
++        var u = _remotePickerFocus;
++        _remotePickerFocus = null;
++        var spells = RemoteSpells();
++        if (u == null || !IsInstanceValid(u) || id < 0 || id >= spells.Count)
++            return;
++        var half = spells[(int)id];
++        string why = RemoteBlockReason(u);
++        if (why != null)
++        {
++            combatUI?.AppendActionLog(why);
++            return;
++        }
++
++        // Self, Global and Area spells need no board click.
++        if (half.Targeting == null || half.Targeting is SelectSelfTarget
++            || half.Targeting is SelectGlobalTarget || half.Targeting is SelectAreaTarget)
++        {
++            var targets = new TargetSet();
++            targets.Items.Add(Me);
++            ResolveRemoteCast(u, half, targets);
++            return;
++        }
++
++        DisarmAction(refresh: false);
++        DisarmManeuver(refresh: false);
++        ClearManeuverHighlight();
++        BuildItemLegalTiles(u, half);
++        if (_maneuverLegalTiles.Count == 0)
++        {
++            combatUI?.AppendActionLog($"The Lens ({half.Name}): nothing in reach of {u.Name}.");
++            RefreshSelectedUnitUI();
++            return;
++        }
++        _armedRemote = half;
++        _remoteFocus = u;
++        EnsureCastRenderers();
++        _castZone.ShowOutline(new HashSet<Vector2I>(_maneuverLegalTiles), grid, ManeuverEnvelopeColor, ManeuverEnvelopeFill);
++        foreach (var coord in _maneuverLegalTiles)
++        {
++            var occ = grid.GetTile(coord)?.Occupant;
++            if (occ != null && occ.Stats.IsAlive)
++            {
++                occ.SetTargetable(true, ManeuverEnvelopeColor);
++                _maneuverRingedUnits.Add(occ);
++            }
++        }
++        combatUI?.SetHintText($"The Lens ({half.Name}): click a target. Right-click or Esc to cancel.");
++        RefreshSelectedUnitUI();
++    }
++
++    /// <summary>Board click while a remote spell is armed. Returns true when consumed.</summary>
++    private bool TryHandleRemoteClick(Unit clickedUnit, HexTile clickedTile)
++    {
++        if (_armedRemote == null)
++            return false;
++        var u = _remoteFocus;   // the tiles were measured from the focus, so cast from it
++        var half = _armedRemote;
++        if (u == null || !IsInstanceValid(u))
++        { DisarmManeuver(); return true; }
++
++        Vector2I? coord = clickedUnit?.CurrentTile?.Axial ?? clickedTile?.Axial;
++        if (coord == null || !_maneuverLegalTiles.Contains(coord.Value))
++        {
++            combatUI?.AppendActionLog($"The Lens ({half.Name}): not a legal target. Right-click to cancel.");
++            return true;
++        }
++
++        var targets = new TargetSet();
++        switch (half.Targeting)
++        {
++            case SelectUnitTarget ut:
++                var target = grid.GetTile(coord.Value)?.Occupant;
++                if (target == null || !target.Stats.IsAlive)
++                {
++                    combatUI?.AppendActionLog($"The Lens ({half.Name}): no one there.");
++                    return true;
++                }
++                targets.Items.Add(target);
++                targets.Delivery = ut.delivery;
++                break;
++            case SelectTileTarget:
++                var td = grid.GetTile(coord.Value);
++                if (td == null)
++                    return true;
++                targets.Items.Add(td);
++                break;
++            default:
++                targets.Items.Add(Me);
++                break;
++        }
++        ResolveRemoteCast(u, half, targets);
++        return true;
++    }
++
++    // ── Resolution ─────────────────────────────────────────────────────────
++
++    /// <summary>Cast <paramref name="half"/> through <paramref name="u"/>. Mana is
++    /// waived and the ally spends nothing; the fight's remote cast (and a dive's
++    /// Essence) is the cost, refunded if the rules refuse the cast.</summary>
++    private void ResolveRemoteCast(Unit u, CardHalf half, TargetSet targets)
++    {
++        _armedRemote = null;
++        _remoteFocus = null;
++        ClearManeuverHighlight();
++        combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
++
++        string why = RemoteBlockReason(u);
++        if (why != null)
++        {
++            combatUI?.AppendActionLog(why);
++            RefreshSelectedUnitUI();
++            return;
++        }
++        if (!CheckCastRequirements(half, targets, out string failReason))
++        {
++            combatUI?.AppendActionLog($"The Lens ({half.Name}): {failReason}");
++            RefreshSelectedUnitUI();
++            return;
++        }
++
++        var reach = CurrentRemoteReach();
++        int essence = RemoteEssenceCost(reach);
++        var grimoire = SaveManager.ActiveSave?.Cycle?.Grimoire;
++
++        State.ActiveCasterUnit = u;
++        State.ItemCastFree = true;
++        bool ok = false;
++        try
++        {
++            ok = Rules.TryCastWithTargets(half, State, Me, targets, null);
++        }
++        finally
++        {
++            State.ItemCastFree = false;
++            if (!ok)
++                State.ActiveCasterUnit = null;
++        }
++        if (!ok)
++        {
++            combatUI?.AppendActionLog($"The Lens ({half.Name}) could not be cast here.");
++            RefreshSelectedUnitUI();
++            return;
++        }
++
++        _remoteCastsUsed++;
++        if (essence > 0 && grimoire != null)
++            grimoire.EssenceCurrent = Math.Max(0, grimoire.EssenceCurrent - essence);
++        combatUI?.AppendActionLog($"From the campus, the wizard casts {half.Name} through {u.Name}."
++            + (essence > 0 ? $" ({essence} Essence)" : "")
++            + $" {RemoteCastsLeft()} remote cast(s) left this fight.");
++        if (!_priorityWindowOpen)
++        {
++            while (!State.Stack.IsEmpty)
++                State.Resolver.ResolveTop(State);
++        }
++        State.ActiveCasterUnit = null;
++        SaveManager.MarkDirty();
++
++        u.RefreshHealthBar();
++        RefreshSelectedUnitUI();
++        RefreshEnemyRoster();
++        RefreshPlayerUnitBar();
++        _pruneNeeded = true;
++    }
++}
+-- 
+2.43.0
+

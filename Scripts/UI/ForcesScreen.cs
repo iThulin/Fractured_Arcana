@@ -626,11 +626,104 @@ public partial class ForcesScreen : Control
             }
         }
 
+        // Signature spells (design §16): arcane companions only.
+        if (c.UnitClass == "Arcane" && save?.Cycle != null)
+        {
+            col.AddChild(new HSeparator());
+            BuildSignatureSection(col, save, c);
+        }
+
         // Moves.
         col.AddChild(new HSeparator());
         AddLine(col, "ASSIGN", UITheme.TextDim);
         col.AddChild(BuildMoveRow(cycle, save, w));
         return col;
+    }
+
+    // ── Signature spells ───────────────────────────────────────────────────
+
+    /// <summary>The guild's own cards granted to an arcane companion. Granted
+    /// cards join the companion's starter deck in every fight (design §16).</summary>
+    private void BuildSignatureSection(VBoxContainer col, GuildSaveData save, Companion c)
+    {
+        var slotted = SignatureService.Slotted(save, c.Id);
+        int slots = SignatureService.Slots(save, c.Id);
+        int spent = SignatureService.PointsSpent(save, c.Id);
+        int budget = SignatureService.Budget(save, c.Id);
+        AddLine(col, $"SIGNATURE SPELLS  ·  {slotted.Count} of {slots} slots  ·  {spent} of {budget} points", UITheme.TextDim);
+        AddLine(col, SignatureService.DisseminationActive(save)
+                ? "Granted spells join their starter deck, carrying the guild's best upgrades (Dissemination)."
+                : "Granted spells join their starter deck at their printed strength. Points: common 1, uncommon 2, rare 3, legendary 5.",
+                UITheme.TextSecondary);
+
+        foreach (var id in new List<string>(slotted))
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 8);
+            var bp = CardDatabase.Blueprints.Find(b => string.Equals(b.Id, id, StringComparison.OrdinalIgnoreCase));
+            string cardName = bp != null ? SignatureService.Name(bp) : id;
+            string idle = SignatureService.IdleReason(save, c.Id, id);
+            var name = new Label
+            {
+                Text = $"{cardName}  ({SignatureService.PointsFor(id)} pts)" + (idle != null ? $"  ·  {idle}" : ""),
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            name.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+            name.AddThemeColorOverride("font_color", idle != null ? UITheme.Warning : UITheme.TextPrimary);
+            row.AddChild(name);
+            var revoke = new Button { Text = "Revoke", CustomMinimumSize = new Vector2(80, 30) };
+            UITheme.ApplyButtonStyle(revoke, isPrimary: false);
+            string captured = id;
+            revoke.Pressed += () =>
+            {
+                if (SignatureService.Revoke(save, c.Id, captured))
+                {
+                    Changed();
+                }
+            };
+            row.AddChild(revoke);
+            col.AddChild(row);
+        }
+
+        var candidates = SignatureService.Candidates(save);
+        if (candidates.Count == 0)
+        {
+            AddLine(col, "The guild owns no cards to grant.", UITheme.TextDim);
+            return;
+        }
+        var grantRow = new HBoxContainer();
+        grantRow.AddThemeConstantOverride("separation", 8);
+        var pick = new OptionButton { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 30) };
+        foreach (var bp in candidates)
+        {
+            pick.AddItem($"{SignatureService.Name(bp)}  ({WizardSignatureSlots.PointsFor(bp.Rarity)} pts)");
+        }
+        grantRow.AddChild(pick);
+        var grant = new Button { Text = "Grant", CustomMinimumSize = new Vector2(80, 30) };
+        UITheme.ApplyButtonStyle(grant, isPrimary: false);
+        void Refresh()
+        {
+            int i = pick.Selected;
+            string why = i >= 0 && i < candidates.Count
+                ? SignatureService.CannotGrantReason(save, c, candidates[i].Id)
+                : "Choose a card.";
+            grant.Disabled = why != null;
+            grant.TooltipText = why ?? "";
+        }
+        pick.ItemSelected += _ => Refresh();
+        grant.Pressed += () =>
+        {
+            int i = pick.Selected;
+            if (i >= 0 && i < candidates.Count && SignatureService.TryGrant(save, c, candidates[i].Id))
+            {
+                Changed();
+            }
+        };
+        grantRow.AddChild(grant);
+        col.AddChild(grantRow);
+        pick.Select(0);
+        Refresh();
     }
 
     // ── Figure ─────────────────────────────────────────────────────────────

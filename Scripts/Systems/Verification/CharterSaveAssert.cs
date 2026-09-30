@@ -37,6 +37,7 @@ public static class CharterSaveAssert
         ok &= AssertBlightFields(sb);
         ok &= AssertCarriedWeapon(sb);
         ok &= AssertRefinement(sb);
+        ok &= AssertSignatureGrants(sb);
 
         sb.AppendLine(ok
             ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
@@ -264,6 +265,8 @@ public static class CharterSaveAssert
         ok &= Check(sb, "OwnedCard refined budget is 7 points", card != null && card.PointsRemaining == 1 && card.CanUpgradeBot);
         ok &= Check(sb, "OwnedCard unrefined budget is 6 points",
             new OwnedCard { TopTier = 4, BotTier = 3, PointsSpent = 6 }.PointsRemaining == 0);
+        var stamped = RoundTrip(new OwnedCard { BlueprintId = "fireball", LastUpgradeLunation = 7 });
+        ok &= Check(sb, "OwnedCard.LastUpgradeLunation (Fevered Copying)", stamped != null && stamped.LastUpgradeLunation == 7);
         var cycle = RoundTrip(new CycleState { RefinementsUsed = 1 });
         ok &= Check(sb, "CycleState.RefinementsUsed", cycle != null && cycle.RefinementsUsed == 1);
 
@@ -273,6 +276,36 @@ public static class CharterSaveAssert
         ok &= Check(sb, "CycleState.RefinementsUsed 0 on legacy JSON", legacyCycle != null && legacyCycle.RefinementsUsed == 0);
 
         sb.AppendLine(ok ? "  Refinement fields: PASS" : "  Refinement fields: FAIL");
+        return ok;
+    }
+
+    /// <summary>Signature slots (design §16): a grant and its library entry
+    /// survive the round-trip, and a legacy cycle reads as empty.</summary>
+    private static bool AssertSignatureGrants(StringBuilder sb)
+    {
+        var src = new CycleState();
+        src.SignaturePool ??= new SignaturePoolState();
+        src.SignaturePool.Spells ??= new List<SignatureSpell>();
+        src.SignaturePool.Spells.Add(new SignatureSpell { BlueprintId = "fireball", AddedLunation = 3 });
+        src.SignatureGrants ??= new List<WizardSignatureSlots>();
+        src.SignatureGrants.Add(new WizardSignatureSlots { CompanionId = "wren", SlottedBlueprintIds = new List<string> { "fireball" } });
+
+        var rt = RoundTrip(src);
+        bool ok = Check(sb, "CycleState.SignaturePool", rt?.SignaturePool?.Spells != null
+            && rt.SignaturePool.Spells.Count == 1 && rt.SignaturePool.Spells[0].BlueprintId == "fireball"
+            && rt.SignaturePool.Spells[0].AddedLunation == 3);
+        ok &= Check(sb, "CycleState.SignatureGrants", rt?.SignatureGrants != null
+            && rt.SignatureGrants.Count == 1 && rt.SignatureGrants[0].CompanionId == "wren"
+            && rt.SignatureGrants[0].SlottedBlueprintIds.Count == 1
+            && rt.SignatureGrants[0].Slots == WizardSignatureSlots.DefaultSlots
+            && rt.SignatureGrants[0].RarityBudget == WizardSignatureSlots.DefaultRarityBudget);
+
+        var legacy = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":5}", SaveManager.JsonOptions);
+        ok &= Check(sb, "CycleState signature grants empty on legacy JSON", legacy != null
+            && (legacy.SignatureGrants == null || legacy.SignatureGrants.Count == 0)
+            && (legacy.SignaturePool?.Spells == null || legacy.SignaturePool.Spells.Count == 0));
+
+        sb.AppendLine(ok ? "  Signature grants: PASS" : "  Signature grants: FAIL");
         return ok;
     }
 

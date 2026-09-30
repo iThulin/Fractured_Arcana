@@ -34,8 +34,8 @@
 			"unlocksFeatures": [
 				"card_disenchant"
 			],
-			"disenchantSplinterBonus": 10,
-			"slotCostReduction": 20,
+			"disenchantSplinterBonus": 5,
+			"slotCostReduction": 10,
 			"doctrines": [
 				{
 					"id": "thin_deck",

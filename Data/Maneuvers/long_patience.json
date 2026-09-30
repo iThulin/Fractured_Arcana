@@ -1,0 +1,29 @@
+{
+  "id": "long_patience",
+  "displayName": "Long Patience",
+  "role": "Hunter",
+  "stance": "sig_ranger_stoic",
+  "apCost": 2,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 5,
+  "isFinisher": true,
+  "shape": "Range",
+  "reach": 5,
+  "text": "Finisher. Spend all Edge (at least 5): ATK + 2 damage per Edge spent. The target is rooted for 2 turns.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "finisher_scale",
+      "value": 2
+    },
+    {
+      "key": "root",
+      "value": 2
+    }
+  ],
+  "vfxTag": "bolt"
+}

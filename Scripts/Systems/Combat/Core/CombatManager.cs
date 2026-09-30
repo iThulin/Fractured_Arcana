@@ -262,6 +262,10 @@ public partial class CombatManager : Node3D
         combatUI = GetNodeOrNull<CombatUI>(CombatUIPath);
         if (combatUI == null)
             GD.PrintErr("CombatUI not found. Fix CombatUIPath.");
+        // Administrator (§19): why the wizard is or is not on the board. Set by
+        // SpawnTestUnits, which runs before combatUI is found.
+        if (combatUI != null && !string.IsNullOrEmpty(_wizardPresenceNote))
+            combatUI.AppendActionLog($"── {_wizardPresenceNote} ──");
 
         if (combatUI != null)
         {
@@ -533,9 +537,11 @@ public partial class CombatManager : Node3D
 
             unit.DeckData = new UnitDeckData(unit.School, 5);
 
-            if (!injectedCompanionCards)
+            if (!injectedCompanionCards && unit.CompanionId == "wizard")
             {
-                // First wizard gets the persistent deck + companion cards on top.
+                // The wizard gets the persistent deck + companion cards on top.
+                // Keyed on the id (2026-09-29): with the wizard absent from a
+                // field dive, the first arcane companion must keep its own deck.
                 var cards = PlayerDeckService.HydrateActiveDeck(SaveManager.ActiveSave);
 
                 if (cards.Count == 0)
@@ -569,10 +575,14 @@ public partial class CombatManager : Node3D
                 // unreliable. Their ContributedCardIds stay in the WIZARD's
                 // deck (BuildCompanionCardList), not duplicated here.
                 var starter = StarterDeckLoader.BuildStarterCards(unit.School);
+                // Signature slots (design §16, ruled 2026-09-29): the guild's
+                // granted spells are ADDED to the starter deck, not swapped in.
+                var signature = SignatureService.BuildCards(SaveManager.ActiveSave, unit.CompanionId);
+                starter.AddRange(signature);
                 AddStaffInnate(unit, starter);   // M7: arcane companions with staves too
                 unit.DeckData.Initialize(starter);
                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
-                         $"({unit.School}) [companion starter deck]");
+                         $"({unit.School}, {signature.Count} signature) [companion starter deck]");
             }
         }
 
@@ -2122,6 +2132,9 @@ public partial class CombatManager : Node3D
                 unit.Stats.Armor - unit.ActiveStance.PassiveArmorBonus);
 
         unit.ActiveStance = newStance;
+        // A finisher belongs to the stance it was armed in (Proving Grounds, §18).
+        if (_armedManeuver != null && !string.IsNullOrEmpty(_armedManeuver.Stance))
+            DisarmManeuver(refresh: false);
         unit.HasSwitchedStanceThisTurn = true;
         unit.Stats.HasActed = true;   // it cost AP; it counts
         int edgeBeforeSwitch = unit.Edge;
@@ -2544,7 +2557,15 @@ public partial class CombatManager : Node3D
 
             if (unit.DeckData != null)
             {
+                // Profaned Lectern (blighted Sanctum, design §21): the wizard's
+                // opening hand is a card short. Round 1 only.
+                bool profaned = roundNumber == 1 && unit.CompanionId == "wizard"
+                    && BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Sanctum);
+                if (profaned)
+                    unit.DeckData.MaxHandSize -= BlightedForms.ProfanedHand;
                 var drawn = unit.DeckData.DrawToFull();
+                if (profaned)
+                    unit.DeckData.MaxHandSize += BlightedForms.ProfanedHand;
                 foreach (var card in drawn)
                     GD.Print($"[{unit.Name}] Drew: {card.TopHalf?.Name ?? card.CardName}");
 
@@ -4355,6 +4376,10 @@ public partial class CombatManager : Node3D
         return false;
     }
 
+    /// <summary>Why the wizard is (or is not) on the board this fight, for the
+    /// combat log. Empty for an ordinary fight with the wizard.</summary>
+    private string _wizardPresenceNote = "";
+
     private void SpawnTestUnits()
     {
         GD.Print($"[SpawnTest] PlayerUnitScene={PlayerUnitScene != null}, DummyUnitScene={DummyUnitScene != null}");
@@ -4376,10 +4401,17 @@ public partial class CombatManager : Node3D
         playerUnits.Clear();
         enemyUnits.Clear();
 
-        // ── Spawn wizard (always first) ───────────────────────────────────
-        var wizard = SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
+        // ── Spawn wizard (first, when present) ────────────────────────────
+        // Administrator (design §19): on a field party's dive the wizard stays
+        // at the campus unless summoned or the sortie is their own.
+        bool wizardFields = Administrator.WizardFieldsThisFight(out _wizardPresenceNote);
+        var wizard = !wizardFields ? null : SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
             teamId: 0, isPlayerControlled: true, namePrefix: "Wizard",
             maxHealth: 20, health: 20, baseSpeed: 3, maxMana: 3, mana: 3, armor: 0, shield: 0);
+        if (!wizardFields)
+            GD.Print($"[Administrator] {_wizardPresenceNote}");
+        else
+            Administrator.PrepareWizardHpForField();
         if (wizard != null)
         {
             string wizardName = SaveManager.ActiveSave?.WizardName ?? "Wizard";
@@ -4496,20 +4528,21 @@ public partial class CombatManager : Node3D
                 // keep their stance slots and AP steps; T3 charters a doctrine.
                 int tgTier = save?.TrainingGroundsTier ?? 0;
 
-                // ── Stances: INNATE (2026-07-29 ruling) ───────────────────
-                // A martial always fields EVERY stance on its list: the
-                // authored pair from its JSON (which deserializes into
-                // TrainedStanceIds via the "availableStanceIds" alias, despite
-                // the comment on that field) plus anything later learned at
-                // the campus Training tab. The old MartialStanceSlots cap
-                // (= Training Grounds tier) zeroed the whole list when no
-                // building existed, so every martial fielded Stances:0 and the
-                // stance switcher had nothing to show. The Training Grounds
-                // keeps its stat bonuses and the Training tab's learn cap
-                // still reads MartialStanceSlots; only FIELDING is ungated.
+                // ── Stances ───────────────────────────────────────────────
+                // The authored pair from the companion's JSON deserializes into
+                // TrainedStanceIds (the "availableStanceIds" alias) and is fielded
+                // with no building at all: the old cap (slots = Training Grounds
+                // tier) zeroed the list without one (2026-07-29 fix).
+                // Stance slots (ruled 2026-09-30): a martial fields at most its
+                // slot count (2, 3 with Training Grounds T2), first-trained first,
+                // plus the signature below. An old save holding more keeps them
+                // listed at the Training tab, marked inactive.
                 unit.AvailableStances.Clear();
+                int stanceSlots = save?.MartialStanceSlots ?? GuildSaveData.BaseStanceSlots;
                 foreach (var stanceId in companion.TrainedStanceIds)
                 {
+                    if (unit.AvailableStances.Count >= stanceSlots)
+                        break;
                     var stance = StanceRegistry.Get(stanceId);
                     if (stance != null && !unit.AvailableStances.Contains(stance))
                         unit.AvailableStances.Add(stance);
@@ -4704,22 +4737,16 @@ public partial class CombatManager : Node3D
 
         BuildPlayerDeploymentArea();
 
-        playerUnit.School = PlayerSession.SelectedSchool;
-        playerUnit.InitializeAttunement();
-
-        // Wizard gets the selected school + attunement
-        if (playerUnits.Count > 0)
+        // The wizard gets the selected school + attunement; arcane companions
+        // initialize their own; martials skip this entirely. Keyed on the
+        // wizard's id, not on slot 0: on a field dive (Administrator, §19) the
+        // wizard may be absent and slot 0 a companion.
+        foreach (var unit in playerUnits)
         {
-            playerUnits[0].School = PlayerSession.SelectedSchool;
-            playerUnits[0].InitializeAttunement();
-        }
-
-        // Arcane companions initialize their own attunement
-        // Martial companions skip this entirely
-        foreach (var unit in playerUnits.Skip(1))
-        {
-            if (unit.IsMartial)
+            if (unit == null || unit.IsMartial)
                 continue;
+            if (unit.CompanionId == "wizard")
+                unit.School = PlayerSession.SelectedSchool;
             unit.InitializeAttunement();
         }
 
@@ -6026,6 +6053,16 @@ public partial class CombatManager : Node3D
                          string.Join("; ", mismatches));
         else if (loadout.Passives.Count > 0 || HasAnyBonus(loadout))
             GD.Print($"[Q1 Parity] {unit.Name}: loadout '{unitId}' verified item-for-item.");
+
+        // Rusted Racks (blighted Armory, design §21): jagged steel bites harder,
+        // rusted plate holds less. After the parity assert, which checks the items.
+        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Armory))
+        {
+            if (unit.IsMartial && loadout.BonusAttackDamage > 0)
+                unit.AttackDamage += BlightedForms.RustDamage;
+            if (loadout.BonusArmor > 0)
+                unit.Stats.Armor = Math.Max(0, unit.Stats.Armor - BlightedForms.RustDamage);
+        }
 
         // Q2 (§7a): onSpawn item triggers, fired AFTER the parity assert so the
         // ward's shield doesn't read as a stat mismatch. Shared dispatcher + log.

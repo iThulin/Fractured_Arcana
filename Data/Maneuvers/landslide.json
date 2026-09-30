@@ -1,0 +1,32 @@
+{
+  "id": "landslide",
+  "displayName": "Landslide",
+  "role": "Breaker",
+  "stance": "sig_fighter_reckless",
+  "apCost": 2,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 5,
+  "isFinisher": true,
+  "shape": "Adjacent",
+  "reach": 1,
+  "text": "Finisher. Spend all Edge (at least 5): hit every enemy beside you for ATK + 1 damage per Edge spent. Push 1.",
+  "effects": [
+    {
+      "key": "all_adjacent"
+    },
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "finisher_scale",
+      "value": 1
+    },
+    {
+      "key": "push",
+      "value": 1
+    }
+  ],
+  "vfxTag": "bash"
+}

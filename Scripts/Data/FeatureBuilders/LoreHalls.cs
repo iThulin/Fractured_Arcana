@@ -4,8 +4,8 @@ using Godot;
 // LoreHalls.cs
 //
 // Purpose:        The Scriptorum's and the Scrying Chambers' doctrines
-//                 (campus_building_upgrades_design_v1 §15). Each has one
-//                 live doctrine and one blocked on an unbuilt system.
+//                 (campus_building_upgrades_design_v1 §15). The Hand's
+//                 rules live in RemoteCasting (§20).
 //
 //                 Scriptorum T3:
 //                   Refinement    once per timeline, one card may take a
@@ -14,13 +14,15 @@ using Godot;
 //                                 Normally the budget (1 shared + 5) forces
 //                                 a choice of which half goes all the way.
 //                                 The card keeps the point for good.
-//                   Dissemination blocked: needs signature slots in the
-//                                 deck editor.
+//                   Dissemination granted signature spells carry the
+//                                 guild's best upgrades, +3 budget. The
+//                                 rules live in SignatureService (§16).
 //                 Scrying Chambers T3:
 //                   Third Eye     the ambush portent (was T3 itself), and
 //                                 every enemy's intent starts fully revealed
 //                                 in expedition fights.
-//                   The Hand      blocked: needs remote casting.
+//                   The Hand      the lens casts twice a fight and reaches
+//                                 posting and castle defenses (RemoteCasting).
 // Layer:          Data / rules
 // Collaborators:  Charters (the gate), OwnedCard (Refined, PointsRemaining),
 //                 CycleState (RefinementsUsed), CardUpgradeScreen (the Refine

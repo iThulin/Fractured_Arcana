@@ -4,13 +4,13 @@
 	"category": "Core",
 	"schoolAffinity": "",
 	"hostsSystem": "training",
-	"description": "A yard where martial companions drill between runs. Each tier opens a stance slot to learn in, and the veteran floor sets what kind of soldiers the guild raises.",
+	"description": "A yard where martial companions drill between runs. Every martial holds two stances; here they retrain them, earn a third slot, and the veteran floor sets what kind of soldiers the guild raises.",
 	"tiers": [
 		{
 			"tier": 1,
 			"displayName": "Basic Training Grounds",
 			"goldCost": 80,
-			"description": "Martials learn a first stance here, and drill: +1 action point for Fighters, +2 for Rangers.",
+			"description": "Martials may retrain: forget a stance and learn another of their class. And drill: +1 action point for Fighters, +2 for Rangers.",
 			"requiredBuildings": [],
 			"passiveEffects": [],
 			"activeEffects": []
@@ -19,7 +19,7 @@
 			"tier": 2,
 			"displayName": "Drilling Yard",
 			"goldCost": 150,
-			"description": "A second stance slot to learn in.",
+			"description": "A third stance slot.",
 			"requiredBuildings": [],
 			"passiveEffects": [],
 			"activeEffects": []
@@ -28,7 +28,7 @@
 			"tier": 3,
 			"displayName": "Veteran's Proving Grounds",
 			"goldCost": 280,
-			"description": "A third stance slot and +1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight.",
+			"description": "+1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight, and signature stances unlock their finishers at 5 Edge.",
 			"requiredBuildings": [],
 			"passiveEffects": [],
 			"activeEffects": [],
@@ -41,7 +41,7 @@
 				{
 					"id": "proving_grounds",
 					"name": "The Proving Grounds",
-					"description": "Tall martials. A martial may carry a second weapon and change to it in a fight for 1 AP, taking its class, maneuvers and attack. Stance finishers at 5 Edge are still to come."
+					"description": "Tall martials. A martial may carry a second weapon and change to it in a fight for 1 AP, taking its class, maneuvers and attack. And every signature stance unlocks its finisher: at 5 Edge or more, spend it all on one decisive move of that stance's own character."
 				}
 			]
 		}

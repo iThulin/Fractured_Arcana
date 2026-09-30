@@ -1,0 +1,29 @@
+{
+  "id": "hail_of_shafts",
+  "displayName": "Hail of Shafts",
+  "role": "Breaker",
+  "stance": "sig_ranger_reckless",
+  "apCost": 2,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 5,
+  "isFinisher": true,
+  "shape": "Line",
+  "reach": 3,
+  "text": "Finisher. Spend all Edge (at least 5): every enemy on a line of 3 takes ATK + 1 damage per Edge spent. Push 1.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "finisher_scale",
+      "value": 1
+    },
+    {
+      "key": "push",
+      "value": 1
+    }
+  ],
+  "vfxTag": "bolt"
+}

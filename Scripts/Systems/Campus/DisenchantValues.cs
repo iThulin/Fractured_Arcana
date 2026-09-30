@@ -51,6 +51,10 @@ public static class DisenchantValues
 		CardRarity rarity = bp?.Rarity ?? CardRarity.Common;
 		int baseYield = BaseYield(rarity);
 		int upgradeRefund = card.PointsSpent * UpgradeRefundPerPoint;
+		// Hungry Vats (blighted Dissolution Chamber, design §21): the vat pays half
+		// again for the card, and eats its upgrades whole.
+		if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Dissolution))
+			return BlightedForms.Percent(baseYield + PlayerSession.DisenchantSplinterBonus, BlightedForms.HungryVatsPercent);
 		return baseYield + upgradeRefund + PlayerSession.DisenchantSplinterBonus;
 	}
 }

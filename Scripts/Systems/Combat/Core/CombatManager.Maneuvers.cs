@@ -67,17 +67,22 @@ public partial class CombatManager
         // Edge M6: pinned items (belt, wand) for ANY player unit; techniques only
         // for classed martials. A wizard with an empty belt sees no tray.
         var pinned = PinnedItemsFor(unit);
+        var lens = RemoteCardViewFor(unit);   // the wizard's lens, when they are not here (§20)
         if (!EdgeRules.UsesEdge(unit))
         {
-            if (pinned.Count == 0)
+            if (pinned.Count == 0 && lens == null)
             {
                 _techniqueTray.ShowCards(null, "");
                 return;
             }
             var itemCards = new List<TechniqueCardView>();
+            if (lens != null)
+                itemCards.Add(lens);
             foreach (var (inst, def) in pinned)
                 itemCards.Add(ItemCardView(unit, inst, def));
-            _techniqueTray.ShowCards(itemCards, $"Belt: {pinned.Count} item(s). 1 AP each.");
+            _techniqueTray.ShowCards(itemCards, pinned.Count > 0
+                ? $"Belt: {pinned.Count} item(s). 1 AP each."
+                : "The wizard watches through the lens.");
             return;
         }
 
@@ -86,7 +91,10 @@ public partial class CombatManager
         // with no maneuvers of its own; ManeuversFor returns the class's own otherwise.
         var save = SaveManager.ActiveSave;
         bool levyDrill = TrainingGrounds.IsLevyDrill(save, unit.WeaponClass);
-        foreach (var m in TrainingGrounds.ManeuversFor(save, unit.WeaponClass))
+        var offered = new List<ManeuverDefinition>(TrainingGrounds.ManeuversFor(save, unit.WeaponClass));
+        int classCount = offered.Count;
+        offered.AddRange(StanceFinishersFor(unit));   // Proving Grounds (design §18)
+        foreach (var m in offered)
         {
             string why = ManeuverBlockReason(unit, m);
             int cost = ManeuverEdgeCost(unit, m, null);
@@ -109,7 +117,9 @@ public partial class CombatManager
         }
 
         string header;
-        if (levyDrill && cards.Count > 0)
+        if (classCount == 0 && cards.Count > 0 && !levyDrill)
+            header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: the stance's finisher only.";
+        else if (levyDrill && cards.Count > 0)
             header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: Levy Muster drill.";
         else if (unit.WeaponClass == WeaponClass.None)
             header = $"Edge {unit.Edge}/{unit.MaxEdge}   No classed weapon: basic attack only.";
@@ -127,6 +137,8 @@ public partial class CombatManager
         var swapCard = WeaponSwapCardFor(unit);   // Proving Grounds: the carried weapon
         if (swapCard != null)
             cards.Add(swapCard);
+        if (lens != null)
+            cards.Add(lens);
         foreach (var (inst, def) in pinned)
             cards.Add(ItemCardView(unit, inst, def));   // Edge M6: items to the right
         _techniqueTray.ShowCards(cards, header, StanceViewsFor(unit));
@@ -174,6 +186,11 @@ public partial class CombatManager
             return;
         if (TryHandleItemCardPressed(maneuverId))   // Edge M6: "item:<instanceId>"
             return;
+        if (maneuverId == RemoteCardId)              // the wizard's lens (§20)
+        {
+            OpenRemotePicker(selectedUnit);
+            return;
+        }
         if (maneuverId == SwapWeaponCardId)          // Proving Grounds: change weapons
         {
             TrySwapWeapon(selectedUnit);
@@ -214,6 +231,16 @@ public partial class CombatManager
         WeaponClass.Sling => "Sling",
         _ => "Unclassed",
     };
+
+    /// <summary>The active signature stance's finishers, when the Proving Grounds
+    /// is chartered (design §18). Empty otherwise.</summary>
+    private static List<ManeuverDefinition> StanceFinishersFor(Unit u)
+    {
+        var st = u?.ActiveStance;
+        if (st == null || !st.IsSignature || !TrainingGrounds.ProvingGroundsActive(SaveManager.ActiveSave))
+            return new List<ManeuverDefinition>();
+        return ManeuverRegistry.ForStance(st.Id);
+    }
 
     // ── Honed riders (spec §4b, §6a) ────────────────────────────────────────
 
@@ -280,6 +307,8 @@ public partial class CombatManager
         }
         if (m.RequiresUnmoved && u.TilesMovedThisTurn > 0)
             return $"{m.DisplayName} needs a planted stance: {u.Name} has moved this turn.";
+        if (!string.IsNullOrEmpty(m.Stance) && !StanceFinishersFor(u).Contains(m))
+            return $"{m.DisplayName} belongs to the {StanceRegistry.Get(m.Stance)?.DisplayName ?? m.Stance} stance under the Proving Grounds.";
         if (m.IsReaction && u.ArmedReaction != null)
             return $"Already armed: {u.ArmedReaction.DisplayName}. It fires in the enemy phase or refunds at your next turn.";
         return null;
@@ -348,13 +377,14 @@ public partial class CombatManager
     }
 
     /// <summary>True while a technique or an item card owns the next board click.</summary>
-    private bool AnyCardArmed => _armedManeuver != null || _armedItem != null;
+    private bool AnyCardArmed => _armedManeuver != null || _armedItem != null || _armedRemote != null;
 
     private void DisarmManeuver(bool refresh = true)
     {
-        if (_armedManeuver == null && _armedItem == null)
+        if (_armedManeuver == null && _armedItem == null && _armedRemote == null)
             return;
         _armedManeuver = null;
+        _armedRemote = null;
         ClearArmedItem();
         ClearManeuverHighlight();
         combatUI?.SetHintText("Select a unit, move, cast, then end turn.");
@@ -450,6 +480,8 @@ public partial class CombatManager
     /// was consumed (resolved or refused), false when nothing is armed.</summary>
     private bool TryHandleManeuverClick(Unit clickedUnit, HexTile clickedTile)
     {
+        if (_armedRemote != null)
+            return TryHandleRemoteClick(clickedUnit, clickedTile);  // the lens (§20)
         if (_armedItem != null)
             return TryHandleItemClick(clickedUnit, clickedTile);   // Edge M6
         if (_armedManeuver == null)
@@ -506,7 +538,18 @@ public partial class CombatManager
         // Targets first, so a Line with no one on it still spends nothing.
         var targets = new List<Unit>();
         if (target != null)
+        {
             targets.Add(target);
+            // all_adjacent (Landslide): every enemy beside the user, not only the one clicked.
+            if (m.HasEffect("all_adjacent") && u.CurrentTile != null)
+                foreach (var n in grid.GetNeighbors(u.CurrentTile.Axial))
+                {
+                    var occ = grid.GetTile(n)?.Occupant;
+                    if (occ != null && occ != target && occ.Stats.IsAlive && occ.TeamId != u.TeamId && !occ.IsMapObject
+                        && Math.Abs(u.CurrentTile.Height - grid.GetTile(n).Height) <= grid.CliffHeightThreshold)
+                        targets.Add(occ);
+                }
+        }
         else if (lineAxis.HasValue)
         {
             foreach (var coord in LineTiles(u.CurrentTile.Axial, lineAxis.Value, ManeuverReach(u, m)))
@@ -551,6 +594,14 @@ public partial class CombatManager
             combatUI?.AppendActionLog($"{u.Name} needs {edgeToPay} Edge for {m.DisplayName}.");
             DisarmManeuver();
             return;
+        }
+        // Blood Drills (blighted Training Grounds, §21): every maneuver draws blood.
+        // Never lethal: the drill leaves the martial standing at 1.
+        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.TrainingGrounds) && u.Stats.Health > 1)
+        {
+            int bled = Math.Min(BlightedForms.BloodDrillCost, u.Stats.Health - 1);
+            u.Stats.Health -= bled;
+            combatUI?.AppendActionLog($"[Blood Drills] {u.Name} loses {bled} HP to the maneuver.");
         }
         if (openingsUsed > 0 && openingsTarget != null)
         {
@@ -649,6 +700,44 @@ public partial class CombatManager
                 t.ApplyStatus("rooted", turns);
                 combatUI?.AppendActionLog($"{tag} {t.Name} is rooted for {turns} turn(s).");
             }
+
+            var status = m.Effect("status");
+            if (status != null && t.Stats.IsAlive && !string.IsNullOrEmpty(status.Param))
+            {
+                int turns = status.Value
+                    + (rider == StanceManeuverRider.StatusDurationPlusOne
+                       && string.Equals(status.Param, "suppressed", StringComparison.OrdinalIgnoreCase) ? 1 : 0);
+                t.ApplyStatus(status.Param.ToLowerInvariant(), turns);
+                combatUI?.AppendActionLog($"{tag} {t.Name} is {status.Param.ToLowerInvariant()} for {turns} turn(s).");
+                UpdateIntentDisplay(t);
+            }
+        }
+
+        // Finisher shields (design §18): scaled by the Edge spent.
+        var selfShield = m.Effect("self_shield");
+        if (selfShield != null && edgeCost > 0)
+        {
+            int gain = selfShield.Value * edgeCost;
+            u.Stats.Shield += gain;
+            combatUI?.AppendActionLog($"{tag} {u.Name} gains {gain} shield.");
+        }
+        var allyShield = m.Effect("ally_shield");
+        if (allyShield != null && edgeCost > 0 && u.CurrentTile != null)
+        {
+            int gain = allyShield.Value * edgeCost;
+            int covered = 0;
+            foreach (var n in grid.GetNeighbors(u.CurrentTile.Axial))
+            {
+                var ally = grid.GetTile(n)?.Occupant;
+                if (ally == null || ally == u || !ally.Stats.IsAlive || ally.TeamId != u.TeamId || ally.IsMapObject)
+                    continue;
+                ally.Stats.Shield += gain;
+                ally.RefreshHealthBar();
+                covered++;
+            }
+            combatUI?.AppendActionLog(covered > 0
+                ? $"{tag} {covered} ally(ies) beside {u.Name} gain {gain} shield each."
+                : $"{tag} No ally stands beside {u.Name} to cover.");
         }
 
         // ── After the action (D2, D3) ─────────────────────────────────────

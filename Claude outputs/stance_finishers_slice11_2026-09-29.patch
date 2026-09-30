@@ -1,0 +1,728 @@
+From 10d7b2065b37f95f0c07d0e49d6ae0e0ce803c33 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 16:03:25 -0600
+Subject: [PATCH] Signature stance finishers for the Proving Grounds (building
+ slice 11)
+
+Each of the 10 signature stances unlocks one finisher while the Proving
+Grounds is chartered: spend all Edge (at least 5) on a move of that
+stance's character.
+
+- ManeuverDefinition.Stance: a stance-bound finisher, no weapon class.
+- ManeuverRegistry: ForStance index; validator for stance finishers and
+  the new effect keys status, self_shield, ally_shield, all_adjacent.
+- Technique tray offers the active signature stance's finisher; the
+  arm/resolve gate refuses it in any other stance; switching stance
+  disarms it.
+- Data/Maneuvers: killing_feint, oath_unbroken, through_the_gap, anvil,
+  landslide, called_shot, curtain_of_arrows, winds_eye, long_patience,
+  hail_of_shafts.
+- training_grounds.json and TrainingGrounds header: finisher text.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/training_grounds.json          |  4 +-
+ Data/Maneuvers/anvil.json                     | 32 +++++++++
+ Data/Maneuvers/called_shot.json               | 30 ++++++++
+ Data/Maneuvers/curtain_of_arrows.json         | 29 ++++++++
+ Data/Maneuvers/hail_of_shafts.json            | 29 ++++++++
+ Data/Maneuvers/killing_feint.json             | 33 +++++++++
+ Data/Maneuvers/landslide.json                 | 32 +++++++++
+ Data/Maneuvers/long_patience.json             | 29 ++++++++
+ Data/Maneuvers/oath_unbroken.json             | 25 +++++++
+ Data/Maneuvers/through_the_gap.json           | 35 ++++++++++
+ Data/Maneuvers/winds_eye.json                 | 29 ++++++++
+ .../Data/FeatureBuilders/TrainingGrounds.cs   |  7 +-
+ .../Combat/Core/CombatManager.Maneuvers.cs    | 70 ++++++++++++++++++-
+ Scripts/Systems/Combat/Core/CombatManager.cs  |  3 +
+ .../Systems/Combat/Core/ManeuverDefinition.cs | 12 +++-
+ .../Systems/Combat/Core/ManeuverRegistry.cs   | 48 ++++++++++++-
+ 16 files changed, 436 insertions(+), 11 deletions(-)
+ create mode 100644 Data/Maneuvers/anvil.json
+ create mode 100644 Data/Maneuvers/called_shot.json
+ create mode 100644 Data/Maneuvers/curtain_of_arrows.json
+ create mode 100644 Data/Maneuvers/hail_of_shafts.json
+ create mode 100644 Data/Maneuvers/killing_feint.json
+ create mode 100644 Data/Maneuvers/landslide.json
+ create mode 100644 Data/Maneuvers/long_patience.json
+ create mode 100644 Data/Maneuvers/oath_unbroken.json
+ create mode 100644 Data/Maneuvers/through_the_gap.json
+ create mode 100644 Data/Maneuvers/winds_eye.json
+
+diff --git a/Data/Buildings/training_grounds.json b/Data/Buildings/training_grounds.json
+index 9d53f39..5e105b8 100644
+--- a/Data/Buildings/training_grounds.json
++++ b/Data/Buildings/training_grounds.json
+@@ -28,7 +28,7 @@
+ 			"tier": 3,
+ 			"displayName": "Veteran's Proving Grounds",
+ 			"goldCost": 280,
+-			"description": "A third stance slot and +1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight.",
++			"description": "A third stance slot and +1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight, and signature stances unlock their finishers at 5 Edge.",
+ 			"requiredBuildings": [],
+ 			"passiveEffects": [],
+ 			"activeEffects": [],
+@@ -41,7 +41,7 @@
+ 				{
+ 					"id": "proving_grounds",
+ 					"name": "The Proving Grounds",
+-					"description": "Tall martials. A martial may carry a second weapon and change to it in a fight for 1 AP, taking its class, maneuvers and attack. Stance finishers at 5 Edge are still to come."
++					"description": "Tall martials. A martial may carry a second weapon and change to it in a fight for 1 AP, taking its class, maneuvers and attack. And every signature stance unlocks its finisher: at 5 Edge or more, spend it all on one decisive move of that stance's own character."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Maneuvers/anvil.json b/Data/Maneuvers/anvil.json
+new file mode 100644
+index 0000000..31e8ce2
+--- /dev/null
++++ b/Data/Maneuvers/anvil.json
+@@ -0,0 +1,32 @@
++{
++  "id": "anvil",
++  "displayName": "Anvil",
++  "role": "Anchor",
++  "stance": "sig_fighter_stoic",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Adjacent",
++  "reach": 1,
++  "text": "Finisher. Spend all Edge (at least 5): ATK + 1 damage per Edge spent. Stagger. Gain 1 shield per Edge spent.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 1
++    },
++    {
++      "key": "stagger"
++    },
++    {
++      "key": "self_shield",
++      "value": 1
++    }
++  ],
++  "vfxTag": "bash"
++}
+diff --git a/Data/Maneuvers/called_shot.json b/Data/Maneuvers/called_shot.json
+new file mode 100644
+index 0000000..3834976
+--- /dev/null
++++ b/Data/Maneuvers/called_shot.json
+@@ -0,0 +1,30 @@
++{
++  "id": "called_shot",
++  "displayName": "Called Shot",
++  "role": "Hunter",
++  "stance": "sig_ranger_cunning",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Range",
++  "reach": 5,
++  "text": "Finisher. Spend all Edge (at least 5): ATK + 1 damage per Edge spent. The target is Marked for 2 turns.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 1
++    },
++    {
++      "key": "status",
++      "value": 2,
++      "param": "marked"
++    }
++  ],
++  "vfxTag": "bolt"
++}
+diff --git a/Data/Maneuvers/curtain_of_arrows.json b/Data/Maneuvers/curtain_of_arrows.json
+new file mode 100644
+index 0000000..36f8a95
+--- /dev/null
++++ b/Data/Maneuvers/curtain_of_arrows.json
+@@ -0,0 +1,29 @@
++{
++  "id": "curtain_of_arrows",
++  "displayName": "Curtain of Arrows",
++  "role": "Anchor",
++  "stance": "sig_ranger_loyal",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Line",
++  "reach": 4,
++  "text": "Finisher. Spend all Edge (at least 5): every enemy on a line of 4 takes ATK - 1, + 1 damage per Edge spent, and is rooted for 1 turn.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": -1
++    },
++    {
++      "key": "finisher_scale",
++      "value": 1
++    },
++    {
++      "key": "root",
++      "value": 1
++    }
++  ],
++  "vfxTag": "bolt"
++}
+diff --git a/Data/Maneuvers/hail_of_shafts.json b/Data/Maneuvers/hail_of_shafts.json
+new file mode 100644
+index 0000000..4396193
+--- /dev/null
++++ b/Data/Maneuvers/hail_of_shafts.json
+@@ -0,0 +1,29 @@
++{
++  "id": "hail_of_shafts",
++  "displayName": "Hail of Shafts",
++  "role": "Breaker",
++  "stance": "sig_ranger_reckless",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Line",
++  "reach": 3,
++  "text": "Finisher. Spend all Edge (at least 5): every enemy on a line of 3 takes ATK + 1 damage per Edge spent. Push 1.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 1
++    },
++    {
++      "key": "push",
++      "value": 1
++    }
++  ],
++  "vfxTag": "bolt"
++}
+diff --git a/Data/Maneuvers/killing_feint.json b/Data/Maneuvers/killing_feint.json
+new file mode 100644
+index 0000000..0166488
+--- /dev/null
++++ b/Data/Maneuvers/killing_feint.json
+@@ -0,0 +1,33 @@
++{
++  "id": "killing_feint",
++  "displayName": "Killing Feint",
++  "role": "Breaker",
++  "stance": "sig_fighter_cunning",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Adjacent",
++  "reach": 1,
++  "text": "Finisher. Spend all Edge (at least 5): ATK + 2 damage per Edge spent. The target is Vulnerable for 2 turns and Staggered.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 2
++    },
++    {
++      "key": "status",
++      "value": 2,
++      "param": "vulnerable"
++    },
++    {
++      "key": "stagger"
++    }
++  ],
++  "vfxTag": "bash"
++}
+diff --git a/Data/Maneuvers/landslide.json b/Data/Maneuvers/landslide.json
+new file mode 100644
+index 0000000..dcb0bdd
+--- /dev/null
++++ b/Data/Maneuvers/landslide.json
+@@ -0,0 +1,32 @@
++{
++  "id": "landslide",
++  "displayName": "Landslide",
++  "role": "Breaker",
++  "stance": "sig_fighter_reckless",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Adjacent",
++  "reach": 1,
++  "text": "Finisher. Spend all Edge (at least 5): hit every enemy beside you for ATK + 1 damage per Edge spent. Push 1.",
++  "effects": [
++    {
++      "key": "all_adjacent"
++    },
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 1
++    },
++    {
++      "key": "push",
++      "value": 1
++    }
++  ],
++  "vfxTag": "bash"
++}
+diff --git a/Data/Maneuvers/long_patience.json b/Data/Maneuvers/long_patience.json
+new file mode 100644
+index 0000000..b577280
+--- /dev/null
++++ b/Data/Maneuvers/long_patience.json
+@@ -0,0 +1,29 @@
++{
++  "id": "long_patience",
++  "displayName": "Long Patience",
++  "role": "Hunter",
++  "stance": "sig_ranger_stoic",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Range",
++  "reach": 5,
++  "text": "Finisher. Spend all Edge (at least 5): ATK + 2 damage per Edge spent. The target is rooted for 2 turns.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 2
++    },
++    {
++      "key": "root",
++      "value": 2
++    }
++  ],
++  "vfxTag": "bolt"
++}
+diff --git a/Data/Maneuvers/oath_unbroken.json b/Data/Maneuvers/oath_unbroken.json
+new file mode 100644
+index 0000000..f14f5ed
+--- /dev/null
++++ b/Data/Maneuvers/oath_unbroken.json
+@@ -0,0 +1,25 @@
++{
++  "id": "oath_unbroken",
++  "displayName": "Oath Unbroken",
++  "role": "Anchor",
++  "stance": "sig_fighter_loyal",
++  "apCost": 1,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Self",
++  "reach": 1,
++  "text": "Finisher. Spend all Edge (at least 5): gain 1 shield per Edge spent, and every ally beside you gains 2 shield per Edge spent.",
++  "effects": [
++    {
++      "key": "self_shield",
++      "value": 1
++    },
++    {
++      "key": "ally_shield",
++      "value": 2
++    }
++  ],
++  "vfxTag": ""
++}
+diff --git a/Data/Maneuvers/through_the_gap.json b/Data/Maneuvers/through_the_gap.json
+new file mode 100644
+index 0000000..853891d
+--- /dev/null
++++ b/Data/Maneuvers/through_the_gap.json
+@@ -0,0 +1,35 @@
++{
++  "id": "through_the_gap",
++  "displayName": "Through the Gap",
++  "role": "Executioner",
++  "stance": "sig_fighter_curious",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "shape": "Adjacent",
++  "reach": 1,
++  "text": "Finisher. Spend all Edge (at least 5): ATK + 2 damage per Edge spent, ignoring armor and chitin. Push 2.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 2
++    },
++    {
++      "key": "ignore_armor"
++    },
++    {
++      "key": "ignore_chitin"
++    },
++    {
++      "key": "push",
++      "value": 2
++    }
++  ],
++  "vfxTag": "bash"
++}
+diff --git a/Data/Maneuvers/winds_eye.json b/Data/Maneuvers/winds_eye.json
+new file mode 100644
+index 0000000..29d2dbb
+--- /dev/null
++++ b/Data/Maneuvers/winds_eye.json
+@@ -0,0 +1,29 @@
++{
++  "id": "winds_eye",
++  "displayName": "Wind's Eye",
++  "role": "Executioner",
++  "stance": "sig_ranger_curious",
++  "apCost": 2,
++  "edgeCost": 0,
++  "drainAll": true,
++  "minEdge": 5,
++  "isFinisher": true,
++  "requiresUnmoved": true,
++  "shape": "Range",
++  "reach": 6,
++  "text": "Finisher. Spend all Edge (at least 5): ATK + 2 damage per Edge spent, ignoring armor. Refused if you moved this turn.",
++  "effects": [
++    {
++      "key": "damage",
++      "value": 0
++    },
++    {
++      "key": "finisher_scale",
++      "value": 2
++    },
++    {
++      "key": "ignore_armor"
++    }
++  ],
++  "vfxTag": "bolt"
++}
+diff --git a/Scripts/Data/FeatureBuilders/TrainingGrounds.cs b/Scripts/Data/FeatureBuilders/TrainingGrounds.cs
+index cc0e73d..6299f53 100644
+--- a/Scripts/Data/FeatureBuilders/TrainingGrounds.cs
++++ b/Scripts/Data/FeatureBuilders/TrainingGrounds.cs
+@@ -15,9 +15,10 @@ using System.Collections.Generic;
+ //                   (tall)              and change to it in a fight for 1 AP:
+ //                                       its class (so its maneuvers and Honed
+ //                                       rider) and its attack damage and
+-//                                       range. Stance finishers at 5 Edge
+-//                                       are the doctrine's second half, not
+-//                                       built yet.
++//                                       range. And each signature stance
++//                                       unlocks its finisher at 5 Edge
++//                                       (Data/Maneuvers, "stance" field;
++//                                       design §18).
+ // Layer:          Data / rules
+ // Collaborators:  Charters (the gate), UnitLoadout.SecondWeaponInstanceId,
+ //                 ArmoryData (Equip/UnequipSecondWeapon), EquipmentLoadout
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index 548ef60..dfad424 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -86,7 +86,10 @@ public partial class CombatManager
+         // with no maneuvers of its own; ManeuversFor returns the class's own otherwise.
+         var save = SaveManager.ActiveSave;
+         bool levyDrill = TrainingGrounds.IsLevyDrill(save, unit.WeaponClass);
+-        foreach (var m in TrainingGrounds.ManeuversFor(save, unit.WeaponClass))
++        var offered = new List<ManeuverDefinition>(TrainingGrounds.ManeuversFor(save, unit.WeaponClass));
++        int classCount = offered.Count;
++        offered.AddRange(StanceFinishersFor(unit));   // Proving Grounds (design §18)
++        foreach (var m in offered)
+         {
+             string why = ManeuverBlockReason(unit, m);
+             int cost = ManeuverEdgeCost(unit, m, null);
+@@ -109,7 +112,9 @@ public partial class CombatManager
+         }
+ 
+         string header;
+-        if (levyDrill && cards.Count > 0)
++        if (classCount == 0 && cards.Count > 0 && !levyDrill)
++            header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: the stance's finisher only.";
++        else if (levyDrill && cards.Count > 0)
+             header = $"Edge {unit.Edge}/{unit.MaxEdge}   {WeaponClassLabel(unit.WeaponClass)}: Levy Muster drill.";
+         else if (unit.WeaponClass == WeaponClass.None)
+             header = $"Edge {unit.Edge}/{unit.MaxEdge}   No classed weapon: basic attack only.";
+@@ -215,6 +220,16 @@ public partial class CombatManager
+         _ => "Unclassed",
+     };
+ 
++    /// <summary>The active signature stance's finishers, when the Proving Grounds
++    /// is chartered (design §18). Empty otherwise.</summary>
++    private static List<ManeuverDefinition> StanceFinishersFor(Unit u)
++    {
++        var st = u?.ActiveStance;
++        if (st == null || !st.IsSignature || !TrainingGrounds.ProvingGroundsActive(SaveManager.ActiveSave))
++            return new List<ManeuverDefinition>();
++        return ManeuverRegistry.ForStance(st.Id);
++    }
++
+     // ── Honed riders (spec §4b, §6a) ────────────────────────────────────────
+ 
+     public static string HonedRiderText(WeaponClass c) => c switch
+@@ -280,6 +295,8 @@ public partial class CombatManager
+         }
+         if (m.RequiresUnmoved && u.TilesMovedThisTurn > 0)
+             return $"{m.DisplayName} needs a planted stance: {u.Name} has moved this turn.";
++        if (!string.IsNullOrEmpty(m.Stance) && !StanceFinishersFor(u).Contains(m))
++            return $"{m.DisplayName} belongs to the {StanceRegistry.Get(m.Stance)?.DisplayName ?? m.Stance} stance under the Proving Grounds.";
+         if (m.IsReaction && u.ArmedReaction != null)
+             return $"Already armed: {u.ArmedReaction.DisplayName}. It fires in the enemy phase or refunds at your next turn.";
+         return null;
+@@ -506,7 +523,18 @@ public partial class CombatManager
+         // Targets first, so a Line with no one on it still spends nothing.
+         var targets = new List<Unit>();
+         if (target != null)
++        {
+             targets.Add(target);
++            // all_adjacent (Landslide): every enemy beside the user, not only the one clicked.
++            if (m.HasEffect("all_adjacent") && u.CurrentTile != null)
++                foreach (var n in grid.GetNeighbors(u.CurrentTile.Axial))
++                {
++                    var occ = grid.GetTile(n)?.Occupant;
++                    if (occ != null && occ != target && occ.Stats.IsAlive && occ.TeamId != u.TeamId && !occ.IsMapObject
++                        && Math.Abs(u.CurrentTile.Height - grid.GetTile(n).Height) <= grid.CliffHeightThreshold)
++                        targets.Add(occ);
++                }
++        }
+         else if (lineAxis.HasValue)
+         {
+             foreach (var coord in LineTiles(u.CurrentTile.Axial, lineAxis.Value, ManeuverReach(u, m)))
+@@ -649,6 +677,44 @@ public partial class CombatManager
+                 t.ApplyStatus("rooted", turns);
+                 combatUI?.AppendActionLog($"{tag} {t.Name} is rooted for {turns} turn(s).");
+             }
++
++            var status = m.Effect("status");
++            if (status != null && t.Stats.IsAlive && !string.IsNullOrEmpty(status.Param))
++            {
++                int turns = status.Value
++                    + (rider == StanceManeuverRider.StatusDurationPlusOne
++                       && string.Equals(status.Param, "suppressed", StringComparison.OrdinalIgnoreCase) ? 1 : 0);
++                t.ApplyStatus(status.Param.ToLowerInvariant(), turns);
++                combatUI?.AppendActionLog($"{tag} {t.Name} is {status.Param.ToLowerInvariant()} for {turns} turn(s).");
++                UpdateIntentDisplay(t);
++            }
++        }
++
++        // Finisher shields (design §18): scaled by the Edge spent.
++        var selfShield = m.Effect("self_shield");
++        if (selfShield != null && edgeCost > 0)
++        {
++            int gain = selfShield.Value * edgeCost;
++            u.Stats.Shield += gain;
++            combatUI?.AppendActionLog($"{tag} {u.Name} gains {gain} shield.");
++        }
++        var allyShield = m.Effect("ally_shield");
++        if (allyShield != null && edgeCost > 0 && u.CurrentTile != null)
++        {
++            int gain = allyShield.Value * edgeCost;
++            int covered = 0;
++            foreach (var n in grid.GetNeighbors(u.CurrentTile.Axial))
++            {
++                var ally = grid.GetTile(n)?.Occupant;
++                if (ally == null || ally == u || !ally.Stats.IsAlive || ally.TeamId != u.TeamId || ally.IsMapObject)
++                    continue;
++                ally.Stats.Shield += gain;
++                ally.RefreshHealthBar();
++                covered++;
++            }
++            combatUI?.AppendActionLog(covered > 0
++                ? $"{tag} {covered} ally(ies) beside {u.Name} gain {gain} shield each."
++                : $"{tag} No ally stands beside {u.Name} to cover.");
+         }
+ 
+         // ── After the action (D2, D3) ─────────────────────────────────────
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 4d55448..9d15314 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -2126,6 +2126,9 @@ public partial class CombatManager : Node3D
+                 unit.Stats.Armor - unit.ActiveStance.PassiveArmorBonus);
+ 
+         unit.ActiveStance = newStance;
++        // A finisher belongs to the stance it was armed in (Proving Grounds, §18).
++        if (_armedManeuver != null && !string.IsNullOrEmpty(_armedManeuver.Stance))
++            DisarmManeuver(refresh: false);
+         unit.HasSwitchedStanceThisTurn = true;
+         unit.Stats.HasActed = true;   // it cost AP; it counts
+         int edgeBeforeSwitch = unit.Edge;
+diff --git a/Scripts/Systems/Combat/Core/ManeuverDefinition.cs b/Scripts/Systems/Combat/Core/ManeuverDefinition.cs
+index 867ba40..4601b3a 100644
+--- a/Scripts/Systems/Combat/Core/ManeuverDefinition.cs
++++ b/Scripts/Systems/Combat/Core/ManeuverDefinition.cs
+@@ -37,12 +37,14 @@ public enum ManeuverShape
+ public class ManeuverEffectDef
+ {
+     /// <summary>damage | push | stagger | root | ignore_armor | ignore_chitin |
+-    /// finisher_scale. Validated against ManeuverRegistry.KnownEffectKeys.</summary>
++    /// finisher_scale | damage_multiplier | status | self_shield | ally_shield |
++    /// all_adjacent. Validated against ManeuverRegistry.KnownEffectKeys.</summary>
+     public string Key = "";
+     /// <summary>damage: delta from ATK (-1 = "ATK - 1"). push: tiles. root: turns.
+-    /// finisher_scale: bonus damage per Edge spent. Others: unused.</summary>
++    /// finisher_scale: bonus damage per Edge spent. status: turns.
++    /// self_shield, ally_shield: shield per Edge spent. Others: unused.</summary>
+     public int Value = 0;
+-    /// <summary>Optional. push: "collision" damage rides in CollisionDamage instead.</summary>
++    /// <summary>status: the status id to apply (vulnerable, marked, suppressed).</summary>
+     public string Param = "";
+     /// <summary>push only: authored collision damage dealt to both bodies when
+     /// the pushed unit hits something. 0 uses ForcedMove's momentum rule.</summary>
+@@ -62,6 +64,10 @@ public class ManeuverDefinition
+     // ── Access ───────────────────────────────────────────────────────────
+     /// <summary>WeaponClass name as JSON writes it ("SwordShield"). Parsed lazily.</summary>
+     public string WeaponClass = "None";
++    /// <summary>A stance finisher (Proving Grounds, design §18): the signature
++    /// stance id that grants it, whatever the weapon. Such a maneuver has no
++    /// weapon class and is never listed by ForWeaponClass.</summary>
++    public string Stance = "";
+ 
+     // ── Cost ─────────────────────────────────────────────────────────────
+     public int ApCost = 1;
+diff --git a/Scripts/Systems/Combat/Core/ManeuverRegistry.cs b/Scripts/Systems/Combat/Core/ManeuverRegistry.cs
+index 2cfb271..a1f74fa 100644
+--- a/Scripts/Systems/Combat/Core/ManeuverRegistry.cs
++++ b/Scripts/Systems/Combat/Core/ManeuverRegistry.cs
+@@ -37,6 +37,14 @@ public static class ManeuverRegistry
+     {
+         "damage", "push", "stagger", "root", "ignore_armor", "ignore_chitin", "finisher_scale",
+         "damage_multiplier",
++        // Stance finishers (design §18):
++        "status", "self_shield", "ally_shield", "all_adjacent",
++    };
++
++    /// <summary>Statuses a maneuver's "status" effect may apply.</summary>
++    public static readonly HashSet<string> KnownManeuverStatuses = new(StringComparer.OrdinalIgnoreCase)
++    {
++        "vulnerable", "marked", "suppressed",
+     };
+ 
+     /// <summary>Reaction triggers CombatManager.Reactions.cs resolves (spec §7, M4).</summary>
+@@ -48,6 +56,7 @@ public static class ManeuverRegistry
+ 
+     private static Dictionary<string, ManeuverDefinition> _byId;
+     private static Dictionary<WeaponClass, List<ManeuverDefinition>> _byClass;
++    private static Dictionary<string, List<ManeuverDefinition>> _byStance;
+ 
+     public static IReadOnlyDictionary<string, ManeuverDefinition> All
+     {
+@@ -71,11 +80,21 @@ public static class ManeuverRegistry
+         return _byClass.TryGetValue(cls, out var list) ? list : new List<ManeuverDefinition>();
+     }
+ 
++    /// <summary>The finishers a signature stance grants under the Proving
++    /// Grounds (design §18). Empty for every other stance.</summary>
++    public static List<ManeuverDefinition> ForStance(string stanceId)
++    {
++        EnsureLoaded();
++        return !string.IsNullOrEmpty(stanceId) && _byStance.TryGetValue(stanceId, out var list)
++            ? list : new List<ManeuverDefinition>();
++    }
++
+     /// <summary>Force a reload (debug panel). Returns the number of maneuvers accepted.</summary>
+     public static int Reload()
+     {
+         _byId = null;
+         _byClass = null;
++        _byStance = null;
+         EnsureLoaded();
+         return _byId.Count;
+     }
+@@ -87,6 +106,7 @@ public static class ManeuverRegistry
+ 
+         _byId = new Dictionary<string, ManeuverDefinition>();
+         _byClass = new Dictionary<WeaponClass, List<ManeuverDefinition>>();
++        _byStance = new Dictionary<string, List<ManeuverDefinition>>(StringComparer.OrdinalIgnoreCase);
+ 
+         var dir = DirAccess.Open(MANEUVERS_DIR);
+         if (dir == null)
+@@ -138,6 +158,13 @@ public static class ManeuverRegistry
+             }
+ 
+             _byId[def.Id] = def;
++            if (!string.IsNullOrEmpty(def.Stance))
++            {
++                if (!_byStance.TryGetValue(def.Stance, out var slist))
++                    _byStance[def.Stance] = slist = new List<ManeuverDefinition>();
++                slist.Add(def);
++                continue;   // stance-bound: never listed by weapon class
++            }
+             var cls = def.WeaponClassValue;
+             if (!_byClass.TryGetValue(cls, out var list))
+                 _byClass[cls] = list = new List<ManeuverDefinition>();
+@@ -159,7 +186,18 @@ public static class ManeuverRegistry
+         if (string.IsNullOrWhiteSpace(def.DisplayName))
+             return $"'{def.Id}': missing displayName";
+ 
+-        if (!Enum.TryParse<WeaponClass>(def.WeaponClass, ignoreCase: true, out var cls) || cls == WeaponClass.None)
++        WeaponClass cls = WeaponClass.None;
++        if (!string.IsNullOrEmpty(def.Stance))
++        {
++            var st = StanceRegistry.Get(def.Stance);
++            if (st == null || !st.IsSignature)
++                return $"'{def.Id}': stance '{def.Stance}' is not a signature stance";
++            if (!def.DrainAll || !def.IsFinisher)
++                return $"'{def.Id}': a stance maneuver must be a finisher (drainAll, isFinisher)";
++            if (!string.IsNullOrEmpty(def.WeaponClass) && !def.WeaponClass.Equals("None", StringComparison.OrdinalIgnoreCase))
++                return $"'{def.Id}': a stance maneuver has no weaponClass (it goes with the stance, whatever the weapon)";
++        }
++        else if (!Enum.TryParse<WeaponClass>(def.WeaponClass, ignoreCase: true, out cls) || cls == WeaponClass.None)
+             return $"'{def.Id}': weaponClass '{def.WeaponClass}' is not a classed weapon";
+         if (!Enum.TryParse<ManeuverShape>(def.Shape, ignoreCase: true, out var shape))
+             return $"'{def.Id}': shape '{def.Shape}' unknown (Self, Adjacent, Range, Line)";
+@@ -204,6 +242,14 @@ public static class ManeuverRegistry
+                 return $"'{def.Id}': finisher_scale needs drainAll";
+             if (e.Key.Equals("damage_multiplier", StringComparison.OrdinalIgnoreCase) && e.Value < 2)
+                 return $"'{def.Id}': damage_multiplier needs value >= 2";
++            if (e.Key.Equals("status", StringComparison.OrdinalIgnoreCase)
++                && (e.Value < 1 || !KnownManeuverStatuses.Contains(e.Param ?? "")))
++                return $"'{def.Id}': status needs value >= 1 (turns) and param in vulnerable, marked, suppressed";
++            if ((e.Key.Equals("self_shield", StringComparison.OrdinalIgnoreCase)
++                 || e.Key.Equals("ally_shield", StringComparison.OrdinalIgnoreCase)) && e.Value < 1)
++                return $"'{def.Id}': {e.Key} needs value >= 1 (shield per Edge spent)";
++            if (e.Key.Equals("all_adjacent", StringComparison.OrdinalIgnoreCase) && shape != ManeuverShape.Adjacent)
++                return $"'{def.Id}': all_adjacent needs the Adjacent shape";
+         }
+         if (def.HasEffect("stagger") && shape == ManeuverShape.Range && def.Reach > 1
+             && cls != WeaponClass.Sling)
+-- 
+2.43.0
+

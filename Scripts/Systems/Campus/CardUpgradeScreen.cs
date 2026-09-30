@@ -34,7 +34,37 @@ public partial class CardUpgradeScreen : Control
     {
         public static readonly int[] HalfTierCost = { 0, 15, 20, 30, 45 };
         public const int SharedUpgradeCost = 15;
+
+        /// <summary>The shared 1/1 step's price now (half under Fevered Copying).</summary>
+        public static int Shared(GuildSaveData save) => Scale(save, SharedUpgradeCost);
+
+        /// <summary>A half step's price now (half under Fevered Copying).</summary>
+        public static int Half(GuildSaveData save, int nextTier)
+            => Scale(save, HalfTierCost[Mathf.Clamp(nextTier, 0, HalfTierCost.Length - 1)]);
+
+        private static int Scale(GuildSaveData save, int cost)
+            => BlightedForms.Active(save, BlightedForms.Scriptorum)
+                ? Math.Max(1, BlightedForms.Percent(cost, BlightedForms.FeveredCopyingPercent))
+                : cost;
     }
+
+    /// <summary>Fevered Copying (blighted Scriptorum, design §21): a card takes at
+    /// most one upgrade a moon. True when this card already had its one.</summary>
+    private static bool FeverLocked(GuildSaveData save, OwnedCard card)
+        => card != null && BlightedForms.Active(save, BlightedForms.Scriptorum)
+           && card.LastUpgradeLunation > 0
+           && card.LastUpgradeLunation == MoonStamp(save);
+
+    private static void StampUpgrade(GuildSaveData save, OwnedCard card)
+    {
+        if (card != null)
+            card.LastUpgradeLunation = MoonStamp(save);
+    }
+
+    /// <summary>This moon, unique across campaign years (the calendar restarts
+    /// at lunation 1 each year).</summary>
+    private static int MoonStamp(GuildSaveData save)
+        => (save?.Cycle?.CampaignYear ?? 1) * 100 + (save?.Cycle?.Calendar?.CurrentLunation ?? 0);
 
     // ── Layout ────────────────────────────────────────────────────────
     private VBoxContainer _cardList;
@@ -613,6 +643,8 @@ public partial class CardUpgradeScreen : Control
             SetPreviewEmpty();
             if (_selectedCardLabel != null)
                 _selectedCardLabel.Text = "Select a card to upgrade";
+            if (_gateLabel != null)
+                _gateLabel.Visible = false;
             ClearDynamicContent();
             return;
         }
@@ -632,12 +664,15 @@ public partial class CardUpgradeScreen : Control
         else if (PlayerSession.HasFeature("card_upgrade_stage_2")) maxUpgradeStage = 2;
         else if (PlayerSession.HasFeature("card_upgrade_stage_1")) maxUpgradeStage = 1;
 
-        bool gated = maxUpgradeStage == 0;
+        bool feverLocked = FeverLocked(save, _selectedOwned);
+        bool gated = maxUpgradeStage == 0 || feverLocked;
 
         if (_gateLabel != null)
         {
             _gateLabel.Visible = gated;
-            _gateLabel.Text = "Requires a Scriptorum to refine your spells.";
+            _gateLabel.Text = feverLocked
+                ? "Fevered Copying: this card has taken its one upgrade this moon."
+                : "Requires a Scriptorum to refine your spells.";
         }
 
         // Clear only the dynamic section. Permanent nodes (_selectedCardLabel,
@@ -664,7 +699,7 @@ public partial class CardUpgradeScreen : Control
                 CardMasteryThresholds.CanSpendNextPoint(lifetimeCasts, pointsSpent);
             int castsNeeded = CardMasteryThresholds.CastsUntilNextPoint(
                 lifetimeCasts, pointsSpent);
-            bool canAfford = splinters >= CardUpgradeCosts.SharedUpgradeCost;
+            bool canAfford = splinters >= CardUpgradeCosts.Shared(save);
 
             // NOTE: display must use lifetimeCasts too. Showing the per-copy count
             // here while the gate above uses the permanent one produced a visible
@@ -678,7 +713,7 @@ public partial class CardUpgradeScreen : Control
                 : desc));
 
             AddDynamic(MakeCostLabel(
-                CardUpgradeCosts.SharedUpgradeCost, castOk,
+                CardUpgradeCosts.Shared(save), castOk,
                 castsNeeded, canAfford, _bypassCastRequirement,
                 lifetimeCasts));
 
@@ -881,8 +916,7 @@ public partial class CardUpgradeScreen : Control
             col.AddChild(descLabel);
         }
 
-        int cost = CardUpgradeCosts.HalfTierCost[Mathf.Min(nextTier,
-            CardUpgradeCosts.HalfTierCost.Length - 1)];
+        int cost = CardUpgradeCosts.Half(save, nextTier);
         // Permanent cast count. See the shared-upgrade gate above.
         int lifetimeCasts = CardMasteryService.Casts(
             save, _selectedOwned.BlueprintId, _selectedOwned.CastCount);
@@ -918,10 +952,12 @@ public partial class CardUpgradeScreen : Control
         if (save == null || _selectedOwned == null) return;
         if (_selectedOwned.IsBaseUpgraded) return;
 
-        int cost = CardUpgradeCosts.SharedUpgradeCost;
+        if (FeverLocked(save, _selectedOwned)) return;
+        int cost = CardUpgradeCosts.Shared(save);
         if (save.ArcaneSplinters < cost) return;
 
         save.ArcaneSplinters -= cost;
+        StampUpgrade(save, _selectedOwned);
         _selectedOwned.TopTier = 1;
         _selectedOwned.BotTier = 1;
         _selectedOwned.PointsSpent = 1;
@@ -946,11 +982,12 @@ public partial class CardUpgradeScreen : Control
         int nextTier = currentTier + 1;
         if (nextTier > 4) return;
 
-        int cost = CardUpgradeCosts.HalfTierCost[
-            Mathf.Min(nextTier, CardUpgradeCosts.HalfTierCost.Length - 1)];
+        if (FeverLocked(save, _selectedOwned)) return;
+        int cost = CardUpgradeCosts.Half(save, nextTier);
         if (save.ArcaneSplinters < cost) return;
 
         save.ArcaneSplinters -= cost;
+        StampUpgrade(save, _selectedOwned);
 
         if (isTop) _selectedOwned.TopTier = nextTier;
         else _selectedOwned.BotTier = nextTier;

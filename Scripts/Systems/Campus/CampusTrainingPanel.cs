@@ -68,7 +68,7 @@ public sealed class CampusTrainingPanel : CampusPanel
             // TrainingGroundsTier reads 0 for an overrun building too (campus corruption).
             _container.AddChild(MakeStubLabel(CampusBlight.Level(save, TrainingGrounds.Id) >= CampusBlight.MaxLevel
                 ? "The Training Grounds stand on overrun ground and have stopped working. Cleanse the land (on its campus card)."
-                : "Build Training Grounds to unlock stance training."));
+                : "Every martial holds two stances. Build Training Grounds to retrain them."));
             return;
         }
 
@@ -76,8 +76,9 @@ public sealed class CampusTrainingPanel : CampusPanel
 
         var note = new Label
         {
-            Text = $"Training Grounds Tier {tgTier}: " +
-                   $"{save.MartialStanceSlots} stance slot(s) active per companion.",
+            Text = $"Training Grounds Tier {tgTier}: {save.MartialStanceSlots} stance slots per martial"
+                 + (tgTier >= 2 ? "." : " (a third at Tier 2).")
+                 + " Forget a stance to make room, then learn another of their class.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -177,14 +178,14 @@ public sealed class CampusTrainingPanel : CampusPanel
         }
 
         // Show locked slots
-        for (int i = companion.TrainedStanceIds.Count; i < 3; i++)
+        for (int i = companion.TrainedStanceIds.Count; i < GuildSaveData.MaxStanceSlots; i++)
         {
             bool unlocked = i < slots;
             var slotLbl = new Label
             {
                 Text = unlocked
                     ? $"Slot {i + 1}: Empty. Learn a stance below"
-                    : $"Slot {i + 1}: Locked (Training Grounds Tier {i + 1} required)",
+                    : $"Slot {i + 1}: Locked (Training Grounds Tier 2 required)",
             };
             slotLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
             slotLbl.AddThemeColorOverride("font_color",

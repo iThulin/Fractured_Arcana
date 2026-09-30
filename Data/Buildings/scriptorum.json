@@ -23,7 +23,7 @@
         },
         {
             "tier": 2,
-            "description": "Advanced scholarship. Cards can be specialized to Stage 2: choose a playstyle branch that shapes how your spell develops.",
+            "description": "Advanced scholarship. Cards can be specialized to Stage 2: push the top half or the bottom half further, shaping how your spell develops.",
             "goldCost": 175,
             "requiredBuildings": [
                 "scriptorum"
@@ -39,7 +39,7 @@
         },
         {
             "tier": 3,
-            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage.",
+            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage. Dissemination: the spells granted to your arcane companions carry your best upgrades, and each companion's point budget rises by 3.",
             "goldCost": 350,
             "requiredBuildings": [
                 "scriptorum"
@@ -61,8 +61,7 @@
                 {
                     "id": "dissemination",
                     "name": "Dissemination",
-                    "description": "Your study becomes the kingdom's arsenal: upgrades reach allied wizards' signature slots.",
-                    "blocked": "signature slots in the deck editor are not built yet"
+                    "description": "Your study becomes the company's arsenal. The signature spells granted to arcane companions (Forces screen) carry the tiers of the guild's best upgraded copy instead of their printed strength, and each companion's point budget rises by 3."
                 }
             ]
         }

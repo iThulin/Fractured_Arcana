@@ -1,0 +1,29 @@
+{
+  "id": "curtain_of_arrows",
+  "displayName": "Curtain of Arrows",
+  "role": "Anchor",
+  "stance": "sig_ranger_loyal",
+  "apCost": 2,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 5,
+  "isFinisher": true,
+  "shape": "Line",
+  "reach": 4,
+  "text": "Finisher. Spend all Edge (at least 5): every enemy on a line of 4 takes ATK - 1, + 1 damage per Edge spent, and is rooted for 1 turn.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": -1
+    },
+    {
+      "key": "finisher_scale",
+      "value": 1
+    },
+    {
+      "key": "root",
+      "value": 1
+    }
+  ],
+  "vfxTag": "bolt"
+}

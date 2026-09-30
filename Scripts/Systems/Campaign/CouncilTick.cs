@@ -54,6 +54,7 @@ public static class CouncilMissions
     public const string PetitionMinor = "petition_minor";
     public const string CourtCourtier = "court_courtier";
     public const string SpreadRumor = "spread_rumor";
+    public const string BrokerCompact = "broker_compact";
 
     public static readonly List<CouncilMissionDef> All = new()
     {
@@ -102,7 +103,28 @@ public static class CouncilMissions
             MinBand = CourtStandingBand.Welcome, RequiredEmbassyTier = 0,
             Blurb = "Undermine a courtier you cannot win over: on success their Influence at court falls by 1. Clumsy work rebounds and lifts them instead. Raises Exposure sharply.",
         },
+        new CouncilMissionDef
+        {
+            Id = BrokerCompact, DisplayName = "Broker the Compact",
+            Lunations = Statecraft.CompactLunations, GoldCost = Statecraft.CompactGold,
+            RequiresContact = true, NeedsTargetCourtier = false,
+            MinBand = CourtStandingBand.Trusted, RequiredEmbassyTier = 3,
+            Blurb = "Bind a Trusted court to the guild by treaty, for the rest of the timeline. An archmage's Seat is United by it, if the kingdom's corruption has not gone too deep. Under the Embassy's Concordat, the court's soldiers answer your Hold the Line postings.",
+        },
     };
+
+    /// <summary>A mission-specific refusal the def's fields cannot express, or
+    /// null. Read by every dispatch surface (council screen, field postings).</summary>
+    public static string ExtraRefusal(CycleState cycle, CourtState court, string missionId)
+        => missionId == BrokerCompact ? Statecraft.CannotBrokerReason(cycle, court) : null;
+
+    /// <summary>Gold a mission costs now: half under Tainted Gifts (a blighted
+    /// Embassy, design §21). Every dispatch surface prices through here.</summary>
+    public static int GoldFor(GuildSaveData save, CouncilMissionDef def)
+        => def == null ? 0
+           : BlightedForms.Active(save, BlightedForms.Embassy)
+               ? BlightedForms.Percent(def.GoldCost, BlightedForms.TaintedGiftsPercent)
+               : def.GoldCost;
 
     public static CouncilMissionDef Get(string id)
     {
@@ -176,7 +198,9 @@ public static class CouncilQueries
         return null;
     }
 
-    /// <summary>Tier of any campus building by id (0 if absent).</summary>
+    /// <summary>Working tier of any campus building by id: 0 if absent, or if
+    /// unsited or overrun (audit 2026-09-29: an overrun Embassy, Undercroft or
+    /// Courier Station used to keep working).</summary>
     public static int BuildingTier(GuildSaveData save, string buildingId)
     {
         if (save?.Buildings == null)
@@ -187,7 +211,7 @@ public static class CouncilQueries
         {
             if (b.Id == buildingId)
             {
-                return b.Tier;
+                return b.IsFunctional ? b.Tier : 0;
             }
         }
         return 0;
@@ -240,8 +264,8 @@ public static class CouncilQueries
     public static int EnvoyCap(GuildSaveData save) => 1 + EmbassyTier(save);
 
     /// <summary>Total Patron slots across ALL courts (§2b): none without an
-    /// Embassy, one at Embassy I, a second at Embassy II. Embassy III's slot
-    /// count is UNRULED, held at 2 until decided.</summary>
+    /// Embassy, then one per tier (ruled 2026-09-29: Embassy III holds 3), and
+    /// one more under Patronage.</summary>
     public static int PatronSlots(GuildSaveData save)
     {
         int tier = EmbassyTier(save);
@@ -249,8 +273,12 @@ public static class CouncilQueries
         {
             return 0;
         }
-        return tier >= 2 ? 2 : 1;
+        return System.Math.Min(tier, 3) + (Statecraft.PatronageActive(save) ? Statecraft.PatronageExtraSlots : 0);
     }
+
+    /// <summary>Patron seats at one court: one, or two under Patronage.</summary>
+    public static int PatronSeatsPerCourt(GuildSaveData save)
+        => Statecraft.PatronageActive(save) ? Statecraft.PatronSeatsPatronage : Statecraft.PatronSeatsBase;
 
     /// <summary>Patrons currently sworn across all courts (scalar per court).</summary>
     public static int PatronsUsed(CycleState cycle)
@@ -262,10 +290,7 @@ public static class CouncilQueries
         int used = 0;
         foreach (var c in cycle.Council.Courts.Values)
         {
-            if (!string.IsNullOrEmpty(c.PatronCourtierId))
-            {
-                used++;
-            }
+            used += c?.PatronCount ?? 0;
         }
         return used;
     }
@@ -356,6 +381,10 @@ public static class CouncilTick
             council.ActiveMissions.Remove(mission);
             resolverThisTick[mission.KingdomId] = mission.CompanionId;
             ResolveMission(cycle, mission, reports);
+            // Tainted Gifts (blighted Embassy, §21): the mark must survive this
+            // moon's decay, or it would cancel out.
+            if (!mission.Recalled && BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Embassy))
+                intelCourts.Add(mission.KingdomId);
         }
 
         // ── Step 4b (espionage): informant passive yields + Access ripen ──
@@ -372,6 +401,29 @@ public static class CouncilTick
         // the spike is not decayed away the same tick (§2e / §5).
         ShadowTick.ResolveCounterIntel(cycle, reports, intelCourts);
 
+        // Loose Lips (blighted Courier Station, design §21): the couriers talk.
+        // Each moon the court that trusts the guild least hears too much.
+        CourtState leastTrusting = null;
+        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Courier))
+        {
+            foreach (var c in council.Courts.Values)
+            {
+                if (c == null || !c.HasContact)
+                {
+                    continue;
+                }
+                if (leastTrusting == null || c.StandingScore() < leastTrusting.StandingScore()
+                    || (c.StandingScore() == leastTrusting.StandingScore()
+                        && string.CompareOrdinal(c.KingdomId, leastTrusting.KingdomId) < 0))
+                {
+                    leastTrusting = c;
+                }
+            }
+        }
+
+        if (leastTrusting != null)
+            intelCourts.Add(leastTrusting.KingdomId);   // Loose Lips: no decay there this moon
+
         // ── Step 5: exposure decay, freeze decrement, threshold consequences ─
         foreach (var court in council.Courts.Values)
         {
@@ -382,6 +434,12 @@ public static class CouncilTick
             if (court.Exposure > 0 && !intelCourts.Contains(court.KingdomId))
             {
                 court.Exposure -= 1;
+            }
+            if (court == leastTrusting)
+            {
+                court.Exposure = Mathf.Clamp(court.Exposure + 1, 0, 10);
+                Emit(reports, lun, court.KingdomId,
+                    $"Loose lips: the guild's couriers talk, and {CourtDisplayName(cycle, court.KingdomId)} grows warier (exposure {court.Exposure}).");
             }
 
             int before = exposureBefore.TryGetValue(court.KingdomId, out var b) ? b : 0;
@@ -450,6 +508,17 @@ public static class CouncilTick
             case CouncilMissions.SpreadRumor:
                 ResolveSpreadRumor(court, lun, mission, envoy, envoyName, courtName, reports);
                 break;
+            case CouncilMissions.BrokerCompact:
+                ResolveCompact(cycle, court, lun, envoyName, courtName, reports);
+                break;
+        }
+
+        // Tainted Gifts (blighted Embassy, design §21): cheap missions leave a mark.
+        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Embassy))
+        {
+            court.Exposure = Mathf.Clamp(court.Exposure + 1, 0, 10);
+            Emit(reports, lun, court.KingdomId,
+                $"Tainted gifts: {envoyName}'s work leaves a mark at {courtName} (exposure {court.Exposure}).");
         }
 
         SaveManager.MarkDirty();
@@ -685,9 +754,9 @@ public static class CouncilTick
 
     /// <summary>Court a Courtier (C5, automated portion). Cultivates a courtier
     /// of sufficient personal regard into the court's sworn Patron, setting
-    /// CourtState.PatronCourtierId (read by NegotiationManager to grant a
+    /// CourtState.PatronCourtierIds (read by NegotiationManager to grant a
     /// Connections token in this kingdom's negotiations). Gated by a Regard
-    /// floor (+2), the court's single Patron seat, and the guild's global
+    /// floor (+2), the court's Patron seats (two under Patronage), and the guild's global
     /// Patron slots (Embassy-derived, §2b). All refusals are no-ops with an
     /// attributed line, consistent with C3 call-in refusal semantics.</summary>
     private static void ResolveCourtship(CycleState cycle, CourtState court, int lun,
@@ -704,7 +773,7 @@ public static class CouncilTick
         }
 
         // Already sworn here, so there is nothing to win twice.
-        if (court.PatronCourtierId == target.Id)
+        if (court.IsPatron(target.Id))
         {
             Emit(reports, lun, court.KingdomId,
                 $"{FirstName(target.DisplayName)} the {OfficeDisplay(target.Office)} is already " +
@@ -712,16 +781,19 @@ public static class CouncilTick
             return;
         }
 
-        // The court's single Patron seat is held by someone else.
-        if (!string.IsNullOrEmpty(court.PatronCourtierId))
+        // The court's Patron seats (one, two under Patronage) are all held.
+        int seats = CouncilQueries.PatronSeatsPerCourt(SaveManager.ActiveSave);
+        if (court.PatronCount >= seats)
         {
-            var held = court.GetCourtier(court.PatronCourtierId);
+            var held = court.GetCourtier(court.PatronCourtierIds[0]);
             string heldName = held != null
                 ? $"{FirstName(held.DisplayName)} the {OfficeDisplay(held.Office)}"
                 : "another";
             Emit(reports, lun, court.KingdomId,
-                $"{envoyName} courted at {courtName}, but the guild's patron there is already " +
-                $"{heldName}. A court answers to one sworn friend of the guild.");
+                seats <= 1
+                    ? $"{envoyName} courted at {courtName}, but the guild's patron there is already " +
+                      $"{heldName}. A court answers to one sworn friend of the guild (Patronage allows two)."
+                    : $"{envoyName} courted at {courtName}, but both of the court's patron seats are held.");
             return;
         }
 
@@ -736,8 +808,7 @@ public static class CouncilTick
             return;
         }
 
-        // Global Patron slots (§2b, Embassy-gated). This court contributes 0 to
-        // the count here because its seat is provably empty (checked above).
+        // Global Patron slots (§2b, Embassy-gated, +1 under Patronage).
         int slots = CouncilQueries.PatronSlots(SaveManager.ActiveSave);
         int used = CouncilQueries.PatronsUsed(cycle);
         if (used >= slots)
@@ -750,12 +821,78 @@ public static class CouncilTick
         }
 
         // Swear the oath; the courtship deepens the bond to its peak.
-        court.PatronCourtierId = target.Id;
+        court.AddPatron(target.Id);
         target.Regard = Mathf.Clamp(target.Regard + 1, -3, 3);
         Emit(reports, lun, court.KingdomId,
             $"{FirstName(target.DisplayName)} the {OfficeDisplay(target.Office)} is now sworn Patron " +
             $"of the guild at {courtName} (Regard {Signed(target.Regard)}). Their name will lend " +
             $"weight at the table in {courtName}'s territory.");
+    }
+
+    /// <summary>Broker the Compact (automated, §17 of the building design; the
+    /// interactive climax is later). The treaty is signed if the court still
+    /// stands Trusted; an archmage's Seat is United by it when the kingdom's
+    /// corruption is within the archmage's Unite limit. A regent court signs
+    /// the treaty but has no Seat to unite.</summary>
+    private static void ResolveCompact(CycleState cycle, CourtState court, int lun,
+        string envoyName, string courtName, List<HeraldReport> reports)
+    {
+        court.HasContact = true;
+        if (court.CompactBrokered)
+        {
+            Emit(reports, lun, court.KingdomId,
+                $"{envoyName} found the Compact with {courtName} already sealed.");
+            return;
+        }
+        if (court.Band() < CourtStandingBand.Trusted)
+        {
+            Emit(reports, lun, court.KingdomId,
+                $"{envoyName} came home from {courtName} without a treaty: the court's trust " +
+                $"slipped while the terms were argued (now {court.Band()}). Win it back and try again.");
+            return;
+        }
+
+        court.CompactBrokered = true;
+        Emit(reports, lun, court.KingdomId,
+            $"{envoyName} sealed the Compact with {courtName}. The court is bound to the guild " +
+            $"by treaty for the rest of this timeline.");
+
+        var campaign = cycle.Campaign;
+        string amId = Statecraft.SeatArchmageId(cycle, court);
+        if (campaign == null || string.IsNullOrEmpty(amId))
+        {
+            return;
+        }
+        var def = ArchmageRegistry.Get(amId);
+        var disp = campaign.GetDisposition(amId);
+        if (disp == ArchmageDisposition.Allied || disp == ArchmageDisposition.Coerced
+            || disp == ArchmageDisposition.Overthrown || disp == ArchmageDisposition.Corrupted)
+        {
+            return;   // the Seat is already resolved; the treaty stands on its own
+        }
+        string region = campaign.GetRegionForArchmage(amId);
+        int corruption = campaign.GetCorruption(region);
+        int limit = def?.MaxCorruptionForUnite ?? 1;
+        if (corruption > limit)
+        {
+            Emit(reports, lun, court.KingdomId,
+                $"{def?.DisplayName ?? "The archmage"} will not stand with the guild: the land is " +
+                $"too far gone (corruption {corruption}, the Seat unites at {limit} or less). " +
+                $"The treaty holds all the same.");
+            return;
+        }
+        campaign.SetDisposition(amId, ArchmageDisposition.Allied);
+        Emit(reports, lun, court.KingdomId,
+            $"{def?.DisplayName ?? "The archmage"} stands with the guild. The Seat of {courtName} is United.");
+        foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageUnited, region, amId))
+        {
+            Emit(reports, lun, court.KingdomId, qt.Text);
+        }
+        string adept = RecruitmentSources.OnArchmageUnited(amId);
+        if (adept != null)
+        {
+            Emit(reports, lun, court.KingdomId, adept);
+        }
     }
 
     // ── Exposure thresholds (§8) ──────────────────────────────────────────

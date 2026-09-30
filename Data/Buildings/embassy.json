@@ -9,21 +9,33 @@
     "tiers": [
         {
             "tier": 1,
-            "description": "A modest hall of dispatch. Two envoys may be kept afield at once. Formal audiences (interactive court climaxes) and Petitions become possible.",
+            "description": "A modest hall of dispatch. Two envoys may be kept afield at once. Petitions become possible, and one courtier may be sworn as the guild's Patron.",
             "goldCost": 150,
             "requiredBuildings": []
         },
         {
             "tier": 2,
-            "description": "A standing diplomatic corps. Three envoys may be kept afield. The guild may keep a second Patron, and its agents work more discreetly (reduced Exposure from intrigue).",
+            "description": "A standing diplomatic corps. Three envoys may be kept afield, the guild may keep a second Patron, and every parley opens with a fuller hand (5 cards).",
             "goldCost": 300,
             "requiredBuildings": []
         },
         {
             "tier": 3,
-            "description": "A seat of true statecraft. Four envoys may be kept afield. The guild may Broker the Compact with a Trusted court, and foreign dignitaries begin visiting the campus.",
+            "description": "A seat of true statecraft. Four envoys may be kept afield and a third Patron sworn. The guild may Broker the Compact with a Trusted court: a treaty for the rest of the timeline that Unites an archmage's Seat if the land is not too corrupted. And a doctrine, chartered at the Grand Hall. Patronage: two Patrons at one court. Or the Concordat: courts bound by the Compact send soldiers to your held lines.",
             "goldCost": 500,
-            "requiredBuildings": []
+            "requiredBuildings": [],
+            "doctrines": [
+                {
+                    "id": "patronage",
+                    "name": "Patronage",
+                    "description": "Depth at a few courts. A court may swear two Patrons to the guild, and the guild may keep one more Patron overall. Every Patron brings their own card to each parley in their kingdom, so a court with two backers puts two of their cards in your deck."
+                },
+                {
+                    "id": "concordat",
+                    "name": "The Concordat",
+                    "description": "Breadth through allies. Every court the guild has brokered the Compact with sends soldiers to your Hold the Line postings: the front moves 3 more a moon per allied court (6 at most), on top of your party's own. A court never marches against itself."
+                }
+            ]
         }
     ]
 }

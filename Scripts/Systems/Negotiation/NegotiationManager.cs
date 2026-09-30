@@ -285,18 +285,23 @@ public partial class NegotiationManager : Control
         _state.OnReaction += r => { _pendingFx.Add(r); _lastReaction = r; };
         _state.OnResolved += OnNegotiationResolved;
 
-        // C5 patron token.
-        LeverageToken patronToken = LeverageToken.Connections;
-        int patronTokens = 0;
+        // C5 patron tokens: one card per sworn Patron of this kingdom's court
+        // (two Patrons under the Embassy's Patronage doctrine).
+        var patronTokens = new List<LeverageToken>();
         if (cycle?.Council != null && !string.IsNullOrEmpty(originKingdom) &&
             cycle.Council.Courts.TryGetValue(originKingdom, out var originCourt) &&
-            !string.IsNullOrEmpty(originCourt.PatronCourtierId))
+            originCourt.PatronCourtierIds != null)
         {
-            var patron = originCourt.GetCourtier(originCourt.PatronCourtierId);
-            if (patron != null)
+            // Only as many as the court has seats for now: a second Patron sworn
+            // under Patronage stays sworn if the doctrine lapses, but sits out.
+            int seats = CouncilQueries.PatronSeatsPerCourt(SaveManager.ActiveSave);
+            foreach (var pid in originCourt.PatronCourtierIds)
             {
-                patronTokens = 1;
-                patronToken = PatronTokenForArchetype(patron.Archetype);
+                var patron = originCourt.GetCourtier(pid);
+                if (patron != null && patronTokens.Count < seats)
+                {
+                    patronTokens.Add(PatronTokenForArchetype(patron.Archetype));
+                }
             }
         }
 
@@ -308,6 +313,7 @@ public partial class NegotiationManager : Control
         {
             foreach (var b in SaveManager.ActiveSave.Buildings)
             {
+                if (!b.IsFunctional) continue;   // an overrun building does nothing (audit 2026-09-29)
                 if (b.Id == "courier_station") courierTier = b.Tier;
                 else if (b.Id == "embassy") _embassyTier = b.Tier;
                 else if (b.Id == "war_room") warRoomTier = b.Tier;
@@ -320,7 +326,7 @@ public partial class NegotiationManager : Control
             if (NegotiationDebug.WarRoomTier >= 0) warRoomTier = NegotiationDebug.WarRoomTier;
         }
 
-        _state.Initialize(_data, school, party, factionRep, patronToken, patronTokens,
+        _state.Initialize(_data, school, party, factionRep, patronTokens,
                           openingHand: _embassyTier >= 2 ? NegotiationTuning.EmbassyOpeningHand : -1);
 
         if (debugTable)

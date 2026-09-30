@@ -129,8 +129,7 @@ public static class CouncilLedger
             // minting path (Majors previously never existed in play; the
             // redemption surfaces are ExecuteCallIn's gift + the Arcane
             // retainer). Everyone else still mints minor.
-            IsMajor = !string.IsNullOrEmpty(court.PatronCourtierId)
-                      && creditor.Id == court.PatronCourtierId,
+            IsMajor = court.IsPatron(creditor.Id),
             SourceDescription = sourceDescription,
             LunationMinted = cycle.Calendar.CurrentLunation,
         };

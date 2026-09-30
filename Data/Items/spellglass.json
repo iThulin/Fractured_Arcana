@@ -1,7 +1,7 @@
 {
   "id": "spellglass",
   "name": "Spellglass",
-  "description": "A spell sealed in glass. Shatter it to cast the sealed spell once, at printed values, mana or no mana. Any unit. 1 AP.",
+  "description": "A spell sealed in glass. Shatter it to cast the sealed spell once, mana or no mana: at printed values, or at the stage it was sealed at under the Glasswright. Any unit. 1 AP.",
   "rarity": "Uncommon",
   "slot": "Consumable",
   "unitClass": "Any",

@@ -115,7 +115,7 @@ public sealed class CampusUndercroftPanel : CampusPanel
                 guildContracts++;
             }
         }
-        AddLine(tier > 0 ? $"Undercroft tier {tier}." : "The Undercroft is not built: a minimal network is all the guild can run.",
+        AddLine(tier > 0 ? $"Undercroft tier {tier}." : "The Undercroft is not built: one informant is all the guild can run.",
             UITheme.TextPrimary);
         AddLine($"Informants {council.Informants.Count}/{Networks.InformantCap(save)}"
               + (Networks.SpyNetworkActive(save) ? " (the Spy Network runs two more)" : "")

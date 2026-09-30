@@ -354,11 +354,20 @@ public class SortieState
     /// finished does not charge its walking on top of the moons it sat.</summary>
     public int StartDay = -1;
 
+    /// <summary>A field party's dive only: the wizard has been summoned and
+    /// fights with the party until the dive ends (Administrator, design §19).</summary>
+    public bool WizardSummoned = false;
+
+    /// <summary>Days the summons added to this dive, charged when it ends.</summary>
+    public int SummonDays = 0;
+
     public void Clear()
     {
         Active = false;
         LunationsFrozen = 0;
         StartDay = -1;
+        WizardSummoned = false;
+        SummonDays = 0;
         X = -1; Y = -1;
         StagingX = -1; StagingY = -1;
         WindowRadius = 0;

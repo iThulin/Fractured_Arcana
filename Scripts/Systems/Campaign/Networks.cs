@@ -75,7 +75,8 @@ public static class Networks
 
     /// <summary>Concurrent informant cap: the Undercroft's, +2 with the Spy Network.</summary>
     public static int InformantCap(GuildSaveData save)
-        => ShadowVocab.InformantCap(UndercroftTier(save)) + (SpyNetworkActive(save) ? SpyNetworkInformantBonus : 0);
+        => ShadowVocab.InformantCap(UndercroftTier(save)) + (SpyNetworkActive(save) ? SpyNetworkInformantBonus : 0)
+           + (BlightedForms.Active(save, BlightedForms.Undercroft) ? BlightedForms.RottenCellarInformants : 0);   // Rotten Cellar (§21)
 
     // ── Whisper Market ───────────────────────────────────────────────────
 

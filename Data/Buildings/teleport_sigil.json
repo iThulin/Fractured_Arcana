@@ -55,7 +55,7 @@
             "displayName": "The Open Circle",
             "goldCost": 600,
             "requiredBuildings": [],
-            "description": "A doctrine, chartered at the Grand Hall. The Gate Network: every settlement of an Allied kingdom is a waystone. (The Sally Port waits on the wizard's summons.)",
+            "description": "A doctrine, chartered at the Grand Hall. The Gate Network: every settlement of an Allied kingdom is a waystone. Or the Sally Port: the wizard steps through the circle to a field party for the reagent alone, no days lost.",
             "doctrines": [
                 {
                     "id": "gate_network",
@@ -65,8 +65,7 @@
                 {
                     "id": "sally_port",
                     "name": "The Sally Port",
-                    "description": "The wizard joins a field fight through the circle at no cost in days.",
-                    "blocked": "the wizard's summons to the field is not built yet"
+                    "description": "The Warlord's building. Summoning the wizard to a field party's dive costs only the reagent (5 splinters): the days the summons would add to the dive are spared, so the wizard can go to war whenever a party needs them."
                 }
             ]
         }

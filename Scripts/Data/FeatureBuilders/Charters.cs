@@ -156,7 +156,40 @@ public static class Charters
         {
             return false;
         }
+        // A Grand Hall short of seats (blighted, or lost) cannot hold every
+        // charter: the latest charters past the seat count go dark (audit
+        // 2026-09-29; before, a full hall kept all of them in force).
+        if (IsOverSlots(save, buildingId))
+        {
+            return false;
+        }
         return CurrentLunation(save) >= c.ActiveFromLunation;
+    }
+
+    /// <summary>True when this building's charter sits past the Grand Hall's
+    /// current seat count (charters are ranked in the order they were made; the
+    /// free school seat never counts).</summary>
+    public static bool IsOverSlots(GuildSaveData save, string buildingId)
+    {
+        var list = save?.Cycle?.Charters;
+        if (list == null || IsFreeSeat(save, buildingId))
+        {
+            return false;
+        }
+        int rank = 0;
+        foreach (var c in list)
+        {
+            if (c == null || IsFreeSeat(save, c.BuildingId))
+            {
+                continue;
+            }
+            if (c.BuildingId == buildingId)
+            {
+                return rank >= Slots(save);
+            }
+            rank++;
+        }
+        return false;
     }
 
     /// <summary>True when the charter exists but its refit has not landed yet.</summary>

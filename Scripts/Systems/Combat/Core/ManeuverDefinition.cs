@@ -37,12 +37,14 @@ public enum ManeuverShape
 public class ManeuverEffectDef
 {
     /// <summary>damage | push | stagger | root | ignore_armor | ignore_chitin |
-    /// finisher_scale. Validated against ManeuverRegistry.KnownEffectKeys.</summary>
+    /// finisher_scale | damage_multiplier | status | self_shield | ally_shield |
+    /// all_adjacent. Validated against ManeuverRegistry.KnownEffectKeys.</summary>
     public string Key = "";
     /// <summary>damage: delta from ATK (-1 = "ATK - 1"). push: tiles. root: turns.
-    /// finisher_scale: bonus damage per Edge spent. Others: unused.</summary>
+    /// finisher_scale: bonus damage per Edge spent. status: turns.
+    /// self_shield, ally_shield: shield per Edge spent. Others: unused.</summary>
     public int Value = 0;
-    /// <summary>Optional. push: "collision" damage rides in CollisionDamage instead.</summary>
+    /// <summary>status: the status id to apply (vulnerable, marked, suppressed).</summary>
     public string Param = "";
     /// <summary>push only: authored collision damage dealt to both bodies when
     /// the pushed unit hits something. 0 uses ForcedMove's momentum rule.</summary>
@@ -62,6 +64,10 @@ public class ManeuverDefinition
     // ── Access ───────────────────────────────────────────────────────────
     /// <summary>WeaponClass name as JSON writes it ("SwordShield"). Parsed lazily.</summary>
     public string WeaponClass = "None";
+    /// <summary>A stance finisher (Proving Grounds, design §18): the signature
+    /// stance id that grants it, whatever the weapon. Such a maneuver has no
+    /// weapon class and is never listed by ForWeaponClass.</summary>
+    public string Stance = "";
 
     // ── Cost ─────────────────────────────────────────────────────────────
     public int ApCost = 1;

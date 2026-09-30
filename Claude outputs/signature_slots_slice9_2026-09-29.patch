@@ -1,0 +1,582 @@
+From 960247cf5db1531b0c616f0cbd9108655ba50c2b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 15:33:41 -0600
+Subject: [PATCH] Signature slots and Dissemination (building slice 9)
+
+Arcane companions can now carry up to 3 of the guild's own cards within a
+rarity point budget (8). Granted cards are added to the companion's starter
+deck in every fight. Grants are checked again at each fight: a card the
+guild no longer owns, or one past the budget, stays home.
+
+Scriptorum T3 Dissemination is unblocked: granted cards take the tiers of
+the guild's best owned copy and the budget rises by 3.
+
+- SignatureService: grant, revoke, candidates, idle checks, combat build
+- ForcesScreen: SIGNATURE SPELLS section for arcane companions
+- CombatManager: companion starter deck gets the granted cards
+- scriptorum.json: Dissemination live
+- CharterSaveAssert: signature grant round-trip
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/scriptorum.json                |   5 +-
+ Scripts/Data/FeatureBuilders/LoreHalls.cs     |   9 +-
+ .../Data/FeatureBuilders/SignatureService.cs  | 290 ++++++++++++++++++
+ Scripts/Data/SaveState/SignaturePool.cs       |  10 +-
+ Scripts/Systems/Combat/Core/CombatManager.cs  |   6 +-
+ .../Systems/Verification/CharterSaveAssert.cs |  31 ++
+ Scripts/UI/ForcesScreen.cs                    |  93 ++++++
+ 7 files changed, 431 insertions(+), 13 deletions(-)
+ create mode 100644 Scripts/Data/FeatureBuilders/SignatureService.cs
+
+diff --git a/Data/Buildings/scriptorum.json b/Data/Buildings/scriptorum.json
+index 944bc81..772fac9 100644
+--- a/Data/Buildings/scriptorum.json
++++ b/Data/Buildings/scriptorum.json
+@@ -39,7 +39,7 @@
+         },
+         {
+             "tier": 3,
+-            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage.",
++            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage. Dissemination: the spells granted to your arcane companions carry your best upgrades, and each may carry more.",
+             "goldCost": 350,
+             "requiredBuildings": [
+                 "scriptorum"
+@@ -61,8 +61,7 @@
+                 {
+                     "id": "dissemination",
+                     "name": "Dissemination",
+-                    "description": "Your study becomes the kingdom's arsenal: upgrades reach allied wizards' signature slots.",
+-                    "blocked": "signature slots in the deck editor are not built yet"
++                    "description": "Your study becomes the company's arsenal. The signature spells granted to arcane companions (Forces screen) carry the tiers of the guild's best upgraded copy instead of their printed strength, and each companion's point budget rises by 3."
+                 }
+             ]
+         }
+diff --git a/Scripts/Data/FeatureBuilders/LoreHalls.cs b/Scripts/Data/FeatureBuilders/LoreHalls.cs
+index 1bc9f2d..e6f7835 100644
+--- a/Scripts/Data/FeatureBuilders/LoreHalls.cs
++++ b/Scripts/Data/FeatureBuilders/LoreHalls.cs
+@@ -4,8 +4,8 @@ using Godot;
+ // LoreHalls.cs
+ //
+ // Purpose:        The Scriptorum's and the Scrying Chambers' doctrines
+-//                 (campus_building_upgrades_design_v1 §15). Each has one
+-//                 live doctrine and one blocked on an unbuilt system.
++//                 (campus_building_upgrades_design_v1 §15). The Hand is
++//                 still blocked on remote casting.
+ //
+ //                 Scriptorum T3:
+ //                   Refinement    once per timeline, one card may take a
+@@ -14,8 +14,9 @@ using Godot;
+ //                                 Normally the budget (1 shared + 5) forces
+ //                                 a choice of which half goes all the way.
+ //                                 The card keeps the point for good.
+-//                   Dissemination blocked: needs signature slots in the
+-//                                 deck editor.
++//                   Dissemination granted signature spells carry the
++//                                 guild's best upgrades, +3 budget. The
++//                                 rules live in SignatureService (§16).
+ //                 Scrying Chambers T3:
+ //                   Third Eye     the ambush portent (was T3 itself), and
+ //                                 every enemy's intent starts fully revealed
+diff --git a/Scripts/Data/FeatureBuilders/SignatureService.cs b/Scripts/Data/FeatureBuilders/SignatureService.cs
+new file mode 100644
+index 0000000..30e615c
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/SignatureService.cs
+@@ -0,0 +1,290 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// SignatureService.cs
++//
++// Purpose:        Signature slots, live (campus_building_upgrades_design_v1
++//                 §16; SignaturePool.cs holds the data). The player grants up
++//                 to 3 of the guild's own cards to each ARCANE companion,
++//                 within a rarity point budget (8). A granted card is added
++//                 to that companion's combat deck on top of its school's
++//                 starter deck (ruled 2026-09-29: add, not replace).
++//
++//                 The pool (SignaturePoolState, cap 24) is kept as the set of
++//                 blueprints granted to anyone: granting adds the blueprint,
++//                 revoking the last grant of it removes it. So the pool's
++//                 bound is real but never the first thing a player hits.
++//
++//                 Dissemination (Scriptorum T3 doctrine): granted cards carry
++//                 the tiers of the guild's best owned copy (so the Scriptorum's
++//                 study reaches every allied wizard), and the budget rises by 3.
++//                 Without it they are fielded at their printed tiers.
++// Layer:          Data / rules
++// Collaborators:  SignaturePool.cs (WizardSignatureSlots, SignaturePoolState),
++//                 CycleState (SignaturePool, SignatureGrants), LoreHalls
++//                 (Dissemination gate), ScribesTower.BestOwnedTiers,
++//                 CardUpgradeApplier, CombatManager.InitializeUnitDecks,
++//                 ForcesScreen (the grant UI).
++// ============================================================
++
++/// <summary>Signature slot rules. Stateless: everything lives on the cycle.</summary>
++public static class SignatureService
++{
++    /// <summary>Budget Dissemination adds to every grant.</summary>
++    public const int DisseminationBudgetBonus = 3;
++
++    public static bool DisseminationActive(GuildSaveData save)
++        => Charters.IsActive(save, LoreHalls.ScriptorumId, LoreHalls.Dissemination);
++
++    /// <summary>The companion's grant record, or null when none exists yet.</summary>
++    public static WizardSignatureSlots Find(GuildSaveData save, string companionId)
++    {
++        var list = save?.Cycle?.SignatureGrants;
++        if (list == null || string.IsNullOrEmpty(companionId))
++        {
++            return null;
++        }
++        foreach (var g in list)
++        {
++            if (g != null && g.CompanionId == companionId)
++            {
++                return g;
++            }
++        }
++        return null;
++    }
++
++    private static WizardSignatureSlots FindOrCreate(GuildSaveData save, string companionId)
++    {
++        var g = Find(save, companionId);
++        if (g != null)
++        {
++            return g;
++        }
++        save.Cycle.SignatureGrants ??= new List<WizardSignatureSlots>();
++        g = new WizardSignatureSlots { CompanionId = companionId };
++        save.Cycle.SignatureGrants.Add(g);
++        return g;
++    }
++
++    public static List<string> Slotted(GuildSaveData save, string companionId)
++        => Find(save, companionId)?.SlottedBlueprintIds ?? new List<string>();
++
++    public static int Slots(GuildSaveData save, string companionId)
++        => Find(save, companionId)?.Slots ?? WizardSignatureSlots.DefaultSlots;
++
++    /// <summary>The grant's budget with the doctrine applied.</summary>
++    public static int Budget(GuildSaveData save, string companionId)
++        => (Find(save, companionId)?.RarityBudget ?? WizardSignatureSlots.DefaultRarityBudget)
++           + (DisseminationActive(save) ? DisseminationBudgetBonus : 0);
++
++    public static int PointsSpent(GuildSaveData save, string companionId)
++        => Find(save, companionId)?.PointsSpent() ?? 0;
++
++    public static int PointsFor(string blueprintId)
++    {
++        var bp = Blueprint(blueprintId);
++        return WizardSignatureSlots.PointsFor(bp?.Rarity ?? CardRarity.Common);
++    }
++
++    /// <summary>Cards the guild could grant: every distinct blueprint in its real
++    /// owned collection (never the debug deck), by name. Regalia are one of a
++    /// kind and stay with the wizard.</summary>
++    public static List<CardBlueprint> Candidates(GuildSaveData save)
++    {
++        var list = new List<CardBlueprint>();
++        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++        var cards = save?.PlayerDeck?.RealCards;
++        if (cards == null)
++        {
++            return list;
++        }
++        foreach (var c in cards)
++        {
++            if (c == null || c.IsRegalia || string.IsNullOrEmpty(c.BlueprintId) || !seen.Add(c.BlueprintId))
++            {
++                continue;
++            }
++            var bp = Blueprint(c.BlueprintId);
++            if (bp != null)
++            {
++                list.Add(bp);
++            }
++        }
++        list.Sort((a, b) => string.CompareOrdinal(Name(a), Name(b)));
++        return list;
++    }
++
++    /// <summary>Why this card cannot be granted to this companion now, or null.</summary>
++    public static string CannotGrantReason(GuildSaveData save, Companion c, string blueprintId)
++    {
++        if (save?.Cycle == null || c == null)
++        {
++            return "No save.";
++        }
++        if (c.UnitClass != "Arcane")
++        {
++            return "Only arcane companions cast the guild's spells.";
++        }
++        if (string.IsNullOrEmpty(blueprintId) || Blueprint(blueprintId) == null)
++        {
++            return "Choose a card.";
++        }
++        if (!Owns(save, blueprintId))
++        {
++            return "The guild does not own this card.";
++        }
++        var slotted = Slotted(save, c.Id);
++        if (slotted.Contains(blueprintId))
++        {
++            return "Already granted to them.";
++        }
++        if (slotted.Count >= Slots(save, c.Id))
++        {
++            return $"No free slot ({slotted.Count} of {Slots(save, c.Id)} used).";
++        }
++        int after = PointsSpent(save, c.Id) + PointsFor(blueprintId);
++        if (after > Budget(save, c.Id))
++        {
++            return $"Over budget: {after} of {Budget(save, c.Id)} points.";
++        }
++        var pool = save.Cycle.SignaturePool;
++        if (pool != null && !pool.Contains(blueprintId) && pool.IsFull)
++        {
++            return $"The signature library is full ({pool.Count} of {pool.MaxPoolSize}). Revoke a grant elsewhere first.";
++        }
++        return null;
++    }
++
++    public static bool TryGrant(GuildSaveData save, Companion c, string blueprintId)
++    {
++        if (CannotGrantReason(save, c, blueprintId) != null)
++        {
++            return false;
++        }
++        save.Cycle.SignaturePool ??= new SignaturePoolState();
++        var pool = save.Cycle.SignaturePool;
++        pool.Spells ??= new List<SignatureSpell>();
++        if (!pool.Contains(blueprintId))
++        {
++            pool.Spells.Add(new SignatureSpell
++            {
++                BlueprintId = blueprintId,
++                AddedLunation = save.Cycle.Calendar?.CurrentLunation ?? 1,
++            });
++        }
++        var g = FindOrCreate(save, c.Id);
++        g.SlottedBlueprintIds ??= new List<string>();
++        g.SlottedBlueprintIds.Add(blueprintId);
++        SaveManager.MarkDirty();
++        GD.Print($"[Signature] {c.Name} carries '{blueprintId}' ({g.PointsSpent()}/{Budget(save, c.Id)} pts).");
++        return true;
++    }
++
++    public static bool Revoke(GuildSaveData save, string companionId, string blueprintId)
++    {
++        var g = Find(save, companionId);
++        if (g?.SlottedBlueprintIds == null || !g.SlottedBlueprintIds.Remove(blueprintId))
++        {
++            return false;
++        }
++        // The library holds what is granted to anyone: drop an orphaned entry.
++        bool stillGranted = false;
++        foreach (var other in save.Cycle.SignatureGrants ?? new List<WizardSignatureSlots>())
++        {
++            if (other?.SlottedBlueprintIds != null && other.SlottedBlueprintIds.Contains(blueprintId))
++            {
++                stillGranted = true;
++                break;
++            }
++        }
++        if (!stillGranted)
++        {
++            save.Cycle.SignaturePool?.Spells?.RemoveAll(s => s != null && s.BlueprintId == blueprintId);
++        }
++        SaveManager.MarkDirty();
++        return true;
++    }
++
++    /// <summary>The granted cards as combat cards for this companion: printed, or
++    /// at the guild's best owned tiers under Dissemination. Unknown ids are skipped.</summary>
++    public static List<Card> BuildCards(GuildSaveData save, string companionId)
++    {
++        var cards = new List<Card>();
++        bool spread = DisseminationActive(save);
++        foreach (var id in Slotted(save, companionId))
++        {
++            var bp = Blueprint(id);
++            if (bp == null || IdleReason(save, companionId, id) != null)
++            {
++                continue;
++            }
++            Card card = null;
++            if (spread)
++            {
++                var (top, bot) = ScribesTower.BestOwnedTiers(save, bp.Id);
++                if (top > 0 || bot > 0)
++                {
++                    card = CardUpgradeApplier.Apply(bp.Id, top, bot);
++                }
++            }
++            card ??= CardDatabase.Instantiate(bp);
++            if (card != null)
++            {
++                cards.Add(card);
++            }
++        }
++        return cards;
++    }
++
++    /// <summary>The guild still owns a non-Regalia copy of this blueprint.</summary>
++    public static bool Owns(GuildSaveData save, string blueprintId)
++    {
++        var cards = save?.PlayerDeck?.RealCards;
++        if (cards == null)
++        {
++            return false;
++        }
++        foreach (var c in cards)
++        {
++            if (c != null && !c.IsRegalia && string.Equals(c.BlueprintId, blueprintId, StringComparison.OrdinalIgnoreCase))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    /// <summary>Why a slotted card will not take the field, or null when it will.
++    /// Grants are checked again at every fight: a card the guild has since
++    /// disenchanted or transmuted stays home, and so does whatever no longer
++    /// fits the budget (Dissemination lapsed), last granted first.</summary>
++    public static string IdleReason(GuildSaveData save, string companionId, string blueprintId)
++    {
++        if (!Owns(save, blueprintId))
++        {
++            return "The guild no longer owns this card.";
++        }
++        int budget = Budget(save, companionId), running = 0;
++        foreach (var id in Slotted(save, companionId))
++        {
++            if (!Owns(save, id))
++            {
++                continue;
++            }
++            running += PointsFor(id);
++            if (id == blueprintId)
++            {
++                return running > budget ? $"Over budget ({running} of {budget} points): it stays home." : null;
++            }
++        }
++        return null;
++    }
++
++    public static string Name(CardBlueprint bp) => bp?.Prebuilt?.TopHalf?.Name ?? bp?.Id ?? "";
++
++    private static CardBlueprint Blueprint(string id)
++        => CardDatabase.Blueprints.Find(b => string.Equals(b.Id, id, StringComparison.OrdinalIgnoreCase));
++}
+diff --git a/Scripts/Data/SaveState/SignaturePool.cs b/Scripts/Data/SaveState/SignaturePool.cs
+index 3d6df06..0ba7164 100644
+--- a/Scripts/Data/SaveState/SignaturePool.cs
++++ b/Scripts/Data/SaveState/SignaturePool.cs
+@@ -50,11 +50,11 @@ using System.Text.Json.Serialization;
+ //                 finding 4; handoff section 4.6
+ // ============================================================
+ 
+-/// <summary>One spell in the faction library. The upgrade tiers here are the
+-/// POOL-level record: this is what makes an upgrade propagate to every wizard
+-/// referencing the blueprint, which per-instance OwnedCard tiers cannot do.
+-/// The player's own owned copies keep their own tiers for their own deck;
+-/// these are the tiers an ALLY gets when the spell is slotted to them.</summary>
++/// <summary>One spell in the faction library. As built (2026-09-29, design
++/// §16) an ally's copy is fielded at its printed tiers, or under Dissemination
++/// at the tiers of the guild's best owned copy (ScribesTower.BestOwnedTiers),
++/// read fresh at each fight. So propagation needs no stored pool tiers, and
++/// TopTier / BotTier below are reserved and currently unused.</summary>
+ public class SignatureSpell
+ {
+     /// <summary>CardBlueprint.Id, "school:TopName|BotName". Decks reference
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 838ade2..4d55448 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -569,10 +569,14 @@ public partial class CombatManager : Node3D
+                 // unreliable. Their ContributedCardIds stay in the WIZARD's
+                 // deck (BuildCompanionCardList), not duplicated here.
+                 var starter = StarterDeckLoader.BuildStarterCards(unit.School);
++                // Signature slots (design §16, ruled 2026-09-29): the guild's
++                // granted spells are ADDED to the starter deck, not swapped in.
++                var signature = SignatureService.BuildCards(SaveManager.ActiveSave, unit.CompanionId);
++                starter.AddRange(signature);
+                 AddStaffInnate(unit, starter);   // M7: arcane companions with staves too
+                 unit.DeckData.Initialize(starter);
+                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
+-                         $"({unit.School}) [companion starter deck]");
++                         $"({unit.School}, {signature.Count} signature) [companion starter deck]");
+             }
+         }
+ 
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+index b15888b..a3cabc3 100644
+--- a/Scripts/Systems/Verification/CharterSaveAssert.cs
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -37,6 +37,7 @@ public static class CharterSaveAssert
+         ok &= AssertBlightFields(sb);
+         ok &= AssertCarriedWeapon(sb);
+         ok &= AssertRefinement(sb);
++        ok &= AssertSignatureGrants(sb);
+ 
+         sb.AppendLine(ok
+             ? "RESULT: ALL PASSED. Charter save-adjacent structs round-trip clean."
+@@ -276,6 +277,36 @@ public static class CharterSaveAssert
+         return ok;
+     }
+ 
++    /// <summary>Signature slots (design §16): a grant and its library entry
++    /// survive the round-trip, and a legacy cycle reads as empty.</summary>
++    private static bool AssertSignatureGrants(StringBuilder sb)
++    {
++        var src = new CycleState();
++        src.SignaturePool ??= new SignaturePoolState();
++        src.SignaturePool.Spells ??= new List<SignatureSpell>();
++        src.SignaturePool.Spells.Add(new SignatureSpell { BlueprintId = "fireball", AddedLunation = 3 });
++        src.SignatureGrants ??= new List<WizardSignatureSlots>();
++        src.SignatureGrants.Add(new WizardSignatureSlots { CompanionId = "wren", SlottedBlueprintIds = new List<string> { "fireball" } });
++
++        var rt = RoundTrip(src);
++        bool ok = Check(sb, "CycleState.SignaturePool", rt?.SignaturePool?.Spells != null
++            && rt.SignaturePool.Spells.Count == 1 && rt.SignaturePool.Spells[0].BlueprintId == "fireball"
++            && rt.SignaturePool.Spells[0].AddedLunation == 3);
++        ok &= Check(sb, "CycleState.SignatureGrants", rt?.SignatureGrants != null
++            && rt.SignatureGrants.Count == 1 && rt.SignatureGrants[0].CompanionId == "wren"
++            && rt.SignatureGrants[0].SlottedBlueprintIds.Count == 1
++            && rt.SignatureGrants[0].Slots == WizardSignatureSlots.DefaultSlots
++            && rt.SignatureGrants[0].RarityBudget == WizardSignatureSlots.DefaultRarityBudget);
++
++        var legacy = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":5}", SaveManager.JsonOptions);
++        ok &= Check(sb, "CycleState signature grants empty on legacy JSON", legacy != null
++            && (legacy.SignatureGrants == null || legacy.SignatureGrants.Count == 0)
++            && (legacy.SignaturePool?.Spells == null || legacy.SignaturePool.Spells.Count == 0));
++
++        sb.AppendLine(ok ? "  Signature grants: PASS" : "  Signature grants: FAIL");
++        return ok;
++    }
++
+     // ── Helpers (mirror ArmorySaveAssert) ─────────────────────────────────
+ 
+     private static T RoundTrip<T>(T obj)
+diff --git a/Scripts/UI/ForcesScreen.cs b/Scripts/UI/ForcesScreen.cs
+index be88af6..6b92504 100644
+--- a/Scripts/UI/ForcesScreen.cs
++++ b/Scripts/UI/ForcesScreen.cs
+@@ -626,6 +626,13 @@ public partial class ForcesScreen : Control
+             }
+         }
+ 
++        // Signature spells (design §16): arcane companions only.
++        if (c.UnitClass == "Arcane" && save?.Cycle != null)
++        {
++            col.AddChild(new HSeparator());
++            BuildSignatureSection(col, save, c);
++        }
++
+         // Moves.
+         col.AddChild(new HSeparator());
+         AddLine(col, "ASSIGN", UITheme.TextDim);
+@@ -633,6 +640,92 @@ public partial class ForcesScreen : Control
+         return col;
+     }
+ 
++    // ── Signature spells ───────────────────────────────────────────────────
++
++    /// <summary>The guild's own cards granted to an arcane companion. Granted
++    /// cards join the companion's starter deck in every fight (design §16).</summary>
++    private void BuildSignatureSection(VBoxContainer col, GuildSaveData save, Companion c)
++    {
++        var slotted = SignatureService.Slotted(save, c.Id);
++        int slots = SignatureService.Slots(save, c.Id);
++        int spent = SignatureService.PointsSpent(save, c.Id);
++        int budget = SignatureService.Budget(save, c.Id);
++        AddLine(col, $"SIGNATURE SPELLS  ·  {slotted.Count} of {slots} slots  ·  {spent} of {budget} points", UITheme.TextDim);
++        AddLine(col, SignatureService.DisseminationActive(save)
++                ? "Granted spells join their starter deck, carrying the guild's best upgrades (Dissemination)."
++                : "Granted spells join their starter deck at their printed strength. Points: common 1, uncommon 2, rare 3, legendary 5.",
++                UITheme.TextSecondary);
++
++        foreach (var id in new List<string>(slotted))
++        {
++            var row = new HBoxContainer();
++            row.AddThemeConstantOverride("separation", 8);
++            var bp = CardDatabase.Blueprints.Find(b => string.Equals(b.Id, id, StringComparison.OrdinalIgnoreCase));
++            string cardName = bp != null ? SignatureService.Name(bp) : id;
++            string idle = SignatureService.IdleReason(save, c.Id, id);
++            var name = new Label
++            {
++                Text = $"{cardName}  ({SignatureService.PointsFor(id)} pts)" + (idle != null ? $"  ·  {idle}" : ""),
++                SizeFlagsHorizontal = SizeFlags.ExpandFill,
++                AutowrapMode = TextServer.AutowrapMode.WordSmart,
++            };
++            name.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
++            name.AddThemeColorOverride("font_color", idle != null ? UITheme.Warning : UITheme.TextPrimary);
++            row.AddChild(name);
++            var revoke = new Button { Text = "Revoke", CustomMinimumSize = new Vector2(80, 30) };
++            UITheme.ApplyButtonStyle(revoke, isPrimary: false);
++            string captured = id;
++            revoke.Pressed += () =>
++            {
++                if (SignatureService.Revoke(save, c.Id, captured))
++                {
++                    Changed();
++                }
++            };
++            row.AddChild(revoke);
++            col.AddChild(row);
++        }
++
++        var candidates = SignatureService.Candidates(save);
++        if (candidates.Count == 0)
++        {
++            AddLine(col, "The guild owns no cards to grant.", UITheme.TextDim);
++            return;
++        }
++        var grantRow = new HBoxContainer();
++        grantRow.AddThemeConstantOverride("separation", 8);
++        var pick = new OptionButton { SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 30) };
++        foreach (var bp in candidates)
++        {
++            pick.AddItem($"{SignatureService.Name(bp)}  ({WizardSignatureSlots.PointsFor(bp.Rarity)} pts)");
++        }
++        grantRow.AddChild(pick);
++        var grant = new Button { Text = "Grant", CustomMinimumSize = new Vector2(80, 30) };
++        UITheme.ApplyButtonStyle(grant, isPrimary: false);
++        void Refresh()
++        {
++            int i = pick.Selected;
++            string why = i >= 0 && i < candidates.Count
++                ? SignatureService.CannotGrantReason(save, c, candidates[i].Id)
++                : "Choose a card.";
++            grant.Disabled = why != null;
++            grant.TooltipText = why ?? "";
++        }
++        pick.ItemSelected += _ => Refresh();
++        grant.Pressed += () =>
++        {
++            int i = pick.Selected;
++            if (i >= 0 && i < candidates.Count && SignatureService.TryGrant(save, c, candidates[i].Id))
++            {
++                Changed();
++            }
++        };
++        grantRow.AddChild(grant);
++        col.AddChild(grantRow);
++        pick.Select(0);
++        Refresh();
++    }
++
+     // ── Figure ─────────────────────────────────────────────────────────────
+ 
+     /// <summary>A small 3D view of the person: the shared rig when it exists,
+-- 
+2.43.0
+

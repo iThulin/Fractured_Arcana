@@ -206,7 +206,8 @@ public static class ShadowVocab
     /// The spine's economy knob, mirroring the Embassy's envoy cap.</summary>
     public static int InformantCap(int undercroftTier) => undercroftTier switch
     {
-        <= 1 => 2,
+        <= 0 => 1,   // audit 2026-09-29: T1 used to equal no building at all
+        1 => 2,
         2 => 4,
         _ => 6,
     };

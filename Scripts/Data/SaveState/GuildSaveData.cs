@@ -143,7 +143,13 @@ public class GuildSaveData
     // ── Training Grounds helpers (read the eternal campus) ──────────────
     [JsonIgnore] public int TrainingGroundsTier => GetBuildingTier("training_grounds");
 
-    [JsonIgnore] public int MartialStanceSlots => TrainingGroundsTier;
+    /// <summary>Stances a martial fields (ruled 2026-09-30): two to start, which
+    /// their authored pair fills; a third at Training Grounds T2. The signature
+    /// stance is separate. Five was too many to play with.</summary>
+    [JsonIgnore] public int MartialStanceSlots => BaseStanceSlots + (TrainingGroundsTier >= 2 ? 1 : 0);
+
+    public const int BaseStanceSlots = 2;
+    public const int MaxStanceSlots = 3;
 
     [JsonIgnore]
     public int FighterBaseAP => TrainingGroundsTier switch
@@ -383,6 +389,11 @@ public class OwnedCard
     /// seventh upgrade point, enough for both halves to reach their final stage.
     /// Kept for good once given. Additive save field.</summary>
     public bool Refined = false;
+
+    /// <summary>Moon of this card's last upgrade (year x 100 + lunation), 0 before any. Read only
+    /// under Fevered Copying (a blighted Scriptorum, design §21): one upgrade a
+    /// moon per card. Additive save field.</summary>
+    public int LastUpgradeLunation = 0;
 
     // ── Convenience ──────────────────────────────────────────────────
     public bool IsBaseUpgraded => TopTier >= 1 && BotTier >= 1;

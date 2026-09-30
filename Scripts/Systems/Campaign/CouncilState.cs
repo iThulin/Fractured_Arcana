@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 // ============================================================
 // CouncilState.cs
@@ -145,7 +146,7 @@ public class CourtierState
 /// CampaignState, mirroring the corruption single-sourcing rule in
 /// KingdomState.
 /// </summary>
-public class CourtState
+public class CourtState : IJsonOnDeserialized
 {
     public string KingdomId = "";
 
@@ -164,9 +165,47 @@ public class CourtState
     /// Thresholds 4 / 7 / 10 = Scandal / Expulsion / Imprisonment.</summary>
     public int Exposure = 0;
 
-    /// <summary>Courted Patron (one per court). Empty until a Court a
-    /// Courtier mission completes its Patron Oath (phase C5/C6).</summary>
+    /// <summary>Sworn Patrons at this court, in the order they swore. One
+    /// seat per court, two under the Embassy's Patronage doctrine
+    /// (CouncilQueries.PatronSeatsPerCourt). Filled by Court a Courtier.</summary>
+    public List<string> PatronCourtierIds = new();
+
+    /// <summary>LEGACY (before 2026-09-29): the single patron. Read only to
+    /// migrate old saves into PatronCourtierIds; always written empty.</summary>
     public string PatronCourtierId = "";
+
+    /// <summary>True once Broker the Compact has resolved here: the court is
+    /// bound to the guild by treaty for the rest of the timeline. Its armies
+    /// answer Hold the Line postings under the Embassy's Concordat.</summary>
+    public bool CompactBrokered = false;
+
+    /// <summary>Migrate the legacy single patron into the list.</summary>
+    public void OnDeserialized()
+    {
+        PatronCourtierIds ??= new List<string>();
+        if (!string.IsNullOrEmpty(PatronCourtierId) && !PatronCourtierIds.Contains(PatronCourtierId))
+        {
+            PatronCourtierIds.Insert(0, PatronCourtierId);
+        }
+        PatronCourtierId = "";
+    }
+
+    public bool IsPatron(string courtierId)
+        => !string.IsNullOrEmpty(courtierId) && PatronCourtierIds != null && PatronCourtierIds.Contains(courtierId);
+
+    [JsonIgnore]
+    public int PatronCount => PatronCourtierIds?.Count ?? 0;
+
+    public void AddPatron(string courtierId)
+    {
+        PatronCourtierIds ??= new List<string>();
+        if (!string.IsNullOrEmpty(courtierId) && !PatronCourtierIds.Contains(courtierId))
+        {
+            PatronCourtierIds.Add(courtierId);
+        }
+    }
+
+    public bool RemovePatron(string courtierId) => PatronCourtierIds != null && PatronCourtierIds.Remove(courtierId);
 
     /// <summary>False until any mission completes here (the Unknown band).</summary>
     public bool HasContact = false;

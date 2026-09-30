@@ -15,9 +15,10 @@ using System.Collections.Generic;
 //                   (tall)              and change to it in a fight for 1 AP:
 //                                       its class (so its maneuvers and Honed
 //                                       rider) and its attack damage and
-//                                       range. Stance finishers at 5 Edge
-//                                       are the doctrine's second half, not
-//                                       built yet.
+//                                       range. And each signature stance
+//                                       unlocks its finisher at 5 Edge
+//                                       (Data/Maneuvers, "stance" field;
+//                                       design §18).
 // Layer:          Data / rules
 // Collaborators:  Charters (the gate), UnitLoadout.SecondWeaponInstanceId,
 //                 ArmoryData (Equip/UnequipSecondWeapon), EquipmentLoadout

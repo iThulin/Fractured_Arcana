@@ -139,11 +139,21 @@ public static class CompanionInjurySystem
             return;
         AssertRoundTripOnce();
 
+        // Restless Sleep (blighted Dormitory, design §21): the injured mend twice
+        // as fast, but each moon in those beds costs them some faith in the guild.
+        bool restless = BlightedForms.Active(save, BlightedForms.Dormitory);
         foreach (var c in save.Companions)
         {
             if (c == null || !c.IsInjured || c.IsPermadead)
                 continue;
-            c.InjuredLunationsRemaining--;
+            c.InjuredLunationsRemaining -= restless ? 2 : 1;
+            if (c.InjuredLunationsRemaining < 0)
+                c.InjuredLunationsRemaining = 0;
+            if (restless)
+            {
+                c.Loyalty = System.Math.Clamp(c.Loyalty - BlightedForms.RestlessSleepLoyalty, 0, 100);
+                GD.Print($"[Infirmary] Restless Sleep: {c.Name} -{BlightedForms.RestlessSleepLoyalty} loyalty ({c.Loyalty}).");
+            }
             GD.Print(c.IsInjured
                 ? $"[Infirmary] {c.Name} recovering: {c.InjuredLunationsRemaining} lunation(s) left."
                 : $"[Infirmary] {c.Name} has recovered and returns to the roster.");

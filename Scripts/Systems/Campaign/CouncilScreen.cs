@@ -629,7 +629,7 @@ public partial class CouncilScreen : CanvasLayer
         {
             badge = "a secret is known to the guild";
         }
-        else if (court.PatronCourtierId == c.Id)
+        else if (court.IsPatron(c.Id))
         {
             badge = "sworn patron of the guild";
         }
@@ -830,16 +830,21 @@ public partial class CouncilScreen : CanvasLayer
         }
 
         // ── Idle: status line, then one launcher button per mission ─────────
-        if (!string.IsNullOrEmpty(court.PatronCourtierId))
+        var patronNames = new List<string>();
+        foreach (var pid in court.PatronCourtierIds ?? new List<string>())
         {
-            var patron = court.GetCourtier(court.PatronCourtierId);
-            _statusLabel.Text = patron != null
-                ? $"Patron at court: {patron.DisplayName}. No envoy afield."
-                : "No envoy afield here.";
+            var patron = court.GetCourtier(pid);
+            if (patron != null)
+            {
+                patronNames.Add(patron.DisplayName);
+            }
         }
-        else
+        _statusLabel.Text = patronNames.Count > 0
+            ? $"{(patronNames.Count > 1 ? "Patrons" : "Patron")} at court: {string.Join(", ", patronNames)}. No envoy afield."
+            : "No envoy afield here.";
+        if (court.CompactBrokered)
         {
-            _statusLabel.Text = "No envoy afield here.";
+            _statusLabel.Text += "   ·   Bound by the Compact.";
         }
         if (encLock != null)
         {
@@ -878,6 +883,10 @@ public partial class CouncilScreen : CanvasLayer
             {
                 lockReason = $"requires Embassy tier {def.RequiredEmbassyTier}";
             }
+            if (lockReason == null)
+            {
+                lockReason = CouncilMissions.ExtraRefusal(cycle, court, def.Id);
+            }
             if (lockReason == null && capFull)
             {
                 lockReason = "no envoys free";
@@ -886,7 +895,7 @@ public partial class CouncilScreen : CanvasLayer
             string missionId = def.Id;
             var btn = new Button
             {
-                Text = $"{def.DisplayName} ({def.Lunations}◐, {def.GoldCost}g)",
+                Text = $"{def.DisplayName} ({def.Lunations}◐, {CouncilMissions.GoldFor(save, def)}g)",
                 CustomMinimumSize = new Vector2(0, 32),
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 Disabled = lockReason != null,
@@ -1111,11 +1120,11 @@ public partial class CouncilScreen : CanvasLayer
 
         bool ready = _selCompanionId != null &&
                      (!def.NeedsTargetCourtier || _selTargetCourtierId != null);
-        bool affordable = save.Gold >= def.GoldCost;
+        bool affordable = save.Gold >= CouncilMissions.GoldFor(save, def);
 
         var confirmBtn = new Button
         {
-            Text = affordable ? $"Send ({def.GoldCost}g)" : $"Need {def.GoldCost}g",
+            Text = affordable ? $"Send ({CouncilMissions.GoldFor(save, def)}g)" : $"Need {CouncilMissions.GoldFor(save, def)}g",
             CustomMinimumSize = new Vector2(140, 32),
             Disabled = !ready || !affordable,
         };
@@ -1145,7 +1154,7 @@ public partial class CouncilScreen : CanvasLayer
             var list = new List<CourtierState>();
             foreach (var c in court.Courtiers)
             {
-                if (c.Regard >= 2 && court.PatronCourtierId != c.Id)
+                if (c.Regard >= 2 && !court.IsPatron(c.Id))
                 {
                     list.Add(c);
                 }
@@ -1172,7 +1181,7 @@ public partial class CouncilScreen : CanvasLayer
         {
             return;
         }
-        if (save.Gold < def.GoldCost)
+        if (save.Gold < CouncilMissions.GoldFor(save, def))
         {
             return;
         }
@@ -1193,6 +1202,10 @@ public partial class CouncilScreen : CanvasLayer
             return;
         }
         if (CouncilQueries.EmbassyTier(save) < def.RequiredEmbassyTier)
+        {
+            return;
+        }
+        if (CouncilMissions.ExtraRefusal(cycle, court, def.Id) != null)
         {
             return;
         }
@@ -1231,7 +1244,7 @@ public partial class CouncilScreen : CanvasLayer
             }
         }
 
-        save.Gold -= def.GoldCost;
+        save.Gold -= CouncilMissions.GoldFor(save, def);
 
         // Envoys leave the expedition pool: instant dispatch (v1.1 ruling).
         CompanionRoster.RemoveFromParty(_selCompanionId);
@@ -1247,7 +1260,7 @@ public partial class CouncilScreen : CanvasLayer
         });
 
         GD.Print($"[Council] Dispatched {_selCompanionId} to {court.KingdomId} " +
-                 $"({def.Id}, {def.Lunations} lunation(s), {def.GoldCost}g).");
+                 $"({def.Id}, {def.Lunations} lunation(s), {CouncilMissions.GoldFor(save, def)}g).");
 
         CloseFlow();
         SaveManager.Save();

@@ -373,8 +373,7 @@ public class CycleState
     public List<FieldParty> FieldParties = new();
 
     /// <summary>How many field parties may be fielded at once. Baseline 1;
-    /// growth is a campus upgrade (which building grants it is still open,
-    /// so nothing writes this yet).</summary>
+    /// the Grand Hall raises it (BuildingEffectApplier).</summary>
     public int MaxFieldParties = 1;
 
     /// <summary>Built waypoints: the consumable access the castle conjures

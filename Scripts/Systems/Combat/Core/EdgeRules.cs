@@ -91,6 +91,9 @@ public static class EdgeRules
 
         u.MaxEdge = trainingGroundsTier >= 3 ? CapAtTrainingTier3 : BaseCap;
         int start = StartingEdge + (u.ActiveStance?.EdgeStartBonus ?? 0);
+        // Blood Drills (blighted Training Grounds, design §21): +1 Edge to start.
+        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.TrainingGrounds))
+            start += BlightedForms.BloodDrillEdge;
         u.Edge = Mathf.Clamp(start, 0, u.MaxEdge);
     }
 

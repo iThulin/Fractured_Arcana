@@ -92,7 +92,13 @@ public static class CardCommissionService
     /// <summary>Lunations a new commission takes: 3, or 2 under the Forbidden
     /// Archives (Arcane Library doctrine, §13).</summary>
     public static int ResearchLunationsFor(GuildSaveData save)
-        => CardHalls.ForbiddenArchivesActive(save) ? CardHalls.ArchivesResearchLunations : ResearchLunations;
+    {
+        int moons = CardHalls.ForbiddenArchivesActive(save) ? CardHalls.ArchivesResearchLunations : ResearchLunations;
+        // Whispering Stacks (blighted Library, design §21): a moon sooner.
+        if (BlightedForms.Active(save, BlightedForms.Library))
+            moons = Math.Max(1, moons - BlightedForms.WhisperingStacksFaster);
+        return moons;
+    }
 
     /// <summary>Max commissions in flight at once, set by the Arcane Library's tier:
     /// 2 at T2, 3 at T3. A concurrency cap is
@@ -321,6 +327,27 @@ public static class CardCommissionService
     {
         save.Ledger.CardCommissions.Remove(c);
         if (string.IsNullOrWhiteSpace(c.BlueprintId)) return 0;
+
+        // Whispering Stacks (blighted Library, §21): the stacks whisper back the
+        // wrong book. A random undiscovered card of the same school and rarity.
+        if (BlightedForms.Active(save, BlightedForms.Library))
+        {
+            var asked = CardDatabase.Blueprints.Find(b =>
+                string.Equals(b.Id, c.BlueprintId, StringComparison.OrdinalIgnoreCase));
+            if (asked != null)
+            {
+                var pool = CardDatabase.Blueprints.Where(b =>
+                    b.School == asked.School && b.Rarity == asked.Rarity
+                    && !string.Equals(b.Id, asked.Id, StringComparison.OrdinalIgnoreCase)
+                    && IsCommissionable(save, b) && Find(save, b.Id) == null).ToList();
+                if (pool.Count > 0)
+                {
+                    var got = pool[new Random().Next(pool.Count)];
+                    GD.Print($"[Commission] Whispering Stacks: '{c.BlueprintId}' came back as '{got.Id}'.");
+                    c.BlueprintId = got.Id;
+                }
+            }
+        }
 
         save.Ledger.UnlockedCardBlueprintIds ??= new List<string>();
         bool already = save.Ledger.UnlockedCardBlueprintIds.Any(id =>

@@ -191,6 +191,8 @@ public static class FieldExpeditionSaveAssert
                 EncountersWon = 3,
                 LunationsFrozen = 2,
                 StartDay = 19,
+                WizardSummoned = true,
+                SummonDays = 2,
             },
         };
         var rt = RoundTrip(src);
@@ -248,6 +250,12 @@ public static class FieldExpeditionSaveAssert
                     && rt.Sortie?.EncountersWon == src.Sortie.EncountersWon);
         ok &= Check(sb, "FieldParty.Sortie.LunationsFrozen",
                     rt.Sortie?.LunationsFrozen == src.Sortie.LunationsFrozen);
+        // Administrator (design §19): the summons outlives a save mid-dive.
+        ok &= Check(sb, "FieldParty.Sortie.WizardSummoned", rt.Sortie?.WizardSummoned == true);
+        ok &= Check(sb, "FieldParty.Sortie.SummonDays", rt.Sortie?.SummonDays == src.Sortie.SummonDays);
+        var cleared = new SortieState { WizardSummoned = true, SummonDays = 2 };
+        cleared.Clear();
+        ok &= Check(sb, "SortieState.Clear drops the summons", !cleared.WizardSummoned && cleared.SummonDays == 0);
 
         // Field work (2026-09-23): a job forgotten across a save is a party
         // standing idle with its lunations spent.

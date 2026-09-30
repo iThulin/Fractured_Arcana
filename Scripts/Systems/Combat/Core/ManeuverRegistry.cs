@@ -37,6 +37,14 @@ public static class ManeuverRegistry
     {
         "damage", "push", "stagger", "root", "ignore_armor", "ignore_chitin", "finisher_scale",
         "damage_multiplier",
+        // Stance finishers (design §18):
+        "status", "self_shield", "ally_shield", "all_adjacent",
+    };
+
+    /// <summary>Statuses a maneuver's "status" effect may apply.</summary>
+    public static readonly HashSet<string> KnownManeuverStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "vulnerable", "marked", "suppressed",
     };
 
     /// <summary>Reaction triggers CombatManager.Reactions.cs resolves (spec §7, M4).</summary>
@@ -48,6 +56,7 @@ public static class ManeuverRegistry
 
     private static Dictionary<string, ManeuverDefinition> _byId;
     private static Dictionary<WeaponClass, List<ManeuverDefinition>> _byClass;
+    private static Dictionary<string, List<ManeuverDefinition>> _byStance;
 
     public static IReadOnlyDictionary<string, ManeuverDefinition> All
     {
@@ -71,11 +80,21 @@ public static class ManeuverRegistry
         return _byClass.TryGetValue(cls, out var list) ? list : new List<ManeuverDefinition>();
     }
 
+    /// <summary>The finishers a signature stance grants under the Proving
+    /// Grounds (design §18). Empty for every other stance.</summary>
+    public static List<ManeuverDefinition> ForStance(string stanceId)
+    {
+        EnsureLoaded();
+        return !string.IsNullOrEmpty(stanceId) && _byStance.TryGetValue(stanceId, out var list)
+            ? list : new List<ManeuverDefinition>();
+    }
+
     /// <summary>Force a reload (debug panel). Returns the number of maneuvers accepted.</summary>
     public static int Reload()
     {
         _byId = null;
         _byClass = null;
+        _byStance = null;
         EnsureLoaded();
         return _byId.Count;
     }
@@ -87,6 +106,7 @@ public static class ManeuverRegistry
 
         _byId = new Dictionary<string, ManeuverDefinition>();
         _byClass = new Dictionary<WeaponClass, List<ManeuverDefinition>>();
+        _byStance = new Dictionary<string, List<ManeuverDefinition>>(StringComparer.OrdinalIgnoreCase);
 
         var dir = DirAccess.Open(MANEUVERS_DIR);
         if (dir == null)
@@ -138,6 +158,13 @@ public static class ManeuverRegistry
             }
 
             _byId[def.Id] = def;
+            if (!string.IsNullOrEmpty(def.Stance))
+            {
+                if (!_byStance.TryGetValue(def.Stance, out var slist))
+                    _byStance[def.Stance] = slist = new List<ManeuverDefinition>();
+                slist.Add(def);
+                continue;   // stance-bound: never listed by weapon class
+            }
             var cls = def.WeaponClassValue;
             if (!_byClass.TryGetValue(cls, out var list))
                 _byClass[cls] = list = new List<ManeuverDefinition>();
@@ -159,7 +186,18 @@ public static class ManeuverRegistry
         if (string.IsNullOrWhiteSpace(def.DisplayName))
             return $"'{def.Id}': missing displayName";
 
-        if (!Enum.TryParse<WeaponClass>(def.WeaponClass, ignoreCase: true, out var cls) || cls == WeaponClass.None)
+        WeaponClass cls = WeaponClass.None;
+        if (!string.IsNullOrEmpty(def.Stance))
+        {
+            var st = StanceRegistry.Get(def.Stance);
+            if (st == null || !st.IsSignature)
+                return $"'{def.Id}': stance '{def.Stance}' is not a signature stance";
+            if (!def.DrainAll || !def.IsFinisher)
+                return $"'{def.Id}': a stance maneuver must be a finisher (drainAll, isFinisher)";
+            if (!string.IsNullOrEmpty(def.WeaponClass) && !def.WeaponClass.Equals("None", StringComparison.OrdinalIgnoreCase))
+                return $"'{def.Id}': a stance maneuver has no weaponClass (it goes with the stance, whatever the weapon)";
+        }
+        else if (!Enum.TryParse<WeaponClass>(def.WeaponClass, ignoreCase: true, out cls) || cls == WeaponClass.None)
             return $"'{def.Id}': weaponClass '{def.WeaponClass}' is not a classed weapon";
         if (!Enum.TryParse<ManeuverShape>(def.Shape, ignoreCase: true, out var shape))
             return $"'{def.Id}': shape '{def.Shape}' unknown (Self, Adjacent, Range, Line)";
@@ -204,6 +242,14 @@ public static class ManeuverRegistry
                 return $"'{def.Id}': finisher_scale needs drainAll";
             if (e.Key.Equals("damage_multiplier", StringComparison.OrdinalIgnoreCase) && e.Value < 2)
                 return $"'{def.Id}': damage_multiplier needs value >= 2";
+            if (e.Key.Equals("status", StringComparison.OrdinalIgnoreCase)
+                && (e.Value < 1 || !KnownManeuverStatuses.Contains(e.Param ?? "")))
+                return $"'{def.Id}': status needs value >= 1 (turns) and param in vulnerable, marked, suppressed";
+            if ((e.Key.Equals("self_shield", StringComparison.OrdinalIgnoreCase)
+                 || e.Key.Equals("ally_shield", StringComparison.OrdinalIgnoreCase)) && e.Value < 1)
+                return $"'{def.Id}': {e.Key} needs value >= 1 (shield per Edge spent)";
+            if (e.Key.Equals("all_adjacent", StringComparison.OrdinalIgnoreCase) && shape != ManeuverShape.Adjacent)
+                return $"'{def.Id}': all_adjacent needs the Adjacent shape";
         }
         if (def.HasEffect("stagger") && shape == ManeuverShape.Range && def.Reach > 1
             && cls != WeaponClass.Sling)

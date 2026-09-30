@@ -1,7 +1,7 @@
 {
     "id": "scrying_chambers",
     "name": "Scrying Chambers",
-    "description": "A vaulted hall of still water and lenses. The guild's divination organ: it charts what lies ahead before the party ever sets out: sites, objectives, and the patrols that hunt them.",
+    "description": "A vaulted hall of still water and lenses. The guild's divination organ: it charts what lies ahead before the party ever sets out (sites and objectives), and lets the wizard watch the fights they are not in.",
     "category": "Magic",
     "schoolAffinity": "",
     "footprint": [
@@ -23,7 +23,7 @@
         {
             "tier": 1,
             "displayName": "The Still Water",
-            "description": "The lenses find the nearest hidden sites. At the start of each expedition, the 2 nearest undiscovered points of interest are charted as beacons.",
+            "description": "The lenses find the nearest hidden sites. At the start of each expedition, the 2 nearest undiscovered points of interest are charted as beacons. And the lens: when a field party fights without the wizard, the wizard may cast one spell a fight through an ally, from the campus (never one that deals damage; 2 Essence).",
             "goldCost": 150,
             "requiredBuildings": [],
             "revealPoiCount": 2
@@ -31,7 +31,7 @@
         {
             "tier": 2,
             "displayName": "The Far Sight",
-            "description": "Sight enough to fix the goal itself. Charts one further site (3 total), and reveals the run objective's location, charting the ground around it. No more wandering blind toward the destination.",
+            "description": "Sight enough to fix the goal itself. Charts one further site (3 total), and, on a run with an objective, reveals where it lies and charts the ground around it. No more wandering blind toward the destination.",
             "goldCost": 275,
             "requiredBuildings": [],
             "revealPoiCount": 1,
@@ -40,7 +40,7 @@
         {
             "tier": 3,
             "displayName": "The Third Eye",
-            "description": "Charts a fourth site (4 total). And a doctrine, chartered at the Grand Hall. The Third Eye: the party foresees and slips the first ambush of each expedition, and every enemy's intent is read in full in expedition fights.",
+            "description": "Charts a fourth site (4 total). And a doctrine, chartered at the Grand Hall. The Third Eye: the party foresees and slips the first ambush of each expedition, and every enemy's intent is read in full in expedition fights. Or The Hand: the lens casts twice a fight, and reaches posting and castle defenses too.",
             "goldCost": 450,
             "requiredBuildings": [],
             "revealPoiCount": 1,
@@ -53,8 +53,7 @@
                 {
                     "id": "the_hand",
                     "name": "The Hand",
-                    "description": "Intervention play: the wizard casts into field fights from afar, more often and further.",
-                    "blocked": "remote casting is not built yet"
+                    "description": "Intervention play. The wizard's lens casts two spells a fight instead of one, and reaches every fight the wizard is not in: a posting's defense, and a castle defense before the wizard arrives, as well as a field party's dive. Remote spells never deal damage."
                 }
             ]
         }

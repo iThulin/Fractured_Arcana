@@ -929,6 +929,7 @@ public partial class CampusScreen : Control
                     var active = charter != null ? Charters.Doctrine(buildingSave.Id, charter.DoctrineId) : null;
                     state = active == null ? "  No doctrine chartered; charter one at the Grand Hall."
                           : CampusBlight.IsBlighted(save, buildingSave.Id) ? $"  {active.Name} is dark on blighted ground."
+                          : Charters.IsOverSlots(save, buildingSave.Id) ? $"  {active.Name} is dark: the Grand Hall is short a seat."
                           : Charters.IsRefitting(save, buildingSave.Id) ? $"  {active.Name} holds from the next moon."
                           : $"  In force: {active.Name}.";
                 }
@@ -1142,10 +1143,13 @@ public partial class CampusScreen : Control
         {
             var row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 8);
+            var blightTemplate = BuildingDatabase.GetTemplate(buildingSave.Id);
+            bool hasDoctrine = blightTemplate != null && Charters.DoctrineTier(blightTemplate) != null;
             string effect = buildingSave.BlightLevel switch
             {
                 1 => "Tainted ground: it draws off a splinter each moon.",
-                2 => "Blighted ground: its doctrine is dark and it works in the blight's way. It spreads.",
+                2 => "Blighted ground: " + (hasDoctrine ? "its doctrine is dark. " : "")
+                     + (BlightedForms.Describe(buildingSave.Id) ?? "it works on, uneasily.") + " It spreads.",
                 _ => "Overrun: it has stopped working. It spreads.",
             };
             var lbl = new Label

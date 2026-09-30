@@ -1,0 +1,32 @@
+{
+  "id": "anvil",
+  "displayName": "Anvil",
+  "role": "Anchor",
+  "stance": "sig_fighter_stoic",
+  "apCost": 2,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 5,
+  "isFinisher": true,
+  "shape": "Adjacent",
+  "reach": 1,
+  "text": "Finisher. Spend all Edge (at least 5): ATK + 1 damage per Edge spent. Stagger. Gain 1 shield per Edge spent.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "finisher_scale",
+      "value": 1
+    },
+    {
+      "key": "stagger"
+    },
+    {
+      "key": "self_shield",
+      "value": 1
+    }
+  ],
+  "vfxTag": "bash"
+}

@@ -211,8 +211,7 @@ public class NegotiationState
 
     public void Initialize(NegotiationEncounterData data, CardSchool wizardSchool,
                            List<Companion> party, int factionReputation = 0,
-                           LeverageToken patronToken = LeverageToken.Connections,
-                           int patronTokenCount = 0, int openingHand = -1)
+                           List<LeverageToken> patronTokens = null, int openingHand = -1)
     {
         Data = data;
         School = wizardSchool;
@@ -259,7 +258,7 @@ public class NegotiationState
             if (c.HasRider && !Clauses.Any(r => r.Id == c.Rider && r.Side == ClauseSide.Yours))
                 c.Rider = "";
 
-        BuildDeck(wizardSchool, party, patronToken, patronTokenCount,
+        BuildDeck(wizardSchool, party, patronTokens,
                   openingHand > 0 ? openingHand : NegotiationTuning.HandSize);
         FixedCards = new List<ParleyCard>
         {
@@ -290,9 +289,9 @@ public class NegotiationState
     }
 
     private void BuildDeck(CardSchool school, List<Companion> party,
-                           LeverageToken patronToken, int patronCount, int openingHand)
+                           List<LeverageToken> patronTokens, int openingHand)
     {
-        Deck = ParleyDeckBuilder.Build(school, party, patronToken, patronCount, out var provenance);
+        Deck = ParleyDeckBuilder.Build(school, party, patronTokens, out var provenance);
         Hand.Clear();
         Discard.Clear();
         _nextInstanceId = 1000;
@@ -313,8 +312,11 @@ public class NegotiationState
             }
         }
         AddLog("Your parley deck: " + string.Join(", ", provenance), NegotiationLogKind.Detail);
-        if (patronCount > 0)
+        int patronCount = patronTokens?.Count ?? 0;
+        if (patronCount == 1)
             AddLog("A patron at court backs you: a card of theirs is in your deck.", NegotiationLogKind.Detail);
+        else if (patronCount > 1)
+            AddLog($"{patronCount} patrons at court back you: a card of each is in your deck.", NegotiationLogKind.Detail);
         DrawCards(openingHand, silent: true);
     }
 

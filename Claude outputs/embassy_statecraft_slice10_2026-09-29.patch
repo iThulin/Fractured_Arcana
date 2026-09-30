@@ -1,0 +1,846 @@
+From 5ec1e59dcf30ad9afd577816ba482ecc31adb932 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 15:54:17 -0600
+Subject: [PATCH] Embassy doctrines, patrons and Broker the Compact (building
+ slice 10)
+
+- CourtState: a list of sworn Patrons (legacy single patron migrates on
+  load) and CompactBrokered.
+- Patron slots: one per Embassy tier (3 at T3), +1 under Patronage; one
+  seat per court, two under Patronage. Every seated Patron puts their
+  card in the kingdom's parley deck.
+- Broker the Compact: automated Embassy III mission (Trusted, 3 moons,
+  300 gold). Seals a treaty for the timeline and Unites an archmage's
+  Seat when corruption is within the Unite limit.
+- Concordat: courts under the Compact send soldiers to Hold the Line
+  postings (+3 a moon each, cap 6), never against themselves.
+- embassy.json: both doctrines, dead text removed.
+- CouncilSaveAssert: patron list, compact, legacy migration.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/embassy.json                   |  22 +++-
+ Scripts/Systems/Campaign/CouncilLedger.cs     |   3 +-
+ Scripts/Systems/Campaign/CouncilSaveAssert.cs |  14 +-
+ Scripts/Systems/Campaign/CouncilScreen.cs     |  31 +++--
+ Scripts/Systems/Campaign/CouncilState.cs      |  45 ++++++-
+ Scripts/Systems/Campaign/CouncilTick.cs       | 122 +++++++++++++++---
+ Scripts/Systems/Campaign/ShadowTick.cs        |   5 +-
+ Scripts/Systems/Campaign/Statecraft.cs        | 113 ++++++++++++++++
+ .../Systems/Negotiation/NegotiationManager.cs |  23 ++--
+ .../Systems/Negotiation/NegotiationState.cs   |  14 +-
+ Scripts/Systems/Negotiation/ParleyDeck.cs     |  13 +-
+ Scripts/Systems/Strategic/FieldPostings.cs    |  35 +++--
+ 12 files changed, 367 insertions(+), 73 deletions(-)
+ create mode 100644 Scripts/Systems/Campaign/Statecraft.cs
+
+diff --git a/Data/Buildings/embassy.json b/Data/Buildings/embassy.json
+index 056d2aa..657f56b 100644
+--- a/Data/Buildings/embassy.json
++++ b/Data/Buildings/embassy.json
+@@ -9,21 +9,33 @@
+     "tiers": [
+         {
+             "tier": 1,
+-            "description": "A modest hall of dispatch. Two envoys may be kept afield at once. Formal audiences (interactive court climaxes) and Petitions become possible.",
++            "description": "A modest hall of dispatch. Two envoys may be kept afield at once. Petitions become possible, and one courtier may be sworn as the guild's Patron.",
+             "goldCost": 150,
+             "requiredBuildings": []
+         },
+         {
+             "tier": 2,
+-            "description": "A standing diplomatic corps. Three envoys may be kept afield. The guild may keep a second Patron, and its agents work more discreetly (reduced Exposure from intrigue).",
++            "description": "A standing diplomatic corps. Three envoys may be kept afield, the guild may keep a second Patron, and every parley opens with a fuller hand (5 cards).",
+             "goldCost": 300,
+             "requiredBuildings": []
+         },
+         {
+             "tier": 3,
+-            "description": "A seat of true statecraft. Four envoys may be kept afield. The guild may Broker the Compact with a Trusted court, and foreign dignitaries begin visiting the campus.",
++            "description": "A seat of true statecraft. Four envoys may be kept afield and a third Patron sworn. The guild may Broker the Compact with a Trusted court: a treaty for the rest of the timeline that Unites an archmage's Seat if the land is not too corrupted. And a doctrine, chartered at the Grand Hall. Patronage: two Patrons at one court. Or the Concordat: courts bound by the Compact send soldiers to your held lines.",
+             "goldCost": 500,
+-            "requiredBuildings": []
++            "requiredBuildings": [],
++            "doctrines": [
++                {
++                    "id": "patronage",
++                    "name": "Patronage",
++                    "description": "Depth at a few courts. A court may swear two Patrons to the guild, and the guild may keep one more Patron overall. Every Patron brings their own card to each parley in their kingdom, so a court with two backers puts two of their cards in your deck."
++                },
++                {
++                    "id": "concordat",
++                    "name": "The Concordat",
++                    "description": "Breadth through allies. Every court the guild has brokered the Compact with sends soldiers to your Hold the Line postings: the front moves 3 more a moon per allied court (6 at most), on top of your party's own. A court never marches against itself."
++                }
++            ]
+         }
+     ]
+-}
+\ No newline at end of file
++}
+diff --git a/Scripts/Systems/Campaign/CouncilLedger.cs b/Scripts/Systems/Campaign/CouncilLedger.cs
+index 1f03999..56a866b 100644
+--- a/Scripts/Systems/Campaign/CouncilLedger.cs
++++ b/Scripts/Systems/Campaign/CouncilLedger.cs
+@@ -129,8 +129,7 @@ public static class CouncilLedger
+             // minting path (Majors previously never existed in play; the
+             // redemption surfaces are ExecuteCallIn's gift + the Arcane
+             // retainer). Everyone else still mints minor.
+-            IsMajor = !string.IsNullOrEmpty(court.PatronCourtierId)
+-                      && creditor.Id == court.PatronCourtierId,
++            IsMajor = court.IsPatron(creditor.Id),
+             SourceDescription = sourceDescription,
+             LunationMinted = cycle.Calendar.CurrentLunation,
+         };
+diff --git a/Scripts/Systems/Campaign/CouncilSaveAssert.cs b/Scripts/Systems/Campaign/CouncilSaveAssert.cs
+index 4a85037..6456180 100644
+--- a/Scripts/Systems/Campaign/CouncilSaveAssert.cs
++++ b/Scripts/Systems/Campaign/CouncilSaveAssert.cs
+@@ -113,7 +113,8 @@ public static class CouncilSaveAssert
+             IsRegentCourt = true,
+             RegentName = "Regent Vael",
+             Exposure = 6,
+-            PatronCourtierId = "courtier_2",
++            PatronCourtierIds = new System.Collections.Generic.List<string> { "courtier_2", "courtier_4" },
++            CompactBrokered = true,
+             HasContact = true,
+             MissionFreezeLunations = 3,
+             StandingPenalty = 7, // the emphasis: a non-zero lasting mark
+@@ -139,7 +140,16 @@ public static class CouncilSaveAssert
+             ok &= Check(sb, "CourtState.IsRegentCourt", rt.IsRegentCourt == src.IsRegentCourt);
+             ok &= Check(sb, "CourtState.RegentName", rt.RegentName == src.RegentName);
+             ok &= Check(sb, "CourtState.Exposure", rt.Exposure == src.Exposure);
+-            ok &= Check(sb, "CourtState.PatronCourtierId", rt.PatronCourtierId == src.PatronCourtierId);
++            ok &= Check(sb, "CourtState.PatronCourtierIds", rt.PatronCourtierIds.Count == 2
++                && rt.PatronCourtierIds[0] == "courtier_2" && rt.PatronCourtierIds[1] == "courtier_4");
++            ok &= Check(sb, "CourtState.CompactBrokered", rt.CompactBrokered);
++
++            // Legacy single patron migrates into the list; the legacy field reads empty after.
++            var legacy = JsonSerializer.Deserialize<CourtState>(
++                "{\"kingdomId\":\"k\",\"patronCourtierId\":\"courtier_9\"}", SaveManager.JsonOptions);
++            ok &= Check(sb, "CourtState legacy patronCourtierId migrates", legacy != null
++                && legacy.PatronCourtierIds.Count == 1 && legacy.PatronCourtierIds[0] == "courtier_9"
++                && legacy.PatronCourtierId == "" && !legacy.CompactBrokered);
+             ok &= Check(sb, "CourtState.HasContact", rt.HasContact == src.HasContact);
+             ok &= Check(sb, "CourtState.MissionFreezeLunations",
+                 rt.MissionFreezeLunations == src.MissionFreezeLunations);
+diff --git a/Scripts/Systems/Campaign/CouncilScreen.cs b/Scripts/Systems/Campaign/CouncilScreen.cs
+index 9ba64e0..2729601 100644
+--- a/Scripts/Systems/Campaign/CouncilScreen.cs
++++ b/Scripts/Systems/Campaign/CouncilScreen.cs
+@@ -629,7 +629,7 @@ public partial class CouncilScreen : CanvasLayer
+         {
+             badge = "a secret is known to the guild";
+         }
+-        else if (court.PatronCourtierId == c.Id)
++        else if (court.IsPatron(c.Id))
+         {
+             badge = "sworn patron of the guild";
+         }
+@@ -830,16 +830,21 @@ public partial class CouncilScreen : CanvasLayer
+         }
+ 
+         // ── Idle: status line, then one launcher button per mission ─────────
+-        if (!string.IsNullOrEmpty(court.PatronCourtierId))
++        var patronNames = new List<string>();
++        foreach (var pid in court.PatronCourtierIds ?? new List<string>())
+         {
+-            var patron = court.GetCourtier(court.PatronCourtierId);
+-            _statusLabel.Text = patron != null
+-                ? $"Patron at court: {patron.DisplayName}. No envoy afield."
+-                : "No envoy afield here.";
++            var patron = court.GetCourtier(pid);
++            if (patron != null)
++            {
++                patronNames.Add(patron.DisplayName);
++            }
+         }
+-        else
++        _statusLabel.Text = patronNames.Count > 0
++            ? $"{(patronNames.Count > 1 ? "Patrons" : "Patron")} at court: {string.Join(", ", patronNames)}. No envoy afield."
++            : "No envoy afield here.";
++        if (court.CompactBrokered)
+         {
+-            _statusLabel.Text = "No envoy afield here.";
++            _statusLabel.Text += "   ·   Bound by the Compact.";
+         }
+         if (encLock != null)
+         {
+@@ -878,6 +883,10 @@ public partial class CouncilScreen : CanvasLayer
+             {
+                 lockReason = $"requires Embassy tier {def.RequiredEmbassyTier}";
+             }
++            if (lockReason == null)
++            {
++                lockReason = CouncilMissions.ExtraRefusal(cycle, court, def.Id);
++            }
+             if (lockReason == null && capFull)
+             {
+                 lockReason = "no envoys free";
+@@ -1145,7 +1154,7 @@ public partial class CouncilScreen : CanvasLayer
+             var list = new List<CourtierState>();
+             foreach (var c in court.Courtiers)
+             {
+-                if (c.Regard >= 2 && court.PatronCourtierId != c.Id)
++                if (c.Regard >= 2 && !court.IsPatron(c.Id))
+                 {
+                     list.Add(c);
+                 }
+@@ -1196,6 +1205,10 @@ public partial class CouncilScreen : CanvasLayer
+         {
+             return;
+         }
++        if (CouncilMissions.ExtraRefusal(cycle, court, def.Id) != null)
++        {
++            return;
++        }
+         if (CouncilQueries.IsOnMission(_selCompanionId) ||
+             CouncilQueries.IsImprisoned(_selCompanionId) ||
+             SupplyCacheSystem.IsOverseer(_selCompanionId))
+diff --git a/Scripts/Systems/Campaign/CouncilState.cs b/Scripts/Systems/Campaign/CouncilState.cs
+index 8c01fe0..49209b6 100644
+--- a/Scripts/Systems/Campaign/CouncilState.cs
++++ b/Scripts/Systems/Campaign/CouncilState.cs
+@@ -1,4 +1,5 @@
+ using System.Collections.Generic;
++using System.Text.Json.Serialization;
+ 
+ // ============================================================
+ // CouncilState.cs
+@@ -145,7 +146,7 @@ public class CourtierState
+ /// CampaignState, mirroring the corruption single-sourcing rule in
+ /// KingdomState.
+ /// </summary>
+-public class CourtState
++public class CourtState : IJsonOnDeserialized
+ {
+     public string KingdomId = "";
+ 
+@@ -164,10 +165,48 @@ public class CourtState
+     /// Thresholds 4 / 7 / 10 = Scandal / Expulsion / Imprisonment.</summary>
+     public int Exposure = 0;
+ 
+-    /// <summary>Courted Patron (one per court). Empty until a Court a
+-    /// Courtier mission completes its Patron Oath (phase C5/C6).</summary>
++    /// <summary>Sworn Patrons at this court, in the order they swore. One
++    /// seat per court, two under the Embassy's Patronage doctrine
++    /// (CouncilQueries.PatronSeatsPerCourt). Filled by Court a Courtier.</summary>
++    public List<string> PatronCourtierIds = new();
++
++    /// <summary>LEGACY (before 2026-09-29): the single patron. Read only to
++    /// migrate old saves into PatronCourtierIds; always written empty.</summary>
+     public string PatronCourtierId = "";
+ 
++    /// <summary>True once Broker the Compact has resolved here: the court is
++    /// bound to the guild by treaty for the rest of the timeline. Its armies
++    /// answer Hold the Line postings under the Embassy's Concordat.</summary>
++    public bool CompactBrokered = false;
++
++    /// <summary>Migrate the legacy single patron into the list.</summary>
++    public void OnDeserialized()
++    {
++        PatronCourtierIds ??= new List<string>();
++        if (!string.IsNullOrEmpty(PatronCourtierId) && !PatronCourtierIds.Contains(PatronCourtierId))
++        {
++            PatronCourtierIds.Insert(0, PatronCourtierId);
++        }
++        PatronCourtierId = "";
++    }
++
++    public bool IsPatron(string courtierId)
++        => !string.IsNullOrEmpty(courtierId) && PatronCourtierIds != null && PatronCourtierIds.Contains(courtierId);
++
++    [JsonIgnore]
++    public int PatronCount => PatronCourtierIds?.Count ?? 0;
++
++    public void AddPatron(string courtierId)
++    {
++        PatronCourtierIds ??= new List<string>();
++        if (!string.IsNullOrEmpty(courtierId) && !PatronCourtierIds.Contains(courtierId))
++        {
++            PatronCourtierIds.Add(courtierId);
++        }
++    }
++
++    public bool RemovePatron(string courtierId) => PatronCourtierIds != null && PatronCourtierIds.Remove(courtierId);
++
+     /// <summary>False until any mission completes here (the Unknown band).</summary>
+     public bool HasContact = false;
+ 
+diff --git a/Scripts/Systems/Campaign/CouncilTick.cs b/Scripts/Systems/Campaign/CouncilTick.cs
+index 381fc11..918e32e 100644
+--- a/Scripts/Systems/Campaign/CouncilTick.cs
++++ b/Scripts/Systems/Campaign/CouncilTick.cs
+@@ -54,6 +54,7 @@ public static class CouncilMissions
+     public const string PetitionMinor = "petition_minor";
+     public const string CourtCourtier = "court_courtier";
+     public const string SpreadRumor = "spread_rumor";
++    public const string BrokerCompact = "broker_compact";
+ 
+     public static readonly List<CouncilMissionDef> All = new()
+     {
+@@ -102,8 +103,21 @@ public static class CouncilMissions
+             MinBand = CourtStandingBand.Welcome, RequiredEmbassyTier = 0,
+             Blurb = "Undermine a courtier you cannot win over: on success their Influence at court falls by 1. Clumsy work rebounds and lifts them instead. Raises Exposure sharply.",
+         },
++        new CouncilMissionDef
++        {
++            Id = BrokerCompact, DisplayName = "Broker the Compact",
++            Lunations = Statecraft.CompactLunations, GoldCost = Statecraft.CompactGold,
++            RequiresContact = true, NeedsTargetCourtier = false,
++            MinBand = CourtStandingBand.Trusted, RequiredEmbassyTier = 3,
++            Blurb = "Bind a Trusted court to the guild by treaty, for the rest of the timeline. An archmage's Seat is United by it, if the kingdom's corruption has not gone too deep. Under the Embassy's Concordat, the court's soldiers answer your Hold the Line postings.",
++        },
+     };
+ 
++    /// <summary>A mission-specific refusal the def's fields cannot express, or
++    /// null. Read by every dispatch surface (council screen, field postings).</summary>
++    public static string ExtraRefusal(CycleState cycle, CourtState court, string missionId)
++        => missionId == BrokerCompact ? Statecraft.CannotBrokerReason(cycle, court) : null;
++
+     public static CouncilMissionDef Get(string id)
+     {
+         foreach (var m in All)
+@@ -240,8 +254,8 @@ public static class CouncilQueries
+     public static int EnvoyCap(GuildSaveData save) => 1 + EmbassyTier(save);
+ 
+     /// <summary>Total Patron slots across ALL courts (§2b): none without an
+-    /// Embassy, one at Embassy I, a second at Embassy II. Embassy III's slot
+-    /// count is UNRULED, held at 2 until decided.</summary>
++    /// Embassy, then one per tier (ruled 2026-09-29: Embassy III holds 3), and
++    /// one more under Patronage.</summary>
+     public static int PatronSlots(GuildSaveData save)
+     {
+         int tier = EmbassyTier(save);
+@@ -249,9 +263,13 @@ public static class CouncilQueries
+         {
+             return 0;
+         }
+-        return tier >= 2 ? 2 : 1;
++        return System.Math.Min(tier, 3) + (Statecraft.PatronageActive(save) ? Statecraft.PatronageExtraSlots : 0);
+     }
+ 
++    /// <summary>Patron seats at one court: one, or two under Patronage.</summary>
++    public static int PatronSeatsPerCourt(GuildSaveData save)
++        => Statecraft.PatronageActive(save) ? Statecraft.PatronSeatsPatronage : Statecraft.PatronSeatsBase;
++
+     /// <summary>Patrons currently sworn across all courts (scalar per court).</summary>
+     public static int PatronsUsed(CycleState cycle)
+     {
+@@ -262,10 +280,7 @@ public static class CouncilQueries
+         int used = 0;
+         foreach (var c in cycle.Council.Courts.Values)
+         {
+-            if (!string.IsNullOrEmpty(c.PatronCourtierId))
+-            {
+-                used++;
+-            }
++            used += c?.PatronCount ?? 0;
+         }
+         return used;
+     }
+@@ -450,6 +465,9 @@ public static class CouncilTick
+             case CouncilMissions.SpreadRumor:
+                 ResolveSpreadRumor(court, lun, mission, envoy, envoyName, courtName, reports);
+                 break;
++            case CouncilMissions.BrokerCompact:
++                ResolveCompact(cycle, court, lun, envoyName, courtName, reports);
++                break;
+         }
+ 
+         SaveManager.MarkDirty();
+@@ -685,9 +703,9 @@ public static class CouncilTick
+ 
+     /// <summary>Court a Courtier (C5, automated portion). Cultivates a courtier
+     /// of sufficient personal regard into the court's sworn Patron, setting
+-    /// CourtState.PatronCourtierId (read by NegotiationManager to grant a
++    /// CourtState.PatronCourtierIds (read by NegotiationManager to grant a
+     /// Connections token in this kingdom's negotiations). Gated by a Regard
+-    /// floor (+2), the court's single Patron seat, and the guild's global
++    /// floor (+2), the court's Patron seats (two under Patronage), and the guild's global
+     /// Patron slots (Embassy-derived, §2b). All refusals are no-ops with an
+     /// attributed line, consistent with C3 call-in refusal semantics.</summary>
+     private static void ResolveCourtship(CycleState cycle, CourtState court, int lun,
+@@ -704,7 +722,7 @@ public static class CouncilTick
+         }
+ 
+         // Already sworn here, so there is nothing to win twice.
+-        if (court.PatronCourtierId == target.Id)
++        if (court.IsPatron(target.Id))
+         {
+             Emit(reports, lun, court.KingdomId,
+                 $"{FirstName(target.DisplayName)} the {OfficeDisplay(target.Office)} is already " +
+@@ -712,16 +730,19 @@ public static class CouncilTick
+             return;
+         }
+ 
+-        // The court's single Patron seat is held by someone else.
+-        if (!string.IsNullOrEmpty(court.PatronCourtierId))
++        // The court's Patron seats (one, two under Patronage) are all held.
++        int seats = CouncilQueries.PatronSeatsPerCourt(SaveManager.ActiveSave);
++        if (court.PatronCount >= seats)
+         {
+-            var held = court.GetCourtier(court.PatronCourtierId);
++            var held = court.GetCourtier(court.PatronCourtierIds[0]);
+             string heldName = held != null
+                 ? $"{FirstName(held.DisplayName)} the {OfficeDisplay(held.Office)}"
+                 : "another";
+             Emit(reports, lun, court.KingdomId,
+-                $"{envoyName} courted at {courtName}, but the guild's patron there is already " +
+-                $"{heldName}. A court answers to one sworn friend of the guild.");
++                seats <= 1
++                    ? $"{envoyName} courted at {courtName}, but the guild's patron there is already " +
++                      $"{heldName}. A court answers to one sworn friend of the guild (Patronage allows two)."
++                    : $"{envoyName} courted at {courtName}, but both of the court's patron seats are held.");
+             return;
+         }
+ 
+@@ -736,8 +757,7 @@ public static class CouncilTick
+             return;
+         }
+ 
+-        // Global Patron slots (§2b, Embassy-gated). This court contributes 0 to
+-        // the count here because its seat is provably empty (checked above).
++        // Global Patron slots (§2b, Embassy-gated, +1 under Patronage).
+         int slots = CouncilQueries.PatronSlots(SaveManager.ActiveSave);
+         int used = CouncilQueries.PatronsUsed(cycle);
+         if (used >= slots)
+@@ -750,7 +770,7 @@ public static class CouncilTick
+         }
+ 
+         // Swear the oath; the courtship deepens the bond to its peak.
+-        court.PatronCourtierId = target.Id;
++        court.AddPatron(target.Id);
+         target.Regard = Mathf.Clamp(target.Regard + 1, -3, 3);
+         Emit(reports, lun, court.KingdomId,
+             $"{FirstName(target.DisplayName)} the {OfficeDisplay(target.Office)} is now sworn Patron " +
+@@ -758,6 +778,72 @@ public static class CouncilTick
+             $"weight at the table in {courtName}'s territory.");
+     }
+ 
++    /// <summary>Broker the Compact (automated, §17 of the building design; the
++    /// interactive climax is later). The treaty is signed if the court still
++    /// stands Trusted; an archmage's Seat is United by it when the kingdom's
++    /// corruption is within the archmage's Unite limit. A regent court signs
++    /// the treaty but has no Seat to unite.</summary>
++    private static void ResolveCompact(CycleState cycle, CourtState court, int lun,
++        string envoyName, string courtName, List<HeraldReport> reports)
++    {
++        court.HasContact = true;
++        if (court.CompactBrokered)
++        {
++            Emit(reports, lun, court.KingdomId,
++                $"{envoyName} found the Compact with {courtName} already sealed.");
++            return;
++        }
++        if (court.Band() < CourtStandingBand.Trusted)
++        {
++            Emit(reports, lun, court.KingdomId,
++                $"{envoyName} came home from {courtName} without a treaty: the court's trust " +
++                $"slipped while the terms were argued (now {court.Band()}). Win it back and try again.");
++            return;
++        }
++
++        court.CompactBrokered = true;
++        Emit(reports, lun, court.KingdomId,
++            $"{envoyName} sealed the Compact with {courtName}. The court is bound to the guild " +
++            $"by treaty for the rest of this timeline.");
++
++        var campaign = cycle.Campaign;
++        string amId = Statecraft.SeatArchmageId(cycle, court);
++        if (campaign == null || string.IsNullOrEmpty(amId))
++        {
++            return;
++        }
++        var def = ArchmageRegistry.Get(amId);
++        var disp = campaign.GetDisposition(amId);
++        if (disp == ArchmageDisposition.Allied || disp == ArchmageDisposition.Coerced
++            || disp == ArchmageDisposition.Overthrown || disp == ArchmageDisposition.Corrupted)
++        {
++            return;   // the Seat is already resolved; the treaty stands on its own
++        }
++        string region = campaign.GetRegionForArchmage(amId);
++        int corruption = campaign.GetCorruption(region);
++        int limit = def?.MaxCorruptionForUnite ?? 1;
++        if (corruption > limit)
++        {
++            Emit(reports, lun, court.KingdomId,
++                $"{def?.DisplayName ?? "The archmage"} will not stand with the guild: the land is " +
++                $"too far gone (corruption {corruption}, the Seat unites at {limit} or less). " +
++                $"The treaty holds all the same.");
++            return;
++        }
++        campaign.SetDisposition(amId, ArchmageDisposition.Allied);
++        Emit(reports, lun, court.KingdomId,
++            $"{def?.DisplayName ?? "The archmage"} stands with the guild. The Seat of {courtName} is United.");
++        foreach (var qt in QuestEvents.Raise(QuestEvents.ArchmageUnited, region, amId))
++        {
++            Emit(reports, lun, court.KingdomId, qt.Text);
++        }
++        string adept = RecruitmentSources.OnArchmageUnited(amId);
++        if (adept != null)
++        {
++            Emit(reports, lun, court.KingdomId, adept);
++        }
++    }
++
+     // ── Exposure thresholds (§8) ──────────────────────────────────────────
+ 
+     /// <summary>Fire every exposure threshold the court crossed upward this
+diff --git a/Scripts/Systems/Campaign/ShadowTick.cs b/Scripts/Systems/Campaign/ShadowTick.cs
+index eec0380..b03e933 100644
+--- a/Scripts/Systems/Campaign/ShadowTick.cs
++++ b/Scripts/Systems/Campaign/ShadowTick.cs
+@@ -436,10 +436,7 @@ public static class ShadowTick
+         }
+ 
+         court.Courtiers.Remove(mark);
+-        if (court.PatronCourtierId == courtierId)
+-        {
+-            court.PatronCourtierId = "";
+-        }
++        court.RemovePatron(courtierId);
+         court.Exposure = Mathf.Clamp(court.Exposure + ShadowVocab.AssassinationExposureSpike, 0, 10);
+ 
+         Emit(reports, lun, kingdomId,
+diff --git a/Scripts/Systems/Campaign/Statecraft.cs b/Scripts/Systems/Campaign/Statecraft.cs
+new file mode 100644
+index 0000000..016ac90
+--- /dev/null
++++ b/Scripts/Systems/Campaign/Statecraft.cs
+@@ -0,0 +1,113 @@
++using System;
++using System.Collections.Generic;
++
++// ============================================================
++// Statecraft.cs
++//
++// Purpose:        The Embassy's doctrines and Broker the Compact
++//                 (campus_building_upgrades_design_v1 §17).
++//
++//                 Broker the Compact (Embassy III mission, automated for now;
++//                 the interactive table is later): a Trusted court signs a
++//                 standing treaty with the guild (CourtState.CompactBrokered).
++//                 At an archmage's court whose kingdom is corrupted no further
++//                 than the archmage's MaxCorruptionForUnite, the Seat is
++//                 United by it (the court path of the council spec §10).
++//
++//                 Embassy T3 doctrines:
++//                   Patronage   depth at a few courts: a court may hold two
++//                               sworn Patrons, and the guild one more seat
++//                               overall. Every Patron brings their token card
++//                               to each parley in their kingdom.
++//                   Concordat   breadth through allies: every court the guild
++//                               has a Compact with sends its soldiers to the
++//                               guild's Hold the Line postings, moving the
++//                               front further each moon (not against itself).
++// Layer:          System (campaign)
++// Collaborators:  Charters (the gate), CouncilQueries (slots), CouncilTick
++//                 (mission resolution), FieldPostings (Hold the Line),
++//                 NegotiationManager (patron tokens), CampaignState (Unite).
++// ============================================================
++
++/// <summary>Embassy doctrine rules and the Compact's numbers. Stateless.</summary>
++public static class Statecraft
++{
++    public const string EmbassyId = "embassy";
++    public const string Patronage = "patronage";
++    public const string Concordat = "concordat";
++
++    /// <summary>Patron seats per court with and without Patronage.</summary>
++    public const int PatronSeatsBase = 1;
++    public const int PatronSeatsPatronage = 2;
++
++    /// <summary>Guild-wide Patron seats Patronage adds.</summary>
++    public const int PatronageExtraSlots = 1;
++
++    // Broker the Compact (starting values).
++    public const int CompactLunations = 3;
++    public const int CompactGold = 300;
++
++    // Concordat: what each allied court's soldiers add to a held line.
++    public const int ConcordatAdvancePerCompact = 3;
++    public const int ConcordatAdvanceCap = 6;
++
++    public static bool PatronageActive(GuildSaveData save) => Charters.IsActive(save, EmbassyId, Patronage);
++
++    public static bool ConcordatActive(GuildSaveData save) => Charters.IsActive(save, EmbassyId, Concordat);
++
++    /// <summary>The courts whose soldiers answer a Hold the Line posting on this
++    /// front: every court with a Compact, except the kingdom the guild is
++    /// fighting there. Empty without the Concordat.</summary>
++    public static List<string> ConcordatCourts(CycleState cycle, GuildSaveData save, Warfront wf, bool defend)
++    {
++        var list = new List<string>();
++        var courts = cycle?.Council?.Courts;
++        if (courts == null || wf == null || !ConcordatActive(save))
++        {
++            return list;
++        }
++        string enemy = defend ? wf.AggressorKingdomId : wf.DefenderKingdomId;
++        foreach (var kv in courts)
++        {
++            if (kv.Value != null && kv.Value.CompactBrokered && kv.Key != enemy)
++            {
++                list.Add(kv.Key);
++            }
++        }
++        list.Sort(string.CompareOrdinal);
++        return list;
++    }
++
++    /// <summary>Extra front movement the allied courts bring this moon.</summary>
++    public static int ConcordatAdvance(int courts)
++        => Math.Min(ConcordatAdvanceCap, Math.Max(0, courts) * ConcordatAdvancePerCompact);
++
++    /// <summary>The archmage seated over a court's kingdom, or "" for a regent
++    /// court or an unmapped kingdom.</summary>
++    public static string SeatArchmageId(CycleState cycle, CourtState court)
++    {
++        if (court == null || court.IsRegentCourt || cycle?.Kingdoms == null
++            || !cycle.Kingdoms.TryGetValue(court.KingdomId, out var ks)
++            || string.IsNullOrEmpty(ks.TemplateRegionId))
++        {
++            return "";
++        }
++        return cycle.Campaign?.GetArchmageForRegion(ks.TemplateRegionId) ?? "";
++    }
++
++    /// <summary>Why the Compact cannot be brokered at this court now, or null.
++    /// The band, Embassy tier and contact gates live on the mission def; this
++    /// adds the checks a def cannot express.</summary>
++    public static string CannotBrokerReason(CycleState cycle, CourtState court)
++    {
++        if (court == null)
++        {
++            return "No court.";
++        }
++        if (court.CompactBrokered)
++        {
++            return "The guild already has a Compact with this court.";
++        }
++        return null;
++    }
++}
+diff --git a/Scripts/Systems/Negotiation/NegotiationManager.cs b/Scripts/Systems/Negotiation/NegotiationManager.cs
+index cde440f..3f96798 100644
+--- a/Scripts/Systems/Negotiation/NegotiationManager.cs
++++ b/Scripts/Systems/Negotiation/NegotiationManager.cs
+@@ -285,18 +285,23 @@ public partial class NegotiationManager : Control
+         _state.OnReaction += r => { _pendingFx.Add(r); _lastReaction = r; };
+         _state.OnResolved += OnNegotiationResolved;
+ 
+-        // C5 patron token.
+-        LeverageToken patronToken = LeverageToken.Connections;
+-        int patronTokens = 0;
++        // C5 patron tokens: one card per sworn Patron of this kingdom's court
++        // (two Patrons under the Embassy's Patronage doctrine).
++        var patronTokens = new List<LeverageToken>();
+         if (cycle?.Council != null && !string.IsNullOrEmpty(originKingdom) &&
+             cycle.Council.Courts.TryGetValue(originKingdom, out var originCourt) &&
+-            !string.IsNullOrEmpty(originCourt.PatronCourtierId))
++            originCourt.PatronCourtierIds != null)
+         {
+-            var patron = originCourt.GetCourtier(originCourt.PatronCourtierId);
+-            if (patron != null)
++            // Only as many as the court has seats for now: a second Patron sworn
++            // under Patronage stays sworn if the doctrine lapses, but sits out.
++            int seats = CouncilQueries.PatronSeatsPerCourt(SaveManager.ActiveSave);
++            foreach (var pid in originCourt.PatronCourtierIds)
+             {
+-                patronTokens = 1;
+-                patronToken = PatronTokenForArchetype(patron.Archetype);
++                var patron = originCourt.GetCourtier(pid);
++                if (patron != null && patronTokens.Count < seats)
++                {
++                    patronTokens.Add(PatronTokenForArchetype(patron.Archetype));
++                }
+             }
+         }
+ 
+@@ -320,7 +325,7 @@ public partial class NegotiationManager : Control
+             if (NegotiationDebug.WarRoomTier >= 0) warRoomTier = NegotiationDebug.WarRoomTier;
+         }
+ 
+-        _state.Initialize(_data, school, party, factionRep, patronToken, patronTokens,
++        _state.Initialize(_data, school, party, factionRep, patronTokens,
+                           openingHand: _embassyTier >= 2 ? NegotiationTuning.EmbassyOpeningHand : -1);
+ 
+         if (debugTable)
+diff --git a/Scripts/Systems/Negotiation/NegotiationState.cs b/Scripts/Systems/Negotiation/NegotiationState.cs
+index f6c8870..c38316b 100644
+--- a/Scripts/Systems/Negotiation/NegotiationState.cs
++++ b/Scripts/Systems/Negotiation/NegotiationState.cs
+@@ -211,8 +211,7 @@ public class NegotiationState
+ 
+     public void Initialize(NegotiationEncounterData data, CardSchool wizardSchool,
+                            List<Companion> party, int factionReputation = 0,
+-                           LeverageToken patronToken = LeverageToken.Connections,
+-                           int patronTokenCount = 0, int openingHand = -1)
++                           List<LeverageToken> patronTokens = null, int openingHand = -1)
+     {
+         Data = data;
+         School = wizardSchool;
+@@ -259,7 +258,7 @@ public class NegotiationState
+             if (c.HasRider && !Clauses.Any(r => r.Id == c.Rider && r.Side == ClauseSide.Yours))
+                 c.Rider = "";
+ 
+-        BuildDeck(wizardSchool, party, patronToken, patronTokenCount,
++        BuildDeck(wizardSchool, party, patronTokens,
+                   openingHand > 0 ? openingHand : NegotiationTuning.HandSize);
+         FixedCards = new List<ParleyCard>
+         {
+@@ -290,9 +289,9 @@ public class NegotiationState
+     }
+ 
+     private void BuildDeck(CardSchool school, List<Companion> party,
+-                           LeverageToken patronToken, int patronCount, int openingHand)
++                           List<LeverageToken> patronTokens, int openingHand)
+     {
+-        Deck = ParleyDeckBuilder.Build(school, party, patronToken, patronCount, out var provenance);
++        Deck = ParleyDeckBuilder.Build(school, party, patronTokens, out var provenance);
+         Hand.Clear();
+         Discard.Clear();
+         _nextInstanceId = 1000;
+@@ -313,8 +312,11 @@ public class NegotiationState
+             }
+         }
+         AddLog("Your parley deck: " + string.Join(", ", provenance), NegotiationLogKind.Detail);
+-        if (patronCount > 0)
++        int patronCount = patronTokens?.Count ?? 0;
++        if (patronCount == 1)
+             AddLog("A patron at court backs you: a card of theirs is in your deck.", NegotiationLogKind.Detail);
++        else if (patronCount > 1)
++            AddLog($"{patronCount} patrons at court back you: a card of each is in your deck.", NegotiationLogKind.Detail);
+         DrawCards(openingHand, silent: true);
+     }
+ 
+diff --git a/Scripts/Systems/Negotiation/ParleyDeck.cs b/Scripts/Systems/Negotiation/ParleyDeck.cs
+index 6981c85..d3494b7 100644
+--- a/Scripts/Systems/Negotiation/ParleyDeck.cs
++++ b/Scripts/Systems/Negotiation/ParleyDeck.cs
+@@ -320,7 +320,7 @@ public static class ParleyDeckBuilder
+     /// <summary>Everyone's seven, the school's four, one per companion trait,
+     /// the building rows, the patron, all as fresh instances, unshuffled.</summary>
+     public static List<ParleyCard> Build(CardSchool school, List<Companion> party,
+-                                         LeverageToken patronToken, int patronCount,
++                                         List<LeverageToken> patronTokens,
+                                          out List<string> provenance)
+     {
+         provenance = new List<string>();
+@@ -351,11 +351,12 @@ public static class ParleyDeckBuilder
+                 for (int i = 0; i < tierData.BonusNegotiationTokens; i++) ids.Add((id, b.Name));
+             }
+ 
+-        if (patronCount > 0)
+-        {
+-            var id = ParleyCardLibrary.TokenCardId(patronToken);
+-            if (id != null) for (int i = 0; i < patronCount; i++) ids.Add((id, "a patron at court"));
+-        }
++        if (patronTokens != null)
++            foreach (var tok in patronTokens)
++            {
++                var id = ParleyCardLibrary.TokenCardId(tok);
++                if (id != null) ids.Add((id, "a patron at court"));
++            }
+ 
+         var deck = new List<ParleyCard>();
+         int inst = 1;
+diff --git a/Scripts/Systems/Strategic/FieldPostings.cs b/Scripts/Systems/Strategic/FieldPostings.cs
+index 5020628..5e11a58 100644
+--- a/Scripts/Systems/Strategic/FieldPostings.cs
++++ b/Scripts/Systems/Strategic/FieldPostings.cs
+@@ -215,11 +215,9 @@ public static class FieldPostings
+         }
+ 
+         // Envoy: a kingdom's seat, or any city where the court already knows
+-        // us. Only the two UNTARGETED missions are offered from the field;
+-        // gifts, petitions, courtship and rumour need a courtier chosen, and
+-        // that picker lives on the council screen where the court is laid out.
+-        // Choosing a rumour's target for the player would be a decision made
+-        // for them, so it is not made here.
++        // us. Every council mission is offered here, with the same gates as
++        // the council screen; a targeted mission's courtier is chosen on the
++        // posting sheet (2026-09-27).
+         var settlement = world.SettlementAt(x, y);
+         var save = SaveManager.ActiveSave;
+         if (settlement != null && settlement.Tier == SettlementTier.City && save != null
+@@ -262,6 +260,10 @@ public static class FieldPostings
+                 {
+                     continue;
+                 }
++                if (CouncilMissions.ExtraRefusal(cycle, court, def.Id) != null)
++                {
++                    continue;
++                }
+                 int gold = def.GoldCost / EnvoyGoldDivisor;
+                 list.Add(new Option
+                 {
+@@ -332,12 +334,19 @@ public static class FieldPostings
+                 {
+                     continue;
+                 }
++                string AlliesLine(bool defendSide)
++                {
++                    int n = Statecraft.ConcordatCourts(cycle, save, wf, defendSide).Count;
++                    return n > 0
++                        ? $" Under the Concordat, {n} court(s) bound by the Compact send soldiers: +{Statecraft.ConcordatAdvance(n)} a moon."
++                        : "";
++                }
+                 list.Add(new Option
+                 {
+                     Kind = HoldLine,
+                     Title = $"Hold the line for {wf.DefenderName}",
+                     Detail = $"The front falls back {HoldAdvancePerMember} per body a moon (cap {HoldAdvanceCap}). "
+-                           + "Every third moon held, their court hears of it.",
++                           + "Every third moon held, their court hears of it." + AlliesLine(true),
+                     SuppliesPerMoon = HoldSupplies,
+                     Days = 0,
+                     ZoneId = $"warfront:{wf.Id}",
+@@ -348,7 +357,7 @@ public static class FieldPostings
+                     Kind = HoldLine,
+                     Title = $"Press the attack with {wf.AggressorName}",
+                     Detail = $"The front advances {HoldAdvancePerMember} per body a moon (cap {HoldAdvanceCap}). "
+-                           + "Every third moon, the attacker's court hears of it.",
++                           + "Every third moon, the attacker's court hears of it." + AlliesLine(false),
+                     SuppliesPerMoon = HoldSupplies,
+                     Days = 0,
+                     ZoneId = $"warfront:{wf.Id}",
+@@ -857,6 +866,11 @@ public static class FieldPostings
+                 int able = AbleCount(cycle, force);
+                 int delta = Math.Min(HoldAdvanceCap, able * HoldAdvancePerMember);
+                 bool defend = force.WorkSide != (int)WarfrontSide.Aid;
++                // Concordat (Embassy doctrine, design §17): courts bound by the
++                // Compact send soldiers to the guild's line, on top of its cap.
++                var allies = Statecraft.ConcordatCourts(cycle, SaveManager.ActiveSave, wf, defend);
++                int allied = able > 0 ? Statecraft.ConcordatAdvance(allies.Count) : 0;
++                delta += allied;
+                 wf.Advance = Math.Clamp(wf.Advance + (defend ? -delta : delta), 0, 100);
+                 force.WorkProgress++;
+                 string echo = "";
+@@ -868,8 +882,11 @@ public static class FieldPostings
+                         echo = " Word of it reaches their court.";
+                     }
+                 }
++                string alliedText = allied > 0
++                    ? $" Soldiers of {string.Join(", ", allies.ConvertAll(k => CouncilTick.CourtDisplayName(cycle, k)))} stand with them (+{allied})."
++                    : "";
+                 return $"{force.Name} {(defend ? "hold" : "press")} the line at {wf.DefenderName}: "
+-                     + $"the front {(defend ? "falls back" : "advances")} {delta}, now {wf.Advance}/100.{echo}";
++                     + $"the front {(defend ? "falls back" : "advances")} {delta}, now {wf.Advance}/100.{alliedText}{echo}";
+             }
+             case Ward:
+             {
+@@ -1243,7 +1260,7 @@ public static class FieldPostings
+             var list = new List<CourtierState>();
+             foreach (var c in court.Courtiers)
+             {
+-                if (c.Regard >= 2 && court.PatronCourtierId != c.Id)
++                if (c.Regard >= 2 && !court.IsPatron(c.Id))
+                 {
+                     list.Add(c);
+                 }
+-- 
+2.43.0
+

@@ -494,7 +494,7 @@ public static class FieldMarch
         if (!IsWaystone(cycle, x, y, out _))
         {
             reason = "There is no waystone there. The party can only step to the castle, "
-                   + "a raised waystone, or the dock; anywhere else they walk.";
+                   + "a raised waystone, the dock, or the places the Teleport Sigil opens; anywhere else they walk.";
             return false;
         }
         if (cycle.CastleParked && cycle.CastleX == x && cycle.CastleY == y

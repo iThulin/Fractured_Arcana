@@ -1,7 +1,7 @@
 {
   "id": "arcane_library",
   "name": "Arcane Library",
-  "description": "A repository of magical knowledge. Unlocks the card library browser, researches cards the guild has not yet found, and supplies Insight at the parley table.",
+  "description": "A repository of magical knowledge. It supplies Insight at the parley table and researches cards the guild has not yet found.",
   "category": "Magic",
   "schoolAffinity": "",
   "hostsSystem": "card_library",
@@ -9,16 +9,18 @@
   "tiers": [
     {
       "tier": 1,
-      "description": "A modest collection. Unlocks the Card Library browser.",
+      "description": "A modest collection. +1 Insight card in every parley deck.",
       "goldCost": 100,
       "requiredBuildings": [],
       "unlocksCardLibrary": true,
-      "unlocksFeatures": ["card_library"]
+      "unlocksFeatures": ["card_library"],
+      "bonusNegotiationTokens": 1,
+      "bonusTokenType": "Insight"
     },
     {
       "tier": 2,
       "displayName": "Expanded Stacks",
-      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 lunations each). +1 Insight card in every parley deck.",
+      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 lunations each). Still 1 Insight card in every parley deck.",
       "goldCost": 200,
       "requiredBuildings": [],
       "unlocksCardLibrary": true,
@@ -45,7 +47,7 @@
         {
           "id": "chancery",
           "name": "The Chancery",
-          "description": "The Library feeds the table. Every parley opens with your school's sweeping card in hand, and every Lore term's valuation starts read."
+          "description": "The Library feeds the table. Every parley opens with one of your school's cards in hand (a sweeping one where your school has one), and every Lore term's valuation starts read."
         }
       ]
     }

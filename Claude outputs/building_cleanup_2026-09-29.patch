@@ -1,0 +1,397 @@
+From a55da3e4236bbb7103936f26277b3867b9646ea9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 16:48:30 -0600
+Subject: [PATCH] Building close-out cleanup: dead text and half-wired tiers
+ (audit 2026-09-29)
+
+- Dissolution Chamber T3: per-tier deltas, so slotting costs 10 and
+  disenchant pays +10 as the text says (were 0 and +15).
+- Arcane Library T1: the browser claim removed (it opens without the
+  building); T1 now gives the first Insight card.
+- Undercroft T1: without the building the guild runs 1 informant, so T1's
+  2 is a real step.
+- Overrun buildings stop working for the council and the table too:
+  CouncilQueries.BuildingTier, the parley opening hand and the building
+  cards read the working tier.
+- Grand Hall short of seats (blighted): the latest charters past the seat
+  count go dark, and the charter lists say so.
+- Scribe's Tower T2: a party whose dive ends at a staging anchor or the
+  parked castle recharges its wands there.
+- Text: Chancery, Undercroft, Scrying (objective only when the run has
+  one; no patrol charting), Scriptorum (halves, not branches;
+  Dissemination's +3 points), spellglass, teleport refusal; stale
+  comments in TeleportSigil and CycleState.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/arcane_library.json            | 12 ++++---
+ Data/Buildings/dissolution_chamber.json       |  4 +--
+ Data/Buildings/scriptorum.json                |  4 +--
+ Data/Buildings/scrying_chambers.json          |  4 +--
+ Data/Buildings/undercroft.json                |  4 +--
+ Data/Items/spellglass.json                    |  2 +-
+ Scripts/Data/FeatureBuilders/Charters.cs      | 33 +++++++++++++++++++
+ Scripts/Data/SaveState/CycleState.cs          |  3 +-
+ Scripts/Systems/Campaign/CouncilTick.cs       |  6 ++--
+ Scripts/Systems/Campaign/ShadowState.cs       |  3 +-
+ Scripts/Systems/Campus/CampusScreen.cs        |  1 +
+ .../Systems/Campus/CampusUndercroftPanel.cs   |  2 +-
+ Scripts/Systems/Campus/CharterSection.cs      |  1 +
+ .../Systems/Negotiation/NegotiationManager.cs |  1 +
+ Scripts/Systems/Negotiation/ParleyDeck.cs     |  2 +-
+ .../Overworld/Expedition/ExpeditionManager.cs |  9 +++++
+ Scripts/Systems/Strategic/FieldMarch.cs       |  2 +-
+ Scripts/Systems/Strategic/TeleportSigil.cs    |  4 +--
+ 18 files changed, 73 insertions(+), 24 deletions(-)
+
+diff --git a/Data/Buildings/arcane_library.json b/Data/Buildings/arcane_library.json
+index f065a81..4f67f52 100644
+--- a/Data/Buildings/arcane_library.json
++++ b/Data/Buildings/arcane_library.json
+@@ -1,7 +1,7 @@
+ {
+   "id": "arcane_library",
+   "name": "Arcane Library",
+-  "description": "A repository of magical knowledge. Unlocks the card library browser, researches cards the guild has not yet found, and supplies Insight at the parley table.",
++  "description": "A repository of magical knowledge. It supplies Insight at the parley table and researches cards the guild has not yet found.",
+   "category": "Magic",
+   "schoolAffinity": "",
+   "hostsSystem": "card_library",
+@@ -9,16 +9,18 @@
+   "tiers": [
+     {
+       "tier": 1,
+-      "description": "A modest collection. Unlocks the Card Library browser.",
++      "description": "A modest collection. +1 Insight card in every parley deck.",
+       "goldCost": 100,
+       "requiredBuildings": [],
+       "unlocksCardLibrary": true,
+-      "unlocksFeatures": ["card_library"]
++      "unlocksFeatures": ["card_library"],
++      "bonusNegotiationTokens": 1,
++      "bonusTokenType": "Insight"
+     },
+     {
+       "tier": 2,
+       "displayName": "Expanded Stacks",
+-      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 lunations each). +1 Insight card in every parley deck.",
++      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 lunations each). Still 1 Insight card in every parley deck.",
+       "goldCost": 200,
+       "requiredBuildings": [],
+       "unlocksCardLibrary": true,
+@@ -45,7 +47,7 @@
+         {
+           "id": "chancery",
+           "name": "The Chancery",
+-          "description": "The Library feeds the table. Every parley opens with your school's sweeping card in hand, and every Lore term's valuation starts read."
++          "description": "The Library feeds the table. Every parley opens with one of your school's cards in hand (a sweeping one where your school has one), and every Lore term's valuation starts read."
+         }
+       ]
+     }
+diff --git a/Data/Buildings/dissolution_chamber.json b/Data/Buildings/dissolution_chamber.json
+index 046753b..931242a 100644
+--- a/Data/Buildings/dissolution_chamber.json
++++ b/Data/Buildings/dissolution_chamber.json
+@@ -34,8 +34,8 @@
+ 			"unlocksFeatures": [
+ 				"card_disenchant"
+ 			],
+-			"disenchantSplinterBonus": 10,
+-			"slotCostReduction": 20,
++			"disenchantSplinterBonus": 5,
++			"slotCostReduction": 10,
+ 			"doctrines": [
+ 				{
+ 					"id": "thin_deck",
+diff --git a/Data/Buildings/scriptorum.json b/Data/Buildings/scriptorum.json
+index 772fac9..308a625 100644
+--- a/Data/Buildings/scriptorum.json
++++ b/Data/Buildings/scriptorum.json
+@@ -23,7 +23,7 @@
+         },
+         {
+             "tier": 2,
+-            "description": "Advanced scholarship. Cards can be specialized to Stage 2: choose a playstyle branch that shapes how your spell develops.",
++            "description": "Advanced scholarship. Cards can be specialized to Stage 2: push the top half or the bottom half further, shaping how your spell develops.",
+             "goldCost": 175,
+             "requiredBuildings": [
+                 "scriptorum"
+@@ -39,7 +39,7 @@
+         },
+         {
+             "tier": 3,
+-            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage. Dissemination: the spells granted to your arcane companions carry your best upgrades, and each may carry more.",
++            "description": "Master transcription. Cards can be brought to Stages 3 and 4: deep transformation of your spells into their final forms. And a doctrine, chartered at the Grand Hall. Refinement: once each timeline, one card may bring both halves to their final stage. Dissemination: the spells granted to your arcane companions carry your best upgrades, and each companion's point budget rises by 3.",
+             "goldCost": 350,
+             "requiredBuildings": [
+                 "scriptorum"
+diff --git a/Data/Buildings/scrying_chambers.json b/Data/Buildings/scrying_chambers.json
+index 75663c1..40b103c 100644
+--- a/Data/Buildings/scrying_chambers.json
++++ b/Data/Buildings/scrying_chambers.json
+@@ -1,7 +1,7 @@
+ {
+     "id": "scrying_chambers",
+     "name": "Scrying Chambers",
+-    "description": "A vaulted hall of still water and lenses. The guild's divination organ: it charts what lies ahead before the party ever sets out: sites, objectives, and the patrols that hunt them.",
++    "description": "A vaulted hall of still water and lenses. The guild's divination organ: it charts what lies ahead before the party ever sets out (sites and objectives), and lets the wizard watch the fights they are not in.",
+     "category": "Magic",
+     "schoolAffinity": "",
+     "footprint": [
+@@ -31,7 +31,7 @@
+         {
+             "tier": 2,
+             "displayName": "The Far Sight",
+-            "description": "Sight enough to fix the goal itself. Charts one further site (3 total), and reveals the run objective's location, charting the ground around it. No more wandering blind toward the destination.",
++            "description": "Sight enough to fix the goal itself. Charts one further site (3 total), and, on a run with an objective, reveals where it lies and charts the ground around it. No more wandering blind toward the destination.",
+             "goldCost": 275,
+             "requiredBuildings": [],
+             "revealPoiCount": 1,
+diff --git a/Data/Buildings/undercroft.json b/Data/Buildings/undercroft.json
+index c3fe800..b9ccae2 100644
+--- a/Data/Buildings/undercroft.json
++++ b/Data/Buildings/undercroft.json
+@@ -1,7 +1,7 @@
+ {
+     "id": "undercroft",
+     "name": "The Undercroft",
+-    "description": "A hidden warren of cutouts, handlers, and dead drops beneath the campus, the spine of the guild's espionage. Each tier lets the guild run more informants and more Veiled Concord contracts at once, and the deepest tier opens the cabal's lethal work.",
++    "description": "A hidden warren of cutouts, handlers, and dead drops beneath the campus, the spine of the guild's espionage. Each tier lets the guild run more informants and more Veiled Concord contracts at once, and the deepest tier can be chartered for the cabal's lethal work.",
+     "category": "Reputation",
+     "schoolAffinity": "",
+     "hostsSystem": "undercroft",
+@@ -10,7 +10,7 @@
+         {
+             "tier": 1,
+             "displayName": "The Dead Drop",
+-            "description": "A first quiet room and a handful of trusted couriers. Up to 2 informants may run at once and 1 Veiled Concord contract may be in play. Its couriers bring early word when a kingdom is halfway to the Teleport Sigil's pattern.",
++            "description": "A first quiet room and a handful of trusted couriers. Up to 2 informants may run at once (1 without the Undercroft) and 1 Veiled Concord contract may be in play. Its couriers bring early word when a kingdom is halfway to the Teleport Sigil's pattern.",
+             "goldCost": 150,
+             "requiredBuildings": []
+         },
+diff --git a/Data/Items/spellglass.json b/Data/Items/spellglass.json
+index 19f6c10..4a6df0d 100644
+--- a/Data/Items/spellglass.json
++++ b/Data/Items/spellglass.json
+@@ -1,7 +1,7 @@
+ {
+   "id": "spellglass",
+   "name": "Spellglass",
+-  "description": "A spell sealed in glass. Shatter it to cast the sealed spell once, at printed values, mana or no mana. Any unit. 1 AP.",
++  "description": "A spell sealed in glass. Shatter it to cast the sealed spell once, mana or no mana: at printed values, or at the stage it was sealed at under the Glasswright. Any unit. 1 AP.",
+   "rarity": "Uncommon",
+   "slot": "Consumable",
+   "unitClass": "Any",
+diff --git a/Scripts/Data/FeatureBuilders/Charters.cs b/Scripts/Data/FeatureBuilders/Charters.cs
+index dc08ef7..b0c43e6 100644
+--- a/Scripts/Data/FeatureBuilders/Charters.cs
++++ b/Scripts/Data/FeatureBuilders/Charters.cs
+@@ -156,9 +156,42 @@ public static class Charters
+         {
+             return false;
+         }
++        // A Grand Hall short of seats (blighted, or lost) cannot hold every
++        // charter: the latest charters past the seat count go dark (audit
++        // 2026-09-29; before, a full hall kept all of them in force).
++        if (IsOverSlots(save, buildingId))
++        {
++            return false;
++        }
+         return CurrentLunation(save) >= c.ActiveFromLunation;
+     }
+ 
++    /// <summary>True when this building's charter sits past the Grand Hall's
++    /// current seat count (charters are ranked in the order they were made; the
++    /// free school seat never counts).</summary>
++    public static bool IsOverSlots(GuildSaveData save, string buildingId)
++    {
++        var list = save?.Cycle?.Charters;
++        if (list == null || IsFreeSeat(save, buildingId))
++        {
++            return false;
++        }
++        int rank = 0;
++        foreach (var c in list)
++        {
++            if (c == null || IsFreeSeat(save, c.BuildingId))
++            {
++                continue;
++            }
++            if (c.BuildingId == buildingId)
++            {
++                return rank >= Slots(save);
++            }
++            rank++;
++        }
++        return false;
++    }
++
+     /// <summary>True when the charter exists but its refit has not landed yet.</summary>
+     public static bool IsRefitting(GuildSaveData save, string buildingId)
+     {
+diff --git a/Scripts/Data/SaveState/CycleState.cs b/Scripts/Data/SaveState/CycleState.cs
+index 7ffc699..bb35465 100644
+--- a/Scripts/Data/SaveState/CycleState.cs
++++ b/Scripts/Data/SaveState/CycleState.cs
+@@ -373,8 +373,7 @@ public class CycleState
+     public List<FieldParty> FieldParties = new();
+ 
+     /// <summary>How many field parties may be fielded at once. Baseline 1;
+-    /// growth is a campus upgrade (which building grants it is still open,
+-    /// so nothing writes this yet).</summary>
++    /// the Grand Hall raises it (BuildingEffectApplier).</summary>
+     public int MaxFieldParties = 1;
+ 
+     /// <summary>Built waypoints: the consumable access the castle conjures
+diff --git a/Scripts/Systems/Campaign/CouncilTick.cs b/Scripts/Systems/Campaign/CouncilTick.cs
+index 918e32e..29cf8b2 100644
+--- a/Scripts/Systems/Campaign/CouncilTick.cs
++++ b/Scripts/Systems/Campaign/CouncilTick.cs
+@@ -190,7 +190,9 @@ public static class CouncilQueries
+         return null;
+     }
+ 
+-    /// <summary>Tier of any campus building by id (0 if absent).</summary>
++    /// <summary>Working tier of any campus building by id: 0 if absent, or if
++    /// unsited or overrun (audit 2026-09-29: an overrun Embassy, Undercroft or
++    /// Courier Station used to keep working).</summary>
+     public static int BuildingTier(GuildSaveData save, string buildingId)
+     {
+         if (save?.Buildings == null)
+@@ -201,7 +203,7 @@ public static class CouncilQueries
+         {
+             if (b.Id == buildingId)
+             {
+-                return b.Tier;
++                return b.IsFunctional ? b.Tier : 0;
+             }
+         }
+         return 0;
+diff --git a/Scripts/Systems/Campaign/ShadowState.cs b/Scripts/Systems/Campaign/ShadowState.cs
+index 9877ea7..fd3a20c 100644
+--- a/Scripts/Systems/Campaign/ShadowState.cs
++++ b/Scripts/Systems/Campaign/ShadowState.cs
+@@ -206,7 +206,8 @@ public static class ShadowVocab
+     /// The spine's economy knob, mirroring the Embassy's envoy cap.</summary>
+     public static int InformantCap(int undercroftTier) => undercroftTier switch
+     {
+-        <= 1 => 2,
++        <= 0 => 1,   // audit 2026-09-29: T1 used to equal no building at all
++        1 => 2,
+         2 => 4,
+         _ => 6,
+     };
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index 91e2b6a..db8e6bc 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -929,6 +929,7 @@ public partial class CampusScreen : Control
+                     var active = charter != null ? Charters.Doctrine(buildingSave.Id, charter.DoctrineId) : null;
+                     state = active == null ? "  No doctrine chartered; charter one at the Grand Hall."
+                           : CampusBlight.IsBlighted(save, buildingSave.Id) ? $"  {active.Name} is dark on blighted ground."
++                          : Charters.IsOverSlots(save, buildingSave.Id) ? $"  {active.Name} is dark: the Grand Hall is short a seat."
+                           : Charters.IsRefitting(save, buildingSave.Id) ? $"  {active.Name} holds from the next moon."
+                           : $"  In force: {active.Name}.";
+                 }
+diff --git a/Scripts/Systems/Campus/CampusUndercroftPanel.cs b/Scripts/Systems/Campus/CampusUndercroftPanel.cs
+index 453e10d..0069aff 100644
+--- a/Scripts/Systems/Campus/CampusUndercroftPanel.cs
++++ b/Scripts/Systems/Campus/CampusUndercroftPanel.cs
+@@ -115,7 +115,7 @@ public sealed class CampusUndercroftPanel : CampusPanel
+                 guildContracts++;
+             }
+         }
+-        AddLine(tier > 0 ? $"Undercroft tier {tier}." : "The Undercroft is not built: a minimal network is all the guild can run.",
++        AddLine(tier > 0 ? $"Undercroft tier {tier}." : "The Undercroft is not built: one informant is all the guild can run.",
+             UITheme.TextPrimary);
+         AddLine($"Informants {council.Informants.Count}/{Networks.InformantCap(save)}"
+               + (Networks.SpyNetworkActive(save) ? " (the Spy Network runs two more)" : "")
+diff --git a/Scripts/Systems/Campus/CharterSection.cs b/Scripts/Systems/Campus/CharterSection.cs
+index 0a6ddb1..f7ca49c 100644
+--- a/Scripts/Systems/Campus/CharterSection.cs
++++ b/Scripts/Systems/Campus/CharterSection.cs
+@@ -90,6 +90,7 @@ public static class CharterSection
+         var entry = Charters.EntryFor(save, template.Id);
+         string state = entry == null ? "no charter"
+                      : CampusBlight.IsBlighted(save, template.Id) ? "chartered, but dark on blighted ground"
++                     : Charters.IsOverSlots(save, template.Id) ? "chartered, but dark: the Grand Hall is short a seat"
+                      : Charters.IsRefitting(save, template.Id) ? "refitting, holds from the next moon"
+                      : "chartered";
+         if (Charters.IsFreeSeat(save, template.Id))
+diff --git a/Scripts/Systems/Negotiation/NegotiationManager.cs b/Scripts/Systems/Negotiation/NegotiationManager.cs
+index 3f96798..9194585 100644
+--- a/Scripts/Systems/Negotiation/NegotiationManager.cs
++++ b/Scripts/Systems/Negotiation/NegotiationManager.cs
+@@ -313,6 +313,7 @@ public partial class NegotiationManager : Control
+         {
+             foreach (var b in SaveManager.ActiveSave.Buildings)
+             {
++                if (!b.IsFunctional) continue;   // an overrun building does nothing (audit 2026-09-29)
+                 if (b.Id == "courier_station") courierTier = b.Tier;
+                 else if (b.Id == "embassy") _embassyTier = b.Tier;
+                 else if (b.Id == "war_room") warRoomTier = b.Tier;
+diff --git a/Scripts/Systems/Negotiation/ParleyDeck.cs b/Scripts/Systems/Negotiation/ParleyDeck.cs
+index d3494b7..b6f484b 100644
+--- a/Scripts/Systems/Negotiation/ParleyDeck.cs
++++ b/Scripts/Systems/Negotiation/ParleyDeck.cs
+@@ -342,7 +342,7 @@ public static class ParleyDeckBuilder
+         if (save != null)
+             foreach (var b in save.Buildings)
+             {
+-                if (b.Tier <= 0) continue;
++                if (b.Tier <= 0 || !b.IsFunctional) continue;   // overrun: no cards (audit 2026-09-29)
+                 var tierData = BuildingDatabase.GetCurrentTierData(b.Id, save);
+                 if (tierData == null || tierData.BonusNegotiationTokens <= 0) continue;
+                 if (!Enum.TryParse<LeverageToken>(tierData.BonusTokenType, out var tok)) continue;
+diff --git a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+index a290b25..3b822ad 100644
+--- a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
++++ b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+@@ -3743,6 +3743,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         // until the party reaches a staging anchor or the castle (FieldMarch.BankHere).
+         var endSave = SaveManager.ActiveSave;
+         int refilled = FieldMarch.RefillWandsAtHome(endSave?.Cycle, endSave?.Armory);
++        // Scribe's Tower T2: a party whose dive ends back at a staging anchor or
++        // the parked castle recharges there too, not only on arriving (audit 2026-09-29).
++        if (_fieldRun && endSave?.Cycle?.FieldParties != null && ScribesTower.RechargesAfield(endSave))
++        {
++            var party = endSave.Cycle.FieldParties.Find(p => p != null && p.Id == _fieldPartyId);
++            var here = party != null ? ExpeditionAnchors.FindAt(endSave.Cycle, party.X, party.Y) : null;
++            if (here != null && (here.Kind == AnchorKind.Staging || here.Kind == AnchorKind.CastlePark))
++                refilled += FieldMarch.RefillPartyWands(endSave.Cycle, party);
++        }
+         SchoolSeats.ClearWeatherCarry();   // Crucible T2: the expedition's weather ends with it
+         if (refilled > 0)
+             GD.Print($"[Armory] {refilled} wand(s) recharged on return.");
+diff --git a/Scripts/Systems/Strategic/FieldMarch.cs b/Scripts/Systems/Strategic/FieldMarch.cs
+index 0a4e974..9e2626e 100644
+--- a/Scripts/Systems/Strategic/FieldMarch.cs
++++ b/Scripts/Systems/Strategic/FieldMarch.cs
+@@ -494,7 +494,7 @@ public static class FieldMarch
+         if (!IsWaystone(cycle, x, y, out _))
+         {
+             reason = "There is no waystone there. The party can only step to the castle, "
+-                   + "a raised waystone, or the dock; anywhere else they walk.";
++                   + "a raised waystone, the dock, or the places the Teleport Sigil opens; anywhere else they walk.";
+             return false;
+         }
+         if (cycle.CastleParked && cycle.CastleX == x && cycle.CastleY == y
+diff --git a/Scripts/Systems/Strategic/TeleportSigil.cs b/Scripts/Systems/Strategic/TeleportSigil.cs
+index 53ed878..d5a19ec 100644
+--- a/Scripts/Systems/Strategic/TeleportSigil.cs
++++ b/Scripts/Systems/Strategic/TeleportSigil.cs
+@@ -22,8 +22,8 @@ using System.Collections.Generic;
+ //                                    and step home to the dock.
+ //                   T3 doctrine      Gate Network: any settlement of an
+ //                                    Allied kingdom is a waystone too.
+-//                                    Sally Port: blocked (the Administrator
+-//                                    summon is unbuilt).
++//                                    Sally Port: the wizard's summons to a
++//                                    field party costs no days (Administrator).
+ //
+ //                 Portal strikes (the siege spec §10 asked for):
+ //                   WHO    a kingdom Hostile to the guild learns the Sigil's
+-- 
+2.43.0
+

@@ -1,0 +1,35 @@
+{
+  "id": "through_the_gap",
+  "displayName": "Through the Gap",
+  "role": "Executioner",
+  "stance": "sig_fighter_curious",
+  "apCost": 2,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 5,
+  "isFinisher": true,
+  "shape": "Adjacent",
+  "reach": 1,
+  "text": "Finisher. Spend all Edge (at least 5): ATK + 2 damage per Edge spent, ignoring armor and chitin. Push 2.",
+  "effects": [
+    {
+      "key": "damage",
+      "value": 0
+    },
+    {
+      "key": "finisher_scale",
+      "value": 2
+    },
+    {
+      "key": "ignore_armor"
+    },
+    {
+      "key": "ignore_chitin"
+    },
+    {
+      "key": "push",
+      "value": 2
+    }
+  ],
+  "vfxTag": "bash"
+}

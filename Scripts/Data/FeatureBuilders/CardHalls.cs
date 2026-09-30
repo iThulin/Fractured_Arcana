@@ -59,7 +59,9 @@ public static class CardHalls
 
     /// <summary>THE deck floor: the fewest active cards a run needs, and the
     /// count below which an active card cannot be disenchanted.</summary>
-    public static int DeckFloor(GuildSaveData save) => ThinDeckActive(save) ? ThinDeckFloor : BaseDeckFloor;
+    public static int DeckFloor(GuildSaveData save)
+        => (ThinDeckActive(save) ? ThinDeckFloor : BaseDeckFloor)
+           - (BlightedForms.Active(save, BlightedForms.Sanctum) ? BlightedForms.ProfanedFloor : 0);   // Profaned Lectern (§21)
 
     /// <summary>Thin Deck's payoff: the active deck sits exactly at the floor.</summary>
     public static bool ThinDeckDraws(GuildSaveData save)

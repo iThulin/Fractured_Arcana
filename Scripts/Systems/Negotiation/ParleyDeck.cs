@@ -320,7 +320,7 @@ public static class ParleyDeckBuilder
     /// <summary>Everyone's seven, the school's four, one per companion trait,
     /// the building rows, the patron, all as fresh instances, unshuffled.</summary>
     public static List<ParleyCard> Build(CardSchool school, List<Companion> party,
-                                         LeverageToken patronToken, int patronCount,
+                                         List<LeverageToken> patronTokens,
                                          out List<string> provenance)
     {
         provenance = new List<string>();
@@ -342,20 +342,25 @@ public static class ParleyDeckBuilder
         if (save != null)
             foreach (var b in save.Buildings)
             {
-                if (b.Tier <= 0) continue;
+                if (b.Tier <= 0 || !b.IsFunctional) continue;   // overrun: no cards (audit 2026-09-29)
                 var tierData = BuildingDatabase.GetCurrentTierData(b.Id, save);
                 if (tierData == null || tierData.BonusNegotiationTokens <= 0) continue;
                 if (!Enum.TryParse<LeverageToken>(tierData.BonusTokenType, out var tok)) continue;
                 var id = ParleyCardLibrary.TokenCardId(tok);
                 if (id == null) continue;
-                for (int i = 0; i < tierData.BonusNegotiationTokens; i++) ids.Add((id, b.Name));
+                int count = tierData.BonusNegotiationTokens;
+                // Loose Lips (blighted Courier Station, design §21): twice the cards.
+                if (b.Id == BlightedForms.Courier && BlightedForms.Active(save, BlightedForms.Courier))
+                    count *= BlightedForms.LooseLipsCards;
+                for (int i = 0; i < count; i++) ids.Add((id, b.Name));
             }
 
-        if (patronCount > 0)
-        {
-            var id = ParleyCardLibrary.TokenCardId(patronToken);
-            if (id != null) for (int i = 0; i < patronCount; i++) ids.Add((id, "a patron at court"));
-        }
+        if (patronTokens != null)
+            foreach (var tok in patronTokens)
+            {
+                var id = ParleyCardLibrary.TokenCardId(tok);
+                if (id != null) ids.Add((id, "a patron at court"));
+            }
 
         var deck = new List<ParleyCard>();
         int inst = 1;

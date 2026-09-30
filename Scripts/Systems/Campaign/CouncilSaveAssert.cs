@@ -113,7 +113,8 @@ public static class CouncilSaveAssert
             IsRegentCourt = true,
             RegentName = "Regent Vael",
             Exposure = 6,
-            PatronCourtierId = "courtier_2",
+            PatronCourtierIds = new System.Collections.Generic.List<string> { "courtier_2", "courtier_4" },
+            CompactBrokered = true,
             HasContact = true,
             MissionFreezeLunations = 3,
             StandingPenalty = 7, // the emphasis: a non-zero lasting mark
@@ -139,7 +140,16 @@ public static class CouncilSaveAssert
             ok &= Check(sb, "CourtState.IsRegentCourt", rt.IsRegentCourt == src.IsRegentCourt);
             ok &= Check(sb, "CourtState.RegentName", rt.RegentName == src.RegentName);
             ok &= Check(sb, "CourtState.Exposure", rt.Exposure == src.Exposure);
-            ok &= Check(sb, "CourtState.PatronCourtierId", rt.PatronCourtierId == src.PatronCourtierId);
+            ok &= Check(sb, "CourtState.PatronCourtierIds", rt.PatronCourtierIds.Count == 2
+                && rt.PatronCourtierIds[0] == "courtier_2" && rt.PatronCourtierIds[1] == "courtier_4");
+            ok &= Check(sb, "CourtState.CompactBrokered", rt.CompactBrokered);
+
+            // Legacy single patron migrates into the list; the legacy field reads empty after.
+            var legacy = JsonSerializer.Deserialize<CourtState>(
+                "{\"kingdomId\":\"k\",\"patronCourtierId\":\"courtier_9\"}", SaveManager.JsonOptions);
+            ok &= Check(sb, "CourtState legacy patronCourtierId migrates", legacy != null
+                && legacy.PatronCourtierIds.Count == 1 && legacy.PatronCourtierIds[0] == "courtier_9"
+                && legacy.PatronCourtierId == "" && !legacy.CompactBrokered);
             ok &= Check(sb, "CourtState.HasContact", rt.HasContact == src.HasContact);
             ok &= Check(sb, "CourtState.MissionFreezeLunations",
                 rt.MissionFreezeLunations == src.MissionFreezeLunations);

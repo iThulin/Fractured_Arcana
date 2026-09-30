@@ -282,7 +282,7 @@ public sealed class CasterOnTerrain : IPredicate
         if (ctx.Game != null)
         {
             if (ctx.Caster == ctx.Game.PlayerA)
-                casterUnit = ctx.Game.PlayerUnit;
+                casterUnit = ctx.Game.ActiveCasterUnit ?? ctx.Game.PlayerUnit;
             else if (ctx.Caster == ctx.Game.PlayerB)
                 casterUnit = ctx.Game.EnemyUnit;
             else
@@ -353,7 +353,7 @@ public sealed class HasElementsNearCaster : IPredicate
 
         Unit casterUnit = null;
         if (ctx.Caster == ctx.Game.PlayerA)
-            casterUnit = ctx.Game.PlayerUnit;
+            casterUnit = ctx.Game.ActiveCasterUnit ?? ctx.Game.PlayerUnit;
         else if (ctx.Caster == ctx.Game.PlayerB)
             casterUnit = ctx.Game.EnemyUnit;
         if (casterUnit?.CurrentTile == null)

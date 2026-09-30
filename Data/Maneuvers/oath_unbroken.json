@@ -1,0 +1,25 @@
+{
+  "id": "oath_unbroken",
+  "displayName": "Oath Unbroken",
+  "role": "Anchor",
+  "stance": "sig_fighter_loyal",
+  "apCost": 1,
+  "edgeCost": 0,
+  "drainAll": true,
+  "minEdge": 5,
+  "isFinisher": true,
+  "shape": "Self",
+  "reach": 1,
+  "text": "Finisher. Spend all Edge (at least 5): gain 1 shield per Edge spent, and every ally beside you gains 2 shield per Edge spent.",
+  "effects": [
+    {
+      "key": "self_shield",
+      "value": 1
+    },
+    {
+      "key": "ally_shield",
+      "value": 2
+    }
+  ],
+  "vfxTag": ""
+}

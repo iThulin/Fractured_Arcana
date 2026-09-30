@@ -1,0 +1,589 @@
+From e055036aed422f1f84061d76578f5230b4bf60d0 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 29 Sep 2026 16:18:47 -0600
+Subject: [PATCH] The Administrator: the wizard stays home from field dives
+ (building slice 12a)
+
+On a field party's dive (and a posting's defense) the wizard directs from
+the campus and is not on the board, unless summoned, the fight is the
+wizard's own sortie (a shard guardian, an archmage's resolution), or no
+companion is able to fight.
+
+- Administrator.cs: the presence rule, Summon the Wizard (5 splinters,
+  2 days added to the dive), Sally Port waives the days.
+- SortieState.WizardSummoned / SummonDays (charged in ChargeSortieDays,
+  cleared with the slot); round-trip asserted.
+- Expedition HUD: Summon the Wizard button on field dives.
+- CombatManager: wizard spawn gated; persistent deck, school and
+  attunement keyed on the wizard's id, not slot 0; a combat-log line says
+  why the wizard is or is not there.
+- Field runs no longer reset or heal the wizard's carried HP unless the
+  wizard is with that party; a wizard fresh from the campus comes whole.
+- Card predicates prefer the active caster over the primary unit.
+- teleport_sigil.json: the Sally Port unblocked.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/teleport_sigil.json            |   5 +-
+ Scripts/Cards/Predicates/CorePredicates.cs    |   4 +-
+ Scripts/Data/FeatureBuilders/Administrator.cs | 182 ++++++++++++++++++
+ .../Data/SaveState/FieldExpeditionState.cs    |   9 +
+ Scripts/Systems/Combat/Core/CombatManager.cs  |  47 +++--
+ .../Overworld/Expedition/ExpeditionManager.cs |  93 ++++++++-
+ .../Verification/FieldExpeditionSaveAssert.cs |   8 +
+ 7 files changed, 320 insertions(+), 28 deletions(-)
+ create mode 100644 Scripts/Data/FeatureBuilders/Administrator.cs
+
+diff --git a/Data/Buildings/teleport_sigil.json b/Data/Buildings/teleport_sigil.json
+index 00c693d..e2a5d6b 100644
+--- a/Data/Buildings/teleport_sigil.json
++++ b/Data/Buildings/teleport_sigil.json
+@@ -55,7 +55,7 @@
+             "displayName": "The Open Circle",
+             "goldCost": 600,
+             "requiredBuildings": [],
+-            "description": "A doctrine, chartered at the Grand Hall. The Gate Network: every settlement of an Allied kingdom is a waystone. (The Sally Port waits on the wizard's summons.)",
++            "description": "A doctrine, chartered at the Grand Hall. The Gate Network: every settlement of an Allied kingdom is a waystone. Or the Sally Port: the wizard steps through the circle to a field party for the reagent alone, no days lost.",
+             "doctrines": [
+                 {
+                     "id": "gate_network",
+@@ -65,8 +65,7 @@
+                 {
+                     "id": "sally_port",
+                     "name": "The Sally Port",
+-                    "description": "The wizard joins a field fight through the circle at no cost in days.",
+-                    "blocked": "the wizard's summons to the field is not built yet"
++                    "description": "The Warlord's building. Summoning the wizard to a field party's dive costs only the reagent (5 splinters): the days the summons would add to the dive are spared, so the wizard can go to war whenever a party needs them."
+                 }
+             ]
+         }
+diff --git a/Scripts/Cards/Predicates/CorePredicates.cs b/Scripts/Cards/Predicates/CorePredicates.cs
+index ce0c01d..2b4b68f 100644
+--- a/Scripts/Cards/Predicates/CorePredicates.cs
++++ b/Scripts/Cards/Predicates/CorePredicates.cs
+@@ -282,7 +282,7 @@ public sealed class CasterOnTerrain : IPredicate
+         if (ctx.Game != null)
+         {
+             if (ctx.Caster == ctx.Game.PlayerA)
+-                casterUnit = ctx.Game.PlayerUnit;
++                casterUnit = ctx.Game.ActiveCasterUnit ?? ctx.Game.PlayerUnit;
+             else if (ctx.Caster == ctx.Game.PlayerB)
+                 casterUnit = ctx.Game.EnemyUnit;
+             else
+@@ -353,7 +353,7 @@ public sealed class HasElementsNearCaster : IPredicate
+ 
+         Unit casterUnit = null;
+         if (ctx.Caster == ctx.Game.PlayerA)
+-            casterUnit = ctx.Game.PlayerUnit;
++            casterUnit = ctx.Game.ActiveCasterUnit ?? ctx.Game.PlayerUnit;
+         else if (ctx.Caster == ctx.Game.PlayerB)
+             casterUnit = ctx.Game.EnemyUnit;
+         if (casterUnit?.CurrentTile == null)
+diff --git a/Scripts/Data/FeatureBuilders/Administrator.cs b/Scripts/Data/FeatureBuilders/Administrator.cs
+new file mode 100644
+index 0000000..6dc70d0
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/Administrator.cs
+@@ -0,0 +1,182 @@
++using Godot;
++
++// ============================================================
++// Administrator.cs
++//
++// Purpose:        The wizard as the Administrator (campus_building_upgrades_
++//                 design_v1 §19; expedition handoff §4.4). The wizard stays
++//                 at the campus while a FIELD PARTY dives: the party fights
++//                 without them unless the wizard is summoned.
++//
++//                 Who fights when:
++//                   castle sorties, castle defenses, portal strikes, district
++//                   fights, debug fights    the wizard, as before
++//                   a field party's dive     the party alone, unless
++//                                            summoned, or the fight is a
++//                                            scripted sortie (a shard
++//                                            guardian, an archmage's
++//                                            resolution), or no companion is
++//                                            able to fight
++//                   a posting's defense      the posted force alone
++//
++//                 Summon the Wizard (expedition HUD, field dives): costs a
++//                 reagent (5 splinters) and 2 days added to the dive's time.
++//                 The wizard then stays with that party until the dive ends.
++//                 Sally Port (Teleport Sigil T3 doctrine): no days, the
++//                 reagent only.
++// Layer:          Data / rules
++// Collaborators:  SortieState (WizardSummoned, SummonDays), ExpeditionManager
++//                 (the button, ChargeSortieDays), CombatManager.SpawnTestUnits
++//                 (the spawn gate), EncounterRouter (scripted fights),
++//                 CompanionRoster (the able party), Charters (Sally Port).
++// ============================================================
++
++/// <summary>The Administrator's rules: when the wizard is on the board, and
++/// the summons. Stateless; the summons lives on the party's SortieState.</summary>
++public static class Administrator
++{
++    public const string SigilId = "teleport_sigil";
++    public const string SallyPort = "sally_port";
++
++    /// <summary>Days a summons adds to the dive (none under the Sally Port).</summary>
++    public const int SummonDays = 2;
++
++    /// <summary>The reagent: splinters spent on the summoning circle.</summary>
++    public const int SummonSplinters = 5;
++
++    public static bool SallyPortActive(GuildSaveData save) => Charters.IsActive(save, SigilId, SallyPort);
++
++    public static int SummonDaysFor(GuildSaveData save) => SallyPortActive(save) ? 0 : SummonDays;
++
++    /// <summary>The field party's sortie slot, or null.</summary>
++    public static SortieState FieldSlot(CycleState cycle, string partyId)
++    {
++        if (cycle?.FieldParties == null || string.IsNullOrEmpty(partyId))
++        {
++            return null;
++        }
++        foreach (var p in cycle.FieldParties)
++        {
++            if (p != null && p.Id == partyId)
++            {
++                return p.Sortie;
++            }
++        }
++        return null;
++    }
++
++    /// <summary>Is the wizard with this field party right now?</summary>
++    public static bool IsSummoned(CycleState cycle, string partyId)
++    {
++        var slot = FieldSlot(cycle, partyId);
++        return slot != null && slot.Active && slot.WizardSummoned;
++    }
++
++    /// <summary>Why the wizard cannot be summoned to this party now, or null.</summary>
++    public static string CannotSummonReason(GuildSaveData save, string partyId)
++    {
++        var cycle = save?.Cycle;
++        var slot = FieldSlot(cycle, partyId);
++        if (slot == null || !slot.Active)
++        {
++            return "Only a field party out on a dive can summon the wizard.";
++        }
++        if (slot.WizardSummoned)
++        {
++            return "The wizard is already with the party.";
++        }
++        if (save.ArcaneSplinters < SummonSplinters)
++        {
++            return $"The circle needs {SummonSplinters} splinters (the guild has {save.ArcaneSplinters}).";
++        }
++        return null;
++    }
++
++    /// <summary>Summon the wizard to the party: spend the reagent, add the
++    /// days. Returns the report line, or null when refused.</summary>
++    public static string TrySummon(GuildSaveData save, string partyId)
++    {
++        if (CannotSummonReason(save, partyId) != null)
++        {
++            return null;
++        }
++        var slot = FieldSlot(save.Cycle, partyId);
++        int days = SummonDaysFor(save);
++        save.ArcaneSplinters -= SummonSplinters;
++        slot.WizardSummoned = true;
++        slot.SummonDays += days;
++        FreshWizardUnlessCastleOut(save);
++        SaveManager.MarkDirty();
++        GD.Print($"[Administrator] Wizard summoned to {partyId}: {SummonSplinters} splinters, {days} day(s).");
++        return days > 0
++            ? $"The wizard steps through the circle to join the party ({SummonSplinters} splinters; the dive runs {days} days longer)."
++            : $"The wizard steps through the Sally Port to join the party ({SummonSplinters} splinters, no days lost).";
++    }
++
++    /// <summary>The wizard's carried HP (PlayerSession.WizardExpeditionHP) is
++    /// the castle run's. A wizard coming to a field party from the campus comes
++    /// whole, unless the castle is out and the wizard with it.</summary>
++    private static void FreshWizardUnlessCastleOut(GuildSaveData save)
++    {
++        if (save?.Cycle?.CastleSortie?.IsLive() != true)
++        {
++            PlayerSession.WizardExpeditionHP = -1;
++        }
++    }
++
++    /// <summary>Called when the wizard IS spawned. On a field run where the
++    /// wizard was not summoned (a scripted sortie, or nobody else able), they
++    /// come from the campus for this one fight: whole, unless the castle is out.
++    /// A summoned wizard keeps what the dive's fights have cost them.</summary>
++    public static void PrepareWizardHpForField()
++    {
++        if (PlayerSession.DebugCombat || PlayerSession.ExpeditionRunKind != ExpeditionRunKind.Field)
++        {
++            return;
++        }
++        var save = SaveManager.ActiveSave;
++        string partyId = string.IsNullOrEmpty(PlayerSession.ExpeditionFieldPartyId)
++            ? ExpeditionAnchors.PrimaryFieldPartyId
++            : PlayerSession.ExpeditionFieldPartyId;
++        if (!IsSummoned(save?.Cycle, partyId))
++        {
++            FreshWizardUnlessCastleOut(save);
++        }
++    }
++
++    /// <summary>Does the player's wizard take the field in the fight now being
++    /// spawned? False only on a field party's run, when not summoned, not a
++    /// scripted sortie, and someone else is able to fight. <paramref name="why"/>
++    /// says why, for the combat log.</summary>
++    public static bool WizardFieldsThisFight(out string why)
++    {
++        why = "";
++        if (PlayerSession.DebugCombat || PlayerSession.ExpeditionRunKind != ExpeditionRunKind.Field)
++        {
++            return true;
++        }
++        var router = EncounterRouter.Instance;
++        if (router != null && (!string.IsNullOrEmpty(router.SavedCombatGuardianKey)
++                               || !string.IsNullOrEmpty(router.SavedResolutionArchmageId)))
++        {
++            why = "This sortie is the wizard's own: they fight in person.";
++            return true;
++        }
++        var save = SaveManager.ActiveSave;
++        string partyId = string.IsNullOrEmpty(PlayerSession.ExpeditionFieldPartyId)
++            ? ExpeditionAnchors.PrimaryFieldPartyId
++            : PlayerSession.ExpeditionFieldPartyId;
++        if (IsSummoned(save?.Cycle, partyId))
++        {
++            why = "The wizard came through the circle and fights with the party.";
++            return true;
++        }
++        if (CompanionRoster.GetActiveParty().Count == 0)
++        {
++            why = "No one in the party can fight: the wizard comes through the circle at once.";
++            return true;
++        }
++        why = "The wizard directs from the campus. Summon them from the expedition map to fight in person.";
++        return false;
++    }
++}
+diff --git a/Scripts/Data/SaveState/FieldExpeditionState.cs b/Scripts/Data/SaveState/FieldExpeditionState.cs
+index e5c0641..bdad5f2 100644
+--- a/Scripts/Data/SaveState/FieldExpeditionState.cs
++++ b/Scripts/Data/SaveState/FieldExpeditionState.cs
+@@ -354,11 +354,20 @@ public class SortieState
+     /// finished does not charge its walking on top of the moons it sat.</summary>
+     public int StartDay = -1;
+ 
++    /// <summary>A field party's dive only: the wizard has been summoned and
++    /// fights with the party until the dive ends (Administrator, design §19).</summary>
++    public bool WizardSummoned = false;
++
++    /// <summary>Days the summons added to this dive, charged when it ends.</summary>
++    public int SummonDays = 0;
++
+     public void Clear()
+     {
+         Active = false;
+         LunationsFrozen = 0;
+         StartDay = -1;
++        WizardSummoned = false;
++        SummonDays = 0;
+         X = -1; Y = -1;
+         StagingX = -1; StagingY = -1;
+         WindowRadius = 0;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 9d15314..205b569 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -262,6 +262,10 @@ public partial class CombatManager : Node3D
+         combatUI = GetNodeOrNull<CombatUI>(CombatUIPath);
+         if (combatUI == null)
+             GD.PrintErr("CombatUI not found. Fix CombatUIPath.");
++        // Administrator (§19): why the wizard is or is not on the board. Set by
++        // SpawnTestUnits, which runs before combatUI is found.
++        if (combatUI != null && !string.IsNullOrEmpty(_wizardPresenceNote))
++            combatUI.AppendActionLog($"── {_wizardPresenceNote} ──");
+ 
+         if (combatUI != null)
+         {
+@@ -533,9 +537,11 @@ public partial class CombatManager : Node3D
+ 
+             unit.DeckData = new UnitDeckData(unit.School, 5);
+ 
+-            if (!injectedCompanionCards)
++            if (!injectedCompanionCards && unit.CompanionId == "wizard")
+             {
+-                // First wizard gets the persistent deck + companion cards on top.
++                // The wizard gets the persistent deck + companion cards on top.
++                // Keyed on the id (2026-09-29): with the wizard absent from a
++                // field dive, the first arcane companion must keep its own deck.
+                 var cards = PlayerDeckService.HydrateActiveDeck(SaveManager.ActiveSave);
+ 
+                 if (cards.Count == 0)
+@@ -4362,6 +4368,10 @@ public partial class CombatManager : Node3D
+         return false;
+     }
+ 
++    /// <summary>Why the wizard is (or is not) on the board this fight, for the
++    /// combat log. Empty for an ordinary fight with the wizard.</summary>
++    private string _wizardPresenceNote = "";
++
+     private void SpawnTestUnits()
+     {
+         GD.Print($"[SpawnTest] PlayerUnitScene={PlayerUnitScene != null}, DummyUnitScene={DummyUnitScene != null}");
+@@ -4383,10 +4393,17 @@ public partial class CombatManager : Node3D
+         playerUnits.Clear();
+         enemyUnits.Clear();
+ 
+-        // ── Spawn wizard (always first) ───────────────────────────────────
+-        var wizard = SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
++        // ── Spawn wizard (first, when present) ────────────────────────────
++        // Administrator (design §19): on a field party's dive the wizard stays
++        // at the campus unless summoned or the sortie is their own.
++        bool wizardFields = Administrator.WizardFieldsThisFight(out _wizardPresenceNote);
++        var wizard = !wizardFields ? null : SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
+             teamId: 0, isPlayerControlled: true, namePrefix: "Wizard",
+             maxHealth: 20, health: 20, baseSpeed: 3, maxMana: 3, mana: 3, armor: 0, shield: 0);
++        if (!wizardFields)
++            GD.Print($"[Administrator] {_wizardPresenceNote}");
++        else
++            Administrator.PrepareWizardHpForField();
+         if (wizard != null)
+         {
+             string wizardName = SaveManager.ActiveSave?.WizardName ?? "Wizard";
+@@ -4711,22 +4728,16 @@ public partial class CombatManager : Node3D
+ 
+         BuildPlayerDeploymentArea();
+ 
+-        playerUnit.School = PlayerSession.SelectedSchool;
+-        playerUnit.InitializeAttunement();
+-
+-        // Wizard gets the selected school + attunement
+-        if (playerUnits.Count > 0)
+-        {
+-            playerUnits[0].School = PlayerSession.SelectedSchool;
+-            playerUnits[0].InitializeAttunement();
+-        }
+-
+-        // Arcane companions initialize their own attunement
+-        // Martial companions skip this entirely
+-        foreach (var unit in playerUnits.Skip(1))
++        // The wizard gets the selected school + attunement; arcane companions
++        // initialize their own; martials skip this entirely. Keyed on the
++        // wizard's id, not on slot 0: on a field dive (Administrator, §19) the
++        // wizard may be absent and slot 0 a companion.
++        foreach (var unit in playerUnits)
+         {
+-            if (unit.IsMartial)
++            if (unit == null || unit.IsMartial)
+                 continue;
++            if (unit.CompanionId == "wizard")
++                unit.School = PlayerSession.SelectedSchool;
+             unit.InitializeAttunement();
+         }
+ 
+diff --git a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+index f4071dd..a290b25 100644
+--- a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
++++ b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+@@ -313,6 +313,7 @@ public partial class ExpeditionManager : Node2D
+     private Button _waypointButton;                  // Expedition v2: raise a built waypoint
+     private Button _scryTableButton;                 // Expedition v2: aim the table at another force
+     private Button _makeCampButton;                  // 2026-09-23: park at any fuel level
++    private Button _summonButton;                    // Administrator (§19): field dives only, row eight
+ 
+     /// <summary>Build materials a waypoint costs. A waystone is a real thing the
+     /// guild builds, and the cost is what stops the castle papering the map with
+@@ -633,7 +634,10 @@ public partial class ExpeditionManager : Node2D
+             // K2.5: fresh expedition: everyone starts whole. (Combat returns
+             // take the other branch and must NOT reset carried HP.)
+             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
+-            PlayerSession.WizardExpeditionHP = -1; // K2.5 symmetry, wizard too
++            // K2.5 symmetry, wizard too. Not on a field dive: the wizard is at the
++            // campus (Administrator, §19), and their carried HP belongs to the castle's run.
++            if (!_fieldRun)
++                PlayerSession.WizardExpeditionHP = -1;
+             SchoolSeats.ClearWeatherCarry();       // Crucible T2: weather is per expedition
+ 
+             // S4 (Identify) + S5 (True Names): pinned encounters are
+@@ -3103,7 +3107,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+                 // K2.5: a rest still mends the crew's carried COMBAT HP (quarter of
+                 // max each). This is combat HP, not Hull, and untouched by the ruling.
+                 CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 0.25f);
+-                if (PlayerSession.WizardExpeditionHP >= 0)
++                if (PlayerSession.WizardExpeditionHP >= 0 && WizardWithThisForce)
+                     PlayerSession.WizardExpeditionHP = Mathf.Min(
+                         PlayerSession.WizardExpeditionMaxHP,
+                         PlayerSession.WizardExpeditionHP +
+@@ -3154,7 +3158,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+                 // Carriers mend to full; the wizard fields fresh. This is combat HP,
+                 // not Hull. Stabilized (0) companions stay down.
+                 CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 1.0f);
+-                PlayerSession.WizardExpeditionHP = -1;
++                if (WizardWithThisForce)
++                    PlayerSession.WizardExpeditionHP = -1;
+                 int outSpl = SplinterDropTable.RestSite();
+                 SplinterEarned += outSpl;
+                 GoldEarned += 25;
+@@ -3219,7 +3224,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+                     _spells?.RestoreEssenceFull();
+                     Refuel(0, "home seat (full)", coord, full: true);
+                     CompanionInjurySystem.HealExpeditionHP(SaveManager.ActiveSave, 1.0f);
+-                    PlayerSession.WizardExpeditionHP = -1;
++                    if (WizardWithThisForce)
++                        PlayerSession.WizardExpeditionHP = -1;
+                     LogRun("home_seat", "docked at the seat (full repair + refuel)", at: coord);
+                     ShowInfo("The castle docks at your seat. Hull fully repaired and refueled.");
+                     UpdateUI();
+@@ -3568,6 +3574,53 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         _ = ScryVeil.Instance.Dissipate();
+     }
+ 
++    /// <summary>Summon the Wizard's label, tooltip and state, re-decided on every
++    /// HUD refresh (Administrator, §19).</summary>
++    private void RefreshSummonButton()
++    {
++        if (_summonButton == null)
++            return;
++        _summonButton.Visible = _fieldRun && !ExpeditionComplete;
++        if (!_summonButton.Visible)
++            return;
++        var save = SaveManager.ActiveSave;
++        if (Administrator.IsSummoned(save?.Cycle, _fieldPartyId))
++        {
++            _summonButton.Text = "Wizard: with you";
++            _summonButton.Disabled = true;
++            _summonButton.TooltipText = "The wizard fights beside this party until the dive ends.";
++            return;
++        }
++        string why = Administrator.CannotSummonReason(save, _fieldPartyId);
++        int days = Administrator.SummonDaysFor(save);
++        _summonButton.Text = "Summon the Wizard";
++        _summonButton.Disabled = why != null;
++        _summonButton.TooltipText = (why != null ? why + "\n\n" : "")
++            + "The wizard directs from the campus and does not fight with a field party. Summoned, they "
++            + $"join every fight for the rest of this dive. Costs {Administrator.SummonSplinters} splinters"
++            + (days > 0 ? $" and adds {days} days to the dive (none with the Sally Port chartered)." : " (the Sally Port spares the days).");
++    }
++
++    private void OnSummonWizardPressed()
++    {
++        var save = SaveManager.ActiveSave;
++        string line = Administrator.TrySummon(save, _fieldPartyId);
++        if (line == null)
++        {
++            ShowInfo(Administrator.CannotSummonReason(save, _fieldPartyId) ?? "The wizard cannot come now.");
++            return;
++        }
++        LogRun("summon", line);
++        SaveManager.SaveIfDirty();
++        ShowInfo(line);
++        UpdateUI();
++    }
++
++    /// <summary>Is the player's wizard with the force the table drives? Always
++    /// for the castle; for a field party only once summoned (Administrator, §19).</summary>
++    private bool WizardWithThisForce
++        => !_fieldRun || Administrator.IsSummoned(SaveManager.ActiveSave?.Cycle, _fieldPartyId);
++
+     /// <summary>The active force's sortie slot on the cycle, or null.</summary>
+     private SortieState ActiveSortieSlot()
+     {
+@@ -3646,6 +3699,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         int startDay = slot != null && slot.StartDay >= 0 ? slot.StartDay : now;
+         int burned = Mathf.Max(0, MaxFuel - StepsRemaining);
+         int days = WorldClock.SortieDays(burned, _fieldRun);
++        int summonDays = _fieldRun && slot != null ? slot.SummonDays : 0;   // Administrator (§19)
++        days += summonDays;
+         int until = Mathf.Max(now, startDay + days);
+         if (_fieldRun)
+         {
+@@ -3664,7 +3719,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         {
+             cycle.CastleBusyUntilDay = until;
+         }
+-        LogRun("time", $"{burned} {(_fieldRun ? "rations" : "fuel")} burned: {days} day(s); free on day {until} (now {now})");
++        LogRun("time", $"{burned} {(_fieldRun ? "rations" : "fuel")} burned: {days} day(s)"
++                       + (summonDays > 0 ? $" ({summonDays} for the wizard's summons)" : "")
++                       + $"; free on day {until} (now {now})");
+         GD.Print($"[Sortie] {(_fieldRun ? _fieldPartyId : "castle")} burned {burned}: {days} day(s), busy until day {until}.");
+     }
+ 
+@@ -6005,6 +6062,29 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+         _hudCanvas.AddChild(_makeCampButton);
+         _uiHoverBlockers.Add(_makeCampButton);
+ 
++        // Summon the Wizard (row eight, where Make Camp sits on a castle run):
++        // field dives only. The wizard directs from the campus until summoned
++        // (Administrator, design §19).
++        _summonButton = new Button
++        {
++            Text = "Summon the Wizard",
++            AnchorLeft = 1f,
++            AnchorTop = 0f,
++            AnchorRight = 1f,
++            AnchorBottom = 0f,
++            GrowHorizontal = Control.GrowDirection.Begin,
++            OffsetLeft = -150,
++            OffsetRight = -12,
++            OffsetTop = 348 + HudManager.BarHeight,
++            OffsetBottom = 388 + HudManager.BarHeight,
++            Visible = _fieldRun,
++        };
++        _summonButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
++        UITheme.ApplyButtonStyle(_summonButton, isPrimary: false);
++        _summonButton.Pressed += OnSummonWizardPressed;
++        _hudCanvas.AddChild(_summonButton);
++        _uiHoverBlockers.Add(_summonButton);
++
+         // Look Up (row nine) and the desk panel. See ExpeditionManager.ScryDesk.
+         BuildScryDeskHud();
+ 
+@@ -6149,6 +6229,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+             _roadFollowButton.Visible = false;
+         if (_makeCampButton != null)
+             _makeCampButton.Visible = false;
++        if (_summonButton != null)
++            _summonButton.Visible = false;
+         if (_ledgerButton != null)
+             _ledgerButton.Visible = false;
+         if (_ledgerPanel != null)
+@@ -6520,6 +6602,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+             // is a flag read at whatever moment construction happened to be.
+             _makeCampButton.Visible = !_fieldRun && !ExpeditionComplete;
+         }
++        RefreshSummonButton();
+ 
+         // Mobile Fortress weather (W1): the front over the castle. Severe
+         // fronts (severity ≥ 3) read in the warning tint; milder ones stay plain.
+diff --git a/Scripts/Systems/Verification/FieldExpeditionSaveAssert.cs b/Scripts/Systems/Verification/FieldExpeditionSaveAssert.cs
+index 1099ed1..56a0350 100644
+--- a/Scripts/Systems/Verification/FieldExpeditionSaveAssert.cs
++++ b/Scripts/Systems/Verification/FieldExpeditionSaveAssert.cs
+@@ -191,6 +191,8 @@ public static class FieldExpeditionSaveAssert
+                 EncountersWon = 3,
+                 LunationsFrozen = 2,
+                 StartDay = 19,
++                WizardSummoned = true,
++                SummonDays = 2,
+             },
+         };
+         var rt = RoundTrip(src);
+@@ -248,6 +250,12 @@ public static class FieldExpeditionSaveAssert
+                     && rt.Sortie?.EncountersWon == src.Sortie.EncountersWon);
+         ok &= Check(sb, "FieldParty.Sortie.LunationsFrozen",
+                     rt.Sortie?.LunationsFrozen == src.Sortie.LunationsFrozen);
++        // Administrator (design §19): the summons outlives a save mid-dive.
++        ok &= Check(sb, "FieldParty.Sortie.WizardSummoned", rt.Sortie?.WizardSummoned == true);
++        ok &= Check(sb, "FieldParty.Sortie.SummonDays", rt.Sortie?.SummonDays == src.Sortie.SummonDays);
++        var cleared = new SortieState { WizardSummoned = true, SummonDays = 2 };
++        cleared.Clear();
++        ok &= Check(sb, "SortieState.Clear drops the summons", !cleared.WizardSummoned && cleared.SummonDays == 0);
+ 
+         // Field work (2026-09-23): a job forgotten across a save is a party
+         // standing idle with its lunations spent.
+-- 
+2.43.0
+

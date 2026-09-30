@@ -1,0 +1,917 @@
+From d3b2880e1dfe7d8f7b686a269a2fbd41ec07fbde Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 30 Sep 2026 03:01:04 -0600
+Subject: [PATCH] Blighted forms for every building, and two stance slots
+ (2026-09-30)
+
+Every building now has a blighted form (level 2): a trade, not a penalty.
+Training Grounds Blood Drills, Dissolution Hungry Vats, Library
+Whispering Stacks, Scriptorum Fevered Copying, Scrying Clouded Water,
+Courier Loose Lips, Undercroft Rotten Cellar, Embassy Tainted Gifts,
+Armory Rusted Racks, Dormitory Restless Sleep, Gatehouse Open Gate,
+Sanctum Profaned Lectern. BlightedForms.cs holds the numbers and the one
+line per building the campus card now shows.
+
+Stances: every martial holds two (their authored pair), a third at
+Training Grounds T2, plus the signature. T1 opens retraining. Combat
+fields at most the slot count.
+
+- OwnedCard.LastUpgradeLunation (Fevered Copying), round-trip asserted.
+- Review fixes: Tainted Gifts and Loose Lips Exposure survive the moon's
+  decay; Clouded Water drains once on a real start only; the Courtier
+  price honours Tainted Gifts; Whispering Stacks skips cards already in
+  research; the Fevered lock is keyed on year and moon.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RF7HNp6pvyXiAz229q52Px
+---
+ Data/Buildings/training_grounds.json          |  8 +-
+ Scripts/Data/FeatureBuilders/BlightedForms.cs | 99 +++++++++++++++++++
+ .../FeatureBuilders/CardCommissionService.cs  | 29 +++++-
+ Scripts/Data/FeatureBuilders/CardHalls.cs     |  4 +-
+ .../FeatureBuilders/CompanionInjurySystem.cs  | 12 ++-
+ Scripts/Data/SaveState/GuildSaveData.cs       | 13 ++-
+ Scripts/Systems/Campaign/CouncilScreen.cs     | 12 +--
+ Scripts/Systems/Campaign/CouncilTick.cs       | 49 +++++++++
+ Scripts/Systems/Campaign/Networks.cs          |  3 +-
+ Scripts/Systems/Campaign/ShadowTick.cs        |  2 +
+ Scripts/Systems/Campus/CampusScreen.cs        |  5 +-
+ Scripts/Systems/Campus/CampusTrainingPanel.cs | 11 ++-
+ Scripts/Systems/Campus/CardUpgradeScreen.cs   | 55 +++++++++--
+ Scripts/Systems/Campus/DisenchantValues.cs    |  4 +
+ .../Combat/Core/CombatManager.Maneuvers.cs    |  8 ++
+ Scripts/Systems/Combat/Core/CombatManager.cs  | 41 +++++---
+ Scripts/Systems/Combat/Core/EdgeRules.cs      |  3 +
+ Scripts/Systems/Negotiation/ParleyDeck.cs     |  6 +-
+ .../Overworld/Expedition/ExpeditionManager.cs | 24 ++++-
+ Scripts/Systems/Strategic/FieldPostings.cs    |  6 +-
+ .../Systems/Verification/CharterSaveAssert.cs |  2 +
+ 21 files changed, 351 insertions(+), 45 deletions(-)
+ create mode 100644 Scripts/Data/FeatureBuilders/BlightedForms.cs
+
+diff --git a/Data/Buildings/training_grounds.json b/Data/Buildings/training_grounds.json
+index 5e105b8..737c2ea 100644
+--- a/Data/Buildings/training_grounds.json
++++ b/Data/Buildings/training_grounds.json
+@@ -4,13 +4,13 @@
+ 	"category": "Core",
+ 	"schoolAffinity": "",
+ 	"hostsSystem": "training",
+-	"description": "A yard where martial companions drill between runs. Each tier opens a stance slot to learn in, and the veteran floor sets what kind of soldiers the guild raises.",
++	"description": "A yard where martial companions drill between runs. Every martial holds two stances; here they retrain them, earn a third slot, and the veteran floor sets what kind of soldiers the guild raises.",
+ 	"tiers": [
+ 		{
+ 			"tier": 1,
+ 			"displayName": "Basic Training Grounds",
+ 			"goldCost": 80,
+-			"description": "Martials learn a first stance here, and drill: +1 action point for Fighters, +2 for Rangers.",
++			"description": "Martials may retrain: forget a stance and learn another of their class. And drill: +1 action point for Fighters, +2 for Rangers.",
+ 			"requiredBuildings": [],
+ 			"passiveEffects": [],
+ 			"activeEffects": []
+@@ -19,7 +19,7 @@
+ 			"tier": 2,
+ 			"displayName": "Drilling Yard",
+ 			"goldCost": 150,
+-			"description": "A second stance slot to learn in.",
++			"description": "A third stance slot.",
+ 			"requiredBuildings": [],
+ 			"passiveEffects": [],
+ 			"activeEffects": []
+@@ -28,7 +28,7 @@
+ 			"tier": 3,
+ 			"displayName": "Veteran's Proving Grounds",
+ 			"goldCost": 280,
+-			"description": "A third stance slot and +1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight, and signature stances unlock their finishers at 5 Edge.",
++			"description": "+1 action point. And a doctrine, chartered at the Grand Hall. Levy Muster: a martial whose weapon teaches no maneuvers drills Brace, and garrisons raise militia a moon sooner. Or the Proving Grounds: a martial carries a second weapon and changes to it mid-fight, and signature stances unlock their finishers at 5 Edge.",
+ 			"requiredBuildings": [],
+ 			"passiveEffects": [],
+ 			"activeEffects": [],
+diff --git a/Scripts/Data/FeatureBuilders/BlightedForms.cs b/Scripts/Data/FeatureBuilders/BlightedForms.cs
+new file mode 100644
+index 0000000..36586dd
+--- /dev/null
++++ b/Scripts/Data/FeatureBuilders/BlightedForms.cs
+@@ -0,0 +1,99 @@
++using System;
++
++// ============================================================
++// BlightedForms.cs
++//
++// Purpose:        Every building's blighted form (campus_building_upgrades_
++//                 design_v1 §11c, §21). At blight level 2 a building's
++//                 doctrine goes dark and it works in the blight's way: a
++//                 trade, not a penalty table. Level 3 (overrun) stops the
++//                 building instead, so a form is live at level 2 only.
++//
++//                 The five forms built with the corruption slice live in
++//                 their own systems (Scribe's Tower, Enchanter's Workshop,
++//                 Crucible, Teleport Sigil, Grand Hall). This file holds the
++//                 numbers for the twelve added 2026-09-30, and the one line
++//                 per building the campus card shows.
++// Layer:          Data / rules
++// Collaborators:  CampusBlight (levels), every system that reads a form:
++//                 EdgeRules and CombatManager (Training Grounds, Armory,
++//                 Sanctum), DisenchantValues (Dissolution), CardCommission-
++//                 Service (Library), CardUpgradeScreen (Scriptorum),
++//                 ExpeditionManager (Scrying, Gatehouse Yard), ParleyDeck and
++//                 CouncilTick (Courier, Embassy), ShadowTick and Networks
++//                 (Undercroft), CompanionInjurySystem (Dormitory),
++//                 CardHalls (Sanctum's floor), CampusScreen (the label).
++// ============================================================
++
++/// <summary>Blighted-form rules and their card text. Stateless.</summary>
++public static class BlightedForms
++{
++    // Building ids (Data/Buildings).
++    public const string TrainingGrounds = "training_grounds";
++    public const string Dissolution = "dissolution_chamber";
++    public const string Library = "arcane_library";
++    public const string Scriptorum = "scriptorum";
++    public const string Scrying = "scrying_chambers";
++    public const string Courier = "courier_station";
++    public const string Undercroft = "undercroft";
++    public const string Embassy = "embassy";
++    public const string Armory = "armory";
++    public const string Dormitory = "dormitory";
++    public const string Gatehouse = "gatehouse_yard";
++    public const string Sanctum = "sanctum";
++
++    // ── Numbers (starting values) ────────────────────────────────────────
++    public const int BloodDrillEdge = 1;          // Training Grounds: +1 starting Edge
++    public const int BloodDrillCost = 1;          //   and 1 HP per maneuver
++    public const int HungryVatsPercent = 150;     // Dissolution: yield x1.5, no upgrade refund
++    public const int WhisperingStacksFaster = 1;  // Library: research one moon sooner
++    public const int FeveredCopyingPercent = 50;  // Scriptorum: upgrades at half cost, once a moon per card
++    public const int CloudedWaterSites = 2;       // Scrying: sites charted x2
++    public const int CloudedWaterEssence = 3;     //   and 3 Essence drunk at the start
++    public const int LooseLipsCards = 2;          // Courier: Connections cards x2
++    public const int RottenCellarInformants = 2;  // Undercroft: +2 informants
++    public const int RottenCellarBurn = 10;       //   and +10% burn chance each
++    public const int TaintedGiftsPercent = 50;    // Embassy: missions at half gold, +1 Exposure each
++    public const int RustDamage = 1;              // Armory: +1 attack with a weapon, -1 armor from gear
++    public const int RestlessSleepLoyalty = 3;    // Dormitory: recovery x2, -3 loyalty a moon while resting
++    public const int OpenGateFuelPercent = 125;   // Gatehouse: +25% fuel or rations
++    public const int OpenGateHullPercent = 85;    //   and -15% Hull or Health
++    public const int ProfanedFloor = 2;           // Sanctum: deck floor -2
++    public const int ProfanedHand = 1;            //   and the wizard's opening hand one short
++
++    /// <summary>Is this building's blighted form in force? Blighted (level 2)
++    /// and standing; an overrun building has stopped working instead.</summary>
++    public static bool Active(GuildSaveData save, string buildingId)
++    {
++        var b = CampusBlight.Find(save, buildingId);
++        return b != null && b.Tier > 0 && b.IsPlaced && b.BlightLevel == 2;
++    }
++
++    /// <summary>A percentage of <paramref name="value"/>, rounded to the nearest.</summary>
++    public static int Percent(int value, int percent)
++        => (int)Math.Round(value * percent / 100.0, MidpointRounding.AwayFromZero);
++
++    /// <summary>The blighted form's line for the campus card, or null when the
++    /// building has none.</summary>
++    public static string Describe(string buildingId) => buildingId switch
++    {
++        "scribes_tower" => "Cracked Glass: seals any rarity below Legendary at half the gold, but the glass cuts its caster when it shatters.",
++        "enchanters_workshop" => "Enchants cost half, but each writes a drawback into the item and seals its slot.",
++        "crucible_of_storms" => "The storm slips its leash: the moon picks the front, and it opens every fight with 2 attunement instead of 1.",
++        "teleport_sigil" => "The pattern leaks: kingdoms learn it twice as fast, and the rift opens to Friendly cities too.",
++        "grand_hall" => "One fewer charter seat: the latest charter past the seats goes dark.",
++        TrainingGrounds => $"Blood Drills: martials start every fight with +{BloodDrillEdge} Edge, but each maneuver costs them {BloodDrillCost} HP.",
++        Dissolution => "Hungry Vats: disenchanting pays half again, but a card's upgrades are lost, not refunded.",
++        Library => "Whispering Stacks: research lands a moon sooner, but brings a random card of the same school and rarity.",
++        Scriptorum => "Fevered Copying: upgrades cost half, but each card takes at most one a moon.",
++        Scrying => $"Clouded Water: twice the sites charted, but the water drinks {CloudedWaterEssence} Essence at each expedition's start.",
++        Courier => "Loose Lips: twice the Connections cards at the table, but each moon the court that trusts you least grows warier.",
++        Undercroft => $"Rotten Cellar: {RottenCellarInformants} more informants may run, but every one is easier to burn.",
++        Embassy => "Tainted Gifts: missions cost half the gold, but every one that lands raises Exposure at its court.",
++        Armory => "Rusted Racks: jagged steel hits 1 harder, but armor from gear holds 1 less.",
++        Dormitory => $"Restless Sleep: the injured mend twice as fast, but lose {RestlessSleepLoyalty} loyalty each moon they lie there.",
++        Gatehouse => "Open Gate: every sortie leaves with a quarter more fuel or rations, but less Hull or Health.",
++        Sanctum => $"Profaned Lectern: the deck floor drops by {ProfanedFloor}, but the wizard's opening hand is {ProfanedHand} card short.",
++        _ => null,
++    };
++}
+diff --git a/Scripts/Data/FeatureBuilders/CardCommissionService.cs b/Scripts/Data/FeatureBuilders/CardCommissionService.cs
+index 1846733..199c888 100644
+--- a/Scripts/Data/FeatureBuilders/CardCommissionService.cs
++++ b/Scripts/Data/FeatureBuilders/CardCommissionService.cs
+@@ -92,7 +92,13 @@ public static class CardCommissionService
+     /// <summary>Lunations a new commission takes: 3, or 2 under the Forbidden
+     /// Archives (Arcane Library doctrine, §13).</summary>
+     public static int ResearchLunationsFor(GuildSaveData save)
+-        => CardHalls.ForbiddenArchivesActive(save) ? CardHalls.ArchivesResearchLunations : ResearchLunations;
++    {
++        int moons = CardHalls.ForbiddenArchivesActive(save) ? CardHalls.ArchivesResearchLunations : ResearchLunations;
++        // Whispering Stacks (blighted Library, design §21): a moon sooner.
++        if (BlightedForms.Active(save, BlightedForms.Library))
++            moons = Math.Max(1, moons - BlightedForms.WhisperingStacksFaster);
++        return moons;
++    }
+ 
+     /// <summary>Max commissions in flight at once, set by the Arcane Library's tier:
+     /// 2 at T2, 3 at T3. A concurrency cap is
+@@ -322,6 +328,27 @@ public static class CardCommissionService
+         save.Ledger.CardCommissions.Remove(c);
+         if (string.IsNullOrWhiteSpace(c.BlueprintId)) return 0;
+ 
++        // Whispering Stacks (blighted Library, §21): the stacks whisper back the
++        // wrong book. A random undiscovered card of the same school and rarity.
++        if (BlightedForms.Active(save, BlightedForms.Library))
++        {
++            var asked = CardDatabase.Blueprints.Find(b =>
++                string.Equals(b.Id, c.BlueprintId, StringComparison.OrdinalIgnoreCase));
++            if (asked != null)
++            {
++                var pool = CardDatabase.Blueprints.Where(b =>
++                    b.School == asked.School && b.Rarity == asked.Rarity
++                    && !string.Equals(b.Id, asked.Id, StringComparison.OrdinalIgnoreCase)
++                    && IsCommissionable(save, b) && Find(save, b.Id) == null).ToList();
++                if (pool.Count > 0)
++                {
++                    var got = pool[new Random().Next(pool.Count)];
++                    GD.Print($"[Commission] Whispering Stacks: '{c.BlueprintId}' came back as '{got.Id}'.");
++                    c.BlueprintId = got.Id;
++                }
++            }
++        }
++
+         save.Ledger.UnlockedCardBlueprintIds ??= new List<string>();
+         bool already = save.Ledger.UnlockedCardBlueprintIds.Any(id =>
+             string.Equals(id, c.BlueprintId, StringComparison.OrdinalIgnoreCase));
+diff --git a/Scripts/Data/FeatureBuilders/CardHalls.cs b/Scripts/Data/FeatureBuilders/CardHalls.cs
+index 0021399..e58b617 100644
+--- a/Scripts/Data/FeatureBuilders/CardHalls.cs
++++ b/Scripts/Data/FeatureBuilders/CardHalls.cs
+@@ -59,7 +59,9 @@ public static class CardHalls
+ 
+     /// <summary>THE deck floor: the fewest active cards a run needs, and the
+     /// count below which an active card cannot be disenchanted.</summary>
+-    public static int DeckFloor(GuildSaveData save) => ThinDeckActive(save) ? ThinDeckFloor : BaseDeckFloor;
++    public static int DeckFloor(GuildSaveData save)
++        => (ThinDeckActive(save) ? ThinDeckFloor : BaseDeckFloor)
++           - (BlightedForms.Active(save, BlightedForms.Sanctum) ? BlightedForms.ProfanedFloor : 0);   // Profaned Lectern (§21)
+ 
+     /// <summary>Thin Deck's payoff: the active deck sits exactly at the floor.</summary>
+     public static bool ThinDeckDraws(GuildSaveData save)
+diff --git a/Scripts/Data/FeatureBuilders/CompanionInjurySystem.cs b/Scripts/Data/FeatureBuilders/CompanionInjurySystem.cs
+index 0acac05..9fa57b8 100644
+--- a/Scripts/Data/FeatureBuilders/CompanionInjurySystem.cs
++++ b/Scripts/Data/FeatureBuilders/CompanionInjurySystem.cs
+@@ -139,11 +139,21 @@ public static class CompanionInjurySystem
+             return;
+         AssertRoundTripOnce();
+ 
++        // Restless Sleep (blighted Dormitory, design §21): the injured mend twice
++        // as fast, but each moon in those beds costs them some faith in the guild.
++        bool restless = BlightedForms.Active(save, BlightedForms.Dormitory);
+         foreach (var c in save.Companions)
+         {
+             if (c == null || !c.IsInjured || c.IsPermadead)
+                 continue;
+-            c.InjuredLunationsRemaining--;
++            c.InjuredLunationsRemaining -= restless ? 2 : 1;
++            if (c.InjuredLunationsRemaining < 0)
++                c.InjuredLunationsRemaining = 0;
++            if (restless)
++            {
++                c.Loyalty = System.Math.Clamp(c.Loyalty - BlightedForms.RestlessSleepLoyalty, 0, 100);
++                GD.Print($"[Infirmary] Restless Sleep: {c.Name} -{BlightedForms.RestlessSleepLoyalty} loyalty ({c.Loyalty}).");
++            }
+             GD.Print(c.IsInjured
+                 ? $"[Infirmary] {c.Name} recovering: {c.InjuredLunationsRemaining} lunation(s) left."
+                 : $"[Infirmary] {c.Name} has recovered and returns to the roster.");
+diff --git a/Scripts/Data/SaveState/GuildSaveData.cs b/Scripts/Data/SaveState/GuildSaveData.cs
+index e85e2ce..bbbd5fd 100644
+--- a/Scripts/Data/SaveState/GuildSaveData.cs
++++ b/Scripts/Data/SaveState/GuildSaveData.cs
+@@ -143,7 +143,13 @@ public class GuildSaveData
+     // ── Training Grounds helpers (read the eternal campus) ──────────────
+     [JsonIgnore] public int TrainingGroundsTier => GetBuildingTier("training_grounds");
+ 
+-    [JsonIgnore] public int MartialStanceSlots => TrainingGroundsTier;
++    /// <summary>Stances a martial fields (ruled 2026-09-30): two to start, which
++    /// their authored pair fills; a third at Training Grounds T2. The signature
++    /// stance is separate. Five was too many to play with.</summary>
++    [JsonIgnore] public int MartialStanceSlots => BaseStanceSlots + (TrainingGroundsTier >= 2 ? 1 : 0);
++
++    public const int BaseStanceSlots = 2;
++    public const int MaxStanceSlots = 3;
+ 
+     [JsonIgnore]
+     public int FighterBaseAP => TrainingGroundsTier switch
+@@ -384,6 +390,11 @@ public class OwnedCard
+     /// Kept for good once given. Additive save field.</summary>
+     public bool Refined = false;
+ 
++    /// <summary>Moon of this card's last upgrade (year x 100 + lunation), 0 before any. Read only
++    /// under Fevered Copying (a blighted Scriptorum, design §21): one upgrade a
++    /// moon per card. Additive save field.</summary>
++    public int LastUpgradeLunation = 0;
++
+     // ── Convenience ──────────────────────────────────────────────────
+     public bool IsBaseUpgraded => TopTier >= 1 && BotTier >= 1;
+     public int TotalTier => TopTier + BotTier;
+diff --git a/Scripts/Systems/Campaign/CouncilScreen.cs b/Scripts/Systems/Campaign/CouncilScreen.cs
+index 2729601..fa1461a 100644
+--- a/Scripts/Systems/Campaign/CouncilScreen.cs
++++ b/Scripts/Systems/Campaign/CouncilScreen.cs
+@@ -895,7 +895,7 @@ public partial class CouncilScreen : CanvasLayer
+             string missionId = def.Id;
+             var btn = new Button
+             {
+-                Text = $"{def.DisplayName} ({def.Lunations}◐, {def.GoldCost}g)",
++                Text = $"{def.DisplayName} ({def.Lunations}◐, {CouncilMissions.GoldFor(save, def)}g)",
+                 CustomMinimumSize = new Vector2(0, 32),
+                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                 Disabled = lockReason != null,
+@@ -1120,11 +1120,11 @@ public partial class CouncilScreen : CanvasLayer
+ 
+         bool ready = _selCompanionId != null &&
+                      (!def.NeedsTargetCourtier || _selTargetCourtierId != null);
+-        bool affordable = save.Gold >= def.GoldCost;
++        bool affordable = save.Gold >= CouncilMissions.GoldFor(save, def);
+ 
+         var confirmBtn = new Button
+         {
+-            Text = affordable ? $"Send ({def.GoldCost}g)" : $"Need {def.GoldCost}g",
++            Text = affordable ? $"Send ({CouncilMissions.GoldFor(save, def)}g)" : $"Need {CouncilMissions.GoldFor(save, def)}g",
+             CustomMinimumSize = new Vector2(140, 32),
+             Disabled = !ready || !affordable,
+         };
+@@ -1181,7 +1181,7 @@ public partial class CouncilScreen : CanvasLayer
+         {
+             return;
+         }
+-        if (save.Gold < def.GoldCost)
++        if (save.Gold < CouncilMissions.GoldFor(save, def))
+         {
+             return;
+         }
+@@ -1244,7 +1244,7 @@ public partial class CouncilScreen : CanvasLayer
+             }
+         }
+ 
+-        save.Gold -= def.GoldCost;
++        save.Gold -= CouncilMissions.GoldFor(save, def);
+ 
+         // Envoys leave the expedition pool: instant dispatch (v1.1 ruling).
+         CompanionRoster.RemoveFromParty(_selCompanionId);
+@@ -1260,7 +1260,7 @@ public partial class CouncilScreen : CanvasLayer
+         });
+ 
+         GD.Print($"[Council] Dispatched {_selCompanionId} to {court.KingdomId} " +
+-                 $"({def.Id}, {def.Lunations} lunation(s), {def.GoldCost}g).");
++                 $"({def.Id}, {def.Lunations} lunation(s), {CouncilMissions.GoldFor(save, def)}g).");
+ 
+         CloseFlow();
+         SaveManager.Save();
+diff --git a/Scripts/Systems/Campaign/CouncilTick.cs b/Scripts/Systems/Campaign/CouncilTick.cs
+index 29cf8b2..bae6847 100644
+--- a/Scripts/Systems/Campaign/CouncilTick.cs
++++ b/Scripts/Systems/Campaign/CouncilTick.cs
+@@ -118,6 +118,14 @@ public static class CouncilMissions
+     public static string ExtraRefusal(CycleState cycle, CourtState court, string missionId)
+         => missionId == BrokerCompact ? Statecraft.CannotBrokerReason(cycle, court) : null;
+ 
++    /// <summary>Gold a mission costs now: half under Tainted Gifts (a blighted
++    /// Embassy, design §21). Every dispatch surface prices through here.</summary>
++    public static int GoldFor(GuildSaveData save, CouncilMissionDef def)
++        => def == null ? 0
++           : BlightedForms.Active(save, BlightedForms.Embassy)
++               ? BlightedForms.Percent(def.GoldCost, BlightedForms.TaintedGiftsPercent)
++               : def.GoldCost;
++
+     public static CouncilMissionDef Get(string id)
+     {
+         foreach (var m in All)
+@@ -373,6 +381,10 @@ public static class CouncilTick
+             council.ActiveMissions.Remove(mission);
+             resolverThisTick[mission.KingdomId] = mission.CompanionId;
+             ResolveMission(cycle, mission, reports);
++            // Tainted Gifts (blighted Embassy, §21): the mark must survive this
++            // moon's decay, or it would cancel out.
++            if (!mission.Recalled && BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Embassy))
++                intelCourts.Add(mission.KingdomId);
+         }
+ 
+         // ── Step 4b (espionage): informant passive yields + Access ripen ──
+@@ -389,6 +401,29 @@ public static class CouncilTick
+         // the spike is not decayed away the same tick (§2e / §5).
+         ShadowTick.ResolveCounterIntel(cycle, reports, intelCourts);
+ 
++        // Loose Lips (blighted Courier Station, design §21): the couriers talk.
++        // Each moon the court that trusts the guild least hears too much.
++        CourtState leastTrusting = null;
++        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Courier))
++        {
++            foreach (var c in council.Courts.Values)
++            {
++                if (c == null || !c.HasContact)
++                {
++                    continue;
++                }
++                if (leastTrusting == null || c.StandingScore() < leastTrusting.StandingScore()
++                    || (c.StandingScore() == leastTrusting.StandingScore()
++                        && string.CompareOrdinal(c.KingdomId, leastTrusting.KingdomId) < 0))
++                {
++                    leastTrusting = c;
++                }
++            }
++        }
++
++        if (leastTrusting != null)
++            intelCourts.Add(leastTrusting.KingdomId);   // Loose Lips: no decay there this moon
++
+         // ── Step 5: exposure decay, freeze decrement, threshold consequences ─
+         foreach (var court in council.Courts.Values)
+         {
+@@ -400,6 +435,12 @@ public static class CouncilTick
+             {
+                 court.Exposure -= 1;
+             }
++            if (court == leastTrusting)
++            {
++                court.Exposure = Mathf.Clamp(court.Exposure + 1, 0, 10);
++                Emit(reports, lun, court.KingdomId,
++                    $"Loose lips: the guild's couriers talk, and {CourtDisplayName(cycle, court.KingdomId)} grows warier (exposure {court.Exposure}).");
++            }
+ 
+             int before = exposureBefore.TryGetValue(court.KingdomId, out var b) ? b : 0;
+             CheckExposureThresholds(cycle, court, before, court.Exposure, lun, reports, resolverThisTick);
+@@ -472,6 +513,14 @@ public static class CouncilTick
+                 break;
+         }
+ 
++        // Tainted Gifts (blighted Embassy, design §21): cheap missions leave a mark.
++        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Embassy))
++        {
++            court.Exposure = Mathf.Clamp(court.Exposure + 1, 0, 10);
++            Emit(reports, lun, court.KingdomId,
++                $"Tainted gifts: {envoyName}'s work leaves a mark at {courtName} (exposure {court.Exposure}).");
++        }
++
+         SaveManager.MarkDirty();
+     }
+ 
+diff --git a/Scripts/Systems/Campaign/Networks.cs b/Scripts/Systems/Campaign/Networks.cs
+index 6871d51..c50b9ba 100644
+--- a/Scripts/Systems/Campaign/Networks.cs
++++ b/Scripts/Systems/Campaign/Networks.cs
+@@ -75,7 +75,8 @@ public static class Networks
+ 
+     /// <summary>Concurrent informant cap: the Undercroft's, +2 with the Spy Network.</summary>
+     public static int InformantCap(GuildSaveData save)
+-        => ShadowVocab.InformantCap(UndercroftTier(save)) + (SpyNetworkActive(save) ? SpyNetworkInformantBonus : 0);
++        => ShadowVocab.InformantCap(UndercroftTier(save)) + (SpyNetworkActive(save) ? SpyNetworkInformantBonus : 0)
++           + (BlightedForms.Active(save, BlightedForms.Undercroft) ? BlightedForms.RottenCellarInformants : 0);   // Rotten Cellar (§21)
+ 
+     // ── Whisper Market ───────────────────────────────────────────────────
+ 
+diff --git a/Scripts/Systems/Campaign/ShadowTick.cs b/Scripts/Systems/Campaign/ShadowTick.cs
+index b03e933..69876b2 100644
+--- a/Scripts/Systems/Campaign/ShadowTick.cs
++++ b/Scripts/Systems/Campaign/ShadowTick.cs
+@@ -240,6 +240,7 @@ public static class ShadowTick
+         // Marked >= Sold Out: the Concord fences the guild's movements, so the
+         // Astrologer's agents get one free extra burn roll per lunation (§3d).
+         bool soldOut = council.Marked >= ShadowVocab.MarkedSoldOut;
++        bool rottenCellar = BlightedForms.Active(save, BlightedForms.Undercroft);
+         bool changed = false;
+ 
+         // Iterate a copy, because burns remove entries.
+@@ -261,6 +262,7 @@ public static class ShadowTick
+             bool courtEmbedded = !string.IsNullOrEmpty(inf.CourtierId);
+             if (courtEmbedded && embassyTier > 0) { hit -= BurnEmbassyCourtCover; }
+             if (inf.Role == ShadowVocab.RoleSaboteur) { hit += BurnSaboteurLoud; }
++            if (rottenCellar) { hit += BlightedForms.RottenCellarBurn; }   // blighted Undercroft (§21)
+             hit = Mathf.Clamp(hit, BurnHitMin, BurnHitMax);
+ 
+             bool caught = (int)(GD.Randi() % 100) < hit;
+diff --git a/Scripts/Systems/Campus/CampusScreen.cs b/Scripts/Systems/Campus/CampusScreen.cs
+index db8e6bc..edb6448 100644
+--- a/Scripts/Systems/Campus/CampusScreen.cs
++++ b/Scripts/Systems/Campus/CampusScreen.cs
+@@ -1143,10 +1143,13 @@ public partial class CampusScreen : Control
+         {
+             var row = new HBoxContainer();
+             row.AddThemeConstantOverride("separation", 8);
++            var blightTemplate = BuildingDatabase.GetTemplate(buildingSave.Id);
++            bool hasDoctrine = blightTemplate != null && Charters.DoctrineTier(blightTemplate) != null;
+             string effect = buildingSave.BlightLevel switch
+             {
+                 1 => "Tainted ground: it draws off a splinter each moon.",
+-                2 => "Blighted ground: its doctrine is dark and it works in the blight's way. It spreads.",
++                2 => "Blighted ground: " + (hasDoctrine ? "its doctrine is dark. " : "")
++                     + (BlightedForms.Describe(buildingSave.Id) ?? "it works on, uneasily.") + " It spreads.",
+                 _ => "Overrun: it has stopped working. It spreads.",
+             };
+             var lbl = new Label
+diff --git a/Scripts/Systems/Campus/CampusTrainingPanel.cs b/Scripts/Systems/Campus/CampusTrainingPanel.cs
+index a1ced68..524d72f 100644
+--- a/Scripts/Systems/Campus/CampusTrainingPanel.cs
++++ b/Scripts/Systems/Campus/CampusTrainingPanel.cs
+@@ -68,7 +68,7 @@ public sealed class CampusTrainingPanel : CampusPanel
+             // TrainingGroundsTier reads 0 for an overrun building too (campus corruption).
+             _container.AddChild(MakeStubLabel(CampusBlight.Level(save, TrainingGrounds.Id) >= CampusBlight.MaxLevel
+                 ? "The Training Grounds stand on overrun ground and have stopped working. Cleanse the land (on its campus card)."
+-                : "Build Training Grounds to unlock stance training."));
++                : "Every martial holds two stances. Build Training Grounds to retrain them."));
+             return;
+         }
+ 
+@@ -76,8 +76,9 @@ public sealed class CampusTrainingPanel : CampusPanel
+ 
+         var note = new Label
+         {
+-            Text = $"Training Grounds Tier {tgTier}: " +
+-                   $"{save.MartialStanceSlots} stance slot(s) active per companion.",
++            Text = $"Training Grounds Tier {tgTier}: {save.MartialStanceSlots} stance slots per martial"
++                 + (tgTier >= 2 ? "." : " (a third at Tier 2).")
++                 + " Forget a stance to make room, then learn another of their class.",
+             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+         };
+         note.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+@@ -177,14 +178,14 @@ public sealed class CampusTrainingPanel : CampusPanel
+         }
+ 
+         // Show locked slots
+-        for (int i = companion.TrainedStanceIds.Count; i < 3; i++)
++        for (int i = companion.TrainedStanceIds.Count; i < GuildSaveData.MaxStanceSlots; i++)
+         {
+             bool unlocked = i < slots;
+             var slotLbl = new Label
+             {
+                 Text = unlocked
+                     ? $"Slot {i + 1}: Empty. Learn a stance below"
+-                    : $"Slot {i + 1}: Locked (Training Grounds Tier {i + 1} required)",
++                    : $"Slot {i + 1}: Locked (Training Grounds Tier 2 required)",
+             };
+             slotLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+             slotLbl.AddThemeColorOverride("font_color",
+diff --git a/Scripts/Systems/Campus/CardUpgradeScreen.cs b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+index 8af3163..c59b16f 100644
+--- a/Scripts/Systems/Campus/CardUpgradeScreen.cs
++++ b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+@@ -34,8 +34,38 @@ public partial class CardUpgradeScreen : Control
+     {
+         public static readonly int[] HalfTierCost = { 0, 15, 20, 30, 45 };
+         public const int SharedUpgradeCost = 15;
++
++        /// <summary>The shared 1/1 step's price now (half under Fevered Copying).</summary>
++        public static int Shared(GuildSaveData save) => Scale(save, SharedUpgradeCost);
++
++        /// <summary>A half step's price now (half under Fevered Copying).</summary>
++        public static int Half(GuildSaveData save, int nextTier)
++            => Scale(save, HalfTierCost[Mathf.Clamp(nextTier, 0, HalfTierCost.Length - 1)]);
++
++        private static int Scale(GuildSaveData save, int cost)
++            => BlightedForms.Active(save, BlightedForms.Scriptorum)
++                ? Math.Max(1, BlightedForms.Percent(cost, BlightedForms.FeveredCopyingPercent))
++                : cost;
++    }
++
++    /// <summary>Fevered Copying (blighted Scriptorum, design §21): a card takes at
++    /// most one upgrade a moon. True when this card already had its one.</summary>
++    private static bool FeverLocked(GuildSaveData save, OwnedCard card)
++        => card != null && BlightedForms.Active(save, BlightedForms.Scriptorum)
++           && card.LastUpgradeLunation > 0
++           && card.LastUpgradeLunation == MoonStamp(save);
++
++    private static void StampUpgrade(GuildSaveData save, OwnedCard card)
++    {
++        if (card != null)
++            card.LastUpgradeLunation = MoonStamp(save);
+     }
+ 
++    /// <summary>This moon, unique across campaign years (the calendar restarts
++    /// at lunation 1 each year).</summary>
++    private static int MoonStamp(GuildSaveData save)
++        => (save?.Cycle?.CampaignYear ?? 1) * 100 + (save?.Cycle?.Calendar?.CurrentLunation ?? 0);
++
+     // ── Layout ────────────────────────────────────────────────────────
+     private VBoxContainer _cardList;
+     private Label _splinterLabel;
+@@ -613,6 +643,8 @@ public partial class CardUpgradeScreen : Control
+             SetPreviewEmpty();
+             if (_selectedCardLabel != null)
+                 _selectedCardLabel.Text = "Select a card to upgrade";
++            if (_gateLabel != null)
++                _gateLabel.Visible = false;
+             ClearDynamicContent();
+             return;
+         }
+@@ -632,12 +664,15 @@ public partial class CardUpgradeScreen : Control
+         else if (PlayerSession.HasFeature("card_upgrade_stage_2")) maxUpgradeStage = 2;
+         else if (PlayerSession.HasFeature("card_upgrade_stage_1")) maxUpgradeStage = 1;
+ 
+-        bool gated = maxUpgradeStage == 0;
++        bool feverLocked = FeverLocked(save, _selectedOwned);
++        bool gated = maxUpgradeStage == 0 || feverLocked;
+ 
+         if (_gateLabel != null)
+         {
+             _gateLabel.Visible = gated;
+-            _gateLabel.Text = "Requires a Scriptorum to refine your spells.";
++            _gateLabel.Text = feverLocked
++                ? "Fevered Copying: this card has taken its one upgrade this moon."
++                : "Requires a Scriptorum to refine your spells.";
+         }
+ 
+         // Clear only the dynamic section. Permanent nodes (_selectedCardLabel,
+@@ -664,7 +699,7 @@ public partial class CardUpgradeScreen : Control
+                 CardMasteryThresholds.CanSpendNextPoint(lifetimeCasts, pointsSpent);
+             int castsNeeded = CardMasteryThresholds.CastsUntilNextPoint(
+                 lifetimeCasts, pointsSpent);
+-            bool canAfford = splinters >= CardUpgradeCosts.SharedUpgradeCost;
++            bool canAfford = splinters >= CardUpgradeCosts.Shared(save);
+ 
+             // NOTE: display must use lifetimeCasts too. Showing the per-copy count
+             // here while the gate above uses the permanent one produced a visible
+@@ -678,7 +713,7 @@ public partial class CardUpgradeScreen : Control
+                 : desc));
+ 
+             AddDynamic(MakeCostLabel(
+-                CardUpgradeCosts.SharedUpgradeCost, castOk,
++                CardUpgradeCosts.Shared(save), castOk,
+                 castsNeeded, canAfford, _bypassCastRequirement,
+                 lifetimeCasts));
+ 
+@@ -881,8 +916,7 @@ public partial class CardUpgradeScreen : Control
+             col.AddChild(descLabel);
+         }
+ 
+-        int cost = CardUpgradeCosts.HalfTierCost[Mathf.Min(nextTier,
+-            CardUpgradeCosts.HalfTierCost.Length - 1)];
++        int cost = CardUpgradeCosts.Half(save, nextTier);
+         // Permanent cast count. See the shared-upgrade gate above.
+         int lifetimeCasts = CardMasteryService.Casts(
+             save, _selectedOwned.BlueprintId, _selectedOwned.CastCount);
+@@ -918,10 +952,12 @@ public partial class CardUpgradeScreen : Control
+         if (save == null || _selectedOwned == null) return;
+         if (_selectedOwned.IsBaseUpgraded) return;
+ 
+-        int cost = CardUpgradeCosts.SharedUpgradeCost;
++        if (FeverLocked(save, _selectedOwned)) return;
++        int cost = CardUpgradeCosts.Shared(save);
+         if (save.ArcaneSplinters < cost) return;
+ 
+         save.ArcaneSplinters -= cost;
++        StampUpgrade(save, _selectedOwned);
+         _selectedOwned.TopTier = 1;
+         _selectedOwned.BotTier = 1;
+         _selectedOwned.PointsSpent = 1;
+@@ -946,11 +982,12 @@ public partial class CardUpgradeScreen : Control
+         int nextTier = currentTier + 1;
+         if (nextTier > 4) return;
+ 
+-        int cost = CardUpgradeCosts.HalfTierCost[
+-            Mathf.Min(nextTier, CardUpgradeCosts.HalfTierCost.Length - 1)];
++        if (FeverLocked(save, _selectedOwned)) return;
++        int cost = CardUpgradeCosts.Half(save, nextTier);
+         if (save.ArcaneSplinters < cost) return;
+ 
+         save.ArcaneSplinters -= cost;
++        StampUpgrade(save, _selectedOwned);
+ 
+         if (isTop) _selectedOwned.TopTier = nextTier;
+         else _selectedOwned.BotTier = nextTier;
+diff --git a/Scripts/Systems/Campus/DisenchantValues.cs b/Scripts/Systems/Campus/DisenchantValues.cs
+index 92147f1..5878385 100644
+--- a/Scripts/Systems/Campus/DisenchantValues.cs
++++ b/Scripts/Systems/Campus/DisenchantValues.cs
+@@ -51,6 +51,10 @@ public static class DisenchantValues
+ 		CardRarity rarity = bp?.Rarity ?? CardRarity.Common;
+ 		int baseYield = BaseYield(rarity);
+ 		int upgradeRefund = card.PointsSpent * UpgradeRefundPerPoint;
++		// Hungry Vats (blighted Dissolution Chamber, design §21): the vat pays half
++		// again for the card, and eats its upgrades whole.
++		if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Dissolution))
++			return BlightedForms.Percent(baseYield + PlayerSession.DisenchantSplinterBonus, BlightedForms.HungryVatsPercent);
+ 		return baseYield + upgradeRefund + PlayerSession.DisenchantSplinterBonus;
+ 	}
+ }
+\ No newline at end of file
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+index 98584c4..99d0230 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Maneuvers.cs
+@@ -595,6 +595,14 @@ public partial class CombatManager
+             DisarmManeuver();
+             return;
+         }
++        // Blood Drills (blighted Training Grounds, §21): every maneuver draws blood.
++        // Never lethal: the drill leaves the martial standing at 1.
++        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.TrainingGrounds) && u.Stats.Health > 1)
++        {
++            int bled = Math.Min(BlightedForms.BloodDrillCost, u.Stats.Health - 1);
++            u.Stats.Health -= bled;
++            combatUI?.AppendActionLog($"[Blood Drills] {u.Name} loses {bled} HP to the maneuver.");
++        }
+         if (openingsUsed > 0 && openingsTarget != null)
+         {
+             openingsTarget.Openings -= openingsUsed;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 205b569..ca8569e 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -2557,7 +2557,15 @@ public partial class CombatManager : Node3D
+ 
+             if (unit.DeckData != null)
+             {
++                // Profaned Lectern (blighted Sanctum, design §21): the wizard's
++                // opening hand is a card short. Round 1 only.
++                bool profaned = roundNumber == 1 && unit.CompanionId == "wizard"
++                    && BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Sanctum);
++                if (profaned)
++                    unit.DeckData.MaxHandSize -= BlightedForms.ProfanedHand;
+                 var drawn = unit.DeckData.DrawToFull();
++                if (profaned)
++                    unit.DeckData.MaxHandSize += BlightedForms.ProfanedHand;
+                 foreach (var card in drawn)
+                     GD.Print($"[{unit.Name}] Drew: {card.TopHalf?.Name ?? card.CardName}");
+ 
+@@ -4520,20 +4528,21 @@ public partial class CombatManager : Node3D
+                 // keep their stance slots and AP steps; T3 charters a doctrine.
+                 int tgTier = save?.TrainingGroundsTier ?? 0;
+ 
+-                // ── Stances: INNATE (2026-07-29 ruling) ───────────────────
+-                // A martial always fields EVERY stance on its list: the
+-                // authored pair from its JSON (which deserializes into
+-                // TrainedStanceIds via the "availableStanceIds" alias, despite
+-                // the comment on that field) plus anything later learned at
+-                // the campus Training tab. The old MartialStanceSlots cap
+-                // (= Training Grounds tier) zeroed the whole list when no
+-                // building existed, so every martial fielded Stances:0 and the
+-                // stance switcher had nothing to show. The Training Grounds
+-                // keeps its stat bonuses and the Training tab's learn cap
+-                // still reads MartialStanceSlots; only FIELDING is ungated.
++                // ── Stances ───────────────────────────────────────────────
++                // The authored pair from the companion's JSON deserializes into
++                // TrainedStanceIds (the "availableStanceIds" alias) and is fielded
++                // with no building at all: the old cap (slots = Training Grounds
++                // tier) zeroed the list without one (2026-07-29 fix).
++                // Stance slots (ruled 2026-09-30): a martial fields at most its
++                // slot count (2, 3 with Training Grounds T2), first-trained first,
++                // plus the signature below. An old save holding more keeps them
++                // listed at the Training tab, marked inactive.
+                 unit.AvailableStances.Clear();
++                int stanceSlots = save?.MartialStanceSlots ?? GuildSaveData.BaseStanceSlots;
+                 foreach (var stanceId in companion.TrainedStanceIds)
+                 {
++                    if (unit.AvailableStances.Count >= stanceSlots)
++                        break;
+                     var stance = StanceRegistry.Get(stanceId);
+                     if (stance != null && !unit.AvailableStances.Contains(stance))
+                         unit.AvailableStances.Add(stance);
+@@ -6045,6 +6054,16 @@ public partial class CombatManager : Node3D
+         else if (loadout.Passives.Count > 0 || HasAnyBonus(loadout))
+             GD.Print($"[Q1 Parity] {unit.Name}: loadout '{unitId}' verified item-for-item.");
+ 
++        // Rusted Racks (blighted Armory, design §21): jagged steel bites harder,
++        // rusted plate holds less. After the parity assert, which checks the items.
++        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Armory))
++        {
++            if (unit.IsMartial && loadout.BonusAttackDamage > 0)
++                unit.AttackDamage += BlightedForms.RustDamage;
++            if (loadout.BonusArmor > 0)
++                unit.Stats.Armor = Math.Max(0, unit.Stats.Armor - BlightedForms.RustDamage);
++        }
++
+         // Q2 (§7a): onSpawn item triggers, fired AFTER the parity assert so the
+         // ward's shield doesn't read as a stat mismatch. Shared dispatcher + log.
+         FireItemSpawnTriggers(unit);
+diff --git a/Scripts/Systems/Combat/Core/EdgeRules.cs b/Scripts/Systems/Combat/Core/EdgeRules.cs
+index df466e9..8c23ef8 100644
+--- a/Scripts/Systems/Combat/Core/EdgeRules.cs
++++ b/Scripts/Systems/Combat/Core/EdgeRules.cs
+@@ -91,6 +91,9 @@ public static class EdgeRules
+ 
+         u.MaxEdge = trainingGroundsTier >= 3 ? CapAtTrainingTier3 : BaseCap;
+         int start = StartingEdge + (u.ActiveStance?.EdgeStartBonus ?? 0);
++        // Blood Drills (blighted Training Grounds, design §21): +1 Edge to start.
++        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.TrainingGrounds))
++            start += BlightedForms.BloodDrillEdge;
+         u.Edge = Mathf.Clamp(start, 0, u.MaxEdge);
+     }
+ 
+diff --git a/Scripts/Systems/Negotiation/ParleyDeck.cs b/Scripts/Systems/Negotiation/ParleyDeck.cs
+index b6f484b..bdeca4b 100644
+--- a/Scripts/Systems/Negotiation/ParleyDeck.cs
++++ b/Scripts/Systems/Negotiation/ParleyDeck.cs
+@@ -348,7 +348,11 @@ public static class ParleyDeckBuilder
+                 if (!Enum.TryParse<LeverageToken>(tierData.BonusTokenType, out var tok)) continue;
+                 var id = ParleyCardLibrary.TokenCardId(tok);
+                 if (id == null) continue;
+-                for (int i = 0; i < tierData.BonusNegotiationTokens; i++) ids.Add((id, b.Name));
++                int count = tierData.BonusNegotiationTokens;
++                // Loose Lips (blighted Courier Station, design §21): twice the cards.
++                if (b.Id == BlightedForms.Courier && BlightedForms.Active(save, BlightedForms.Courier))
++                    count *= BlightedForms.LooseLipsCards;
++                for (int i = 0; i < count; i++) ids.Add((id, b.Name));
+             }
+ 
+         if (patronTokens != null)
+diff --git a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+index 3b822ad..f5b96de 100644
+--- a/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
++++ b/Scripts/Systems/Overworld/Expedition/ExpeditionManager.cs
+@@ -314,6 +314,7 @@ public partial class ExpeditionManager : Node2D
+     private Button _scryTableButton;                 // Expedition v2: aim the table at another force
+     private Button _makeCampButton;                  // 2026-09-23: park at any fuel level
+     private Button _summonButton;                    // Administrator (§19): field dives only, row eight
++    private bool _freshSortie;                       // this load began a sortie (not a return or resume)
+ 
+     /// <summary>Build materials a waypoint costs. A waystone is a real thing the
+     /// guild builds, and the cost is what stops the castle papering the map with
+@@ -559,6 +560,14 @@ public partial class ExpeditionManager : Node2D
+         // started five short in. Fill it HERE, once every contribution is in.
+         // The combat-return path restores SavedStepsRemaining below and is
+         // unaffected.
++        // Open Gate (blighted Gatehouse Yard, design §21): a quarter more fuel or
++        // rations, and less Hull or Health. Before the fill, so the tank is full.
++        if (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Gatehouse))
++        {
++            MaxFuel = BlightedForms.Percent(MaxFuel, BlightedForms.OpenGateFuelPercent);
++            MaxHP = Mathf.Max(1, BlightedForms.Percent(MaxHP, BlightedForms.OpenGateHullPercent));
++            CurrentHP = MaxHP;
++        }
+         StepsRemaining = MaxFuel;
+ 
+         // Record the TRUE tank the moment it is known. It was previously written
+@@ -638,6 +647,7 @@ public partial class ExpeditionManager : Node2D
+             // campus (Administrator, §19), and their carried HP belongs to the castle's run.
+             if (!_fieldRun)
+                 PlayerSession.WizardExpeditionHP = -1;
++            _freshSortie = true;   // Clouded Water drains once, on a real start (§21)
+             SchoolSeats.ClearWeatherCarry();       // Crucible T2: weather is per expedition
+ 
+             // S4 (Identify) + S5 (True Names): pinned encounters are
+@@ -767,6 +777,15 @@ public partial class ExpeditionManager : Node2D
+         };
+         AddChild(_spells);
+         _spells.Initialize(this, _grid, cycle.Grimoire, freshDeploy: !pendingReturn);
++        // Clouded Water (blighted Scrying Chambers, design §21): the murk drinks
++        // Essence once, at the start of a fresh expedition, after the pool fills.
++        if (_freshSortie && BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Scrying)
++            && cycle.Grimoire != null && cycle.Grimoire.EssenceCurrent > 0)
++        {
++            int drunk = Mathf.Min(cycle.Grimoire.EssenceCurrent, BlightedForms.CloudedWaterEssence);
++            cycle.Grimoire.EssenceCurrent -= drunk;
++            GD.Print($"[Blight] Clouded Water drank {drunk} Essence.");
++        }
+         _spells.ApplyAttunement(_party.CurrentCoord);
+         WriteVisibleToWorld(); // attunement silhouettes chart immediately
+ 
+@@ -4550,7 +4569,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
+     {
+         if (bonuses.RevealPoiCount > 0)
+         {
+-            int marked = RevealNearestPois(bonuses.RevealPoiCount);
++            // Clouded Water (blighted Scrying Chambers, design §21): twice the sites.
++            int want = bonuses.RevealPoiCount
++                * (BlightedForms.Active(SaveManager.ActiveSave, BlightedForms.Scrying) ? BlightedForms.CloudedWaterSites : 1);
++            int marked = RevealNearestPois(want);
+             if (marked > 0)
+                 ShowInfo($"Scrying: {marked} site{(marked == 1 ? "" : "s")} charted.");
+         }
+diff --git a/Scripts/Systems/Strategic/FieldPostings.cs b/Scripts/Systems/Strategic/FieldPostings.cs
+index 5e11a58..6c4756f 100644
+--- a/Scripts/Systems/Strategic/FieldPostings.cs
++++ b/Scripts/Systems/Strategic/FieldPostings.cs
+@@ -264,7 +264,7 @@ public static class FieldPostings
+                 {
+                     continue;
+                 }
+-                int gold = def.GoldCost / EnvoyGoldDivisor;
++                int gold = CouncilMissions.GoldFor(save, def) / EnvoyGoldDivisor;
+                 list.Add(new Option
+                 {
+                     Kind = Envoy,
+@@ -557,7 +557,9 @@ public static class FieldPostings
+                 // moon faster, a Master is known at the door (2026-09-25).
+                 var envoyC = cycle.Companions?.Find(x => x != null && x.Id == envoyId);
+                 int courtier = Vocations.RankIf(envoyC, Vocations.Courtier);
+-                int gold = courtier >= 1 ? def.GoldCost / Vocations.CourtierGoldDivisor : opt.Gold;
++                int gold = courtier >= 1
++                    ? CouncilMissions.GoldFor(SaveManager.ActiveSave, def) / Vocations.CourtierGoldDivisor
++                    : opt.Gold;
+                 int moons = courtier >= 2 ? Math.Max(1, def.Lunations - 1) : def.Lunations;
+                 cycle.Gold = Math.Max(0, cycle.Gold - gold);
+                 if (courtier >= 3 && cycle.Council.Courts.TryGetValue(kid, out var courtNow))
+diff --git a/Scripts/Systems/Verification/CharterSaveAssert.cs b/Scripts/Systems/Verification/CharterSaveAssert.cs
+index a3cabc3..2d29452 100644
+--- a/Scripts/Systems/Verification/CharterSaveAssert.cs
++++ b/Scripts/Systems/Verification/CharterSaveAssert.cs
+@@ -265,6 +265,8 @@ public static class CharterSaveAssert
+         ok &= Check(sb, "OwnedCard refined budget is 7 points", card != null && card.PointsRemaining == 1 && card.CanUpgradeBot);
+         ok &= Check(sb, "OwnedCard unrefined budget is 6 points",
+             new OwnedCard { TopTier = 4, BotTier = 3, PointsSpent = 6 }.PointsRemaining == 0);
++        var stamped = RoundTrip(new OwnedCard { BlueprintId = "fireball", LastUpgradeLunation = 7 });
++        ok &= Check(sb, "OwnedCard.LastUpgradeLunation (Fevered Copying)", stamped != null && stamped.LastUpgradeLunation == 7);
+         var cycle = RoundTrip(new CycleState { RefinementsUsed = 1 });
+         ok &= Check(sb, "CycleState.RefinementsUsed", cycle != null && cycle.RefinementsUsed == 1);
+ 
+-- 
+2.43.0
+

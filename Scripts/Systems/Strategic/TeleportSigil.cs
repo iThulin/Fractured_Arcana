@@ -22,8 +22,8 @@ using System.Collections.Generic;
 //                                    and step home to the dock.
 //                   T3 doctrine      Gate Network: any settlement of an
 //                                    Allied kingdom is a waystone too.
-//                                    Sally Port: blocked (the Administrator
-//                                    summon is unbuilt).
+//                                    Sally Port: the wizard's summons to a
+//                                    field party costs no days (Administrator).
 //
 //                 Portal strikes (the siege spec §10 asked for):
 //                   WHO    a kingdom Hostile to the guild learns the Sigil's
