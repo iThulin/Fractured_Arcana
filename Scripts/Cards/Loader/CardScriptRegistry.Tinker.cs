@@ -87,12 +87,8 @@ public static partial class CardScriptRegistry
         // Redirector Field: { "type": "redirector_field" }
         RegisterEffect("redirector_field", _ => new RedirectorFieldEffect().WithTag("Construct"));
 
-        // Wire Trap: { "type": "place_trap", "damage": 5, "status": "rooted", "duration": 1 }
-        RegisterEffect("place_trap", n =>
-            new PlaceTrapEffect(
-                n.TryGetProperty("damage", out var td) ? td.GetInt32() : 5,
-                n.TryGetProperty("status", out var ts) ? ts.GetString() : null,
-                n.TryGetProperty("duration", out var tu) ? tu.GetInt32() : 1).WithTag("Construct"));
+        // place_trap retired 2026-10-02 (class_identity_tinker_v1 §2b): traps are
+        // Enchanter's verb, and no card used it.
 
         // Full Salvo: { "type": "construct_volley" }
         RegisterEffect("construct_volley", _ => new ConstructVolleyEffect().WithTag("Construct"));

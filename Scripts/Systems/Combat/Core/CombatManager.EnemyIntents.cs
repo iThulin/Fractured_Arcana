@@ -1740,7 +1740,7 @@ public partial class CombatManager
         {
             if (!IsImbuableTile(coord))
                 continue;
-            TileEntryReactions.ImbueTile(grid.GetTile(coord), element);
+            TileEntryReactions.ImbueTile(grid.GetTile(coord), element, 1f, enemy);
             count++;
         }
 
@@ -2827,7 +2827,7 @@ public partial class CombatManager
             var groundTile = LastStrikeVictim?.CurrentTile ?? grid.GetTile(tile);
             if (groundTile != null)
             {
-                TileEntryReactions.ImbueTile(groundTile, attacker.ImbueOnHit);
+                TileEntryReactions.ImbueTile(groundTile, attacker.ImbueOnHit, 1f, attacker);
                 combatUI?.AppendActionLog(
                     $"{attackerName}'s {noun} leaves {attacker.ImbueOnHit} on the ground.");
             }

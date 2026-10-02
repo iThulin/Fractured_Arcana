@@ -87,7 +87,7 @@ public static class GlyphCipherSelfTest
     }
 
     /// <summary>Aggregate of every golden checksum, in card-id order. One number to eyeball in a diff.</summary>
-    public const uint AggregateChecksum = 0xEF7EE845u;
+    public const uint AggregateChecksum = 0xEDA4B327u;   // re-pinned 2026-10-02: The Grand Design renamed The Architecture
 
     /// <summary>
     /// Expected decode for all 42 Enchanter spell halves as of spec v2.
@@ -134,7 +134,7 @@ public static class GlyphCipherSelfTest
         new("enchanter_sovereign_will", "bottom", "Puppeteer", "PUPPETEER", CipherTarget.Self, CipherVerb.Bind, 5, 2, 9, 2, 26, 0x50AFFE9Cu),
         new("enchanter_sovereign_will", "top", "Sovereign Pillars", "SOVEREIGNPILLARS", CipherTarget.Tile, CipherVerb.Inscribe, 6, 3, 16, 1, 37, 0xABBF4FD3u),
         new("enchanter_the_grand_design", "bottom", "Absolute Territory", "ABSOLUTETERRITORY", CipherTarget.Self, CipherVerb.Bind, 6, 3, 17, 1, 35, 0x2C91D76Du),
-        new("enchanter_the_grand_design", "top", "The Grand Design", "THEGRANDDESIGN", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 14, 1, 31, 0x87F141E2u),
+        new("enchanter_the_grand_design", "top", "The Architecture", "THEARCHITECTURE", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 15, 0, 30, 0xBDEC9B96u),
         new("enchanter_warding_step", "bottom", "Tripwire", "TRIPWIRE", CipherTarget.Tile, CipherVerb.Inscribe, 4, 2, 8, 0, 21, 0x163DE3C8u),
         new("enchanter_warding_step", "top", "Warding Step", "WARDINGSTEP", CipherTarget.Self, CipherVerb.Ward | CipherVerb.Move, 6, 2, 11, 0, 33, 0x52C88AA0u),
     };

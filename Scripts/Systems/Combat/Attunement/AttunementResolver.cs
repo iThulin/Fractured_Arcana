@@ -62,10 +62,7 @@ public static class AttunementResolver
 					TileData tile = ResolveTile(state, obj);
 					if (tile != null && tile.ElementType != tileElement)
 					{
-						tile.ElementType = tileElement;
-						tile.ElementStrength = 1.0f;
-						if (element == ElementTag.Fire) tile.IsHazardous = true;
-						tile.TileView?.SetElement(tileElement);
+						ElementReactions.Imbue(tile, tileElement, 1.0f, castingUnit);
 						log.Add($"[Attunement] Auto-imbued {tile.Axial} with {element}");
 					}
 				}

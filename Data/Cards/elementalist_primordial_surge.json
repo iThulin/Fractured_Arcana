@@ -8,7 +8,7 @@
 		"name": "Primordial Surge",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "Imbue all tiles in radius 4 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
+		"rules_text": "Imbue all tiles in radius 4 in element rings, starting from your highest element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
 		"tags": [
 			"fire",
 			"ice",
@@ -61,7 +61,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue all tiles in radius 4 randomly. Deal 5 damage per adjacent unique element."
+					"value": "Imbue all tiles in radius 4 in element rings. Deal 5 damage per adjacent unique element."
 				},
 				{
 					"half": "bottom",
@@ -89,7 +89,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent unique element."
+					"value": "Imbue all tiles in radius 5 in element rings. Deal 5 damage per adjacent unique element."
 				}
 			]
 		},
@@ -130,7 +130,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent element. Enemies adjacent to 3+ elements are Stunned."
+					"value": "Imbue all tiles in radius 5 in element rings. Deal 5 damage per adjacent element. Enemies adjacent to 3+ elements are Stunned."
 				}
 			]
 		},
@@ -191,7 +191,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Imbue all tiles in radius 6 randomly. Deal 7 damage per adjacent element. Enemies adjacent to 2+ elements are Stunned."
+					"value": "Imbue all tiles in radius 6 in element rings. Deal 7 damage per adjacent element. Enemies adjacent to 2+ elements are Stunned."
 				}
 			]
 		},
@@ -224,7 +224,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Remove imbues in radius 6, deal 4 per tile, draw 1 card per 2. Then immediately imbue all cleared tiles randomly, dealing 3 per adjacent element."
+					"value": "Remove imbues in radius 6, deal 4 per tile, draw 1 card per 2. Then immediately re-imbue all cleared tiles in element rings, dealing 3 per adjacent element."
 				}
 			]
 		}

@@ -13,7 +13,7 @@ REG = {
  'summon_illusion':('Summon','SummonIllusionEffect'),'grand_design_passive':('Glyph','GrandDesignPassiveLeafEffect'),
  'absolute_territory':('Control','AbsoluteTerritoryLeafEffect'),'apply_status':('Status','ApplyStatusEffect'),
  'move':('Movement','DashEffect'),'shield':('Defense','GiveShieldEffect'),'draw':('CardDraw','DrawCardsEffect'),
- 'damage':('Damage','DealDamageEffect'),'push_aimed':('Displace','PushAimedEffect'),'scry':(None,'ScryEffect'),
+ 'damage':('Damage','DealDamageEffect'),'negate_action':('Control','NegateActionEffect'),'push_aimed':('Displace','PushAimedEffect'),'scry':(None,'ScryEffect'),
 }
 COMPOSITE={'sequence','choose_one','conditional','for_each_target','retarget'}
 INSCRIBE_CLASSES={'PrepareGlyphEffect','EnchantPillarEffect','ReflectWardEffect','SpellAnchorEffect'}

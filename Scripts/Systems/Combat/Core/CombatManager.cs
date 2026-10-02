@@ -174,7 +174,8 @@ public partial class CombatManager : Node3D
         CombatPresenter.Ensure(this);   // spell_vfx_pipeline_v1: presentation seam
         ConduitLinkSystem.Clear();
         EtchingSystem.Clear();
-        TrapSystem.Clear();
+        ElementReactions.Reset();
+        ElementReactions.Log = line => State?.Log(line);
         Me = State.PlayerA;
         Opp = State.PlayerB;
 
@@ -3317,6 +3318,10 @@ public partial class CombatManager : Node3D
         PruneDeadUnits();
 
         State.Growth?.TickEndOfEnemyTurn();
+
+        // Element reactions (class_identity_elementalist_v1 §2): Wildfire spreads,
+        // timed reactions count down and expire. End of round, after growth.
+        ElementReactions.TickEndOfRound(State, grid);
 
         if (CheckCombatEnd())
             return;
@@ -6900,6 +6905,28 @@ public partial class CombatManager : Node3D
             if (v != null && IsInstanceValid(v))
                 v.ClearHpDamagePreview();
         _previewedVictims.Clear();
+
+        foreach (var t in _previewedReactionTiles)
+            if (t?.TileView != null && IsInstanceValid(t.TileView))
+                t.TileView.SetReactionPreview(ElementReaction.None);
+        _previewedReactionTiles.Clear();
+    }
+
+    /// <summary>Tiles currently showing a predicted element reaction (cast preview).</summary>
+    private readonly List<TileData> _previewedReactionTiles = new();
+
+    /// <summary>Marks every tile the last preview run predicted a reaction on
+    /// (class_identity_elementalist_v1 §2a, item 1: the player sees a reaction
+    /// before committing the cast).</summary>
+    private void ShowReactionPreview()
+    {
+        foreach (var (t, reaction) in ElementReactions.SnapshotSimReactions())
+        {
+            if (t?.TileView == null || !IsInstanceValid(t.TileView))
+                continue;
+            t.TileView.SetReactionPreview(reaction);
+            _previewedReactionTiles.Add(t);
+        }
     }
 
     /// <summary>R22 self-check (DebugPreviewSelfCheck): after a real cast settles,
@@ -6946,12 +6973,18 @@ public partial class CombatManager : Node3D
 
         var tileData = grid?.GetTile(tile.Axial);
         var victim = tileData?.Occupant;
-        if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive
-            || victim.TeamId == selectedUnit.TeamId)
-            return;   // the flashing preview starts only when hovering a living enemy
+        bool livingEnemy = victim != null && IsInstanceValid(victim) && victim.Stats.IsAlive
+            && victim.TeamId != selectedUnit.TeamId;
+
+        // Hovering an ally (or a dead unit) previews nothing, as before. Hovering
+        // EMPTY ground now runs the preview too, so an imbue aimed at open tiles
+        // still shows the reaction it would cause; only the HP flash needs an enemy.
+        if (victim != null && !livingEnemy)
+            return;
 
         var map = ComputePreviewDamage(_draggedHalf, tileData);
-        if (map == null || map.Count == 0)
+        ShowReactionPreview();
+        if (!livingEnemy || map == null || map.Count == 0)
             return;
 
         bool globalWarn = State.StackCount() > 0 || _priorityWindowOpen;
@@ -7083,6 +7116,7 @@ public partial class CombatManager : Node3D
                 return true;
             case DealDamageEffect:
             case ImbueTileEffect:
+            case ImbueAreaEffect:   // writes go through ElementReactions, which is sim-safe
             case ApplyStatusEffect:
                 effect.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
                 return true;

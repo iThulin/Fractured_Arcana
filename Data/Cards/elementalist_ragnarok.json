@@ -8,7 +8,7 @@
 		"name": "Ragnarok",
 		"mana": 5,
 		"speed": "Studied",
-		"rules_text": "Deal 12 damage to all enemies. Imbue all tiles on the board with a random element.",
+		"rules_text": "Deal 12 damage to all enemies. Turn every tile to its opposed element (empty tiles take your highest element).",
 		"tags": [
 			"fire",
 			"ice",
@@ -34,7 +34,7 @@
 					}
 				},
 				{
-					"type": "imbue_all_tiles_random"
+					"type": "imbue_all_tiles_opposed"
 				}
 			]
 		}
@@ -88,7 +88,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 14 damage to all enemies. Imbue all tiles randomly."
+					"value": "Deal 14 damage to all enemies. Turn every tile to its opposed element."
 				},
 				{
 					"half": "bottom",
@@ -142,7 +142,7 @@
 								}
 							},
 							{
-								"type": "imbue_all_tiles_random"
+								"type": "imbue_all_tiles_opposed"
 							}
 						]
 					}
@@ -150,7 +150,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 14 damage to all enemies. They are Burned for 2 turns. Imbue all tiles randomly."
+					"value": "Deal 14 damage to all enemies. They are Burned for 2 turns. Turn every tile to its opposed element."
 				}
 			]
 		},
@@ -232,7 +232,7 @@
 								}
 							},
 							{
-								"type": "imbue_all_tiles_random"
+								"type": "imbue_all_tiles_opposed"
 							}
 						]
 					}
@@ -240,7 +240,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 16 damage to all enemies. Burned for 2 turns. Stunned for 1 turn. Imbue all tiles randomly."
+					"value": "Deal 16 damage to all enemies. Burned for 2 turns. Stunned for 1 turn. Turn every tile to its opposed element."
 				}
 			]
 		},
@@ -334,7 +334,7 @@
 								}
 							},
 							{
-								"type": "imbue_all_tiles_random"
+								"type": "imbue_all_tiles_opposed"
 							},
 							{
 								"type": "draw",
@@ -346,7 +346,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 18 damage to all enemies. Burned for 3 turns. Stunned for 2 turns. Imbue all tiles randomly. Draw 2 cards."
+					"value": "Deal 18 damage to all enemies. Burned for 3 turns. Stunned for 2 turns. Turn every tile to its opposed element. Draw 2 cards."
 				}
 			]
 		},

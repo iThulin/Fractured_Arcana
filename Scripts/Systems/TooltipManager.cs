@@ -122,6 +122,16 @@ public partial class TooltipManager : Control
         if (tile.ElementType != TileElementType.None)
             AddColoredRow("Imbued:", tile.ElementType.ToString(), ElementColorForType(tile.ElementType));
 
+        // Element reaction (class_identity_elementalist_v1 §2a item 3): name, rounds, rule.
+        if (tile.Reaction != ElementReaction.None)
+        {
+            string rounds = tile.ReactionRounds < 0 ? "permanent"
+                          : tile.ReactionRounds == 1 ? "1 round left"
+                          : $"{tile.ReactionRounds} rounds left";
+            AddColoredRow($"{ElementReactions.DisplayName(tile.Reaction)}:", rounds, ElementColors.Reaction(tile.Reaction));
+            AddRow(ElementReactions.Describe(tile.Reaction), "");
+        }
+
         // Height
         if (tile.Height != 0)
             AddRow("Height:", tile.Height > 0 ? $"+{tile.Height}" : tile.Height.ToString());

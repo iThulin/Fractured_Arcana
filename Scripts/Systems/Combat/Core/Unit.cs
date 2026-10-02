@@ -888,8 +888,7 @@ public partial class Unit : Node3D
             CurrentTile.TileView?.SetElement(TileElementType.None);
         }
 
-        // Tinker: one-shot wire traps fire before link-line zaps.
-        TrapSystem.OnUnitEntered(this);
+        // Tinker: link-line zaps. (Wire traps retired 2026-10-02.)
         ConduitLinkSystem.OnUnitEntered(this);
 
         // Public entry bus: every entered tile, any kind (spec §2.1).
@@ -1043,7 +1042,7 @@ public partial class Unit : Node3D
         // U3e binding_geas. AFTER PlaceOnTile, so the handler measures the geas
         // radius against where the unit ARRIVED, not where it set off: "damage on
         // arrival" has to mean arrival or the aura reads as random. PlaceOnTile has
-        // already run TrapSystem/ConduitLink entry hooks, so this sits in the same
+        // already run the ConduitLink entry hook, so this sits in the same
         // company as every other consequence of stepping onto a tile.
         RefreshCoverArmor();      // settled behind a wall (or left one): re-read
         OnMoved?.Invoke(this);
@@ -1163,6 +1162,11 @@ public partial class Unit : Node3D
             }
             BodyguardedBy = null;      // guard died between recompute and this hit
         }
+
+        // Brittle ground (element reaction): +3 per hit, a Frozen unit shatters.
+        // Ordered after bodyguard (the guard's own tile decides for the guard) and
+        // before mitigation and the sim gate, so the preview prices it.
+        amount = ElementReactions.ApplyBrittle(this, amount);
 
         // DamageReductionPerHit (implemented 2026-08-13; the tag existed
         // since Q1 with no consumer). Flat per-hit reduction from equipment,
@@ -1815,19 +1819,11 @@ public partial class Unit : Node3D
     {
         get
         {
+            // One rule for "your highest element" (tie order Fire, Ice, Storm,
+            // Earth): ElementalAttunement.HighestElement, also read by ElementPick.
             if (Attunement is not ElementalAttunement att)
                 return ElementTag.Fire;
-            ElementTag best = ElementTag.Fire;
-            int bestCount = -1;
-            foreach (var kvp in att.Charges)
-            {
-                if (kvp.Value > bestCount)
-                {
-                    bestCount = kvp.Value;
-                    best = kvp.Key;
-                }
-            }
-            return best;
+            return att.HighestElement();
         }
     }
 

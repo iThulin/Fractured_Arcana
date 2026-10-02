@@ -144,6 +144,19 @@ public static class TileEntryReactions
                 break;
         }
 
+        // ── Element reactions (class_identity_elementalist_v1 §2). Walking cannot
+        //    enter Magma at all (HexGridManager.StepAllowed), so these are Forced. ──
+        if (forced && tile.Reaction == ElementReaction.Magma)
+        {
+            unit.ApplyDamage(ElementReactions.MagmaForcedEntryDamage);
+            if (ctx != null)
+                ctx.HaltForced = true;
+        }
+        else if (forced && tile.Reaction == ElementReaction.Fulgurite && ctx != null)
+        {
+            ctx.HaltForced = true;   // fused rubble stops the shove
+        }
+
         if (!unit.Stats.IsAlive)
             return;
 
@@ -163,19 +176,14 @@ public static class TileEntryReactions
     }
 
     /// <summary>Write an element onto a tile at RUNTIME (combat), updating data and
-    /// visual together. Used by the enemy imbue-on-hit rider and any effect that
-    /// needs a one-call imbue. Map GENERATION writes ElementType directly and lets
-    /// the visual pass follow, so it does not use this. No-op for None.</summary>
-    public static void ImbueTile(TileData tile, TileElementType element, float strength = 1f)
-    {
-        if (tile == null || element == TileElementType.None)
-            return;
-        tile.ElementType = element;
-        tile.ElementStrength = strength;
-        if (element == TileElementType.Fire)
-            tile.IsHazardous = true;   // matches PaintElementPatch / imbue_tile
-        tile.TileView?.SetElement(element);
-    }
+    /// visual together. Used by the enemy imbue-on-hit rider, map events and any
+    /// effect that needs a one-call imbue. Routes through
+    /// <see cref="ElementReactions.Imbue"/>, so a different reactive element already
+    /// on the tile reacts instead of being overwritten. Map GENERATION writes
+    /// ElementType directly and lets the visual pass follow, so it does not use this.
+    /// No-op for None.</summary>
+    public static void ImbueTile(TileData tile, TileElementType element, float strength = 1f, Unit source = null)
+        => ElementReactions.Imbue(tile, element, strength, source);
 
     /// <summary>Frost slide continuation (spec §3 "Slides"). After a tile's
     /// reactions resolve, a unit standing on Frost is carried one further tile in

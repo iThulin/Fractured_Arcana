@@ -679,7 +679,6 @@ public partial class CardUpgradeScreen : Control
         // _gateLabel, preview zones, bypass button) are preserved
         ClearDynamicContent();
 
-        bool isGeneric = bp?.School == CardSchool.Adept;
         bool baseUpgraded = _selectedOwned.IsBaseUpgraded;
         int pointsSpent = _selectedOwned.PointsSpent;
         int splinters = save?.ArcaneSplinters ?? 0;
@@ -726,14 +725,9 @@ public partial class CardUpgradeScreen : Control
             return;
         }
 
-        // Generic cards stop at 1/1
-        if (isGeneric)
-        {
-            AddDynamic(MakeDescLabel("Generic cards cannot be further refined."));
-            ShowPreview(_selectedOwned.BlueprintId,
-                _selectedOwned.TopTier, _selectedOwned.BotTier, -1, -1);
-            return;
-        }
+        // Fundamentals (Adept-school cards) climb the same half tracks as every
+        // school. Their ladders (2026-07-10, "drilled fundamentals") end in a
+        // named perfected form; the old 1/1 cap made those forms unreachable.
 
         // ── Independent half upgrade tracks ──────────────────────────────
         int pointsRemaining = _selectedOwned.PointsRemaining;

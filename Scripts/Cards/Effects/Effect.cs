@@ -1358,20 +1358,12 @@ public sealed class ImbueTileEffect : EffectBase
 			if (tile == null)
 				continue;
 
-			// R22 sim gate: the preview must not really imbue the tile, but the
-			// imbue's immediate tick damage below still runs (ApplyDamage is
-			// itself gated, so the tick lands in the sim ledger).
-			if (!CombatSim.Active)
-			{
-				tile.ElementType = elementType;
-				tile.ElementStrength = 1.0f;
-
-				if (elementType == TileElementType.Fire)
-					tile.IsHazardous = true;
-
-				// Use the existing visual system to update the tile
-				tile.TileView?.SetElement(elementType);
-			}
+			// R22 sim gate lives inside ElementReactions.Imbue: in a preview it records
+			// the predicted reaction and mutates nothing, while the imbue's immediate
+			// tick damage below still runs (ApplyDamage is itself gated, so the tick
+			// lands in the sim ledger). A different reactive element already on the
+			// tile reacts instead of being overwritten (class_identity_elementalist_v1 §2).
+			ElementReactions.Imbue(tile, elementType, 1.0f, FindCasterUnit(s, caster));
 
 			s.Log($"[ImbueTile] {tile.Axial} imbued with {Element} ({elementType}).");
 
@@ -1392,45 +1384,47 @@ public sealed class ImbueTileEffect : EffectBase
 	}
 }
 
-// ── Imbue All Tiles Random Effect ─────────────────────────────────────────────────────────
+// ── Imbue All Tiles Opposed Effect ─────────────────────────────────────────────────────────
 
 /// <summary>
-/// Imbues every tile on the board with a random element. No radius restriction,
-/// since this is a board-wide effect. Used by Ragnarok and similar capstone cards.
-/// JSON key: "type": "imbue_all_tiles_random". No parameters.
+/// Turns every tile on the board to the element opposed to the one it holds
+/// (Fire and Frost swap, Storm and Earth swap). Tiles with no element, or an
+/// element with no opposite, take the caster's highest-attunement element.
+/// Deterministic replacement for the old random board imbue
+/// (class_identity_elementalist_v1 §4, ruled 2026-10-02). Used by Ragnarok.
+/// JSON key: "type": "imbue_all_tiles_opposed" ("imbue_all_tiles_random" is
+/// kept as an alias so old data still loads). No parameters.
 /// </summary>
-public sealed class ImbueAllTilesRandomEffect : EffectBase
+public sealed class ImbueAllTilesOpposedEffect : EffectBase
 {
-	private static readonly TileElementType[] Elements =
-	{
-		TileElementType.Fire, TileElementType.Frost,
-		TileElementType.Lightning, TileElementType.Earth
-	};
-
-	private static readonly Random _rng = new();
-
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		if (s?.Grid == null)
 			return;
 
-		int imbued = 0;
+		var fallback = ElementPick.Highest(FindCasterUnit(s, caster));
+
+		int flipped = 0, filled = 0;
 		foreach (var kvp in s.Grid.Tiles)
 		{
 			var tile = kvp.Value;
 			if (tile == null)
 				continue;
 
-			var element = Elements[_rng.Next(Elements.Length)];
-			tile.ElementType = element;
-			tile.ElementStrength = 1.0f;
-			if (element == TileElementType.Fire)
-				tile.IsHazardous = true;
-			tile.TileView?.SetElement(element);
-			imbued++;
+			var opposed = ElementPick.Opposed(tile.ElementType);
+			if (opposed != TileElementType.None)
+			{
+				ElementPick.Imbue(tile, opposed);
+				flipped++;
+			}
+			else
+			{
+				ElementPick.Imbue(tile, fallback);
+				filled++;
+			}
 		}
 
-		s.Log($"[ImbueAllTilesRandom] Imbued {imbued} tiles with random elements.");
+		s.Log($"[ImbueAllTilesOpposed] {flipped} tiles turned to their opposed element, {filled} took {fallback}.");
 	}
 }
 
@@ -1641,9 +1635,7 @@ public sealed class SummonEffect : EffectBase
 		// the board.
 		if (CombatSim.Active) return;
 
-		tile.ElementType = element;
-		tile.ElementStrength = 1.0f;
-		tile.TileView?.SetElement(element);
+		ElementReactions.Imbue(tile, element);
 
 		s.Log($"[Summon] {tile.Axial} imbued with {element} by {kind}.");
 	}
@@ -1840,9 +1832,8 @@ public sealed class RaiseTerrainEffect : EffectBase
 			tile.Height += HeightIncrease;
 			tile.TileView?.SetHeight(tile.Height);
 
-			// Imbue with earth and create rubble
-			tile.ElementType = TileElementType.Earth;
-			tile.ElementStrength = 1.0f;
+			// Imbue with earth and create rubble (Earth reacts with what is already there)
+			ElementReactions.Imbue(tile, TileElementType.Earth, 1.0f, FindCasterUnit(s, caster));
 			tile.ApplyTerrainModifier("rubble");
 			s.Grid.ApplyVisualToTile(tile);
 

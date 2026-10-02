@@ -37,6 +37,19 @@ public static class ElementColors
         _          => new Color("#888888"),
     };
 
+    /// <summary>Tint for an element reaction's tile marker, preview marker and tooltip
+    /// row (class_identity_elementalist_v1 §2). None returns neutral grey.</summary>
+    public static Color Reaction(ElementReaction reaction) => reaction switch
+    {
+        ElementReaction.Steam     => new Color("#D8DEE6"),
+        ElementReaction.Fulgurite => new Color("#B9C26A"),
+        ElementReaction.Magma     => new Color("#F06A2A"),
+        ElementReaction.Wildfire  => new Color("#FFB040"),
+        ElementReaction.Brittle   => new Color("#8FD0F0"),
+        ElementReaction.Glacier   => new Color("#5FA8E8"),
+        _                         => new Color("#888888"),
+    };
+
     /// <summary>Returns the single-character label for an element tag. Unknown tags return "?".</summary>
     public static string GetLabel(string tag) => (tag ?? "").ToLower() switch
     {

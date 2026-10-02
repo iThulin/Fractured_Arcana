@@ -8,7 +8,7 @@
 		"name": "Avatar of Elements",
 		"mana": 4,
 		"speed": "Reflex",
-		"rules_text": "Transform for 3 turns: gain 7 armor, spells deal +3 damage and imbue target with random element. Leave elemental trails when moving.",
+		"rules_text": "Transform for 3 turns: gain 7 armor, spells deal +3 damage and imbue the target with the element you last cast. Leave elemental trails when moving.",
 		"tags": [
 			"fire",
 			"ice",
@@ -69,7 +69,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Transform for 4 turns: gain 9 armor, spells deal +3 damage and imbue with random element."
+					"value": "Transform for 4 turns: gain 9 armor, spells deal +3 damage and imbue with the element you last cast."
 				},
 				{
 					"half": "bottom",
@@ -138,7 +138,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Transform 4 turns: 9 armor, +5 damage on all spells. Each cast imbues random element. Attunement on imbue."
+					"value": "Transform 4 turns: 9 armor, +5 damage on all spells. Each cast imbues the element you last cast. Attunement on imbue."
 				}
 			]
 		},

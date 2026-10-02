@@ -52,6 +52,10 @@ public partial class HexGridManager
     /// <summary>Movement legality of one step between adjacent coords, per the cliff rule.</summary>
     private bool StepAllowed(Vector2I from, Vector2I to)
     {
+        // Magma (element reaction) cannot be walked into; forced movement can
+        // still shove a unit onto it (ElementReactions.ForcedMayEnter).
+        if (Tiles.TryGetValue(to, out var dest) && dest.Reaction == ElementReaction.Magma)
+            return false;
         if (!BlockMovementAtCliffs)
             return true;
         if (!Tiles.TryGetValue(from, out var a) || !Tiles.TryGetValue(to, out var b))
@@ -440,7 +444,8 @@ public partial class HexGridManager
             var coord = new Vector2I(rx, rz);
             if (!Tiles.TryGetValue(coord, out var tile))
                 continue;
-            if (tile.BlocksLineOfSight)
+            // Steam (element reaction) blocks sight through its tile.
+            if (tile.BlocksLineOfSight || tile.Reaction == ElementReaction.Steam)
                 return tile;
         }
 

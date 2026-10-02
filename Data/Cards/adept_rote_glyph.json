@@ -1,27 +1,34 @@
 {
 	"id": "adept_rote_glyph",
 	"status": "ready",
-	"name": "Rote Glyph",
+	"name": "Rote Bolt",
 	"school": "Adept",
 	"rarity": "Uncommon",
 	"top": {
-		"name": "Rote Glyph",
+		"name": "Rote Bolt",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Place a glyph on target empty tile within 3. The first enemy to enter triggers it: deal 3 damage and it is Slowed for 1 turn.",
+		"rules_text": "Deal 3 damage. The target is Slowed for 1 turn.",
 		"tags": [],
-		"requires": [
-			"empty_tile"
-		],
 		"targeting": {
-			"type": "empty_tile",
-			"range": 3
+			"type": "unit",
+			"range": 4,
+			"los": true,
+			"enemies_only": true
 		},
 		"effect": {
-			"type": "place_glyph",
-			"damage": 3,
-			"status": "slowed",
-			"duration": 1
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 3
+				},
+				{
+					"type": "apply_status",
+					"status": "slowed",
+					"duration": 1
+				}
+			]
 		}
 	},
 	"bottom": {
@@ -52,16 +59,24 @@
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "place_glyph",
-						"damage": 4,
-						"status": "slowed",
-						"duration": 1
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 3: the first enemy to enter takes 4 damage and is Slowed for 1 turn."
+					"value": "Deal 4 damage. The target is Slowed for 1 turn."
 				},
 				{
 					"half": "bottom",
@@ -78,7 +93,7 @@
 					"value": "Mark target enemy. The next spell that hits them deals 4 bonus damage."
 				}
 			],
-			"top_name": "Rote Glyph+",
+			"top_name": "Rote Bolt+",
 			"bottom_name": "Chalk Mark+"
 		},
 		{
@@ -90,27 +105,37 @@
 					"half": "top",
 					"field": "targeting",
 					"value": {
-						"type": "empty_tile",
-						"range": 4
+						"type": "unit",
+						"range": 5,
+						"los": true,
+						"enemies_only": true
 					}
 				},
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "place_glyph",
-						"damage": 5,
-						"status": "slowed",
-						"duration": 1
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 4: 5 damage and Slowed for 1 turn."
+					"value": "Deal 5 damage (range 5). The target is Slowed for 1 turn."
 				}
 			],
-			"top_name": "Practiced Glyph"
+			"top_name": "Practiced Bolt"
 		},
 		{
 			"tier": 2,
@@ -134,19 +159,27 @@
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "place_glyph",
-						"damage": 6,
-						"status": "rooted",
-						"duration": 1
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "apply_status",
+								"status": "weakened",
+								"duration": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 4: 6 damage and Rooted for 1 turn."
+					"value": "Deal 6 damage (range 5). The target is Weakened for 1 turn."
 				}
 			],
-			"top_name": "Binding Rote"
+			"top_name": "Pinning Rote"
 		},
 		{
 			"tier": 4,
@@ -157,16 +190,24 @@
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "place_glyph",
-						"damage": 8,
-						"status": "stunned",
-						"duration": 1
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "apply_status",
+								"status": "stunned",
+								"duration": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Place a Glyph within 4: 8 damage and Stunned for 1 turn."
+					"value": "Deal 8 damage (range 5). The target is Stunned for 1 turn."
 				}
 			],
 			"top_name": "Rote Perfected"

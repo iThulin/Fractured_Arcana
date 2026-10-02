@@ -16,17 +16,71 @@ using System.Linq;
 //                 PersistentEffect.cs. A pure move, no behavior change.
 // ============================================================
 
-/// <summary>Elementalist capstone. Randomly imbues every tile within radius around the caster, then damages each enemy by <c>uniqueElementsAdjacent × Damage</c>.</summary>
-public sealed class PrimordialSurgeEffect : EffectBase
+/// <summary>
+/// Deterministic element choices (class_identity_elementalist_v1 §4, ruled
+/// 2026-10-02: no random element picks). Every effect that used to roll an
+/// element reads one of these instead, so the player can plan the board.
+/// </summary>
+internal static class ElementPick
 {
-    public int Radius;
-    public int Damage;
-    private static readonly TileElementType[] Elements =
+    /// <summary>The four Elementalist tile elements in tie order (Fire, Ice, Storm, Earth).</summary>
+    public static readonly TileElementType[] Cycle =
     {
         TileElementType.Fire, TileElementType.Frost,
         TileElementType.Lightning, TileElementType.Earth
     };
-    private static readonly Random _rng = new();
+
+    public static TileElementType ToTile(ElementTag e) => e switch
+    {
+        ElementTag.Fire => TileElementType.Fire,
+        ElementTag.Ice => TileElementType.Frost,
+        ElementTag.Storm => TileElementType.Lightning,
+        ElementTag.Earth => TileElementType.Earth,
+        _ => TileElementType.Fire
+    };
+
+    /// <summary>The caster's highest-attunement element; Fire for a caster with no Elemental attunement.</summary>
+    public static TileElementType Highest(Unit caster)
+        => caster?.Attunement is ElementalAttunement a ? ToTile(a.HighestElement()) : TileElementType.Fire;
+
+    /// <summary>The element the caster cast most recently, else their highest.</summary>
+    public static TileElementType LastCast(Unit caster)
+        => caster?.Attunement is ElementalAttunement a && a.LastCastElement.HasValue
+            ? ToTile(a.LastCastElement.Value)
+            : Highest(caster);
+
+    /// <summary>Fire and Frost oppose; Storm and Earth oppose. Anything else has no opposite (None).</summary>
+    public static TileElementType Opposed(TileElementType t) => t switch
+    {
+        TileElementType.Fire => TileElementType.Frost,
+        TileElementType.Frost => TileElementType.Fire,
+        TileElementType.Lightning => TileElementType.Earth,
+        TileElementType.Earth => TileElementType.Lightning,
+        _ => TileElementType.None
+    };
+
+    /// <summary>Concentric rings: ring 0 takes <paramref name="start"/>, each ring
+    /// outward takes the next element in <see cref="Cycle"/>. Keeps the "many
+    /// elements side by side" payoff of the old random scatter, deterministically.</summary>
+    public static TileElementType Ring(TileElementType start, int ring)
+    {
+        int i = Array.IndexOf(Cycle, start);
+        if (i < 0)
+            i = 0;
+        return Cycle[(i + Math.Max(0, ring)) % Cycle.Length];
+    }
+
+    /// <summary>Imbues an element through the reaction-aware write path
+    /// (<see cref="ElementReactions.Imbue"/>).</summary>
+    public static void Imbue(TileData tile, TileElementType element, Unit source = null)
+        => ElementReactions.Imbue(tile, element, 1.0f, source);
+}
+
+/// <summary>Elementalist capstone. Imbues every tile within radius in concentric element rings (starting from the caster's highest element), then damages each enemy by <c>uniqueElementsAdjacent × Damage</c>.</summary>
+public sealed class PrimordialSurgeEffect : EffectBase
+{
+    public int Radius;
+    public int Damage;
 
     public PrimordialSurgeEffect(int radius = 4, int damage = 4) { Radius = radius; Damage = damage; }
 
@@ -40,6 +94,7 @@ public sealed class PrimordialSurgeEffect : EffectBase
 
         var center = casterUnit.CurrentTile.Axial;
         var reach = s.Grid.BurstReach(center, Radius);   // walls stop the surge
+        var start = ElementPick.Highest(casterUnit);
 
         // Imbue tiles the surge reaches
         int imbued = 0;
@@ -49,16 +104,11 @@ public sealed class PrimordialSurgeEffect : EffectBase
             if (tile == null)
                 continue;
 
-            var element = Elements[_rng.Next(Elements.Length)];
-            tile.ElementType = element;
-            tile.ElementStrength = 1.0f;
-            if (element == TileElementType.Fire)
-                tile.IsHazardous = true;
-            tile.TileView?.SetElement(element);
+            ElementPick.Imbue(tile, ElementPick.Ring(start, s.Grid.Distance(center, coord)), casterUnit);
             imbued++;
         }
 
-        s.Log($"[PrimordialSurge] Imbued {imbued} tiles within {Radius} range.");
+        s.Log($"[PrimordialSurge] Imbued {imbued} tiles within {Radius} range in rings from {start}.");
 
         // Damage enemies based on unique adjacent elements
         foreach (var unit in s.UnitsInPlay)
@@ -237,18 +287,11 @@ public sealed class RagnarokEffect : EffectBase
     }
 }
 
-/// <summary>Elementalist capstone. Imbues every tile in radius with a random element, then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7: the JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
+/// <summary>Elementalist capstone. Imbues every tile in radius in concentric element rings (from the caster's highest element), then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7: the JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
 public sealed class ElementalConvergenceEffect : EffectBase
 {
     public int Radius;
     public int AttunementSetTo;
-
-    private static readonly TileElementType[] Elements =
-    {
-        TileElementType.Fire, TileElementType.Frost,
-        TileElementType.Lightning, TileElementType.Earth
-    };
-    private Random _rng = new();
 
     public ElementalConvergenceEffect(int radius = 3, int attunementSetTo = 3)
     {
@@ -266,26 +309,23 @@ public sealed class ElementalConvergenceEffect : EffectBase
 
         var center = casterUnit.CurrentTile.Axial;
 
-        // Imbue all tiles within radius with random elements
+        // Imbue all tiles within radius in element rings (deterministic)
+        var start = ElementPick.Highest(casterUnit);
         int imbued = 0;
         foreach (var kvp in s.Grid.Tiles)
         {
             var tile = kvp.Value;
             if (tile == null)
                 continue;
-            if (s.Grid.Distance(center, kvp.Key) > Radius)
+            int ring = s.Grid.Distance(center, kvp.Key);
+            if (ring > Radius)
                 continue;
 
-            var element = Elements[_rng.Next(Elements.Length)];
-            tile.ElementType = element;
-            tile.ElementStrength = 1.0f;
-            if (element == TileElementType.Fire)
-                tile.IsHazardous = true;
-            tile.TileView?.SetElement(element);
+            ElementPick.Imbue(tile, ElementPick.Ring(start, ring), casterUnit);
             imbued++;
         }
 
-        s.Log($"[Convergence] Imbued {imbued} tiles within {Radius} range with random elements.");
+        s.Log($"[Convergence] Imbued {imbued} tiles within {Radius} range in rings from {start}.");
 
         // Set all attunement counters
         if (casterUnit.Attunement is ElementalAttunement att)
@@ -518,8 +558,7 @@ public sealed class TerraformEffect : EffectBase
                 continue;   // the obstacle itself is not ground to reshape
 
             tile.TerrainType = newTerrain;
-            tile.ElementType = newElement;
-            tile.ElementStrength = 1.0f;
+            ElementReactions.Imbue(tile, newElement, 1.0f, casterUnit);
 
             if (newTerrain == TileTerrainType.Lava)
             {
@@ -635,20 +674,14 @@ public sealed class AvatarTransformEffect : EffectBase
         s.OnTurnEndCleanups ??= new List<Action>();
 
         Action<TileData> onLeave = null;
-        var rng = new Random();
-        TileElementType[] elements =
-        {
-            TileElementType.Fire, TileElementType.Frost,
-            TileElementType.Lightning, TileElementType.Earth
-        };
 
+        // Trail element = the element last cast, read live at each step
+        // (class_identity_elementalist_v1 §4: deterministic, no random pick).
         onLeave = (leftTile) =>
         {
             if (leftTile == null || s?.Grid == null)
                 return;
-            leftTile.ElementType = elements[rng.Next(elements.Length)];
-            leftTile.ElementStrength = 1.0f;
-            leftTile.TileView?.SetElement(leftTile.ElementType);
+            ElementPick.Imbue(leftTile, ElementPick.LastCast(casterUnit), casterUnit);
             s.Log($"[Avatar] Trail imbued {leftTile.Axial} with {leftTile.ElementType}.");
         };
 
@@ -778,11 +811,7 @@ public sealed class WorldshaperEffect : EffectBase
             tileIndex++;
 
             TileElementType tileElement = MapToTileElement(element);
-            tile.ElementType = tileElement;
-            tile.ElementStrength = 1.0f;
-            if (tileElement == TileElementType.Fire)
-                tile.IsHazardous = true;
-            tile.TileView?.SetElement(tileElement);
+            ElementReactions.Imbue(tile, tileElement, 1.0f, casterUnit);
             imbued++;
         }
 
@@ -904,8 +933,7 @@ public class MaelstromEffect : PersistentEffect
             var tile = kvp.Value;
             if (tile == null)
                 continue;
-            tile.ElementType = TileElementType.Lightning;
-            tile.ElementStrength = 1.0f;
+            ElementReactions.Imbue(tile, TileElementType.Lightning);
             s.Grid.ApplyVisualToTile(tile);
         }
 
@@ -969,13 +997,6 @@ public class AvatarAuraEffect : PersistentEffect
     /// <summary>Bonus damage added to every spell cast while this aura is active.</summary>
     public int BonusDamage;
 
-    private static readonly TileElementType[] Elements =
-    {
-        TileElementType.Fire, TileElementType.Frost,
-        TileElementType.Lightning, TileElementType.Earth
-    };
-    private Random _rng = new();
-
     public AvatarAuraEffect(int turns, int bonusDamage, Entity owner)
     {
         TurnsRemaining = turns;
@@ -989,14 +1010,14 @@ public class AvatarAuraEffect : PersistentEffect
         s.Log($"[Avatar] Aura ticking. {TurnsRemaining} turns remaining.");
     }
 
-    /// <summary>Hook invoked by the combat runner after every successful spell resolution by the owner. Random-imbues each target tile and logs the bonus damage application.</summary>
+    /// <summary>Hook invoked by the combat runner after every successful spell resolution by the owner. Imbues each target tile with the element the owner last cast, and logs the bonus damage application.</summary>
     public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
     {
         if (s?.Grid == null || targets == null)
             return;
 
-        // Random element imbue on target tile
-        var element = Elements[_rng.Next(Elements.Length)];
+        // Imbue the element last cast (deterministic; class_identity_elementalist_v1 §4)
+        var element = ElementPick.LastCast(casterUnit);
 
         foreach (var obj in targets.Items)
         {
@@ -1010,11 +1031,7 @@ public class AvatarAuraEffect : PersistentEffect
 
             if (tile != null)
             {
-                tile.ElementType = element;
-                tile.ElementStrength = 1.0f;
-                if (element == TileElementType.Fire)
-                    tile.IsHazardous = true;
-                tile.TileView?.SetElement(element);
+                ElementPick.Imbue(tile, element, casterUnit);
                 s.Log($"[Avatar] Imbued {tile.Axial} with {element}.");
             }
         }

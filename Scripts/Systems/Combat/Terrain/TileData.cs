@@ -130,6 +130,16 @@ public class TileData
     /// <summary>Magnitude of the current imbuement (0..1 typical). Used by element-aware effects to scale.</summary>
     public float ElementStrength = 0f;
 
+    /// <summary>Element reaction standing on this tile (Steam, Magma, ...). Written only by
+    /// <see cref="ElementReactions"/>; see docs/class_identity_elementalist_v1.md §2.</summary>
+    public ElementReaction Reaction = ElementReaction.None;
+
+    /// <summary>Rounds the reaction has left. -1 = permanent (Fulgurite).</summary>
+    public int ReactionRounds = 0;
+
+    /// <summary>Team of the unit whose imbue caused the reaction, or -1. Wildfire spreads toward this team's enemies.</summary>
+    public int ReactionTeam = -1;
+
     // ── Occupancy ───────────────────────────────────────────────────────────
 
     /// <summary>Free-text key identifying any obstacle on the tile ("boulder", "wall", etc.). Empty when no obstacle.</summary>

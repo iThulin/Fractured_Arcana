@@ -1,0 +1,1328 @@
+diff --git a/Data/Cards/adept_rote_glyph.json b/Data/Cards/adept_rote_glyph.json
+index 3997fff..ee0dd49 100644
+--- a/Data/Cards/adept_rote_glyph.json
++++ b/Data/Cards/adept_rote_glyph.json
+@@ -1,27 +1,34 @@
+ {
+ 	"id": "adept_rote_glyph",
+ 	"status": "ready",
+-	"name": "Rote Glyph",
++	"name": "Rote Bolt",
+ 	"school": "Adept",
+ 	"rarity": "Uncommon",
+ 	"top": {
+-		"name": "Rote Glyph",
++		"name": "Rote Bolt",
+ 		"mana": 1,
+ 		"speed": "Reflex",
+-		"rules_text": "Place a glyph on target empty tile within 3. The first enemy to enter triggers it: deal 3 damage and it is Slowed for 1 turn.",
++		"rules_text": "Deal 3 damage. The target is Slowed for 1 turn.",
+ 		"tags": [],
+-		"requires": [
+-			"empty_tile"
+-		],
+ 		"targeting": {
+-			"type": "empty_tile",
+-			"range": 3
++			"type": "unit",
++			"range": 4,
++			"los": true,
++			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "place_glyph",
+-			"damage": 3,
+-			"status": "slowed",
+-			"duration": 1
++			"type": "sequence",
++			"steps": [
++				{
++					"type": "damage",
++					"amount": 3
++				},
++				{
++					"type": "apply_status",
++					"status": "slowed",
++					"duration": 1
++				}
++			]
+ 		}
+ 	},
+ 	"bottom": {
+@@ -52,16 +59,24 @@
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 4,
+-						"status": "slowed",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 4
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 3: the first enemy to enter takes 4 damage and is Slowed for 1 turn."
++					"value": "Deal 4 damage. The target is Slowed for 1 turn."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -78,7 +93,7 @@
+ 					"value": "Mark target enemy. The next spell that hits them deals 4 bonus damage."
+ 				}
+ 			],
+-			"top_name": "Rote Glyph+",
++			"top_name": "Rote Bolt+",
+ 			"bottom_name": "Chalk Mark+"
+ 		},
+ 		{
+@@ -90,27 +105,37 @@
+ 					"half": "top",
+ 					"field": "targeting",
+ 					"value": {
+-						"type": "empty_tile",
+-						"range": 4
++						"type": "unit",
++						"range": 5,
++						"los": true,
++						"enemies_only": true
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 5,
+-						"status": "slowed",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 5
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 4: 5 damage and Slowed for 1 turn."
++					"value": "Deal 5 damage (range 5). The target is Slowed for 1 turn."
+ 				}
+ 			],
+-			"top_name": "Practiced Glyph"
++			"top_name": "Practiced Bolt"
+ 		},
+ 		{
+ 			"tier": 2,
+@@ -134,19 +159,27 @@
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 6,
+-						"status": "rooted",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 6
++							},
++							{
++								"type": "apply_status",
++								"status": "weakened",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 4: 6 damage and Rooted for 1 turn."
++					"value": "Deal 6 damage (range 5). The target is Weakened for 1 turn."
+ 				}
+ 			],
+-			"top_name": "Binding Rote"
++			"top_name": "Pinning Rote"
+ 		},
+ 		{
+ 			"tier": 4,
+@@ -157,16 +190,24 @@
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 8,
+-						"status": "stunned",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 8
++							},
++							{
++								"type": "apply_status",
++								"status": "stunned",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 4: 8 damage and Stunned for 1 turn."
++					"value": "Deal 8 damage (range 5). The target is Stunned for 1 turn."
+ 				}
+ 			],
+ 			"top_name": "Rote Perfected"
+diff --git a/Data/Cards/arcanist_warding_glyph.json b/Data/Cards/arcanist_warding_glyph.json
+index 43f4693..1301a10 100644
+--- a/Data/Cards/arcanist_warding_glyph.json
++++ b/Data/Cards/arcanist_warding_glyph.json
+@@ -1,11 +1,11 @@
+ {
+   "id": "arcanist_warding_glyph",
+   "status": "ready",
+-  "name": "Warding Glyph",
++  "name": "Warding Theorem",
+   "school": "Arcanist",
+   "rarity": "Common",
+   "top": {
+-    "name": "Warding Glyph",
++    "name": "Warding Theorem",
+     "mana": 1,
+     "speed": "Reflex",
+     "rules_text": "Gain 4 shield. Gain 1 Charge.",
+@@ -68,9 +68,9 @@
+     {
+       "tier": 1,
+       "half": "both",
+-      "top_name": "Warding Glyph+",
++      "top_name": "Warding Theorem+",
+       "bottom_name": "Arcane Bolt+",
+-      "description": "Glyph wards harder. Bolt hits harder.",
++      "description": "The theorem wards harder. Bolt hits harder.",
+       "changes": [
+         {
+           "half": "top",
+@@ -97,8 +97,8 @@
+     {
+       "tier": 2,
+       "half": "top",
+-      "top_name": "Mirror Glyph",
+-      "description": "Mirror Glyph: convert shield to armor at end of turn instead of losing it.",
++      "top_name": "Mirror Theorem",
++      "description": "Mirror Theorem: convert shield to armor at end of turn instead of losing it.",
+       "changes": [
+         {
+           "half": "top",
+@@ -133,8 +133,8 @@
+     {
+       "tier": 3,
+       "half": "top",
+-      "top_name": "Aegis Glyph",
+-      "description": "Aegis Glyph: also wards the nearest ally.",
++      "top_name": "Aegis Theorem",
++      "description": "Aegis Theorem: also wards the nearest ally.",
+       "changes": [
+         {
+           "half": "top",
+diff --git a/Data/Cards/elementalist_avatar_of_elements.json b/Data/Cards/elementalist_avatar_of_elements.json
+index d8eaf6c..954ce06 100644
+--- a/Data/Cards/elementalist_avatar_of_elements.json
++++ b/Data/Cards/elementalist_avatar_of_elements.json
+@@ -8,7 +8,7 @@
+ 		"name": "Avatar of Elements",
+ 		"mana": 4,
+ 		"speed": "Reflex",
+-		"rules_text": "Transform for 3 turns: gain 7 armor, spells deal +3 damage and imbue target with random element. Leave elemental trails when moving.",
++		"rules_text": "Transform for 3 turns: gain 7 armor, spells deal +3 damage and imbue the target with the element you last cast. Leave elemental trails when moving.",
+ 		"tags": [
+ 			"fire",
+ 			"ice",
+@@ -69,7 +69,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Transform for 4 turns: gain 9 armor, spells deal +3 damage and imbue with random element."
++					"value": "Transform for 4 turns: gain 9 armor, spells deal +3 damage and imbue with the element you last cast."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -138,7 +138,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Transform 4 turns: 9 armor, +5 damage on all spells. Each cast imbues random element. Attunement on imbue."
++					"value": "Transform 4 turns: 9 armor, +5 damage on all spells. Each cast imbues the element you last cast. Attunement on imbue."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/elementalist_primordial_surge.json b/Data/Cards/elementalist_primordial_surge.json
+index c564b57..8dd02b6 100644
+--- a/Data/Cards/elementalist_primordial_surge.json
++++ b/Data/Cards/elementalist_primordial_surge.json
+@@ -8,7 +8,7 @@
+ 		"name": "Primordial Surge",
+ 		"mana": 4,
+ 		"speed": "Studied",
+-		"rules_text": "Imbue all tiles in radius 4 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
++		"rules_text": "Imbue all tiles in radius 4 in element rings, starting from your highest element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
+ 		"tags": [
+ 			"fire",
+ 			"ice",
+@@ -61,7 +61,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 4 randomly. Deal 5 damage per adjacent unique element."
++					"value": "Imbue all tiles in radius 4 in element rings. Deal 5 damage per adjacent unique element."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -89,7 +89,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent unique element."
++					"value": "Imbue all tiles in radius 5 in element rings. Deal 5 damage per adjacent unique element."
+ 				}
+ 			]
+ 		},
+@@ -130,7 +130,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent element. Enemies adjacent to 3+ elements are Stunned."
++					"value": "Imbue all tiles in radius 5 in element rings. Deal 5 damage per adjacent element. Enemies adjacent to 3+ elements are Stunned."
+ 				}
+ 			]
+ 		},
+@@ -191,7 +191,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 6 randomly. Deal 7 damage per adjacent element. Enemies adjacent to 2+ elements are Stunned."
++					"value": "Imbue all tiles in radius 6 in element rings. Deal 7 damage per adjacent element. Enemies adjacent to 2+ elements are Stunned."
+ 				}
+ 			]
+ 		},
+@@ -224,7 +224,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Remove imbues in radius 6, deal 4 per tile, draw 1 card per 2. Then immediately imbue all cleared tiles randomly, dealing 3 per adjacent element."
++					"value": "Remove imbues in radius 6, deal 4 per tile, draw 1 card per 2. Then immediately re-imbue all cleared tiles in element rings, dealing 3 per adjacent element."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/elementalist_ragnarok.json b/Data/Cards/elementalist_ragnarok.json
+index cc8b342..3c0918b 100644
+--- a/Data/Cards/elementalist_ragnarok.json
++++ b/Data/Cards/elementalist_ragnarok.json
+@@ -8,7 +8,7 @@
+ 		"name": "Ragnarok",
+ 		"mana": 5,
+ 		"speed": "Studied",
+-		"rules_text": "Deal 12 damage to all enemies. Imbue all tiles on the board with a random element.",
++		"rules_text": "Deal 12 damage to all enemies. Turn every tile to its opposed element (empty tiles take your highest element).",
+ 		"tags": [
+ 			"fire",
+ 			"ice",
+@@ -34,7 +34,7 @@
+ 					}
+ 				},
+ 				{
+-					"type": "imbue_all_tiles_random"
++					"type": "imbue_all_tiles_opposed"
+ 				}
+ 			]
+ 		}
+@@ -88,7 +88,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 14 damage to all enemies. Imbue all tiles randomly."
++					"value": "Deal 14 damage to all enemies. Turn every tile to its opposed element."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -142,7 +142,7 @@
+ 								}
+ 							},
+ 							{
+-								"type": "imbue_all_tiles_random"
++								"type": "imbue_all_tiles_opposed"
+ 							}
+ 						]
+ 					}
+@@ -150,7 +150,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 14 damage to all enemies. They are Burned for 2 turns. Imbue all tiles randomly."
++					"value": "Deal 14 damage to all enemies. They are Burned for 2 turns. Turn every tile to its opposed element."
+ 				}
+ 			]
+ 		},
+@@ -232,7 +232,7 @@
+ 								}
+ 							},
+ 							{
+-								"type": "imbue_all_tiles_random"
++								"type": "imbue_all_tiles_opposed"
+ 							}
+ 						]
+ 					}
+@@ -240,7 +240,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 16 damage to all enemies. Burned for 2 turns. Stunned for 1 turn. Imbue all tiles randomly."
++					"value": "Deal 16 damage to all enemies. Burned for 2 turns. Stunned for 1 turn. Turn every tile to its opposed element."
+ 				}
+ 			]
+ 		},
+@@ -334,7 +334,7 @@
+ 								}
+ 							},
+ 							{
+-								"type": "imbue_all_tiles_random"
++								"type": "imbue_all_tiles_opposed"
+ 							},
+ 							{
+ 								"type": "draw",
+@@ -346,7 +346,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 18 damage to all enemies. Burned for 3 turns. Stunned for 2 turns. Imbue all tiles randomly. Draw 2 cards."
++					"value": "Deal 18 damage to all enemies. Burned for 3 turns. Stunned for 2 turns. Turn every tile to its opposed element. Draw 2 cards."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_the_grand_design.json b/Data/Cards/enchanter_the_grand_design.json
+index 93b517d..9db4dc7 100644
+--- a/Data/Cards/enchanter_the_grand_design.json
++++ b/Data/Cards/enchanter_the_grand_design.json
+@@ -1,11 +1,11 @@
+ {
+ 	"id": "enchanter_the_grand_design",
+ 	"status": "ready",
+-	"name": "The Grand Design",
++	"name": "The Architecture",
+ 	"school": "Enchanter",
+ 	"rarity": "Legendary",
+ 	"top": {
+-		"name": "The Grand Design",
++		"name": "The Architecture",
+ 		"mana": 4,
+ 		"speed": "Studied",
+ 		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and all your glyphs trigger twice.",
+@@ -45,7 +45,7 @@
+ 		{
+ 			"tier": 1,
+ 			"half": "both",
+-			"top_name": "The Grand Design+",
++			"top_name": "The Architecture+",
+ 			"bottom_name": "Absolute Territory+",
+ 			"description": "Cheaper glyphs. A harsher zone.",
+ 			"changes": [
+@@ -74,8 +74,8 @@
+ 		{
+ 			"tier": 2,
+ 			"half": "top",
+-			"top_name": "The Greater Design",
+-			"description": "The Greater Design: each prepare also banks Weave.",
++			"top_name": "The Greater Architecture",
++			"description": "The Greater Architecture: each prepare also banks Weave.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+@@ -110,8 +110,8 @@
+ 		{
+ 			"tier": 3,
+ 			"half": "top",
+-			"top_name": "The Master Design",
+-			"description": "The Master Design: glyphs spread to radius 2.",
++			"top_name": "The Master Architecture",
++			"description": "The Master Architecture: glyphs spread to radius 2.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+diff --git a/Schemas/card.schema.json b/Schemas/card.schema.json
+index ee00584..2707798 100644
+--- a/Schemas/card.schema.json
++++ b/Schemas/card.schema.json
+@@ -308,6 +308,7 @@
+ 						"primordial_surge",
+ 						"cataclysm",
+ 						"ragnarok",
++						"imbue_all_tiles_opposed",
+ 						"avatar_transform",
+ 						"create_maelstrom",
+ 						"create_rubble",
+@@ -373,7 +374,6 @@
+ 						"conduit_singularity",
+ 						"etch_ward",
+ 						"redirector_field",
+-						"place_trap",
+ 						"construct_volley",
+ 						"damage_per_construct",
+ 						"enhance_construct",
+diff --git a/Scripts/Cards/Effects/Effect.cs b/Scripts/Cards/Effects/Effect.cs
+index 1fddeea..9b00eb9 100644
+--- a/Scripts/Cards/Effects/Effect.cs
++++ b/Scripts/Cards/Effects/Effect.cs
+@@ -1392,45 +1392,47 @@ public sealed class ImbueTileEffect : EffectBase
+ 	}
+ }
+ 
+-// ── Imbue All Tiles Random Effect ─────────────────────────────────────────────────────────
++// ── Imbue All Tiles Opposed Effect ─────────────────────────────────────────────────────────
+ 
+ /// <summary>
+-/// Imbues every tile on the board with a random element. No radius restriction,
+-/// since this is a board-wide effect. Used by Ragnarok and similar capstone cards.
+-/// JSON key: "type": "imbue_all_tiles_random". No parameters.
++/// Turns every tile on the board to the element opposed to the one it holds
++/// (Fire and Frost swap, Storm and Earth swap). Tiles with no element, or an
++/// element with no opposite, take the caster's highest-attunement element.
++/// Deterministic replacement for the old random board imbue
++/// (class_identity_elementalist_v1 §4, ruled 2026-10-02). Used by Ragnarok.
++/// JSON key: "type": "imbue_all_tiles_opposed" ("imbue_all_tiles_random" is
++/// kept as an alias so old data still loads). No parameters.
+ /// </summary>
+-public sealed class ImbueAllTilesRandomEffect : EffectBase
++public sealed class ImbueAllTilesOpposedEffect : EffectBase
+ {
+-	private static readonly TileElementType[] Elements =
+-	{
+-		TileElementType.Fire, TileElementType.Frost,
+-		TileElementType.Lightning, TileElementType.Earth
+-	};
+-
+-	private static readonly Random _rng = new();
+-
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		if (s?.Grid == null)
+ 			return;
+ 
+-		int imbued = 0;
++		var fallback = ElementPick.Highest(FindCasterUnit(s, caster));
++
++		int flipped = 0, filled = 0;
+ 		foreach (var kvp in s.Grid.Tiles)
+ 		{
+ 			var tile = kvp.Value;
+ 			if (tile == null)
+ 				continue;
+ 
+-			var element = Elements[_rng.Next(Elements.Length)];
+-			tile.ElementType = element;
+-			tile.ElementStrength = 1.0f;
+-			if (element == TileElementType.Fire)
+-				tile.IsHazardous = true;
+-			tile.TileView?.SetElement(element);
+-			imbued++;
++			var opposed = ElementPick.Opposed(tile.ElementType);
++			if (opposed != TileElementType.None)
++			{
++				ElementPick.Imbue(tile, opposed);
++				flipped++;
++			}
++			else
++			{
++				ElementPick.Imbue(tile, fallback);
++				filled++;
++			}
+ 		}
+ 
+-		s.Log($"[ImbueAllTilesRandom] Imbued {imbued} tiles with random elements.");
++		s.Log($"[ImbueAllTilesOpposed] {flipped} tiles turned to their opposed element, {filled} took {fallback}.");
+ 	}
+ }
+ 
+diff --git a/Scripts/Cards/Effects/ElementalistEffects.cs b/Scripts/Cards/Effects/ElementalistEffects.cs
+index 76ac748..bd9ab47 100644
+--- a/Scripts/Cards/Effects/ElementalistEffects.cs
++++ b/Scripts/Cards/Effects/ElementalistEffects.cs
+@@ -16,17 +16,76 @@ using System.Linq;
+ //                 PersistentEffect.cs. A pure move, no behavior change.
+ // ============================================================
+ 
+-/// <summary>Elementalist capstone. Randomly imbues every tile within radius around the caster, then damages each enemy by <c>uniqueElementsAdjacent × Damage</c>.</summary>
+-public sealed class PrimordialSurgeEffect : EffectBase
++/// <summary>
++/// Deterministic element choices (class_identity_elementalist_v1 §4, ruled
++/// 2026-10-02: no random element picks). Every effect that used to roll an
++/// element reads one of these instead, so the player can plan the board.
++/// </summary>
++internal static class ElementPick
+ {
+-    public int Radius;
+-    public int Damage;
+-    private static readonly TileElementType[] Elements =
++    /// <summary>The four Elementalist tile elements in tie order (Fire, Ice, Storm, Earth).</summary>
++    public static readonly TileElementType[] Cycle =
+     {
+         TileElementType.Fire, TileElementType.Frost,
+         TileElementType.Lightning, TileElementType.Earth
+     };
+-    private static readonly Random _rng = new();
++
++    public static TileElementType ToTile(ElementTag e) => e switch
++    {
++        ElementTag.Fire => TileElementType.Fire,
++        ElementTag.Ice => TileElementType.Frost,
++        ElementTag.Storm => TileElementType.Lightning,
++        ElementTag.Earth => TileElementType.Earth,
++        _ => TileElementType.Fire
++    };
++
++    /// <summary>The caster's highest-attunement element; Fire for a caster with no Elemental attunement.</summary>
++    public static TileElementType Highest(Unit caster)
++        => caster?.Attunement is ElementalAttunement a ? ToTile(a.HighestElement()) : TileElementType.Fire;
++
++    /// <summary>The element the caster cast most recently, else their highest.</summary>
++    public static TileElementType LastCast(Unit caster)
++        => caster?.Attunement is ElementalAttunement a && a.LastCastElement.HasValue
++            ? ToTile(a.LastCastElement.Value)
++            : Highest(caster);
++
++    /// <summary>Fire and Frost oppose; Storm and Earth oppose. Anything else has no opposite (None).</summary>
++    public static TileElementType Opposed(TileElementType t) => t switch
++    {
++        TileElementType.Fire => TileElementType.Frost,
++        TileElementType.Frost => TileElementType.Fire,
++        TileElementType.Lightning => TileElementType.Earth,
++        TileElementType.Earth => TileElementType.Lightning,
++        _ => TileElementType.None
++    };
++
++    /// <summary>Concentric rings: ring 0 takes <paramref name="start"/>, each ring
++    /// outward takes the next element in <see cref="Cycle"/>. Keeps the "many
++    /// elements side by side" payoff of the old random scatter, deterministically.</summary>
++    public static TileElementType Ring(TileElementType start, int ring)
++    {
++        int i = Array.IndexOf(Cycle, start);
++        if (i < 0)
++            i = 0;
++        return Cycle[(i + Math.Max(0, ring)) % Cycle.Length];
++    }
++
++    /// <summary>Writes an element onto a tile the way every imbue in this file does.</summary>
++    public static void Imbue(TileData tile, TileElementType element)
++    {
++        tile.ElementType = element;
++        tile.ElementStrength = 1.0f;
++        if (element == TileElementType.Fire)
++            tile.IsHazardous = true;
++        tile.TileView?.SetElement(element);
++    }
++}
++
++/// <summary>Elementalist capstone. Imbues every tile within radius in concentric element rings (starting from the caster's highest element), then damages each enemy by <c>uniqueElementsAdjacent × Damage</c>.</summary>
++public sealed class PrimordialSurgeEffect : EffectBase
++{
++    public int Radius;
++    public int Damage;
+ 
+     public PrimordialSurgeEffect(int radius = 4, int damage = 4) { Radius = radius; Damage = damage; }
+ 
+@@ -40,6 +99,7 @@ public sealed class PrimordialSurgeEffect : EffectBase
+ 
+         var center = casterUnit.CurrentTile.Axial;
+         var reach = s.Grid.BurstReach(center, Radius);   // walls stop the surge
++        var start = ElementPick.Highest(casterUnit);
+ 
+         // Imbue tiles the surge reaches
+         int imbued = 0;
+@@ -49,16 +109,11 @@ public sealed class PrimordialSurgeEffect : EffectBase
+             if (tile == null)
+                 continue;
+ 
+-            var element = Elements[_rng.Next(Elements.Length)];
+-            tile.ElementType = element;
+-            tile.ElementStrength = 1.0f;
+-            if (element == TileElementType.Fire)
+-                tile.IsHazardous = true;
+-            tile.TileView?.SetElement(element);
++            ElementPick.Imbue(tile, ElementPick.Ring(start, s.Grid.Distance(center, coord)));
+             imbued++;
+         }
+ 
+-        s.Log($"[PrimordialSurge] Imbued {imbued} tiles within {Radius} range.");
++        s.Log($"[PrimordialSurge] Imbued {imbued} tiles within {Radius} range in rings from {start}.");
+ 
+         // Damage enemies based on unique adjacent elements
+         foreach (var unit in s.UnitsInPlay)
+@@ -237,19 +292,12 @@ public sealed class RagnarokEffect : EffectBase
+     }
+ }
+ 
+-/// <summary>Elementalist capstone. Imbues every tile in radius with a random element, then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7: the JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
++/// <summary>Elementalist capstone. Imbues every tile in radius in concentric element rings (from the caster's highest element), then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7: the JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
+ public sealed class ElementalConvergenceEffect : EffectBase
+ {
+     public int Radius;
+     public int AttunementSetTo;
+ 
+-    private static readonly TileElementType[] Elements =
+-    {
+-        TileElementType.Fire, TileElementType.Frost,
+-        TileElementType.Lightning, TileElementType.Earth
+-    };
+-    private Random _rng = new();
+-
+     public ElementalConvergenceEffect(int radius = 3, int attunementSetTo = 3)
+     {
+         Radius = radius;
+@@ -266,26 +314,23 @@ public sealed class ElementalConvergenceEffect : EffectBase
+ 
+         var center = casterUnit.CurrentTile.Axial;
+ 
+-        // Imbue all tiles within radius with random elements
++        // Imbue all tiles within radius in element rings (deterministic)
++        var start = ElementPick.Highest(casterUnit);
+         int imbued = 0;
+         foreach (var kvp in s.Grid.Tiles)
+         {
+             var tile = kvp.Value;
+             if (tile == null)
+                 continue;
+-            if (s.Grid.Distance(center, kvp.Key) > Radius)
++            int ring = s.Grid.Distance(center, kvp.Key);
++            if (ring > Radius)
+                 continue;
+ 
+-            var element = Elements[_rng.Next(Elements.Length)];
+-            tile.ElementType = element;
+-            tile.ElementStrength = 1.0f;
+-            if (element == TileElementType.Fire)
+-                tile.IsHazardous = true;
+-            tile.TileView?.SetElement(element);
++            ElementPick.Imbue(tile, ElementPick.Ring(start, ring));
+             imbued++;
+         }
+ 
+-        s.Log($"[Convergence] Imbued {imbued} tiles within {Radius} range with random elements.");
++        s.Log($"[Convergence] Imbued {imbued} tiles within {Radius} range in rings from {start}.");
+ 
+         // Set all attunement counters
+         if (casterUnit.Attunement is ElementalAttunement att)
+@@ -635,20 +680,14 @@ public sealed class AvatarTransformEffect : EffectBase
+         s.OnTurnEndCleanups ??= new List<Action>();
+ 
+         Action<TileData> onLeave = null;
+-        var rng = new Random();
+-        TileElementType[] elements =
+-        {
+-            TileElementType.Fire, TileElementType.Frost,
+-            TileElementType.Lightning, TileElementType.Earth
+-        };
+ 
++        // Trail element = the element last cast, read live at each step
++        // (class_identity_elementalist_v1 §4: deterministic, no random pick).
+         onLeave = (leftTile) =>
+         {
+             if (leftTile == null || s?.Grid == null)
+                 return;
+-            leftTile.ElementType = elements[rng.Next(elements.Length)];
+-            leftTile.ElementStrength = 1.0f;
+-            leftTile.TileView?.SetElement(leftTile.ElementType);
++            ElementPick.Imbue(leftTile, ElementPick.LastCast(casterUnit));
+             s.Log($"[Avatar] Trail imbued {leftTile.Axial} with {leftTile.ElementType}.");
+         };
+ 
+@@ -969,13 +1008,6 @@ public class AvatarAuraEffect : PersistentEffect
+     /// <summary>Bonus damage added to every spell cast while this aura is active.</summary>
+     public int BonusDamage;
+ 
+-    private static readonly TileElementType[] Elements =
+-    {
+-        TileElementType.Fire, TileElementType.Frost,
+-        TileElementType.Lightning, TileElementType.Earth
+-    };
+-    private Random _rng = new();
+-
+     public AvatarAuraEffect(int turns, int bonusDamage, Entity owner)
+     {
+         TurnsRemaining = turns;
+@@ -989,14 +1021,14 @@ public class AvatarAuraEffect : PersistentEffect
+         s.Log($"[Avatar] Aura ticking. {TurnsRemaining} turns remaining.");
+     }
+ 
+-    /// <summary>Hook invoked by the combat runner after every successful spell resolution by the owner. Random-imbues each target tile and logs the bonus damage application.</summary>
++    /// <summary>Hook invoked by the combat runner after every successful spell resolution by the owner. Imbues each target tile with the element the owner last cast, and logs the bonus damage application.</summary>
+     public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
+     {
+         if (s?.Grid == null || targets == null)
+             return;
+ 
+-        // Random element imbue on target tile
+-        var element = Elements[_rng.Next(Elements.Length)];
++        // Imbue the element last cast (deterministic; class_identity_elementalist_v1 §4)
++        var element = ElementPick.LastCast(casterUnit);
+ 
+         foreach (var obj in targets.Items)
+         {
+diff --git a/Scripts/Cards/Effects/TinkerPipelineEffects.cs b/Scripts/Cards/Effects/TinkerPipelineEffects.cs
+index 3111fef..91f24f6 100644
+--- a/Scripts/Cards/Effects/TinkerPipelineEffects.cs
++++ b/Scripts/Cards/Effects/TinkerPipelineEffects.cs
+@@ -55,98 +55,6 @@ public static class EtchingSystem
+     }
+ }
+ 
+-/// <summary>
+-/// Static registry of one-shot wire traps. A trap sits invisibly on a tile; the
+-/// first enemy of the owning team to enter takes damage and (optionally) a status,
+-/// then the trap is spent. Allies pass freely without disarming it. Fired from
+-/// Unit.PlaceOnTile (before the Conduit line-zap check). Reset per combat.
+-/// </summary>
+-public static class TrapSystem
+-{
+-    private sealed class Trap
+-    {
+-        public int OwnerTeam;
+-        public int Damage;
+-        public string Status;
+-        public int StatusDuration;
+-    }
+-
+-    private static readonly Dictionary<Vector2I, Trap> Traps = new();
+-
+-    public static void Clear() => Traps.Clear();
+-
+-    /// <summary>Places (or replaces) the trap on a tile. One trap per tile; the newest wins.</summary>
+-    public static void Place(Vector2I axial, int ownerTeam, int damage, string status, int statusDuration)
+-    {
+-        Traps[axial] = new Trap
+-        {
+-            OwnerTeam = ownerTeam,
+-            Damage = damage,
+-            Status = status,
+-            StatusDuration = statusDuration
+-        };
+-    }
+-
+-    /// <summary>Called by Unit.PlaceOnTile: springs the trap under an entering enemy.</summary>
+-    public static void OnUnitEntered(Unit mover)
+-    {
+-        if (mover == null || !mover.Stats.IsAlive || mover.CurrentTile == null)
+-            return;
+-        if (Traps.Count == 0 || !Traps.TryGetValue(mover.CurrentTile.Axial, out var trap))
+-            return;
+-        if (mover.TeamId == trap.OwnerTeam)
+-            return;   // allies step over the wire; the trap stays armed
+-
+-        Traps.Remove(mover.CurrentTile.Axial);   // one-shot
+-        GD.Print($"[Trap] {mover.Name} trips a wire trap for {trap.Damage} damage.");
+-
+-        if (trap.Damage > 0)
+-            mover.ApplyDamage(trap.Damage);
+-        if (!string.IsNullOrEmpty(trap.Status) && mover.Stats.IsAlive && !mover.IsDeathQueued)
+-            mover.ApplyStatus(trap.Status, Math.Max(1, trap.StatusDuration));
+-    }
+-}
+-
+-// ── Wire Trap ───────────────────────────────────────────────────────
+-/// <summary>Arms a hidden one-shot trap on the targeted tile. The first enemy to enter takes damage and, optionally, a status.</summary>
+-public sealed class PlaceTrapEffect : EffectBase
+-{
+-    private readonly int _damage;
+-    private readonly string _status;
+-    private readonly int _duration;
+-
+-    public PlaceTrapEffect(int damage, string status, int duration)
+-    {
+-        _damage = Math.Max(0, damage);
+-        _status = status;
+-        _duration = Math.Max(1, duration);
+-    }
+-
+-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+-    {
+-        Vector2I? axial = null;
+-        if (targets != null)
+-        {
+-            foreach (var o in targets.Items)
+-            {
+-                if (o is TileData td) { axial = td.Axial; break; }
+-                if (o is HexTile tv) { axial = tv.Axial; break; }
+-                if (o is Unit u && u.CurrentTile != null) { axial = u.CurrentTile.Axial; break; }
+-            }
+-        }
+-
+-        if (axial == null)
+-        {
+-            s?.Log("[Trap] No tile to arm.");
+-            return;
+-        }
+-
+-        TrapSystem.Place(axial.Value, TinkerFx.CasterTeam(s), _damage, _status, _duration);
+-        s?.Log($"[Trap] Wire trap armed at {axial.Value} ({_damage} dmg" +
+-               (!string.IsNullOrEmpty(_status) ? $", {_status} {_duration}t)." : ")."));
+-    }
+-}
+-
+ // ── Etching Ward ───────────────────────────────────────────────────
+ /// <summary>Inscribes a ward on the targeted tile. The next construct deployed there enters with +amount HP and primary stat.</summary>
+ public sealed class EtchWardEffect : EffectBase
+diff --git a/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs b/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs
+index d671b71..4f632b6 100644
+--- a/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs
++++ b/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs
+@@ -87,12 +87,8 @@ public static partial class CardScriptRegistry
+         // Redirector Field: { "type": "redirector_field" }
+         RegisterEffect("redirector_field", _ => new RedirectorFieldEffect().WithTag("Construct"));
+ 
+-        // Wire Trap: { "type": "place_trap", "damage": 5, "status": "rooted", "duration": 1 }
+-        RegisterEffect("place_trap", n =>
+-            new PlaceTrapEffect(
+-                n.TryGetProperty("damage", out var td) ? td.GetInt32() : 5,
+-                n.TryGetProperty("status", out var ts) ? ts.GetString() : null,
+-                n.TryGetProperty("duration", out var tu) ? tu.GetInt32() : 1).WithTag("Construct"));
++        // place_trap retired 2026-10-02 (class_identity_tinker_v1 §2b): traps are
++        // Enchanter's verb, and no card used it.
+ 
+         // Full Salvo: { "type": "construct_volley" }
+         RegisterEffect("construct_volley", _ => new ConstructVolleyEffect().WithTag("Construct"));
+diff --git a/Scripts/Cards/Loader/JsonCardLoader.cs b/Scripts/Cards/Loader/JsonCardLoader.cs
+index ce8c44a..02f8fcc 100644
+--- a/Scripts/Cards/Loader/JsonCardLoader.cs
++++ b/Scripts/Cards/Loader/JsonCardLoader.cs
+@@ -380,9 +380,12 @@ public static partial class CardScriptRegistry
+             return new ImbueAreaEffect(element, radius).WithTag("Terrain");
+         });
+ 
+-        // Imbue all tiles randomly: { "type": "imbue_all_tiles_random" }
++        // Imbue all tiles opposed: { "type": "imbue_all_tiles_opposed" }
++        // (deterministic Ragnarok, 2026-10-02). The old random key stays as an alias.
++        RegisterEffect("imbue_all_tiles_opposed", _ =>
++            new ImbueAllTilesOpposedEffect().WithTag("Terrain"));
+         RegisterEffect("imbue_all_tiles_random", _ =>
+-            new ImbueAllTilesRandomEffect().WithTag("Terrain"));
++            new ImbueAllTilesOpposedEffect().WithTag("Terrain"));
+ 
+         // Place glyph: { "type": "place_glyph", "damage": n, "status": "slowed", "duration": n }
+         RegisterEffect("place_glyph", n =>
+diff --git a/Scripts/Dev/GlyphCipherSelfTest.cs b/Scripts/Dev/GlyphCipherSelfTest.cs
+index 267fad5..367d6af 100644
+--- a/Scripts/Dev/GlyphCipherSelfTest.cs
++++ b/Scripts/Dev/GlyphCipherSelfTest.cs
+@@ -87,7 +87,7 @@ public static class GlyphCipherSelfTest
+     }
+ 
+     /// <summary>Aggregate of every golden checksum, in card-id order. One number to eyeball in a diff.</summary>
+-    public const uint AggregateChecksum = 0xEF7EE845u;
++    public const uint AggregateChecksum = 0xEDA4B327u;   // re-pinned 2026-10-02: The Grand Design renamed The Architecture
+ 
+     /// <summary>
+     /// Expected decode for all 42 Enchanter spell halves as of spec v2.
+@@ -134,7 +134,7 @@ public static class GlyphCipherSelfTest
+         new("enchanter_sovereign_will", "bottom", "Puppeteer", "PUPPETEER", CipherTarget.Self, CipherVerb.Bind, 5, 2, 9, 2, 26, 0x50AFFE9Cu),
+         new("enchanter_sovereign_will", "top", "Sovereign Pillars", "SOVEREIGNPILLARS", CipherTarget.Tile, CipherVerb.Inscribe, 6, 3, 16, 1, 37, 0xABBF4FD3u),
+         new("enchanter_the_grand_design", "bottom", "Absolute Territory", "ABSOLUTETERRITORY", CipherTarget.Self, CipherVerb.Bind, 6, 3, 17, 1, 35, 0x2C91D76Du),
+-        new("enchanter_the_grand_design", "top", "The Grand Design", "THEGRANDDESIGN", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 14, 1, 31, 0x87F141E2u),
++        new("enchanter_the_grand_design", "top", "The Architecture", "THEARCHITECTURE", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 15, 0, 30, 0xBDEC9B96u),
+         new("enchanter_warding_step", "bottom", "Tripwire", "TRIPWIRE", CipherTarget.Tile, CipherVerb.Inscribe, 4, 2, 8, 0, 21, 0x163DE3C8u),
+         new("enchanter_warding_step", "top", "Warding Step", "WARDINGSTEP", CipherTarget.Self, CipherVerb.Ward | CipherVerb.Move, 6, 2, 11, 0, 33, 0x52C88AA0u),
+     };
+diff --git a/Scripts/Systems/Campus/CardUpgradeScreen.cs b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+index c59b16f..2129873 100644
+--- a/Scripts/Systems/Campus/CardUpgradeScreen.cs
++++ b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+@@ -679,7 +679,6 @@ public partial class CardUpgradeScreen : Control
+         // _gateLabel, preview zones, bypass button) are preserved
+         ClearDynamicContent();
+ 
+-        bool isGeneric = bp?.School == CardSchool.Adept;
+         bool baseUpgraded = _selectedOwned.IsBaseUpgraded;
+         int pointsSpent = _selectedOwned.PointsSpent;
+         int splinters = save?.ArcaneSplinters ?? 0;
+@@ -726,14 +725,9 @@ public partial class CardUpgradeScreen : Control
+             return;
+         }
+ 
+-        // Generic cards stop at 1/1
+-        if (isGeneric)
+-        {
+-            AddDynamic(MakeDescLabel("Generic cards cannot be further refined."));
+-            ShowPreview(_selectedOwned.BlueprintId,
+-                _selectedOwned.TopTier, _selectedOwned.BotTier, -1, -1);
+-            return;
+-        }
++        // Fundamentals (Adept-school cards) climb the same half tracks as every
++        // school. Their ladders (2026-07-10, "drilled fundamentals") end in a
++        // named perfected form; the old 1/1 cap made those forms unreachable.
+ 
+         // ── Independent half upgrade tracks ──────────────────────────────
+         int pointsRemaining = _selectedOwned.PointsRemaining;
+diff --git a/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs b/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
+index 05f6192..b12b020 100644
+--- a/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
++++ b/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
+@@ -76,6 +76,36 @@ public class ElementalAttunement : ISchoolAttunement
+ 	public const int MaxCharges = 4;
+ 	public const int BurstThreshold = 4;
+ 
++	/// <summary>Fixed tie order for every "your highest element" read (shown in
++	/// tooltips): Fire, then Ice, then Storm, then Earth.</summary>
++	public static readonly ElementTag[] TieOrder =
++		{ ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth };
++
++	/// <summary>Element of the most recent element-tagged cast; null before any.
++	/// Read by Avatar of Elements (class_identity_elementalist_v1 §4: no random
++	/// element picks).</summary>
++	public ElementTag? LastCastElement { get; private set; }
++
++	/// <summary>The element holding the most attunement, ties broken by
++	/// <see cref="TieOrder"/>. With every counter at 0 it falls back to the last
++	/// cast element, then Fire.</summary>
++	public ElementTag HighestElement()
++	{
++		ElementTag best = ElementTag.Fire;
++		int bestValue = -1;
++		foreach (var e in TieOrder)
++		{
++			if (Charges[e] > bestValue)
++			{
++				best = e;
++				bestValue = Charges[e];
++			}
++		}
++		if (bestValue <= 0 && LastCastElement.HasValue)
++			return LastCastElement.Value;
++		return best;
++	}
++
+ 	// ── Crucible of Storms doctrines (campus_building_upgrades_design_v1 §8d).
+ 	// Set at combat start by SchoolSeats.ApplyCombatStart; defaults are the
+ 	// school as it has always played. ──────────────────────────────────────
+@@ -112,6 +142,7 @@ public class ElementalAttunement : ISchoolAttunement
+ 	{
+ 		foreach (var key in new[] { ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth })
+ 			Charges[key] = 0;
++		LastCastElement = null;
+ 	}
+ 
+ 	/// <summary>
+@@ -142,6 +173,8 @@ public class ElementalAttunement : ISchoolAttunement
+ 		{
+ 			if (!TryParseTag(tagStr, out var element)) continue;
+ 
++			LastCastElement = element;
++
+ 			if (Monoelement)
+ 				ClearOthers(element);
+ 
+diff --git a/Scripts/Systems/Combat/Attunement/WildingAttunement.cs b/Scripts/Systems/Combat/Attunement/WildingAttunement.cs
+index 9c620e3..4a1d88e 100644
+--- a/Scripts/Systems/Combat/Attunement/WildingAttunement.cs
++++ b/Scripts/Systems/Combat/Attunement/WildingAttunement.cs
+@@ -28,7 +28,7 @@ using System;
+ public enum WildingTier
+ {
+     Still,      // 0: dormant, no bonus
+-    Stirring,   // 1: living terrain spreads faster
++    Stirring,   // 1: Saplings spread too (deterministic growth)
+     Spreading,  // 2: owner heals while on/adjacent to their own living terrain
+     Rampant,    // 3: enemies on the owner's growth are rooted on the tick
+     Riot        // 4: burst, all owned growth advances a stage + wildlife, then reset to 0
+@@ -44,7 +44,6 @@ public class WildingAttunement : ISchoolAttunement
+     public const int RiotThreshold = 4;
+ 
+     // ── Tier-passive tuning (read by GrowthManager / upkeep) ─────────
+-    public const float StirringSpreadBonus = 0.15f;  // +flat spread chance at Stirring+
+     public const int SpreadingHealPerTurn = 2;      // HP/turn at Spreading+ (applied at owner upkeep)
+     public const int RampantRootDuration = 1;      // turns rooted at Rampant+
+ 
+@@ -100,8 +99,10 @@ public class WildingAttunement : ISchoolAttunement
+     // ── Tier queries (single source of truth for GrowthManager/UI) ────
+     public WildingTier CurrentTier => (WildingTier)Mathf.Clamp(Charges, 0, (int)WildingTier.Riot);
+ 
+-    /// <summary>Flat bonus added to spread chance once the owner reaches Stirring.</summary>
+-    public float SpreadBonus => Charges >= (int)WildingTier.Stirring ? StirringSpreadBonus : 0f;
++    /// <summary>True once the owner reaches Stirring: their Saplings spread too
++    /// (deterministic growth, class_identity_druid_v1 §2a; replaces the old flat
++    /// spread-chance bonus).</summary>
++    public bool SaplingsSpread => Charges >= (int)WildingTier.Stirring;
+ 
+     /// <summary>True once the owner heals from standing on/adjacent to their living terrain.</summary>
+     public bool HealsOwner => Charges >= (int)WildingTier.Spreading;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index ca8569e..084a6a8 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -174,7 +174,6 @@ public partial class CombatManager : Node3D
+         CombatPresenter.Ensure(this);   // spell_vfx_pipeline_v1: presentation seam
+         ConduitLinkSystem.Clear();
+         EtchingSystem.Clear();
+-        TrapSystem.Clear();
+         Me = State.PlayerA;
+         Opp = State.PlayerB;
+ 
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index 6ad8b7d..ecfcc83 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -888,8 +888,7 @@ public partial class Unit : Node3D
+             CurrentTile.TileView?.SetElement(TileElementType.None);
+         }
+ 
+-        // Tinker: one-shot wire traps fire before link-line zaps.
+-        TrapSystem.OnUnitEntered(this);
++        // Tinker: link-line zaps. (Wire traps retired 2026-10-02.)
+         ConduitLinkSystem.OnUnitEntered(this);
+ 
+         // Public entry bus: every entered tile, any kind (spec §2.1).
+@@ -1043,7 +1042,7 @@ public partial class Unit : Node3D
+         // U3e binding_geas. AFTER PlaceOnTile, so the handler measures the geas
+         // radius against where the unit ARRIVED, not where it set off: "damage on
+         // arrival" has to mean arrival or the aura reads as random. PlaceOnTile has
+-        // already run TrapSystem/ConduitLink entry hooks, so this sits in the same
++        // already run the ConduitLink entry hook, so this sits in the same
+         // company as every other consequence of stepping onto a tile.
+         RefreshCoverArmor();      // settled behind a wall (or left one): re-read
+         OnMoved?.Invoke(this);
+diff --git a/Scripts/Systems/Legacy/GrowthManager.cs b/Scripts/Systems/Legacy/GrowthManager.cs
+index a8e3cb9..66534d7 100644
+--- a/Scripts/Systems/Legacy/GrowthManager.cs
++++ b/Scripts/Systems/Legacy/GrowthManager.cs
+@@ -82,7 +82,6 @@ public class GrowthManager
+     // -- Dependencies -------------------------------------------------
+     private readonly HexGridManager _grid;
+     private readonly GameState _state;
+-    private readonly RandomNumberGenerator _rng;
+     private readonly Action<TileData, string> _wildlifeSpawner;
+     private readonly Action<Unit, int> _rootHandler;
+ 
+@@ -111,15 +110,11 @@ public class GrowthManager
+         _wildlifeSpawner = wildlifeSpawner;
+         _rootHandler = rootHandler;
+ 
+-        if (rng != null)
+-        {
+-            _rng = rng;
+-        }
+-        else
+-        {
+-            _rng = new RandomNumberGenerator();
+-            _rng.Randomize();
+-        }
++        // `rng` is accepted for call-site compatibility and ignored: growth is
++        // deterministic as of 2026-10-02 (class_identity_druid_v1 §2a, "the
++        // Witness"). Spread, Riot placement and wildlife choice all follow fixed
++        // rules the player can predict.
++        _ = rng;
+ 
+         LoadProfiles();
+     }
+@@ -208,7 +203,10 @@ public class GrowthManager
+ 
+                 ApplyTickPassives(tile);
+ 
+-                if (tile.GrowthStage >= StageThicket)
++                // Thickets and Old Growth spread every tick; Saplings join in once
++                // the owner reaches Stirring (Wilding tier 1).
++                if (tile.GrowthStage >= StageThicket ||
++                    (tile.GrowthStage == StageSapling && SaplingsSpread(tile.GrowthOwner)))
+                     CollectSpread(tile, toSeed);
+ 
+                 DecayCarcass(tile);
+@@ -275,15 +273,24 @@ public class GrowthManager
+             foreach (TileData t in advanced)
+                 OnGrowthAdvanced?.Invoke(t);
+ 
+-            // Spawn at most RiotWildlifeCap wildlife, spread randomly across the
+-            // old-growth tiles (NOT one per tile, which flooded the board).
++            // Spawn at most RiotWildlifeCap wildlife (NOT one per tile, which
++            // flooded the board), on the Old Growth nearest the owner's enemies.
++            // Ties break by axial coordinate so the same board always answers
++            // the same way.
++            oldGrowth.Sort((a, b) =>
++            {
++                int da = NearestHostileDistance(a, owner);
++                int db = NearestHostileDistance(b, owner);
++                if (da != db)
++                    return da.CompareTo(db);
++                if (a.Axial.X != b.Axial.X)
++                    return a.Axial.X.CompareTo(b.Axial.X);
++                return a.Axial.Y.CompareTo(b.Axial.Y);
++            });
++
+             int cap = Math.Min(_config.RiotWildlifeCap, oldGrowth.Count);
+             for (int i = 0; i < cap; i++)
+-            {
+-                int j = _rng.RandiRange(i, oldGrowth.Count - 1);
+-                (oldGrowth[i], oldGrowth[j]) = (oldGrowth[j], oldGrowth[i]);
+                 RequestWildlife(oldGrowth[i], "auto");
+-            }
+ 
+             _state?.Log($"[Wilding] Riot -- {advanced.Count} tiles surged, {cap} wildlife answered.");
+         }
+@@ -459,9 +466,22 @@ public class GrowthManager
+         OnGrowthChanged?.Invoke(tile);
+     }
+ 
++    /// <summary>
++    /// Deterministic spread (class_identity_druid_v1 §2a): a source seeds ONE
++    /// adjacent eligible tile per tick, chosen by, in order:
++    ///   1. best terrain affinity (the profile's spreadMult, higher first),
++    ///   2. carcass ground before plain ground (carrion enriches the soil),
++    ///   3. nearest to the owner's enemies,
++    ///   4. fixed neighbour order (AxialNeighbors).
++    /// A tile another source already claimed this tick is skipped, so two
++    /// sources never waste their spread on the same tile.
++    /// </summary>
+     private void CollectSpread(TileData source, List<(TileData, Unit)> buffer)
+     {
+-        float ownerBonus = GetWildingSpreadBonus(source.GrowthOwner);
++        TileData best = null;
++        float bestAffinity = 0f;
++        bool bestCarcass = false;
++        int bestDistance = int.MaxValue;
+ 
+         foreach (Vector2I dir in AxialNeighbors)
+         {
+@@ -476,14 +496,28 @@ public class GrowthManager
+             GrowthProfile np = GetProfile(n);
+             if (np.Affinity == "Hostile" || np.MaxStage <= StageNone)
+                 continue;
++            if (buffer.Exists(entry => entry.Item1 == n))
++                continue;   // already claimed by another source this tick
+ 
+-            float chance = (_config.BaseSpreadChance * np.SpreadMult) + ownerBonus;
+-            if (n.CarcassTicks > 0)
+-                chance += _config.CarcassSpreadBonus;   // carrion enriches the soil
++            bool carcass = n.CarcassTicks > 0;
++            int distance = NearestHostileDistance(n, source.GrowthOwner);
+ 
+-            if (_rng.Randf() < chance)
+-                buffer.Add((n, source.GrowthOwner));
++            bool better = best == null
++                || np.SpreadMult > bestAffinity
++                || (np.SpreadMult == bestAffinity && carcass && !bestCarcass)
++                || (np.SpreadMult == bestAffinity && carcass == bestCarcass && distance < bestDistance);
++
++            if (better)
++            {
++                best = n;
++                bestAffinity = np.SpreadMult;
++                bestCarcass = carcass;
++                bestDistance = distance;
++            }
+         }
++
++        if (best != null)
++            buffer.Add((best, source.GrowthOwner));
+     }
+ 
+     private void ApplyTickPassives(TileData tile)
+@@ -517,7 +551,7 @@ public class GrowthManager
+             List<string> pool = (p.Wildlife != null && p.Wildlife.Count > 0) ? p.Wildlife : _config.WildlifeAny;
+             if (pool == null || pool.Count == 0)
+                 return;
+-            key = pool[_rng.RandiRange(0, pool.Count - 1)];
++            key = pool[0];   // deterministic: the terrain's first-listed species answers
+         }
+ 
+         TileData spawn = FindSpawnTile(tile);
+@@ -565,8 +599,31 @@ public class GrowthManager
+     private bool IsOwnedGrowth(TileData tile, Unit owner)
+         => tile.GrowthStage > StageNone && SameSide(tile.GrowthOwner, owner);
+ 
+-    private float GetWildingSpreadBonus(Unit owner)
+-        => owner?.Attunement is WildingAttunement w ? w.SpreadBonus : 0f;
++    /// <summary>True once the owner's Wilding reaches Stirring: Saplings spread too.</summary>
++    private static bool SaplingsSpread(Unit owner)
++        => owner?.Attunement is WildingAttunement w && w.SaplingsSpread;
++
++    /// <summary>Hex distance from a tile to the nearest living unit hostile to
++    /// <paramref name="owner"/>. Ownerless growth has no preference (0 for every
++    /// tile, so the fixed neighbour order decides).</summary>
++    private int NearestHostileDistance(TileData tile, Unit owner)
++    {
++        if (owner == null || tile == null || _state?.UnitsInPlay == null)
++            return 0;
++
++        int best = int.MaxValue;
++        foreach (var u in _state.UnitsInPlay)
++        {
++            if (u == null || !u.Stats.IsAlive || u.CurrentTile == null)
++                continue;
++            if (u.TeamId == owner.TeamId)
++                continue;
++            int d = _grid.Distance(tile.Axial, u.CurrentTile.Axial);
++            if (d < best)
++                best = d;
++        }
++        return best;
++    }
+ 
+     private void RaiseWilding(Unit owner, int n)
+     {
+diff --git a/Scripts/UI/SchoolAttunementUI.cs b/Scripts/UI/SchoolAttunementUI.cs
+index f1758a4..d5ba8aa 100644
+--- a/Scripts/UI/SchoolAttunementUI.cs
++++ b/Scripts/UI/SchoolAttunementUI.cs
+@@ -72,7 +72,7 @@ public partial class SchoolAttunementUI : PanelContainer
+ 	private static readonly string[] WildingTierEffects =
+ 	{
+ 	"Dormant",
+-	"Growth spreads faster",
++	"Saplings spread too",
+ 	"You heal on living ground",
+ 	"Foes on your wood are rooted",
+ 	"RIOT: the wild surges"
+diff --git a/tools/glyph_cipher/corpus.py b/tools/glyph_cipher/corpus.py
+index eecb9fc..5f7d9df 100644
+--- a/tools/glyph_cipher/corpus.py
++++ b/tools/glyph_cipher/corpus.py
+@@ -13,7 +13,7 @@ REG = {
+  'summon_illusion':('Summon','SummonIllusionEffect'),'grand_design_passive':('Glyph','GrandDesignPassiveLeafEffect'),
+  'absolute_territory':('Control','AbsoluteTerritoryLeafEffect'),'apply_status':('Status','ApplyStatusEffect'),
+  'move':('Movement','DashEffect'),'shield':('Defense','GiveShieldEffect'),'draw':('CardDraw','DrawCardsEffect'),
+- 'damage':('Damage','DealDamageEffect'),'push_aimed':('Displace','PushAimedEffect'),'scry':(None,'ScryEffect'),
++ 'damage':('Damage','DealDamageEffect'),'negate_action':('Control','NegateActionEffect'),'push_aimed':('Displace','PushAimedEffect'),'scry':(None,'ScryEffect'),
+ }
+ COMPOSITE={'sequence','choose_one','conditional','for_each_target','retarget'}
+ INSCRIBE_CLASSES={'PrepareGlyphEffect','EnchantPillarEffect','ReflectWardEffect','SpellAnchorEffect'}
+diff --git a/tools/glyph_cipher/v2_goldens.txt b/tools/glyph_cipher/v2_goldens.txt
+index 37460ea..a11bdf6 100644
+--- a/tools/glyph_cipher/v2_goldens.txt
++++ b/tools/glyph_cipher/v2_goldens.txt
+@@ -37,6 +37,6 @@
+         new("enchanter_sovereign_will", "bottom", "Puppeteer", "PUPPETEER", CipherTarget.Self, CipherVerb.Bind, 5, 2, 9, 2, 26, 0x50AFFE9Cu),
+         new("enchanter_sovereign_will", "top", "Sovereign Pillars", "SOVEREIGNPILLARS", CipherTarget.Tile, CipherVerb.Inscribe, 6, 3, 16, 1, 37, 0xABBF4FD3u),
+         new("enchanter_the_grand_design", "bottom", "Absolute Territory", "ABSOLUTETERRITORY", CipherTarget.Self, CipherVerb.Bind, 6, 3, 17, 1, 35, 0x2C91D76Du),
+-        new("enchanter_the_grand_design", "top", "The Grand Design", "THEGRANDDESIGN", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 14, 1, 31, 0x87F141E2u),
++        new("enchanter_the_grand_design", "top", "The Architecture", "THEARCHITECTURE", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 15, 0, 30, 0xBDEC9B96u),
+         new("enchanter_warding_step", "bottom", "Tripwire", "TRIPWIRE", CipherTarget.Tile, CipherVerb.Inscribe, 4, 2, 8, 0, 21, 0x163DE3C8u),
+         new("enchanter_warding_step", "top", "Warding Step", "WARDINGSTEP", CipherTarget.Self, CipherVerb.Ward | CipherVerb.Move, 6, 2, 11, 0, 33, 0x52C88AA0u),

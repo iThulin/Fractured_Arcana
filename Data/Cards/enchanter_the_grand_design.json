@@ -1,11 +1,11 @@
 {
 	"id": "enchanter_the_grand_design",
 	"status": "ready",
-	"name": "The Grand Design",
+	"name": "The Architecture",
 	"school": "Enchanter",
 	"rarity": "Legendary",
 	"top": {
-		"name": "The Grand Design",
+		"name": "The Architecture",
 		"mana": 4,
 		"speed": "Studied",
 		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and all your glyphs trigger twice.",
@@ -45,7 +45,7 @@
 		{
 			"tier": 1,
 			"half": "both",
-			"top_name": "The Grand Design+",
+			"top_name": "The Architecture+",
 			"bottom_name": "Absolute Territory+",
 			"description": "Cheaper glyphs. A harsher zone.",
 			"changes": [
@@ -74,8 +74,8 @@
 		{
 			"tier": 2,
 			"half": "top",
-			"top_name": "The Greater Design",
-			"description": "The Greater Design: each prepare also banks Weave.",
+			"top_name": "The Greater Architecture",
+			"description": "The Greater Architecture: each prepare also banks Weave.",
 			"changes": [
 				{
 					"half": "top",
@@ -110,8 +110,8 @@
 		{
 			"tier": 3,
 			"half": "top",
-			"top_name": "The Master Design",
-			"description": "The Master Design: glyphs spread to radius 2.",
+			"top_name": "The Master Architecture",
+			"description": "The Master Architecture: glyphs spread to radius 2.",
 			"changes": [
 				{
 					"half": "top",

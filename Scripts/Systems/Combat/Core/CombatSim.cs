@@ -50,6 +50,7 @@ public static class CombatSim
         Active = true;
         _hits.Clear();
         _removedStatuses.Clear();
+        ElementReactions.ResetSim();   // reaction predictions for this preview run
         _state = s;
         _savedLastDamageDealt = s?.LastDamageDealt ?? 0;
     }

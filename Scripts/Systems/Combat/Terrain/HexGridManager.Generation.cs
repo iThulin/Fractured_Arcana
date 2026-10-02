@@ -842,7 +842,16 @@ public partial class HexGridManager
             return false;
         }
         string what = tile.ObstacleKind.Replace('_', ' ');
+        bool glacier = tile.ObstacleKind == ElementReactions.GlacierObstacleKind;
         ClearObstacle(tile);
+        if (glacier)
+        {
+            // An element-reaction Glacier melts to Frost instead of leaving rubble.
+            ElementReactions.OnGlacierBroken(tile);
+            RefreshObstacleVisuals();
+            log?.Invoke($"The glacier at {tile.Axial} shatters into frost.");
+            return true;
+        }
         tile.ApplyTerrainModifier("rubble");
         tile.ObstacleKind = "rubble";
         tile.TileView?.SetTerrainScar("rubble");

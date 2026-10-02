@@ -380,9 +380,12 @@ public static partial class CardScriptRegistry
             return new ImbueAreaEffect(element, radius).WithTag("Terrain");
         });
 
-        // Imbue all tiles randomly: { "type": "imbue_all_tiles_random" }
+        // Imbue all tiles opposed: { "type": "imbue_all_tiles_opposed" }
+        // (deterministic Ragnarok, 2026-10-02). The old random key stays as an alias.
+        RegisterEffect("imbue_all_tiles_opposed", _ =>
+            new ImbueAllTilesOpposedEffect().WithTag("Terrain"));
         RegisterEffect("imbue_all_tiles_random", _ =>
-            new ImbueAllTilesRandomEffect().WithTag("Terrain"));
+            new ImbueAllTilesOpposedEffect().WithTag("Terrain"));
 
         // Place glyph: { "type": "place_glyph", "damage": n, "status": "slowed", "duration": n }
         RegisterEffect("place_glyph", n =>

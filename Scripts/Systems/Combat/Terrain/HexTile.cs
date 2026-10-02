@@ -96,6 +96,8 @@ public partial class HexTile : Node3D
     // Growth mechaniscs for duid
     private int _growthStage = 0;
     private Label3D _growthLabel;
+    private Label3D _reactionLabel;          // element reaction standing on the tile
+    private Label3D _reactionPreviewLabel;   // reaction a dragged card would cause
 
     /// <summary>Axial (q, r) coordinate identifying this tile's grid position.</summary>
     public Vector2I Axial { get; set; }
@@ -875,6 +877,80 @@ public partial class HexTile : Node3D
             _growthLabel.FontSize = fontSize;
             _growthLabel.Modulate = tint;
         }
+    }
+
+    /// <summary>
+    /// Shows the element reaction standing on this tile (class_identity_elementalist_v1
+    /// §2a item 2) as a floating name plus rounds left, tinted by
+    /// <see cref="ElementColors.Reaction"/>. Plain letters on purpose: the Label3D font
+    /// carries no symbol glyphs. A placeholder until each reaction has a sculpted form.
+    /// Pass <see cref="ElementReaction.None"/> to clear.
+    /// </summary>
+    public void SetReaction(ElementReaction reaction, int rounds)
+    {
+        if (reaction == ElementReaction.None)
+        {
+            if (_reactionLabel != null)
+                _reactionLabel.Visible = false;
+            return;
+        }
+
+        string text = ElementReactions.DisplayName(reaction).ToUpperInvariant()
+                    + (rounds > 0 ? $" {rounds}" : "");
+
+        if (_reactionLabel == null)
+        {
+            _reactionLabel = new Label3D
+            {
+                Name = "ReactionIndicator",
+                FontSize = UITheme.Label3DSmall,
+                OutlineSize = UITheme.Label3DOutlineSize,
+                OutlineModulate = UITheme.Label3DOutline,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Position = new Vector3(0f, 1.05f, 0f),
+            };
+            CallDeferred("add_child", _reactionLabel);
+        }
+
+        _reactionLabel.Text = text;
+        _reactionLabel.Modulate = ElementColors.Reaction(reaction);
+        _reactionLabel.Visible = true;
+    }
+
+    /// <summary>
+    /// Cast-preview marker: the reaction this tile WOULD form if the dragged card
+    /// resolved (class_identity_elementalist_v1 §2a item 1). Sits above the live
+    /// reaction label and reads as a prediction ("WILL FORM ..."). Pass
+    /// <see cref="ElementReaction.None"/> to clear.
+    /// </summary>
+    public void SetReactionPreview(ElementReaction reaction)
+    {
+        if (reaction == ElementReaction.None)
+        {
+            if (_reactionPreviewLabel != null)
+                _reactionPreviewLabel.Visible = false;
+            return;
+        }
+
+        if (_reactionPreviewLabel == null)
+        {
+            _reactionPreviewLabel = new Label3D
+            {
+                Name = "ReactionPreview",
+                FontSize = UITheme.Label3DSmall,
+                OutlineSize = UITheme.Label3DOutlineSize,
+                OutlineModulate = UITheme.Label3DOutline,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Position = new Vector3(0f, 1.35f, 0f),
+            };
+            CallDeferred("add_child", _reactionPreviewLabel);
+        }
+
+        _reactionPreviewLabel.Text = "WILL FORM " + ElementReactions.DisplayName(reaction).ToUpperInvariant();
+        _reactionPreviewLabel.Modulate = ElementColors.Reaction(reaction);
+        _reactionPreviewLabel.Visible = true;
     }
 
     /// <summary>

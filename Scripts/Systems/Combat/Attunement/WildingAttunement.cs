@@ -28,7 +28,7 @@ using System;
 public enum WildingTier
 {
     Still,      // 0: dormant, no bonus
-    Stirring,   // 1: living terrain spreads faster
+    Stirring,   // 1: Saplings spread too (deterministic growth)
     Spreading,  // 2: owner heals while on/adjacent to their own living terrain
     Rampant,    // 3: enemies on the owner's growth are rooted on the tick
     Riot        // 4: burst, all owned growth advances a stage + wildlife, then reset to 0
@@ -44,7 +44,6 @@ public class WildingAttunement : ISchoolAttunement
     public const int RiotThreshold = 4;
 
     // ── Tier-passive tuning (read by GrowthManager / upkeep) ─────────
-    public const float StirringSpreadBonus = 0.15f;  // +flat spread chance at Stirring+
     public const int SpreadingHealPerTurn = 2;      // HP/turn at Spreading+ (applied at owner upkeep)
     public const int RampantRootDuration = 1;      // turns rooted at Rampant+
 
@@ -100,8 +99,10 @@ public class WildingAttunement : ISchoolAttunement
     // ── Tier queries (single source of truth for GrowthManager/UI) ────
     public WildingTier CurrentTier => (WildingTier)Mathf.Clamp(Charges, 0, (int)WildingTier.Riot);
 
-    /// <summary>Flat bonus added to spread chance once the owner reaches Stirring.</summary>
-    public float SpreadBonus => Charges >= (int)WildingTier.Stirring ? StirringSpreadBonus : 0f;
+    /// <summary>True once the owner reaches Stirring: their Saplings spread too
+    /// (deterministic growth, class_identity_druid_v1 §2a; replaces the old flat
+    /// spread-chance bonus).</summary>
+    public bool SaplingsSpread => Charges >= (int)WildingTier.Stirring;
 
     /// <summary>True once the owner heals from standing on/adjacent to their living terrain.</summary>
     public bool HealsOwner => Charges >= (int)WildingTier.Spreading;

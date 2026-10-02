@@ -508,6 +508,20 @@
       "label": "Hull Plate",
       "hp": 0,
       "note": "Riveted hull wall where the deck meets the body. Blocks sight, cannot be broken."
+    },
+    {
+      "kind": "glacier",
+      "role": "high",
+      "silhouette": "mass",
+      "material": "ice",
+      "color": [
+        0.7,
+        0.84,
+        0.95
+      ],
+      "label": "Glacier",
+      "hp": 8,
+      "note": "Element reaction (Frost meets Earth). Raised and melted at runtime by ElementReactions; breaking it leaves Frost, not rubble."
     }
   ]
 }

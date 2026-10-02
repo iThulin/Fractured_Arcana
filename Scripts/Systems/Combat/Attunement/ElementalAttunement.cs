@@ -76,6 +76,36 @@ public class ElementalAttunement : ISchoolAttunement
 	public const int MaxCharges = 4;
 	public const int BurstThreshold = 4;
 
+	/// <summary>Fixed tie order for every "your highest element" read (shown in
+	/// tooltips): Fire, then Ice, then Storm, then Earth.</summary>
+	public static readonly ElementTag[] TieOrder =
+		{ ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth };
+
+	/// <summary>Element of the most recent element-tagged cast; null before any.
+	/// Read by Avatar of Elements (class_identity_elementalist_v1 §4: no random
+	/// element picks).</summary>
+	public ElementTag? LastCastElement { get; private set; }
+
+	/// <summary>The element holding the most attunement, ties broken by
+	/// <see cref="TieOrder"/>. With every counter at 0 it falls back to the last
+	/// cast element, then Fire.</summary>
+	public ElementTag HighestElement()
+	{
+		ElementTag best = ElementTag.Fire;
+		int bestValue = -1;
+		foreach (var e in TieOrder)
+		{
+			if (Charges[e] > bestValue)
+			{
+				best = e;
+				bestValue = Charges[e];
+			}
+		}
+		if (bestValue <= 0 && LastCastElement.HasValue)
+			return LastCastElement.Value;
+		return best;
+	}
+
 	// ── Crucible of Storms doctrines (campus_building_upgrades_design_v1 §8d).
 	// Set at combat start by SchoolSeats.ApplyCombatStart; defaults are the
 	// school as it has always played. ──────────────────────────────────────
@@ -112,6 +142,7 @@ public class ElementalAttunement : ISchoolAttunement
 	{
 		foreach (var key in new[] { ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth })
 			Charges[key] = 0;
+		LastCastElement = null;
 	}
 
 	/// <summary>
@@ -141,6 +172,8 @@ public class ElementalAttunement : ISchoolAttunement
 		foreach (var tagStr in tags)
 		{
 			if (!TryParseTag(tagStr, out var element)) continue;
+
+			LastCastElement = element;
 
 			if (Monoelement)
 				ClearOthers(element);

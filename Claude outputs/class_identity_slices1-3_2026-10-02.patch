@@ -1,0 +1,1924 @@
+diff --git a/Data/Cards/adept_rote_glyph.json b/Data/Cards/adept_rote_glyph.json
+index 3997fff..ee0dd49 100644
+--- a/Data/Cards/adept_rote_glyph.json
++++ b/Data/Cards/adept_rote_glyph.json
+@@ -1,27 +1,34 @@
+ {
+ 	"id": "adept_rote_glyph",
+ 	"status": "ready",
+-	"name": "Rote Glyph",
++	"name": "Rote Bolt",
+ 	"school": "Adept",
+ 	"rarity": "Uncommon",
+ 	"top": {
+-		"name": "Rote Glyph",
++		"name": "Rote Bolt",
+ 		"mana": 1,
+ 		"speed": "Reflex",
+-		"rules_text": "Place a glyph on target empty tile within 3. The first enemy to enter triggers it: deal 3 damage and it is Slowed for 1 turn.",
++		"rules_text": "Deal 3 damage. The target is Slowed for 1 turn.",
+ 		"tags": [],
+-		"requires": [
+-			"empty_tile"
+-		],
+ 		"targeting": {
+-			"type": "empty_tile",
+-			"range": 3
++			"type": "unit",
++			"range": 4,
++			"los": true,
++			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "place_glyph",
+-			"damage": 3,
+-			"status": "slowed",
+-			"duration": 1
++			"type": "sequence",
++			"steps": [
++				{
++					"type": "damage",
++					"amount": 3
++				},
++				{
++					"type": "apply_status",
++					"status": "slowed",
++					"duration": 1
++				}
++			]
+ 		}
+ 	},
+ 	"bottom": {
+@@ -52,16 +59,24 @@
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 4,
+-						"status": "slowed",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 4
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 3: the first enemy to enter takes 4 damage and is Slowed for 1 turn."
++					"value": "Deal 4 damage. The target is Slowed for 1 turn."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -78,7 +93,7 @@
+ 					"value": "Mark target enemy. The next spell that hits them deals 4 bonus damage."
+ 				}
+ 			],
+-			"top_name": "Rote Glyph+",
++			"top_name": "Rote Bolt+",
+ 			"bottom_name": "Chalk Mark+"
+ 		},
+ 		{
+@@ -90,27 +105,37 @@
+ 					"half": "top",
+ 					"field": "targeting",
+ 					"value": {
+-						"type": "empty_tile",
+-						"range": 4
++						"type": "unit",
++						"range": 5,
++						"los": true,
++						"enemies_only": true
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 5,
+-						"status": "slowed",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 5
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 4: 5 damage and Slowed for 1 turn."
++					"value": "Deal 5 damage (range 5). The target is Slowed for 1 turn."
+ 				}
+ 			],
+-			"top_name": "Practiced Glyph"
++			"top_name": "Practiced Bolt"
+ 		},
+ 		{
+ 			"tier": 2,
+@@ -134,19 +159,27 @@
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 6,
+-						"status": "rooted",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 6
++							},
++							{
++								"type": "apply_status",
++								"status": "weakened",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 4: 6 damage and Rooted for 1 turn."
++					"value": "Deal 6 damage (range 5). The target is Weakened for 1 turn."
+ 				}
+ 			],
+-			"top_name": "Binding Rote"
++			"top_name": "Pinning Rote"
+ 		},
+ 		{
+ 			"tier": 4,
+@@ -157,16 +190,24 @@
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "place_glyph",
+-						"damage": 8,
+-						"status": "stunned",
+-						"duration": 1
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "damage",
++								"amount": 8
++							},
++							{
++								"type": "apply_status",
++								"status": "stunned",
++								"duration": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Place a Glyph within 4: 8 damage and Stunned for 1 turn."
++					"value": "Deal 8 damage (range 5). The target is Stunned for 1 turn."
+ 				}
+ 			],
+ 			"top_name": "Rote Perfected"
+diff --git a/Data/Cards/arcanist_warding_glyph.json b/Data/Cards/arcanist_warding_glyph.json
+index 43f4693..1301a10 100644
+--- a/Data/Cards/arcanist_warding_glyph.json
++++ b/Data/Cards/arcanist_warding_glyph.json
+@@ -1,11 +1,11 @@
+ {
+   "id": "arcanist_warding_glyph",
+   "status": "ready",
+-  "name": "Warding Glyph",
++  "name": "Warding Theorem",
+   "school": "Arcanist",
+   "rarity": "Common",
+   "top": {
+-    "name": "Warding Glyph",
++    "name": "Warding Theorem",
+     "mana": 1,
+     "speed": "Reflex",
+     "rules_text": "Gain 4 shield. Gain 1 Charge.",
+@@ -68,9 +68,9 @@
+     {
+       "tier": 1,
+       "half": "both",
+-      "top_name": "Warding Glyph+",
++      "top_name": "Warding Theorem+",
+       "bottom_name": "Arcane Bolt+",
+-      "description": "Glyph wards harder. Bolt hits harder.",
++      "description": "The theorem wards harder. Bolt hits harder.",
+       "changes": [
+         {
+           "half": "top",
+@@ -97,8 +97,8 @@
+     {
+       "tier": 2,
+       "half": "top",
+-      "top_name": "Mirror Glyph",
+-      "description": "Mirror Glyph: convert shield to armor at end of turn instead of losing it.",
++      "top_name": "Mirror Theorem",
++      "description": "Mirror Theorem: convert shield to armor at end of turn instead of losing it.",
+       "changes": [
+         {
+           "half": "top",
+@@ -133,8 +133,8 @@
+     {
+       "tier": 3,
+       "half": "top",
+-      "top_name": "Aegis Glyph",
+-      "description": "Aegis Glyph: also wards the nearest ally.",
++      "top_name": "Aegis Theorem",
++      "description": "Aegis Theorem: also wards the nearest ally.",
+       "changes": [
+         {
+           "half": "top",
+diff --git a/Data/Cards/elementalist_avatar_of_elements.json b/Data/Cards/elementalist_avatar_of_elements.json
+index d8eaf6c..954ce06 100644
+--- a/Data/Cards/elementalist_avatar_of_elements.json
++++ b/Data/Cards/elementalist_avatar_of_elements.json
+@@ -8,7 +8,7 @@
+ 		"name": "Avatar of Elements",
+ 		"mana": 4,
+ 		"speed": "Reflex",
+-		"rules_text": "Transform for 3 turns: gain 7 armor, spells deal +3 damage and imbue target with random element. Leave elemental trails when moving.",
++		"rules_text": "Transform for 3 turns: gain 7 armor, spells deal +3 damage and imbue the target with the element you last cast. Leave elemental trails when moving.",
+ 		"tags": [
+ 			"fire",
+ 			"ice",
+@@ -69,7 +69,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Transform for 4 turns: gain 9 armor, spells deal +3 damage and imbue with random element."
++					"value": "Transform for 4 turns: gain 9 armor, spells deal +3 damage and imbue with the element you last cast."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -138,7 +138,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Transform 4 turns: 9 armor, +5 damage on all spells. Each cast imbues random element. Attunement on imbue."
++					"value": "Transform 4 turns: 9 armor, +5 damage on all spells. Each cast imbues the element you last cast. Attunement on imbue."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/elementalist_primordial_surge.json b/Data/Cards/elementalist_primordial_surge.json
+index c564b57..8dd02b6 100644
+--- a/Data/Cards/elementalist_primordial_surge.json
++++ b/Data/Cards/elementalist_primordial_surge.json
+@@ -8,7 +8,7 @@
+ 		"name": "Primordial Surge",
+ 		"mana": 4,
+ 		"speed": "Studied",
+-		"rules_text": "Imbue all tiles in radius 4 with a random element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
++		"rules_text": "Imbue all tiles in radius 4 in element rings, starting from your highest element. Deal 4 damage to every enemy for each unique element they are adjacent to.",
+ 		"tags": [
+ 			"fire",
+ 			"ice",
+@@ -61,7 +61,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 4 randomly. Deal 5 damage per adjacent unique element."
++					"value": "Imbue all tiles in radius 4 in element rings. Deal 5 damage per adjacent unique element."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -89,7 +89,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent unique element."
++					"value": "Imbue all tiles in radius 5 in element rings. Deal 5 damage per adjacent unique element."
+ 				}
+ 			]
+ 		},
+@@ -130,7 +130,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 5 randomly. Deal 5 damage per adjacent element. Enemies adjacent to 3+ elements are Stunned."
++					"value": "Imbue all tiles in radius 5 in element rings. Deal 5 damage per adjacent element. Enemies adjacent to 3+ elements are Stunned."
+ 				}
+ 			]
+ 		},
+@@ -191,7 +191,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Imbue all tiles in radius 6 randomly. Deal 7 damage per adjacent element. Enemies adjacent to 2+ elements are Stunned."
++					"value": "Imbue all tiles in radius 6 in element rings. Deal 7 damage per adjacent element. Enemies adjacent to 2+ elements are Stunned."
+ 				}
+ 			]
+ 		},
+@@ -224,7 +224,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Remove imbues in radius 6, deal 4 per tile, draw 1 card per 2. Then immediately imbue all cleared tiles randomly, dealing 3 per adjacent element."
++					"value": "Remove imbues in radius 6, deal 4 per tile, draw 1 card per 2. Then immediately re-imbue all cleared tiles in element rings, dealing 3 per adjacent element."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/elementalist_ragnarok.json b/Data/Cards/elementalist_ragnarok.json
+index cc8b342..3c0918b 100644
+--- a/Data/Cards/elementalist_ragnarok.json
++++ b/Data/Cards/elementalist_ragnarok.json
+@@ -8,7 +8,7 @@
+ 		"name": "Ragnarok",
+ 		"mana": 5,
+ 		"speed": "Studied",
+-		"rules_text": "Deal 12 damage to all enemies. Imbue all tiles on the board with a random element.",
++		"rules_text": "Deal 12 damage to all enemies. Turn every tile to its opposed element (empty tiles take your highest element).",
+ 		"tags": [
+ 			"fire",
+ 			"ice",
+@@ -34,7 +34,7 @@
+ 					}
+ 				},
+ 				{
+-					"type": "imbue_all_tiles_random"
++					"type": "imbue_all_tiles_opposed"
+ 				}
+ 			]
+ 		}
+@@ -88,7 +88,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 14 damage to all enemies. Imbue all tiles randomly."
++					"value": "Deal 14 damage to all enemies. Turn every tile to its opposed element."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -142,7 +142,7 @@
+ 								}
+ 							},
+ 							{
+-								"type": "imbue_all_tiles_random"
++								"type": "imbue_all_tiles_opposed"
+ 							}
+ 						]
+ 					}
+@@ -150,7 +150,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 14 damage to all enemies. They are Burned for 2 turns. Imbue all tiles randomly."
++					"value": "Deal 14 damage to all enemies. They are Burned for 2 turns. Turn every tile to its opposed element."
+ 				}
+ 			]
+ 		},
+@@ -232,7 +232,7 @@
+ 								}
+ 							},
+ 							{
+-								"type": "imbue_all_tiles_random"
++								"type": "imbue_all_tiles_opposed"
+ 							}
+ 						]
+ 					}
+@@ -240,7 +240,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 16 damage to all enemies. Burned for 2 turns. Stunned for 1 turn. Imbue all tiles randomly."
++					"value": "Deal 16 damage to all enemies. Burned for 2 turns. Stunned for 1 turn. Turn every tile to its opposed element."
+ 				}
+ 			]
+ 		},
+@@ -334,7 +334,7 @@
+ 								}
+ 							},
+ 							{
+-								"type": "imbue_all_tiles_random"
++								"type": "imbue_all_tiles_opposed"
+ 							},
+ 							{
+ 								"type": "draw",
+@@ -346,7 +346,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Deal 18 damage to all enemies. Burned for 3 turns. Stunned for 2 turns. Imbue all tiles randomly. Draw 2 cards."
++					"value": "Deal 18 damage to all enemies. Burned for 3 turns. Stunned for 2 turns. Turn every tile to its opposed element. Draw 2 cards."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_the_grand_design.json b/Data/Cards/enchanter_the_grand_design.json
+index 93b517d..9db4dc7 100644
+--- a/Data/Cards/enchanter_the_grand_design.json
++++ b/Data/Cards/enchanter_the_grand_design.json
+@@ -1,11 +1,11 @@
+ {
+ 	"id": "enchanter_the_grand_design",
+ 	"status": "ready",
+-	"name": "The Grand Design",
++	"name": "The Architecture",
+ 	"school": "Enchanter",
+ 	"rarity": "Legendary",
+ 	"top": {
+-		"name": "The Grand Design",
++		"name": "The Architecture",
+ 		"mana": 4,
+ 		"speed": "Studied",
+ 		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and all your glyphs trigger twice.",
+@@ -45,7 +45,7 @@
+ 		{
+ 			"tier": 1,
+ 			"half": "both",
+-			"top_name": "The Grand Design+",
++			"top_name": "The Architecture+",
+ 			"bottom_name": "Absolute Territory+",
+ 			"description": "Cheaper glyphs. A harsher zone.",
+ 			"changes": [
+@@ -74,8 +74,8 @@
+ 		{
+ 			"tier": 2,
+ 			"half": "top",
+-			"top_name": "The Greater Design",
+-			"description": "The Greater Design: each prepare also banks Weave.",
++			"top_name": "The Greater Architecture",
++			"description": "The Greater Architecture: each prepare also banks Weave.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+@@ -110,8 +110,8 @@
+ 		{
+ 			"tier": 3,
+ 			"half": "top",
+-			"top_name": "The Master Design",
+-			"description": "The Master Design: glyphs spread to radius 2.",
++			"top_name": "The Master Architecture",
++			"description": "The Master Architecture: glyphs spread to radius 2.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+diff --git a/Data/Obstacles/obstacle_catalog.json b/Data/Obstacles/obstacle_catalog.json
+index 24bd16f..80f199e 100644
+--- a/Data/Obstacles/obstacle_catalog.json
++++ b/Data/Obstacles/obstacle_catalog.json
+@@ -508,6 +508,20 @@
+       "label": "Hull Plate",
+       "hp": 0,
+       "note": "Riveted hull wall where the deck meets the body. Blocks sight, cannot be broken."
++    },
++    {
++      "kind": "glacier",
++      "role": "high",
++      "silhouette": "mass",
++      "material": "ice",
++      "color": [
++        0.7,
++        0.84,
++        0.95
++      ],
++      "label": "Glacier",
++      "hp": 8,
++      "note": "Element reaction (Frost meets Earth). Raised and melted at runtime by ElementReactions; breaking it leaves Frost, not rubble."
+     }
+   ]
+ }
+diff --git a/Schemas/card.schema.json b/Schemas/card.schema.json
+index ee00584..2707798 100644
+--- a/Schemas/card.schema.json
++++ b/Schemas/card.schema.json
+@@ -308,6 +308,7 @@
+ 						"primordial_surge",
+ 						"cataclysm",
+ 						"ragnarok",
++						"imbue_all_tiles_opposed",
+ 						"avatar_transform",
+ 						"create_maelstrom",
+ 						"create_rubble",
+@@ -373,7 +374,6 @@
+ 						"conduit_singularity",
+ 						"etch_ward",
+ 						"redirector_field",
+-						"place_trap",
+ 						"construct_volley",
+ 						"damage_per_construct",
+ 						"enhance_construct",
+diff --git a/Scripts/Cards/Effects/CompositeEffects.cs b/Scripts/Cards/Effects/CompositeEffects.cs
+index da03422..73d9521 100644
+--- a/Scripts/Cards/Effects/CompositeEffects.cs
++++ b/Scripts/Cards/Effects/CompositeEffects.cs
+@@ -492,11 +492,7 @@ public sealed class ImbuePathEffect : EffectBase
+         {
+             if (leftTile == null)
+                 return;
+-            leftTile.ElementType = elementType;
+-            leftTile.ElementStrength = 1.0f;
+-            if (Element.ToLowerInvariant() == "fire")
+-                leftTile.IsHazardous = true;
+-            leftTile.TileView?.SetElement(elementType);
++            ElementReactions.Imbue(leftTile, elementType, 1.0f, casterUnit);
+             tilesImbued++;
+             s.Log($"[ImbuePath] {leftTile.Axial} imbued with {Element}.");
+         };
+@@ -510,9 +506,7 @@ public sealed class ImbuePathEffect : EffectBase
+         // Also imbue the starting tile
+         if (casterUnit.CurrentTile != null)
+         {
+-            casterUnit.CurrentTile.ElementType = elementType;
+-            casterUnit.CurrentTile.ElementStrength = 1.0f;
+-            casterUnit.CurrentTile.TileView?.SetElement(elementType);
++            ElementReactions.Imbue(casterUnit.CurrentTile, elementType, 1.0f, casterUnit);
+             tilesImbued++;
+         }
+ 
+@@ -578,11 +572,7 @@ public sealed class ImbueAreaEffect : EffectBase
+             if (tile == null)
+                 continue;
+ 
+-            tile.ElementType = elementType;
+-            tile.ElementStrength = 1.0f;
+-            if (elementType == TileElementType.Fire)
+-                tile.IsHazardous = true;
+-            tile.TileView?.SetElement(elementType);
++            ElementReactions.Imbue(tile, elementType, 1.0f, casterUnit);
+             imbued++;
+         }
+ 
+diff --git a/Scripts/Cards/Effects/Effect.cs b/Scripts/Cards/Effects/Effect.cs
+index 1fddeea..0477c21 100644
+--- a/Scripts/Cards/Effects/Effect.cs
++++ b/Scripts/Cards/Effects/Effect.cs
+@@ -1358,20 +1358,12 @@ public sealed class ImbueTileEffect : EffectBase
+ 			if (tile == null)
+ 				continue;
+ 
+-			// R22 sim gate: the preview must not really imbue the tile, but the
+-			// imbue's immediate tick damage below still runs (ApplyDamage is
+-			// itself gated, so the tick lands in the sim ledger).
+-			if (!CombatSim.Active)
+-			{
+-				tile.ElementType = elementType;
+-				tile.ElementStrength = 1.0f;
+-
+-				if (elementType == TileElementType.Fire)
+-					tile.IsHazardous = true;
+-
+-				// Use the existing visual system to update the tile
+-				tile.TileView?.SetElement(elementType);
+-			}
++			// R22 sim gate lives inside ElementReactions.Imbue: in a preview it records
++			// the predicted reaction and mutates nothing, while the imbue's immediate
++			// tick damage below still runs (ApplyDamage is itself gated, so the tick
++			// lands in the sim ledger). A different reactive element already on the
++			// tile reacts instead of being overwritten (class_identity_elementalist_v1 §2).
++			ElementReactions.Imbue(tile, elementType, 1.0f, FindCasterUnit(s, caster));
+ 
+ 			s.Log($"[ImbueTile] {tile.Axial} imbued with {Element} ({elementType}).");
+ 
+@@ -1392,45 +1384,47 @@ public sealed class ImbueTileEffect : EffectBase
+ 	}
+ }
+ 
+-// ── Imbue All Tiles Random Effect ─────────────────────────────────────────────────────────
++// ── Imbue All Tiles Opposed Effect ─────────────────────────────────────────────────────────
+ 
+ /// <summary>
+-/// Imbues every tile on the board with a random element. No radius restriction,
+-/// since this is a board-wide effect. Used by Ragnarok and similar capstone cards.
+-/// JSON key: "type": "imbue_all_tiles_random". No parameters.
++/// Turns every tile on the board to the element opposed to the one it holds
++/// (Fire and Frost swap, Storm and Earth swap). Tiles with no element, or an
++/// element with no opposite, take the caster's highest-attunement element.
++/// Deterministic replacement for the old random board imbue
++/// (class_identity_elementalist_v1 §4, ruled 2026-10-02). Used by Ragnarok.
++/// JSON key: "type": "imbue_all_tiles_opposed" ("imbue_all_tiles_random" is
++/// kept as an alias so old data still loads). No parameters.
+ /// </summary>
+-public sealed class ImbueAllTilesRandomEffect : EffectBase
++public sealed class ImbueAllTilesOpposedEffect : EffectBase
+ {
+-	private static readonly TileElementType[] Elements =
+-	{
+-		TileElementType.Fire, TileElementType.Frost,
+-		TileElementType.Lightning, TileElementType.Earth
+-	};
+-
+-	private static readonly Random _rng = new();
+-
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		if (s?.Grid == null)
+ 			return;
+ 
+-		int imbued = 0;
++		var fallback = ElementPick.Highest(FindCasterUnit(s, caster));
++
++		int flipped = 0, filled = 0;
+ 		foreach (var kvp in s.Grid.Tiles)
+ 		{
+ 			var tile = kvp.Value;
+ 			if (tile == null)
+ 				continue;
+ 
+-			var element = Elements[_rng.Next(Elements.Length)];
+-			tile.ElementType = element;
+-			tile.ElementStrength = 1.0f;
+-			if (element == TileElementType.Fire)
+-				tile.IsHazardous = true;
+-			tile.TileView?.SetElement(element);
+-			imbued++;
++			var opposed = ElementPick.Opposed(tile.ElementType);
++			if (opposed != TileElementType.None)
++			{
++				ElementPick.Imbue(tile, opposed);
++				flipped++;
++			}
++			else
++			{
++				ElementPick.Imbue(tile, fallback);
++				filled++;
++			}
+ 		}
+ 
+-		s.Log($"[ImbueAllTilesRandom] Imbued {imbued} tiles with random elements.");
++		s.Log($"[ImbueAllTilesOpposed] {flipped} tiles turned to their opposed element, {filled} took {fallback}.");
+ 	}
+ }
+ 
+@@ -1641,9 +1635,7 @@ public sealed class SummonEffect : EffectBase
+ 		// the board.
+ 		if (CombatSim.Active) return;
+ 
+-		tile.ElementType = element;
+-		tile.ElementStrength = 1.0f;
+-		tile.TileView?.SetElement(element);
++		ElementReactions.Imbue(tile, element);
+ 
+ 		s.Log($"[Summon] {tile.Axial} imbued with {element} by {kind}.");
+ 	}
+@@ -1840,9 +1832,8 @@ public sealed class RaiseTerrainEffect : EffectBase
+ 			tile.Height += HeightIncrease;
+ 			tile.TileView?.SetHeight(tile.Height);
+ 
+-			// Imbue with earth and create rubble
+-			tile.ElementType = TileElementType.Earth;
+-			tile.ElementStrength = 1.0f;
++			// Imbue with earth and create rubble (Earth reacts with what is already there)
++			ElementReactions.Imbue(tile, TileElementType.Earth, 1.0f, FindCasterUnit(s, caster));
+ 			tile.ApplyTerrainModifier("rubble");
+ 			s.Grid.ApplyVisualToTile(tile);
+ 
+diff --git a/Scripts/Cards/Effects/ElementalistEffects.cs b/Scripts/Cards/Effects/ElementalistEffects.cs
+index 76ac748..f472739 100644
+--- a/Scripts/Cards/Effects/ElementalistEffects.cs
++++ b/Scripts/Cards/Effects/ElementalistEffects.cs
+@@ -16,17 +16,71 @@ using System.Linq;
+ //                 PersistentEffect.cs. A pure move, no behavior change.
+ // ============================================================
+ 
+-/// <summary>Elementalist capstone. Randomly imbues every tile within radius around the caster, then damages each enemy by <c>uniqueElementsAdjacent × Damage</c>.</summary>
+-public sealed class PrimordialSurgeEffect : EffectBase
++/// <summary>
++/// Deterministic element choices (class_identity_elementalist_v1 §4, ruled
++/// 2026-10-02: no random element picks). Every effect that used to roll an
++/// element reads one of these instead, so the player can plan the board.
++/// </summary>
++internal static class ElementPick
+ {
+-    public int Radius;
+-    public int Damage;
+-    private static readonly TileElementType[] Elements =
++    /// <summary>The four Elementalist tile elements in tie order (Fire, Ice, Storm, Earth).</summary>
++    public static readonly TileElementType[] Cycle =
+     {
+         TileElementType.Fire, TileElementType.Frost,
+         TileElementType.Lightning, TileElementType.Earth
+     };
+-    private static readonly Random _rng = new();
++
++    public static TileElementType ToTile(ElementTag e) => e switch
++    {
++        ElementTag.Fire => TileElementType.Fire,
++        ElementTag.Ice => TileElementType.Frost,
++        ElementTag.Storm => TileElementType.Lightning,
++        ElementTag.Earth => TileElementType.Earth,
++        _ => TileElementType.Fire
++    };
++
++    /// <summary>The caster's highest-attunement element; Fire for a caster with no Elemental attunement.</summary>
++    public static TileElementType Highest(Unit caster)
++        => caster?.Attunement is ElementalAttunement a ? ToTile(a.HighestElement()) : TileElementType.Fire;
++
++    /// <summary>The element the caster cast most recently, else their highest.</summary>
++    public static TileElementType LastCast(Unit caster)
++        => caster?.Attunement is ElementalAttunement a && a.LastCastElement.HasValue
++            ? ToTile(a.LastCastElement.Value)
++            : Highest(caster);
++
++    /// <summary>Fire and Frost oppose; Storm and Earth oppose. Anything else has no opposite (None).</summary>
++    public static TileElementType Opposed(TileElementType t) => t switch
++    {
++        TileElementType.Fire => TileElementType.Frost,
++        TileElementType.Frost => TileElementType.Fire,
++        TileElementType.Lightning => TileElementType.Earth,
++        TileElementType.Earth => TileElementType.Lightning,
++        _ => TileElementType.None
++    };
++
++    /// <summary>Concentric rings: ring 0 takes <paramref name="start"/>, each ring
++    /// outward takes the next element in <see cref="Cycle"/>. Keeps the "many
++    /// elements side by side" payoff of the old random scatter, deterministically.</summary>
++    public static TileElementType Ring(TileElementType start, int ring)
++    {
++        int i = Array.IndexOf(Cycle, start);
++        if (i < 0)
++            i = 0;
++        return Cycle[(i + Math.Max(0, ring)) % Cycle.Length];
++    }
++
++    /// <summary>Imbues an element through the reaction-aware write path
++    /// (<see cref="ElementReactions.Imbue"/>).</summary>
++    public static void Imbue(TileData tile, TileElementType element, Unit source = null)
++        => ElementReactions.Imbue(tile, element, 1.0f, source);
++}
++
++/// <summary>Elementalist capstone. Imbues every tile within radius in concentric element rings (starting from the caster's highest element), then damages each enemy by <c>uniqueElementsAdjacent × Damage</c>.</summary>
++public sealed class PrimordialSurgeEffect : EffectBase
++{
++    public int Radius;
++    public int Damage;
+ 
+     public PrimordialSurgeEffect(int radius = 4, int damage = 4) { Radius = radius; Damage = damage; }
+ 
+@@ -40,6 +94,7 @@ public sealed class PrimordialSurgeEffect : EffectBase
+ 
+         var center = casterUnit.CurrentTile.Axial;
+         var reach = s.Grid.BurstReach(center, Radius);   // walls stop the surge
++        var start = ElementPick.Highest(casterUnit);
+ 
+         // Imbue tiles the surge reaches
+         int imbued = 0;
+@@ -49,16 +104,11 @@ public sealed class PrimordialSurgeEffect : EffectBase
+             if (tile == null)
+                 continue;
+ 
+-            var element = Elements[_rng.Next(Elements.Length)];
+-            tile.ElementType = element;
+-            tile.ElementStrength = 1.0f;
+-            if (element == TileElementType.Fire)
+-                tile.IsHazardous = true;
+-            tile.TileView?.SetElement(element);
++            ElementPick.Imbue(tile, ElementPick.Ring(start, s.Grid.Distance(center, coord)), casterUnit);
+             imbued++;
+         }
+ 
+-        s.Log($"[PrimordialSurge] Imbued {imbued} tiles within {Radius} range.");
++        s.Log($"[PrimordialSurge] Imbued {imbued} tiles within {Radius} range in rings from {start}.");
+ 
+         // Damage enemies based on unique adjacent elements
+         foreach (var unit in s.UnitsInPlay)
+@@ -237,19 +287,12 @@ public sealed class RagnarokEffect : EffectBase
+     }
+ }
+ 
+-/// <summary>Elementalist capstone. Imbues every tile in radius with a random element, then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7: the JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
++/// <summary>Elementalist capstone. Imbues every tile in radius in concentric element rings (from the caster's highest element), then snaps every elemental attunement counter on the caster to <see cref="AttunementSetTo"/>. See README §7: the JSON key is `attunement_set_to`, NOT `attunement_counters`.</summary>
+ public sealed class ElementalConvergenceEffect : EffectBase
+ {
+     public int Radius;
+     public int AttunementSetTo;
+ 
+-    private static readonly TileElementType[] Elements =
+-    {
+-        TileElementType.Fire, TileElementType.Frost,
+-        TileElementType.Lightning, TileElementType.Earth
+-    };
+-    private Random _rng = new();
+-
+     public ElementalConvergenceEffect(int radius = 3, int attunementSetTo = 3)
+     {
+         Radius = radius;
+@@ -266,26 +309,23 @@ public sealed class ElementalConvergenceEffect : EffectBase
+ 
+         var center = casterUnit.CurrentTile.Axial;
+ 
+-        // Imbue all tiles within radius with random elements
++        // Imbue all tiles within radius in element rings (deterministic)
++        var start = ElementPick.Highest(casterUnit);
+         int imbued = 0;
+         foreach (var kvp in s.Grid.Tiles)
+         {
+             var tile = kvp.Value;
+             if (tile == null)
+                 continue;
+-            if (s.Grid.Distance(center, kvp.Key) > Radius)
++            int ring = s.Grid.Distance(center, kvp.Key);
++            if (ring > Radius)
+                 continue;
+ 
+-            var element = Elements[_rng.Next(Elements.Length)];
+-            tile.ElementType = element;
+-            tile.ElementStrength = 1.0f;
+-            if (element == TileElementType.Fire)
+-                tile.IsHazardous = true;
+-            tile.TileView?.SetElement(element);
++            ElementPick.Imbue(tile, ElementPick.Ring(start, ring), casterUnit);
+             imbued++;
+         }
+ 
+-        s.Log($"[Convergence] Imbued {imbued} tiles within {Radius} range with random elements.");
++        s.Log($"[Convergence] Imbued {imbued} tiles within {Radius} range in rings from {start}.");
+ 
+         // Set all attunement counters
+         if (casterUnit.Attunement is ElementalAttunement att)
+@@ -518,8 +558,7 @@ public sealed class TerraformEffect : EffectBase
+                 continue;   // the obstacle itself is not ground to reshape
+ 
+             tile.TerrainType = newTerrain;
+-            tile.ElementType = newElement;
+-            tile.ElementStrength = 1.0f;
++            ElementReactions.Imbue(tile, newElement, 1.0f, casterUnit);
+ 
+             if (newTerrain == TileTerrainType.Lava)
+             {
+@@ -635,20 +674,14 @@ public sealed class AvatarTransformEffect : EffectBase
+         s.OnTurnEndCleanups ??= new List<Action>();
+ 
+         Action<TileData> onLeave = null;
+-        var rng = new Random();
+-        TileElementType[] elements =
+-        {
+-            TileElementType.Fire, TileElementType.Frost,
+-            TileElementType.Lightning, TileElementType.Earth
+-        };
+ 
++        // Trail element = the element last cast, read live at each step
++        // (class_identity_elementalist_v1 §4: deterministic, no random pick).
+         onLeave = (leftTile) =>
+         {
+             if (leftTile == null || s?.Grid == null)
+                 return;
+-            leftTile.ElementType = elements[rng.Next(elements.Length)];
+-            leftTile.ElementStrength = 1.0f;
+-            leftTile.TileView?.SetElement(leftTile.ElementType);
++            ElementPick.Imbue(leftTile, ElementPick.LastCast(casterUnit), casterUnit);
+             s.Log($"[Avatar] Trail imbued {leftTile.Axial} with {leftTile.ElementType}.");
+         };
+ 
+@@ -778,11 +811,7 @@ public sealed class WorldshaperEffect : EffectBase
+             tileIndex++;
+ 
+             TileElementType tileElement = MapToTileElement(element);
+-            tile.ElementType = tileElement;
+-            tile.ElementStrength = 1.0f;
+-            if (tileElement == TileElementType.Fire)
+-                tile.IsHazardous = true;
+-            tile.TileView?.SetElement(tileElement);
++            ElementReactions.Imbue(tile, tileElement, 1.0f, casterUnit);
+             imbued++;
+         }
+ 
+@@ -904,8 +933,7 @@ public class MaelstromEffect : PersistentEffect
+             var tile = kvp.Value;
+             if (tile == null)
+                 continue;
+-            tile.ElementType = TileElementType.Lightning;
+-            tile.ElementStrength = 1.0f;
++            ElementReactions.Imbue(tile, TileElementType.Lightning);
+             s.Grid.ApplyVisualToTile(tile);
+         }
+ 
+@@ -969,13 +997,6 @@ public class AvatarAuraEffect : PersistentEffect
+     /// <summary>Bonus damage added to every spell cast while this aura is active.</summary>
+     public int BonusDamage;
+ 
+-    private static readonly TileElementType[] Elements =
+-    {
+-        TileElementType.Fire, TileElementType.Frost,
+-        TileElementType.Lightning, TileElementType.Earth
+-    };
+-    private Random _rng = new();
+-
+     public AvatarAuraEffect(int turns, int bonusDamage, Entity owner)
+     {
+         TurnsRemaining = turns;
+@@ -989,14 +1010,14 @@ public class AvatarAuraEffect : PersistentEffect
+         s.Log($"[Avatar] Aura ticking. {TurnsRemaining} turns remaining.");
+     }
+ 
+-    /// <summary>Hook invoked by the combat runner after every successful spell resolution by the owner. Random-imbues each target tile and logs the bonus damage application.</summary>
++    /// <summary>Hook invoked by the combat runner after every successful spell resolution by the owner. Imbues each target tile with the element the owner last cast, and logs the bonus damage application.</summary>
+     public override void OnSpellCast(GameState s, Unit casterUnit, TargetSet targets)
+     {
+         if (s?.Grid == null || targets == null)
+             return;
+ 
+-        // Random element imbue on target tile
+-        var element = Elements[_rng.Next(Elements.Length)];
++        // Imbue the element last cast (deterministic; class_identity_elementalist_v1 §4)
++        var element = ElementPick.LastCast(casterUnit);
+ 
+         foreach (var obj in targets.Items)
+         {
+@@ -1010,11 +1031,7 @@ public class AvatarAuraEffect : PersistentEffect
+ 
+             if (tile != null)
+             {
+-                tile.ElementType = element;
+-                tile.ElementStrength = 1.0f;
+-                if (element == TileElementType.Fire)
+-                    tile.IsHazardous = true;
+-                tile.TileView?.SetElement(element);
++                ElementPick.Imbue(tile, element, casterUnit);
+                 s.Log($"[Avatar] Imbued {tile.Axial} with {element}.");
+             }
+         }
+diff --git a/Scripts/Cards/Effects/TinkerPipelineEffects.cs b/Scripts/Cards/Effects/TinkerPipelineEffects.cs
+index 3111fef..91f24f6 100644
+--- a/Scripts/Cards/Effects/TinkerPipelineEffects.cs
++++ b/Scripts/Cards/Effects/TinkerPipelineEffects.cs
+@@ -55,98 +55,6 @@ public static class EtchingSystem
+     }
+ }
+ 
+-/// <summary>
+-/// Static registry of one-shot wire traps. A trap sits invisibly on a tile; the
+-/// first enemy of the owning team to enter takes damage and (optionally) a status,
+-/// then the trap is spent. Allies pass freely without disarming it. Fired from
+-/// Unit.PlaceOnTile (before the Conduit line-zap check). Reset per combat.
+-/// </summary>
+-public static class TrapSystem
+-{
+-    private sealed class Trap
+-    {
+-        public int OwnerTeam;
+-        public int Damage;
+-        public string Status;
+-        public int StatusDuration;
+-    }
+-
+-    private static readonly Dictionary<Vector2I, Trap> Traps = new();
+-
+-    public static void Clear() => Traps.Clear();
+-
+-    /// <summary>Places (or replaces) the trap on a tile. One trap per tile; the newest wins.</summary>
+-    public static void Place(Vector2I axial, int ownerTeam, int damage, string status, int statusDuration)
+-    {
+-        Traps[axial] = new Trap
+-        {
+-            OwnerTeam = ownerTeam,
+-            Damage = damage,
+-            Status = status,
+-            StatusDuration = statusDuration
+-        };
+-    }
+-
+-    /// <summary>Called by Unit.PlaceOnTile: springs the trap under an entering enemy.</summary>
+-    public static void OnUnitEntered(Unit mover)
+-    {
+-        if (mover == null || !mover.Stats.IsAlive || mover.CurrentTile == null)
+-            return;
+-        if (Traps.Count == 0 || !Traps.TryGetValue(mover.CurrentTile.Axial, out var trap))
+-            return;
+-        if (mover.TeamId == trap.OwnerTeam)
+-            return;   // allies step over the wire; the trap stays armed
+-
+-        Traps.Remove(mover.CurrentTile.Axial);   // one-shot
+-        GD.Print($"[Trap] {mover.Name} trips a wire trap for {trap.Damage} damage.");
+-
+-        if (trap.Damage > 0)
+-            mover.ApplyDamage(trap.Damage);
+-        if (!string.IsNullOrEmpty(trap.Status) && mover.Stats.IsAlive && !mover.IsDeathQueued)
+-            mover.ApplyStatus(trap.Status, Math.Max(1, trap.StatusDuration));
+-    }
+-}
+-
+-// ── Wire Trap ───────────────────────────────────────────────────────
+-/// <summary>Arms a hidden one-shot trap on the targeted tile. The first enemy to enter takes damage and, optionally, a status.</summary>
+-public sealed class PlaceTrapEffect : EffectBase
+-{
+-    private readonly int _damage;
+-    private readonly string _status;
+-    private readonly int _duration;
+-
+-    public PlaceTrapEffect(int damage, string status, int duration)
+-    {
+-        _damage = Math.Max(0, damage);
+-        _status = status;
+-        _duration = Math.Max(1, duration);
+-    }
+-
+-    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+-    {
+-        Vector2I? axial = null;
+-        if (targets != null)
+-        {
+-            foreach (var o in targets.Items)
+-            {
+-                if (o is TileData td) { axial = td.Axial; break; }
+-                if (o is HexTile tv) { axial = tv.Axial; break; }
+-                if (o is Unit u && u.CurrentTile != null) { axial = u.CurrentTile.Axial; break; }
+-            }
+-        }
+-
+-        if (axial == null)
+-        {
+-            s?.Log("[Trap] No tile to arm.");
+-            return;
+-        }
+-
+-        TrapSystem.Place(axial.Value, TinkerFx.CasterTeam(s), _damage, _status, _duration);
+-        s?.Log($"[Trap] Wire trap armed at {axial.Value} ({_damage} dmg" +
+-               (!string.IsNullOrEmpty(_status) ? $", {_status} {_duration}t)." : ")."));
+-    }
+-}
+-
+ // ── Etching Ward ───────────────────────────────────────────────────
+ /// <summary>Inscribes a ward on the targeted tile. The next construct deployed there enters with +amount HP and primary stat.</summary>
+ public sealed class EtchWardEffect : EffectBase
+diff --git a/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs b/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs
+index d671b71..4f632b6 100644
+--- a/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs
++++ b/Scripts/Cards/Loader/CardScriptRegistry.Tinker.cs
+@@ -87,12 +87,8 @@ public static partial class CardScriptRegistry
+         // Redirector Field: { "type": "redirector_field" }
+         RegisterEffect("redirector_field", _ => new RedirectorFieldEffect().WithTag("Construct"));
+ 
+-        // Wire Trap: { "type": "place_trap", "damage": 5, "status": "rooted", "duration": 1 }
+-        RegisterEffect("place_trap", n =>
+-            new PlaceTrapEffect(
+-                n.TryGetProperty("damage", out var td) ? td.GetInt32() : 5,
+-                n.TryGetProperty("status", out var ts) ? ts.GetString() : null,
+-                n.TryGetProperty("duration", out var tu) ? tu.GetInt32() : 1).WithTag("Construct"));
++        // place_trap retired 2026-10-02 (class_identity_tinker_v1 §2b): traps are
++        // Enchanter's verb, and no card used it.
+ 
+         // Full Salvo: { "type": "construct_volley" }
+         RegisterEffect("construct_volley", _ => new ConstructVolleyEffect().WithTag("Construct"));
+diff --git a/Scripts/Cards/Loader/JsonCardLoader.cs b/Scripts/Cards/Loader/JsonCardLoader.cs
+index ce8c44a..02f8fcc 100644
+--- a/Scripts/Cards/Loader/JsonCardLoader.cs
++++ b/Scripts/Cards/Loader/JsonCardLoader.cs
+@@ -380,9 +380,12 @@ public static partial class CardScriptRegistry
+             return new ImbueAreaEffect(element, radius).WithTag("Terrain");
+         });
+ 
+-        // Imbue all tiles randomly: { "type": "imbue_all_tiles_random" }
++        // Imbue all tiles opposed: { "type": "imbue_all_tiles_opposed" }
++        // (deterministic Ragnarok, 2026-10-02). The old random key stays as an alias.
++        RegisterEffect("imbue_all_tiles_opposed", _ =>
++            new ImbueAllTilesOpposedEffect().WithTag("Terrain"));
+         RegisterEffect("imbue_all_tiles_random", _ =>
+-            new ImbueAllTilesRandomEffect().WithTag("Terrain"));
++            new ImbueAllTilesOpposedEffect().WithTag("Terrain"));
+ 
+         // Place glyph: { "type": "place_glyph", "damage": n, "status": "slowed", "duration": n }
+         RegisterEffect("place_glyph", n =>
+diff --git a/Scripts/Dev/GlyphCipherSelfTest.cs b/Scripts/Dev/GlyphCipherSelfTest.cs
+index 267fad5..367d6af 100644
+--- a/Scripts/Dev/GlyphCipherSelfTest.cs
++++ b/Scripts/Dev/GlyphCipherSelfTest.cs
+@@ -87,7 +87,7 @@ public static class GlyphCipherSelfTest
+     }
+ 
+     /// <summary>Aggregate of every golden checksum, in card-id order. One number to eyeball in a diff.</summary>
+-    public const uint AggregateChecksum = 0xEF7EE845u;
++    public const uint AggregateChecksum = 0xEDA4B327u;   // re-pinned 2026-10-02: The Grand Design renamed The Architecture
+ 
+     /// <summary>
+     /// Expected decode for all 42 Enchanter spell halves as of spec v2.
+@@ -134,7 +134,7 @@ public static class GlyphCipherSelfTest
+         new("enchanter_sovereign_will", "bottom", "Puppeteer", "PUPPETEER", CipherTarget.Self, CipherVerb.Bind, 5, 2, 9, 2, 26, 0x50AFFE9Cu),
+         new("enchanter_sovereign_will", "top", "Sovereign Pillars", "SOVEREIGNPILLARS", CipherTarget.Tile, CipherVerb.Inscribe, 6, 3, 16, 1, 37, 0xABBF4FD3u),
+         new("enchanter_the_grand_design", "bottom", "Absolute Territory", "ABSOLUTETERRITORY", CipherTarget.Self, CipherVerb.Bind, 6, 3, 17, 1, 35, 0x2C91D76Du),
+-        new("enchanter_the_grand_design", "top", "The Grand Design", "THEGRANDDESIGN", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 14, 1, 31, 0x87F141E2u),
++        new("enchanter_the_grand_design", "top", "The Architecture", "THEARCHITECTURE", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 15, 0, 30, 0xBDEC9B96u),
+         new("enchanter_warding_step", "bottom", "Tripwire", "TRIPWIRE", CipherTarget.Tile, CipherVerb.Inscribe, 4, 2, 8, 0, 21, 0x163DE3C8u),
+         new("enchanter_warding_step", "top", "Warding Step", "WARDINGSTEP", CipherTarget.Self, CipherVerb.Ward | CipherVerb.Move, 6, 2, 11, 0, 33, 0x52C88AA0u),
+     };
+diff --git a/Scripts/Style/ElementColors.cs b/Scripts/Style/ElementColors.cs
+index 1bae14b..7251443 100644
+--- a/Scripts/Style/ElementColors.cs
++++ b/Scripts/Style/ElementColors.cs
+@@ -37,6 +37,19 @@ public static class ElementColors
+         _          => new Color("#888888"),
+     };
+ 
++    /// <summary>Tint for an element reaction's tile marker, preview marker and tooltip
++    /// row (class_identity_elementalist_v1 §2). None returns neutral grey.</summary>
++    public static Color Reaction(ElementReaction reaction) => reaction switch
++    {
++        ElementReaction.Steam     => new Color("#D8DEE6"),
++        ElementReaction.Fulgurite => new Color("#B9C26A"),
++        ElementReaction.Magma     => new Color("#F06A2A"),
++        ElementReaction.Wildfire  => new Color("#FFB040"),
++        ElementReaction.Brittle   => new Color("#8FD0F0"),
++        ElementReaction.Glacier   => new Color("#5FA8E8"),
++        _                         => new Color("#888888"),
++    };
++
+     /// <summary>Returns the single-character label for an element tag. Unknown tags return "?".</summary>
+     public static string GetLabel(string tag) => (tag ?? "").ToLower() switch
+     {
+diff --git a/Scripts/Systems/Campus/CardUpgradeScreen.cs b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+index c59b16f..2129873 100644
+--- a/Scripts/Systems/Campus/CardUpgradeScreen.cs
++++ b/Scripts/Systems/Campus/CardUpgradeScreen.cs
+@@ -679,7 +679,6 @@ public partial class CardUpgradeScreen : Control
+         // _gateLabel, preview zones, bypass button) are preserved
+         ClearDynamicContent();
+ 
+-        bool isGeneric = bp?.School == CardSchool.Adept;
+         bool baseUpgraded = _selectedOwned.IsBaseUpgraded;
+         int pointsSpent = _selectedOwned.PointsSpent;
+         int splinters = save?.ArcaneSplinters ?? 0;
+@@ -726,14 +725,9 @@ public partial class CardUpgradeScreen : Control
+             return;
+         }
+ 
+-        // Generic cards stop at 1/1
+-        if (isGeneric)
+-        {
+-            AddDynamic(MakeDescLabel("Generic cards cannot be further refined."));
+-            ShowPreview(_selectedOwned.BlueprintId,
+-                _selectedOwned.TopTier, _selectedOwned.BotTier, -1, -1);
+-            return;
+-        }
++        // Fundamentals (Adept-school cards) climb the same half tracks as every
++        // school. Their ladders (2026-07-10, "drilled fundamentals") end in a
++        // named perfected form; the old 1/1 cap made those forms unreachable.
+ 
+         // ── Independent half upgrade tracks ──────────────────────────────
+         int pointsRemaining = _selectedOwned.PointsRemaining;
+diff --git a/Scripts/Systems/Combat/Attunement/AttunementResolver.cs b/Scripts/Systems/Combat/Attunement/AttunementResolver.cs
+index ed3f434..af34b7b 100644
+--- a/Scripts/Systems/Combat/Attunement/AttunementResolver.cs
++++ b/Scripts/Systems/Combat/Attunement/AttunementResolver.cs
+@@ -62,10 +62,7 @@ public static class AttunementResolver
+ 					TileData tile = ResolveTile(state, obj);
+ 					if (tile != null && tile.ElementType != tileElement)
+ 					{
+-						tile.ElementType = tileElement;
+-						tile.ElementStrength = 1.0f;
+-						if (element == ElementTag.Fire) tile.IsHazardous = true;
+-						tile.TileView?.SetElement(tileElement);
++						ElementReactions.Imbue(tile, tileElement, 1.0f, castingUnit);
+ 						log.Add($"[Attunement] Auto-imbued {tile.Axial} with {element}");
+ 					}
+ 				}
+diff --git a/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs b/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
+index 05f6192..b12b020 100644
+--- a/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
++++ b/Scripts/Systems/Combat/Attunement/ElementalAttunement.cs
+@@ -76,6 +76,36 @@ public class ElementalAttunement : ISchoolAttunement
+ 	public const int MaxCharges = 4;
+ 	public const int BurstThreshold = 4;
+ 
++	/// <summary>Fixed tie order for every "your highest element" read (shown in
++	/// tooltips): Fire, then Ice, then Storm, then Earth.</summary>
++	public static readonly ElementTag[] TieOrder =
++		{ ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth };
++
++	/// <summary>Element of the most recent element-tagged cast; null before any.
++	/// Read by Avatar of Elements (class_identity_elementalist_v1 §4: no random
++	/// element picks).</summary>
++	public ElementTag? LastCastElement { get; private set; }
++
++	/// <summary>The element holding the most attunement, ties broken by
++	/// <see cref="TieOrder"/>. With every counter at 0 it falls back to the last
++	/// cast element, then Fire.</summary>
++	public ElementTag HighestElement()
++	{
++		ElementTag best = ElementTag.Fire;
++		int bestValue = -1;
++		foreach (var e in TieOrder)
++		{
++			if (Charges[e] > bestValue)
++			{
++				best = e;
++				bestValue = Charges[e];
++			}
++		}
++		if (bestValue <= 0 && LastCastElement.HasValue)
++			return LastCastElement.Value;
++		return best;
++	}
++
+ 	// ── Crucible of Storms doctrines (campus_building_upgrades_design_v1 §8d).
+ 	// Set at combat start by SchoolSeats.ApplyCombatStart; defaults are the
+ 	// school as it has always played. ──────────────────────────────────────
+@@ -112,6 +142,7 @@ public class ElementalAttunement : ISchoolAttunement
+ 	{
+ 		foreach (var key in new[] { ElementTag.Fire, ElementTag.Ice, ElementTag.Storm, ElementTag.Earth })
+ 			Charges[key] = 0;
++		LastCastElement = null;
+ 	}
+ 
+ 	/// <summary>
+@@ -142,6 +173,8 @@ public class ElementalAttunement : ISchoolAttunement
+ 		{
+ 			if (!TryParseTag(tagStr, out var element)) continue;
+ 
++			LastCastElement = element;
++
+ 			if (Monoelement)
+ 				ClearOthers(element);
+ 
+diff --git a/Scripts/Systems/Combat/Attunement/WildingAttunement.cs b/Scripts/Systems/Combat/Attunement/WildingAttunement.cs
+index 9c620e3..4a1d88e 100644
+--- a/Scripts/Systems/Combat/Attunement/WildingAttunement.cs
++++ b/Scripts/Systems/Combat/Attunement/WildingAttunement.cs
+@@ -28,7 +28,7 @@ using System;
+ public enum WildingTier
+ {
+     Still,      // 0: dormant, no bonus
+-    Stirring,   // 1: living terrain spreads faster
++    Stirring,   // 1: Saplings spread too (deterministic growth)
+     Spreading,  // 2: owner heals while on/adjacent to their own living terrain
+     Rampant,    // 3: enemies on the owner's growth are rooted on the tick
+     Riot        // 4: burst, all owned growth advances a stage + wildlife, then reset to 0
+@@ -44,7 +44,6 @@ public class WildingAttunement : ISchoolAttunement
+     public const int RiotThreshold = 4;
+ 
+     // ── Tier-passive tuning (read by GrowthManager / upkeep) ─────────
+-    public const float StirringSpreadBonus = 0.15f;  // +flat spread chance at Stirring+
+     public const int SpreadingHealPerTurn = 2;      // HP/turn at Spreading+ (applied at owner upkeep)
+     public const int RampantRootDuration = 1;      // turns rooted at Rampant+
+ 
+@@ -100,8 +99,10 @@ public class WildingAttunement : ISchoolAttunement
+     // ── Tier queries (single source of truth for GrowthManager/UI) ────
+     public WildingTier CurrentTier => (WildingTier)Mathf.Clamp(Charges, 0, (int)WildingTier.Riot);
+ 
+-    /// <summary>Flat bonus added to spread chance once the owner reaches Stirring.</summary>
+-    public float SpreadBonus => Charges >= (int)WildingTier.Stirring ? StirringSpreadBonus : 0f;
++    /// <summary>True once the owner reaches Stirring: their Saplings spread too
++    /// (deterministic growth, class_identity_druid_v1 §2a; replaces the old flat
++    /// spread-chance bonus).</summary>
++    public bool SaplingsSpread => Charges >= (int)WildingTier.Stirring;
+ 
+     /// <summary>True once the owner heals from standing on/adjacent to their living terrain.</summary>
+     public bool HealsOwner => Charges >= (int)WildingTier.Spreading;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index cc336f4..306890d 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -1740,7 +1740,7 @@ public partial class CombatManager
+         {
+             if (!IsImbuableTile(coord))
+                 continue;
+-            TileEntryReactions.ImbueTile(grid.GetTile(coord), element);
++            TileEntryReactions.ImbueTile(grid.GetTile(coord), element, 1f, enemy);
+             count++;
+         }
+ 
+@@ -2827,7 +2827,7 @@ public partial class CombatManager
+             var groundTile = LastStrikeVictim?.CurrentTile ?? grid.GetTile(tile);
+             if (groundTile != null)
+             {
+-                TileEntryReactions.ImbueTile(groundTile, attacker.ImbueOnHit);
++                TileEntryReactions.ImbueTile(groundTile, attacker.ImbueOnHit, 1f, attacker);
+                 combatUI?.AppendActionLog(
+                     $"{attackerName}'s {noun} leaves {attacker.ImbueOnHit} on the ground.");
+             }
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index ca8569e..71e5bed 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -174,7 +174,8 @@ public partial class CombatManager : Node3D
+         CombatPresenter.Ensure(this);   // spell_vfx_pipeline_v1: presentation seam
+         ConduitLinkSystem.Clear();
+         EtchingSystem.Clear();
+-        TrapSystem.Clear();
++        ElementReactions.Reset();
++        ElementReactions.Log = line => State?.Log(line);
+         Me = State.PlayerA;
+         Opp = State.PlayerB;
+ 
+@@ -3318,6 +3319,10 @@ public partial class CombatManager : Node3D
+ 
+         State.Growth?.TickEndOfEnemyTurn();
+ 
++        // Element reactions (class_identity_elementalist_v1 §2): Wildfire spreads,
++        // timed reactions count down and expire. End of round, after growth.
++        ElementReactions.TickEndOfRound(State, grid);
++
+         if (CheckCombatEnd())
+             return;
+ 
+@@ -6900,6 +6905,28 @@ public partial class CombatManager : Node3D
+             if (v != null && IsInstanceValid(v))
+                 v.ClearHpDamagePreview();
+         _previewedVictims.Clear();
++
++        foreach (var t in _previewedReactionTiles)
++            if (t?.TileView != null && IsInstanceValid(t.TileView))
++                t.TileView.SetReactionPreview(ElementReaction.None);
++        _previewedReactionTiles.Clear();
++    }
++
++    /// <summary>Tiles currently showing a predicted element reaction (cast preview).</summary>
++    private readonly List<TileData> _previewedReactionTiles = new();
++
++    /// <summary>Marks every tile the last preview run predicted a reaction on
++    /// (class_identity_elementalist_v1 §2a, item 1: the player sees a reaction
++    /// before committing the cast).</summary>
++    private void ShowReactionPreview()
++    {
++        foreach (var (t, reaction) in ElementReactions.SnapshotSimReactions())
++        {
++            if (t?.TileView == null || !IsInstanceValid(t.TileView))
++                continue;
++            t.TileView.SetReactionPreview(reaction);
++            _previewedReactionTiles.Add(t);
++        }
+     }
+ 
+     /// <summary>R22 self-check (DebugPreviewSelfCheck): after a real cast settles,
+@@ -6946,12 +6973,18 @@ public partial class CombatManager : Node3D
+ 
+         var tileData = grid?.GetTile(tile.Axial);
+         var victim = tileData?.Occupant;
+-        if (victim == null || !IsInstanceValid(victim) || !victim.Stats.IsAlive
+-            || victim.TeamId == selectedUnit.TeamId)
+-            return;   // the flashing preview starts only when hovering a living enemy
++        bool livingEnemy = victim != null && IsInstanceValid(victim) && victim.Stats.IsAlive
++            && victim.TeamId != selectedUnit.TeamId;
++
++        // Hovering an ally (or a dead unit) previews nothing, as before. Hovering
++        // EMPTY ground now runs the preview too, so an imbue aimed at open tiles
++        // still shows the reaction it would cause; only the HP flash needs an enemy.
++        if (victim != null && !livingEnemy)
++            return;
+ 
+         var map = ComputePreviewDamage(_draggedHalf, tileData);
+-        if (map == null || map.Count == 0)
++        ShowReactionPreview();
++        if (!livingEnemy || map == null || map.Count == 0)
+             return;
+ 
+         bool globalWarn = State.StackCount() > 0 || _priorityWindowOpen;
+@@ -7083,6 +7116,7 @@ public partial class CombatManager : Node3D
+                 return true;
+             case DealDamageEffect:
+             case ImbueTileEffect:
++            case ImbueAreaEffect:   // writes go through ElementReactions, which is sim-safe
+             case ApplyStatusEffect:
+                 effect.Resolve(ctx.Game, ctx.Caster, ctx.Targets, ctx.Snapshot);
+                 return true;
+diff --git a/Scripts/Systems/Combat/Core/CombatSim.cs b/Scripts/Systems/Combat/Core/CombatSim.cs
+index d2e3cfe..1dcaea1 100644
+--- a/Scripts/Systems/Combat/Core/CombatSim.cs
++++ b/Scripts/Systems/Combat/Core/CombatSim.cs
+@@ -50,6 +50,7 @@ public static class CombatSim
+         Active = true;
+         _hits.Clear();
+         _removedStatuses.Clear();
++        ElementReactions.ResetSim();   // reaction predictions for this preview run
+         _state = s;
+         _savedLastDamageDealt = s?.LastDamageDealt ?? 0;
+     }
+diff --git a/Scripts/Systems/Combat/Core/ForcedMove.cs b/Scripts/Systems/Combat/Core/ForcedMove.cs
+index 339d7f2..b9668bb 100644
+--- a/Scripts/Systems/Combat/Core/ForcedMove.cs
++++ b/Scripts/Systems/Combat/Core/ForcedMove.cs
+@@ -107,7 +107,7 @@ public static class ForcedMove
+                 r.Collided = true; r.HitUnit = next.Occupant; r.HitWhat = next.Occupant.Name;
+                 break;
+             }
+-            if (!next.CanEnter(victim))
++            if (!next.CanEnter(victim) && !ElementReactions.ForcedMayEnter(next))
+             {
+                 r.Collided = true;
+                 r.HitWhat = !string.IsNullOrEmpty(next.ObstacleKind) ? next.ObstacleKind.Replace('_', ' ')
+@@ -198,7 +198,8 @@ public static class ForcedMove
+         for (int i = 0; i < tiles; i++)
+         {
+             var next = grid.GetTile(cur.Axial + dir);
+-            if (next == null || next.Height - cur.Height >= 2 || !next.CanEnter(victim))
++            if (next == null || next.Height - cur.Height >= 2
++                || (!next.CanEnter(victim) && !ElementReactions.ForcedMayEnter(next)))
+                 break;
+             path.Add(next.Axial);
+             cur = next;
+diff --git a/Scripts/Systems/Combat/Core/TileEntryReactions.cs b/Scripts/Systems/Combat/Core/TileEntryReactions.cs
+index 407a7ca..0e343da 100644
+--- a/Scripts/Systems/Combat/Core/TileEntryReactions.cs
++++ b/Scripts/Systems/Combat/Core/TileEntryReactions.cs
+@@ -144,6 +144,19 @@ public static class TileEntryReactions
+                 break;
+         }
+ 
++        // ── Element reactions (class_identity_elementalist_v1 §2). Walking cannot
++        //    enter Magma at all (HexGridManager.StepAllowed), so these are Forced. ──
++        if (forced && tile.Reaction == ElementReaction.Magma)
++        {
++            unit.ApplyDamage(ElementReactions.MagmaForcedEntryDamage);
++            if (ctx != null)
++                ctx.HaltForced = true;
++        }
++        else if (forced && tile.Reaction == ElementReaction.Fulgurite && ctx != null)
++        {
++            ctx.HaltForced = true;   // fused rubble stops the shove
++        }
++
+         if (!unit.Stats.IsAlive)
+             return;
+ 
+@@ -163,19 +176,14 @@ public static class TileEntryReactions
+     }
+ 
+     /// <summary>Write an element onto a tile at RUNTIME (combat), updating data and
+-    /// visual together. Used by the enemy imbue-on-hit rider and any effect that
+-    /// needs a one-call imbue. Map GENERATION writes ElementType directly and lets
+-    /// the visual pass follow, so it does not use this. No-op for None.</summary>
+-    public static void ImbueTile(TileData tile, TileElementType element, float strength = 1f)
+-    {
+-        if (tile == null || element == TileElementType.None)
+-            return;
+-        tile.ElementType = element;
+-        tile.ElementStrength = strength;
+-        if (element == TileElementType.Fire)
+-            tile.IsHazardous = true;   // matches PaintElementPatch / imbue_tile
+-        tile.TileView?.SetElement(element);
+-    }
++    /// visual together. Used by the enemy imbue-on-hit rider, map events and any
++    /// effect that needs a one-call imbue. Routes through
++    /// <see cref="ElementReactions.Imbue"/>, so a different reactive element already
++    /// on the tile reacts instead of being overwritten. Map GENERATION writes
++    /// ElementType directly and lets the visual pass follow, so it does not use this.
++    /// No-op for None.</summary>
++    public static void ImbueTile(TileData tile, TileElementType element, float strength = 1f, Unit source = null)
++        => ElementReactions.Imbue(tile, element, strength, source);
+ 
+     /// <summary>Frost slide continuation (spec §3 "Slides"). After a tile's
+     /// reactions resolve, a unit standing on Frost is carried one further tile in
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index 6ad8b7d..c005754 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -888,8 +888,7 @@ public partial class Unit : Node3D
+             CurrentTile.TileView?.SetElement(TileElementType.None);
+         }
+ 
+-        // Tinker: one-shot wire traps fire before link-line zaps.
+-        TrapSystem.OnUnitEntered(this);
++        // Tinker: link-line zaps. (Wire traps retired 2026-10-02.)
+         ConduitLinkSystem.OnUnitEntered(this);
+ 
+         // Public entry bus: every entered tile, any kind (spec §2.1).
+@@ -1043,7 +1042,7 @@ public partial class Unit : Node3D
+         // U3e binding_geas. AFTER PlaceOnTile, so the handler measures the geas
+         // radius against where the unit ARRIVED, not where it set off: "damage on
+         // arrival" has to mean arrival or the aura reads as random. PlaceOnTile has
+-        // already run TrapSystem/ConduitLink entry hooks, so this sits in the same
++        // already run the ConduitLink entry hook, so this sits in the same
+         // company as every other consequence of stepping onto a tile.
+         RefreshCoverArmor();      // settled behind a wall (or left one): re-read
+         OnMoved?.Invoke(this);
+@@ -1164,6 +1163,11 @@ public partial class Unit : Node3D
+             BodyguardedBy = null;      // guard died between recompute and this hit
+         }
+ 
++        // Brittle ground (element reaction): +3 per hit, a Frozen unit shatters.
++        // Ordered after bodyguard (the guard's own tile decides for the guard) and
++        // before mitigation and the sim gate, so the preview prices it.
++        amount = ElementReactions.ApplyBrittle(this, amount);
++
+         // DamageReductionPerHit (implemented 2026-08-13; the tag existed
+         // since Q1 with no consumer). Flat per-hit reduction from equipment,
+         // FLOOR 1: relief is bought, immunity does not exist (the wards'
+@@ -1815,19 +1819,11 @@ public partial class Unit : Node3D
+     {
+         get
+         {
++            // One rule for "your highest element" (tie order Fire, Ice, Storm,
++            // Earth): ElementalAttunement.HighestElement, also read by ElementPick.
+             if (Attunement is not ElementalAttunement att)
+                 return ElementTag.Fire;
+-            ElementTag best = ElementTag.Fire;
+-            int bestCount = -1;
+-            foreach (var kvp in att.Charges)
+-            {
+-                if (kvp.Value > bestCount)
+-                {
+-                    bestCount = kvp.Value;
+-                    best = kvp.Key;
+-                }
+-            }
+-            return best;
++            return att.HighestElement();
+         }
+     }
+ 
+diff --git a/Scripts/Systems/Combat/Terrain/HexGridManager.Generation.cs b/Scripts/Systems/Combat/Terrain/HexGridManager.Generation.cs
+index 03b98d7..e6b7a57 100644
+--- a/Scripts/Systems/Combat/Terrain/HexGridManager.Generation.cs
++++ b/Scripts/Systems/Combat/Terrain/HexGridManager.Generation.cs
+@@ -842,7 +842,16 @@ public partial class HexGridManager
+             return false;
+         }
+         string what = tile.ObstacleKind.Replace('_', ' ');
++        bool glacier = tile.ObstacleKind == ElementReactions.GlacierObstacleKind;
+         ClearObstacle(tile);
++        if (glacier)
++        {
++            // An element-reaction Glacier melts to Frost instead of leaving rubble.
++            ElementReactions.OnGlacierBroken(tile);
++            RefreshObstacleVisuals();
++            log?.Invoke($"The glacier at {tile.Axial} shatters into frost.");
++            return true;
++        }
+         tile.ApplyTerrainModifier("rubble");
+         tile.ObstacleKind = "rubble";
+         tile.TileView?.SetTerrainScar("rubble");
+diff --git a/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs b/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs
+index 795b4d1..1002341 100644
+--- a/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs
++++ b/Scripts/Systems/Combat/Terrain/HexGridManager.Pathfinding.cs
+@@ -52,6 +52,10 @@ public partial class HexGridManager
+     /// <summary>Movement legality of one step between adjacent coords, per the cliff rule.</summary>
+     private bool StepAllowed(Vector2I from, Vector2I to)
+     {
++        // Magma (element reaction) cannot be walked into; forced movement can
++        // still shove a unit onto it (ElementReactions.ForcedMayEnter).
++        if (Tiles.TryGetValue(to, out var dest) && dest.Reaction == ElementReaction.Magma)
++            return false;
+         if (!BlockMovementAtCliffs)
+             return true;
+         if (!Tiles.TryGetValue(from, out var a) || !Tiles.TryGetValue(to, out var b))
+@@ -440,7 +444,8 @@ public partial class HexGridManager
+             var coord = new Vector2I(rx, rz);
+             if (!Tiles.TryGetValue(coord, out var tile))
+                 continue;
+-            if (tile.BlocksLineOfSight)
++            // Steam (element reaction) blocks sight through its tile.
++            if (tile.BlocksLineOfSight || tile.Reaction == ElementReaction.Steam)
+                 return tile;
+         }
+ 
+diff --git a/Scripts/Systems/Combat/Terrain/HexTile.cs b/Scripts/Systems/Combat/Terrain/HexTile.cs
+index 6cfd10d..72edd1a 100644
+--- a/Scripts/Systems/Combat/Terrain/HexTile.cs
++++ b/Scripts/Systems/Combat/Terrain/HexTile.cs
+@@ -96,6 +96,8 @@ public partial class HexTile : Node3D
+     // Growth mechaniscs for duid
+     private int _growthStage = 0;
+     private Label3D _growthLabel;
++    private Label3D _reactionLabel;          // element reaction standing on the tile
++    private Label3D _reactionPreviewLabel;   // reaction a dragged card would cause
+ 
+     /// <summary>Axial (q, r) coordinate identifying this tile's grid position.</summary>
+     public Vector2I Axial { get; set; }
+@@ -877,6 +879,80 @@ public partial class HexTile : Node3D
+         }
+     }
+ 
++    /// <summary>
++    /// Shows the element reaction standing on this tile (class_identity_elementalist_v1
++    /// §2a item 2) as a floating name plus rounds left, tinted by
++    /// <see cref="ElementColors.Reaction"/>. Plain letters on purpose: the Label3D font
++    /// carries no symbol glyphs. A placeholder until each reaction has a sculpted form.
++    /// Pass <see cref="ElementReaction.None"/> to clear.
++    /// </summary>
++    public void SetReaction(ElementReaction reaction, int rounds)
++    {
++        if (reaction == ElementReaction.None)
++        {
++            if (_reactionLabel != null)
++                _reactionLabel.Visible = false;
++            return;
++        }
++
++        string text = ElementReactions.DisplayName(reaction).ToUpperInvariant()
++                    + (rounds > 0 ? $" {rounds}" : "");
++
++        if (_reactionLabel == null)
++        {
++            _reactionLabel = new Label3D
++            {
++                Name = "ReactionIndicator",
++                FontSize = UITheme.Label3DSmall,
++                OutlineSize = UITheme.Label3DOutlineSize,
++                OutlineModulate = UITheme.Label3DOutline,
++                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
++                NoDepthTest = true,
++                Position = new Vector3(0f, 1.05f, 0f),
++            };
++            CallDeferred("add_child", _reactionLabel);
++        }
++
++        _reactionLabel.Text = text;
++        _reactionLabel.Modulate = ElementColors.Reaction(reaction);
++        _reactionLabel.Visible = true;
++    }
++
++    /// <summary>
++    /// Cast-preview marker: the reaction this tile WOULD form if the dragged card
++    /// resolved (class_identity_elementalist_v1 §2a item 1). Sits above the live
++    /// reaction label and reads as a prediction ("WILL FORM ..."). Pass
++    /// <see cref="ElementReaction.None"/> to clear.
++    /// </summary>
++    public void SetReactionPreview(ElementReaction reaction)
++    {
++        if (reaction == ElementReaction.None)
++        {
++            if (_reactionPreviewLabel != null)
++                _reactionPreviewLabel.Visible = false;
++            return;
++        }
++
++        if (_reactionPreviewLabel == null)
++        {
++            _reactionPreviewLabel = new Label3D
++            {
++                Name = "ReactionPreview",
++                FontSize = UITheme.Label3DSmall,
++                OutlineSize = UITheme.Label3DOutlineSize,
++                OutlineModulate = UITheme.Label3DOutline,
++                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
++                NoDepthTest = true,
++                Position = new Vector3(0f, 1.35f, 0f),
++            };
++            CallDeferred("add_child", _reactionPreviewLabel);
++        }
++
++        _reactionPreviewLabel.Text = "WILL FORM " + ElementReactions.DisplayName(reaction).ToUpperInvariant();
++        _reactionPreviewLabel.Modulate = ElementColors.Reaction(reaction);
++        _reactionPreviewLabel.Visible = true;
++    }
++
+     /// <summary>
+     /// Updates the tile's memorial visual state: both the ground tint and the
+     /// floating symbol. Pass null to clear all memorial visuals.
+diff --git a/Scripts/Systems/Combat/Terrain/TileData.cs b/Scripts/Systems/Combat/Terrain/TileData.cs
+index b183052..19f5d75 100644
+--- a/Scripts/Systems/Combat/Terrain/TileData.cs
++++ b/Scripts/Systems/Combat/Terrain/TileData.cs
+@@ -130,6 +130,16 @@ public class TileData
+     /// <summary>Magnitude of the current imbuement (0..1 typical). Used by element-aware effects to scale.</summary>
+     public float ElementStrength = 0f;
+ 
++    /// <summary>Element reaction standing on this tile (Steam, Magma, ...). Written only by
++    /// <see cref="ElementReactions"/>; see docs/class_identity_elementalist_v1.md §2.</summary>
++    public ElementReaction Reaction = ElementReaction.None;
++
++    /// <summary>Rounds the reaction has left. -1 = permanent (Fulgurite).</summary>
++    public int ReactionRounds = 0;
++
++    /// <summary>Team of the unit whose imbue caused the reaction, or -1. Wildfire spreads toward this team's enemies.</summary>
++    public int ReactionTeam = -1;
++
+     // ── Occupancy ───────────────────────────────────────────────────────────
+ 
+     /// <summary>Free-text key identifying any obstacle on the tile ("boulder", "wall", etc.). Empty when no obstacle.</summary>
+diff --git a/Scripts/Systems/Legacy/GrowthManager.cs b/Scripts/Systems/Legacy/GrowthManager.cs
+index a8e3cb9..66534d7 100644
+--- a/Scripts/Systems/Legacy/GrowthManager.cs
++++ b/Scripts/Systems/Legacy/GrowthManager.cs
+@@ -82,7 +82,6 @@ public class GrowthManager
+     // -- Dependencies -------------------------------------------------
+     private readonly HexGridManager _grid;
+     private readonly GameState _state;
+-    private readonly RandomNumberGenerator _rng;
+     private readonly Action<TileData, string> _wildlifeSpawner;
+     private readonly Action<Unit, int> _rootHandler;
+ 
+@@ -111,15 +110,11 @@ public class GrowthManager
+         _wildlifeSpawner = wildlifeSpawner;
+         _rootHandler = rootHandler;
+ 
+-        if (rng != null)
+-        {
+-            _rng = rng;
+-        }
+-        else
+-        {
+-            _rng = new RandomNumberGenerator();
+-            _rng.Randomize();
+-        }
++        // `rng` is accepted for call-site compatibility and ignored: growth is
++        // deterministic as of 2026-10-02 (class_identity_druid_v1 §2a, "the
++        // Witness"). Spread, Riot placement and wildlife choice all follow fixed
++        // rules the player can predict.
++        _ = rng;
+ 
+         LoadProfiles();
+     }
+@@ -208,7 +203,10 @@ public class GrowthManager
+ 
+                 ApplyTickPassives(tile);
+ 
+-                if (tile.GrowthStage >= StageThicket)
++                // Thickets and Old Growth spread every tick; Saplings join in once
++                // the owner reaches Stirring (Wilding tier 1).
++                if (tile.GrowthStage >= StageThicket ||
++                    (tile.GrowthStage == StageSapling && SaplingsSpread(tile.GrowthOwner)))
+                     CollectSpread(tile, toSeed);
+ 
+                 DecayCarcass(tile);
+@@ -275,15 +273,24 @@ public class GrowthManager
+             foreach (TileData t in advanced)
+                 OnGrowthAdvanced?.Invoke(t);
+ 
+-            // Spawn at most RiotWildlifeCap wildlife, spread randomly across the
+-            // old-growth tiles (NOT one per tile, which flooded the board).
++            // Spawn at most RiotWildlifeCap wildlife (NOT one per tile, which
++            // flooded the board), on the Old Growth nearest the owner's enemies.
++            // Ties break by axial coordinate so the same board always answers
++            // the same way.
++            oldGrowth.Sort((a, b) =>
++            {
++                int da = NearestHostileDistance(a, owner);
++                int db = NearestHostileDistance(b, owner);
++                if (da != db)
++                    return da.CompareTo(db);
++                if (a.Axial.X != b.Axial.X)
++                    return a.Axial.X.CompareTo(b.Axial.X);
++                return a.Axial.Y.CompareTo(b.Axial.Y);
++            });
++
+             int cap = Math.Min(_config.RiotWildlifeCap, oldGrowth.Count);
+             for (int i = 0; i < cap; i++)
+-            {
+-                int j = _rng.RandiRange(i, oldGrowth.Count - 1);
+-                (oldGrowth[i], oldGrowth[j]) = (oldGrowth[j], oldGrowth[i]);
+                 RequestWildlife(oldGrowth[i], "auto");
+-            }
+ 
+             _state?.Log($"[Wilding] Riot -- {advanced.Count} tiles surged, {cap} wildlife answered.");
+         }
+@@ -459,9 +466,22 @@ public class GrowthManager
+         OnGrowthChanged?.Invoke(tile);
+     }
+ 
++    /// <summary>
++    /// Deterministic spread (class_identity_druid_v1 §2a): a source seeds ONE
++    /// adjacent eligible tile per tick, chosen by, in order:
++    ///   1. best terrain affinity (the profile's spreadMult, higher first),
++    ///   2. carcass ground before plain ground (carrion enriches the soil),
++    ///   3. nearest to the owner's enemies,
++    ///   4. fixed neighbour order (AxialNeighbors).
++    /// A tile another source already claimed this tick is skipped, so two
++    /// sources never waste their spread on the same tile.
++    /// </summary>
+     private void CollectSpread(TileData source, List<(TileData, Unit)> buffer)
+     {
+-        float ownerBonus = GetWildingSpreadBonus(source.GrowthOwner);
++        TileData best = null;
++        float bestAffinity = 0f;
++        bool bestCarcass = false;
++        int bestDistance = int.MaxValue;
+ 
+         foreach (Vector2I dir in AxialNeighbors)
+         {
+@@ -476,14 +496,28 @@ public class GrowthManager
+             GrowthProfile np = GetProfile(n);
+             if (np.Affinity == "Hostile" || np.MaxStage <= StageNone)
+                 continue;
++            if (buffer.Exists(entry => entry.Item1 == n))
++                continue;   // already claimed by another source this tick
+ 
+-            float chance = (_config.BaseSpreadChance * np.SpreadMult) + ownerBonus;
+-            if (n.CarcassTicks > 0)
+-                chance += _config.CarcassSpreadBonus;   // carrion enriches the soil
++            bool carcass = n.CarcassTicks > 0;
++            int distance = NearestHostileDistance(n, source.GrowthOwner);
+ 
+-            if (_rng.Randf() < chance)
+-                buffer.Add((n, source.GrowthOwner));
++            bool better = best == null
++                || np.SpreadMult > bestAffinity
++                || (np.SpreadMult == bestAffinity && carcass && !bestCarcass)
++                || (np.SpreadMult == bestAffinity && carcass == bestCarcass && distance < bestDistance);
++
++            if (better)
++            {
++                best = n;
++                bestAffinity = np.SpreadMult;
++                bestCarcass = carcass;
++                bestDistance = distance;
++            }
+         }
++
++        if (best != null)
++            buffer.Add((best, source.GrowthOwner));
+     }
+ 
+     private void ApplyTickPassives(TileData tile)
+@@ -517,7 +551,7 @@ public class GrowthManager
+             List<string> pool = (p.Wildlife != null && p.Wildlife.Count > 0) ? p.Wildlife : _config.WildlifeAny;
+             if (pool == null || pool.Count == 0)
+                 return;
+-            key = pool[_rng.RandiRange(0, pool.Count - 1)];
++            key = pool[0];   // deterministic: the terrain's first-listed species answers
+         }
+ 
+         TileData spawn = FindSpawnTile(tile);
+@@ -565,8 +599,31 @@ public class GrowthManager
+     private bool IsOwnedGrowth(TileData tile, Unit owner)
+         => tile.GrowthStage > StageNone && SameSide(tile.GrowthOwner, owner);
+ 
+-    private float GetWildingSpreadBonus(Unit owner)
+-        => owner?.Attunement is WildingAttunement w ? w.SpreadBonus : 0f;
++    /// <summary>True once the owner's Wilding reaches Stirring: Saplings spread too.</summary>
++    private static bool SaplingsSpread(Unit owner)
++        => owner?.Attunement is WildingAttunement w && w.SaplingsSpread;
++
++    /// <summary>Hex distance from a tile to the nearest living unit hostile to
++    /// <paramref name="owner"/>. Ownerless growth has no preference (0 for every
++    /// tile, so the fixed neighbour order decides).</summary>
++    private int NearestHostileDistance(TileData tile, Unit owner)
++    {
++        if (owner == null || tile == null || _state?.UnitsInPlay == null)
++            return 0;
++
++        int best = int.MaxValue;
++        foreach (var u in _state.UnitsInPlay)
++        {
++            if (u == null || !u.Stats.IsAlive || u.CurrentTile == null)
++                continue;
++            if (u.TeamId == owner.TeamId)
++                continue;
++            int d = _grid.Distance(tile.Axial, u.CurrentTile.Axial);
++            if (d < best)
++                best = d;
++        }
++        return best;
++    }
+ 
+     private void RaiseWilding(Unit owner, int n)
+     {
+diff --git a/Scripts/Systems/TooltipManager.cs b/Scripts/Systems/TooltipManager.cs
+index 486ccd3..e53e93c 100644
+--- a/Scripts/Systems/TooltipManager.cs
++++ b/Scripts/Systems/TooltipManager.cs
+@@ -122,6 +122,16 @@ public partial class TooltipManager : Control
+         if (tile.ElementType != TileElementType.None)
+             AddColoredRow("Imbued:", tile.ElementType.ToString(), ElementColorForType(tile.ElementType));
+ 
++        // Element reaction (class_identity_elementalist_v1 §2a item 3): name, rounds, rule.
++        if (tile.Reaction != ElementReaction.None)
++        {
++            string rounds = tile.ReactionRounds < 0 ? "permanent"
++                          : tile.ReactionRounds == 1 ? "1 round left"
++                          : $"{tile.ReactionRounds} rounds left";
++            AddColoredRow($"{ElementReactions.DisplayName(tile.Reaction)}:", rounds, ElementColors.Reaction(tile.Reaction));
++            AddRow(ElementReactions.Describe(tile.Reaction), "");
++        }
++
+         // Height
+         if (tile.Height != 0)
+             AddRow("Height:", tile.Height > 0 ? $"+{tile.Height}" : tile.Height.ToString());
+diff --git a/Scripts/UI/SchoolAttunementUI.cs b/Scripts/UI/SchoolAttunementUI.cs
+index f1758a4..d5ba8aa 100644
+--- a/Scripts/UI/SchoolAttunementUI.cs
++++ b/Scripts/UI/SchoolAttunementUI.cs
+@@ -72,7 +72,7 @@ public partial class SchoolAttunementUI : PanelContainer
+ 	private static readonly string[] WildingTierEffects =
+ 	{
+ 	"Dormant",
+-	"Growth spreads faster",
++	"Saplings spread too",
+ 	"You heal on living ground",
+ 	"Foes on your wood are rooted",
+ 	"RIOT: the wild surges"
+diff --git a/tools/glyph_cipher/corpus.py b/tools/glyph_cipher/corpus.py
+index eecb9fc..5f7d9df 100644
+--- a/tools/glyph_cipher/corpus.py
++++ b/tools/glyph_cipher/corpus.py
+@@ -13,7 +13,7 @@ REG = {
+  'summon_illusion':('Summon','SummonIllusionEffect'),'grand_design_passive':('Glyph','GrandDesignPassiveLeafEffect'),
+  'absolute_territory':('Control','AbsoluteTerritoryLeafEffect'),'apply_status':('Status','ApplyStatusEffect'),
+  'move':('Movement','DashEffect'),'shield':('Defense','GiveShieldEffect'),'draw':('CardDraw','DrawCardsEffect'),
+- 'damage':('Damage','DealDamageEffect'),'push_aimed':('Displace','PushAimedEffect'),'scry':(None,'ScryEffect'),
++ 'damage':('Damage','DealDamageEffect'),'negate_action':('Control','NegateActionEffect'),'push_aimed':('Displace','PushAimedEffect'),'scry':(None,'ScryEffect'),
+ }
+ COMPOSITE={'sequence','choose_one','conditional','for_each_target','retarget'}
+ INSCRIBE_CLASSES={'PrepareGlyphEffect','EnchantPillarEffect','ReflectWardEffect','SpellAnchorEffect'}
+diff --git a/tools/glyph_cipher/v2_goldens.txt b/tools/glyph_cipher/v2_goldens.txt
+index 37460ea..a11bdf6 100644
+--- a/tools/glyph_cipher/v2_goldens.txt
++++ b/tools/glyph_cipher/v2_goldens.txt
+@@ -37,6 +37,6 @@
+         new("enchanter_sovereign_will", "bottom", "Puppeteer", "PUPPETEER", CipherTarget.Self, CipherVerb.Bind, 5, 2, 9, 2, 26, 0x50AFFE9Cu),
+         new("enchanter_sovereign_will", "top", "Sovereign Pillars", "SOVEREIGNPILLARS", CipherTarget.Tile, CipherVerb.Inscribe, 6, 3, 16, 1, 37, 0xABBF4FD3u),
+         new("enchanter_the_grand_design", "bottom", "Absolute Territory", "ABSOLUTETERRITORY", CipherTarget.Self, CipherVerb.Bind, 6, 3, 17, 1, 35, 0x2C91D76Du),
+-        new("enchanter_the_grand_design", "top", "The Grand Design", "THEGRANDDESIGN", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 14, 1, 31, 0x87F141E2u),
++        new("enchanter_the_grand_design", "top", "The Architecture", "THEARCHITECTURE", CipherTarget.Self, CipherVerb.Invoke, 5, 3, 15, 0, 30, 0xBDEC9B96u),
+         new("enchanter_warding_step", "bottom", "Tripwire", "TRIPWIRE", CipherTarget.Tile, CipherVerb.Inscribe, 4, 2, 8, 0, 21, 0x163DE3C8u),
+         new("enchanter_warding_step", "top", "Warding Step", "WARDINGSTEP", CipherTarget.Self, CipherVerb.Ward | CipherVerb.Move, 6, 2, 11, 0, 33, 0x52C88AA0u),

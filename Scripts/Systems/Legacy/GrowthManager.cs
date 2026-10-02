@@ -82,7 +82,6 @@ public class GrowthManager
     // -- Dependencies -------------------------------------------------
     private readonly HexGridManager _grid;
     private readonly GameState _state;
-    private readonly RandomNumberGenerator _rng;
     private readonly Action<TileData, string> _wildlifeSpawner;
     private readonly Action<Unit, int> _rootHandler;
 
@@ -111,15 +110,11 @@ public class GrowthManager
         _wildlifeSpawner = wildlifeSpawner;
         _rootHandler = rootHandler;
 
-        if (rng != null)
-        {
-            _rng = rng;
-        }
-        else
-        {
-            _rng = new RandomNumberGenerator();
-            _rng.Randomize();
-        }
+        // `rng` is accepted for call-site compatibility and ignored: growth is
+        // deterministic as of 2026-10-02 (class_identity_druid_v1 §2a, "the
+        // Witness"). Spread, Riot placement and wildlife choice all follow fixed
+        // rules the player can predict.
+        _ = rng;
 
         LoadProfiles();
     }
@@ -208,7 +203,10 @@ public class GrowthManager
 
                 ApplyTickPassives(tile);
 
-                if (tile.GrowthStage >= StageThicket)
+                // Thickets and Old Growth spread every tick; Saplings join in once
+                // the owner reaches Stirring (Wilding tier 1).
+                if (tile.GrowthStage >= StageThicket ||
+                    (tile.GrowthStage == StageSapling && SaplingsSpread(tile.GrowthOwner)))
                     CollectSpread(tile, toSeed);
 
                 DecayCarcass(tile);
@@ -275,15 +273,24 @@ public class GrowthManager
             foreach (TileData t in advanced)
                 OnGrowthAdvanced?.Invoke(t);
 
-            // Spawn at most RiotWildlifeCap wildlife, spread randomly across the
-            // old-growth tiles (NOT one per tile, which flooded the board).
+            // Spawn at most RiotWildlifeCap wildlife (NOT one per tile, which
+            // flooded the board), on the Old Growth nearest the owner's enemies.
+            // Ties break by axial coordinate so the same board always answers
+            // the same way.
+            oldGrowth.Sort((a, b) =>
+            {
+                int da = NearestHostileDistance(a, owner);
+                int db = NearestHostileDistance(b, owner);
+                if (da != db)
+                    return da.CompareTo(db);
+                if (a.Axial.X != b.Axial.X)
+                    return a.Axial.X.CompareTo(b.Axial.X);
+                return a.Axial.Y.CompareTo(b.Axial.Y);
+            });
+
             int cap = Math.Min(_config.RiotWildlifeCap, oldGrowth.Count);
             for (int i = 0; i < cap; i++)
-            {
-                int j = _rng.RandiRange(i, oldGrowth.Count - 1);
-                (oldGrowth[i], oldGrowth[j]) = (oldGrowth[j], oldGrowth[i]);
                 RequestWildlife(oldGrowth[i], "auto");
-            }
 
             _state?.Log($"[Wilding] Riot -- {advanced.Count} tiles surged, {cap} wildlife answered.");
         }
@@ -459,9 +466,22 @@ public class GrowthManager
         OnGrowthChanged?.Invoke(tile);
     }
 
+    /// <summary>
+    /// Deterministic spread (class_identity_druid_v1 §2a): a source seeds ONE
+    /// adjacent eligible tile per tick, chosen by, in order:
+    ///   1. best terrain affinity (the profile's spreadMult, higher first),
+    ///   2. carcass ground before plain ground (carrion enriches the soil),
+    ///   3. nearest to the owner's enemies,
+    ///   4. fixed neighbour order (AxialNeighbors).
+    /// A tile another source already claimed this tick is skipped, so two
+    /// sources never waste their spread on the same tile.
+    /// </summary>
     private void CollectSpread(TileData source, List<(TileData, Unit)> buffer)
     {
-        float ownerBonus = GetWildingSpreadBonus(source.GrowthOwner);
+        TileData best = null;
+        float bestAffinity = 0f;
+        bool bestCarcass = false;
+        int bestDistance = int.MaxValue;
 
         foreach (Vector2I dir in AxialNeighbors)
         {
@@ -476,14 +496,28 @@ public class GrowthManager
             GrowthProfile np = GetProfile(n);
             if (np.Affinity == "Hostile" || np.MaxStage <= StageNone)
                 continue;
+            if (buffer.Exists(entry => entry.Item1 == n))
+                continue;   // already claimed by another source this tick
 
-            float chance = (_config.BaseSpreadChance * np.SpreadMult) + ownerBonus;
-            if (n.CarcassTicks > 0)
-                chance += _config.CarcassSpreadBonus;   // carrion enriches the soil
+            bool carcass = n.CarcassTicks > 0;
+            int distance = NearestHostileDistance(n, source.GrowthOwner);
 
-            if (_rng.Randf() < chance)
-                buffer.Add((n, source.GrowthOwner));
+            bool better = best == null
+                || np.SpreadMult > bestAffinity
+                || (np.SpreadMult == bestAffinity && carcass && !bestCarcass)
+                || (np.SpreadMult == bestAffinity && carcass == bestCarcass && distance < bestDistance);
+
+            if (better)
+            {
+                best = n;
+                bestAffinity = np.SpreadMult;
+                bestCarcass = carcass;
+                bestDistance = distance;
+            }
         }
+
+        if (best != null)
+            buffer.Add((best, source.GrowthOwner));
     }
 
     private void ApplyTickPassives(TileData tile)
@@ -517,7 +551,7 @@ public class GrowthManager
             List<string> pool = (p.Wildlife != null && p.Wildlife.Count > 0) ? p.Wildlife : _config.WildlifeAny;
             if (pool == null || pool.Count == 0)
                 return;
-            key = pool[_rng.RandiRange(0, pool.Count - 1)];
+            key = pool[0];   // deterministic: the terrain's first-listed species answers
         }
 
         TileData spawn = FindSpawnTile(tile);
@@ -565,8 +599,31 @@ public class GrowthManager
     private bool IsOwnedGrowth(TileData tile, Unit owner)
         => tile.GrowthStage > StageNone && SameSide(tile.GrowthOwner, owner);
 
-    private float GetWildingSpreadBonus(Unit owner)
-        => owner?.Attunement is WildingAttunement w ? w.SpreadBonus : 0f;
+    /// <summary>True once the owner's Wilding reaches Stirring: Saplings spread too.</summary>
+    private static bool SaplingsSpread(Unit owner)
+        => owner?.Attunement is WildingAttunement w && w.SaplingsSpread;
+
+    /// <summary>Hex distance from a tile to the nearest living unit hostile to
+    /// <paramref name="owner"/>. Ownerless growth has no preference (0 for every
+    /// tile, so the fixed neighbour order decides).</summary>
+    private int NearestHostileDistance(TileData tile, Unit owner)
+    {
+        if (owner == null || tile == null || _state?.UnitsInPlay == null)
+            return 0;
+
+        int best = int.MaxValue;
+        foreach (var u in _state.UnitsInPlay)
+        {
+            if (u == null || !u.Stats.IsAlive || u.CurrentTile == null)
+                continue;
+            if (u.TeamId == owner.TeamId)
+                continue;
+            int d = _grid.Distance(tile.Axial, u.CurrentTile.Axial);
+            if (d < best)
+                best = d;
+        }
+        return best;
+    }
 
     private void RaiseWilding(Unit owner, int n)
     {

@@ -72,7 +72,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	private static readonly string[] WildingTierEffects =
 	{
 	"Dormant",
-	"Growth spreads faster",
+	"Saplings spread too",
 	"You heal on living ground",
 	"Foes on your wood are rooted",
 	"RIOT: the wild surges"

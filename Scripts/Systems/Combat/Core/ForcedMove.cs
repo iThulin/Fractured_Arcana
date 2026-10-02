@@ -107,7 +107,7 @@ public static class ForcedMove
                 r.Collided = true; r.HitUnit = next.Occupant; r.HitWhat = next.Occupant.Name;
                 break;
             }
-            if (!next.CanEnter(victim))
+            if (!next.CanEnter(victim) && !ElementReactions.ForcedMayEnter(next))
             {
                 r.Collided = true;
                 r.HitWhat = !string.IsNullOrEmpty(next.ObstacleKind) ? next.ObstacleKind.Replace('_', ' ')
@@ -198,7 +198,8 @@ public static class ForcedMove
         for (int i = 0; i < tiles; i++)
         {
             var next = grid.GetTile(cur.Axial + dir);
-            if (next == null || next.Height - cur.Height >= 2 || !next.CanEnter(victim))
+            if (next == null || next.Height - cur.Height >= 2
+                || (!next.CanEnter(victim) && !ElementReactions.ForcedMayEnter(next)))
                 break;
             path.Add(next.Axial);
             cur = next;

@@ -1,11 +1,11 @@
 {
   "id": "arcanist_warding_glyph",
   "status": "ready",
-  "name": "Warding Glyph",
+  "name": "Warding Theorem",
   "school": "Arcanist",
   "rarity": "Common",
   "top": {
-    "name": "Warding Glyph",
+    "name": "Warding Theorem",
     "mana": 1,
     "speed": "Reflex",
     "rules_text": "Gain 4 shield. Gain 1 Charge.",
@@ -68,9 +68,9 @@
     {
       "tier": 1,
       "half": "both",
-      "top_name": "Warding Glyph+",
+      "top_name": "Warding Theorem+",
       "bottom_name": "Arcane Bolt+",
-      "description": "Glyph wards harder. Bolt hits harder.",
+      "description": "The theorem wards harder. Bolt hits harder.",
       "changes": [
         {
           "half": "top",
@@ -97,8 +97,8 @@
     {
       "tier": 2,
       "half": "top",
-      "top_name": "Mirror Glyph",
-      "description": "Mirror Glyph: convert shield to armor at end of turn instead of losing it.",
+      "top_name": "Mirror Theorem",
+      "description": "Mirror Theorem: convert shield to armor at end of turn instead of losing it.",
       "changes": [
         {
           "half": "top",
@@ -133,8 +133,8 @@
     {
       "tier": 3,
       "half": "top",
-      "top_name": "Aegis Glyph",
-      "description": "Aegis Glyph: also wards the nearest ally.",
+      "top_name": "Aegis Theorem",
+      "description": "Aegis Theorem: also wards the nearest ally.",
       "changes": [
         {
           "half": "top",

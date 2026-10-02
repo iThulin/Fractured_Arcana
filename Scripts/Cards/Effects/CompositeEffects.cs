@@ -492,11 +492,7 @@ public sealed class ImbuePathEffect : EffectBase
         {
             if (leftTile == null)
                 return;
-            leftTile.ElementType = elementType;
-            leftTile.ElementStrength = 1.0f;
-            if (Element.ToLowerInvariant() == "fire")
-                leftTile.IsHazardous = true;
-            leftTile.TileView?.SetElement(elementType);
+            ElementReactions.Imbue(leftTile, elementType, 1.0f, casterUnit);
             tilesImbued++;
             s.Log($"[ImbuePath] {leftTile.Axial} imbued with {Element}.");
         };
@@ -510,9 +506,7 @@ public sealed class ImbuePathEffect : EffectBase
         // Also imbue the starting tile
         if (casterUnit.CurrentTile != null)
         {
-            casterUnit.CurrentTile.ElementType = elementType;
-            casterUnit.CurrentTile.ElementStrength = 1.0f;
-            casterUnit.CurrentTile.TileView?.SetElement(elementType);
+            ElementReactions.Imbue(casterUnit.CurrentTile, elementType, 1.0f, casterUnit);
             tilesImbued++;
         }
 
@@ -578,11 +572,7 @@ public sealed class ImbueAreaEffect : EffectBase
             if (tile == null)
                 continue;
 
-            tile.ElementType = elementType;
-            tile.ElementStrength = 1.0f;
-            if (elementType == TileElementType.Fire)
-                tile.IsHazardous = true;
-            tile.TileView?.SetElement(elementType);
+            ElementReactions.Imbue(tile, elementType, 1.0f, casterUnit);
             imbued++;
         }
 
