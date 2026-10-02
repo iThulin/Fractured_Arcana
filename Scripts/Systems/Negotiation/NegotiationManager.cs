@@ -124,6 +124,7 @@ public partial class NegotiationManager : Control
     {
         BuildUI();
         InitializeNegotiation();
+        RegisterManager.Fire("strategic.first_negotiation");
     }
 
     // ═══════════════════════════════════════════════════════════════════

@@ -574,6 +574,7 @@ public partial class StrategicView
         _marchMode = false;
         _atlas3D?.HighlightDispatch(null);
         RefreshPieceChrome();
+        RegisterManager.Fire("strategic.first_waystone");
         if (takeField)
         {
             OnPartyTakeTheField();

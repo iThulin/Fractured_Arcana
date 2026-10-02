@@ -34,6 +34,11 @@ public partial class SettingsManager : Node
     public float UIScale { get; private set; } = 1.0f;
     public float MasterVolume { get; private set; } = 1.0f;
 
+    /// <summary>The Register's remarks and asides (comment + flavor barks).</summary>
+    public bool RegisterCommentary { get; private set; } = true;
+    /// <summary>The Register's one-time onboarding explanations.</summary>
+    public bool RegisterExplanations { get; private set; } = true;
+
     public static readonly List<Vector2I> SupportedResolutions = new()
     {
         new Vector2I(1280, 720),
@@ -137,6 +142,18 @@ public partial class SettingsManager : Node
         SaveSettings();
     }
 
+    public void SetRegisterCommentary(bool on)
+    {
+        RegisterCommentary = on;
+        SaveSettings();
+    }
+
+    public void SetRegisterExplanations(bool on)
+    {
+        RegisterExplanations = on;
+        SaveSettings();
+    }
+
     // ── Apply helpers ────────────────────────────────────────────────────────
 
     private void ApplyResolution()
@@ -227,6 +244,8 @@ public partial class SettingsManager : Node
         VSync = (bool)cfg.GetValue("display", "vsync", true);
         UIScale = (float)cfg.GetValue("ui", "scale", 1.0f);
         MasterVolume = (float)cfg.GetValue("audio", "master_volume", 1.0f);
+        RegisterCommentary = (bool)cfg.GetValue("register", "commentary", true);
+        RegisterExplanations = (bool)cfg.GetValue("register", "explanations", true);
 
         GD.Print($"[Settings] Loaded: {Resolution.X}x{Resolution.Y}, mode={WindowMode}, " +
                  $"vsync={VSync}, ui_scale={UIScale}, vol={MasterVolume}");
@@ -241,6 +260,8 @@ public partial class SettingsManager : Node
         cfg.SetValue("display", "vsync", VSync);
         cfg.SetValue("ui", "scale", UIScale);
         cfg.SetValue("audio", "master_volume", MasterVolume);
+        cfg.SetValue("register", "commentary", RegisterCommentary);
+        cfg.SetValue("register", "explanations", RegisterExplanations);
 
         var err = cfg.Save(ConfigPath);
         if (err != Error.Ok)

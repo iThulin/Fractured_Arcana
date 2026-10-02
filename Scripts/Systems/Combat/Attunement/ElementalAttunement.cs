@@ -214,6 +214,7 @@ public class ElementalAttunement : ISchoolAttunement
 					Description = GetBurstDescription(element)
 				});
 				OnBurstTriggered?.Invoke(element);
+				if (!CombatSim.Active) RegisterManager.Fire("elementalist.burst");
 				Charges[element] = 0;
 				OnChargeChanged?.Invoke(element, 0);
 			}
@@ -231,6 +232,7 @@ public class ElementalAttunement : ISchoolAttunement
 					Description = "CONFLUENCE: " + GetBurstDescription(element)
 				});
 				OnBurstTriggered?.Invoke(element);
+				if (!CombatSim.Active) RegisterManager.Fire("elementalist.burst");
 			}
 		}
 

@@ -1066,6 +1066,7 @@ public partial class CombatManager
 
         _priorityWindowOpen = true;
         _priorityPassed = false;
+        RegisterManager.Fire("combat.reflex_window");
         string why = holdsResponse ? $"{responder.Name} holds a response" : "stop set";
         GD.Print($"[Priority] window OPEN on {topName} ({why}).");
 

@@ -22,6 +22,7 @@ config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 
 GameBootstrap="*res://Scripts/Systems/GameBootstrap.cs"
 SettingsManager="*res://Scripts/Systems/SettingsManager.cs"
+RegisterManager="*res://Scripts/Systems/Register/RegisterManager.cs"
 PauseManager="*res://Scripts/Systems/PauseManager.cs"
 HudManager="*res://Scripts/Systems/HudManager.cs"
 ScryVeil="*res://Scripts/Systems/ScryVeil.cs"

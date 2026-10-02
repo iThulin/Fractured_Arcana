@@ -2507,6 +2507,13 @@ public partial class CombatManager : Node3D
         currentPhase = CombatPhase.PlayerTurn;
         enemyPhaseRunning = false;
         _endTurnConfirmPending = false;   // a new turn never inherits last turn's warning
+
+        // The Register (the_register_v1 §4-5): a new round opens the remark budget,
+        // and the combat basics explain themselves the first time (once flags).
+        RegisterManager.NoteCombatTurn(roundNumber);
+        RegisterManager.Fire("combat.basics.hand");
+        RegisterManager.Fire("combat.basics.halves");
+        RegisterManager.Fire("combat.basics.move");
         _edgeActivationId++;              // Edge: the player phase is its own activation
 
         // (2026-07-28, U3e) Ritardando's "+1 enemy spell cost" expires HERE, not at
@@ -3719,6 +3726,8 @@ public partial class CombatManager : Node3D
         }
 
         _deathsThisCombat++;   // map_pressure_v2: first_blood and the like read this
+        if (unit.IsPlayerControlled && !string.IsNullOrEmpty(unit.CompanionId))
+            RegisterManager.Fire("combat.ally_down");
         NoteFoundationDeath(unit);   // portal strike: a razed foundation (SiegeBlight)
 
         string deathMsg = $"{unit.Name} has died.";
@@ -4008,6 +4017,7 @@ public partial class CombatManager : Node3D
         RefreshPhaseUI();
         GD.Print("=== VICTORY ===");
         combatUI?.AppendActionLog("Victory!");
+        RegisterManager.Fire("combat.victory");
         CombatTelemetry.EndFight(true, roundNumber);
 
         // K2.5 (ruled 2026-07-09): unit HP is the fights, so surviving

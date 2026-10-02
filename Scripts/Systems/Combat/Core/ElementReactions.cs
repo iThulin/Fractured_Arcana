@@ -315,6 +315,7 @@ public static class ElementReactions
         tile.TileView?.SetReaction(reaction, rounds);
 
         Say($"[Reaction] {DisplayName(existing, incoming)} at {tile.Axial}: {DisplayName(reaction)}. {Describe(reaction)}");
+        RegisterManager.Fire("reaction." + reaction.ToString().ToLowerInvariant());
 
         if (reaction == ElementReaction.Fulgurite && occupant != null && occupant.Stats.IsAlive)
             occupant.ApplyDamage(FulguriteDamage, source);

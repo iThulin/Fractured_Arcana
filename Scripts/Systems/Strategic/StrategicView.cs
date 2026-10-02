@@ -6269,6 +6269,7 @@ public partial class StrategicView : Node2D
             SaveManager.SaveIfDirty();
             RefreshPieceChrome();
             ShowStrategicNotice("Posted", line);
+            RegisterManager.Fire("strategic.first_posting");
         };
         dlg.Canceled += () => dlg.QueueFree();
         AddChild(dlg);
@@ -6778,6 +6779,7 @@ public partial class StrategicView : Node2D
     /// K2 (§5b/R24): infirmary recovery last.</summary>
     private void RunLunationTick(CycleState cycle)
     {
+        RegisterManager.Fire("strategic.first_lunation");
         // The open camp's threat roll moved to WorldClock.StepDay on
         // 2026-09-29: it is rolled once per exposed day, before that day's
         // resupply, now that the resupply counts days.

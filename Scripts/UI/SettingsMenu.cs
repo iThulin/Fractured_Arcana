@@ -30,6 +30,8 @@ public partial class SettingsMenu : Control
     private HSlider      _volumeSlider;
     private Label        _volumeValue;
     private Button       _backButton;
+    private CheckBox     _registerCommentaryCheck;
+    private CheckBox     _registerExplainCheck;
 
     public override void _Ready()
     {
@@ -51,6 +53,7 @@ public partial class SettingsMenu : Control
         if (_volumeSlider  == null) GD.PrintErr("[SettingsMenu] VolumeSlider not found");
         if (_backButton    == null) GD.PrintErr("[SettingsMenu] BackButton not found");
 
+        BuildRegisterRows();
         PopulateResolutionDropdown();
         PopulateWindowModeDropdown();
         ReadCurrentValues();
@@ -60,6 +63,60 @@ public partial class SettingsMenu : Control
     // ════════════════════════════════════════════════════════════════════════
     //  Populate dropdowns
     // ════════════════════════════════════════════════════════════════════════
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The Register's toggles (built in code from the scene's own rows)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Adds a "Register" section with the two toggles from the_register_v1 §4.
+    /// Built by duplicating the scene's Audio header and VSync row, so the new rows
+    /// inherit the scene's styling without a .tscn edit.</summary>
+    private void BuildRegisterRows()
+    {
+        var vsyncRow = _vsyncCheck?.GetParent() as Control;
+        var settings = vsyncRow?.GetParent() as Control;
+        if (vsyncRow == null || settings == null)
+        {
+            GD.PrintErr("[SettingsMenu] VSync row not found, so the Register toggles are not shown.");
+            return;
+        }
+
+        if (FindChild("AudioSpacer", true) is Control spacer)
+            settings.AddChild(spacer.Duplicate());
+        if (FindChild("AudioHeader", true) is Label headerTemplate)
+        {
+            var header = (Label)headerTemplate.Duplicate();
+            header.Name = "RegisterHeader";
+            header.Text = "Register";
+            settings.AddChild(header);
+        }
+
+        _registerCommentaryCheck = AddCheckRow(settings, vsyncRow, "RegisterCommentary", "Commentary");
+        _registerExplainCheck = AddCheckRow(settings, vsyncRow, "RegisterExplanations", "Explanations");
+    }
+
+    private static CheckBox AddCheckRow(Control settings, Control template, string id, string text)
+    {
+        var row = (Control)template.Duplicate();
+        row.Name = id + "Row";
+        settings.AddChild(row);
+
+        CheckBox check = null;
+        foreach (var child in row.GetChildren())
+        {
+            if (child is CheckBox c)
+            {
+                check = c;
+                c.Name = id + "Check";
+            }
+            else if (child is Label l)
+            {
+                l.Name = id + "Label";
+                l.Text = text;
+            }
+        }
+        return check;
+    }
 
     private void PopulateResolutionDropdown()
     {
@@ -118,6 +175,8 @@ public partial class SettingsMenu : Control
         if (_vsyncCheck    != null) _vsyncCheck.ButtonPressed = sm.VSync;
         if (_uiScaleSlider != null) _uiScaleSlider.Value      = sm.UIScale;
         if (_volumeSlider  != null) _volumeSlider.Value       = sm.MasterVolume;
+        if (_registerCommentaryCheck != null) _registerCommentaryCheck.ButtonPressed = sm.RegisterCommentary;
+        if (_registerExplainCheck    != null) _registerExplainCheck.ButtonPressed    = sm.RegisterExplanations;
 
         UpdateUIScaleLabel(sm.UIScale);
         UpdateVolumeLabel(sm.MasterVolume);
@@ -135,6 +194,10 @@ public partial class SettingsMenu : Control
         if (_uiScaleSlider != null) _uiScaleSlider.ValueChanged += OnUIScaleChanged;
         if (_volumeSlider  != null) _volumeSlider.ValueChanged  += OnVolumeChanged;
         if (_backButton    != null) _backButton.Pressed         += OnBackPressed;
+        if (_registerCommentaryCheck != null)
+            _registerCommentaryCheck.Toggled += on => SettingsManager.Instance?.SetRegisterCommentary(on);
+        if (_registerExplainCheck != null)
+            _registerExplainCheck.Toggled += on => SettingsManager.Instance?.SetRegisterExplanations(on);
     }
 
     // ════════════════════════════════════════════════════════════════════════

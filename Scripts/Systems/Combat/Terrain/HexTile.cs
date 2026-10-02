@@ -98,6 +98,7 @@ public partial class HexTile : Node3D
     private Label3D _growthLabel;
     private Label3D _reactionLabel;          // element reaction standing on the tile
     private Label3D _reactionPreviewLabel;   // reaction a dragged card would cause
+    private ElementReaction _reaction = ElementReaction.None;   // owns the overlay while set
 
     /// <summary>Axial (q, r) coordinate identifying this tile's grid position.</summary>
     public Vector2I Axial { get; set; }
@@ -414,7 +415,12 @@ public partial class HexTile : Node3D
         if (imbuementOverlay == null)
             EnsureImbuementOverlay();
 
-        imbuementOverlay?.SetElement(element);
+        // A standing reaction owns the overlay: element writes underneath it (the
+        // reaction itself clears the element) must not hide the reaction's form.
+        if (_reaction != ElementReaction.None)
+            imbuementOverlay?.SetReactionForm(_reaction);
+        else
+            imbuementOverlay?.SetElement(element);
 
         // Record it board-wide so the TERRAIN can respond: snow settling on the
         // grass, fire burning it away. Separate from the overlay on purpose: the
@@ -883,17 +889,25 @@ public partial class HexTile : Node3D
     /// Shows the element reaction standing on this tile (class_identity_elementalist_v1
     /// §2a item 2) as a floating name plus rounds left, tinted by
     /// <see cref="ElementColors.Reaction"/>. Plain letters on purpose: the Label3D font
-    /// carries no symbol glyphs. A placeholder until each reaction has a sculpted form.
-    /// Pass <see cref="ElementReaction.None"/> to clear.
+    /// carries no symbol glyphs. The tile also wears the reaction's form through
+    /// <see cref="ImbuementOverlay.SetReactionForm"/>.
+    /// Pass <see cref="ElementReaction.None"/> to clear and restore the tile's element.
     /// </summary>
     public void SetReaction(ElementReaction reaction, int rounds)
     {
+        _reaction = reaction;
+        if (imbuementOverlay == null)
+            EnsureImbuementOverlay();
+
         if (reaction == ElementReaction.None)
         {
             if (_reactionLabel != null)
                 _reactionLabel.Visible = false;
+            imbuementOverlay?.SetElement(Data?.ElementType ?? TileElementType.None);
             return;
         }
+
+        imbuementOverlay?.SetReactionForm(reaction);
 
         string text = ElementReactions.DisplayName(reaction).ToUpperInvariant()
                     + (rounds > 0 ? $" {rounds}" : "");
@@ -903,12 +917,12 @@ public partial class HexTile : Node3D
             _reactionLabel = new Label3D
             {
                 Name = "ReactionIndicator",
-                FontSize = UITheme.Label3DSmall,
+                FontSize = UITheme.Label3DPoi,
                 OutlineSize = UITheme.Label3DOutlineSize,
                 OutlineModulate = UITheme.Label3DOutline,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest = true,
-                Position = new Vector3(0f, 1.05f, 0f),
+                Position = new Vector3(0f, UITheme.Label3DPoiHeight, 0f),
             };
             CallDeferred("add_child", _reactionLabel);
         }
@@ -938,12 +952,12 @@ public partial class HexTile : Node3D
             _reactionPreviewLabel = new Label3D
             {
                 Name = "ReactionPreview",
-                FontSize = UITheme.Label3DSmall,
+                FontSize = UITheme.Label3DPoi,
                 OutlineSize = UITheme.Label3DOutlineSize,
                 OutlineModulate = UITheme.Label3DOutline,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest = true,
-                Position = new Vector3(0f, 1.35f, 0f),
+                Position = new Vector3(0f, UITheme.Label3DPoiHeight + 0.4f, 0f),
             };
             CallDeferred("add_child", _reactionPreviewLabel);
         }

@@ -237,6 +237,13 @@ public class EternalLedger
     /// <summary>Cross-loop story flags. Placement-agnostic by design rule.</summary>
     public List<string> MetaNarrativeFlags = new();
 
+    /// <summary>
+    /// The Register's once flags (docs/the_register_v1.md §4): ids of explanations
+    /// already shown. Eternal, so an explanation never repeats across cycles.
+    /// Null on pre-feature saves; RegisterManager backfills on first write.
+    /// </summary>
+    public List<string> RegisterSeen = new();
+
     // ── Knowledge (breadth, never power) ─────────────────────────────────
     /// <summary>
     /// Card blueprints the player has discovered, across all timelines.

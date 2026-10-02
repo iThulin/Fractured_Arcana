@@ -315,6 +315,35 @@ public partial class ImbuementOverlay : Node3D
     }
 
     /// <summary>
+    /// Shows an element reaction (class_identity_elementalist_v1 §2a) by borrowing the
+    /// nearest element's sculpted form and recolouring it with
+    /// <see cref="ElementColors.Reaction"/>: Steam wears the Air ribbons, Fulgurite the
+    /// Lightning spikes, Magma and Wildfire the Fire flames, Brittle the Frost crystals.
+    /// Glacier shows nothing here because the glacier obstacle is its form. Pass
+    /// <see cref="ElementReaction.None"/> to hide the overlay; the caller restores the
+    /// tile's real element afterwards.
+    /// </summary>
+    public void SetReactionForm(ElementReaction reaction)
+    {
+        var baseElement = reaction switch
+        {
+            ElementReaction.Steam => TileElementType.Air,
+            ElementReaction.Fulgurite => TileElementType.Lightning,
+            ElementReaction.Magma => TileElementType.Fire,
+            ElementReaction.Wildfire => TileElementType.Fire,
+            ElementReaction.Brittle => TileElementType.Frost,
+            _ => TileElementType.None,
+        };
+
+        SetElement(baseElement);
+        if (baseElement == TileElementType.None) return;
+
+        Color tint = ElementColors.Reaction(reaction);
+        _auraMaterial?.SetShaderParameter("tint_color", tint);
+        _glyphMaterial?.SetShaderParameter("tint_color", tint);
+    }
+
+    /// <summary>
     /// Swaps in the element's silhouette (flames, crystals, plates, ribbons), built
     /// procedurally by <see cref="ImbuementForms"/>.
     ///

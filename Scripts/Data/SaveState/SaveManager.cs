@@ -599,6 +599,7 @@ public static class SaveManager
 
         SeedDeckForSchool(ActiveSave, school);
 
+        RegisterManager.Fire("cycle.first_unmaking");   // shown on the campus that follows
         Save();
         GD.Print($"SaveManager: Cycle {old.CycleNumber} archived ({outcome}). " +
                  $"Cycle {ActiveSave.Cycle.CycleNumber} begun (school: {school}).");

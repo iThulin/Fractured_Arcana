@@ -230,6 +230,15 @@ public partial class CombatManager
 
         LogMarkerLegend();
         RefreshThreatTiles();
+
+        foreach (var enemy in enemyUnits)
+        {
+            if (IsValidActor(enemy) && enemy.CurrentIntent?.TargetTile != null)
+            {
+                RegisterManager.Fire("combat.tile_intent");
+                break;
+            }
+        }
     }
 
     // ── U2: BehaviorKey → planner map. The catalog here must stay in sync with

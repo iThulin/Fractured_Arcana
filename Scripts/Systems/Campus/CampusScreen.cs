@@ -146,6 +146,7 @@ public partial class CampusScreen : Control
 
     public override void _Ready()
     {
+        RegisterManager.Fire("campus.visit");
         PlayerDeckSave.UseDebugDeck = false; // campus is the real-deck home; debug routing off
         // Cards BEFORE the save: SaveManager.Load runs ProgressionSweep, which
         // needs a populated CardDatabase to resolve Regalia. The autoload normally

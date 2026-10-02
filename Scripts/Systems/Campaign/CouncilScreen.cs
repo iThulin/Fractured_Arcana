@@ -149,6 +149,7 @@ public partial class CouncilScreen : CanvasLayer
         }
         _instance = new CouncilScreen { Name = "CouncilScreen", Layer = 128 };
         host.AddChild(_instance);
+        RegisterManager.Fire("strategic.first_council");
     }
 
     public static void Close()
