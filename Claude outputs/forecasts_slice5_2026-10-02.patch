@@ -1,0 +1,248 @@
+diff --git a/Data/Register/barks.json b/Data/Register/barks.json
+index ccb5f9b..b266c33 100644
+--- a/Data/Register/barks.json
++++ b/Data/Register/barks.json
+@@ -100,6 +100,14 @@
+       "note": "Charging an element to its limit sets off a burst: a powerful free effect of that element. The element's charges then reset to zero. Fire and Frost cancel each other's charges, as do Storm and Earth."
+     },
+ 
++    {
++      "key": "druid.growth_preview",
++      "category": "explain",
++      "once": true,
++      "title": "Growth to come",
++      "lines": [ "The grove has made its intentions known. The Register records them in pencil, for now..." ],
++      "note": "Faint hollow sprouts mark where your growth will seed at the end of the enemy turn; a faint + marks living ground that will grow a stage. Growth is deterministic: it spreads toward the best ground, then carcass ground, then the nearest enemy."
++    },
+     {
+       "key": "strategic.first_council",
+       "category": "explain",
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index 89fa9a3..d58cf40 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -1324,9 +1324,17 @@ public partial class CombatManager
+             ? $"{glyph} {value}{suffix}"
+             : $"{glyph} {value}{suffix}\n{markers}";
+ 
++        // class_identity_elementalist_v1 §2a item 7: an intent that will set off a
++        // reaction names it under the glyph (plain letters: the Label3D font has no
++        // symbol glyphs for reactions).
++        var reaction = PredictIntentReaction(intent);
++        if (reaction != ElementReaction.None)
++            body += $"\nFORMS {ElementReactions.DisplayName(reaction).ToUpperInvariant()}";
++
+         // The marker line is reference text, not a glyph, so shrink it and two lines
+         // don't swallow the board.
+-        enemy.SetIntentDisplay(body, color, string.IsNullOrEmpty(markers) ? 40 : 24);
++        int size = !string.IsNullOrEmpty(markers) ? 24 : reaction != ElementReaction.None ? 30 : 40;
++        enemy.SetIntentDisplay(body, color, size);
+     }
+ 
+     /// <summary>
+@@ -1377,6 +1385,10 @@ public partial class CombatManager
+                 _paintedThreatTiles.Add(kvp.Key);
+             }
+         }
++
++        // BoardForecast: the board just changed, so both forecasts may have too.
++        RefreshIntentReactions();
++        QueueGrowthPreview();
+     }
+ 
+     /// <summary>Creates the floating reticle over a threatened tile. Label3D via
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 8936162..3e14e75 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -4732,7 +4732,11 @@ public partial class CombatManager : Node3D
+         State.Memorials.OnMemorialChanged += tile => tile.TileView?.SetMemorial(tile.Memorial);
+         State.Memorials.OnMemorialRemoved += tile => tile.TileView?.SetMemorial(null);
+ 
+-        State.Growth.OnGrowthChanged += tile => tile.TileView?.SetGrowth(tile.GrowthStage);
++        State.Growth.OnGrowthChanged += tile =>
++        {
++            tile.TileView?.SetGrowth(tile.GrowthStage);
++            QueueGrowthPreview();   // BoardForecast: one repaint per frame, however many tiles changed
++        };
+ 
+         Bestiary.EnsureLoaded();
+ 
+diff --git a/Scripts/Systems/Combat/Terrain/HexTile.cs b/Scripts/Systems/Combat/Terrain/HexTile.cs
+index e11ffaa..33547bc 100644
+--- a/Scripts/Systems/Combat/Terrain/HexTile.cs
++++ b/Scripts/Systems/Combat/Terrain/HexTile.cs
+@@ -96,6 +96,7 @@ public partial class HexTile : Node3D
+     // Growth mechaniscs for duid
+     private int _growthStage = 0;
+     private Label3D _growthLabel;
++    private Label3D _growthPreviewLabel;     // next growth tick forecast (druid §2a)
+     private Label3D _reactionLabel;          // element reaction standing on the tile
+     private Label3D _reactionPreviewLabel;   // reaction a dragged card would cause
+     private ElementReaction _reaction = ElementReaction.None;   // owns the overlay while set
+@@ -851,6 +852,41 @@ public partial class HexTile : Node3D
+         UpdateGrowthLabel(_growthStage);
+     }
+ 
++    /// <summary>
++    /// Next-tick growth forecast (class_identity_druid_v1 §2a): 1 = a faint hollow
++    /// sprout where a Sapling will seed, 2 = a faint "+" above the pip where living
++    /// ground will grow a stage, 0 = clear. Same green as the growth pip, at low alpha,
++    /// so it reads as "about to be" rather than "is".
++    /// </summary>
++    public void SetGrowthPreview(int mode)
++    {
++        if (mode <= 0)
++        {
++            if (_growthPreviewLabel != null)
++                _growthPreviewLabel.Visible = false;
++            return;
++        }
++
++        if (_growthPreviewLabel == null)
++        {
++            _growthPreviewLabel = new Label3D
++            {
++                Name = "GrowthPreview",
++                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
++                NoDepthTest = true,
++            };
++            CallDeferred("add_child", _growthPreviewLabel);
++        }
++
++        Color tint = UITheme.GrowthPip;
++        tint.A = 0.45f;
++        _growthPreviewLabel.Text = mode == 1 ? "○" : "+";
++        _growthPreviewLabel.FontSize = mode == 1 ? 30 : 28;
++        _growthPreviewLabel.Position = new Vector3(0f, mode == 1 ? 0.7f : 1.0f, 0f);
++        _growthPreviewLabel.Modulate = tint;
++        _growthPreviewLabel.Visible = true;
++    }
++
+     private void UpdateGrowthLabel(int stage)
+     {
+         // Filled dot, larger/brighter as growth matures. Round shape + green colour
+diff --git a/Scripts/Systems/Legacy/GrowthManager.cs b/Scripts/Systems/Legacy/GrowthManager.cs
+index 66534d7..a8d626f 100644
+--- a/Scripts/Systems/Legacy/GrowthManager.cs
++++ b/Scripts/Systems/Legacy/GrowthManager.cs
+@@ -234,6 +234,62 @@ public class GrowthManager
+             RaiseWilding(owner, _config.WildingPerTick);
+     }
+ 
++    /// <summary>
++    /// Pure forecast of the next <see cref="TickEndOfEnemyTurn"/> (class_identity_druid_v1
++    /// §2a, "Preview"): fills <paramref name="sprouts"/> with the tiles that will seed a
++    /// Sapling and <paramref name="advances"/> with the living tiles that will grow a
++    /// stage. Mirrors the tick's own rules (age threshold, Cold regression, Hostile
++    /// recession, Saplings spreading at Stirring, deterministic CollectSpread) and
++    /// mutates nothing, so the preview is exactly what the tick will do if the board
++    /// does not change first.
++    /// </summary>
++    public void PreviewNextTick(List<TileData> sprouts, List<TileData> advances)
++    {
++        sprouts.Clear();
++        advances.Clear();
++        if (_grid == null)
++            return;
++
++        var claimed = new List<(TileData, Unit)>();
++        foreach (TileData tile in _grid.Tiles.Values)
++        {
++            if (tile.GrowthStage <= StageNone)
++                continue;
++
++            GrowthProfile p = GetProfile(tile);
++            int stage = tile.GrowthStage;
++
++            switch (p.Affinity)
++            {
++                case "Hostile":
++                    continue;   // it burns or recedes; it never spreads
++
++                case "Cold":
++                    if (stage > p.MaxStage)
++                        stage = Mathf.Max(p.MaxStage, StageNone);
++                    if (stage > StageNone && tile.GrowthAge - 1 < -_config.AdvanceAgeThreshold)
++                        stage--;
++                    break;
++
++                default:
++                    if (tile.GrowthAge + 1 >= _config.AdvanceAgeThreshold && stage < p.MaxStage)
++                    {
++                        stage++;
++                        advances.Add(tile);
++                    }
++                    break;
++            }
++
++            if (stage <= StageNone)
++                continue;
++            if (stage >= StageThicket || (stage == StageSapling && SaplingsSpread(tile.GrowthOwner)))
++                CollectSpread(tile, claimed);
++        }
++
++        foreach (var (t, _) in claimed)
++            sprouts.Add(t);
++    }
++
+     // -- Riot burst (subscribe per Druid unit's OnRiotTriggered) ------
+ 
+     public void ApplyRiot(Unit owner)
+diff --git a/Scripts/Systems/Register/RegisterManager.cs b/Scripts/Systems/Register/RegisterManager.cs
+index d6c4ac2..28f6bcc 100644
+--- a/Scripts/Systems/Register/RegisterManager.cs
++++ b/Scripts/Systems/Register/RegisterManager.cs
+@@ -495,6 +495,10 @@ public partial class RegisterManager : Node
+         title.CustomMinimumSize = Vector2.Zero;
+         title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+         header.AddChild(title);
++        var chart = new Button { Text = "Reaction chart", CustomMinimumSize = new Vector2(130, 30) };
++        UITheme.ApplyButtonStyle(chart, isPrimary: false);
++        chart.Pressed += () => ReactionChart.ShowDialog(_layer);
++        header.AddChild(chart);
+         var close = new Button { Text = "Close", CustomMinimumSize = new Vector2(80, 30) };
+         UITheme.ApplyButtonStyle(close, isPrimary: false);
+         close.Pressed += CloseHistory;
+diff --git a/Scripts/UI/CardLibraryUi.cs b/Scripts/UI/CardLibraryUi.cs
+index b9d476e..206c45f 100644
+--- a/Scripts/UI/CardLibraryUi.cs
++++ b/Scripts/UI/CardLibraryUi.cs
+@@ -134,6 +134,15 @@ public partial class CardLibraryUi : Control
+         if (_backButton == null) GD.PrintErr("[CardLibrary] BackButton not found");
+         if (_detailPanel == null) GD.PrintErr("[CardLibrary] DetailPanel not found");
+         if (_detailContent == null) GD.PrintErr("[CardLibrary] DetailContent not found");
++
++        // Reaction chart (class_identity_elementalist_v1 §2a item 4), at the end of the top bar.
++        if (_backButton?.GetParent() is HBoxContainer topBar)
++        {
++            var chart = new Button { Text = "Reaction Chart", FocusMode = FocusModeEnum.None };
++            UITheme.ApplyButtonStyle(chart, isPrimary: false);
++            chart.Pressed += () => ReactionChart.ShowDialog(this);
++            topBar.AddChild(chart);
++        }
+     }
+ 
+     // ═════════════════════════════════════════════════════════════════════
+diff --git a/Scripts/UI/PauseMenu.cs b/Scripts/UI/PauseMenu.cs
+index e7c5793..cc57a32 100644
+--- a/Scripts/UI/PauseMenu.cs
++++ b/Scripts/UI/PauseMenu.cs
+@@ -57,6 +57,17 @@ public partial class PauseMenu : Control
+         _forfeitCombatButton = GetNode<Button>("MenuContainer/Margin/VBox/ForfeitCombatButton");
+         _quitButton = GetNode<Button>("MenuContainer/Margin/VBox/QuitButton");
+ 
++        // Reaction chart (class_identity_elementalist_v1 §2a item 4). Duplicated from
++        // the Card Library button BEFORE any signal is wired, so it carries the
++        // scene's styling and none of that button's handlers.
++        var chartButton = (Button)_cardLibraryButton.Duplicate();
++        chartButton.Name = "ReactionChartButton";
++        chartButton.Text = "Reaction Chart";
++        var menuColumn = _cardLibraryButton.GetParent();
++        menuColumn.AddChild(chartButton);
++        menuColumn.MoveChild(chartButton, _cardLibraryButton.GetIndex() + 1);
++        chartButton.Pressed += () => ReactionChart.ShowDialog(this);
++
+         _resumeButton.Pressed += OnResumePressed;
+         _settingsButton.Pressed += OnSettingsPressed;
+         _cardLibraryButton.Pressed += OnCardLibraryPressed;

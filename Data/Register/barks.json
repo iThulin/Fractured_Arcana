@@ -101,6 +101,14 @@
     },
 
     {
+      "key": "druid.growth_preview",
+      "category": "explain",
+      "once": true,
+      "title": "Growth to come",
+      "lines": [ "The grove has made its intentions known. The Register records them in pencil, for now..." ],
+      "note": "Faint hollow sprouts mark where your growth will seed at the end of the enemy turn; a faint + marks living ground that will grow a stage. Growth is deterministic: it spreads toward the best ground, then carcass ground, then the nearest enemy."
+    },
+    {
       "key": "strategic.first_council",
       "category": "explain",
       "once": true,

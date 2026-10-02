@@ -57,6 +57,17 @@ public partial class PauseMenu : Control
         _forfeitCombatButton = GetNode<Button>("MenuContainer/Margin/VBox/ForfeitCombatButton");
         _quitButton = GetNode<Button>("MenuContainer/Margin/VBox/QuitButton");
 
+        // Reaction chart (class_identity_elementalist_v1 §2a item 4). Duplicated from
+        // the Card Library button BEFORE any signal is wired, so it carries the
+        // scene's styling and none of that button's handlers.
+        var chartButton = (Button)_cardLibraryButton.Duplicate();
+        chartButton.Name = "ReactionChartButton";
+        chartButton.Text = "Reaction Chart";
+        var menuColumn = _cardLibraryButton.GetParent();
+        menuColumn.AddChild(chartButton);
+        menuColumn.MoveChild(chartButton, _cardLibraryButton.GetIndex() + 1);
+        chartButton.Pressed += () => ReactionChart.ShowDialog(this);
+
         _resumeButton.Pressed += OnResumePressed;
         _settingsButton.Pressed += OnSettingsPressed;
         _cardLibraryButton.Pressed += OnCardLibraryPressed;

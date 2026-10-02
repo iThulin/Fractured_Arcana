@@ -4732,7 +4732,11 @@ public partial class CombatManager : Node3D
         State.Memorials.OnMemorialChanged += tile => tile.TileView?.SetMemorial(tile.Memorial);
         State.Memorials.OnMemorialRemoved += tile => tile.TileView?.SetMemorial(null);
 
-        State.Growth.OnGrowthChanged += tile => tile.TileView?.SetGrowth(tile.GrowthStage);
+        State.Growth.OnGrowthChanged += tile =>
+        {
+            tile.TileView?.SetGrowth(tile.GrowthStage);
+            QueueGrowthPreview();   // BoardForecast: one repaint per frame, however many tiles changed
+        };
 
         Bestiary.EnsureLoaded();
 

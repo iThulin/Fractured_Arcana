@@ -234,6 +234,62 @@ public class GrowthManager
             RaiseWilding(owner, _config.WildingPerTick);
     }
 
+    /// <summary>
+    /// Pure forecast of the next <see cref="TickEndOfEnemyTurn"/> (class_identity_druid_v1
+    /// §2a, "Preview"): fills <paramref name="sprouts"/> with the tiles that will seed a
+    /// Sapling and <paramref name="advances"/> with the living tiles that will grow a
+    /// stage. Mirrors the tick's own rules (age threshold, Cold regression, Hostile
+    /// recession, Saplings spreading at Stirring, deterministic CollectSpread) and
+    /// mutates nothing, so the preview is exactly what the tick will do if the board
+    /// does not change first.
+    /// </summary>
+    public void PreviewNextTick(List<TileData> sprouts, List<TileData> advances)
+    {
+        sprouts.Clear();
+        advances.Clear();
+        if (_grid == null)
+            return;
+
+        var claimed = new List<(TileData, Unit)>();
+        foreach (TileData tile in _grid.Tiles.Values)
+        {
+            if (tile.GrowthStage <= StageNone)
+                continue;
+
+            GrowthProfile p = GetProfile(tile);
+            int stage = tile.GrowthStage;
+
+            switch (p.Affinity)
+            {
+                case "Hostile":
+                    continue;   // it burns or recedes; it never spreads
+
+                case "Cold":
+                    if (stage > p.MaxStage)
+                        stage = Mathf.Max(p.MaxStage, StageNone);
+                    if (stage > StageNone && tile.GrowthAge - 1 < -_config.AdvanceAgeThreshold)
+                        stage--;
+                    break;
+
+                default:
+                    if (tile.GrowthAge + 1 >= _config.AdvanceAgeThreshold && stage < p.MaxStage)
+                    {
+                        stage++;
+                        advances.Add(tile);
+                    }
+                    break;
+            }
+
+            if (stage <= StageNone)
+                continue;
+            if (stage >= StageThicket || (stage == StageSapling && SaplingsSpread(tile.GrowthOwner)))
+                CollectSpread(tile, claimed);
+        }
+
+        foreach (var (t, _) in claimed)
+            sprouts.Add(t);
+    }
+
     // -- Riot burst (subscribe per Druid unit's OnRiotTriggered) ------
 
     public void ApplyRiot(Unit owner)

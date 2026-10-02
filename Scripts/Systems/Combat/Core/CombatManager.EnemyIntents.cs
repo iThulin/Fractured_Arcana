@@ -1324,9 +1324,17 @@ public partial class CombatManager
             ? $"{glyph} {value}{suffix}"
             : $"{glyph} {value}{suffix}\n{markers}";
 
+        // class_identity_elementalist_v1 §2a item 7: an intent that will set off a
+        // reaction names it under the glyph (plain letters: the Label3D font has no
+        // symbol glyphs for reactions).
+        var reaction = PredictIntentReaction(intent);
+        if (reaction != ElementReaction.None)
+            body += $"\nFORMS {ElementReactions.DisplayName(reaction).ToUpperInvariant()}";
+
         // The marker line is reference text, not a glyph, so shrink it and two lines
         // don't swallow the board.
-        enemy.SetIntentDisplay(body, color, string.IsNullOrEmpty(markers) ? 40 : 24);
+        int size = !string.IsNullOrEmpty(markers) ? 24 : reaction != ElementReaction.None ? 30 : 40;
+        enemy.SetIntentDisplay(body, color, size);
     }
 
     /// <summary>
@@ -1377,6 +1385,10 @@ public partial class CombatManager
                 _paintedThreatTiles.Add(kvp.Key);
             }
         }
+
+        // BoardForecast: the board just changed, so both forecasts may have too.
+        RefreshIntentReactions();
+        QueueGrowthPreview();
     }
 
     /// <summary>Creates the floating reticle over a threatened tile. Label3D via

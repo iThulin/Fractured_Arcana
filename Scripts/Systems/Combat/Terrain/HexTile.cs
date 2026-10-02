@@ -96,6 +96,7 @@ public partial class HexTile : Node3D
     // Growth mechaniscs for duid
     private int _growthStage = 0;
     private Label3D _growthLabel;
+    private Label3D _growthPreviewLabel;     // next growth tick forecast (druid §2a)
     private Label3D _reactionLabel;          // element reaction standing on the tile
     private Label3D _reactionPreviewLabel;   // reaction a dragged card would cause
     private ElementReaction _reaction = ElementReaction.None;   // owns the overlay while set
@@ -849,6 +850,41 @@ public partial class HexTile : Node3D
         }
 
         UpdateGrowthLabel(_growthStage);
+    }
+
+    /// <summary>
+    /// Next-tick growth forecast (class_identity_druid_v1 §2a): 1 = a faint hollow
+    /// sprout where a Sapling will seed, 2 = a faint "+" above the pip where living
+    /// ground will grow a stage, 0 = clear. Same green as the growth pip, at low alpha,
+    /// so it reads as "about to be" rather than "is".
+    /// </summary>
+    public void SetGrowthPreview(int mode)
+    {
+        if (mode <= 0)
+        {
+            if (_growthPreviewLabel != null)
+                _growthPreviewLabel.Visible = false;
+            return;
+        }
+
+        if (_growthPreviewLabel == null)
+        {
+            _growthPreviewLabel = new Label3D
+            {
+                Name = "GrowthPreview",
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+            };
+            CallDeferred("add_child", _growthPreviewLabel);
+        }
+
+        Color tint = UITheme.GrowthPip;
+        tint.A = 0.45f;
+        _growthPreviewLabel.Text = mode == 1 ? "○" : "+";
+        _growthPreviewLabel.FontSize = mode == 1 ? 30 : 28;
+        _growthPreviewLabel.Position = new Vector3(0f, mode == 1 ? 0.7f : 1.0f, 0f);
+        _growthPreviewLabel.Modulate = tint;
+        _growthPreviewLabel.Visible = true;
     }
 
     private void UpdateGrowthLabel(int stage)

@@ -134,6 +134,15 @@ public partial class CardLibraryUi : Control
         if (_backButton == null) GD.PrintErr("[CardLibrary] BackButton not found");
         if (_detailPanel == null) GD.PrintErr("[CardLibrary] DetailPanel not found");
         if (_detailContent == null) GD.PrintErr("[CardLibrary] DetailContent not found");
+
+        // Reaction chart (class_identity_elementalist_v1 §2a item 4), at the end of the top bar.
+        if (_backButton?.GetParent() is HBoxContainer topBar)
+        {
+            var chart = new Button { Text = "Reaction Chart", FocusMode = FocusModeEnum.None };
+            UITheme.ApplyButtonStyle(chart, isPrimary: false);
+            chart.Pressed += () => ReactionChart.ShowDialog(this);
+            topBar.AddChild(chart);
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════

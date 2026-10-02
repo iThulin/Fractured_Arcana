@@ -14,6 +14,7 @@
 
 # Compile-check output (tools/build-check.cmd)
 build.log
+hang_watchdog*.log
 
 # Python bytecode from tools/glyph_cipher (the glyph cipher reference impl)
 __pycache__/

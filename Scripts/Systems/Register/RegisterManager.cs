@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 // ============================================================
 // RegisterManager.cs
@@ -26,13 +27,26 @@ using System.Collections.Generic;
 //                 • "Register commentary" mutes comment + flavor,
 //                   "Register explanations" mutes explain.
 //
+//                 Node lifetime rule (2026-10-02 crash fix): every
+//                 node this autoload owns is built ONCE in _Ready
+//                 and only ever shown, hidden or retexted after
+//                 that. Nothing is created per note and nothing is
+//                 freed. The first version built and QueueFree'd a
+//                 slip per note, and a playtest crashed inside
+//                 Viewport::_propagate_drag_notification on a
+//                 deleted node still listed in the tree (or froze,
+//                 when the dangling memory looped instead). Turning
+//                 the Register off removed the crash, so the per-note
+//                 slips are the prime suspect. A persistent slip has
+//                 no lifetime to get wrong.
+//
 //                 Fire() is safe from anywhere: with no instance
 //                 (headless asserts, tools) it does nothing.
 // Layer:          System (autoload)
 // Collaborators:  RegisterBarks.cs (data), RegisterBookGlyph.cs,
 //                 SettingsManager.cs (toggles), SaveManager /
 //                 EternalLedger (once flags), CombatManager
-//                 (NoteCombatTurn)
+//                 (NoteCombatTurn), ReactionChart.cs
 // See:            docs/the_register_v1.md
 // ============================================================
 
@@ -50,15 +64,35 @@ public partial class RegisterManager : Node
 
     private const float SlipWidth = 400f;
     private const float FlavorSlipSeconds = 7f;
+    private const float FadeSeconds = 0.5f;
     private const float DockLeft = 16f;
     private const float DockTopFraction = 0.36f;   // of the viewport height
 
+    // ── Persistent UI (built once; see the lifetime rule above) ─────────
     private CanvasLayer _layer;
     private RegisterBookGlyph _book;
-    private PanelContainer _slip;
-    private RegisterBark _slipBark;
-    private PanelContainer _history;
 
+    private PanelContainer _slip;
+    private StyleBoxFlat _slipStyleExplain;
+    private StyleBoxFlat _slipStyleVoice;
+    private Label _slipTitle;
+    private Label _slipLine;
+    private HSeparator _slipRule;
+    private Label _slipNote;
+    private HBoxContainer _slipRow;
+    private Label _slipMore;
+    private Button _slipNoted;
+
+    private PanelContainer _history;
+    private RichTextLabel _historyText;
+    private Label _historyMuted;
+
+    // ── Slip state ──────────────────────────────────────────────────────
+    private RegisterBark _slipBark;           // null when no slip is showing
+    private ulong _voiceExpireAtMs;           // 0 when the slip is not a timed remark
+    private Tween _fade;
+
+    // ── Queue and flags ─────────────────────────────────────────────────
     private readonly List<RegisterBark> _explainQueue = new();
     private readonly HashSet<string> _queuedIds = new(StringComparer.Ordinal);
     private RegisterBark _pendingVoice;
@@ -71,6 +105,9 @@ public partial class RegisterManager : Node
     private ulong _lastSceneId = ulong.MaxValue;
     private string _rateToken = "";
     private string _spokenToken = null;
+
+    private bool SlipShowing => _slipBark != null;
+    private bool HistoryShowing => _history != null && _history.Visible;
 
     // ════════════════════════════════════════════════════════════════════════
     //  Public API
@@ -116,8 +153,12 @@ public partial class RegisterManager : Node
         _book = new RegisterBookGlyph { Name = "RegisterBook" };
         _book.Clicked += ToggleHistory;
         _layer.AddChild(_book);
-        PlaceBook();
-        GetViewport().SizeChanged += OnViewportResized;
+
+        BuildSlip();
+        BuildHistory();
+
+        PlaceAll();
+        GetViewport().SizeChanged += PlaceAll;
     }
 
     public override void _ExitTree()
@@ -132,16 +173,22 @@ public partial class RegisterManager : Node
 
         bool hidden = IsHiddenScene() || GetTree().Paused;
         _layer.Visible = !hidden;
-        if (_book != null)
-            _book.Pending = _explainQueue.Count > 0 && (_slip == null || _slipBark?.Category != RegisterCategory.Explain);
+        _book.Pending = _explainQueue.Count > 0 && (_slipBark == null || _slipBark.Category != RegisterCategory.Explain);
         if (hidden)
             return;
 
-        if (_slip != null)
+        // A timed remark runs out: fade, then hide (FinishFade).
+        if (SlipShowing && _voiceExpireAtMs > 0 && Time.GetTicksMsec() >= _voiceExpireAtMs)
+        {
+            _voiceExpireAtMs = 0;
+            StartFade();
+        }
+
+        if (SlipShowing)
         {
             // An explanation outranks whatever remark is on screen: replace it.
-            if (_explainQueue.Count > 0 && _slipBark != null && _slipBark.Category != RegisterCategory.Explain)
-                CloseSlip();
+            if (_explainQueue.Count > 0 && _slipBark.Category != RegisterCategory.Explain)
+                HideSlip();
             else
             {
                 // A remark that arrives while a slip is up is stale by the time it could
@@ -151,7 +198,7 @@ public partial class RegisterManager : Node
             }
         }
 
-        if (_history != null)
+        if (HistoryShowing)
             return;   // the reader has the book open; nothing interrupts it
 
         if (_explainQueue.Count > 0)
@@ -276,8 +323,7 @@ public partial class RegisterManager : Node
             return;
         _lastSceneId = id;
         _rateToken = $"scene:{id}";   // a new screen visit: one remark allowed
-        if (_history != null)
-            CloseHistory();
+        HideHistory();
     }
 
     private bool IsHiddenScene()
@@ -292,43 +338,21 @@ public partial class RegisterManager : Node
     //  Layout
     // ════════════════════════════════════════════════════════════════════════
 
-    private void OnViewportResized()
-    {
-        PlaceBook();
-        if (_slip != null)
-            PlaceSlip(_slip);
-        if (_history != null)
-            PlaceSlip(_history);
-    }
-
     private Vector2 ViewportSize => GetViewport()?.GetVisibleRect().Size ?? new Vector2(1920, 1080);
 
-    private void PlaceBook()
+    private void PlaceAll()
     {
-        if (_book == null)
-            return;
-        _book.Position = new Vector2(DockLeft, Mathf.Round(ViewportSize.Y * DockTopFraction));
-    }
-
-    private void PlaceSlip(Control slip)
-    {
-        float x = DockLeft + RegisterBookGlyph.GlyphSize + 10f;
-        float y = Mathf.Round(ViewportSize.Y * DockTopFraction);
-        slip.Position = new Vector2(x, y);
+        float top = Mathf.Round(ViewportSize.Y * DockTopFraction);
+        _book.Position = new Vector2(DockLeft, top);
+        var beside = new Vector2(DockLeft + RegisterBookGlyph.GlyphSize + 10f, top);
+        _slip.Position = beside;
+        _history.Position = beside;
+        _historyText.CustomMinimumSize = new Vector2(SlipWidth + 12f, Mathf.Min(520f, ViewportSize.Y * 0.5f));
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  The margin slip
+    //  Building (once)
     // ════════════════════════════════════════════════════════════════════════
-
-    private string NextLine(RegisterBark bark)
-    {
-        if (bark.Lines.Count == 0)
-            return "";
-        _lineIndex.TryGetValue(bark.SeenId, out int i);
-        _lineIndex[bark.SeenId] = i + 1;
-        return bark.Lines[i % bark.Lines.Count];
-    }
 
     private static StyleBoxFlat SlipStyle(bool explain)
     {
@@ -353,13 +377,12 @@ public partial class RegisterManager : Node
         };
     }
 
-    private static Label SlipLabel(string text, Color color, int size)
+    private static Label SlipLabel(Color color, int size, bool wrap = true)
     {
         var label = new Label
         {
-            Text = text,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(SlipWidth - 28f, 0f),
+            AutowrapMode = wrap ? TextServer.AutowrapMode.WordSmart : TextServer.AutowrapMode.Off,
+            CustomMinimumSize = wrap ? new Vector2(SlipWidth - 28f, 0f) : Vector2.Zero,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
         label.AddThemeFontSizeOverride("font_size", size);
@@ -367,89 +390,176 @@ public partial class RegisterManager : Node
         return label;
     }
 
-    private void ShowSlip(RegisterBark bark)
-    {
-        CloseSlip();
-        bool explain = bark.Category == RegisterCategory.Explain;
+    private static int BodySize => UITheme.OverworldUIFontSize - 3;
 
-        var slip = new PanelContainer
+    private void BuildSlip()
+    {
+        _slipStyleExplain = SlipStyle(true);
+        _slipStyleVoice = SlipStyle(false);
+
+        _slip = new PanelContainer
         {
             Name = "RegisterSlip",
             CustomMinimumSize = new Vector2(SlipWidth, 0f),
             MouseFilter = Control.MouseFilterEnum.Stop,
+            Visible = false,
         };
-        slip.AddThemeStyleboxOverride("panel", SlipStyle(explain));
+        _slip.AddThemeStyleboxOverride("panel", _slipStyleVoice);
+        _slip.GuiInput += OnSlipGuiInput;
 
         var vbox = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         vbox.AddThemeConstantOverride("separation", 6);
-        slip.AddChild(vbox);
+        _slip.AddChild(vbox);
 
-        int body = UITheme.OverworldUIFontSize - 3;
-        vbox.AddChild(SlipLabel(bark.Title.ToUpperInvariant(), UITheme.CardInkMuted, body - 3));
+        _slipTitle = SlipLabel(UITheme.CardInkMuted, BodySize - 3);
+        _slipLine = SlipLabel(UITheme.CipherInk, BodySize);
+        _slipRule = new HSeparator { MouseFilter = Control.MouseFilterEnum.Ignore };
+        _slipNote = SlipLabel(UITheme.CardKeywordInk, BodySize - 1);
+        vbox.AddChild(_slipTitle);
+        vbox.AddChild(_slipLine);
+        vbox.AddChild(_slipRule);
+        vbox.AddChild(_slipNote);
+
+        _slipRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        _slipMore = SlipLabel(UITheme.CardInkMuted, BodySize - 3, wrap: false);
+        _slipMore.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _slipRow.AddChild(_slipMore);
+        _slipNoted = new Button { Text = "Noted", CustomMinimumSize = new Vector2(96, 32) };
+        UITheme.ApplyButtonStyle(_slipNoted, isPrimary: true);
+        _slipNoted.Pressed += HideSlip;
+        _slipRow.AddChild(_slipNoted);
+        vbox.AddChild(_slipRow);
+
+        _layer.AddChild(_slip);
+    }
+
+    private void BuildHistory()
+    {
+        _history = new PanelContainer
+        {
+            Name = "RegisterHistory",
+            CustomMinimumSize = new Vector2(SlipWidth + 40f, 0f),
+            MouseFilter = Control.MouseFilterEnum.Stop,
+            Visible = false,
+        };
+        _history.AddThemeStyleboxOverride("panel", _slipStyleExplain);
+
+        var vbox = new VBoxContainer();
+        vbox.AddThemeConstantOverride("separation", 8);
+        _history.AddChild(vbox);
+
+        var header = new HBoxContainer();
+        var title = SlipLabel(UITheme.CipherInk, BodySize, wrap: false);
+        title.Text = "THE REGISTER: MARGIN NOTES";
+        title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        header.AddChild(title);
+
+        var chart = new Button { Text = "Reaction chart", CustomMinimumSize = new Vector2(130, 30) };
+        UITheme.ApplyButtonStyle(chart, isPrimary: false);
+        chart.Pressed += OpenReactionChart;
+        header.AddChild(chart);
+
+        var close = new Button { Text = "Close", CustomMinimumSize = new Vector2(80, 30) };
+        UITheme.ApplyButtonStyle(close, isPrimary: false);
+        close.Pressed += HideHistory;
+        header.AddChild(close);
+        vbox.AddChild(header);
+
+        // One persistent RichTextLabel with its own scrolling holds every note, so
+        // reopening the book rewrites text instead of building and freeing rows.
+        _historyText = new RichTextLabel
+        {
+            BbcodeEnabled = true,
+            ScrollActive = true,
+            FitContent = false,
+            SelectionEnabled = false,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        _historyText.AddThemeFontSizeOverride("normal_font_size", BodySize - 1);
+        _historyText.AddThemeFontSizeOverride("bold_font_size", BodySize - 1);
+        _historyText.AddThemeColorOverride("default_color", UITheme.CardInk);
+        vbox.AddChild(_historyText);
+
+        _historyMuted = SlipLabel(UITheme.CardInkMuted, BodySize - 3);
+        vbox.AddChild(_historyMuted);
+
+        _layer.AddChild(_history);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The margin slip
+    // ════════════════════════════════════════════════════════════════════════
+
+    private string NextLine(RegisterBark bark)
+    {
+        if (bark.Lines.Count == 0)
+            return "";
+        _lineIndex.TryGetValue(bark.SeenId, out int i);
+        _lineIndex[bark.SeenId] = i + 1;
+        return bark.Lines[i % bark.Lines.Count];
+    }
+
+    private void ShowSlip(RegisterBark bark)
+    {
+        StopFade();
+        bool explain = bark.Category == RegisterCategory.Explain;
+
+        _slip.AddThemeStyleboxOverride("panel", explain ? _slipStyleExplain : _slipStyleVoice);
+        _slipTitle.Text = bark.Title.ToUpperInvariant();
 
         string line = NextLine(bark);
-        if (!string.IsNullOrEmpty(line))
-            vbox.AddChild(SlipLabel(line, UITheme.CipherInk, body));
+        _slipLine.Text = line;
+        _slipLine.Visible = !string.IsNullOrEmpty(line);
 
-        if (explain && !string.IsNullOrEmpty(bark.Note))
-        {
-            vbox.AddChild(new HSeparator { MouseFilter = Control.MouseFilterEnum.Ignore });
-            vbox.AddChild(SlipLabel(bark.Note, UITheme.CardKeywordInk, body - 1));
-        }
+        bool hasNote = explain && !string.IsNullOrEmpty(bark.Note);
+        _slipNote.Text = hasNote ? bark.Note : "";
+        _slipNote.Visible = hasNote;
+        _slipRule.Visible = hasNote;
 
-        if (explain)
-        {
-            var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-            int waiting = _explainQueue.Count;
-            if (waiting > 0)
-            {
-                var more = SlipLabel($"{waiting} more note{(waiting == 1 ? "" : "s")} waiting", UITheme.CardInkMuted, body - 3);
-                more.CustomMinimumSize = Vector2.Zero;
-                more.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-                row.AddChild(more);
-            }
-            var noted = new Button { Text = "Noted", CustomMinimumSize = new Vector2(96, 32) };
-            UITheme.ApplyButtonStyle(noted, isPrimary: true);
-            noted.Pressed += CloseSlip;
-            row.AddChild(noted);
-            vbox.AddChild(row);
-        }
-        else
-        {
-            // A remark: click to dismiss, or it fades on its own.
-            slip.GuiInput += e =>
-            {
-                if (e is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
-                    CloseSlip();
-            };
-            var timer = GetTree().CreateTimer(FlavorSlipSeconds, processAlways: false);
-            timer.Timeout += () =>
-            {
-                if (_slip != slip || !GodotObject.IsInstanceValid(slip))
-                    return;
-                var tw = slip.CreateTween();
-                tw.TweenProperty(slip, "modulate:a", 0f, 0.5f);
-                tw.TweenCallback(Callable.From(() =>
-                {
-                    if (_slip == slip)
-                        CloseSlip();
-                }));
-            };
-        }
+        int waiting = _explainQueue.Count;
+        _slipMore.Text = waiting > 0 ? $"{waiting} more note{(waiting == 1 ? "" : "s")} waiting" : "";
+        _slipRow.Visible = explain;
 
-        _layer.AddChild(slip);
-        PlaceSlip(slip);
-        _slip = slip;
+        _voiceExpireAtMs = explain ? 0 : Time.GetTicksMsec() + (ulong)(FlavorSlipSeconds * 1000f);
+
+        _slip.Modulate = Colors.White;
+        _slip.Visible = true;
+        _slip.ResetSize();   // shrink to the new text rather than keep the last note's height
         _slipBark = bark;
         GD.Print($"[Register] {bark.Key}: {line}");
     }
 
-    private void CloseSlip()
+    private void HideSlip()
     {
-        if (_slip != null && GodotObject.IsInstanceValid(_slip))
-            _slip.QueueFree();
-        _slip = null;
+        StopFade();
+        _voiceExpireAtMs = 0;
+        _slip.Visible = false;
+        _slip.Modulate = Colors.White;
         _slipBark = null;
+    }
+
+    /// <summary>A remark is dismissed by a click anywhere on it. Explanations wait for Noted.</summary>
+    private void OnSlipGuiInput(InputEvent e)
+    {
+        if (_slipBark == null || _slipBark.Category == RegisterCategory.Explain)
+            return;
+        if (e is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+            HideSlip();
+    }
+
+    private void StartFade()
+    {
+        StopFade();
+        _fade = CreateTween();   // owned by this autoload, never by the slip
+        _fade.TweenProperty(_slip, "modulate:a", 0f, FadeSeconds);
+        _fade.TweenCallback(Callable.From(HideSlip));
+    }
+
+    private void StopFade()
+    {
+        if (_fade != null && _fade.IsValid())
+            _fade.Kill();
+        _fade = null;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -458,84 +568,64 @@ public partial class RegisterManager : Node
 
     private void ToggleHistory()
     {
-        if (_history != null)
+        if (HistoryShowing)
         {
-            CloseHistory();
+            HideHistory();
             return;
         }
-        CloseSlip();
-        OpenHistory();
+        HideSlip();
+        ShowHistory();
     }
 
-    private void CloseHistory()
+    private void HideHistory()
     {
-        if (_history != null && GodotObject.IsInstanceValid(_history))
-            _history.QueueFree();
-        _history = null;
+        if (_history != null)
+            _history.Visible = false;
     }
 
-    private void OpenHistory()
+    private void ShowHistory()
     {
-        var panel = new PanelContainer
-        {
-            Name = "RegisterHistory",
-            CustomMinimumSize = new Vector2(SlipWidth + 40f, 0f),
-            MouseFilter = Control.MouseFilterEnum.Stop,
-        };
-        panel.AddThemeStyleboxOverride("panel", SlipStyle(true));
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 8);
-        panel.AddChild(vbox);
-
-        int body = UITheme.OverworldUIFontSize - 3;
-
-        var header = new HBoxContainer();
-        var title = SlipLabel("THE REGISTER: MARGIN NOTES", UITheme.CipherInk, body);
-        title.CustomMinimumSize = Vector2.Zero;
-        title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        header.AddChild(title);
-        var close = new Button { Text = "Close", CustomMinimumSize = new Vector2(80, 30) };
-        UITheme.ApplyButtonStyle(close, isPrimary: false);
-        close.Pressed += CloseHistory;
-        header.AddChild(close);
-        vbox.AddChild(header);
-
-        var scroll = new ScrollContainer
-        {
-            CustomMinimumSize = new Vector2(SlipWidth + 12f, Mathf.Min(520f, ViewportSize.Y * 0.5f)),
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-        };
-        vbox.AddChild(scroll);
-
-        var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        list.AddThemeConstantOverride("separation", 10);
-        scroll.AddChild(list);
-
+        string muted = ColorHex(UITheme.CardInkMuted);
+        var sb = new StringBuilder();
         int shown = 0;
         foreach (var bark in RegisterBarks.All)
         {
             if (bark.Category != RegisterCategory.Explain || !IsSeen(bark.SeenId))
                 continue;
+            if (shown > 0)
+                sb.Append("\n\n");
             shown++;
-            list.AddChild(SlipLabel(bark.Title.ToUpperInvariant(), UITheme.CardInkMuted, body - 3));
-            if (!string.IsNullOrEmpty(bark.Note))
-                list.AddChild(SlipLabel(bark.Note, UITheme.CardInk, body - 1));
-            list.AddChild(new HSeparator());
+            sb.Append($"[color={muted}]{Escape(bark.Title.ToUpperInvariant())}[/color]\n");
+            sb.Append(Escape(bark.Note));
         }
-
         if (shown == 0)
-            list.AddChild(SlipLabel("Nothing is written here yet. The Register will make a note the first time something needs explaining.", UITheme.CardInkMuted, body - 1));
+            sb.Append($"[color={muted}]Nothing is written here yet. The Register will make a note the first time something needs explaining.[/color]");
 
-        if (!ExplanationsEnabled || !CommentaryEnabled)
+        _historyText.Text = sb.ToString();
+        _historyText.ScrollToLine(0);
+
+        bool explainOff = !ExplanationsEnabled, commentOff = !CommentaryEnabled;
+        if (explainOff || commentOff)
         {
-            string muted = !ExplanationsEnabled && !CommentaryEnabled ? "explanations and commentary are"
-                         : !ExplanationsEnabled ? "explanations are" : "commentary is";
-            vbox.AddChild(SlipLabel($"Register {muted} muted in Settings.", UITheme.CardInkMuted, body - 3));
+            string which = explainOff && commentOff ? "explanations and commentary are"
+                         : explainOff ? "explanations are" : "commentary is";
+            _historyMuted.Text = $"Register {which} muted in Settings.";
+            _historyMuted.Visible = true;
+        }
+        else
+        {
+            _historyMuted.Text = "";
+            _historyMuted.Visible = false;
         }
 
-        _layer.AddChild(panel);
-        PlaceSlip(panel);
-        _history = panel;
+        _history.Visible = true;
+        _history.ResetSize();
     }
+
+    private void OpenReactionChart() => ReactionChart.ShowDialog(this);   // not under the layer: nothing transient lives there
+
+    private static string ColorHex(Color c) => "#" + c.ToHtml(false);
+
+    /// <summary>Neutralises BBCode brackets in authored text.</summary>
+    private static string Escape(string s) => (s ?? "").Replace("[", "[lb]");
 }
