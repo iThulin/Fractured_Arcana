@@ -8,7 +8,7 @@
 		"name": "Echo Decoy",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Summon a temporal Decoy (HP 10) on a tile within 3. Enemy single-target actions within 2 of it must target it. Lasts 3 turns.",
+		"rules_text": "Summon an echo of yourself (HP 10) on a tile within 3 for 3 turns. Enemies within 2 of it aim their attacks at it when they next plan.",
 		"tags": [
 			"temporal"
 		],
@@ -36,7 +36,7 @@
 		"name": "Gravity of Ages",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Pull all enemies within 3 one tile toward your Decoy (or you if none).",
+		"rules_text": "Defer the attack of every enemy adjacent to your echo.",
 		"tags": [
 			"temporal"
 		],
@@ -44,9 +44,9 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "push",
-			"tiles": 1,
-			"collision_damage": 0
+			"type": "defer_intent",
+			"near_decoy": true,
+			"radius": 1
 		}
 	},
 	"upgrades": [
@@ -59,88 +59,10 @@
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[0].hp",
-					"value": 14
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Decoy (HP 14). Enemy single-target actions within 2 must target it. 3 turns."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.tiles",
-					"value": 2
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Pull all enemies within 3 2 tiles toward your Decoy."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "top",
-			"top_name": "Mirror Sentry",
-			"description": "Decoy reflects 3 when hit.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Decoy (HP 14) reflects 3 damage when struck. Forces targeting within 2. 3 turns."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "bottom",
-			"bottom_name": "Event Gravity",
-			"description": "Also Slows pulled enemies.",
-			"changes": [
-				{
-					"half": "bottom",
 					"field": "effect",
 					"value": {
 						"type": "sequence",
 						"steps": [
-							{
-								"type": "push",
-								"tiles": 2,
-								"collision_damage": 0
-							},
-							{
-								"type": "apply_status",
-								"status": "slowed",
-								"duration": 1
-							}
-						]
-					}
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Pull enemies within 3 by 2 tiles toward your Decoy. They are Slowed for 1 turn."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "top",
-			"top_name": "Decoy Network",
-			"description": "Summons two decoys.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "summon_decoy",
-								"hp": 14,
-								"turns": 3
-							},
 							{
 								"type": "summon_decoy",
 								"hp": 14,
@@ -157,7 +79,116 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Summon 2 Decoys (HP 14). Enemy single-target actions near either must target it. 3 turns."
+					"value": "Summon an echo of yourself (HP 14) on a tile within 3 for 3 turns. Enemies within 2 of it aim their attacks at it when they next plan."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "defer_intent",
+						"near_decoy": true,
+						"radius": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Defer the attack of every enemy within 2 of your echo."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Mirror Sentry",
+			"description": "A wider pull.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_decoy",
+								"hp": 14,
+								"turns": 3
+							},
+							{
+								"type": "redirect_aura",
+								"radius": 3,
+								"turns": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Summon an echo of yourself (HP 14) on a tile within 3 for 3 turns. Enemies within 3 of it aim their attacks at it when they next plan."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Event Gravity",
+			"description": "And bank the moment.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"near_decoy": true,
+								"radius": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Defer the attack of every enemy within 2 of your echo. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Decoy Network",
+			"description": "Sturdier, and it lingers.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_decoy",
+								"hp": 18,
+								"turns": 4
+							},
+							{
+								"type": "redirect_aura",
+								"radius": 3,
+								"turns": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Summon an echo of yourself (HP 18) on a tile within 3 for 4 turns. Enemies within 3 of it aim their attacks at it when they next plan."
 				}
 			]
 		},
@@ -165,7 +196,7 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Singularity",
-			"description": "Pull radius 5, collision damage.",
+			"description": "A wider stall.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -174,14 +205,13 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "push",
-								"tiles": 3,
-								"collision_damage": 3
+								"type": "defer_intent",
+								"near_decoy": true,
+								"radius": 3
 							},
 							{
-								"type": "apply_status",
-								"status": "slowed",
-								"duration": 1
+								"type": "gain_foresight",
+								"amount": 1
 							}
 						]
 					}
@@ -189,7 +219,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull all enemies within 5 3 tiles toward the Decoy. Collisions deal 3 damage. They are Slowed for 1 turn."
+					"value": "Defer the attack of every enemy within 3 of your echo. Gain 1 Foresight."
 				}
 			]
 		},
@@ -197,12 +227,35 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The Effigy",
-			"description": "Decoy detonates for stored damage.",
+			"description": "The echo pays you back.",
 			"changes": [
 				{
 					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "summon_decoy",
+								"hp": 20,
+								"turns": 4
+							},
+							{
+								"type": "redirect_aura",
+								"radius": 3,
+								"turns": 4
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Decoy (HP 20). Enemy single-target actions within 3 must hit it. When it dies or expires, it deals all damage absorbed to enemies within 2."
+					"value": "Summon an echo of yourself (HP 20) on a tile within 3 for 4 turns. Enemies within 3 of it aim their attacks at it when they next plan. Gain 2 Foresight."
 				}
 			]
 		},
@@ -210,7 +263,7 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Collapse the Hour",
-			"description": "Pull the whole board.",
+			"description": "Time stands around it.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -219,14 +272,17 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "push",
-								"tiles": 4,
-								"collision_damage": 4
+								"type": "defer_intent",
+								"near_decoy": true,
+								"radius": 3
 							},
 							{
-								"type": "apply_status",
-								"status": "rooted",
-								"duration": 1
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
 							}
 						]
 					}
@@ -234,7 +290,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Pull every enemy toward the Decoy. Collisions deal 4 damage. They are Rooted for 1 turn."
+					"value": "Defer the attack of every enemy within 3 of your echo. Gain 2 Foresight. Draw 1 card."
 				}
 			]
 		}

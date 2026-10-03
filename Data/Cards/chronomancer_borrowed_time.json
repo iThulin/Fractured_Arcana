@@ -8,7 +8,7 @@
 		"name": "Stutter Step",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Move 3 tiles. If 2nd+ action this turn, draw 1 card.",
+		"rules_text": "Move 3 tiles. You may lose 1 Foresight (you may go Overdrawn) to draw 1 card.",
 		"tags": [
 			"temporal"
 		],
@@ -16,24 +16,35 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "sequence",
-			"steps": [
+			"type": "choose_one",
+			"options": [
 				{
-					"type": "move",
-					"tiles": 3
+					"label": "Borrow",
+					"description": "Move 3 tiles, lose 1 Foresight (you may go Overdrawn), draw 1.",
+					"effect": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move",
+								"tiles": 3
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
 				},
 				{
-					"type": "conditional",
-					"if": {
-						"type": "spells_cast_this_turn",
-						"threshold": 2
-					},
-					"then": {
-						"type": "draw",
-						"count": 1
-					},
-					"else": {
-						"type": "empty"
+					"label": "Just move",
+					"description": "Move 3 tiles.",
+					"effect": {
+						"type": "move",
+						"tiles": 3
 					}
 				}
 			]
@@ -77,16 +88,6 @@
 			"description": "Move further; react harder.",
 			"changes": [
 				{
-					"half": "top",
-					"field": "effect.steps[0].tiles",
-					"value": 4
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Move 4 tiles. If 2nd+ action this turn, draw."
-				},
-				{
 					"half": "bottom",
 					"field": "effect.steps[0].duration",
 					"value": 2
@@ -95,6 +96,49 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Target enemy is Slowed for 2 turns. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "choose_one",
+						"options": [
+							{
+								"label": "Borrow",
+								"description": "Move 4 tiles, lose 1 Foresight (you may go Overdrawn), draw 1.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "move",
+											"tiles": 4
+										},
+										{
+											"type": "lose_foresight",
+											"amount": 1
+										},
+										{
+											"type": "draw",
+											"count": 1
+										}
+									]
+								}
+							},
+							{
+								"label": "Just move",
+								"description": "Move 4 tiles.",
+								"effect": {
+									"type": "move",
+									"tiles": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 4 tiles. You may lose 1 Foresight (you may go Overdrawn) to draw 1 card."
 				}
 			]
 		},
@@ -102,19 +146,50 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Phase Step",
-			"description": "Phase Step: teleport.",
+			"description": "Borrow deeper.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[0]",
+					"field": "effect",
 					"value": {
-						"type": "teleport"
+						"type": "choose_one",
+						"options": [
+							{
+								"label": "Borrow",
+								"description": "Move 4 tiles, lose 1 Foresight (you may go Overdrawn), draw 2.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "move",
+											"tiles": 4
+										},
+										{
+											"type": "lose_foresight",
+											"amount": 1
+										},
+										{
+											"type": "draw",
+											"count": 2
+										}
+									]
+								}
+							},
+							{
+								"label": "Just move",
+								"description": "Move 4 tiles.",
+								"effect": {
+									"type": "move",
+									"tiles": 4
+								}
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Teleport to any tile within 4. If 2nd+ action, draw."
+					"value": "Move 4 tiles. You may lose 1 Foresight (you may go Overdrawn) to draw 2 cards."
 				}
 			]
 		},
@@ -122,7 +197,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Skipped Beat",
-			"description": "Also postpone the spell.",
+			"description": "Slowed, and its blow waits.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -136,8 +211,7 @@
 								"duration": 2
 							},
 							{
-								"type": "postpone",
-								"turns": 1
+								"type": "defer_intent"
 							},
 							{
 								"type": "gain_foresight",
@@ -149,7 +223,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Target enemy is Slowed for 2 turns and its next action is postponed 1 turn. Gain 1 Foresight."
+					"value": "Target enemy is Slowed for 2 turns and its attack is Deferred. Gain 1 Foresight."
 				}
 			]
 		},
@@ -157,39 +231,41 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Sidestep Fate",
-			"description": "Drawn card costs 1 less.",
+			"description": "Further, and deeper.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "sequence",
-						"steps": [
+						"type": "choose_one",
+						"options": [
 							{
-								"type": "teleport"
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "spells_cast_this_turn",
-									"threshold": 2
-								},
-								"then": {
+								"label": "Borrow",
+								"description": "Move 5 tiles, lose 1 Foresight (you may go Overdrawn), draw 2.",
+								"effect": {
 									"type": "sequence",
 									"steps": [
 										{
-											"type": "draw",
-											"count": 1
+											"type": "move",
+											"tiles": 5
 										},
 										{
-											"type": "cost_modify",
-											"amount": 1,
-											"scope": "self_next"
+											"type": "lose_foresight",
+											"amount": 1
+										},
+										{
+											"type": "draw",
+											"count": 2
 										}
 									]
-								},
-								"else": {
-									"type": "empty"
+								}
+							},
+							{
+								"label": "Just move",
+								"description": "Move 5 tiles.",
+								"effect": {
+									"type": "move",
+									"tiles": 5
 								}
 							}
 						]
@@ -198,7 +274,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Teleport within 4. If 2nd+ action, draw 1 card costing 1 less."
+					"value": "Move 5 tiles. You may lose 1 Foresight (you may go Overdrawn) to draw 2 cards."
 				}
 			]
 		},
@@ -206,43 +282,7 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Stolen Moment",
-			"description": "+2 Foresight.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect.steps[2].amount",
-					"value": 2
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Target enemy is Slowed for 2 turns and its next action is postponed 1 turn. Gain 2 Foresight."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "Unstuck",
-			"description": "Free; refunds on a busy turn.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "mana",
-					"value": 0
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "(Free) Teleport within 5. If 2nd+ action, draw a discounted card and return this to hand."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "bottom",
-			"bottom_name": "Misfire",
-			"description": "Redirect the spell to a random other enemy.",
+			"description": "More time banked.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -251,8 +291,12 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "redirect",
-								"to": "random_enemy"
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 2
+							},
+							{
+								"type": "defer_intent"
 							},
 							{
 								"type": "gain_foresight",
@@ -264,7 +308,101 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Redirect target enemy's next action to a random other enemy. Gain 2 Foresight."
+					"value": "Target enemy is Slowed for 2 turns and its attack is Deferred. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Unstuck",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "choose_one",
+						"options": [
+							{
+								"label": "Borrow",
+								"description": "Move 5 tiles, lose 1 Foresight (you may go Overdrawn), draw 2.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "move",
+											"tiles": 5
+										},
+										{
+											"type": "lose_foresight",
+											"amount": 1
+										},
+										{
+											"type": "draw",
+											"count": 2
+										}
+									]
+								}
+							},
+							{
+								"label": "Just move",
+								"description": "Move 5 tiles.",
+								"effect": {
+									"type": "move",
+									"tiles": 5
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Move 5 tiles. You may lose 1 Foresight (you may go Overdrawn) to draw 2 cards."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Misfire",
+			"description": "And a card besides.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 2
+							},
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target enemy is Slowed for 2 turns and its attack is Deferred. Gain 2 Foresight. Draw 1 card."
 				}
 			]
 		}

@@ -37,6 +37,11 @@ public partial class CombatManager
     /// <summary>Deferred attacks queued during this enemy phase, resolved after it.</summary>
     private readonly List<(Unit enemy, EnemyIntent intent)> _deferredAttacks = new();
 
+    /// <summary>The enemy whose activation is running without its blow (Deferred or
+    /// Spent): StrikeTile and the melee strike block skip it, everything else in its
+    /// normal intent (approach, charge sprint, kiting, flanking, skirmish retreat) runs.</summary>
+    private Unit _holdStrikeFor;
+
     /// <summary>The enemy whose activation is running (null outside the enemy phase).
     /// Its attack is already under way, so it can no longer be moved in time.</summary>
     private Unit _actingEnemy;
@@ -248,11 +253,27 @@ public partial class CombatManager
             combatUI?.AppendActionLog(spent);
         }
 
-        if (intent?.Kind == IntentKind.Attack && intent.TargetTile.HasValue && IsValidActor(enemy)
-            && grid.Distance(enemy.CurrentTile.Axial, intent.TargetTile.Value) > 1
-            && MayMove(enemy, out _))
+        // 2026-10-03 (slice 8b): the enemy runs its own intent with the blow held, so
+        // it moves exactly as it planned to: melee approach and charge, ranged kiting,
+        // flanking for a clear shot, a skirmisher's retreat. Before this only a melee
+        // attacker out of reach moved, and everyone else stood still, which made a
+        // Deferred round look like nothing happened. Channels, imbues and shoves keep
+        // their old behaviour: they have no movement step to replay.
+        if (intent != null && IsValidActor(enemy)
+            && (intent.Kind == IntentKind.Attack || intent.Kind == IntentKind.RangedAttack))
         {
-            await MoveTowardTile(enemy, intent.TargetTile.Value, quiet: true);
+            _holdStrikeFor = enemy;
+            try
+            {
+                if (intent.Kind == IntentKind.Attack)
+                    await ExecuteMeleeIntent(enemy, intent);
+                else
+                    await ExecuteRangedIntent(enemy, intent);
+            }
+            finally
+            {
+                _holdStrikeFor = null;
+            }
         }
         return true;
     }
@@ -283,7 +304,21 @@ public partial class CombatManager
             string lands = $"{enemy.Name}'s deferred attack lands on {DescribeLockedGround(intent, enemy)}.";
             GD.Print($"[Defer] {lands}");
             combatUI?.AppendActionLog(lands);
-            CombatCamera?.FocusOn(enemy);
+            // 2026-10-03: the camera used to start gliding to the attacker and the blow
+            // resolved the same frame, so the player never saw it land. Frame the attacker
+            // AND its locked tile, let the glide arrive, strike, then hold on the result.
+            var lockedAt = (intent.Kind == IntentKind.Release ? enemy.ChannelTile : null) ?? intent.TargetTile;
+            var lockedView = lockedAt.HasValue ? grid.GetTileView(lockedAt.Value) : null;
+            if (CombatCamera != null)
+            {
+                if (lockedView != null)
+                    CombatCamera.FocusOn((enemy.GlobalPosition + lockedView.GlobalPosition) * 0.5f);
+                else
+                    CombatCamera.FocusOn(enemy);
+            }
+            await ToSignal(GetTree().CreateTimer(0.6f), "timeout");
+            if (!IsValidActor(enemy))
+                continue;
 
             ResolveTimedAttack(enemy, intent);
             await DrainTriggerStackAsync();
@@ -292,7 +327,7 @@ public partial class CombatManager
             RefreshPlayerUnitBar();
             if (CheckCombatEnd())
                 return true;
-            await ToSignal(GetTree().CreateTimer(0.35f), "timeout");
+            await ToSignal(GetTree().CreateTimer(0.8f), "timeout");
         }
         return false;
     }

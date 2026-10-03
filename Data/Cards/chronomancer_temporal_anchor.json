@@ -24,7 +24,7 @@
 		"name": "Paradox Bolt",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. If 2nd+ spell this turn, deal 8 damage. If 3rd+, also draw 1 card.",
+		"rules_text": "Deal 4 damage. If you have 2+ Foresight, deal 8 instead. If you have 4, also draw 1 card.",
 		"tags": [
 			"temporal"
 		],
@@ -38,8 +38,8 @@
 		"effect": {
 			"type": "conditional",
 			"if": {
-				"type": "spells_cast_this_turn",
-				"threshold": 3
+				"type": "foresight_at_least",
+				"value": 4
 			},
 			"then": {
 				"type": "sequence",
@@ -57,8 +57,8 @@
 			"else": {
 				"type": "conditional",
 				"if": {
-					"type": "spells_cast_this_turn",
-					"threshold": 2
+					"type": "foresight_at_least",
+					"value": 2
 				},
 				"then": {
 					"type": "damage",
@@ -94,8 +94,47 @@
 				},
 				{
 					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "foresight_at_least",
+							"value": 4
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 9
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "conditional",
+							"if": {
+								"type": "foresight_at_least",
+								"value": 2
+							},
+							"then": {
+								"type": "damage",
+								"amount": 9
+							},
+							"else": {
+								"type": "damage",
+								"amount": 5
+							}
+						}
+					}
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage. If 2nd+ spell, deal 9 damage. If 3rd+, draw."
+					"value": "Deal 5 damage. If you have 2+ Foresight, deal 9 instead. If you have 4, also draw 1 card."
 				}
 			]
 		},
@@ -126,7 +165,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Compounding Error",
-			"description": "Thresholds drop.",
+			"description": "The card comes sooner.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -134,8 +173,8 @@
 					"value": {
 						"type": "conditional",
 						"if": {
-							"type": "spells_cast_this_turn",
-							"threshold": 2
+							"type": "foresight_at_least",
+							"value": 3
 						},
 						"then": {
 							"type": "sequence",
@@ -151,15 +190,26 @@
 							]
 						},
 						"else": {
-							"type": "damage",
-							"amount": 5
+							"type": "conditional",
+							"if": {
+								"type": "foresight_at_least",
+								"value": 2
+							},
+							"then": {
+								"type": "damage",
+								"amount": 9
+							},
+							"else": {
+								"type": "damage",
+								"amount": 5
+							}
 						}
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage. If 2nd+ spell, deal 9 and draw."
+					"value": "Deal 5 damage. If you have 2+ Foresight, deal 9 instead. If you have 3+, also draw 1 card."
 				}
 			]
 		},
@@ -191,12 +241,51 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Grandfather Bolt",
-			"description": "3rd+ returns to hand.",
+			"description": "Heavier.",
 			"changes": [
 				{
 					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "foresight_at_least",
+							"value": 3
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 10
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "conditional",
+							"if": {
+								"type": "foresight_at_least",
+								"value": 2
+							},
+							"then": {
+								"type": "damage",
+								"amount": 10
+							},
+							"else": {
+								"type": "damage",
+								"amount": 6
+							}
+						}
+					}
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 damage (9 if 2nd+, draw). If 3rd+, return this to hand."
+					"value": "Deal 6 damage. If you have 2+ Foresight, deal 10 instead. If you have 3+, also draw 1 card."
 				}
 			]
 		},
@@ -229,31 +318,51 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Causality Cascade",
-			"description": "Scales with tempo.",
+			"description": "A paradox with weight.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage_by_distance",
-								"min": 5,
-								"max": 25,
-								"per_tile": 5
+						"type": "conditional",
+						"if": {
+							"type": "foresight_at_least",
+							"value": 3
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 12
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "conditional",
+							"if": {
+								"type": "foresight_at_least",
+								"value": 2
 							},
-							{
-								"type": "draw",
-								"count": 1
+							"then": {
+								"type": "damage",
+								"amount": 12
+							},
+							"else": {
+								"type": "damage",
+								"amount": 7
 							}
-						]
+						}
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Deal 5 +5 per spell already cast this turn (max 25). Draw."
+					"value": "Deal 7 damage. If you have 2+ Foresight, deal 12 instead. If you have 3+, also draw 1 card."
 				}
 			]
 		}

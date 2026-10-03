@@ -1,5 +1,7 @@
+using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // ============================================================
 // IntentTimeEffects.cs
@@ -101,11 +103,21 @@ public static class IntentTime
 /// Defer target enemy's attack (class_identity_chronomancer_v1 §2a): it lands at the end
 /// of the round on its locked tile. <see cref="Radius"/> widens it to every enemy within
 /// that many tiles of the target (99 = every enemy).
-/// JSON: { "type": "defer_intent", "radius": n }
+/// Two other ways to pick who (slice 8, §4 rewording):
+/// <see cref="AimedWithin"/> (0 or more) takes every enemy whose attack is locked onto a
+/// tile within that many tiles of the caster (Misdirection: "every attack aimed at you");
+/// <see cref="NearDecoy"/> takes every enemy within <see cref="Radius"/> of one of the
+/// caster's echoes (Decoy of Hours) instead of widening around the target.
+/// JSON: { "type": "defer_intent", "radius": n, "aimed_within": n, "near_decoy": bool }
 /// </summary>
 public sealed class DeferIntentEffect : EffectBase
 {
     public int Radius;
+    /// <summary>-1 = off.</summary>
+    public int AimedWithin = -1;
+    public bool NearDecoy;
+    /// <summary>Foresight gained per attack actually Deferred (Grand Design).</summary>
+    public int ForesightPer;
     public DeferIntentEffect(int radius = 0) { Radius = Math.Max(0, radius); }
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -115,17 +127,68 @@ public sealed class DeferIntentEffect : EffectBase
             foreach (var obj in targets.Items)
                 primaries.Add(ResolveTargetUnit(s, obj));
 
-        var victims = IntentTime.Victims(s, primaries, Radius);
+        var casterUnit = s?.ActiveCasterUnit;
+        int radius = Radius;
+        if (AimedWithin >= 0)
+        {
+            primaries.Clear();
+            radius = 0;
+            if (casterUnit?.CurrentTile != null && s.Grid != null && s.UnitsInPlay != null)
+            {
+                var home = casterUnit.CurrentTile.Axial;
+                foreach (var u in s.UnitsInPlay)
+                {
+                    if (u == null || u.TeamId == casterUnit.TeamId || !u.Stats.IsAlive || u.CurrentIntent == null)
+                        continue;
+                    var tiles = new List<Vector2I>(u.CurrentIntent.ThreatTiles ?? new List<Vector2I>());
+                    if (u.CurrentIntent.TargetTile.HasValue)
+                        tiles.Add(u.CurrentIntent.TargetTile.Value);
+                    if (tiles.Any(t => s.Grid.Distance(home, t) <= AimedWithin))
+                        primaries.Add(u);
+                }
+            }
+        }
+        else if (NearDecoy)
+        {
+            primaries.Clear();
+            radius = 0;
+            if (s?.UnitsInPlay != null && s.Grid != null)
+            {
+                int team = casterUnit?.TeamId ?? 0;
+                var decoys = s.UnitsInPlay.Where(d => d != null && d.IsDecoy && d.Stats.IsAlive
+                                                      && d.TeamId == team && d.CurrentTile != null).ToList();
+                if (decoys.Count == 0)
+                    s.Log("[Defer] You have no echo on the board.");
+                foreach (var u in s.UnitsInPlay)
+                {
+                    if (u == null || u.TeamId == team || u.IsDecoy || !u.Stats.IsAlive || u.CurrentTile == null)
+                        continue;
+                    if (decoys.Any(d => s.Grid.Distance(d.CurrentTile.Axial, u.CurrentTile.Axial) <= Math.Max(1, Radius)))
+                        primaries.Add(u);
+                }
+            }
+        }
+
+        var victims = IntentTime.Victims(s, primaries, radius);
         if (victims.Count == 0)
         {
             s?.Log("[Defer] No enemy attack to defer.");
             return;
         }
+        int deferred = 0;
         foreach (var enemy in victims)
         {
             string why = IntentTime.Defer(enemy);
             if (why != null)
                 s?.Log($"[Defer] {enemy.Name}: {why}");
+            else
+                deferred++;
+        }
+
+        if (ForesightPer > 0 && deferred > 0 && casterUnit?.Attunement is FateAttunement fate)
+        {
+            fate.GainCharges(ForesightPer * deferred);
+            s.Log($"[Defer] {deferred} attack(s) deferred: +{ForesightPer * deferred} Foresight.");
         }
     }
 }

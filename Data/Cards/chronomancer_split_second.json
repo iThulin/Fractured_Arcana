@@ -8,7 +8,7 @@
 		"name": "Split Second",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Deal 4 damage. If this is your 2nd+ spell this turn, draw 1 card.",
+		"rules_text": "Deal 4 damage. If you have 2+ Foresight, draw 1 card.",
 		"tags": [
 			"temporal"
 		],
@@ -28,8 +28,8 @@
 				{
 					"type": "conditional",
 					"if": {
-						"type": "spells_cast_this_turn",
-						"threshold": 2
+						"type": "foresight_at_least",
+						"value": 2
 					},
 					"then": {
 						"type": "draw",
@@ -87,8 +87,8 @@
 							{
 								"type": "conditional",
 								"if": {
-									"type": "spells_cast_this_turn",
-									"threshold": 2
+									"type": "foresight_at_least",
+									"value": 2
 								},
 								"then": {
 									"type": "draw",
@@ -104,7 +104,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. If this is your 2nd+ spell this turn, draw 1 card."
+					"value": "Deal 5 damage. If you have 2+ Foresight, draw 1 card."
 				}
 			]
 		},
@@ -112,7 +112,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Sliver of Time",
-			"description": "A busy turn also draws.",
+			"description": "Sharper.",
 			"changes": [
 				{
 					"half": "top",
@@ -122,31 +122,17 @@
 						"steps": [
 							{
 								"type": "damage",
-								"amount": 5
+								"amount": 6
 							},
 							{
 								"type": "conditional",
 								"if": {
-									"type": "spells_cast_this_turn",
-									"threshold": 2
+									"type": "foresight_at_least",
+									"value": 2
 								},
 								"then": {
 									"type": "draw",
 									"count": 1
-								},
-								"else": {
-									"type": "empty"
-								}
-							},
-							{
-								"type": "conditional",
-								"if": {
-									"type": "spells_cast_this_turn",
-									"threshold": 3
-								},
-								"then": {
-									"type": "gain_foresight",
-									"amount": 1
 								},
 								"else": {
 									"type": "empty"
@@ -158,7 +144,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. 2nd+ spell this turn: draw 1 card. 3rd+: gain 1 Foresight."
+					"value": "Deal 6 damage. If you have 2+ Foresight, draw 1 card."
 				}
 			]
 		},
@@ -196,7 +182,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Edge of the Second",
-			"description": "Foresight flows unconditionally.",
+			"description": "Always a card.",
 			"changes": [
 				{
 					"half": "top",
@@ -226,7 +212,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The Split Instant",
-			"description": "A crowded turn cuts twice as deep.",
+			"description": "Foresight sharpens it.",
 			"changes": [
 				{
 					"half": "top",
@@ -237,8 +223,8 @@
 							{
 								"type": "conditional",
 								"if": {
-									"type": "spells_cast_this_turn",
-									"threshold": 2
+									"type": "foresight_at_least",
+									"value": 2
 								},
 								"then": {
 									"type": "damage",
@@ -259,7 +245,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 7 damage (9 if this is your 2nd+ spell this turn). Draw 1 card."
+					"value": "Deal 7 damage (9 if you have 2+ Foresight). Draw 1 card."
 				}
 			]
 		}

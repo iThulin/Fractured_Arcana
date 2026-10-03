@@ -629,6 +629,10 @@ public static partial class CardScriptRegistry
         RegisterPredicate("glyph_count_at_least", n =>
             new GlyphCountAtLeastPredicate(n.TryGetProperty("value", out var v) ? v.GetInt32() : 1));
 
+        // Chronomancer: Time Bank holds at least N Foresight: { "type": "foresight_at_least", "value": n }
+        RegisterPredicate("foresight_at_least", n =>
+            new ForesightAtLeastPredicate(n.TryGetProperty("value", out var v) ? v.GetInt32() : 2));
+
         // Spells cast this turn at least: { "type": "spells_cast_this_turn", "threshold": n }
         RegisterPredicate("spells_cast_this_turn", n =>
         {

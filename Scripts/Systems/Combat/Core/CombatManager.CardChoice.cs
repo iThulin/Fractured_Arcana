@@ -220,15 +220,41 @@ public partial class CombatManager
         }
         else
         {
-            var box = new VBoxContainer { Position = new Vector2(Pad, Pad) };
-            box.AddThemeConstantOverride("separation", 4);
+            // 2026-10-03: the box sits in a plain Panel (not a container), so it got no
+            // width and every autowrapped label collapsed to one word per line. Give it
+            // the holder's inner width explicitly.
+            var box = new VBoxContainer
+            {
+                Position = new Vector2(Pad, Pad),
+                CustomMinimumSize = new Vector2(w, 0),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            box.Size = new Vector2(w, h);
+            box.AddThemeConstantOverride("separation", 6);
             holder.AddChild(box);
-            var name = new Label { Text = card.CardName ?? "(card)", Modulate = UITheme.TextPrimary };
-            name.AddThemeFontSizeOverride("font_size", UITheme.FontSizeNormal);
+            var name = new Label { Text = card.CardName ?? "(card)", Modulate = UITheme.Gold };
+            name.AddThemeFontSizeOverride("font_size", UITheme.FontSizeNormal + 2);
             name.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            name.CustomMinimumSize = new Vector2(w, 0);
             box.AddChild(name);
-            AddHalfBlock(box, card.TopHalf);
-            AddHalfBlock(box, card.BottomHalf);
+            if (_activeChoice?.SyntheticOptions == true)
+            {
+                // A mode, not a card: the label is the name, so only the description follows.
+                string desc = card.TopHalf?.RulesText ?? "";
+                if (!string.IsNullOrEmpty(desc))
+                {
+                    var rules = new Label { Text = desc, Modulate = UITheme.TextPrimary };
+                    rules.AddThemeFontSizeOverride("font_size", UITheme.FontSizeNormal);
+                    rules.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+                    rules.CustomMinimumSize = new Vector2(w, 0);
+                    box.AddChild(rules);
+                }
+            }
+            else
+            {
+                AddHalfBlock(box, card.TopHalf);
+                AddHalfBlock(box, card.BottomHalf);
+            }
         }
 
         // Selection lives on a flat button over the whole holder, because the card beneath has

@@ -28,7 +28,7 @@
 		"name": "The Strings of Fate",
 		"mana": 4,
 		"speed": "Reflex",
-		"rules_text": "Next enemy turn: every enemy action is redirected to a random other enemy.",
+		"rules_text": "Defer every enemy attack: they all move first, then every attack lands on its locked tile at the end of the round. Gain 1 Foresight for each attack Deferred.",
 		"tags": [
 			"temporal"
 		],
@@ -36,9 +36,9 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "redirect_all",
-			"to": "random_enemy",
-			"turns": 1
+			"type": "defer_intent",
+			"radius": 99,
+			"foresight_per": 1
 		}
 	},
 	"upgrades": [
@@ -47,7 +47,7 @@
 			"half": "both",
 			"top_name": "Grand Design+",
 			"bottom_name": "The Strings of Fate+",
-			"description": "Bigger plans; tighter strings.",
+			"description": "Bigger plans; a little Foresight.",
 			"changes": [
 				{
 					"half": "top",
@@ -66,13 +66,13 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "redirect_all",
-								"to": "random_enemy",
-								"turns": 1
+								"type": "defer_intent",
+								"radius": 99,
+								"foresight_per": 1
 							},
 							{
-								"type": "gain_foresight",
-								"amount": 1
+								"type": "draw",
+								"count": 1
 							}
 						]
 					}
@@ -80,7 +80,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Next enemy turn: all enemy actions redirect to a random other enemy. Gain 1 Foresight."
+					"value": "Defer every enemy attack: they all move first, then every attack lands on its locked tile at the end of the round. Gain 1 Foresight for each attack Deferred. Draw 1 card."
 				}
 			]
 		},
@@ -106,21 +106,35 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Puppet Strings",
-			"description": "You choose for 2 Foresight.",
+			"description": "Cheaper.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 3
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "redirect_all",
-						"to": "chosen",
-						"turns": 1
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 99,
+								"foresight_per": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Next enemy turn: redirect every enemy action to targets you choose. Spend 2 Foresight."
+					"value": "Defer every enemy attack: they all move first, then every attack lands on its locked tile at the end of the round. Gain 1 Foresight for each attack Deferred. Draw 1 card."
 				}
 			]
 		},
@@ -141,12 +155,35 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Marionette",
-			"description": "Redirected actions gain +3 power.",
+			"description": "A deeper read.",
 			"changes": [
 				{
 					"half": "bottom",
+					"field": "mana",
+					"value": 3
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 99,
+								"foresight_per": 1
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Next enemy turn: redirect every enemy action to targets you choose. Each gains +3 power. Spend 2 Foresight."
+					"value": "Defer every enemy attack: they all move first, then every attack lands on its locked tile at the end of the round. Gain 1 Foresight for each attack Deferred. Draw 2 cards."
 				}
 			]
 		},
@@ -167,21 +204,35 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "The Weaver's Hand",
-			"description": "Strings persist 2 enemy turns.",
+			"description": "The design closes.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "redirect_all",
-						"to": "chosen",
-						"turns": 2
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 99,
+								"foresight_per": 1
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "For the next two enemy turns: redirect every enemy action to targets you choose. Each gains +3 power. Spend 2 Foresight."
+					"value": "Defer every enemy attack: they all move first, then every attack lands on its locked tile at the end of the round. Gain 1 Foresight for each attack Deferred. Draw 2 cards."
 				}
 			]
 		}

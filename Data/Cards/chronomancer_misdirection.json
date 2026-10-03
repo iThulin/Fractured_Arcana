@@ -8,7 +8,7 @@
 		"name": "Misdirection",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "When an enemy attacks you: redirect the attack to a random other enemy.",
+		"rules_text": "Defer every attack aimed at your tile. Each lands there at the end of the round, so step away first.",
 		"tags": [
 			"temporal"
 		],
@@ -16,15 +16,15 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "redirect",
-			"to": "random_enemy"
+			"type": "defer_intent",
+			"aimed_within": 0
 		}
 	},
 	"bottom": {
 		"name": "Blink Between",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "When an enemy attacks: teleport to an adjacent empty tile and gain 2 shield.",
+		"rules_text": "Teleport to an adjacent empty tile and gain 2 shield.",
 		"tags": [
 			"temporal"
 		],
@@ -51,13 +51,8 @@
 			"half": "both",
 			"top_name": "Misdirection+",
 			"bottom_name": "Blink Between+",
-			"description": "Cheaper redirect; sturdier sidestep.",
+			"description": "Cheaper defer; sturdier sidestep.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "mana",
-					"value": 1
-				},
 				{
 					"half": "bottom",
 					"field": "effect",
@@ -77,7 +72,12 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When an enemy attacks: teleport within 1 and gain 4 shield."
+					"value": "Teleport to an empty tile within 1 and gain 4 shield."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
 				}
 			]
 		},
@@ -85,7 +85,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Sleight",
-			"description": "The trick pays for itself.",
+			"description": "And bank the dodge.",
 			"changes": [
 				{
 					"half": "top",
@@ -94,8 +94,8 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "redirect",
-								"to": "random_enemy"
+								"type": "defer_intent",
+								"aimed_within": 0
 							},
 							{
 								"type": "gain_foresight",
@@ -107,7 +107,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "When an enemy attacks you: redirect it to a random other enemy. Gain 1 Foresight."
+					"value": "Defer every attack aimed at your tile to the end of the round. Gain 1 Foresight."
 				}
 			]
 		},
@@ -128,7 +128,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When an enemy attacks: teleport within 2 and gain 4 shield."
+					"value": "Teleport to an empty tile within 2 and gain 4 shield."
 				}
 			]
 		},
@@ -136,39 +136,15 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Bait and Switch",
-			"description": "You choose the new target.",
+			"description": "Covers your neighbours.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "targeting",
 					"value": {
-						"type": "unit",
-						"range": 6,
-						"los": false,
-						"enemies_only": true
+						"type": "self"
 					}
 				},
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "redirect",
-						"to": "chosen"
-					}
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "When an enemy attacks you: redirect the attack to ANY enemy you choose."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "The Long Con",
-			"description": "The trick feeds the bank.",
-			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
@@ -176,8 +152,45 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "redirect",
-								"to": "chosen"
+								"type": "defer_intent",
+								"aimed_within": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Defer every attack aimed at your tile or a tile next to you. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Long Con",
+			"description": "A wide margin.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"aimed_within": 2
 							},
 							{
 								"type": "gain_foresight",
@@ -189,7 +202,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the attack to an enemy you choose. Gain 2 Foresight."
+					"value": "Defer every attack aimed within 2 tiles of you. Gain 2 Foresight."
 				}
 			]
 		}

@@ -570,6 +570,8 @@ public partial class CombatManager : Node3D
 
                 unit.DeckData.Initialize(cards);
                 injectedCompanionCards = true;
+                if (PlayerDeckSave.UseDebugDeck)
+                    MatchDebugAttunement(unit, cards);
 
                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
                          $"({unit.School}, {companionCards.Count} companion, " +
@@ -3184,6 +3186,36 @@ public partial class CombatManager : Node3D
 
         combatUI?.AppendActionLog($"{half.Name}: choose a mode.");
         OnCardChoiceRequested(req);
+    }
+
+    /// <summary>Debug fights (2026-10-03): a debug deck is often another school's cards
+    /// on a wizard whose launcher school was left at its default. Its school engine
+    /// (Time Bank, Grief, Weave, ...) then never existed, so every Foresight card
+    /// silently did nothing and no bank was drawn. When one school holds at least half
+    /// of the deck's school cards and differs from the wizard's, the wizard plays as
+    /// that school for this fight: attunement and attunement UI included.</summary>
+    private static void MatchDebugAttunement(Unit unit, List<Card> cards)
+    {
+        if (unit == null || cards == null)
+            return;
+        var counts = new Dictionary<CardSchool, int>();
+        foreach (var c in cards)
+        {
+            var school = c?.TopHalf?.School ?? CardSchool.Adept;
+            if (school == CardSchool.Adept)
+                continue;
+            counts[school] = counts.GetValueOrDefault(school) + 1;
+        }
+        if (counts.Count == 0)
+            return;
+        var top = counts.OrderByDescending(kv => kv.Value).First();
+        int total = counts.Values.Sum();
+        if (top.Key == unit.School || top.Value * 2 < total)
+            return;
+        GD.Print($"[DebugDeck] {unit.Name}'s debug deck is mostly {top.Key} ({top.Value}/{total} school cards); "
+                 + $"playing as {top.Key} instead of {unit.School} for this fight.");
+        unit.School = top.Key;
+        unit.InitializeAttunement();
     }
 
     private void SelectNextLivingAfterDeath()

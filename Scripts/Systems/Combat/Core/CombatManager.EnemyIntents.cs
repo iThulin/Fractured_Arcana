@@ -1852,6 +1852,10 @@ public partial class CombatManager
                 return;
             }
 
+            // Deferred or Spent (Chronomancer): it has closed in, but the blow is held.
+            if (enemy == _holdStrikeFor)
+                return;
+
             // U2: recompute tag bonuses against the board as the player left it.
             // Tag-evidence lines are GD.Print-mirrored: console transcripts are the
             // verification medium (u2_verification.md), and AppendActionLog alone
@@ -2736,6 +2740,9 @@ public partial class CombatManager
     /// </summary>
     private async Task StrikeTile(Unit attacker, Vector2I tile, int damage, bool ranged, string label = null)
     {
+        // Deferred or Spent (Chronomancer): the activation runs, the blow does not.
+        if (attacker != null && attacker == _holdStrikeFor)
+            return;
         // (2026-07-27) Enemies pay for actions on the SAME table as the player:
         // MartialAPCosts.AttackMelee (1) / AttackRanged (2). The movers reserve this
         // before spending anything on movement, so a refusal here means the unit was

@@ -105,11 +105,34 @@ public static partial class CardScriptRegistry
 
         // Defer target enemy's attack: it lands at the end of the round on its locked tile.
         // radius widens it to every enemy within n of the target (99 = every enemy).
-        // { "type": "defer_intent", "radius": n }
+        // { "type": "defer_intent", "radius": n, "aimed_within": n, "near_decoy": bool }
         RegisterEffect("defer_intent", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
-            return new DeferIntentEffect(radius).WithTag("Control");
+            var eff = new DeferIntentEffect(radius);
+            if (n.TryGetProperty("aimed_within", out var aw))
+                eff.AimedWithin = aw.GetInt32();
+            eff.NearDecoy = n.TryGetProperty("near_decoy", out var nd) && nd.GetBoolean();
+            if (n.TryGetProperty("foresight_per", out var fp))
+                eff.ForesightPer = fp.GetInt32();
+            return eff.WithTag("Control");
+        });
+
+        // Afterimage: schedule a copy of the last resolved spell.
+        // { "type": "schedule_last", "turns": n, "value_mult": f }
+        RegisterEffect("schedule_last", n =>
+        {
+            int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 1;
+            float mult = n.TryGetProperty("value_mult", out var m) ? (float)m.GetDouble() : 1f;
+            return new ScheduleLastEffect(turns, mult).WithTag("Foresight");
+        });
+
+        // Recurrence: +1 Foresight per scheduled spell, capped.
+        // { "type": "gain_foresight_per_scheduled", "max": n }
+        RegisterEffect("gain_foresight_per_scheduled", n =>
+        {
+            int max = n.TryGetProperty("max", out var m) ? m.GetInt32() : 3;
+            return new GainForesightPerScheduledEffect(max).WithTag("Foresight");
         });
 
         // Advance target enemy's attack: it lands now on its locked tile.

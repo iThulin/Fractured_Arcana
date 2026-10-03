@@ -25,7 +25,7 @@
 		"name": "Ward of Hours",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "When you would be hit: gain 6 shield until your next turn.",
+		"rules_text": "Gain 6 shield until your next turn.",
 		"tags": [
 			"temporal"
 		],
@@ -76,7 +76,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When you would be hit: gain 8 shield until your next turn."
+					"value": "Gain 8 shield until your next turn."
 				}
 			]
 		},
@@ -118,7 +118,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Aegis of Hours",
-			"description": "Ward reflects 3.",
+			"description": "Sturdier, and a little time banked.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -131,8 +131,8 @@
 								"amount": 8
 							},
 							{
-								"type": "damage",
-								"amount": 3
+								"type": "gain_foresight",
+								"amount": 1
 							}
 						]
 					}
@@ -140,7 +140,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When you would be hit: gain 8 shield. The attacker takes 3."
+					"value": "Gain 8 shield until your next turn. Gain 1 Foresight."
 				}
 			]
 		},
@@ -194,17 +194,29 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Hourglass Shell",
-			"description": "Ward refreshes once.",
+			"description": "A thicker shell, and a little time banked.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.amount",
-					"value": 10
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 10
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When you would be hit: gain 10 shield. The first time it breaks, re-apply 10. Attackers take 3."
+					"value": "Gain 10 shield until your next turn. Gain 1 Foresight."
 				}
 			]
 		},
@@ -255,21 +267,36 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Timeless Bulwark",
-			"description": "Ward applies to all allies.",
+			"description": "The thickest shell.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 12
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
 				{
 					"half": "bottom",
 					"field": "targeting",
 					"value": {
-						"type": "aoe",
-						"radius": 99,
-						"enemies_only": false
+						"type": "self"
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When any ally would be hit: it gains 10 shield and reflects 3."
+					"value": "Gain 12 shield until your next turn. Gain 2 Foresight."
 				}
 			]
 		}

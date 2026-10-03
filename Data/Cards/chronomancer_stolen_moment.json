@@ -36,7 +36,7 @@
 		"name": "Slip",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "When an enemy attacks: teleport to an empty tile within 2.",
+		"rules_text": "Teleport to an empty tile within 2.",
 		"tags": [
 			"temporal"
 		],
@@ -112,7 +112,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "When an enemy attacks: teleport within 3 and gain 2 shield."
+					"value": "Teleport to an empty tile within 3 and gain 2 shield."
 				}
 			]
 		},
@@ -160,7 +160,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Free. When an enemy attacks: teleport within 3 and gain 2 shield."
+					"value": "Free. Teleport to an empty tile within 3 and gain 2 shield."
 				}
 			]
 		}

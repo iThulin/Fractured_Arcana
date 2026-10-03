@@ -26,33 +26,27 @@
 		"name": "Chrono Anchor Field",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Imbue tiles within 2: enemies entering are Slowed for 1 turn and their next spell is Delayed.",
+		"rules_text": "Every enemy within 2 of the target point is Slowed for 1 turn, and its attack is Deferred to the end of the round.",
 		"tags": [
 			"temporal"
 		],
 		"targeting": {
 			"type": "aoe",
 			"radius": 2,
-			"enemies_only": false
+			"enemies_only": true
 		},
 		"effect": {
-			"type": "schedule",
-			"turns": 0,
-			"do": {
-				"type": "sequence",
-				"steps": [
-					{
-						"type": "apply_status",
-						"status": "slowed",
-						"duration": 1
-					},
-					{
-						"type": "apply_status",
-						"status": "delayed",
-						"duration": 1
-					}
-				]
-			}
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "apply_status",
+					"status": "slowed",
+					"duration": 1
+				},
+				{
+					"type": "defer_intent"
+				}
+			]
 		}
 	},
 	"upgrades": [
@@ -75,13 +69,17 @@
 				},
 				{
 					"half": "bottom",
-					"field": "targeting.radius",
-					"value": 3
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Tiles in range 3: enemies entering Slowed + Delayed."
+					"value": "Every enemy within 3 of the target point is Slowed for 1 turn, and its attack is Deferred to the end of the round."
 				}
 			]
 		},
@@ -107,35 +105,42 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Quicksand Hours",
-			"description": "Cost +1 in field.",
+			"description": "Bank the stillness.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "schedule",
-						"turns": 0,
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "apply_status",
-									"status": "temporal_drag",
-									"duration": 1
-								},
-								{
-									"type": "apply_status",
-									"status": "delayed",
-									"duration": 1
-								}
-							]
-						}
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							},
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Tiles in range 3: entering enemies get Temporal Drag + Delayed."
+					"value": "Every enemy within 3 of the target point is Slowed for 1 turn, and its attack is Deferred to the end of the round. Gain 1 Foresight."
 				}
 			]
 		},
@@ -143,7 +148,7 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Predestination",
-			"description": "Ticks follow the unit.",
+			"description": "It follows the unit.",
 			"changes": [
 				{
 					"half": "top",
@@ -170,7 +175,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Mark an enemy. End of next 4 turns: deal 5 wherever it stands."
+					"value": "Mark an enemy. In 4 turns, deal 5 damage to it wherever it stands. It matures while it waits (+2 per turn)."
 				}
 			]
 		},
@@ -178,35 +183,42 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Event Horizon",
-			"description": "Entering enemies Rooted.",
+			"description": "Held in place.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "schedule",
-						"turns": 0,
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "apply_status",
-									"status": "rooted",
-									"duration": 1
-								},
-								{
-									"type": "apply_status",
-									"status": "temporal_drag",
-									"duration": 1
-								}
-							]
-						}
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							},
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Tiles in range 3: entering enemies Rooted + Temporal Drag."
+					"value": "Every enemy within 3 of the target point is Rooted for 1 turn, and its attack is Deferred to the end of the round. Gain 1 Foresight."
 				}
 			]
 		},
@@ -214,7 +226,7 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The Hour of the Wolf",
-			"description": "Fast-Forward all ticks for 1 Foresight.",
+			"description": "Bigger, and later.",
 			"changes": [
 				{
 					"half": "top",
@@ -231,7 +243,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Mark an enemy. 5 ticks of 6. Spend 1 Foresight to Fast-Forward all remaining ticks."
+					"value": "Mark an enemy. In 5 turns, deal 6 damage to it wherever it stands. It matures while it waits (+2 per turn)."
 				}
 			]
 		},
@@ -239,25 +251,42 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Frozen Moment",
-			"description": "Entering enemies Frozen.",
+			"description": "Held, and well paid.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "schedule",
-						"turns": 0,
-						"do": {
-							"type": "apply_status",
-							"status": "frozen",
-							"duration": 1
-						}
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "apply_status",
+								"status": "rooted",
+								"duration": 1
+							},
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Tiles in range 3: entering enemies Frozen for 1 turn."
+					"value": "Every enemy within 3 of the target point is Rooted for 1 turn, and its attack is Deferred to the end of the round. Gain 2 Foresight."
 				}
 			]
 		}

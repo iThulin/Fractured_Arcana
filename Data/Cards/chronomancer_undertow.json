@@ -8,7 +8,7 @@
 		"name": "Undertow",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "When an enemy casts a spell: redirect it to any enemy you choose.",
+		"rules_text": "Defer target enemy's attack or spell to the end of the round. Gain 1 Foresight.",
 		"tags": [
 			"temporal"
 		],
@@ -19,37 +19,47 @@
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "redirect",
-			"to": "chosen"
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "defer_intent"
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
 		}
 	},
 	"bottom": {
 		"name": "Riptide",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Choose one: advance one of your scheduled spells, or postpone an enemy spell 1 turn.",
+		"rules_text": "Choose one: advance one of your scheduled spells, or Defer target enemy's attack.",
 		"tags": [
 			"temporal"
 		],
 		"targeting": {
-			"type": "self"
+			"type": "unit",
+			"range": 8,
+			"los": false,
+			"enemies_only": true
 		},
 		"effect": {
 			"type": "choose_one",
 			"options": [
 				{
 					"label": "Advance",
-					"description": "Advance one of your scheduled spells so it resolves sooner.",
+					"description": "Your soonest scheduled spell moves one turn closer (it resolves now if it was due next turn).",
 					"effect": {
 						"type": "advance"
 					}
 				},
 				{
-					"label": "Postpone",
-					"description": "Postpone an enemy's next action by 1 turn.",
+					"label": "Defer",
+					"description": "Defer target enemy's attack to the end of the round.",
 					"effect": {
-						"type": "postpone",
-						"turns": 1
+						"type": "defer_intent"
 					}
 				}
 			]
@@ -61,7 +71,7 @@
 			"half": "both",
 			"top_name": "Undertow+",
 			"bottom_name": "Riptide+",
-			"description": "Redirect grants Foresight; riptide does both.",
+			"description": "A wider current; Riptide does both.",
 			"changes": [
 				{
 					"half": "top",
@@ -70,8 +80,8 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "redirect",
-								"to": "chosen"
+								"type": "defer_intent",
+								"radius": 1
 							},
 							{
 								"type": "gain_foresight",
@@ -83,7 +93,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "When an enemy casts: redirect it to any enemy you choose. Gain 1 Foresight."
+					"value": "Defer the attack of target enemy and every enemy within 1 of it. Gain 1 Foresight."
 				},
 				{
 					"half": "bottom",
@@ -95,8 +105,7 @@
 								"type": "advance"
 							},
 							{
-								"type": "postpone",
-								"turns": 1
+								"type": "defer_intent"
 							}
 						]
 					}
@@ -104,7 +113,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Advance one of your spells AND postpone an enemy spell 1 turn."
+					"value": "Advance one of your scheduled spells AND Defer target enemy's attack."
 				}
 			]
 		},
@@ -112,12 +121,29 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Riptide Current",
-			"description": "Redirected spell +3 power.",
+			"description": "More banked.",
 			"changes": [
 				{
 					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the spell to any enemy you choose. It gains +3 power. Gain 1 Foresight."
+					"value": "Defer the attack of target enemy and every enemy within 1 of it. Gain 2 Foresight."
 				}
 			]
 		},
@@ -125,33 +151,7 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Crosscurrent",
-			"description": "Postpone hits the whole stack.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Advance one of your spells AND postpone all enemy spells on the stack 1 turn."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "top",
-			"top_name": "Drowned Intent",
-			"description": "Redirect to two targets.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Redirect the spell so it hits 2 enemies you choose. Gain 1 Foresight."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "bottom",
-			"bottom_name": "Tidal Lock",
-			"description": "Postpone + Root the caster.",
+			"description": "A wider wake.",
 			"changes": [
 				{
 					"half": "bottom",
@@ -163,13 +163,8 @@
 								"type": "advance"
 							},
 							{
-								"type": "postpone",
-								"turns": 2
-							},
-							{
-								"type": "apply_status",
-								"status": "rooted",
-								"duration": 1
+								"type": "defer_intent",
+								"radius": 1
 							}
 						]
 					}
@@ -177,15 +172,15 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Advance your spell. Postpone an enemy spell 2 turns. Its caster is Rooted for 1 turn."
+					"value": "Advance one of your scheduled spells. Defer the attack of target enemy and every enemy within 1 of it."
 				}
 			]
 		},
 		{
-			"tier": 4,
+			"tier": 3,
 			"half": "top",
-			"top_name": "The Maelstrom's Will",
-			"description": "Redirect, double, keep it yours.",
+			"top_name": "Drowned Intent",
+			"description": "A wider current.",
 			"changes": [
 				{
 					"half": "top",
@@ -194,12 +189,41 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "redirect",
-								"to": "chosen"
+								"type": "defer_intent",
+								"radius": 2
 							},
 							{
-								"type": "echo_last",
-								"value_mult": 1.0
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Defer the attack of target enemy and every enemy within 2 of it. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Tidal Lock",
+			"description": "And bank it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance"
+							},
+							{
+								"type": "defer_intent",
+								"radius": 1
 							},
 							{
 								"type": "gain_foresight",
@@ -209,9 +233,43 @@
 					}
 				},
 				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Advance one of your scheduled spells. Defer the attack of target enemy and every enemy within 1 of it. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Maelstrom's Will",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Redirect the enemy spell to a target you choose, then Echo a copy at a second chosen target. Gain 1 Foresight."
+					"value": "Defer the attack of target enemy and every enemy within 2 of it. Gain 2 Foresight. Draw 1 card."
 				}
 			]
 		},
@@ -219,12 +277,30 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Standing Wave",
-			"description": "Advance everything, freeze the enemy stack.",
+			"description": "The tide turns entirely.",
 			"changes": [
 				{
 					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward",
+								"count": 99,
+								"foresight_cost": 0
+							},
+							{
+								"type": "defer_intent",
+								"radius": 99
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Resolve all your scheduled spells now. Suspend every enemy spell on the stack until your next turn."
+					"value": "All your scheduled spells resolve now. Defer every enemy's attack."
 				}
 			]
 		}

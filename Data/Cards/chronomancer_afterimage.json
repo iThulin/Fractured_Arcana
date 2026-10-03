@@ -8,7 +8,7 @@
 		"name": "Afterimage",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Create an Echo of your last-cast spell. It resolves again at half value.",
+		"rules_text": "Schedule a copy of your last spell. It resolves again, on the same targets, at the start of your next turn.",
 		"tags": [
 			"temporal"
 		],
@@ -16,15 +16,16 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "echo_last",
-			"value_mult": 0.5
+			"type": "schedule_last",
+			"turns": 1,
+			"value_mult": 1.0
 		}
 	},
 	"bottom": {
 		"name": "Recurrence",
-		"mana": 3,
+		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "As you cast another spell: that spell is cast a second time.",
+		"rules_text": "Gain 1 Foresight for each spell you have scheduled (max 3).",
 		"tags": [
 			"temporal"
 		],
@@ -32,8 +33,8 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "echo_last",
-			"value_mult": 1.0
+			"type": "gain_foresight_per_scheduled",
+			"max": 3
 		}
 	},
 	"upgrades": [
@@ -42,27 +43,39 @@
 			"half": "both",
 			"top_name": "Afterimage+",
 			"bottom_name": "Recurrence+",
-			"description": "Brighter echoes.",
+			"description": "Cheaper copies; Recurrence also shields.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.value_mult",
-					"value": 0.75
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Echo your last spell at 75% value."
+					"field": "mana",
+					"value": 1
 				},
 				{
 					"half": "bottom",
 					"field": "mana",
-					"value": 2
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_scheduled",
+								"max": 3
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "As you cast another spell, cast it twice."
+					"value": "Gain 1 Foresight for each spell you have scheduled (max 3). Gain 2 shield."
 				}
 			]
 		},
@@ -70,17 +83,35 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Mirror Image",
-			"description": "Full value.",
+			"description": "The copy comes with insight.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.value_mult",
-					"value": 1.0
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "schedule_last",
+								"turns": 1,
+								"value_mult": 1.0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Echo your last spell at full value."
+					"value": "Schedule a copy of your last spell for the start of your next turn. Gain 1 Foresight."
 				}
 			]
 		},
@@ -88,8 +119,13 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Reverberate",
-			"description": "+1 Foresight per echo.",
+			"description": "Counts further.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
@@ -97,12 +133,12 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "echo_last",
-								"value_mult": 1.0
+								"type": "gain_foresight_per_scheduled",
+								"max": 4
 							},
 							{
-								"type": "gain_foresight",
-								"amount": 1
+								"type": "shield",
+								"amount": 2
 							}
 						]
 					}
@@ -110,7 +146,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Cast the next spell twice. Gain 1 Foresight."
+					"value": "Gain 1 Foresight for each spell you have scheduled (max 4). Gain 2 shield."
 				}
 			]
 		},
@@ -118,8 +154,13 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Double Exposure",
-			"description": "Two echoes.",
+			"description": "Two echoes, a turn apart.",
 			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				},
 				{
 					"half": "top",
 					"field": "effect",
@@ -127,12 +168,14 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "echo_last",
+								"type": "schedule_last",
+								"turns": 1,
 								"value_mult": 1.0
 							},
 							{
-								"type": "echo_last",
-								"value_mult": 0.5
+								"type": "schedule_last",
+								"turns": 2,
+								"value_mult": 1.0
 							}
 						]
 					}
@@ -140,7 +183,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Echo your last spell at full value, then again at half."
+					"value": "Schedule two copies of your last spell: one at the start of your next turn, one the turn after."
 				}
 			]
 		},
@@ -148,8 +191,13 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Resonance Cascade",
-			"description": "Triple-cast.",
+			"description": "And a card for the wait.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
@@ -157,11 +205,48 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "echo_last",
+								"type": "gain_foresight_per_scheduled",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each spell you have scheduled (max 4). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Persistence of Memory",
+			"description": "Two echoes and the insight to use them.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "schedule_last",
+								"turns": 1,
 								"value_mult": 1.0
 							},
 							{
-								"type": "echo_last",
+								"type": "schedule_last",
+								"turns": 2,
 								"value_mult": 1.0
 							},
 							{
@@ -172,22 +257,9 @@
 					}
 				},
 				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Cast the next spell 3 times. Gain 1 Foresight."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "Persistence of Memory",
-			"description": "Echo every spell this turn.",
-			"changes": [
-				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Until end of turn, each spell you cast is Echoed at full value."
+					"value": "Schedule two copies of your last spell: one at the start of your next turn, one the turn after. Gain 1 Foresight."
 				}
 			]
 		},
@@ -195,12 +267,34 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Stuck Record",
-			"description": "Copies per Foresight held.",
+			"description": "Free.",
 			"changes": [
 				{
 					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_scheduled",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "As you cast a spell, cast one extra copy per Foresight you hold, then reset Foresight to 0."
+					"value": "Gain 1 Foresight for each spell you have scheduled (max 4). Draw 1 card."
 				}
 			]
 		}
