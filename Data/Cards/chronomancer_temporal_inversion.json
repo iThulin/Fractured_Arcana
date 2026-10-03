@@ -23,7 +23,7 @@
 		"name": "Phase Anchor",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Create 2 Phase tiles within 2. Teleport between them as a free action once per turn for 3 turns.",
+		"rules_text": "Make the target tile and your own tile Phase tiles for 3 turns. Phase Step between them from the action bar: free, once per turn.",
 		"tags": [
 			"temporal"
 		],
@@ -68,13 +68,17 @@
 				},
 				{
 					"half": "bottom",
-					"field": "effect.count",
-					"value": 3
+					"field": "effect",
+					"value": {
+						"type": "create_phase_tiles",
+						"count": 3,
+						"turns": 3
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create 3 Phase tiles within 2. Free teleport once/turn, 3 turns."
+					"value": "Make 3 Phase tiles for 3 turns: the target tile, your own, and one near the target. Phase Step between them from the action bar: free, once per turn."
 				}
 			]
 		},
@@ -95,12 +99,21 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Way Station",
-			"description": "Phase tiles Slow enemies on them.",
+			"description": "The network holds longer.",
 			"changes": [
 				{
 					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "create_phase_tiles",
+						"count": 3,
+						"turns": 4
+					}
+				},
+				{
+					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create 3 Phase tiles. Enemies standing on them are Slowed. Free teleport once/turn, 3 turns."
+					"value": "Make 3 Phase tiles for 4 turns: the target tile, your own, and one near the target. Phase Step between them from the action bar: free, once per turn."
 				}
 			]
 		},
@@ -141,17 +154,21 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Network of Doors",
-			"description": "Allies use the tiles too.",
+			"description": "A wider network.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.count",
-					"value": 4
+					"field": "effect",
+					"value": {
+						"type": "create_phase_tiles",
+						"count": 4,
+						"turns": 4
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create 4 Phase tiles. You and allies teleport freely once/turn, 4 turns."
+					"value": "Make 4 Phase tiles for 4 turns: the target tile, your own, and two near the target. Phase Step between them from the action bar: free, once per turn."
 				}
 			]
 		},
@@ -178,24 +195,16 @@
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "create_phase_tiles",
-								"count": 4,
-								"turns": 99
-							},
-							{
-								"type": "gain_foresight",
-								"amount": 1
-							}
-						]
+						"type": "create_phase_tiles",
+						"count": 4,
+						"turns": 99,
+						"step_foresight": 1
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create 4 Phase tiles for the fight. Teleporting between them grants 1 Foresight (once/turn)."
+					"value": "Make 4 Phase tiles for the fight: the target tile, your own, and two near the target. Phase Step between them (free, once per turn) and gain 1 Foresight each time."
 				}
 			]
 		}

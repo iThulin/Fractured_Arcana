@@ -316,6 +316,8 @@
 						"sequence",
 						"conditional",
 						"retarget",
+						"defer_intent",
+						"advance_intent",
 						"empty",
 						"summon_spirit",
 						"create_memorial",
@@ -386,7 +388,8 @@
 						"exile_discard_for_memorial",
 						"push_aimed",
 						"move_to_tile",
-						"mana_debt"
+						"lose_foresight",
+						"return_to_round_start"
 					]
 				},
 				"amount": {

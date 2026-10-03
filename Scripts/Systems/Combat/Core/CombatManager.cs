@@ -190,6 +190,9 @@ public partial class CombatManager : Node3D
         RegisterSummonHandler();
         InstallZoneOfControl();
         InstallReactions();   // Edge M4: walk-step hook and routing cost
+        InstallIntentTime();  // Chronomancer Defer / Advance hooks
+        InstallAnchorHooks(); // Temporal Anchor lethal save
+        EnsureAimLines();     // ranged-intent arcs: the node is built here, once
 
         // Wire up helper nodes
         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
@@ -332,11 +335,15 @@ public partial class CombatManager : Node3D
         base._ExitTree();
         UninstallZoneOfControl();
         UninstallReactions();
+        UninstallIntentTime();
+        UninstallAnchorHooks();
     }
 
     public override void _Process(double delta)
     {
         SyncMoveZoneDim();   // derived every frame, so no hover-event ordering can strand it
+        RefreshAlmanacView(); // Almanac list + tile markers; repaints only when it changed
+        RefreshAimLines();    // ranged intents: arc from the enemy to its locked tile
 
         if (_pruneNeeded)
         {
@@ -1067,6 +1074,14 @@ public partial class CombatManager : Node3D
                 // An armed technique card owns the click (Edge M2): Line shapes aim at tiles.
                 if (TryHandleManeuverClick(null, tile))
                     return;
+
+                // Phase Step armed: a click on a Phase tile teleports there.
+                if (_armedAction == UnitAction.PhaseStep && selectedUnit != null)
+                {
+                    if (TryPhaseStep(selectedUnit, tile.Axial))
+                        DisarmAction();
+                    return;
+                }
 
                 // Interact armed: a click on a breakable wall is a blow, not a move.
                 if (_armedAction == UnitAction.Interact && selectedUnit != null)
@@ -2487,10 +2502,17 @@ public partial class CombatManager : Node3D
         State.DispatchCardChoice(req);
     }
 
+    /// <summary>True once round 1's intents have been locked (see StartPlayerTurn).</summary>
+    private bool _openingIntentsPlanned;
+
     private void StartPlayerTurn()
     {
         State.EnemyPhaseContext = false;   // Time Bank: reaction costs revert to pure mana
         _scrollReadThisTurn = false;       // consumables: one scroll per player turn, party-wide
+
+        // Chronomancer §2e: where everyone stood, and their HP, as this round begins.
+        if (!_isExtraTurn)
+            SnapshotRoundStart();
 
         // Reset extra-turn flag and per-round tracking
         if (!_isExtraTurn)
@@ -2514,6 +2536,30 @@ public partial class CombatManager : Node3D
         RegisterManager.Fire("combat.basics.hand");
         RegisterManager.Fire("combat.basics.halves");
         RegisterManager.Fire("combat.basics.move");
+
+        // Round 1 intents (2026-10-03). Plans are locked at the end of each enemy
+        // phase, plus once in StartDeploymentPhase. But enemies now spawn AFTER
+        // deployment (reactive spawn, SpawnAndPlaceEnemies on confirm), and the
+        // skip-deploy path never planned at all, so turn 1 had no intents: nothing
+        // to read, nothing for Glimpse or Survey to reveal, and the enemy phase
+        // improvised. Plan once here for any round-1 enemy still without a plan.
+        if (!_openingIntentsPlanned)
+        {
+            _openingIntentsPlanned = true;
+            bool anyUnplanned = enemyUnits.Exists(u => IsValidActor(u) && u.CurrentIntent == null);
+            if (anyUnplanned)
+            {
+                try
+                {
+                    PlanAllEnemyIntents();
+                    GD.Print("[Intents] Round 1: planned opening intents.");
+                }
+                catch (Exception e)
+                {
+                    GD.Print($"[Intents] Round 1 planning THREW: {e}");
+                }
+            }
+        }
         _edgeActivationId++;              // Edge: the player phase is its own activation
 
         // (2026-07-28, U3e) Ritardando's "+1 enemy spell cost" expires HERE, not at
@@ -2528,6 +2574,12 @@ public partial class CombatManager : Node3D
             if (unit == null || !IsInstanceValid(unit) || !unit.Stats.IsAlive)
                 continue;
             unit.StartTurn();
+
+            // Overdrawn Time Bank (chronomancer §2b): HP lost per point below zero.
+            if (unit.Attunement is FateAttunement overdraft && overdraft.IsOverdrawn)
+                ApplyOverdraftLoss(unit, overdraft);
+            if (!unit.Stats.IsAlive)
+                continue;
 
             // Apply martial stance passives
             if (unit.IsMartial && unit.ActiveStance != null)
@@ -2642,7 +2694,7 @@ public partial class CombatManager : Node3D
                 if (entry.IsReady)
                 {
                     GD.Print($"[Almanac] Firing scheduled entry: {entry.Label}.");
-                    entry.Child?.Resolve(State, entry.Caster, entry.Targets, entry.Snapshot);
+                    entry.Fire(State);   // pins the scheduling unit and applies maturity (§2c)
                     State.Almanac.Remove(entry);
                 }
             }
@@ -2707,6 +2759,7 @@ public partial class CombatManager : Node3D
                 if (unit.AnchorTurnsRemaining <= 0)
                 {
                     unit.AnchorCoord = null;
+                    unit.AnchorLethalSave = false;
                     GD.Print($"[Anchor] {unit.Name}'s anchor expired.");
                 }
             }
@@ -2719,6 +2772,7 @@ public partial class CombatManager : Node3D
             if (State.PhaseTileTurnsRemaining <= 0)
             {
                 State.PhaseTiles?.Clear();
+                State.PhaseTileOwner = null;
                 GD.Print("[PhaseTiles] Phase network expired.");
             }
         }

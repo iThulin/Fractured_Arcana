@@ -89,7 +89,7 @@ public sealed class ManaCost : ICost
             // backs the cost 1:1. Only Reactions are castable then, so the
             // phase flag alone gates it.
             if (s.EnemyPhaseContext && s.ActiveCasterUnit.Attunement is FateAttunement fateAvail)
-                available += fateAvail.Charges;
+                available += Math.Max(0, fateAvail.Charges);   // an Overdraft backs nothing
             return available >= due;
         }
 

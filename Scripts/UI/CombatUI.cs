@@ -320,6 +320,16 @@ public partial class CombatUI : CanvasLayer
 		GD.Print($"[CombatUI] AttunementSection built: {_attunementSection != null}");
 		vbox.AddChild(_attunementSection);
 
+		// Almanac (class_identity_chronomancer_v1 §2c): the spells waiting to land.
+		// Built once; SetAlmanac only retexts and shows or hides it.
+		_almanacSection = new VBoxContainer { Name = "AlmanacSection", Visible = false };
+		_almanacSection.AddThemeConstantOverride("separation", 2);
+		_almanacSection.AddChild(MakeLabel("ALMANAC", UITheme.FontSizeSmall, ElementColors.Get("temporal")));
+		_almanacText = MakeLabel("", UITheme.FontSizeSmall, UITheme.TextPrimary);
+		_almanacText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		_almanacSection.AddChild(_almanacText);
+		vbox.AddChild(_almanacSection);
+
 		// (V1: log, party chips, deck/grave, and End Turn all moved out; the
 		// left column stops being a junk drawer. §5: log+party → bottom left,
 		// deck/grave → flanking the hand, End Turn → bottom right.)
@@ -1787,6 +1797,20 @@ public partial class CombatUI : CanvasLayer
 	private void OnDeckButtonPressed() => _deckPopup?.PopupCentered();
 	private void OnGraveButtonPressed() => _gravePopup?.PopupCentered();
 	public VBoxContainer AttunementSection => _attunementSection;
+
+	private VBoxContainer _almanacSection;
+	private Label _almanacText;
+
+	/// <summary>Shows the scheduled-spell list (one entry per line), or hides the
+	/// section when <paramref name="text"/> is null or empty.</summary>
+	public void SetAlmanac(string text)
+	{
+		if (_almanacSection == null)
+			return;
+		bool any = !string.IsNullOrEmpty(text);
+		_almanacText.Text = any ? text : "";
+		_almanacSection.Visible = any;
+	}
 
 	private static StyleBoxFlat MakeFillStyle(Color col)
 	{

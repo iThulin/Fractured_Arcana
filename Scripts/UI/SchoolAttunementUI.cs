@@ -521,8 +521,28 @@ public partial class SchoolAttunementUI : PanelContainer
 	{
 		if (_foresightBar == null)
 			return;
-		_foresightBar.Value = newValue;
-		_foresightTierLabel.Text = ForesightTierLabels[Math.Clamp(newValue, 0, 4)];
+		ShowForesight(newValue);
+	}
+
+	/// <summary>Chronomancer §2b: a positive bank fills toward FULL in the school colour;
+	/// an Overdrawn bank shows the debt instead, in the danger colour, with its cost.</summary>
+	private void ShowForesight(int value)
+	{
+		if (value < 0)
+		{
+			_foresightBar.MaxValue = -FateAttunement.MinCharges;
+			_foresightBar.Value = -value;
+			_foresightBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = UITheme.Danger });
+			_foresightTierLabel.Text = $"OWE {-value}";
+			_foresightTierLabel.TooltipText = $"Overdrawn: you lose {-value * CombatManager.OverdraftHpPerPoint} HP at the start of each turn, and get no free Reflex, until the bank is back to 0.";
+			_foresightTierLabel.MouseFilter = Control.MouseFilterEnum.Stop;
+			return;
+		}
+		_foresightBar.MaxValue = FateAttunement.MaxCharges;
+		_foresightBar.Value = value;
+		_foresightBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = SchoolColors.GetBorderColor(CardSchool.Chronomancer) });
+		_foresightTierLabel.Text = ForesightTierLabels[Math.Clamp(value, 0, 4)];
+		_foresightTierLabel.TooltipText = "";
 	}
 
 	private void OnForesightBurst()
@@ -548,8 +568,7 @@ public partial class SchoolAttunementUI : PanelContainer
 	{
 		if (_foresightBar == null || _boundFate == null)
 			return;
-		_foresightBar.Value = _boundFate.Charges;
-		_foresightTierLabel.Text = ForesightTierLabels[Math.Clamp(_boundFate.Charges, 0, 4)];
+		ShowForesight(_boundFate.Charges);
 	}
 
 	// ════════════════════════════════════════════════════════════════

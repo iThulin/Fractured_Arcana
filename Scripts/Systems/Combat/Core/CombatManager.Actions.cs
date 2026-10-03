@@ -27,7 +27,7 @@ using System.Collections.Generic;
 // ============================================================
 
 /// <summary>What a bar button does when armed.</summary>
-public enum UnitAction { None, Strike, Shove, Station, Interact, Brace, Swap }
+public enum UnitAction { None, Strike, Shove, Station, Interact, Brace, Swap, SnapBack, PhaseStep }
 
 /// <summary>One button on the action bar.</summary>
 public sealed class UnitActionDef
@@ -129,6 +129,30 @@ public partial class CombatManager
                 Armed = _armedAction == UnitAction.Station,
             });
         }
+
+        // Chronomancer marked positions (CombatManager.Anchors.cs).
+        if (unit.AnchorCoord != null)
+        {
+            list.Add(new UnitActionDef
+            {
+                Kind = UnitAction.SnapBack,
+                Label = "Snap Back (free)",
+                Tooltip = SnapTooltip(unit),
+                Enabled = myTurn && WhyNoSnap(unit) == null,
+                Armed = false,
+            });
+        }
+        if (HasPhaseStep(unit))
+        {
+            list.Add(new UnitActionDef
+            {
+                Kind = UnitAction.PhaseStep,
+                Label = "Phase Step (free)",
+                Tooltip = PhaseTooltip(unit),
+                Enabled = myTurn && WhyNoPhaseStep(unit) == null,
+                Armed = _armedAction == UnitAction.PhaseStep,
+            });
+        }
         return list;
     }
 
@@ -145,6 +169,13 @@ public partial class CombatManager
             TryBrace(selectedUnit);
             return;
         }
+        if (kind == UnitAction.SnapBack)
+        {
+            DisarmAction(refresh: false);
+            TrySnapToAnchor(selectedUnit);
+            RefreshSelectedUnitUI();
+            return;
+        }
         _armedAction = _armedAction == kind ? UnitAction.None : kind;
         if (_armedAction != UnitAction.None)
         {
@@ -155,9 +186,12 @@ public partial class CombatManager
                 UnitAction.Station => $"Fire the {selectedUnit.StationWeapon?.Label ?? "station"}",
                 UnitAction.Interact => "Interact",
                 UnitAction.Swap => "Swap",
+                UnitAction.PhaseStep => "Phase Step",
                 _ => "",
             };
-            combatUI?.SetHintText($"{what}: click a target. Right-click or Esc to cancel.");
+            combatUI?.SetHintText(_armedAction == UnitAction.PhaseStep
+                ? "Phase Step: click a marked Phase tile. Right-click or Esc to cancel."
+                : $"{what}: click a target. Right-click or Esc to cancel.");
         }
         else
             combatUI?.SetHintText("Select a unit, move, cast, then end turn.");

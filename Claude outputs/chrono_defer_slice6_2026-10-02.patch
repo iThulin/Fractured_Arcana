@@ -1,0 +1,709 @@
+diff --git a/Data/Cards/chronomancer_hasten.json b/Data/Cards/chronomancer_hasten.json
+index 5cc9a71..c975a5f 100644
+--- a/Data/Cards/chronomancer_hasten.json
++++ b/Data/Cards/chronomancer_hasten.json
+@@ -23,7 +23,7 @@
+ 		"name": "Hinder",
+ 		"mana": 2,
+ 		"speed": "Reflex",
+-		"rules_text": "Postpone target enemy's next action by 1 turn.",
++		"rules_text": "Defer target enemy's attack: it lands at the end of the round, on the tile it was aimed at.",
+ 		"tags": [
+ 			"temporal"
+ 		],
+@@ -34,8 +34,7 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "postpone",
+-			"turns": 1
++			"type": "defer_intent"
+ 		}
+ 	},
+ 	"upgrades": [
+@@ -74,8 +73,7 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 1
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+@@ -88,7 +86,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 1 turn. The enemy is Slowed."
++					"value": "Defer target enemy's attack. It is Slowed for 1 turn."
+ 				}
+ 			]
+ 		},
+@@ -129,8 +127,8 @@
+ 		{
+ 			"tier": 2,
+ 			"half": "bottom",
+-			"bottom_name": "Stonewall",
+-			"description": "Postpones 2 turns.",
++			"bottom_name": "Held Breath",
++			"description": "Defer, and bank the moment.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -139,13 +137,16 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 2
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+-								"status": "temporal_drag",
+-								"duration": 2
++								"status": "slowed",
++								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
+ 							}
+ 						]
+ 					}
+@@ -153,7 +154,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 2 turns. It gains Temporal Drag for 2 turns."
++					"value": "Defer target enemy's attack. It is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -174,12 +175,34 @@
+ 			"tier": 3,
+ 			"half": "bottom",
+ 			"bottom_name": "Gridlock",
+-			"description": "Hinders the whole enemy stack.",
++			"description": "Defer every attack around the target.",
+ 			"changes": [
++				{
++					"half": "bottom",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "defer_intent",
++								"radius": 1
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
++							}
++						]
++					}
++				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone every enemy's next action 1 turn. All of them are Slowed."
++					"value": "Defer the attacks of target enemy and every enemy within 1 of it. The target is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -200,7 +223,7 @@
+ 			"tier": 4,
+ 			"half": "bottom",
+ 			"bottom_name": "The Frozen Stack",
+-			"description": "Suspend all enemy spells until your turn.",
++			"description": "Every attack waits for the end of the round.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -209,8 +232,8 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 99
++								"type": "defer_intent",
++								"radius": 99
+ 							},
+ 							{
+ 								"type": "gain_foresight",
+@@ -222,7 +245,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Suspend every enemy's next action until your next turn. Gain 1 Foresight."
++					"value": "Defer every enemy's attack. Gain 1 Foresight."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/chronomancer_sands_of_time.json b/Data/Cards/chronomancer_sands_of_time.json
+index 050b42a..cca7cc9 100644
+--- a/Data/Cards/chronomancer_sands_of_time.json
++++ b/Data/Cards/chronomancer_sands_of_time.json
+@@ -23,7 +23,7 @@
+ 		"name": "Drag",
+ 		"mana": 2,
+ 		"speed": "Reflex",
+-		"rules_text": "Postpone target enemy's next action by 1 turn.",
++		"rules_text": "Defer target enemy's attack: it lands at the end of the round, on the tile it was aimed at. Gain 1 Foresight.",
+ 		"tags": [
+ 			"temporal"
+ 		],
+@@ -34,8 +34,16 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "postpone",
+-			"turns": 1
++			"type": "sequence",
++			"steps": [
++				{
++					"type": "defer_intent"
++				},
++				{
++					"type": "gain_foresight",
++					"amount": 1
++				}
++			]
+ 		}
+ 	},
+ 	"upgrades": [
+@@ -74,13 +82,16 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 1
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+ 								"status": "slowed",
+ 								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
+ 							}
+ 						]
+ 					}
+@@ -88,7 +99,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 1 turn. The enemy is Slowed."
++					"value": "Defer target enemy's attack. It is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -125,7 +136,7 @@
+ 			"tier": 2,
+ 			"half": "bottom",
+ 			"bottom_name": "Molasses",
+-			"description": "Also applies Temporal Drag.",
++			"description": "The deferred enemy drags.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -134,13 +145,16 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 2
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+ 								"status": "temporal_drag",
+ 								"duration": 2
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
+ 							}
+ 						]
+ 					}
+@@ -148,7 +162,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 2 turns. It gains Temporal Drag for 2 turns."
++					"value": "Defer target enemy's attack. It gains Temporal Drag for 2 turns. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -169,12 +183,34 @@
+ 			"tier": 3,
+ 			"half": "bottom",
+ 			"bottom_name": "Sandbag",
+-			"description": "Drag affects the whole stack.",
++			"description": "Drag the enemies around it too.",
+ 			"changes": [
++				{
++					"half": "bottom",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "defer_intent",
++								"radius": 1
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
++							}
++						]
++					}
++				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone every enemy's next action 1 turn. All of them are Slowed."
++					"value": "Defer the attacks of target enemy and every enemy within 1 of it. The target is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -215,7 +251,7 @@
+ 			"tier": 4,
+ 			"half": "bottom",
+ 			"bottom_name": "Lost Hour",
+-			"description": "The enemy spell is postponed indefinitely.",
++			"description": "A wide stretch of the round goes missing.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -224,12 +260,12 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 99
++								"type": "defer_intent",
++								"radius": 2
+ 							},
+ 							{
+ 								"type": "gain_foresight",
+-								"amount": 1
++								"amount": 2
+ 							}
+ 						]
+ 					}
+@@ -237,7 +273,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Shelve target enemy's next action. It acts only when you allow it. Gain 1 Foresight."
++					"value": "Defer the attacks of target enemy and every enemy within 2 of it. Gain 2 Foresight."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Register/barks.json b/Data/Register/barks.json
+index b266c33..03111d9 100644
+--- a/Data/Register/barks.json
++++ b/Data/Register/barks.json
+@@ -7,7 +7,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "The hand and the mana",
+-      "lines": [ "Be it recorded that the candidate has been dealt a hand. The candidate will kindly not..." ],
++      "lines": [
++        "Be it recorded that the candidate has been dealt a hand. The candidate will kindly not..."
++      ],
+       "note": "Each caster holds their own hand and mana. Drag a card onto a target to cast it; the cost is paid from that caster's mana. Hands draw back up to full and mana refills at the start of each of your turns."
+     },
+     {
+@@ -15,7 +17,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Two halves to every card",
+-      "lines": [ "Every page has a top and a bottom. One is studied, one is... reflex. The minutes require that you choose." ],
++      "lines": [
++        "Every page has a top and a bottom. One is studied, one is... reflex. The minutes require that you choose."
++      ],
+       "note": "Each card has two halves. A Studied half can only be cast on your own turn. A Reflex half can also be cast during the enemy turn, when a response window opens. Mana you leave unspent stays available for those responses."
+     },
+     {
+@@ -23,7 +27,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Movement",
+-      "lines": [ "The candidate may approach the bench. Or the enemy. The Register does not... advise either." ],
++      "lines": [
++        "The candidate may approach the bench. Or the enemy. The Register does not... advise either."
++      ],
+       "note": "Select a unit to see the tiles it can reach this turn, then click one to move. Movement and casting are separate: moving does not spend mana."
+     },
+     {
+@@ -31,7 +37,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A response window",
+-      "lines": [ "Objection noted. The floor is yours, briefly. Very briefly..." ],
++      "lines": [
++        "Objection noted. The floor is yours, briefly. Very briefly..."
++      ],
+       "note": "An enemy action is about to resolve, and one of your casters holds a Reflex they can afford. Drag a Reflex half onto its target to respond, or press Pass to let the action resolve. Only Reflex halves can respond."
+     },
+     {
+@@ -39,16 +47,19 @@
+       "category": "explain",
+       "once": true,
+       "title": "Marked ground",
+-      "lines": [ "It has written your square into its plans. Plans can be... amended. Stand elsewhere." ],
++      "lines": [
++        "It has written your square into its plans. Plans can be... amended. Stand elsewhere."
++      ],
+       "note": "Enemy attacks lock onto a tile, not a unit. The marked tiles show where each blow will land. Step off a marked tile before the enemy turn and the attack lands on empty ground."
+     },
+-
+     {
+       "key": "reaction.steam",
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Steam",
+-      "lines": [ "Steam. Fire and frost, entered together, neither yielding. The minutes will reflect that the room can no longer see." ],
++      "lines": [
++        "Steam. Fire and frost, entered together, neither yielding. The minutes will reflect that the room can no longer see."
++      ],
+       "note": "Fire and Frost met on one tile. The steam blocks line of sight through that tile for 2 rounds, then clears."
+     },
+     {
+@@ -56,7 +67,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Fulgurite",
+-      "lines": [ "Lightning, into earth. It has left a signature in glass. Struck through, permanently." ],
++      "lines": [
++        "Lightning, into earth. It has left a signature in glass. Struck through, permanently."
++      ],
+       "note": "Storm and Earth met on one tile. Whoever stands there takes 5 damage, and the tile becomes rubble for good: difficult ground that stops forced movement."
+     },
+     {
+@@ -64,7 +77,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Magma",
+-      "lines": [ "Fire upon stone. The floor has become an... objection. Do not walk on objections." ],
++      "lines": [
++        "Fire upon stone. The floor has become an... objection. Do not walk on objections."
++      ],
+       "note": "Fire and Earth met on one tile. No one can walk onto Magma, but a unit pushed or pulled onto it takes 6 damage and stops there. It cools to Earth after 3 rounds; Frost quenches it to Earth at once."
+     },
+     {
+@@ -72,7 +87,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Wildfire",
+-      "lines": [ "Fire, and wind to carry it. It is looking for someone. Not, one hopes, the candidate..." ],
++      "lines": [
++        "Fire, and wind to carry it. It is looking for someone. Not, one hopes, the candidate..."
++      ],
+       "note": "Fire and Storm met on one tile. For 2 rounds, at the end of each round the wildfire spreads Fire to the open adjacent tile nearest the closest enemy of whoever lit it."
+     },
+     {
+@@ -80,7 +97,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Brittle",
+-      "lines": [ "Frost, then a charge through it. Anything standing here is now... fragile. Handle accordingly." ],
++      "lines": [
++        "Frost, then a charge through it. Anything standing here is now... fragile. Handle accordingly."
++      ],
+       "note": "Frost and Storm met on one tile. For 2 rounds, the occupant takes 3 extra damage from every hit. A Frozen unit standing here shatters for 8 extra damage and thaws, which spends the Brittle."
+     },
+     {
+@@ -88,7 +107,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Glacier",
+-      "lines": [ "Frost, and earth to hold it. A wall. The Register approves of walls; they keep things... in order." ],
++      "lines": [
++        "Frost, and earth to hold it. A wall. The Register approves of walls; they keep things... in order."
++      ],
+       "note": "Frost and Earth met on an empty tile and raised a glacier: a wall with 8 HP that blocks movement and line of sight. It melts back to Frost after 2 rounds, or when broken. On an occupied tile, the occupant is Frozen for 1 turn instead."
+     },
+     {
+@@ -96,24 +117,49 @@
+       "category": "explain",
+       "once": true,
+       "title": "Elemental burst",
+-      "lines": [ "Four entries of one element, and the page could hold no more. It has... spilled." ],
++      "lines": [
++        "Four entries of one element, and the page could hold no more. It has... spilled."
++      ],
+       "note": "Charging an element to its limit sets off a burst: a powerful free effect of that element. The element's charges then reset to zero. Fire and Frost cancel each other's charges, as do Storm and Earth."
+     },
+-
+     {
+       "key": "druid.growth_preview",
+       "category": "explain",
+       "once": true,
+       "title": "Growth to come",
+-      "lines": [ "The grove has made its intentions known. The Register records them in pencil, for now..." ],
++      "lines": [
++        "The grove has made its intentions known. The Register records them in pencil, for now..."
++      ],
+       "note": "Faint hollow sprouts mark where your growth will seed at the end of the enemy turn; a faint + marks living ground that will grow a stage. Growth is deterministic: it spreads toward the best ground, then carcass ground, then the nearest enemy."
+     },
++    {
++      "key": "chrono.defer",
++      "category": "explain",
++      "once": true,
++      "title": "Deferred",
++      "lines": [
++        "An attack deferred is not an attack excused. It will arrive. Stand elsewhere."
++      ],
++      "note": "A deferred attack is lifted out of the enemy's turn. The enemy still moves, but the blow lands at the end of the round, after every enemy has acted, on the tile it was aimed at. Whoever stands there then is hit: you, nobody, or another enemy. If the attacker dies first, the attack is lost."
++    },
++    {
++      "key": "chrono.advance",
++      "category": "explain",
++      "once": true,
++      "title": "Advanced",
++      "lines": [
++        "Moved up on the docket. The court will hear it... now."
++      ],
++      "note": "An advanced attack lands immediately, on the tile it was aimed at, and the enemy takes its turn without it. Clear the tile first and the blow falls on empty ground."
++    },
+     {
+       "key": "strategic.first_council",
+       "category": "explain",
+       "once": true,
+       "title": "The council",
+-      "lines": [ "The council is in session. Minutes will be kept. By me. Obviously..." ],
++      "lines": [
++        "The council is in session. Minutes will be kept. By me. Obviously..."
++      ],
+       "note": "The council is where the guild's standing with the powers of the world is read and argued. Open it from the top bar at any time between expeditions."
+     },
+     {
+@@ -121,7 +167,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A negotiation",
+-      "lines": [ "Words, then. The Register is very fond of words. Choose yours as if they will be... written down." ],
++      "lines": [
++        "Words, then. The Register is very fond of words. Choose yours as if they will be... written down."
++      ],
+       "note": "A negotiation is fought with arguments instead of spells. Every exchange shifts where the talks stand, and what you concede is remembered."
+     },
+     {
+@@ -129,7 +177,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A field posting",
+-      "lines": [ "The party has been posted. Be it recorded where they stand, in case anyone asks... later." ],
++      "lines": [
++        "The party has been posted. Be it recorded where they stand, in case anyone asks... later."
++      ],
+       "note": "A posted party works its ground lunation by lunation and draws supplies each moon. Recall or collect it from the map when the work is done. A party left exposed in the field can be found by threats."
+     },
+     {
+@@ -137,7 +187,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Waystones",
+-      "lines": [ "Through the stone, and out again, and no time spent. The Register disapproves of the... accounting." ],
++      "lines": [
++        "Through the stone, and out again, and no time spent. The Register disapproves of the... accounting."
++      ],
+       "note": "Stepping through a waystone your guild has raised is instant and free. Raised stones turn a long march into a single step."
+     },
+     {
+@@ -145,7 +197,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A lunation passes",
+-      "lines": [ "A moon has turned. The world has made its entries while you were... occupied." ],
++      "lines": [
++        "A moon has turned. The world has made its entries while you were... occupied."
++      ],
+       "note": "Each new moon the world takes its turn: postings progress, threats advance, and the kingdoms act. The Conjunction draws one lunation closer."
+     },
+     {
+@@ -153,10 +207,11 @@
+       "category": "explain",
+       "once": true,
+       "title": "The unmaking",
+-      "lines": [ "Struck through. All of it. And yet the Register remains, and so do... some of you." ],
++      "lines": [
++        "Struck through. All of it. And yet the Register remains, and so do... some of you."
++      ],
+       "note": "The timeline has been unmade and a new one begins. What the guild made eternal carries over: essence, the campus, mastery, the Regalia, and every name the Register holds. The kingdoms, companions and fragments start fresh."
+     },
+-
+     {
+       "key": "combat.victory",
+       "category": "comment",
+diff --git a/Schemas/card.schema.json b/Schemas/card.schema.json
+index 2707798..125ada8 100644
+--- a/Schemas/card.schema.json
++++ b/Schemas/card.schema.json
+@@ -316,6 +316,8 @@
+ 						"sequence",
+ 						"conditional",
+ 						"retarget",
++						"defer_intent",
++						"advance_intent",
+ 						"empty",
+ 						"summon_spirit",
+ 						"create_memorial",
+diff --git a/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs b/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs
+index 98e12dc..f6c6a06 100644
+--- a/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs
++++ b/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs
+@@ -94,6 +94,23 @@ public static partial class CardScriptRegistry
+             return new PostponeEffect(turns);
+         });
+ 
++        // Defer target enemy's attack: it lands at the end of the round on its locked tile.
++        // radius widens it to every enemy within n of the target (99 = every enemy).
++        // { "type": "defer_intent", "radius": n }
++        RegisterEffect("defer_intent", n =>
++        {
++            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
++            return new DeferIntentEffect(radius).WithTag("Control");
++        });
++
++        // Advance target enemy's attack: it lands now on its locked tile.
++        // { "type": "advance_intent", "radius": n }
++        RegisterEffect("advance_intent", n =>
++        {
++            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
++            return new AdvanceIntentEffect(radius).WithTag("Control");
++        });
++
+         // Skip the next N turns of the enemy, causing them to lose their next N actions (can be used on self for a "stasis" effect)
+         // { "type": "skip_enemy_turn", "turns": n }
+         RegisterEffect("skip_enemy_turn", n =>
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index d58cf40..714f477 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -220,6 +220,7 @@ public partial class CombatManager
+             if (thirdEye)
+                 enemy.IntentPermanentlyRevealed = true;
+ 
++            enemy.AttackTiming = IntentTiming.Normal;   // a new plan is a new attack (Defer/Advance)
+             enemy.CurrentIntent = PlanIntent(enemy);
+ 
+             if (enemy.CurrentIntent != null)
+@@ -1327,13 +1328,20 @@ public partial class CombatManager
+         // class_identity_elementalist_v1 §2a item 7: an intent that will set off a
+         // reaction names it under the glyph (plain letters: the Label3D font has no
+         // symbol glyphs for reactions).
+-        var reaction = PredictIntentReaction(intent);
++        var reaction = enemy.AttackTiming == IntentTiming.Spent ? ElementReaction.None : PredictIntentReaction(intent);
+         if (reaction != ElementReaction.None)
+             body += $"\nFORMS {ElementReactions.DisplayName(reaction).ToUpperInvariant()}";
+ 
++        // class_identity_chronomancer_v1 §2a: an attack moved in time says so.
++        bool timed = enemy.AttackTiming != IntentTiming.Normal;
++        if (enemy.AttackTiming == IntentTiming.Deferred)
++            body += "\nDEFERRED";
++        else if (enemy.AttackTiming == IntentTiming.Spent)
++            body += "\nSPENT";
++
+         // The marker line is reference text, not a glyph, so shrink it and two lines
+         // don't swallow the board.
+-        int size = !string.IsNullOrEmpty(markers) ? 24 : reaction != ElementReaction.None ? 30 : 40;
++        int size = !string.IsNullOrEmpty(markers) ? 24 : (reaction != ElementReaction.None || timed) ? 30 : 40;
+         enemy.SetIntentDisplay(body, color, size);
+     }
+ 
+@@ -1367,6 +1375,8 @@ public partial class CombatManager
+             if (!IsValidActor(enemy) || enemy.CurrentIntent == null)
+                 continue;
+ 
++            if (enemy.AttackTiming == IntentTiming.Spent)
++                continue;   // Advance: that blow has already landed
+             bool revealed = enemy.CurrentIntent.Revealed;
+             if (!revealed && !ShowIntentKindByDefault)
+                 continue;
+@@ -1595,7 +1605,11 @@ public partial class CombatManager
+                     QueueAbilityTriggers(enemy, "everyNRounds");
+             }
+ 
+-            await ExecuteIntent(enemy);
++            // Chronomancer Defer / Advance (CombatManager.IntentTime.cs): an attack
++            // moved in time is not struck here; the enemy still moves.
++            _actingEnemy = enemy;
++            if (!await RunTimedActivation(enemy))
++                await ExecuteIntent(enemy);
+ 
+             // Edge M4: a beat that never strikes (Guard, Shove, a channel start)
+             // still ended its movement somewhere. Brace fires here for those; a
+@@ -1643,6 +1657,7 @@ public partial class CombatManager
+                     enemy.TilesMovedThisTurn = 0;   // the charge rider measures THIS action
+                     enemy.HasAttackedThisTurn = false;
+ 
++                    enemy.AttackTiming = IntentTiming.Normal;   // the second beat is a fresh attack
+                     enemy.CurrentIntent = PlanIntent(enemy);
+                     if (enemy.CurrentIntent != null)
+                         enemy.CurrentIntent.Revealed = true;   // never a hidden bonus turn
+@@ -1674,6 +1689,12 @@ public partial class CombatManager
+                 return;
+         }
+ 
++        // Chronomancer Defer: every deferred attack lands now, after all activations,
++        // before the round's end ticks and the next plans.
++        _actingEnemy = null;
++        if (await ResolveDeferredAttacksAsync())
++            return;
++
+         GD.Print("=== Enemy Turn End ===");
+         enemyPhaseRunning = false;
+         combatUI?.SetActiveEnemy(null);   // V2: clear the acting-row marker
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 3e14e75..9aa4d90 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -190,6 +190,7 @@ public partial class CombatManager : Node3D
+         RegisterSummonHandler();
+         InstallZoneOfControl();
+         InstallReactions();   // Edge M4: walk-step hook and routing cost
++        InstallIntentTime();  // Chronomancer Defer / Advance hooks
+ 
+         // Wire up helper nodes
+         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
+@@ -332,6 +333,7 @@ public partial class CombatManager : Node3D
+         base._ExitTree();
+         UninstallZoneOfControl();
+         UninstallReactions();
++        UninstallIntentTime();
+     }
+ 
+     public override void _Process(double delta)
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index c005754..f8b7e41 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -342,6 +342,10 @@ public partial class Unit : Node3D
+     /// <summary>This unit's locked plan for the coming enemy phase. Null for player units and unplanned enemies.</summary>
+     public EnemyIntent CurrentIntent;
+ 
++    /// <summary>Whether <see cref="CurrentIntent"/>'s attack was moved in time this round
++    /// (class_identity_chronomancer_v1 §2a: Defer, Advance). Reset when intents are planned.</summary>
++    public IntentTiming AttackTiming = IntentTiming.Normal;
++
+     /// <summary>Tile locked when a wizard begins channelling; the release lands here regardless of repositioning. Cleared on release or interrupt.</summary>
+     public Vector2I? ChannelTile = null;
+ 

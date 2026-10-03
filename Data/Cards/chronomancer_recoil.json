@@ -8,16 +8,15 @@
 		"name": "Recoil",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Push target enemy 3 (collision 4).",
+		"rules_text": "Return target enemy to the tile it started this round on. If that tile is taken, both units take 4 damage.",
 		"tags": [],
 		"targeting": {
-			"type": "unit_then_direction",
+			"type": "unit",
 			"range": 5,
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "push_aimed",
-			"tiles": 3,
+			"type": "return_to_round_start",
 			"collision_damage": 4
 		}
 	},
@@ -39,17 +38,20 @@
 		{
 			"tier": 1,
 			"half": "both",
-			"description": "A longer counter-shove and a longer step.",
+			"description": "A harder snap back and a longer step.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.tiles",
-					"value": 4
+					"field": "effect",
+					"value": {
+						"type": "return_to_round_start",
+						"collision_damage": 5
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push target enemy 4 (collision 4). Best played in answer to a strike."
+					"value": "Return target enemy to the tile it started this round on. If that tile is taken, both units take 5 damage."
 				},
 				{
 					"half": "bottom",
@@ -68,17 +70,21 @@
 		{
 			"tier": 2,
 			"half": "top",
-			"description": "The answer lands harder.",
+			"description": "Its neighbours go back too.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.collision_damage",
-					"value": 5
+					"field": "effect",
+					"value": {
+						"type": "return_to_round_start",
+						"collision_damage": 5,
+						"radius": 1
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push target an enemy 4 tiles (collision 5). "
+					"value": "Return target enemy, and every enemy within 1 of it, to the tile each started this round on. If a tile is taken, both units take 5 damage."
 				}
 			],
 			"top_name": "Counterweight"
@@ -108,23 +114,26 @@
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.tiles",
-					"value": 5
-				},
-				{
-					"half": "top",
-					"field": "effect.collision_damage",
-					"value": 5
-				},
-				{
-					"half": "top",
-					"field": "effect.damage",
-					"value": 3
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"collision_damage": 5,
+								"radius": 1
+							},
+							{
+								"type": "damage",
+								"amount": 3
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push target enemy 5 (collision 5) and deal 3."
+					"value": "Return target enemy, and every enemy within 1 of it, to the tile each started this round on. If a tile is taken, both units take 5 damage. Deal 3 damage to the target."
 				}
 			],
 			"top_name": "Whiplash"
@@ -162,22 +171,30 @@
 		{
 			"tier": 4,
 			"half": "top",
-			"description": "The strike returned with interest.",
+			"description": "The whole front line, returned with interest.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "push_aimed",
-						"tiles": 5,
-						"collision_damage": 7,
-						"damage": 4
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"collision_damage": 7,
+								"radius": 2
+							},
+							{
+								"type": "damage",
+								"amount": 4
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push target enemy 5 (collision 7) and deal 4."
+					"value": "Return target enemy, and every enemy within 2 of it, to the tile each started this round on. If a tile is taken, both units take 7 damage. Deal 4 damage to the target."
 				}
 			],
 			"top_name": "Kickback"

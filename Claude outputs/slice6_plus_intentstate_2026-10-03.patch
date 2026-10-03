@@ -1,0 +1,1612 @@
+diff --git a/Data/Cards/chronomancer_glimpse.json b/Data/Cards/chronomancer_glimpse.json
+index 2d1217e..4fd6984 100644
+--- a/Data/Cards/chronomancer_glimpse.json
++++ b/Data/Cards/chronomancer_glimpse.json
+@@ -16,7 +16,8 @@
+ 			"type": "self"
+ 		},
+ 		"effect": {
+-			"type": "peek_intent"
++			"type": "peek_intent",
++			"range": 6
+ 		}
+ 	},
+ 	"bottom": {
+diff --git a/Data/Cards/chronomancer_hasten.json b/Data/Cards/chronomancer_hasten.json
+index 5cc9a71..36cf534 100644
+--- a/Data/Cards/chronomancer_hasten.json
++++ b/Data/Cards/chronomancer_hasten.json
+@@ -8,7 +8,7 @@
+ 		"name": "Hasten",
+ 		"mana": 2,
+ 		"speed": "Reflex",
+-		"rules_text": "A spell you cast this turn resolves immediately, skipping the stack.",
++		"rules_text": "Your soonest scheduled spell resolves now. Spend 1 Foresight.",
+ 		"tags": [
+ 			"temporal"
+ 		],
+@@ -23,7 +23,7 @@
+ 		"name": "Hinder",
+ 		"mana": 2,
+ 		"speed": "Reflex",
+-		"rules_text": "Postpone target enemy's next action by 1 turn.",
++		"rules_text": "Defer target enemy's attack: it lands at the end of the round, on the tile it was aimed at.",
+ 		"tags": [
+ 			"temporal"
+ 		],
+@@ -34,8 +34,7 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "postpone",
+-			"turns": 1
++			"type": "defer_intent"
+ 		}
+ 	},
+ 	"upgrades": [
+@@ -50,22 +49,14 @@
+ 					"half": "top",
+ 					"field": "effect",
+ 					"value": {
+-						"type": "sequence",
+-						"steps": [
+-							{
+-								"type": "fast_forward"
+-							},
+-							{
+-								"type": "gain_foresight",
+-								"amount": 1
+-							}
+-						]
++						"type": "fast_forward",
++						"foresight_cost": 0
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "A spell you cast this turn resolves immediately. Gain 1 Foresight."
++					"value": "Your soonest scheduled spell resolves now."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -74,8 +65,7 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 1
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+@@ -88,7 +78,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 1 turn. The enemy is Slowed."
++					"value": "Defer target enemy's attack. It is Slowed for 1 turn."
+ 				}
+ 			]
+ 		},
+@@ -96,7 +86,7 @@
+ 			"tier": 2,
+ 			"half": "top",
+ 			"top_name": "Snap Cast",
+-			"description": "Make it cost 1 less too.",
++			"description": "Free, and your next spell is cheaper.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+@@ -105,16 +95,13 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "fast_forward"
++								"type": "fast_forward",
++								"foresight_cost": 0
+ 							},
+ 							{
+ 								"type": "cost_modify",
+ 								"amount": 1,
+ 								"scope": "self_next"
+-							},
+-							{
+-								"type": "gain_foresight",
+-								"amount": 1
+ 							}
+ 						]
+ 					}
+@@ -122,15 +109,15 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Your next spell costs 1 less and resolves immediately. Gain 1 Foresight."
++					"value": "Your soonest scheduled spell resolves now. Your next spell costs 1 less."
+ 				}
+ 			]
+ 		},
+ 		{
+ 			"tier": 2,
+ 			"half": "bottom",
+-			"bottom_name": "Stonewall",
+-			"description": "Postpones 2 turns.",
++			"bottom_name": "Held Breath",
++			"description": "Defer, and bank the moment.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -139,13 +126,16 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 2
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+-								"status": "temporal_drag",
+-								"duration": 2
++								"status": "slowed",
++								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
+ 							}
+ 						]
+ 					}
+@@ -153,7 +143,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 2 turns. It gains Temporal Drag for 2 turns."
++					"value": "Defer target enemy's attack. It is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -161,12 +151,30 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Time Compression",
+-			"description": "Resolve two spells now.",
++			"description": "Two at once.",
+ 			"changes": [
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "fast_forward",
++								"count": 2,
++								"foresight_cost": 0
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
++							}
++						]
++					}
++				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "The next two spells you cast resolve immediately. Gain 1 Foresight."
++					"value": "Your two soonest scheduled spells resolve now. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -174,12 +182,34 @@
+ 			"tier": 3,
+ 			"half": "bottom",
+ 			"bottom_name": "Gridlock",
+-			"description": "Hinders the whole enemy stack.",
++			"description": "Defer every attack around the target.",
+ 			"changes": [
++				{
++					"half": "bottom",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "defer_intent",
++								"radius": 1
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
++							}
++						]
++					}
++				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone every enemy's next action 1 turn. All of them are Slowed."
++					"value": "Defer the attacks of target enemy and every enemy within 1 of it. The target is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -187,12 +217,30 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Outside Time",
+-			"description": "Cast a spell from hand at instant speed, free.",
++			"description": "Everything you have set in motion arrives.",
+ 			"changes": [
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "fast_forward",
++								"count": 99,
++								"foresight_cost": 0
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
++							}
++						]
++					}
++				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Until end of turn, you may cast any spell from hand at Reflex speed. The first costs 0 and resolves immediately."
++					"value": "Every spell you have scheduled resolves now. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -200,7 +248,7 @@
+ 			"tier": 4,
+ 			"half": "bottom",
+ 			"bottom_name": "The Frozen Stack",
+-			"description": "Suspend all enemy spells until your turn.",
++			"description": "Every attack waits for the end of the round.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -209,8 +257,8 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 99
++								"type": "defer_intent",
++								"radius": 99
+ 							},
+ 							{
+ 								"type": "gain_foresight",
+@@ -222,7 +270,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Suspend every enemy's next action until your next turn. Gain 1 Foresight."
++					"value": "Defer every enemy's attack. Gain 1 Foresight."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/chronomancer_sands_of_time.json b/Data/Cards/chronomancer_sands_of_time.json
+index 050b42a..09a8812 100644
+--- a/Data/Cards/chronomancer_sands_of_time.json
++++ b/Data/Cards/chronomancer_sands_of_time.json
+@@ -23,7 +23,7 @@
+ 		"name": "Drag",
+ 		"mana": 2,
+ 		"speed": "Reflex",
+-		"rules_text": "Postpone target enemy's next action by 1 turn.",
++		"rules_text": "Defer target enemy's attack: it lands at the end of the round, on the tile it was aimed at. Gain 1 Foresight.",
+ 		"tags": [
+ 			"temporal"
+ 		],
+@@ -34,8 +34,16 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "postpone",
+-			"turns": 1
++			"type": "sequence",
++			"steps": [
++				{
++					"type": "defer_intent"
++				},
++				{
++					"type": "gain_foresight",
++					"amount": 1
++				}
++			]
+ 		}
+ 	},
+ 	"upgrades": [
+@@ -74,13 +82,16 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 1
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+ 								"status": "slowed",
+ 								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
+ 							}
+ 						]
+ 					}
+@@ -88,7 +99,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 1 turn. The enemy is Slowed."
++					"value": "Defer target enemy's attack. It is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -105,7 +116,8 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "fast_forward"
++								"type": "fast_forward",
++								"foresight_cost": 0
+ 							},
+ 							{
+ 								"type": "gain_foresight",
+@@ -117,7 +129,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Resolve one scheduled spell immediately. Gain 1 Foresight."
++					"value": "Your soonest scheduled spell resolves now. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -125,7 +137,7 @@
+ 			"tier": 2,
+ 			"half": "bottom",
+ 			"bottom_name": "Molasses",
+-			"description": "Also applies Temporal Drag.",
++			"description": "The deferred enemy drags.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -134,13 +146,16 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 2
++								"type": "defer_intent"
+ 							},
+ 							{
+ 								"type": "apply_status",
+ 								"status": "temporal_drag",
+ 								"duration": 2
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
+ 							}
+ 						]
+ 					}
+@@ -148,7 +163,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone target enemy's next action 2 turns. It gains Temporal Drag for 2 turns."
++					"value": "Defer target enemy's attack. It gains Temporal Drag for 2 turns. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -156,12 +171,30 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Time Skip",
+-			"description": "Advance ALL your scheduled spells.",
++			"description": "Two scheduled spells at once.",
+ 			"changes": [
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "fast_forward",
++								"count": 2,
++								"foresight_cost": 0
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
++							}
++						]
++					}
++				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Resolve all your scheduled spells immediately. Gain 1 Foresight."
++					"value": "Your two soonest scheduled spells resolve now. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -169,12 +202,34 @@
+ 			"tier": 3,
+ 			"half": "bottom",
+ 			"bottom_name": "Sandbag",
+-			"description": "Drag affects the whole stack.",
++			"description": "Drag the enemies around it too.",
+ 			"changes": [
++				{
++					"half": "bottom",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "defer_intent",
++								"radius": 1
++							},
++							{
++								"type": "apply_status",
++								"status": "slowed",
++								"duration": 1
++							},
++							{
++								"type": "gain_foresight",
++								"amount": 1
++							}
++						]
++					}
++				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Postpone every enemy's next action 1 turn. All of them are Slowed."
++					"value": "Defer the attacks of target enemy and every enemy within 1 of it. The target is Slowed for 1 turn. Gain 1 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -182,7 +237,7 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Seize the Moment",
+-			"description": "Advance + copy the resolved spell.",
++			"description": "Everything scheduled, now.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+@@ -191,15 +246,13 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "fast_forward"
+-							},
+-							{
+-								"type": "echo_last",
+-								"value_mult": 1.0
++								"type": "fast_forward",
++								"count": 99,
++								"foresight_cost": 0
+ 							},
+ 							{
+ 								"type": "gain_foresight",
+-								"amount": 1
++								"amount": 2
+ 							}
+ 						]
+ 					}
+@@ -207,7 +260,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Resolve a scheduled spell now, then Echo it. Gain 1 Foresight."
++					"value": "Every spell you have scheduled resolves now. Gain 2 Foresight."
+ 				}
+ 			]
+ 		},
+@@ -215,7 +268,7 @@
+ 			"tier": 4,
+ 			"half": "bottom",
+ 			"bottom_name": "Lost Hour",
+-			"description": "The enemy spell is postponed indefinitely.",
++			"description": "A wide stretch of the round goes missing.",
+ 			"changes": [
+ 				{
+ 					"half": "bottom",
+@@ -224,12 +277,12 @@
+ 						"type": "sequence",
+ 						"steps": [
+ 							{
+-								"type": "postpone",
+-								"turns": 99
++								"type": "defer_intent",
++								"radius": 2
+ 							},
+ 							{
+ 								"type": "gain_foresight",
+-								"amount": 1
++								"amount": 2
+ 							}
+ 						]
+ 					}
+@@ -237,7 +290,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "rules_text",
+-					"value": "Shelve target enemy's next action. It acts only when you allow it. Gain 1 Foresight."
++					"value": "Defer the attacks of target enemy and every enemy within 2 of it. Gain 2 Foresight."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Register/barks.json b/Data/Register/barks.json
+index b266c33..03111d9 100644
+--- a/Data/Register/barks.json
++++ b/Data/Register/barks.json
+@@ -7,7 +7,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "The hand and the mana",
+-      "lines": [ "Be it recorded that the candidate has been dealt a hand. The candidate will kindly not..." ],
++      "lines": [
++        "Be it recorded that the candidate has been dealt a hand. The candidate will kindly not..."
++      ],
+       "note": "Each caster holds their own hand and mana. Drag a card onto a target to cast it; the cost is paid from that caster's mana. Hands draw back up to full and mana refills at the start of each of your turns."
+     },
+     {
+@@ -15,7 +17,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Two halves to every card",
+-      "lines": [ "Every page has a top and a bottom. One is studied, one is... reflex. The minutes require that you choose." ],
++      "lines": [
++        "Every page has a top and a bottom. One is studied, one is... reflex. The minutes require that you choose."
++      ],
+       "note": "Each card has two halves. A Studied half can only be cast on your own turn. A Reflex half can also be cast during the enemy turn, when a response window opens. Mana you leave unspent stays available for those responses."
+     },
+     {
+@@ -23,7 +27,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Movement",
+-      "lines": [ "The candidate may approach the bench. Or the enemy. The Register does not... advise either." ],
++      "lines": [
++        "The candidate may approach the bench. Or the enemy. The Register does not... advise either."
++      ],
+       "note": "Select a unit to see the tiles it can reach this turn, then click one to move. Movement and casting are separate: moving does not spend mana."
+     },
+     {
+@@ -31,7 +37,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A response window",
+-      "lines": [ "Objection noted. The floor is yours, briefly. Very briefly..." ],
++      "lines": [
++        "Objection noted. The floor is yours, briefly. Very briefly..."
++      ],
+       "note": "An enemy action is about to resolve, and one of your casters holds a Reflex they can afford. Drag a Reflex half onto its target to respond, or press Pass to let the action resolve. Only Reflex halves can respond."
+     },
+     {
+@@ -39,16 +47,19 @@
+       "category": "explain",
+       "once": true,
+       "title": "Marked ground",
+-      "lines": [ "It has written your square into its plans. Plans can be... amended. Stand elsewhere." ],
++      "lines": [
++        "It has written your square into its plans. Plans can be... amended. Stand elsewhere."
++      ],
+       "note": "Enemy attacks lock onto a tile, not a unit. The marked tiles show where each blow will land. Step off a marked tile before the enemy turn and the attack lands on empty ground."
+     },
+-
+     {
+       "key": "reaction.steam",
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Steam",
+-      "lines": [ "Steam. Fire and frost, entered together, neither yielding. The minutes will reflect that the room can no longer see." ],
++      "lines": [
++        "Steam. Fire and frost, entered together, neither yielding. The minutes will reflect that the room can no longer see."
++      ],
+       "note": "Fire and Frost met on one tile. The steam blocks line of sight through that tile for 2 rounds, then clears."
+     },
+     {
+@@ -56,7 +67,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Fulgurite",
+-      "lines": [ "Lightning, into earth. It has left a signature in glass. Struck through, permanently." ],
++      "lines": [
++        "Lightning, into earth. It has left a signature in glass. Struck through, permanently."
++      ],
+       "note": "Storm and Earth met on one tile. Whoever stands there takes 5 damage, and the tile becomes rubble for good: difficult ground that stops forced movement."
+     },
+     {
+@@ -64,7 +77,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Magma",
+-      "lines": [ "Fire upon stone. The floor has become an... objection. Do not walk on objections." ],
++      "lines": [
++        "Fire upon stone. The floor has become an... objection. Do not walk on objections."
++      ],
+       "note": "Fire and Earth met on one tile. No one can walk onto Magma, but a unit pushed or pulled onto it takes 6 damage and stops there. It cools to Earth after 3 rounds; Frost quenches it to Earth at once."
+     },
+     {
+@@ -72,7 +87,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Wildfire",
+-      "lines": [ "Fire, and wind to carry it. It is looking for someone. Not, one hopes, the candidate..." ],
++      "lines": [
++        "Fire, and wind to carry it. It is looking for someone. Not, one hopes, the candidate..."
++      ],
+       "note": "Fire and Storm met on one tile. For 2 rounds, at the end of each round the wildfire spreads Fire to the open adjacent tile nearest the closest enemy of whoever lit it."
+     },
+     {
+@@ -80,7 +97,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Brittle",
+-      "lines": [ "Frost, then a charge through it. Anything standing here is now... fragile. Handle accordingly." ],
++      "lines": [
++        "Frost, then a charge through it. Anything standing here is now... fragile. Handle accordingly."
++      ],
+       "note": "Frost and Storm met on one tile. For 2 rounds, the occupant takes 3 extra damage from every hit. A Frozen unit standing here shatters for 8 extra damage and thaws, which spends the Brittle."
+     },
+     {
+@@ -88,7 +107,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Reaction: Glacier",
+-      "lines": [ "Frost, and earth to hold it. A wall. The Register approves of walls; they keep things... in order." ],
++      "lines": [
++        "Frost, and earth to hold it. A wall. The Register approves of walls; they keep things... in order."
++      ],
+       "note": "Frost and Earth met on an empty tile and raised a glacier: a wall with 8 HP that blocks movement and line of sight. It melts back to Frost after 2 rounds, or when broken. On an occupied tile, the occupant is Frozen for 1 turn instead."
+     },
+     {
+@@ -96,24 +117,49 @@
+       "category": "explain",
+       "once": true,
+       "title": "Elemental burst",
+-      "lines": [ "Four entries of one element, and the page could hold no more. It has... spilled." ],
++      "lines": [
++        "Four entries of one element, and the page could hold no more. It has... spilled."
++      ],
+       "note": "Charging an element to its limit sets off a burst: a powerful free effect of that element. The element's charges then reset to zero. Fire and Frost cancel each other's charges, as do Storm and Earth."
+     },
+-
+     {
+       "key": "druid.growth_preview",
+       "category": "explain",
+       "once": true,
+       "title": "Growth to come",
+-      "lines": [ "The grove has made its intentions known. The Register records them in pencil, for now..." ],
++      "lines": [
++        "The grove has made its intentions known. The Register records them in pencil, for now..."
++      ],
+       "note": "Faint hollow sprouts mark where your growth will seed at the end of the enemy turn; a faint + marks living ground that will grow a stage. Growth is deterministic: it spreads toward the best ground, then carcass ground, then the nearest enemy."
+     },
++    {
++      "key": "chrono.defer",
++      "category": "explain",
++      "once": true,
++      "title": "Deferred",
++      "lines": [
++        "An attack deferred is not an attack excused. It will arrive. Stand elsewhere."
++      ],
++      "note": "A deferred attack is lifted out of the enemy's turn. The enemy still moves, but the blow lands at the end of the round, after every enemy has acted, on the tile it was aimed at. Whoever stands there then is hit: you, nobody, or another enemy. If the attacker dies first, the attack is lost."
++    },
++    {
++      "key": "chrono.advance",
++      "category": "explain",
++      "once": true,
++      "title": "Advanced",
++      "lines": [
++        "Moved up on the docket. The court will hear it... now."
++      ],
++      "note": "An advanced attack lands immediately, on the tile it was aimed at, and the enemy takes its turn without it. Clear the tile first and the blow falls on empty ground."
++    },
+     {
+       "key": "strategic.first_council",
+       "category": "explain",
+       "once": true,
+       "title": "The council",
+-      "lines": [ "The council is in session. Minutes will be kept. By me. Obviously..." ],
++      "lines": [
++        "The council is in session. Minutes will be kept. By me. Obviously..."
++      ],
+       "note": "The council is where the guild's standing with the powers of the world is read and argued. Open it from the top bar at any time between expeditions."
+     },
+     {
+@@ -121,7 +167,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A negotiation",
+-      "lines": [ "Words, then. The Register is very fond of words. Choose yours as if they will be... written down." ],
++      "lines": [
++        "Words, then. The Register is very fond of words. Choose yours as if they will be... written down."
++      ],
+       "note": "A negotiation is fought with arguments instead of spells. Every exchange shifts where the talks stand, and what you concede is remembered."
+     },
+     {
+@@ -129,7 +177,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A field posting",
+-      "lines": [ "The party has been posted. Be it recorded where they stand, in case anyone asks... later." ],
++      "lines": [
++        "The party has been posted. Be it recorded where they stand, in case anyone asks... later."
++      ],
+       "note": "A posted party works its ground lunation by lunation and draws supplies each moon. Recall or collect it from the map when the work is done. A party left exposed in the field can be found by threats."
+     },
+     {
+@@ -137,7 +187,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "Waystones",
+-      "lines": [ "Through the stone, and out again, and no time spent. The Register disapproves of the... accounting." ],
++      "lines": [
++        "Through the stone, and out again, and no time spent. The Register disapproves of the... accounting."
++      ],
+       "note": "Stepping through a waystone your guild has raised is instant and free. Raised stones turn a long march into a single step."
+     },
+     {
+@@ -145,7 +197,9 @@
+       "category": "explain",
+       "once": true,
+       "title": "A lunation passes",
+-      "lines": [ "A moon has turned. The world has made its entries while you were... occupied." ],
++      "lines": [
++        "A moon has turned. The world has made its entries while you were... occupied."
++      ],
+       "note": "Each new moon the world takes its turn: postings progress, threats advance, and the kingdoms act. The Conjunction draws one lunation closer."
+     },
+     {
+@@ -153,10 +207,11 @@
+       "category": "explain",
+       "once": true,
+       "title": "The unmaking",
+-      "lines": [ "Struck through. All of it. And yet the Register remains, and so do... some of you." ],
++      "lines": [
++        "Struck through. All of it. And yet the Register remains, and so do... some of you."
++      ],
+       "note": "The timeline has been unmade and a new one begins. What the guild made eternal carries over: essence, the campus, mastery, the Regalia, and every name the Register holds. The kingdoms, companions and fragments start fresh."
+     },
+-
+     {
+       "key": "combat.victory",
+       "category": "comment",
+diff --git a/Schemas/card.schema.json b/Schemas/card.schema.json
+index 2707798..125ada8 100644
+--- a/Schemas/card.schema.json
++++ b/Schemas/card.schema.json
+@@ -316,6 +316,8 @@
+ 						"sequence",
+ 						"conditional",
+ 						"retarget",
++						"defer_intent",
++						"advance_intent",
+ 						"empty",
+ 						"summon_spirit",
+ 						"create_memorial",
+diff --git a/Scripts/Cards/Effects/ChronomancerEffects.cs b/Scripts/Cards/Effects/ChronomancerEffects.cs
+index a5b3ef2..980bc29 100644
+--- a/Scripts/Cards/Effects/ChronomancerEffects.cs
++++ b/Scripts/Cards/Effects/ChronomancerEffects.cs
+@@ -199,7 +199,10 @@ public sealed class DelayedDamageLeafEffect : EffectBase
+ 			else
+ 				continue;
+ 
+-			s.ActiveEffects.Add(new DelayedDamageEffect(coord, DamagePerTick, Ticks, caster));
++			s.ActiveEffects.Add(new DelayedDamageEffect(coord, DamagePerTick, Ticks, caster)
++			{
++				Label = s.ResolvingAbilityName,   // shown in the Almanac view
++			});
+ 			s.Log($"[DelayedDamage] Scheduled {DamagePerTick}×{Ticks} ticks at {coord}.");
+ 		}
+ 	}
+@@ -213,6 +216,8 @@ public class DelayedDamageEffect : PersistentEffect
+ {
+ 	public Vector2I TargetCoord;
+ 	public int DamagePerTick;
++	/// <summary>The card that made it (Foregone Conclusion), for the Almanac view.</summary>
++	public string Label;
+ 
+ 	public DelayedDamageEffect(Vector2I coord, int damagePerTick, int ticks, Entity owner)
+ 	{
+@@ -252,12 +257,18 @@ public class DelayedDamageEffect : PersistentEffect
+ }
+ 
+ /// <summary>
+-/// Reveals enemy intent (currently logs HP/status to console and grants
+-/// Foresight). Full HUD reveal is future UI work.
+-/// JSON: { "type": "peek_intent" }
++/// Reveals enemy intents: value and marked tiles, until the enemy plans again.
++/// <see cref="Range"/> limits it to enemies within that many tiles of the caster
++/// (0 = every enemy). Also logs each enemy's condition, for the Adept cards whose text
++/// promises it. (2026-10-03: this used to ONLY log, so Glimpse, Survey, Flare and
++/// Arcane Sight revealed nothing on screen.)
++/// JSON: { "type": "peek_intent", "range": n }
+ /// </summary>
+ public sealed class PeekIntentEffect : EffectBase
+ {
++	public int Range;
++	public PeekIntentEffect(int range = 0) { Range = Math.Max(0, range); }
++
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		var casterUnit = s.ActiveCasterUnit;
+@@ -266,12 +277,19 @@ public sealed class PeekIntentEffect : EffectBase
+ 			return;
+ 
+ 		s.Log("[PeekIntent] Enemy intel:");
++		int revealed = 0;
+ 		foreach (var unit in s.UnitsInPlay)
+ 		{
+ 			if (unit == null || !unit.Stats.IsAlive)
+ 				continue;
+ 			if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
+ 				continue;
++			if (Range > 0 && casterUnit?.CurrentTile != null && unit.CurrentTile != null && s.Grid != null
++				&& s.Grid.Distance(casterUnit.CurrentTile.Axial, unit.CurrentTile.Axial) > Range)
++				continue;
++
++			if (IntentTime.Reveal(unit))
++				revealed++;
+ 
+ 			var statuses = unit.Stats.StatusEffects.Count > 0
+ 				? string.Join(", ", unit.Stats.StatusEffects.Keys)
+@@ -279,6 +297,7 @@ public sealed class PeekIntentEffect : EffectBase
+ 			s.Log($"  {unit.Name}: {unit.Stats.Health}/{unit.Stats.MaxHealth}HP " +
+ 				  $"| Unit={unit.DefinitionId} | Status=[{statuses}]");
+ 		}
++		s.Log($"[PeekIntent] Revealed {revealed} intent(s){(Range > 0 ? $" within {Range}" : "")}.");
+ 	}
+ }
+ 
+@@ -540,7 +559,9 @@ public sealed class ScheduleLeafEffect : EffectBase
+ 			Caster = caster,
+ 			Targets = targets,
+ 			Snapshot = snap,
+-			Label = Child?.GetType().Name ?? "Scheduled"
++			// The card's own name, not the effect class: this is what the Almanac
++			// list and the tile marker show the player.
++			Label = !string.IsNullOrEmpty(s.ResolvingAbilityName) ? s.ResolvingAbilityName : "Scheduled spell"
+ 		});
+ 		s.Log($"[Schedule] Effect scheduled for {Turns} turn(s) from now.");
+ 	}
+@@ -590,6 +611,18 @@ public sealed class AdvanceEffect : EffectBase
+ /// </summary>
+ public sealed class FastForwardEffect : EffectBase
+ {
++	/// <summary>How many scheduled entries fire, soonest first (99 = all of them).</summary>
++	public int Count;
++	/// <summary>Foresight spent when at least one entry fires (2026-10-03: was a fixed 1,
++	/// which made "resolve one now, gain 1 Foresight" ladders quietly net zero).</summary>
++	public int ForesightCost;
++
++	public FastForwardEffect(int count = 1, int foresightCost = 1)
++	{
++		Count = Math.Max(1, count);
++		ForesightCost = Math.Max(0, foresightCost);
++	}
++
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		if (s.Almanac == null || s.Almanac.Count == 0)
+@@ -598,20 +631,25 @@ public sealed class FastForwardEffect : EffectBase
+ 			return;
+ 		}
+ 
+-		var entry = s.Almanac
+-			.Where(e => e.Caster == caster)
+-			.OrderBy(e => e.TurnsRemaining)
+-			.FirstOrDefault()
+-			?? s.Almanac.OrderBy(e => e.TurnsRemaining).First();
+-
+-		s.Log($"[FastForward] Firing scheduled entry immediately.");
+-		entry.Child?.Resolve(s, entry.Caster, entry.Targets, entry.Snapshot);
+-		s.Almanac.Remove(entry);
++		int fired = 0;
++		while (fired < Count && s.Almanac.Count > 0)
++		{
++			// The caster's own entries first, soonest first; anyone's as a fallback.
++			var entry = s.Almanac
++				.Where(e => e.Caster == caster)
++				.OrderBy(e => e.TurnsRemaining)
++				.FirstOrDefault()
++				?? s.Almanac.OrderBy(e => e.TurnsRemaining).First();
++
++			s.Log($"[FastForward] Firing scheduled entry immediately.");
++			s.Almanac.Remove(entry);   // removed first, so an entry that schedules again cannot loop
++			entry.Child?.Resolve(s, entry.Caster, entry.Targets, entry.Snapshot);
++			fired++;
++		}
+ 
+-		// Spend 1 Foresight
+ 		var casterUnit = s.ActiveCasterUnit;
+-		if (casterUnit?.Attunement is FateAttunement fate)
+-			fate.SpendCharges(1);
++		if (ForesightCost > 0 && casterUnit?.Attunement is FateAttunement fate)
++			fate.SpendCharges(ForesightCost);
+ 	}
+ }
+ 
+@@ -1109,7 +1147,8 @@ public sealed class SummonDecoyLeafEffect : EffectBase
+ 				Child = new LethalDamageEffect(decoy),
+ 				Caster = caster,
+ 				Targets = new TargetSet { Items = new List<object> { decoy } },
+-				Label = "Decoy Expire"
++				Label = "Decoy Expire",
++				Hidden = true,   // a timer, not a spell the player scheduled
+ 			};
+ 			s.Almanac ??= new List<AlmanacEntry>();
+ 			s.Almanac.Add(killEntry);
+diff --git a/Scripts/Cards/Effects/Effect.cs b/Scripts/Cards/Effects/Effect.cs
+index 0477c21..22b76a9 100644
+--- a/Scripts/Cards/Effects/Effect.cs
++++ b/Scripts/Cards/Effects/Effect.cs
+@@ -131,9 +131,13 @@ public class AlmanacEntry
+ 	/// <summary>The effect snapshot at scheduling time.</summary>
+ 	public EffectSnapshot Snapshot;
+ 
+-	/// <summary>Display name shown in the turn-track UI (optional).</summary>
++	/// <summary>Display name shown in the Almanac list and on the target tile.</summary>
+ 	public string Label;
+ 
++	/// <summary>Bookkeeping timers (a decoy's expiry) that are not spells the player
++	/// scheduled. Kept out of the Almanac view.</summary>
++	public bool Hidden;
++
+ 	public bool IsReady => TurnsRemaining <= 0;
+ 
+ 	/// <summary>Decrement the counter. Call once per player turn.</summary>
+diff --git a/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs b/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs
+index 98e12dc..45b35ee 100644
+--- a/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs
++++ b/Scripts/Cards/Loader/CardScriptRegistry.Chronomancer.cs
+@@ -65,7 +65,12 @@ public static partial class CardScriptRegistry
+ 
+         // Peek at the next N enemy intents, optionally with a mana cost reduction on cards that interact with them
+         // { "type": "peek_intent", "amount": n, "discount": n }
+-        RegisterEffect("peek_intent", _ => new PeekIntentEffect().WithTag("Foresight"));
++        // { "type": "peek_intent", "range": n }  range 0 (default) = every enemy
++        RegisterEffect("peek_intent", n =>
++        {
++            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 0;
++            return new PeekIntentEffect(range).WithTag("Foresight");
++        });
+ 
+         // Temporary buff to a specific stat for a number of turns
+         // { "type": "temp_buff", "stat": "movement", "amount": n, "turns": n }
+@@ -94,6 +99,23 @@ public static partial class CardScriptRegistry
+             return new PostponeEffect(turns);
+         });
+ 
++        // Defer target enemy's attack: it lands at the end of the round on its locked tile.
++        // radius widens it to every enemy within n of the target (99 = every enemy).
++        // { "type": "defer_intent", "radius": n }
++        RegisterEffect("defer_intent", n =>
++        {
++            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
++            return new DeferIntentEffect(radius).WithTag("Control");
++        });
++
++        // Advance target enemy's attack: it lands now on its locked tile.
++        // { "type": "advance_intent", "radius": n }
++        RegisterEffect("advance_intent", n =>
++        {
++            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
++            return new AdvanceIntentEffect(radius).WithTag("Control");
++        });
++
+         // Skip the next N turns of the enemy, causing them to lose their next N actions (can be used on self for a "stasis" effect)
+         // { "type": "skip_enemy_turn", "turns": n }
+         RegisterEffect("skip_enemy_turn", n =>
+@@ -113,7 +135,14 @@ public static partial class CardScriptRegistry
+ 
+         RegisterEffect("advance", _ => new AdvanceEffect());
+ 
+-        RegisterEffect("fast_forward", _ => new FastForwardEffect());
++        // Fire your soonest scheduled spell(s) now.
++        // { "type": "fast_forward", "count": n (99 = all), "foresight_cost": n (default 1) }
++        RegisterEffect("fast_forward", n =>
++        {
++            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
++            int cost = n.TryGetProperty("foresight_cost", out var fc) ? fc.GetInt32() : 1;
++            return new FastForwardEffect(count, cost);
++        });
+ 
+         // Create a temporal anchor at the target location that you can teleport back to, optionally with a duration after which it expires
+         // { "type": "set_anchor", "turns": n }
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index d58cf40..17634ba 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -136,6 +136,11 @@ public class EnemyIntent
+     /// <see cref="ThreatTiles"/> tile at execution. None for every other kind.</summary>
+     public TileElementType ImbueElement = TileElementType.None;
+ 
++    /// <summary>The element reaction this intent would form if it resolved on the board
++    /// as it stands (imbue intents only). Kept current by UpdateIntentDisplay; the
++    /// nameplate draws it as a coloured tag.</summary>
++    public ElementReaction PredictedReaction = ElementReaction.None;
++
+     /// <summary>For <see cref="IntentKind.Shove"/>: tiles of shove (0 = the gust
+     /// default) and the authored collision floor (0 = momentum only). A brute's
+     /// body-check is 1 tile with a real collision; the gust is 3 tiles of momentum.</summary>
+@@ -220,6 +225,7 @@ public partial class CombatManager
+             if (thirdEye)
+                 enemy.IntentPermanentlyRevealed = true;
+ 
++            enemy.AttackTiming = IntentTiming.Normal;   // a new plan is a new attack (Defer/Advance)
+             enemy.CurrentIntent = PlanIntent(enemy);
+ 
+             if (enemy.CurrentIntent != null)
+@@ -1327,13 +1333,14 @@ public partial class CombatManager
+         // class_identity_elementalist_v1 §2a item 7: an intent that will set off a
+         // reaction names it under the glyph (plain letters: the Label3D font has no
+         // symbol glyphs for reactions).
+-        var reaction = PredictIntentReaction(intent);
+-        if (reaction != ElementReaction.None)
+-            body += $"\nFORMS {ElementReactions.DisplayName(reaction).ToUpperInvariant()}";
++        // Predicted reaction (elementalist §2a item 7) and timing (chronomancer §2a) are
++        // drawn by the nameplate from the intent and the unit, not written into this body.
++        intent.PredictedReaction = enemy.AttackTiming == IntentTiming.Spent
++            ? ElementReaction.None : PredictIntentReaction(intent);
+ 
+         // The marker line is reference text, not a glyph, so shrink it and two lines
+         // don't swallow the board.
+-        int size = !string.IsNullOrEmpty(markers) ? 24 : reaction != ElementReaction.None ? 30 : 40;
++        int size = !string.IsNullOrEmpty(markers) ? 24 : 40;
+         enemy.SetIntentDisplay(body, color, size);
+     }
+ 
+@@ -1367,6 +1374,8 @@ public partial class CombatManager
+             if (!IsValidActor(enemy) || enemy.CurrentIntent == null)
+                 continue;
+ 
++            if (enemy.AttackTiming == IntentTiming.Spent)
++                continue;   // Advance: that blow has already landed
+             bool revealed = enemy.CurrentIntent.Revealed;
+             if (!revealed && !ShowIntentKindByDefault)
+                 continue;
+@@ -1595,7 +1604,11 @@ public partial class CombatManager
+                     QueueAbilityTriggers(enemy, "everyNRounds");
+             }
+ 
+-            await ExecuteIntent(enemy);
++            // Chronomancer Defer / Advance (CombatManager.IntentTime.cs): an attack
++            // moved in time is not struck here; the enemy still moves.
++            _actingEnemy = enemy;
++            if (!await RunTimedActivation(enemy))
++                await ExecuteIntent(enemy);
+ 
+             // Edge M4: a beat that never strikes (Guard, Shove, a channel start)
+             // still ended its movement somewhere. Brace fires here for those; a
+@@ -1643,6 +1656,7 @@ public partial class CombatManager
+                     enemy.TilesMovedThisTurn = 0;   // the charge rider measures THIS action
+                     enemy.HasAttackedThisTurn = false;
+ 
++                    enemy.AttackTiming = IntentTiming.Normal;   // the second beat is a fresh attack
+                     enemy.CurrentIntent = PlanIntent(enemy);
+                     if (enemy.CurrentIntent != null)
+                         enemy.CurrentIntent.Revealed = true;   // never a hidden bonus turn
+@@ -1674,6 +1688,12 @@ public partial class CombatManager
+                 return;
+         }
+ 
++        // Chronomancer Defer: every deferred attack lands now, after all activations,
++        // before the round's end ticks and the next plans.
++        _actingEnemy = null;
++        if (await ResolveDeferredAttacksAsync())
++            return;
++
+         GD.Print("=== Enemy Turn End ===");
+         enemyPhaseRunning = false;
+         combatUI?.SetActiveEnemy(null);   // V2: clear the acting-row marker
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 3e14e75..166898e 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -190,6 +190,7 @@ public partial class CombatManager : Node3D
+         RegisterSummonHandler();
+         InstallZoneOfControl();
+         InstallReactions();   // Edge M4: walk-step hook and routing cost
++        InstallIntentTime();  // Chronomancer Defer / Advance hooks
+ 
+         // Wire up helper nodes
+         deckManager = GetNodeOrNull<DeckManager>("../Player/DeckManager");
+@@ -332,11 +333,13 @@ public partial class CombatManager : Node3D
+         base._ExitTree();
+         UninstallZoneOfControl();
+         UninstallReactions();
++        UninstallIntentTime();
+     }
+ 
+     public override void _Process(double delta)
+     {
+         SyncMoveZoneDim();   // derived every frame, so no hover-event ordering can strand it
++        RefreshAlmanacView(); // Almanac list + tile markers; repaints only when it changed
+ 
+         if (_pruneNeeded)
+         {
+diff --git a/Scripts/Systems/Combat/Core/RulesManager.cs b/Scripts/Systems/Combat/Core/RulesManager.cs
+index e9d6d05..648f66d 100644
+--- a/Scripts/Systems/Combat/Core/RulesManager.cs
++++ b/Scripts/Systems/Combat/Core/RulesManager.cs
+@@ -177,6 +177,8 @@ public sealed class Resolver
+         CombatPresenter.EmitCast(item);
+ 
+         s.ResolutionDepth++;   // GameState.RequestCardChoice: a resolver pass is live
++        var prevAbilityName = s.ResolvingAbilityName;
++        s.ResolvingAbilityName = item.Ability?.Name;   // Almanac labels (schedule)
+         try
+         {
+             foreach (var eff in item.Ability.Effects)
+@@ -193,6 +195,7 @@ public sealed class Resolver
+                 item.CasterUnit.BonusSpellDamage -= schoolItemBonus;
+             s.ActiveCasterUnit = prevCaster;
+             Unit.AmbientDamageSource = prevDamageSource;
++            s.ResolvingAbilityName = prevAbilityName;
+         }
+ 
+         // Post-cast player choice (2026-07-28): an effect asked the player something.
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index c005754..f8b7e41 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -342,6 +342,10 @@ public partial class Unit : Node3D
+     /// <summary>This unit's locked plan for the coming enemy phase. Null for player units and unplanned enemies.</summary>
+     public EnemyIntent CurrentIntent;
+ 
++    /// <summary>Whether <see cref="CurrentIntent"/>'s attack was moved in time this round
++    /// (class_identity_chronomancer_v1 §2a: Defer, Advance). Reset when intents are planned.</summary>
++    public IntentTiming AttackTiming = IntentTiming.Normal;
++
+     /// <summary>Tile locked when a wizard begins channelling; the release lands here regardless of repositioning. Cleared on release or interrupt.</summary>
+     public Vector2I? ChannelTile = null;
+ 
+diff --git a/Scripts/Systems/Combat/Terrain/HexTile.cs b/Scripts/Systems/Combat/Terrain/HexTile.cs
+index 33547bc..8094b99 100644
+--- a/Scripts/Systems/Combat/Terrain/HexTile.cs
++++ b/Scripts/Systems/Combat/Terrain/HexTile.cs
+@@ -97,6 +97,7 @@ public partial class HexTile : Node3D
+     private int _growthStage = 0;
+     private Label3D _growthLabel;
+     private Label3D _growthPreviewLabel;     // next growth tick forecast (druid §2a)
++    private Label3D _scheduleLabel;          // Almanac: a scheduled spell aimed here (chrono §2c)
+     private Label3D _reactionLabel;          // element reaction standing on the tile
+     private Label3D _reactionPreviewLabel;   // reaction a dragged card would cause
+     private ElementReaction _reaction = ElementReaction.None;   // owns the overlay while set
+@@ -887,6 +888,40 @@ public partial class HexTile : Node3D
+         _growthPreviewLabel.Visible = true;
+     }
+ 
++    /// <summary>
++    /// Almanac marker (class_identity_chronomancer_v1 §2c): names the scheduled spell(s)
++    /// that will land on this tile and when. Null or empty hides it. The label is
++    /// created on first use and then only retexted, never freed.
++    /// </summary>
++    public void SetScheduleMark(string text)
++    {
++        if (string.IsNullOrEmpty(text))
++        {
++            if (_scheduleLabel != null)
++                _scheduleLabel.Visible = false;
++            return;
++        }
++
++        if (_scheduleLabel == null)
++        {
++            _scheduleLabel = new Label3D
++            {
++                Name = "ScheduleMark",
++                FontSize = UITheme.Label3DSmall,
++                OutlineSize = UITheme.Label3DOutlineSize,
++                OutlineModulate = UITheme.Label3DOutline,
++                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
++                NoDepthTest = true,
++                Position = new Vector3(0f, 0.9f, 0f),
++                Modulate = ElementColors.Get("temporal").Lightened(0.2f),
++            };
++            CallDeferred("add_child", _scheduleLabel);
++        }
++
++        _scheduleLabel.Text = text;
++        _scheduleLabel.Visible = true;
++    }
++
+     private void UpdateGrowthLabel(int stage)
+     {
+         // Filled dot, larger/brighter as growth matures. Round shape + green colour
+diff --git a/Scripts/Systems/GameStateManager.cs b/Scripts/Systems/GameStateManager.cs
+index 90414d3..c83bd2e 100644
+--- a/Scripts/Systems/GameStateManager.cs
++++ b/Scripts/Systems/GameStateManager.cs
+@@ -64,6 +64,11 @@ public sealed class GameState
+     /// </summary>
+     public List<AlmanacEntry> Almanac = new();
+ 
++    /// <summary>Name of the card half the resolver is resolving right now (null between
++    /// resolutions). Lets effects that outlive the cast, such as a scheduled spell,
++    /// name themselves after the card that made them.</summary>
++    public string ResolvingAbilityName;
++
+     /// <summary>
+     /// Mana cost reduction applied to the player's NEXT spell. Cleared after use.
+     /// </summary>
+diff --git a/Scripts/UI/CombatUI.cs b/Scripts/UI/CombatUI.cs
+index de65e22..9f88598 100644
+--- a/Scripts/UI/CombatUI.cs
++++ b/Scripts/UI/CombatUI.cs
+@@ -320,6 +320,16 @@ public partial class CombatUI : CanvasLayer
+ 		GD.Print($"[CombatUI] AttunementSection built: {_attunementSection != null}");
+ 		vbox.AddChild(_attunementSection);
+ 
++		// Almanac (class_identity_chronomancer_v1 §2c): the spells waiting to land.
++		// Built once; SetAlmanac only retexts and shows or hides it.
++		_almanacSection = new VBoxContainer { Name = "AlmanacSection", Visible = false };
++		_almanacSection.AddThemeConstantOverride("separation", 2);
++		_almanacSection.AddChild(MakeLabel("ALMANAC", UITheme.FontSizeSmall, ElementColors.Get("temporal")));
++		_almanacText = MakeLabel("", UITheme.FontSizeSmall, UITheme.TextPrimary);
++		_almanacText.AutowrapMode = TextServer.AutowrapMode.WordSmart;
++		_almanacSection.AddChild(_almanacText);
++		vbox.AddChild(_almanacSection);
++
+ 		// (V1: log, party chips, deck/grave, and End Turn all moved out; the
+ 		// left column stops being a junk drawer. §5: log+party → bottom left,
+ 		// deck/grave → flanking the hand, End Turn → bottom right.)
+@@ -1788,6 +1798,20 @@ public partial class CombatUI : CanvasLayer
+ 	private void OnGraveButtonPressed() => _gravePopup?.PopupCentered();
+ 	public VBoxContainer AttunementSection => _attunementSection;
+ 
++	private VBoxContainer _almanacSection;
++	private Label _almanacText;
++
++	/// <summary>Shows the scheduled-spell list (one entry per line), or hides the
++	/// section when <paramref name="text"/> is null or empty.</summary>
++	public void SetAlmanac(string text)
++	{
++		if (_almanacSection == null)
++			return;
++		bool any = !string.IsNullOrEmpty(text);
++		_almanacText.Text = any ? text : "";
++		_almanacSection.Visible = any;
++	}
++
+ 	private static StyleBoxFlat MakeFillStyle(Color col)
+ 	{
+ 		var s = new StyleBoxFlat { BgColor = col };
+diff --git a/Scripts/UI/DeckEditorUi.cs b/Scripts/UI/DeckEditorUi.cs
+index 52490a4..666baf3 100644
+--- a/Scripts/UI/DeckEditorUi.cs
++++ b/Scripts/UI/DeckEditorUi.cs
+@@ -297,7 +297,7 @@ public partial class DeckEditorUi : Control
+ 
+         var titleLbl = new Label
+         {
+-            Text = "Manage Deck",
++            Text = PlayerDeckSave.UseDebugDeck ? "Manage Debug Deck" : "Manage Deck",
+             HorizontalAlignment = HorizontalAlignment.Center,
+             VerticalAlignment = VerticalAlignment.Center,
+         };
+@@ -462,14 +462,109 @@ public partial class DeckEditorUi : Control
+                 _stashSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+ 
+         if (stashed.Count == 0)
+-        {
+             _stashList.AddChild(MakeStub(string.IsNullOrEmpty(_stashSearch)
+                 ? "Stash is empty." : "No cards match."));
++        else
++            foreach (var owned in stashed)
++                _stashList.AddChild(BuildRow(owned, save, isActive: false));
++
++        // Debug deck only: every card in the library can be added, so new and
++        // reworded cards can be tested without earning them first.
++        if (PlayerDeckSave.UseDebugDeck)
++            AppendDebugLibrary(save);
++    }
++
++    // ─────────────────────────────────────────────────────────────────────
++    // Debug deck: add any card from the library
++    // ─────────────────────────────────────────────────────────────────────
++
++    /// <summary>
++    /// Lists every card blueprint under the stash, filtered by the same search box
++    /// (matches name, id or school). "+ Deck" mints a fresh copy into the DEBUG
++    /// collection and slots it (free, while there is room); "+ Stash" only mints it.
++    /// Only shown while <see cref="PlayerDeckSave.UseDebugDeck"/> is set, so the real
++    /// collection, the real deck and the eternal "known cards" list are never touched.
++    /// </summary>
++    private void AppendDebugLibrary(GuildSaveData save)
++    {
++        _stashList.AddChild(new HSeparator());
++        _stashList.AddChild(MakeInfoLabel("Library (debug): add any card", UITheme.Warning));
++
++        string q = _stashSearch ?? "";
++        var matches = CardDatabase.Blueprints
++            .Where(bp => bp != null && (q.Length == 0
++                || DebugCardName(bp).Contains(q, StringComparison.OrdinalIgnoreCase)
++                || (bp.Id ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
++                || bp.School.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)))
++            .OrderBy(bp => bp.School.ToString())
++            .ThenBy(bp => DebugCardName(bp))
++            .ToList();
++
++        if (matches.Count == 0)
++        {
++            _stashList.AddChild(MakeStub("No library cards match."));
+             return;
+         }
+ 
+-        foreach (var owned in stashed)
+-            _stashList.AddChild(BuildRow(owned, save, isActive: false));
++        bool deckFull = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0) >= PlayerDeckSave.MaxDeckSize;
++        foreach (var bp in matches)
++        {
++            var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Pass };
++            row.AddThemeConstantOverride("separation", 4);
++
++            var name = new Label
++            {
++                Text = $"{DebugCardName(bp)}  ·  {bp.School}",
++                SizeFlagsHorizontal = SizeFlags.ExpandFill,
++                ClipText = true,
++                MouseFilter = MouseFilterEnum.Pass,
++            };
++            name.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
++            name.AddThemeColorOverride("font_color", UITheme.TextSecondary);
++            row.AddChild(name);
++
++            var toDeck = new Button { Text = "+ Deck", Disabled = deckFull, TooltipText = deckFull ? "The deck is full." : "Add a copy and slot it." };
++            toDeck.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++            UITheme.ApplyButtonStyle(toDeck, isPrimary: true);
++            toDeck.Pressed += () => MintDebugCard(bp, slot: true);
++            row.AddChild(toDeck);
++
++            var toStash = new Button { Text = "+ Stash", TooltipText = "Add a copy to the stash." };
++            toStash.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++            UITheme.ApplyButtonStyle(toStash, isPrimary: false);
++            toStash.Pressed += () => MintDebugCard(bp, slot: false);
++            row.AddChild(toStash);
++
++            row.MouseEntered += () => ShowPreview(bp, null);
++            name.MouseEntered += () => ShowPreview(bp, null);
++            _stashList.AddChild(row);
++        }
++    }
++
++    private static string DebugCardName(CardBlueprint bp)
++        => bp?.Prebuilt?.CardName ?? bp?.Id ?? "";
++
++    /// <summary>Mints a fresh, unupgraded copy of <paramref name="bp"/> into the debug
++    /// collection, and slots it when asked and there is room. Debug only.</summary>
++    private void MintDebugCard(CardBlueprint bp, bool slot)
++    {
++        var save = SaveManager.ActiveSave;
++        if (save?.PlayerDeck == null || bp == null || !PlayerDeckSave.UseDebugDeck)
++            return;
++
++        var owned = new OwnedCard
++        {
++            BlueprintId = bp.Id,
++            InstanceId = Guid.NewGuid().ToString("N"),
++            Grafts = new List<string>(),
++            IsStarter = false,
++        };
++        save.PlayerDeck.Cards.Add(owned);   // routes to DebugCards while UseDebugDeck is set
++
++        bool slotted = slot && PlayerDeckService.SlotCard(save, owned.InstanceId);
++        GD.Print($"[DeckEditor] Debug: minted '{bp.Id}'{(slotted ? " into the deck" : " into the stash")}.");
++        SaveManager.Save();
++        Refresh();
+     }
+ 
+     // ─────────────────────────────────────────────────────────────────────
+@@ -714,8 +809,8 @@ public partial class DeckEditorUi : Control
+         bool deckFull = (save.PlayerDeck.ActiveDeckInstanceIds?.Count ?? 0)
+                             >= PlayerDeckSave.MaxDeckSize;
+ 
+-        // Slotting costs gold; unslotting is free
+-        int slotCost = PlayerSession.CardSlotCost;
++        // Slotting costs gold; unslotting is free (and so is everything on the debug deck)
++        int slotCost = PlayerDeckSave.UseDebugDeck ? 0 : PlayerSession.CardSlotCost;
+         bool canAffordSlot = (save.Gold >= slotCost);
+ 
+         string btnText;
+@@ -923,8 +1018,8 @@ public partial class DeckEditorUi : Control
+         }
+         else
+         {
+-            // Slotting costs gold
+-            int cost = PlayerSession.CardSlotCost;
++            // Slotting costs gold (never for the debug deck: it is a test bench)
++            int cost = PlayerDeckSave.UseDebugDeck ? 0 : PlayerSession.CardSlotCost;
+             if (save.Gold < cost)
+             {
+                 GD.Print($"[DeckEditor] Cannot slot: need {cost} gold, have {save.Gold}.");
+diff --git a/Scripts/UI/HealthBarRoot.cs b/Scripts/UI/HealthBarRoot.cs
+index acda5ab..dd73d42 100644
+--- a/Scripts/UI/HealthBarRoot.cs
++++ b/Scripts/UI/HealthBarRoot.cs
+@@ -313,6 +313,8 @@ public partial class HealthBarRoot : Node3D
+             d.MaxPoise = _unit.MaxPoise;
+             d.Openings = _unit.Openings;
+             d.Postponed = _unit.PostponedTurns;
++            d.IntentTiming = _unit.AttackTiming;
++            d.IntentReaction = intent.PredictedReaction;
+             string text = _intentLabel.Text ?? "";
+             int nl = text.IndexOf('\n');
+             d.IntentMarkers = nl >= 0 ? text.Substring(nl + 1).Trim() : "";
+diff --git a/Scripts/UI/UnitNameplate.Intent.cs b/Scripts/UI/UnitNameplate.Intent.cs
+index 6e2215c..279a628 100644
+--- a/Scripts/UI/UnitNameplate.Intent.cs
++++ b/Scripts/UI/UnitNameplate.Intent.cs
+@@ -53,8 +53,44 @@ public partial class UnitNameplate
+         if (d.MaxPoise > 0) yield return d.MaxPoise * 8f - 2f;
+         if (d.Openings > 0) yield return 12f + _bold.GetStringSize(d.Openings.ToString(), HorizontalAlignment.Left, -1, 12).X;
+         if (d.Postponed > 0) yield return 10f;
++        foreach (var tag in IntentTags())
++            yield return TagWidth(tag);
+     }
+ 
++    // ── State tags (Defer / Advance, predicted reaction) ─────────────
++
++    private const int TagFont = 11;
++    private const float TagIcon = 12f;
++
++    private readonly struct IntentTag
++    {
++        public readonly string Text;
++        public readonly Color Color;
++        public readonly bool Clock;
++        public IntentTag(string text, Color color, bool clock) { Text = text; Color = color; Clock = clock; }
++    }
++
++    private static Color TemporalColor => ElementColors.Get("temporal");
++
++    /// <summary>Small worded tags after the state icons, in draw order:
++    /// DEFERRED (clock) or SPENT, then the reaction the intent would form.</summary>
++    private List<IntentTag> IntentTags()
++    {
++        var tags = new List<IntentTag>();
++        var d = _data;
++        if (d.IntentTiming == IntentTiming.Deferred)
++            tags.Add(new IntentTag("DEFERRED", TemporalColor.Lightened(0.15f), clock: true));
++        else if (d.IntentTiming == IntentTiming.Spent)
++            tags.Add(new IntentTag("SPENT", UITheme.TextSecondary, clock: false));
++        if (d.IntentReaction != ElementReaction.None)
++            tags.Add(new IntentTag(ElementReactions.DisplayName(d.IntentReaction).ToUpperInvariant(),
++                                   ElementColors.Reaction(d.IntentReaction), clock: false));
++        return tags;
++    }
++
++    private float TagWidth(IntentTag tag)
++        => (tag.Clock ? TagIcon + 3f : 0f) + _bold.GetStringSize(tag.Text, HorizontalAlignment.Left, -1, TagFont).X;
++
+     // ── Colour and text ──────────────────────────────────────────────
+ 
+     private Color IntentKindColor() => _data.IntentKind switch
+@@ -116,6 +152,12 @@ public partial class UnitNameplate
+             sb.Append($"\nOpenings {d.Openings} placed on it.");
+         if (d.Postponed > 0)
+             sb.Append(d.Postponed == 1 ? "\nIts turn is postponed by 1." : $"\nIts turn is postponed by {d.Postponed}.");
++        if (d.IntentTiming == IntentTiming.Deferred)
++            sb.Append("\nDeferred: it still moves this turn, but the blow lands at the end of the round on the marked tile, on whoever stands there then.");
++        else if (d.IntentTiming == IntentTiming.Spent)
++            sb.Append("\nSpent: this attack already landed. It moves this turn but does not strike.");
++        if (d.IntentReaction != ElementReaction.None)
++            sb.Append($"\nWill form {ElementReactions.DisplayName(d.IntentReaction)} on the marked ground: {ElementReactions.Describe(d.IntentReaction)}");
+ 
+         var lines = IntentMarkerText.Translate(d.IntentMarkers);
+         if (lines.Count > 0)
+@@ -136,11 +178,16 @@ public partial class UnitNameplate
+             return;
+ 
+         var r = _intentRect;
++        bool spent = d.IntentTiming == IntentTiming.Spent;
++        bool deferred = d.IntentTiming == IntentTiming.Deferred;
+         Color kc = IntentKindColor();
+-        Color border = d.IntentRevealed ? kc : (kc.Darkened(0.35f) with { A = 0.85f });
++        if (spent)
++            kc = kc.Lerp(UITheme.TextDim, 0.6f);   // the blow is gone; the pill reads as a memory of it
++        Color border = deferred ? TemporalColor
++            : d.IntentRevealed ? kc : (kc.Darkened(0.35f) with { A = 0.85f });
+ 
+-        var sb = new StyleBoxFlat { BgColor = UITheme.BgDeep with { A = 0.94f }, BorderColor = border, AntiAliasing = true };
+-        sb.SetBorderWidthAll(d.IntentRevealed ? 2 : 1);
++        var sb = new StyleBoxFlat { BgColor = UITheme.BgDeep with { A = spent ? 0.70f : 0.94f }, BorderColor = border, AntiAliasing = true };
++        sb.SetBorderWidthAll(d.IntentRevealed || deferred ? 2 : 1);
+         sb.SetCornerRadiusAll(6);
+         sb.ShadowColor = new Color(0, 0, 0, 0.45f);
+         sb.ShadowSize = 3;
+@@ -155,10 +202,13 @@ public partial class UnitNameplate
+         float asc = _bold.GetAscent(IntentValueFont);
+         float desc = _bold.GetDescent(IntentValueFont);
+         var pos = new Vector2(x, cy + (asc - desc) * 0.5f);
+-        Color vc = d.IntentRevealed ? Colors.White : UITheme.TextDim;
++        Color vc = spent ? UITheme.TextDim : d.IntentRevealed ? Colors.White : UITheme.TextDim;
+         DrawStringOutline(_bold, pos, value, HorizontalAlignment.Left, -1, IntentValueFont, 3, new Color(0, 0, 0, 0.9f));
+         DrawString(_bold, pos, value, HorizontalAlignment.Left, -1, IntentValueFont, vc);
+-        x += _bold.GetStringSize(value, HorizontalAlignment.Left, -1, IntentValueFont).X;
++        float valueW = _bold.GetStringSize(value, HorizontalAlignment.Left, -1, IntentValueFont).X;
++        if (spent)
++            DrawLine(new Vector2(x - 1f, cy), new Vector2(x + valueW + 1f, cy), UITheme.TextSecondary, 1.6f, true);   // struck through
++        x += valueW;
+ 
+         if (d.Staggered)
+         {
+@@ -195,7 +245,31 @@ public partial class UnitNameplate
+         {
+             x += IntentStateGap;
+             DrawHourglass(new Vector2(x + 5f, cy));
++            x += 10f;
+         }
++        foreach (var tag in IntentTags())
++        {
++            x += IntentStateGap;
++            if (tag.Clock)
++            {
++                DrawClock(new Vector2(x + TagIcon * 0.5f, cy), tag.Color);
++                x += TagIcon + 3f;
++            }
++            float ta = _bold.GetAscent(TagFont), td = _bold.GetDescent(TagFont);
++            var tp = new Vector2(x, cy + (ta - td) * 0.5f);
++            DrawStringOutline(_bold, tp, tag.Text, HorizontalAlignment.Left, -1, TagFont, 3, new Color(0, 0, 0, 0.9f));
++            DrawString(_bold, tp, tag.Text, HorizontalAlignment.Left, -1, TagFont, tag.Color);
++            x += _bold.GetStringSize(tag.Text, HorizontalAlignment.Left, -1, TagFont).X;
++        }
++    }
++
++    /// <summary>A small clock face: the deferred-attack mark.</summary>
++    private void DrawClock(Vector2 c, Color col)
++    {
++        DrawCircle(c + Vector2.One, 5.6f, new Color(0, 0, 0, 0.6f));
++        DrawArc(c, 5f, 0f, Mathf.Tau, 24, col, 1.6f, true);
++        DrawLine(c, c + new Vector2(0, -3.6f), col, 1.5f, true);
++        DrawLine(c, c + new Vector2(2.8f, 0.8f), col, 1.5f, true);
+     }
+ 
+     /// <summary>One silhouette per intent kind, drawn in an 18 px box around c.</summary>
+diff --git a/Scripts/UI/UnitNameplate.cs b/Scripts/UI/UnitNameplate.cs
+index bda64d7..23aa5ef 100644
+--- a/Scripts/UI/UnitNameplate.cs
++++ b/Scripts/UI/UnitNameplate.cs
+@@ -59,6 +59,10 @@ public sealed class NameplateData
+     public int Poise, MaxPoise, Openings, Postponed;
+     /// <summary>CombatManager's ASCII marker line; translated into the intent tooltip.</summary>
+     public string IntentMarkers = "";
++    /// <summary>Chronomancer Defer / Advance state of the attack.</summary>
++    public IntentTiming IntentTiming = IntentTiming.Normal;
++    /// <summary>The element reaction the intent would form (imbue intents).</summary>
++    public ElementReaction IntentReaction = ElementReaction.None;
+     public string CoverTag = "";
+     public Color CoverTagColor = Colors.White;
+ 
+@@ -72,6 +76,7 @@ public sealed class NameplateData
+           .Append('|').Append(Ap).Append(',').Append(MaxAp).Append(',').Append(Edge).Append(',').Append(MaxEdge)
+           .Append('|').Append(HasIntent).Append(IntentKind).Append(IntentRevealed).Append(IntentValue).Append(',').Append(IntentShoveTiles).Append(IntentElement)
+           .Append(Staggered).Append(Poise).Append('/').Append(MaxPoise).Append(',').Append(Openings).Append(',').Append(Postponed).Append(IntentMarkers)
++          .Append(',').Append(IntentTiming).Append(',').Append(IntentReaction)
+           .Append('|').Append(CoverTag).Append(CoverTagColor.ToHtml()).Append('|');
+         foreach (var c in Conditions)
+             sb.Append(c.Key).Append(':').Append(c.Count).Append(':').Append(c.Description).Append(';');

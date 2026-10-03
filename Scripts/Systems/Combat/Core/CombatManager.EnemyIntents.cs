@@ -136,6 +136,18 @@ public class EnemyIntent
     /// <see cref="ThreatTiles"/> tile at execution. None for every other kind.</summary>
     public TileElementType ImbueElement = TileElementType.None;
 
+    /// <summary>The element reaction this intent would form if it resolved on the board
+    /// as it stands (imbue intents only). Kept current by UpdateIntentDisplay; the
+    /// nameplate draws it as a coloured tag.</summary>
+    public ElementReaction PredictedReaction = ElementReaction.None;
+
+    /// <summary>Lookahead (class_identity_chronomancer_v1 §2d): the kind and a short
+    /// description of the enemy's NEXT beat, forecast at planning. Shown only once
+    /// <see cref="NextRevealed"/> is set (Glimpse) or the unit is under permanent lookahead.</summary>
+    public IntentKind NextKind = IntentKind.Unknown;
+    public string NextNote = "";
+    public bool NextRevealed;
+
     /// <summary>For <see cref="IntentKind.Shove"/>: tiles of shove (0 = the gust
     /// default) and the authored collision floor (0 = momentum only). A brute's
     /// body-check is 1 tile with a real collision; the gust is 3 tiles of momentum.</summary>
@@ -220,10 +232,12 @@ public partial class CombatManager
             if (thirdEye)
                 enemy.IntentPermanentlyRevealed = true;
 
+            enemy.AttackTiming = IntentTiming.Normal;   // a new plan is a new attack (Defer/Advance)
             enemy.CurrentIntent = PlanIntent(enemy);
 
             if (enemy.CurrentIntent != null)
                 enemy.CurrentIntent.Revealed = enemy.IntentPermanentlyRevealed;
+            ForecastNextBeat(enemy);   // lookahead (chronomancer §2d), hidden until revealed
 
             UpdateIntentDisplay(enemy);
         }
@@ -1327,13 +1341,14 @@ public partial class CombatManager
         // class_identity_elementalist_v1 §2a item 7: an intent that will set off a
         // reaction names it under the glyph (plain letters: the Label3D font has no
         // symbol glyphs for reactions).
-        var reaction = PredictIntentReaction(intent);
-        if (reaction != ElementReaction.None)
-            body += $"\nFORMS {ElementReactions.DisplayName(reaction).ToUpperInvariant()}";
+        // Predicted reaction (elementalist §2a item 7) and timing (chronomancer §2a) are
+        // drawn by the nameplate from the intent and the unit, not written into this body.
+        intent.PredictedReaction = enemy.AttackTiming == IntentTiming.Spent
+            ? ElementReaction.None : PredictIntentReaction(intent);
 
         // The marker line is reference text, not a glyph, so shrink it and two lines
         // don't swallow the board.
-        int size = !string.IsNullOrEmpty(markers) ? 24 : reaction != ElementReaction.None ? 30 : 40;
+        int size = !string.IsNullOrEmpty(markers) ? 24 : 40;
         enemy.SetIntentDisplay(body, color, size);
     }
 
@@ -1367,6 +1382,8 @@ public partial class CombatManager
             if (!IsValidActor(enemy) || enemy.CurrentIntent == null)
                 continue;
 
+            if (enemy.AttackTiming == IntentTiming.Spent)
+                continue;   // Advance: that blow has already landed
             bool revealed = enemy.CurrentIntent.Revealed;
             if (!revealed && !ShowIntentKindByDefault)
                 continue;
@@ -1595,7 +1612,11 @@ public partial class CombatManager
                     QueueAbilityTriggers(enemy, "everyNRounds");
             }
 
-            await ExecuteIntent(enemy);
+            // Chronomancer Defer / Advance (CombatManager.IntentTime.cs): an attack
+            // moved in time is not struck here; the enemy still moves.
+            _actingEnemy = enemy;
+            if (!await RunTimedActivation(enemy))
+                await ExecuteIntent(enemy);
 
             // Edge M4: a beat that never strikes (Guard, Shove, a channel start)
             // still ended its movement somewhere. Brace fires here for those; a
@@ -1643,6 +1664,7 @@ public partial class CombatManager
                     enemy.TilesMovedThisTurn = 0;   // the charge rider measures THIS action
                     enemy.HasAttackedThisTurn = false;
 
+                    enemy.AttackTiming = IntentTiming.Normal;   // the second beat is a fresh attack
                     enemy.CurrentIntent = PlanIntent(enemy);
                     if (enemy.CurrentIntent != null)
                         enemy.CurrentIntent.Revealed = true;   // never a hidden bonus turn
@@ -1673,6 +1695,12 @@ public partial class CombatManager
             if (CheckCombatEnd())
                 return;
         }
+
+        // Chronomancer Defer: every deferred attack lands now, after all activations,
+        // before the round's end ticks and the next plans.
+        _actingEnemy = null;
+        if (await ResolveDeferredAttacksAsync())
+            return;
 
         GD.Print("=== Enemy Turn End ===");
         enemyPhaseRunning = false;

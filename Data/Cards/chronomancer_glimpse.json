@@ -8,7 +8,7 @@
 		"name": "Glimpse",
 		"mana": 0,
 		"speed": "Reflex",
-		"rules_text": "Reveal the next action of all enemies within 6.",
+		"rules_text": "Reveal the next two intents of every enemy within 6.",
 		"tags": [
 			"temporal"
 		],
@@ -16,7 +16,9 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "peek_intent"
+			"type": "peek_intent",
+			"range": 6,
+			"lookahead": true
 		}
 	},
 	"bottom": {
@@ -45,13 +47,26 @@
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[1].amount",
-					"value": 2
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent",
+								"range": 6,
+								"lookahead": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reveal enemy intent within 6. Gain 2 Foresight."
+					"value": "Reveal the next two intents of every enemy within 6. Gain 2 Foresight."
 				},
 				{
 					"half": "bottom",
@@ -69,7 +84,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Far Sight",
-			"description": "Reveal the whole board, draw 1.",
+			"description": "See the whole board two steps ahead. Draw 1.",
 			"changes": [
 				{
 					"half": "top",
@@ -78,7 +93,8 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"lookahead": true
 							},
 							{
 								"type": "gain_foresight",
@@ -94,7 +110,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reveal all enemy intent. Gain 2 Foresight. Draw 1 card."
+					"value": "Reveal the next two intents of every enemy. Gain 2 Foresight. Draw 1 card."
 				}
 			]
 		},
@@ -132,12 +148,45 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Oracle",
-			"description": "Revealed enemies have their actions postponed if you choose.",
+			"description": "See ahead, then move one attack to the end of the round.",
 			"changes": [
 				{
 					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 6,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent",
+								"lookahead": true
+							},
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Reveal all enemy intent. Postpone one revealed action 1 turn. Gain 2 Foresight, draw 1 card."
+					"value": "Reveal the next two intents of every enemy. Defer target enemy's attack. Gain 2 Foresight. Draw 1 card."
 				}
 			]
 		},
@@ -163,8 +212,17 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The All-Seeing Eye",
-			"description": "See and rewrite one revealed action.",
+			"description": "Sight that lasts the whole fight.",
 			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit",
+						"range": 6,
+						"enemies_only": true
+					}
+				},
 				{
 					"half": "top",
 					"field": "effect",
@@ -172,11 +230,12 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"lookahead": true,
+								"permanent": true
 							},
 							{
-								"type": "redirect",
-								"to": "chosen"
+								"type": "defer_intent"
 							},
 							{
 								"type": "gain_foresight",
@@ -188,7 +247,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Reveal all enemy intent. Redirect one revealed action to a target you choose. Gain 2 Foresight."
+					"value": "For the rest of the fight, see the next two intents of every enemy. Defer target enemy's attack. Gain 2 Foresight."
 				}
 			]
 		},

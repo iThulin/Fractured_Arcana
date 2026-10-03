@@ -65,7 +65,16 @@ public static partial class CardScriptRegistry
 
         // Peek at the next N enemy intents, optionally with a mana cost reduction on cards that interact with them
         // { "type": "peek_intent", "amount": n, "discount": n }
-        RegisterEffect("peek_intent", _ => new PeekIntentEffect().WithTag("Foresight"));
+        // { "type": "peek_intent", "range": n, "lookahead": bool, "permanent": bool }
+        // range 0 (default) = every enemy; lookahead also shows the NEXT intent;
+        // permanent keeps it revealed for the rest of the fight.
+        RegisterEffect("peek_intent", n =>
+        {
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 0;
+            bool look = n.TryGetProperty("lookahead", out var lk) && lk.GetBoolean();
+            bool perm = n.TryGetProperty("permanent", out var pm) && pm.GetBoolean();
+            return new PeekIntentEffect(range, look, perm).WithTag("Foresight");
+        });
 
         // Temporary buff to a specific stat for a number of turns
         // { "type": "temp_buff", "stat": "movement", "amount": n, "turns": n }
@@ -94,6 +103,23 @@ public static partial class CardScriptRegistry
             return new PostponeEffect(turns);
         });
 
+        // Defer target enemy's attack: it lands at the end of the round on its locked tile.
+        // radius widens it to every enemy within n of the target (99 = every enemy).
+        // { "type": "defer_intent", "radius": n }
+        RegisterEffect("defer_intent", n =>
+        {
+            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
+            return new DeferIntentEffect(radius).WithTag("Control");
+        });
+
+        // Advance target enemy's attack: it lands now on its locked tile.
+        // { "type": "advance_intent", "radius": n }
+        RegisterEffect("advance_intent", n =>
+        {
+            int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
+            return new AdvanceIntentEffect(radius).WithTag("Control");
+        });
+
         // Skip the next N turns of the enemy, causing them to lose their next N actions (can be used on self for a "stasis" effect)
         // { "type": "skip_enemy_turn", "turns": n }
         RegisterEffect("skip_enemy_turn", n =>
@@ -113,25 +139,37 @@ public static partial class CardScriptRegistry
 
         RegisterEffect("advance", _ => new AdvanceEffect());
 
-        RegisterEffect("fast_forward", _ => new FastForwardEffect());
+        // Fire your soonest scheduled spell(s) now.
+        // { "type": "fast_forward", "count": n (99 = all), "foresight_cost": n (default 1) }
+        RegisterEffect("fast_forward", n =>
+        {
+            int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 1;
+            int cost = n.TryGetProperty("foresight_cost", out var fc) ? fc.GetInt32() : 1;
+            return new FastForwardEffect(count, cost);
+        });
 
         // Create a temporal anchor at the target location that you can teleport back to, optionally with a duration after which it expires
-        // { "type": "set_anchor", "turns": n }
+        // { "type": "set_anchor", "turns": n, "heal": n, "shield": n, "foresight": n, "lethal_save": bool }
         RegisterEffect("set_anchor", n =>
         {
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2;
-            return new SetAnchorEffect(turns);
+            int heal = n.TryGetProperty("heal", out var h) ? h.GetInt32() : 0;
+            int shield = n.TryGetProperty("shield", out var sh) ? sh.GetInt32() : 0;
+            int foresight = n.TryGetProperty("foresight", out var f) ? f.GetInt32() : 0;
+            bool lethal = n.TryGetProperty("lethal_save", out var l) && l.GetBoolean();
+            return new SetAnchorEffect(turns, heal, shield, foresight, lethal);
         });
 
         RegisterEffect("teleport_to_anchor", _ => new TeleportToAnchorEffect());
 
         // Create temporary tiles that trigger effects when stepped on, optionally with a duration after which they expire
-        // { "type": "create_phase_tiles", "count": n, "turns": n }
+        // { "type": "create_phase_tiles", "count": n, "turns": n, "step_foresight": n }
         RegisterEffect("create_phase_tiles", n =>
         {
             int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 2;
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 3;
-            return new CreatePhaseTilesEffect(count, turns);
+            int stepForesight = n.TryGetProperty("step_foresight", out var sf) ? sf.GetInt32() : 0;
+            return new CreatePhaseTilesEffect(count, turns, stepForesight);
         });
 
         RegisterEffect("teleport_to_phase_tile", _ => new TeleportToPhaseTileEffect());
@@ -216,12 +254,25 @@ public static partial class CardScriptRegistry
 
         RegisterEffect("event_control", _ => new EventControlLeafEffect());
 
-        // Borrowed Mana's repayment (2026-07-29): books a next-turn mana drain.
-        // { "type": "mana_debt", "amount": n }
-        RegisterEffect("mana_debt", n =>
+        // Overdrawn Time Bank (2026-10-03, replaces mana_debt): lose Foresight, may go below 0.
+        // { "type": "lose_foresight", "amount": n }
+        RegisterEffect("lose_foresight", n =>
         {
-            int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 2;
-            return new ManaDebtLeafEffect(amount).WithTag("Mana");
+            int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1;
+            return new LoseForesightEffect(amount).WithTag("Foresight");
+        });
+
+        // Round-start snapshot (2026-10-03): back to the tile (and HP) held when the round began.
+        // { "type": "return_to_round_start", "restore_hp": bool, "allies_only": bool,
+        //   "all_allies": bool, "radius": n, "collision_damage": n, "foresight_cost": n }
+        RegisterEffect("return_to_round_start", n => new ReturnToRoundStartEffect
+        {
+            RestoreHp = n.TryGetProperty("restore_hp", out var rh) && rh.GetBoolean(),
+            AlliesOnly = n.TryGetProperty("allies_only", out var ao) && ao.GetBoolean(),
+            AllAllies = n.TryGetProperty("all_allies", out var aa) && aa.GetBoolean(),
+            Radius = n.TryGetProperty("radius", out var ra) ? ra.GetInt32() : 0,
+            CollisionDamage = n.TryGetProperty("collision_damage", out var cd) ? cd.GetInt32() : 0,
+            ForesightCost = n.TryGetProperty("foresight_cost", out var fc) ? fc.GetInt32() : 0,
         });
     }
 }

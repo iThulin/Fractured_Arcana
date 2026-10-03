@@ -111,7 +111,8 @@
 								"count": 2
 							},
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"permanent": true
 							}
 						]
 					}
@@ -119,7 +120,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Draw 2 cards. Reveal every enemy."
+					"value": "Draw 2 cards. Reveal every enemy's intent for the rest of the fight."
 				}
 			],
 			"top_name": "Read the Field"

@@ -199,7 +199,10 @@ public sealed class DelayedDamageLeafEffect : EffectBase
 			else
 				continue;
 
-			s.ActiveEffects.Add(new DelayedDamageEffect(coord, DamagePerTick, Ticks, caster));
+			s.ActiveEffects.Add(new DelayedDamageEffect(coord, DamagePerTick, Ticks, caster)
+			{
+				Label = s.ResolvingAbilityName,   // shown in the Almanac view
+			});
 			s.Log($"[DelayedDamage] Scheduled {DamagePerTick}×{Ticks} ticks at {coord}.");
 		}
 	}
@@ -213,6 +216,8 @@ public class DelayedDamageEffect : PersistentEffect
 {
 	public Vector2I TargetCoord;
 	public int DamagePerTick;
+	/// <summary>The card that made it (Foregone Conclusion), for the Almanac view.</summary>
+	public string Label;
 
 	public DelayedDamageEffect(Vector2I coord, int damagePerTick, int ticks, Entity owner)
 	{
@@ -252,12 +257,27 @@ public class DelayedDamageEffect : PersistentEffect
 }
 
 /// <summary>
-/// Reveals enemy intent (currently logs HP/status to console and grants
-/// Foresight). Full HUD reveal is future UI work.
-/// JSON: { "type": "peek_intent" }
+/// Reveals enemy intents: value and marked tiles, until the enemy plans again.
+/// <see cref="Range"/> limits it to enemies within that many tiles of the caster
+/// (0 = every enemy). Also logs each enemy's condition, for the Adept cards whose text
+/// promises it. (2026-10-03: this used to ONLY log, so Glimpse, Survey, Flare and
+/// Arcane Sight revealed nothing on screen.)
+/// JSON: { "type": "peek_intent", "range": n }
 /// </summary>
 public sealed class PeekIntentEffect : EffectBase
 {
+	public int Range;
+	/// <summary>Also reveal each enemy's NEXT intent (Chronomancer lookahead, §2d).</summary>
+	public bool Lookahead;
+	/// <summary>Keep what was revealed visible for the rest of the fight (Adept reveals).</summary>
+	public bool Permanent;
+	public PeekIntentEffect(int range = 0, bool lookahead = false, bool permanent = false)
+	{
+		Range = Math.Max(0, range);
+		Lookahead = lookahead;
+		Permanent = permanent;
+	}
+
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
 		var casterUnit = s.ActiveCasterUnit;
@@ -266,12 +286,19 @@ public sealed class PeekIntentEffect : EffectBase
 			return;
 
 		s.Log("[PeekIntent] Enemy intel:");
+		int revealed = 0;
 		foreach (var unit in s.UnitsInPlay)
 		{
 			if (unit == null || !unit.Stats.IsAlive)
 				continue;
 			if (casterUnit != null && unit.TeamId == casterUnit.TeamId)
 				continue;
+			if (Range > 0 && casterUnit?.CurrentTile != null && unit.CurrentTile != null && s.Grid != null
+				&& s.Grid.Distance(casterUnit.CurrentTile.Axial, unit.CurrentTile.Axial) > Range)
+				continue;
+
+			if (IntentTime.Reveal(unit, Lookahead, Permanent))
+				revealed++;
 
 			var statuses = unit.Stats.StatusEffects.Count > 0
 				? string.Join(", ", unit.Stats.StatusEffects.Keys)
@@ -279,6 +306,7 @@ public sealed class PeekIntentEffect : EffectBase
 			s.Log($"  {unit.Name}: {unit.Stats.Health}/{unit.Stats.MaxHealth}HP " +
 				  $"| Unit={unit.DefinitionId} | Status=[{statuses}]");
 		}
+		s.Log($"[PeekIntent] Revealed {revealed} intent(s){(Range > 0 ? $" within {Range}" : "")}.");
 	}
 }
 
@@ -540,7 +568,10 @@ public sealed class ScheduleLeafEffect : EffectBase
 			Caster = caster,
 			Targets = targets,
 			Snapshot = snap,
-			Label = Child?.GetType().Name ?? "Scheduled"
+			CasterUnit = s.ActiveCasterUnit,   // fires as this unit, with maturity (§2c)
+			// The card's own name, not the effect class: this is what the Almanac
+			// list and the tile marker show the player.
+			Label = !string.IsNullOrEmpty(s.ResolvingAbilityName) ? s.ResolvingAbilityName : "Scheduled spell"
 		});
 		s.Log($"[Schedule] Effect scheduled for {Turns} turn(s) from now.");
 	}
@@ -557,7 +588,15 @@ public sealed class AdvanceEffect : EffectBase
 	{
 		if (s.Almanac == null || s.Almanac.Count == 0)
 		{
-			s.Log("[Advance] No scheduled entries to advance.");
+			// A foreseen strike on a tile (Foregone Conclusion, Time Walk) lives in
+			// ActiveEffects, not the Almanac: advancing it lands its next strike now.
+			var strike = ScheduledStrikes.Soonest(s, caster);
+			if (strike != null)
+			{
+				ScheduledStrikes.FireOne(s, strike, "[Advance]");
+				return;
+			}
+			s.Log("[Advance] Nothing scheduled to advance.");
 			return;
 		}
 
@@ -573,8 +612,8 @@ public sealed class AdvanceEffect : EffectBase
 		if (entry.IsReady)
 		{
 			s.Log($"[Advance] Entry reached 0. Firing immediately.");
-			entry.Child?.Resolve(s, entry.Caster, entry.Targets, entry.Snapshot);
 			s.Almanac.Remove(entry);
+			entry.Fire(s);
 		}
 		else
 		{
@@ -590,41 +629,109 @@ public sealed class AdvanceEffect : EffectBase
 /// </summary>
 public sealed class FastForwardEffect : EffectBase
 {
+	/// <summary>How many scheduled entries fire, soonest first (99 = all of them).</summary>
+	public int Count;
+	/// <summary>Foresight spent when at least one entry fires (2026-10-03: was a fixed 1,
+	/// which made "resolve one now, gain 1 Foresight" ladders quietly net zero).</summary>
+	public int ForesightCost;
+
+	public FastForwardEffect(int count = 1, int foresightCost = 1)
+	{
+		Count = Math.Max(1, count);
+		ForesightCost = Math.Max(0, foresightCost);
+	}
+
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
-		if (s.Almanac == null || s.Almanac.Count == 0)
+		// 2026-10-03: also fires foreseen strikes on a tile (Foregone Conclusion, Time
+		// Walk). Those live in ActiveEffects, so Hasten used to find "nothing scheduled"
+		// while the Almanac view plainly listed them.
+		int fired = 0;
+		while (fired < Count)
 		{
-			s.Log("[FastForward] No scheduled entries.");
+			// The caster's own first, soonest first; anyone's as a fallback. A strike's
+			// next tick is always the coming turn, so it ranks as 1 turn away.
+			var entry = s.Almanac == null || s.Almanac.Count == 0 ? null
+				: s.Almanac.Where(e => !e.Hidden)
+					.OrderBy(e => e.Caster == caster ? 0 : 1)
+					.ThenBy(e => e.TurnsRemaining)
+					.FirstOrDefault();
+			var strike = ScheduledStrikes.Soonest(s, caster);
+			if (entry == null && strike == null)
+				break;
+
+			bool takeEntry = entry != null && (strike == null
+				|| (entry.Caster == caster ? 0 : 1, entry.TurnsRemaining).CompareTo((strike.Owner == caster ? 0 : 1, 1)) <= 0);
+			if (takeEntry)
+			{
+				s.Log($"[FastForward] {entry.Label ?? "Scheduled spell"} resolves now.");
+				s.Almanac.Remove(entry);   // removed first, so an entry that schedules again cannot loop
+				entry.Fire(s);
+			}
+			else
+			{
+				ScheduledStrikes.FireOne(s, strike, "[FastForward]");
+			}
+			fired++;
+		}
+
+		if (fired == 0)
+		{
+			s.Log("[FastForward] Nothing scheduled to resolve.");
 			return;
 		}
 
-		var entry = s.Almanac
-			.Where(e => e.Caster == caster)
-			.OrderBy(e => e.TurnsRemaining)
-			.FirstOrDefault()
-			?? s.Almanac.OrderBy(e => e.TurnsRemaining).First();
-
-		s.Log($"[FastForward] Firing scheduled entry immediately.");
-		entry.Child?.Resolve(s, entry.Caster, entry.Targets, entry.Snapshot);
-		s.Almanac.Remove(entry);
-
-		// Spend 1 Foresight
 		var casterUnit = s.ActiveCasterUnit;
-		if (casterUnit?.Attunement is FateAttunement fate)
-			fate.SpendCharges(1);
+		if (ForesightCost > 0 && casterUnit?.Attunement is FateAttunement fate)
+			fate.SpendCharges(ForesightCost);
+	}
+}
+
+/// <summary>Foreseen strikes on a tile (<see cref="DelayedDamageEffect"/>): the other
+/// kind of scheduled spell, kept in GameState.ActiveEffects. Hasten and Advance reach
+/// them through here.</summary>
+internal static class ScheduledStrikes
+{
+	public static DelayedDamageEffect Soonest(GameState s, Entity caster) =>
+		s?.ActiveEffects?.OfType<DelayedDamageEffect>()
+			.Where(d => !d.IsExpired)
+			.OrderBy(d => d.Owner == caster ? 0 : 1)
+			.FirstOrDefault();
+
+	/// <summary>Lands the strike's next hit now (one tick); removes it once spent.</summary>
+	public static void FireOne(GameState s, DelayedDamageEffect dd, string tag)
+	{
+		s.Log($"{tag} {dd.Label ?? "Foreseen strike"} strikes ({dd.TargetCoord.X}, {dd.TargetCoord.Y}) now.");
+		dd.Tick(s);
+		if (dd.IsExpired)
+			s.ActiveEffects.Remove(dd);
 	}
 }
 
 /// <summary>
 /// Marks the caster's current tile as an anchor for <see cref="Turns"/> turns.
 /// Stores the coord on <c>Unit.AnchorCoord</c> and <c>Unit.AnchorTurnsRemaining</c>.
-/// The anchor expires in <c>StartPlayerTurn</c> (see wiring doc §8).
-/// JSON: { "type": "set_anchor", "turns": n }
+/// The anchor expires in <c>StartPlayerTurn</c> (see wiring doc §8). The unit snaps
+/// back with the action bar's Snap Back button (CombatManager.Anchors.cs), which pays
+/// the heal / shield / Foresight bonuses; lethal_save catches the first killing hit.
+/// JSON: { "type": "set_anchor", "turns": n, "heal": n, "shield": n, "foresight": n,
+///         "lethal_save": bool }
 /// </summary>
 public sealed class SetAnchorEffect : EffectBase
 {
 	public int Turns;
-	public SetAnchorEffect(int turns) { Turns = turns; }
+	public int Heal;
+	public int Shield;
+	public int Foresight;
+	public bool LethalSave;
+	public SetAnchorEffect(int turns, int heal = 0, int shield = 0, int foresight = 0, bool lethalSave = false)
+	{
+		Turns = turns;
+		Heal = Math.Max(0, heal);
+		Shield = Math.Max(0, shield);
+		Foresight = Math.Max(0, foresight);
+		LethalSave = lethalSave;
+	}
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
 	{
@@ -637,6 +744,10 @@ public sealed class SetAnchorEffect : EffectBase
 
 		casterUnit.AnchorCoord = casterUnit.CurrentTile.Axial;
 		casterUnit.AnchorTurnsRemaining = Turns;
+		casterUnit.AnchorSnapHeal = Heal;
+		casterUnit.AnchorSnapShield = Shield;
+		casterUnit.AnchorSnapForesight = Foresight;
+		casterUnit.AnchorLethalSave = LethalSave;
 		s.Log($"[SetAnchor] Anchor set at {casterUnit.AnchorCoord} for {Turns} turn(s).");
 	}
 }
@@ -674,17 +785,22 @@ public sealed class TeleportToAnchorEffect : EffectBase
 /// Registers up to <see cref="Count"/> tiles near the target as Phase tiles on
 /// GameState.PhaseTiles. The caster may teleport between them for free once per
 /// turn. The actual teleport is handled by <see cref="TeleportToPhaseTileEffect"/>.
-/// JSON: { "type": "create_phase_tiles", "count": n, "turns": n }
+/// A new network replaces the old one. Tiles: the targeted tile, then the caster's own
+/// tile, then empty tiles near the target (farthest first) until Count is reached. Only
+/// the caster may Phase Step (action bar, CombatManager.Anchors.cs).
+/// JSON: { "type": "create_phase_tiles", "count": n, "turns": n, "step_foresight": n }
 /// </summary>
 public sealed class CreatePhaseTilesEffect : EffectBase
 {
 	public int Count;
 	public int Turns;
+	public int StepForesight;
 
-	public CreatePhaseTilesEffect(int count, int turns)
+	public CreatePhaseTilesEffect(int count, int turns, int stepForesight = 0)
 	{
 		Count = count;
 		Turns = turns;
+		StepForesight = Math.Max(0, stepForesight);
 	}
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -693,7 +809,10 @@ public sealed class CreatePhaseTilesEffect : EffectBase
 			return;
 
 		s.PhaseTiles ??= new List<Vector2I>();
+		s.PhaseTiles.Clear();
 		s.PhaseTileTurnsRemaining = Turns;
+		s.PhaseTileOwner = s.ActiveCasterUnit;
+		s.PhaseStepForesight = StepForesight;
 
 		// Use the target tiles, or fall back to nearby empty tiles
 		int added = 0;
@@ -717,6 +836,43 @@ public sealed class CreatePhaseTilesEffect : EffectBase
 					added++;
 					s.Log($"[PhaseTiles] Added tile {coord}.");
 				}
+			}
+		}
+
+		// Fill the rest: the caster's own tile, then empty tiles near the first one.
+		var casterTile = s.ActiveCasterUnit?.CurrentTile;
+		if (added < Count && casterTile != null && !s.PhaseTiles.Contains(casterTile.Axial))
+		{
+			s.PhaseTiles.Add(casterTile.Axial);
+			added++;
+		}
+		if (added < Count)
+		{
+			Vector2I centre = s.PhaseTiles.Count > 0 ? s.PhaseTiles[0] : casterTile?.Axial ?? default;
+			var ring = new List<(int dist, Vector2I at)>();
+			var seen = new HashSet<Vector2I> { centre };
+			var frontier = new List<Vector2I> { centre };
+			for (int d = 1; d <= 2; d++)
+			{
+				var next = new List<Vector2I>();
+				foreach (var f in frontier)
+					foreach (var nb in s.Grid.GetNeighbors(f))
+						if (seen.Add(nb))
+						{
+							next.Add(nb);
+							var t = s.Grid.GetTile(nb);
+							if (t != null && t.IsWalkable && !t.IsBlocked && !t.IsOccupied && !s.PhaseTiles.Contains(nb))
+								ring.Add((d, nb));
+						}
+				frontier = next;
+			}
+			ring.Sort((a, b) => b.dist.CompareTo(a.dist));   // farthest first: a network should spread
+			int need = Count - added;
+			int step = Math.Max(1, ring.Count / Math.Max(1, need));
+			for (int i = 0; i < ring.Count && added < Count; i += step)
+			{
+				s.PhaseTiles.Add(ring[i].at);
+				added++;
 			}
 		}
 
@@ -1109,7 +1265,8 @@ public sealed class SummonDecoyLeafEffect : EffectBase
 				Child = new LethalDamageEffect(decoy),
 				Caster = caster,
 				Targets = new TargetSet { Items = new List<object> { decoy } },
-				Label = "Decoy Expire"
+				Label = "Decoy Expire",
+				Hidden = true,   // a timer, not a spell the player scheduled
 			};
 			s.Almanac ??= new List<AlmanacEntry>();
 			s.Almanac.Add(killEntry);
@@ -1249,8 +1406,8 @@ public class EventControlPersistentEffect : PersistentEffect
 			{
 				var entry = s.Almanac.OrderBy(e => e.TurnsRemaining).First();
 				s.Log($"[EventControl] Fast-forwarding '{entry.Label}'.");
-				entry.Child?.Resolve(s, entry.Caster, entry.Targets, entry.Snapshot);
 				s.Almanac.Remove(entry);
+				entry.Fire(s);
 			}
 			else if (s.LastResolvedItem != null)
 			{
@@ -1426,59 +1583,6 @@ public class RedirectAuraPersistentEffect : PersistentEffect
     }
 }
 
-/// <summary>
-/// Borrowed Mana (audit §6.2 addition, 2026-07-29): gain mana now, repay it at the
-/// start of your next turn. The school's answer to tithe_aura pressure without
-/// giving the zero-economy school real ramp. The debt makes it tempo, not value.
-/// JSON: { "type": "mana_debt", "amount": n }  (the GAIN is a separate mana_gain
-/// step; this leaf only books the repayment)
-/// </summary>
-public sealed class ManaDebtLeafEffect : EffectBase
-{
-	public int Amount;
-	public ManaDebtLeafEffect(int amount) { Amount = Math.Max(0, amount); }
-
-	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
-	{
-		if (Amount <= 0)
-			return;
-		var unit = s.ActiveCasterUnit;
-		s.ActiveEffects ??= new List<PersistentEffect>();
-		s.ActiveEffects.Add(new ManaDebtPersistentEffect(Amount, caster, unit));
-		s.Log($"[ManaDebt] {unit?.Name ?? "caster"} owes {Amount} mana next turn.");
-	}
-}
-
-/// <summary>Collects the Borrowed Mana debt on the owner's next turn start, then
-/// expires. Drains to a floor of 0: a debt cannot make mana negative; if the
-/// player spent everything, the shortfall is simply forgiven (and logged), which is
-/// deliberately lenient: a debt that could brick the turn after a defensive
-/// emergency would make the card unplayable at its rarity.</summary>
-public class ManaDebtPersistentEffect : PersistentEffect
-{
-	private readonly int _amount;
-	private readonly Unit _unit;
-
-	public ManaDebtPersistentEffect(int amount, Entity owner, Unit unit)
-	{
-		_amount = amount;
-		Owner = owner;
-		_unit = unit;
-		TurnsRemaining = 1;
-	}
-
-	public override void Tick(GameState s)
-	{
-		TurnsRemaining = 0;
-		if (_unit == null || !GodotObject.IsInstanceValid(_unit) || !_unit.Stats.IsAlive)
-			return;
-		int due = Math.Min(_amount, _unit.Stats.Mana);
-		if (due > 0)
-			_unit.TrySpendMana(due);
-		if (s.Mana.ContainsKey(Owner))
-			s.Mana[Owner] = _unit.Stats.Mana;
-		s.Log(due < _amount
-			? $"[ManaDebt] {_unit.Name} repays {due}/{_amount}. The rest is forgiven."
-			: $"[ManaDebt] {_unit.Name} repays {due} mana.");
-	}
-}
+// (2026-10-03) ManaDebtLeafEffect / ManaDebtPersistentEffect retired: the Overdrawn
+// Time Bank replaces mana debt (class_identity_chronomancer_v1 §2b). Borrowed Mana now
+// uses lose_foresight (TimeBankEffects.cs).

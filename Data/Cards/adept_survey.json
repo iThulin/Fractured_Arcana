@@ -8,7 +8,7 @@
 		"name": "Survey",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Draw 1 card. Reveal the next action of all enemies.",
+		"rules_text": "Draw 1 card. Reveal every enemy's intent for the rest of the fight.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -21,7 +21,8 @@
 					"count": 1
 				},
 				{
-					"type": "peek_intent"
+					"type": "peek_intent",
+					"permanent": true
 				}
 			]
 		}
@@ -57,7 +58,8 @@
 								"count": 2
 							},
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"permanent": true
 							}
 						]
 					}
@@ -65,7 +67,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Draw 2 cards. Reveal every enemy."
+					"value": "Draw 2 cards. Reveal every enemy's intent for the rest of the fight."
 				},
 				{
 					"half": "bottom",
@@ -109,7 +111,8 @@
 								"count": 2
 							},
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"permanent": true
 							},
 							{
 								"type": "shield",
@@ -121,7 +124,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Draw 2 cards, reveal every enemy, gain 1 shield."
+					"value": "Draw 2 cards and gain 1 shield. Reveal every enemy's intent for the rest of the fight."
 				}
 			],
 			"top_name": "Chart the Ground"
@@ -172,7 +175,8 @@
 								"count": 3
 							},
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"permanent": true
 							}
 						]
 					}
@@ -180,7 +184,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Draw 3 cards. Reveal every enemy."
+					"value": "Draw 3 cards. Reveal every enemy's intent for the rest of the fight."
 				}
 			],
 			"top_name": "Master Survey"
@@ -201,7 +205,8 @@
 								"count": 3
 							},
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"permanent": true
 							},
 							{
 								"type": "mana_gain",
@@ -213,7 +218,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Draw 3 cards, reveal every enemy, gain 1 mana."
+					"value": "Draw 3 cards and gain 1 mana. Reveal every enemy's intent for the rest of the fight."
 				}
 			],
 			"top_name": "The Whole Board"

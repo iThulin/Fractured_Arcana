@@ -35,13 +35,14 @@
 		"name": "Illuminate",
 		"mana": 0,
 		"speed": "Reflex",
-		"rules_text": "Reveal the condition, archetype, and status of every enemy.",
+		"rules_text": "Reveal every enemy's intent for the rest of the fight.",
 		"tags": [],
 		"targeting": {
 			"type": "none"
 		},
 		"effect": {
-			"type": "peek_intent"
+			"type": "peek_intent",
+			"permanent": true
 		}
 	},
 	"upgrades": [
@@ -80,7 +81,8 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"permanent": true
 							},
 							{
 								"type": "draw",
@@ -92,7 +94,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Reveal every enemy. Draw 1 card."
+					"value": "Reveal every enemy's intent for the rest of the fight. Draw 1 card."
 				}
 			],
 			"top_name": "Flare+",
@@ -141,7 +143,8 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "peek_intent"
+								"type": "peek_intent",
+								"permanent": true
 							},
 							{
 								"type": "draw",
@@ -157,7 +160,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Reveal every enemy. Draw 1 card and gain 1 mana."
+					"value": "Reveal every enemy's intent for the rest of the fight. Draw 1 card and gain 1 mana."
 				}
 			],
 			"bottom_name": "Full Accounting"

@@ -8,7 +8,7 @@
 		"name": "Borrowed Mana",
 		"mana": 0,
 		"speed": "Sorcery",
-		"rules_text": "Gain 2 mana. At the start of your next turn, repay 2 mana.",
+		"rules_text": "Gain 2 mana. Lose 2 Foresight (you may go Overdrawn).",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -21,7 +21,7 @@
 					"amount": 2
 				},
 				{
-					"type": "mana_debt",
+					"type": "lose_foresight",
 					"amount": 2
 				}
 			]
@@ -56,7 +56,7 @@
 			"half": "both",
 			"top_name": "Borrowed Mana+",
 			"bottom_name": "Repay in Kind+",
-			"description": "Borrow more against the same debt; the repayment shields harder.",
+			"description": "Borrow more against the same debt. The repayment shields harder.",
 			"changes": [
 				{
 					"half": "top",
@@ -67,6 +67,16 @@
 					"half": "bottom",
 					"field": "effect.steps[0].amount",
 					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Gain 3 mana. Lose 2 Foresight (you may go Overdrawn)."
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 shield. Gain 1 Foresight."
 				}
 			]
 		}

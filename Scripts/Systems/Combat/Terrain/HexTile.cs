@@ -97,6 +97,7 @@ public partial class HexTile : Node3D
     private int _growthStage = 0;
     private Label3D _growthLabel;
     private Label3D _growthPreviewLabel;     // next growth tick forecast (druid §2a)
+    private Label3D _scheduleLabel;          // Almanac: a scheduled spell aimed here (chrono §2c)
     private Label3D _reactionLabel;          // element reaction standing on the tile
     private Label3D _reactionPreviewLabel;   // reaction a dragged card would cause
     private ElementReaction _reaction = ElementReaction.None;   // owns the overlay while set
@@ -885,6 +886,40 @@ public partial class HexTile : Node3D
         _growthPreviewLabel.Position = new Vector3(0f, mode == 1 ? 0.7f : 1.0f, 0f);
         _growthPreviewLabel.Modulate = tint;
         _growthPreviewLabel.Visible = true;
+    }
+
+    /// <summary>
+    /// Almanac marker (class_identity_chronomancer_v1 §2c): names the scheduled spell(s)
+    /// that will land on this tile and when. Null or empty hides it. The label is
+    /// created on first use and then only retexted, never freed.
+    /// </summary>
+    public void SetScheduleMark(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            if (_scheduleLabel != null)
+                _scheduleLabel.Visible = false;
+            return;
+        }
+
+        if (_scheduleLabel == null)
+        {
+            _scheduleLabel = new Label3D
+            {
+                Name = "ScheduleMark",
+                FontSize = UITheme.Label3DSmall,
+                OutlineSize = UITheme.Label3DOutlineSize,
+                OutlineModulate = UITheme.Label3DOutline,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Position = new Vector3(0f, 0.9f, 0f),
+                Modulate = ElementColors.Get("temporal").Lightened(0.2f),
+            };
+            CallDeferred("add_child", _scheduleLabel);
+        }
+
+        _scheduleLabel.Text = text;
+        _scheduleLabel.Visible = true;
     }
 
     private void UpdateGrowthLabel(int stage)

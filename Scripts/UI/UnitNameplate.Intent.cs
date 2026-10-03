@@ -53,7 +53,45 @@ public partial class UnitNameplate
         if (d.MaxPoise > 0) yield return d.MaxPoise * 8f - 2f;
         if (d.Openings > 0) yield return 12f + _bold.GetStringSize(d.Openings.ToString(), HorizontalAlignment.Left, -1, 12).X;
         if (d.Postponed > 0) yield return 10f;
+        foreach (var tag in IntentTags())
+            yield return TagWidth(tag);
     }
+
+    // ── State tags (Defer / Advance, predicted reaction) ─────────────
+
+    private const int TagFont = 11;
+    private const float TagIcon = 12f;
+
+    private readonly struct IntentTag
+    {
+        public readonly string Text;
+        public readonly Color Color;
+        public readonly bool Clock;
+        public IntentTag(string text, Color color, bool clock) { Text = text; Color = color; Clock = clock; }
+    }
+
+    private static Color TemporalColor => ElementColors.Get("temporal");
+
+    /// <summary>Small worded tags after the state icons, in draw order:
+    /// DEFERRED (clock) or SPENT, then the reaction the intent would form.</summary>
+    private List<IntentTag> IntentTags()
+    {
+        var tags = new List<IntentTag>();
+        var d = _data;
+        if (d.IntentTiming == IntentTiming.Deferred)
+            tags.Add(new IntentTag("DEFERRED", TemporalColor.Lightened(0.15f), clock: true));
+        else if (d.IntentTiming == IntentTiming.Spent)
+            tags.Add(new IntentTag("SPENT", UITheme.TextSecondary, clock: false));
+        if (d.IntentReaction != ElementReaction.None)
+            tags.Add(new IntentTag(ElementReactions.DisplayName(d.IntentReaction).ToUpperInvariant(),
+                                   ElementColors.Reaction(d.IntentReaction), clock: false));
+        if (!string.IsNullOrEmpty(d.IntentNext))
+            tags.Add(new IntentTag($"THEN {d.IntentNext}", TemporalColor.Lightened(0.35f) with { A = 0.85f }, clock: false));
+        return tags;
+    }
+
+    private float TagWidth(IntentTag tag)
+        => (tag.Clock ? TagIcon + 3f : 0f) + _bold.GetStringSize(tag.Text, HorizontalAlignment.Left, -1, TagFont).X;
 
     // ── Colour and text ──────────────────────────────────────────────
 
@@ -116,6 +154,14 @@ public partial class UnitNameplate
             sb.Append($"\nOpenings {d.Openings} placed on it.");
         if (d.Postponed > 0)
             sb.Append(d.Postponed == 1 ? "\nIts turn is postponed by 1." : $"\nIts turn is postponed by {d.Postponed}.");
+        if (d.IntentTiming == IntentTiming.Deferred)
+            sb.Append("\nDeferred: it still moves this turn, but the blow lands at the end of the round on the marked tile, on whoever stands there then.");
+        else if (d.IntentTiming == IntentTiming.Spent)
+            sb.Append("\nSpent: this attack already landed. It moves this turn but does not strike.");
+        if (d.IntentReaction != ElementReaction.None)
+            sb.Append($"\nWill form {ElementReactions.DisplayName(d.IntentReaction)} on the marked ground: {ElementReactions.Describe(d.IntentReaction)}");
+        if (!string.IsNullOrEmpty(d.IntentNext))
+            sb.Append($"\nNext turn it {d.IntentNextNote}. Where it strikes is decided when it plans.");
 
         var lines = IntentMarkerText.Translate(d.IntentMarkers);
         if (lines.Count > 0)
@@ -136,11 +182,16 @@ public partial class UnitNameplate
             return;
 
         var r = _intentRect;
+        bool spent = d.IntentTiming == IntentTiming.Spent;
+        bool deferred = d.IntentTiming == IntentTiming.Deferred;
         Color kc = IntentKindColor();
-        Color border = d.IntentRevealed ? kc : (kc.Darkened(0.35f) with { A = 0.85f });
+        if (spent)
+            kc = kc.Lerp(UITheme.TextDim, 0.6f);   // the blow is gone; the pill reads as a memory of it
+        Color border = deferred ? TemporalColor
+            : d.IntentRevealed ? kc : (kc.Darkened(0.35f) with { A = 0.85f });
 
-        var sb = new StyleBoxFlat { BgColor = UITheme.BgDeep with { A = 0.94f }, BorderColor = border, AntiAliasing = true };
-        sb.SetBorderWidthAll(d.IntentRevealed ? 2 : 1);
+        var sb = new StyleBoxFlat { BgColor = UITheme.BgDeep with { A = spent ? 0.70f : 0.94f }, BorderColor = border, AntiAliasing = true };
+        sb.SetBorderWidthAll(d.IntentRevealed || deferred ? 2 : 1);
         sb.SetCornerRadiusAll(6);
         sb.ShadowColor = new Color(0, 0, 0, 0.45f);
         sb.ShadowSize = 3;
@@ -155,10 +206,13 @@ public partial class UnitNameplate
         float asc = _bold.GetAscent(IntentValueFont);
         float desc = _bold.GetDescent(IntentValueFont);
         var pos = new Vector2(x, cy + (asc - desc) * 0.5f);
-        Color vc = d.IntentRevealed ? Colors.White : UITheme.TextDim;
+        Color vc = spent ? UITheme.TextDim : d.IntentRevealed ? Colors.White : UITheme.TextDim;
         DrawStringOutline(_bold, pos, value, HorizontalAlignment.Left, -1, IntentValueFont, 3, new Color(0, 0, 0, 0.9f));
         DrawString(_bold, pos, value, HorizontalAlignment.Left, -1, IntentValueFont, vc);
-        x += _bold.GetStringSize(value, HorizontalAlignment.Left, -1, IntentValueFont).X;
+        float valueW = _bold.GetStringSize(value, HorizontalAlignment.Left, -1, IntentValueFont).X;
+        if (spent)
+            DrawLine(new Vector2(x - 1f, cy), new Vector2(x + valueW + 1f, cy), UITheme.TextSecondary, 1.6f, true);   // struck through
+        x += valueW;
 
         if (d.Staggered)
         {
@@ -195,7 +249,31 @@ public partial class UnitNameplate
         {
             x += IntentStateGap;
             DrawHourglass(new Vector2(x + 5f, cy));
+            x += 10f;
         }
+        foreach (var tag in IntentTags())
+        {
+            x += IntentStateGap;
+            if (tag.Clock)
+            {
+                DrawClock(new Vector2(x + TagIcon * 0.5f, cy), tag.Color);
+                x += TagIcon + 3f;
+            }
+            float ta = _bold.GetAscent(TagFont), td = _bold.GetDescent(TagFont);
+            var tp = new Vector2(x, cy + (ta - td) * 0.5f);
+            DrawStringOutline(_bold, tp, tag.Text, HorizontalAlignment.Left, -1, TagFont, 3, new Color(0, 0, 0, 0.9f));
+            DrawString(_bold, tp, tag.Text, HorizontalAlignment.Left, -1, TagFont, tag.Color);
+            x += _bold.GetStringSize(tag.Text, HorizontalAlignment.Left, -1, TagFont).X;
+        }
+    }
+
+    /// <summary>A small clock face: the deferred-attack mark.</summary>
+    private void DrawClock(Vector2 c, Color col)
+    {
+        DrawCircle(c + Vector2.One, 5.6f, new Color(0, 0, 0, 0.6f));
+        DrawArc(c, 5f, 0f, Mathf.Tau, 24, col, 1.6f, true);
+        DrawLine(c, c + new Vector2(0, -3.6f), col, 1.5f, true);
+        DrawLine(c, c + new Vector2(2.8f, 0.8f), col, 1.5f, true);
     }
 
     /// <summary>One silhouette per intent kind, drawn in an 18 px box around c.</summary>

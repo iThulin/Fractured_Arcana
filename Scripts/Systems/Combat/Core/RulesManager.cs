@@ -177,6 +177,8 @@ public sealed class Resolver
         CombatPresenter.EmitCast(item);
 
         s.ResolutionDepth++;   // GameState.RequestCardChoice: a resolver pass is live
+        var prevAbilityName = s.ResolvingAbilityName;
+        s.ResolvingAbilityName = item.Ability?.Name;   // Almanac labels (schedule)
         try
         {
             foreach (var eff in item.Ability.Effects)
@@ -193,6 +195,7 @@ public sealed class Resolver
                 item.CasterUnit.BonusSpellDamage -= schoolItemBonus;
             s.ActiveCasterUnit = prevCaster;
             Unit.AmbientDamageSource = prevDamageSource;
+            s.ResolvingAbilityName = prevAbilityName;
         }
 
         // Post-cast player choice (2026-07-28): an effect asked the player something.

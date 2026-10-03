@@ -131,13 +131,61 @@ public class AlmanacEntry
 	/// <summary>The effect snapshot at scheduling time.</summary>
 	public EffectSnapshot Snapshot;
 
-	/// <summary>Display name shown in the turn-track UI (optional).</summary>
+	/// <summary>Display name shown in the Almanac list and on the target tile.</summary>
 	public string Label;
+
+	/// <summary>Bookkeeping timers (a decoy's expiry) that are not spells the player
+	/// scheduled. Kept out of the Almanac view.</summary>
+	public bool Hidden;
 
 	public bool IsReady => TurnsRemaining <= 0;
 
+	/// <summary>The unit that scheduled it, pinned as the caster when it fires.</summary>
+	public Unit CasterUnit;
+
+	/// <summary>Turns this entry has waited (one per tick).</summary>
+	public int TurnsWaited;
+
+	/// <summary>Matured schedules (class_identity_chronomancer_v1 §2c): +2 damage for
+	/// each turn waited beyond the first. Damage only, through BonusSpellDamage.</summary>
+	public const int MaturityPerTurn = 2;
+	public int MaturityBonus => Math.Max(0, TurnsWaited - 1) * MaturityPerTurn;
+
 	/// <summary>Decrement the counter. Call once per player turn.</summary>
-	public void Tick() => TurnsRemaining = Math.Max(0, TurnsRemaining - 1);
+	public void Tick()
+	{
+		TurnsRemaining = Math.Max(0, TurnsRemaining - 1);
+		TurnsWaited++;
+	}
+
+	/// <summary>Resolves the scheduled effect now, as its scheduling unit, with whatever
+	/// it has matured to so far. Every firing path (the turn tick, Advance, Hasten,
+	/// event control) goes through here so maturity cannot be skipped.</summary>
+	public void Fire(GameState s)
+	{
+		var unit = CasterUnit != null && GodotObject.IsInstanceValid(CasterUnit) && CasterUnit.Stats.IsAlive
+			? CasterUnit : null;
+		int bonus = unit != null ? MaturityBonus : 0;
+		var prevCaster = s.ActiveCasterUnit;
+		if (unit != null)
+			s.ActiveCasterUnit = unit;
+		if (bonus > 0)
+		{
+			unit.BonusSpellDamage += bonus;
+			s.Log($"[Almanac] {Label} has matured: +{bonus} damage.");
+			RegisterManager.Fire("chrono.matured");
+		}
+		try
+		{
+			Child?.Resolve(s, Caster, Targets, Snapshot);
+		}
+		finally
+		{
+			if (bonus > 0)
+				unit.BonusSpellDamage -= bonus;
+			s.ActiveCasterUnit = prevCaster;
+		}
+	}
 }
 
 // ════════════════════════════════════════════════════════════════

@@ -7,7 +7,9 @@
       "category": "explain",
       "once": true,
       "title": "The hand and the mana",
-      "lines": [ "Be it recorded that the candidate has been dealt a hand. The candidate will kindly not..." ],
+      "lines": [
+        "Be it recorded that the candidate has been dealt a hand. The candidate will kindly not..."
+      ],
       "note": "Each caster holds their own hand and mana. Drag a card onto a target to cast it; the cost is paid from that caster's mana. Hands draw back up to full and mana refills at the start of each of your turns."
     },
     {
@@ -15,7 +17,9 @@
       "category": "explain",
       "once": true,
       "title": "Two halves to every card",
-      "lines": [ "Every page has a top and a bottom. One is studied, one is... reflex. The minutes require that you choose." ],
+      "lines": [
+        "Every page has a top and a bottom. One is studied, one is... reflex. The minutes require that you choose."
+      ],
       "note": "Each card has two halves. A Studied half can only be cast on your own turn. A Reflex half can also be cast during the enemy turn, when a response window opens. Mana you leave unspent stays available for those responses."
     },
     {
@@ -23,7 +27,9 @@
       "category": "explain",
       "once": true,
       "title": "Movement",
-      "lines": [ "The candidate may approach the bench. Or the enemy. The Register does not... advise either." ],
+      "lines": [
+        "The candidate may approach the bench. Or the enemy. The Register does not... advise either."
+      ],
       "note": "Select a unit to see the tiles it can reach this turn, then click one to move. Movement and casting are separate: moving does not spend mana."
     },
     {
@@ -31,7 +37,9 @@
       "category": "explain",
       "once": true,
       "title": "A response window",
-      "lines": [ "Objection noted. The floor is yours, briefly. Very briefly..." ],
+      "lines": [
+        "Objection noted. The floor is yours, briefly. Very briefly..."
+      ],
       "note": "An enemy action is about to resolve, and one of your casters holds a Reflex they can afford. Drag a Reflex half onto its target to respond, or press Pass to let the action resolve. Only Reflex halves can respond."
     },
     {
@@ -39,16 +47,19 @@
       "category": "explain",
       "once": true,
       "title": "Marked ground",
-      "lines": [ "It has written your square into its plans. Plans can be... amended. Stand elsewhere." ],
+      "lines": [
+        "It has written your square into its plans. Plans can be... amended. Stand elsewhere."
+      ],
       "note": "Enemy attacks lock onto a tile, not a unit. The marked tiles show where each blow will land. Step off a marked tile before the enemy turn and the attack lands on empty ground."
     },
-
     {
       "key": "reaction.steam",
       "category": "explain",
       "once": true,
       "title": "Reaction: Steam",
-      "lines": [ "Steam. Fire and frost, entered together, neither yielding. The minutes will reflect that the room can no longer see." ],
+      "lines": [
+        "Steam. Fire and frost, entered together, neither yielding. The minutes will reflect that the room can no longer see."
+      ],
       "note": "Fire and Frost met on one tile. The steam blocks line of sight through that tile for 2 rounds, then clears."
     },
     {
@@ -56,7 +67,9 @@
       "category": "explain",
       "once": true,
       "title": "Reaction: Fulgurite",
-      "lines": [ "Lightning, into earth. It has left a signature in glass. Struck through, permanently." ],
+      "lines": [
+        "Lightning, into earth. It has left a signature in glass. Struck through, permanently."
+      ],
       "note": "Storm and Earth met on one tile. Whoever stands there takes 5 damage, and the tile becomes rubble for good: difficult ground that stops forced movement."
     },
     {
@@ -64,7 +77,9 @@
       "category": "explain",
       "once": true,
       "title": "Reaction: Magma",
-      "lines": [ "Fire upon stone. The floor has become an... objection. Do not walk on objections." ],
+      "lines": [
+        "Fire upon stone. The floor has become an... objection. Do not walk on objections."
+      ],
       "note": "Fire and Earth met on one tile. No one can walk onto Magma, but a unit pushed or pulled onto it takes 6 damage and stops there. It cools to Earth after 3 rounds; Frost quenches it to Earth at once."
     },
     {
@@ -72,7 +87,9 @@
       "category": "explain",
       "once": true,
       "title": "Reaction: Wildfire",
-      "lines": [ "Fire, and wind to carry it. It is looking for someone. Not, one hopes, the candidate..." ],
+      "lines": [
+        "Fire, and wind to carry it. It is looking for someone. Not, one hopes, the candidate..."
+      ],
       "note": "Fire and Storm met on one tile. For 2 rounds, at the end of each round the wildfire spreads Fire to the open adjacent tile nearest the closest enemy of whoever lit it."
     },
     {
@@ -80,7 +97,9 @@
       "category": "explain",
       "once": true,
       "title": "Reaction: Brittle",
-      "lines": [ "Frost, then a charge through it. Anything standing here is now... fragile. Handle accordingly." ],
+      "lines": [
+        "Frost, then a charge through it. Anything standing here is now... fragile. Handle accordingly."
+      ],
       "note": "Frost and Storm met on one tile. For 2 rounds, the occupant takes 3 extra damage from every hit. A Frozen unit standing here shatters for 8 extra damage and thaws, which spends the Brittle."
     },
     {
@@ -88,7 +107,9 @@
       "category": "explain",
       "once": true,
       "title": "Reaction: Glacier",
-      "lines": [ "Frost, and earth to hold it. A wall. The Register approves of walls; they keep things... in order." ],
+      "lines": [
+        "Frost, and earth to hold it. A wall. The Register approves of walls; they keep things... in order."
+      ],
       "note": "Frost and Earth met on an empty tile and raised a glacier: a wall with 8 HP that blocks movement and line of sight. It melts back to Frost after 2 rounds, or when broken. On an occupied tile, the occupant is Frozen for 1 turn instead."
     },
     {
@@ -96,24 +117,79 @@
       "category": "explain",
       "once": true,
       "title": "Elemental burst",
-      "lines": [ "Four entries of one element, and the page could hold no more. It has... spilled." ],
+      "lines": [
+        "Four entries of one element, and the page could hold no more. It has... spilled."
+      ],
       "note": "Charging an element to its limit sets off a burst: a powerful free effect of that element. The element's charges then reset to zero. Fire and Frost cancel each other's charges, as do Storm and Earth."
     },
-
     {
       "key": "druid.growth_preview",
       "category": "explain",
       "once": true,
       "title": "Growth to come",
-      "lines": [ "The grove has made its intentions known. The Register records them in pencil, for now..." ],
+      "lines": [
+        "The grove has made its intentions known. The Register records them in pencil, for now..."
+      ],
       "note": "Faint hollow sprouts mark where your growth will seed at the end of the enemy turn; a faint + marks living ground that will grow a stage. Growth is deterministic: it spreads toward the best ground, then carcass ground, then the nearest enemy."
+    },
+    {
+      "key": "chrono.defer",
+      "category": "explain",
+      "once": true,
+      "title": "Deferred",
+      "lines": [
+        "An attack deferred is not an attack excused. It will arrive. Stand elsewhere."
+      ],
+      "note": "A deferred attack is lifted out of the enemy's turn. The enemy still moves, but the blow lands at the end of the round, after every enemy has acted, on the tile it was aimed at. Whoever stands there then is hit: you, nobody, or another enemy. If the attacker dies first, the attack is lost."
+    },
+    {
+      "key": "chrono.advance",
+      "category": "explain",
+      "once": true,
+      "title": "Advanced",
+      "lines": [
+        "Moved up on the docket. The court will hear it... now."
+      ],
+      "note": "An advanced attack lands immediately, on the tile it was aimed at, and the enemy takes its turn without it. Clear the tile first and the blow falls on empty ground."
+    },
+    {
+      "key": "chrono.overdrawn",
+      "category": "explain",
+      "once": true,
+      "title": "Overdrawn",
+      "lines": [
+        "You have borrowed against the hour. The hour keeps accounts."
+      ],
+      "note": "Your Time Bank is below zero. At the start of each of your turns you lose 2 HP for every point you owe (shield and armor do not help), and a full-bank free Reflex is off. Banking at the end of your turn (+1, plus unspent mana) pays the debt down. The bank cannot go below -3."
+    },
+    {
+      "key": "chrono.matured",
+      "category": "explain",
+      "once": true,
+      "title": "A matured spell",
+      "lines": [
+        "It waited. It is... stronger for the wait. Most things are not."
+      ],
+      "note": "A scheduled spell gains 2 damage for every turn it waits beyond the first. Calling it forward early (Hasten, Sands of Time) lands it with what it has matured to so far."
+    },
+    {
+      "key": "chrono.lookahead",
+      "category": "explain",
+      "once": true,
+      "title": "Reading ahead",
+      "lines": [
+        "The next page, then. Read it quickly; it is still being... written."
+      ],
+      "note": "Revealed enemies now show THEN and their next move on the nameplate: what they plan to do the turn after this one. It tells you what, not where: the target is chosen when they plan."
     },
     {
       "key": "strategic.first_council",
       "category": "explain",
       "once": true,
       "title": "The council",
-      "lines": [ "The council is in session. Minutes will be kept. By me. Obviously..." ],
+      "lines": [
+        "The council is in session. Minutes will be kept. By me. Obviously..."
+      ],
       "note": "The council is where the guild's standing with the powers of the world is read and argued. Open it from the top bar at any time between expeditions."
     },
     {
@@ -121,7 +197,9 @@
       "category": "explain",
       "once": true,
       "title": "A negotiation",
-      "lines": [ "Words, then. The Register is very fond of words. Choose yours as if they will be... written down." ],
+      "lines": [
+        "Words, then. The Register is very fond of words. Choose yours as if they will be... written down."
+      ],
       "note": "A negotiation is fought with arguments instead of spells. Every exchange shifts where the talks stand, and what you concede is remembered."
     },
     {
@@ -129,7 +207,9 @@
       "category": "explain",
       "once": true,
       "title": "A field posting",
-      "lines": [ "The party has been posted. Be it recorded where they stand, in case anyone asks... later." ],
+      "lines": [
+        "The party has been posted. Be it recorded where they stand, in case anyone asks... later."
+      ],
       "note": "A posted party works its ground lunation by lunation and draws supplies each moon. Recall or collect it from the map when the work is done. A party left exposed in the field can be found by threats."
     },
     {
@@ -137,7 +217,9 @@
       "category": "explain",
       "once": true,
       "title": "Waystones",
-      "lines": [ "Through the stone, and out again, and no time spent. The Register disapproves of the... accounting." ],
+      "lines": [
+        "Through the stone, and out again, and no time spent. The Register disapproves of the... accounting."
+      ],
       "note": "Stepping through a waystone your guild has raised is instant and free. Raised stones turn a long march into a single step."
     },
     {
@@ -145,7 +227,9 @@
       "category": "explain",
       "once": true,
       "title": "A lunation passes",
-      "lines": [ "A moon has turned. The world has made its entries while you were... occupied." ],
+      "lines": [
+        "A moon has turned. The world has made its entries while you were... occupied."
+      ],
       "note": "Each new moon the world takes its turn: postings progress, threats advance, and the kingdoms act. The Conjunction draws one lunation closer."
     },
     {
@@ -153,10 +237,11 @@
       "category": "explain",
       "once": true,
       "title": "The unmaking",
-      "lines": [ "Struck through. All of it. And yet the Register remains, and so do... some of you." ],
+      "lines": [
+        "Struck through. All of it. And yet the Register remains, and so do... some of you."
+      ],
       "note": "The timeline has been unmade and a new one begins. What the guild made eternal carries over: essence, the campus, mastery, the Regalia, and every name the Register holds. The kingdoms, companions and fragments start fresh."
     },
-
     {
       "key": "combat.victory",
       "category": "comment",

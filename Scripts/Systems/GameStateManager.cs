@@ -64,6 +64,11 @@ public sealed class GameState
     /// </summary>
     public List<AlmanacEntry> Almanac = new();
 
+    /// <summary>Name of the card half the resolver is resolving right now (null between
+    /// resolutions). Lets effects that outlive the cast, such as a scheduled spell,
+    /// name themselves after the card that made them.</summary>
+    public string ResolvingAbilityName;
+
     /// <summary>
     /// Mana cost reduction applied to the player's NEXT spell. Cleared after use.
     /// </summary>
@@ -117,6 +122,12 @@ public sealed class GameState
 
     /// <summary>Turns remaining before PhaseTiles clear.</summary>
     public int PhaseTileTurnsRemaining = 0;
+
+    /// <summary>The unit that made the Phase tiles: it alone may Phase Step.</summary>
+    public Unit PhaseTileOwner;
+
+    /// <summary>Foresight granted per Phase Step (Phase Anchor tier 4).</summary>
+    public int PhaseStepForesight;
 
     // ── General combat state ─────────────────────────────────────────────────
 

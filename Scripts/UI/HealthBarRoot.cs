@@ -313,6 +313,10 @@ public partial class HealthBarRoot : Node3D
             d.MaxPoise = _unit.MaxPoise;
             d.Openings = _unit.Openings;
             d.Postponed = _unit.PostponedTurns;
+            d.IntentTiming = _unit.AttackTiming;
+            d.IntentReaction = intent.PredictedReaction;
+            d.IntentNext = intent.NextRevealed ? NextKindWord(intent.NextKind) : "";
+            d.IntentNextNote = intent.NextRevealed ? (intent.NextNote ?? "") : "";
             string text = _intentLabel.Text ?? "";
             int nl = text.IndexOf('\n');
             d.IntentMarkers = nl >= 0 ? text.Substring(nl + 1).Trim() : "";
@@ -327,6 +331,19 @@ public partial class HealthBarRoot : Node3D
             d.CoverTagColor = _coverLabel.Modulate with { A = 1f };
         }
     }
+
+    /// <summary>Short word for a forecast next beat (nameplate "THEN ..." tag).</summary>
+    private static string NextKindWord(IntentKind kind) => kind switch
+    {
+        IntentKind.Attack       => "ATTACK",
+        IntentKind.RangedAttack => "SHOT",
+        IntentKind.Channel      => "CHANNEL",
+        IntentKind.Release      => "BLAST",
+        IntentKind.Guard        => "GUARD",
+        IntentKind.Imbue        => "IMBUE",
+        IntentKind.Shove        => "SHOVE",
+        _                       => "?",
+    };
 
     /// <summary>Takes a Label3D off every camera without touching its Visible
     /// flag, which the Unit still drives and this node reads.</summary>

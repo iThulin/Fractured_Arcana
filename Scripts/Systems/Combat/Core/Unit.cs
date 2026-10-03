@@ -342,6 +342,18 @@ public partial class Unit : Node3D
     /// <summary>This unit's locked plan for the coming enemy phase. Null for player units and unplanned enemies.</summary>
     public EnemyIntent CurrentIntent;
 
+    /// <summary>Whether <see cref="CurrentIntent"/>'s attack was moved in time this round
+    /// (class_identity_chronomancer_v1 §2a: Defer, Advance). Reset when intents are planned.</summary>
+    public IntentTiming AttackTiming = IntentTiming.Normal;
+
+    /// <summary>Lookahead stays revealed every round (The Fixed Hour, Glimpse's top rung).</summary>
+    public bool IntentLookaheadPermanent;
+
+    /// <summary>Round-start snapshot (class_identity_chronomancer_v1 §2e): the tile and
+    /// HP this unit had when the current round began. Null tile: it arrived mid-round.</summary>
+    public Vector2I? RoundStartTile;
+    public int RoundStartHp;
+
     /// <summary>Tile locked when a wizard begins channelling; the release lands here regardless of repositioning. Cleared on release or interrupt.</summary>
     public Vector2I? ChannelTile = null;
 
@@ -448,6 +460,24 @@ public partial class Unit : Node3D
     /// Turns remaining before the anchor expires.
     /// </summary>
     public int AnchorTurnsRemaining = 0;
+
+    /// <summary>Snap Back bonuses set by SetAnchorEffect (Temporal Anchor's ladder),
+    /// paid each time the unit snaps to its anchor (CombatManager.Anchors.cs).</summary>
+    public int AnchorSnapHeal;
+    public int AnchorSnapShield;
+    public int AnchorSnapForesight;
+
+    /// <summary>A Fixed anchor (Temporal Anchor tier 4): the first hit that would kill
+    /// the unit leaves it at 1 HP and snaps it home. Spent on use.</summary>
+    public bool AnchorLethalSave;
+
+    /// <summary>Round in which Snap Back / Phase Step was last used (once per turn each).</summary>
+    public int AnchorSnapUsedRound = -1;
+    public int PhaseStepUsedRound = -1;
+
+    /// <summary>Raised when a Fixed anchor caught a lethal hit (HP already set to 1).
+    /// CombatManager teleports the unit home.</summary>
+    public static event Action<Unit> AnchorLethalSaved;
 
     /// <summary>
     /// Tile this unit has been ordered to charge to via RedirectChargeEffect.
@@ -1262,6 +1292,12 @@ public partial class Unit : Node3D
         Stats.Shield -= shieldLoss;
         Stats.Armor -= armorLoss;
         Stats.Health = Math.Max(0, Stats.Health - hpLoss);
+        if (Stats.Health <= 0 && AnchorLethalSave && AnchorCoord != null && !IsDeathQueued)
+        {
+            Stats.Health = 1;
+            AnchorLethalSave = false;
+            AnchorLethalSaved?.Invoke(this);
+        }
 
         // Presentation seam (spell_vfx_pipeline_v1): the rules are final here; the
         // DISPLAY of them (bar refresh + damage number) is deferred to the presenter

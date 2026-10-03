@@ -59,6 +59,13 @@ public sealed class NameplateData
     public int Poise, MaxPoise, Openings, Postponed;
     /// <summary>CombatManager's ASCII marker line; translated into the intent tooltip.</summary>
     public string IntentMarkers = "";
+    /// <summary>Chronomancer Defer / Advance state of the attack.</summary>
+    public IntentTiming IntentTiming = IntentTiming.Normal;
+    /// <summary>The element reaction the intent would form (imbue intents).</summary>
+    public ElementReaction IntentReaction = ElementReaction.None;
+    /// <summary>Revealed lookahead: the next beat's kind word ("" when hidden) and note.</summary>
+    public string IntentNext = "";
+    public string IntentNextNote = "";
     public string CoverTag = "";
     public Color CoverTagColor = Colors.White;
 
@@ -72,6 +79,8 @@ public sealed class NameplateData
           .Append('|').Append(Ap).Append(',').Append(MaxAp).Append(',').Append(Edge).Append(',').Append(MaxEdge)
           .Append('|').Append(HasIntent).Append(IntentKind).Append(IntentRevealed).Append(IntentValue).Append(',').Append(IntentShoveTiles).Append(IntentElement)
           .Append(Staggered).Append(Poise).Append('/').Append(MaxPoise).Append(',').Append(Openings).Append(',').Append(Postponed).Append(IntentMarkers)
+          .Append(',').Append(IntentTiming).Append(',').Append(IntentReaction)
+          .Append(',').Append(IntentNext).Append(IntentNextNote)
           .Append('|').Append(CoverTag).Append(CoverTagColor.ToHtml()).Append('|');
         foreach (var c in Conditions)
             sb.Append(c.Key).Append(':').Append(c.Count).Append(':').Append(c.Description).Append(';');

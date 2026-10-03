@@ -8,16 +8,19 @@
 		"name": "Rewind",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Re-cast your last resolved spell with its original targets. Spend 1 Foresight.",
+		"rules_text": "Return target ally or yourself to the tile and HP it had at the start of this round. Spend 1 Foresight.",
 		"tags": [
 			"temporal"
 		],
 		"targeting": {
-			"type": "self"
+			"type": "unit",
+			"range": 6
 		},
 		"effect": {
-			"type": "rewind_last",
-			"retarget": false
+			"type": "return_to_round_start",
+			"restore_hp": true,
+			"allies_only": true,
+			"foresight_cost": 1
 		}
 	},
 	"bottom": {
@@ -46,8 +49,17 @@
 			"changes": [
 				{
 					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "return_to_round_start",
+						"restore_hp": true,
+						"allies_only": true
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Re-cast your last resolved spell with its original targets."
+					"value": "Return target ally or yourself to the tile and HP it had at the start of this round."
 				},
 				{
 					"half": "bottom",
@@ -64,13 +76,31 @@
 		{
 			"tier": 2,
 			"half": "top",
-			"top_name": "Replay",
-			"description": "Replay: +2 damage.",
+			"top_name": "Second Chance",
+			"description": "Rewind, and draw 1.",
 			"changes": [
 				{
 					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"restore_hp": true,
+								"allies_only": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Re-cast your last spell (+2 damage), original targets."
+					"value": "Return target ally or yourself to the tile and HP it had at the start of this round. Draw 1 card."
 				}
 			]
 		},
@@ -90,30 +120,30 @@
 		{
 			"tier": 3,
 			"half": "top",
-			"top_name": "Double Take",
-			"description": "Rewind the last two spells.",
+			"top_name": "Rally Point",
+			"description": "Rewind the whole party.",
 			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "rewind_last",
-								"retarget": false
-							},
-							{
-								"type": "rewind_last",
-								"retarget": false
-							}
-						]
+						"type": "return_to_round_start",
+						"restore_hp": true,
+						"all_allies": true,
+						"foresight_cost": 1
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Re-cast your last two resolved spells, original targets."
+					"value": "Return every ally to the tile and HP it had at the start of this round. Spend 1 Foresight."
 				}
 			]
 		},
@@ -139,14 +169,13 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Eternal Return",
-			"description": "Re-target, +2, cheaper.",
+			"description": "The whole party, cheaper, and a card back.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect",
+					"field": "targeting",
 					"value": {
-						"type": "rewind_last",
-						"retarget": true
+						"type": "self"
 					}
 				},
 				{
@@ -156,8 +185,26 @@
 				},
 				{
 					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"restore_hp": true,
+								"all_allies": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Re-cast your last spell (+2 damage), new targets."
+					"value": "Return every ally to the tile and HP it had at the start of this round. Draw 1 card."
 				}
 			]
 		},

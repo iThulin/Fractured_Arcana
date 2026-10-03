@@ -46,6 +46,12 @@ public class FateAttunement : ISchoolAttunement
     // ── Core state ───────────────────────────────────────────────────
     public int Charges { get; private set; } = 0;
     public const int MaxCharges = 4;
+    /// <summary>Overdrawn floor (class_identity_chronomancer_v1 §2b): "lose" effects may
+    /// take the bank this far below zero. Spending never goes below zero.</summary>
+    public const int MinCharges = -3;
+
+    /// <summary>Below zero: the owner loses HP each turn start and gets no free Reflex.</summary>
+    public bool IsOverdrawn => Charges < 0;
     public const int BurstThreshold = 4;
 
     // ── Events for UI and card effects ──────────────────────────────
@@ -136,7 +142,18 @@ public class FateAttunement : ISchoolAttunement
     /// <summary>Spend Foresight charges (e.g. to upgrade redirect to chosen-target).</summary>
     public void SpendCharges(int amount)
     {
-        SetCharges(Math.Max(0, Charges - amount));
+        // Spending needs the Foresight to be there: it stops at zero (or stays where
+        // an Overdraft already put it). Only LoseCharges can borrow below zero.
+        SetCharges(Math.Max(Math.Min(Charges, 0), Charges - amount));
+    }
+
+    /// <summary>"Lose N Foresight (you may go Overdrawn)": may take the bank below zero,
+    /// down to <see cref="MinCharges"/>. Returns how much was actually lost.</summary>
+    public int LoseCharges(int amount)
+    {
+        int before = Charges;
+        SetCharges(Math.Max(MinCharges, Charges - Math.Max(0, amount)));
+        return before - Charges;
     }
 
     /// <summary>Direct set, used by effects like set_foresight. Bypasses tier events.</summary>
@@ -151,13 +168,13 @@ public class FateAttunement : ISchoolAttunement
     // ── Private helpers ──────────────────────────────────────────────
     private void SetCharges(int value)
     {
-        Charges = Math.Clamp(value, 0, MaxCharges);
+        Charges = Math.Clamp(value, MinCharges, MaxCharges);
         OnChargeChanged?.Invoke(Charges);
     }
 
     private static ForesightTier ChargeToTier(int charges) => charges switch
     {
-        0 => ForesightTier.Blind,
+        <= 0 => ForesightTier.Blind,   // Overdrawn reads as no tier, never as Foreseen
         1 => ForesightTier.Glimpsed,
         2 => ForesightTier.Aware,
         3 => ForesightTier.Prescient,

@@ -1,0 +1,279 @@
+{
+	"id": "chronomancer_written_in_the_stars",
+	"status": "ready",
+	"name": "Written in the Stars",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Written in the Stars",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Advance target enemy's attack: it lands now, on the tile it was aimed at. The enemy then takes its turn without it.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "advance_intent"
+		}
+	},
+	"bottom": {
+		"name": "Clear Sky",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 2 Foresight.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_foresight",
+			"amount": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Written in the Stars+",
+			"bottom_name": "Clear Sky+",
+			"description": "Advancing banks Foresight; the clear sky shows more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance target enemy's attack: it lands now, on the tile it was aimed at. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Foresight. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Foretold",
+			"description": "The enemy staggers after its early blow.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent"
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance target enemy's attack. It is Slowed for 1 turn. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Long Night",
+			"description": "More Foresight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight",
+								"amount": 3
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 Foresight. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Fixed Star",
+			"description": "Call a whole cluster of attacks forward.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"radius": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance the attacks of target enemy and every enemy within 1 of it. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Starlit",
+			"description": "Draw deeper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight",
+								"amount": 3
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 Foresight. Draw 2 cards."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Appointed Hour",
+			"description": "Everything near the target happens now.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"radius": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Advance the attacks of target enemy and every enemy within 2 of it. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Every Star in Place",
+			"description": "Fill the bank.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 Foresight. Draw 2 cards."
+				}
+			]
+		}
+	]
+}
