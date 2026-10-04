@@ -73,7 +73,9 @@ public static partial class CardScriptRegistry
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 0;
             bool look = n.TryGetProperty("lookahead", out var lk) && lk.GetBoolean();
             bool perm = n.TryGetProperty("permanent", out var pm) && pm.GetBoolean();
-            return new PeekIntentEffect(range, look, perm).WithTag("Foresight");
+            var peek = new PeekIntentEffect(range, look, perm);
+            peek.TargetOnly = n.TryGetProperty("target_only", out var to) && to.GetBoolean();
+            return peek.WithTag("Foresight");
         });
 
         // Temporary buff to a specific stat for a number of turns
@@ -140,7 +142,12 @@ public static partial class CardScriptRegistry
         RegisterEffect("advance_intent", n =>
         {
             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
-            return new AdvanceIntentEffect(radius).WithTag("Control");
+            var adv = new AdvanceIntentEffect(radius)
+            {
+                DeferredOnly = n.TryGetProperty("deferred_only", out var d) && d.GetBoolean(),
+                ReverseSpeed = n.TryGetProperty("reverse_speed", out var rs) && rs.GetBoolean(),
+            };
+            return adv.WithTag("Control");
         });
 
         // Skip the next N turns of the enemy, causing them to lose their next N actions (can be used on self for a "stasis" effect)
@@ -282,7 +289,10 @@ public static partial class CardScriptRegistry
         RegisterEffect("lose_foresight", n =>
         {
             int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1;
-            return new LoseForesightEffect(amount).WithTag("Foresight");
+            var lose = new LoseForesightEffect(amount);
+            if (n.TryGetProperty("to_overdraft", out var to))
+                lose.ToOverdraft = to.GetInt32();
+            return lose.WithTag("Foresight");
         });
 
         // Round-start snapshot (2026-10-03): back to the tile (and HP) held when the round began.
@@ -296,6 +306,23 @@ public static partial class CardScriptRegistry
             Radius = n.TryGetProperty("radius", out var ra) ? ra.GetInt32() : 0,
             CollisionDamage = n.TryGetProperty("collision_damage", out var cd) ? cd.GetInt32() : 0,
             ForesightCost = n.TryGetProperty("foresight_cost", out var fc) ? fc.GetInt32() : 0,
+            AllUnits = n.TryGetProperty("all_units", out var au) && au.GetBoolean(),
         });
+
+        // ── The 13 new cards (chronomancer §3, slice 9) ─────────────────────
+        static int I(System.Text.Json.JsonElement n, string k, int d) => n.TryGetProperty(k, out var v) ? v.GetInt32() : d;
+        RegisterEffect("gain_foresight_per_deferred", n => new GainForesightPerDeferredEffect(I(n, "max", 3)).WithTag("Foresight"));
+        RegisterEffect("cancel_deferred", n => new CancelDeferredEffect(I(n, "foresight_cost", 2)).WithTag("Control"));
+        RegisterEffect("delay_scheduled", n => new DelayScheduledEffect(I(n, "turns", 1)).WithTag("Foresight"));
+        RegisterEffect("move_scheduled", n => new MoveScheduledEffect(I(n, "reach", 1)).WithTag("Foresight"));
+        RegisterEffect("ephemeris", _ => new EphemerisEffect().WithTag("Foresight"));
+        RegisterEffect("damage_per_overdraft", n => new DamagePerOverdraftEffect(I(n, "per", 3), I(n, "min", 3)).WithTag("Damage"));
+        RegisterEffect("repay_overdraft", n => new RepayOverdraftEffect(I(n, "amount", 1)).WithTag("Foresight"));
+        RegisterEffect("hasten_decay", n => new HastenDecayEffect(I(n, "bonus", 0)).WithTag("Damage"));
+        RegisterEffect("extend_buffs", n => new ExtendBuffsEffect(I(n, "turns", 1)).WithTag("Status"));
+        RegisterEffect("wither", _ => new WitherEffect().WithTag("Status"));
+        RegisterEffect("gain_foresight_per_status", n => new GainForesightPerStatusEffect(I(n, "max", 3)).WithTag("Foresight"));
+        RegisterEffect("gain_foresight_per_moved", n => new GainForesightPerMovedEffect(I(n, "max", 3)).WithTag("Foresight"));
+        RegisterEffect("fixed_hour", _ => new FixedHourEffect().WithTag("Foresight"));
     }
 }

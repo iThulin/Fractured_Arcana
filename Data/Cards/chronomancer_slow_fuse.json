@@ -1,0 +1,291 @@
+{
+	"id": "chronomancer_slow_fuse",
+	"status": "ready",
+	"name": "Slow Fuse",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Slow Fuse",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Schedule: at the start of your next turn, deal 6 damage to whatever stands on the target tile.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "schedule",
+			"turns": 1,
+			"do": {
+				"type": "damage",
+				"amount": 6
+			}
+		}
+	},
+	"bottom": {
+		"name": "Patience",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 4 shield. Gain 1 Foresight.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 4
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Slow Fuse+",
+			"bottom_name": "Patience+",
+			"description": "A bigger charge; a thicker guard.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 1,
+						"do": {
+							"type": "damage",
+							"amount": 7
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Schedule: at the start of your next turn, deal 7 damage to whatever stands on the target tile."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 5
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 shield. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Long Fuse",
+			"description": "Bigger.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "schedule",
+						"turns": 1,
+						"do": {
+							"type": "damage",
+							"amount": 8
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Schedule: at the start of your next turn, deal 8 damage to whatever stands on the target tile."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Forbearance",
+			"description": "Thicker.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Lit and Waiting",
+			"description": "And a little banked.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "schedule",
+								"turns": 1,
+								"do": {
+									"type": "damage",
+									"amount": 8
+								}
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Schedule: at the start of your next turn, deal 8 damage to whatever stands on the target tile. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Endurance",
+			"description": "More banked.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Powder Keg",
+			"description": "A real charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "schedule",
+								"turns": 1,
+								"do": {
+									"type": "damage",
+									"amount": 10
+								}
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Schedule: at the start of your next turn, deal 10 damage to whatever stands on the target tile. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Stillness",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Gain 2 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

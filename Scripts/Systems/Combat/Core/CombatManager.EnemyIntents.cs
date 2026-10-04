@@ -229,7 +229,7 @@ public partial class CombatManager
         {
             if (!IsValidActor(enemy))
                 continue;
-            if (thirdEye)
+            if (thirdEye || State.FixedHourActive)
                 enemy.IntentPermanentlyRevealed = true;
 
             enemy.AttackTiming = IntentTiming.Normal;   // a new plan is a new attack (Defer/Advance)
@@ -1367,12 +1367,18 @@ public partial class CombatManager
             grid?.GetTileView(coord)?.SetThreatHighlight(false);
         _paintedThreatTiles.Clear();
 
+        // 2026-10-04 crash fix: markers used to be QueueFree'd here and re-created
+        // with a deferred add_child. Two refreshes in one frame (Grand Design and
+        // The Hour Comes Due defer or advance several enemies at once, each calling
+        // RefreshThreatTiles) freed a marker whose deferred add_child was still
+        // queued, and the queued call then read the freed node: EXC_BAD_ACCESS in
+        // Node::add_child from CallQueue::flush. Markers are now pooled per tile:
+        // created once, hidden and re-shown, never freed during the fight.
         foreach (var marker in _threatMarkers.Values)
         {
             if (marker != null && IsInstanceValid(marker))
-                marker.QueueFree();
+                marker.Visible = false;
         }
-        _threatMarkers.Clear();
 
         // Merge first (OR on revealed) so an unrevealed intent sharing a tile
         // with a revealed one can never downgrade the hot tint to dim.
@@ -1414,6 +1420,12 @@ public partial class CombatManager
     /// overlay, so it stays readable inside the player's move zone.</summary>
     private void SpawnThreatMarker(HexTile view, Vector2I coord, bool revealed)
     {
+        if (_threatMarkers.TryGetValue(coord, out var pooled) && pooled != null && IsInstanceValid(pooled))
+        {
+            pooled.Modulate = revealed ? UITheme.TileThreatReticle : UITheme.TileThreatReticleDim;
+            pooled.Visible = true;
+            return;
+        }
         var marker = new Label3D
         {
             Name = "ThreatReticle",

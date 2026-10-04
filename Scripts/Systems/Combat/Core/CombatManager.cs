@@ -208,7 +208,33 @@ public partial class CombatManager : Node3D
         {
             deckUiManager.CardHalfHovered += OnCardHalfHovered;
 
-            deckUiManager.SetManaProvider(() => selectedUnit?.Stats.Mana ?? 0);
+            // 2026-10-04: in a Reflex window the rules let banked Foresight pay (1:1),
+            // and a full bank makes the first Reflex free (Rules.CanCast). The hand only
+            // counted mana, so the window opened over a hand with nothing lit. Mirror
+            // ManaCost.CanPay here.
+            deckUiManager.SetManaProvider(() =>
+            {
+                var u = selectedUnit;
+                if (u == null)
+                    return 0;
+                int m = u.Stats.Mana;
+                if (State?.EnemyPhaseContext == true && u.Attunement is FateAttunement bank)
+                {
+                    if (bank.HasFreeReaction)
+                        return 99;
+                    m += Math.Max(0, bank.Charges);
+                }
+                return m;
+            });
+            CardUi.HalfSpentProvider = h => State != null && State.IsOncePerFightSpent(h);
+            CardDropHandler.SelfCastRedirect = (h, pos) =>
+            {
+                if (h?.Targeting is not (SelectSelfTarget or SelectGlobalTarget))
+                    return null;
+                if (deckUiManager != null && IsInstanceValid(deckUiManager) && deckUiManager.IsOverHand(pos))
+                    return null;
+                return selectedUnit != null && IsInstanceValid(selectedUnit) ? selectedUnit.CurrentTile?.TileView : null;
+            };
             // U3e: the hand renders TAXED prices, straight off the rules engine's own
             // formula. ActiveCasterUnit is pinned to the selected unit for the call and
             // restored, exactly as UnitCanPlay does: EffectiveAmount clamps against
@@ -337,6 +363,8 @@ public partial class CombatManager : Node3D
         UninstallReactions();
         UninstallIntentTime();
         UninstallAnchorHooks();
+        CardUi.HalfSpentProvider = null;
+        CardDropHandler.SelfCastRedirect = null;
     }
 
     public override void _Process(double delta)
@@ -2548,6 +2576,9 @@ public partial class CombatManager : Node3D
         if (!_openingIntentsPlanned)
         {
             _openingIntentsPlanned = true;
+            // Opening view (2026-10-04): frame the party AND the enemies. Deferred a
+            // beat so it lands after the turn-start selection glide.
+            GetTree().CreateTimer(0.2).Timeout += FrameOpeningView;
             bool anyUnplanned = enemyUnits.Exists(u => IsValidActor(u) && u.CurrentIntent == null);
             if (anyUnplanned)
             {
@@ -2592,6 +2623,7 @@ public partial class CombatManager : Node3D
             // ever switch once per COMBAT. Reset with the other turn-start
             // state, beside the stance passive re-apply.
             unit.HasSwitchedStanceThisTurn = false;
+            unit.EphemerisFiredThisTurn = false;   // Ephemeris: a new turn's first spell
 
             // Edge (spec v1 §5): per-turn bookkeeping reset, then the turn-start
             // triggers (Reckless, Berserk). An extra turn counts as a turn: the
@@ -3216,6 +3248,23 @@ public partial class CombatManager : Node3D
                  + $"playing as {top.Key} instead of {unit.School} for this fight.");
         unit.School = top.Key;
         unit.InitializeAttunement();
+    }
+
+    /// <summary>Round 1: point the camera from the party toward the enemies and pull back
+    /// far enough that both are on screen. Spawn-zone centroids (OrientCameraForCombat)
+    /// were not enough: reactive spawns and deployment variants put enemies elsewhere.</summary>
+    private void FrameOpeningView()
+    {
+        if (!IsInstanceValid(this) || CombatCamera == null || !IsInstanceValid(CombatCamera))
+            return;
+        var party = playerUnits.Where(u => u != null && IsInstanceValid(u) && u.Stats.IsAlive
+                                           && u.CurrentTile != null && !u.IsAwaitingArrival && !u.IsStructure)
+                               .Select(u => u.GlobalPosition).ToList();
+        var foes = enemyUnits.Where(u => u != null && IsInstanceValid(u) && u.Stats.IsAlive && u.CurrentTile != null)
+                             .Select(u => u.GlobalPosition).ToList();
+        if (party.Count == 0 || foes.Count == 0)
+            return;
+        CombatCamera.FrameUnits(party, foes);
     }
 
     private void SelectNextLivingAfterDeath()

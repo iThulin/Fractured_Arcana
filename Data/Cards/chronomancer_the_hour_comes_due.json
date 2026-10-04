@@ -1,0 +1,284 @@
+{
+	"id": "chronomancer_the_hour_comes_due",
+	"status": "ready",
+	"name": "The Hour Comes Due",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "The Hour Comes Due",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Every Deferred attack lands now, on its locked tile, fastest attacker first.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "advance_intent",
+			"deferred_only": true
+		}
+	},
+	"bottom": {
+		"name": "Stay of Execution",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Cancel target enemy's Deferred attack: it never happens. Spend 2 Foresight.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 8,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "cancel_deferred",
+			"foresight_cost": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Hour Comes Due+",
+			"bottom_name": "Stay of Execution+",
+			"description": "Cheaper to stay; a little banked when it falls.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"deferred_only": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Deferred attack lands now, on its locked tile, fastest attacker first. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "cancel_deferred",
+						"foresight_cost": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cancel target enemy's Deferred attack: it never happens. Spend 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Due Now",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"deferred_only": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Deferred attack lands now, on its locked tile, fastest attacker first. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Reprieve",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "cancel_deferred",
+						"foresight_cost": 1
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cancel target enemy's Deferred attack: it never happens. Spend 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Overdue",
+			"description": "More banked.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"deferred_only": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Deferred attack lands now, on its locked tile, fastest attacker first. Gain 2 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Pardon",
+			"description": "No Foresight needed.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "cancel_deferred",
+						"foresight_cost": 0
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cancel target enemy's Deferred attack: it never happens."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Bill Arrives",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"deferred_only": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Deferred attack lands now, on its locked tile, fastest attacker first. Gain 2 Foresight. Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Clemency",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "cancel_deferred",
+								"foresight_cost": 0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Cancel target enemy's Deferred attack: it never happens. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,302 @@
+{
+	"id": "chronomancer_wither_the_hour",
+	"status": "ready",
+	"name": "Wither the Hour",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Wither the Hour",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Target enemy loses all its shield and every buff.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "wither"
+		}
+	},
+	"bottom": {
+		"name": "Read the Signs",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 1 Foresight for each status on target unit (max 3).",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 8,
+			"los": false
+		},
+		"effect": {
+			"type": "gain_foresight_per_status",
+			"max": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Wither the Hour+",
+			"bottom_name": "Read the Signs+",
+			"description": "A little banked; a guard while reading.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "wither"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target enemy loses all its shield and every buff. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_status",
+								"max": 3
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each status on target unit (max 3). Gain 2 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Withering Glance",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "wither"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target enemy loses all its shield and every buff. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Read Deeper",
+			"description": "Counts higher.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_status",
+								"max": 4
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each status on target unit (max 4). Gain 2 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Blight of Hours",
+			"description": "And it hurts.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "wither"
+							},
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target enemy loses all its shield and every buff. Deal 4 damage. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Omens",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_status",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each status on target unit (max 4). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Dust and Hours",
+			"description": "It hurts more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "wither"
+							},
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target enemy loses all its shield and every buff. Deal 6 damage. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Augury",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_status",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each status on target unit (max 4). Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

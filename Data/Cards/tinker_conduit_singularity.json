@@ -30,7 +30,8 @@
 		"effect": {
 			"type": "set_construct_cap",
 			"cap": 8
-		}
+		},
+		"once_per_fight": true
 	},
 	"upgrades": [
 		{

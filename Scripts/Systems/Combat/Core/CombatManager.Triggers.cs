@@ -1185,6 +1185,8 @@ public partial class CombatManager
             {
                 if (half == null || half.Speed == PlaySpeed.Studied)   // only Reflexes respond
                     continue;
+                if (State.IsOncePerFightSpent(half))   // a spent fight-long half cannot answer
+                    continue;
                 if (freeReaction || UnitCanPlay(half, unit))
                     return true;
             }

@@ -41,7 +41,7 @@ public partial class CombatManager
         var intent = enemy?.CurrentIntent;
         if (intent == null)
             return;
-        intent.NextRevealed = enemy.IntentLookaheadPermanent;
+        intent.NextRevealed = enemy.IntentLookaheadPermanent || State.FixedHourActive;
 
         if (IsRitualist(enemy))
         {

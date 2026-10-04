@@ -142,6 +142,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "For the rest of the fight: at the start of your turn a free Drone rolls off the line onto an empty tile beside you (respects your construct cap)."
+				},
+				{
+					"half": "top",
+					"field": "once_per_fight",
+					"value": true
 				}
 			]
 		},

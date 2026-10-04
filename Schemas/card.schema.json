@@ -389,7 +389,22 @@
 						"push_aimed",
 						"move_to_tile",
 						"lose_foresight",
-						"return_to_round_start"
+						"return_to_round_start",
+						"schedule_last",
+						"gain_foresight_per_scheduled",
+						"gain_foresight_per_deferred",
+						"cancel_deferred",
+						"delay_scheduled",
+						"move_scheduled",
+						"ephemeris",
+						"damage_per_overdraft",
+						"repay_overdraft",
+						"hasten_decay",
+						"extend_buffs",
+						"wither",
+						"gain_foresight_per_status",
+						"gain_foresight_per_moved",
+						"fixed_hour"
 					]
 				},
 				"amount": {

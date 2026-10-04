@@ -217,6 +217,7 @@ public sealed class Resolver
         // made rewind_last / echo / replicate effects re-resolve their own item
         // (infinite recursion -> stack-overflow crash with no log).
         s.LastResolvedItem = item;
+        ChronoHooks.OnSpellResolved(s, item);   // Ephemeris (chronomancer §3)
 
         _bus.Emit("AbilityResolved", item);
 
@@ -230,6 +231,12 @@ public static class Rules
 
     public static bool CanCast(Ability a, GameState s, Entity caster)
     {
+        if (a is CardHalf once && s.IsOncePerFightSpent(once))
+        {
+            s.Log($"{once.Name} lasts the whole fight and has already been cast.");
+            return false;
+        }
+
         if (a.Speed == PlaySpeed.Studied && s.Step != "Main")
             return false;
 
@@ -259,6 +266,12 @@ public static class Rules
 
         foreach (var c in a.Costs)
             c.Pay(s, caster);
+
+        if (a is CardHalf spent && spent.OncePerFight)
+        {
+            s.OncePerFightSpent.Add(GameState.OncePerFightKey(spent));
+            RegisterManager.Fire("card.once");
+        }
 
         if (a.Speed != PlaySpeed.Studied && s.EnemyPhaseContext)
         {

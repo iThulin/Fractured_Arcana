@@ -275,6 +275,16 @@
         "Every hall here is an entry. Some of them are even in order.",
         "Be it recorded that the candidate has returned. Again. Noted. Not approved."
       ]
+    },
+    {
+      "key": "card.once",
+      "category": "explain",
+      "once": true,
+      "title": "Once",
+      "lines": [
+        "Some workings are written into the hour itself. You do not write them twice."
+      ],
+      "note": "A half marked Once can be cast one time per fight. Its effect lasts the rest of the fight, so every copy of that card now shows the half as Used."
     }
   ]
 }

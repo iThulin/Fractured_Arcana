@@ -35,6 +35,21 @@ public sealed class GameState
     public StackItem LastResolvedItem;
     public int SpellsCastThisTurn = 0;
 
+    /// <summary>Once-per-fight halves already cast this fight (CardHalf.OncePerFight),
+    /// keyed by card and half so every copy of the card shares the lock.</summary>
+    public HashSet<string> OncePerFightSpent = new();
+
+    public static string OncePerFightKey(CardHalf h)
+    {
+        var card = h?.OwnerCard;
+        string id = !string.IsNullOrEmpty(card?.BlueprintId) ? card.BlueprintId : card?.CardName ?? h?.Name ?? "";
+        string side = card != null && ReferenceEquals(card.BottomHalf, h) ? "bottom" : "top";
+        return id + ":" + side;
+    }
+
+    public bool IsOncePerFightSpent(CardHalf h) =>
+        h != null && h.OncePerFight && OncePerFightSpent.Contains(OncePerFightKey(h));
+
     /// <summary>True while the enemy phase is executing. Reaction costs may be
     /// paid from banked Foresight (Time Bank, 2026-07-10) only in this context.
     /// Set in RunEnemyTurn; cleared in StartPlayerTurn.</summary>
@@ -128,6 +143,10 @@ public sealed class GameState
 
     /// <summary>Foresight granted per Phase Step (Phase Anchor tier 4).</summary>
     public int PhaseStepForesight;
+
+    /// <summary>The Fixed Hour was cast: every enemy plan (and its next beat) is revealed
+    /// for the rest of the fight, new arrivals included.</summary>
+    public bool FixedHourActive;
 
     // ── General combat state ─────────────────────────────────────────────────
 

@@ -281,6 +281,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "The entire battlefield becomes Memorial Ground for the rest of the fight. Summon cost -2 everywhere. Spirits regen 2 HP/turn."
+				},
+				{
+					"half": "bottom",
+					"field": "once_per_fight",
+					"value": true
 				}
 			]
 		}

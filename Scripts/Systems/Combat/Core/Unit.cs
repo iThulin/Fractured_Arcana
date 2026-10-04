@@ -349,6 +349,15 @@ public partial class Unit : Node3D
     /// <summary>Lookahead stays revealed every round (The Fixed Hour, Glimpse's top rung).</summary>
     public bool IntentLookaheadPermanent;
 
+    /// <summary>Ephemeris (chronomancer §3): the first spell this unit casts each turn is
+    /// copied into the Almanac (ChronoHooks.OnSpellResolved). Reset per turn in StartPlayerTurn.</summary>
+    public bool EphemerisActive;
+    public bool EphemerisFiredThisTurn;
+
+    /// <summary>The Fixed Hour: this unit has a free Defer each round (action bar).</summary>
+    public bool HasFixedHour;
+    public int FixedHourDeferRound = -1;
+
     /// <summary>Round-start snapshot (class_identity_chronomancer_v1 §2e): the tile and
     /// HP this unit had when the current round began. Null tile: it arrived mid-round.</summary>
     public Vector2I? RoundStartTile;

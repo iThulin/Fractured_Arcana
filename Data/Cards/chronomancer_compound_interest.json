@@ -1,0 +1,260 @@
+{
+	"id": "chronomancer_compound_interest",
+	"status": "ready",
+	"name": "Compound Interest",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Compound Interest",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage for each point you are Overdrawn (minimum 3).",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage_per_overdraft",
+			"per": 3,
+			"min": 3
+		}
+	},
+	"bottom": {
+		"name": "Installment",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Repay 1 point of Overdraft. Gain 4 shield.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "repay_overdraft",
+					"amount": 1
+				},
+				{
+					"type": "shield",
+					"amount": 4
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Compound Interest+",
+			"bottom_name": "Installment+",
+			"description": "A higher floor; a thicker guard.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_per_overdraft",
+						"per": 3,
+						"min": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 3 damage for each point you are Overdrawn (minimum 4)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repay_overdraft",
+								"amount": 1
+							},
+							{
+								"type": "shield",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repay 1 point of Overdraft. Gain 5 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Usury",
+			"description": "Steeper interest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_per_overdraft",
+						"per": 4,
+						"min": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage for each point you are Overdrawn (minimum 4)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Settlement",
+			"description": "Pays more down.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repay_overdraft",
+								"amount": 2
+							},
+							{
+								"type": "shield",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repay 2 points of Overdraft. Gain 5 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Arrears",
+			"description": "A higher floor.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_per_overdraft",
+						"per": 4,
+						"min": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage for each point you are Overdrawn (minimum 5)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Clean Ledger",
+			"description": "Thicker.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repay_overdraft",
+								"amount": 2
+							},
+							{
+								"type": "shield",
+								"amount": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repay 2 points of Overdraft. Gain 6 shield."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Foreclosure",
+			"description": "Ruinous interest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "damage_per_overdraft",
+						"per": 5,
+						"min": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage for each point you are Overdrawn (minimum 5)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Paid in Full",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "repay_overdraft",
+								"amount": 2
+							},
+							{
+								"type": "shield",
+								"amount": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Repay 2 points of Overdraft. Gain 6 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

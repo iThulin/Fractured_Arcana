@@ -460,6 +460,32 @@ public partial class CameraController : Node3D
     /// Position the camera centered on fromCenter, rotated to face toward towardPoint.
     /// Call after FrameGrid so bounds are already set.
     /// </summary>
+    /// <summary>Opening view: face from the party toward the enemies, centred between
+    /// them, zoomed out until every point fits (within the map's zoom ceiling).</summary>
+    public void FrameUnits(System.Collections.Generic.IList<Vector3> party,
+                           System.Collections.Generic.IList<Vector3> enemies)
+    {
+        if (!EnsureCameraNodes() || party == null || enemies == null || party.Count == 0 || enemies.Count == 0)
+            return;
+
+        Vector3 pc = Vector3.Zero, ec = Vector3.Zero;
+        foreach (var p in party) pc += p;
+        foreach (var e in enemies) ec += e;
+        pc /= party.Count;
+        ec /= enemies.Count;
+        Vector3 center = pc.Lerp(ec, 0.5f);
+
+        float extent = 0f;
+        foreach (var p in party) extent = Mathf.Max(extent, new Vector2(p.X - center.X, p.Z - center.Z).Length());
+        foreach (var e in enemies) extent = Mathf.Max(extent, new Vector2(e.X - center.X, e.Z - center.Z).Length());
+
+        FaceToward(center, center + (ec - pc));
+        float zoom = Mathf.Clamp(Mathf.Max(extent * 1.9f + 3f, MinSafeZoom()), MinZoom, _maxZoomDynamic);
+        _zoomTarget = zoom;
+        _camera.Position = new Vector3(0f, 0f, zoom);
+        GD.Print($"[Camera] Opening view: center {center}, extent {extent:0.0}, zoom {zoom:0.0}.");
+    }
+
     public void FaceToward(Vector3 fromCenter, Vector3 towardPoint)
     {
         if (!EnsureCameraNodes())

@@ -1,0 +1,379 @@
+{
+	"id": "chronomancer_mortgage_the_hour",
+	"status": "ready",
+	"name": "Mortgage the Hour",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "Mortgage the Hour",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Draw 3 cards and gain 3 mana. Your Time Bank drops to Overdrawn 3.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "draw",
+					"count": 3
+				},
+				{
+					"type": "mana_gain",
+					"amount": 3
+				},
+				{
+					"type": "lose_foresight",
+					"to_overdraft": 3
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Lien",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 1 mana, or 2 if you are Overdrawn.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "conditional",
+					"if": {
+						"type": "overdrawn"
+					},
+					"then": {
+						"type": "mana_gain",
+						"amount": 2
+					},
+					"else": {
+						"type": "mana_gain",
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Mortgage the Hour+",
+			"bottom_name": "Lien+",
+			"description": "A bigger loan; a guard on the lien.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "mana_gain",
+								"amount": 3
+							},
+							{
+								"type": "lose_foresight",
+								"to_overdraft": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 4 cards and gain 3 mana. Your Time Bank drops to Overdrawn 3."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conditional",
+								"if": {
+									"type": "overdrawn"
+								},
+								"then": {
+									"type": "mana_gain",
+									"amount": 2
+								},
+								"else": {
+									"type": "mana_gain",
+									"amount": 1
+								}
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana, or 2 if you are Overdrawn. Gain 2 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Second Mortgage",
+			"description": "More mana.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "mana_gain",
+								"amount": 4
+							},
+							{
+								"type": "lose_foresight",
+								"to_overdraft": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 4 cards and gain 4 mana. Your Time Bank drops to Overdrawn 3."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Free Lien",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conditional",
+								"if": {
+									"type": "overdrawn"
+								},
+								"then": {
+									"type": "mana_gain",
+									"amount": 2
+								},
+								"else": {
+									"type": "mana_gain",
+									"amount": 1
+								}
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana, or 2 if you are Overdrawn. Gain 2 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Easy Terms",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "mana_gain",
+								"amount": 4
+							},
+							{
+								"type": "lose_foresight",
+								"to_overdraft": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 4 cards and gain 4 mana. Your Time Bank drops to Overdrawn 3."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Deep Lien",
+			"description": "More when deep.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conditional",
+								"if": {
+									"type": "overdrawn"
+								},
+								"then": {
+									"type": "mana_gain",
+									"amount": 3
+								},
+								"else": {
+									"type": "mana_gain",
+									"amount": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana, or 3 if you are Overdrawn."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Generous Terms",
+			"description": "A shallower debt.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 4
+							},
+							{
+								"type": "mana_gain",
+								"amount": 4
+							},
+							{
+								"type": "lose_foresight",
+								"to_overdraft": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Draw 4 cards and gain 4 mana. Your Time Bank drops to Overdrawn 2."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Lien on Tomorrow",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "conditional",
+								"if": {
+									"type": "overdrawn"
+								},
+								"then": {
+									"type": "mana_gain",
+									"amount": 3
+								},
+								"else": {
+									"type": "mana_gain",
+									"amount": 1
+								}
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 mana, or 3 if you are Overdrawn. Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

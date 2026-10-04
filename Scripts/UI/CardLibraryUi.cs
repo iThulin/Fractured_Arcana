@@ -952,6 +952,8 @@ public partial class CardLibraryUi : Control
             QueueFree();
             return;
         }
+        if (CombatDebugLauncher.TryReturnToLauncher(GetTree()))
+            return;
         GetTree().ChangeSceneToFile(ReturnScenePath);
     }
 }

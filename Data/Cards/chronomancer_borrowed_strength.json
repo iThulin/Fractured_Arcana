@@ -1,0 +1,295 @@
+{
+	"id": "chronomancer_borrowed_strength",
+	"status": "ready",
+	"name": "Borrowed Strength",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Borrowed Strength",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 9 damage. Lose 2 Foresight (you may go Overdrawn).",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 9
+				},
+				{
+					"type": "lose_foresight",
+					"amount": 2
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Borrowed Guard",
+		"mana": 0,
+		"speed": "Reflex",
+		"rules_text": "Gain 4 shield. Lose 1 Foresight (you may go Overdrawn).",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 4
+				},
+				{
+					"type": "lose_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Borrowed Strength+",
+			"bottom_name": "Borrowed Guard+",
+			"description": "More for the same debt.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 10
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 10 damage. Lose 2 Foresight (you may go Overdrawn)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 5
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 shield. Lose 1 Foresight (you may go Overdrawn)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Borrowed Might",
+			"description": "Harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 11
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 11 damage. Lose 2 Foresight (you may go Overdrawn)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Borrowed Wall",
+			"description": "Thicker.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Lose 1 Foresight (you may go Overdrawn)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Borrowed Fury",
+			"description": "Harder still.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 12
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 12 damage. Lose 2 Foresight (you may go Overdrawn)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Borrowed Bulwark",
+			"description": "Thicker still.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 7
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 7 shield. Lose 1 Foresight (you may go Overdrawn)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Debt of Iron",
+			"description": "Ruinous.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 14
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 14 damage. Lose 2 Foresight (you may go Overdrawn)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Debt of Stone",
+			"description": "Unbreakable, nearly.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 8
+							},
+							{
+								"type": "lose_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 8 shield. Lose 1 Foresight (you may go Overdrawn)."
+				}
+			]
+		}
+	]
+}

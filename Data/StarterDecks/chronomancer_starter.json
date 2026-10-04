@@ -11,7 +11,7 @@
 		},
 		{
 			"id": "chronomancer_stolen_moment",
-			"count": 2
+			"count": 1
 		},
 		{
 			"id": "chronomancer_precognition",
@@ -27,6 +27,10 @@
 		},
 		{
 			"id": "chronomancer_rewind",
+			"count": 1
+		},
+		{
+			"id": "chronomancer_slow_fuse",
 			"count": 1
 		}
 	]

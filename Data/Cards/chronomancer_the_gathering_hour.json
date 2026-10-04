@@ -1,0 +1,308 @@
+{
+	"id": "chronomancer_the_gathering_hour",
+	"status": "ready",
+	"name": "The Gathering Hour",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "The Gathering Hour",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Defer the attacks of every enemy within 2 of the target point.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "aoe",
+			"radius": 2,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "defer_intent"
+		}
+	},
+	"bottom": {
+		"name": "Count the Hours",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 1 Foresight for each Deferred attack on the board (max 3).",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_foresight_per_deferred",
+			"max": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Gathering Hour+",
+			"bottom_name": "Count the Hours+",
+			"description": "A little banked on both faces.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Defer the attacks of every enemy within 2 of the target point. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_deferred",
+								"max": 3
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each Deferred attack on the board (max 3). Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "The Long Hour",
+			"description": "A wider gathering.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Defer the attacks of every enemy within 3 of the target point. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Count Further",
+			"description": "Counts higher.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_deferred",
+								"max": 4
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each Deferred attack on the board (max 4). Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Heavy Hour",
+			"description": "More banked.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Defer the attacks of every enemy within 3 of the target point. Gain 2 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Tally",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_deferred",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each Deferred attack on the board (max 4). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Appointed Hour",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Defer the attacks of every enemy within 3 of the target point. Gain 2 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "aoe",
+						"radius": 3,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Reckoning",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_deferred",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each Deferred attack on the board (max 4). Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

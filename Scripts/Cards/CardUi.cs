@@ -631,6 +631,17 @@ public partial class CardUi : Control
             container.MoveChild(chip, 0);   // first in the row: aim before flavour
         }
 
+        // Once (2026-10-04): a fight-long half can be cast once per fight. Rendered
+        // from the same flag the rules check (CardHalf.OncePerFight), so the card
+        // face and the rule cannot disagree. Reads "Used" after it has been cast.
+        if (half != null && half.OncePerFight)
+        {
+            bool used = HalfSpentProvider != null && HalfSpentProvider(half);
+            var once = MakeChip(used ? "Used" : "Once", used ? UITheme.TextDim : UITheme.Gold, OnceTooltip, onDark);
+            once.Name = "OnceChip";
+            container.AddChild(once);
+        }
+
         // Speed badge at the far right of the row. The split-view row is a plain
         // HBox, so an expanding spacer pushes it over; the full view's row is
         // already right-aligned and needs none.
@@ -650,6 +661,34 @@ public partial class CardUi : Control
         // tag, so the attunement count survives. Measured from the chips' own
         // minimum sizes, so no layout pass is needed.
         if (!onDark) CompactRowIfOverflowing(container);
+    }
+
+    private const string OnceTooltip =
+        "Once: this half can be cast once per fight. Its effect lasts the rest of the fight, "
+        + "and every copy of this card shares the limit.";
+
+    /// <summary>Flips an existing Once chip to "Used" (or back) without rebuilding the row.</summary>
+    private void RefreshOnceChip(HBoxContainer row, CardHalf half)
+    {
+        if (row == null || half == null || !half.OncePerFight)
+            return;
+        if (row.GetNodeOrNull<Label>("OnceChip") is not Label chip)
+            return;
+        bool used = HalfSpentProvider != null && HalfSpentProvider(half);
+        string text = used ? "Used" : "Once";
+        if (chip.Text == text)
+            return;
+        chip.Text = text;
+        var tint = used ? UITheme.TextDim : UITheme.Gold;
+        if (chip.GetThemeStylebox("normal") is StyleBoxFlat old)
+        {
+            var st = (StyleBoxFlat)old.Duplicate();
+            var fill = tint;
+            fill.A = UITheme.CardChipFillAlpha;
+            st.BgColor = fill;
+            st.BorderColor = tint;
+            chip.AddThemeStyleboxOverride("normal", st);
+        }
     }
 
     private static void CompactRowIfOverflowing(HBoxContainer row)
@@ -1020,7 +1059,12 @@ public partial class CardUi : Control
     }
 
     private bool HalfReactionLocked(CardHalf half)
-        => _reactionWindow && half?.Speed != PlaySpeed.Reflex;
+        => (_reactionWindow && half?.Speed != PlaySpeed.Reflex)
+           || (HalfSpentProvider != null && half != null && HalfSpentProvider(half));
+
+    /// <summary>Set by CombatManager: true for a once-per-fight half already cast this
+    /// fight. Such a half reads as locked, exactly like a Studied half in a Reflex window.</summary>
+    public static Func<CardHalf, bool> HalfSpentProvider;
 
     // ── U3e: the tithe has to be visible ON THE CARD ────────────────────────
     // Before this, the pip printed half.ManaCost and HalfBaseColor compared
@@ -1117,6 +1161,8 @@ public partial class CardUi : Control
     public void RefreshAffordability(int currentMana)
     {
         _lastKnownMana = currentMana;
+        RefreshOnceChip(_topElementTags, TopHalf);
+        RefreshOnceChip(_botElementTags, BottomHalf);
 
         // U3e: pips first, and OUTSIDE the discard-flag early-return below. A card
         // flagged for overflow discard still has a price the player needs to read.

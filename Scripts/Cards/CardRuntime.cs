@@ -115,6 +115,12 @@ public abstract class Ability
 /// </summary>
 public sealed class CardHalf : Ability
 {
+    /// <summary>A fight-long effect ("for the rest of the fight"): once it has been cast,
+    /// this half (every copy of this card's half) cannot be cast again this fight,
+    /// because a second cast would buy nothing. JSON: "once_per_fight": true on the half
+    /// (or set by an upgrade rung). Tracked on GameState.OncePerFightSpent.</summary>
+    public bool OncePerFight;
+
     /// <summary>Back-pointer to the Card this half belongs to. Used for zone-transition bookkeeping.</summary>
     public Card OwnerCard;
 

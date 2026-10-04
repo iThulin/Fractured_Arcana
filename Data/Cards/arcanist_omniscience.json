@@ -36,7 +36,8 @@
 			"charge_per_cast": 1,
 			"replicate_both_halves": true,
 			"reaction_threshold": 3
-		}
+		},
+		"once_per_fight": true
 	},
 	"upgrades": [
 		{

@@ -30,6 +30,20 @@ public partial class CombatDebugLauncher : CanvasLayer
     private static CombatDebugLauncher _instance;
     public static bool IsOpen => _instance != null && IsInstanceValid(_instance);
 
+    // ── Round trip (2026-10-04) ─────────────────────────────────────────
+    // The deck editor, upgrade screen and card library used to dump the player at
+    // the campus, and a finished debug fight did too, so every iteration meant
+    // re-entering the guild hall, reopening the launcher and re-entering every
+    // setting. Now the form is snapshotted when the launcher hands off, those
+    // screens' Back buttons (and the end of a debug fight) come back to the campus
+    // with the launcher reopened and the snapshot restored, and the deck editor
+    // gets a Launch button that goes straight back into the fight.
+    /// <summary>A launcher sub-screen is open: its Back returns here, not to campus.</summary>
+    public static bool ReturnPending;
+    private static List<(char kind, double value)> _savedForm;
+    private static bool _autoLaunch;
+    private VBoxContainer _form;
+
     private OptionButton _schoolOpt;
     private OptionButton _tierOpt;
     private OptionButton _mapOpt;
@@ -79,7 +93,10 @@ public partial class CombatDebugLauncher : CanvasLayer
         PlayerDeckSave.UseDebugDeck = false;
         CompanionRoster.DebugPartyOverride = null;
         CompanionLoader.ClearCache();
-        SceneTransition.Go(ctx?.GetTree(), CampusScene, "Debug fight over", "Returning to the hub.");
+        var tree = ctx?.GetTree();
+        SceneTransition.Go(tree, CampusScene, "Debug fight over", "Returning to the hub.");
+        if (tree != null && _savedForm != null)
+            ReopenWhenCampusReady(tree);   // straight back to the launcher, settings kept
     }
 
     public override void _Ready() => CallDeferred(nameof(BuildUI));
@@ -146,6 +163,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         var form = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         form.AddThemeConstantOverride("separation", 8);
         sm.AddChild(form);
+        _form = form;
 
         _schoolOpt = AddEnumDropdown(form, "Player school:", Enum.GetValues(typeof(CardSchool)),
             Convert.ToInt32(PlayerSession.SelectedSchool));
@@ -433,10 +451,127 @@ public partial class CombatDebugLauncher : CanvasLayer
         UITheme.ApplyButtonStyle(close, isPrimary: false);
         close.Pressed += Close;
         btnRow.AddChild(close);
+
+        RestoreForm();
+        if (_autoLaunch)
+        {
+            _autoLaunch = false;
+            CallDeferred(nameof(OnLaunch));
+        }
+    }
+
+    // ── Form snapshot ───────────────────────────────────────────────────
+    /// <summary>Every dropdown, spin box and checkbox under the form, in build order.
+    /// The form is rebuilt from the same data each time, so order is a stable key.</summary>
+    private static void CollectInputs(Node n, List<Control> into)
+    {
+        foreach (var child in n.GetChildren())
+        {
+            switch (child)
+            {
+                case OptionButton ob: into.Add(ob); break;
+                case SpinBox sb: into.Add(sb); break;
+                case CheckBox cb: into.Add(cb); break;
+                default: CollectInputs(child, into); break;
+            }
+        }
+    }
+
+    private void SaveForm()
+    {
+        if (_form == null || !IsInstanceValid(_form))
+            return;
+        var inputs = new List<Control>();
+        CollectInputs(_form, inputs);
+        _savedForm = new List<(char, double)>();
+        foreach (var c in inputs)
+        {
+            _savedForm.Add(c switch
+            {
+                OptionButton ob => ('o', ob.Selected),
+                SpinBox sb => ('s', sb.Value),
+                CheckBox cb => ('c', cb.ButtonPressed ? 1 : 0),
+                _ => ('?', 0),
+            });
+        }
+    }
+
+    private void RestoreForm()
+    {
+        if (_savedForm == null || _form == null)
+            return;
+        var inputs = new List<Control>();
+        CollectInputs(_form, inputs);
+        int n = Math.Min(inputs.Count, _savedForm.Count);
+        for (int i = 0; i < n; i++)
+        {
+            var (kind, value) = _savedForm[i];
+            switch (inputs[i])
+            {
+                case OptionButton ob when kind == 'o':
+                    if (value >= 0 && value < ob.ItemCount)
+                    {
+                        ob.Selected = (int)value;
+                        if (ob == _patternRegionOpt)
+                            RebuildPatternDropdown((int)value);   // its pattern list follows the region
+                    }
+                    break;
+                case SpinBox sb when kind == 's':
+                    sb.Value = value;
+                    break;
+                case CheckBox cb when kind == 'c':
+                    cb.ButtonPressed = value > 0.5;
+                    break;
+                default:
+                    GD.Print($"[DebugLauncher] Saved settings no longer match the form at input {i}; the rest keep their defaults.");
+                    return;
+            }
+        }
+    }
+
+    /// <summary>Leave for a launcher sub-screen (deck editor, upgrades, library).</summary>
+    private void OpenSubscreen(string scenePath)
+    {
+        SaveForm();
+        ReturnPending = true;
+        GetTree().ChangeSceneToFile(scenePath);
+    }
+
+    /// <summary>Called by a sub-screen's Back (and the deck editor's Launch). True when
+    /// the screen was opened from the launcher and the return is handled here.</summary>
+    public static bool TryReturnToLauncher(SceneTree tree, bool launch = false)
+    {
+        if (!ReturnPending || tree == null)
+            return false;
+        ReturnPending = false;
+        _autoLaunch = launch;
+        tree.ChangeSceneToFile(CampusScene);
+        ReopenWhenCampusReady(tree);
+        return true;
+    }
+
+    /// <summary>Waits for the campus scene to be current and ready (a SceneTransition
+    /// fade takes a while), then reopens the launcher over it.</summary>
+    private static async void ReopenWhenCampusReady(SceneTree tree)
+    {
+        for (int frame = 0; frame < 900; frame++)
+        {
+            await tree.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+            var scene = tree.CurrentScene;
+            if (scene != null && IsInstanceValid(scene) && scene.SceneFilePath == CampusScene && scene.IsNodeReady())
+            {
+                await tree.ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+                if (!IsOpen && IsInstanceValid(scene))
+                    Toggle(scene);
+                return;
+            }
+        }
+        GD.Print("[DebugLauncher] The campus never became current; the launcher was not reopened.");
     }
 
     private void OnLaunch()
     {
+        SaveForm();   // a finished debug fight reopens the launcher with these settings
         var tier = (EncounterTier)_tierOpt.GetSelectedId();
         var terrain = ((OverworldHex.TerrainType)_mapOpt.GetSelectedId()).ToString();
         float diff = (float)_diffSpin.Value;
@@ -686,7 +821,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         var b = new Button { Text = text, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         b.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         UITheme.ApplyButtonStyle(b, isPrimary: false);
-        b.Pressed += () => GetTree().ChangeSceneToFile(scenePath);
+        b.Pressed += () => OpenSubscreen(scenePath);
         return b;
     }
 
@@ -702,7 +837,7 @@ public partial class CombatDebugLauncher : CanvasLayer
         {
             SeedDebugDeckIfEmpty((CardSchool)_schoolOpt.GetSelectedId());
             PlayerDeckSave.UseDebugDeck = true;
-            GetTree().ChangeSceneToFile("res://Scenes/UI/DeckEditor.tscn");
+            OpenSubscreen("res://Scenes/UI/DeckEditor.tscn");
         };
         return b;
     }

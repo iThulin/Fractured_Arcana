@@ -20,7 +20,8 @@
 			"type": "grand_design_passive",
 			"spread_radius": 1,
 			"trigger_count": 2
-		}
+		},
+		"once_per_fight": true
 	},
 	"bottom": {
 		"name": "Absolute Territory",

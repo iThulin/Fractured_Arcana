@@ -1,0 +1,298 @@
+{
+	"id": "chronomancer_return_to_the_moment",
+	"status": "ready",
+	"name": "Return to the Moment",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "Return to the Moment",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Every unit returns to the tile it held at the start of this round. A unit whose tile is taken stays put.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "return_to_round_start",
+			"all_units": true
+		}
+	},
+	"bottom": {
+		"name": "Measure the Moment",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 1 Foresight for each unit that moved this round (max 3).",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "gain_foresight_per_moved",
+			"max": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Return to the Moment+",
+			"bottom_name": "Measure the Moment+",
+			"description": "A little banked; a guard while measuring.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"all_units": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every unit returns to the tile it held at the start of this round. A unit whose tile is taken stays put. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_moved",
+								"max": 3
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each unit that moved this round (max 3). Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Return Again",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"all_units": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every unit returns to the tile it held at the start of this round. A unit whose tile is taken stays put. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Measure Further",
+			"description": "Counts higher.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_moved",
+								"max": 4
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each unit that moved this round (max 4). Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Moment Kept",
+			"description": "More banked.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"all_units": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every unit returns to the tile it held at the start of this round. A unit whose tile is taken stays put. Gain 2 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Measured Step",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_moved",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each unit that moved this round (max 4). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "As It Was",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "return_to_round_start",
+								"all_units": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every unit returns to the tile it held at the start of this round. A unit whose tile is taken stays put. Gain 2 Foresight. Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Measure of All",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_foresight_per_moved",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Foresight for each unit that moved this round (max 4). Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

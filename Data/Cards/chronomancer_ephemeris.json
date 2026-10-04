@@ -1,0 +1,317 @@
+{
+	"id": "chronomancer_ephemeris",
+	"status": "ready",
+	"name": "Ephemeris",
+	"school": "Chronomancer",
+	"rarity": "Rare",
+	"top": {
+		"name": "Ephemeris",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "For the rest of the fight, the first spell you cast each turn is copied: the copy resolves again, on the same targets, at the start of your next turn.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "ephemeris"
+		},
+		"once_per_fight": true
+	},
+	"bottom": {
+		"name": "Conjunction",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "All your scheduled spells resolve now.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "fast_forward",
+			"count": 99,
+			"foresight_cost": 0
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Ephemeris+",
+			"bottom_name": "Conjunction+",
+			"description": "A little banked; a guard as they land.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "ephemeris"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, the first spell you cast each turn is copied: the copy resolves again, on the same targets, at the start of your next turn. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward",
+								"count": 99,
+								"foresight_cost": 0
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All your scheduled spells resolve now. Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Almanac of Days",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "ephemeris"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, the first spell you cast each turn is copied: the copy resolves again, on the same targets, at the start of your next turn. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Free Conjunction",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward",
+								"count": 99,
+								"foresight_cost": 0
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All your scheduled spells resolve now. Gain 3 shield."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Almanac of Years",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "ephemeris"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, the first spell you cast each turn is copied: the copy resolves again, on the same targets, at the start of your next turn. Gain 1 Foresight. Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Alignment",
+			"description": "And a coin.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward",
+								"count": 99,
+								"foresight_cost": 0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All your scheduled spells resolve now. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Turning Sky",
+			"description": "Cheaper still.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "ephemeris"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, the first spell you cast each turn is copied: the copy resolves again, on the same targets, at the start of your next turn. Gain 1 Foresight. Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Syzygy",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fast_forward",
+								"count": 99,
+								"foresight_cost": 0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "All your scheduled spells resolve now. Gain 1 Foresight. Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

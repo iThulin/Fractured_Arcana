@@ -292,8 +292,26 @@ public partial class DeckEditorUi : Control
         backBtn.OffsetLeft = 16; backBtn.OffsetRight = 106;
         backBtn.OffsetTop = -18; backBtn.OffsetBottom = 18;
         UITheme.ApplyButtonStyle(backBtn, isPrimary: false);
-        backBtn.Pressed += () => GetTree().ChangeSceneToFile(ReturnScenePath);
+        backBtn.Pressed += () =>
+        {
+            if (!CombatDebugLauncher.TryReturnToLauncher(GetTree()))
+                GetTree().ChangeSceneToFile(ReturnScenePath);
+        };
         topBar.AddChild(backBtn);
+
+        // Opened from the combat debug launcher: go straight back into the fight.
+        if (CombatDebugLauncher.ReturnPending)
+        {
+            backBtn.Text = "← Launcher";
+            var launchBtn = new Button { Text = "Launch Fight ▶", CustomMinimumSize = new Vector2(150, 36) };
+            launchBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            launchBtn.SetAnchorsPreset(LayoutPreset.CenterRight);
+            launchBtn.OffsetLeft = -166; launchBtn.OffsetRight = -16;
+            launchBtn.OffsetTop = -18; launchBtn.OffsetBottom = 18;
+            UITheme.ApplyButtonStyle(launchBtn, isPrimary: true);
+            launchBtn.Pressed += () => CombatDebugLauncher.TryReturnToLauncher(GetTree(), launch: true);
+            topBar.AddChild(launchBtn);
+        }
 
         var titleLbl = new Label
         {

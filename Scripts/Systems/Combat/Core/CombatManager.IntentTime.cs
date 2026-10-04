@@ -53,6 +53,25 @@ public partial class CombatManager
         IntentTime.DeferHook = DeferAttack;
         IntentTime.AdvanceHook = AdvanceAttack;
         IntentTime.RevealHook = RevealForEffect;
+        IntentTime.CancelHook = CancelDeferred;
+    }
+
+    /// <summary>The Hour Comes Due (bottom): a Deferred attack never lands. The enemy
+    /// still takes its turn, without the blow.</summary>
+    private string CancelDeferred(Unit enemy)
+    {
+        if (!IsValidActor(enemy))
+            return "it cannot act";
+        if (enemy.AttackTiming != IntentTiming.Deferred)
+            return "its attack is not Deferred";
+        _deferredAttacks.RemoveAll(e => e.enemy == enemy);
+        enemy.AttackTiming = IntentTiming.Spent;
+        string msg = $"{enemy.Name}'s Deferred attack is cancelled. It never happens.";
+        GD.Print($"[Defer] {msg}");
+        combatUI?.AppendActionLog(msg);
+        UpdateIntentDisplay(enemy);
+        RefreshThreatTiles();
+        return null;
     }
 
     /// <summary>peek_intent's seam (Glimpse, Survey, Flare, Arcane Sight). Lookahead
@@ -77,6 +96,8 @@ public partial class CombatManager
     {
         if (IntentTime.DeferHook == DeferAttack)
             IntentTime.DeferHook = null;
+        if (IntentTime.CancelHook == CancelDeferred)
+            IntentTime.CancelHook = null;
         if (IntentTime.AdvanceHook == AdvanceAttack)
             IntentTime.AdvanceHook = null;
         if (IntentTime.RevealHook == RevealForEffect)
@@ -248,7 +269,7 @@ public partial class CombatManager
         }
         else
         {
-            string spent = $"{enemy.Name} acts without its attack; it has already landed.";
+            string spent = $"{enemy.Name} acts without its attack.";
             GD.Print($"[Advance] {spent}");
             combatUI?.AppendActionLog(spent);
         }

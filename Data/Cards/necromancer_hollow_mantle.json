@@ -203,6 +203,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "For the rest of the fight: all deaths create memorials and immediately summon a spirit. Memorial spells cost 2 less."
+				},
+				{
+					"half": "bottom",
+					"field": "once_per_fight",
+					"value": true
 				}
 			]
 		}

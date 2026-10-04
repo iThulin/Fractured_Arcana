@@ -101,6 +101,10 @@ public partial class CardDropHandler : Node3D
     }
 
     /// <summary>Called by the UI when the player releases the mouse mid-drag. Resolves the currently-hovered tile (if any) and emits <see cref="CardDroppedOnTile"/>. Always clears drag state and snaps the card back; if the drop was valid, the consumer is responsible for animating the card to discard.</summary>
+    /// <summary>Set by CombatManager: the caster's tile for a self/untargeted half dropped
+    /// anywhere but the hand; null otherwise (the drop resolves as before).</summary>
+    public static System.Func<CardHalf, Vector2, HexTile> SelfCastRedirect;
+
     public void TryDropCardOnTile()
     {
         if (!DragPayloadManager.IsDragging) return;
@@ -108,6 +112,18 @@ public partial class CardDropHandler : Node3D
         var cardUi = DragPayloadManager.DraggedCard;
         bool isTop = DragPayloadManager.IsTopHalf;
         var tile = CurrentHoveredTile;
+
+        // 2026-10-04: a spell that lands on its caster (self or untargeted) does not
+        // care where it is dropped. Off the board, on the vista ring, or on a tile that
+        // cannot take a cast, it goes to the caster's own tile. A drop back over the
+        // hand still cancels (the resolver returns null there).
+        if (cardUi != null && SelfCastRedirect != null)
+        {
+            var redirected = SelfCastRedirect(isTop ? cardUi.TopHalf : cardUi.BottomHalf,
+                                              GetViewport().GetMousePosition());
+            if (redirected != null)
+                tile = redirected;
+        }
 
         // Always reset drag state at the end of an attempt
         DragPayloadManager.IsDragging = false;

@@ -1,0 +1,280 @@
+{
+	"id": "chronomancer_hasten_decay",
+	"status": "ready",
+	"name": "Hasten Decay",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Hasten Decay",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Every Burn and Bleed on target enemy deals all its remaining damage now, then ends.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "hasten_decay",
+			"bonus": 0
+		}
+	},
+	"bottom": {
+		"name": "Linger",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Each buff on target ally lasts 1 more turn.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false
+		},
+		"effect": {
+			"type": "extend_buffs",
+			"turns": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Hasten Decay+",
+			"bottom_name": "Linger+",
+			"description": "A little banked on both faces.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "hasten_decay",
+								"bonus": 0
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Burn and Bleed on target enemy deals all its remaining damage now, then ends. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "extend_buffs",
+								"turns": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each buff on target ally lasts 1 more turn. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Rot",
+			"description": "It comes due with interest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "hasten_decay",
+								"bonus": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Burn and Bleed on target enemy deals all its remaining damage now, then ends. It deals 2 extra. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Long Linger",
+			"description": "Two turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "extend_buffs",
+						"turns": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each buff on target ally lasts 2 more turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Ruin",
+			"description": "More interest.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "hasten_decay",
+								"bonus": 3
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Burn and Bleed on target enemy deals all its remaining damage now, then ends. It deals 3 extra. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Lasting Grace",
+			"description": "And a coin.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "extend_buffs",
+								"turns": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each buff on target ally lasts 2 more turns. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Entropy",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "hasten_decay",
+								"bonus": 3
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every Burn and Bleed on target enemy deals all its remaining damage now, then ends. It deals 3 extra. Gain 1 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Evergreen",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "extend_buffs",
+								"turns": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each buff on target ally lasts 2 more turns. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

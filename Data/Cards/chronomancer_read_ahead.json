@@ -1,0 +1,320 @@
+{
+	"id": "chronomancer_read_ahead",
+	"status": "ready",
+	"name": "Read Ahead",
+	"school": "Chronomancer",
+	"rarity": "Common",
+	"top": {
+		"name": "Read Ahead",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Reveal target enemy's next two intents. Gain 1 Foresight.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 8,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "peek_intent",
+					"lookahead": true,
+					"target_only": true
+				},
+				{
+					"type": "gain_foresight",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Hold That Thought",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Defer target enemy's attack.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 8,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "defer_intent"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Read Ahead+",
+			"bottom_name": "Hold That Thought+",
+			"description": "A card for the reading; a coin for the wait.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent",
+								"lookahead": true,
+								"target_only": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal target enemy's next two intents. Gain 1 Foresight. Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Defer target enemy's attack. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Read Further",
+			"description": "More banked.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent",
+								"lookahead": true,
+								"target_only": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal target enemy's next two intents. Gain 2 Foresight. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Hold Them All",
+			"description": "Its neighbours wait too.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Defer the attack of target enemy and every enemy within 1 of it. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Know Them",
+			"description": "You keep reading it.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent",
+								"lookahead": true,
+								"target_only": true,
+								"permanent": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, see target enemy's next two intents. Gain 2 Foresight. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Hold Fast",
+			"description": "More banked.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Defer the attack of target enemy and every enemy within 1 of it. Gain 2 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Open Book",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "peek_intent",
+								"lookahead": true,
+								"target_only": true,
+								"permanent": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, see target enemy's next two intents. Gain 2 Foresight. Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Stopped Clock",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "defer_intent",
+								"radius": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Defer the attack of target enemy and every enemy within 1 of it. Gain 2 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

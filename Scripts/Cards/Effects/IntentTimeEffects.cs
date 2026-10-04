@@ -54,6 +54,10 @@ public static class IntentTime
         => RevealHook != null && RevealHook(enemy, lookahead, permanent);
 
     public static string Defer(Unit enemy) => DeferHook != null ? DeferHook(enemy) : "no combat is running";
+
+    /// <summary>Cancel a Deferred attack: it never lands (The Hour Comes Due).</summary>
+    public static Func<Unit, string> CancelHook;
+    public static string Cancel(Unit enemy) => CancelHook != null ? CancelHook(enemy) : "no combat is running";
     public static string Advance(Unit enemy) => AdvanceHook != null ? AdvanceHook(enemy) : "no combat is running";
 
     /// <summary>The enemies an intent-time effect touches: each targeted enemy, plus every
@@ -202,6 +206,10 @@ public sealed class DeferIntentEffect : EffectBase
 public sealed class AdvanceIntentEffect : EffectBase
 {
     public int Radius;
+    /// <summary>Only attacks already Deferred (The Hour Comes Due), whoever was targeted.</summary>
+    public bool DeferredOnly;
+    /// <summary>Slowest attacker first (The Fixed Hour's bottom half); otherwise fastest first.</summary>
+    public bool ReverseSpeed;
     public AdvanceIntentEffect(int radius = 0) { Radius = Math.Max(0, radius); }
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -211,7 +219,16 @@ public sealed class AdvanceIntentEffect : EffectBase
             foreach (var obj in targets.Items)
                 primaries.Add(ResolveTargetUnit(s, obj));
 
-        var victims = IntentTime.Victims(s, primaries, Radius);
+        List<Unit> victims;
+        if (DeferredOnly)
+            victims = s?.UnitsInPlay?.Where(u => u != null && !u.IsPlayerControlled && u.Stats.IsAlive
+                                                 && u.AttackTiming == IntentTiming.Deferred).ToList()
+                      ?? new List<Unit>();
+        else
+            victims = IntentTime.Victims(s, primaries, Radius);
+        victims = ReverseSpeed
+            ? victims.OrderBy(u => u.Stats.BaseSpeed).ToList()
+            : victims.OrderByDescending(u => u.Stats.BaseSpeed).ToList();
         if (victims.Count == 0)
         {
             s?.Log("[Advance] No enemy attack to advance.");

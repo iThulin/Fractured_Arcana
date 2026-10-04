@@ -633,6 +633,9 @@ public static partial class CardScriptRegistry
         RegisterPredicate("foresight_at_least", n =>
             new ForesightAtLeastPredicate(n.TryGetProperty("value", out var v) ? v.GetInt32() : 2));
 
+        // Chronomancer: the Time Bank is below zero: { "type": "overdrawn" }
+        RegisterPredicate("overdrawn", _ => new OverdrawnPredicate());
+
         // Spells cast this turn at least: { "type": "spells_cast_this_turn", "threshold": n }
         RegisterPredicate("spells_cast_this_turn", n =>
         {
@@ -1007,6 +1010,9 @@ public static class JsonCardLoader
             Effects = new[] { halfNode.TryGetProperty("effect", out var e)
                              ? CardScriptRegistry.BuildEffect(e) : new EmptyEffect() }
         };
+
+        half.OncePerFight = halfNode.TryGetProperty("once_per_fight", out var opf)
+                            && opf.ValueKind == JsonValueKind.True;
 
         if (halfNode.TryGetProperty("tags", out var tagsElement)
             && tagsElement.ValueKind == JsonValueKind.Array)

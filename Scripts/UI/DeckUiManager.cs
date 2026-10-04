@@ -347,6 +347,11 @@ public partial class DeckUiManager : Node2D
 
 	private Func<int> _getMana;
 
+	/// <summary>True when a screen point is over the hand (a drop there cancels).</summary>
+	public bool IsOverHand(Vector2 screenPos)
+		=> handUIContainer != null && IsInstanceValid(handUIContainer)
+		   && handUIContainer.GetGlobalRect().HasPoint(screenPos);
+
 	public void SetManaProvider(Func<int> provider)
 	{
 		_getMana = provider;

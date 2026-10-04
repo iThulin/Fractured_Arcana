@@ -19,7 +19,8 @@
 			"type": "extra_turn",
 			"mana": 2,
 			"draw": 1
-		}
+		},
+		"once_per_fight": true
 	},
 	"bottom": {
 		"name": "Chronostasis",

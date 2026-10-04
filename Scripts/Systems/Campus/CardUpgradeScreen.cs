@@ -264,7 +264,11 @@ public partial class CardUpgradeScreen : Control
         back.OffsetLeft = 16; back.OffsetRight = 106;
         back.OffsetTop = -18; back.OffsetBottom = 18;
         UITheme.ApplyButtonStyle(back, isPrimary: false);
-        back.Pressed += () => GetTree().ChangeSceneToFile(ReturnScenePath);
+        back.Pressed += () =>
+        {
+            if (!CombatDebugLauncher.TryReturnToLauncher(GetTree()))
+                GetTree().ChangeSceneToFile(ReturnScenePath);
+        };
         bar.AddChild(back);
 
         var title = new Label

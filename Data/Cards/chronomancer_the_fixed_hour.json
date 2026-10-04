@@ -1,0 +1,313 @@
+{
+	"id": "chronomancer_the_fixed_hour",
+	"status": "ready",
+	"name": "The Fixed Hour",
+	"school": "Chronomancer",
+	"rarity": "Legendary",
+	"top": {
+		"name": "The Fixed Hour",
+		"mana": 4,
+		"speed": "Studied",
+		"rules_text": "For the rest of the fight, you see every enemy's next two intents, and once per round you may Defer one attack for free (Defer on the action bar).",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "fixed_hour"
+		},
+		"once_per_fight": true
+	},
+	"bottom": {
+		"name": "Midnight",
+		"mana": 3,
+		"speed": "Reflex",
+		"rules_text": "Every enemy's attack lands now, on its locked tile, slowest attacker first.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "advance_intent",
+			"radius": 99,
+			"reverse_speed": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Fixed Hour+",
+			"bottom_name": "Midnight+",
+			"description": "Banked insight on both faces.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fixed_hour"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, you see every enemy's next two intents, and once per round you may Defer one attack for free (Defer on the action bar). Gain 2 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"radius": 99,
+								"reverse_speed": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every enemy's attack lands now, on its locked tile, slowest attacker first. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "The Settled Hour",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fixed_hour"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, you see every enemy's next two intents, and once per round you may Defer one attack for free (Defer on the action bar). Gain 2 Foresight."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Witching Hour",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"radius": 99,
+								"reverse_speed": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every enemy's attack lands now, on its locked tile, slowest attacker first. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Certain Hour",
+			"description": "And a card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fixed_hour"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, you see every enemy's next two intents, and once per round you may Defer one attack for free (Defer on the action bar). Gain 2 Foresight. Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Small Hours",
+			"description": "More banked.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"radius": 99,
+								"reverse_speed": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every enemy's attack lands now, on its locked tile, slowest attacker first. Gain 2 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Hour Unending",
+			"description": "Cheaper still.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "fixed_hour"
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, you see every enemy's next two intents, and once per round you may Defer one attack for free (Defer on the action bar). Gain 2 Foresight. Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Last Stroke",
+			"description": "Cheaper still.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "advance_intent",
+								"radius": 99,
+								"reverse_speed": true
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every enemy's attack lands now, on its locked tile, slowest attacker first. Gain 2 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				}
+			]
+		}
+	]
+}

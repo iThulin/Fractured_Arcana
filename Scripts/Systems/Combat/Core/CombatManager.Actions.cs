@@ -27,7 +27,7 @@ using System.Collections.Generic;
 // ============================================================
 
 /// <summary>What a bar button does when armed.</summary>
-public enum UnitAction { None, Strike, Shove, Station, Interact, Brace, Swap, SnapBack, PhaseStep }
+public enum UnitAction { None, Strike, Shove, Station, Interact, Brace, Swap, SnapBack, PhaseStep, FreeDefer }
 
 /// <summary>One button on the action bar.</summary>
 public sealed class UnitActionDef
@@ -142,6 +142,19 @@ public partial class CombatManager
                 Armed = false,
             });
         }
+        if (unit.HasFixedHour)
+        {
+            bool used = unit.FixedHourDeferRound == roundNumber;
+            list.Add(new UnitActionDef
+            {
+                Kind = UnitAction.FreeDefer,
+                Label = "Defer (free)",
+                Tooltip = "The Fixed Hour: once per round, click an enemy to Defer its attack to the end of the round."
+                          + (used ? " Already used this round." : ""),
+                Enabled = myTurn && !used,
+                Armed = _armedAction == UnitAction.FreeDefer,
+            });
+        }
         if (HasPhaseStep(unit))
         {
             list.Add(new UnitActionDef
@@ -187,6 +200,7 @@ public partial class CombatManager
                 UnitAction.Interact => "Interact",
                 UnitAction.Swap => "Swap",
                 UnitAction.PhaseStep => "Phase Step",
+                UnitAction.FreeDefer => "Defer (The Fixed Hour)",
                 _ => "",
             };
             combatUI?.SetHintText(_armedAction == UnitAction.PhaseStep
@@ -254,6 +268,19 @@ public partial class CombatManager
             case UnitAction.Swap:
                 if (!TryDanceSwap(selectedUnit, target)) return false;
                 break;
+            case UnitAction.FreeDefer:
+            {
+                if (!selectedUnit.HasFixedHour || selectedUnit.FixedHourDeferRound == roundNumber)
+                    return false;
+                string why = IntentTime.Defer(target);
+                if (why != null)
+                {
+                    combatUI?.AppendActionLog($"Can't Defer {target.Name}: {why}.");
+                    return true;   // armed click consumed; the button stays available
+                }
+                selectedUnit.FixedHourDeferRound = roundNumber;
+                break;
+            }
             default:
                 return false;
         }

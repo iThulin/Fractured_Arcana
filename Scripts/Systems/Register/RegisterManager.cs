@@ -146,6 +146,7 @@ public partial class RegisterManager : Node
         ProcessMode = ProcessModeEnum.Always;   // keep reading pause state while paused
 
         RegisterBarks.EnsureLoaded();
+        LoadSeenFile();
 
         _layer = new CanvasLayer { Name = "RegisterLayer", Layer = RegisterLayer };
         AddChild(_layer);
@@ -297,9 +298,42 @@ public partial class RegisterManager : Node
         return seen != null && seen.Contains(id);
     }
 
+    // 2026-10-04: once flags were only written to the save's ledger and marked dirty;
+    // nothing flushes a dirty save during a fight (and debug fights never save), so
+    // quitting before a campus save brought every tip back. They are now also written
+    // straight to a small file of their own the moment they are marked.
+    private const string SeenFilePath = "user://register_seen.txt";
+
+    private void LoadSeenFile()
+    {
+        if (!FileAccess.FileExists(SeenFilePath))
+            return;
+        using var f = FileAccess.Open(SeenFilePath, FileAccess.ModeFlags.Read);
+        if (f == null)
+            return;
+        while (!f.EofReached())
+        {
+            string line = f.GetLine().Trim();
+            if (line.Length > 0)
+                _sessionSeen.Add(line);
+        }
+    }
+
+    private static void AppendSeenFile(string id)
+    {
+        using var f = FileAccess.FileExists(SeenFilePath)
+            ? FileAccess.Open(SeenFilePath, FileAccess.ModeFlags.ReadWrite)
+            : FileAccess.Open(SeenFilePath, FileAccess.ModeFlags.Write);
+        if (f == null)
+            return;
+        f.SeekEnd();
+        f.StoreLine(id);
+    }
+
     private void MarkSeen(string id)
     {
-        _sessionSeen.Add(id);
+        if (_sessionSeen.Add(id))
+            AppendSeenFile(id);
         var ledger = SaveManager.ActiveSave?.Ledger;
         if (ledger == null)
             return;   // no save (dev scene): the session set keeps it quiet until restart

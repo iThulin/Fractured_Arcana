@@ -271,6 +271,8 @@ public sealed class PeekIntentEffect : EffectBase
 	public bool Lookahead;
 	/// <summary>Keep what was revealed visible for the rest of the fight (Adept reveals).</summary>
 	public bool Permanent;
+	/// <summary>Only the targeted enemies (Read Ahead), not everyone in range.</summary>
+	public bool TargetOnly;
 	public PeekIntentEffect(int range = 0, bool lookahead = false, bool permanent = false)
 	{
 		Range = Math.Max(0, range);
@@ -287,8 +289,18 @@ public sealed class PeekIntentEffect : EffectBase
 
 		s.Log("[PeekIntent] Enemy intel:");
 		int revealed = 0;
+		var only = new HashSet<Unit>();
+		if (TargetOnly && targets?.Items != null)
+			foreach (var obj in targets.Items)
+			{
+				var t = ResolveTargetUnit(s, obj);
+				if (t != null)
+					only.Add(t);
+			}
 		foreach (var unit in s.UnitsInPlay)
 		{
+			if (TargetOnly && !only.Contains(unit))
+				continue;
 			if (unit == null || !unit.Stats.IsAlive)
 				continue;
 			if (casterUnit != null && unit.TeamId == casterUnit.TeamId)

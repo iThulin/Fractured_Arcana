@@ -1,0 +1,289 @@
+{
+	"id": "chronomancer_patient_hand",
+	"status": "ready",
+	"name": "Patient Hand",
+	"school": "Chronomancer",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Patient Hand",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Delay your soonest scheduled spell by 1 turn. It matures while it waits (+2 damage per turn). Draw 1 card.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "delay_scheduled",
+					"turns": 1
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Shift the Mark",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Move one of your scheduled spells aimed within 1 of the target tile onto it.",
+		"tags": [
+			"temporal"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 8
+		},
+		"effect": {
+			"type": "move_scheduled",
+			"reach": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Patient Hand+",
+			"bottom_name": "Shift the Mark+",
+			"description": "Banked patience; a longer reach.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "delay_scheduled",
+								"turns": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Delay your soonest scheduled spell by 1 turn. It matures while it waits (+2 damage per turn). Draw 1 card. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "move_scheduled",
+						"reach": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your scheduled spells aimed within 2 of the target tile onto it."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Patient Study",
+			"description": "More cards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "delay_scheduled",
+								"turns": 1
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Delay your soonest scheduled spell by 1 turn. It matures while it waits (+2 damage per turn). Draw 2 cards."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Shift and Bank",
+			"description": "And a coin.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_scheduled",
+								"reach": 2
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your scheduled spells aimed within 2 of the target tile onto it. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Long Patience",
+			"description": "Two turns of ripening.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "delay_scheduled",
+								"turns": 2
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Delay your soonest scheduled spell by 2 turns. It matures while it waits (+2 damage per turn). Draw 2 cards."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Wide Shift",
+			"description": "Further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_scheduled",
+								"reach": 3
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your scheduled spells aimed within 3 of the target tile onto it. Gain 1 Foresight."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Patience Rewarded",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "delay_scheduled",
+								"turns": 2
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Delay your soonest scheduled spell by 2 turns. It matures while it waits (+2 damage per turn). Draw 2 cards."
+				},
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Sleight of Hours",
+			"description": "Free.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_scheduled",
+								"reach": 3
+							},
+							{
+								"type": "gain_foresight",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your scheduled spells aimed within 3 of the target tile onto it. Gain 1 Foresight."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				}
+			]
+		}
+	]
+}

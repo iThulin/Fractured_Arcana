@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // ============================================================
 // TimeBankEffects.cs
@@ -30,6 +31,9 @@ using System.Collections.Generic;
 public sealed class LoseForesightEffect : EffectBase
 {
     public int Amount;
+    /// <summary>When set (n &gt; 0), lose exactly enough to sit at Overdrawn n instead
+    /// (Mortgage the Hour: "your bank drops to Overdrawn 3").</summary>
+    public int ToOverdraft;
     public LoseForesightEffect(int amount) { Amount = Math.Max(0, amount); }
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -42,9 +46,10 @@ public sealed class LoseForesightEffect : EffectBase
         }
 
         int before = fate.Charges;
-        int lost = fate.LoseCharges(Amount);
+        int want = ToOverdraft > 0 ? Math.Max(0, fate.Charges + ToOverdraft) : Amount;
+        int lost = fate.LoseCharges(want);
         s.Log($"[LoseForesight] {unit.Name} loses {lost} Foresight: {before} -> {fate.Charges}"
-              + (lost < Amount ? $" (the bank cannot go below {FateAttunement.MinCharges})." : "."));
+              + (lost < want ? $" (the bank cannot go below {FateAttunement.MinCharges})." : "."));
 
         if (fate.IsOverdrawn)
             RegisterManager.Fire("chrono.overdrawn");
@@ -73,11 +78,20 @@ public sealed class ReturnToRoundStartEffect : EffectBase
     public int Radius;
     public int CollisionDamage;
     public int ForesightCost;
+    /// <summary>Every living unit on the board, both sides (Return to the Moment). Units
+    /// whose start tile is held by another returning unit get further passes, so a chain
+    /// of swaps resolves; whoever is still blocked after that stays put.</summary>
+    public bool AllUnits;
 
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         if (s?.Grid == null)
             return;
+        if (AllUnits)
+        {
+            ReturnEveryone(s);
+            return;
+        }
         var casterUnit = s.ActiveCasterUnit;
         int casterTeam = casterUnit?.TeamId ?? 0;
 
@@ -143,6 +157,36 @@ public sealed class ReturnToRoundStartEffect : EffectBase
             fate.SpendCharges(ForesightCost);
         if (movers.Count == 0)
             s.Log("[ReturnToRoundStart] Nothing to return.");
+    }
+
+    private void ReturnEveryone(GameState s)
+    {
+        var pending = (s.UnitsInPlay ?? new List<Unit>())
+            .Where(u => u != null && GodotObject.IsInstanceValid(u) && u.Stats.IsAlive && u.CurrentTile != null
+                        && u.RoundStartTile.HasValue && u.CurrentTile.Axial != u.RoundStartTile.Value)
+            .ToList();
+        int moved = 0;
+        for (int pass = 0; pass < 4 && pending.Count > 0; pass++)
+        {
+            var still = new List<Unit>();
+            foreach (var u in pending)
+            {
+                var dest = s.Grid.GetTile(u.RoundStartTile.Value);
+                if (dest != null && dest.Occupant == null && dest.CanEnter(u))
+                {
+                    u.PlaceOnTile(dest);
+                    moved++;
+                }
+                else
+                    still.Add(u);
+            }
+            if (still.Count == pending.Count)
+                break;   // nobody could move this pass: the rest are truly blocked
+            pending = still;
+        }
+        foreach (var u in pending)
+            s.Log($"[ReturnToRoundStart] {u.Name}'s start tile is taken. It stays put.");
+        s.Log($"[ReturnToRoundStart] {moved} unit(s) returned to where the round began.");
     }
 
     /// <summary>True when the unit changed tile or HP.</summary>
