@@ -86,6 +86,11 @@ internal static class InterfaceHelpers
 			OwnerId = caster?.Name ?? "Enchanter",
 			OwnerTeam = caster?.TeamId ?? 0,
 			GameState = s,
+			// Display mirror only: Fire runs OnTrigger and never reads these when it is set.
+			Damage = dmg,
+			Status = st,
+			StatusDuration = dur,
+			Reusable = reuse,
 			OnTrigger = (victim, state) =>
 			{
 				if (dmg > 0)
@@ -97,7 +102,8 @@ internal static class InterfaceHelpers
 				// Full reusable/duration handling needs the GlyphManager tick (see writeup).
 			}
 		};
-		tile.TileView?.ShowGlyph();
+		GlyphManager.StampFromCast(tile.Glyph);
+		tile.TileView?.ShowGlyph(tile.Glyph);
 
 		if (caster?.Attunement is WeaveAttunement w)
 			w.OnGlyphPrepared();
@@ -1524,6 +1530,10 @@ public sealed class PlaceGlyphEffect : EffectBase
 				OwnerId = casterUnit.Name,
 				OwnerTeam = casterUnit.TeamId,
 				GameState = s,
+				// Display mirror only: Fire runs OnTrigger and never reads these when it is set.
+				Damage = dmg,
+				Status = status,
+				StatusDuration = dur,
 				OnTrigger = (victim, state) =>
 				{
 					victim.ApplyDamage(dmg);
@@ -1537,7 +1547,8 @@ public sealed class PlaceGlyphEffect : EffectBase
 				}
 			};
 
-			tile.TileView?.ShowGlyph();
+			GlyphManager.StampFromCast(tile.Glyph);
+			tile.TileView?.ShowGlyph(tile.Glyph);
 			s.Log($"[Glyph] Placed glyph at {tile.Axial}.");
 			break; // one glyph per cast
 		}

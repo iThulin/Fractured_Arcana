@@ -1,0 +1,1384 @@
+diff --git a/Data/Cards/enchanter_charm_drift.json b/Data/Cards/enchanter_charm_drift.json
+index 632504a..ef34bfb 100644
+--- a/Data/Cards/enchanter_charm_drift.json
++++ b/Data/Cards/enchanter_charm_drift.json
+@@ -8,7 +8,7 @@
+ 		"name": "Charm Drift",
+ 		"mana": 1,
+ 		"speed": "Reflex",
+-		"rules_text": "Push an enemy 2 tiles in a direction you choose. If it lands on one of your glyphs, trigger it.",
++		"rules_text": "Compel target enemy to walk 2 tiles in a direction you choose. Your glyphs on its path trigger.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -18,9 +18,9 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "push_aimed",
++			"type": "compel_walk",
+ 			"tiles": 2,
+-			"collision_damage": 0
++			"mode": "direction"
+ 		}
+ 	},
+ 	"bottom": {
+@@ -58,18 +58,8 @@
+ 			"half": "both",
+ 			"top_name": "Charm Drift+",
+ 			"bottom_name": "Ward Stone+",
+-			"description": "Drift pushes further. The ward holds more.",
++			"description": "It drifts further. The ward holds more.",
+ 			"changes": [
+-				{
+-					"half": "top",
+-					"field": "effect.tiles",
+-					"value": 3
+-				},
+-				{
+-					"half": "top",
+-					"field": "rules_text",
+-					"value": "Push an enemy 3 tiles in a direction you choose. If it lands on one of your glyphs, trigger it."
+-				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "effect.steps[0].ally_armor",
+@@ -79,6 +69,20 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. Allies on it gain +6 armor. Lasts 3 turns. Gain 1 Weave."
++				},
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "compel_walk",
++						"tiles": 3,
++						"mode": "direction"
++					}
++				},
++				{
++					"half": "top",
++					"field": "rules_text",
++					"value": "Compel target enemy to walk 3 tiles in a direction you choose. Your glyphs on its path trigger."
+ 				}
+ 			]
+ 		},
+@@ -86,17 +90,30 @@
+ 			"tier": 2,
+ 			"half": "top",
+ 			"top_name": "Compelling Drift",
+-			"description": "Compelling Drift: collisions deal damage.",
++			"description": "Every step feeds the working.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.collision_damage",
+-					"value": 5
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 3,
++								"mode": "direction"
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Push an enemy 3 tiles. If it collides, deal 5 damage. If it lands on a glyph, trigger it."
++					"value": "Compel target enemy to walk 3 tiles in a direction you choose. Your glyphs on its path trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -122,37 +139,39 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Mass Charm",
+-			"description": "Mass Charm: push all enemies in a small area.",
++			"description": "A long walk.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "push_to_glyph",
+-							"tiles": 3,
+-							"collision_damage": 5
+-						}
++						"type": "unit_then_direction",
++						"range": 6,
++						"enemies_only": true
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 4,
++								"mode": "direction"
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Push all enemies within 2 of the target 3 tiles. Collisions deal 5 damage. Glyph landings trigger."
++					"value": "Compel target enemy to walk 4 tiles in a direction you choose. Your glyphs on its path trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -178,47 +197,45 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Irresistible Pull",
+-			"description": "Irresistible Pull: drag enemies onto your glyphs and Name them.",
++			"description": "And Name it where it stops.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "sequence",
+-							"steps": [
+-								{
+-									"type": "push_to_glyph",
+-									"tiles": 3,
+-									"collision_damage": 6
+-								},
+-								{
+-									"type": "apply_status",
+-									"status": "named",
+-									"duration": 1
+-								}
+-							]
+-						}
++						"type": "unit_then_direction",
++						"range": 6,
++						"enemies_only": true
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 4,
++								"mode": "direction"
++							},
++							{
++								"type": "name_condition",
++								"trigger": "move",
++								"damage": 5,
++								"duration": 2
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Push all enemies within 2 onto your glyphs (collisions deal 6 damage). Name each for 1 turn."
++					"value": "Compel target enemy to walk 4 tiles in a direction you choose. Your glyphs on its path trigger. Then Name it for 2 turns: if it moves, it takes 5. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_compel.json b/Data/Cards/enchanter_compel.json
+index 7d73c73..70d94ea 100644
+--- a/Data/Cards/enchanter_compel.json
++++ b/Data/Cards/enchanter_compel.json
+@@ -8,7 +8,7 @@
+ 		"name": "Compel",
+ 		"mana": 1,
+ 		"speed": "Reflex",
+-		"rules_text": "Pull an enemy 2 tiles toward you. If it lands on one of your glyphs, trigger it.",
++		"rules_text": "Compel target enemy to walk up to 2 tiles toward you. Your glyphs on its path trigger.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -19,7 +19,7 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "pull_to_glyph",
++			"type": "compel_walk",
+ 			"tiles": 2
+ 		}
+ 	},
+@@ -59,18 +59,8 @@
+ 			"half": "both",
+ 			"top_name": "Compel+",
+ 			"bottom_name": "Sigil of Focus+",
+-			"description": "Pull harder. The focus sigil lasts longer.",
++			"description": "It walks further. The focus sigil lasts longer.",
+ 			"changes": [
+-				{
+-					"half": "top",
+-					"field": "effect.tiles",
+-					"value": 3
+-				},
+-				{
+-					"half": "top",
+-					"field": "rules_text",
+-					"value": "Pull an enemy 3 tiles toward you. If it lands on a glyph, trigger it."
+-				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "effect.steps[0].duration",
+@@ -80,6 +70,19 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less (4 turns). Draw 1 card."
++				},
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "compel_walk",
++						"tiles": 3
++					}
++				},
++				{
++					"half": "top",
++					"field": "rules_text",
++					"value": "Compel target enemy to walk up to 3 tiles toward you. Your glyphs on its path trigger."
+ 				}
+ 			]
+ 		},
+@@ -87,17 +90,29 @@
+ 			"tier": 2,
+ 			"half": "top",
+ 			"top_name": "Dominate Step",
+-			"description": "Dominate Step: collisions deal damage.",
++			"description": "Every step feeds the working.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.collision_damage",
+-					"value": 5
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 3
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Pull an enemy 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
++					"value": "Compel target enemy to walk up to 3 tiles toward you. Your glyphs on its path trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -123,37 +138,45 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Mass Compel",
+-			"description": "Mass Compel: drag several enemies in.",
++			"description": "Several at once.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "pull_to_glyph",
+-							"tiles": 3,
+-							"collision_damage": 5
+-						}
++						"type": "tile",
++						"range": 6
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "retarget",
++								"targeting": {
++									"type": "aoe",
++									"radius": 2,
++									"enemies_only": true
++								},
++								"do": {
++									"type": "compel_walk",
++									"tiles": 3
++								}
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Pull all enemies within 2 of the target 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
++					"value": "Compel every enemy within 2 of the target point to walk up to 3 tiles toward you. Your glyphs on their paths trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -179,47 +202,56 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Absolute Compulsion",
+-			"description": "Absolute Compulsion: drag them in and Name them.",
++			"description": "And Name them as they come.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "sequence",
+-							"steps": [
+-								{
+-									"type": "pull_to_glyph",
+-									"tiles": 3,
+-									"collision_damage": 6
+-								},
+-								{
+-									"type": "apply_status",
+-									"status": "named",
+-									"duration": 1
+-								}
+-							]
+-						}
++						"type": "tile",
++						"range": 6
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "retarget",
++								"targeting": {
++									"type": "aoe",
++									"radius": 2,
++									"enemies_only": true
++								},
++								"do": {
++									"type": "sequence",
++									"steps": [
++										{
++											"type": "compel_walk",
++											"tiles": 3
++										},
++										{
++											"type": "name_condition",
++											"trigger": "attack",
++											"damage": 4,
++											"duration": 1
++										}
++									]
++								}
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Pull all enemies within 2 toward you (collisions deal 6 damage). Name each for 1 turn."
++					"value": "Compel every enemy within 2 of the target point to walk up to 3 tiles toward you, then Name each for 1 turn: if it attacks, it takes 4. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_geas.json b/Data/Cards/enchanter_geas.json
+index 7684c6d..dcd088e 100644
+--- a/Data/Cards/enchanter_geas.json
++++ b/Data/Cards/enchanter_geas.json
+@@ -62,16 +62,6 @@
+ 			"bottom_name": "Empowerment Field+",
+ 			"description": "The compulsion bites harder. The field empowers more.",
+ 			"changes": [
+-				{
+-					"half": "top",
+-					"field": "effect.steps[0].damage",
+-					"value": 8
+-				},
+-				{
+-					"half": "top",
+-					"field": "rules_text",
+-					"value": "Lay a compulsion on an enemy for 2 turns: if it moves, it takes 8. Gain 1 Weave."
+-				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "effect.ally_damage",
+@@ -81,6 +71,29 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare wards (radius 1) within 4. Allies on them deal +3. Lasts 3 turns."
++				},
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "geas",
++								"damage": 8,
++								"duration": 2
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
++				},
++				{
++					"half": "top",
++					"field": "rules_text",
++					"value": "Name an enemy for 2 turns: if it moves, it takes 8 damage. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -88,17 +101,31 @@
+ 			"tier": 2,
+ 			"half": "top",
+ 			"top_name": "Twin Geas",
+-			"description": "Twin Geas: the punishment also triggers if it casts.",
++			"description": "Casting breaks it too.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.steps[0].punish_cast",
+-					"value": true
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "geas",
++								"damage": 8,
++								"duration": 2,
++								"punish_cast": true
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Compulsion for 2 turns: the enemy takes 8 if it moves OR casts. Gain 1 Weave."
++					"value": "Name an enemy for 2 turns: if it moves or casts, it takes 8 damage. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -124,17 +151,31 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Greater Geas",
+-			"description": "Greater Geas: rooted while the compulsion holds.",
++			"description": "Heavier, and longer.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.steps[0].root_while_active",
+-					"value": true
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "geas",
++								"damage": 10,
++								"duration": 3,
++								"punish_cast": true
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Compulsion for 2 turns: the enemy is Rooted, and takes 8 if it casts. Gain 1 Weave."
++					"value": "Name an enemy for 3 turns: if it moves or casts, it takes 10 damage. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -160,8 +201,16 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Inescapable Geas",
+-			"description": "Inescapable Geas: punish everything around the target.",
++			"description": "Every enemy in the circle.",
+ 			"changes": [
++				{
++					"half": "top",
++					"field": "targeting",
++					"value": {
++						"type": "tile",
++						"range": 6
++					}
++				},
+ 				{
+ 					"half": "top",
+ 					"field": "effect",
+@@ -179,8 +228,7 @@
+ 									"type": "geas",
+ 									"damage": 8,
+ 									"duration": 3,
+-									"punish_cast": true,
+-									"root_while_active": true
++									"punish_cast": true
+ 								}
+ 							},
+ 							{
+@@ -190,18 +238,10 @@
+ 						]
+ 					}
+ 				},
+-				{
+-					"half": "top",
+-					"field": "targeting",
+-					"value": {
+-						"type": "tile",
+-						"range": 6
+-					}
+-				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Compulsion (3 turns) on all enemies within 2: Rooted, and 8 damage if they cast. Gain 2 Weave."
++					"value": "Name every enemy within 2 of the target point for 3 turns: if it moves or casts, it takes 8 damage. Gain 2 Weave."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Register/barks.json b/Data/Register/barks.json
+index ff7c4e3..b9ac31f 100644
+--- a/Data/Register/barks.json
++++ b/Data/Register/barks.json
+@@ -285,6 +285,36 @@
+         "Some workings are written into the hour itself. You do not write them twice."
+       ],
+       "note": "A half marked Once can be cast one time per fight. Its effect lasts the rest of the fight, so every copy of that card now shows the half as Used."
++    },
++    {
++      "key": "ench.first_name",
++      "category": "explain",
++      "once": true,
++      "title": "A Name",
++      "lines": [
++        "It has been Named. It may still do as it likes. It will simply... pay."
++      ],
++      "note": "A Named unit shows its condition on its nameplate, such as \"If it moves: 6\". It can still do that thing; if it does, it takes the damage (once a round) and the Name is broken, which gives you 1 Weave."
++    },
++    {
++      "key": "ench.name_broken",
++      "category": "comment",
++      "once": false,
++      "cooldown": 30,
++      "lines": [
++        "Broken. As written.",
++        "It chose. The Name was clear about what that would cost."
++      ]
++    },
++    {
++      "key": "ench.compel",
++      "category": "explain",
++      "once": true,
++      "title": "Compelled",
++      "lines": [
++        "It walks because it was told to. It walks over whatever is in the way."
++      ],
++      "note": "A compelled unit walks, it is not shoved: your glyphs trigger, Fire sears and Frost slides as it steps, but there is no collision damage and it cannot be walked off a ledge. A blocked step ends the walk."
+     }
+   ]
+ }
+diff --git a/Schemas/card.schema.json b/Schemas/card.schema.json
+index a9e485a..78cca7e 100644
+--- a/Schemas/card.schema.json
++++ b/Schemas/card.schema.json
+@@ -404,7 +404,9 @@
+ 						"wither",
+ 						"gain_foresight_per_status",
+ 						"gain_foresight_per_moved",
+-						"fixed_hour"
++						"fixed_hour",
++						"compel_walk",
++						"name_condition"
+ 					]
+ 				},
+ 				"amount": {
+diff --git a/Scripts/Cards/Effects/EnchanterEngine.cs b/Scripts/Cards/Effects/EnchanterEngine.cs
+new file mode 100644
+index 0000000..d5d4259
+--- /dev/null
++++ b/Scripts/Cards/Effects/EnchanterEngine.cs
+@@ -0,0 +1,331 @@
++using Godot;
++using System;
++using System.Collections.Generic;
++using System.Linq;
++
++// ============================================================
++// EnchanterEngine.cs
++//
++// Purpose:        The Enchanter's two engine verbs
++//                 (class_identity_enchanter_v1 §2, slice 11):
++//                 • Compel: the target WALKS. Each step enters its tile
++//                   under the walked rules in TileEntryReactions
++//                   (glyphs trigger, Fire sears, Frost slides; no
++//                   collision damage, no falling, Storm does not
++//                   conduct, Earth does not halt). A blocked step ends
++//                   the walk. The Elementalist shoves (forced rules);
++//                   the Enchanter compels (walked rules).
++//                 • Names: conditions on a unit. "Name an enemy for N
++//                   turns: if it moves / attacks / casts, it takes X."
++//                   Names punish a choice; they never forbid it. A Name
++//                   whose condition is met is BROKEN: its damage lands
++//                   (once per round per Name), and NameBroken fires
++//                   (+1 Weave for the Namer, cards that read breaks).
++// Layer:          Effects + combat rules
++// Collaborators:  Unit.PlaceOnTile (walked entry), Unit.Names,
++//                 CombatManager.Enchanter.cs (break hooks, ticking,
++//                 Weave, preview), StatusCatalog (nameplate chips)
++// See:            docs/class_identity_enchanter_v1.md §2
++// ============================================================
++
++/// <summary>What a Name watches for.</summary>
++[Flags]
++public enum NameTrigger
++{
++    None = 0,
++    Move = 1,
++    Attack = 2,
++    Cast = 4,
++    Any = Move | Attack | Cast,
++}
++
++/// <summary>One Name on a unit: its condition and what breaking it costs.</summary>
++public sealed class NameCondition
++{
++    public NameTrigger Triggers;
++    public int Damage;
++    public int TurnsRemaining;
++    /// <summary>Who wrote it (Weave goes to them on a break).</summary>
++    public Unit OwnerUnit;
++    public int OwnerTeam;
++    /// <summary>The card that wrote it, for the log and the nameplate tooltip.</summary>
++    public string Source = "";
++    /// <summary>Round of the last break: a Name punishes once per round, not per tile walked.</summary>
++    public int BrokenRound = -1;
++
++    /// <summary>"moves or casts" style wording for chips and logs.</summary>
++    public string TriggerWords()
++    {
++        var parts = new List<string>();
++        if (Triggers.HasFlag(NameTrigger.Move)) parts.Add("moves");
++        if (Triggers.HasFlag(NameTrigger.Attack)) parts.Add("attacks");
++        if (Triggers.HasFlag(NameTrigger.Cast)) parts.Add("casts");
++        return parts.Count switch
++        {
++            0 => "acts",
++            1 => parts[0],
++            2 => $"{parts[0]} or {parts[1]}",
++            _ => $"{parts[0]}, {parts[1]} or {parts[2]}",
++        };
++    }
++}
++
++/// <summary>Rules for Names: writing, breaking, ticking. Static so effects, the enemy
++/// executor and the tile-entry bus can all reach it without plumbing.</summary>
++public static class Names
++{
++    /// <summary>The current round (set at each player turn start); breaks are once per round.</summary>
++    public static int Round;
++
++    /// <summary>Raised after a break has dealt its damage: (named unit, the Name).</summary>
++    public static event Action<Unit, NameCondition> NameBroken;
++
++    public static void Write(Unit target, NameCondition name, Action<string> log = null)
++    {
++        if (target == null || name == null || !target.Stats.IsAlive)
++            return;
++        target.Names.Add(name);
++        target.RefreshHealthBar();
++        log?.Invoke($"[Name] {target.Name} is Named for {name.TurnsRemaining} turn(s): if it {name.TriggerWords()}, it takes {name.Damage}.");
++        RegisterManager.Fire("ench.first_name");
++    }
++
++    /// <summary>The unit did something a Name may watch for. Each matching Name not yet
++    /// broken this round deals its damage and raises <see cref="NameBroken"/>.</summary>
++    public static void Break(Unit unit, NameTrigger what, Action<string> log = null)
++    {
++        if (unit == null || !GodotObject.IsInstanceValid(unit) || unit.Names.Count == 0 || !unit.Stats.IsAlive)
++            return;
++        foreach (var name in unit.Names.ToList())
++        {
++            if ((name.Triggers & what) == 0 || name.BrokenRound == Round || name.TurnsRemaining <= 0)
++                continue;
++            name.BrokenRound = Round;
++            string verb = what switch { NameTrigger.Move => "moved", NameTrigger.Attack => "attacked", _ => "cast" };
++            string msg = $"{unit.Name} {verb} and broke its Name ({name.Source}): {name.Damage} damage.";
++            GD.Print($"[Name] {msg}");
++            log?.Invoke(msg);
++            if (name.Damage > 0)
++                unit.ApplyDamage(name.Damage);
++            NameBroken?.Invoke(unit, name);
++            RegisterManager.Fire("ench.name_broken");
++            if (!unit.Stats.IsAlive)
++                break;
++        }
++    }
++
++    /// <summary>Start of a player turn: every Name loses a turn; spent Names fall away.</summary>
++    public static void Tick(IEnumerable<Unit> units)
++    {
++        foreach (var u in units)
++        {
++            if (u == null || !GodotObject.IsInstanceValid(u) || u.Names.Count == 0)
++                continue;
++            foreach (var n in u.Names)
++                n.TurnsRemaining--;
++            if (u.Names.RemoveAll(n => n.TurnsRemaining <= 0) > 0)
++                u.RefreshHealthBar();
++        }
++    }
++
++    /// <summary>True when any living unit carries a Name written by <paramref name="team"/>.</summary>
++    public static bool AnyWrittenBy(IEnumerable<Unit> units, int team) =>
++        units.Any(u => u != null && GodotObject.IsInstanceValid(u) && u.Stats.IsAlive
++                       && u.Names.Any(n => n.OwnerTeam == team && n.TurnsRemaining > 0));
++}
++
++/// <summary>
++/// Name each targeted unit: "for N turns, if it [moves/attacks/casts], it takes X".
++/// Only units in the target set are Named (a two-step set's aim tile is skipped).
++/// JSON: { "type": "name_condition", "trigger": "move" | "attack" | "cast" | "act"
++///         | ["move","cast"], "damage": n, "duration": n }
++/// The legacy "geas" key builds this too (move, plus cast with "punish_cast").
++/// </summary>
++public sealed class NameConditionEffect : EffectBase
++{
++    public NameTrigger Triggers;
++    public int Damage;
++    public int Duration;
++
++    public NameConditionEffect(NameTrigger triggers, int damage, int duration)
++    {
++        Triggers = triggers == NameTrigger.None ? NameTrigger.Any : triggers;
++        Damage = Math.Max(0, damage);
++        Duration = Math.Max(1, duration);
++    }
++
++    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
++    {
++        if (targets?.Items == null)
++            return;
++        var owner = s?.ActiveCasterUnit;
++        int team = owner?.TeamId ?? 0;
++        bool any = false;
++        foreach (var obj in targets.Items)
++        {
++            if (obj is not Unit u || !GodotObject.IsInstanceValid(u) || !u.Stats.IsAlive || u.TeamId == team)
++                continue;
++            Names.Write(u, new NameCondition
++            {
++                Triggers = Triggers,
++                Damage = Damage,
++                TurnsRemaining = Duration,
++                OwnerUnit = owner,
++                OwnerTeam = team,
++                Source = s.ResolvingAbilityName ?? "a Name",
++            }, s.Log);
++            any = true;
++        }
++        if (!any)
++            s?.Log("[Name] No enemy to Name.");
++    }
++}
++
++/// <summary>Path planning and walking for Compel.</summary>
++public static class CompelWalk
++{
++    private static bool CanStep(HexGridManager grid, Unit u, TileData from, TileData to) =>
++        to != null && to.Occupant == null && to.CanEnter(u) && to.Height - from.Height < 2;
++
++    /// <summary>The tiles the walk would enter, in order. Pure: moves nothing.</summary>
++    public static List<Vector2I> Plan(HexGridManager grid, Unit victim, int tiles,
++                                      Vector2I? towards, Vector2I? direction)
++    {
++        var path = new List<Vector2I>();
++        if (grid == null || victim?.CurrentTile == null || tiles <= 0)
++            return path;
++        if (victim.IsMapObject && !victim.Pushable)
++            return path;
++        var cur = victim.CurrentTile;
++        for (int i = 0; i < tiles; i++)
++        {
++            TileData next = null;
++            if (direction.HasValue)
++            {
++                next = grid.GetTile(cur.Axial + direction.Value);
++                if (!CanStep(grid, victim, cur, next))
++                    break;
++            }
++            else if (towards.HasValue)
++            {
++                int here = grid.Distance(cur.Axial, towards.Value);
++                if (here <= 1)
++                    break;
++                int best = here;
++                foreach (var nb in grid.GetNeighbors(cur.Axial))
++                {
++                    var t = grid.GetTile(nb);
++                    if (!CanStep(grid, victim, cur, t) || path.Contains(nb))
++                        continue;
++                    int d = grid.Distance(nb, towards.Value);
++                    if (d < best)
++                    {
++                        best = d;
++                        next = t;
++                    }
++                }
++                if (next == null)
++                    break;
++            }
++            else
++                break;
++            path.Add(next.Axial);
++            cur = next;
++        }
++        return path;
++    }
++
++    /// <summary>Walks the planned path one tile at a time under the walked rules. Each
++    /// step is re-checked at execution (the board may have changed); a blocked step, a
++    /// glyph that ends movement, or death ends the walk. Returns tiles walked.</summary>
++    public static int Walk(HexGridManager grid, Unit victim, List<Vector2I> path, Action<string> log)
++    {
++        if (grid == null || victim == null || path == null || path.Count == 0)
++            return 0;
++        var ctx = new MoveContext(grid);
++        victim.MovementInterrupted = false;
++        int walked = 0;
++        foreach (var coord in path)
++        {
++            if (!GodotObject.IsInstanceValid(victim) || !victim.Stats.IsAlive || victim.CurrentTile == null)
++                break;
++            var next = grid.GetTile(coord);
++            if (!CanStep(grid, victim, victim.CurrentTile, next))
++            {
++                log?.Invoke($"[Compel] {victim.Name}'s way is blocked. The walk ends.");
++                break;
++            }
++            victim.PlaceOnTile(next, MovementKind.Walked, ctx);
++            walked++;
++            if (victim.MovementInterrupted)
++            {
++                log?.Invoke($"[Compel] {victim.Name}'s walk is stopped.");
++                break;
++            }
++        }
++        victim.MovementInterrupted = false;
++        return walked;
++    }
++}
++
++/// <summary>
++/// Compel: the target walks up to <see cref="Tiles"/> tiles, toward the caster or in a
++/// chosen direction (unit_then_direction targeting).
++/// JSON: { "type": "compel_walk", "tiles": n, "mode": "toward_caster" | "direction" }
++/// </summary>
++public sealed class CompelWalkEffect : EffectBase
++{
++    public int Tiles;
++    public bool Direction;
++
++    public CompelWalkEffect(int tiles, bool direction)
++    {
++        Tiles = Math.Max(1, tiles);
++        Direction = direction;
++    }
++
++    public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
++    {
++        if (s?.Grid == null)
++            return;
++        if (Direction)
++        {
++            if (!TwoStep.Read(s, targets, "Compel", out var victim, out var aim))
++                return;
++            var dir = ForcedMove.StepToward(s.Grid, victim.CurrentTile.Axial, aim.Axial);
++            if (dir == Vector2I.Zero)
++            {
++                s.Log("[Compel] The aim is the unit's own tile: no direction.");
++                return;
++            }
++            Run(s, victim, CompelWalk.Plan(s.Grid, victim, Tiles, null, dir));
++            return;
++        }
++
++        var home = s.ActiveCasterUnit?.CurrentTile?.Axial;
++        if (home == null || targets?.Items == null)
++            return;
++        // Nearest first, so a line of compelled enemies does not block itself.
++        var victims = targets.Items.OfType<Unit>()
++            .Where(u => GodotObject.IsInstanceValid(u) && u.Stats.IsAlive && u.CurrentTile != null
++                        && u.TeamId != (s.ActiveCasterUnit?.TeamId ?? 0))
++            .OrderBy(u => s.Grid.Distance(u.CurrentTile.Axial, home.Value))
++            .ToList();
++        if (victims.Count == 0)
++            s.Log("[Compel] No enemy to compel.");
++        foreach (var v in victims)
++            Run(s, v, CompelWalk.Plan(s.Grid, v, Tiles, home, null));
++    }
++
++    private static void Run(GameState s, Unit victim, List<Vector2I> path)
++    {
++        if (path.Count == 0)
++        {
++            s.Log($"[Compel] {victim.Name} has nowhere to walk.");
++            return;
++        }
++        int walked = CompelWalk.Walk(s.Grid, victim, path, s.Log);
++        s.Log($"[Compel] {victim.Name} walks {walked} tile(s).");
++        RegisterManager.Fire("ench.compel");
++    }
++}
+diff --git a/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs b/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
+index c3822f5..8a7b677 100644
+--- a/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
++++ b/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
+@@ -139,12 +139,52 @@ public static partial class CardScriptRegistry
+             return new SwapUnitsEffect(withCaster).WithTag("Movement");
+         });
+ 
+-        // Geas: status whose on-move punish lives in the status system
+-        // { "type": "geas", "duration": n }
++        // Geas (2026-10-04, slice 11): a real Name now, not a status with no hook.
++        // { "type": "geas", "damage": n, "duration": n, "punish_cast": bool }
+         RegisterEffect("geas", n =>
+         {
+             int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 2;
+-            return new StatusApplyEffect("geas", dur, "(on-move punish needs status hook)").WithTag("Control");
++            int dmg = n.TryGetProperty("damage", out var dm) ? dm.GetInt32() : 6;
++            var trig = NameTrigger.Move;
++            if (n.TryGetProperty("punish_cast", out var pc) && pc.ValueKind == System.Text.Json.JsonValueKind.True)
++                trig |= NameTrigger.Cast;
++            return new NameConditionEffect(trig, dmg, dur).WithTag("Control");
++        });
++
++        // Names (class_identity_enchanter_v1 §2b): a condition that punishes.
++        // { "type": "name_condition", "trigger": "move"|"attack"|"cast"|"act" or [..], "damage": n, "duration": n }
++        RegisterEffect("name_condition", n =>
++        {
++            var trig = NameTrigger.None;
++            void Add(string w)
++            {
++                trig |= (w ?? "").ToLowerInvariant() switch
++                {
++                    "move" or "moves" => NameTrigger.Move,
++                    "attack" or "attacks" => NameTrigger.Attack,
++                    "cast" or "casts" => NameTrigger.Cast,
++                    _ => NameTrigger.Any,
++                };
++            }
++            if (n.TryGetProperty("trigger", out var t))
++            {
++                if (t.ValueKind == System.Text.Json.JsonValueKind.Array)
++                    foreach (var e in t.EnumerateArray()) Add(e.GetString());
++                else
++                    Add(t.GetString());
++            }
++            int dmg = n.TryGetProperty("damage", out var dm) ? dm.GetInt32() : 4;
++            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 2;
++            return new NameConditionEffect(trig, dmg, dur).WithTag("Control");
++        });
++
++        // Compel (§2a): the target WALKS (walked entry rules), toward you or a chosen way.
++        // { "type": "compel_walk", "tiles": n, "mode": "toward_caster" | "direction" }
++        RegisterEffect("compel_walk", n =>
++        {
++            int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2;
++            bool dir = n.TryGetProperty("mode", out var m) && m.GetString() == "direction";
++            return new CompelWalkEffect(tiles, dir).WithTag("Movement");
+         });
+ 
+         // Mana tithe: status whose cost-up/refund lives in the status system
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs b/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs
+index 1ee670f..81839cc 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs
+@@ -156,6 +156,7 @@ public partial class CombatManager
+                 bool inRange = grid.Distance(center, aim) <= u.range;
+                 _trace.Show(grid, center, aim, bolt ? TrajectoryTrace.Style.Straight : TrajectoryTrace.Style.Lob,
+                             blocker?.Axial, coverStop || !inRange || (blocker != null && (u.los || bolt)));
++                ShowCompelPathPreview(_draggedHalf, aim);   // Enchanter: where a Compel walks it
+                 break;
+             }
+             case SelectUnitThenTileTarget tsx:
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs b/Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs
+new file mode 100644
+index 0000000..6d1b416
+--- /dev/null
++++ b/Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs
+@@ -0,0 +1,127 @@
++using Godot;
++using System.Collections.Generic;
++using System.Linq;
++
++// ============================================================
++// CombatManager.Enchanter.cs  (partial of CombatManager)
++//
++// Purpose:        Wiring for the Enchanter engine (EnchanterEngine.cs,
++//                 class_identity_enchanter_v1 §2, slice 11):
++//                 • Name breaks: a walked step (the unit's own move, or
++//                   a Compel) breaks "if it moves"; ResolveStrike breaks
++//                   "if it attacks"; channel, release and imbue intents
++//                   break "if it casts".
++//                 • A break gives the Namer +1 Weave (§2c).
++//                 • Names tick down at each player turn start.
++//                 • Compel previews: the walk path while dragging a
++//                   toward-you Compel over an enemy, and every direction's
++//                   path when a directional Compel picks its aim.
++// Layer:          Combat
++// Collaborators:  Names / NameCondition / CompelWalk (EnchanterEngine.cs),
++//                 Unit.OnUnitEnteredTile, WeaveAttunement, CastPreview
++// See:            docs/class_identity_enchanter_v1.md §2
++// ============================================================
++
++public partial class CombatManager
++{
++    private bool _enchanterHooksInstalled;
++
++    private void InstallEnchanterHooks()
++    {
++        if (_enchanterHooksInstalled)
++            return;
++        Unit.OnUnitEnteredTile += OnEnchanterUnitEntered;
++        Names.NameBroken += OnNameBroken;
++        _enchanterHooksInstalled = true;
++    }
++
++    private void UninstallEnchanterHooks()
++    {
++        if (!_enchanterHooksInstalled)
++            return;
++        Unit.OnUnitEnteredTile -= OnEnchanterUnitEntered;
++        Names.NameBroken -= OnNameBroken;
++        _enchanterHooksInstalled = false;
++    }
++
++    private void LogName(string msg) => combatUI?.AppendActionLog(msg);
++
++    private void OnEnchanterUnitEntered(Unit unit, TileData tile, MovementKind kind)
++    {
++        if (kind == MovementKind.Walked && unit != null && unit.Names.Count > 0)
++            Names.Break(unit, NameTrigger.Move, LogName);
++    }
++
++    private void OnNameBroken(Unit unit, NameCondition name)
++    {
++        var owner = name.OwnerUnit;
++        if (owner != null && IsInstanceValid(owner) && owner.Attunement is WeaveAttunement weave)
++        {
++            weave.Add(1);
++            GD.Print($"[Weave] {owner.Name}: a Name was broken, +1 Weave ({weave.Weave}/{WeaveAttunement.MaxWeave}).");
++        }
++        RefreshSelectedUnitUI();
++    }
++
++    /// <summary>Start of a player turn: the break round advances and every Name ticks.</summary>
++    private void TickNames()
++    {
++        Names.Round = roundNumber;
++        if (State?.UnitsInPlay != null)
++            Names.Tick(State.UnitsInPlay);
++    }
++
++    // ── Compel previews ─────────────────────────────────────────────────
++
++    private static CompelWalkEffect FindCompel(IEnumerable<IEffect> effects)
++    {
++        if (effects == null)
++            return null;
++        foreach (var e in effects)
++        {
++            if (e is CompelWalkEffect c)
++                return c;
++            if (e is EffectBase eb)
++            {
++                var nested = FindCompel(eb.Children);
++                if (nested != null)
++                    return nested;
++            }
++        }
++        return null;
++    }
++
++    /// <summary>Drag-hover over an enemy with a toward-you Compel: outline the walk.</summary>
++    private void ShowCompelPathPreview(CardHalf half, Vector2I aim)
++    {
++        var compel = FindCompel(half?.Effects);
++        if (compel == null || compel.Direction || selectedUnit?.CurrentTile == null || _aimZone == null)
++            return;
++        var victim = grid.GetTile(aim)?.Occupant;
++        if (victim == null || !victim.Stats.IsAlive || victim.TeamId == selectedUnit.TeamId)
++            return;
++        var path = CompelWalk.Plan(grid, victim, compel.Tiles, selectedUnit.CurrentTile.Axial, null);
++        if (path.Count > 0)
++            _aimZone.ShowOutline(new HashSet<Vector2I>(path), grid, AimGroundColor, 0.22f);
++        combatUI?.SetHintText(path.Count == 0
++            ? $"{victim.DisplayName} has nowhere to walk toward you."
++            : $"Compel: {victim.DisplayName} walks {path.Count} tile(s). Glyphs and element tiles on the way trigger.");
++    }
++
++    /// <summary>Directional Compel waiting for its aim: outline where each of the six
++    /// directions would walk it, and say so in the prompt.</summary>
++    private bool ShowCompelDirectionPaths(CardHalf half, Unit victim)
++    {
++        var compel = FindCompel(half?.Effects);
++        if (compel == null || !compel.Direction || victim?.CurrentTile == null)
++            return false;
++        EnsureCastRenderers();
++        var all = new HashSet<Vector2I>();
++        foreach (var dir in HexDirection.All)
++            foreach (var c in CompelWalk.Plan(grid, victim, compel.Tiles, null, dir))
++                all.Add(c);
++        if (all.Count > 0)
++            _aimZone.ShowOutline(all, grid, AimGroundColor, 0.16f);
++        return true;
++    }
++}
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index 64f1b4e..bd2ef03 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -1754,6 +1754,9 @@ public partial class CombatManager
+                 await ExecuteRangedIntent(enemy, intent);
+                 break;
+             case IntentKind.Channel:
++                Names.Break(enemy, NameTrigger.Cast, LogName);   // starting a spell is casting
++                if (!IsValidActor(enemy))
++                    break;
+                 if (IsRitualist(enemy))
+                     await ExecuteRitualStart(enemy, intent);
+                 else if (IsWarpChanneler(enemy))
+@@ -1762,6 +1765,9 @@ public partial class CombatManager
+                     await ExecuteChannelStart(enemy, intent);
+                 break;
+             case IntentKind.Release:
++                Names.Break(enemy, NameTrigger.Cast, LogName);
++                if (!IsValidActor(enemy))
++                    break;
+                 if (IsRitualist(enemy))
+                     await ExecuteRitualRelease(enemy, intent);
+                 else if (IsWarpChanneler(enemy))
+@@ -1773,9 +1779,15 @@ public partial class CombatManager
+                 await ExecuteGuardIntent(enemy, intent);
+                 break;
+             case IntentKind.Imbue:
++                Names.Break(enemy, NameTrigger.Cast, LogName);
++                if (!IsValidActor(enemy))
++                    break;
+                 await ExecuteImbueIntent(enemy, intent);
+                 break;
+             case IntentKind.Shove:
++                Names.Break(enemy, NameTrigger.Attack, LogName);
++                if (!IsValidActor(enemy))
++                    break;
+                 await ExecuteShoveIntent(enemy, intent);
+                 break;
+         }
+@@ -2827,6 +2839,9 @@ public partial class CombatManager
+                                 Unit redirected, Unit originalVictim = null)
+     {
+         LastStrikeVictim = null;
++        // Enchanter Names: an attack breaks "if it attacks" (the blow still lands; Names punish, never forbid).
++        if (attacker != null && IsInstanceValid(attacker))
++            Names.Break(attacker, NameTrigger.Attack, LogName);
+         bool wasRedirected = redirected != null && IsInstanceValid(redirected) && redirected.Stats.IsAlive;
+         Unit victim = wasRedirected ? redirected : grid.GetTile(tile)?.Occupant;
+         string verb = ranged ? "shoots" : "strikes";
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 207d32d..ce063c2 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -192,6 +192,7 @@ public partial class CombatManager : Node3D
+         InstallReactions();   // Edge M4: walk-step hook and routing cost
+         InstallIntentTime();  // Chronomancer Defer / Advance hooks
+         InstallAnchorHooks(); // Temporal Anchor lethal save
++        InstallEnchanterHooks(); // Names break on walk; breaks feed the Weave
+         EnsureAimLines();     // ranged-intent arcs: the node is built here, once
+ 
+         // Wire up helper nodes
+@@ -363,6 +364,7 @@ public partial class CombatManager : Node3D
+         UninstallReactions();
+         UninstallIntentTime();
+         UninstallAnchorHooks();
++        UninstallEnchanterHooks();
+         CardUi.HalfSpentProvider = null;
+         CardDropHandler.SelfCastRedirect = null;
+     }
+@@ -2566,6 +2568,7 @@ public partial class CombatManager : Node3D
+         RegisterManager.Fire("combat.basics.hand");
+         RegisterManager.Fire("combat.basics.halves");
+         RegisterManager.Fire("combat.basics.move");
++        TickNames();   // Enchanter Names lose a turn; the break round advances
+ 
+         // Round 1 intents (2026-10-03). Plans are locked at the end of each enemy
+         // phase, plus once in StartDeploymentPhase. But enemies now spawn AFTER
+@@ -2860,8 +2863,10 @@ public partial class CombatManager : Node3D
+ 
+         foreach (var unit in playerUnits)
+         {
++            // Enchanter §2c: the Weave holds while you have prepared glyphs OR Named units.
+             if (unit.Attunement is WeaveAttunement w)
+-                w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0);
++                w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0
++                            || Names.AnyWrittenBy(State.UnitsInPlay, unit.TeamId));
+ 
+             DiscardOverflowCards(unit);
+ 
+@@ -3050,7 +3055,10 @@ public partial class CombatManager : Node3D
+             grid.GetTileView(coord)?.SetTargetHighlight(true);
+         }
+ 
+-        string prompt = $"{half.Name} → {victim.Name}. {ts.StepTwoPrompt} (Esc or right-click to cancel.)";
++        string stepTwo = ShowCompelDirectionPaths(half, victim)
++            ? "Click a tile beside it: it walks that way (outlined: where each direction leads)."
++            : ts.StepTwoPrompt;
++        string prompt = $"{half.Name} → {victim.Name}. {stepTwo} (Esc or right-click to cancel.)";
+         GD.Print($"[TwoStep] {prompt}");
+         combatUI?.AppendActionLog(prompt);
+     }
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index 29f48ae..e538ce0 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -349,6 +349,9 @@ public partial class Unit : Node3D
+     /// <summary>Lookahead stays revealed every round (The Fixed Hour, Glimpse's top rung).</summary>
+     public bool IntentLookaheadPermanent;
+ 
++    /// <summary>Enchanter Names on this unit (EnchanterEngine.cs): conditions that punish.</summary>
++    public List<NameCondition> Names = new();
++
+     /// <summary>Ephemeris (chronomancer §3): the first spell this unit casts each turn is
+     /// copied into the Almanac (ChronoHooks.OnSpellResolved). Reset per turn in StartPlayerTurn.</summary>
+     public bool EphemerisActive;
+diff --git a/Scripts/UI/StatusCatalog.cs b/Scripts/UI/StatusCatalog.cs
+index 9387370..c9f6130 100644
+--- a/Scripts/UI/StatusCatalog.cs
++++ b/Scripts/UI/StatusCatalog.cs
+@@ -234,6 +234,20 @@ public static class StatusCatalog
+         if (u.IsStaggered && !staggerShown)
+             list.Add(new UnitCondition("stagger", Get("stagger"), 0));
+ 
++        // Enchanter Names (§2b): every Name shows its condition on the plate. Required:
++        // glyphs, Names and compelled walks are only readable if every one is visible.
++        foreach (var name in u.Names)
++        {
++            if (name.TurnsRemaining <= 0)
++                continue;
++            string words = name.TriggerWords();
++            var info = new StatusInfo($"If it {words}: {name.Damage}",
++                                      $"IF {words.ToUpperInvariant().Replace(" OR ", "/").Replace(", ", "/")}: {name.Damage}",
++                                      StatusTone.Mark,
++                                      $"Named by {name.Source}: if it {words}, it takes {name.Damage} damage (once a round). {{n}} turn(s) left.");
++            list.Add(new UnitCondition($"name:{(int)name.Triggers}:{name.Damage}", info, name.TurnsRemaining));
++        }
++
+         if (u.ArmedReaction != null)
+         {
+             string name = string.IsNullOrEmpty(u.ArmedReaction.DisplayName) ? "Reaction" : u.ArmedReaction.DisplayName;

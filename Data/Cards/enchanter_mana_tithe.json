@@ -8,7 +8,7 @@
 		"name": "Mana Tithe",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Name an enemy for 3 turns: its spells cost 1 more, and you gain 1 mana each time it casts. Gain 1 Weave.",
+		"rules_text": "Name an enemy for 3 turns: if it casts, it takes 3 damage and you gain 1 mana. Gain 1 Weave.",
 		"tags": [
 			"enchant"
 		],
@@ -79,7 +79,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind an enemy for 3 turns: its spells cost 2 more, and you gain 1 mana when it casts. Gain 1 Weave."
+					"value": "Name an enemy for 3 turns: if it casts, it takes 5 damage and you gain 1 mana. Gain 1 Weave."
 				},
 				{
 					"half": "bottom",
@@ -107,7 +107,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind an enemy 3 turns: spells cost 2 more. You gain 2 mana when it casts. Gain 1 Weave."
+					"value": "Name an enemy for 3 turns: if it casts, it takes 5 damage and you gain 2 mana. Gain 1 Weave."
 				}
 			]
 		},
@@ -143,7 +143,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind an enemy 3 turns: spells cost 2 more. You gain 2 mana and 1 Weave when it casts. Gain 1 Weave."
+					"value": "Name an enemy for 3 turns: if it casts, it takes 5 damage and you gain 2 mana and 1 Weave. Gain 1 Weave."
 				}
 			]
 		},
@@ -226,7 +226,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Bind all enemies 3 turns: spells cost 2 more. You gain 2 mana and 1 Weave per enemy cast. Gain 2 Weave."
+					"value": "Name every enemy for 3 turns: if one casts, it takes 5 damage and you gain 2 mana and 1 Weave. Gain 2 Weave."
 				}
 			]
 		},

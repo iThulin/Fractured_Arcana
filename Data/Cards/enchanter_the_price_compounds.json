@@ -1,0 +1,265 @@
+{
+	"id": "enchanter_the_price_compounds",
+	"status": "ready",
+	"name": "The Price Compounds",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "The Price Compounds",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "For the rest of the fight, each time a Named enemy breaks its condition, its Name lasts 1 more turn and its penalty grows by 2.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "compound_names",
+			"growth": 2
+		}
+	},
+	"bottom": {
+		"name": "Usury",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Name an enemy for 2 turns: each time it moves, attacks or casts, it takes 4.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "name_condition",
+			"trigger": "act",
+			"damage": 4,
+			"duration": 2,
+			"per_trigger": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Price Compounds+",
+			"bottom_name": "Usury+",
+			"description": "Interest accrues faster.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "compound_names",
+						"growth": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, each time a Named enemy breaks its condition, its Name lasts 1 more turn and its penalty grows by 3."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "act",
+						"damage": 5,
+						"duration": 2,
+						"per_trigger": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 2 turns: each time it moves, attacks or casts, it takes 5."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Mounting Debt",
+			"description": "Mounting Debt: the ledger opens with Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compound_names",
+								"growth": 3
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, each time a Named enemy breaks its condition, its Name lasts 1 more turn and its penalty grows by 3. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Predatory Terms",
+			"description": "Predatory Terms: a longer loan.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "act",
+						"damage": 5,
+						"duration": 3,
+						"per_trigger": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: each time it moves, attacks or casts, it takes 5."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Debt Spiral",
+			"description": "Debt Spiral: each breach costs more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compound_names",
+								"growth": 4
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, each time a Named enemy breaks its condition, its Name lasts 1 more turn and its penalty grows by 4. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Crushing Usury",
+			"description": "Crushing Usury: and the Weave grows.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "act",
+								"damage": 6,
+								"duration": 3,
+								"per_trigger": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: each time it moves, attacks or casts, it takes 6. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Ledger Never Closes",
+			"description": "The Ledger Never Closes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compound_names",
+								"growth": 5
+							},
+							{
+								"type": "gain_weave",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, each time a Named enemy breaks its condition, its Name lasts 1 more turn and its penalty grows by 5. Gain 3 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Ruinous Usury",
+			"description": "Ruinous Usury: ruin, at interest.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "act",
+								"damage": 7,
+								"duration": 3,
+								"per_trigger": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: each time it moves, attacks or casts, it takes 7. Gain 2 Weave."
+				}
+			]
+		}
+	]
+}

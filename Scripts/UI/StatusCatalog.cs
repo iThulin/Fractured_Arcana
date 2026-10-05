@@ -234,6 +234,20 @@ public static class StatusCatalog
         if (u.IsStaggered && !staggerShown)
             list.Add(new UnitCondition("stagger", Get("stagger"), 0));
 
+        // Enchanter Names (§2b): every Name shows its condition on the plate. Required:
+        // glyphs, Names and compelled walks are only readable if every one is visible.
+        foreach (var name in u.Names)
+        {
+            if (name.TurnsRemaining <= 0)
+                continue;
+            string chip = name.ChipText();
+            var info = new StatusInfo(chip,
+                                      chip.ToUpperInvariant(),
+                                      StatusTone.Mark,
+                                      name.Describe() + " {n} turn(s) left.");
+            list.Add(new UnitCondition($"name:{(int)name.Triggers}:{name.Damage}:{chip.GetHashCode()}", info, name.TurnsRemaining));
+        }
+
         if (u.ArmedReaction != null)
         {
             string name = string.IsNullOrEmpty(u.ArmedReaction.DisplayName) ? "Reaction" : u.ArmedReaction.DisplayName;

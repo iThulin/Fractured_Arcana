@@ -8,7 +8,7 @@
 		"name": "Charm Drift",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Push an enemy 2 tiles in a direction you choose. If it lands on one of your glyphs, trigger it.",
+		"rules_text": "Compel target enemy to walk 2 tiles in a direction you choose. Your glyphs on its path trigger.",
 		"tags": [
 			"enchant"
 		],
@@ -18,9 +18,9 @@
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "push_aimed",
+			"type": "compel_walk",
 			"tiles": 2,
-			"collision_damage": 0
+			"mode": "direction"
 		}
 	},
 	"bottom": {
@@ -28,6 +28,7 @@
 		"mana": 1,
 		"speed": "Reflex",
 		"rules_text": "Prepare a glyph on a tile within 4. Allies on this tile gain +4 armor. Lasts 3 turns. Gain 1 Weave.",
+		"glyph_text": "While it stands here it has +{armor} armor.",
 		"tags": [
 			"enchant"
 		],
@@ -58,18 +59,8 @@
 			"half": "both",
 			"top_name": "Charm Drift+",
 			"bottom_name": "Ward Stone+",
-			"description": "Drift pushes further. The ward holds more.",
+			"description": "It drifts further. The ward holds more.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect.tiles",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Push an enemy 3 tiles in a direction you choose. If it lands on one of your glyphs, trigger it."
-				},
 				{
 					"half": "bottom",
 					"field": "effect.steps[0].ally_armor",
@@ -79,6 +70,20 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. Allies on it gain +6 armor. Lasts 3 turns. Gain 1 Weave."
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "compel_walk",
+						"tiles": 3,
+						"mode": "direction"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk 3 tiles in a direction you choose. Your glyphs on its path trigger."
 				}
 			]
 		},
@@ -86,17 +91,30 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Compelling Drift",
-			"description": "Compelling Drift: collisions deal damage.",
+			"description": "Every step feeds the working.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.collision_damage",
-					"value": 5
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 3,
+								"mode": "direction"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push an enemy 3 tiles. If it collides, deal 5 damage. If it lands on a glyph, trigger it."
+					"value": "Compel target enemy to walk 3 tiles in a direction you choose. Your glyphs on its path trigger. Gain 1 Weave."
 				}
 			]
 		},
@@ -115,6 +133,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. Allies on it gain +6 armor and 2 shield. Lasts 3 turns. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "While it stands here it has +{armor} armor. It gains {shield} shield once per round."
 				}
 			]
 		},
@@ -122,37 +145,39 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Mass Charm",
-			"description": "Mass Charm: push all enemies in a small area.",
+			"description": "A long walk.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 2,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "push_to_glyph",
-							"tiles": 3,
-							"collision_damage": 5
-						}
-					}
-				},
 				{
 					"half": "top",
 					"field": "targeting",
 					"value": {
-						"type": "tile",
-						"range": 6
+						"type": "unit_then_direction",
+						"range": 6,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 4,
+								"mode": "direction"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 of the target 3 tiles. Collisions deal 5 damage. Glyph landings trigger."
+					"value": "Compel target enemy to walk 4 tiles in a direction you choose. Your glyphs on its path trigger. Gain 1 Weave."
 				}
 			]
 		},
@@ -171,6 +196,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. Allies on it gain +6 armor, 2 shield, +2 damage. Lasts 3 turns. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage. It gains {shield} shield once per round."
 				}
 			]
 		},
@@ -178,47 +208,45 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Irresistible Pull",
-			"description": "Irresistible Pull: drag enemies onto your glyphs and Name them.",
+			"description": "And Name it where it stops.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 2,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "push_to_glyph",
-									"tiles": 3,
-									"collision_damage": 6
-								},
-								{
-									"type": "apply_status",
-									"status": "named",
-									"duration": 1
-								}
-							]
-						}
-					}
-				},
 				{
 					"half": "top",
 					"field": "targeting",
 					"value": {
-						"type": "tile",
-						"range": 6
+						"type": "unit_then_direction",
+						"range": 6,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 4,
+								"mode": "direction"
+							},
+							{
+								"type": "name_condition",
+								"trigger": "move",
+								"damage": 5,
+								"duration": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Push all enemies within 2 onto your glyphs (collisions deal 6 damage). Name each for 1 turn."
+					"value": "Compel target enemy to walk 4 tiles in a direction you choose. Your glyphs on its path trigger. Then Name it for 2 turns: if it moves, it takes 5. Gain 1 Weave."
 				}
 			]
 		},

@@ -1,0 +1,341 @@
+{
+	"id": "enchanter_borrowed_will",
+	"status": "ready",
+	"name": "Borrowed Will",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "Borrowed Will",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Seize a non-elite enemy's next attack: choose any tile within 4 of it for it to strike. It moves to reach that tile on its turn.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit_then_tile",
+			"range": 6,
+			"dest_range": 4,
+			"enemies_only": true,
+			"any_tile": true
+		},
+		"effect": {
+			"type": "borrow_will"
+		},
+		"requires": [
+			"non_elite_target"
+		]
+	},
+	"bottom": {
+		"name": "Not Me",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Name an enemy for 1 turn: it can't target you (it must pick another unit).",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "name_condition",
+			"trigger": "none",
+			"damage": 0,
+			"duration": 1,
+			"shun": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Borrowed Will+",
+			"bottom_name": "Not Me+",
+			"description": "A longer reach. A firmer refusal.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 5,
+						"enemies_only": true,
+						"any_tile": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "borrow_will"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seize a non-elite enemy's next attack: choose any tile within 5 of it for it to strike. It moves to reach that tile on its turn."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 1,
+								"shun": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 1 turn: it can't target you (it must pick another unit). Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Stolen Will",
+			"description": "Stolen Will: the theft feeds the Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 5,
+						"enemies_only": true,
+						"any_tile": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "borrow_will"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seize a non-elite enemy's next attack: choose any tile within 5 of it for it to strike. It moves to reach that tile on its turn. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Not Me, Not Now",
+			"description": "Not Me, Not Now: two turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 2,
+								"shun": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 2 turns: it can't target you (it must pick another unit). Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Puppet Will",
+			"description": "Puppet Will: and it pays for the blow.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 5,
+						"enemies_only": true,
+						"any_tile": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "borrow_will"
+							},
+							{
+								"type": "name_condition",
+								"trigger": "attack",
+								"damage": 4,
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seize a non-elite enemy's next attack: choose any tile within 5 of it for it to strike. It moves to reach that tile on its turn. Name it for 1 turn: if it attacks, it takes 4. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Look Elsewhere",
+			"description": "Look Elsewhere: more Weave.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 2,
+								"shun": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 2 turns: it can't target you (it must pick another unit). Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Usurped Will",
+			"description": "Usurped Will: the whole field is in reach.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 6,
+						"enemies_only": true,
+						"any_tile": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "borrow_will"
+							},
+							{
+								"type": "name_condition",
+								"trigger": "attack",
+								"damage": 6,
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Seize a non-elite enemy's next attack: choose any tile within 6 of it for it to strike. It moves to reach that tile on its turn. Name it for 1 turn: if it attacks, it takes 6. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Beneath Notice",
+			"description": "Beneath Notice: and attacking costs it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "attack",
+								"damage": 4,
+								"duration": 2,
+								"shun": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name an enemy for 2 turns: it can't target you (it must pick another unit), and if it attacks it takes 4. Gain 1 Weave."
+				}
+			]
+		}
+	]
+}

@@ -156,6 +156,7 @@ public partial class CombatManager
                 bool inRange = grid.Distance(center, aim) <= u.range;
                 _trace.Show(grid, center, aim, bolt ? TrajectoryTrace.Style.Straight : TrajectoryTrace.Style.Lob,
                             blocker?.Axial, coverStop || !inRange || (blocker != null && (u.los || bolt)));
+                ShowCompelPathPreview(_draggedHalf, aim);   // Enchanter: where a Compel walks it
                 break;
             }
             case SelectUnitThenTileTarget tsx:
@@ -481,6 +482,8 @@ public partial class CombatManager
         {
             case SelectUnitTarget u:
                 enemiesOnly = u.enemyOnly; friendliesOnly = u.friendlyOnly; range = u.range; break;
+            case SelectTileThenTileTarget:
+                return;   // picks tiles (glyphs), not units
             case SelectTwoStepTarget ts:
                 enemiesOnly = ts.enemyOnly; friendliesOnly = ts.friendlyOnly; range = ts.range; break;
             case SelectAreaTarget a:

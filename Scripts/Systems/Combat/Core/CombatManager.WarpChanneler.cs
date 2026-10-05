@@ -162,6 +162,14 @@ public partial class CombatManager
             }
         }
 
+        if (dest != null && AbsoluteTerritoryZone.BlocksTeleport(State, enemy, dest.Axial))
+        {
+            string held = $"{enemy.Name}: Absolute Territory holds the veil shut. The rift collapses.";
+            GD.Print("[Warp] " + held);
+            combatUI?.AppendActionLog(held);
+            return;
+        }
+
         if (dest == null)
         {
             string blocked = $"{enemy.Name}: the rift finds no ground and collapses.";

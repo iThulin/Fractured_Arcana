@@ -263,6 +263,16 @@ public partial class CombatManager
 
     private EnemyIntent PlanIntent(Unit enemy)
     {
+        // Not Me (Enchanter): while this enemy plans, units it is Named away from read
+        // as untargetable to every planner (Unit.HasStatus).
+        var prev = Unit.PlanningFor;
+        Unit.PlanningFor = enemy;
+        try { return PlanIntentCore(enemy); }
+        finally { Unit.PlanningFor = prev; }
+    }
+
+    private EnemyIntent PlanIntentCore(Unit enemy)
+    {
         _behaviorPlanners ??= new Dictionary<string, Func<Unit, EnemyIntent>>(StringComparer.OrdinalIgnoreCase)
         {
             { "melee_advance",           PlanSoldier },
@@ -1726,6 +1736,34 @@ public partial class CombatManager
         PlanAllEnemyIntents();
     }
 
+    /// <summary>Forbidden Word: a caster Named with Backfire has its spell land on its own
+    /// tile. The release strike is aimed at its feet (and lands: see ResolveStrike); an
+    /// imbue's footprint is moved so it is centred on the caster.</summary>
+    private readonly HashSet<Unit> _backfiring = new();
+
+    private void ApplyBackfire(Unit enemy, EnemyIntent intent)
+    {
+        if (!IsValidActor(enemy) || enemy.CurrentTile == null || intent == null)
+            return;
+        if (!enemy.Names.Any(n => n.Backfire && n.TurnsRemaining > 0))
+            return;
+        var home = enemy.CurrentTile.Axial;
+        var from = enemy.ChannelTile ?? intent.TargetTile;
+        if (from != null && intent.ThreatTiles != null)
+        {
+            var offset = home - from.Value;
+            intent.ThreatTiles = intent.ThreatTiles.Select(t => t + offset).ToList();
+        }
+        intent.TargetTile = home;
+        if (enemy.ChannelTile != null || intent.Kind == IntentKind.Release)
+            enemy.ChannelTile = home;
+        if (intent.Kind == IntentKind.Release)
+            _backfiring.Add(enemy);   // consumed by the self-strike in ResolveStrike
+        string msg = $"The Forbidden Word turns {enemy.Name}'s spell back on itself!";
+        GD.Print(msg);
+        combatUI?.AppendActionLog(msg);
+    }
+
     private async Task ExecuteIntent(Unit enemy)
     {
         if (enemy != null)
@@ -1754,6 +1792,10 @@ public partial class CombatManager
                 await ExecuteRangedIntent(enemy, intent);
                 break;
             case IntentKind.Channel:
+                Names.Break(enemy, NameTrigger.Cast, LogName);   // starting a spell is casting
+                if (!IsValidActor(enemy))
+                    break;
+                OnEnemySpellCast(enemy);
                 if (IsRitualist(enemy))
                     await ExecuteRitualStart(enemy, intent);
                 else if (IsWarpChanneler(enemy))
@@ -1762,6 +1804,12 @@ public partial class CombatManager
                     await ExecuteChannelStart(enemy, intent);
                 break;
             case IntentKind.Release:
+                Names.Break(enemy, NameTrigger.Cast, LogName);
+                if (!IsValidActor(enemy))
+                    break;
+                OnEnemySpellCast(enemy);
+                if (!IsRitualist(enemy) && !IsWarpChanneler(enemy))
+                    ApplyBackfire(enemy, intent);
                 if (IsRitualist(enemy))
                     await ExecuteRitualRelease(enemy, intent);
                 else if (IsWarpChanneler(enemy))
@@ -1773,9 +1821,17 @@ public partial class CombatManager
                 await ExecuteGuardIntent(enemy, intent);
                 break;
             case IntentKind.Imbue:
+                Names.Break(enemy, NameTrigger.Cast, LogName);
+                if (!IsValidActor(enemy))
+                    break;
+                OnEnemySpellCast(enemy);
+                ApplyBackfire(enemy, intent);
                 await ExecuteImbueIntent(enemy, intent);
                 break;
             case IntentKind.Shove:
+                Names.Break(enemy, NameTrigger.Attack, LogName);
+                if (!IsValidActor(enemy))
+                    break;
                 await ExecuteShoveIntent(enemy, intent);
                 break;
         }
@@ -2827,6 +2883,9 @@ public partial class CombatManager
                                 Unit redirected, Unit originalVictim = null)
     {
         LastStrikeVictim = null;
+        // Enchanter Names: an attack breaks "if it attacks" (the blow still lands; Names punish, never forbid).
+        if (attacker != null && IsInstanceValid(attacker))
+            Names.Break(attacker, NameTrigger.Attack, LogName);
         bool wasRedirected = redirected != null && IsInstanceValid(redirected) && redirected.Stats.IsAlive;
         Unit victim = wasRedirected ? redirected : grid.GetTile(tile)?.Occupant;
         string verb = ranged ? "shoots" : "strikes";
@@ -2844,6 +2903,15 @@ public partial class CombatManager
                 : $"{attackerName} {verb} at empty ground!";
             GD.Print(whiff);
             combatUI?.AppendActionLog(whiff);
+        }
+        else if (victim == attacker && _backfiring.Remove(attacker))
+        {
+            // Forbidden Word: the spell lands on its caster.
+            string bf = $"{attackerName}'s spell lands on itself for {damage}!";
+            GD.Print(bf);
+            combatUI?.AppendActionLog(bf);
+            victim.ApplyDamage(damage, attacker, Delivery.Bolt);
+            LastStrikeVictim = victim;
         }
         else if (victim == attacker)
         {
@@ -2867,15 +2935,21 @@ public partial class CombatManager
         }
         else
         {
-            // §9 reaction grammar: a redirected strike names its interceptor.
-            string hit = wasRedirected
-                ? UIContent.ReactionRedirectLine(victim.Name, attackerName, noun, damage)
-                : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
-            GD.Print(hit);
-            combatUI?.AppendActionLog(hit);
-            CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
-            victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
-            LastStrikeVictim = victim;
+            // Enchanter (slice 12a): a Sovereign Pillar blunts the blow; a Mirror Ward
+            // under the victim turns it back on the attacker instead.
+            damage = EnchanterStrikeDamage(attacker, damage);
+            if (!TryReflectStrike(attacker, victim, damage))
+            {
+                // §9 reaction grammar: a redirected strike names its interceptor.
+                string hit = wasRedirected
+                    ? UIContent.ReactionRedirectLine(victim.Name, attackerName, noun, damage)
+                    : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
+                GD.Print(hit);
+                combatUI?.AppendActionLog(hit);
+                CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
+                victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
+                LastStrikeVictim = victim;
+            }
         }
 
         // U3b: onAttack. ResolveStrike is the ONE place both strike paths meet. The

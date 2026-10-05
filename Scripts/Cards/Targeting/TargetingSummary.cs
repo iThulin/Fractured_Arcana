@@ -79,6 +79,14 @@ public static class TargetingSummary
             case SelectElementTileTarget e:
                 return new Entry($"{Cap(e.Element)} tile {e.Range}", $"An {e.Element} imbued tile within {e.Range}.", Delivery.Ground);
 
+            case SelectUnitThenUnitTarget uu:
+                return new Entry($"Unit {uu.range}, unit {uu.destRange}", $"A unit within {uu.range}, then a second unit within {uu.destRange}.", Delivery.Arc);
+
+            case SelectTileThenTileTarget tt2:
+                return new Entry(tt2.friendlyGlyphs ? $"Glyph {tt2.range}, glyph" : $"Tile {tt2.range}, tile",
+                                 tt2.friendlyGlyphs ? $"One of your glyphs within {tt2.range}, then another of your glyphs." : $"A tile within {tt2.range}, then a second tile.",
+                                 Delivery.Ground);
+
             case SelectUnitThenTileTarget ut:
                 return new Entry($"Unit {ut.range}, tile {ut.destRange}", $"A unit within {ut.range}, then a tile within {ut.destRange} of it.", Delivery.Arc);
 

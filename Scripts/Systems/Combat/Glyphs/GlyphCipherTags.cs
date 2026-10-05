@@ -133,6 +133,10 @@ public static class GlyphCipherTags
             case SelectUnitTarget u:
                 return u.friendlyOnly ? CipherTarget.Ally : CipherTarget.Enemy;
 
+            // Tile then tile (Glyph Warp) picks places, not people.
+            case SelectTileThenTileTarget:
+                return CipherTarget.Tile;
+
             // friendlyOnly is declared on the SelectTwoStepTarget base, so both
             // unit_then_tile and unit_then_direction are covered by one case.
             case SelectTwoStepTarget two:
@@ -158,7 +162,23 @@ public static class GlyphCipherTags
         if (half?.Effects == null) return verbs;
         foreach (var e in half.Effects)
             Walk(e, ref verbs, 0);
+        // A half whose only effect is Weave (Echo of Breaking, slice 13a) still needs a
+        // verb: Weave is ignored above to keep it off the 9 halves that merely ride it.
+        if (verbs == CipherVerb.None)
+            foreach (var e in half.Effects)
+                if (HasTag(e, "Weave", 0))
+                { verbs = CipherVerb.Invoke; break; }
         return verbs;
+    }
+
+    private static bool HasTag(IEffect e, string tag, int depth)
+    {
+        if (e == null || depth > 8) return false;
+        if (e.Tags != null && Array.IndexOf(e.Tags, tag) >= 0) return true;
+        if (e.Children != null)
+            foreach (var c in e.Children)
+                if (HasTag(c, tag, depth + 1)) return true;
+        return false;
     }
 
     private static void Walk(IEffect e, ref CipherVerb verbs, int depth)

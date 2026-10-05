@@ -91,6 +91,9 @@ public abstract class SelectTwoStepTarget : ITargetSelector
 public sealed class SelectUnitThenTileTarget : SelectTwoStepTarget
 {
     public int destRange;
+    /// <summary>Any tile within reach, occupied ones included (Borrowed Will picks a
+    /// tile to strike, not a place to stand).</summary>
+    public bool anyTile;
 
     public SelectUnitThenTileTarget(bool enemyOnly = true, int range = 4, int destRange = 2,
                                     bool friendlyOnly = false, bool constructsOnly = false)
@@ -99,7 +102,43 @@ public sealed class SelectUnitThenTileTarget : SelectTwoStepTarget
         this.destRange = destRange;
     }
 
-    public override string StepTwoPrompt => "Click a destination tile.";
+    public override string StepTwoPrompt => anyTile ? "Click the tile it will strike." : "Click a destination tile.";
+}
+
+/// <summary>Pick a unit, then a SECOND unit within <see cref="destRange"/> of the caster.
+/// Phase Shift (swap any two units), First Layer (swap two enemies' locked tiles). The
+/// TargetSet is [first unit, second unit's tile]; effects resolve the tile's occupant.</summary>
+public sealed class SelectUnitThenUnitTarget : SelectTwoStepTarget
+{
+    public int destRange;
+
+    public SelectUnitThenUnitTarget(bool enemyOnly = false, int range = 4, int destRange = 4)
+        : base(enemyOnly, range)
+    {
+        this.destRange = destRange;
+    }
+
+    public override string StepTwoPrompt => enemyOnly ? "Click a second enemy." : "Click a second unit.";
+}
+
+/// <summary>Pick a tile, then a SECOND tile. With <see cref="friendlyGlyphs"/>, both must
+/// hold one of the caster's glyphs (Glyph Warp). The TargetSet is [first tile, second tile].
+/// The first pick is the drop, so it starts from a tile rather than a unit.</summary>
+public sealed class SelectTileThenTileTarget : SelectTwoStepTarget
+{
+    public int destRange;
+    public bool friendlyGlyphs;
+
+    public SelectTileThenTileTarget(int range = 4, int destRange = 99, bool friendlyGlyphs = true)
+        : base(false, range)
+    {
+        this.destRange = destRange;
+        this.friendlyGlyphs = friendlyGlyphs;
+    }
+
+    public override string StepTwoPrompt => friendlyGlyphs
+        ? "Click a second tile with one of your glyphs."
+        : "Click a second tile.";
 }
 
 /// <summary>Pick a unit, then an ADJACENT tile of that unit naming the direction to

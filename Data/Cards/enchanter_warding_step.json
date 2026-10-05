@@ -38,6 +38,7 @@
 		"mana": 1,
 		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 3. When an enemy enters: deal 4 damage and it is Slowed for 1 turn.",
+		"glyph_text": "It takes {damage} damage and is Slowed for {status_turns}.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -119,6 +120,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and root for 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Rooted for {status_turns}."
 				}
 			]
 		},
@@ -242,6 +248,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare 2 reusable glyphs within 3. Each enemy entering takes 8 and is Named for 1 turn."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
 				}
 			]
 		}

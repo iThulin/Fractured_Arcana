@@ -74,7 +74,39 @@ public sealed class ManaCost : ICost
         if (discount > 0)
             amount = Math.Max(0, amount - discount);
 
+        // Enchanter (slice 12a): standing on your own Sigil of Focus or Spell Anchor.
+        // Priced here, with the tithe and the per-card discount, so the pips,
+        // affordability and payment can never disagree.
+        if (u != null && u.IsPlayerControlled)
+        {
+            int glyphDiscount = GlyphManager.StandingCostReduction(u)
+                + GlyphManager.ArchitectureDiscount(s, u, s.CostContextHalf ?? InferHalf(s.CostContextCard, baseAmount));
+            if (glyphDiscount > 0)
+                amount = Math.Max(0, amount - glyphDiscount);
+        }
+
         return amount;
+    }
+
+    /// <summary>The UI prices a card without saying which half; the half whose printed cost
+    /// matches is the one being priced (ties go to the glyph half, if either is one).</summary>
+    private static CardHalf InferHalf(Card card, int printed)
+    {
+        if (card == null)
+            return null;
+        CardHalf pick = null;
+        foreach (var h in new[] { card.TopHalf, card.BottomHalf })
+        {
+            if (h?.Costs == null)
+                continue;
+            foreach (var c in h.Costs)
+                if (c is ManaCost mc && mc.Amount == printed)
+                {
+                    if (pick == null || GlyphManager.HalfPreparesGlyph(h))
+                        pick = h;
+                }
+        }
+        return pick;
     }
 
     public bool CanPay(GameState s, Entity caster)

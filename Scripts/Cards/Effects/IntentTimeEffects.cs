@@ -57,6 +57,18 @@ public static class IntentTime
 
     /// <summary>Cancel a Deferred attack: it never lands (The Hour Comes Due).</summary>
     public static Func<Unit, string> CancelHook;
+
+    /// <summary>Swap two enemies' locked attack tiles (First Layer). Installed by CombatManager.</summary>
+    public static Func<Unit, Unit, string> SwapLocksHook;
+
+    /// <summary>Speak It Wrongly: move an enemy's locked attack onto the nearest other enemy.</summary>
+    public static Func<Unit, string> RedirectLockHook;
+    public static string RedirectLock(Unit enemy) => RedirectLockHook != null ? RedirectLockHook(enemy) : "no combat is running";
+
+    /// <summary>Borrowed Will: an enemy's next attack strikes the chosen tile.</summary>
+    public static Func<Unit, Vector2I, string> CommandAttackHook;
+    public static string CommandAttack(Unit enemy, Vector2I tile) => CommandAttackHook != null ? CommandAttackHook(enemy, tile) : "no combat is running";
+    public static string SwapLocks(Unit a, Unit b) => SwapLocksHook != null ? SwapLocksHook(a, b) : "no combat is running";
     public static string Cancel(Unit enemy) => CancelHook != null ? CancelHook(enemy) : "no combat is running";
     public static string Advance(Unit enemy) => AdvanceHook != null ? AdvanceHook(enemy) : "no combat is running";
 

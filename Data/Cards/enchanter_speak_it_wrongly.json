@@ -1,0 +1,298 @@
+{
+	"id": "enchanter_speak_it_wrongly",
+	"status": "ready",
+	"name": "Speak It Wrongly",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Speak It Wrongly",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Name an enemy for 1 turn: its locked attack moves onto the nearest other enemy.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "misdirect_attack",
+			"damage": 0,
+			"duration": 1
+		}
+	},
+	"bottom": {
+		"name": "Misstep",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Compel target enemy to walk 1 tile toward you.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 4,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "compel_walk",
+			"tiles": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Speak It Wrongly+",
+			"bottom_name": "Misstep+",
+			"description": "The wrong name, the right Weave. A longer misstep.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "misdirect_attack",
+								"damage": 0,
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 1 turn: its locked attack moves onto the nearest other enemy. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "compel_walk",
+						"tiles": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 2 tiles toward you."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Misnomer",
+			"description": "Misnomer: the blow costs it too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "misdirect_attack",
+								"damage": 3,
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 1 turn: its locked attack moves onto the nearest other enemy, and if it attacks it takes 3. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Stumble",
+			"description": "Stumble: and the Weave tightens.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 2 tiles toward you. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Word of Discord",
+			"description": "Word of Discord: it hurts more.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "misdirect_attack",
+								"damage": 5,
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 1 turn: its locked attack moves onto the nearest other enemy, and if it attacks it takes 5. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Lured Step",
+			"description": "Lured Step: three tiles.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 3
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 3 tiles toward you. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Babel",
+			"description": "Babel: a whole knot of enemies, all misnamed.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "misdirect_attack",
+									"damage": 4,
+									"duration": 1
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 1 of the target for 1 turn: each one's locked attack moves onto its nearest ally, and if it attacks it takes 4. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Beckoning Word",
+			"description": "Beckoning Word: come, and stay.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 3
+							},
+							{
+								"type": "name_condition",
+								"trigger": "move",
+								"damage": 3,
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 3 tiles toward you. Then Name it for 1 turn: if it moves, it takes 3. Gain 1 Weave."
+				}
+			]
+		}
+	]
+}

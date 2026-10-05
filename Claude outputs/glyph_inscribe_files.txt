@@ -1,0 +1,3 @@
+Assets/Shaders/glyph_sigil.gdshader
+Scripts/Systems/Combat/Terrain/HexTile.cs
+Scripts/Systems/Combat/Presentation/VisualEvent.cs

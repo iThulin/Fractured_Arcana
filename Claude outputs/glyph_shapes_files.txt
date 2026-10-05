@@ -1,0 +1,4 @@
+Assets/Shaders/glyph_sigil.gdshader
+Scripts/Systems/Combat/Glyphs/GlyphData.cs
+Scripts/Systems/Combat/Terrain/HexTile.cs
+Scripts/Systems/TooltipManager.cs

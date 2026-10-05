@@ -135,7 +135,20 @@ public static partial class CardScriptRegistry
             OwnerDraw = Geti("on_trigger_draw"),
             OwnerMana = Geti("on_trigger_mana"),
             OwnerWeave = Geti("on_trigger_weave"),
-            OwnerHeal = Geti("heal_caster")
+            OwnerHeal = Geti("heal_caster"),
+            // Slice 12a
+            InstantCopies = Getb("instant_copies"),
+            HaltsMovement = Getb("halt_movement"),
+            NameOnTrigger = n.TryGetProperty("name_on_trigger", out var nt)
+                ? (nt.ValueKind == JsonValueKind.True ? dmg : nt.ValueKind == JsonValueKind.Number ? nt.GetInt32() : 0)
+                : 0,
+            CasterCostReduction = Geti("caster_cost_reduction"),
+            CasterDamage = Geti("caster_damage"),
+            CasterWeavePerTurn = Geti("caster_weave_per_turn"),
+            AllyHealPerTurn = Geti("ally_heal_per_turn"),
+            SpawnGlyphDamage = n.TryGetProperty("on_trigger_spawn_glyph", out var sg)
+                ? (sg.ValueKind == JsonValueKind.True ? 3 : sg.ValueKind == JsonValueKind.Number ? sg.GetInt32() : 0)
+                : 0,
         };
     }
 
@@ -771,7 +784,8 @@ public static partial class CardScriptRegistry
             bool constructsOnly = n.TryGetProperty("constructs_only", out var co) && co.GetBoolean();
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
             int destRange = n.TryGetProperty("dest_range", out var d) ? d.GetInt32() : 2;
-            return new SelectUnitThenTileTarget(enemyOnly, range, destRange, friendlyOnly, constructsOnly);
+            bool anyTile = n.TryGetProperty("any_tile", out var at) && at.ValueKind == JsonValueKind.True;
+            return new SelectUnitThenTileTarget(enemyOnly, range, destRange, friendlyOnly, constructsOnly) { anyTile = anyTile };
         });
 
         // { "type": "unit_then_direction", "range": n,
@@ -783,6 +797,24 @@ public static partial class CardScriptRegistry
             bool constructsOnly = n.TryGetProperty("constructs_only", out var co) && co.GetBoolean();
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
             return new SelectUnitThenDirectionTarget(enemyOnly, range, friendlyOnly, constructsOnly);
+        });
+
+        // { "type": "unit_then_unit", "range": n, "dest_range": n, "enemies_only": bool }
+        RegisterTargeter("unit_then_unit", n =>
+        {
+            bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
+            int destRange = n.TryGetProperty("dest_range", out var d) ? d.GetInt32() : range;
+            return new SelectUnitThenUnitTarget(enemyOnly, range, destRange);
+        });
+
+        // { "type": "tile_then_tile", "range": n, "dest_range": n, "friendly_glyphs": bool }
+        RegisterTargeter("tile_then_tile", n =>
+        {
+            int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
+            int destRange = n.TryGetProperty("dest_range", out var d) ? d.GetInt32() : 99;
+            bool glyphs = !n.TryGetProperty("friendly_glyphs", out var fg) || fg.GetBoolean();
+            return new SelectTileThenTileTarget(range, destRange, glyphs);
         });
     }
 }
@@ -974,19 +1006,23 @@ public static class JsonCardLoader
     {
         if (half?.Effects == null) return;
         foreach (var e in half.Effects)
-            StampGlyphSource(e, half.SourceCardId, half.SourceHalf, 0);
+            StampGlyphSource(e, half, 0);
     }
 
-    private static void StampGlyphSource(IEffect e, string cardId, string halfName, int depth)
+    // The half is built from the upgrade-patched JSON, so its name and rules text are the
+    // tier actually being cast, which is what the tile tooltip has to show.
+    private static void StampGlyphSource(IEffect e, CardHalf half, int depth)
     {
         if (e == null || depth > 8) return;   // depth guard: card data is authored, not trusted
         if (e is PrepareGlyphEffect p)
         {
-            p.SourceCardId = cardId;
-            p.SourceHalf = halfName;
+            p.SourceCardId = half.SourceCardId;
+            p.SourceHalf = half.SourceHalf;
+            p.SourceName = half.Name ?? "";
+            p.SourceRulesText = half.RulesText ?? "";
         }
         foreach (var child in e.Children)
-            StampGlyphSource(child, cardId, halfName, depth + 1);
+            StampGlyphSource(child, half, depth + 1);
     }
 
     // ── BuildHalf ───────────────────────────────────────────────────
@@ -1002,6 +1038,8 @@ public static class JsonCardLoader
             OwnerCard = owner,
             Name = halfNode.TryGetProperty("name", out var n) ? n.GetString() : owner.CardName,
             RulesText = halfNode.TryGetProperty("rules_text", out var rt) ? rt.GetString() : "",
+            GlyphText = halfNode.TryGetProperty("glyph_text", out var gt) ? gt.GetString() ?? "" : "",
+            GlyphTriggerText = halfNode.TryGetProperty("glyph_trigger", out var gtr) ? gtr.GetString() ?? "" : "",
             School = school,
             Speed = ParseSpeed(halfNode),
             Costs = new ICost[] { new ManaCost(halfNode.GetProperty("mana").GetInt32()) },

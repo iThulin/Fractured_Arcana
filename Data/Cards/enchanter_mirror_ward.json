@@ -8,7 +8,9 @@
 		"name": "Mirror Ward",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Prepare a glyph within 4. The next spell targeting a unit on this tile is reflected back at its caster.",
+		"rules_text": "Prepare a glyph within 4. The next attack or spell that hits a unit on this tile is turned back on its attacker. Lasts 3 turns.",
+		"glyph_text": "Turns {next_hits} back on the attacker.",
+		"glyph_trigger": "When an enemy attack or spell hits a unit on this tile.",
 		"tags": [
 			"enchant"
 		],
@@ -25,19 +27,17 @@
 		"name": "Phase Shift",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Swap the positions of any 2 units within 3. If either lands on a glyph, trigger it.",
+		"rules_text": "Swap the positions of any 2 units within 3. If either lands on a glyph, it triggers.",
 		"tags": [
 			"enchant"
 		],
 		"targeting": {
-			"type": "unit",
-			"range": 6,
-			"los": false,
-			"enemies_only": false
+			"type": "unit_then_unit",
+			"range": 3,
+			"dest_range": 3
 		},
 		"effect": {
-			"type": "swap_units",
-			"trigger_glyph": true
+			"type": "swap_units"
 		}
 	},
 	"upgrades": [
@@ -56,17 +56,21 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 4. The next 2 spells targeting a unit on this tile are reflected at their casters."
-				},
-				{
-					"half": "bottom",
-					"field": "effect.range",
-					"value": 5
+					"value": "Prepare a glyph within 4. The next 2 attacks or spells that hit a unit on this tile are turned back on their attackers. Lasts 3 turns."
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Swap any 2 units within 5. If either lands on a glyph, trigger it."
+					"value": "Swap any 2 units within 5. Glyph landings trigger."
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_unit",
+						"range": 5,
+						"dest_range": 5
+					}
 				}
 			]
 		},
@@ -84,7 +88,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare reflecting glyphs on a 1-tile radius within 4. Each reflects the next 2 spells on units there."
+					"value": "Prepare mirror glyphs on a 1-tile radius within 4. Each turns back the next 2 attacks or spells on units there. Lasts 3 turns."
 				}
 			]
 		},
@@ -96,13 +100,13 @@
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.chain",
-					"value": 3
+					"field": "rules_text",
+					"value": "Swap any 2 units within 5. Each enemy moved takes 4 damage. Glyph landings trigger."
 				},
 				{
 					"half": "bottom",
-					"field": "rules_text",
-					"value": "Cycle the positions of any 3 units within 5. Glyph landings trigger."
+					"field": "effect.damage_enemies",
+					"value": 4
 				}
 			]
 		},
@@ -120,7 +124,12 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare reflecting glyphs (radius 1) within 4. Reflected spells deal +50% and hit their casters."
+					"value": "Prepare mirror glyphs (radius 1) within 4. Each turns back the next 2 attacks or spells on units there, for +50% damage. Lasts 3 turns."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "Turns {next_hits} back on the attacker with +50% damage."
 				}
 			]
 		},
@@ -138,7 +147,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Swap 2 units within 5. Any enemy moved is Named for 1 turn. Glyph landings trigger."
+					"value": "Swap any 2 units within 5. Each enemy moved takes 4 damage and is Named for 1 turn. Glyph landings trigger."
 				}
 			]
 		},
@@ -162,7 +171,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare reflecting glyphs (radius 1) for 3 turns. Every spell targeting units there is reflected for +50%."
+					"value": "Prepare mirror glyphs (radius 1) for 3 turns. Every attack or spell on units there is turned back for +50% damage."
 				}
 			]
 		},
@@ -176,16 +185,24 @@
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "swap_units",
-						"chain": 99,
-						"trigger_glyph": true,
-						"name_enemy": true
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "swap_units",
+								"damage_enemies": 6,
+								"name_enemy": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Reposition every unit within 5 as you choose. Enemies moved are Named for 1 turn. Glyph landings trigger."
+					"value": "Swap any 2 units within 5. Each enemy moved takes 6 damage and is Named for 1 turn. Glyph landings trigger. Draw 1 card."
 				}
 			]
 		}

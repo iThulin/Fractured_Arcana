@@ -300,6 +300,35 @@ uniform float wither_strength : hint_range(0.0, 1.0) = 0.80;
 
 group_uniforms;
 
+// ---- Glyph press (2026-10-04) ----
+// Prepared glyphs press the turf around them flat and push it outward, with a
+// ripple running away from the sigil, like grass under a downdraught. Sites come
+// from GlyphGrassField.cs: (world x, world z, radius, strength 0..1). With no
+// sites every line below is skipped.
+group_uniforms glyph_press;
+
+/** Live sites. Set by GlyphGrassField; never edit by hand. */
+uniform int   glyph_site_count = 0;
+/** (world x, world z, radius, strength). Size must match GlyphGrassField.MaxSites. */
+uniform vec4  glyph_sites[24];
+
+/** How far a pressed blade's tip is pushed away from the sigil (world units at full strength). */
+uniform float glyph_press_bend : hint_range(0.0, 1.5) = 0.42;
+/** How much a pressed blade lies down (0 = upright, 1 = flat). */
+uniform float glyph_press_flatten : hint_range(0.0, 1.0) = 0.72;
+/** How far past the sigil's radius the press still reaches, as a multiple of it. */
+uniform float glyph_press_reach : hint_range(1.0, 2.5) = 1.25;
+/** Size of the outward ripple on top of the steady press. */
+uniform float glyph_ripple : hint_range(0.0, 1.0) = 0.35;
+/** Ripple speed (radians per second). */
+uniform float glyph_ripple_speed : hint_range(0.0, 12.0) = 4.0;
+/** Ripple spacing (waves per world unit, times TAU). */
+uniform float glyph_ripple_freq : hint_range(0.0, 20.0) = 7.0;
+/** How much of the ambient wind a fully pressed blade ignores. */
+uniform float glyph_press_calm : hint_range(0.0, 1.0) = 0.7;
+
+group_uniforms;
+
 // ---- Distance fade (kills far-field blade crawl; reads as soft depth) ----
 group_uniforms distance_fade;
 
@@ -505,6 +534,36 @@ void vertex()
         VERTEX.x += away.x * gone * stiffness * 0.6;
         VERTEX.z += away.y * gone * stiffness * 0.6;
         VERTEX.y *= 1.0 - gone;
+    }
+
+    // GLYPH PRESS: blades near a prepared glyph are pushed away from its centre
+    // and laid down, strongest under the sigil and fading just past its rim, with a
+    // ripple travelling outward. Pressed blades mostly ignore the wind.
+    vec2 press = vec2(0.0);
+    float pressed = 0.0;
+    for (int i = 0; i < glyph_site_count; i++)
+    {
+        if (i >= 24)
+            break;
+        vec4 gs = glyph_sites[i];
+        vec2 off = world_pos.xz - gs.xy;
+        float d = length(off);
+        float reach = gs.z * glyph_press_reach;
+        if (gs.w <= 0.0 || d >= reach)
+            continue;
+        float fall = 1.0 - smoothstep(gs.z * 0.85, reach, d);   // full press across the sigil
+        float ripple = sin(TIME * glyph_ripple_speed - d * glyph_ripple_freq + float(i) * 1.7);
+        float amount = gs.w * fall * (1.0 + glyph_ripple * ripple);
+        vec2 away = d > 0.001 ? off / d : vec2(1.0, 0.0);
+        press += away * amount;
+        pressed = max(pressed, gs.w * fall);
+    }
+    if (pressed > 0.0)
+    {
+        sway *= 1.0 - pressed * glyph_press_calm;
+        VERTEX.x += press.x * glyph_press_bend * stiffness;
+        VERTEX.z += press.y * glyph_press_bend * stiffness;
+        VERTEX.y *= 1.0 - clamp(pressed * glyph_press_flatten, 0.0, 0.95);
     }
 
     VERTEX.x += ndir.x * sway;

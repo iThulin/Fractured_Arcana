@@ -285,6 +285,36 @@
         "Some workings are written into the hour itself. You do not write them twice."
       ],
       "note": "A half marked Once can be cast one time per fight. Its effect lasts the rest of the fight, so every copy of that card now shows the half as Used."
+    },
+    {
+      "key": "ench.first_name",
+      "category": "explain",
+      "once": true,
+      "title": "A Name",
+      "lines": [
+        "It has been Named. It may still do as it likes. It will simply... pay."
+      ],
+      "note": "A Named unit shows its condition on its nameplate, such as \"If it moves: 6\". It can still do that thing; if it does, it takes the damage (once a round) and the Name is broken, which gives you 1 Weave."
+    },
+    {
+      "key": "ench.name_broken",
+      "category": "comment",
+      "once": false,
+      "cooldown": 30,
+      "lines": [
+        "Broken. As written.",
+        "It chose. The Name was clear about what that would cost."
+      ]
+    },
+    {
+      "key": "ench.compel",
+      "category": "explain",
+      "once": true,
+      "title": "Compelled",
+      "lines": [
+        "It walks because it was told to. It walks over whatever is in the way."
+      ],
+      "note": "A compelled unit walks, it is not shoved: your glyphs trigger, Fire sears and Frost slides as it steps, but there is no collision damage and it cannot be walked off a ledge. A blocked step ends the walk."
     }
   ]
 }

@@ -54,6 +54,27 @@ public partial class CombatManager
         IntentTime.AdvanceHook = AdvanceAttack;
         IntentTime.RevealHook = RevealForEffect;
         IntentTime.CancelHook = CancelDeferred;
+        IntentTime.SwapLocksHook = SwapLockedTiles;
+    }
+
+    /// <summary>First Layer (§4): the two enemies' locked tiles trade places, with their
+    /// threat footprints. Each attack lands where the other was aimed. The Enchanter
+    /// decides WHO an attack hits; when it lands is untouched.</summary>
+    private string SwapLockedTiles(Unit a, Unit b)
+    {
+        if (!IsValidActor(a) || !IsValidActor(b) || a == b)
+            return "two different enemies are needed";
+        var ia = a.CurrentIntent;
+        var ib = b.CurrentIntent;
+        if (ia?.TargetTile == null || ib?.TargetTile == null)
+            return "both must have an attack locked on a tile";
+        (ia.TargetTile, ib.TargetTile) = (ib.TargetTile, ia.TargetTile);
+        (ia.ThreatTiles, ib.ThreatTiles) = (ib.ThreatTiles, ia.ThreatTiles);
+        (ia.TargetUnit, ib.TargetUnit) = (ib.TargetUnit, ia.TargetUnit);
+        RefreshThreatTiles();
+        string msg = $"{a.Name} and {b.Name} trade their marks.";
+        combatUI?.AppendActionLog(msg);
+        return null;
     }
 
     /// <summary>The Hour Comes Due (bottom): a Deferred attack never lands. The enemy

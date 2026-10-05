@@ -192,6 +192,7 @@ public partial class CombatManager : Node3D
         InstallReactions();   // Edge M4: walk-step hook and routing cost
         InstallIntentTime();  // Chronomancer Defer / Advance hooks
         InstallAnchorHooks(); // Temporal Anchor lethal save
+        InstallEnchanterHooks(); // Names break on walk; breaks feed the Weave
         EnsureAimLines();     // ranged-intent arcs: the node is built here, once
 
         // Wire up helper nodes
@@ -363,6 +364,7 @@ public partial class CombatManager : Node3D
         UninstallReactions();
         UninstallIntentTime();
         UninstallAnchorHooks();
+        UninstallEnchanterHooks();
         CardUi.HalfSpentProvider = null;
         CardDropHandler.SelfCastRedirect = null;
     }
@@ -632,6 +634,10 @@ public partial class CombatManager : Node3D
             deckManager.SetActiveDeck(deckOwner.DeckData);
         else
             deckManager.SetActiveDeck(null);
+
+        // Glyph hitch fix: bake decal masks and compile the glyph shaders now,
+        // not at the first cast. See CombatManager.GlyphWarmup.cs.
+        PrewarmGlyphs();
 
         // Post-cast player choice (2026-07-28), the third seam of this shape,
         // alongside OnSummonRequested and OnDrawCards. See CardChoice.cs.
@@ -2566,6 +2572,7 @@ public partial class CombatManager : Node3D
         RegisterManager.Fire("combat.basics.hand");
         RegisterManager.Fire("combat.basics.halves");
         RegisterManager.Fire("combat.basics.move");
+        TickNames();   // Enchanter Names lose a turn; the break round advances
 
         // Round 1 intents (2026-10-03). Plans are locked at the end of each enemy
         // phase, plus once in StartDeploymentPhase. But enemies now spawn AFTER
@@ -2860,8 +2867,10 @@ public partial class CombatManager : Node3D
 
         foreach (var unit in playerUnits)
         {
+            // Enchanter §2c: the Weave holds while you have prepared glyphs OR Named units.
             if (unit.Attunement is WeaveAttunement w)
-                w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0);
+                w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0
+                            || Names.AnyWrittenBy(State.UnitsInPlay, unit.TeamId));
 
             DiscardOverflowCards(unit);
 
@@ -3044,13 +3053,19 @@ public partial class CombatManager : Node3D
 
         ClearTargetHighlight();
         _twoStepLegalTiles.Clear();
+        _twoStepLegalHalf = half;
         foreach (var coord in TwoStepLegalTiles(victim, ts))
         {
             _twoStepLegalTiles.Add(coord);
             grid.GetTileView(coord)?.SetTargetHighlight(true);
         }
 
-        string prompt = $"{half.Name} → {victim.Name}. {ts.StepTwoPrompt} (Esc or right-click to cancel.)";
+        string stepTwo = ShowCompelChosenPaths(half, victim)
+            ? "Click a tile it can reach: it walks there by the shortest path (outlined: everywhere it can reach)."
+            : ShowCompelDirectionPaths(half, victim)
+            ? "Click a tile beside it: it walks that way (outlined: where each direction leads)."
+            : ts.StepTwoPrompt;
+        string prompt = $"{half.Name} → {victim.Name}. {stepTwo} (Esc or right-click to cancel.)";
         GD.Print($"[TwoStep] {prompt}");
         combatUI?.AppendActionLog(prompt);
     }
@@ -3058,6 +3073,9 @@ public partial class CombatManager : Node3D
     /// <summary>The legal second-pick tiles. Direction targeters take the victim's
     /// six neighbours (the AIM, not the landing spot); tile targeters take everything
     /// enterable within destRange of the victim.</summary>
+    /// <summary>The card half whose second pick is being armed (Puppet's Errand reads it).</summary>
+    private CardHalf _twoStepLegalHalf;
+
     private IEnumerable<Vector2I> TwoStepLegalTiles(Unit victim, SelectTwoStepTarget ts)
     {
         if (victim?.CurrentTile == null || grid == null)
@@ -3071,17 +3089,84 @@ public partial class CombatManager : Node3D
             yield break;
         }
 
+        if (ts is SelectUnitThenUnitTarget uu)
+        {
+            var from = selectedUnit?.CurrentTile?.Axial ?? victim.CurrentTile.Axial;
+            foreach (var u in State.UnitsInPlay)
+            {
+                if (u == null || !IsInstanceValid(u) || u == victim || !u.Stats.IsAlive || u.CurrentTile == null)
+                    continue;
+                if (uu.enemyOnly && u.TeamId == selectedUnit?.TeamId)
+                    continue;
+                if (grid.Distance(from, u.CurrentTile.Axial) > uu.destRange)
+                    continue;
+                yield return u.CurrentTile.Axial;
+            }
+            yield break;
+        }
+
         if (ts is SelectUnitThenTileTarget tt)
         {
+            // Puppet's Errand: only where the walk can actually get to.
+            var reach = CompelChosenReach(_twoStepLegalHalf, victim);
             foreach (var td in grid.Tiles.Values)
             {
-                if (td == null || td.Occupant != null || !td.CanEnter(victim))
+                if (td == null)
+                    continue;
+                if (reach != null)
+                {
+                    if (reach.Contains(td.Axial))
+                        yield return td.Axial;
+                    continue;
+                }
+                if (tt.anyTile)
+                {
+                    // Borrowed Will: any tile in reach but its own, occupied or not.
+                    if (td.Axial != victim.CurrentTile.Axial
+                        && grid.Distance(victim.CurrentTile.Axial, td.Axial) <= tt.destRange)
+                        yield return td.Axial;
+                    continue;
+                }
+                if (td.Occupant != null || !td.CanEnter(victim))
                     continue;
                 if (grid.Distance(victim.CurrentTile.Axial, td.Axial) > tt.destRange)
                     continue;
                 yield return td.Axial;
             }
         }
+    }
+
+    /// <summary>Arms the second pick for a tile-then-tile targeter (Glyph Warp). Same state
+    /// and highlight discipline as <see cref="BeginTwoStep"/>, but the first pick is a tile.</summary>
+    private void BeginTwoStepTiles(CardUi cardUi, bool isTop, HexTile tile, SelectTileThenTileTarget ts, CardHalf half)
+    {
+        _twoStepCard = cardUi;
+        _twoStepIsTop = isTop;
+        _twoStepTile = tile;
+        _twoStepVictim = null;
+        _twoStepTargeter = ts;
+        _twoStepChoice = null;
+
+        ClearTargetHighlight();
+        _twoStepLegalTiles.Clear();
+        int team = selectedUnit?.TeamId ?? 0;
+        foreach (var td in grid.Tiles.Values)
+        {
+            if (td == null || td.Axial == tile.Axial)
+                continue;
+            if (grid.Distance(tile.Axial, td.Axial) > ts.destRange)
+                continue;
+            if (ts.friendlyGlyphs && (td.Glyph == null || td.Glyph.OwnerTeam != team))
+                continue;
+            _twoStepLegalTiles.Add(td.Axial);
+            grid.GetTileView(td.Axial)?.SetTargetHighlight(true);
+        }
+
+        string prompt = _twoStepLegalTiles.Count == 0
+            ? $"{half.Name}: there is no second tile to choose. (Esc or right-click to cancel.)"
+            : $"{half.Name}. {ts.StepTwoPrompt} (Esc or right-click to cancel.)";
+        GD.Print($"[TwoStep] {prompt}");
+        combatUI?.AppendActionLog(prompt);
     }
 
     /// <summary>Consumes the second click. Returns true when it handled the input, so
@@ -5667,8 +5752,8 @@ public partial class CombatManager : Node3D
         }
 
         if (bestTaunter != null && bestTauntDist <= bestDist + 1)
-            return bestTaunter;
-        return best;
+            return MirrorPick(bestTaunter);
+        return MirrorPick(best);
     }
 
     private void RegisterSummonHandler()
@@ -6274,6 +6359,35 @@ public partial class CombatManager : Node3D
                     }
                     break;
 
+                case "non_elite_target":
+                {
+                    Unit first = null;
+                    if (targets?.Items != null)
+                        foreach (var obj in targets.Items)
+                        {
+                            first = obj as Unit ?? (obj as TileData)?.Occupant;
+                            if (first != null)
+                                break;
+                        }
+                    if (first != null && (first.Role == "elite" || first.Role == "boss"))
+                    {
+                        failReason = "An elite's will cannot be borrowed!";
+                        return false;
+                    }
+                    break;
+                }
+
+                case "friendly_glyph_tile":
+                {
+                    var gt = FirstTargetTile(targets);
+                    if (gt?.Glyph == null || gt.Glyph.OwnerTeam != (selectedUnit?.TeamId ?? 0))
+                    {
+                        failReason = "Requires a tile with one of your glyphs!";
+                        return false;
+                    }
+                    break;
+                }
+
                 case "empty_tile":
                     if (!TargetHasEmptyTile(targets))
                     {
@@ -6661,6 +6775,29 @@ public partial class CombatManager : Node3D
             // pass this validates the victim and returns without casting; the second
             // click replays the drop with _twoStepChoice set and falls through to the
             // normal cast tail.
+            // Tile then tile (Glyph Warp): the drop is the first tile.
+            case SelectTileThenTileTarget tt2:
+            {
+                var first = grid.GetTile(tile.Axial);
+                if (first == null)
+                { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: no tile there."); return; }
+                if (selectedUnit?.CurrentTile != null && grid.Distance(selectedUnit.CurrentTile.Axial, first.Axial) > tt2.range)
+                { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: that tile is out of range."); return; }
+                if (tt2.friendlyGlyphs && (first.Glyph == null || first.Glyph.OwnerTeam != (selectedUnit?.TeamId ?? 0)))
+                { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: start on one of your glyphs."); return; }
+
+                if (_twoStepChoice == null)
+                {
+                    BeginTwoStepTiles(cardUi, isTop, tile, tt2, resolvedHalf);
+                    return;                      // paused for the second pick
+                }
+
+                targets.Items.Add(first);
+                targets.Items.Add(_twoStepChoice);
+                ClearTwoStep();
+                break;
+            }
+
             case SelectTwoStepTarget ts:
             {
                 var victim = State.UnitsInPlay

@@ -38,6 +38,7 @@
 		"mana": 1,
 		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. Allies on it deal +2 damage. Lasts 3 turns.",
+		"glyph_text": "While it stands here it has +{ally_damage} spell damage.",
 		"tags": [
 			"enchant"
 		],
@@ -143,6 +144,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. Allies on it deal +3 damage and gain 3 shield. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "While it stands here it has +{ally_damage} spell damage. It gains {shield} shield once per round."
 				}
 			]
 		},
@@ -266,6 +272,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare wards on a 2-tile radius within 4. Allies on them deal +4 and gain 4 shield and 4 armor. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "While it stands here it has +{ally_damage} spell damage and +{armor} armor. It gains {shield} shield once per round."
 				}
 			]
 		}

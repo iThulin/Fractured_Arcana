@@ -50,6 +50,8 @@ public partial class CameraController : Node3D
     [Export] public float ZoomSpeed = 4f;
     /// <summary>Lerp rate used to ease zoom toward its target. Higher = snappier.</summary>
     [Export] public float ZoomLerpSpeed = 8f;
+    /// <summary>Zoom per unit of two-finger scroll, as a fraction of ZoomSpeed. Negate to flip the direction.</summary>
+    [Export] public float TrackpadScrollZoom = 0.35f;
     /// <summary>Closest the camera can get to the pivot (static minimum; the terrain-aware floor can only raise this, never lower it).</summary>
     [Export] public float MinZoom = 3f;
     /// <summary>Farthest the camera can pull out (maximum zoom).</summary>
@@ -260,6 +262,14 @@ public partial class CameraController : Node3D
             if (mb.ButtonIndex == MouseButton.Left && !mb.Pressed)
                 _cardDropHandler?.TryDropCardOnTile();
         }
+
+        // macOS trackpad: pinch zooms, and a two-finger vertical scroll zooms like the
+        // wheel. A Mac trackpad sends gesture events, never WheelUp/WheelDown.
+        if (@event is InputEventMagnifyGesture mag && mag.Factor > 0.01f)
+            _zoomTarget = Mathf.Clamp(_zoomTarget / mag.Factor, MinZoom, _maxZoomDynamic);
+        else if (@event is InputEventPanGesture pan && !pan.AltPressed)
+            _zoomTarget = Mathf.Clamp(_zoomTarget + pan.Delta.Y * ZoomSpeed * TrackpadScrollZoom,
+                                      MinZoom, _maxZoomDynamic);
 
         if (@event is InputEventMouseMotion motion)
             _mouseDelta = motion.Relative;

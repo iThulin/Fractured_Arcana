@@ -27,6 +27,7 @@
 		"mana": 2,
 		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. The next spell you cast while standing on it is cast twice.",
+		"glyph_text": "The next spell you cast here is cast {casts} times.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -103,6 +104,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. The next spell cast on it is cast twice and costs 1 less. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "The next spell you cast here is cast {casts} times and costs 1 less."
 				}
 			]
 		},
@@ -188,6 +194,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a permanent glyph. Every spell cast while standing on it is cast 3 times and costs 1 less. Gain 1 Weave/use."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "Every spell you cast here is cast {casts} times and costs 1 less. Gain 1 Weave each time."
 				}
 			]
 		}

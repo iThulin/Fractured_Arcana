@@ -79,10 +79,18 @@ public partial class TooltipManager : Control
         _panel.AddThemeStyleboxOverride("panel", style);
         margin.AddChild(_panel);
 
+        var pad = new MarginContainer();
+        pad.MouseFilter = MouseFilterEnum.Ignore;
+        pad.AddThemeConstantOverride("margin_left", 10);
+        pad.AddThemeConstantOverride("margin_right", 10);
+        pad.AddThemeConstantOverride("margin_top", 6);
+        pad.AddThemeConstantOverride("margin_bottom", 6);
+        margin.AddChild(pad);
+
         _content = new VBoxContainer();
         _content.MouseFilter = MouseFilterEnum.Ignore;
         _content.AddThemeConstantOverride("separation", 3);
-        margin.AddChild(_content);
+        pad.AddChild(_content);
 
         _tooltipRoot.Visible = false;
     }
@@ -132,6 +140,10 @@ public partial class TooltipManager : Control
             AddRow(ElementReactions.Describe(tile.Reaction), "");
         }
 
+        // A prepared glyph. The sigil itself is decoration (an easter egg cipher), so this
+        // is the player's real read of what is on the tile and how it goes off.
+        AddGlyphSection(tile.Glyph);
+
         // Height
         if (tile.Height != 0)
             AddRow("Height:", tile.Height > 0 ? $"+{tile.Height}" : tile.Height.ToString());
@@ -166,6 +178,246 @@ public partial class TooltipManager : Control
     public void HideTileTooltip()
     {
         if (_tooltipRoot != null) _tooltipRoot.Visible = false;
+    }
+
+    // ── Glyph section ────────────────────────────────────────────
+
+    private const int PlayerTeam = 0;
+    private const float GlyphTextWidth = 260f;
+    private static readonly Color GlyphAccent = new Color(0.62f, 0.82f, 1.00f, 1f);
+    private static readonly Color GlyphHostileAccent = new Color(1.00f, 0.56f, 0.84f, 1f);
+
+    private void AddGlyphSection(GlyphData g)
+    {
+        if (g == null || g.Consumed)
+            return;
+        bool mine = g.OwnerTeam == PlayerTeam;
+        // Team 1 is the enemy side. Anything else (map events plant team 2) belongs to
+        // nobody and goes off under everyone.
+        bool hazard = g.OwnerTeam != PlayerTeam && g.OwnerTeam != EnemyTeam;
+        if (g.Invisible && !mine)
+            return;                              // a hidden enemy glyph stays hidden
+
+        string owner = g.Owner?.Name ?? g.OwnerId ?? "";
+        string name = string.IsNullOrEmpty(g.SourceName) ? "Glyph" : g.SourceName;
+
+        AddSeparator();
+        AddPairRow(name, g.AffectsEnemies ? GlyphHostileAccent : GlyphAccent,
+                   mine ? "yours" : hazard ? "hazard" : "enemy",
+                   mine ? UITheme.Success : hazard ? UITheme.Warning : UITheme.Danger);
+        if (!string.IsNullOrEmpty(owner) && !mine && !hazard)
+            AddRow("Set by:", owner);
+
+        AddColoredRow("Triggers:", "", GlyphAccent);
+        string trig = !string.IsNullOrEmpty(g.GlyphTriggerText) ? g.GlyphTriggerText
+                    : hazard ? HazardTriggerText(g)
+                    : TriggerText(g, mine, owner);
+        AddWrapped(trig, UITheme.TextPrimary);
+
+        // Authored glyph text (CardHalf.GlyphText) is the primary read. Without it, fall
+        // back to lines built from the glyph's fields, then to the filtered card text.
+        if (!string.IsNullOrEmpty(g.GlyphText))
+        {
+            AddWrapped(FillGlyphTokens(g.GlyphText, g, owner), UITheme.TextPrimary);
+            foreach (var line in DynamicLines(g))
+                AddWrapped(line, UITheme.TextPrimary);
+        }
+        else
+        {
+            var payload = PayloadLines(g, owner);
+            foreach (var line in payload)
+                AddWrapped(line, UITheme.TextPrimary);
+            if (payload.Count == 0)
+            {
+                string rest = GlyphEffectText(g.SourceRulesText);
+                if (!string.IsNullOrEmpty(rest))
+                    AddWrapped(rest, UITheme.TextPrimary);
+            }
+        }
+
+        string life = g.DurationTurns < 0 ? "Until triggered"
+                    : g.DurationTurns >= PermanentTurns ? "Permanent"
+                    : g.DurationTurns == 1 ? "1 turn left"
+                    : $"{g.DurationTurns} turns left";
+        AddRow(g.Reusable ? "Reusable" : "Single use", life);
+    }
+
+    private const int EnemyTeam = 1;
+
+    /// <summary>Card data writes "duration": 99 for a glyph that lasts the fight.</summary>
+    private const int PermanentTurns = 90;
+
+    private static string HazardTriggerText(GlyphData g) => g.Trigger switch
+    {
+        GlyphTrigger.StartOfTurn => "When any unit starts its turn on this tile.",
+        _ => "When any unit steps onto this tile.",
+    };
+
+    /// <summary>State a glyph picks up after it is cast (Glyph Network links, cascade
+    /// copies), which no authored text can know about.</summary>
+    private static List<string> DynamicLines(GlyphData g)
+    {
+        var lines = new List<string>();
+        if (g.CascadeSpread > 0)
+            lines.Add($"Then copies itself onto {g.CascadeSpread} adjacent tile{(g.CascadeSpread == 1 ? "" : "s")}.");
+        if (g.LinkId != 0)
+            lines.Add(g.CumulativeBonus > 0
+                ? $"Linked: fires with its network, +{g.CumulativeBonus} damage per glyph that fires."
+                : "Linked: fires with its network.");
+        return lines;
+    }
+
+    /// <summary>
+    /// Fills the authored glyph text from the live glyph, so the tooltip number is the one
+    /// that will land (spell damage bonuses, Grand Design) and a number-only upgrade needs
+    /// no new text. Unknown tokens are left as written, so a typo shows up in play.
+    /// </summary>
+    private static string FillGlyphTokens(string text, GlyphData g, string owner)
+    {
+        static string Plural(int n, string one, string many) => n == 1 ? $"{n} {one}" : $"{n} {many}";
+        int sd = g.StatusDuration;
+        int rc = g.ReflectCharges > 0 ? g.ReflectCharges : sd;
+        string nextHits = rc >= 99 ? "every attack or spell"
+                        : rc == 1 ? "the next attack or spell"
+                        : $"the next {rc} attacks or spells";
+        return text
+            .Replace("{damage}", g.EffectiveDamage(g.GameState).ToString())
+            .Replace("{status_turns}", Plural(sd, "turn", "turns"))
+            .Replace("{armor}", g.AllyArmor.ToString())
+            .Replace("{shield}", g.AllyShield.ToString())
+            .Replace("{ally_damage}", g.AllyDamage.ToString())
+            .Replace("{ally_mana}", g.AllyMana.ToString())
+            .Replace("{draw_cards}", Plural(g.OwnerDraw, "card", "cards"))
+            .Replace("{owner_mana}", g.OwnerMana.ToString())
+            .Replace("{weave}", g.OwnerWeave.ToString())
+            .Replace("{heal}", g.OwnerHeal.ToString())
+            .Replace("{radius}", g.Radius.ToString())
+            .Replace("{casts}", (g.AnchorCasts > 0 ? g.AnchorCasts : sd).ToString())
+            .Replace("{next_spells}", rc == 1 ? "the next spell" : $"the next {rc} spells")
+            .Replace("{next_hits}", nextHits)
+            .Replace("{heal_turn}", g.AllyHealPerTurn.ToString())
+            .Replace("{owner}", string.IsNullOrEmpty(owner) ? "its caster" : owner);
+    }
+
+    /// <summary>The rules text with the sentences about casting removed: where the glyph is
+    /// prepared, how long it lasts and what the caster gains on cast. What is left is what
+    /// the glyph itself does.</summary>
+    private static string GlyphEffectText(string rules)
+    {
+        if (string.IsNullOrWhiteSpace(rules))
+            return "";
+        var kept = new List<string>();
+        foreach (var raw in System.Text.RegularExpressions.Regex.Split(rules.Trim(), @"(?<=[.!?])\s+"))
+        {
+            string s = raw.Trim();
+            if (s.Length == 0)
+                continue;
+            string lower = s.ToLowerInvariant();
+            if (lower.StartsWith("prepare ") || lower.StartsWith("lasts ")
+                || lower.StartsWith("gain ") || lower.StartsWith("leave a glyph"))
+                continue;
+            kept.Add(s);
+        }
+        return string.Join(" ", kept);
+    }
+
+    private static string TriggerText(GlyphData g, bool mine, string owner)
+    {
+        string who = string.IsNullOrEmpty(owner) ? "its caster" : owner;
+        switch (g.Trigger)
+        {
+            case GlyphTrigger.Enter:
+                return mine ? "When an enemy steps onto this tile." : "When one of your units steps onto this tile.";
+            case GlyphTrigger.StartOfTurn:
+                return mine ? "When an enemy starts its turn on this tile." : "When one of your units starts its turn on this tile.";
+            case GlyphTrigger.AllyEnter:
+                return mine ? "When one of your units steps onto this tile." : "When an enemy steps onto this tile.";
+            case GlyphTrigger.SpellCastNear:
+                return g.Radius <= 0 ? "When a spell is cast on this tile."
+                     : $"When any spell is cast within {g.Radius} tile{(g.Radius == 1 ? "" : "s")}.";
+            case GlyphTrigger.SelfStand:
+                return $"Works while {who} stands on it.";
+            default:
+                return "Only when a linked glyph fires.";
+        }
+    }
+
+    private static List<string> PayloadLines(GlyphData g, string owner)
+    {
+        var lines = new List<string>();
+
+        int dmg = g.EffectiveDamage(g.GameState);
+        if (dmg > 0 && !string.IsNullOrEmpty(g.Status))
+            lines.Add($"Deals {dmg} damage and applies {g.Status} for {g.StatusDuration} turn{(g.StatusDuration == 1 ? "" : "s")}.");
+        else if (dmg > 0)
+            lines.Add($"Deals {dmg} damage.");
+        else if (!string.IsNullOrEmpty(g.Status))
+            lines.Add($"Applies {g.Status} for {g.StatusDuration} turn{(g.StatusDuration == 1 ? "" : "s")}.");
+
+        var ally = new List<string>();
+        if (g.AllyArmor > 0) ally.Add($"+{g.AllyArmor} armor");
+        if (g.AllyShield > 0) ally.Add($"+{g.AllyShield} shield");
+        if (g.AllyDamage > 0) ally.Add($"+{g.AllyDamage} spell damage");
+        if (g.AllyMana > 0) ally.Add($"+{g.AllyMana} mana");
+        if (ally.Count > 0)
+            lines.Add((g.Trigger == GlyphTrigger.SelfStand ? "Grants " : "Allies gain ") + string.Join(", ", ally) + ".");
+
+        var pay = new List<string>();
+        if (g.OwnerDraw > 0) pay.Add($"draw {g.OwnerDraw}");
+        if (g.OwnerMana > 0) pay.Add($"+{g.OwnerMana} mana");
+        if (g.OwnerWeave > 0) pay.Add($"+{g.OwnerWeave} Weave");
+        if (g.OwnerHeal > 0) pay.Add($"heal {g.OwnerHeal}");
+        if (pay.Count > 0)
+            lines.Add($"{(string.IsNullOrEmpty(owner) ? "Caster" : owner)}: " + string.Join(", ", pay) + ".");
+
+        if (g.CascadeSpread > 0)
+            lines.Add($"Spreads a copy to {g.CascadeSpread} adjacent tile{(g.CascadeSpread == 1 ? "" : "s")} when it fires.");
+        if (g.LinkId != 0)
+            lines.Add(g.CumulativeBonus > 0
+                ? $"Linked: fires with its network, +{g.CumulativeBonus} damage per glyph that fires."
+                : "Linked: fires with its network.");
+
+        if (lines.Count == 0 && g.OnTrigger != null)
+            lines.Add("Effect: see the spell that placed it.");
+        return lines;
+    }
+
+    private void AddPairRow(string key, Color keyColor, string value, Color valueColor)
+    {
+        var hbox = new HBoxContainer();
+        hbox.MouseFilter = MouseFilterEnum.Ignore;
+
+        var keyLbl = new Label { Text = key };
+        keyLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize + 1);
+        keyLbl.AddThemeColorOverride("font_color", keyColor);
+        keyLbl.MouseFilter = MouseFilterEnum.Ignore;
+        hbox.AddChild(keyLbl);
+
+        var spacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        spacer.MouseFilter = MouseFilterEnum.Ignore;
+        hbox.AddChild(spacer);
+
+        var valLbl = new Label { Text = value };
+        valLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        valLbl.AddThemeColorOverride("font_color", valueColor);
+        valLbl.MouseFilter = MouseFilterEnum.Ignore;
+        hbox.AddChild(valLbl);
+
+        _content.AddChild(hbox);
+    }
+
+    private void AddWrapped(string text, Color color)
+    {
+        var lbl = new Label
+        {
+            Text = text,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(GlyphTextWidth, 0),
+        };
+        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
+        lbl.AddThemeColorOverride("font_color", color);
+        lbl.MouseFilter = MouseFilterEnum.Ignore;
+        _content.AddChild(lbl);
     }
 
     // ── Content builders ─────────────────────────────────────────

@@ -1,0 +1,317 @@
+{
+	"id": "enchanter_forbidden_word",
+	"status": "ready",
+	"name": "Forbidden Word",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Forbidden Word",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Name an enemy for 2 turns: if it casts, the spell lands on its own tile instead.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "name_condition",
+			"trigger": "cast",
+			"damage": 0,
+			"duration": 2,
+			"backfire": true
+		}
+	},
+	"bottom": {
+		"name": "Echo of Breaking",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "If a Named enemy broke its condition this round or last, gain 2 Weave.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "name_broken_recently"
+			},
+			"then": {
+				"type": "gain_weave",
+				"amount": 2
+			}
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Forbidden Word+",
+			"bottom_name": "Echo of Breaking+",
+			"description": "The word lingers. The echo carries.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "cast",
+						"damage": 0,
+						"duration": 3,
+						"backfire": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: if it casts, the spell lands on its own tile instead."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "name_broken_recently"
+						},
+						"then": {
+							"type": "gain_weave",
+							"amount": 3
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If a Named enemy broke its condition this round or last, gain 3 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Word of Recoil",
+			"description": "Word of Recoil: casting also hurts.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "cast",
+						"damage": 3,
+						"duration": 3,
+						"backfire": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: if it casts, the spell lands on its own tile instead, and it takes 3."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Resounding Echo",
+			"description": "Resounding Echo: the echo brings a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "name_broken_recently"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "gain_weave",
+									"amount": 3
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If a Named enemy broke its condition this round or last, gain 3 Weave and draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Silencing Word",
+			"description": "Silencing Word: a whole circle of casters.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 1,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "name_condition",
+							"trigger": "cast",
+							"damage": 3,
+							"duration": 3,
+							"backfire": true
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 1 of the target for 3 turns: if it casts, the spell lands on its own tile instead, and it takes 3."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Echoing Doom",
+			"description": "Echoing Doom: never silent.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "name_broken_recently"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "gain_weave",
+									"amount": 3
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "gain_weave",
+							"amount": 1
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If a Named enemy broke its condition this round or last, gain 3 Weave and draw 1 card. Otherwise, gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Unspoken",
+			"description": "The Unspoken: a field where no spell is safe.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "name_condition",
+							"trigger": "cast",
+							"damage": 5,
+							"duration": 3,
+							"backfire": true
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 2 of the target for 3 turns: if it casts, the spell lands on its own tile instead, and it takes 5."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Chorus of Breaking",
+			"description": "Chorus of Breaking: every break sings.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "name_broken_recently"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "gain_weave",
+									"amount": 4
+								},
+								{
+									"type": "draw",
+									"count": 2
+								}
+							]
+						},
+						"else": {
+							"type": "gain_weave",
+							"amount": 1
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "If a Named enemy broke its condition this round or last, gain 4 Weave and draw 2 cards. Otherwise, gain 1 Weave."
+				}
+			]
+		}
+	]
+}

@@ -9,6 +9,7 @@
 		"mana": 2,
 		"speed": "Studied",
 		"rules_text": "Prepare a web of glyphs on a 2-tile radius within 4. Enemies that enter are Slowed for 1 turn. Lasts 3 turns.",
+		"glyph_text": "It is Slowed for {status_turns}.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -79,6 +80,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Refresh all of your triggered glyphs. Gain 3 Weave."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Slowed for {status_turns}."
 				}
 			]
 		},
@@ -97,6 +103,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are Rooted for 1 turn. Lasts 3 turns."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Rooted for {status_turns}."
 				}
 			]
 		},
@@ -186,6 +197,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a permanent web (radius 3). Enemies entering take 6 and are Named (half damage, cannot move) 1 turn."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
 				}
 			]
 		},

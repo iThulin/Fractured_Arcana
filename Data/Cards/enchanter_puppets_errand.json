@@ -1,0 +1,328 @@
+{
+	"id": "enchanter_puppets_errand",
+	"status": "ready",
+	"name": "Puppet's Errand",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Puppet's Errand",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Compel target enemy to walk up to 3 tiles to a tile you choose, by the shortest path. Your glyphs on its path trigger.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit_then_tile",
+			"range": 6,
+			"dest_range": 3,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "compel_walk",
+			"tiles": 3,
+			"mode": "chosen_path"
+		}
+	},
+	"bottom": {
+		"name": "Cut Strings",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 3 shield. Gain 1 Weave.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "shield",
+					"amount": 3
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Puppet's Errand+",
+			"bottom_name": "Cut Strings+",
+			"description": "A longer errand. A thicker guard.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 4,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "compel_walk",
+						"tiles": 4,
+						"mode": "chosen_path"
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 4 tiles to a tile you choose, by the shortest path. Your glyphs on its path trigger."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 shield. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Long Errand",
+			"description": "Long Errand: every step feeds the Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 4,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 4,
+								"mode": "chosen_path"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 4 tiles to a tile you choose, by the shortest path. Your glyphs on its path trigger. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Silk Guard",
+			"description": "Silk Guard: more shield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 5
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 shield. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Marionette",
+			"description": "Marionette: it walks the whole stage.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 5,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 5,
+								"mode": "chosen_path"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 5 tiles to a tile you choose, by the shortest path. Your glyphs on its path trigger. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Woven Guard",
+			"description": "Woven Guard: woven tighter.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Master of Strings",
+			"description": "Master of Strings: and it stays where you left it.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 5,
+						"enemies_only": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 5,
+								"mode": "chosen_path"
+							},
+							{
+								"type": "name_condition",
+								"trigger": "move",
+								"damage": 4,
+								"duration": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 5 tiles to a tile you choose, by the shortest path. Your glyphs on its path trigger. Then Name it for 2 turns: if it moves, it takes 4. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Puppet's Aegis",
+			"description": "Puppet's Aegis.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 8
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 8 shield. Gain 2 Weave."
+				}
+			]
+		}
+	]
+}

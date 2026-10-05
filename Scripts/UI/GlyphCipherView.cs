@@ -127,6 +127,30 @@ public partial class GlyphCipherView : Control
         set { _paper = value; QueueRedraw(); }
     }
 
+    /// <summary>
+    /// Coverage-mask mode for the tile decal (glyph_sigil.gdshader v2). Strokes are drawn as
+    /// pure channels with ADDITIVE canvas blending, so crossings and joints saturate to a
+    /// clean union instead of stacking alpha into blotches: R = stave, G = function strokes,
+    /// spoke tips, markers and the hub outline, B = hub fill. The rim, backing and pips are
+    /// skipped because the shader draws its own rings. Never used for card art.
+    /// </summary>
+    public bool LightMask
+    {
+        get => _lightMask;
+        set
+        {
+            if (_lightMask == value) return;
+            _lightMask = value;
+            Material = value ? new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add } : null;
+            QueueRedraw();
+        }
+    }
+    private bool _lightMask;
+
+    private static readonly Color MaskStave = new Color(1f, 0f, 0f, 1f);
+    private static readonly Color MaskFunction = new Color(0f, 1f, 0f, 1f);
+    private static readonly Color MaskHubFill = new Color(0f, 0f, 1f, 1f);
+
     /// <summary>Builds and assigns the glyph for a spell half. Returns false if the half could not be encoded.</summary>
     public bool SetSpell(string cardId, string half, CardHalf data)
     {
@@ -158,6 +182,12 @@ public partial class GlyphCipherView : Control
 
         int reveal = Mathf.RoundToInt(_glyph.OrderedCount * _progress);
 
+        if (_lightMask)
+        {
+            inkA = MaskStave;
+            fn = MaskFunction;
+        }
+
         Vector2 ToScreen(CipherPoint pt) => centre + new Vector2((float)pt.X * radius, (float)pt.Y * radius);
 
         float identityW = Mathf.Max(p.MinPxIdentity, (float)GlyphCipher.WeightIdentity * radius * p.IdentityWeightMul);
@@ -165,7 +195,7 @@ public partial class GlyphCipherView : Control
 
         // Backing first, under everything, so the composite no longer depends on what
         // terrain happens to be under the tile.
-        if (p.BackingAlpha > 0.001f)
+        if (p.BackingAlpha > 0.001f && !_lightMask)
         {
             // Stacked discs rather than one flat fill: a single hard-edged circle on
             // grass reads as a sticker, whereas an accumulating vignette reads as
@@ -180,13 +210,13 @@ public partial class GlyphCipherView : Control
             }
         }
 
-        if (p.Pips) DrawPips(ToScreen, radius, fn);
+        if (p.Pips && !_lightMask) DrawPips(ToScreen, radius, fn);
 
         // Order matters: rim, then the stave, then the function layer on top. The
         // function layer is the readable one and must never be occluded by the stave.
         foreach (var s in _glyph.Strokes)
         {
-            if (s.Layer != CipherLayer.Rim) continue;
+            if (s.Layer != CipherLayer.Rim || _lightMask) continue;
             DrawStrokePolyline(s, ToScreen, inkA, Mathf.Max(p.MinPxIdentity, (float)s.Weight * radius * p.IdentityWeightMul));
         }
 
@@ -278,7 +308,8 @@ public partial class GlyphCipherView : Control
                 break;
 
             case CipherMark.Hub:
-                DrawHub(at, size, col);
+                if (_lightMask) DrawHubMask(at, size, lineW);
+                else DrawHub(at, size, col);
                 break;
         }
     }
@@ -317,6 +348,69 @@ public partial class GlyphCipherView : Control
                     at + new Vector2(-size * 0.91f, size * 0.58f)
                 }, col);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// The hub for the light mask: the filled shape in B (the shader lights it as a dim
+    /// plate) and its outline in G (lit hot, like every other function stroke). The Ally
+    /// punch cannot be drawn by subtraction under additive blending, so the Ally fill is
+    /// an annulus instead, outlined inside and out.
+    /// </summary>
+    private void DrawHubMask(Vector2 at, float size, float lineW)
+    {
+        float edge = Mathf.Max(1.5f, lineW * 0.75f);
+        switch (_glyph.Target)
+        {
+            case CipherTarget.Self:
+                DrawCircle(at, size, MaskHubFill, true, -1f, true);
+                DrawArc(at, size, 0f, Mathf.Tau, 40, MaskFunction, edge, true);
+                break;
+
+            case CipherTarget.Ally:
+                DrawArc(at, size * 0.73f, 0f, Mathf.Tau, 40, MaskHubFill, size * 0.54f, true);
+                DrawArc(at, size, 0f, Mathf.Tau, 40, MaskFunction, edge, true);
+                DrawArc(at, size * 0.46f, 0f, Mathf.Tau, 32, MaskFunction, edge, true);
+                break;
+
+            case CipherTarget.Tile:
+            {
+                var pts = new[]
+                {
+                    at + new Vector2(0, -size), at + new Vector2(size, 0),
+                    at + new Vector2(0, size),  at + new Vector2(-size, 0)
+                };
+                DrawColoredPolygon(pts, MaskHubFill);
+                DrawClosedOutline(pts, MaskFunction, edge);
+                break;
+            }
+
+            default: // Enemy
+            {
+                var pts = new[]
+                {
+                    at + new Vector2(0, -size * 1.05f),
+                    at + new Vector2(size * 0.91f, size * 0.58f),
+                    at + new Vector2(-size * 0.91f, size * 0.58f)
+                };
+                DrawColoredPolygon(pts, MaskHubFill);
+                DrawClosedOutline(pts, MaskFunction, edge);
+                break;
+            }
+        }
+    }
+
+    // A closed outline with round joins. Under additive blending a mitred polyline
+    // double-covers each corner, so the corners are stroked as separate segments and
+    // capped with discs; the overlap saturates in the mask instead of blotching.
+    private void DrawClosedOutline(Vector2[] pts, Color col, float width)
+    {
+        for (int i = 0; i < pts.Length; i++)
+        {
+            var a = pts[i];
+            var b = pts[(i + 1) % pts.Length];
+            DrawLine(a, b, col, width, true);
+            DrawCircle(a, width * 0.5f, col, true, -1f, true);
         }
     }
 

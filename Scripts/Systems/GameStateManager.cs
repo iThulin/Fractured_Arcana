@@ -156,6 +156,11 @@ public sealed class GameState
     public Unit EnemyUnit;
     public List<Unit> UnitsInPlay = new();
     public Func<string, TileData, int, Unit> OnSummonRequested;
+    /// <summary>Maze of Mirrors: copies of this unit were just summoned. CombatManager
+    /// re-plans the intents of enemies that had chosen it.</summary>
+    public Action<Unit> OnIllusionsSummoned;
+    /// <summary>Not Me (slice 13a): this enemy plans its intent again.</summary>
+    public Action<Unit> OnReplanIntent;
     public Action<Unit> OnDrawCards;
 
     /// <summary>Post-cast player choice (2026-07-28). An effect that cannot finish
@@ -263,6 +268,10 @@ public sealed class GameState
     /// to 1 is CASTABLE at 1 mana, which the pay-full-then-refund shape used for the
     /// global discounts structurally cannot express.</summary>
     public Card CostContextCard;
+
+    /// <summary>The half being cast, pinned beside <see cref="CostContextCard"/> by the cast
+    /// path, for per-half discounts (The Architecture's glyph discount).</summary>
+    public CardHalf CostContextHalf;
 
     // ── Foretell (2026-07-29) ────────────────────────────────────────────────
 

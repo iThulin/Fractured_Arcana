@@ -8,7 +8,7 @@
 		"name": "Dominion",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Every enemy within 2 of the target is Named for 1 turn (half damage, cannot move). Gain 2 Weave.",
+		"rules_text": "Name every enemy within 2 of the target for 1 turn: each that moves or attacks takes 4 damage. Gain 2 Weave.",
 		"tags": [
 			"enchant"
 		],
@@ -27,8 +27,12 @@
 						"enemies_only": true
 					},
 					"do": {
-						"type": "apply_status",
-						"status": "named",
+						"type": "name_condition",
+						"trigger": [
+							"move",
+							"attack"
+						],
+						"damage": 4,
 						"duration": 1
 					}
 				},
@@ -44,6 +48,7 @@
 		"mana": 3,
 		"speed": "Reflex",
 		"rules_text": "Prepare wards on a 2-tile radius around you. Allies on them gain 4 armor and 3 shield. Lasts 3 turns.",
+		"glyph_text": "While it stands here it has +{armor} armor. It gains {shield} shield once per round.",
 		"tags": [
 			"enchant"
 		],
@@ -76,7 +81,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Every enemy within 2 of the target is Named for 2 turn. Gain 2 Weave."
+					"value": "Name every enemy within 2 of the target for 2 turns: each that moves or attacks takes 4 damage. Gain 2 Weave."
 				},
 				{
 					"half": "bottom",
@@ -100,24 +105,19 @@
 					"half": "top",
 					"field": "effect.steps[0].do",
 					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 4
-							},
-							{
-								"type": "apply_status",
-								"status": "named",
-								"duration": 2
-							}
-						]
+						"type": "name_condition",
+						"trigger": [
+							"move",
+							"attack"
+						],
+						"damage": 6,
+						"duration": 2
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 and Every enemy within 2 of the target is Named for 2 turn. Gain 2 Weave."
+					"value": "Name every enemy within 2 of the target for 2 turns: each that moves or attacks takes 6 damage. Gain 2 Weave."
 				}
 			]
 		},
@@ -136,6 +136,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage. It gains {shield} shield once per round."
 				}
 			]
 		},
@@ -153,7 +158,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 and Every enemy within 3 of the target is Named for 2 turn. Gain 2 Weave."
+					"value": "Name every enemy within 3 of the target for 2 turns: each that moves or attacks takes 6 damage. Gain 2 Weave."
 				}
 			]
 		},
@@ -172,6 +177,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage, and heal 3 per turn. Lasts 3 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage, and heals {heal_turn} HP each turn. It gains {shield} shield once per round."
 				}
 			]
 		},
@@ -194,18 +204,13 @@
 									"enemies_only": true
 								},
 								"do": {
-									"type": "sequence",
-									"steps": [
-										{
-											"type": "damage",
-											"amount": 5
-										},
-										{
-											"type": "apply_status",
-											"status": "named",
-											"duration": 3
-										}
-									]
+									"type": "name_condition",
+									"trigger": [
+										"move",
+										"attack"
+									],
+									"damage": 6,
+									"duration": 3
 								}
 							},
 							{
@@ -225,7 +230,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage to every enemy on the board and Name them for 3 turns. Gain 2 Weave."
+					"value": "Name every enemy for 3 turns: each that moves or attacks takes 6 damage. Gain 2 Weave."
 				}
 			]
 		},

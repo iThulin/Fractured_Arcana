@@ -69,6 +69,8 @@ public partial class HexTile : Node3D
     private Label3D _glyphLabel;
     private MeshInstance3D _glyphDecal;
     private ShaderMaterial _glyphDecalMaterial;
+    private MeshInstance3D _glyphAura;
+    private ShaderMaterial _glyphAuraMaterial;
     private Label3D _memorialLabel;
 
     /// <summary>Generic point-of-interest marker (see <see cref="SetPoiLabel"/>).
@@ -435,11 +437,11 @@ public partial class HexTile : Node3D
     /// <summary>Edge length in pixels of the baked glyph-cipher decal. 256 rather than 128:
     /// the sigil now lies flat on the ground where the camera can get close to it, and the
     /// shader blurs its alpha for the halo, which magnifies any softness in the source.</summary>
-    private const int GlyphDecalPixels = 256;
+    internal const int GlyphDecalPixels = 512;
 
     /// <summary>Width of the ground decal in world units. The baked sigil occupies the
     /// inner 80% of this (see the shader's sigil_scale); the rest is the enclosing ring.</summary>
-    private const float GlyphDecalSize = 1.50f;
+    private const float GlyphDecalSize = 2.10f;   // radius 1.05 inside a 1.15 inradius hex (HexRadius 1.325)
 
     /// <summary>Clearance above the tile's measured top surface. Enough to stay out of the
     /// terrain's z-fighting range and above the grass roots, low enough that the sigil still
@@ -449,9 +451,35 @@ public partial class HexTile : Node3D
     /// <summary>Seconds for the inscription when a glyph is first prepared. Six arms are
     /// struck in sequence, so this is ~0.16s per stave: quick, but slow enough to read as
     /// deliberate drawing rather than a fade-in.</summary>
-    private const float GlyphInscribeSeconds = 0.95f;
+    private const float GlyphInscribeSeconds = 2.2f;
 
-    private const string GlyphDecalShaderPath = "res://Assets/Shaders/glyph_sigil.gdshader";
+    /// <summary>Seconds for the bright burst that fades out once the circle is sealed.</summary>
+    private const float GlyphFlashSeconds = 0.5f;
+
+    /// <summary>World radius of the grass pressed around a glyph: a little past the sigil's
+    /// own radius (half of GlyphDecalSize), so the circle sits in a clearing.</summary>
+    private const float GlyphGrassRadius = 1.15f;
+
+    internal const string GlyphDecalShaderPath = "res://Assets/Shaders/glyph_sigil.gdshader";
+
+    // Glyph palettes (2026-10-04). Friendly: blue light, cyan accents, blue-white spokes.
+    // Hostile: violet-pink light, hot pink accents, the Enchanter rose on the spokes.
+    private static readonly Color GlyphFriendlyLight  = new Color(0.36f, 0.58f, 1.00f, 1f);
+    private static readonly Color GlyphFriendlyCool   = new Color(0.52f, 0.90f, 1.00f, 1f);
+    private static readonly Color GlyphFriendlyAccent = new Color(0.50f, 0.78f, 1.00f, 1f);
+    private static readonly Color GlyphFriendlyCore   = new Color(0.86f, 0.96f, 1.00f, 1f);
+    private static readonly Color GlyphHostileLight   = new Color(0.74f, 0.34f, 0.95f, 1f);
+    private static readonly Color GlyphHostileCool    = new Color(1.00f, 0.44f, 0.76f, 1f);
+    private static readonly Color GlyphHostileCore    = new Color(1.00f, 0.88f, 0.96f, 1f);
+    // The energy colour that runs through each family: lavender through the blue,
+    // amber through the pink, so the pops stand out from the base light.
+    private static readonly Color GlyphFriendlyPop    = new Color(0.80f, 0.62f, 1.00f, 1f);
+    private static readonly Color GlyphHostilePop     = new Color(1.00f, 0.76f, 0.38f, 1f);
+
+    internal const bool GlyphAuraEnabled = false;
+    internal const string GlyphAuraShaderPath = "res://Assets/Shaders/glyph_aura.gdshader";
+    /// <summary>Height of the light column over a glyph, in world units.</summary>
+    private const float GlyphAuraHeight = 1.1f;
 
     /// <summary>
     /// Shows the tile's glyph marker. Pass the <see cref="GlyphData"/> when it is known and
@@ -482,20 +510,46 @@ public partial class HexTile : Node3D
         if (_glyphDecal == null)
             return;                               // shader missing; keep the ✦
 
+        // Shape and palette say who the glyph is for: round and blue for you and your
+        // allies, pointed and pink/purple for the enemy who steps on it.
+        bool hostile = glyph.AffectsEnemies;
+        _glyphDecalMaterial.SetShaderParameter("hostile", hostile ? 1.0f : 0.0f);
+        _glyphDecalMaterial.SetShaderParameter("light_color", hostile ? GlyphHostileLight : GlyphFriendlyLight);
+        _glyphDecalMaterial.SetShaderParameter("cool_color", hostile ? GlyphHostileCool : GlyphFriendlyCool);
+        _glyphDecalMaterial.SetShaderParameter("accent_color", hostile ? UITheme.CipherFunction : GlyphFriendlyAccent);
+        _glyphDecalMaterial.SetShaderParameter("core_color", hostile ? GlyphHostileCore : GlyphFriendlyCore);
+        _glyphDecalMaterial.SetShaderParameter("pop_color", hostile ? GlyphHostilePop : GlyphFriendlyPop);
+        if (_glyphAuraMaterial != null)
+        {
+            _glyphAuraMaterial.SetShaderParameter("aura_color", hostile ? GlyphHostileLight : GlyphFriendlyLight);
+            _glyphAuraMaterial.SetShaderParameter("mote_color", hostile ? GlyphHostileCore : GlyphFriendlyCore);
+        }
+
         // The bake takes two frames cold and is cached, so a repeat placement of the
         // same spell resolves immediately. The nodes may be freed before the callback
         // lands if the tile is torn down mid-bake, hence the validity checks.
         var decal = _glyphDecal;
         var mat = _glyphDecalMaterial;
         var label = _glyphLabel;
-        GlyphCipherTexture.Instance.RequestForBlueprint(
-            glyph.SourceCardId, glyph.SourceHalf, GlyphDecalPixels, CipherLod.Tile, true,
+        var aura = _glyphAura;
+        var auraMat = _glyphAuraMaterial;
+        GlyphCipherTexture.Instance.RequestMaskForBlueprint(
+            glyph.SourceCardId, glyph.SourceHalf, GlyphDecalPixels,
             tex =>
             {
                 if (tex == null || !IsInstanceValid(decal) || mat == null)
                     return;                       // bake failed; keep the ✦
-                mat.SetShaderParameter("sigil_tex", tex);
+                mat.SetShaderParameter("mask_tex", tex);
                 decal.Visible = true;
+
+                // The turf around the sigil yields as the circle is drawn.
+                ulong siteId = GetInstanceId();
+                GlyphGrassField.Set(siteId, GlobalPosition, GlyphGrassRadius, 0f);
+                CreateTween()
+                    .TweenMethod(Callable.From<float>(v => GlyphGrassField.SetStrength(siteId, v)),
+                                 0f, 1f, GlyphInscribeSeconds * 0.4f)
+                    .SetTrans(Tween.TransitionType.Sine)
+                    .SetEase(Tween.EaseType.Out);
                 if (IsInstanceValid(label))
                     label.Visible = false;
 
@@ -506,10 +560,29 @@ public partial class HexTile : Node3D
                 // LINEAR on purpose: an eased tween front-loads the motion, which makes
                 // the first arms flash past and the last ones crawl. A sequence of equal
                 // strokes has to advance at an equal rate to read as a sequence.
+                // The rings, runes and hexagram come first in the shader's own schedule,
+                // then the cipher, then a flash as the circle seals.
                 mat.SetShaderParameter("progress", 0f);
-                CreateTween()
-                    .TweenProperty(mat, "shader_parameter/progress", 1.0f, GlyphInscribeSeconds)
-                    .SetTrans(Tween.TransitionType.Linear);
+                mat.SetShaderParameter("flash", 0f);
+                var tw = CreateTween();
+                tw.TweenProperty(mat, "shader_parameter/progress", 1.0f, GlyphInscribeSeconds)
+                  .SetTrans(Tween.TransitionType.Linear);
+                tw.TweenProperty(mat, "shader_parameter/flash", 0.0f, GlyphFlashSeconds)
+                  .From(1.0f)
+                  .SetTrans(Tween.TransitionType.Expo)
+                  .SetEase(Tween.EaseType.Out);
+
+                // The bound spell leaks: a faint column rises once the circle seals.
+                if (IsInstanceValid(aura) && auraMat != null)
+                {
+                    auraMat.SetShaderParameter("progress", 0f);
+                    aura.Visible = true;
+                    CreateTween()
+                        .TweenProperty(auraMat, "shader_parameter/progress", 1.0f, 1.2f)
+                        .SetDelay(GlyphInscribeSeconds * 0.85f)
+                        .SetTrans(Tween.TransitionType.Sine)
+                        .SetEase(Tween.EaseType.Out);
+                }
             });
     }
 
@@ -537,6 +610,8 @@ public partial class HexTile : Node3D
     {
         if (_glyphDecal != null)
             _glyphDecal.Visible = false;
+        if (_glyphAura != null)
+            _glyphAura.Visible = false;
 
         if (_glyphLabel == null)
         {
@@ -568,9 +643,9 @@ public partial class HexTile : Node3D
         }
 
         _glyphDecalMaterial = new ShaderMaterial { Shader = shader };
-        _glyphDecalMaterial.SetShaderParameter("glow_color", UITheme.CipherFunction);
-        _glyphDecalMaterial.SetShaderParameter("ring_color", UITheme.CipherFunction);
-        _glyphDecalMaterial.SetShaderParameter("backing_color", UITheme.CipherTileBacking);
+        // The circle's violet light lives in the shader default; the function layer keeps
+        // the Enchanter rose so the spokes and hub match the card art.
+        _glyphDecalMaterial.SetShaderParameter("accent_color", UITheme.CipherFunction);
         _glyphDecalMaterial.SetShaderParameter("progress", 0f);
 
         // Per-tile phase, so a field of prepared glyphs breathes out of step instead of
@@ -593,15 +668,55 @@ public partial class HexTile : Node3D
             Visible = false,
         };
         CallDeferred("add_child", _glyphDecal);
+
+        // The light column over the glyph. Built once beside the decal and only ever
+        // shown and hidden (the node lifetime rule).
+        // Light column removed (2026-10-04 playtest). _glyphAura stays null, and every
+        // use of it is already null-checked, so nothing else needs to change.
+        var auraShader = GlyphAuraEnabled ? GD.Load<Shader>(GlyphAuraShaderPath) : null;
+        if (auraShader != null)
+        {
+            _glyphAuraMaterial = new ShaderMaterial { Shader = auraShader };
+            _glyphAuraMaterial.SetShaderParameter("aura_height", GlyphAuraHeight);
+            _glyphAuraMaterial.SetShaderParameter("phase", Mathf.Abs(h % 1000) / 1000f * Mathf.Tau);
+            float radius = GlyphDecalSize * 0.5f * 0.88f;
+            _glyphAura = new MeshInstance3D
+            {
+                Name = "GlyphAura",
+                Mesh = new CylinderMesh
+                {
+                    TopRadius = radius * 1.04f,
+                    BottomRadius = radius,
+                    Height = GlyphAuraHeight,
+                    RadialSegments = 32,
+                    Rings = 1,
+                    CapTop = false,
+                    CapBottom = false,
+                },
+                Position = new Vector3(0f, MeasuredTileTopY() + GlyphDecalHeight + GlyphAuraHeight * 0.5f, 0f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                MaterialOverride = _glyphAuraMaterial,
+                Visible = false,
+            };
+            CallDeferred("add_child", _glyphAura);
+        }
     }
 
     /// <summary>Hides the glyph marker without destroying it. Cheap to re-show via <see cref="ShowGlyph"/>.</summary>
+    public override void _ExitTree()
+    {
+        GlyphGrassField.Remove(GetInstanceId());
+    }
+
     public void ClearGlyph()
     {
+        GlyphGrassField.Remove(GetInstanceId());
         if (_glyphLabel != null)
             _glyphLabel.Visible = false;
         if (_glyphDecal != null)
             _glyphDecal.Visible = false;
+        if (_glyphAura != null)
+            _glyphAura.Visible = false;
     }
 
     /// <summary>Current elemental imbuement displayed by the overlay child, or <see cref="TileElementType.None"/> if no overlay is present.</summary>

@@ -121,6 +121,18 @@
 					"description": "Human-readable description of the effect shown on the card.",
 					"minLength": 1
 				},
+				"glyph_text": {
+					"type": "string",
+					"description": "Tile tooltip text for a glyph this half prepares: what it does when it goes off. Tokens like {damage} are filled from the live glyph."
+				},
+				"glyph_trigger": {
+					"type": "string",
+					"description": "Optional override for the glyph tooltip's trigger line."
+				},
+				"once_per_fight": {
+					"type": "boolean",
+					"description": "Once keyword: this half can be cast once per fight."
+				},
 				"tags": {
 					"type": "array",
 					"description": "Element and school tags read at cast time by attunement, buff systems, and targeting selectors. Required on every half \u2014 use an empty array [] for halves with no elemental or school identity.",
@@ -150,7 +162,9 @@
 							"growth_tile",
 							"any_growth",
 							"old_growth_tile",
-							"memorial_or_spirit_nearby"
+							"memorial_or_spirit_nearby",
+							"friendly_glyph_tile",
+							"non_elite_target"
 						]
 					}
 				},
@@ -206,6 +220,8 @@
 						"element_tile",
 						"empty_tile",
 						"unit_then_direction",
+						"unit_then_unit",
+						"tile_then_tile",
 						"unit_then_tile"
 					]
 				},
@@ -262,6 +278,10 @@
 				"dest_range": {
 					"type": "integer",
 					"description": "unit_then_tile: max distance from the victim for the destination tile."
+				},
+				"any_tile": {
+					"type": "boolean",
+					"description": "unit_then_tile: any tile within dest_range, occupied ones included (Borrowed Will)."
 				},
 				"friendlies_only": {
 					"type": "boolean",
@@ -404,7 +424,16 @@
 						"wither",
 						"gain_foresight_per_status",
 						"gain_foresight_per_moved",
-						"fixed_hour"
+						"fixed_hour",
+						"compel_walk",
+						"puppeteer",
+						"swap_locks",
+						"dispel_walk",
+						"name_condition",
+						"misdirect_attack",
+						"borrow_will",
+						"draw_on_break",
+						"compound_names"
 					]
 				},
 				"amount": {
@@ -871,7 +900,7 @@
 				},
 				"cap": {
 					"type": "integer",
-					"description": "New simultaneous-construct cap. Used by: set_construct_cap.",
+					"description": "New simultaneous-construct cap. Used by: set_construct_cap. Also draw_on_break: the most cards drawn.",
 					"minimum": 1
 				},
 				"charges": {
@@ -881,12 +910,48 @@
 				},
 				"mode": {
 					"type": "string",
-					"description": "Conduit Link redistribution mode. Used by: create_link.",
+					"description": "Conduit Link redistribution mode. Used by: create_link. Also compel_walk: direction, toward_caster or chosen_path.",
 					"enum": [
 						"split",
 						"mirror",
-						"halved"
+						"halved",
+						"direction",
+						"toward_caster",
+						"chosen_path"
 					]
+				},
+				"backfire": {
+					"type": "boolean",
+					"description": "name_condition: the Named unit's spells land on its own tile (Forbidden Word)."
+				},
+				"shun": {
+					"type": "boolean",
+					"description": "name_condition: the Named unit cannot target the caster (Not Me)."
+				},
+				"per_trigger": {
+					"type": "boolean",
+					"description": "name_condition: pays once per kind of action each round, not once per round."
+				},
+				"grouped": {
+					"type": "boolean",
+					"description": "name_condition: the targets' Names form a group; the first broken pays and the group ends (Terms and Conditions)."
+				},
+				"halve_attack": {
+					"type": "boolean",
+					"description": "name_condition: the Named unit's attacks deal half damage (Binding Chains)."
+				},
+				"growth": {
+					"type": "integer",
+					"description": "compound_names: penalty growth per break.",
+					"minimum": 1
+				},
+				"halt_movement": {
+					"type": "boolean",
+					"description": "prepare_glyph: the unit that triggers it stops moving (Snare Glyph)."
+				},
+				"name_on_trigger": {
+					"type": "boolean",
+					"description": "prepare_glyph: Name the unit that triggers it (Binding Rune)."
 				},
 				"line_damage": {
 					"type": "integer",

@@ -8,7 +8,8 @@
 		"name": "Binding Rune",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is Rooted and takes 3 damage. Lasts 2 turns.",
+		"rules_text": "Prepare a glyph within 3. An enemy here at the start of its turn takes 3 damage, and 3 more if it leaves this turn. Lasts 2 turns.",
+		"glyph_text": "It takes {damage} damage, and {damage} more if it leaves this turn.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -21,9 +22,8 @@
 			"type": "prepare_glyph",
 			"trigger": "start_of_turn",
 			"damage": 3,
-			"status": "rooted",
-			"status_duration": 1,
-			"duration": 2
+			"duration": 2,
+			"name_on_trigger": true
 		}
 	},
 	"bottom": {
@@ -60,7 +60,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is Rooted and takes 3 damage. Lasts 3 turns."
+					"value": "Prepare a glyph within 3. An enemy here at the start of its turn takes 3 damage, and 3 more if it leaves this turn. Lasts 3 turns."
 				},
 				{
 					"half": "bottom",
@@ -87,13 +87,8 @@
 				},
 				{
 					"half": "top",
-					"field": "effect.status_duration",
-					"value": 2
-				},
-				{
-					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is Rooted (2 turns) and takes 5 damage. Lasts 3 turns."
+					"value": "Prepare a glyph within 3. An enemy here at the start of its turn takes 5 damage, and 5 more if it leaves this turn. Lasts 3 turns."
 				}
 			]
 		},
@@ -129,7 +124,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph within 3. Each turn an enemy here is Rooted (2t) and takes 5. Silenced if Weave is 3+. Lasts 3 turns."
+					"value": "Prepare a reusable glyph within 3. Each turn an enemy here takes 5 damage, and 5 more if it leaves that turn. Lasts 3 turns."
 				}
 			]
 		},
@@ -179,6 +174,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a permanent reusable glyph. Each turn an enemy here takes 7 and is Named (half damage, cannot move) for 1 turn."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
 				}
 			]
 		},

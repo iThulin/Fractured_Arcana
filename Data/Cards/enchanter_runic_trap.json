@@ -9,6 +9,7 @@
 		"mana": 1,
 		"speed": "Studied",
 		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters, deal 5 damage.",
+		"glyph_text": "It takes {damage} damage.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -28,6 +29,7 @@
 		"mana": 1,
 		"speed": "Studied",
 		"rules_text": "Move 2 tiles. Leave a glyph on your origin tile: the next ally to step on it gains 2 shield.",
+		"glyph_text": "It gains {shield} shield.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -101,6 +103,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 3. When an enemy enters, deal 7 damage and slow for 1 turn."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Slowed for {status_turns}."
 				}
 			]
 		},
@@ -119,6 +126,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Move 2 tiles. Leave a glyph: the next ally to step on it gains 4 shield and +2 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "It gains {shield} shield and +{ally_damage} damage on its next spell."
 				}
 			]
 		},
@@ -204,6 +216,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a hidden reusable glyph. Each enemy that enters takes 9 and is Named (half damage, cannot move) for 1 turn."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
 				}
 			]
 		},
@@ -243,6 +260,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Teleport within 4. Leave a 3-turn reusable ward (allies: 6 shield, 4 armor, +2 damage). Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage. It gains {shield} shield once per round."
 				}
 			]
 		}

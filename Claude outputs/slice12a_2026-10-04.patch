@@ -1,0 +1,1556 @@
+diff --git a/Data/Cards/enchanter_binding_rune.json b/Data/Cards/enchanter_binding_rune.json
+index a7fc109..3c6d2c4 100644
+--- a/Data/Cards/enchanter_binding_rune.json
++++ b/Data/Cards/enchanter_binding_rune.json
+@@ -8,8 +8,8 @@
+ 		"name": "Binding Rune",
+ 		"mana": 2,
+ 		"speed": "Studied",
+-		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is Rooted and takes 3 damage. Lasts 2 turns.",
+-		"glyph_text": "It takes {damage} damage and is Rooted for {status_turns}.",
++		"rules_text": "Prepare a glyph within 3. An enemy here at the start of its turn takes 3 damage, and 3 more if it leaves this turn. Lasts 2 turns.",
++		"glyph_text": "It takes {damage} damage, and {damage} more if it leaves this turn.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -22,9 +22,8 @@
+ 			"type": "prepare_glyph",
+ 			"trigger": "start_of_turn",
+ 			"damage": 3,
+-			"status": "rooted",
+-			"status_duration": 1,
+-			"duration": 2
++			"duration": 2,
++			"name_on_trigger": true
+ 		}
+ 	},
+ 	"bottom": {
+@@ -61,7 +60,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is Rooted and takes 3 damage. Lasts 3 turns."
++					"value": "Prepare a glyph within 3. An enemy here at the start of its turn takes 3 damage, and 3 more if it leaves this turn. Lasts 3 turns."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -86,15 +85,10 @@
+ 					"field": "effect.damage",
+ 					"value": 5
+ 				},
+-				{
+-					"half": "top",
+-					"field": "effect.status_duration",
+-					"value": 2
+-				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a glyph within 3. An enemy here at the start of its turn is Rooted (2 turns) and takes 5 damage. Lasts 3 turns."
++					"value": "Prepare a glyph within 3. An enemy here at the start of its turn takes 5 damage, and 5 more if it leaves this turn. Lasts 3 turns."
+ 				}
+ 			]
+ 		},
+@@ -130,7 +124,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a reusable glyph within 3. Each turn an enemy here is Rooted (2t) and takes 5. Silenced if Weave is 3+. Lasts 3 turns."
++					"value": "Prepare a reusable glyph within 3. Each turn an enemy here takes 5 damage, and 5 more if it leaves that turn. Lasts 3 turns."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_charm_drift.json b/Data/Cards/enchanter_charm_drift.json
+index afa6527..5a37855 100644
+--- a/Data/Cards/enchanter_charm_drift.json
++++ b/Data/Cards/enchanter_charm_drift.json
+@@ -28,7 +28,7 @@
+ 		"mana": 1,
+ 		"speed": "Reflex",
+ 		"rules_text": "Prepare a glyph on a tile within 4. Allies on this tile gain +4 armor. Lasts 3 turns. Gain 1 Weave.",
+-		"glyph_text": "It gains +{armor} armor.",
++		"glyph_text": "While it stands here it has +{armor} armor.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -137,7 +137,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{armor} armor and {shield} shield."
++					"value": "While it stands here it has +{armor} armor. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		},
+@@ -200,7 +200,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage."
++					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_dominion.json b/Data/Cards/enchanter_dominion.json
+index 77939d2..0a3e916 100644
+--- a/Data/Cards/enchanter_dominion.json
++++ b/Data/Cards/enchanter_dominion.json
+@@ -44,7 +44,7 @@
+ 		"mana": 3,
+ 		"speed": "Reflex",
+ 		"rules_text": "Prepare wards on a 2-tile radius around you. Allies on them gain 4 armor and 3 shield. Lasts 3 turns.",
+-		"glyph_text": "It gains +{armor} armor and {shield} shield.",
++		"glyph_text": "While it stands here it has +{armor} armor. It gains {shield} shield once per round.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -141,7 +141,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage."
++					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		},
+@@ -182,7 +182,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage, and heals 3 HP each turn."
++					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage, and heals {heal_turn} HP each turn. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		},
+@@ -265,11 +265,6 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare permanent wards (radius 3). Allies gain 8 armor, 6 shield, +3 damage, heal 4 per turn."
+-				},
+-				{
+-					"half": "bottom",
+-					"field": "glyph_text",
+-					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage, and heals 4 HP each turn."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_geas.json b/Data/Cards/enchanter_geas.json
+index d7078f4..d91eca6 100644
+--- a/Data/Cards/enchanter_geas.json
++++ b/Data/Cards/enchanter_geas.json
+@@ -38,7 +38,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare wards on a 1-tile radius within 4. Allies on them deal +2 damage. Lasts 3 turns.",
+-		"glyph_text": "It gains +{ally_damage} spell damage.",
++		"glyph_text": "While it stands here it has +{ally_damage} spell damage.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -149,7 +149,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{ally_damage} spell damage and {shield} shield."
++					"value": "While it stands here it has +{ally_damage} spell damage. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		},
+@@ -279,7 +279,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{ally_damage} spell damage, {shield} shield and +{armor} armor."
++					"value": "While it stands here it has +{ally_damage} spell damage and +{armor} armor. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_hex_mark.json b/Data/Cards/enchanter_hex_mark.json
+index af39082..92a9bd0 100644
+--- a/Data/Cards/enchanter_hex_mark.json
++++ b/Data/Cards/enchanter_hex_mark.json
+@@ -38,7 +38,7 @@
+ 		"mana": 1,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 4. Allies on it deal +2 damage. Lasts 3 turns.",
+-		"glyph_text": "It gains +{ally_damage} spell damage.",
++		"glyph_text": "While it stands here it has +{ally_damage} spell damage.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -148,7 +148,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{ally_damage} spell damage and {shield} shield."
++					"value": "While it stands here it has +{ally_damage} spell damage. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		},
+@@ -276,7 +276,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains +{ally_damage} spell damage, {shield} shield and +{armor} armor."
++					"value": "While it stands here it has +{ally_damage} spell damage and +{armor} armor. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_mana_tithe.json b/Data/Cards/enchanter_mana_tithe.json
+index cb69a86..30bde78 100644
+--- a/Data/Cards/enchanter_mana_tithe.json
++++ b/Data/Cards/enchanter_mana_tithe.json
+@@ -8,7 +8,7 @@
+ 		"name": "Mana Tithe",
+ 		"mana": 2,
+ 		"speed": "Studied",
+-		"rules_text": "Name an enemy for 3 turns: its spells cost 1 more, and you gain 1 mana each time it casts. Gain 1 Weave.",
++		"rules_text": "Name an enemy for 3 turns: if it casts, it takes 3 damage and you gain 1 mana. Gain 1 Weave.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -79,7 +79,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Bind an enemy for 3 turns: its spells cost 2 more, and you gain 1 mana when it casts. Gain 1 Weave."
++					"value": "Name an enemy for 3 turns: if it casts, it takes 5 damage and you gain 1 mana. Gain 1 Weave."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -107,7 +107,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Bind an enemy 3 turns: spells cost 2 more. You gain 2 mana when it casts. Gain 1 Weave."
++					"value": "Name an enemy for 3 turns: if it casts, it takes 5 damage and you gain 2 mana. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -143,7 +143,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Bind an enemy 3 turns: spells cost 2 more. You gain 2 mana and 1 Weave when it casts. Gain 1 Weave."
++					"value": "Name an enemy for 3 turns: if it casts, it takes 5 damage and you gain 2 mana and 1 Weave. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -226,7 +226,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Bind all enemies 3 turns: spells cost 2 more. You gain 2 mana and 1 Weave per enemy cast. Gain 2 Weave."
++					"value": "Name every enemy for 3 turns: if one casts, it takes 5 damage and you gain 2 mana and 1 Weave. Gain 2 Weave."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_mirror_ward.json b/Data/Cards/enchanter_mirror_ward.json
+index a37ee55..437b5e6 100644
+--- a/Data/Cards/enchanter_mirror_ward.json
++++ b/Data/Cards/enchanter_mirror_ward.json
+@@ -8,9 +8,9 @@
+ 		"name": "Mirror Ward",
+ 		"mana": 2,
+ 		"speed": "Reflex",
+-		"rules_text": "Prepare a glyph within 4. The next spell targeting a unit on this tile is reflected back at its caster.",
+-		"glyph_text": "Reflects {next_spells} back at the caster.",
+-		"glyph_trigger": "When a spell targets a unit on this tile.",
++		"rules_text": "Prepare a glyph within 4. The next attack or spell that hits a unit on this tile is turned back on its attacker. Lasts 3 turns.",
++		"glyph_text": "Turns {next_hits} back on the attacker.",
++		"glyph_trigger": "When an enemy attack or spell hits a unit on this tile.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -58,7 +58,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a glyph within 4. The next 2 spells targeting a unit on this tile are reflected at their casters."
++					"value": "Prepare a glyph within 4. The next 2 attacks or spells that hit a unit on this tile are turned back on their attackers. Lasts 3 turns."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -86,7 +86,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare reflecting glyphs on a 1-tile radius within 4. Each reflects the next 2 spells on units there."
++					"value": "Prepare mirror glyphs on a 1-tile radius within 4. Each turns back the next 2 attacks or spells on units there. Lasts 3 turns."
+ 				}
+ 			]
+ 		},
+@@ -122,12 +122,12 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare reflecting glyphs (radius 1) within 4. Reflected spells deal +50% and hit their casters."
++					"value": "Prepare mirror glyphs (radius 1) within 4. Each turns back the next 2 attacks or spells on units there, for +50% damage. Lasts 3 turns."
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "glyph_text",
+-					"value": "Reflects {next_spells} back at the caster with +50% damage."
++					"value": "Turns {next_hits} back on the attacker with +50% damage."
+ 				}
+ 			]
+ 		},
+@@ -169,12 +169,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare reflecting glyphs (radius 1) for 3 turns. Every spell targeting units there is reflected for +50%."
+-				},
+-				{
+-					"half": "top",
+-					"field": "glyph_text",
+-					"value": "Reflects every such spell back at its caster with +50% damage."
++					"value": "Prepare mirror glyphs (radius 1) for 3 turns. Every attack or spell on units there is turned back for +50% damage."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_runic_trap.json b/Data/Cards/enchanter_runic_trap.json
+index 207bc87..92d63b5 100644
+--- a/Data/Cards/enchanter_runic_trap.json
++++ b/Data/Cards/enchanter_runic_trap.json
+@@ -130,7 +130,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains {shield} shield and +{ally_damage} spell damage."
++					"value": "It gains {shield} shield and +{ally_damage} damage on its next spell."
+ 				}
+ 			]
+ 		},
+@@ -264,7 +264,7 @@
+ 				{
+ 					"half": "bottom",
+ 					"field": "glyph_text",
+-					"value": "It gains {shield} shield, +{armor} armor and +{ally_damage} spell damage."
++					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage. It gains {shield} shield once per round."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_snare_glyph.json b/Data/Cards/enchanter_snare_glyph.json
+index 7bfb432..9a5552d 100644
+--- a/Data/Cards/enchanter_snare_glyph.json
++++ b/Data/Cards/enchanter_snare_glyph.json
+@@ -8,8 +8,8 @@
+ 		"name": "Snare Glyph",
+ 		"mana": 2,
+ 		"speed": "Studied",
+-		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters: it is Rooted for 1 turn and takes 4 damage.",
+-		"glyph_text": "It takes {damage} damage and is Rooted for {status_turns}.",
++		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters: it takes 4 damage and its movement ends.",
++		"glyph_text": "It takes {damage} damage and its movement ends.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -22,8 +22,7 @@
+ 			"type": "prepare_glyph",
+ 			"trigger": "enter",
+ 			"damage": 4,
+-			"status": "rooted",
+-			"status_duration": 1
++			"halt_movement": true
+ 		}
+ 	},
+ 	"bottom": {
+@@ -68,7 +67,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a glyph within 3. When an enemy enters, root for 1 turn and deal 6 damage."
++					"value": "Prepare a glyph within 3. When an enemy enters, it takes 6 damage and its movement ends."
+ 				},
+ 				{
+ 					"half": "bottom",
+@@ -101,12 +100,12 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and apply Hex (Weakened) for 2 turns."
++					"value": "Prepare a glyph within 3. When an enemy enters, it takes 6, its movement ends, and it is Weakened for 2 turns."
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "glyph_text",
+-					"value": "It takes {damage} damage and is Weakened for {status_turns}."
++					"value": "It takes {damage} damage, its movement ends, and it is Weakened for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -150,7 +149,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a reusable glyph. Each enemy entering is Rooted for 2 turns, takes 6, and is Hexed for 2 turns."
++					"value": "Prepare a reusable glyph within 3. Each enemy entering takes 6, its movement ends, and it is Weakened for 2 turns."
+ 				}
+ 			]
+ 		},
+@@ -203,18 +202,19 @@
+ 						"damage": 8,
+ 						"status": "named",
+ 						"status_duration": 1,
+-						"reusable": true
++						"reusable": true,
++						"halt_movement": true
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Prepare a reusable glyph. Each enemy entering takes 8 and is Named (half damage, cannot move) for 1 turn."
++					"value": "Prepare a reusable glyph within 3. Each enemy entering takes 8, its movement ends, and it is Named (half damage, cannot move) for 1 turn."
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "glyph_text",
+-					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
++					"value": "It takes {damage} damage, its movement ends, and it is Named (half damage, cannot move) for {status_turns}."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_sovereign_will.json b/Data/Cards/enchanter_sovereign_will.json
+index 0b01bd3..4a4dace 100644
+--- a/Data/Cards/enchanter_sovereign_will.json
++++ b/Data/Cards/enchanter_sovereign_will.json
+@@ -9,7 +9,7 @@
+ 		"mana": 4,
+ 		"speed": "Studied",
+ 		"rules_text": "Raise 3 indestructible Sovereign Pillars for the rest of the fight. Allies on them gain +2 to all stats. Adjacent enemies deal 2 less and end their turn Weakened.",
+-		"glyph_text": "It gains +{armor} armor, +{shield} shield and +{ally_damage} spell damage. Adjacent enemies deal 2 less and end their turn Weakened.",
++		"glyph_text": "While it stands here it has +{armor} armor and +{ally_damage} spell damage, and it gains {shield} shield once per round. Adjacent enemies deal 2 less and end their turn Weakened.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -128,7 +128,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "glyph_text",
+-					"value": "It gains +{armor} armor, +{shield} shield and +{ally_damage} spell damage. Adjacent enemies deal 2 less and end their turn Weakened. Gain 1 Weave each turn."
++					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage, and it gains {shield} shield once per round. Adjacent enemies deal 2 less and end their turn Weakened. You gain 1 Weave each turn."
+ 				}
+ 			]
+ 		},
+@@ -177,7 +177,7 @@
+ 				{
+ 					"half": "top",
+ 					"field": "glyph_text",
+-					"value": "It gains +{armor} armor, +{shield} shield and +{ally_damage} spell damage. Adjacent enemies deal 3 less, take 3 damage and are Named (half damage, cannot move). Gain 1 Weave each turn."
++					"value": "While it stands here it has +{armor} armor and +{ally_damage} spell damage, and it gains {shield} shield once per round. Adjacent enemies deal 3 less, take 3 damage and are Named (half damage, cannot move). You gain 1 Weave each turn."
+ 				}
+ 			]
+ 		},
+diff --git a/Scripts/Cards/Effects/EnchanterEffects.cs b/Scripts/Cards/Effects/EnchanterEffects.cs
+index 410a739..bcfde6d 100644
+--- a/Scripts/Cards/Effects/EnchanterEffects.cs
++++ b/Scripts/Cards/Effects/EnchanterEffects.cs
+@@ -265,6 +265,9 @@ public sealed class PrepareGlyphEffect : EffectBase
+ 	public bool Reusable, Invisible, EmptyOnly, AtOrigin, Area;
+ 	public int AllyArmor, AllyShield, AllyDamage, AllyMana;
+ 	public int OwnerDraw, OwnerMana, OwnerWeave, OwnerHeal;
++	// Slice 12a
++	public bool InstantCopies, HaltsMovement;
++	public int NameOnTrigger, CasterCostReduction, CasterDamage, CasterWeavePerTurn, AllyHealPerTurn, SpawnGlyphDamage;
+ 
+ 	/// <summary>Identity of the half that owns this effect, stamped once at load time by
+ 	/// JsonCardLoader.StampGlyphSource and copied onto every glyph this effect places.
+@@ -299,6 +302,14 @@ public sealed class PrepareGlyphEffect : EffectBase
+ 		g.OwnerMana = OwnerMana;
+ 		g.OwnerWeave = OwnerWeave;
+ 		g.OwnerHeal = OwnerHeal;
++		g.InstantCopies = InstantCopies;
++		g.HaltsMovement = HaltsMovement;
++		g.NameOnTrigger = NameOnTrigger;
++		g.CasterCostReduction = CasterCostReduction;
++		g.CasterDamage = CasterDamage;
++		g.CasterWeavePerTurn = CasterWeavePerTurn;
++		g.AllyHealPerTurn = AllyHealPerTurn;
++		g.SpawnGlyphDamage = SpawnGlyphDamage;
+ 	}
+ 
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+@@ -346,18 +357,35 @@ public sealed class PrepareGlyphEffect : EffectBase
+ 	}
+ }
+ 
+-/// <summary>Link up to N friendly glyphs so triggering one triggers the group. { "type":"link_glyphs","count":n,"cumulative_bonus":n }</summary>
++/// <summary>Link up to N friendly glyphs so triggering one triggers the group.
++/// "persist" keeps the network open for the rest of the fight (later glyphs join it);
++/// "on_trigger_weave" pays that much Weave per glyph linked.
++/// { "type":"link_glyphs","count":n,"cumulative_bonus":n,"persist":bool,"on_trigger_weave":n }</summary>
+ public sealed class LinkGlyphsEffect : EffectBase
+ {
+-	public int Count, CumulativeBonus;
+-	public LinkGlyphsEffect(int count, int bonus) { Count = count; CumulativeBonus = bonus; }
++	public int Count, CumulativeBonus, WeavePerGlyph;
++	public bool Persist;
++	public LinkGlyphsEffect(int count, int bonus, int weavePerGlyph = 0, bool persist = false)
++	{ Count = count; CumulativeBonus = bonus; WeavePerGlyph = weavePerGlyph; Persist = persist; }
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+ 		if (s?.Glyphs == null || owner == null)
+ 			return;
+-		int id = s.Glyphs.Link(owner.TeamId, Count, CumulativeBonus);
+-		s.Log($"[LinkGlyphs] linked up to {Count} glyph(s) (id {id}).");
++		int linked;
++		if (Persist)
++		{
++			linked = s.Glyphs.LinkPersistent(owner.TeamId, CumulativeBonus);
++			s.Log($"[LinkGlyphs] {linked} glyph(s) linked; the network stays open for the rest of the fight.");
++		}
++		else
++		{
++			linked = Math.Min(Count, s.Glyphs.CountFriendly(owner.TeamId));
++			int id = s.Glyphs.Link(owner.TeamId, Count, CumulativeBonus);
++			s.Log($"[LinkGlyphs] linked {linked} glyph(s) (id {id}).");
++		}
++		if (WeavePerGlyph > 0 && linked > 0 && owner.Attunement is WeaveAttunement w)
++			w.Add(WeavePerGlyph * linked);
+ 	}
+ }
+ 
+@@ -379,14 +407,19 @@ public sealed class RearmGlyphsEffect : EffectBase
+ /// <summary>Fire all friendly glyphs at once. { "type":"trigger_all_glyphs","bonus_per_other":n,"consume":bool }</summary>
+ public sealed class TriggerAllGlyphsEffect : EffectBase
+ {
+-	public int BonusPerOther; public bool Consume;
+-	public TriggerAllGlyphsEffect(int bonus, bool consume) { BonusPerOther = bonus; Consume = consume; }
++	public int BonusPerOther, Repeat = 1, WeavePerGlyph; public bool Consume;
++	public TriggerAllGlyphsEffect(int bonus, bool consume, int repeat = 1, int weavePerGlyph = 0)
++	{ BonusPerOther = bonus; Consume = consume; Repeat = Math.Max(1, repeat); WeavePerGlyph = weavePerGlyph; }
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+ 		if (s?.Glyphs == null || owner == null)
+ 			return;
+-		s.Glyphs.TriggerAll(s, owner.TeamId, BonusPerOther, Consume);
++		int fired = 0;
++		for (int i = 0; i < Repeat; i++)
++			fired += s.Glyphs.TriggerAll(s, owner.TeamId, BonusPerOther, Consume);
++		if (WeavePerGlyph > 0 && fired > 0 && owner.Attunement is WeaveAttunement w)
++			w.Add(WeavePerGlyph * fired);
+ 	}
+ }
+ 
+@@ -433,9 +466,9 @@ public sealed class TeleportToGlyphEffect : EffectBase
+ /// <summary>Permanent reusable ally-buff tiles (Sovereign Pillars). Enemy-adjacent aura is logged as pending. { "type":"enchant_pillar","count":n,"ally_all_stats":n,... }</summary>
+ public sealed class EnchantPillarEffect : EffectBase
+ {
+-	public int Count, AllyAll, EnemyDamageReduction; public string AuraStatus;
+-	public EnchantPillarEffect(int count, int allyAll, int enemyDr, string aura)
+-	{ Count = count; AllyAll = allyAll; EnemyDamageReduction = enemyDr; AuraStatus = aura; }
++	public int Count, AllyAll, EnemyDamageReduction, AuraDamage, WeavePerTurn; public string AuraStatus;
++	public EnchantPillarEffect(int count, int allyAll, int enemyDr, string aura, int auraDamage = 0, int weavePerTurn = 0)
++	{ Count = count; AllyAll = allyAll; EnemyDamageReduction = enemyDr; AuraStatus = aura; AuraDamage = auraDamage; WeavePerTurn = weavePerTurn; }
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+@@ -449,6 +482,7 @@ public sealed class EnchantPillarEffect : EffectBase
+ 			var tile = InterfaceHelpers.ResolveTile(s, o);
+ 			if (tile == null)
+ 				continue;
++			bool first = placed == 0;
+ 			if (s.Glyphs.Prepare(tile, owner, g =>
+ 			{
+ 				g.Trigger = GlyphTrigger.AllyEnter;
+@@ -457,36 +491,59 @@ public sealed class EnchantPillarEffect : EffectBase
+ 				g.AllyArmor = AllyAll;
+ 				g.AllyDamage = AllyAll;
+ 				g.AllyShield = AllyAll;
++				g.Pillar = true;
++				g.AuraDamageReduction = EnemyDamageReduction;
++				g.AuraStatus = AuraStatus;
++				g.AuraDamage = AuraDamage;
++				g.OwnerWeavePerTurn = first ? WeavePerTurn : 0;   // once per casting, not per pillar
+ 			}) != null)
+ 				placed++;
+ 		}
+-		s.Log($"[EnchantPillar] raised {placed} permanent pillar(s). (enemy-adjacent aura pending per-turn aura hook)");
++		s.Log($"[EnchantPillar] raised {placed} Sovereign Pillar(s).");
+ 	}
+ }
+ 
+ /// <summary>A glyph that reflects the next spell on a unit standing on it. Placement works; reflection resolution needs a hook in the cast/targeting pipeline. { "type":"reflect_ward","triggers":n }</summary>
+ public sealed class ReflectWardEffect : EffectBase
+ {
+-	public int Triggers, Radius;
+-	public ReflectWardEffect(int triggers, int radius) { Triggers = triggers; Radius = radius; }
++	public int Triggers, Radius, Duration;
++	public float Bonus;
++	public ReflectWardEffect(int triggers, int radius, int duration = 3, float bonus = 0f)
++	{ Triggers = Math.Max(1, triggers); Radius = Math.Max(0, radius); Duration = duration; Bonus = bonus; }
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+-		if (s?.Glyphs == null || targets?.Items == null)
++		if (s?.Glyphs == null || targets?.Items == null || targets.Items.Count == 0)
+ 			return;
+-		var tile = InterfaceHelpers.ResolveTile(s, targets.Items[0]);
+-		if (tile == null)
++		var center = InterfaceHelpers.ResolveTile(s, targets.Items[0]);
++		if (center == null)
+ 			return;
+-		s.Glyphs.Prepare(tile, owner, g => { g.Trigger = GlyphTrigger.Manual; g.Status = "reflect"; g.StatusDuration = Triggers; g.DurationTurns = 3; });
+-		s.Log("[ReflectWard] placed. (spell-reflection resolution needs a cast-pipeline hook, see writeup)");
++		int placed = 0;
++		foreach (var tile in s.Grid.Tiles.Values)
++		{
++			if (s.Grid.Distance(center.Axial, tile.Axial) > Radius)
++				continue;
++			if (s.Glyphs.Prepare(tile, owner, g =>
++			{
++				g.Trigger = GlyphTrigger.Manual;
++				g.Reusable = true;
++				g.ReflectCharges = Triggers;
++				g.ReflectBonus = Bonus;
++				g.DurationTurns = Duration;
++			}) != null)
++				placed++;
++		}
++		s.Log($"[ReflectWard] {placed} mirror glyph(s) prepared ({(Triggers >= 99 ? "every" : Triggers.ToString())} hit(s) each).");
+ 	}
+ }
+ 
+ /// <summary>A glyph that doubles the next spell cast while standing on it. Placement works; the cast-twice resolution needs the cast pipeline. { "type":"spell_anchor","casts":n }</summary>
+ public sealed class SpellAnchorEffect : EffectBase
+ {
+-	public int Casts;
+-	public SpellAnchorEffect(int casts) { Casts = casts; }
++	public int Casts, CostReduction, Weave, Duration = 3;
++	public bool Reusable;
++	public SpellAnchorEffect(int casts, int costReduction = 0, int weave = 0, int duration = 3, bool reusable = false)
++	{ Casts = Math.Max(2, casts); CostReduction = costReduction; Weave = weave; Duration = duration; Reusable = reusable; }
+ 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
+ 	{
+ 		var owner = FindCasterUnit(s, caster) ?? s.ActiveCasterUnit;
+@@ -495,8 +552,16 @@ public sealed class SpellAnchorEffect : EffectBase
+ 		var tile = InterfaceHelpers.ResolveTile(s, targets.Items[0]);
+ 		if (tile == null)
+ 			return;
+-		s.Glyphs.Prepare(tile, owner, g => { g.Trigger = GlyphTrigger.SelfStand; g.Status = "anchor"; g.StatusDuration = Casts; g.DurationTurns = 3; });
+-		s.Log("[SpellAnchor] placed. (cast-twice resolution needs the cast pipeline, see writeup)");
++		s.Glyphs.Prepare(tile, owner, g =>
++		{
++			g.Trigger = GlyphTrigger.SelfStand;
++			g.AnchorCasts = Casts;
++			g.AnchorCostReduction = CostReduction;
++			g.AnchorWeave = Weave;
++			g.Reusable = Reusable;
++			g.DurationTurns = Duration;
++		});
++		s.Log($"[SpellAnchor] placed: the next spell cast standing on it resolves {Casts} times.");
+ 	}
+ }
+ 
+diff --git a/Scripts/Cards/Effects/EnchanterEngine.cs b/Scripts/Cards/Effects/EnchanterEngine.cs
+index d5d4259..b2bda25 100644
+--- a/Scripts/Cards/Effects/EnchanterEngine.cs
++++ b/Scripts/Cards/Effects/EnchanterEngine.cs
+@@ -52,6 +52,10 @@ public sealed class NameCondition
+     public string Source = "";
+     /// <summary>Round of the last break: a Name punishes once per round, not per tile walked.</summary>
+     public int BrokenRound = -1;
++    /// <summary>Mana the Namer gains on each break (Mana Tithe's refund).</summary>
++    public int OwnerMana;
++    /// <summary>Extra Weave the Namer gains on each break, on top of the standard +1.</summary>
++    public int OwnerWeave;
+ 
+     /// <summary>"moves or casts" style wording for chips and logs.</summary>
+     public string TriggerWords()
+@@ -107,6 +111,17 @@ public static class Names
+             log?.Invoke(msg);
+             if (name.Damage > 0)
+                 unit.ApplyDamage(name.Damage);
++            var namer = name.OwnerUnit;
++            if (namer != null && GodotObject.IsInstanceValid(namer) && namer.Stats.IsAlive)
++            {
++                if (name.OwnerMana > 0)
++                    namer.GainMana(name.OwnerMana);
++                if (name.OwnerWeave > 0 && namer.Attunement is WeaveAttunement nw)
++                    nw.Add(name.OwnerWeave);
++                if (name.OwnerMana > 0 || name.OwnerWeave > 0)
++                    log?.Invoke($"{namer.Name} collects the tithe: +{name.OwnerMana} mana"
++                                + (name.OwnerWeave > 0 ? $", +{name.OwnerWeave} Weave." : "."));
++            }
+             NameBroken?.Invoke(unit, name);
+             RegisterManager.Fire("ench.name_broken");
+             if (!unit.Stats.IsAlive)
+@@ -146,6 +161,8 @@ public sealed class NameConditionEffect : EffectBase
+     public NameTrigger Triggers;
+     public int Damage;
+     public int Duration;
++    /// <summary>Payoffs to the Namer on each break (Mana Tithe).</summary>
++    public int OwnerMana, OwnerWeave;
+ 
+     public NameConditionEffect(NameTrigger triggers, int damage, int duration)
+     {
+@@ -173,6 +190,8 @@ public sealed class NameConditionEffect : EffectBase
+                 OwnerUnit = owner,
+                 OwnerTeam = team,
+                 Source = s.ResolvingAbilityName ?? "a Name",
++                OwnerMana = OwnerMana,
++                OwnerWeave = OwnerWeave,
+             }, s.Log);
+             any = true;
+         }
+diff --git a/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs b/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
+index 8a7b677..20691a9 100644
+--- a/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
++++ b/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
+@@ -57,7 +57,9 @@ public static partial class CardScriptRegistry
+         {
+             int count = n.TryGetProperty("count", out var c) ? c.GetInt32() : 2;
+             int bonus = n.TryGetProperty("cumulative_bonus", out var b) ? b.GetInt32() : 0;
+-            return new LinkGlyphsEffect(count, bonus).WithTag("Glyph");
++            int weave = n.TryGetProperty("on_trigger_weave", out var w) ? w.GetInt32() : 0;
++            bool persist = n.TryGetProperty("persist", out var p) && p.ValueKind == JsonValueKind.True;
++            return new LinkGlyphsEffect(count, bonus, weave, persist).WithTag("Glyph");
+         });
+ 
+         // Re-arm consumed friendly glyphs, optional empower
+@@ -74,7 +76,9 @@ public static partial class CardScriptRegistry
+         {
+             int bonus = n.TryGetProperty("bonus_per_other", out var b) ? b.GetInt32() : 0;
+             bool consume = !n.TryGetProperty("consume", out var c) || c.GetBoolean();
+-            return new TriggerAllGlyphsEffect(bonus, consume).WithTag("Glyph");
++            int repeat = n.TryGetProperty("repeat", out var r) ? r.GetInt32() : 1;
++            int weave = n.TryGetProperty("on_trigger_weave", out var w) ? w.GetInt32() : 0;
++            return new TriggerAllGlyphsEffect(bonus, consume, repeat, weave).WithTag("Glyph");
+         });
+ 
+         // Swap two glyph tiles
+@@ -97,7 +101,9 @@ public static partial class CardScriptRegistry
+             int allyAll = n.TryGetProperty("ally_all_stats", out var a) ? a.GetInt32() : 2;
+             int enemyDr = n.TryGetProperty("enemy_damage_reduction", out var e) ? e.GetInt32() : 0;
+             string aura = n.TryGetProperty("aura_status", out var au) ? au.GetString() : null;
+-            return new EnchantPillarEffect(count, allyAll, enemyDr, aura).WithTag("Glyph");
++            int auraDmg = n.TryGetProperty("aura_damage", out var ad) ? ad.GetInt32() : 0;
++            int wpt = n.TryGetProperty("weave_per_turn", out var wp) ? wp.GetInt32() : 0;
++            return new EnchantPillarEffect(count, allyAll, enemyDr, aura, auraDmg, wpt).WithTag("Glyph");
+         });
+ 
+         // Reflect-ward glyph (placement only; reflection needs the cast pipeline)
+@@ -106,7 +112,9 @@ public static partial class CardScriptRegistry
+         {
+             int triggers = n.TryGetProperty("triggers", out var t) ? t.GetInt32() : 1;
+             int radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 0;
+-            return new ReflectWardEffect(triggers, radius).WithTag("Glyph");
++            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 3;
++            float bonus = n.TryGetProperty("reflect_bonus", out var rb) ? (float)rb.GetDouble() : 0f;
++            return new ReflectWardEffect(triggers, radius, dur, bonus).WithTag("Glyph");
+         });
+ 
+         // Spell-anchor glyph (placement only; cast-twice needs the cast pipeline)
+@@ -114,7 +122,11 @@ public static partial class CardScriptRegistry
+         RegisterEffect("spell_anchor", n =>
+         {
+             int casts = n.TryGetProperty("casts", out var c) ? c.GetInt32() : 2;
+-            return new SpellAnchorEffect(casts).WithTag("Glyph");
++            int cr = n.TryGetProperty("cost_reduction", out var cc) ? cc.GetInt32() : 0;
++            int weave = n.TryGetProperty("on_use_weave", out var w) ? w.GetInt32() : 0;
++            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 3;
++            bool reuse = n.TryGetProperty("reusable", out var ru) && ru.ValueKind == JsonValueKind.True;
++            return new SpellAnchorEffect(casts, cr, weave, dur, reuse).WithTag("Glyph");
+         });
+ 
+         // Push/pull a target onto the nearest friendly glyph
+@@ -187,12 +199,20 @@ public static partial class CardScriptRegistry
+             return new CompelWalkEffect(tiles, dir).WithTag("Movement");
+         });
+ 
+-        // Mana tithe: status whose cost-up/refund lives in the status system
+-        // { "type": "mana_tithe", "duration": n }
++        // Mana Tithe (slice 12a, ruled 2026-10-04): a Name on casting. Enemies have no
++        // mana, so the "tax" is pain: if it casts, it takes damage (3 at amount 1, 5 at
++        // amount 2, or an explicit "damage"), and its Namer gains the refund in mana and
++        // weave_on_cast in Weave. Names punish, never forbid.
++        // { "type": "mana_tithe", "amount": n, "refund": n, "weave_on_cast": n, "duration": n, "damage": n }
+         RegisterEffect("mana_tithe", n =>
+         {
+             int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 3;
+-            return new StatusApplyEffect("mana_taxed", dur, "(cost-up / mana-refund needs status hook)").WithTag("Control");
++            int amount = n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1;
++            int dmg = n.TryGetProperty("damage", out var dm) ? dm.GetInt32() : 1 + 2 * Math.Max(1, amount);
++            int refund = n.TryGetProperty("refund", out var r) ? r.GetInt32() : 1;
++            int weave = n.TryGetProperty("weave_on_cast", out var w) ? w.GetInt32() : 0;
++            return new NameConditionEffect(NameTrigger.Cast, dmg, dur)
++                { OwnerMana = refund, OwnerWeave = weave }.WithTag("Control");
+         });
+ 
+ 
+diff --git a/Scripts/Cards/Loader/JsonCardLoader.cs b/Scripts/Cards/Loader/JsonCardLoader.cs
+index a397859..f99e9ec 100644
+--- a/Scripts/Cards/Loader/JsonCardLoader.cs
++++ b/Scripts/Cards/Loader/JsonCardLoader.cs
+@@ -135,7 +135,20 @@ public static partial class CardScriptRegistry
+             OwnerDraw = Geti("on_trigger_draw"),
+             OwnerMana = Geti("on_trigger_mana"),
+             OwnerWeave = Geti("on_trigger_weave"),
+-            OwnerHeal = Geti("heal_caster")
++            OwnerHeal = Geti("heal_caster"),
++            // Slice 12a
++            InstantCopies = Getb("instant_copies"),
++            HaltsMovement = Getb("halt_movement"),
++            NameOnTrigger = n.TryGetProperty("name_on_trigger", out var nt)
++                ? (nt.ValueKind == JsonValueKind.True ? dmg : nt.ValueKind == JsonValueKind.Number ? nt.GetInt32() : 0)
++                : 0,
++            CasterCostReduction = Geti("caster_cost_reduction"),
++            CasterDamage = Geti("caster_damage"),
++            CasterWeavePerTurn = Geti("caster_weave_per_turn"),
++            AllyHealPerTurn = Geti("ally_heal_per_turn"),
++            SpawnGlyphDamage = n.TryGetProperty("on_trigger_spawn_glyph", out var sg)
++                ? (sg.ValueKind == JsonValueKind.True ? 3 : sg.ValueKind == JsonValueKind.Number ? sg.GetInt32() : 0)
++                : 0,
+         };
+     }
+ 
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs b/Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs
+index 6d1b416..1d90020 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs
+@@ -1,4 +1,5 @@
+ using Godot;
++using System;
+ using System.Collections.Generic;
+ using System.Linq;
+ 
+@@ -48,10 +49,65 @@ public partial class CombatManager
+ 
+     private void OnEnchanterUnitEntered(Unit unit, TileData tile, MovementKind kind)
+     {
++        // A unit that left its ward loses the aura, however it moved.
++        State?.Glyphs?.OnUnitEntered(unit, tile);
+         if (kind == MovementKind.Walked && unit != null && unit.Names.Count > 0)
+             Names.Break(unit, NameTrigger.Move, LogName);
+     }
+ 
++    // ── Strikes (slice 12a) ─────────────────────────────────────────────
++
++    /// <summary>Enchanter adjustments to a strike before it lands: an attacker beside an
++    /// opposing Sovereign Pillar deals less.</summary>
++    private int EnchanterStrikeDamage(Unit attacker, int damage)
++    {
++        if (attacker == null || !IsInstanceValid(attacker) || State?.Glyphs == null || damage <= 0)
++            return damage;
++        int cut = State.Glyphs.PillarDamageReduction(attacker);
++        if (cut <= 0)
++            return damage;
++        combatUI?.AppendActionLog($"A Sovereign Pillar blunts {attacker.Name}'s blow (-{cut}).");
++        return Math.Max(0, damage - cut);
++    }
++
++    /// <summary>Mirror Ward: a strike on a unit standing on its own team's mirror glyph turns
++    /// back on the attacker (with the ward's bonus). Returns true when it did, and the
++    /// victim takes nothing. Spends a charge; a spent mirror is removed.</summary>
++    private bool TryReflectStrike(Unit attacker, Unit victim, int damage)
++    {
++        if (attacker == null || victim == null || !IsInstanceValid(attacker) || !IsInstanceValid(victim)
++            || damage <= 0 || victim.TeamId == attacker.TeamId)
++            return false;
++        var tile = victim.CurrentTile;
++        var g = tile?.Glyph;
++        if (g == null || g.ReflectCharges <= 0 || g.OwnerTeam != victim.TeamId)
++            return false;
++
++        int back = (int)Math.Ceiling(damage * (1f + g.ReflectBonus));
++        string msg = $"The mirror under {victim.Name} turns {attacker.Name}'s blow back on it: {back} damage.";
++        GD.Print(msg);
++        combatUI?.AppendActionLog(msg);
++        attacker.ApplyDamage(back, victim, Delivery.Bolt);
++        if (g.Owner?.Attunement is WeaveAttunement w)
++            w.OnGlyphTriggered();
++        if (g.ReflectCharges < 99)
++        {
++            g.ReflectCharges--;
++            if (g.ReflectCharges <= 0)
++                State.Glyphs.Remove(tile);
++        }
++        return true;
++    }
++
++    /// <summary>An enemy cast a spell (an intent that breaks "if it casts"): Fate Weaver
++    /// glyphs near it go off too. "Any spell" means theirs as well.</summary>
++    private void OnEnemySpellCast(Unit enemy)
++    {
++        if (enemy?.CurrentTile == null || State?.Glyphs == null)
++            return;
++        State.Glyphs.OnSpellCastAt(State, enemy.TeamId, enemy.CurrentTile.Axial);
++    }
++
+     private void OnNameBroken(Unit unit, NameCondition name)
+     {
+         var owner = name.OwnerUnit;
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index bd2ef03..6f3ac8d 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -1757,6 +1757,7 @@ public partial class CombatManager
+                 Names.Break(enemy, NameTrigger.Cast, LogName);   // starting a spell is casting
+                 if (!IsValidActor(enemy))
+                     break;
++                OnEnemySpellCast(enemy);
+                 if (IsRitualist(enemy))
+                     await ExecuteRitualStart(enemy, intent);
+                 else if (IsWarpChanneler(enemy))
+@@ -1768,6 +1769,7 @@ public partial class CombatManager
+                 Names.Break(enemy, NameTrigger.Cast, LogName);
+                 if (!IsValidActor(enemy))
+                     break;
++                OnEnemySpellCast(enemy);
+                 if (IsRitualist(enemy))
+                     await ExecuteRitualRelease(enemy, intent);
+                 else if (IsWarpChanneler(enemy))
+@@ -1782,6 +1784,7 @@ public partial class CombatManager
+                 Names.Break(enemy, NameTrigger.Cast, LogName);
+                 if (!IsValidActor(enemy))
+                     break;
++                OnEnemySpellCast(enemy);
+                 await ExecuteImbueIntent(enemy, intent);
+                 break;
+             case IntentKind.Shove:
+@@ -2882,15 +2885,21 @@ public partial class CombatManager
+         }
+         else
+         {
+-            // §9 reaction grammar: a redirected strike names its interceptor.
+-            string hit = wasRedirected
+-                ? UIContent.ReactionRedirectLine(victim.Name, attackerName, noun, damage)
+-                : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
+-            GD.Print(hit);
+-            combatUI?.AppendActionLog(hit);
+-            CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
+-            victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
+-            LastStrikeVictim = victim;
++            // Enchanter (slice 12a): a Sovereign Pillar blunts the blow; a Mirror Ward
++            // under the victim turns it back on the attacker instead.
++            damage = EnchanterStrikeDamage(attacker, damage);
++            if (!TryReflectStrike(attacker, victim, damage))
++            {
++                // §9 reaction grammar: a redirected strike names its interceptor.
++                string hit = wasRedirected
++                    ? UIContent.ReactionRedirectLine(victim.Name, attackerName, noun, damage)
++                    : $"{attackerName} {verb} {victim.Name} for {damage} damage.";
++                GD.Print(hit);
++                combatUI?.AppendActionLog(hit);
++                CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
++                victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
++                LastStrikeVictim = victim;
++            }
+         }
+ 
+         // U3b: onAttack. ResolveStrike is the ONE place both strike paths meet. The
+diff --git a/Scripts/Systems/Combat/Core/RulesManager.cs b/Scripts/Systems/Combat/Core/RulesManager.cs
+index 378419e..38a7042 100644
+--- a/Scripts/Systems/Combat/Core/RulesManager.cs
++++ b/Scripts/Systems/Combat/Core/RulesManager.cs
+@@ -171,6 +171,23 @@ public sealed class Resolver
+                 item.CasterUnit.BonusSpellDamage += schoolItemBonus;
+         }
+ 
++        // Enchanter (slice 12a): a card cast from the caster's own Sigil of Focus gets its
++        // spell damage, a Sigil Slide gift adds to this one spell, and a Spell Anchor under
++        // the caster is noted BEFORE the effects run, so the spell that prepares an anchor
++        // is never the one it repeats. Same pin/unpin shape as Perfected.
++        Unit glyphCaster = item.Ability is CardHalf && item.CasterUnit != null
++            && GodotObject.IsInstanceValid(item.CasterUnit) ? item.CasterUnit : null;
++        int glyphBonus = 0;
++        GlyphData anchor = null;
++        if (glyphCaster != null)
++        {
++            glyphBonus = GlyphManager.StandingDamageBonus(glyphCaster) + glyphCaster.NextSpellBonusDamage;
++            glyphCaster.NextSpellBonusDamage = 0;
++            if (glyphBonus > 0)
++                glyphCaster.BonusSpellDamage += glyphBonus;
++            anchor = GlyphManager.StandingAnchor(glyphCaster);
++        }
++
+         // Presentation seam (spell_vfx_pipeline_v1): announce the cast BEFORE its
+         // effects run so the projectile/burst precedes the damage numbers it causes.
+         // No-op headless and inside CombatSim (the R22 preview spawns nothing).
+@@ -185,6 +202,33 @@ public sealed class Resolver
+         {
+             foreach (var eff in item.Ability.Effects)
+                 eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
++
++            // Spell Anchor: the same effects again, against the same targets, until the
++            // anchor's count is reached. Only if the anchor is still under the caster.
++            if (anchor != null && GlyphManager.StandingAnchor(glyphCaster) == anchor)
++            {
++                for (int rep = 1; rep < anchor.AnchorCasts; rep++)
++                    foreach (var eff in item.Ability.Effects)
++                        eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
++                s.Glyphs?.SpendAnchor(glyphCaster, anchor, s);
++            }
++
++            // Fate Weaver: a card cast near a SpellCastNear glyph sets it off. Measured
++            // from the caster's tile and from where the spell landed.
++            if (item.Ability is CardHalf && s.Glyphs != null)
++            {
++                var points = new List<Vector2I>();
++                if (item.CasterUnit != null && GodotObject.IsInstanceValid(item.CasterUnit)
++                    && item.CasterUnit.CurrentTile != null)
++                    points.Add(item.CasterUnit.CurrentTile.Axial);
++                if (item.Targets?.Items != null && item.Targets.Items.Count > 0)
++                {
++                    var landed = InterfaceHelpers.ResolveTile(s, item.Targets.Items[0]);
++                    if (landed != null)
++                        points.Add(landed.Axial);
++                }
++                s.Glyphs.OnSpellCastAt(s, item.CasterUnit?.TeamId ?? 0, points);
++            }
+         }
+         finally
+         {
+@@ -195,6 +239,8 @@ public sealed class Resolver
+             if (schoolItemBonus > 0 && item.CasterUnit != null
+                 && GodotObject.IsInstanceValid(item.CasterUnit))
+                 item.CasterUnit.BonusSpellDamage -= schoolItemBonus;
++            if (glyphBonus > 0 && glyphCaster != null && GodotObject.IsInstanceValid(glyphCaster))
++                glyphCaster.BonusSpellDamage -= glyphBonus;
+             s.ActiveCasterUnit = prevCaster;
+             Unit.AmbientDamageSource = prevDamageSource;
+             s.ResolvingAbilityName = prevAbilityName;
+diff --git a/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs b/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs
+index 4f4ff5d..fdeac5c 100644
+--- a/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs
++++ b/Scripts/Systems/Combat/Core/RuntimeInterfaces.cs
+@@ -74,6 +74,16 @@ public sealed class ManaCost : ICost
+         if (discount > 0)
+             amount = Math.Max(0, amount - discount);
+ 
++        // Enchanter (slice 12a): standing on your own Sigil of Focus or Spell Anchor.
++        // Priced here, with the tithe and the per-card discount, so the pips,
++        // affordability and payment can never disagree.
++        if (u != null && u.IsPlayerControlled)
++        {
++            int glyphDiscount = GlyphManager.StandingCostReduction(u);
++            if (glyphDiscount > 0)
++                amount = Math.Max(0, amount - glyphDiscount);
++        }
++
+         return amount;
+     }
+ 
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index e538ce0..e670233 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -116,6 +116,10 @@ public partial class Unit : Node3D
+     public List<(ItemPassiveTag tag, int value, string param)> EquipmentPassives = new();
+     public int BonusSpellDamage = 0;   // from wizard weapon/trinket
+ 
++    /// <summary>Added to this unit's NEXT card resolution only, then cleared (Sigil Slide's
++    /// "+2 damage" gift). Consumed by the stack resolver.</summary>
++    public int NextSpellBonusDamage = 0;
++
+     /// <summary>Q2 (§7a): trigger-bus abilities granted by equipped items, fired
+     /// through the shared dispatcher (onSpawn/onAttack/aura). Populated at spawn
+     /// from the resolved loadout; separate from the legacy EquipmentPassives.</summary>
+diff --git a/Scripts/Systems/Combat/Glyphs/GlyphData.cs b/Scripts/Systems/Combat/Glyphs/GlyphData.cs
+index 5ee8118..b50c8bc 100644
+--- a/Scripts/Systems/Combat/Glyphs/GlyphData.cs
++++ b/Scripts/Systems/Combat/Glyphs/GlyphData.cs
+@@ -127,6 +127,60 @@ public sealed class GlyphData
+     /// <summary>When &gt; 0, on trigger this glyph re-prepares a copy of itself on this many adjacent tiles (Runic Cascade). The GlyphManager handles the spread in OnGlyphFired.</summary>
+     public int CascadeSpread;
+ 
++    /// <summary>Cascade copies go off at once on any enemy already standing where they land (Chain Cascade).</summary>
++    public bool InstantCopies;
++
++    // ── Slice 12a payloads ─────────────────────────────────────────────
++    /// <summary>Enter glyphs: the enemy's movement ends here (Snare Glyph, §4).</summary>
++    public bool HaltsMovement;
++
++    /// <summary>When &gt; 0, the enemy that sets it off is also Named for 1 turn: "if it
++    /// moves, it takes this" (Binding Rune, §4: "and 3 more if it leaves this turn").</summary>
++    public int NameOnTrigger;
++
++    /// <summary>Self-stand (Sigil of Focus): while the OWNER stands on it, spells cost this much less.</summary>
++    public int CasterCostReduction;
++    /// <summary>Self-stand: while the owner stands on it, their spells deal this much more.</summary>
++    public int CasterDamage;
++    /// <summary>Self-stand: the owner gains this much Weave at each turn start spent on it.</summary>
++    public int CasterWeavePerTurn;
++
++    /// <summary>Spell Anchor: the next spell the owner casts while standing here resolves this
++    /// many times in total (0 = not an anchor).</summary>
++    public int AnchorCasts;
++    /// <summary>Spell Anchor: the anchored spell costs this much less.</summary>
++    public int AnchorCostReduction;
++    /// <summary>Spell Anchor: Weave each time it is used.</summary>
++    public int AnchorWeave;
++
++    /// <summary>Ward aura: an ally standing here at turn start heals this much (Hallowed Ground).</summary>
++    public int AllyHealPerTurn;
++
++    /// <summary>Fate Weaver (The Great Loom): each time it goes off, a glyph dealing this much
++    /// is also prepared on an empty tile near it.</summary>
++    public int SpawnGlyphDamage;
++
++    /// <summary>Mirror Ward: attacks or spells it will still turn back. 99 or more reads as unlimited.</summary>
++    public int ReflectCharges;
++    /// <summary>Mirror Ward: a reflected hit deals this fraction more (0.5 = +50%).</summary>
++    public float ReflectBonus;
++
++    /// <summary>Sovereign Pillar: an indestructible ward with an aura over adjacent enemies.</summary>
++    public bool Pillar;
++    /// <summary>Pillar: adjacent enemies deal this much less.</summary>
++    public int AuraDamageReduction;
++    /// <summary>Pillar: status each adjacent enemy carries out of the round (weakened, named).</summary>
++    public string AuraStatus;
++    /// <summary>Pillar: damage each adjacent enemy takes at each round's turn.</summary>
++    public int AuraDamage;
++    /// <summary>Weave the owner gains each turn while this glyph stands (Throne of Pillars).</summary>
++    public int OwnerWeavePerTurn;
++
++    /// <summary>A reusable ally-enter glyph is a WARD: its armor and spell damage last only
++    /// while the ally stands on it, and its shield and mana are granted once per ally per
++    /// round. A single-use ally glyph is a gift: everything it grants is kept.</summary>
++    public bool IsWardAura => Reusable && Trigger == GlyphTrigger.AllyEnter;
++
+     /// <summary>
+     /// The damage this glyph deals right now: base, plus any linked-batch bonus, plus the
+     /// owner's spell damage, doubled while its owner's Grand Design is active. One formula
+@@ -174,6 +228,28 @@ public sealed class GlyphData
+                 who.ApplyStatus(Status, StatusDuration);
+             if (dmg > 0 || Status != null)
+                 s.Log($"[Glyph] {who.Name} triggers glyph: {dmg} dmg" + (Status != null ? $", {Status} {StatusDuration}t" : ""));
++            if (HaltsMovement && who.Stats.IsAlive)
++            {
++                who.MovementInterrupted = true;
++                s.Log($"[Glyph] {who.Name}'s movement ends on the glyph.");
++            }
++            if (NameOnTrigger > 0 && who.Stats.IsAlive)
++            {
++                Names.Write(who, new NameCondition
++                {
++                    Triggers = NameTrigger.Move,
++                    Damage = NameOnTrigger,
++                    TurnsRemaining = 1,
++                    OwnerUnit = Owner,
++                    OwnerTeam = OwnerTeam,
++                    Source = string.IsNullOrEmpty(SourceName) ? "a glyph" : SourceName,
++                }, s.Log);
++            }
++        }
++        else if (friendlyToOwner && who != null && IsWardAura && s?.Glyphs != null)
++        {
++            // Wards are auras: GlyphManager grants and revokes them by position.
++            s.Glyphs.GrantWard(who, this, s);
+         }
+         else if (friendlyToOwner && who != null)
+         {
+@@ -181,12 +257,13 @@ public sealed class GlyphData
+                 who.Stats.Armor += AllyArmor;
+             if (AllyShield > 0)
+                 who.Stats.Shield += AllyShield;
++            // A single-use gift: spell damage is for the ally's NEXT spell, not forever.
+             if (AllyDamage > 0)
+-                who.BonusSpellDamage += AllyDamage;
++                who.NextSpellBonusDamage += AllyDamage;
+             if (AllyMana > 0)
+                 who.GainMana(AllyMana);
+             who.RefreshHealthBar();
+-            s.Log($"[Glyph] {who.Name} steps on ward: +{AllyArmor} armor, +{AllyShield} shield, +{AllyDamage} dmg.");
++            s.Log($"[Glyph] {who.Name} steps on a glyph: +{AllyArmor} armor, +{AllyShield} shield, +{AllyDamage} damage on its next spell.");
+         }
+ 
+         // Owner payoffs
+diff --git a/Scripts/Systems/Combat/Glyphs/GlyphManager.cs b/Scripts/Systems/Combat/Glyphs/GlyphManager.cs
+index e40ce2f..4767b9a 100644
+--- a/Scripts/Systems/Combat/Glyphs/GlyphManager.cs
++++ b/Scripts/Systems/Combat/Glyphs/GlyphManager.cs
+@@ -96,6 +96,15 @@ public sealed class GlyphManager
+         // Ownerless glyphs (map events) and cascade copies are not the resolving spell's.
+         if (stampFromCast && owner != null)
+             StampFromCast(g);
++
++        // A standing network ("link all glyphs for the rest of the fight") takes in
++        // every glyph its team prepares afterwards.
++        if (g.LinkId == 0 && _persistentLinks.TryGetValue(g.OwnerTeam, out var pl))
++        {
++            g.LinkId = pl.Id;
++            g.CumulativeBonus = pl.Bonus;
++        }
++
+         tile.Glyph = g;
+ 
+         if (!g.Invisible)
+@@ -104,9 +113,147 @@ public sealed class GlyphManager
+ 
+         if (owner?.Attunement is WeaveAttunement w)
+             w.OnGlyphPrepared();
++
++        // A ward prepared under an ally (Sanctuary around you) covers them at once;
++        // nobody should have to step off and back on.
++        var occ = tile.Occupant;
++        if (g.IsWardAura && occ != null && GodotObject.IsInstanceValid(occ)
++            && occ.Stats.IsAlive && occ.TeamId == g.OwnerTeam && _state != null)
++            GrantWard(occ, g, _state);
+         return g;
+     }
+ 
++    // ── Wards: auras by position (slice 12a) ─────────────────────────
++    private sealed class WardGrant
++    {
++        public TileData Tile;
++        public GlyphData Glyph;
++        public int Armor, Damage;
++    }
++
++    private readonly Dictionary<Unit, WardGrant> _wards = new();
++    private readonly Dictionary<(Unit, GlyphData), int> _wardConsumableRound = new();
++
++    /// <summary>An ally entered (or stands on) a ward: its armor and spell damage hold while
++    /// it stays; its shield and mana come once per ally per round, so stepping off and on
++    /// again cannot farm them. Called from <see cref="GlyphData.Fire"/>.</summary>
++    public void GrantWard(Unit unit, GlyphData g, GameState s)
++    {
++        if (unit == null || g == null || !GodotObject.IsInstanceValid(unit))
++            return;
++        var tile = unit.CurrentTile;
++        if (_wards.TryGetValue(unit, out var cur) && cur.Glyph == g && cur.Tile == tile)
++            return;   // already covered by this ward
++        RevokeWard(unit);
++
++        unit.Stats.Armor += g.AllyArmor;
++        unit.BonusSpellDamage += g.AllyDamage;
++        _wards[unit] = new WardGrant { Tile = tile, Glyph = g, Armor = g.AllyArmor, Damage = g.AllyDamage };
++
++        var key = (unit, g);
++        int shield = 0, mana = 0;
++        if (!_wardConsumableRound.TryGetValue(key, out int r) || r != Names.Round)
++        {
++            _wardConsumableRound[key] = Names.Round;
++            shield = g.AllyShield;
++            mana = g.AllyMana;
++            if (shield > 0)
++                unit.Stats.Shield += shield;
++            if (mana > 0)
++                unit.GainMana(mana);
++        }
++        unit.RefreshHealthBar();
++        s?.Log($"[Ward] {unit.Name} stands on {(string.IsNullOrEmpty(g.SourceName) ? "a ward" : g.SourceName)}: "
++             + $"+{g.AllyArmor} armor and +{g.AllyDamage} spell damage while there"
++             + (shield > 0 || mana > 0 ? $", +{shield} shield, +{mana} mana." : "."));
++    }
++
++    /// <summary>Takes back what a ward lent: the armor (as far as it is still there) and the
++    /// spell damage. Shield and mana already granted are kept.</summary>
++    public void RevokeWard(Unit unit)
++    {
++        if (unit == null || !_wards.TryGetValue(unit, out var w))
++            return;
++        _wards.Remove(unit);
++        if (!GodotObject.IsInstanceValid(unit))
++            return;
++        unit.Stats.Armor = Math.Max(0, unit.Stats.Armor - w.Armor);
++        unit.BonusSpellDamage -= w.Damage;
++        unit.RefreshHealthBar();
++    }
++
++    /// <summary>Every tile entry: a unit that walked off its ward loses the aura.</summary>
++    public void OnUnitEntered(Unit unit, TileData tile)
++    {
++        if (unit != null && _wards.TryGetValue(unit, out var w) && w.Tile != tile)
++            RevokeWard(unit);
++    }
++
++    private void RevokeWardsOn(TileData tile)
++    {
++        foreach (var u in _wards.Where(kv => kv.Value.Tile == tile).Select(kv => kv.Key).ToList())
++            RevokeWard(u);
++    }
++
++    // ── Standing glyphs: Sigil of Focus, Spell Anchor (slice 12a) ────
++    /// <summary>The self-stand glyph <paramref name="u"/> owns and stands on, or null.</summary>
++    public static GlyphData StandingGlyph(Unit u)
++    {
++        if (u == null || !GodotObject.IsInstanceValid(u))
++            return null;
++        var g = u.CurrentTile?.Glyph;
++        return g != null && !g.Consumed && g.Trigger == GlyphTrigger.SelfStand && g.Owner == u ? g : null;
++    }
++
++    /// <summary>How much cheaper <paramref name="u"/>'s spells are right now from the glyph
++    /// under it. Read by ManaCost.EffectiveAmount, so the pips, affordability and payment agree.</summary>
++    public static int StandingCostReduction(Unit u)
++    {
++        var g = StandingGlyph(u);
++        return g == null ? 0 : g.CasterCostReduction + (g.AnchorCasts > 0 ? g.AnchorCostReduction : 0);
++    }
++
++    /// <summary>Spell damage the glyph under <paramref name="u"/> adds to its casts.</summary>
++    public static int StandingDamageBonus(Unit u) => StandingGlyph(u)?.CasterDamage ?? 0;
++
++    /// <summary>The Spell Anchor under <paramref name="u"/>, or null.</summary>
++    public static GlyphData StandingAnchor(Unit u)
++    {
++        var g = StandingGlyph(u);
++        return g != null && g.AnchorCasts > 1 ? g : null;
++    }
++
++    /// <summary>A spell was anchored: pay out its Weave and, unless the anchor lasts, use it up.</summary>
++    public void SpendAnchor(Unit u, GlyphData anchor, GameState s)
++    {
++        if (u == null || anchor == null)
++            return;
++        if (anchor.AnchorWeave > 0 && u.Attunement is WeaveAttunement w)
++            w.Add(anchor.AnchorWeave);
++        if (!anchor.Reusable && u.CurrentTile?.Glyph == anchor)
++            Remove(u.CurrentTile);
++        s?.Log($"[SpellAnchor] the anchored spell resolves {anchor.AnchorCasts} times.");
++    }
++
++    // ── Persistent networks (slice 12a) ──────────────────────────────
++    private readonly Dictionary<int, (int Id, int Bonus)> _persistentLinks = new();
++
++    /// <summary>Links every friendly glyph and keeps the network open: glyphs the team
++    /// prepares later join it ("for the rest of the fight").</summary>
++    public int LinkPersistent(int team, int cumulativeBonus)
++    {
++        int id = _persistentLinks.TryGetValue(team, out var pl) ? pl.Id : _nextLinkId++;
++        _persistentLinks[team] = (id, cumulativeBonus);
++        int n = 0;
++        foreach (var tile in GetAllFriendly(team))
++        {
++            tile.Glyph.LinkId = id;
++            tile.Glyph.CumulativeBonus = cumulativeBonus;
++            n++;
++        }
++        return n;
++    }
++
+     // ── Per-turn tick (call alongside MemorialManager.Tick) ──────────
+     /// <summary>
+     /// Ages timed glyphs, fires StartOfTurn glyphs on any enemy standing on them, and
+@@ -123,6 +270,8 @@ public sealed class GlyphManager
+             if (g == null)
+                 continue;
+ 
++            TickAuras(tile, g, s);
++
+             // Start-of-turn enemy triggers
+             if (g.Trigger == GlyphTrigger.StartOfTurn && tile.Occupant != null && tile.Occupant.TeamId != g.OwnerTeam)
+             {
+@@ -146,6 +295,66 @@ public sealed class GlyphManager
+         }
+     }
+ 
++    /// <summary>Once per round, per glyph: ward heals, the self-stand Weave, pillar auras
++    /// on adjacent enemies, and per-turn Weave for the owner.</summary>
++    private void TickAuras(TileData tile, GlyphData g, GameState s)
++    {
++        var occ = tile.Occupant;
++        bool occAlive = occ != null && GodotObject.IsInstanceValid(occ) && occ.Stats.IsAlive;
++
++        if (g.AllyHealPerTurn > 0 && occAlive && occ.TeamId == g.OwnerTeam)
++        {
++            int before = occ.Stats.Health;
++            occ.Stats.Health = Math.Min(occ.Stats.MaxHealth, occ.Stats.Health + g.AllyHealPerTurn);
++            occ.RefreshHealthBar();
++            if (occ.Stats.Health > before)
++                s.Log($"[Ward] {occ.Name} heals {occ.Stats.Health - before} on the ward.");
++        }
++
++        if (g.CasterWeavePerTurn > 0 && occAlive && occ == g.Owner && occ.Attunement is WeaveAttunement sw)
++        {
++            sw.Add(g.CasterWeavePerTurn);
++            s.Log($"[Sigil] {occ.Name} holds the sigil: +{g.CasterWeavePerTurn} Weave.");
++        }
++
++        if (g.OwnerWeavePerTurn > 0 && g.Owner != null && GodotObject.IsInstanceValid(g.Owner)
++            && g.Owner.Stats.IsAlive && g.Owner.Attunement is WeaveAttunement ow)
++            ow.Add(g.OwnerWeavePerTurn);
++
++        if (g.Pillar && (g.AuraDamage > 0 || !string.IsNullOrEmpty(g.AuraStatus)) && _grid != null)
++        {
++            foreach (var n in _grid.GetNeighbors(tile.Axial))
++            {
++                var e = _grid.GetTile(n)?.Occupant;
++                if (e == null || !GodotObject.IsInstanceValid(e) || !e.Stats.IsAlive || e.TeamId == g.OwnerTeam)
++                    continue;
++                if (g.AuraDamage > 0)
++                    e.ApplyDamage(g.AuraDamage);
++                if (!string.IsNullOrEmpty(g.AuraStatus) && e.Stats.IsAlive)
++                    e.ApplyStatus(g.AuraStatus, 1);
++                s.Log($"[Pillar] {e.Name} stands beside a Sovereign Pillar"
++                      + (g.AuraDamage > 0 ? $": {g.AuraDamage} damage" : "")
++                      + (!string.IsNullOrEmpty(g.AuraStatus) ? $", {g.AuraStatus}." : "."));
++            }
++        }
++    }
++
++    /// <summary>Damage an attack from <paramref name="attacker"/> loses for standing beside
++    /// an opposing Sovereign Pillar (the largest reduction applies, not the sum).</summary>
++    public int PillarDamageReduction(Unit attacker)
++    {
++        if (attacker?.CurrentTile == null || _grid == null)
++            return 0;
++        int best = 0;
++        foreach (var n in _grid.GetNeighbors(attacker.CurrentTile.Axial))
++        {
++            var g = _grid.GetTile(n)?.Glyph;
++            if (g != null && g.Pillar && g.OwnerTeam != attacker.TeamId)
++                best = Math.Max(best, g.AuraDamageReduction);
++        }
++        return best;
++    }
++
+     /// <summary>
+     /// Call from <see cref="Unit.PlaceOnTile"/> immediately after a glyph fires (and before
+     /// removing it). Handles linked-batch firing and Runic Cascade self-spread. Returns true
+@@ -199,8 +408,20 @@ public sealed class GlyphManager
+                     ng.Status = st;
+                     ng.StatusDuration = sd;
+                     ng.CascadeSpread = sp; // copies spread one fewer to terminate the chain
++                    ng.InstantCopies = g.InstantCopies;
+                 }, stampFromCast: false);
+                 spread++;
++                // Chain Cascade: a copy that lands under an enemy goes off at once. The
++                // chain ends because every generation spreads one fewer.
++                var copy = nbr.Glyph;
++                var under = nbr.Occupant;
++                if (g.InstantCopies && copy != null && under != null && GodotObject.IsInstanceValid(under)
++                    && under.Stats.IsAlive && under.TeamId != copy.OwnerTeam)
++                {
++                    copy.Fire(under, s);
++                    if (!OnGlyphFired(s, nbr, under))
++                        Remove(nbr);
++                }
+             }
+             s.Log($"[GlyphManager] Cascade spread to {spread} tile(s).");
+         }
+@@ -213,6 +434,7 @@ public sealed class GlyphManager
+     {
+         if (tile?.Glyph == null)
+             return;
++        RevokeWardsOn(tile);
+         tile.Glyph = null;
+         tile.TileView?.ClearGlyph();
+         OnGlyphRemoved?.Invoke(tile);
+@@ -282,13 +504,15 @@ public sealed class GlyphManager
+     {
+         if (a == null || b == null)
+             return;
++        RevokeWardsOn(a);
++        RevokeWardsOn(b);
+         (a.Glyph, b.Glyph) = (b.Glyph, a.Glyph);
+         a.TileView?.ClearGlyph();
+         b.TileView?.ClearGlyph();
+         if (a.Glyph is { Invisible: false })
+-            a.TileView?.ShowGlyph();
++            a.TileView?.ShowGlyph(a.Glyph);
+         if (b.Glyph is { Invisible: false })
+-            b.TileView?.ShowGlyph();
++            b.TileView?.ShowGlyph(b.Glyph);
+     }
+ 
+     /// <summary>Re-arm all consumed friendly glyphs (Rearm). Optionally grant +empower damage until they next fire.</summary>
+@@ -310,7 +534,7 @@ public sealed class GlyphManager
+             if (empower > 0)
+                 g.Damage += empower;
+             if (!g.Invisible)
+-                tile.TileView?.ShowGlyph();
++                tile.TileView?.ShowGlyph(g);
+         }
+         return n;
+     }
+@@ -335,23 +559,61 @@ public sealed class GlyphManager
+         return best;
+     }
+ 
+-    /// <summary>Fired by the cast pipeline when a spell resolves, to trigger SpellCastNear glyphs in range. Optional: wire from Resolver/CombatManager if you want Fate Weaver to work.</summary>
+-    public void OnSpellCastAt(GameState s, int casterTeam, Vector2I at)
++    /// <summary>A spell was cast (any side). Every SpellCastNear glyph within its radius of
++    /// ANY of <paramref name="points"/> (the caster's tile and where it landed) goes off once:
++    /// owner payoffs, plus a spawned glyph for The Great Loom. Called by the stack resolver for
++    /// card casts and by the enemy executor for spell intents.</summary>
++    public void OnSpellCastAt(GameState s, int casterTeam, IEnumerable<Vector2I> points)
+     {
+-        if (_grid?.Tiles == null)
++        if (_grid?.Tiles == null || points == null)
++            return;
++        var pts = points.ToList();
++        if (pts.Count == 0)
+             return;
+         foreach (var tile in _grid.Tiles.Values.ToList())
+         {
+             var g = tile.Glyph;
+             if (g == null || g.Trigger != GlyphTrigger.SpellCastNear)
+                 continue;
+-            if (_grid.Distance(tile.Axial, at) > g.Radius)
++            if (!pts.Any(p => _grid.Distance(tile.Axial, p) <= g.Radius))
+                 continue;
+             g.Fire(null, s);
++            s?.Log($"[Glyph] {(string.IsNullOrEmpty(g.SourceName) ? "A glyph" : g.SourceName)} answers a spell cast nearby.");
+             if (g.Owner?.Attunement is WeaveAttunement w)
+                 w.OnGlyphTriggered();
++            if (g.SpawnGlyphDamage > 0)
++                SpawnThread(tile, g, s);
+             if (!g.Reusable)
+                 Remove(tile);
+         }
+     }
++
++    public void OnSpellCastAt(GameState s, int casterTeam, Vector2I at)
++        => OnSpellCastAt(s, casterTeam, new[] { at });
++
++    // The Great Loom: a small enter glyph on the nearest empty tile within 2.
++    private void SpawnThread(TileData from, GlyphData parent, GameState s)
++    {
++        if (_grid == null)
++            return;
++        var spot = _grid.Tiles.Values
++            .Where(t => t != from && t.Glyph == null && !t.IsBlocked && t.Occupant == null && t.IsWalkable
++                        && _grid.Distance(from.Axial, t.Axial) <= 2)
++            .OrderBy(t => _grid.Distance(from.Axial, t.Axial))
++            .ThenBy(t => t.Axial.X).ThenBy(t => t.Axial.Y)
++            .FirstOrDefault();
++        if (spot == null)
++            return;
++        int dmg = parent.SpawnGlyphDamage;
++        Prepare(spot, parent.Owner, ng =>
++        {
++            ng.Trigger = GlyphTrigger.Enter;
++            ng.Damage = dmg;
++            ng.SourceName = "Thread of Fate";
++            ng.GlyphText = "It takes {damage} damage.";
++            ng.SourceCardId = parent.SourceCardId;
++            ng.SourceHalf = parent.SourceHalf;
++        }, stampFromCast: false);
++        s?.Log($"[Glyph] A thread of fate is prepared at ({spot.Axial.X}, {spot.Axial.Y}).");
++    }
+ }
+diff --git a/Scripts/Systems/TooltipManager.cs b/Scripts/Systems/TooltipManager.cs
+index 57c7d10..13520b3 100644
+--- a/Scripts/Systems/TooltipManager.cs
++++ b/Scripts/Systems/TooltipManager.cs
+@@ -275,6 +275,10 @@ public partial class TooltipManager : Control
+     {
+         static string Plural(int n, string one, string many) => n == 1 ? $"{n} {one}" : $"{n} {many}";
+         int sd = g.StatusDuration;
++        int rc = g.ReflectCharges > 0 ? g.ReflectCharges : sd;
++        string nextHits = rc >= 99 ? "every attack or spell"
++                        : rc == 1 ? "the next attack or spell"
++                        : $"the next {rc} attacks or spells";
+         return text
+             .Replace("{damage}", g.EffectiveDamage(g.GameState).ToString())
+             .Replace("{status_turns}", Plural(sd, "turn", "turns"))
+@@ -287,8 +291,10 @@ public partial class TooltipManager : Control
+             .Replace("{weave}", g.OwnerWeave.ToString())
+             .Replace("{heal}", g.OwnerHeal.ToString())
+             .Replace("{radius}", g.Radius.ToString())
+-            .Replace("{casts}", sd.ToString())
+-            .Replace("{next_spells}", sd == 1 ? "the next spell" : $"the next {sd} spells")
++            .Replace("{casts}", (g.AnchorCasts > 0 ? g.AnchorCasts : sd).ToString())
++            .Replace("{next_spells}", rc == 1 ? "the next spell" : $"the next {rc} spells")
++            .Replace("{next_hits}", nextHits)
++            .Replace("{heal_turn}", g.AllyHealPerTurn.ToString())
+             .Replace("{owner}", string.IsNullOrEmpty(owner) ? "its caster" : owner);
+     }
+ 

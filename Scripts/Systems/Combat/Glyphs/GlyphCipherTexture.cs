@@ -94,7 +94,8 @@ public partial class GlyphCipherTexture : Node
     /// drivers only.
     /// </summary>
     public async Task<ImageTexture> BakeGlyphAsync(string key, CipherGlyph glyph,
-                                                   int px, CipherLod lod, bool dark)
+                                                   int px, CipherLod lod, bool dark,
+                                                   bool lightMask = false)
     {
         ImageTexture result = null;
         SubViewport vp = null;
@@ -119,6 +120,7 @@ public partial class GlyphCipherTexture : Node
                 Progress = 1f,
                 Position = Vector2.Zero,
                 Size = new Vector2(px, px),
+                LightMask = lightMask,
             };
             vp.AddChild(view);
             AddChild(vp);
@@ -211,6 +213,60 @@ public partial class GlyphCipherTexture : Node
 
         _pending[key] = new List<Action<ImageTexture>> { onReady };
         _ = BakeGlyphAsync(key, glyph, px, lod, dark);
+    }
+
+    /// <summary>
+    /// Requests the COVERAGE MASK bake of a blueprint half for the tile decal
+    /// (glyph_sigil.gdshader v2). Channels, not colours: R = stave, G = function strokes
+    /// and hub outline, B = hub fill. Cached under its own key, so card art and the
+    /// element runes never see it. Bake at <see cref="CipherLod.Card"/> weights: the light
+    /// renderer wants thin cores and adds its own bloom, and the shader's mask_gain and
+    /// mip bias carry the distance robustness the Tile LOD used to buy with thickness.
+    /// </summary>
+    public void RequestMaskForBlueprint(string blueprintId, string half, int px,
+                                        Action<ImageTexture> onReady)
+    {
+        if (onReady == null) return;
+        var bp = CardDatabase.GetByName(blueprintId);
+        var data = half == "bottom" ? bp?.Prebuilt?.BottomHalf : bp?.Prebuilt?.TopHalf;
+        if (data == null) { onReady(null); return; }
+
+        px = Mathf.Clamp(px, 32, 1024);
+        string key = KeyOf(blueprintId, half, px, CipherLod.Card, true) + "#mask";
+
+        if (_cache.TryGetValue(key, out var hit)) { onReady(hit); return; }
+        if (_pending.TryGetValue(key, out var waiters)) { waiters.Add(onReady); return; }
+
+        _pending[key] = new List<Action<ImageTexture>> { onReady };
+        _ = BakeGlyphAsync(key, GlyphCipherTags.BuildFor(blueprintId, half, data), px,
+                           CipherLod.Card, true, lightMask: true);
+    }
+
+    /// <summary>
+    /// Bakes the tile-decal masks for a list of blueprint halves ahead of time, one per
+    /// frame, so casting a glyph later is a cache hit. A cold bake costs two frames of
+    /// latency plus a GPU readback (GetImage) that stalls the render thread, and doing
+    /// that at the moment of the cast is the hitch the player sees. Sequential on
+    /// purpose: spreading the readbacks out keeps combat start smooth too.
+    /// </summary>
+    public async void PrewarmMasks(IReadOnlyList<(string id, string half)> halves, int px)
+    {
+        if (halves == null) return;
+        try
+        {
+            foreach (var (id, half) in halves)
+            {
+                var done = new TaskCompletionSource<bool>();
+                RequestMaskForBlueprint(id, half, px, _ => done.TrySetResult(true));
+                await done.Task;
+                if (!IsInsideTree()) return;
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"[GlyphCipherTexture] prewarm failed: {ex.Message}");
+        }
     }
 
     /// <summary>Drops every cached texture. Call on a resolution change or when leaving combat for a long session.</summary>

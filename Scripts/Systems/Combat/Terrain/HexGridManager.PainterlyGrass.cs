@@ -600,6 +600,7 @@ public partial class HexGridManager : Node3D
             // defaults to false, so a material that never reaches this call is
             // byte-for-byte the grass it always was.
             ImbuementField.Attach(PainterlyGrassMaterial as ShaderMaterial, this);
+            GlyphGrassField.Attach(PainterlyGrassMaterial as ShaderMaterial);
             return PainterlyGrassMaterial;
         }
 
@@ -620,6 +621,7 @@ public partial class HexGridManager : Node3D
         var sm = new ShaderMaterial { Shader = shader };
         sm.SetShaderParameter("wind_noise", WindNoise.CreateSeamless());
         ImbuementField.Attach(sm, this);
+        GlyphGrassField.Attach(sm);
         _painterlyGrassMaterialCache = sm;
         return sm;
     }

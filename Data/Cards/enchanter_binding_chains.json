@@ -8,7 +8,7 @@
 		"name": "Binding Chains",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Name an enemy for 2 turns: it deals half damage and cannot move. Gain 1 Weave.",
+		"rules_text": "Name an enemy for 2 turns: if it attacks, the attack deals half damage and it takes 3. Gain 1 Weave.",
 		"tags": [
 			"enchant"
 		],
@@ -22,9 +22,11 @@
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "apply_status",
-					"status": "named",
-					"duration": 2
+					"type": "name_condition",
+					"trigger": "attack",
+					"damage": 3,
+					"duration": 2,
+					"halve_attack": true
 				},
 				{
 					"type": "gain_weave",
@@ -38,6 +40,7 @@
 		"mana": 2,
 		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. When an enemy enters: deal 5 damage and heal you 5 HP.",
+		"glyph_text": "It takes {damage} damage and {owner} heals {heal} HP.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -65,24 +68,17 @@
 					"half": "top",
 					"field": "effect.steps[0]",
 					"value": {
-						"type": "sequence",
-						"steps": [
-							{
-								"type": "damage",
-								"amount": 4
-							},
-							{
-								"type": "apply_status",
-								"status": "named",
-								"duration": 2
-							}
-						]
+						"type": "name_condition",
+						"trigger": "attack",
+						"damage": 5,
+						"duration": 2,
+						"halve_attack": true
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 4 damage. Name an enemy for 2 turns (half damage, cannot move). Gain 1 Weave."
+					"value": "Name an enemy for 2 turns: if it attacks, the attack deals half damage and it takes 5. Gain 1 Weave."
 				},
 				{
 					"half": "bottom",
@@ -109,13 +105,13 @@
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[0].steps[1].duration",
-					"value": 3
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: if it attacks, the attack deals half damage and it takes 5. Gain 1 Weave."
 				},
 				{
 					"half": "top",
-					"field": "rules_text",
-					"value": "Deal 4 damage. Name an enemy for 3 turns. Gain 1 Weave."
+					"field": "effect.steps[0].duration",
+					"value": 3
 				}
 			]
 		},
@@ -150,13 +146,11 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "damage",
-								"amount": 5
-							},
-							{
-								"type": "apply_status",
-								"status": "named",
-								"duration": 3
+								"type": "name_condition",
+								"trigger": "attack",
+								"damage": 5,
+								"duration": 3,
+								"halve_attack": true
 							},
 							{
 								"type": "retarget",
@@ -167,14 +161,16 @@
 									"enemies_only": true
 								},
 								"do": {
-									"type": "apply_status",
-									"status": "named",
-									"duration": 2
+									"type": "name_condition",
+									"trigger": "attack",
+									"damage": 5,
+									"duration": 2,
+									"halve_attack": true
 								}
 							},
 							{
 								"type": "gain_weave",
-								"amount": 2
+								"amount": 1
 							}
 						]
 					}
@@ -182,7 +178,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 5 damage. Name the target for 3 turns and the nearest other enemy for 2 turns. Gain 2 Weave."
+					"value": "Name an enemy for 3 turns, and the nearest other enemy within 3 for 2: if it attacks, the attack deals half damage and it takes 5. Gain 1 Weave."
 				}
 			]
 		},
@@ -206,6 +202,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7, is Hexed for 2 turns, and heals you 7 HP."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Weakened for {status_turns}. {owner} heals {heal} HP."
 				}
 			]
 		},
@@ -222,13 +223,11 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "damage",
-								"amount": 6
-							},
-							{
-								"type": "apply_status",
-								"status": "named",
-								"duration": 99
+								"type": "name_condition",
+								"trigger": "attack",
+								"damage": 7,
+								"duration": 99,
+								"halve_attack": true
 							},
 							{
 								"type": "gain_weave",
@@ -240,7 +239,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Deal 6 damage. Name an enemy for the rest of the fight (half damage, cannot move). Gain 2 Weave."
+					"value": "Name an enemy for the rest of the fight: if it attacks, the attack deals half damage and it takes 7. Gain 2 Weave."
 				}
 			]
 		},
@@ -267,6 +266,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a reusable glyph. Each enemy entering takes 9, is Named for 1 turn, and heals you 9 HP."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}. {owner} heals {heal} HP."
 				}
 			]
 		}

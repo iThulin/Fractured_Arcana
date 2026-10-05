@@ -26,16 +26,16 @@
 		"name": "First Layer",
 		"mana": 2,
 		"speed": "Reflex",
-		"rules_text": "Negate target enemy's next action.",
+		"rules_text": "Swap the locked tiles of two enemy attacks.",
 		"tags": [],
 		"targeting": {
-			"type": "unit",
+			"type": "unit_then_unit",
 			"range": 6,
-			"los": true,
+			"dest_range": 6,
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "negate_action"
+			"type": "swap_locks"
 		}
 	},
 	"upgrades": [

@@ -171,6 +171,23 @@ public sealed class Resolver
                 item.CasterUnit.BonusSpellDamage += schoolItemBonus;
         }
 
+        // Enchanter (slice 12a): a card cast from the caster's own Sigil of Focus gets its
+        // spell damage, a Sigil Slide gift adds to this one spell, and a Spell Anchor under
+        // the caster is noted BEFORE the effects run, so the spell that prepares an anchor
+        // is never the one it repeats. Same pin/unpin shape as Perfected.
+        Unit glyphCaster = item.Ability is CardHalf && item.CasterUnit != null
+            && GodotObject.IsInstanceValid(item.CasterUnit) ? item.CasterUnit : null;
+        int glyphBonus = 0;
+        GlyphData anchor = null;
+        if (glyphCaster != null)
+        {
+            glyphBonus = GlyphManager.StandingDamageBonus(glyphCaster) + glyphCaster.NextSpellBonusDamage;
+            glyphCaster.NextSpellBonusDamage = 0;
+            if (glyphBonus > 0)
+                glyphCaster.BonusSpellDamage += glyphBonus;
+            anchor = GlyphManager.StandingAnchor(glyphCaster);
+        }
+
         // Presentation seam (spell_vfx_pipeline_v1): announce the cast BEFORE its
         // effects run so the projectile/burst precedes the damage numbers it causes.
         // No-op headless and inside CombatSim (the R22 preview spawns nothing).
@@ -179,10 +196,39 @@ public sealed class Resolver
         s.ResolutionDepth++;   // GameState.RequestCardChoice: a resolver pass is live
         var prevAbilityName = s.ResolvingAbilityName;
         s.ResolvingAbilityName = item.Ability?.Name;   // Almanac labels (schedule)
+        var prevGlyphHalf = GlyphManager.ResolvingHalf;
+        GlyphManager.ResolvingHalf = item.Ability as CardHalf;   // glyph tooltip source
         try
         {
             foreach (var eff in item.Ability.Effects)
                 eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
+
+            // Spell Anchor: the same effects again, against the same targets, until the
+            // anchor's count is reached. Only if the anchor is still under the caster.
+            if (anchor != null && GlyphManager.StandingAnchor(glyphCaster) == anchor)
+            {
+                for (int rep = 1; rep < anchor.AnchorCasts; rep++)
+                    foreach (var eff in item.Ability.Effects)
+                        eff.Resolve(s, item.Caster, item.Targets, item.Snapshot);
+                s.Glyphs?.SpendAnchor(glyphCaster, anchor, s);
+            }
+
+            // Fate Weaver: a card cast near a SpellCastNear glyph sets it off. Measured
+            // from the caster's tile and from where the spell landed.
+            if (item.Ability is CardHalf && s.Glyphs != null)
+            {
+                var points = new List<Vector2I>();
+                if (item.CasterUnit != null && GodotObject.IsInstanceValid(item.CasterUnit)
+                    && item.CasterUnit.CurrentTile != null)
+                    points.Add(item.CasterUnit.CurrentTile.Axial);
+                if (item.Targets?.Items != null && item.Targets.Items.Count > 0)
+                {
+                    var landed = InterfaceHelpers.ResolveTile(s, item.Targets.Items[0]);
+                    if (landed != null)
+                        points.Add(landed.Axial);
+                }
+                s.Glyphs.OnSpellCastAt(s, item.CasterUnit?.TeamId ?? 0, points);
+            }
         }
         finally
         {
@@ -193,9 +239,12 @@ public sealed class Resolver
             if (schoolItemBonus > 0 && item.CasterUnit != null
                 && GodotObject.IsInstanceValid(item.CasterUnit))
                 item.CasterUnit.BonusSpellDamage -= schoolItemBonus;
+            if (glyphBonus > 0 && glyphCaster != null && GodotObject.IsInstanceValid(glyphCaster))
+                glyphCaster.BonusSpellDamage -= glyphBonus;
             s.ActiveCasterUnit = prevCaster;
             Unit.AmbientDamageSource = prevDamageSource;
             s.ResolvingAbilityName = prevAbilityName;
+            GlyphManager.ResolvingHalf = prevGlyphHalf;
         }
 
         // Post-cast player choice (2026-07-28): an effect asked the player something.
@@ -305,6 +354,7 @@ public static class Rules
         // spell they cannot afford (the exact failure the tithe comment warns about,
         // mirrored).
         s.CostContextCard = sourceCard;
+        s.CostContextHalf = a as CardHalf;
         try
         {
         if (!CanCast(a, s, caster))
@@ -461,6 +511,7 @@ public static class Rules
         finally
         {
             s.CostContextCard = null;
+            s.CostContextHalf = null;
         }
     }
 

@@ -116,6 +116,22 @@ public partial class Unit : Node3D
     public List<(ItemPassiveTag tag, int value, string param)> EquipmentPassives = new();
     public int BonusSpellDamage = 0;   // from wizard weapon/trinket
 
+    /// <summary>Added to this unit's NEXT card resolution only, then cleared (Sigil Slide's
+    /// "+2 damage" gift). Consumed by the stack resolver.</summary>
+    public int NextSpellBonusDamage = 0;
+
+    /// <summary>Maze of Mirrors: the unit this copy mirrors (null for a real unit).</summary>
+    public Unit IllusionOwner;
+    /// <summary>Turns left before this copy fades; -1 lasts the fight. Ticked by CombatManager.</summary>
+    public int IllusionTurnsLeft = -1;
+
+    /// <summary>Dispel Walk: the round it was cast, how many buffs per enemy, whether
+    /// they are stolen, and which enemies this cast has already touched.</summary>
+    public int DispelWalkRound = -1;
+    public int DispelWalkCount;
+    public bool DispelWalkSteal;
+    public readonly HashSet<Unit> DispelWalkTouched = new();
+
     /// <summary>Q2 (§7a): trigger-bus abilities granted by equipped items, fired
     /// through the shared dispatcher (onSpawn/onAttack/aura). Populated at spawn
     /// from the resolved loadout; separate from the legacy EquipmentPassives.</summary>
@@ -348,6 +364,21 @@ public partial class Unit : Node3D
 
     /// <summary>Lookahead stays revealed every round (The Fixed Hour, Glimpse's top rung).</summary>
     public bool IntentLookaheadPermanent;
+
+    /// <summary>Enchanter Names on this unit (EnchanterEngine.cs): conditions that punish.</summary>
+    public List<NameCondition> Names = new();
+
+    /// <summary>The enemy whose intent is being planned right now (null otherwise).</summary>
+    public static Unit PlanningFor;
+
+    /// <summary>True when a living Name on this unit forbids it to target <paramref name="u"/>.</summary>
+    public bool ShunsUnit(Unit u)
+    {
+        foreach (var n in Names)
+            if (n.Shuns == u && n.TurnsRemaining > 0)
+                return true;
+        return false;
+    }
 
     /// <summary>Ephemeris (chronomancer §3): the first spell this unit casts each turn is
     /// copied into the Almanac (ChronoHooks.OnSpellResolved). Reset per turn in StartPlayerTurn.</summary>
@@ -1467,6 +1498,10 @@ public partial class Unit : Node3D
         // otherwise a multi-hit card would pay the mark bonus once per hit.
         if (CombatSim.Active && CombatSim.WasStatusRemoved(this, status))
             return false;
+        // Not Me (Enchanter, slice 13a): to the enemy being planned, a unit it was Named
+        // never to target reads as untargetable, so every planner skips it.
+        if (status == "untargetable" && PlanningFor != null && PlanningFor != this && PlanningFor.ShunsUnit(this))
+            return true;
         return Stats.StatusEffects.ContainsKey(status) && Stats.StatusEffects[status] > 0;
     }
 

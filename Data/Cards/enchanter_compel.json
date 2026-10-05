@@ -8,7 +8,7 @@
 		"name": "Compel",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Pull an enemy 2 tiles toward you. If it lands on one of your glyphs, trigger it.",
+		"rules_text": "Compel target enemy to walk up to 2 tiles toward you. Your glyphs on its path trigger.",
 		"tags": [
 			"enchant"
 		],
@@ -19,7 +19,7 @@
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "pull_to_glyph",
+			"type": "compel_walk",
 			"tiles": 2
 		}
 	},
@@ -28,6 +28,7 @@
 		"mana": 1,
 		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less. Draw 1 card.",
+		"glyph_text": "Your spells cost 1 less.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -59,18 +60,8 @@
 			"half": "both",
 			"top_name": "Compel+",
 			"bottom_name": "Sigil of Focus+",
-			"description": "Pull harder. The focus sigil lasts longer.",
+			"description": "It walks further. The focus sigil lasts longer.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect.tiles",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Pull an enemy 3 tiles toward you. If it lands on a glyph, trigger it."
-				},
 				{
 					"half": "bottom",
 					"field": "effect.steps[0].duration",
@@ -80,6 +71,19 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less (4 turns). Draw 1 card."
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "compel_walk",
+						"tiles": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Compel target enemy to walk up to 3 tiles toward you. Your glyphs on its path trigger."
 				}
 			]
 		},
@@ -87,17 +91,29 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Dominate Step",
-			"description": "Dominate Step: collisions deal damage.",
+			"description": "Every step feeds the working.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.collision_damage",
-					"value": 5
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 3
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Pull an enemy 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
+					"value": "Compel target enemy to walk up to 3 tiles toward you. Your glyphs on its path trigger. Gain 1 Weave."
 				}
 			]
 		},
@@ -116,6 +132,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less and deal +2. Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "Your spells cost 1 less and deal +2 damage."
 				}
 			]
 		},
@@ -123,25 +144,8 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Mass Compel",
-			"description": "Mass Compel: drag several enemies in.",
+			"description": "Several at once.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 2,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "pull_to_glyph",
-							"tiles": 3,
-							"collision_damage": 5
-						}
-					}
-				},
 				{
 					"half": "top",
 					"field": "targeting",
@@ -152,8 +156,33 @@
 				},
 				{
 					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "compel_walk",
+									"tiles": 3
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Pull all enemies within 2 of the target 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
+					"value": "Compel every enemy within 2 of the target point to walk up to 3 tiles toward you. Your glyphs on their paths trigger. Gain 1 Weave."
 				}
 			]
 		},
@@ -172,6 +201,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4. While on it: spells cost 1 less, deal +2, and gain 1 Weave/turn. Draw 1 card."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "Your spells cost 1 less and deal +2 damage. Gain 1 Weave each turn."
 				}
 			]
 		},
@@ -179,35 +213,8 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Absolute Compulsion",
-			"description": "Absolute Compulsion: drag them in and Name them.",
+			"description": "And Name them as they come.",
 			"changes": [
-				{
-					"half": "top",
-					"field": "effect",
-					"value": {
-						"type": "retarget",
-						"targeting": {
-							"type": "aoe",
-							"radius": 2,
-							"enemies_only": true
-						},
-						"do": {
-							"type": "sequence",
-							"steps": [
-								{
-									"type": "pull_to_glyph",
-									"tiles": 3,
-									"collision_damage": 6
-								},
-								{
-									"type": "apply_status",
-									"status": "named",
-									"duration": 1
-								}
-							]
-						}
-					}
-				},
 				{
 					"half": "top",
 					"field": "targeting",
@@ -218,8 +225,44 @@
 				},
 				{
 					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "compel_walk",
+											"tiles": 3
+										},
+										{
+											"type": "name_condition",
+											"trigger": "attack",
+											"damage": 4,
+											"duration": 1
+										}
+									]
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
 					"field": "rules_text",
-					"value": "Pull all enemies within 2 toward you (collisions deal 6 damage). Name each for 1 turn."
+					"value": "Compel every enemy within 2 of the target point to walk up to 3 tiles toward you, then Name each for 1 turn: if it attacks, it takes 4. Gain 1 Weave."
 				}
 			]
 		},
@@ -255,6 +298,11 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Prepare a permanent glyph within 4. While on it: spells cost 2 less, deal +3, gain 1 Weave/turn. Draw 2 cards."
+				},
+				{
+					"half": "bottom",
+					"field": "glyph_text",
+					"value": "Your spells cost 2 less and deal +3 damage. Gain 1 Weave each turn."
 				}
 			]
 		}

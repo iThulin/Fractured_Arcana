@@ -9,6 +9,7 @@
 		"mana": 2,
 		"speed": "Studied",
 		"rules_text": "Prepare a glyph within 4. When it triggers, it prepares a copy of itself on 2 adjacent tiles.",
+		"glyph_text": "It takes {damage} damage.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -34,8 +35,9 @@
 			"glyph"
 		],
 		"targeting": {
-			"type": "tile",
-			"range": 4
+			"type": "tile_then_tile",
+			"range": 4,
+			"dest_range": 99
 		},
 		"effect": {
 			"type": "swap_glyphs"
@@ -86,6 +88,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4 (6). On trigger, copies onto 2 adjacent tiles which trigger at once."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage. The copies go off at once."
 				}
 			]
 		},
@@ -97,13 +104,13 @@
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.count",
-					"value": 3
+					"field": "rules_text",
+					"value": "Swap 2 of your glyphs, then trigger both, each with +2 damage."
 				},
 				{
 					"half": "bottom",
-					"field": "rules_text",
-					"value": "Rotate the positions of 3 of your glyphs, then trigger all 3."
+					"field": "effect.bonus",
+					"value": 2
 				}
 			]
 		},
@@ -127,6 +134,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a glyph within 4 (6, slow). On trigger, copies onto 3 adjacent tiles which trigger at once."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Slowed for {status_turns}. The copies go off at once."
 				}
 			]
 		},
@@ -144,7 +156,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Rotate 3 of your glyphs, then trigger all 3. Gain 1 Weave per glyph triggered."
+					"value": "Swap 2 of your glyphs, then trigger both, each with +2 damage. Gain 1 Weave per glyph triggered."
 				}
 			]
 		},
@@ -172,6 +184,11 @@
 					"half": "top",
 					"field": "rules_text",
 					"value": "Prepare a reusable glyph (7, root). On trigger it copies onto 3 adjacent tiles which trigger at once."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage and is Rooted for {status_turns}. The copies go off at once."
 				}
 			]
 		},
@@ -189,8 +206,8 @@
 						"steps": [
 							{
 								"type": "swap_glyphs",
-								"count": 99,
-								"trigger_after": true,
+								"trigger_all_after": true,
+								"bonus": 2,
 								"on_trigger_weave": 1
 							},
 							{
@@ -203,7 +220,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Rearrange all your glyphs, then trigger every one. Gain 1 Weave per glyph, plus 1."
+					"value": "Swap 2 of your glyphs, then trigger every glyph you control (+2 damage each). Gain 1 Weave per glyph, plus 1."
 				}
 			]
 		}

@@ -8,7 +8,7 @@
 		"name": "The Architecture",
 		"mana": 4,
 		"speed": "Studied",
-		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and all your glyphs trigger twice.",
+		"rules_text": "For the rest of the fight: whenever you prepare a glyph it is also prepared on all tiles within 1, and your glyphs deal double damage.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -27,7 +27,7 @@
 		"name": "Absolute Territory",
 		"mana": 3,
 		"speed": "Reflex",
-		"rules_text": "Prepare your glyph effects on every tile within 3 of you. Enemies in this zone deal half damage, take 2 per tile moved, and cannot teleport. Lasts 2 turns.",
+		"rules_text": "For 2 turns, enemies within 3 of where you stand deal half damage, take 2 damage for each tile they walk there, and cannot teleport in or out.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -58,7 +58,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: glyphs you prepare also prepare on all tiles within 1, cost 1 less, and trigger twice."
+					"value": "Rest of fight: glyphs you prepare also prepare on all tiles within 1, glyph spells cost 1 less, and glyphs deal double damage."
 				},
 				{
 					"half": "bottom",
@@ -68,7 +68,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare your effects within 3. Enemies deal half, take 3 per tile moved, cannot teleport. Lasts 2 turns."
+					"value": "For 2 turns, enemies within 3 of where you stand deal half damage, take 3 per tile they walk there, and cannot teleport in or out."
 				}
 			]
 		},
@@ -86,7 +86,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: glyphs spread to radius 1, cost 1 less, trigger twice, and bank 1 Weave on prepare."
+					"value": "Rest of fight: glyphs spread to radius 1, glyph spells cost 1 less, glyphs deal double damage, and you bank 1 Weave per glyph prepared."
 				}
 			]
 		},
@@ -104,7 +104,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare your effects within 3. Enemies deal half, take 3 per tile moved, cannot teleport. Lasts 3 turns."
+					"value": "For 3 turns, enemies within 3 of where you stand deal half damage, take 3 per tile they walk there, and cannot teleport in or out."
 				}
 			]
 		},
@@ -122,7 +122,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: glyphs spread to radius 2, cost 1 less, trigger twice, bank 1 Weave on prepare."
+					"value": "Rest of fight: glyphs spread to radius 2, glyph spells cost 1 less, glyphs deal double damage, and you bank 1 Weave per glyph prepared."
 				}
 			]
 		},
@@ -140,7 +140,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare your effects within 3. Enemies are Named, take 3 per tile moved, cannot teleport. Lasts 3 turns."
+					"value": "For 3 turns, enemies within 3 of where you stand are Named (half damage, cannot move), take 3 per tile they walk there, and cannot teleport in or out."
 				}
 			]
 		},
@@ -164,7 +164,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Rest of fight: glyphs spread to radius 2, cost 1 less, trigger 3 times, and bank 1 Weave on prepare."
+					"value": "Rest of fight: glyphs spread to radius 2, glyph spells cost 1 less, glyphs deal triple damage, and you bank 1 Weave per glyph prepared."
 				}
 			]
 		},
@@ -188,7 +188,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Prepare your effects for the rest of the fight within 4. Enemies are Named, take 4 per tile moved, cannot teleport."
+					"value": "For the rest of the fight, enemies within 4 of where you stand are Named (half damage, cannot move), take 4 per tile they walk there, and cannot teleport in or out."
 				}
 			]
 		}

@@ -1,0 +1,320 @@
+{
+	"id": "enchanter_terms_and_conditions",
+	"status": "ready",
+	"name": "Terms and Conditions",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Terms and Conditions",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Name every enemy within 2 of the target for 1 turn: whichever moves, attacks or casts first takes 6, and the others go free.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 6
+		},
+		"effect": {
+			"type": "retarget",
+			"targeting": {
+				"type": "aoe",
+				"radius": 2,
+				"enemies_only": true
+			},
+			"do": {
+				"type": "name_condition",
+				"trigger": "act",
+				"damage": 6,
+				"duration": 1,
+				"grouped": true
+			}
+		}
+	},
+	"bottom": {
+		"name": "Fine Print",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Until your next turn, whenever a Named enemy breaks its condition, draw 1 card (up to 3).",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "draw_on_break",
+			"cap": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Terms and Conditions+",
+			"bottom_name": "Fine Print+",
+			"description": "Harsher terms. Finer print.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "aoe",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "name_condition",
+							"trigger": "act",
+							"damage": 8,
+							"duration": 1,
+							"grouped": true
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 2 of the target for 1 turn: whichever moves, attacks or casts first takes 8, and the others go free."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "draw_on_break",
+						"cap": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Until your next turn, whenever a Named enemy breaks its condition, draw 1 card (up to 4)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Binding Terms",
+			"description": "Binding Terms: the signing feeds the Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "name_condition",
+									"trigger": "act",
+									"damage": 8,
+									"duration": 1,
+									"grouped": true
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 2 of the target for 1 turn: whichever moves, attacks or casts first takes 8, and the others go free. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Small Print",
+			"description": "Small Print: and a little Weave.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw_on_break",
+								"cap": 4
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Until your next turn, whenever a Named enemy breaks its condition, draw 1 card (up to 4). Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Ironclad Terms",
+			"description": "Ironclad Terms: two turns to slip.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "name_condition",
+									"trigger": "act",
+									"damage": 10,
+									"duration": 2,
+									"grouped": true
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 2 of the target for 2 turns: whichever moves, attacks or casts first takes 10, and the others go free. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Hidden Clause",
+			"description": "Hidden Clause: a card up front.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "draw_on_break",
+								"cap": 4
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 1 card. Until your next turn, whenever a Named enemy breaks its condition, draw 1 card (up to 4). Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Terms of Surrender",
+			"description": "Terms of Surrender: the whole field signs.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 3,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "name_condition",
+									"trigger": "act",
+									"damage": 12,
+									"duration": 2,
+									"grouped": true
+								}
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every enemy within 3 of the target for 2 turns: whichever moves, attacks or casts first takes 12, and the others go free. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Whole Contract",
+			"description": "The Whole Contract: nothing left unread.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "draw_on_break",
+								"cap": 5
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 1 card. Until your next turn, whenever a Named enemy breaks its condition, draw 1 card (up to 5). Gain 1 Weave."
+				}
+			]
+		}
+	]
+}

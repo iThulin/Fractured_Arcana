@@ -64,6 +64,21 @@ public sealed class GlyphData
     /// <summary>Half of <see cref="SourceCardId"/> that placed this glyph: <c>"top"</c> or <c>"bottom"</c>.</summary>
     public string SourceHalf = "";
 
+    /// <summary>Display name of the half that placed this glyph (the tier actually cast),
+    /// stamped at load time beside <see cref="SourceCardId"/>. Tooltip only.</summary>
+    public string SourceName = "";
+
+    /// <summary>Rules text of that half, for the tile tooltip. The sigil is decoration; this
+    /// is how the player reads what they cast.</summary>
+    public string SourceRulesText = "";
+
+    /// <summary>Authored tooltip text of the half that placed this glyph (CardHalf.GlyphText),
+    /// with {tokens} the tooltip fills from this glyph's live values.</summary>
+    public string GlyphText = "";
+
+    /// <summary>Authored override for the tooltip's trigger line (CardHalf.GlyphTriggerText).</summary>
+    public string GlyphTriggerText = "";
+
     /// <summary>Legacy closure trigger. When set, <see cref="Fire"/> invokes it and skips the declarative payload, so PlaceGlyphEffect-created glyphs behave exactly as before.</summary>
     public Action<Unit, GameState> OnTrigger;
 
@@ -112,6 +127,90 @@ public sealed class GlyphData
     /// <summary>When &gt; 0, on trigger this glyph re-prepares a copy of itself on this many adjacent tiles (Runic Cascade). The GlyphManager handles the spread in OnGlyphFired.</summary>
     public int CascadeSpread;
 
+    /// <summary>Cascade copies go off at once on any enemy already standing where they land (Chain Cascade).</summary>
+    public bool InstantCopies;
+
+    // ── Slice 12a payloads ─────────────────────────────────────────────
+    /// <summary>Enter glyphs: the enemy's movement ends here (Snare Glyph, §4).</summary>
+    public bool HaltsMovement;
+
+    /// <summary>When &gt; 0, the enemy that sets it off is also Named for 1 turn: "if it
+    /// moves, it takes this" (Binding Rune, §4: "and 3 more if it leaves this turn").</summary>
+    public int NameOnTrigger;
+
+    /// <summary>Self-stand (Sigil of Focus): while the OWNER stands on it, spells cost this much less.</summary>
+    public int CasterCostReduction;
+    /// <summary>Self-stand: while the owner stands on it, their spells deal this much more.</summary>
+    public int CasterDamage;
+    /// <summary>Self-stand: the owner gains this much Weave at each turn start spent on it.</summary>
+    public int CasterWeavePerTurn;
+
+    /// <summary>Spell Anchor: the next spell the owner casts while standing here resolves this
+    /// many times in total (0 = not an anchor).</summary>
+    public int AnchorCasts;
+    /// <summary>Spell Anchor: the anchored spell costs this much less.</summary>
+    public int AnchorCostReduction;
+    /// <summary>Spell Anchor: Weave each time it is used.</summary>
+    public int AnchorWeave;
+
+    /// <summary>Ward aura: an ally standing here at turn start heals this much (Hallowed Ground).</summary>
+    public int AllyHealPerTurn;
+
+    /// <summary>Fate Weaver (The Great Loom): each time it goes off, a glyph dealing this much
+    /// is also prepared on an empty tile near it.</summary>
+    public int SpawnGlyphDamage;
+
+    /// <summary>Mirror Ward: attacks or spells it will still turn back. 99 or more reads as unlimited.</summary>
+    public int ReflectCharges;
+    /// <summary>Mirror Ward: a reflected hit deals this fraction more (0.5 = +50%).</summary>
+    public float ReflectBonus;
+
+    /// <summary>Sovereign Pillar: an indestructible ward with an aura over adjacent enemies.</summary>
+    public bool Pillar;
+    /// <summary>Pillar: adjacent enemies deal this much less.</summary>
+    public int AuraDamageReduction;
+    /// <summary>Pillar: status each adjacent enemy carries out of the round (weakened, named).</summary>
+    public string AuraStatus;
+    /// <summary>Pillar: damage each adjacent enemy takes at each round's turn.</summary>
+    public int AuraDamage;
+    /// <summary>Weave the owner gains each turn while this glyph stands (Throne of Pillars).</summary>
+    public int OwnerWeavePerTurn;
+
+    /// <summary>A reusable ally-enter glyph is a WARD: its armor and spell damage last only
+    /// while the ally stands on it, and its shield and mana are granted once per ally per
+    /// round. A single-use ally glyph is a gift: everything it grants is kept.</summary>
+    public bool IsWardAura => Reusable && Trigger == GlyphTrigger.AllyEnter;
+
+    /// <summary>True for a glyph whose point is to hurt or hinder whoever sets it off
+    /// (traps, snares, start-of-turn runes, manual damage glyphs); false for one you or
+    /// your allies want to stand on (wards, sigils, anchors, mirrors, Fate Weaver).
+    /// Drives the circle's shape and palette and the tooltip name colour.</summary>
+    public bool AffectsEnemies => Trigger switch
+    {
+        GlyphTrigger.Enter or GlyphTrigger.StartOfTurn => true,
+        GlyphTrigger.Manual => ReflectCharges <= 0,
+        _ => false,
+    };
+
+    /// <summary>
+    /// The damage this glyph deals right now: base, plus any linked-batch bonus, plus the
+    /// owner's spell damage, doubled while its owner's Grand Design is active. One formula
+    /// for both <see cref="Fire"/> and the tile tooltip, so the preview cannot drift.
+    /// </summary>
+    public int EffectiveDamage(GameState s, int bonusDamage = 0)
+    {
+        if (Damage + bonusDamage <= 0)
+            return 0;
+        int dmg = Damage + bonusDamage + (Owner?.BonusSpellDamage ?? 0);
+        if (s?.ActiveEffects != null && OwnerTeam >= 0)
+        {
+            var arch = GrandDesignPersistentEffect.For(s, OwnerTeam);
+            if (arch != null)
+                dmg *= Math.Max(1, arch.TriggerCount);
+        }
+        return dmg;
+    }
+
     /// <summary>
     /// Applies this glyph's payload. If a legacy <see cref="OnTrigger"/> closure is set,
     /// that runs instead (preserving original PlaceGlyphEffect behaviour). Otherwise the
@@ -130,23 +229,35 @@ public sealed class GlyphData
 
         if (!friendlyToOwner && who != null)
         {
-            int dmg = Damage + bonusDamage + (Owner?.BonusSpellDamage ?? 0);
-
-            if (s?.ActiveEffects != null && OwnerTeam >= 0)
-            {
-                bool grandDesign = s.ActiveEffects.Any(e =>
-                    e is GrandDesignPersistentEffect gd &&
-                    gd.OwnerUnit?.TeamId == OwnerTeam &&
-                    !e.IsExpired);
-                if (grandDesign)
-                    dmg *= 2;
-            }
+            int dmg = EffectiveDamage(s, bonusDamage);
             if (dmg > 0)
                 who.ApplyDamage(dmg);
             if (!string.IsNullOrEmpty(Status))
                 who.ApplyStatus(Status, StatusDuration);
             if (dmg > 0 || Status != null)
                 s.Log($"[Glyph] {who.Name} triggers glyph: {dmg} dmg" + (Status != null ? $", {Status} {StatusDuration}t" : ""));
+            if (HaltsMovement && who.Stats.IsAlive)
+            {
+                who.MovementInterrupted = true;
+                s.Log($"[Glyph] {who.Name}'s movement ends on the glyph.");
+            }
+            if (NameOnTrigger > 0 && who.Stats.IsAlive)
+            {
+                Names.Write(who, new NameCondition
+                {
+                    Triggers = NameTrigger.Move,
+                    Damage = NameOnTrigger,
+                    TurnsRemaining = 1,
+                    OwnerUnit = Owner,
+                    OwnerTeam = OwnerTeam,
+                    Source = string.IsNullOrEmpty(SourceName) ? "a glyph" : SourceName,
+                }, s.Log);
+            }
+        }
+        else if (friendlyToOwner && who != null && IsWardAura && s?.Glyphs != null)
+        {
+            // Wards are auras: GlyphManager grants and revokes them by position.
+            s.Glyphs.GrantWard(who, this, s);
         }
         else if (friendlyToOwner && who != null)
         {
@@ -154,12 +265,13 @@ public sealed class GlyphData
                 who.Stats.Armor += AllyArmor;
             if (AllyShield > 0)
                 who.Stats.Shield += AllyShield;
+            // A single-use gift: spell damage is for the ally's NEXT spell, not forever.
             if (AllyDamage > 0)
-                who.BonusSpellDamage += AllyDamage;
+                who.NextSpellBonusDamage += AllyDamage;
             if (AllyMana > 0)
                 who.GainMana(AllyMana);
             who.RefreshHealthBar();
-            s.Log($"[Glyph] {who.Name} steps on ward: +{AllyArmor} armor, +{AllyShield} shield, +{AllyDamage} dmg.");
+            s.Log($"[Glyph] {who.Name} steps on a glyph: +{AllyArmor} armor, +{AllyShield} shield, +{AllyDamage} damage on its next spell.");
         }
 
         // Owner payoffs

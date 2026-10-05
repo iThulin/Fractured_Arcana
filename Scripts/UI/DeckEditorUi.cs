@@ -62,7 +62,7 @@ public partial class DeckEditorUi : Control
     // ── Preview size ──────────────────────────────────────────────────────
     // The preview zone is this tall (px). Card is scaled to fit inside it.
     private const float PreviewZoneHeight = 380f;
-    private const float RightColumnWidth = 300f;
+    private const float RightColumnWidth = 580f;
     private int _bodyTopOffset = 60;
 
     // ─────────────────────────────────────────────────────────────────────
@@ -476,8 +476,7 @@ public partial class DeckEditorUi : Control
             _stashCountLabel.Text = stashed.Count.ToString();
 
         if (!string.IsNullOrEmpty(_stashSearch))
-            stashed = stashed.Where(c => c.BlueprintId.Contains(
-                _stashSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+            stashed = stashed.Where(c => MatchesSearch(c.BlueprintId, _stashSearch)).ToList();
 
         if (stashed.Count == 0)
             _stashList.AddChild(MakeStub(string.IsNullOrEmpty(_stashSearch)
@@ -512,6 +511,7 @@ public partial class DeckEditorUi : Control
         var matches = CardDatabase.Blueprints
             .Where(bp => bp != null && (q.Length == 0
                 || DebugCardName(bp).Contains(q, StringComparison.OrdinalIgnoreCase)
+                || HalfNamesMatch(bp, q)
                 || (bp.Id ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
                 || bp.School.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(bp => bp.School.ToString())
@@ -537,7 +537,7 @@ public partial class DeckEditorUi : Control
                 ClipText = true,
                 MouseFilter = MouseFilterEnum.Pass,
             };
-            name.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            name.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
             name.AddThemeColorOverride("font_color", UITheme.TextSecondary);
             row.AddChild(name);
 
@@ -560,7 +560,30 @@ public partial class DeckEditorUi : Control
     }
 
     private static string DebugCardName(CardBlueprint bp)
-        => bp?.Prebuilt?.CardName ?? bp?.Id ?? "";
+    {
+        var top = bp?.Prebuilt?.TopHalf?.Name;
+        var bottom = bp?.Prebuilt?.BottomHalf?.Name;
+        if (!string.IsNullOrEmpty(top) && !string.IsNullOrEmpty(bottom) && top != bottom)
+            return $"{top} / {bottom}";
+        return bp?.Prebuilt?.CardName ?? bp?.Id ?? "";
+    }
+
+    /// <summary>True when either half's spell name contains <paramref name="q"/>. The card
+    /// name alone is the top half, so bottom-half spells were unsearchable.</summary>
+    private static bool HalfNamesMatch(CardBlueprint bp, string q)
+        => (bp?.Prebuilt?.TopHalf?.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+        || (bp?.Prebuilt?.BottomHalf?.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Stash search: blueprint id, card name or either half's spell name.</summary>
+    private static bool MatchesSearch(string blueprintId, string q)
+    {
+        if ((blueprintId ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+            return true;
+        var bp = CardDatabase.GetByName(blueprintId);
+        return bp != null
+            && ((bp.Prebuilt?.CardName ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                || HalfNamesMatch(bp, q));
+    }
 
     /// <summary>Mints a fresh, unupgraded copy of <paramref name="bp"/> into the debug
     /// collection, and slots it when asked and there is room. Debug only.</summary>
@@ -661,8 +684,12 @@ public partial class DeckEditorUi : Control
         row.AddChild(hbox);
 
         // Class label: fixed width
-        var classLbl = new Label { Text = school.ToString() };
-        classLbl.CustomMinimumSize = new Vector2(150, 0);
+        // Stash rows are compact: the right column has a fixed width, and the full-width
+        // active-deck layout (150 + 340 + 340 px of minimums) used to force it to ~950 px
+        // the moment any card sat in the stash. The school still shows as the border.
+        bool compact = !isActive;
+        var classLbl = new Label { Text = school.ToString(), Visible = !compact };
+        classLbl.CustomMinimumSize = new Vector2(compact ? 0 : 150, 0);
         classLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
         classLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         classLbl.AddThemeColorOverride("font_color", accent);
@@ -679,20 +706,22 @@ public partial class DeckEditorUi : Control
             SizeFlagsVertical = SizeFlags.ExpandFill,
             MouseFilter = MouseFilterEnum.Ignore,
         };
+        div1.Visible = !compact;          // no class label to divide from in a stash row
         hbox.AddChild(div1);
 
         // Top half block
         var topBlock = new HBoxContainer();
-        topBlock.CustomMinimumSize = new Vector2(340, 0);
-        topBlock.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+        topBlock.CustomMinimumSize = new Vector2(compact ? 0 : 340, 0);
+        topBlock.SizeFlagsHorizontal = compact ? SizeFlags.ExpandFill : SizeFlags.ShrinkBegin;
+        topBlock.SizeFlagsStretchRatio = 1f;   // even split with the bottom half in stash rows
         topBlock.AddThemeConstantOverride("separation", 4);
         topBlock.MouseFilter = MouseFilterEnum.Ignore;
         hbox.AddChild(topBlock);
 
         topBlock.AddChild(CardRowHelpers.MakePip(topMana.ToString(), dark));
         var topLbl = new Label { Text = topHalfName };
-        topLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-        topLbl.CustomMinimumSize = new Vector2(150, 0);
+        topLbl.SizeFlagsHorizontal = compact ? SizeFlags.ExpandFill : SizeFlags.ShrinkBegin;
+        topLbl.CustomMinimumSize = new Vector2(compact ? 60 : 150, 0);
         topLbl.ClipContents = true;
         topLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         topLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -717,16 +746,17 @@ public partial class DeckEditorUi : Control
             hbox.AddChild(div);
 
             var botBlock = new HBoxContainer();
-            botBlock.CustomMinimumSize = new Vector2(340, 0);
-            botBlock.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+            botBlock.CustomMinimumSize = new Vector2(compact ? 0 : 340, 0);
+            botBlock.SizeFlagsHorizontal = compact ? SizeFlags.ExpandFill : SizeFlags.ShrinkBegin;
+            botBlock.SizeFlagsStretchRatio = 1f;
             botBlock.AddThemeConstantOverride("separation", 4);
             botBlock.MouseFilter = MouseFilterEnum.Ignore;
             hbox.AddChild(botBlock);
 
             botBlock.AddChild(CardRowHelpers.MakePip(botMana.ToString(), dark));
             var botLbl = new Label { Text = botHalfName };
-            botLbl.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-            botLbl.CustomMinimumSize = new Vector2(110, 0);
+            botLbl.SizeFlagsHorizontal = compact ? SizeFlags.ExpandFill : SizeFlags.ShrinkBegin;
+            botLbl.CustomMinimumSize = new Vector2(compact ? 60 : 110, 0);
             botLbl.ClipContents = true;
             botLbl.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
             botLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -748,7 +778,11 @@ public partial class DeckEditorUi : Control
 
         // Spacer: pushes everything after it to the right
         var spacer = new Control();
-        spacer.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        // Stash rows: the two halves take all the free width, split evenly, so the
+        // buttons sit flush right and the names get the room. The spacer would
+        // otherwise claim a third of it.
+        spacer.SizeFlagsHorizontal = compact ? SizeFlags.Fill : SizeFlags.ExpandFill;
+        spacer.Visible = !compact;
         spacer.MouseFilter = MouseFilterEnum.Ignore;
         hbox.AddChild(spacer);
 

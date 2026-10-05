@@ -8,7 +8,8 @@
 		"name": "Snare Glyph",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters: it is Rooted for 1 turn and takes 4 damage.",
+		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters: it takes 4 damage and its movement ends.",
+		"glyph_text": "It takes {damage} damage and its movement ends.",
 		"tags": [
 			"enchant",
 			"glyph"
@@ -21,8 +22,7 @@
 			"type": "prepare_glyph",
 			"trigger": "enter",
 			"damage": 4,
-			"status": "rooted",
-			"status_duration": 1
+			"halt_movement": true
 		}
 	},
 	"bottom": {
@@ -34,8 +34,12 @@
 			"enchant",
 			"glyph"
 		],
+		"requires": [
+			"friendly_glyph_tile"
+		],
 		"targeting": {
-			"type": "self"
+			"type": "tile",
+			"range": 12
 		},
 		"effect": {
 			"type": "sequence",
@@ -67,7 +71,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. When an enemy enters, root for 1 turn and deal 6 damage."
+					"value": "Prepare a glyph within 3. When an enemy enters, it takes 6 damage and its movement ends."
 				},
 				{
 					"half": "bottom",
@@ -100,7 +104,12 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and apply Hex (Weakened) for 2 turns."
+					"value": "Prepare a glyph within 3. When an enemy enters, it takes 6, its movement ends, and it is Weakened for 2 turns."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage, its movement ends, and it is Weakened for {status_turns}."
 				}
 			]
 		},
@@ -144,7 +153,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph. Each enemy entering is Rooted for 2 turns, takes 6, and is Hexed for 2 turns."
+					"value": "Prepare a reusable glyph within 3. Each enemy entering takes 6, its movement ends, and it is Weakened for 2 turns."
 				}
 			]
 		},
@@ -197,13 +206,19 @@
 						"damage": 8,
 						"status": "named",
 						"status_duration": 1,
-						"reusable": true
+						"reusable": true,
+						"halt_movement": true
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Prepare a reusable glyph. Each enemy entering takes 8 and is Named (half damage, cannot move) for 1 turn."
+					"value": "Prepare a reusable glyph within 3. Each enemy entering takes 8, its movement ends, and it is Named (half damage, cannot move) for 1 turn."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage, its movement ends, and it is Named (half damage, cannot move) for {status_turns}."
 				}
 			]
 		},

@@ -121,6 +121,22 @@ public sealed class VisualEvent
     /// the target set and snapshots positions. Safe to call with a null card (enemy
     /// abilities). The school is then unknown and the presenter uses the neutral
     /// palette.</summary>
+    /// <summary>True when the effect tree prepares a glyph on the board. Its tile shows the
+    /// glyph being inscribed, which a cast burst on the same tile would bury.</summary>
+    private static bool PreparesGlyph(IEnumerable<IEffect> effects, int depth)
+    {
+        if (effects == null || depth > 8)
+            return false;
+        foreach (var e in effects)
+        {
+            if (e is PrepareGlyphEffect or ReflectWardEffect or SpellAnchorEffect or EnchantPillarEffect)
+                return true;
+            if (PreparesGlyph(e?.Children, depth + 1))
+                return true;
+        }
+        return false;
+    }
+
     public static VisualEvent ForCast(StackItem item)
     {
         var ev = new VisualEvent
@@ -142,6 +158,8 @@ public sealed class VisualEvent
         {
             ev.VfxArchetype = half.VfxArchetype;
             ev.VfxStyle = half.VfxStyle;
+            if (string.IsNullOrEmpty(ev.VfxArchetype) && PreparesGlyph(half.Effects, 0))
+                ev.VfxArchetype = VfxLibrary.ArchNone;
             if (half.Tags != null)
                 foreach (var tag in half.Tags)
                     if (VfxLibrary.IsElementTag(tag))

@@ -9,6 +9,7 @@
 		"mana": 2,
 		"speed": "Sorcery",
 		"rules_text": "Choose one: prepare a Snare glyph on the target tile, or trigger all of your prepared glyphs.",
+		"glyph_text": "It takes {damage} damage and is Rooted for {status_turns}.",
 		"tags": [],
 		"targeting": {
 			"type": "tile",
@@ -44,7 +45,7 @@
 		"name": "Read the Weave",
 		"mana": 1,
 		"speed": "Instant",
-		"rules_text": "Look at the top 2 cards. Put 1 back on top, bottom the other. Gain 1 Weave.",
+		"rules_text": "Gain 1 Weave. Draw 1 card.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -53,8 +54,8 @@
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "scry",
-					"count": 2
+					"type": "draw",
+					"count": 1
 				},
 				{
 					"type": "gain_weave",
@@ -75,6 +76,11 @@
 					"half": "bottom",
 					"field": "effect.steps[1].amount",
 					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Weave. Draw 1 card."
 				}
 			]
 		}

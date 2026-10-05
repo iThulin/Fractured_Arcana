@@ -1,0 +1,3013 @@
+diff --git a/Assets/Shaders/glyph_sigil.gdshader b/Assets/Shaders/glyph_sigil.gdshader
+index 2c27d19..8254745 100644
+--- a/Assets/Shaders/glyph_sigil.gdshader
++++ b/Assets/Shaders/glyph_sigil.gdshader
+@@ -1,187 +1,378 @@
+ shader_type spatial;
+-render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
++render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_disabled, shadows_disabled;
+ 
+ // ─────────────────────────────────────────────────────────────────────────
+-//  glyph_sigil.gdshader
++//  glyph_sigil.gdshader  (v2, "light circle", 2026-10-04)
+ //
+-//  The Enchanter glyph cipher's tile decal: a generated sigil lying flat on
+-//  the ground, waiting for a trigger.
++//  The Enchanter glyph on a hex tile, drawn as LIGHT rather than ink: a
++//  spell circle burned onto the ground in the manner of an arcane summoning
++//  ring. Thin hot cores, a coloured bloom around every line, a ring of
++//  runes, a slowly turning hexagram, satellite circles and a scatter of
++//  twinkles, with the generated cipher sigil at the centre carrying the
++//  gameplay information (hub = recipient, spokes = verbs).
+ //
+-//  The sigil arrives as a baked texture from GlyphCipherTexture — the same
+-//  stroke data the card art draws, rendered once and cached. This shader
+-//  supplies everything a static texture cannot: the enclosing ring, the
+-//  backing, the halo, the breathing, and the sequential inscription.
++//  WHY IT CHANGED. v1 baked the cipher as INK (colour + alpha) and alpha-
++//  blended it over a dark backing. Antialiased polylines, round-cap discs
++//  and crossing strokes all double up their alpha where they overlap, and a
++//  transparent viewport premultiplies the ink toward black at every edge,
++//  so crossings and joints came out as blotches with dark fringes.
+ //
+-//  LAYOUT. The baked sigil's own rim sits exactly at the texture's inscribed
+-//  circle, so there is no room inside the image for anything outside it. The
+-//  texture is therefore mapped to the inner `sigil_scale` of the quad and the
+-//  annulus left over belongs to the enclosing ring. That is why the ring is
+-//  procedural rather than baked.
++//  v2 bakes a COVERAGE MASK instead (GlyphCipherView.LightMask): drawn with
++//  additive canvas blending into separate channels, so overlaps saturate to
++//  a clean union rather than stacking.
++//      R = identity stave (arms, crossbars, ornaments)
++//      G = function layer (spokes, spoke tips, markers, hub OUTLINE)
++//      B = hub fill
++//  The enclosing rim is NOT in the mask; it is drawn procedurally here,
++//  where it is sharp at any distance.
+ //
+-//  Sibling of imbuement_glyph.gdshader and deliberately shaped like it, but
+-//  blend_mix rather than blend_add: this sigil carries a dark backing so it
+-//  stays legible over grass, sand, stone or water, and additive blending would
+-//  erase exactly that. The glow is reconstructed here instead.
++//  BLENDING. blend_premul_alpha does both jobs in one pass:
++//      result = ALBEDO + ground * (1 - ALPHA)
++//  ALPHA is a soft darkening disc (so the light reads over bright grass and
++//  sand), ALBEDO is pure emitted light (so crossings brighten, exactly as
++//  two beams of light do, instead of blotching).
++//
++//  The mask is NOT source_color: it is coverage, not colour, and an sRGB
++//  decode would crush every antialiased edge.
+ // ─────────────────────────────────────────────────────────────────────────
+ 
+-/** Baked sigil. Alpha carries the strokes; RGB carries ink and rose. */
+-uniform sampler2D sigil_tex : source_color, filter_linear_mipmap;
++/** Baked cipher coverage mask. R = stave, G = function, B = hub fill. */
++uniform sampler2D mask_tex : filter_linear_mipmap, hint_default_black;
+ 
+-/** Fraction of the quad the baked sigil occupies. The remainder is the ring's. */
++/** Fraction of the quad the cipher occupies. The rest belongs to the rings. */
+ uniform float sigil_scale : hint_range(0.4, 1.0) = 0.80;
+ 
+-// ── Distance robustness ──────────────────────────────────────────────────
+-// The ring and the hub hold up as the camera pulls back — the ring because it
+-// is drawn procedurally here (sharp at any scale), the hub because it is a
+-// large solid area. The stave does not: it is thin strokes in a minified
+-// texture, and the mip chain averages them toward transparent long before
+-// anything else fades. These two uniforms fight that, and they are the whole
+-// reason the sigil stays readable at range.
+-
+-/** Mip LOD bias. Negative keeps a sharper mip level than the hardware would pick,
+-    which stops thin strokes dissolving. Too negative and they alias/shimmer. */
+-uniform float mip_bias : hint_range(-2.0, 1.0) = -0.6;
+-
+-/** Exponent on the sigil's alpha. Below 1.0 this pushes partially-covered texels
+-    back toward opaque, which is exactly what minification produces — so it
+-    effectively re-fattens thin lines at distance instead of letting them wash out. */
+-uniform float alpha_gain : hint_range(0.25, 1.0) = 0.55;
+-
+-// ── Enclosing ring ───────────────────────────────────────────────────────
+-/** Ring tint. Drive from UITheme.CipherFunction so it matches the school. */
+-uniform vec4 ring_color : source_color = vec4(0.769, 0.357, 0.620, 1.0);
+-uniform float ring_radius : hint_range(0.0, 0.5) = 0.455;
+-uniform float ring_width : hint_range(0.0, 0.06) = 0.009;
+-uniform float ring_softness : hint_range(0.0, 0.06) = 0.010;
++group_uniforms colour;
++/** The circle's own light: rings, runes, hexagram, stave. */
++uniform vec4 light_color : source_color = vec4(0.60, 0.40, 1.00, 1.0);
++/** The function layer (spokes and hub). Drive from UITheme.CipherFunction. */
++uniform vec4 accent_color : source_color = vec4(0.769, 0.357, 0.620, 1.0);
++/** Cool counter-tone: outer ring, rune band, sigil rim, satellites, twinkles. */
++uniform vec4 cool_color : source_color = vec4(0.55, 0.82, 1.00, 1.0);
++/** Master for the cool tone. 0 puts every element back on light_color. */
++uniform float cool_amount : hint_range(0.0, 1.0) = 1.0;
++/** What line cores burn toward at full heat. Icy rather than pink. */
++uniform vec4 core_color : source_color = vec4(0.88, 0.95, 1.00, 1.0);
++uniform float intensity : hint_range(0.0, 3.0) = 1.15;
++/** How far line cores whiten. 0 keeps every line its pure colour. */
++uniform float core_heat : hint_range(0.0, 1.5) = 0.42;
++uniform float glow_strength : hint_range(0.0, 3.0) = 1.3;
++/** Soft light cast on the ground under the circle. */
++uniform float pool_strength : hint_range(0.0, 1.0) = 0.07;
++
++group_uniforms ground;
++/** Darkening under the circle, so it reads on bright terrain. 0 for pure light. */
++uniform float backing_alpha : hint_range(0.0, 1.0) = 0.38;
++uniform float backing_radius : hint_range(0.0, 0.5) = 0.49;
++
++group_uniforms ornament;
+ uniform float ring_strength : hint_range(0.0, 3.0) = 1.0;
++uniform float rune_strength : hint_range(0.0, 3.0) = 0.85;
++uniform float hexagram_strength : hint_range(0.0, 3.0) = 0.38;
++uniform float sparkle_strength : hint_range(0.0, 3.0) = 0.9;
++/** Fraction of sparkle cells that hold a star. */
++uniform float sparkle_density : hint_range(0.0, 1.0) = 0.22;
++/** Hexagram and satellites, radians per second. */
++uniform float ornament_spin : hint_range(-1.0, 1.0) = 0.06;
++/** Rune band, radians per second. Opposite sign to the hexagram reads as machinery. */
++uniform float rune_spin : hint_range(-1.0, 1.0) = -0.035;
++/** The cipher itself. Zero by default: spoke bearings are gameplay information. */
++uniform float cipher_spin : hint_range(-1.0, 1.0) = 0.0;
+ 
+-// ── Backing ──────────────────────────────────────────────────────────────
+-/** Darkens the ground under the sigil so it reads over any terrain. */
+-uniform vec4 backing_color : source_color = vec4(0.055, 0.043, 0.051, 1.0);
+-uniform float backing_alpha : hint_range(0.0, 1.0) = 0.62;
+-uniform float backing_radius : hint_range(0.0, 0.5) = 0.470;
+-uniform float backing_softness : hint_range(0.0, 0.3) = 0.090;
+-
+-// ── Glow ─────────────────────────────────────────────────────────────────
+-uniform vec4 glow_color : source_color = vec4(0.769, 0.357, 0.620, 1.0);
+-uniform float glow_strength : hint_range(0.0, 3.0) = 1.15;
+-uniform float glow_radius : hint_range(0.0, 0.08) = 0.022;
+-
+-// ── Life ─────────────────────────────────────────────────────────────────
+-uniform float pulse_speed : hint_range(0.0, 4.0) = 0.55;
+-uniform float pulse_amount : hint_range(0.0, 1.0) = 0.35;
+-/** Per-tile phase offset, radians. Keeps neighbouring glyphs off each other's beat. */
++group_uniforms distance;
++/** Mip LOD bias on the mask. Negative keeps thin strokes from dissolving at range. */
++uniform float mip_bias : hint_range(-2.0, 1.0) = -0.5;
++/** Exponent on mask coverage. Below 1 re-fattens strokes the mip chain thinned. */
++uniform float mask_gain : hint_range(0.25, 1.0) = 0.6;
++
++group_uniforms life;
++uniform float pulse_speed : hint_range(0.0, 4.0) = 0.45;
++uniform float pulse_amount : hint_range(0.0, 1.0) = 0.18;
++/** Per-tile phase, radians. Keeps neighbouring glyphs off each other's beat. */
+ uniform float phase = 0.0;
+-/** Slow rotation, radians per second. 0 for a static sigil. */
+-uniform float spin_speed : hint_range(-1.0, 1.0) = 0.045;
+ uniform float alpha_scale : hint_range(0.0, 1.0) = 1.0;
+ 
+-// ── Inscription ──────────────────────────────────────────────────────────
+-/** 0..1, driven by a Tween when the glyph is prepared. */
++group_uniforms inscription;
++/** 0..1, tweened when the glyph is prepared. Rings, runes, hexagram, then the cipher. */
+ uniform float progress : hint_range(0.0, 1.0) = 1.0;
++/** 1 -> 0 burst tweened after the inscription completes. */
++uniform float flash : hint_range(0.0, 1.0) = 0.0;
+ /** Arms in the stave. Each gets its own beat of the inscription. */
+ uniform int sweep_sectors : hint_range(1, 12) = 6;
+ 
+-vec2 rot_uv(vec2 uv, float a) {
+-    vec2 c = uv - vec2(0.5);
++// ── Layout (UV units, quad radius 0.5) ───────────────────────────────────
++const float R_OUTER = 0.488;     // thin outer ring
++const float R_RUNE = 0.466;      // centre line of the rune band
++const float RUNE_H = 0.011;      // rune half height
++const float R_BAND = 0.445;      // inner band ring; hexagram vertices sit on it
++const float RUNE_CELLS = 40.0;
++
++vec2 rot(vec2 p, float a) {
+     float s = sin(a);
+-    float co = cos(a);
+-    return vec2(c.x * co - c.y * s, c.x * s + c.y * co) + vec2(0.5);
++    float c = cos(a);
++    return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
++}
++
++float hash11(float n) {
++    return fract(sin(n * 127.1 + 11.7) * 43758.5453);
++}
++
++vec4 hash42(vec2 p) {
++    vec4 q = vec4(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)),
++                  dot(p, vec2(419.2, 371.9)), dot(p, vec2(97.3, 151.7)));
++    return fract(sin(q) * 43758.5453);
++}
++
++float sd_seg(vec2 p, vec2 a, vec2 b) {
++    vec2 pa = p - a;
++    vec2 ba = b - a;
++    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
++    return length(pa - ba * h);
++}
++
++// A line of half-width w at distance d, antialiased against the pixel footprint.
++// When the line would be thinner than a pixel it is drawn one pixel wide at
++// proportionally lower intensity, so it neither vanishes nor shimmers at range.
++float line_aa(float d, float w, float pix) {
++    float we = max(w, pix * 0.6);
++    return (1.0 - smoothstep(we - pix, we + pix, d)) * (w / we);
++}
++
++// Angle clockwise from up (the cipher's own convention), 0..TAU.
++float bearing(vec2 p) {
++    float a = atan(p.x, -p.y);
++    return a < 0.0 ? a + TAU : a;
++}
++
++// An angular sweep that has reached fraction t of the full turn.
++float sweep(float ang, float t) {
++    return 1.0 - smoothstep(t * TAU, t * TAU + 0.25, ang);
++}
++
++// One procedural rune, q in roughly [-1,1]^2, chosen by seed. Returns distance.
++float rune(vec2 q, float seed) {
++    float h = hash11(seed);
++    int bits = int(h * 64.0);
++    float d = 1e3;
++    float sx = ((bits & 1) != 0) ? 0.0 : -0.45;
++    d = min(d, sd_seg(q, vec2(sx, -0.9), vec2(sx, 0.9)));                      // stem
++    if ((bits & 2) != 0)  d = min(d, sd_seg(q, vec2(-0.55, 0.9), vec2(0.55, 0.9)));
++    if ((bits & 4) != 0)  d = min(d, sd_seg(q, vec2(-0.55, -0.6), vec2(0.55, 0.2)));
++    if ((bits & 8) != 0)  d = min(d, sd_seg(q, vec2(sx, -0.9), vec2(0.6, -0.35)));
++    if ((bits & 16) != 0) d = min(d, length(q - vec2(0.5, 0.45)) - 0.08);
++    if ((bits & 32) != 0) {
++        d = min(d, sd_seg(q, vec2(-0.6, 0.1), vec2(0.0, 0.6)));
++        d = min(d, sd_seg(q, vec2(0.0, 0.6), vec2(0.6, 0.1)));
++    }
++    return d;
+ }
+ 
+ void fragment() {
+-    vec2 uv = rot_uv(UV, TIME * spin_speed);
+-    vec2 p = uv - vec2(0.5);
+-    float r = length(p);
++    // Derivatives first, while every fragment of the quad is still alive.
++    vec2 fw2 = fwidth(UV);
++    float pix = max(fw2.x, fw2.y);
+ 
+-    // The decal is a disc; never let the quad's corners show.
++    vec2 p = UV - vec2(0.5);
++    float r = length(p);
+     if (r > 0.5) {
+         discard;
+     }
++    // Fine detail (runes, sparkles, ticks) fades out before it can alias.
++    float detail = 1.0 - smoothstep(0.0022, 0.0060, pix);
+ 
+-    // Sigil space: the baked image mapped to the inner sigil_scale of the quad.
+-    vec2 suv = p / sigil_scale + vec2(0.5);
+-    float sr = length(suv - vec2(0.5));
+-    vec4 tex = (sr <= 0.5) ? texture(sigil_tex, suv, mip_bias) : vec4(0.0);
+-    tex.a = pow(tex.a, alpha_gain);
+-
+-    // theta measured CLOCKWISE FROM UP, which is exactly the cipher's own
+-    // convention (spec v2 §2), and UV-space +Y already points down — so sector 0
+-    // lands on arm 0 and the inscription runs in reading order for free.
+-    float ang = atan(p.x, -p.y);
+-    if (ang < 0.0) {
+-        ang += TAU;
+-    }
+-
++    float ang = bearing(p);
+     float pulse = 1.0 + pulse_amount * sin(TIME * pulse_speed * TAU + phase);
++    float P = progress;
+ 
+-    // ── Sequential inscription ───────────────────────────────────────────
+-    // One beat per arm. Within its beat an arm is drawn OUTWARD from the hub,
+-    // so each stave is struck from the centre to its tip rather than the whole
+-    // sigil fading up together.
+-    float sectors = float(sweep_sectors);
+-    float sector_w = TAU / sectors;
+-    float a2 = ang + sector_w * 0.5;          // centre sector 0 on arm 0
+-    if (a2 >= TAU) {
+-        a2 -= TAU;
+-    }
+-    float sector = floor(a2 / sector_w);
+-
+-    float t = progress * sectors;
+-    float done = floor(t);
+-    float local = t - done;
+-
+-    float reveal;
+-    if (sector < done) {
+-        reveal = 1.0;
+-    } else if (sector > done) {
+-        reveal = 0.0;
+-    } else {
+-        reveal = 1.0 - smoothstep(local * 0.52, local * 0.52 + 0.05, sr);
++    // Inscription schedule.
++    float p_ground = smoothstep(0.0, 0.20, P);
++    float p_rings = clamp(P / 0.40, 0.0, 1.0);
++    float p_runes = clamp((P - 0.10) / 0.40, 0.0, 1.0);
++    float p_hex = smoothstep(0.25, 0.60, P);
++    float p_cipher = clamp((P - 0.35) / 0.60, 0.0, 1.0);
++    float p_spark = smoothstep(0.80, 1.0, P);
++
++    vec3 light = vec3(0.0);
++    float core = 0.0;       // accumulated line-core coverage, for whitening
++
++    // ── Rings ────────────────────────────────────────────────────────────
++    float r_sig = sigil_scale * 0.5;
++    // Two-tone palette: violet for the band ring, hexagram and stave; light blue for
++    // the outer ring, rune band, sigil rim, satellites and twinkles.
++    vec3 cool = mix(light_color.rgb, cool_color.rgb, cool_amount);
++    vec3 mid = mix(light_color.rgb, cool_color.rgb, 0.5 * cool_amount);
++
++    float ring_out = line_aa(abs(r - R_OUTER), 0.0020, pix) * 0.80;
++    float ring_band = line_aa(abs(r - R_BAND), 0.0026, pix);
++    float ring_sig = line_aa(abs(r - r_sig), 0.0030, pix) * 0.95;
++    float rsw = sweep(ang, p_rings);
++    float rings = (ring_out + ring_band + ring_sig) * rsw;
++
++    // Fine bearing ticks just outside the cipher: 72 short, every 6th long.
++    float tick_i = floor(ang / (TAU / 72.0) + 0.5);
++    float tick_a = tick_i * (TAU / 72.0);
++    float tick_d = abs(sin(ang - tick_a)) * r;
++    float tick_len = (mod(tick_i, 6.0) < 0.5) ? 0.020 : 0.010;
++    float tick_band = 1.0 - smoothstep(0.0, pix * 1.5, max(r_sig + 0.006 - r, r - (r_sig + 0.006 + tick_len)));
++    float ticks = line_aa(tick_d, 0.0013, pix) * tick_band * 0.45 * detail * sweep(ang, p_rings);
++
++    light += (cool * (ring_out + ring_sig) * rsw + light_color.rgb * ring_band * rsw
++              + cool * ticks) * ring_strength;
++    core += rings * 0.7;
++
++    vec3 ring_glow = light_color.rgb * exp(-abs(r - R_BAND) / 0.022) * 0.24
++                   + cool * exp(-abs(r - r_sig) / 0.018) * 0.20
++                   + cool * exp(-abs(r - R_OUTER) / 0.014) * 0.12;
++    light += ring_glow * glow_strength * pulse * p_rings;
++
++    // ── Rune band ────────────────────────────────────────────────────────
++    float band = 1.0 - smoothstep(RUNE_H + 0.004, RUNE_H + 0.004 + pix, abs(r - R_RUNE));
++    if (band > 0.0) {
++        float ra = ang + TIME * rune_spin;
++        ra = mod(ra, TAU);
++        float cw = TAU / RUNE_CELLS;
++        float cell = floor(ra / cw);
++        float local = (fract(ra / cw) - 0.5) * cw * R_RUNE;      // arc length, UV units
++        vec2 q = vec2(local, r - R_RUNE) / RUNE_H;
++        float rd;
++        if (mod(cell, 5.0) < 0.5) {
++            rd = length(q) - 0.18;                                // separator dot
++        } else {
++            rd = rune(q, cell + floor(phase * 10.0));
++        }
++        float runes = line_aa(rd * RUNE_H, 0.0016, pix);
++        // At range the runes become a soft glowing band rather than noise.
++        float haze = 0.22;
++        float rl = mix(haze, runes, detail) * band;
++        rl *= sweep(ang, p_runes) * rune_strength;
++        light += cool * rl;
++        core += runes * band * 0.5 * detail * sweep(ang, p_runes);
+     }
+ 
+-    // The hub sits at the centre, where the angle is meaningless. Land it last so
+-    // the sigil visibly seals instead of popping in with the first arm.
+-    float hub = smoothstep(0.90, 1.0, progress);
+-    float centre_mask = 1.0 - smoothstep(0.06, 0.11, sr);
+-    reveal = mix(reveal, hub, centre_mask);
+-
+-    // ── Halo ─────────────────────────────────────────────────────────────
+-    // Eight-tap ring blur of the sigil's own alpha, squared to pull the bloom
+-    // back against the strokes instead of fogging the whole disc.
+-    float halo = 0.0;
+-    for (int i = 0; i < 8; i++) {
+-        float a = TAU * float(i) / 8.0;
+-        vec2 o = suv + vec2(cos(a), sin(a)) * glow_radius;
+-        halo += (length(o - vec2(0.5)) <= 0.5) ? texture(sigil_tex, o).a : 0.0;
++    // ── Hexagram and satellites ──────────────────────────────────────────
++    {
++        vec2 hp = rot(p, TIME * ornament_spin);
++        vec2 v[6];
++        for (int k = 0; k < 6; k++) {
++            float a = float(k) * TAU / 6.0;
++            v[k] = vec2(sin(a), -cos(a)) * R_BAND;
++        }
++        float hd = 1e3;
++        hd = min(hd, sd_seg(hp, v[0], v[2]));
++        hd = min(hd, sd_seg(hp, v[2], v[4]));
++        hd = min(hd, sd_seg(hp, v[4], v[0]));
++        hd = min(hd, sd_seg(hp, v[1], v[3]));
++        hd = min(hd, sd_seg(hp, v[3], v[5]));
++        hd = min(hd, sd_seg(hp, v[5], v[1]));
++        float hex = line_aa(hd, 0.0018, pix);
++
++        float sat = 0.0;
++        for (int k = 0; k < 6; k++) {
++            float sd = length(hp - v[k]);
++            sat += line_aa(abs(sd - 0.022), 0.0016, pix);
++            sat += (1.0 - smoothstep(0.004, 0.004 + pix, sd)) * 0.9;
++        }
++
++        light += (mid * hex * hexagram_strength + cool * sat * 0.7) * p_hex;
++        light += light_color.rgb * exp(-hd / 0.010) * 0.10 * hexagram_strength * glow_strength * pulse * p_hex;
++        core += sat * 0.4 * p_hex;
+     }
+-    halo = clamp(halo * 0.125, 0.0, 1.0);
+-    halo *= halo;
+-    float g = halo * glow_strength * pulse;
+ 
+-    // ── Enclosing ring ───────────────────────────────────────────────────
+-    // Drawn by a plain angular sweep so it closes as the last arm is struck.
+-    float ring = 1.0 - smoothstep(ring_width, ring_width + ring_softness, abs(r - ring_radius));
+-    ring *= 1.0 - smoothstep(progress * TAU, progress * TAU + 0.20, ang);
++    // ── Cipher (the gameplay layer) ──────────────────────────────────────
++    {
++        vec2 cp = rot(p, TIME * cipher_spin);
++        vec2 suv = cp / sigil_scale + vec2(0.5);
++        float sr = length(suv - vec2(0.5));
++        // Sampled unconditionally (implicit derivatives are undefined inside a
++        // divergent branch) and masked to the sigil disc instead.
++        float inside = 1.0 - step(0.5, sr);
++        {
++            vec3 m = texture(mask_tex, suv, mip_bias).rgb * inside;
++            m = pow(clamp(m, 0.0, 1.0), vec3(mask_gain));
++
++            // Bloom from the mip chain: cheap, smooth, and it widens with the stroke.
++            // Three widths: a tight halo, a body glow, and a wide soft wash.
++            vec3 g = textureLod(mask_tex, suv, 2.0).rgb * 0.45;
++            float o = 0.022;
++            g += (textureLod(mask_tex, suv + vec2(o, 0.0), 4.0).rgb
++                + textureLod(mask_tex, suv - vec2(o, 0.0), 4.0).rgb
++                + textureLod(mask_tex, suv + vec2(0.0, o), 4.0).rgb
++                + textureLod(mask_tex, suv - vec2(0.0, o), 4.0).rgb) * 0.20;
++            g += textureLod(mask_tex, suv, 5.5).rgb * 0.9;
++            g *= inside;
+ 
+-    // ── Backing ──────────────────────────────────────────────────────────
+-    // Fades in over the first quarter of the inscription, so the ground is not
+-    // darkened before there is anything drawn on it.
+-    float back = (1.0 - smoothstep(backing_radius - backing_softness, backing_radius, r))
+-                 * backing_alpha * smoothstep(0.0, 0.25, progress);
++            // Sequential inscription: one beat per arm, each struck from the hub out.
++            float cang = bearing(cp);
++            float sectors = float(sweep_sectors);
++            float sector_w = TAU / sectors;
++            float a2 = cang + sector_w * 0.5;
++            if (a2 >= TAU) {
++                a2 -= TAU;
++            }
++            float sector = floor(a2 / sector_w);
++            float t = p_cipher * sectors;
++            float done = floor(t);
++            float lt = t - done;
++            float reveal;
++            if (sector < done) {
++                reveal = 1.0;
++            } else if (sector > done) {
++                reveal = 0.0;
++            } else {
++                reveal = 1.0 - smoothstep(lt * 0.52, lt * 0.52 + 0.05, sr);
++            }
++            float hub = smoothstep(0.90, 1.0, p_cipher);
++            float centre_mask = 1.0 - smoothstep(0.06, 0.11, sr);
++            reveal = mix(reveal, hub, centre_mask);
++
++            vec3 lit = light_color.rgb * m.r * 1.05
++                     + accent_color.rgb * m.g * 1.35
++                     + accent_color.rgb * m.b * 0.42;
++            light += lit * reveal;
++            core += (m.r * 0.65 + m.g) * reveal;
++
++            // The stave's bloom leans cool, so each violet line sits in a bluish halo.
++            vec3 bloom = mix(light_color.rgb, cool_color.rgb, 0.35 * cool_amount) * g.r * 0.8
++                       + accent_color.rgb * (g.g * 1.1 + g.b * 0.5);
++            light += bloom * glow_strength * pulse * reveal;
++        }
++    }
++
++    // ── Sparkles ─────────────────────────────────────────────────────────
++    {
++        float cell_size = 0.05;
++        vec2 cid = floor(UV / cell_size);
++        vec4 h = hash42(cid + vec2(floor(phase * 7.0), 3.0));
++        if (h.x < sparkle_density) {
++            vec2 c = (cid + vec2(0.2 + 0.6 * h.y, 0.2 + 0.6 * h.z)) * cell_size;
++            vec2 d = UV - c;
++            float dl = length(d);
++            float tw = pow(max(0.0, sin(TIME * (0.8 + 1.6 * h.w) + h.y * TAU)), 10.0);
++            float star = exp(-dl / 0.0035)
++                       + exp(-abs(d.x) / 0.0012) * exp(-abs(d.y) / 0.010) * 0.6
++                       + exp(-abs(d.y) / 0.0012) * exp(-abs(d.x) / 0.010) * 0.6;
++            float rr = length(c - vec2(0.5));
++            float inside = 1.0 - smoothstep(0.44, 0.49, rr);
++            float s = star * tw * inside * sparkle_strength * detail * p_spark;
++            light += mix(cool, core_color.rgb, 0.5) * s;
++        }
++    }
+ 
+-    vec3 col = backing_color.rgb;
+-    float a = back;
++    // ── Ground light and the finish flash ────────────────────────────────
++    // Brightest at the centre and under the band ring, where the light is densest.
++    float pool = pool_strength * (pow(max(0.0, 1.0 - r / 0.5), 2.0)
++                                  + 0.8 * exp(-abs(r - R_BAND) / 0.05)) * pulse * p_ground;
++    light += mix(light_color.rgb, cool_color.rgb, 0.35 * cool_amount) * pool;
+ 
+-    col = mix(col, tex.rgb, tex.a * reveal);
+-    a = max(a, tex.a * reveal);
++    float fl = flash * (0.35 + 0.65 * exp(-abs(r - R_BAND) / 0.03));
++    light += mix(cool, core_color.rgb, 0.5) * fl;
+ 
+-    col += ring_color.rgb * ring * ring_strength * pulse;
+-    a = clamp(a + ring * ring_color.a, 0.0, 1.0);
++    // Hot cores: where lines are dense the light burns toward white.
++    float heat = clamp(core, 0.0, 1.0);
++    light += core_color.rgb * heat * heat * core_heat * (1.0 + flash);
+ 
+-    col += glow_color.rgb * g * reveal;
+-    a = clamp(a + g * glow_color.a * 0.5 * reveal, 0.0, 1.0);
++    float back = (1.0 - smoothstep(backing_radius - 0.14, backing_radius, r)) * backing_alpha * p_ground;
+ 
+-    ALBEDO = col;
+-    ALPHA = a * alpha_scale;
++    ALBEDO = light * intensity * alpha_scale;
++    ALPHA = back * alpha_scale;
+ }
+diff --git a/Data/Cards/enchanter_binding_chains.json b/Data/Cards/enchanter_binding_chains.json
+index cdf5ff8..f08d815 100644
+--- a/Data/Cards/enchanter_binding_chains.json
++++ b/Data/Cards/enchanter_binding_chains.json
+@@ -38,6 +38,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 4. When an enemy enters: deal 5 damage and heal you 5 HP.",
++		"glyph_text": "It takes {damage} damage and {owner} heals {heal} HP.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -206,6 +207,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a reusable glyph within 4. Each enemy entering takes 7, is Hexed for 2 turns, and heals you 7 HP."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Weakened for {status_turns}. {owner} heals {heal} HP."
+ 				}
+ 			]
+ 		},
+@@ -267,6 +273,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a reusable glyph. Each enemy entering takes 9, is Named for 1 turn, and heals you 9 HP."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}. {owner} heals {heal} HP."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_binding_rune.json b/Data/Cards/enchanter_binding_rune.json
+index 50e166a..a7fc109 100644
+--- a/Data/Cards/enchanter_binding_rune.json
++++ b/Data/Cards/enchanter_binding_rune.json
+@@ -9,6 +9,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph on a tile within 3. An enemy here at the start of its turn is Rooted and takes 3 damage. Lasts 2 turns.",
++		"glyph_text": "It takes {damage} damage and is Rooted for {status_turns}.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -179,6 +180,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a permanent reusable glyph. Each turn an enemy here takes 7 and is Named (half damage, cannot move) for 1 turn."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_charm_drift.json b/Data/Cards/enchanter_charm_drift.json
+index 632504a..afa6527 100644
+--- a/Data/Cards/enchanter_charm_drift.json
++++ b/Data/Cards/enchanter_charm_drift.json
+@@ -8,7 +8,7 @@
+ 		"name": "Charm Drift",
+ 		"mana": 1,
+ 		"speed": "Reflex",
+-		"rules_text": "Push an enemy 2 tiles in a direction you choose. If it lands on one of your glyphs, trigger it.",
++		"rules_text": "Compel target enemy to walk 2 tiles in a direction you choose. Your glyphs on its path trigger.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -18,9 +18,9 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "push_aimed",
++			"type": "compel_walk",
+ 			"tiles": 2,
+-			"collision_damage": 0
++			"mode": "direction"
+ 		}
+ 	},
+ 	"bottom": {
+@@ -28,6 +28,7 @@
+ 		"mana": 1,
+ 		"speed": "Reflex",
+ 		"rules_text": "Prepare a glyph on a tile within 4. Allies on this tile gain +4 armor. Lasts 3 turns. Gain 1 Weave.",
++		"glyph_text": "It gains +{armor} armor.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -58,18 +59,8 @@
+ 			"half": "both",
+ 			"top_name": "Charm Drift+",
+ 			"bottom_name": "Ward Stone+",
+-			"description": "Drift pushes further. The ward holds more.",
++			"description": "It drifts further. The ward holds more.",
+ 			"changes": [
+-				{
+-					"half": "top",
+-					"field": "effect.tiles",
+-					"value": 3
+-				},
+-				{
+-					"half": "top",
+-					"field": "rules_text",
+-					"value": "Push an enemy 3 tiles in a direction you choose. If it lands on one of your glyphs, trigger it."
+-				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "effect.steps[0].ally_armor",
+@@ -79,6 +70,20 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. Allies on it gain +6 armor. Lasts 3 turns. Gain 1 Weave."
++				},
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "compel_walk",
++						"tiles": 3,
++						"mode": "direction"
++					}
++				},
++				{
++					"half": "top",
++					"field": "rules_text",
++					"value": "Compel target enemy to walk 3 tiles in a direction you choose. Your glyphs on its path trigger."
+ 				}
+ 			]
+ 		},
+@@ -86,17 +91,30 @@
+ 			"tier": 2,
+ 			"half": "top",
+ 			"top_name": "Compelling Drift",
+-			"description": "Compelling Drift: collisions deal damage.",
++			"description": "Every step feeds the working.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.collision_damage",
+-					"value": 5
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 3,
++								"mode": "direction"
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Push an enemy 3 tiles. If it collides, deal 5 damage. If it lands on a glyph, trigger it."
++					"value": "Compel target enemy to walk 3 tiles in a direction you choose. Your glyphs on its path trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -115,6 +133,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. Allies on it gain +6 armor and 2 shield. Lasts 3 turns. Gain 1 Weave."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{armor} armor and {shield} shield."
+ 				}
+ 			]
+ 		},
+@@ -122,37 +145,39 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Mass Charm",
+-			"description": "Mass Charm: push all enemies in a small area.",
++			"description": "A long walk.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "push_to_glyph",
+-							"tiles": 3,
+-							"collision_damage": 5
+-						}
++						"type": "unit_then_direction",
++						"range": 6,
++						"enemies_only": true
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 4,
++								"mode": "direction"
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Push all enemies within 2 of the target 3 tiles. Collisions deal 5 damage. Glyph landings trigger."
++					"value": "Compel target enemy to walk 4 tiles in a direction you choose. Your glyphs on its path trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -171,6 +196,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. Allies on it gain +6 armor, 2 shield, +2 damage. Lasts 3 turns. Gain 1 Weave."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage."
+ 				}
+ 			]
+ 		},
+@@ -178,47 +208,45 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Irresistible Pull",
+-			"description": "Irresistible Pull: drag enemies onto your glyphs and Name them.",
++			"description": "And Name it where it stops.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "sequence",
+-							"steps": [
+-								{
+-									"type": "push_to_glyph",
+-									"tiles": 3,
+-									"collision_damage": 6
+-								},
+-								{
+-									"type": "apply_status",
+-									"status": "named",
+-									"duration": 1
+-								}
+-							]
+-						}
++						"type": "unit_then_direction",
++						"range": 6,
++						"enemies_only": true
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 4,
++								"mode": "direction"
++							},
++							{
++								"type": "name_condition",
++								"trigger": "move",
++								"damage": 5,
++								"duration": 2
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Push all enemies within 2 onto your glyphs (collisions deal 6 damage). Name each for 1 turn."
++					"value": "Compel target enemy to walk 4 tiles in a direction you choose. Your glyphs on its path trigger. Then Name it for 2 turns: if it moves, it takes 5. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_compel.json b/Data/Cards/enchanter_compel.json
+index 7d73c73..ab2b3fc 100644
+--- a/Data/Cards/enchanter_compel.json
++++ b/Data/Cards/enchanter_compel.json
+@@ -8,7 +8,7 @@
+ 		"name": "Compel",
+ 		"mana": 1,
+ 		"speed": "Reflex",
+-		"rules_text": "Pull an enemy 2 tiles toward you. If it lands on one of your glyphs, trigger it.",
++		"rules_text": "Compel target enemy to walk up to 2 tiles toward you. Your glyphs on its path trigger.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -19,7 +19,7 @@
+ 			"enemies_only": true
+ 		},
+ 		"effect": {
+-			"type": "pull_to_glyph",
++			"type": "compel_walk",
+ 			"tiles": 2
+ 		}
+ 	},
+@@ -28,6 +28,7 @@
+ 		"mana": 1,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less. Draw 1 card.",
++		"glyph_text": "Your spells cost 1 less.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -59,18 +60,8 @@
+ 			"half": "both",
+ 			"top_name": "Compel+",
+ 			"bottom_name": "Sigil of Focus+",
+-			"description": "Pull harder. The focus sigil lasts longer.",
++			"description": "It walks further. The focus sigil lasts longer.",
+ 			"changes": [
+-				{
+-					"half": "top",
+-					"field": "effect.tiles",
+-					"value": 3
+-				},
+-				{
+-					"half": "top",
+-					"field": "rules_text",
+-					"value": "Pull an enemy 3 tiles toward you. If it lands on a glyph, trigger it."
+-				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "effect.steps[0].duration",
+@@ -80,6 +71,19 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less (4 turns). Draw 1 card."
++				},
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "compel_walk",
++						"tiles": 3
++					}
++				},
++				{
++					"half": "top",
++					"field": "rules_text",
++					"value": "Compel target enemy to walk up to 3 tiles toward you. Your glyphs on its path trigger."
+ 				}
+ 			]
+ 		},
+@@ -87,17 +91,29 @@
+ 			"tier": 2,
+ 			"half": "top",
+ 			"top_name": "Dominate Step",
+-			"description": "Dominate Step: collisions deal damage.",
++			"description": "Every step feeds the working.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.collision_damage",
+-					"value": 5
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "compel_walk",
++								"tiles": 3
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Pull an enemy 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
++					"value": "Compel target enemy to walk up to 3 tiles toward you. Your glyphs on its path trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -116,6 +132,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. While you stand on it, your spells cost 1 less and deal +2. Draw 1 card."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "Your spells cost 1 less and deal +2 damage."
+ 				}
+ 			]
+ 		},
+@@ -123,37 +144,45 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Mass Compel",
+-			"description": "Mass Compel: drag several enemies in.",
++			"description": "Several at once.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "pull_to_glyph",
+-							"tiles": 3,
+-							"collision_damage": 5
+-						}
++						"type": "tile",
++						"range": 6
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "retarget",
++								"targeting": {
++									"type": "aoe",
++									"radius": 2,
++									"enemies_only": true
++								},
++								"do": {
++									"type": "compel_walk",
++									"tiles": 3
++								}
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Pull all enemies within 2 of the target 3 tiles toward you. Collisions deal 5 damage. Glyph landings trigger."
++					"value": "Compel every enemy within 2 of the target point to walk up to 3 tiles toward you. Your glyphs on their paths trigger. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -172,6 +201,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. While on it: spells cost 1 less, deal +2, and gain 1 Weave/turn. Draw 1 card."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "Your spells cost 1 less and deal +2 damage. Gain 1 Weave each turn."
+ 				}
+ 			]
+ 		},
+@@ -179,47 +213,56 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Absolute Compulsion",
+-			"description": "Absolute Compulsion: drag them in and Name them.",
++			"description": "And Name them as they come.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect",
++					"field": "targeting",
+ 					"value": {
+-						"type": "retarget",
+-						"targeting": {
+-							"type": "aoe",
+-							"radius": 2,
+-							"enemies_only": true
+-						},
+-						"do": {
+-							"type": "sequence",
+-							"steps": [
+-								{
+-									"type": "pull_to_glyph",
+-									"tiles": 3,
+-									"collision_damage": 6
+-								},
+-								{
+-									"type": "apply_status",
+-									"status": "named",
+-									"duration": 1
+-								}
+-							]
+-						}
++						"type": "tile",
++						"range": 6
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+-					"field": "targeting",
++					"field": "effect",
+ 					"value": {
+-						"type": "tile",
+-						"range": 6
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "retarget",
++								"targeting": {
++									"type": "aoe",
++									"radius": 2,
++									"enemies_only": true
++								},
++								"do": {
++									"type": "sequence",
++									"steps": [
++										{
++											"type": "compel_walk",
++											"tiles": 3
++										},
++										{
++											"type": "name_condition",
++											"trigger": "attack",
++											"damage": 4,
++											"duration": 1
++										}
++									]
++								}
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
+ 					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Pull all enemies within 2 toward you (collisions deal 6 damage). Name each for 1 turn."
++					"value": "Compel every enemy within 2 of the target point to walk up to 3 tiles toward you, then Name each for 1 turn: if it attacks, it takes 4. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -255,6 +298,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a permanent glyph within 4. While on it: spells cost 2 less, deal +3, gain 1 Weave/turn. Draw 2 cards."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "Your spells cost 2 less and deal +3 damage. Gain 1 Weave each turn."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_contingency_glyph.json b/Data/Cards/enchanter_contingency_glyph.json
+index c7a98d9..8793647 100644
+--- a/Data/Cards/enchanter_contingency_glyph.json
++++ b/Data/Cards/enchanter_contingency_glyph.json
+@@ -9,6 +9,7 @@
+ 		"mana": 2,
+ 		"speed": "Sorcery",
+ 		"rules_text": "Choose one: prepare a Snare glyph on the target tile, or trigger all of your prepared glyphs.",
++		"glyph_text": "It takes {damage} damage and is Rooted for {status_turns}.",
+ 		"tags": [],
+ 		"targeting": {
+ 			"type": "tile",
+diff --git a/Data/Cards/enchanter_dominion.json b/Data/Cards/enchanter_dominion.json
+index 74015e3..77939d2 100644
+--- a/Data/Cards/enchanter_dominion.json
++++ b/Data/Cards/enchanter_dominion.json
+@@ -44,6 +44,7 @@
+ 		"mana": 3,
+ 		"speed": "Reflex",
+ 		"rules_text": "Prepare wards on a 2-tile radius around you. Allies on them gain 4 armor and 3 shield. Lasts 3 turns.",
++		"glyph_text": "It gains +{armor} armor and {shield} shield.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -136,6 +137,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage. Lasts 3 turns."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage."
+ 				}
+ 			]
+ 		},
+@@ -172,6 +178,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare wards (radius 2). Allies gain 6 armor, 3 shield, +2 damage, and heal 3 per turn. Lasts 3 turns."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage, and heals 3 HP each turn."
+ 				}
+ 			]
+ 		},
+@@ -254,6 +265,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare permanent wards (radius 3). Allies gain 8 armor, 6 shield, +3 damage, heal 4 per turn."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{armor} armor, {shield} shield and +{ally_damage} spell damage, and heals 4 HP each turn."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_ensnaring_web.json b/Data/Cards/enchanter_ensnaring_web.json
+index 482c15c..49da9a6 100644
+--- a/Data/Cards/enchanter_ensnaring_web.json
++++ b/Data/Cards/enchanter_ensnaring_web.json
+@@ -9,6 +9,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a web of glyphs on a 2-tile radius within 4. Enemies that enter are Slowed for 1 turn. Lasts 3 turns.",
++		"glyph_text": "It is Slowed for {status_turns}.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -79,6 +80,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Refresh all of your triggered glyphs. Gain 3 Weave."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Slowed for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -97,6 +103,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a web (radius 2) within 4. Enemies entering take 3 and are Rooted for 1 turn. Lasts 3 turns."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Rooted for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -186,6 +197,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a permanent web (radius 3). Enemies entering take 6 and are Named (half damage, cannot move) 1 turn."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_fate_weaver.json b/Data/Cards/enchanter_fate_weaver.json
+index 312d012..b6151c6 100644
+--- a/Data/Cards/enchanter_fate_weaver.json
++++ b/Data/Cards/enchanter_fate_weaver.json
+@@ -9,6 +9,7 @@
+ 		"mana": 3,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 4. Whenever any spell is cast within 3 of it, draw 1 card. Lasts 3 turns.",
++		"glyph_text": "{owner} draws {draw_cards}.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -31,6 +32,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph on every unoccupied tile within 2 of you. Each deals 2 damage when an enemy enters.",
++		"glyph_text": "It takes {damage} damage.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -73,6 +75,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph on every unoccupied tile within 2 of you. Each deals 3 when an enemy enters."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "{owner} draws {draw_cards} and gains {owner_mana} mana."
+ 				}
+ 			]
+ 		},
+@@ -91,6 +98,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. When any spell casts within 3, draw 1 card, gain 1 mana, gain 1 Weave. Lasts 3 turns."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "{owner} draws {draw_cards} and gains {owner_mana} mana and {weave} Weave."
+ 				}
+ 			]
+ 		},
+@@ -114,6 +126,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare glyphs on every unoccupied tile within 2. Each deals 3 and slows when an enemy enters."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Slowed for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -183,6 +200,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Permanent glyph. When any spell casts within 4: draw 1 card, gain 1 mana, 1 Weave, and spawn a 3-damage glyph nearby."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "{owner} draws {draw_cards} and gains {owner_mana} mana and {weave} Weave. A 3-damage glyph appears nearby."
+ 				}
+ 			]
+ 		},
+@@ -210,6 +232,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare reusable glyphs on every unoccupied tile within 3. Each deals 5 and Names for 1 turn on entry."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_geas.json b/Data/Cards/enchanter_geas.json
+index 7684c6d..d7078f4 100644
+--- a/Data/Cards/enchanter_geas.json
++++ b/Data/Cards/enchanter_geas.json
+@@ -38,6 +38,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare wards on a 1-tile radius within 4. Allies on them deal +2 damage. Lasts 3 turns.",
++		"glyph_text": "It gains +{ally_damage} spell damage.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -62,16 +63,6 @@
+ 			"bottom_name": "Empowerment Field+",
+ 			"description": "The compulsion bites harder. The field empowers more.",
+ 			"changes": [
+-				{
+-					"half": "top",
+-					"field": "effect.steps[0].damage",
+-					"value": 8
+-				},
+-				{
+-					"half": "top",
+-					"field": "rules_text",
+-					"value": "Lay a compulsion on an enemy for 2 turns: if it moves, it takes 8. Gain 1 Weave."
+-				},
+ 				{
+ 					"half": "bottom",
+ 					"field": "effect.ally_damage",
+@@ -81,6 +72,29 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare wards (radius 1) within 4. Allies on them deal +3. Lasts 3 turns."
++				},
++				{
++					"half": "top",
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "geas",
++								"damage": 8,
++								"duration": 2
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
++				},
++				{
++					"half": "top",
++					"field": "rules_text",
++					"value": "Name an enemy for 2 turns: if it moves, it takes 8 damage. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -88,17 +102,31 @@
+ 			"tier": 2,
+ 			"half": "top",
+ 			"top_name": "Twin Geas",
+-			"description": "Twin Geas: the punishment also triggers if it casts.",
++			"description": "Casting breaks it too.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.steps[0].punish_cast",
+-					"value": true
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "geas",
++								"damage": 8,
++								"duration": 2,
++								"punish_cast": true
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Compulsion for 2 turns: the enemy takes 8 if it moves OR casts. Gain 1 Weave."
++					"value": "Name an enemy for 2 turns: if it moves or casts, it takes 8 damage. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -117,6 +145,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare wards (radius 1) within 4. Allies on them deal +3 and gain 3 shield. Lasts 3 turns."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{ally_damage} spell damage and {shield} shield."
+ 				}
+ 			]
+ 		},
+@@ -124,17 +157,31 @@
+ 			"tier": 3,
+ 			"half": "top",
+ 			"top_name": "Greater Geas",
+-			"description": "Greater Geas: rooted while the compulsion holds.",
++			"description": "Heavier, and longer.",
+ 			"changes": [
+ 				{
+ 					"half": "top",
+-					"field": "effect.steps[0].root_while_active",
+-					"value": true
++					"field": "effect",
++					"value": {
++						"type": "sequence",
++						"steps": [
++							{
++								"type": "geas",
++								"damage": 10,
++								"duration": 3,
++								"punish_cast": true
++							},
++							{
++								"type": "gain_weave",
++								"amount": 1
++							}
++						]
++					}
+ 				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Compulsion for 2 turns: the enemy is Rooted, and takes 8 if it casts. Gain 1 Weave."
++					"value": "Name an enemy for 3 turns: if it moves or casts, it takes 10 damage. Gain 1 Weave."
+ 				}
+ 			]
+ 		},
+@@ -160,8 +207,16 @@
+ 			"tier": 4,
+ 			"half": "top",
+ 			"top_name": "Inescapable Geas",
+-			"description": "Inescapable Geas: punish everything around the target.",
++			"description": "Every enemy in the circle.",
+ 			"changes": [
++				{
++					"half": "top",
++					"field": "targeting",
++					"value": {
++						"type": "tile",
++						"range": 6
++					}
++				},
+ 				{
+ 					"half": "top",
+ 					"field": "effect",
+@@ -179,8 +234,7 @@
+ 									"type": "geas",
+ 									"damage": 8,
+ 									"duration": 3,
+-									"punish_cast": true,
+-									"root_while_active": true
++									"punish_cast": true
+ 								}
+ 							},
+ 							{
+@@ -190,18 +244,10 @@
+ 						]
+ 					}
+ 				},
+-				{
+-					"half": "top",
+-					"field": "targeting",
+-					"value": {
+-						"type": "tile",
+-						"range": 6
+-					}
+-				},
+ 				{
+ 					"half": "top",
+ 					"field": "rules_text",
+-					"value": "Compulsion (3 turns) on all enemies within 2: Rooted, and 8 damage if they cast. Gain 2 Weave."
++					"value": "Name every enemy within 2 of the target point for 3 turns: if it moves or casts, it takes 8 damage. Gain 2 Weave."
+ 				}
+ 			]
+ 		},
+@@ -229,6 +275,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare wards (radius 2) within 4. Allies on them deal +4 and gain 4 shield and 4 armor. Lasts 3 turns."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{ally_damage} spell damage, {shield} shield and +{armor} armor."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_glyph_network.json b/Data/Cards/enchanter_glyph_network.json
+index 7f83b82..60033f1 100644
+--- a/Data/Cards/enchanter_glyph_network.json
++++ b/Data/Cards/enchanter_glyph_network.json
+@@ -27,6 +27,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 4. The next spell you cast while standing on it is cast twice.",
++		"glyph_text": "The next spell you cast here is cast {casts} times.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -103,6 +104,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. The next spell cast on it is cast twice and costs 1 less. Gain 1 Weave."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "The next spell you cast here is cast {casts} times and costs 1 less."
+ 				}
+ 			]
+ 		},
+@@ -188,6 +194,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a permanent glyph. Every spell cast while standing on it is cast 3 times and costs 1 less. Gain 1 Weave/use."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "Every spell you cast here is cast {casts} times and costs 1 less. Gain 1 Weave each time."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_hex_mark.json b/Data/Cards/enchanter_hex_mark.json
+index 988b47d..af39082 100644
+--- a/Data/Cards/enchanter_hex_mark.json
++++ b/Data/Cards/enchanter_hex_mark.json
+@@ -38,6 +38,7 @@
+ 		"mana": 1,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 4. Allies on it deal +2 damage. Lasts 3 turns.",
++		"glyph_text": "It gains +{ally_damage} spell damage.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -143,6 +144,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4. Allies on it deal +3 damage and gain 3 shield. Lasts 3 turns."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{ally_damage} spell damage and {shield} shield."
+ 				}
+ 			]
+ 		},
+@@ -266,6 +272,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare wards on a 2-tile radius within 4. Allies on them deal +4 and gain 4 shield and 4 armor. Lasts 3 turns."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains +{ally_damage} spell damage, {shield} shield and +{armor} armor."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_mirror_ward.json b/Data/Cards/enchanter_mirror_ward.json
+index 75fb6fc..a37ee55 100644
+--- a/Data/Cards/enchanter_mirror_ward.json
++++ b/Data/Cards/enchanter_mirror_ward.json
+@@ -9,6 +9,8 @@
+ 		"mana": 2,
+ 		"speed": "Reflex",
+ 		"rules_text": "Prepare a glyph within 4. The next spell targeting a unit on this tile is reflected back at its caster.",
++		"glyph_text": "Reflects {next_spells} back at the caster.",
++		"glyph_trigger": "When a spell targets a unit on this tile.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -121,6 +123,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare reflecting glyphs (radius 1) within 4. Reflected spells deal +50% and hit their casters."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "Reflects {next_spells} back at the caster with +50% damage."
+ 				}
+ 			]
+ 		},
+@@ -163,6 +170,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare reflecting glyphs (radius 1) for 3 turns. Every spell targeting units there is reflected for +50%."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "Reflects every such spell back at its caster with +50% damage."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_runic_cascade.json b/Data/Cards/enchanter_runic_cascade.json
+index 35c88ad..7d2d32b 100644
+--- a/Data/Cards/enchanter_runic_cascade.json
++++ b/Data/Cards/enchanter_runic_cascade.json
+@@ -9,6 +9,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 4. When it triggers, it prepares a copy of itself on 2 adjacent tiles.",
++		"glyph_text": "It takes {damage} damage.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -86,6 +87,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4 (6). On trigger, copies onto 2 adjacent tiles which trigger at once."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage. The copies go off at once."
+ 				}
+ 			]
+ 		},
+@@ -127,6 +133,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 4 (6, slow). On trigger, copies onto 3 adjacent tiles which trigger at once."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Slowed for {status_turns}. The copies go off at once."
+ 				}
+ 			]
+ 		},
+@@ -172,6 +183,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a reusable glyph (7, root). On trigger it copies onto 3 adjacent tiles which trigger at once."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Rooted for {status_turns}. The copies go off at once."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_runic_trap.json b/Data/Cards/enchanter_runic_trap.json
+index e5eeba4..207bc87 100644
+--- a/Data/Cards/enchanter_runic_trap.json
++++ b/Data/Cards/enchanter_runic_trap.json
+@@ -9,6 +9,7 @@
+ 		"mana": 1,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters, deal 5 damage.",
++		"glyph_text": "It takes {damage} damage.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -28,6 +29,7 @@
+ 		"mana": 1,
+ 		"speed": "Studied",
+ 		"rules_text": "Move 2 tiles. Leave a glyph on your origin tile: the next ally to step on it gains 2 shield.",
++		"glyph_text": "It gains {shield} shield.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -101,6 +103,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 3. When an enemy enters, deal 7 damage and slow for 1 turn."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Slowed for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -119,6 +126,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Move 2 tiles. Leave a glyph: the next ally to step on it gains 4 shield and +2 damage."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains {shield} shield and +{ally_damage} spell damage."
+ 				}
+ 			]
+ 		},
+@@ -204,6 +216,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a hidden reusable glyph. Each enemy that enters takes 9 and is Named (half damage, cannot move) for 1 turn."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -243,6 +260,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Teleport within 4. Leave a 3-turn reusable ward (allies: 6 shield, 4 armor, +2 damage). Draw 1 card."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It gains {shield} shield, +{armor} armor and +{ally_damage} spell damage."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Cards/enchanter_snare_glyph.json b/Data/Cards/enchanter_snare_glyph.json
+index adc3fc5..7bfb432 100644
+--- a/Data/Cards/enchanter_snare_glyph.json
++++ b/Data/Cards/enchanter_snare_glyph.json
+@@ -9,6 +9,7 @@
+ 		"mana": 2,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph on a tile within 3. When an enemy enters: it is Rooted for 1 turn and takes 4 damage.",
++		"glyph_text": "It takes {damage} damage and is Rooted for {status_turns}.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -101,6 +102,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and apply Hex (Weakened) for 2 turns."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Weakened for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -204,6 +210,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Prepare a reusable glyph. Each enemy entering takes 8 and is Named (half damage, cannot move) for 1 turn."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_sovereign_will.json b/Data/Cards/enchanter_sovereign_will.json
+index 939530c..0b01bd3 100644
+--- a/Data/Cards/enchanter_sovereign_will.json
++++ b/Data/Cards/enchanter_sovereign_will.json
+@@ -9,6 +9,7 @@
+ 		"mana": 4,
+ 		"speed": "Studied",
+ 		"rules_text": "Raise 3 indestructible Sovereign Pillars for the rest of the fight. Allies on them gain +2 to all stats. Adjacent enemies deal 2 less and end their turn Weakened.",
++		"glyph_text": "It gains +{armor} armor, +{shield} shield and +{ally_damage} spell damage. Adjacent enemies deal 2 less and end their turn Weakened.",
+ 		"tags": [
+ 			"enchant"
+ 		],
+@@ -123,6 +124,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Enchant 4 indestructible pillars: allies +3 stats. Adjacent enemies deal 2 less and are Hexed. Gain 1 Weave/turn."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It gains +{armor} armor, +{shield} shield and +{ally_damage} spell damage. Adjacent enemies deal 2 less and end their turn Weakened. Gain 1 Weave each turn."
+ 				}
+ 			]
+ 		},
+@@ -167,6 +173,11 @@
+ 					"half": "top",
+ 					"field": "rules_text",
+ 					"value": "Enchant 5 indestructible pillars: allies +4 stats. Adjacent enemies deal 3 less, take 3, and are Named. Gain 1 Weave/turn."
++				},
++				{
++					"half": "top",
++					"field": "glyph_text",
++					"value": "It gains +{armor} armor, +{shield} shield and +{ally_damage} spell damage. Adjacent enemies deal 3 less, take 3 damage and are Named (half damage, cannot move). Gain 1 Weave each turn."
+ 				}
+ 			]
+ 		},
+diff --git a/Data/Cards/enchanter_warding_step.json b/Data/Cards/enchanter_warding_step.json
+index b19724e..4b929c9 100644
+--- a/Data/Cards/enchanter_warding_step.json
++++ b/Data/Cards/enchanter_warding_step.json
+@@ -38,6 +38,7 @@
+ 		"mana": 1,
+ 		"speed": "Studied",
+ 		"rules_text": "Prepare a glyph within 3. When an enemy enters: deal 4 damage and it is Slowed for 1 turn.",
++		"glyph_text": "It takes {damage} damage and is Slowed for {status_turns}.",
+ 		"tags": [
+ 			"enchant",
+ 			"glyph"
+@@ -119,6 +120,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare a glyph within 3. When an enemy enters, deal 6 and root for 1 turn."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Rooted for {status_turns}."
+ 				}
+ 			]
+ 		},
+@@ -242,6 +248,11 @@
+ 					"half": "bottom",
+ 					"field": "rules_text",
+ 					"value": "Prepare 2 reusable glyphs within 3. Each enemy entering takes 8 and is Named for 1 turn."
++				},
++				{
++					"half": "bottom",
++					"field": "glyph_text",
++					"value": "It takes {damage} damage and is Named (half damage, cannot move) for {status_turns}."
+ 				}
+ 			]
+ 		}
+diff --git a/Data/Register/barks.json b/Data/Register/barks.json
+index ff7c4e3..b9ac31f 100644
+--- a/Data/Register/barks.json
++++ b/Data/Register/barks.json
+@@ -285,6 +285,36 @@
+         "Some workings are written into the hour itself. You do not write them twice."
+       ],
+       "note": "A half marked Once can be cast one time per fight. Its effect lasts the rest of the fight, so every copy of that card now shows the half as Used."
++    },
++    {
++      "key": "ench.first_name",
++      "category": "explain",
++      "once": true,
++      "title": "A Name",
++      "lines": [
++        "It has been Named. It may still do as it likes. It will simply... pay."
++      ],
++      "note": "A Named unit shows its condition on its nameplate, such as \"If it moves: 6\". It can still do that thing; if it does, it takes the damage (once a round) and the Name is broken, which gives you 1 Weave."
++    },
++    {
++      "key": "ench.name_broken",
++      "category": "comment",
++      "once": false,
++      "cooldown": 30,
++      "lines": [
++        "Broken. As written.",
++        "It chose. The Name was clear about what that would cost."
++      ]
++    },
++    {
++      "key": "ench.compel",
++      "category": "explain",
++      "once": true,
++      "title": "Compelled",
++      "lines": [
++        "It walks because it was told to. It walks over whatever is in the way."
++      ],
++      "note": "A compelled unit walks, it is not shoved: your glyphs trigger, Fire sears and Frost slides as it steps, but there is no collision damage and it cannot be walked off a ledge. A blocked step ends the walk."
+     }
+   ]
+ }
+diff --git a/Schemas/card.schema.json b/Schemas/card.schema.json
+index a9e485a..34f6121 100644
+--- a/Schemas/card.schema.json
++++ b/Schemas/card.schema.json
+@@ -121,6 +121,14 @@
+ 					"description": "Human-readable description of the effect shown on the card.",
+ 					"minLength": 1
+ 				},
++				"glyph_text": {
++					"type": "string",
++					"description": "Tile tooltip text for a glyph this half prepares: what it does when it goes off. Tokens like {damage} are filled from the live glyph."
++				},
++				"glyph_trigger": {
++					"type": "string",
++					"description": "Optional override for the glyph tooltip's trigger line."
++				},
+ 				"tags": {
+ 					"type": "array",
+ 					"description": "Element and school tags read at cast time by attunement, buff systems, and targeting selectors. Required on every half \u2014 use an empty array [] for halves with no elemental or school identity.",
+@@ -404,7 +412,9 @@
+ 						"wither",
+ 						"gain_foresight_per_status",
+ 						"gain_foresight_per_moved",
+-						"fixed_hour"
++						"fixed_hour",
++						"compel_walk",
++						"name_condition"
+ 					]
+ 				},
+ 				"amount": {
+diff --git a/Scripts/Cards/CardRuntime.cs b/Scripts/Cards/CardRuntime.cs
+index e879d11..d6242aa 100644
+--- a/Scripts/Cards/CardRuntime.cs
++++ b/Scripts/Cards/CardRuntime.cs
+@@ -154,6 +154,15 @@ public sealed class CardHalf : Ability
+     /// <summary>Human-readable rules text shown on the card face. Authoritative source is the JSON's `rules_text` field.</summary>
+     public string RulesText = "";
+ 
++    /// <summary>Tile-tooltip text for a glyph this half prepares: what the glyph does when it
++    /// goes off, never how it is cast. Tokens such as {damage} are filled from the live glyph,
++    /// so a number-only upgrade needs no new text. Authored as `glyph_text`.</summary>
++    public string GlyphText = "";
++
++    /// <summary>Optional override for the tooltip's trigger line (`glyph_trigger`), for glyphs
++    /// the engine models with a Manual or otherwise unreadable trigger.</summary>
++    public string GlyphTriggerText = "";
++
+     /// <summary>School this half belongs to. May differ from the parent Card's primary school for multi-school cards.</summary>
+     public CardSchool School;
+ 
+diff --git a/Scripts/Cards/Effects/Effect.cs b/Scripts/Cards/Effects/Effect.cs
+index 92a0bed..ebf874a 100644
+--- a/Scripts/Cards/Effects/Effect.cs
++++ b/Scripts/Cards/Effects/Effect.cs
+@@ -86,6 +86,11 @@ internal static class InterfaceHelpers
+ 			OwnerId = caster?.Name ?? "Enchanter",
+ 			OwnerTeam = caster?.TeamId ?? 0,
+ 			GameState = s,
++			// Display mirror only: Fire runs OnTrigger and never reads these when it is set.
++			Damage = dmg,
++			Status = st,
++			StatusDuration = dur,
++			Reusable = reuse,
+ 			OnTrigger = (victim, state) =>
+ 			{
+ 				if (dmg > 0)
+@@ -97,7 +102,8 @@ internal static class InterfaceHelpers
+ 				// Full reusable/duration handling needs the GlyphManager tick (see writeup).
+ 			}
+ 		};
+-		tile.TileView?.ShowGlyph();
++		GlyphManager.StampFromCast(tile.Glyph);
++		tile.TileView?.ShowGlyph(tile.Glyph);
+ 
+ 		if (caster?.Attunement is WeaveAttunement w)
+ 			w.OnGlyphPrepared();
+@@ -1524,6 +1530,10 @@ public sealed class PlaceGlyphEffect : EffectBase
+ 				OwnerId = casterUnit.Name,
+ 				OwnerTeam = casterUnit.TeamId,
+ 				GameState = s,
++				// Display mirror only: Fire runs OnTrigger and never reads these when it is set.
++				Damage = dmg,
++				Status = status,
++				StatusDuration = dur,
+ 				OnTrigger = (victim, state) =>
+ 				{
+ 					victim.ApplyDamage(dmg);
+@@ -1537,7 +1547,8 @@ public sealed class PlaceGlyphEffect : EffectBase
+ 				}
+ 			};
+ 
+-			tile.TileView?.ShowGlyph();
++			GlyphManager.StampFromCast(tile.Glyph);
++			tile.TileView?.ShowGlyph(tile.Glyph);
+ 			s.Log($"[Glyph] Placed glyph at {tile.Axial}.");
+ 			break; // one glyph per cast
+ 		}
+diff --git a/Scripts/Cards/Effects/EnchanterEffects.cs b/Scripts/Cards/Effects/EnchanterEffects.cs
+index 4ee1523..410a739 100644
+--- a/Scripts/Cards/Effects/EnchanterEffects.cs
++++ b/Scripts/Cards/Effects/EnchanterEffects.cs
+@@ -273,10 +273,15 @@ public sealed class PrepareGlyphEffect : EffectBase
+ 	/// read always came back empty. Constant for the life of the object.</summary>
+ 	public string SourceCardId = "", SourceHalf = "";
+ 
++	/// <summary>Name and rules text of the owning half, stamped beside the id. Tooltip only.</summary>
++	public string SourceName = "", SourceRulesText = "";
++
+ 	private void Configure(GlyphData g)
+ 	{
+ 		g.SourceCardId = SourceCardId;
+ 		g.SourceHalf = SourceHalf;
++		g.SourceName = SourceName;
++		g.SourceRulesText = SourceRulesText;
+ 		g.Trigger = Trigger;
+ 		g.Damage = Damage;
+ 		g.Status = Status;
+diff --git a/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs b/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
+index c3822f5..8a7b677 100644
+--- a/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
++++ b/Scripts/Cards/Loader/CardScriptRegistry.Enchanter.cs
+@@ -139,12 +139,52 @@ public static partial class CardScriptRegistry
+             return new SwapUnitsEffect(withCaster).WithTag("Movement");
+         });
+ 
+-        // Geas: status whose on-move punish lives in the status system
+-        // { "type": "geas", "duration": n }
++        // Geas (2026-10-04, slice 11): a real Name now, not a status with no hook.
++        // { "type": "geas", "damage": n, "duration": n, "punish_cast": bool }
+         RegisterEffect("geas", n =>
+         {
+             int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 2;
+-            return new StatusApplyEffect("geas", dur, "(on-move punish needs status hook)").WithTag("Control");
++            int dmg = n.TryGetProperty("damage", out var dm) ? dm.GetInt32() : 6;
++            var trig = NameTrigger.Move;
++            if (n.TryGetProperty("punish_cast", out var pc) && pc.ValueKind == System.Text.Json.JsonValueKind.True)
++                trig |= NameTrigger.Cast;
++            return new NameConditionEffect(trig, dmg, dur).WithTag("Control");
++        });
++
++        // Names (class_identity_enchanter_v1 §2b): a condition that punishes.
++        // { "type": "name_condition", "trigger": "move"|"attack"|"cast"|"act" or [..], "damage": n, "duration": n }
++        RegisterEffect("name_condition", n =>
++        {
++            var trig = NameTrigger.None;
++            void Add(string w)
++            {
++                trig |= (w ?? "").ToLowerInvariant() switch
++                {
++                    "move" or "moves" => NameTrigger.Move,
++                    "attack" or "attacks" => NameTrigger.Attack,
++                    "cast" or "casts" => NameTrigger.Cast,
++                    _ => NameTrigger.Any,
++                };
++            }
++            if (n.TryGetProperty("trigger", out var t))
++            {
++                if (t.ValueKind == System.Text.Json.JsonValueKind.Array)
++                    foreach (var e in t.EnumerateArray()) Add(e.GetString());
++                else
++                    Add(t.GetString());
++            }
++            int dmg = n.TryGetProperty("damage", out var dm) ? dm.GetInt32() : 4;
++            int dur = n.TryGetProperty("duration", out var d) ? d.GetInt32() : 2;
++            return new NameConditionEffect(trig, dmg, dur).WithTag("Control");
++        });
++
++        // Compel (§2a): the target WALKS (walked entry rules), toward you or a chosen way.
++        // { "type": "compel_walk", "tiles": n, "mode": "toward_caster" | "direction" }
++        RegisterEffect("compel_walk", n =>
++        {
++            int tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2;
++            bool dir = n.TryGetProperty("mode", out var m) && m.GetString() == "direction";
++            return new CompelWalkEffect(tiles, dir).WithTag("Movement");
+         });
+ 
+         // Mana tithe: status whose cost-up/refund lives in the status system
+diff --git a/Scripts/Cards/Loader/JsonCardLoader.cs b/Scripts/Cards/Loader/JsonCardLoader.cs
+index 509f9a7..a397859 100644
+--- a/Scripts/Cards/Loader/JsonCardLoader.cs
++++ b/Scripts/Cards/Loader/JsonCardLoader.cs
+@@ -974,19 +974,23 @@ public static class JsonCardLoader
+     {
+         if (half?.Effects == null) return;
+         foreach (var e in half.Effects)
+-            StampGlyphSource(e, half.SourceCardId, half.SourceHalf, 0);
++            StampGlyphSource(e, half, 0);
+     }
+ 
+-    private static void StampGlyphSource(IEffect e, string cardId, string halfName, int depth)
++    // The half is built from the upgrade-patched JSON, so its name and rules text are the
++    // tier actually being cast, which is what the tile tooltip has to show.
++    private static void StampGlyphSource(IEffect e, CardHalf half, int depth)
+     {
+         if (e == null || depth > 8) return;   // depth guard: card data is authored, not trusted
+         if (e is PrepareGlyphEffect p)
+         {
+-            p.SourceCardId = cardId;
+-            p.SourceHalf = halfName;
++            p.SourceCardId = half.SourceCardId;
++            p.SourceHalf = half.SourceHalf;
++            p.SourceName = half.Name ?? "";
++            p.SourceRulesText = half.RulesText ?? "";
+         }
+         foreach (var child in e.Children)
+-            StampGlyphSource(child, cardId, halfName, depth + 1);
++            StampGlyphSource(child, half, depth + 1);
+     }
+ 
+     // ── BuildHalf ───────────────────────────────────────────────────
+@@ -1002,6 +1006,8 @@ public static class JsonCardLoader
+             OwnerCard = owner,
+             Name = halfNode.TryGetProperty("name", out var n) ? n.GetString() : owner.CardName,
+             RulesText = halfNode.TryGetProperty("rules_text", out var rt) ? rt.GetString() : "",
++            GlyphText = halfNode.TryGetProperty("glyph_text", out var gt) ? gt.GetString() ?? "" : "",
++            GlyphTriggerText = halfNode.TryGetProperty("glyph_trigger", out var gtr) ? gtr.GetString() ?? "" : "",
+             School = school,
+             Speed = ParseSpeed(halfNode),
+             Costs = new ICost[] { new ManaCost(halfNode.GetProperty("mana").GetInt32()) },
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs b/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs
+index 1ee670f..81839cc 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.CastPreview.cs
+@@ -156,6 +156,7 @@ public partial class CombatManager
+                 bool inRange = grid.Distance(center, aim) <= u.range;
+                 _trace.Show(grid, center, aim, bolt ? TrajectoryTrace.Style.Straight : TrajectoryTrace.Style.Lob,
+                             blocker?.Axial, coverStop || !inRange || (blocker != null && (u.los || bolt)));
++                ShowCompelPathPreview(_draggedHalf, aim);   // Enchanter: where a Compel walks it
+                 break;
+             }
+             case SelectUnitThenTileTarget tsx:
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+index 64f1b4e..bd2ef03 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.EnemyIntents.cs
+@@ -1754,6 +1754,9 @@ public partial class CombatManager
+                 await ExecuteRangedIntent(enemy, intent);
+                 break;
+             case IntentKind.Channel:
++                Names.Break(enemy, NameTrigger.Cast, LogName);   // starting a spell is casting
++                if (!IsValidActor(enemy))
++                    break;
+                 if (IsRitualist(enemy))
+                     await ExecuteRitualStart(enemy, intent);
+                 else if (IsWarpChanneler(enemy))
+@@ -1762,6 +1765,9 @@ public partial class CombatManager
+                     await ExecuteChannelStart(enemy, intent);
+                 break;
+             case IntentKind.Release:
++                Names.Break(enemy, NameTrigger.Cast, LogName);
++                if (!IsValidActor(enemy))
++                    break;
+                 if (IsRitualist(enemy))
+                     await ExecuteRitualRelease(enemy, intent);
+                 else if (IsWarpChanneler(enemy))
+@@ -1773,9 +1779,15 @@ public partial class CombatManager
+                 await ExecuteGuardIntent(enemy, intent);
+                 break;
+             case IntentKind.Imbue:
++                Names.Break(enemy, NameTrigger.Cast, LogName);
++                if (!IsValidActor(enemy))
++                    break;
+                 await ExecuteImbueIntent(enemy, intent);
+                 break;
+             case IntentKind.Shove:
++                Names.Break(enemy, NameTrigger.Attack, LogName);
++                if (!IsValidActor(enemy))
++                    break;
+                 await ExecuteShoveIntent(enemy, intent);
+                 break;
+         }
+@@ -2827,6 +2839,9 @@ public partial class CombatManager
+                                 Unit redirected, Unit originalVictim = null)
+     {
+         LastStrikeVictim = null;
++        // Enchanter Names: an attack breaks "if it attacks" (the blow still lands; Names punish, never forbid).
++        if (attacker != null && IsInstanceValid(attacker))
++            Names.Break(attacker, NameTrigger.Attack, LogName);
+         bool wasRedirected = redirected != null && IsInstanceValid(redirected) && redirected.Stats.IsAlive;
+         Unit victim = wasRedirected ? redirected : grid.GetTile(tile)?.Occupant;
+         string verb = ranged ? "shoots" : "strikes";
+diff --git a/Scripts/Systems/Combat/Core/CombatManager.cs b/Scripts/Systems/Combat/Core/CombatManager.cs
+index 207d32d..ce063c2 100644
+--- a/Scripts/Systems/Combat/Core/CombatManager.cs
++++ b/Scripts/Systems/Combat/Core/CombatManager.cs
+@@ -192,6 +192,7 @@ public partial class CombatManager : Node3D
+         InstallReactions();   // Edge M4: walk-step hook and routing cost
+         InstallIntentTime();  // Chronomancer Defer / Advance hooks
+         InstallAnchorHooks(); // Temporal Anchor lethal save
++        InstallEnchanterHooks(); // Names break on walk; breaks feed the Weave
+         EnsureAimLines();     // ranged-intent arcs: the node is built here, once
+ 
+         // Wire up helper nodes
+@@ -363,6 +364,7 @@ public partial class CombatManager : Node3D
+         UninstallReactions();
+         UninstallIntentTime();
+         UninstallAnchorHooks();
++        UninstallEnchanterHooks();
+         CardUi.HalfSpentProvider = null;
+         CardDropHandler.SelfCastRedirect = null;
+     }
+@@ -2566,6 +2568,7 @@ public partial class CombatManager : Node3D
+         RegisterManager.Fire("combat.basics.hand");
+         RegisterManager.Fire("combat.basics.halves");
+         RegisterManager.Fire("combat.basics.move");
++        TickNames();   // Enchanter Names lose a turn; the break round advances
+ 
+         // Round 1 intents (2026-10-03). Plans are locked at the end of each enemy
+         // phase, plus once in StartDeploymentPhase. But enemies now spawn AFTER
+@@ -2860,8 +2863,10 @@ public partial class CombatManager : Node3D
+ 
+         foreach (var unit in playerUnits)
+         {
++            // Enchanter §2c: the Weave holds while you have prepared glyphs OR Named units.
+             if (unit.Attunement is WeaveAttunement w)
+-                w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0);
++                w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0
++                            || Names.AnyWrittenBy(State.UnitsInPlay, unit.TeamId));
+ 
+             DiscardOverflowCards(unit);
+ 
+@@ -3050,7 +3055,10 @@ public partial class CombatManager : Node3D
+             grid.GetTileView(coord)?.SetTargetHighlight(true);
+         }
+ 
+-        string prompt = $"{half.Name} → {victim.Name}. {ts.StepTwoPrompt} (Esc or right-click to cancel.)";
++        string stepTwo = ShowCompelDirectionPaths(half, victim)
++            ? "Click a tile beside it: it walks that way (outlined: where each direction leads)."
++            : ts.StepTwoPrompt;
++        string prompt = $"{half.Name} → {victim.Name}. {stepTwo} (Esc or right-click to cancel.)";
+         GD.Print($"[TwoStep] {prompt}");
+         combatUI?.AppendActionLog(prompt);
+     }
+diff --git a/Scripts/Systems/Combat/Core/RulesManager.cs b/Scripts/Systems/Combat/Core/RulesManager.cs
+index 12b3458..378419e 100644
+--- a/Scripts/Systems/Combat/Core/RulesManager.cs
++++ b/Scripts/Systems/Combat/Core/RulesManager.cs
+@@ -179,6 +179,8 @@ public sealed class Resolver
+         s.ResolutionDepth++;   // GameState.RequestCardChoice: a resolver pass is live
+         var prevAbilityName = s.ResolvingAbilityName;
+         s.ResolvingAbilityName = item.Ability?.Name;   // Almanac labels (schedule)
++        var prevGlyphHalf = GlyphManager.ResolvingHalf;
++        GlyphManager.ResolvingHalf = item.Ability as CardHalf;   // glyph tooltip source
+         try
+         {
+             foreach (var eff in item.Ability.Effects)
+@@ -196,6 +198,7 @@ public sealed class Resolver
+             s.ActiveCasterUnit = prevCaster;
+             Unit.AmbientDamageSource = prevDamageSource;
+             s.ResolvingAbilityName = prevAbilityName;
++            GlyphManager.ResolvingHalf = prevGlyphHalf;
+         }
+ 
+         // Post-cast player choice (2026-07-28): an effect asked the player something.
+diff --git a/Scripts/Systems/Combat/Core/Unit.cs b/Scripts/Systems/Combat/Core/Unit.cs
+index 29f48ae..e538ce0 100644
+--- a/Scripts/Systems/Combat/Core/Unit.cs
++++ b/Scripts/Systems/Combat/Core/Unit.cs
+@@ -349,6 +349,9 @@ public partial class Unit : Node3D
+     /// <summary>Lookahead stays revealed every round (The Fixed Hour, Glimpse's top rung).</summary>
+     public bool IntentLookaheadPermanent;
+ 
++    /// <summary>Enchanter Names on this unit (EnchanterEngine.cs): conditions that punish.</summary>
++    public List<NameCondition> Names = new();
++
+     /// <summary>Ephemeris (chronomancer §3): the first spell this unit casts each turn is
+     /// copied into the Almanac (ChronoHooks.OnSpellResolved). Reset per turn in StartPlayerTurn.</summary>
+     public bool EphemerisActive;
+diff --git a/Scripts/Systems/Combat/Glyphs/GlyphCipherTexture.cs b/Scripts/Systems/Combat/Glyphs/GlyphCipherTexture.cs
+index c8881d9..6067865 100644
+--- a/Scripts/Systems/Combat/Glyphs/GlyphCipherTexture.cs
++++ b/Scripts/Systems/Combat/Glyphs/GlyphCipherTexture.cs
+@@ -94,7 +94,8 @@ public partial class GlyphCipherTexture : Node
+     /// drivers only.
+     /// </summary>
+     public async Task<ImageTexture> BakeGlyphAsync(string key, CipherGlyph glyph,
+-                                                   int px, CipherLod lod, bool dark)
++                                                   int px, CipherLod lod, bool dark,
++                                                   bool lightMask = false)
+     {
+         ImageTexture result = null;
+         SubViewport vp = null;
+@@ -119,6 +120,7 @@ public partial class GlyphCipherTexture : Node
+                 Progress = 1f,
+                 Position = Vector2.Zero,
+                 Size = new Vector2(px, px),
++                LightMask = lightMask,
+             };
+             vp.AddChild(view);
+             AddChild(vp);
+@@ -213,6 +215,33 @@ public partial class GlyphCipherTexture : Node
+         _ = BakeGlyphAsync(key, glyph, px, lod, dark);
+     }
+ 
++    /// <summary>
++    /// Requests the COVERAGE MASK bake of a blueprint half for the tile decal
++    /// (glyph_sigil.gdshader v2). Channels, not colours: R = stave, G = function strokes
++    /// and hub outline, B = hub fill. Cached under its own key, so card art and the
++    /// element runes never see it. Bake at <see cref="CipherLod.Card"/> weights: the light
++    /// renderer wants thin cores and adds its own bloom, and the shader's mask_gain and
++    /// mip bias carry the distance robustness the Tile LOD used to buy with thickness.
++    /// </summary>
++    public void RequestMaskForBlueprint(string blueprintId, string half, int px,
++                                        Action<ImageTexture> onReady)
++    {
++        if (onReady == null) return;
++        var bp = CardDatabase.GetByName(blueprintId);
++        var data = half == "bottom" ? bp?.Prebuilt?.BottomHalf : bp?.Prebuilt?.TopHalf;
++        if (data == null) { onReady(null); return; }
++
++        px = Mathf.Clamp(px, 32, 1024);
++        string key = KeyOf(blueprintId, half, px, CipherLod.Card, true) + "#mask";
++
++        if (_cache.TryGetValue(key, out var hit)) { onReady(hit); return; }
++        if (_pending.TryGetValue(key, out var waiters)) { waiters.Add(onReady); return; }
++
++        _pending[key] = new List<Action<ImageTexture>> { onReady };
++        _ = BakeGlyphAsync(key, GlyphCipherTags.BuildFor(blueprintId, half, data), px,
++                           CipherLod.Card, true, lightMask: true);
++    }
++
+     /// <summary>Drops every cached texture. Call on a resolution change or when leaving combat for a long session.</summary>
+     public void ClearCache() => _cache.Clear();
+ 
+diff --git a/Scripts/Systems/Combat/Glyphs/GlyphData.cs b/Scripts/Systems/Combat/Glyphs/GlyphData.cs
+index 077ca61..5ee8118 100644
+--- a/Scripts/Systems/Combat/Glyphs/GlyphData.cs
++++ b/Scripts/Systems/Combat/Glyphs/GlyphData.cs
+@@ -64,6 +64,21 @@ public sealed class GlyphData
+     /// <summary>Half of <see cref="SourceCardId"/> that placed this glyph: <c>"top"</c> or <c>"bottom"</c>.</summary>
+     public string SourceHalf = "";
+ 
++    /// <summary>Display name of the half that placed this glyph (the tier actually cast),
++    /// stamped at load time beside <see cref="SourceCardId"/>. Tooltip only.</summary>
++    public string SourceName = "";
++
++    /// <summary>Rules text of that half, for the tile tooltip. The sigil is decoration; this
++    /// is how the player reads what they cast.</summary>
++    public string SourceRulesText = "";
++
++    /// <summary>Authored tooltip text of the half that placed this glyph (CardHalf.GlyphText),
++    /// with {tokens} the tooltip fills from this glyph's live values.</summary>
++    public string GlyphText = "";
++
++    /// <summary>Authored override for the tooltip's trigger line (CardHalf.GlyphTriggerText).</summary>
++    public string GlyphTriggerText = "";
++
+     /// <summary>Legacy closure trigger. When set, <see cref="Fire"/> invokes it and skips the declarative payload, so PlaceGlyphEffect-created glyphs behave exactly as before.</summary>
+     public Action<Unit, GameState> OnTrigger;
+ 
+@@ -112,6 +127,28 @@ public sealed class GlyphData
+     /// <summary>When &gt; 0, on trigger this glyph re-prepares a copy of itself on this many adjacent tiles (Runic Cascade). The GlyphManager handles the spread in OnGlyphFired.</summary>
+     public int CascadeSpread;
+ 
++    /// <summary>
++    /// The damage this glyph deals right now: base, plus any linked-batch bonus, plus the
++    /// owner's spell damage, doubled while its owner's Grand Design is active. One formula
++    /// for both <see cref="Fire"/> and the tile tooltip, so the preview cannot drift.
++    /// </summary>
++    public int EffectiveDamage(GameState s, int bonusDamage = 0)
++    {
++        if (Damage + bonusDamage <= 0)
++            return 0;
++        int dmg = Damage + bonusDamage + (Owner?.BonusSpellDamage ?? 0);
++        if (s?.ActiveEffects != null && OwnerTeam >= 0)
++        {
++            bool grandDesign = s.ActiveEffects.Any(e =>
++                e is GrandDesignPersistentEffect gd &&
++                gd.OwnerUnit?.TeamId == OwnerTeam &&
++                !e.IsExpired);
++            if (grandDesign)
++                dmg *= 2;
++        }
++        return dmg;
++    }
++
+     /// <summary>
+     /// Applies this glyph's payload. If a legacy <see cref="OnTrigger"/> closure is set,
+     /// that runs instead (preserving original PlaceGlyphEffect behaviour). Otherwise the
+@@ -130,17 +167,7 @@ public sealed class GlyphData
+ 
+         if (!friendlyToOwner && who != null)
+         {
+-            int dmg = Damage + bonusDamage + (Owner?.BonusSpellDamage ?? 0);
+-
+-            if (s?.ActiveEffects != null && OwnerTeam >= 0)
+-            {
+-                bool grandDesign = s.ActiveEffects.Any(e =>
+-                    e is GrandDesignPersistentEffect gd &&
+-                    gd.OwnerUnit?.TeamId == OwnerTeam &&
+-                    !e.IsExpired);
+-                if (grandDesign)
+-                    dmg *= 2;
+-            }
++            int dmg = EffectiveDamage(s, bonusDamage);
+             if (dmg > 0)
+                 who.ApplyDamage(dmg);
+             if (!string.IsNullOrEmpty(Status))
+diff --git a/Scripts/Systems/Combat/Glyphs/GlyphManager.cs b/Scripts/Systems/Combat/Glyphs/GlyphManager.cs
+index db65e51..e40ce2f 100644
+--- a/Scripts/Systems/Combat/Glyphs/GlyphManager.cs
++++ b/Scripts/Systems/Combat/Glyphs/GlyphManager.cs
+@@ -52,7 +52,35 @@ public sealed class GlyphManager
+ 
+     // ── Placement ────────────────────────────────────────────────────
+     /// <summary>Prepare a glyph on a tile. Returns the created glyph, or null if the tile is blocked or already glyphed. Feeds the owner's Weave.</summary>
+-    public GlyphData Prepare(TileData tile, Unit owner, Action<GlyphData> configure)
++    /// <summary>
++    /// The card half whose effects are resolving right now, set by the stack resolver
++    /// (RulesManager) around each item. A glyph prepared while it is set takes that half's
++    /// live name, rules text and authored glyph text, which is the tier actually cast
++    /// (upgrade renames happen after load, so the load-time stamp carries the base name).
++    /// It also gives bespoke glyph effects (pillars, wards, anchors) a source at all.
++    /// </summary>
++    public static CardHalf ResolvingHalf;
++
++    /// <summary>Copies the resolving half's identity onto <paramref name="g"/>. No-op outside
++    /// a card resolution.</summary>
++    public static void StampFromCast(GlyphData g)
++    {
++        var h = ResolvingHalf;
++        if (h == null || g == null)
++            return;
++        if (!string.IsNullOrEmpty(h.Name))
++            g.SourceName = h.Name;
++        g.SourceRulesText = h.RulesText ?? "";
++        g.GlyphText = h.GlyphText ?? "";
++        g.GlyphTriggerText = h.GlyphTriggerText ?? "";
++        if (string.IsNullOrEmpty(g.SourceCardId))
++        {
++            g.SourceCardId = h.SourceCardId ?? "";
++            g.SourceHalf = h.SourceHalf ?? "";
++        }
++    }
++
++    public GlyphData Prepare(TileData tile, Unit owner, Action<GlyphData> configure, bool stampFromCast = true)
+     {
+         if (tile == null || tile.IsBlocked || tile.Glyph != null)
+             return null;
+@@ -65,6 +93,9 @@ public sealed class GlyphManager
+             GameState = _state
+         };
+         configure?.Invoke(g);
++        // Ownerless glyphs (map events) and cascade copies are not the resolving spell's.
++        if (stampFromCast && owner != null)
++            StampFromCast(g);
+         tile.Glyph = g;
+ 
+         if (!g.Invisible)
+@@ -149,14 +180,26 @@ public sealed class GlyphManager
+                 int sd = g.StatusDuration;
+                 var owner = g.Owner;
+                 var trig = g.Trigger;
++                string srcName = g.SourceName, srcText = g.SourceRulesText;
++                string srcGlyph = g.GlyphText, srcTrig = g.GlyphTriggerText;
++                string srcId = g.SourceCardId, srcHalf = g.SourceHalf;
++                // stampFromCast false: a cascade can go off during some OTHER spell's
++                // resolution (a Compel walking an enemy onto it), and the copy is still
++                // the cascade's, not that spell's.
+                 Prepare(nbr, owner, ng =>
+                 {
++                    ng.SourceName = string.IsNullOrEmpty(srcName) ? "" : srcName + " (spread)";
++                    ng.SourceRulesText = srcText;
++                    ng.GlyphText = srcGlyph;
++                    ng.GlyphTriggerText = srcTrig;
++                    ng.SourceCardId = srcId;
++                    ng.SourceHalf = srcHalf;
+                     ng.Trigger = trig;
+                     ng.Damage = dmg;
+                     ng.Status = st;
+                     ng.StatusDuration = sd;
+                     ng.CascadeSpread = sp; // copies spread one fewer to terminate the chain
+-                });
++                }, stampFromCast: false);
+                 spread++;
+             }
+             s.Log($"[GlyphManager] Cascade spread to {spread} tile(s).");
+diff --git a/Scripts/Systems/Combat/Terrain/HexTile.cs b/Scripts/Systems/Combat/Terrain/HexTile.cs
+index 8094b99..3b4a8d3 100644
+--- a/Scripts/Systems/Combat/Terrain/HexTile.cs
++++ b/Scripts/Systems/Combat/Terrain/HexTile.cs
+@@ -435,11 +435,11 @@ public partial class HexTile : Node3D
+     /// <summary>Edge length in pixels of the baked glyph-cipher decal. 256 rather than 128:
+     /// the sigil now lies flat on the ground where the camera can get close to it, and the
+     /// shader blurs its alpha for the halo, which magnifies any softness in the source.</summary>
+-    private const int GlyphDecalPixels = 256;
++    private const int GlyphDecalPixels = 512;
+ 
+     /// <summary>Width of the ground decal in world units. The baked sigil occupies the
+     /// inner 80% of this (see the shader's sigil_scale); the rest is the enclosing ring.</summary>
+-    private const float GlyphDecalSize = 1.50f;
++    private const float GlyphDecalSize = 1.68f;
+ 
+     /// <summary>Clearance above the tile's measured top surface. Enough to stay out of the
+     /// terrain's z-fighting range and above the grass roots, low enough that the sigil still
+@@ -449,7 +449,10 @@ public partial class HexTile : Node3D
+     /// <summary>Seconds for the inscription when a glyph is first prepared. Six arms are
+     /// struck in sequence, so this is ~0.16s per stave: quick, but slow enough to read as
+     /// deliberate drawing rather than a fade-in.</summary>
+-    private const float GlyphInscribeSeconds = 0.95f;
++    private const float GlyphInscribeSeconds = 1.35f;
++
++    /// <summary>Seconds for the bright burst that fades out once the circle is sealed.</summary>
++    private const float GlyphFlashSeconds = 0.7f;
+ 
+     private const string GlyphDecalShaderPath = "res://Assets/Shaders/glyph_sigil.gdshader";
+ 
+@@ -488,13 +491,13 @@ public partial class HexTile : Node3D
+         var decal = _glyphDecal;
+         var mat = _glyphDecalMaterial;
+         var label = _glyphLabel;
+-        GlyphCipherTexture.Instance.RequestForBlueprint(
+-            glyph.SourceCardId, glyph.SourceHalf, GlyphDecalPixels, CipherLod.Tile, true,
++        GlyphCipherTexture.Instance.RequestMaskForBlueprint(
++            glyph.SourceCardId, glyph.SourceHalf, GlyphDecalPixels,
+             tex =>
+             {
+                 if (tex == null || !IsInstanceValid(decal) || mat == null)
+                     return;                       // bake failed; keep the ✦
+-                mat.SetShaderParameter("sigil_tex", tex);
++                mat.SetShaderParameter("mask_tex", tex);
+                 decal.Visible = true;
+                 if (IsInstanceValid(label))
+                     label.Visible = false;
+@@ -506,10 +509,17 @@ public partial class HexTile : Node3D
+                 // LINEAR on purpose: an eased tween front-loads the motion, which makes
+                 // the first arms flash past and the last ones crawl. A sequence of equal
+                 // strokes has to advance at an equal rate to read as a sequence.
++                // The rings, runes and hexagram come first in the shader's own schedule,
++                // then the cipher, then a flash as the circle seals.
+                 mat.SetShaderParameter("progress", 0f);
+-                CreateTween()
+-                    .TweenProperty(mat, "shader_parameter/progress", 1.0f, GlyphInscribeSeconds)
+-                    .SetTrans(Tween.TransitionType.Linear);
++                mat.SetShaderParameter("flash", 0f);
++                var tw = CreateTween();
++                tw.TweenProperty(mat, "shader_parameter/progress", 1.0f, GlyphInscribeSeconds)
++                  .SetTrans(Tween.TransitionType.Linear);
++                tw.TweenProperty(mat, "shader_parameter/flash", 0.0f, GlyphFlashSeconds)
++                  .From(1.0f)
++                  .SetTrans(Tween.TransitionType.Expo)
++                  .SetEase(Tween.EaseType.Out);
+             });
+     }
+ 
+@@ -568,9 +578,9 @@ public partial class HexTile : Node3D
+         }
+ 
+         _glyphDecalMaterial = new ShaderMaterial { Shader = shader };
+-        _glyphDecalMaterial.SetShaderParameter("glow_color", UITheme.CipherFunction);
+-        _glyphDecalMaterial.SetShaderParameter("ring_color", UITheme.CipherFunction);
+-        _glyphDecalMaterial.SetShaderParameter("backing_color", UITheme.CipherTileBacking);
++        // The circle's violet light lives in the shader default; the function layer keeps
++        // the Enchanter rose so the spokes and hub match the card art.
++        _glyphDecalMaterial.SetShaderParameter("accent_color", UITheme.CipherFunction);
+         _glyphDecalMaterial.SetShaderParameter("progress", 0f);
+ 
+         // Per-tile phase, so a field of prepared glyphs breathes out of step instead of
+diff --git a/Scripts/Systems/TooltipManager.cs b/Scripts/Systems/TooltipManager.cs
+index e53e93c..57c7d10 100644
+--- a/Scripts/Systems/TooltipManager.cs
++++ b/Scripts/Systems/TooltipManager.cs
+@@ -79,10 +79,18 @@ public partial class TooltipManager : Control
+         _panel.AddThemeStyleboxOverride("panel", style);
+         margin.AddChild(_panel);
+ 
++        var pad = new MarginContainer();
++        pad.MouseFilter = MouseFilterEnum.Ignore;
++        pad.AddThemeConstantOverride("margin_left", 10);
++        pad.AddThemeConstantOverride("margin_right", 10);
++        pad.AddThemeConstantOverride("margin_top", 6);
++        pad.AddThemeConstantOverride("margin_bottom", 6);
++        margin.AddChild(pad);
++
+         _content = new VBoxContainer();
+         _content.MouseFilter = MouseFilterEnum.Ignore;
+         _content.AddThemeConstantOverride("separation", 3);
+-        margin.AddChild(_content);
++        pad.AddChild(_content);
+ 
+         _tooltipRoot.Visible = false;
+     }
+@@ -132,6 +140,10 @@ public partial class TooltipManager : Control
+             AddRow(ElementReactions.Describe(tile.Reaction), "");
+         }
+ 
++        // A prepared glyph. The sigil itself is decoration (an easter egg cipher), so this
++        // is the player's real read of what is on the tile and how it goes off.
++        AddGlyphSection(tile.Glyph);
++
+         // Height
+         if (tile.Height != 0)
+             AddRow("Height:", tile.Height > 0 ? $"+{tile.Height}" : tile.Height.ToString());
+@@ -168,6 +180,239 @@ public partial class TooltipManager : Control
+         if (_tooltipRoot != null) _tooltipRoot.Visible = false;
+     }
+ 
++    // ── Glyph section ────────────────────────────────────────────
++
++    private const int PlayerTeam = 0;
++    private const float GlyphTextWidth = 260f;
++    private static readonly Color GlyphAccent = new Color(0.62f, 0.82f, 1.00f, 1f);
++
++    private void AddGlyphSection(GlyphData g)
++    {
++        if (g == null || g.Consumed)
++            return;
++        bool mine = g.OwnerTeam == PlayerTeam;
++        // Team 1 is the enemy side. Anything else (map events plant team 2) belongs to
++        // nobody and goes off under everyone.
++        bool hazard = g.OwnerTeam != PlayerTeam && g.OwnerTeam != EnemyTeam;
++        if (g.Invisible && !mine)
++            return;                              // a hidden enemy glyph stays hidden
++
++        string owner = g.Owner?.Name ?? g.OwnerId ?? "";
++        string name = string.IsNullOrEmpty(g.SourceName) ? "Glyph" : g.SourceName;
++
++        AddSeparator();
++        AddPairRow(name, GlyphAccent,
++                   mine ? "yours" : hazard ? "hazard" : "enemy",
++                   mine ? UITheme.Success : hazard ? UITheme.Warning : UITheme.Danger);
++        if (!string.IsNullOrEmpty(owner) && !mine && !hazard)
++            AddRow("Set by:", owner);
++
++        AddColoredRow("Triggers:", "", GlyphAccent);
++        string trig = !string.IsNullOrEmpty(g.GlyphTriggerText) ? g.GlyphTriggerText
++                    : hazard ? HazardTriggerText(g)
++                    : TriggerText(g, mine, owner);
++        AddWrapped(trig, UITheme.TextPrimary);
++
++        // Authored glyph text (CardHalf.GlyphText) is the primary read. Without it, fall
++        // back to lines built from the glyph's fields, then to the filtered card text.
++        if (!string.IsNullOrEmpty(g.GlyphText))
++        {
++            AddWrapped(FillGlyphTokens(g.GlyphText, g, owner), UITheme.TextPrimary);
++            foreach (var line in DynamicLines(g))
++                AddWrapped(line, UITheme.TextPrimary);
++        }
++        else
++        {
++            var payload = PayloadLines(g, owner);
++            foreach (var line in payload)
++                AddWrapped(line, UITheme.TextPrimary);
++            if (payload.Count == 0)
++            {
++                string rest = GlyphEffectText(g.SourceRulesText);
++                if (!string.IsNullOrEmpty(rest))
++                    AddWrapped(rest, UITheme.TextPrimary);
++            }
++        }
++
++        string life = g.DurationTurns < 0 ? "Until triggered"
++                    : g.DurationTurns >= PermanentTurns ? "Permanent"
++                    : g.DurationTurns == 1 ? "1 turn left"
++                    : $"{g.DurationTurns} turns left";
++        AddRow(g.Reusable ? "Reusable" : "Single use", life);
++    }
++
++    private const int EnemyTeam = 1;
++
++    /// <summary>Card data writes "duration": 99 for a glyph that lasts the fight.</summary>
++    private const int PermanentTurns = 90;
++
++    private static string HazardTriggerText(GlyphData g) => g.Trigger switch
++    {
++        GlyphTrigger.StartOfTurn => "When any unit starts its turn on this tile.",
++        _ => "When any unit steps onto this tile.",
++    };
++
++    /// <summary>State a glyph picks up after it is cast (Glyph Network links, cascade
++    /// copies), which no authored text can know about.</summary>
++    private static List<string> DynamicLines(GlyphData g)
++    {
++        var lines = new List<string>();
++        if (g.CascadeSpread > 0)
++            lines.Add($"Then copies itself onto {g.CascadeSpread} adjacent tile{(g.CascadeSpread == 1 ? "" : "s")}.");
++        if (g.LinkId != 0)
++            lines.Add(g.CumulativeBonus > 0
++                ? $"Linked: fires with its network, +{g.CumulativeBonus} damage per glyph that fires."
++                : "Linked: fires with its network.");
++        return lines;
++    }
++
++    /// <summary>
++    /// Fills the authored glyph text from the live glyph, so the tooltip number is the one
++    /// that will land (spell damage bonuses, Grand Design) and a number-only upgrade needs
++    /// no new text. Unknown tokens are left as written, so a typo shows up in play.
++    /// </summary>
++    private static string FillGlyphTokens(string text, GlyphData g, string owner)
++    {
++        static string Plural(int n, string one, string many) => n == 1 ? $"{n} {one}" : $"{n} {many}";
++        int sd = g.StatusDuration;
++        return text
++            .Replace("{damage}", g.EffectiveDamage(g.GameState).ToString())
++            .Replace("{status_turns}", Plural(sd, "turn", "turns"))
++            .Replace("{armor}", g.AllyArmor.ToString())
++            .Replace("{shield}", g.AllyShield.ToString())
++            .Replace("{ally_damage}", g.AllyDamage.ToString())
++            .Replace("{ally_mana}", g.AllyMana.ToString())
++            .Replace("{draw_cards}", Plural(g.OwnerDraw, "card", "cards"))
++            .Replace("{owner_mana}", g.OwnerMana.ToString())
++            .Replace("{weave}", g.OwnerWeave.ToString())
++            .Replace("{heal}", g.OwnerHeal.ToString())
++            .Replace("{radius}", g.Radius.ToString())
++            .Replace("{casts}", sd.ToString())
++            .Replace("{next_spells}", sd == 1 ? "the next spell" : $"the next {sd} spells")
++            .Replace("{owner}", string.IsNullOrEmpty(owner) ? "its caster" : owner);
++    }
++
++    /// <summary>The rules text with the sentences about casting removed: where the glyph is
++    /// prepared, how long it lasts and what the caster gains on cast. What is left is what
++    /// the glyph itself does.</summary>
++    private static string GlyphEffectText(string rules)
++    {
++        if (string.IsNullOrWhiteSpace(rules))
++            return "";
++        var kept = new List<string>();
++        foreach (var raw in System.Text.RegularExpressions.Regex.Split(rules.Trim(), @"(?<=[.!?])\s+"))
++        {
++            string s = raw.Trim();
++            if (s.Length == 0)
++                continue;
++            string lower = s.ToLowerInvariant();
++            if (lower.StartsWith("prepare ") || lower.StartsWith("lasts ")
++                || lower.StartsWith("gain ") || lower.StartsWith("leave a glyph"))
++                continue;
++            kept.Add(s);
++        }
++        return string.Join(" ", kept);
++    }
++
++    private static string TriggerText(GlyphData g, bool mine, string owner)
++    {
++        string who = string.IsNullOrEmpty(owner) ? "its caster" : owner;
++        switch (g.Trigger)
++        {
++            case GlyphTrigger.Enter:
++                return mine ? "When an enemy steps onto this tile." : "When one of your units steps onto this tile.";
++            case GlyphTrigger.StartOfTurn:
++                return mine ? "When an enemy starts its turn on this tile." : "When one of your units starts its turn on this tile.";
++            case GlyphTrigger.AllyEnter:
++                return mine ? "When one of your units steps onto this tile." : "When an enemy steps onto this tile.";
++            case GlyphTrigger.SpellCastNear:
++                return g.Radius <= 0 ? "When a spell is cast on this tile."
++                     : $"When any spell is cast within {g.Radius} tile{(g.Radius == 1 ? "" : "s")}.";
++            case GlyphTrigger.SelfStand:
++                return $"Works while {who} stands on it.";
++            default:
++                return "Only when a linked glyph fires.";
++        }
++    }
++
++    private static List<string> PayloadLines(GlyphData g, string owner)
++    {
++        var lines = new List<string>();
++
++        int dmg = g.EffectiveDamage(g.GameState);
++        if (dmg > 0 && !string.IsNullOrEmpty(g.Status))
++            lines.Add($"Deals {dmg} damage and applies {g.Status} for {g.StatusDuration} turn{(g.StatusDuration == 1 ? "" : "s")}.");
++        else if (dmg > 0)
++            lines.Add($"Deals {dmg} damage.");
++        else if (!string.IsNullOrEmpty(g.Status))
++            lines.Add($"Applies {g.Status} for {g.StatusDuration} turn{(g.StatusDuration == 1 ? "" : "s")}.");
++
++        var ally = new List<string>();
++        if (g.AllyArmor > 0) ally.Add($"+{g.AllyArmor} armor");
++        if (g.AllyShield > 0) ally.Add($"+{g.AllyShield} shield");
++        if (g.AllyDamage > 0) ally.Add($"+{g.AllyDamage} spell damage");
++        if (g.AllyMana > 0) ally.Add($"+{g.AllyMana} mana");
++        if (ally.Count > 0)
++            lines.Add((g.Trigger == GlyphTrigger.SelfStand ? "Grants " : "Allies gain ") + string.Join(", ", ally) + ".");
++
++        var pay = new List<string>();
++        if (g.OwnerDraw > 0) pay.Add($"draw {g.OwnerDraw}");
++        if (g.OwnerMana > 0) pay.Add($"+{g.OwnerMana} mana");
++        if (g.OwnerWeave > 0) pay.Add($"+{g.OwnerWeave} Weave");
++        if (g.OwnerHeal > 0) pay.Add($"heal {g.OwnerHeal}");
++        if (pay.Count > 0)
++            lines.Add($"{(string.IsNullOrEmpty(owner) ? "Caster" : owner)}: " + string.Join(", ", pay) + ".");
++
++        if (g.CascadeSpread > 0)
++            lines.Add($"Spreads a copy to {g.CascadeSpread} adjacent tile{(g.CascadeSpread == 1 ? "" : "s")} when it fires.");
++        if (g.LinkId != 0)
++            lines.Add(g.CumulativeBonus > 0
++                ? $"Linked: fires with its network, +{g.CumulativeBonus} damage per glyph that fires."
++                : "Linked: fires with its network.");
++
++        if (lines.Count == 0 && g.OnTrigger != null)
++            lines.Add("Effect: see the spell that placed it.");
++        return lines;
++    }
++
++    private void AddPairRow(string key, Color keyColor, string value, Color valueColor)
++    {
++        var hbox = new HBoxContainer();
++        hbox.MouseFilter = MouseFilterEnum.Ignore;
++
++        var keyLbl = new Label { Text = key };
++        keyLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize + 1);
++        keyLbl.AddThemeColorOverride("font_color", keyColor);
++        keyLbl.MouseFilter = MouseFilterEnum.Ignore;
++        hbox.AddChild(keyLbl);
++
++        var spacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
++        spacer.MouseFilter = MouseFilterEnum.Ignore;
++        hbox.AddChild(spacer);
++
++        var valLbl = new Label { Text = value };
++        valLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++        valLbl.AddThemeColorOverride("font_color", valueColor);
++        valLbl.MouseFilter = MouseFilterEnum.Ignore;
++        hbox.AddChild(valLbl);
++
++        _content.AddChild(hbox);
++    }
++
++    private void AddWrapped(string text, Color color)
++    {
++        var lbl = new Label
++        {
++            Text = text,
++            AutowrapMode = TextServer.AutowrapMode.WordSmart,
++            CustomMinimumSize = new Vector2(GlyphTextWidth, 0),
++        };
++        lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
++        lbl.AddThemeColorOverride("font_color", color);
++        lbl.MouseFilter = MouseFilterEnum.Ignore;
++        _content.AddChild(lbl);
++    }
++
+     // ── Content builders ─────────────────────────────────────────
+ 
+     private void RebuildContent()
+diff --git a/Scripts/UI/GlyphCipherView.cs b/Scripts/UI/GlyphCipherView.cs
+index 0575e3c..fcadc1c 100644
+--- a/Scripts/UI/GlyphCipherView.cs
++++ b/Scripts/UI/GlyphCipherView.cs
+@@ -127,6 +127,30 @@ public partial class GlyphCipherView : Control
+         set { _paper = value; QueueRedraw(); }
+     }
+ 
++    /// <summary>
++    /// Coverage-mask mode for the tile decal (glyph_sigil.gdshader v2). Strokes are drawn as
++    /// pure channels with ADDITIVE canvas blending, so crossings and joints saturate to a
++    /// clean union instead of stacking alpha into blotches: R = stave, G = function strokes,
++    /// spoke tips, markers and the hub outline, B = hub fill. The rim, backing and pips are
++    /// skipped because the shader draws its own rings. Never used for card art.
++    /// </summary>
++    public bool LightMask
++    {
++        get => _lightMask;
++        set
++        {
++            if (_lightMask == value) return;
++            _lightMask = value;
++            Material = value ? new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add } : null;
++            QueueRedraw();
++        }
++    }
++    private bool _lightMask;
++
++    private static readonly Color MaskStave = new Color(1f, 0f, 0f, 1f);
++    private static readonly Color MaskFunction = new Color(0f, 1f, 0f, 1f);
++    private static readonly Color MaskHubFill = new Color(0f, 0f, 1f, 1f);
++
+     /// <summary>Builds and assigns the glyph for a spell half. Returns false if the half could not be encoded.</summary>
+     public bool SetSpell(string cardId, string half, CardHalf data)
+     {
+@@ -158,6 +182,12 @@ public partial class GlyphCipherView : Control
+ 
+         int reveal = Mathf.RoundToInt(_glyph.OrderedCount * _progress);
+ 
++        if (_lightMask)
++        {
++            inkA = MaskStave;
++            fn = MaskFunction;
++        }
++
+         Vector2 ToScreen(CipherPoint pt) => centre + new Vector2((float)pt.X * radius, (float)pt.Y * radius);
+ 
+         float identityW = Mathf.Max(p.MinPxIdentity, (float)GlyphCipher.WeightIdentity * radius * p.IdentityWeightMul);
+@@ -165,7 +195,7 @@ public partial class GlyphCipherView : Control
+ 
+         // Backing first, under everything, so the composite no longer depends on what
+         // terrain happens to be under the tile.
+-        if (p.BackingAlpha > 0.001f)
++        if (p.BackingAlpha > 0.001f && !_lightMask)
+         {
+             // Stacked discs rather than one flat fill: a single hard-edged circle on
+             // grass reads as a sticker, whereas an accumulating vignette reads as
+@@ -180,13 +210,13 @@ public partial class GlyphCipherView : Control
+             }
+         }
+ 
+-        if (p.Pips) DrawPips(ToScreen, radius, fn);
++        if (p.Pips && !_lightMask) DrawPips(ToScreen, radius, fn);
+ 
+         // Order matters: rim, then the stave, then the function layer on top. The
+         // function layer is the readable one and must never be occluded by the stave.
+         foreach (var s in _glyph.Strokes)
+         {
+-            if (s.Layer != CipherLayer.Rim) continue;
++            if (s.Layer != CipherLayer.Rim || _lightMask) continue;
+             DrawStrokePolyline(s, ToScreen, inkA, Mathf.Max(p.MinPxIdentity, (float)s.Weight * radius * p.IdentityWeightMul));
+         }
+ 
+@@ -278,7 +308,8 @@ public partial class GlyphCipherView : Control
+                 break;
+ 
+             case CipherMark.Hub:
+-                DrawHub(at, size, col);
++                if (_lightMask) DrawHubMask(at, size, lineW);
++                else DrawHub(at, size, col);
+                 break;
+         }
+     }
+@@ -320,6 +351,69 @@ public partial class GlyphCipherView : Control
+         }
+     }
+ 
++    /// <summary>
++    /// The hub for the light mask: the filled shape in B (the shader lights it as a dim
++    /// plate) and its outline in G (lit hot, like every other function stroke). The Ally
++    /// punch cannot be drawn by subtraction under additive blending, so the Ally fill is
++    /// an annulus instead, outlined inside and out.
++    /// </summary>
++    private void DrawHubMask(Vector2 at, float size, float lineW)
++    {
++        float edge = Mathf.Max(1.5f, lineW * 0.75f);
++        switch (_glyph.Target)
++        {
++            case CipherTarget.Self:
++                DrawCircle(at, size, MaskHubFill, true, -1f, true);
++                DrawArc(at, size, 0f, Mathf.Tau, 40, MaskFunction, edge, true);
++                break;
++
++            case CipherTarget.Ally:
++                DrawArc(at, size * 0.73f, 0f, Mathf.Tau, 40, MaskHubFill, size * 0.54f, true);
++                DrawArc(at, size, 0f, Mathf.Tau, 40, MaskFunction, edge, true);
++                DrawArc(at, size * 0.46f, 0f, Mathf.Tau, 32, MaskFunction, edge, true);
++                break;
++
++            case CipherTarget.Tile:
++            {
++                var pts = new[]
++                {
++                    at + new Vector2(0, -size), at + new Vector2(size, 0),
++                    at + new Vector2(0, size),  at + new Vector2(-size, 0)
++                };
++                DrawColoredPolygon(pts, MaskHubFill);
++                DrawClosedOutline(pts, MaskFunction, edge);
++                break;
++            }
++
++            default: // Enemy
++            {
++                var pts = new[]
++                {
++                    at + new Vector2(0, -size * 1.05f),
++                    at + new Vector2(size * 0.91f, size * 0.58f),
++                    at + new Vector2(-size * 0.91f, size * 0.58f)
++                };
++                DrawColoredPolygon(pts, MaskHubFill);
++                DrawClosedOutline(pts, MaskFunction, edge);
++                break;
++            }
++        }
++    }
++
++    // A closed outline with round joins. Under additive blending a mitred polyline
++    // double-covers each corner, so the corners are stroked as separate segments and
++    // capped with discs; the overlap saturates in the mask instead of blotching.
++    private void DrawClosedOutline(Vector2[] pts, Color col, float width)
++    {
++        for (int i = 0; i < pts.Length; i++)
++        {
++            var a = pts[i];
++            var b = pts[(i + 1) % pts.Length];
++            DrawLine(a, b, col, width, true);
++            DrawCircle(a, width * 0.5f, col, true, -1f, true);
++        }
++    }
++
+     /// <summary>
+     /// Filled polygon with a softened edge.
+     ///
+diff --git a/Scripts/UI/StatusCatalog.cs b/Scripts/UI/StatusCatalog.cs
+index 9387370..c9f6130 100644
+--- a/Scripts/UI/StatusCatalog.cs
++++ b/Scripts/UI/StatusCatalog.cs
+@@ -234,6 +234,20 @@ public static class StatusCatalog
+         if (u.IsStaggered && !staggerShown)
+             list.Add(new UnitCondition("stagger", Get("stagger"), 0));
+ 
++        // Enchanter Names (§2b): every Name shows its condition on the plate. Required:
++        // glyphs, Names and compelled walks are only readable if every one is visible.
++        foreach (var name in u.Names)
++        {
++            if (name.TurnsRemaining <= 0)
++                continue;
++            string words = name.TriggerWords();
++            var info = new StatusInfo($"If it {words}: {name.Damage}",
++                                      $"IF {words.ToUpperInvariant().Replace(" OR ", "/").Replace(", ", "/")}: {name.Damage}",
++                                      StatusTone.Mark,
++                                      $"Named by {name.Source}: if it {words}, it takes {name.Damage} damage (once a round). {{n}} turn(s) left.");
++            list.Add(new UnitCondition($"name:{(int)name.Triggers}:{name.Damage}", info, name.TurnsRemaining));
++        }
++
+         if (u.ArmedReaction != null)
+         {
+             string name = string.IsNullOrEmpty(u.ArmedReaction.DisplayName) ? "Reaction" : u.ArmedReaction.DisplayName;

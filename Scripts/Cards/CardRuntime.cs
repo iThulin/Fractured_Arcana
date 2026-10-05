@@ -154,6 +154,15 @@ public sealed class CardHalf : Ability
     /// <summary>Human-readable rules text shown on the card face. Authoritative source is the JSON's `rules_text` field.</summary>
     public string RulesText = "";
 
+    /// <summary>Tile-tooltip text for a glyph this half prepares: what the glyph does when it
+    /// goes off, never how it is cast. Tokens such as {damage} are filled from the live glyph,
+    /// so a number-only upgrade needs no new text. Authored as `glyph_text`.</summary>
+    public string GlyphText = "";
+
+    /// <summary>Optional override for the tooltip's trigger line (`glyph_trigger`), for glyphs
+    /// the engine models with a Manual or otherwise unreadable trigger.</summary>
+    public string GlyphTriggerText = "";
+
     /// <summary>School this half belongs to. May differ from the parent Card's primary school for multi-school cards.</summary>
     public CardSchool School;
 

@@ -1,0 +1,342 @@
+{
+	"id": "enchanter_oath_breakers_price",
+	"status": "ready",
+	"name": "Oath-Breaker's Price",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Oath-Breaker's Price",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Name an enemy for 2 turns: if it attacks, it takes 5. Gain 1 Weave.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "name_condition",
+					"trigger": "attack",
+					"damage": 5,
+					"duration": 2
+				},
+				{
+					"type": "gain_weave",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Collect the Debt",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Deal 3 damage, or 6 if the target is Named.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "target_named"
+			},
+			"then": {
+				"type": "damage",
+				"amount": 6
+			},
+			"else": {
+				"type": "damage",
+				"amount": 3
+			}
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Oath-Breaker's Price+",
+			"bottom_name": "Collect the Debt+",
+			"description": "The oath binds tighter. The debt grows.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "attack",
+								"damage": 6,
+								"duration": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 2 turns: if it attacks, it takes 6. Gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_named"
+						},
+						"then": {
+							"type": "damage",
+							"amount": 8
+						},
+						"else": {
+							"type": "damage",
+							"amount": 4
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage, or 8 if the target is Named."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Binding Oath",
+			"description": "Binding Oath: a heavier price, more Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "attack",
+								"damage": 7,
+								"duration": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 2 turns: if it attacks, it takes 7. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Call the Debt",
+			"description": "Call the Debt: the Named pay more.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_named"
+						},
+						"then": {
+							"type": "damage",
+							"amount": 9
+						},
+						"else": {
+							"type": "damage",
+							"amount": 4
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 4 damage, or 9 if the target is Named."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Oath of Iron",
+			"description": "Oath of Iron: spells break it too.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": [
+									"attack",
+									"cast"
+								],
+								"damage": 7,
+								"duration": 3
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: if it attacks or casts, it takes 7. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Debt Collector",
+			"description": "Debt Collector: collecting pays you.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_named"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 10
+								},
+								{
+									"type": "draw",
+									"count": 1
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage, or 10 and draw a card if the target is Named."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Unbreakable Oath",
+			"description": "Unbreakable Oath: every breach is paid.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": [
+									"attack",
+									"cast"
+								],
+								"damage": 9,
+								"duration": 3,
+								"per_trigger": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an enemy for 3 turns: each time it attacks or casts, it takes 9. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Final Notice",
+			"description": "Final Notice: the last demand.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_named"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 13
+								},
+								{
+									"type": "draw",
+									"count": 1
+								},
+								{
+									"type": "gain_weave",
+									"amount": 1
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 6
+						}
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage, or 13 if the target is Named. If it was Named, draw a card and gain 1 Weave."
+				}
+			]
+		}
+	]
+}
