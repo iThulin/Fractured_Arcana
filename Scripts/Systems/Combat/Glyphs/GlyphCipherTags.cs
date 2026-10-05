@@ -86,6 +86,7 @@ public static class GlyphCipherTags
         "EnchantPillarEffect",
         "ReflectWardEffect",
         "SpellAnchorEffect",
+        "InscribeEffect",
     };
 
     // Effects with no tag at all, mapped explicitly by type. Keep this list

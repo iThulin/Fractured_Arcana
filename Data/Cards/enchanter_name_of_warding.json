@@ -1,0 +1,284 @@
+{
+	"id": "enchanter_name_of_warding",
+	"status": "ready",
+	"name": "Name of Warding",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Name of Warding",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Name an ally for 3 turns: whenever it's attacked, the attacker is Weakened for 1 turn and you gain 1 Weave.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false
+		},
+		"effect": {
+			"type": "name_condition",
+			"trigger": "none",
+			"damage": 0,
+			"duration": 3,
+			"allies": true,
+			"warding": true
+		}
+	},
+	"bottom": {
+		"name": "Pass the Name",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Move one of your Names from one ally to another.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit_then_unit",
+			"range": 6,
+			"dest_range": 6,
+			"friendlies_only": true
+		},
+		"effect": {
+			"type": "move_name"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Name of Warding+",
+			"bottom_name": "Pass the Name+",
+			"description": "The ward holds longer. The Name passes with a gift.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "none",
+						"damage": 0,
+						"duration": 4,
+						"allies": true,
+						"warding": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 4 turns: whenever it's attacked, the attacker is Weakened for 1 turn and you gain 1 Weave."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_name"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your Names from one ally to another. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Name of the Bulwark",
+			"description": "Name of the Bulwark: it can't be Weakened either.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "none",
+						"damage": 0,
+						"duration": 4,
+						"allies": true,
+						"warding": true,
+						"immune_weakened": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 4 turns: whenever it's attacked, the attacker is Weakened for 1 turn and you gain 1 Weave. It can't be Weakened."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Passing Grace",
+			"description": "Passing Grace: and a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_name"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your Names from one ally to another. Gain 1 Weave. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Name of Thorns",
+			"description": "Name of Thorns: it strikes back harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "none",
+						"damage": 0,
+						"duration": 4,
+						"allies": true,
+						"warding": true,
+						"immune_weakened": true,
+						"bonus_damage": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 4 turns: whenever it's attacked, the attacker is Weakened for 1 turn and you gain 1 Weave. It can't be Weakened and deals 2 more damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Shared Name",
+			"description": "Shared Name: more Weave.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_name"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your Names from one ally to another. Gain 2 Weave. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Name of the Fortress",
+			"description": "Name of the Fortress.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 5,
+								"allies": true,
+								"warding": true,
+								"immune_weakened": true,
+								"bonus_damage": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 5 turns: whenever it's attacked, the attacker is Weakened for 1 turn and you gain 1 Weave. It can't be Weakened and deals 2 more damage. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Hand to Hand",
+			"description": "Hand to Hand: the Name never drops.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_name"
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Move one of your Names from one ally to another. Gain 2 Weave. Draw 2 cards."
+				}
+			]
+		}
+	]
+}

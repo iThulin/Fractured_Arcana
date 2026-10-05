@@ -1442,6 +1442,10 @@ public partial class Unit : Node3D
         if (CombatSim.Active)
             return;
 
+        // Name of Courage (Enchanter boon): cannot be Weakened.
+        if (status == "weakened" && global::Names.ImmuneToWeakened(this))
+            return;
+
         // If already has this status, take the longer duration
         if (Stats.StatusEffects.ContainsKey(status))
             Stats.StatusEffects[status] = Math.Max(Stats.StatusEffects[status], duration);

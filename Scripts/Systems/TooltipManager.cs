@@ -239,7 +239,8 @@ public partial class TooltipManager : Control
                     : g.DurationTurns >= PermanentTurns ? "Permanent"
                     : g.DurationTurns == 1 ? "1 turn left"
                     : $"{g.DurationTurns} turns left";
-        AddRow(g.Reusable ? "Reusable" : "Single use", life);
+        AddRow(g.Layers > 0 ? (g.Layers == 1 ? "1 layer left" : $"{g.Layers} layers left")
+               : g.Reusable ? "Reusable" : "Single use", life);
     }
 
     private const int EnemyTeam = 1;

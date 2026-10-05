@@ -1,0 +1,275 @@
+{
+	"id": "enchanter_litany_of_names",
+	"status": "ready",
+	"name": "Litany of Names",
+	"school": "Enchanter",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Litany of Names",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Name every ally for 2 turns: each one's first card each turn costs 1 less.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "name_condition",
+			"trigger": "none",
+			"damage": 0,
+			"duration": 2,
+			"allies": true,
+			"all_allies": true,
+			"first_card_discount": 1
+		}
+	},
+	"bottom": {
+		"name": "Litany of Shields",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Each Named ally gains shield equal to twice your Weave.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "shield_named_allies",
+			"per_weave": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Litany of Names+",
+			"bottom_name": "Litany of Shields+",
+			"description": "A longer litany. A louder psalm.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "none",
+						"damage": 0,
+						"duration": 3,
+						"allies": true,
+						"all_allies": true,
+						"first_card_discount": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every ally for 3 turns: each one's first card each turn costs 1 less."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_weave",
+								"amount": 1
+							},
+							{
+								"type": "shield_named_allies",
+								"per_weave": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Weave. Then each Named ally gains shield equal to twice your Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Litany of Courage",
+			"description": "Litany of Courage: the names give strength.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "none",
+						"damage": 0,
+						"duration": 3,
+						"allies": true,
+						"all_allies": true,
+						"first_card_discount": 1,
+						"bonus_damage": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every ally for 3 turns: each one's first card each turn costs 1 less and it deals 1 more damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Psalm of Shields",
+			"description": "Psalm of Shields.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "shield_named_allies",
+						"per_weave": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each Named ally gains shield equal to three times your Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Litany of Heroes",
+			"description": "Litany of Heroes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 3,
+								"allies": true,
+								"all_allies": true,
+								"first_card_discount": 1,
+								"bonus_damage": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every ally for 3 turns: each one's first card each turn costs 1 less and it deals 2 more damage. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Hymn of Shields",
+			"description": "Hymn of Shields.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_weave",
+								"amount": 1
+							},
+							{
+								"type": "shield_named_allies",
+								"per_weave": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Weave. Then each Named ally gains shield equal to three times your Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Great Litany",
+			"description": "The Great Litany.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 3,
+								"allies": true,
+								"all_allies": true,
+								"first_card_discount": 2,
+								"bonus_damage": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name every ally for 3 turns: each one's first card each turn costs 2 less and it deals 2 more damage. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Choir of Shields",
+			"description": "Choir of Shields.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_weave",
+								"amount": 2
+							},
+							{
+								"type": "shield_named_allies",
+								"per_weave": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Weave. Then each Named ally gains shield equal to three times your Weave."
+				}
+			]
+		}
+	]
+}

@@ -87,6 +87,24 @@ public partial class CombatManager
 
     // ── Strikes (slice 12a) ─────────────────────────────────────────────
 
+    /// <summary>Name of Warding: an ally carrying it was struck. The attacker is Weakened
+    /// for 1 turn and the Namer gains 1 Weave (once per Warding Name per strike).</summary>
+    private void OnWardedStruck(Unit attacker, Unit victim)
+    {
+        if (attacker == null || victim == null || !IsInstanceValid(attacker) || !IsInstanceValid(victim))
+            return;
+        foreach (var n in victim.Names.ToList())
+        {
+            if (!n.Warding || n.TurnsRemaining <= 0)
+                continue;
+            if (attacker.Stats.IsAlive)
+                attacker.ApplyStatus("weakened", 1);
+            if (n.OwnerUnit != null && IsInstanceValid(n.OwnerUnit) && n.OwnerUnit.Attunement is WeaveAttunement w)
+                w.Add(1);
+            LogName($"{victim.Name}'s Name of Warding answers: {attacker.Name} is Weakened.");
+        }
+    }
+
     /// <summary>Enchanter adjustments to a strike before it lands: an attacker beside an
     /// opposing Sovereign Pillar deals less.</summary>
     private int EnchanterStrikeDamage(Unit attacker, int damage)

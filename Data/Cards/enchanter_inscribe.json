@@ -1,0 +1,289 @@
+{
+	"id": "enchanter_inscribe",
+	"status": "ready",
+	"name": "Inscribe",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Inscribe",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Discard a card from your hand. Prepare a glyph within 3 that resolves that card's bottom half on the enemy that triggers it.",
+		"glyph_text": "It suffers the bottom half of the card you discarded.",
+		"tags": [
+			"enchant",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "inscribe",
+			"fallback_damage": 3
+		}
+	},
+	"bottom": {
+		"name": "Margin Note",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 1 Weave. Draw 1 card.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "gain_weave",
+					"amount": 1
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Inscribe+",
+			"bottom_name": "Margin Note+",
+			"description": "A longer reach. A fuller margin.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "inscribe",
+						"fallback_damage": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Discard a card from your hand. Prepare a glyph within 4 that resolves that card's bottom half on the enemy that triggers it."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_weave",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Weave. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Deep Inscription",
+			"description": "Deep Inscription: the Weave answers it.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "inscribe",
+						"fallback_damage": 3,
+						"weave_on_trigger": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Discard a card from your hand. Prepare a glyph within 4 that resolves that card's bottom half on the enemy that triggers it. You gain 2 Weave when it does."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Annotation",
+			"description": "Annotation: and a little shield.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_weave",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Weave. Draw 1 card. Gain 2 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Indelible Inscription",
+			"description": "Indelible Inscription: further still.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "inscribe",
+						"fallback_damage": 5,
+						"weave_on_trigger": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Discard a card from your hand. Prepare a glyph within 5 that resolves that card's bottom half on the enemy that triggers it. You gain 2 Weave when it does."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Footnote",
+			"description": "Footnote: two cards.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_weave",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 2 Weave. Draw 2 cards."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Living Inscription",
+			"description": "Living Inscription.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "inscribe",
+						"fallback_damage": 5,
+						"weave_on_trigger": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Discard a card from your hand. Prepare a glyph within 5 that resolves that card's bottom half on the enemy that triggers it. You gain 3 Weave when it does."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Marginalia",
+			"description": "Marginalia.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_weave",
+								"amount": 3
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 3 Weave. Draw 2 cards."
+				}
+			]
+		}
+	]
+}

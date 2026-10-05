@@ -3098,6 +3098,8 @@ public partial class CombatManager : Node3D
                     continue;
                 if (uu.enemyOnly && u.TeamId == selectedUnit?.TeamId)
                     continue;
+                if (uu.friendlyOnly && u.TeamId != selectedUnit?.TeamId)
+                    continue;
                 if (grid.Distance(from, u.CurrentTile.Axial) > uu.destRange)
                     continue;
                 yield return u.CurrentTile.Axial;

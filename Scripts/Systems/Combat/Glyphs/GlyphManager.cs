@@ -186,7 +186,7 @@ public sealed class GlyphManager
             return false;
         foreach (var e in effects)
         {
-            if (e is PrepareGlyphEffect or ReflectWardEffect or SpellAnchorEffect or EnchantPillarEffect)
+            if (e is PrepareGlyphEffect or ReflectWardEffect or SpellAnchorEffect or EnchantPillarEffect or InscribeEffect)
                 return true;
             if (PreparesGlyph(e?.Children, depth + 1))
                 return true;
@@ -497,8 +497,27 @@ public sealed class GlyphManager
             s.Log($"[GlyphManager] Cascade spread to {spread} tile(s).");
         }
 
+        // Tripwire Sentence: the rest of the pair is spent with it.
+        if (g.PairId != 0 && _grid?.Tiles != null)
+            foreach (var other in _grid.Tiles.Values.ToList())
+                if (other != tile && other.Glyph != null && other.Glyph.PairId == g.PairId)
+                    Remove(other);
+
+        // Seven-Layer Ward: peel a layer; it stays until the last one is gone.
+        if (g.Layers > 0)
+        {
+            g.Layers--;
+            s.Log(g.Layers > 0
+                ? $"[Glyph] A layer peels away: {g.Layers} left."
+                : "[Glyph] The last layer peels away.");
+            return g.Layers > 0;
+        }
+
         return g.Reusable;
     }
+
+    /// <summary>A fresh id for glyphs prepared together (Tripwire Sentence pairs).</summary>
+    public int NewPairId() => _nextLinkId++;
 
     /// <summary>Removes a glyph from a tile and clears its visual.</summary>
     public void Remove(TileData tile)

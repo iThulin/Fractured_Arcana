@@ -1,0 +1,264 @@
+{
+	"id": "enchanter_the_seventh_name",
+	"status": "ready",
+	"name": "The Seventh Name",
+	"school": "Enchanter",
+	"rarity": "Legendary",
+	"top": {
+		"name": "The Seventh Name",
+		"mana": 4,
+		"speed": "Studied",
+		"rules_text": "For the rest of the fight, your Names last 1 extra turn, and Naming an enemy also prepares a glyph beneath it: if it starts its turn there, it takes 4.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "seventh_name",
+			"extra_turns": 1,
+			"glyph_damage": 4
+		},
+		"once_per_fight": true
+	},
+	"bottom": {
+		"name": "Speak Every Name",
+		"mana": 3,
+		"speed": "Reflex",
+		"rules_text": "Name every enemy for 1 turn: each takes 4 whenever it moves, attacks or casts.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "name_condition",
+			"trigger": "act",
+			"damage": 4,
+			"duration": 1,
+			"all_enemies": true,
+			"per_trigger": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Seventh Name+",
+			"bottom_name": "Speak Every Name+",
+			"description": "The Name cuts deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "seventh_name",
+						"extra_turns": 1,
+						"glyph_damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, your Names last 1 extra turn, and Naming an enemy also prepares a glyph beneath it: if it starts its turn there, it takes 5."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "act",
+						"damage": 5,
+						"duration": 1,
+						"all_enemies": true,
+						"per_trigger": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name every enemy for 1 turn: each takes 5 whenever it moves, attacks or casts."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "The Seventh Name, Spoken",
+			"description": "Spoken aloud, it feeds the Weave.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seventh_name",
+								"extra_turns": 1,
+								"glyph_damage": 6
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, your Names last 1 extra turn, and Naming an enemy also prepares a glyph beneath it: if it starts its turn there, it takes 6. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Speak Every Name Twice",
+			"description": "Two turns.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "act",
+						"damage": 5,
+						"duration": 2,
+						"all_enemies": true,
+						"per_trigger": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name every enemy for 2 turns: each takes 5 whenever it moves, attacks or casts."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Seventh Name, Written",
+			"description": "Written down, it lasts.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seventh_name",
+								"extra_turns": 2,
+								"glyph_damage": 6
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, your Names last 2 extra turns, and Naming an enemy also prepares a glyph beneath it: if it starts its turn there, it takes 6. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Every Name Known",
+			"description": "Every Name Known.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "act",
+						"damage": 6,
+						"duration": 2,
+						"all_enemies": true,
+						"per_trigger": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name every enemy for 2 turns: each takes 6 whenever it moves, attacks or casts."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Name Beneath All Names",
+			"description": "The Name Beneath All Names.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "seventh_name",
+								"extra_turns": 2,
+								"glyph_damage": 8
+							},
+							{
+								"type": "gain_weave",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight, your Names last 2 extra turns, and Naming an enemy also prepares a glyph beneath it: if it starts its turn there, it takes 8. Gain 3 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Every Name, Every Hour",
+			"description": "Every Name, Every Hour.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "act",
+								"damage": 7,
+								"duration": 2,
+								"all_enemies": true,
+								"per_trigger": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Name every enemy for 2 turns: each takes 7 whenever it moves, attacks or casts. Gain 2 Weave."
+				}
+			]
+		}
+	]
+}

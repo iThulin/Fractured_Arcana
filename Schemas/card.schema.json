@@ -279,6 +279,10 @@
 					"type": "integer",
 					"description": "unit_then_tile: max distance from the victim for the destination tile."
 				},
+				"friendly_glyphs": {
+					"type": "boolean",
+					"description": "tile_then_tile: both picks must hold one of your glyphs (default true; Glyph Warp). False for Tripwire Sentence."
+				},
 				"any_tile": {
 					"type": "boolean",
 					"description": "unit_then_tile: any tile within dest_range, occupied ones included (Borrowed Will)."
@@ -433,7 +437,12 @@
 						"misdirect_attack",
 						"borrow_will",
 						"draw_on_break",
-						"compound_names"
+						"compound_names",
+						"weave_per_named",
+						"move_name",
+						"shield_named_allies",
+						"inscribe",
+						"seventh_name"
 					]
 				},
 				"amount": {
@@ -944,6 +953,58 @@
 					"type": "integer",
 					"description": "compound_names: penalty growth per break.",
 					"minimum": 1
+				},
+				"allies": {
+					"type": "boolean",
+					"description": "name_condition: Name allies (a boon that never breaks) instead of enemies."
+				},
+				"all_allies": {
+					"type": "boolean",
+					"description": "name_condition: Name every ally on the board, whatever the targets."
+				},
+				"all_enemies": {
+					"type": "boolean",
+					"description": "name_condition: Name every enemy on the board, whatever the targets."
+				},
+				"immune_weakened": {
+					"type": "boolean",
+					"description": "name_condition boon: the ally cannot be Weakened (Name of Courage)."
+				},
+				"warding": {
+					"type": "boolean",
+					"description": "name_condition boon: whoever strikes the ally is Weakened 1 turn and the Namer gains 1 Weave (Name of Warding)."
+				},
+				"first_card_discount": {
+					"type": "integer",
+					"description": "name_condition boon: the ally's first card each turn costs this much less (Litany of Names)."
+				},
+				"per_weave": {
+					"type": "integer",
+					"description": "shield_named_allies: shield per point of the caster's Weave."
+				},
+				"fallback_damage": {
+					"type": "integer",
+					"description": "inscribe: damage when no card was inscribed."
+				},
+				"weave_on_trigger": {
+					"type": "integer",
+					"description": "inscribe: Weave the owner gains when the inscription goes off."
+				},
+				"extra_turns": {
+					"type": "integer",
+					"description": "seventh_name: extra turns on every Name your side writes."
+				},
+				"glyph_damage": {
+					"type": "integer",
+					"description": "seventh_name: damage of the glyph prepared beneath each Named enemy."
+				},
+				"layers": {
+					"type": "integer",
+					"description": "prepare_glyph: Seven-Layer Ward. Each trigger peels one; the glyph stays until all are gone."
+				},
+				"pair": {
+					"type": "boolean",
+					"description": "prepare_glyph: the glyphs placed together form a pair; triggering one spends the others (Tripwire Sentence)."
 				},
 				"halt_movement": {
 					"type": "boolean",

@@ -121,6 +121,14 @@ public sealed class GlyphData
     /// <summary>Glyphs sharing a non-zero link id trigger together. 0 = unlinked.</summary>
     public int LinkId;
 
+    /// <summary>Seven-Layer Ward (slice 13b): each trigger peels one; the glyph stays
+    /// until the last is gone. 0 = not layered.</summary>
+    public int Layers;
+
+    /// <summary>Tripwire Sentence (slice 13b): glyphs prepared together. When one is
+    /// triggered the others are spent with it (the wire snaps). 0 = unpaired.</summary>
+    public int PairId;
+
     /// <summary>Extra damage added per other glyph that fires in the same batch (Glyph Network).</summary>
     public int CumulativeBonus;
 

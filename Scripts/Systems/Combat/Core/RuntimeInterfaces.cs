@@ -79,7 +79,8 @@ public sealed class ManaCost : ICost
         // affordability and payment can never disagree.
         if (u != null && u.IsPlayerControlled)
         {
-            int glyphDiscount = GlyphManager.StandingCostReduction(u)
+            int glyphDiscount = Names.FirstCardDiscount(u)
+                + GlyphManager.StandingCostReduction(u)
                 + GlyphManager.ArchitectureDiscount(s, u, s.CostContextHalf ?? InferHalf(s.CostContextCard, baseAmount));
             if (glyphDiscount > 0)
                 amount = Math.Max(0, amount - glyphDiscount);

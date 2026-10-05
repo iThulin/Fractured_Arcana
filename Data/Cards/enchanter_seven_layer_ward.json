@@ -1,0 +1,281 @@
+{
+	"id": "enchanter_seven_layer_ward",
+	"status": "ready",
+	"name": "Seven-Layer Ward",
+	"school": "Enchanter",
+	"rarity": "Rare",
+	"top": {
+		"name": "Seven-Layer Ward",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Prepare a glyph within 4 with seven layers. Each time an enemy enters it: 3 damage, and one layer peels away. It remains until all seven are gone.",
+		"glyph_text": "It takes {damage} damage and one layer peels away.",
+		"tags": [
+			"enchant",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "enter",
+			"damage": 3,
+			"layers": 7
+		}
+	},
+	"bottom": {
+		"name": "Recite the Layers",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Trigger every glyph you control once, without consuming them.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "trigger_all_glyphs",
+			"consume": false
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Seven-Layer Ward+",
+			"bottom_name": "Recite the Layers+",
+			"description": "Sharper layers. A louder recital.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 4,
+						"layers": 7
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4 with seven layers. Each time an enemy enters it: 4 damage, and one layer peels away. It remains until all seven are gone."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "trigger_all_glyphs",
+								"consume": false
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Trigger every glyph you control once, without consuming them. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Seven-Layer Bastion",
+			"description": "Seven-Layer Bastion: every layer stops them.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 4,
+						"layers": 7,
+						"halt_movement": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4 with seven layers. Each time an enemy enters it: 4 damage and its movement ends, and one layer peels away. It remains until all seven are gone."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage, stops moving, and one layer peels away."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Resonant Layers",
+			"description": "Resonant Layers.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "trigger_all_glyphs",
+								"consume": false,
+								"bonus_per_other": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Trigger every glyph you control once, without consuming them. Each deals 1 more per other glyph triggered. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Seven Seals",
+			"description": "Seven Seals.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 5,
+						"layers": 7,
+						"halt_movement": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4 with seven layers. Each time an enemy enters it: 5 damage and its movement ends, and one layer peels away. It remains until all seven are gone."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage, stops moving, and one layer peels away."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Echoing Layers",
+			"description": "Echoing Layers.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "trigger_all_glyphs",
+								"consume": false,
+								"bonus_per_other": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Trigger every glyph you control once, without consuming them. Each deals 1 more per other glyph triggered. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Seven Walls",
+			"description": "The Seven Walls.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "prepare_glyph",
+								"trigger": "enter",
+								"damage": 6,
+								"layers": 7,
+								"halt_movement": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a glyph within 4 with seven layers. Each time an enemy enters it: 6 damage and its movement ends, and one layer peels away. It remains until all seven are gone. Gain 2 Weave."
+				},
+				{
+					"half": "top",
+					"field": "glyph_text",
+					"value": "It takes {damage} damage, stops moving, and one layer peels away."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "All Layers Sing",
+			"description": "All Layers Sing.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "trigger_all_glyphs",
+								"consume": false,
+								"bonus_per_other": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Trigger every glyph you control once, without consuming them. Each deals 2 more per other glyph triggered. Gain 2 Weave."
+				}
+			]
+		}
+	]
+}

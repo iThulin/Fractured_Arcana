@@ -319,6 +319,10 @@ public sealed class PrepareGlyphEffect : EffectBase
 	public int OwnerDraw, OwnerMana, OwnerWeave, OwnerHeal;
 	// Slice 12a
 	public bool InstantCopies, HaltsMovement;
+	/// <summary>Slice 13b: Seven-Layer Ward's layers; Tripwire Sentence's pairing.</summary>
+	public int Layers;
+	public bool Pair;
+	private int _pairId;
 	public int NameOnTrigger, CasterCostReduction, CasterDamage, CasterWeavePerTurn, AllyHealPerTurn, SpawnGlyphDamage;
 
 	/// <summary>Identity of the half that owns this effect, stamped once at load time by
@@ -362,6 +366,12 @@ public sealed class PrepareGlyphEffect : EffectBase
 		g.CasterWeavePerTurn = CasterWeavePerTurn;
 		g.AllyHealPerTurn = AllyHealPerTurn;
 		g.SpawnGlyphDamage = SpawnGlyphDamage;
+		if (Layers > 0)
+		{
+			g.Layers = Layers;
+			g.Reusable = true;   // it stays between triggers; OnGlyphFired removes it at 0
+		}
+		g.PairId = _pairId;
 	}
 
 	public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
@@ -370,6 +380,7 @@ public sealed class PrepareGlyphEffect : EffectBase
 		if (s?.Glyphs == null)
 		{ s?.Log("[PrepareGlyph] no GlyphManager on GameState."); return; }
 
+		_pairId = Pair ? s.Glyphs.NewPairId() : 0;
 		int placed = 0;
 		if (Area)
 		{

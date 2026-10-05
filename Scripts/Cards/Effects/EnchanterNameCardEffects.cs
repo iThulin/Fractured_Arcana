@@ -72,7 +72,7 @@ public sealed class MisdirectAttackEffect : EffectBase
             if (u == null || !GodotObject.IsInstanceValid(u) || !u.Stats.IsAlive || u.TeamId == team)
                 continue;
             string err = IntentTime.RedirectLock(u);
-            Names.Write(u, new NameCondition
+            var name = new NameCondition
             {
                 Triggers = NameTrigger.Attack,
                 Damage = Damage,
@@ -81,7 +81,10 @@ public sealed class MisdirectAttackEffect : EffectBase
                 OwnerTeam = team,
                 Source = s.ResolvingAbilityName ?? "a Name",
                 Misdirect = err == null,
-            }, s.Log);
+            };
+            Names.Lengthen(name);
+            Names.Write(u, name, s.Log);
+            Names.GlyphBeneath(s, owner, u);
             if (err != null)
                 s.Log($"[Misdirect] {u.Name}: {err}.");
         }

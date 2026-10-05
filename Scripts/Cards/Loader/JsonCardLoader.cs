@@ -146,6 +146,8 @@ public static partial class CardScriptRegistry
             CasterDamage = Geti("caster_damage"),
             CasterWeavePerTurn = Geti("caster_weave_per_turn"),
             AllyHealPerTurn = Geti("ally_heal_per_turn"),
+            Layers = n.TryGetProperty("layers", out var ly) ? ly.GetInt32() : 0,
+            Pair = n.TryGetProperty("pair", out var pr) && pr.ValueKind == JsonValueKind.True,
             SpawnGlyphDamage = n.TryGetProperty("on_trigger_spawn_glyph", out var sg)
                 ? (sg.ValueKind == JsonValueKind.True ? 3 : sg.ValueKind == JsonValueKind.Number ? sg.GetInt32() : 0)
                 : 0,
@@ -803,9 +805,10 @@ public static partial class CardScriptRegistry
         RegisterTargeter("unit_then_unit", n =>
         {
             bool enemyOnly = n.TryGetProperty("enemies_only", out var eo) && eo.GetBoolean();
+            bool friendlyOnly = n.TryGetProperty("friendlies_only", out var fo) && fo.GetBoolean();
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
             int destRange = n.TryGetProperty("dest_range", out var d) ? d.GetInt32() : range;
-            return new SelectUnitThenUnitTarget(enemyOnly, range, destRange);
+            return new SelectUnitThenUnitTarget(enemyOnly, range, destRange) { friendlyOnly = friendlyOnly };
         });
 
         // { "type": "tile_then_tile", "range": n, "dest_range": n, "friendly_glyphs": bool }

@@ -2949,6 +2949,7 @@ public partial class CombatManager
                 CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
                 victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
                 LastStrikeVictim = victim;
+                OnWardedStruck(attacker, victim);
             }
         }
 

@@ -1,0 +1,310 @@
+{
+	"id": "enchanter_tripwire_sentence",
+	"status": "ready",
+	"name": "Tripwire Sentence",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Tripwire Sentence",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Prepare a pair of glyphs on 2 adjacent tiles within 3. When an enemy enters either: 3 damage and its movement ends. Then the other glyph is spent too.",
+		"glyph_text": "It takes {damage} damage and stops moving. The other end of the wire is spent.",
+		"tags": [
+			"enchant",
+			"glyph"
+		],
+		"targeting": {
+			"type": "tile_then_tile",
+			"range": 3,
+			"dest_range": 1,
+			"friendly_glyphs": false
+		},
+		"effect": {
+			"type": "prepare_glyph",
+			"trigger": "enter",
+			"damage": 3,
+			"halt_movement": true,
+			"count": 2,
+			"pair": true
+		}
+	},
+	"bottom": {
+		"name": "Trip",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Compel target enemy within 3 to walk 1 tile toward you.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 3,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "compel_walk",
+			"tiles": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Tripwire Sentence+",
+			"bottom_name": "Trip+",
+			"description": "A sharper wire. A longer stumble.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "prepare_glyph",
+						"trigger": "enter",
+						"damage": 4,
+						"halt_movement": true,
+						"count": 2,
+						"pair": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a pair of glyphs on 2 adjacent tiles within 3. When an enemy enters either: 4 damage and its movement ends. Then the other glyph is spent too."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "compel_walk",
+						"tiles": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy within 3 to walk up to 2 tiles toward you."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Snapping Wire",
+			"description": "Snapping Wire: and the Weave tightens.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "prepare_glyph",
+								"trigger": "enter",
+								"damage": 5,
+								"halt_movement": true,
+								"count": 2,
+								"pair": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a pair of glyphs on 2 adjacent tiles within 3. When an enemy enters either: 5 damage and its movement ends. Then the other glyph is spent too. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Stumble Forward",
+			"description": "Stumble Forward.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 2
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy within 3 to walk up to 2 tiles toward you. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Garrote Line",
+			"description": "Garrote Line: strung further out.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile_then_tile",
+						"range": 4,
+						"dest_range": 1,
+						"friendly_glyphs": false
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "prepare_glyph",
+								"trigger": "enter",
+								"damage": 6,
+								"halt_movement": true,
+								"count": 2,
+								"pair": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a pair of glyphs on 2 adjacent tiles within 4. When an enemy enters either: 6 damage and its movement ends. Then the other glyph is spent too. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Pull Taut",
+			"description": "Pull Taut: three tiles.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 3
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy within 3 to walk up to 3 tiles toward you. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Long Sentence",
+			"description": "The Long Sentence.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile_then_tile",
+						"range": 5,
+						"dest_range": 1,
+						"friendly_glyphs": false
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "prepare_glyph",
+								"trigger": "enter",
+								"damage": 8,
+								"halt_movement": true,
+								"count": 2,
+								"pair": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Prepare a pair of glyphs on 2 adjacent tiles within 5. When an enemy enters either: 8 damage and its movement ends. Then the other glyph is spent too. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Hangman's Step",
+			"description": "Hangman's Step: and it stays put.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "compel_walk",
+								"tiles": 3
+							},
+							{
+								"type": "name_condition",
+								"trigger": "move",
+								"damage": 4,
+								"duration": 1
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Compel target enemy within 3 to walk up to 3 tiles toward you. Then Name it for 1 turn: if it moves, it takes 4. Gain 1 Weave."
+				}
+			]
+		}
+	]
+}

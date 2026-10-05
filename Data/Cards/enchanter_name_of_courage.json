@@ -1,0 +1,283 @@
+{
+	"id": "enchanter_name_of_courage",
+	"status": "ready",
+	"name": "Name of Courage",
+	"school": "Enchanter",
+	"rarity": "Common",
+	"top": {
+		"name": "Name of Courage",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Name an ally for 3 turns: it deals 2 more damage and can't be Weakened.",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false
+		},
+		"effect": {
+			"type": "name_condition",
+			"trigger": "none",
+			"damage": 0,
+			"duration": 3,
+			"allies": true,
+			"bonus_damage": 2,
+			"immune_weakened": true
+		}
+	},
+	"bottom": {
+		"name": "Count the Named",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Gain 1 Weave per Named unit (max 3).",
+		"tags": [
+			"enchant"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "weave_per_named",
+			"max": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Name of Courage+",
+			"bottom_name": "Count the Named+",
+			"description": "Braver still. More names to count.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "name_condition",
+						"trigger": "none",
+						"damage": 0,
+						"duration": 3,
+						"allies": true,
+						"bonus_damage": 3,
+						"immune_weakened": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 3 turns: it deals 3 more damage and can't be Weakened."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "weave_per_named",
+						"max": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Weave per Named unit (max 4)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Name of Valor",
+			"description": "Name of Valor: and the Weave answers.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 3,
+								"allies": true,
+								"bonus_damage": 3,
+								"immune_weakened": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 3 turns: it deals 3 more damage and can't be Weakened. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Roll Call",
+			"description": "Roll Call: and a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "weave_per_named",
+								"max": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Weave per Named unit (max 4). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Name of Heroes",
+			"description": "Name of Heroes: a hero's strength.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 3,
+								"allies": true,
+								"bonus_damage": 4,
+								"immune_weakened": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 3 turns: it deals 4 more damage and can't be Weakened. Gain 1 Weave."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Census of Names",
+			"description": "Census of Names: count them all.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "weave_per_named",
+								"max": 5
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Weave per Named unit (max 5). Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Name of Legends",
+			"description": "Name of Legends: a name remembered.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "name_condition",
+								"trigger": "none",
+								"damage": 0,
+								"duration": 4,
+								"allies": true,
+								"bonus_damage": 5,
+								"immune_weakened": true
+							},
+							{
+								"type": "gain_weave",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Name an ally for 4 turns: it deals 5 more damage and can't be Weakened. Gain 2 Weave."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Great Roll",
+			"description": "The Great Roll.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "weave_per_named",
+								"max": 6
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 1 Weave per Named unit (max 6). Draw 1 card."
+				}
+			]
+		}
+	]
+}

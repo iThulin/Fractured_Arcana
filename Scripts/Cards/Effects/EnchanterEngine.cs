@@ -73,11 +73,32 @@ public sealed class NameCondition
     /// broken pays, and the whole group falls away.</summary>
     public List<(Unit unit, NameCondition name)> Group;
 
+    // ── Boons: Names on allies (Benefactor, slice 13b). An ally's Name never breaks. ──
+    /// <summary>Name of Courage: +N damage to its spells and attacks.</summary>
+    public int BonusDamage;
+    /// <summary>Name of Courage: it cannot be Weakened.</summary>
+    public bool ImmuneWeakened;
+    /// <summary>Name of Warding: whoever strikes it is Weakened 1 turn and the Namer gains 1 Weave.</summary>
+    public bool Warding;
+    /// <summary>Litany of Names: its first card each turn costs N less.</summary>
+    public int FirstCardDiscount;
+
+    /// <summary>True for a Name that helps its bearer (written on an ally).</summary>
+    public bool IsBoon => BonusDamage > 0 || ImmuneWeakened || Warding || FirstCardDiscount > 0;
+
     /// <summary>Nameplate chip text, e.g. "If it attacks: 5" or "Casts backfire".</summary>
     public string ChipText()
     {
         var parts = new List<string>();
         string words = TriggerWords();
+        if (IsBoon)
+        {
+            if (BonusDamage > 0) parts.Add($"+{BonusDamage} damage");
+            if (ImmuneWeakened) parts.Add("Can't be Weakened");
+            if (Warding) parts.Add("Attackers Weakened");
+            if (FirstCardDiscount > 0) parts.Add($"First card -{FirstCardDiscount}");
+            return string.Join("; ", parts);
+        }
         if (Damage > 0 || (!Backfire && Shuns == null && !Misdirect))
         {
             if (Group != null)
@@ -98,6 +119,14 @@ public sealed class NameCondition
     {
         var parts = new List<string>();
         string words = TriggerWords();
+        if (IsBoon)
+        {
+            if (BonusDamage > 0) parts.Add($"its spells and attacks deal {BonusDamage} more damage");
+            if (ImmuneWeakened) parts.Add("it cannot be Weakened");
+            if (Warding) parts.Add("whoever strikes it is Weakened for 1 turn and its Namer gains 1 Weave");
+            if (FirstCardDiscount > 0) parts.Add($"its first card each turn costs {FirstCardDiscount} less");
+            return $"Named by {Source}: " + string.Join(", ", parts) + ".";
+        }
         if (Damage > 0)
         {
             if (Group != null)
@@ -153,12 +182,101 @@ public static class Names
     /// lasts, and how many draws are left.</summary>
     public static readonly Dictionary<Unit, (int untilRound, int left)> DrawOnBreak = new();
 
+    /// <summary>The Seventh Name (rest of fight): team -> (extra turns on every Name it
+    /// writes, damage of the glyph prepared beneath each enemy it Names).</summary>
+    public static readonly Dictionary<int, (int extraTurns, int glyphDamage)> SeventhName = new();
+
     /// <summary>Combat start: forget the last fight's rest-of-fight effects.</summary>
     public static void ResetForCombat()
     {
         LastBreakRound = -99;
         CompoundGrowth.Clear();
         DrawOnBreak.Clear();
+        SeventhName.Clear();
+    }
+
+    /// <summary>Before a Name is written: The Seventh Name lengthens it.</summary>
+    public static void Lengthen(NameCondition name)
+    {
+        if (name != null && SeventhName.TryGetValue(name.OwnerTeam, out var sn) && sn.extraTurns > 0)
+            name.TurnsRemaining += sn.extraTurns;
+    }
+
+    /// <summary>After an enemy is Named: The Seventh Name prepares a glyph beneath it
+    /// (it pays at the start of its turn if it is still standing there).</summary>
+    public static void GlyphBeneath(GameState s, Unit owner, Unit target)
+    {
+        if (s?.Glyphs == null || owner == null || target?.CurrentTile == null || target.TeamId == owner.TeamId)
+            return;
+        if (!SeventhName.TryGetValue(owner.TeamId, out var sn) || sn.glyphDamage <= 0)
+            return;
+        var g = s.Glyphs.Prepare(target.CurrentTile, owner, ng =>
+        {
+            ng.Trigger = GlyphTrigger.StartOfTurn;
+            ng.Damage = sn.glyphDamage;
+            ng.DurationTurns = 3;
+        });
+        if (g != null)
+        {
+            g.SourceName = "The Seventh Name";
+            g.GlyphText = "If it starts its turn here, it takes {damage}.";
+            s.Log($"[SeventhName] A glyph is written beneath {target.Name}.");
+        }
+    }
+
+    /// <summary>A boon starts: Courage's damage is added (and taken off again in
+    /// <see cref="EndBoon"/>), and Courage clears any Weakened already on it.</summary>
+    public static void StartBoon(Unit u, NameCondition n)
+    {
+        if (u == null || n == null || !GodotObject.IsInstanceValid(u))
+            return;
+        if (n.BonusDamage > 0)
+        {
+            u.BonusSpellDamage += n.BonusDamage;
+            u.AttackDamage += n.BonusDamage;
+        }
+        if (n.ImmuneWeakened && u.HasStatus("weakened"))
+            u.RemoveStatus("weakened");
+    }
+
+    public static void EndBoon(Unit u, NameCondition n)
+    {
+        if (u == null || n == null || !GodotObject.IsInstanceValid(u))
+            return;
+        if (n.BonusDamage > 0)
+        {
+            u.BonusSpellDamage -= n.BonusDamage;
+            u.AttackDamage -= n.BonusDamage;
+        }
+    }
+
+    /// <summary>Litany of Names: the discount on this unit's first card this turn.</summary>
+    public static int FirstCardDiscount(Unit u)
+    {
+        if (u == null || u.Stats.HasPlayedCardThisTurn || u.Names.Count == 0)
+            return 0;
+        int best = 0;
+        foreach (var n in u.Names)
+            if (n.TurnsRemaining > 0 && n.FirstCardDiscount > best)
+                best = n.FirstCardDiscount;
+        return best;
+    }
+
+    /// <summary>True when a living boon on the unit makes it immune to Weakened.</summary>
+    public static bool ImmuneToWeakened(Unit u) =>
+        u != null && u.Names.Any(n => n.ImmuneWeakened && n.TurnsRemaining > 0);
+
+    /// <summary>Moves a Name from one unit to another (Name of Warding's bottom).</summary>
+    public static bool Move(Unit from, Unit to, NameCondition n)
+    {
+        if (from == null || to == null || n == null || from == to || !from.Names.Remove(n))
+            return false;
+        EndBoon(from, n);
+        to.Names.Add(n);
+        StartBoon(to, n);
+        from.RefreshHealthBar();
+        to.RefreshHealthBar();
+        return true;
     }
 
     /// <summary>True when a break happened this round or the one before (an enemy turn
@@ -170,6 +288,7 @@ public static class Names
         if (target == null || name == null || !target.Stats.IsAlive)
             return;
         target.Names.Add(name);
+        StartBoon(target, name);
         target.RefreshHealthBar();
         log?.Invoke($"[Name] {target.Name} is Named for {name.TurnsRemaining} turn(s): {name.ChipText()}.");
         RegisterManager.Fire("ench.first_name");
@@ -243,6 +362,9 @@ public static class Names
                 continue;
             foreach (var n in u.Names)
                 n.TurnsRemaining--;
+            foreach (var n in u.Names)
+                if (n.TurnsRemaining <= 0)
+                    EndBoon(u, n);
             if (u.Names.RemoveAll(n => n.TurnsRemaining <= 0) > 0)
                 u.RefreshHealthBar();
         }
@@ -272,6 +394,12 @@ public sealed class NameConditionEffect : EffectBase
     public bool HalveAttack;
     /// <summary>Slice 13a flags: see the matching <see cref="NameCondition"/> fields.</summary>
     public bool Backfire, Shun, PerTrigger, Grouped;
+    /// <summary>Slice 13b: Name allies instead of enemies; or every ally / every enemy
+    /// on the board, whatever the targets.</summary>
+    public bool Allies, AllAllies, AllEnemies;
+    /// <summary>Slice 13b boons (see <see cref="NameCondition"/>).</summary>
+    public int BonusDamage, FirstCardDiscount;
+    public bool ImmuneWeakened, Warding;
 
     public NameConditionEffect(NameTrigger triggers, int damage, int duration)
     {
@@ -288,9 +416,17 @@ public sealed class NameConditionEffect : EffectBase
         int team = owner?.TeamId ?? 0;
         bool any = false;
         var group = Grouped ? new List<(Unit, NameCondition)>() : null;
-        foreach (var obj in targets.Items)
+        bool allies = Allies || AllAllies;
+        IEnumerable<object> pool = targets.Items;
+        if ((AllAllies || AllEnemies) && s?.UnitsInPlay != null)
+            pool = s.UnitsInPlay.Cast<object>().ToList();
+        foreach (var obj in pool)
         {
-            if (obj is not Unit u || !GodotObject.IsInstanceValid(u) || !u.Stats.IsAlive || u.TeamId == team)
+            if (obj is not Unit u || !GodotObject.IsInstanceValid(u) || !u.Stats.IsAlive || u.CurrentTile == null)
+                continue;
+            if (allies ? u.TeamId != team : u.TeamId == team)
+                continue;
+            if (allies && (u.IsStructure || u.IsObjectiveWard || u.IsMapObject))
                 continue;
             var written = new NameCondition
             {
@@ -307,16 +443,25 @@ public sealed class NameConditionEffect : EffectBase
                 Shuns = Shun ? owner : null,
                 PerTrigger = PerTrigger,
                 Group = group,
+                BonusDamage = BonusDamage,
+                ImmuneWeakened = ImmuneWeakened,
+                Warding = Warding,
+                FirstCardDiscount = FirstCardDiscount,
             };
+            if (allies)
+                written.Triggers = NameTrigger.None;   // a boon never breaks
+            Names.Lengthen(written);
             group?.Add((u, written));
             Names.Write(u, written, s.Log);
+            if (!allies)
+                Names.GlyphBeneath(s, owner, u);
             any = true;
             // Not Me: an enemy already aimed at the Namer chooses again.
             if (Shun && owner != null && u.CurrentIntent?.TargetUnit == owner)
                 s.OnReplanIntent?.Invoke(u);
         }
         if (!any)
-            s?.Log("[Name] No enemy to Name.");
+            s?.Log(allies ? "[Name] No ally to Name." : "[Name] No enemy to Name.");
     }
 }
 
