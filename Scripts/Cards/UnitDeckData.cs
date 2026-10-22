@@ -30,6 +30,33 @@ public class UnitDeckData
 	/// denial into attrition against a 10-card deck instead of a delay.</summary>
 	public List<Card> ExilePile = new();
 
+	// ── The Register's leaf (Arcanist, class_identity_arcanist_v1 §2) ─────────
+	/// <summary>Open pages on the leaf, oldest first. Cast either half of a penned card for
+	/// its mana plus 1 Charge; it then goes to the discard pile.</summary>
+	public List<Card> Pages = new();
+	public const int MaxPages = 3;
+	/// <summary>Infinity Loop's fourth page: permanent for the fight, recites itself.</summary>
+	public Card Memorized;
+	/// <summary>Overcharge's bottom: penned cards whose TOP half costs no Charge.</summary>
+	public HashSet<Card> FreeTopPages = new();
+	/// <summary>Grimoire Dive's bottom: leaf casts that cost no Charge.</summary>
+	public int FreeLeafCasts;
+
+	/// <summary>True for a card on the leaf (an open page or the memorized one).</summary>
+	public bool IsLeafCard(Card c) => c != null && (Pages.Contains(c) || c == Memorized);
+
+	/// <summary>Moves a card from the hand or the draw pile onto an open page.
+	/// False when the leaf is full or the card is not in either.</summary>
+	public bool Pen(Card card)
+	{
+		if (card == null || Pages.Count >= MaxPages || Pages.Contains(card))
+			return false;
+		if (!Hand.Remove(card) && !DrawPile.Remove(card))
+			return false;
+		Pages.Add(card);
+		return true;
+	}
+
 	/// <summary>Live hand cap. Lowered by the enemy `hand_cap` aura and restored when
 	/// its carrier dies. CombatManager.ApplyEnemyAuras recomputes it from
 	/// <see cref="BaseMaxHandSize"/> every pass, so it is never adjusted in place.</summary>
@@ -134,6 +161,11 @@ public class UnitDeckData
 	{
 		if (Hand.Remove(card))
 			DiscardPile.Add(card);
+		else if (Pages.Remove(card))
+		{
+			FreeTopPages.Remove(card);
+			DiscardPile.Add(card);   // a page cast goes to the discard pile like any card
+		}
 	}
 
 	/// <summary>U3e (redact): removes a card from hand for the rest of the combat.

@@ -193,6 +193,7 @@ public partial class CombatManager : Node3D
         InstallIntentTime();  // Chronomancer Defer / Advance hooks
         InstallAnchorHooks(); // Temporal Anchor lethal save
         InstallEnchanterHooks(); // Names break on walk; breaks feed the Weave
+        InstallLeafHooks();      // Arcanist leaf: on-demand recital
         EnsureAimLines();     // ranged-intent arcs: the node is built here, once
 
         // Wire up helper nodes
@@ -2867,6 +2868,9 @@ public partial class CombatManager : Node3D
 
         foreach (var unit in playerUnits)
         {
+            // Arcanist §2b: a full leaf babbles; the memorized page recites.
+            LeafEndOfTurn(unit);
+
             // Enchanter §2c: the Weave holds while you have prepared glyphs OR Named units.
             if (unit.Attunement is WeaveAttunement w)
                 w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0
@@ -6723,6 +6727,13 @@ public partial class CombatManager : Node3D
             return;
         }
 
+        // The Register's leaf (Arcanist): a page costs its mana plus 1 Charge.
+        if (!LeafCastAllowed(cardUi.CardInstance, isTop, out var leafWhy))
+        {
+            CastFail($"{half.Name}: {leafWhy}.");
+            return;
+        }
+
         // ── Choose-one: cast-time mode pick (2026-07-29) ──────────────────
         // Both options are printed on the card, so the information exists at cast
         // time, so this is an input-layer choice (post_cast_design_space_v1 §3.1),
@@ -7005,6 +7016,7 @@ public partial class CombatManager : Node3D
         if (ok)
         {
             combatUI?.AppendActionLog($"Cast: {resolvedHalf.Name}.");
+            PayLeafCast(cardUi.CardInstance, isTop);   // before the discard below takes it off the page
             // Record mastery cast against the original half's blueprint
             if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId))
                 CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);

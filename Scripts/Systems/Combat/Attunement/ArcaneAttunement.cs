@@ -85,6 +85,7 @@ public class ArcaneAttunement : ISchoolAttunement
     // ── ISchoolAttunement ────────────────────────────────────────────
     public void OnCombatStart()
     {
+        LockTurns = 0;
         SetChargesDirectly(0);
         OnTurnStart();
     }
@@ -98,8 +99,17 @@ public class ArcaneAttunement : ISchoolAttunement
 
     // ── Per-turn Grimoire reset ──────────────────────────────────────
     /// <summary>Clears the per-turn Grimoire memory (spell count + last-spell page). Call from CombatManager at the start of each Arcanist turn. Does NOT touch Charge.</summary>
+    /// <summary>Overcharge (class_identity_arcanist_v1 §4): turn starts left before Charge
+    /// can increase again. 2 = locked for the rest of this turn and all of the next.</summary>
+    public int LockTurns { get; private set; }
+
+    /// <summary>Locks Charge gains for <paramref name="turnStarts"/> turn starts (keeps the longer lock).</summary>
+    public void LockCharge(int turnStarts) => LockTurns = Math.Max(LockTurns, turnStarts);
+
     public void OnTurnStart()
     {
+        if (LockTurns > 0)
+            LockTurns--;
         SpellsCastThisTurn = 0;
         LastSpellId = null;
         LastSpellName = null;
@@ -124,6 +134,11 @@ public class ArcaneAttunement : ISchoolAttunement
     {
         if (amount <= 0)
             return 0;
+        if (LockTurns > 0)
+        {
+            GD.Print($"[ArcaneAttunement] Add({amount}) refused: Charge is locked by Overcharge.");
+            return 0;
+        }
         int before = Charge;
         int target = before + amount;
         int banked = Math.Min(target, MaxCharge) - before;

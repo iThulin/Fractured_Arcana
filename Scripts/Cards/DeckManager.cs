@@ -40,6 +40,10 @@ public partial class DeckManager : Node2D
     public List<Card> DrawPile  => _activeDeck?.DrawPile  ?? new();
     public List<Card> Hand      => _activeDeck?.Hand      ?? new();
     public List<Card> DiscardPile => _activeDeck?.DiscardPile ?? new();
+    /// <summary>The Register's leaf: open pages, oldest first (Arcanist).</summary>
+    public List<Card> Pages => _activeDeck?.Pages ?? new();
+    public Card Memorized => _activeDeck?.Memorized;
+    public bool IsLeafCard(Card c) => _activeDeck != null && _activeDeck.IsLeafCard(c);
 
     public override void _Ready()
     {
@@ -199,7 +203,13 @@ public partial class DeckManager : Node2D
 
         var cardUis = new List<CardUi>();
         foreach (Node child in handUIContainer.GetChildren())
-            if (child is CardUi cui) cardUis.Add(cui);
+            if (child is CardUi cui && !_activeDeck.IsLeafCard(cui.CardInstance)) cardUis.Add(cui);
+
+        // The leaf's oldest page glows while the leaf is full: it babbles at end of turn.
+        bool full = _activeDeck.Pages.Count >= UnitDeckData.MaxPages;
+        foreach (Node child in handUIContainer.GetChildren())
+            if (child is CardUi pc && _activeDeck.Pages.Contains(pc.CardInstance))
+                pc.SetDiscardFlagged(full && pc.CardInstance == _activeDeck.Pages[0]);
 
         for (int i = 0; i < cardUis.Count; i++)
         {

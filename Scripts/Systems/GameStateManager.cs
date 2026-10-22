@@ -161,6 +161,8 @@ public sealed class GameState
     public Action<Unit> OnIllusionsSummoned;
     /// <summary>Not Me (slice 13a): this enemy plans its intent again.</summary>
     public Action<Unit> OnReplanIntent;
+    /// <summary>Rapid Notation's bottom (Arcanist): the unit's leaf recites its oldest page now.</summary>
+    public Action<Unit> OnReciteOldest;
     public Action<Unit> OnDrawCards;
 
     /// <summary>Post-cast player choice (2026-07-28). An effect that cannot finish

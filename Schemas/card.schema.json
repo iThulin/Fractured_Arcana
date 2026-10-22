@@ -442,7 +442,13 @@
 						"move_name",
 						"shield_named_allies",
 						"inscribe",
-						"seventh_name"
+						"seventh_name",
+						"pen",
+						"free_leaf_cast",
+						"memorize",
+						"recite_oldest",
+						"charge_lock",
+						"spend_charge"
 					]
 				},
 				"amount": {
@@ -1005,6 +1011,23 @@
 				"pair": {
 					"type": "boolean",
 					"description": "prepare_glyph: the glyphs placed together form a pair; triggering one spends the others (Tripwire Sentence)."
+				},
+				"from": {
+					"type": "string",
+					"description": "pen: where the card comes from.",
+					"enum": ["hand", "deck_top", "reveal"]
+				},
+				"up_to": {
+					"type": "boolean",
+					"description": "pen: the player may pen fewer than count."
+				},
+				"free_top": {
+					"type": "boolean",
+					"description": "pen: the penned card's top half costs no Charge to cast from the leaf (Overcharge's bottom)."
+				},
+				"reveal": {
+					"type": "integer",
+					"description": "pen from reveal: how many cards to reveal."
 				},
 				"halt_movement": {
 					"type": "boolean",

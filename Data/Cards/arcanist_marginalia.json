@@ -8,7 +8,7 @@
 		"name": "Marginalia",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Look at the top 2 cards of your deck. Draw 1 card, put the other on the bottom. Gain 1 Charge.",
+		"rules_text": "Pen the top card of your deck. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -19,9 +19,9 @@
 			"type": "sequence",
 			"steps": [
 				{
-					"type": "scry",
-					"look": 2,
-					"draw": 1
+					"type": "pen",
+					"from": "deck_top",
+					"count": 1
 				},
 				{
 					"type": "gain_charge",
@@ -76,16 +76,6 @@
 			"description": "Marginalia digs deeper. Lash hits harder.",
 			"changes": [
 				{
-					"half": "top",
-					"field": "effect.steps[0].look",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Look at the top 3 cards of your deck. Draw 1 card, the rest to the bottom. Gain 1 Charge."
-				},
-				{
 					"half": "bottom",
 					"field": "effect.steps[0].amount",
 					"value": 6
@@ -94,6 +84,36 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Deal 6 damage. Spend 1 Charge to deal 4 more."
+				},
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "deck_top",
+								"count": 1
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Pen the top card of your deck. Gain 2 Charge."
 				}
 			]
 		},
@@ -101,17 +121,41 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Annotated Tome",
-			"description": "Annotated Tome: draw 2 of the looked-at cards.",
+			"description": "Annotated Tome: and a card in hand.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[0].draw",
-					"value": 2
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "deck_top",
+								"count": 1
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 3 cards. Draw 2 cards, the rest to the bottom. Gain 1 Charge."
+					"value": "Pen the top card of your deck. Gain 1 Charge. Draw 1 card."
 				}
 			]
 		},
@@ -137,17 +181,41 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Footnotes",
-			"description": "Footnotes: also banks an extra charge.",
+			"description": "Footnotes: more Charge.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.steps[1].amount",
-					"value": 2
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "deck_top",
+								"count": 1
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 3 cards. Draw 2 cards, the rest to the bottom. Gain 2 Charge."
+					"value": "Pen the top card of your deck. Gain 2 Charge. Draw 1 card."
 				}
 			]
 		},
@@ -173,8 +241,15 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "The Marginal Codex",
-			"description": "The Marginal Codex: deep selection and free recasting.",
+			"description": "The Marginal Codex: two pages at once.",
 			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
 				{
 					"half": "top",
 					"field": "effect",
@@ -182,17 +257,17 @@
 						"type": "sequence",
 						"steps": [
 							{
-								"type": "scry",
-								"look": 4,
-								"draw": 2
+								"type": "pen",
+								"from": "deck_top",
+								"count": 2
 							},
 							{
 								"type": "gain_charge",
 								"amount": 2
 							},
 							{
-								"type": "queue_next_spell_modifier",
-								"cost_reduction": 1
+								"type": "draw",
+								"count": 1
 							}
 						]
 					}
@@ -200,7 +275,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Look at the top 4 cards. Draw 2 of them. Gain 2 Charge. Your next spell costs 1 less."
+					"value": "Pen the top 2 cards of your deck. Gain 2 Charge. Draw 1 card."
 				}
 			]
 		},
