@@ -34,18 +34,15 @@
 		"name": "Living Spell",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Exile a spell from your hand. Summon a Living Spell on target tile (HP = mana x5, DMG = mana x2) that casts the exiled spell on the nearest enemy each turn.",
+		"rules_text": "Memorize a spell from your hand onto your leaf's fourth page for the rest of the fight. At the end of each of your turns, the leaf recites its top half at the nearest enemy for 1 Charge (skipped if you have none).",
 		"tags": [
 			"arcane"
 		],
 		"targeting": {
-			"type": "tile",
-			"range": 4
+			"type": "self"
 		},
 		"effect": {
-			"type": "summon_living_spell",
-			"hp_per_mana": 5,
-			"damage_per_mana": 2
+			"type": "memorize"
 		}
 	},
 	"upgrades": [
@@ -68,13 +65,31 @@
 				},
 				{
 					"half": "bottom",
-					"field": "effect.hp_per_mana",
-					"value": 6
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "memorize"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Exile a spell. Summon a Living Spell (HP = mana x6, DMG = mana x2) that casts it on the nearest enemy each turn."
+					"value": "Memorize a spell from your hand onto your leaf's fourth page for the rest of the fight. At the end of each of your turns, the leaf recites its top half at the nearest enemy for 1 Charge (skipped if you have none). Gain 1 Charge."
 				}
 			]
 		},
@@ -100,17 +115,35 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Animate Spell",
-			"description": "Animate Spell: the construct hits harder.",
+			"description": "Animate Spell: Charge to feed it.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.damage_per_mana",
-					"value": 3
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "memorize"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Exile a spell. Summon a Living Spell (HP = mana x6, DMG = mana x3) that casts it on the nearest enemy each turn."
+					"value": "Memorize a spell from your hand onto your leaf's fourth page for the rest of the fight. At the end of each of your turns, the leaf recites its top half at the nearest enemy for 1 Charge (skipped if you have none). Gain 2 Charge."
 				}
 			]
 		},
@@ -154,17 +187,39 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Greater Living Spell",
-			"description": "Greater Living Spell: the construct acts twice per turn.",
+			"description": "Greater Living Spell.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.actions_per_turn",
-					"value": 2
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "memorize"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Exile a spell. Summon a Living Spell (HP = mana x6, DMG = mana x3) that casts it on the nearest enemy twice each turn."
+					"value": "Memorize a spell from your hand onto your leaf's fourth page for the rest of the fight. At the end of each of your turns, the leaf recites its top half at the nearest enemy for 1 Charge (skipped if you have none). Gain 2 Charge. Draw 1 card."
 				}
 			]
 		},
@@ -212,23 +267,39 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Avatar of Magic",
-			"description": "Avatar of Magic: a towering construct that casts both halves.",
+			"description": "Avatar of Magic.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "summon_living_spell",
-						"hp_per_mana": 8,
-						"damage_per_mana": 3,
-						"actions_per_turn": 2,
-						"both_halves": true
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "memorize"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 3
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Exile a spell. Summon a Living Spell (HP = mana x8, DMG = mana x3) that casts both halves on the nearest enemy twice each turn."
+					"value": "Memorize a spell from your hand onto your leaf's fourth page for the rest of the fight. At the end of each of your turns, the leaf recites its top half at the nearest enemy for 1 Charge (skipped if you have none). Gain 3 Charge. Draw 1 card."
 				}
 			]
 		}

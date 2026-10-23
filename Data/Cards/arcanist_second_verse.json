@@ -31,15 +31,24 @@
 		"name": "Marginal Note",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Look at the top 3 cards of your deck. Keep 1. The rest go to the bottom.",
+		"rules_text": "Pen a card from your hand. Draw 1 card.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
 		},
 		"effect": {
-			"type": "scry",
-			"look": 3,
-			"keep": 1
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "pen",
+					"from": "hand",
+					"count": 1
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
 		}
 	},
 	"upgrades": [
@@ -55,17 +64,33 @@
 				},
 				{
 					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "scry",
-						"look": 4,
-						"keep": 1
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 1
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Look at the top 4 cards of your deck. Keep 1. The rest go to the bottom."
+					"value": "Pen a card from your hand. Draw 2 cards."
 				}
 			],
 			"top_name": "Second Verse+",

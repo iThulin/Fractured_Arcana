@@ -24,6 +24,31 @@ public static partial class CardScriptRegistry
         // Gain Arcane Charges
         // { "type": "gain_charge", "amount": n }
 
+        // ── The Register's leaf (slice 14a) ────────────────────────────
+        // { "type": "pen", "from": "hand"|"deck_top"|"reveal", "count": n, "up_to": bool,
+        //   "free_top": bool, "reveal": n, "charge_per_bottomed": n }
+        RegisterEffect("pen", n =>
+        {
+            int Geti(string k, int d) => n.TryGetProperty(k, out var v) ? v.GetInt32() : d;
+            bool Getb(string k) => n.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.True;
+            string from = n.TryGetProperty("from", out var f) ? f.GetString() : "hand";
+            return new PenEffect(from, Geti("count", 1), Getb("up_to"), Getb("free_top"),
+                                 Geti("reveal", 4), Geti("charge_per_bottomed", 0)).WithTag("CardDraw");
+        });
+        // { "type": "free_leaf_cast", "count": n }
+        RegisterEffect("free_leaf_cast", n =>
+            new FreeLeafCastEffect(n.TryGetProperty("count", out var c) ? c.GetInt32() : 1).WithTag("Mana"));
+        // { "type": "memorize" }
+        RegisterEffect("memorize", _ => new MemorizeEffect().WithTag("CardDraw"));
+        // { "type": "recite_oldest" }
+        RegisterEffect("recite_oldest", _ => new ReciteOldestEffect().WithTag("CardDraw"));
+        // { "type": "charge_lock", "turns": n }
+        RegisterEffect("charge_lock", n =>
+            new ChargeLockEffect(n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2).WithTag("Mana"));
+        // { "type": "spend_charge", "amount": n }
+        RegisterEffect("spend_charge", n =>
+            new SpendChargeEffect(n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1).WithTag("Mana"));
+
         RegisterEffect("gain_charge", n =>
             new GainChargeEffect(n.GetProperty("amount").GetInt32()).WithTag("Charge"));
 

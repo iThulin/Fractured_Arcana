@@ -7,8 +7,8 @@
 	"top": {
 		"name": "Grimoire Dive",
 		"mana": 2,
-		"speed": "Sorcery",
-		"rules_text": "Reveal the top 4 cards. Keep 1. Gain 1 Charge for each card put on the bottom.",
+		"speed": "Studied",
+		"rules_text": "Reveal the top 4 cards. Pen 1; the rest go to the bottom. Gain 1 Charge per card bottomed.",
 		"tags": [
 			"arcane"
 		],
@@ -16,17 +16,18 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "seek",
-			"look": 4,
-			"keep": 1,
+			"type": "pen",
+			"from": "reveal",
+			"count": 1,
+			"reveal": 4,
 			"charge_per_bottomed": 1
 		}
 	},
 	"bottom": {
-		"name": "Deep Reference",
+		"name": "Open the Leaf",
 		"mana": 1,
-		"speed": "Sorcery",
-		"rules_text": "Return a card from your discard to your hand.",
+		"speed": "Studied",
+		"rules_text": "Your next cast from your leaf costs no Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -34,7 +35,7 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "return_from_discard",
+			"type": "free_leaf_cast",
 			"count": 1
 		}
 	},
@@ -43,25 +44,284 @@
 			"tier": 1,
 			"half": "both",
 			"top_name": "Grimoire Dive+",
-			"bottom_name": "Deep Reference+",
-			"description": "Dive deeper; the reference also draws.",
+			"bottom_name": "Open the Leaf+",
+			"description": "Dive deeper. The leaf opens wider.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.look",
-					"value": 5
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "pen",
+						"from": "reveal",
+						"count": 1,
+						"reveal": 5,
+						"charge_per_bottomed": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal the top 5 cards. Pen 1; the rest go to the bottom. Gain 1 Charge per card bottomed."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.draw",
-					"value": 1
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "free_leaf_cast",
+								"count": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Return a card from your discard to your hand. Draw 1 card."
+					"value": "Your next cast from your leaf costs no Charge. Draw 1 card."
 				}
 			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Grimoire Plunge: and a card in hand.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "reveal",
+								"count": 1,
+								"reveal": 5,
+								"charge_per_bottomed": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal the top 5 cards. Pen 1; the rest go to the bottom. Gain 1 Charge per card bottomed. Draw 1 card."
+				}
+			],
+			"top_name": "Grimoire Plunge"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Open the Leaf Wide: two free casts.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "free_leaf_cast",
+						"count": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your next 2 casts from your leaf cost no Charge."
+				}
+			],
+			"bottom_name": "Open the Leaf Wide"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Bottomless Grimoire.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "reveal",
+								"count": 1,
+								"reveal": 6,
+								"charge_per_bottomed": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal the top 6 cards. Pen 1; the rest go to the bottom. Gain 1 Charge per card bottomed. Draw 1 card."
+				}
+			],
+			"top_name": "Bottomless Grimoire"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Leaf Unbound.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "free_leaf_cast",
+								"count": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your next 2 casts from your leaf cost no Charge. Draw 1 card."
+				}
+			],
+			"bottom_name": "Leaf Unbound"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Whole Grimoire.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "reveal",
+								"count": 1,
+								"reveal": 6,
+								"charge_per_bottomed": 1
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Reveal the top 6 cards. Pen 1; the rest go to the bottom. Gain 1 Charge per card bottomed. Draw 2 cards."
+				}
+			],
+			"top_name": "The Whole Grimoire"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "The Open Book.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "free_leaf_cast",
+								"count": 3
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your next 3 casts from your leaf cost no Charge. Draw 1 card."
+				}
+			],
+			"bottom_name": "The Open Book"
 		}
 	]
 }

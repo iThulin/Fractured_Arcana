@@ -900,6 +900,26 @@
         "It walks because it was told to. It walks over whatever is in the way."
       ],
       "note": "A compelled unit walks, it is not shoved: your glyphs trigger, Fire sears and Frost slides as it steps, but there is no collision damage and it cannot be walked off a ledge. A blocked step ends the walk."
+    },
+    {
+      "key": "arc.first_pen",
+      "category": "explain",
+      "once": true,
+      "title": "Penned",
+      "lines": [
+        "Written down. I will hold it for you. I may also read it aloud. I cannot always help that."
+      ],
+      "note": "A penned card sits on your leaf, above your hand. Cast either half for its mana plus 1 Charge. The leaf holds 3 pages; if all 3 are full at the end of your turn, it reads the oldest page's top half aloud for free at the nearest target, and that card is lost for the rest of the fight."
+    },
+    {
+      "key": "arc.babble",
+      "category": "comment",
+      "once": false,
+      "cooldown": 30,
+      "lines": [
+        "I had to say it. It was right there on the page.",
+        "Sorry. It came out. The page is blank now, if that helps."
+      ]
     }
   ]
 }

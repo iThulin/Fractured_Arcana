@@ -105,8 +105,8 @@ public partial class DeckUiManager : Node2D
 
 		try
 		{
-			// Snapshot hand RIGHT NOW for diffing
-			var targetHand = new List<Card>(deckManager.Hand);
+			// Snapshot hand RIGHT NOW for diffing (the leaf's pages show in the same container)
+			var targetHand = DisplayCards();
 
 			// Find existing UI nodes
 			var currentUiCards = new List<CardUi>();
@@ -152,7 +152,7 @@ public partial class DeckUiManager : Node2D
 
 			// --- RE-DIFF HERE against current hand, not the old snapshot ---
 			// Hand may have changed during the await (draw, reshuffle, etc.)
-			var finalHand = new HashSet<Card>(deckManager.Hand);
+			var finalHand = new HashSet<Card>(DisplayCards());
 
 			// Remove any UI nodes that are still not in the final hand
 			var allUiCards = new List<CardUi>();
@@ -177,7 +177,7 @@ public partial class DeckUiManager : Node2D
 				if (child is CardUi c)
 					presentCards.Add(c.CardInstance);
 
-			foreach (var card in deckManager.Hand)
+			foreach (var card in DisplayCards())
 			{
 				if (!presentCards.Contains(card))
 				{
@@ -201,6 +201,47 @@ public partial class DeckUiManager : Node2D
 		}
 	}
 
+	/// <summary>Everything the hand container shows: the hand, then the Register's leaf
+	/// (open pages oldest first, then the memorized page).</summary>
+	private List<Card> DisplayCards()
+	{
+		var list = new List<Card>(deckManager.Hand);
+		list.AddRange(deckManager.Pages);
+		if (deckManager.Memorized != null)
+			list.Add(deckManager.Memorized);
+		return list;
+	}
+
+	/// <summary>Pages sit in a small row above the left of the hand fan. They rest at
+	/// <see cref="PageScale"/> and grow to full size when hovered.</summary>
+	private const float PageScale = 0.55f;
+
+	private void PositionPages(List<CardUi> pages, float boxLeft, float cardW, float cardH, float handTopY)
+	{
+		var deck = deckManager.GetActiveDeck();
+		float w = cardW * PageScale, h = cardH * PageScale;
+		float y = handTopY - h - 40f;
+		for (int i = 0; i < pages.Count; i++)
+		{
+			var p = pages[i];
+			p.RestScale = PageScale;
+			bool memorized = deck != null && p.CardInstance == deck.Memorized;
+			bool free = deck != null && (deck.FreeLeafCasts > 0 || deck.FreeTopPages.Contains(p.CardInstance));
+			bool babbles = deck != null && deck.Pages.Count >= UnitDeckData.MaxPages && deck.Pages.Count > 0
+			               && p.CardInstance == deck.Pages[0];
+			p.SetPagePlate(memorized ? "MEMORIZED"
+			               : babbles ? "BABBLES AT END OF TURN"
+			               : free ? "PAGE · FREE"
+			               : "PAGE · +1 CHARGE");
+			var pos = new Vector2(boxLeft + i * (w + 14f), y);
+			p.Position = pos;
+			p.Rotation = 0f;
+			if (!p.HasBeenPlaced || p.Scale.X > PageScale + 0.01f && p.ZIndex == 0)
+				p.Scale = Vector2.One * PageScale;
+			p.SetRestTransform(pos, 0f);
+		}
+	}
+
 	public void SafeRefreshUI()
 	{
 		if (_isRefreshing)
@@ -214,8 +255,23 @@ public partial class DeckUiManager : Node2D
 
 	private void PositionHandCards()
 	{
-		int count = handUIContainer.GetChildCount();
-		if (count == 0)
+		// The leaf's pages share this container; the fan lays out only the hand.
+		var handNodes = new List<Control>();
+		var pageNodes = new List<CardUi>();
+		foreach (Node child in handUIContainer.GetChildren())
+		{
+			if (child is CardUi pc && deckManager.IsLeafCard(pc.CardInstance))
+				pageNodes.Add(pc);
+			else if (child is Control hc)
+			{
+				if (hc is CardUi hcu)
+					hcu.RestScale = 1f;
+				ClearPagePlate(hc);
+				handNodes.Add(hc);
+			}
+		}
+		int count = handNodes.Count;
+		if (count == 0 && pageNodes.Count == 0)
 			return;
 
 		// Design-space size (canvas_items stretch: constant 1920×1080, wider
@@ -261,8 +317,7 @@ public partial class DeckUiManager : Node2D
 
 		for (int i = 0; i < count; i++)
 		{
-			if (handUIContainer.GetChild(i) is not Control card)
-				continue;
+			var card = handNodes[i];
 
 			float angle = angleStart + angleStep * i;
 			Vector2 offset = new Vector2(Mathf.Sin(angle), -Mathf.Cos(angle)) * radius;
@@ -278,6 +333,9 @@ public partial class DeckUiManager : Node2D
 			if (card is CardUi cardUi)
 				cardUi.SetRestTransform(card.Position, card.Rotation);
 		}
+
+		if (pageNodes.Count > 0)
+			PositionPages(pageNodes, boxLeft, cardW, cardH, cardBotY - cardH);
 
 		// Second half of the diagnostic: where the cards ACTUALLY landed, in
 		// GLOBAL canvas coords. If mathCenter is right but globalCenter is
@@ -300,6 +358,12 @@ public partial class DeckUiManager : Node2D
 		}
 
 		UpdateCardCounts();
+	}
+
+	private static void ClearPagePlate(Control c)
+	{
+		if (c is CardUi cu)
+			cu.SetPagePlate(null);
 	}
 
 	private void UpdateCardCounts()

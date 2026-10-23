@@ -8,7 +8,7 @@
 		"name": "Overcharge",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Spend all Charge (min 2). Deal 5 damage per Charge spent to target. Lose 4 HP per Charge spent.",
+		"rules_text": "Spend all Charge (min 2). Deal 5 damage per Charge spent to target. Your Charge can't increase until the end of your next turn.",
 		"tags": [
 			"arcane"
 		],
@@ -19,18 +19,26 @@
 			"enemies_only": true
 		},
 		"effect": {
-			"type": "spend_charge_damage",
-			"damage_per_charge": 5,
-			"min_spend": 2,
-			"max_spend": 0,
-			"self_damage_per_charge": 4
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "spend_charge_damage",
+					"damage_per_charge": 5,
+					"min_spend": 2,
+					"max_spend": 0
+				},
+				{
+					"type": "charge_lock",
+					"turns": 2
+				}
+			]
 		}
 	},
 	"bottom": {
 		"name": "Tome Bind",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Exile a card from your hand face up. Cast its top half for free once per turn while exiled.",
+		"rules_text": "Pen a card from your hand. Its top half costs no Charge to cast from your leaf.",
 		"tags": [
 			"arcane"
 		],
@@ -38,8 +46,10 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "bind_card",
-			"half": "top"
+			"type": "pen",
+			"from": "hand",
+			"count": 1,
+			"free_top": true
 		}
 	},
 	"upgrades": [
@@ -52,23 +62,58 @@
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.self_damage_per_charge",
-					"value": 3
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "spend_charge_damage",
+								"damage_per_charge": 6,
+								"min_spend": 2,
+								"max_spend": 0
+							},
+							{
+								"type": "charge_lock",
+								"turns": 2
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all Charge (min 2). Deal 5 damage per Charge to target. Lose 3 HP per Charge."
+					"value": "Spend all Charge (min 2). Deal 6 damage per Charge spent to target. Your Charge can't increase until the end of your next turn."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.cast_cost_reduction",
-					"value": 1
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 1,
+								"free_top": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Exile a card face up. Cast its top half for 1 less, once per turn, while exiled."
+					"value": "Pen a card from your hand. Its top half costs no Charge to cast from your leaf. Draw 1 card."
 				}
 			]
 		},
@@ -76,79 +121,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Power Overwhelming",
-			"description": "Power Overwhelming: 6 damage per charge.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.damage_per_charge",
-					"value": 6
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Spend all Charge (min 2). Deal 6 damage per Charge. Lose 3 HP per Charge."
-				}
-			]
-		},
-		{
-			"tier": 2,
-			"half": "bottom",
-			"bottom_name": "Spellbook Bind",
-			"description": "Spellbook Bind: cast the bound half for free.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect.cast_cost_reduction",
-					"value": 99
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Exile a card face up. Cast its top half for free once per turn while exiled."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "top",
-			"top_name": "Controlled Burn",
-			"description": "Controlled Burn: no self-damage on the first 3 charge spent.",
-			"changes": [
-				{
-					"half": "top",
-					"field": "effect.self_damage_free_charges",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Spend all Charge (min 2). Deal 6 per Charge. Lose 3 HP per Charge beyond the first 3."
-				}
-			]
-		},
-		{
-			"tier": 3,
-			"half": "bottom",
-			"bottom_name": "Grand Tome",
-			"description": "Grand Tome: cast either half of the bound card.",
-			"changes": [
-				{
-					"half": "bottom",
-					"field": "effect.half",
-					"value": "either"
-				},
-				{
-					"half": "bottom",
-					"field": "rules_text",
-					"value": "Exile a card face up. Cast either half for free once per turn while exiled."
-				}
-			]
-		},
-		{
-			"tier": 4,
-			"half": "top",
-			"top_name": "Singularity Blast",
-			"description": "Singularity Blast: splash the overcharge to all nearby enemies.",
+			"description": "Power Overwhelming: 7 damage per Charge.",
 			"changes": [
 				{
 					"half": "top",
@@ -158,10 +131,144 @@
 						"steps": [
 							{
 								"type": "spend_charge_damage",
-								"damage_per_charge": 6,
+								"damage_per_charge": 7,
 								"min_spend": 2,
-								"max_spend": 0,
-								"self_damage_per_charge": 0
+								"max_spend": 0
+							},
+							{
+								"type": "charge_lock",
+								"turns": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all Charge (min 2). Deal 7 damage per Charge spent to target. Your Charge can't increase until the end of your next turn."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Spellbook Bind",
+			"description": "Spellbook Bind: two pages.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "pen",
+						"from": "hand",
+						"count": 2,
+						"up_to": true,
+						"free_top": true
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 2 cards from your hand. Their top halfs cost no Charge to cast from your leaf."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Controlled Burn",
+			"description": "Controlled Burn: the lockout ends with this turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "spend_charge_damage",
+								"damage_per_charge": 7,
+								"min_spend": 2,
+								"max_spend": 0
+							},
+							{
+								"type": "charge_lock",
+								"turns": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Spend all Charge (min 2). Deal 7 damage per Charge spent to target. Your Charge can't increase for the rest of this turn."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Grand Tome",
+			"description": "Grand Tome.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 2,
+								"up_to": true,
+								"free_top": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 2 cards from your hand. Their top halfs cost no Charge to cast from your leaf. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Singularity Blast",
+			"description": "Singularity Blast: the overflow splashes.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "spend_charge_damage",
+								"damage_per_charge": 7,
+								"min_spend": 2,
+								"max_spend": 0
 							},
 							{
 								"type": "retarget",
@@ -172,8 +279,12 @@
 								},
 								"do": {
 									"type": "damage",
-									"amount": 6
+									"amount": 7
 								}
+							},
+							{
+								"type": "charge_lock",
+								"turns": 1
 							}
 						]
 					}
@@ -181,7 +292,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Spend all Charge (min 2). Deal 6 per Charge to target. Deal 6 to all enemies within 2. No self-damage."
+					"value": "Spend all Charge (min 2). Deal 7 damage per Charge spent to target. Deal 7 to every enemy within 2 of it. Your Charge can't increase for the rest of this turn."
 				}
 			]
 		},
@@ -189,22 +300,39 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "The Living Library",
-			"description": "The Living Library: bind two cards at once.",
+			"description": "The Living Library: the whole leaf.",
 			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "self"
+					}
+				},
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "bind_card",
-						"half": "either",
-						"count": 2,
-						"cast_cost_reduction": 99
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 3,
+								"up_to": true,
+								"free_top": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Exile 2 cards face up. Cast either half of each for free once per turn while exiled."
+					"value": "Pen up to 3 cards from your hand. Their top halfs cost no Charge to cast from your leaf. Draw 1 card."
 				}
 			]
 		}

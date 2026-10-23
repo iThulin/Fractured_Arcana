@@ -51,6 +51,40 @@ public partial class CardUi : Control
     private bool _isDiscardFlagged = false;
     private Tween _amberPulseTween;
 
+    /// <summary>Scale the card rests at (pages on the Register's leaf sit smaller than
+    /// hand cards and grow to full size when hovered).</summary>
+    public float RestScale = 1f;
+    private Label _pagePlate;
+
+    /// <summary>Shows a small plate above the card ("PAGE · +1 Charge"); null hides it.</summary>
+    public void SetPagePlate(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            if (_pagePlate != null)
+                _pagePlate.Visible = false;
+            return;
+        }
+        if (_pagePlate == null)
+        {
+            _pagePlate = new Label
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                MouseFilter = MouseFilterEnum.Ignore,
+                Position = new Vector2(0f, -44f),
+                Size = new Vector2(UITheme.HandCardWidth, 40f),
+            };
+            _pagePlate.AddThemeFontSizeOverride("font_size", 26);
+            _pagePlate.AddThemeColorOverride("font_color", UITheme.Warning);
+            _pagePlate.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.85f));
+            _pagePlate.AddThemeConstantOverride("outline_size", 6);
+            AddChild(_pagePlate);
+        }
+        _pagePlate.Text = text;
+        _pagePlate.Visible = true;
+    }
+
     // Card exit safety
     private bool _entryTweenComplete = false;
     private float _notOnCardTimer = 0f;
@@ -1030,7 +1064,7 @@ public partial class CardUi : Control
         _cardTween = CreateTween().SetParallel(true);
         _cardTween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
         _cardTween.TweenProperty(this, "rotation", _restRotation, 0.12f);
-        _cardTween.TweenProperty(this, "scale", Vector2.One, 0.12f);
+        _cardTween.TweenProperty(this, "scale", Vector2.One * RestScale, 0.12f);
         ZIndex = 0;
 
         _deckUiManager?.OnCardHoverChanged(this, false);
@@ -1221,7 +1255,7 @@ public partial class CardUi : Control
             Position = new Vector2(position.X, screenSize.Y + 50f);
             Rotation = rotation;
             Modulate = new Color(1, 1, 1, 0f);
-            Scale = Vector2.One;
+            Scale = Vector2.One * RestScale;
 
             float delay = GetIndex() * 0.09f;
             var tween = CreateTween().SetParallel(true);
