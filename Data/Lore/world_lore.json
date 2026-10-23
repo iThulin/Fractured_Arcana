@@ -1,0 +1,336 @@
+{
+  "_doc": "The Hall of Lore's entries (docs/lore_codex_v1.md, W7; loaded by LoreCodex.cs, C7). id: the lore id in EternalLedger.UnlockedLoreEntries. title: the entry's name in the Hall. category: the subject it is listed under; categories lists them in display order, and the first file (by name) to list a category places it. body: what was learned, as static text with no tokens. Never use the long dash in any line. This file: the ids main grants today.",
+  "version": 1,
+  "categories": [
+    "The Sundering",
+    "The Anchorhold",
+    "The Running World",
+    "The Fast",
+    "The Seal",
+    "The Astrologer",
+    "The Seven Seats",
+    "Companions",
+    "The Schools",
+    "The Convergence"
+  ],
+  "entries": [
+    {
+      "id": "the_broken_wards",
+      "title": "The Broken Wards",
+      "category": "The Sundering",
+      "body": "The gatehouse wards were broken first, and from inside. Read in reverse, the sigil-work tells a story: whoever did it knew exactly where each ward anchored and how much force each seal could hold. It was not destruction. It was surgery, in a school's signature you almost recognize. Someone trained here. Until new wards are raised, the arch replays its half-second of shattering, silently, over and over."
+    },
+    {
+      "id": "the_standing_spell",
+      "title": "The Standing Spell",
+      "category": "The Anchorhold",
+      "body": "In the infirmary a healer stands frozen over a student with a mending half-woven between them, and the spell is still running: the only working magic in the frozen campus. It is an ordinary mending, cast by a competent healer on an ordinary wound, and it was never meant to hold this long. It has rewritten itself a thousand times to keep running, each revision a little more desperate and a little more precise. It was very tired when you found it."
+    },
+    {
+      "id": "the_frozen_sky",
+      "title": "The Frozen Sky",
+      "category": "The Anchorhold",
+      "body": "The observatory's great lens is aimed at the sky the Astrologer reads. From inside the Second the sky does not move, which means that for the first time in history someone could read it slowly. Forced open, the dome fills the lens with the sky held still, for you to study at your own pace. It is beautiful, and deeply unsettling. The leaked aether in the dome mimics constellations, star-shaped and cold."
+    },
+    {
+      "id": "the_accession_list",
+      "title": "The Accession List",
+      "category": "The Anchorhold",
+      "body": "Deep in the hanging stacks stands the under-librarian's cart, and on it a day's accession list: three titles flagged for priority retrieval, pulled from the collection the week before the Sundering at the request of someone outside the Academy with standing enough to ask. The signature is Kassian Vor-Aleth's. The list describes the last of the three only as \"the one about endings.\" He was researching something, and the titles are the seed of it."
+    },
+    {
+      "id": "campus_refectory_restored",
+      "title": "The Ovens Lit",
+      "category": "The Anchorhold",
+      "body": "The graduation feast is still on the refectory's tables: twenty-seven place settings, three chairs pushed back, the steam standing over the food. The kitchen-master's last order, for the feast, was never delivered. You carried the order in from the world, set the supplies out the way the ledger said, and lit the ovens with your own hands. The bread that had stood half risen since before the Sundering began to rise again."
+    },
+    {
+      "id": "campus_belfry_restored",
+      "title": "The Bell's Pitch",
+      "category": "The Anchorhold",
+      "body": "The commencement bell has held one note since the Second began, its clapper a finger's width from the rim. You climbed the stair through aether that eats sound, and brought the founder's tuning fork in from the world. The fork hummed. The bell did not ring, not yet, but its clapper trembled, a motion so small it might be a wish. Its pitch is right. The bell knows its own voice."
+    },
+    {
+      "id": "campus_infirmary_restored",
+      "title": "One Stitch",
+      "category": "The Anchorhold",
+      "body": "The mending spell in the infirmary had exhausted its reagents long ago. You brought heartleaf and stillwater moss from the Witness's country and fed them to it, and it drank deep. Its fraying edges tightened, and the healer's frozen hands steadied, as if the spell were remembering what confidence felt like. Through the weave the student's wound is one stitch more closed than it was. One stitch."
+    },
+    {
+      "id": "campus_observatory_restored",
+      "title": "The Counter-Reading",
+      "category": "The Anchorhold",
+      "body": "With the night-ledgers from the week of the Sundering in its frames and the counter-lens ground, the observatory hums to life. Before and after: what the sky showed that week, and what it shows now, held in the same instant. The difference is the counter-reading: what Kassian sees that you do not, and what you see that he cannot."
+    },
+    {
+      "id": "campus_gatehouse_restored",
+      "title": "The Wards Raised",
+      "category": "The Anchorhold",
+      "body": "To raise new wards you needed what the breaker had studied from: a warding primer from the breaker's own kingdom, carried in from the world. The new wards settled into the gatehouse arch like a sentence finding its period, and the loop of shattering stopped. For the first time since the Sundering the arch is simply an arch, still and whole. Its silence is the silence of something that no longer needs to scream."
+    },
+    {
+      "id": "campus_library_wing_restored",
+      "title": "The Uncatalogued Wing",
+      "category": "The Anchorhold",
+      "body": "Ten thousand books hang in the air of the library wing, stopped mid-flight between hands and shelves on a morning when its index was being rewritten, so that nothing in the room is anywhere twice. Whatever is here exists nowhere else, in any reading. Brush a book with a sleeve and it drops out of the Second and ages to dust before it lands. You walked the stacks carefully, and read the three titles Kassian Vor-Aleth requested."
+    },
+    {
+      "id": "the_academy_wakes",
+      "title": "The Academy Wakes",
+      "category": "The Anchorhold",
+      "body": "Six places on the campus stopped mid-motion when the Sundering took it, and none of them could be finished from inside the Second alone. Each needed something carried in from the running world, and you carried all six: the ovens are lit, the bell has its pitch, the mending holds, the counter-lens is ground, the wards are raised and the wing is read. The Second still holds. What you mended in it stays mended, in every reading."
+    },
+    {
+      "id": "leave_a_mark",
+      "title": "Leave a Mark",
+      "category": "The Running World",
+      "body": "Most of what you do in a reading is struck through when it closes. Some of it is not. In three places now you have left a mark the world kept: something done in a situation that did not have to go the way it went, which the next reading did not take back."
+    },
+    {
+      "id": "a_deep_world",
+      "title": "A Deep World",
+      "category": "The Running World",
+      "body": "Seven marks now, in seven situations that did not have to go the way they went. When a reading closes it smooths over nearly everything you did in it, the way water closes over a stone. These it has left standing."
+    },
+    {
+      "id": "the_world_remembers",
+      "title": "The World Remembers",
+      "category": "The Running World",
+      "body": "Twelve marks. At this point the map is not a place you pass through. The sky writes the world fresh in every reading, and twelve times now it has had to write around something you did. Some of the page is in your hand."
+    },
+    {
+      "id": "archive_recovered_wing",
+      "title": "The Recovered Wing",
+      "category": "The Running World",
+      "body": "Lector Imbrell receives visitors on a gantry above the waterline of the Sunken Archive, where every year the water gives back another floor of the stacks. She granted the guild reading rights in the recovered wing: you may copy whatever you can carry. Every year, she says, something in the lower stacks remembers being locked in."
+    },
+    {
+      "id": "drowned_harbor_charts",
+      "title": "The Drowned Harbor",
+      "category": "The Running World",
+      "body": "Corvo Saldini, a spice factor on the Jade Coast, sold the guild charts of the drowned harbor and the mangrove passes, with the sunken customs house marked. Everything is for sale on that coast, he says. The only question is the price."
+    },
+    {
+      "id": "pre_collapse_cartography",
+      "title": "Pre-Collapse Cartography",
+      "category": "The Running World",
+      "body": "Lector Aldous Vey, an itinerant archivist who would rather be taking a rubbing of a ruin wall than talking to you, annotated the guild's charts with a fragment of cartography from before the Collapse: the world as it was mapped centuries ago, before the Seal. Knowledge, he says, appreciates when it moves."
+    },
+    {
+      "id": "sunken_concord_fate",
+      "title": "The Sunken Concord",
+      "category": "The Seal",
+      "body": "Above a sealed vault door whose lock fused long ago, a lintel dense with a script older than any kingdom tells of a concord that drowned itself rather than yield what it guarded. Copied in full, the inscription points the way to the Elementalist's piece of the Seal, which sleeps in the heart of a storm that never ends."
+    },
+    {
+      "id": "the_primal_shard_recovered",
+      "title": "The Primal Shard",
+      "category": "The Seal",
+      "body": "In the eye of the storm that never ends, everything is still. The Primal Shard hung there in the silence: raw creation, fire that does not burn, lightning stopped mid-strike, the Elementalist's piece of the Seal. It settled into your keeping colder and heavier than anything its size should be. To the Fast it is the refusal of the saint who refused the storm. Its place in the sphere was waiting, back in the hall where it broke."
+    },
+    {
+      "id": "axiom_rumor_lore",
+      "title": "The Marginalia",
+      "category": "The Seal",
+      "body": "A water-stained page bound into a book that has no business holding it, its margins dense with annotations in a hand that cites a library no map admits exists: one where every rule ever written is shelved, and still being written. You copied the citation and its impossible index, and somewhere a door in a wall of books noticed you. The Arcanist's piece of the Seal sleeps there, in the Infinite Athenaeum."
+    },
+    {
+      "id": "axiom_recovered_lore",
+      "title": "The Axiom Stone",
+      "category": "The Seal",
+      "body": "At the still center of the Infinite Athenaeum the Axiom Stone rested on an empty lectern: a rule made solid, the grammar every spell obeys without knowing it, the Arcanist's piece of the Seal. It weighs nothing and settles everything; near it, contradictions quietly resolve. To the Fast it is the refusal of the saint who refused the last proof. Its place in the sphere was waiting, in the hall where it broke."
+    },
+    {
+      "id": "moment_rumor_lore",
+      "title": "The Repeating Second",
+      "category": "The Seal",
+      "body": "A traveler's keepsake, found in the frost, held one second and would not let it go: the same held breath, repeating, over and over. Listened to long enough, the repeating second points to a place where the hours have pooled and stopped. The Chronomancer's piece of the Seal sleeps there."
+    },
+    {
+      "id": "moment_recovered_lore",
+      "title": "The Moment Eternal",
+      "category": "The Seal",
+      "body": "At the dead center of the place where the hours pooled hung the Moment Eternal, the Chronomancer's piece of the Seal: a single instant that never passes, lightning held mid-fork, a tear held mid-fall. When it folded into your keeping everything around you was briefly, perfectly still. It is the piece the Second was made from, and it knows the way home. To the Fast it is the refusal of the saint who refused the next second."
+    },
+    {
+      "id": "binding_rumor_lore",
+      "title": "The Too-Happy Road",
+      "category": "The Seal",
+      "body": "Every traveler on the road was smiling, every one, and spoke warmly of a city ahead where nobody wants for anything, and not one of them could tell you its name. A hard question broke one smile for an instant, and something frightened looked out before the glamour closed over it again. It was enough to give you the city's shape, and the thread that stitches it: the Enchanter's piece of the Seal, in the Charmed City."
+    },
+    {
+      "id": "binding_recovered_lore",
+      "title": "The Binding Thread",
+      "category": "The Seal",
+      "body": "At the silent core of the Charmed City waited the Binding Thread, the Enchanter's piece of the Seal and its connective piece: the strand that lets the other five be held together. Once it was in your keeping, the pieces you did not yet hold felt nearer, and every piece to come settles easier for it. To the Fast it is the refusal of the saint who refused the final knot."
+    },
+    {
+      "id": "schema_rumor_lore",
+      "title": "The Engine Under the Hill",
+      "category": "The Seal",
+      "body": "Put a hand to the rock in that country and you feel it: a vast, patient mechanism turning somewhere below, tended by no one, stopping for nothing, older than the kingdom that forgot it. You charted the beat of the buried works and where its access shaft must lie. It is the Eternal Engine, and the Tinker's piece of the Seal is at its heart."
+    },
+    {
+      "id": "schema_recovered_lore",
+      "title": "The Schema Core",
+      "category": "The Seal",
+      "body": "At the heart of the Eternal Engine the Schema Core turned on its spindle: the pattern the machine is forever building toward, order made to run itself, the Tinker's piece of the Seal. When you lifted it the Engine slowed for the first time in an age, and was content. To the Fast it is the refusal of the saint who refused to finish. In the hall, the breaking sphere had a place this one fits."
+    },
+    {
+      "id": "deathless_rumor_lore",
+      "title": "The Grave That Answers",
+      "category": "The Seal",
+      "body": "You spoke the small rite for the unburied dead, as any decent traveler might, and the grave answered: one word, in a voice like cold mud settling. 'Hollow.' The dead there are not silent, and they are not free. They speak of the Hollow, a door the living do not find by walking, where the Necromancer's piece of the Seal sleeps."
+    },
+    {
+      "id": "deathless_recovered_lore",
+      "title": "The Deathless Covenant",
+      "category": "The Seal",
+      "body": "At the still heart of the Hollow lies the Deathless Covenant, the Necromancer's piece of the Seal: the promise that binds the dead to order rather than hunger. It settled into your keeping cold and certain, and the wardens there bowed their ruined heads. To the Fast it is the refusal of the saint who refused rest. The dead of the hall would want to see it home."
+    },
+    {
+      "id": "dossier_astrologer_complete",
+      "title": "Dossier: The Astrologer",
+      "category": "The Astrologer",
+      "body": "Kassian Vor-Aleth, Who Read the Sky: the eighth archmage, a Chronomancer, master of the Keepers of the Broken Seal. He has no patrols. His forces are the weather, the corruption and the slow arithmetic of the sky. He does not bend time, and he will correct you on this: the sky writes the outcome of every event before it happens, and he has spent a long time learning the script. What the corruption takes, it also teaches. Three fallen seats have taught you what they knew of him."
+    },
+    {
+      "id": "dossier_wenna_complete",
+      "title": "Dossier: The Scholar",
+      "category": "The Seven Seats",
+      "body": "Wenna Aldric, Founder of the Academy, the Scholar, an Adept. She wrote the curriculum every wizard you have met was taught from, and founded the Aldric Academy because she had identified, with rigorous precision, the seventeen ways magical education was failing its students. She has fixed fourteen. At Commencement she was the Provost, and the voice that was naming you. Her forces fight like a syllabus. Three weaknesses are on file."
+    },
+    {
+      "id": "dossier_aurel_complete",
+      "title": "Dossier: The Reviser",
+      "category": "The Seven Seats",
+      "body": "Master Aurel Pendry, the Reviser, an Arcanist, head of the Annotated Circle. He does not cast spells so much as revise them, including yours. His tome is a workshop, with the spells of every school laid out on the bench in pieces, annotated in three languages and a shorthand he has never explained. He has been checking the Astrologer's figures for twenty years. Three weaknesses are on file."
+    },
+    {
+      "id": "dossier_hess_complete",
+      "title": "Dossier: The Witness",
+      "category": "The Seven Seats",
+      "body": "Hess, Who Does Not Intervene, the Witness, a Druid of the Living Compact. She sleeps where she falls, eats what is in front of her, and has not had a permanent address for forty years. The land does what she asks because what she asks is generally what the land was going to do anyway. She sat on the dais at Commencement, and left by the side door before the naming. Three weaknesses are on file."
+    },
+    {
+      "id": "dossier_joren_complete",
+      "title": "Dossier: The Vessel",
+      "category": "The Seven Seats",
+      "body": "Joren Kall, Who Answered the Storm, the Vessel, an Elementalist of the Elemental Covenant. Caught in a field by a storm that had been building for three days, he stayed and asked it what it wanted, and it told him. He has been translating ever since. Fire wants to spread, ice to hold, storm to move, earth to stay. They reach no conclusion through him, but they reach it loudly. Three weaknesses are on file."
+    },
+    {
+      "id": "dossier_namer_complete",
+      "title": "Dossier: The Namer",
+      "category": "The Seven Seats",
+      "body": "Cael Morn, of the Seventh Layer, the Namer, head of the Enchanter school. An Enchanter does not stop you from doing things; an Enchanter makes sure that whatever you do, the next thing you have to do is worse. Cael builds seven layers into every working. At conferences other wizards have suggested that four is sufficient. Cael attended, did not respond, and the papers were withdrawn. Three weaknesses are on file."
+    },
+    {
+      "id": "dossier_conductor_complete",
+      "title": "Dossier: The Conductor",
+      "category": "The Seven Seats",
+      "body": "Ondria Vell, Hostess of the Long Table, the Conductor, head of the Necromancer school. She runs a bar, which is also a funeral home, depending on what you need. Most of her regulars are dead, and she finds that restful: they listen better and drink less. She has never lost a patient in either direction, and the dead do not leave her establishment without her knowing where they are going. Three weaknesses are on file."
+    },
+    {
+      "id": "dossier_engineer_complete",
+      "title": "Dossier: The Engineer",
+      "category": "The Seven Seats",
+      "body": "Master Bram Korro, the Engineer, head of the Tinker school and the Korro Workshop. He arrives everywhere with a small cart, three projects in various states of completion, and a notebook of diagrams that other wizards call concerning and engineers call not yet, but close. Half his devices work. The other half are research. A turret, he says, is just a question with a satisfying answer. Three weaknesses are on file."
+    },
+    {
+      "id": "wren_thesis_long_time",
+      "title": "Long Time",
+      "category": "Companions",
+      "body": "Wren Holloway washed out of three rooms at the Academy. Evocation bored her, and wards bored her, but in chronomantic theory she was wrong, and never got to find out why. Her thesis was on the examiner's desk the morning the sky tore, mid-grade, with a frozen quill two inches above her margin. It argued that a held moment is not stopped time. It is long time. She was marked wrong in a world that is currently one enormous held moment, and she wants her points."
+    },
+    {
+      "id": "native_marginalia",
+      "title": "The Notebook",
+      "category": "Companions",
+      "body": "Every year on the same night, since he was small, Miro Fletch has dreamed of a stranger and written the dreams down, in a notebook of fletcher's vellum wrapped twice in oilcloth. The stranger is you: things you did in readings that no longer exist, a name you honored on a grave the world no longer contains. You told him the truth, that the sky re-reads itself and something of him listens through. 'So the dreams are marginalia,' he said. 'I'm marginalia.'"
+    },
+    {
+      "id": "petra_marginalia",
+      "title": "Entry Forty-One",
+      "category": "Companions",
+      "body": "Petra Quillane keeps a catalog of her own haunting: forty-one appearances of her handwriting in books she never touched, indexed by shelf, ink and apparent mood. Forty are corrections. The forty-first, in the frozen library wing, sits in a margin beside nothing at all: \"Petra, when you find this, you are not losing your mind. You are keeping it in more than one place.\" Somewhere in the shuffle of readings, a Petra who knew wrote to a Petra who would not. She calls it good archiving."
+    },
+    {
+      "id": "seraphine_terms_of_transfer",
+      "title": "The Terms of Transfer",
+      "category": "Companions",
+      "body": "Before she was a clause, Seraphine Duskwell was a negotiator's protege, and she was traded across a table: good humor, a round of drinks, her apprenticeship for a shipping route. The men who traded her were not cruel, and that is what she wants understood. It does not take cruelty. It takes a contract nobody reads from the inside. So she audits everyone she works for. You passed."
+    },
+    {
+      "id": "grove_that_held",
+      "title": "The Grove That Held",
+      "category": "Companions",
+      "body": "Bram Thistlewade's grove is green and quiet inside a blight-line that stops like a tide against nothing. He used to think he held it, standing there and refusing. He did not. When he steps outside the ring the grove attends, its leaves angling after him, and when he steps back in it settles like a dog that has found its person. Asked properly, in the Druid way, the grove said it had never refused anything before. It refused because someone finally stayed to see whether it could."
+    },
+    {
+      "id": "the_eighteenth_way",
+      "title": "The Eighteenth Way",
+      "category": "Companions",
+      "body": "Sable Voss knows seventeen ways to end something before it knows she exists, and keeps the list current so she always knows exactly what she is choosing not to do. It stopped at seventeen because the eighteenth looked at her. Years later the beast came back, gray at the muzzle, and stopped at twenty paces, the distance of that day. Nothing moved for a full minute. Then it left the territory open to her, a hunting right granted between equals. Sable never hunts it. That was the entire point."
+    },
+    {
+      "id": "warding_engine_bargain",
+      "title": "The Warding Engine",
+      "category": "Companions",
+      "body": "In a ruin sits a warding engine of old make, seized mid-rotation and scarred by everyone who tried force. Fenna Boltwright sat down and watched it for an hour. Its fourth gear was not jammed. It was waiting: something upstream had promised it a signal that never came, and it had held its half of the bargain for two hundred years. One tap on the right contact kept the promise, and the engine turned over, wards blooming like frost in reverse."
+    },
+    {
+      "id": "prewritten_surveys",
+      "title": "Pre-Written Surveys",
+      "category": "Companions",
+      "body": "Yara Ellswood cut a thousand crown survey marks before she quit. In her last season the surveys started coming back pre-written, the findings filled in before anyone walked the ground: groves marked blighted that she had stood in that morning, green as spring. The hand was not the king's. A survey that arrives before the surveyor is a lie with paperwork, and she does not sign lies. 'He was writing my forests before he'd read them.'"
+    },
+    {
+      "id": "second_tongue_adept",
+      "title": "The Generalist's Tongue",
+      "category": "The Schools",
+      "body": "Adept work is the grammar under every other school's vocabulary, which is why nobody respects it and everybody uses it. It is the tongue the Academy's own cards are written in. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    },
+    {
+      "id": "second_tongue_arcanist",
+      "title": "The Recorded Tongue",
+      "category": "The Schools",
+      "body": "The Arcanist working language was standardized before the Collapse and has not moved since, which is either rigor or rigor mortis. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    },
+    {
+      "id": "second_tongue_chronomancer",
+      "title": "The Stopped Tongue",
+      "category": "The Schools",
+      "body": "Chronomantic notation marks tense on the verb and certainty on the noun, and its speakers find every other school's grammar unbearably vague. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    },
+    {
+      "id": "second_tongue_druid",
+      "title": "The Green Tongue",
+      "category": "The Schools",
+      "body": "The Druid idiom has no word for a thing that is not alive, which makes it useless for half of magic and indispensable for the other half. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    },
+    {
+      "id": "second_tongue_elementalist",
+      "title": "The Unleashed Tongue",
+      "category": "The Schools",
+      "body": "Elementalism is not a language for describing fire. It is a language fire is willing to be addressed in. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    },
+    {
+      "id": "second_tongue_enchanter",
+      "title": "The Borrowed Tongue",
+      "category": "The Schools",
+      "body": "Enchantment's idiom is built to be overheard and misunderstood in a specific direction. Fluency is knowing which direction. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    },
+    {
+      "id": "second_tongue_necromancer",
+      "title": "The Last Tongue",
+      "category": "The Schools",
+      "body": "Necromancy's working language is almost entirely in the past tense. Fluency means learning to hear the tense as a courtesy rather than a limitation. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    },
+    {
+      "id": "second_tongue_tinker",
+      "title": "The Charter Tongue",
+      "category": "The Schools",
+      "body": "Tinker shorthand is a contract notation that grew into a spell notation, and it is the only school whose idiom is legally binding. The guild's understanding of it has reached fluency, and fluency stays, in every reading, whether or not you have ever cast in it yourself."
+    }
+  ]
+}

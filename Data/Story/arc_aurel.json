@@ -1,0 +1,614 @@
+{
+  "_doc": "Aurel Pendry's arc, The Unrevisable. The rules are C1, C3 and C5 in docs/story_wiring_v1.md; the script is docs/archmage_arc_aurel_v1.md. Lines are file-local: tokens here read only this file's lines.",
+  "arc": "aurel",
+  "encounterFile": "arc_aurel",
+  "lineTokens": {
+    "trial_title": "trial_title",
+    "trial_followup": "trial_followup",
+    "shadow": "shadow",
+    "remembrance": "remembrance"
+  },
+  "beats": [
+    {
+      "id": "aurel_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_aurel"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel",
+        "coconspirator_aurel",
+        "aurel_pages_heard"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_ask_set",
+      "alsoSetMeta": [
+        "chronicle_aurel_ask_seen"
+      ],
+      "rememberFlag": "chronicle_aurel_ask_seen",
+      "show": "arc_aurel_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "ask"
+        }
+      }
+    },
+    {
+      "id": "aurel_shadow_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_aurel",
+        "coconspirator_aurel"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel",
+        "aurel_pages_heard"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_ask_set",
+      "alsoSetMeta": [
+        "chronicle_aurel_shadow_ask_seen"
+      ],
+      "rememberFlag": "chronicle_aurel_shadow_ask_seen",
+      "show": "arc_aurel_shadow_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_ask"
+        }
+      }
+    },
+    {
+      "id": "aurel_ward_1",
+      "hook": "on_settlement_enter",
+      "when": {
+        "home": "false",
+        "audience": "false"
+      },
+      "requires": [
+        "aurel_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_trial_1_done",
+      "alsoSetTimeline": [
+        "aurel_found_ward"
+      ],
+      "show": "arc_aurel_ward",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "1"
+        },
+        "trial_followup": {
+          "n": "1"
+        },
+        "shadow": {
+          "beat": "ward"
+        }
+      }
+    },
+    {
+      "id": "aurel_wound_1",
+      "hook": "on_shard_zone",
+      "requires": [
+        "aurel_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_trial_1_done",
+      "alsoSetTimeline": [
+        "aurel_found_wound"
+      ],
+      "show": "arc_aurel_wound",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "1"
+        },
+        "trial_followup": {
+          "n": "1"
+        },
+        "shadow": {
+          "beat": "wound"
+        }
+      }
+    },
+    {
+      "id": "aurel_ward_2",
+      "hook": "on_settlement_enter",
+      "when": {
+        "home": "false",
+        "audience": "false"
+      },
+      "requires": [
+        "aurel_trial_1_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel",
+        "aurel_found_ward"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_trial_2_done",
+      "alsoSetTimeline": [
+        "aurel_found_ward"
+      ],
+      "show": "arc_aurel_ward",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "2"
+        },
+        "trial_followup": {
+          "n": "2"
+        },
+        "shadow": {
+          "beat": "ward"
+        }
+      }
+    },
+    {
+      "id": "aurel_wound_2",
+      "hook": "on_shard_zone",
+      "requires": [
+        "aurel_trial_1_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel",
+        "aurel_found_wound"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_trial_2_done",
+      "alsoSetTimeline": [
+        "aurel_found_wound"
+      ],
+      "show": "arc_aurel_wound",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "2"
+        },
+        "trial_followup": {
+          "n": "2"
+        },
+        "shadow": {
+          "beat": "wound"
+        }
+      }
+    },
+    {
+      "id": "aurel_pages_after_trials",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "aurel"
+      },
+      "requires": [
+        "aurel_trial_2_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel",
+        "coconspirator_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_pages_heard",
+      "rememberFlag": "chronicle_aurel_pages_heard",
+      "group": "aurel_pages",
+      "show": "arc_aurel_pages",
+      "lore": "the_sixty_pages",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "pages"
+        }
+      }
+    },
+    {
+      "id": "aurel_pages_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "aurel",
+        "unite_open": "true"
+      },
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel",
+        "coconspirator_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_pages_heard",
+      "alsoSetTimeline": [
+        "aurel_trial_1_done",
+        "aurel_trial_2_done"
+      ],
+      "rememberFlag": "chronicle_aurel_pages_heard",
+      "group": "aurel_pages",
+      "show": "arc_aurel_pages",
+      "lore": "the_sixty_pages",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "pages"
+        }
+      }
+    },
+    {
+      "id": "aurel_shadow_pages_after_trials",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "aurel"
+      },
+      "requires": [
+        "aurel_trial_2_done",
+        "coconspirator_aurel"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_pages_heard",
+      "rememberFlag": "chronicle_aurel_shadow_pages_heard",
+      "group": "aurel_pages",
+      "show": "arc_aurel_shadow_pages",
+      "lore": "the_sixty_pages",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_pages"
+        }
+      }
+    },
+    {
+      "id": "aurel_shadow_pages_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "aurel",
+        "unite_open": "true"
+      },
+      "requires": [
+        "coconspirator_aurel"
+      ],
+      "excludes": [
+        "qe_archmage_answered_aurel",
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_pages_heard",
+      "alsoSetTimeline": [
+        "aurel_trial_1_done",
+        "aurel_trial_2_done"
+      ],
+      "rememberFlag": "chronicle_aurel_shadow_pages_heard",
+      "group": "aurel_pages",
+      "show": "arc_aurel_shadow_pages",
+      "lore": "the_sixty_pages",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_pages"
+        }
+      }
+    },
+    {
+      "id": "aurel_inside",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "qe_archmage_united_aurel"
+      ],
+      "excludes": [
+        "coconspirator_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "aurel_inside",
+      "alsoSetMeta": [
+        "chronicle_aurel_inside_seen"
+      ],
+      "alsoSetTimeline": [
+        "aurel_annotation"
+      ],
+      "rememberFlag": "chronicle_aurel_inside_seen",
+      "show": "arc_aurel_inside",
+      "lore": "the_annotation",
+      "tokens": [
+        "remembrance",
+        "traitor_short"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "inside"
+        }
+      }
+    },
+    {
+      "id": "aurel_shadow_end_united_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_aurel",
+        "qe_archmage_united_aurel",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_aurel_answered",
+      "alsoSetMeta": [
+        "chronicle_aurel_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_aurel_penance"
+      ],
+      "rememberFlag": "chronicle_aurel_shadow_end_seen",
+      "group": "aurel_shadow_end",
+      "show": "arc_aurel_shadow_penance",
+      "lore": "what_he_showed_aurel",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "aurel_shadow_end_united_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_aurel",
+        "qe_archmage_united_aurel",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_aurel_answered",
+      "alsoSetMeta": [
+        "chronicle_aurel_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_aurel_penance"
+      ],
+      "rememberFlag": "chronicle_aurel_shadow_end_seen",
+      "group": "aurel_shadow_end",
+      "show": "arc_aurel_shadow_penance",
+      "lore": "what_he_showed_aurel",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "aurel_shadow_end_coerced_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_aurel",
+        "qe_archmage_coerced_aurel",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_aurel_answered",
+      "alsoSetMeta": [
+        "chronicle_aurel_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_aurel_treachery"
+      ],
+      "rememberFlag": "chronicle_aurel_shadow_end_seen",
+      "group": "aurel_shadow_end",
+      "show": "arc_aurel_shadow_treachery",
+      "lore": "what_he_showed_aurel",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "aurel_shadow_end_coerced_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_aurel",
+        "qe_archmage_coerced_aurel",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_aurel"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_aurel_answered",
+      "alsoSetMeta": [
+        "chronicle_aurel_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_aurel_treachery"
+      ],
+      "rememberFlag": "chronicle_aurel_shadow_end_seen",
+      "group": "aurel_shadow_end",
+      "show": "arc_aurel_shadow_treachery",
+      "lore": "what_he_showed_aurel",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "trial_title",
+      "when": {
+        "n": "1"
+      },
+      "text": "The First Broken Working"
+    },
+    {
+      "key": "trial_title",
+      "when": {
+        "n": "2"
+      },
+      "text": "The Second Broken Working"
+    },
+    {
+      "key": "trial_followup",
+      "when": {
+        "n": "1"
+      },
+      "text": "'One,' he says, and the Sending closes. 'Bring me the other kind.'"
+    },
+    {
+      "key": "trial_followup",
+      "when": {
+        "n": "2"
+      },
+      "text": "'Two,' he says. 'Come and see the third. I have written sixty pages on it, and I would like someone to argue with.'"
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "ward",
+        "traitor": "aurel"
+      },
+      "text": "Under your arm the Register notes, in its smallest hand, that the last ward this voice examined so closely was the Academy's, and that it examined it from the inside."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "wound",
+        "traitor": "aurel"
+      },
+      "text": "The Register writes the date of the wound beside his words. It is the date of Commencement. It does not remark on it."
+    },
+    {
+      "key": "shadow",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'He asked for broken workings last time as well, and corrected the same word in the request.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "pages",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'Sixty pages. The same three errors. He has still not decided about the second.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "inside",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same annotation, in the same order. The last line has not changed.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The second voice repeated him last time, too. Word for word.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_pages",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same confession. The same footnotes.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_end",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'He stood in the same place last time, in front of the same hand.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    }
+  ]
+}

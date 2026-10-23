@@ -1,0 +1,18 @@
+[
+  {
+    "id": "q_the_offered_ending",
+    "title": "The Offered Ending",
+    "category": "Story",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "Kassian Vor-Aleth has written to whoever stands in his margin. Stop bringing the pieces home, keep your door, live the same gentle year as many times as you like, and he will write around you. His envoy will carry your answer.",
+    "requiredFlag": "deal_offered",
+    "objectives": [
+      {
+        "text": "Answer.",
+        "doneText": "Answered.",
+        "flag": "deal_answered"
+      }
+    ]
+  }
+]

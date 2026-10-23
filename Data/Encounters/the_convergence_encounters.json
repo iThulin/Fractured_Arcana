@@ -107,5 +107,121 @@
         ]
       }
     ]
+  },
+  {
+    "id": "warden_road_down",
+    "title": "The Road Down",
+    "body": "Below the fallen seat an old road comes down off the hill the long way, the way carts go, through a cutting in the rock and out across the plain. Nobody uses it now. Grass has come up in the ruts.\n\nHalfway down, the crows are waiting. There are a great many of them, on the lip of the cutting and along the wall and in the dead tree at the bend, and they are all facing uphill, the way people face a door they expect to open.\n\nThen the land shows you what it saw.\n\nIt is the afternoon of Commencement, and the seat stands whole on the hill above you with its windows open for the heat. The crows leave the roof first, all at once and without a sound, and come down the hill over your head. A minute after them the side door of the hall opens, and the Witness comes out with a crow on her shoulder and walks down the road you are standing on.\n\nShe does not hurry. She walks the way she always walks, as if she knows where the road goes and has decided to let it. At the bend she stops.\n\nBehind her, up on the hill, something gives way. You feel it in your feet before you hear it: a long crack, like a river letting go of its ice. The crows on the wall go still.\n\nFor the length of one breath the Witness stands in the road with her back to the hall, and the land holds its breath with her. She is deciding. She has never decided anything in her life.\n\nThen she goes on down the hill, and does not look back, and the land lets the breath go.\n\n'Be it recorded,' the Register says quietly, 'that the minutes have no account of this.' A pause. 'It happened outside.'",
+    "terrainTags": [],
+    "regionTags": [
+      "the_convergence"
+    ],
+    "choices": [
+      {
+        "label": "Follow the crows.",
+        "resultText": "You follow them down. Past the bend the land lets you go, and there is only the road, and the grass in the ruts, and far below, where the road meets the plain, a ring of standing stones you did not see from the hill. The crows go down to it one by one, and wait.",
+        "setMetaFlags": [
+          "warden_road_walked"
+        ],
+        "loreId": "the_seventh_angle"
+      },
+      {
+        "label": "Lay your hand on the road.",
+        "resultText": "The land knows a Druid's hand. It shows you the breath again, slower, and this time you feel what she felt through the soles of her feet: the hall behind her ringing like a cracked bell, and the land under her wide awake, waiting to see what she would do. Then it shows you where she was going. Down the hill, across the plain, to a ring of standing stones.",
+        "requiredSchool": "Druid",
+        "setMetaFlags": [
+          "warden_road_walked"
+        ],
+        "loreId": "the_seventh_angle"
+      },
+      {
+        "label": "Leave the road.",
+        "resultText": "The crows watch you go. They have waited this long.",
+        "stepDelta": 1
+      }
+    ],
+    "excludedFlag": "warden_road_walked"
+  },
+  {
+    "id": "warden_ring_of_stones",
+    "title": "The Ring of Stones",
+    "body": "Where the old road meets the plain there is a ring of standing stones in the long grass. None of them is taller than a person. Each one leans a little toward the middle, the way people lean in to listen. There are no names on them and no marks of any kind, only lichen, which has had them for a very long time. One place in the ring has no stone at all.\n\nThere is a crow on every stone.\n\nIn the almonries they count six pieces of the Seal, one for each school that refused something, and they have never decided what to make of the seventh school, which refused nothing. It gave itself instead. When the six were forged, the Druids came here, and stood in this ring, and stayed. The stones are where they stood.\n\nIt is not a door, and it is not a relic. It is a watch, and it is still being kept. You can feel it as soon as you come near: the whole plain paying attention, the way a field pays attention to weather.",
+    "terrainTags": [],
+    "regionTags": [
+      "the_convergence"
+    ],
+    "choices": [
+      {
+        "label": "Stand in the empty place.",
+        "resultText": "You step into the gap in the ring, and the watch closes around you the way a hand closes around a hand. Nothing asks you anything. The land does not test the people it already knows. When you step out again you can hear it, very faintly, in every direction at once: the wild, turning over in its sleep.",
+        "requiredSchool": "Druid",
+        "setMetaFlags": [
+          "warden_ring_kept"
+        ],
+        "loreId": "the_ring_of_stones",
+        "spellReward": "wildsense"
+      },
+      {
+        "label": "Leave your gold on a stone.",
+        "resultText": "You leave it on the flattest stone, in the open, where anything could take it. Nothing takes it. Nothing thanks you. The crows look at it, and then at you, and something in the ring settles, the way a dog settles when it has decided you can stay.",
+        "requiredGold": 25,
+        "goldDelta": -25,
+        "setMetaFlags": [
+          "warden_ring_kept"
+        ],
+        "loreId": "the_ring_of_stones"
+      },
+      {
+        "label": "Keep watch with them through the night.",
+        "resultText": "You sit down inside the ring and keep watch until the sky goes gray, though you could not say for what. Nothing comes. Nothing was going to. In the morning every crow is facing you, and the ring is quieter, the way a house is quieter once the last guest has been let in.",
+        "stepDelta": -2,
+        "setMetaFlags": [
+          "warden_ring_kept"
+        ],
+        "loreId": "the_ring_of_stones"
+      },
+      {
+        "label": "Go around the ring.",
+        "resultText": "You go around it. The crows do not follow, and the plain stops paying attention, which is worse than you expected.",
+        "stepDelta": 1
+      }
+    ],
+    "requiredFlag": "warden_road_walked",
+    "excludedFlag": "warden_ring_kept"
+  },
+  {
+    "id": "warden_the_land_will_hold",
+    "title": "The Land Will Hold",
+    "body": "The crows find you again on the plain below the fallen seat, and this time they do not wait for you. They lead.\n\nThey bring you back to the ring at dusk. There is a crow on every stone, and in the middle of the ring the grass has been pressed flat in a long hollow, as if someone slept there last night and left before you came. Someone who sleeps where she falls.\n\nThe land is listening. You can feel it the way you feel weather turning: the whole plain gathered and waiting, as it waited in the road for the Witness to decide.\n\nYou do not have to ask it for anything. The wardens never asked. They kept watch, and they let the land decide what was worth keeping watch over.\n\nThe land has decided.\n\n'Be it recorded,' the Register begins, and stops, because the hand writing in it is not its own. The line comes up through the page the way water comes up through sand, in letters like roots in a cut bank:\n\nAt the end, the land will hold.\n\n'That is not in the minutes,' the Register says at last, very quietly. 'It is in the margin. With you.'\n\nFar off, past the plain, something answers the crows: a long, low sound the Register has no word for, very old and not unfriendly. Something is waking that slept through the Seal.",
+    "terrainTags": [],
+    "regionTags": [
+      "the_convergence"
+    ],
+    "choices": [
+      {
+        "label": "Keep watch with it.",
+        "resultText": "You stand in the pressed grass until the stars are out, keeping watch over nothing you could name. When you go, the crows stay. The Register has turned to a clean page and written nothing on it, as if the page were being kept for someone.",
+        "setMetaFlags": [
+          "warden_communion_earned"
+        ],
+        "loreId": "the_land_will_hold"
+      },
+      {
+        "label": "Answer the land as a warden would.",
+        "resultText": "You kneel and put both hands flat in the pressed grass, and the land knows your answer before you give it. For a moment you can feel every stone in the ring as if it were your own hand, and past them the whole plain, and past the plain the wild, waking. When you stand, the crows bow, which you did not know crows could do.",
+        "requiredSchool": "Druid",
+        "setMetaFlags": [
+          "warden_communion_earned"
+        ],
+        "loreId": "the_land_will_hold"
+      },
+      {
+        "label": "Not yet.",
+        "resultText": "You leave the ring as you found it. The pressed grass will be there, and the crows. The land is in no hurry.",
+        "stepDelta": 1
+      }
+    ],
+    "requiredFlag": "warden_ring_kept",
+    "excludedFlag": "warden_communion_earned"
   }
 ]

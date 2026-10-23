@@ -1,0 +1,68 @@
+[
+  {
+    "id": "q_the_six_angles",
+    "title": "The Six Angles",
+    "category": "Story",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "Every piece of the sphere you bring home goes into its frozen self and shows you the instant from somewhere it sat. The pieces come home in any order. What they show comes in its own.",
+    "requiredFlag": "angle_1_seen",
+    "objectives": [
+      {
+        "text": "The first angle",
+        "doneText": "The Sphere",
+        "flag": "angle_1_seen"
+      },
+      {
+        "text": "The second angle",
+        "doneText": "The Hand",
+        "flag": "angle_2_seen"
+      },
+      {
+        "text": "The third angle",
+        "doneText": "The Window",
+        "flag": "angle_3_seen"
+      },
+      {
+        "text": "The fourth angle",
+        "doneText": "The Reading",
+        "flag": "angle_4_seen"
+      },
+      {
+        "text": "The fifth angle",
+        "doneText": "The Margin",
+        "flag": "angle_5_seen"
+      },
+      {
+        "text": "The sixth angle",
+        "doneText": "The Rushed Hand",
+        "flag": "angle_6_seen"
+      }
+    ]
+  },
+  {
+    "id": "q_the_land_counts_seven",
+    "title": "The Land Counts Seven",
+    "category": "Story",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "The sphere held six pieces of the Seal. The Druid school gave no piece. It gave itself, and it is still out there below the fallen seat, keeping watch. The Witness walked down that road before the wards broke.",
+    "requiredFlag": "warden_road_walked",
+    "objectives": [
+      {
+        "text": "Walk the road down",
+        "flag": "warden_road_walked"
+      },
+      {
+        "text": "Find where the seventh was kept",
+        "doneText": "The Ring of Stones",
+        "flag": "warden_ring_kept"
+      },
+      {
+        "text": "Keep watch",
+        "doneText": "The land will hold",
+        "flag": "warden_communion_earned"
+      }
+    ]
+  }
+]

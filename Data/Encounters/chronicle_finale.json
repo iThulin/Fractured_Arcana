@@ -1,0 +1,532 @@
+[
+  {
+    "id": "chronicle_fin_gathering",
+    "title": "The Gathering",
+    "body": "The hall is full again.\n\nThe families sit in their rows in their good clothes, as they have sat since the afternoon of Commencement, every one of them caught between one breath and the next. The graduating class stands along the wall in borrowed robes: twenty-six of them, and a gap. The Keepers stand in the east doors in sealed-sky blue, stopped mid-step. The spell hangs where it has always hung, a line of white fire an arm's length from the place where you stood. {sphere_state}\n\nIn among all of it, moving, are the people you brought through the edge: everyone who would come, and everyone who had to. They stand in the aisles between the families the way you stand in someone else's house, and they keep their voices down.\n\n{dais_wenna}\n\n{dais_aurel}\n\n{dais_hess}\n\n{dais_joren}\n\n{dais_namer}\n\n{dais_conductor}\n\n{dais_engineer}\n\n{dais_traitor}\n\nThe Astrologer's chair is empty. It was empty at the naming, and it is empty now, and everyone in the hall who is alive keeps not looking at it.\n\nYou go up to the lectern, where the Provost stands with her mouth open on the next word, and take your place beside her. Above the place where the Register lay, the ink of the next letter still stands in the air, unfinished. It is the one thing in the hall that is yours. It is what he is coming to finish.\n\n{remembrance}\n\n'Be it recorded,' says the Register, 'that the hall is full.' It sounds, for once, as if it would like to stop there.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Look at them.",
+        "resultText": "You look at them, every one, the living and the held, and the Register writes down who came, each in their own hand. It takes a while. Nobody hurries you. Tonight, for the first time in a year, there is nowhere else to be."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_council",
+    "title": "The Council",
+    "body": "Before you open the door, you ask them what to do with it. It is the last thing you will be able to ask anyone.\n\n{council_votes}\n\n{council_tally}\n\n'The answer,' says the Register, 'is the candidate's. The Register has looked for a precedent. There is none.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Answer him.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_commit",
+    "title": "Answer Him",
+    "body": "There are three ways to answer him. Tonight only one of them can be yours.\n\nThe Register lays them out on a clean page, in your hand, the way it took down your stated intention on the morning of the Trial: three lines, and a margin.\n\nWhatever you answer, the hall will hold you to it. Once the door is open there is no taking it back.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Restoration: put the Seal back.",
+        "resultText": "You say it, and the Register writes it in your hand and underlines it once: Restoration. He was wrong, you will tell him, or the price was too high; either way you are putting it back. It will need every piece you brought home. It will need someone to stay in it.",
+        "setFlags": [
+          "convergence_path_restoration"
+        ]
+      },
+      {
+        "label": "Dominion: take what he opened.",
+        "resultText": "You say it, and the Register writes it in your hand and underlines it once: Dominion. He was right, you will tell him, and what he opened is yours now. Somewhere in the hall someone lets out a breath, and somewhere else someone holds one.",
+        "setFlags": [
+          "convergence_path_harness"
+        ]
+      },
+      {
+        "label": "Synthesis: make the Seal breathe.",
+        "resultText": "You say it, and the Register writes it in your hand and underlines it once: Synthesis. Half of what he read was true, you will tell him, and so was half of what he broke. You mean to make the Seal something the world can breathe through. The Register reads the line back to itself twice, as if to be sure it says what it says.",
+        "setFlags": [
+          "convergence_path_synthesis"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_dissent",
+    "title": "Not Everyone",
+    "body": "Not everyone in the hall agrees with you.\n\nThe Register writes down who: {dissenter_names}. Each name goes down in the hand it belongs to.\n\nEveryone on that line came through the edge on your word, and tonight will stand where you put them. When it is over, everyone on that line will go. Nobody says so. Nobody has to.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Thank them anyway.",
+        "resultText": "You thank them. You get a nod for it, and no more. It is not agreement. It is something you will remember longer."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_nod",
+    "title": "The Nod",
+    "body": "Before you open the door you go down to the foot of the dais, where the Examiner has stood since the morning of your Trial, caught in the middle of a nod. You take your place on the examination floor, at the distance she likes.\n\n{nod_progress}\n\nYou report, one last time: that you have answered him, and that you are going to open the door.\n\nThe nod finishes.\n\nIt is a small thing. Her chin comes down the last hair of its travel, and stops there, and stays. Of everything in the hall, it is the first thing to finish. She still has not said what she thinks. She is keeping it, you understand, until the board has had its say.\n\n'Be it recorded,' says the Register, very quietly, 'that the Examiner has nodded.' It underlines it twice.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go to the doors.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_east_doors",
+    "title": "The East Doors",
+    "body": "You walk down the hall between the families and the frozen Keepers, to the east doors, and stand in them. You are the door. You have been told so often enough.\n\nYou open.\n\nThe edge goes out of you like a held breath let go, all the way around the Anchorhold at once, and through the east doors, where the courtyard has always been, there is a hall.\n\nIt is this hall, as the running world kept it. It has no roof. Grass grows between the stones of the examination floor, and rain is coming down on the empty dais and the empty cradle, and at the far end, where the stair goes up behind the dais, a lamp is lit in a high window. Where the two floors meet the rain comes in through the doors, and stops in the air above the dry stones of the afternoon, and hangs there, the way everything in here hangs.\n\nThen, in here, everything that is his begins to move.\n\nThe Keepers in the doorway finish their step, and take another.\n\n{spell_fate}\n\n{warden_watch}\n\nYou go back up the hall to the lectern, to your place, and stand in front of the letter of ink in the air. Behind you the Keepers come on, unhurried. Beyond the rain someone is reading toward the door, line by line, the way he reads everything. The door is open. He can see it now.\n\n'Be it recorded,' says the Register, 'that the door is open.' And then, because it cannot help itself: 'Once.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Hold the hall.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_mirror_stand",
+    "title": "The Other Hand",
+    "body": "At the sphere, {traitor_full} watches the Keepers come up the aisle.\n\n{hold_glass}\n\n'{traitor_redemption}'\n\n{penance_kept}\n\nThe Keepers see who is standing at the sphere, and how. You watch them see it. For the first time all night, they hesitate.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Stand at the sphere.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_mirror_second",
+    "title": "A Second Time",
+    "body": "The one who pledged to you comes in with the Keepers.\n\n{walk_in}\n\n{seen_coming}\n\n{at_sphere}\n\n'{traitor_second}'\n\n{treachery_kept}\n\nThe glass, which has been breaking for a year, begins to break again.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go to the sphere.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_mirror_his",
+    "title": "With Him",
+    "body": "Up the aisle in the middle of the Keepers comes {traitor_full}, walking the way the Keepers walk: as if every step had been read in advance.\n\n{lost_to_him}\n\n'{traitor_second}'\n\n{voice_words}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go to the sphere.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_hall_holds",
+    "title": "The Hall Holds",
+    "body": "The last Keeper in the hall goes down on the examination floor, and after that there is only the rain at the doors, hanging.\n\n{front_news}\n\n{seventh_layer}\n\nAbove the lectern the letter of ink still stands in the air. It held.\n\n'Be it recorded,' says the Register, 'that the hall held.' A pause. 'Again.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go to the glass.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_threshold_restoration",
+    "title": "The Rebinding",
+    "body": "The wound in the sphere is right there.\n\nInside the Second it is still the instant it happened: six shards a finger's width apart, and between them, where the Seal was, a breach no wider than a hand, fresh, still opening. Through it, very faintly, comes the sound of something enormous turning over in its sleep.\n\n{rebinding_pieces}\n\n{rebinding_begin}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Hold the breach.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_threshold_harness",
+    "title": "The Breach",
+    "body": "The wound in the sphere is right there.\n\nInside the Second it is still the instant it happened: six shards a finger's width apart, and between them, where the Seal was, a breach no wider than a hand, fresh, still opening. Through it, very faintly, comes the sound of something enormous turning over in its sleep.\n\nYou do not close it. You put your hand into it.\n\nIt is like putting your hand into a river at night: cold, then not cold, then nothing at all but the pull. Everything he opened is on the other side of it, moving, belonging to nobody.\n\nThe pieces you brought home turn in the glass to face the breach, the way a hall turns to face a door. They are not keys tonight.\n\nThe breach widens to let you through.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go through.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_threshold_synthesis",
+    "title": "Between",
+    "body": "The wound in the sphere is right there.\n\nInside the Second it is still the instant it happened: six shards a finger's width apart, and between them, where the Seal was, a breach no wider than a hand, fresh, still opening. Through it, very faintly, comes the sound of something enormous turning over in its sleep.\n\nYou do not close it, and you do not go through it. You stand in it: in the place between the glass and whatever is on the other side, where nobody has ever stood, and you listen.\n\nSomething on the other side is listening back.\n\nIt is not a voice. Under your arm the Register opens by itself to a clean page, and something begins to write on it in a hand the Register has never held: letters like weather, like frost growing on a window, like nothing at all.\n\n'Be it recorded,' the Register whispers, 'that it can read.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Read back.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_question_1",
+    "title": "The First Question",
+    "body": "When the fighting stops, the hand that is not a hand writes again on the clean page, slowly, as if it were learning letters by watching yours.\n\nThe Register reads it out, because somebody has to. 'It asks,' says the Register, 'what the wall was for.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Both. It kept you out, and it kept magic in.'",
+        "resultText": "The hand on the page goes still for a long time. Then it writes one mark under your answer. The Register cannot read it, and copies it anyway. It looks like agreement. It looks like a door left on the latch.",
+        "requiredFlag": "chronicle_aurel_pages_heard",
+        "setFlags": [
+          "synthesis_kept_1"
+        ]
+      },
+      {
+        "label": "'Both. A man wrote me sixty pages to say so, and it did not help him.'",
+        "resultText": "The hand on the page goes still. Then it writes one mark under your answer, the way a reader marks a line worth coming back to.",
+        "requiredFlag": "chronicle_aurel_shadow_pages_heard",
+        "setFlags": [
+          "synthesis_kept_1"
+        ]
+      },
+      {
+        "label": "'A rule with two clauses. Everyone only ever read one of them.'",
+        "resultText": "The hand writes the rule out under yours, both clauses, in letters like frost. It has been reading the other clause for a very long time.",
+        "requiredSchool": "Arcanist",
+        "setFlags": [
+          "synthesis_kept_1"
+        ]
+      },
+      {
+        "label": "'To keep you out.'",
+        "resultText": "The hand writes nothing. After a while the Register turns the page for it, as if to spare everyone."
+      },
+      {
+        "label": "'To starve the world. He was right about that.'",
+        "resultText": "The hand writes nothing. The Register, very primly, writes your answer down in your hand and does not underline it."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_question_2",
+    "title": "The Second Question",
+    "body": "The hand writes again, faster now, as if it had found its way into the language.\n\n'It asks,' says the Register, 'what it cost. The opening. It wants to know what it cost.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'People. They count themselves, every one.'",
+        "resultText": "The hand writes your answer under its question, and then a long row of small marks after it, one for each, as if it had been told to count.",
+        "requiredFlag": "chronicle_conductor_fault_heard",
+        "setFlags": [
+          "synthesis_kept_2"
+        ]
+      },
+      {
+        "label": "'People. A woman who opened a gate for her dead told me their names.'",
+        "resultText": "The hand writes your answer under its question, and then a long row of small marks after it, one for each. It does not stop until the line runs off the page.",
+        "requiredFlag": "chronicle_conductor_shadow_fault_heard",
+        "setFlags": [
+          "synthesis_kept_2"
+        ]
+      },
+      {
+        "label": "'Names. Someone in my guild reads them aloud once a year.'",
+        "resultText": "The hand writes nothing for a moment. Then, slowly, it begins to copy names off the facing page of the Register, where the honored dead are kept, as if it wanted to learn them.",
+        "requiredFlag": "remember_maren_arc_complete",
+        "setFlags": [
+          "synthesis_kept_2"
+        ]
+      },
+      {
+        "label": "'A stone by a road, with my name first on it.'",
+        "resultText": "The hand writes your name. It is the first thing it has written that the Register can read, and the Register goes very quiet.",
+        "requiredFlag": "fallen_seat_walked",
+        "setFlags": [
+          "synthesis_kept_2"
+        ]
+      },
+      {
+        "label": "'The dead. Ask them. They keep better accounts than he does.'",
+        "resultText": "Something on the other side of the breach asks them. You feel it go past you, the way you feel a draft. When it comes back, the hand writes your answer again, underlined.",
+        "requiredSchool": "Necromancer",
+        "setFlags": [
+          "synthesis_kept_2"
+        ]
+      },
+      {
+        "label": "'A price. He paid it once.'",
+        "resultText": "The hand writes your answer back to you, word for word, and leaves it there, the way a teacher leaves a wrong sum on the board."
+      },
+      {
+        "label": "'Whatever it cost, it's paid.'",
+        "resultText": "The hand writes nothing. On the other side of the breach something waits to see whether you will try again."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_question_3",
+    "title": "The Third Question",
+    "body": "The last line the hand writes is short. It underlines it, which you did not know it could do.\n\n'It asks,' says the Register, and for once its voice is not steady, 'what you are.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'The blank in his margin.'",
+        "resultText": "The hand writes a word under your answer, and then, carefully, crosses it out, the way he has crossed out every line around you for a year. Then it writes it again, and leaves it.",
+        "requiredFlag": "chronicle_counter_reading",
+        "setFlags": [
+          "synthesis_kept_3"
+        ]
+      },
+      {
+        "label": "'A sentence somebody started, and left blank on purpose.'",
+        "resultText": "The hand draws a line from your answer to the edge of the page and off it, into the margin, as if pointing at someone who is not there.",
+        "requiredFlag": "angle_5_seen",
+        "setFlags": [
+          "synthesis_kept_3"
+        ]
+      },
+      {
+        "label": "'The one he apologized to.'",
+        "resultText": "The hand stops. It seems to understand apology. It writes something small under your answer that the Register will not read aloud.",
+        "requiredFlag": "erratum_second_heard",
+        "setFlags": [
+          "synthesis_kept_3"
+        ]
+      },
+      {
+        "label": "'A second somebody spent, so I could stand in it.'",
+        "resultText": "The hand writes the second out, all of it, in one stroke that does not end, and the Register lets it run off the page.",
+        "requiredSchool": "Chronomancer",
+        "setFlags": [
+          "synthesis_kept_3"
+        ]
+      },
+      {
+        "label": "'A wizard.'",
+        "resultText": "The hand waits, as if for the rest of the sentence. There is no rest of the sentence. That, it seems, is the trouble."
+      },
+      {
+        "label": "'None of your business.'",
+        "resultText": "The hand writes nothing. On the other side of the breach something that has been refused a great deal, but never to its face, considers the experience."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_reckoning",
+    "title": "The Reckoning",
+    "body": "He comes in by the east doors, out of the rain.\n\nHe is ordinary. You knew that from the glass, and it is still a surprise: a man of middle years in a traveling coat, wet to the shoulders from the running world's weather, with ink on the side of one finger. He does not hurry. He walks up the aisle between the families the way a man walks into a library he has heard about all his life, reading the spines.\n\nAt the foot of the dais he stops, and looks for a while at his own chair, which is empty. Then he looks up at the ceiling.\n\n'So this is where the sentence hides,' says Kassian Vor-Aleth. 'Do you know, I have read every sky but this ceiling. Let us finish the passage together, and see which of us was the author.'\n\n{hess_watch}\n\nHe looks around the hall once more, slowly, the way you look for one face in a crowd. 'He is not here. The one who wrote this. I thought he might be.' He does not say what he would have said to him. You have the strong impression he has been composing it for a year.\n\nThen he looks at you.\n\n{first_sight}\n\n{study_line}\n\n{deal_line}\n\n{path_read}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Finish the passage.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_next_line",
+    "title": "The Next Line",
+    "body": "Halfway through, he stops.\n\nNot because he is beaten. He stands in the middle of the examination floor with his hands open, and looks at the hall the way a man looks at a page that has gone blank under his eyes.\n\n'I cannot read anything,' he says. 'Not you. Not the room. Not the next line.' He turns his hands over and looks at them. 'I have not been without the next line since I was nine years old.'\n\nOn the clean page under your arm the hand that is not a hand writes something, and the Register reads it out, very carefully: 'It says it has been reading him for a long time.'\n\nHe laughs once, without much in it. 'Of course it has,' he says. 'Everything reads. I only thought I would be the one who finished.'\n\nThen he lifts his hands again.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go on.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_not_as_read",
+    "title": "Not As Read",
+    "body": "{his_last}\n\nHe goes up the steps of the dais slowly, the way a man goes up to bed, and sits down in his chair.\n\nThe Second takes him the way it took the afternoon. Between one breath and the next he is still: a man with ink on one finger, looking at the lectern. The Astrologer's chair is not empty anymore.\n\n'Be it recorded,' says the Register, and stops, and for a long moment does not go on. Then, in its own hand, very small: 'Not as read.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Leave him there.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_aftermath_restoration",
+    "title": "Restoration",
+    "body": "The breach closes.\n\nIt does not slam. It closes the way a wound closes, from the edges in, and the last sound from the other side goes with it.\n\n{rebound_pieces}\n\nOut in the running world the wounds stop leaking. Over the next new moon the blight around them dies back, and the things that came up through the seep go quiet, or go home. In a farm village a child who lit a candle last winter, with nobody to teach her, tries again and cannot. Nobody will ever know whether that was a mercy.\n\nThe Fast will ring its bells for the dead and say that the fast has been kept. Wenna Aldric's entrance examination will go on getting easier. Somewhere at the end of a passage there is a room with a lamp in it. You have bet the world that someone will be there to take it.\n\n{warden_held}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "It is done.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_aftermath_harness",
+    "title": "Dominion",
+    "body": "When it is over the breach does not close. It stays open the width of a hand, and it is yours.\n\nYou can feel it the way you feel your own hand: everything he opened, all of it on the other side, moving, and none of it belonging to anyone but you. When you want it to come, it comes. When you want it to stop, it stops. Mostly.\n\nOut in the running world the leaks become wells. In farm villages children light candles nobody taught them to light, and the schools fill, and the Fast rings its bells for the dead and does not stop ringing them. Things still come up through the seep. Nobody has read where it stops. Now it is your hand that has to.\n\nThe Register writes it all down in your hand, as it always has, and once, halfway down the page, it stops and looks for a long moment at a letter it has just written, as if it did not recognize it.\n\n{warden_held}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "It is done.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_aftermath_synthesis",
+    "title": "Synthesis",
+    "body": "You do not close the breach, and you do not keep it. You change it.\n\nIt takes the rest of the night. Piece by piece, with the other hand writing beside yours on the clean page, you set the Seal back into the glass, not as a wall but as a weave: six refusals with room between them, a membrane the world can breathe through that will still hold back the flood. When it is done the glass is whole, and not quite clear, like a window with weather on it.\n\nOut in the running world magic comes back slowly, as much as the world can hold and no more. Some spells stop working the way they used to and start working some other way. The seep still comes in, by measures, and something on the far side of it is paying attention. Nobody can read where any of it goes. Not him. Not you.\n\nThe sky over the Anchorhold has not moved since the naming. Tonight, for the first time, you have the feeling that it is reading you back.\n\n{warden_held}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "It is done.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_fates",
+    "title": "Who Stood With You",
+    "body": "{fates_open}\n\n{companion_fates}\n\n{honored_spirits}\n\nThe Register writes every one of them down in their own hands. When it reaches the end of the list it leaves one line empty, the way you leave a chair.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Count them again.",
+        "resultText": "{fates_again}"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_seventh_light",
+    "title": "The Seventh Light",
+    "body": "The glass takes the pieces and holds, and asks for one thing more.\n\nYou knew it would. Everyone in the hall knew. The Seal was never only six refusals: when it was forged, a seventh school gave itself to keep it, and the land counted seven. Tonight the glass needs someone to stay in it, and hold the places that would otherwise come apart.\n\n{anchor_volunteer}\n\n{anchor_after}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Let the glass hold.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_conferral",
+    "title": "The Conferral Completes",
+    "body": "{conferral_setting}\n\n{conferral_place}\n\n{conferral_speaker}\n\n{conferral_words}\n\n{conferral_hand}\n\nThe name, at last, is {wizard_name}, of {guild_name}. Not a school. Any faculty in the world could have named you into a school, and some of them did. The other half was never theirs to give.\n\nAt the foot of the dais the Examiner speaks. Her nod finished hours ago. Now the board has had its say, and she keeps her word, and tells you what she thinks. {examiner_opinion} {examiner_margin}\n\nThe Register writes it in her hand. It is a complete sentence. So is the next one.\n\n{erratum_margin}\n\n'Be it recorded,' says the Register, 'that the candidate was named.' Then it stops, because the sentence is finished. It is the first sentence it has finished since Commencement, and it reads it over to itself, twice, before it turns the page.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Be written.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_minutes",
+    "title": "The Minutes",
+    "body": "Afterward, the Register reads you the minutes from the beginning. It is a long time since anyone asked it to.\n\n{reading_recap}\n\n'The minutes are complete,' it says at last, and closes, and for once it does not begin another sentence.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Close the Register.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fin_defeat",
+    "title": "The Anchor Takes You Back",
+    "body": "{defeat_where}\n\nThe anchor takes you back before the blow lands. The timeline closes over the Convergence like water. He does not gloat; he schedules. Somewhere behind your eyes, the Long Second holds, and everything carried inside it holds with you.\n\n'Be it recorded,' the Register says, much later, on the campus side of the edge, 'that the door was opened. Once.' It does not say anything else for a long time.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Return to the campus.",
+        "resultText": ""
+      }
+    ]
+  }
+]

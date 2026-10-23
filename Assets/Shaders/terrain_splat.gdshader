@@ -374,6 +374,16 @@ uniform vec3 horizon_color : source_color = vec3(0.75, 0.78, 0.82);
 uniform float horizon_strength : hint_range(0.0, 1.0) = 0.18;
 /** Horizon melt on the outer SKIRT/void faces (the literal edge of the world). These can dissolve much harder than the tops — they're what reads as "the board ends here". */
 uniform float horizon_skirt_strength : hint_range(0.0, 1.0) = 0.85;
+/** PER-INSTANCE flag, 1.0 on the far-field mesh only (HexGridManager.FarField.cs). Enables the distance melt below. Hex tiles never set it. */
+instance uniform float far_field : hint_range(0.0, 1.0) = 0.0;
+/** World XZ the far-field melt is measured from (the board centre). Set from code. */
+uniform vec2 far_field_center = vec2(0.0, 0.0);
+/** Distance from the board centre where the far-field melt begins. Set from code. */
+uniform float far_melt_start = 45.0;
+/** Distance where the far-field melt reaches far_melt_strength. Set from code. */
+uniform float far_melt_end = 230.0;
+/** Strongest far-field melt toward horizon_color. Set from code. */
+uniform float far_melt_strength : hint_range(0.0, 1.0) = 0.8;
 
 // ── Shore splat dither ─────────────────────────────────────────
 group_uniforms shore_dither;
@@ -481,7 +491,8 @@ void fragment() {
 
 	// 1 above the map waterline, 0 submerged (waterline pushed from code;
 	// -1000 when the map has no water → always 1).
-	float above_water = smoothstep(grid_fade_below_y - grid_fade_span, grid_fade_below_y, v_world_pos.y);
+	// The far field always counts as dry land (its water sinks under the backdrop plane).
+	float above_water = max(smoothstep(grid_fade_below_y - grid_fade_span, grid_fade_below_y, v_world_pos.y), far_field);
 
 	// ── Shore splat dither: organic land↔water texture handoff ──
 	// Strength fades CONTINUOUSLY through the waterline (a hard submerged
@@ -817,6 +828,15 @@ void fragment() {
 		// melting the bed just reads as a white seabed through the water.
 		float melt = vista_horizon * mix(horizon_strength * above_water, horizon_skirt_strength, is_skirt);
 		albedo = mix(albedo, horizon_color, melt);
+	}
+
+	// Far-field distance melt (camera_lens_slice1). Only the far-field mesh sets
+	// far_field. The distant ground dissolves toward the horizon colour by its
+	// distance from the board, however thin the scene fog is tuned.
+	if (far_field > 0.001) {
+		float fd = length(v_world_pos.xz - far_field_center);
+		float fmelt = smoothstep(far_melt_start, far_melt_end, fd) * far_melt_strength * far_field;
+		albedo = mix(albedo, horizon_color, fmelt);
 	}
 
 	// ── TEMP DIAGNOSTIC OVERRIDE ──

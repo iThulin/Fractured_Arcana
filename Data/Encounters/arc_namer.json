@@ -1,0 +1,308 @@
+[
+  {
+    "id": "arc_namer_ask",
+    "title": "A Small Favor",
+    "body": "The Sending from Cael Morn arrives in one layer, which is so unlike them that you check it twice.\n\n'A small favor,' says Cael. 'Three, in fact. You will find them dull. Carry a parcel to the next of my people your party meets on the road. Then go and be received by one of the others, any of them, and tell me what you saw. Then, the next time you sit down to bargain with anyone, get me one clause: that they remember who sent you.'\n\n'That is all. I am not finished with you, but I am finished asking.'\n\nWhen the Sending closes there is a parcel at the bastion's door, wrapped in plain paper and tied with a knot you cannot follow to its end.\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Agree.",
+        "resultText": "'Good,' says Cael, in the same single layer, and closes it. Under your arm the Register writes the date, and under it, very small, the number one. It does not say one of what."
+      },
+      {
+        "label": "'Why me?'",
+        "resultText": "'Because you will do them,' says Cael, 'and I would like to see how.' That is the second layer of the answer. The first was courtesy. You do not hear a third."
+      },
+      {
+        "label": "'This is layer one.'",
+        "resultText": "The line is quiet for so long that you think it has closed. 'Yes,' says Cael at last, and there is a second layer in it now, and a third. 'You have been inside one of mine before.' They do not ask when. 'Then we may skip the parcel. Layer two is entered as recognized.'",
+        "requiredFlag": "chronicle_namer_layered",
+        "setFlags": [
+          "namer_layer_2"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_parcel",
+    "title": "The Parcel",
+    "body": "Cael's people are where they said they would be: a patrol of the Seventh Layer, on the road, waiting, as if they had been waiting there before you set out. Their captain takes the parcel without opening it and hands you, in exchange, a sealed card.\n\nOn the card, in a hand so even it looks ruled, is a description of the parcel's carrier: how far you carried it, which way you came, how you held it, whether you shook it. It is accurate. It was written before you arrived.\n\nCael's Sending arrives while you are still reading. 'What did you deliver?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'A parcel.'",
+        "resultText": "'You delivered a parcel,' Cael agrees, in one layer. 'That is the first answer, and it is true.' The Sending closes. Under your arm the Register writes the number two, very small, and does not say two of what.",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 18
+      },
+      {
+        "label": "'Whatever was in it.'",
+        "resultText": "'There was nothing in it,' says Cael. 'Paper and a knot. Try again; not now.' A second layer, under the first, almost kind: 'You are close.'",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'Myself.'",
+        "resultText": "Silence, and then, for the first time, two layers at once. 'Yes,' says Cael. 'The parcel was a reason for you to walk a road I chose and be seen doing it. The card was a receipt. You were the delivery.' A pause. 'That was layer two. Provenance. Most people take until five.'",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_witness",
+    "title": "What You Saw",
+    "body": "When the audience is over, Cael's Sending is waiting, as if it had been listening at the door. It may have been.\n\n'You were received,' says Cael. 'I asked you to watch. What did you see?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Myself, being watched.'",
+        "resultText": "'Yes,' says Cael. 'Everyone you sit across from is doing to you what I asked you to do to them. That was layer three. Witness. It goes both ways, or it is only spying.'",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 35
+      },
+      {
+        "label": "'What they wanted.'",
+        "resultText": "'Everyone sees what people want,' says Cael. 'It is written on them. Look at what you were doing while you looked.'",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'Nothing unusual.'",
+        "resultText": "'Then you saw nothing,' says Cael, without unkindness. 'It was not nothing. It never is.' Under your arm the Register writes the number three, and does not say three of what.",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 18
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_clause",
+    "title": "The Clause",
+    "body": "The bargain is struck, and the other party is already rising when you ask for the clause: that they remember who sent you. They look at you strangely, and agree, and then, as if remembering something, take an envelope from their coat. 'A mutual friend asked me to give you this,' they say. 'If you asked.'\n\nInside is a paper, old, its corners soft, its title page stamped WITHDRAWN. It is a conference paper on enchantment, and in eleven careful pages it proves that a working of four layers once failed Cael Morn, in public.\n\nCael's Sending arrives before you have finished reading. 'Did you get my clause?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Yes. They'll remember who sent me.'",
+        "resultText": "'Then they will remember me,' says Cael. 'That was the clause.' A pause. 'You have something of mine in your hand. Keep it. Everyone does.' Under your arm the Register writes the number four.",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "setFlags": [
+          "namer_paper_held"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 18
+      },
+      {
+        "label": "'Yes. And you sent me a paper that could hurt you.'",
+        "resultText": "'Yes,' says Cael, in more layers than you can count. 'That was layer four. Terms. I put the paper where you would find it, so that we would both know you had it. What you do with it is the rest of the interview.'",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "setFlags": [
+          "namer_paper_held"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 35
+      },
+      {
+        "label": "'Why did they have this?'",
+        "resultText": "'Because I gave it to them to give to you,' says Cael. 'You asked the right question about the wrong thing. Ask what it is for.'",
+        "setMetaFlags": [
+          "chronicle_namer_layered"
+        ],
+        "setFlags": [
+          "namer_paper_held"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 25
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_five",
+    "title": "Layer Five",
+    "body": "You are shown to a chair that was placed for you before you decided to come. This time the Namer is looking up.\n\n'Sit,' says Cael. 'I'm not finished. But I am nearly.'\n\nThey lay four cards on the desk between you, one for each thing you did for them: the courtesy, the parcel, the watching, the clause. 'Layers one to four,' they say. 'You have been inside a working since my first Sending. This is layer five, where I tell you so. What it measured is what you do under instruction. Now I know.'\n\nThey gather the cards. 'You will want to know what I think of him. Everyone does, eventually. I think he is right about the room.'\n\n'Every working I build has seven layers because every year there is less to build with, and it takes more layers to hold the same weight. I noticed before I could name it. Then one night I found the name, and I did not say it aloud, because once a thing is named it is true.'\n\n'The narrowing,' says Cael Morn. 'I named it. He reads everything, so he read that too, and now he says it in his own sentences. He opened the Seal because the room was getting smaller. I add layers. One of us is wrong about what to do in a small room.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Which of you?'",
+        "resultText": "'That is layer six,' says Cael. 'You are about to find out, and so am I.' They fold their hands. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_namer_narrowing_heard"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 45
+      },
+      {
+        "label": "'You're afraid of it.'",
+        "resultText": "'I am precise about it,' says Cael. 'From the outside the two look the same.' A pause, and another layer under it, very quiet: 'Yes.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_namer_narrowing_heard"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 45
+      },
+      {
+        "label": "'The narrowing. You named it before he did.'",
+        "resultText": "Cael Morn goes quite still, all seven layers at once. 'I have never said that word to anyone,' they say. 'I am going to have to add a layer to everything I own.' They look at you as if you were a working they had not built. 'You have been inside one of mine before,' they say. 'All the way through.' 'Now. The audience.'",
+        "requiredFlag": "chronicle_namer_narrowing_heard",
+        "setMetaFlags": [
+          "chronicle_namer_narrowing_heard"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 45
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_inside",
+    "title": "The Gate",
+    "body": "You walk Cael Morn through the edge, and they do not go anywhere else. Not the hall, not the feast, not the library hanging in the air. They stop at the gatehouse, under the arch where the wards were broken from inside, and they study it the way they watched you at first: as if they already knew what it would do, and wanted to see it do it.\n\nThen they go to work on the gate.\n\nIt takes the hour. You count six layers as they go down, each one fitted to the last, and then you lose count, because the seventh does not look like anything. It looks like the gate.\n\n'What does it do?' you ask.\n\n'It fires once,' says Cael. 'When it matters.' They wipe their hands. 'I'm finished.'\n\nIt is the first time you have heard them say it. They seem to find it as strange as you do.\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'When will it matter?'",
+        "resultText": "'You'll know,' says Cael. 'That is the whole of the clause. I have put a great deal of work into it being the whole.'"
+      },
+      {
+        "label": "Thank them.",
+        "resultText": "'Don't,' says Cael. 'You don't know what it does yet. Thank me after.' A pause, and a second layer: 'If there is an after. That is also in the clause.'"
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_shadow_ask",
+    "title": "Somewhere Else, This Time",
+    "body": "The Sending from Cael Morn arrives in one layer, which is so unlike them that you check it twice.\n\n'You were not supposed to be standing there,' says Cael. 'I have said that. I have not stopped saying it.'\n\n'So. Three favors. You will find them dull. A parcel, to the next of my people on your road. An audience with one of the others, watched. A clause in your next bargain: that they remember who sent you. You will do them, because you want to know what I am, and I want to know what you are, and neither of us will ask.'\n\nWhen the Sending closes there is a parcel at the bastion's door, tied with a knot you cannot follow to its end.\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Agree.",
+        "resultText": "'Good,' says Cael, and then, in a layer so quiet you nearly miss it: 'Sit somewhere else, this time.'"
+      },
+      {
+        "label": "'You meant to kill her.'",
+        "resultText": "'I meant to silence her,' says Cael. 'It was architectural. You were not in the drawings.' The Sending closes one layer at a time, the last of them very carefully."
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_shadow_five",
+    "title": "The Name He Gave",
+    "body": "You are shown to a chair that was placed for you before you decided to come. The Namer is looking up, and has been for some time.\n\nThey lay four cards on the desk between you, one for each thing you did for them: the courtesy, the parcel, the watching, the clause. 'Layers one to four,' they say. 'You have been inside a working since my first Sending. This is layer five, where I tell you so.'\n\n'You want the rest. Here is what I will give you here. For years I had a thing I could not name: every working needed more layers than the last to hold the same weight, every year, everywhere. He gave me the name for it. The narrowing. When he said it, it was true, and I could not unsay it.'\n\n'He opened the Seal because the room was getting smaller. I opened the wards because he had named the room. The design was her: the voice that names. You were not in the design.' They fold their hands. 'The rest is layer six. Ask me in the hall.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'In the hall, then.'",
+        "resultText": "'In the hall,' says Cael. 'Sit.' You are already sitting. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_namer_shadow_five_heard"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 45
+      },
+      {
+        "label": "'You could have unsaid it.'",
+        "resultText": "'Nothing named is unsaid,' says Cael. 'That is the whole of my school.' A pause, another layer: 'I have been trying anyway.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_namer_shadow_five_heard"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 45
+      },
+      {
+        "label": "'He gave you the name, and you couldn't unsay it.'",
+        "resultText": "Cael Morn goes still, all seven layers at once. 'You have heard me say this before,' they say. 'You came back to hear it twice.' They seem to find that harder than anything else you could have done. 'Now. The audience.'",
+        "requiredFlag": "chronicle_namer_shadow_five_heard",
+        "setMetaFlags": [
+          "chronicle_namer_shadow_five_heard"
+        ],
+        "swayArchmage": "namer",
+        "swayAmount": 45
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_shadow_penance",
+    "title": "What Did He Show You?",
+    "body": "You walk Cael Morn through the edge and into the ceremony hall, and they stop at the foot of the dais, in front of the Cael Morn of that afternoon.\n\nThat one is caught mid-stride, one palm flat on the sphere as it breaks, every layer of them turned toward the lectern. The spell runs from their hand in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'A name,' says Cael. 'He showed me the passage where the Seal holds, and the world narrowing inside it, one generation at a time, until the last of us dies with no one to teach. Then he named it for me. The narrowing. I had been trying to name it for years.' They look at the spell. 'He asked for two things. The wards, from inside. And the voice that names new wizards: silence it, so the schools stop renewing themselves and the old order ends with the Seal. Her voice. It was architectural. I drew it myself.'\n\n'You were not in the drawings,' they say. 'You stepped into them anyway. I have been trying for a year to name what that was.' They are quiet a long time. 'I'm not finished. But I know which layer I am on. I will stand on that dais at the end.'\n\nThen they go out to the gatehouse and work on your gate for the rest of the hour. You count six layers going down, and lose count at the seventh.\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Who is the seventh for?'",
+        "resultText": "'Not for him,' says Cael. 'That is all of it you get.' Under your arm the Register writes their answer in seven layers, very small, and under it, in its own hand: 'Named.'"
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing. 'Sit,' says Cael, when they have finished, and it takes you a moment to understand that they mean it kindly."
+      }
+    ]
+  },
+  {
+    "id": "arc_namer_shadow_treachery",
+    "title": "What Did He Show You?",
+    "body": "You walk Cael Morn through the edge and into the ceremony hall, and they stop at the foot of the dais, in front of the Cael Morn of that afternoon.\n\nThat one is caught mid-stride, one palm flat on the sphere as it breaks, every layer of them turned toward the lectern. The spell runs from their hand in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'A name,' says Cael. 'He showed me the passage where the Seal holds, and the world narrowing inside it, one generation at a time, until the last of us dies with no one to teach. Then he named it for me. The narrowing. I had been trying to name it for years.' They look at the spell. 'He asked for two things. The wards, from inside. And the voice that names new wizards: silence it, so the schools stop renewing themselves and the old order ends with the Seal. Her voice. It was architectural. I drew it myself.'\n\n'You coerced me with a paper I gave you,' says Cael. 'You did exactly what you were measured to do. I have the measurement now.' They do not go near your gate. 'I will stand where you put me.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Cael.'",
+        "resultText": "'I'm not finished,' they say, and for the first time it sounds like a promise to someone else."
+      },
+      {
+        "label": "Walk them out.",
+        "resultText": "You walk them out. At the gatehouse they stop and look at your gate for a long time, as if counting layers that are not there yet."
+      }
+    ]
+  }
+]

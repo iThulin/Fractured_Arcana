@@ -1,0 +1,31 @@
+{
+  "id": "korro_practice_dummy",
+  "threatLabel": "Practice Dummy",
+  "role": "summon",
+  "factionId": "",
+  "intelDescription": "Straw and canvas on a post. It stands in front of the rack.",
+  "maxHealth": 4,
+  "baseSpeed": 0,
+  "armor": 0,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 1,
+  "behaviorKey": "inert",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "bodyguard",
+      "trigger": "aura",
+      "name": "Stands In Front",
+      "intelDescription": "Takes every hit aimed at the rack while it stands beside it.",
+      "params": {
+        "radius": "1"
+      }
+    }
+  ],
+  "colorR": 0.76,
+  "colorG": 0.68,
+  "colorB": 0.5
+}

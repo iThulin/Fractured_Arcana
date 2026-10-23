@@ -1,0 +1,261 @@
+[
+  {
+    "id": "arc_engineer_ask",
+    "title": "Field Trials",
+    "body": "A crate arrives at the bastion's door by Workshop courier, stenciled THIS WAY UP on every side, including the bottom. Inside, packed in straw, are two devices and a notebook page.\n\nThe page says, in a hand that gets faster as it goes: 'Field trials. Two prototypes. Carry the first into your next fight. It will either work or not work. EITHER IS DATA. Report. Then the second. Do not try to make them work. Do not try to make them fail. Just fight, and watch, and tell me what happened. I will be very annoyed if you are careful with them.' Underlined twice.\n\nUnder that, smaller: 'P.S. The third trial I will run myself. I have been running it for a while.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Pack them.",
+        "resultText": "You pack them. One of them hums. The page did not say anything about humming. You decide to report it."
+      },
+      {
+        "label": "'What do they do?'",
+        "resultText": "There is a second page under the first, which answers exactly this question, at length, with diagrams. The last line is 'not yet, but close.'"
+      },
+      {
+        "label": "Write the report before the fight.",
+        "resultText": "You send a report back by the same courier before you have fought at all: what the first device will do, what it will fail to do, and what will surprise him. His answer comes back the same day, one word, underlined three times: 'HOW.' Under it, smaller: 'Trial one entered as run. Carry the second.'",
+        "requiredFlag": "chronicle_engineer_trialed",
+        "setFlags": [
+          "engineer_trial_1_done"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_steady_hand",
+    "title": "The Steady Hand",
+    "body": "The first device rode on your belt through the whole fight, humming, and did exactly one thing: at the worst moment of it, when everything was going badly, it went perfectly still, and so did your hand. Then it got very hot.\n\n{trial_outcome}\n\nBram's Sending arrives before you have finished bandaging. 'Report. Everything. Start with what surprised you.'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Here's how the fight went.'",
+        "resultText": "'I don't want the fight,' says Bram. 'I can get the fight from anybody. I want the device. What did the device do?' 'Carry the second,' he says. 'Same rules.'",
+        "setMetaFlags": [
+          "chronicle_engineer_trialed"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 15
+      },
+      {
+        "label": "'It went still at the worst moment, and so did I. Then it got hot. That wasn't supposed to happen, was it?'",
+        "resultText": "'NO,' says Bram, delighted. 'It wasn't. Write that down. No, I'll write it down.' Pages, turning fast. 'It isn't steadying your hand. It's steadying you. The heat is what that costs. I have been calling it the wrong thing for three years.' 'Carry the second,' he says. 'Same rules.'",
+        "setMetaFlags": [
+          "chronicle_engineer_trialed"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'It works.'",
+        "resultText": "'It works,' Bram repeats, and you can hear him not writing it down. 'Works is a verdict. I asked for a report.' 'Carry the second,' he says. 'Same rules.'",
+        "setMetaFlags": [
+          "chronicle_engineer_trialed"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 20
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_second_opinion",
+    "title": "The Second Opinion",
+    "body": "The second device is a small brass box with a dial and no instructions. During the fight it clicked, once, each time you were about to make a mistake, half a breath before you made it. Twice you listened.\n\n{trial_outcome}\n\nBram's Sending finds you after. 'Report. What did the box do?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'It clicked before every mistake I made. Twice I listened. And once it clicked before something that wasn't a mistake.'",
+        "resultText": "Silence. Then, very quietly, Bram Korro says: 'Which one?' You tell him. He does not say anything for a while. 'That's the one I built it for,' he says. 'The click that's wrong. If it's never wrong, it isn't an instrument. It's a reading.' A scratch of pen. 'Write it down. I'll write it down.' 'Good. Come and see the third. I want you there before I run it.'",
+        "setMetaFlags": [
+          "chronicle_engineer_trialed"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'It's a warning box.'",
+        "resultText": "'It's a box,' says Bram. 'What it is, is what it did. What did it do?' 'Good. Come and see the third. I want you there before I run it.'",
+        "setMetaFlags": [
+          "chronicle_engineer_trialed"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 20
+      },
+      {
+        "label": "'I didn't notice.'",
+        "resultText": "'Then that's the data,' says Bram, and writes it down, and does not sound pleased. 'Subject did not notice. Underlined once.' 'Good. Come and see the third. I want you there before I run it.'",
+        "setMetaFlags": [
+          "chronicle_engineer_trialed"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 15
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_third_trial",
+    "title": "The Third Trial",
+    "body": "Bram Korro's cart is parked at your threshold with three projects aboard and a fourth on the ground, covered with a sheet. He pulls the sheet off without ceremony. Under it is a board with a curve drawn on it in chalk: forty years of figures, every one going the same way.\n\n'The third trial,' he says. 'I've been running it for forty years. Fewer people every year can learn to cast at all. I measured it every way I know. It's real.' He taps the board. 'And I measured the Seal, back when it was in one piece. It reads like a governor. A thing that keeps an engine from running too fast. Turned down a little more every year.'\n\nHe is quiet for a moment, which for him is a long time.\n\n'He's not wrong about the curve,' says Bram. 'He's wrong that he knows what happens when you take the governor off. Nobody knows. That's why you run the experiment.' He wipes the chalk from his hands. 'You don't run it on the whole world. You don't run it on a hall full of people. You build a small one first. That's all an engineer is: someone who builds a small one first.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'What would a small one look like?'",
+        "resultText": "'I don't know yet,' he says, happily. 'That's the good part.' He covers the board again. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_engineer_experiment_heard"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'You agree with him.'",
+        "resultText": "'About the curve,' says Bram. 'Not about the result. He read the end of the curve and called it the answer. A curve isn't an answer. It's a question you've measured very carefully.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_engineer_experiment_heard"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'He read the end of the curve and called it the result.'",
+        "resultText": "Bram stares at you. Then he takes out his notebook, finds a page, and turns it around: the same sentence, in his hand, dated a year ago. 'I never said that out loud,' he says. 'I wrote it down so I wouldn't.' He looks at you the way he looks at a device that has just done something it was not supposed to. 'Subject persists,' he murmurs. 'Underlined twice.' 'Now. The audience.'",
+        "requiredFlag": "chronicle_engineer_experiment_heard",
+        "setMetaFlags": [
+          "chronicle_engineer_experiment_heard"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_inside",
+    "title": "Page Forty-Four",
+    "body": "You walk Bram Korro through the edge, and he stops dead on the far side with both hands in his pockets, because he has decided in advance that this is the only way he will keep them there.\n\nHe touches nothing. It costs him visibly. He walks the whole campus with his notebook open and his pencil going, and he diagrams everything: the spell in its line of white fire, the bell holding its note over the belfry, the steam standing over the refectory. He measures the spell with a string he does not let touch it. He stands under the bell for a long time with his eyes shut.\n\nIn the infirmary he stops at the mending spell, the only thing in the campus that is still running, and watches it work for a long while. Then he writes one line, and underlines it, and shows you.\n\n\"it's tired. bring it something. see p.44.\"\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'What's on page forty-four?'",
+        "resultText": "He turns to it. It is a diagram of the mending spell, drawn from memory, dated three years before the hall, with an arrow at one strand of it and a note: \"this one will fray first.\" 'I sat on the board that approved it,' he says. 'I said it would fray. Nobody listened. It's been fraying for a year in here.' He closes the notebook. 'Bring it something,' he says again, quietly. 'I don't know what. Find out.'"
+      },
+      {
+        "label": "'Can you fix it?'",
+        "resultText": "'Not without touching it,' he says, 'and I'm not touching anything.' He looks at the spell the way other people look at a fire in winter. 'I'll write down how. That's nearly the same thing.'"
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_shadow_ask",
+    "title": "Measurements",
+    "body": "A crate arrives at the bastion's door by Workshop courier, stenciled THIS WAY UP on every side, including the bottom. Inside are two devices, and a notebook page in a hand that does not get faster as it goes. It is very careful.\n\n'Field trials. Two prototypes. Carry them into your next two fights. Report what they do. I measured you once, and the measurement was wrong. I need to find out where.'\n\nUnder that, crossed out and then written again, smaller: 'That wasn't supposed to happen. You, I mean. I wrote it down.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Pack them.",
+        "resultText": "You pack them. Neither of them hums. You get the impression they were built very carefully, by someone who did not want anything else to go wrong."
+      },
+      {
+        "label": "Write on the back of the page: 'You measured the spell, too.'",
+        "resultText": "You send it back by the same courier. It comes back the next day with nothing added, and one corner of the page worn soft, as if someone had held it for a long time."
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_shadow_third_trial",
+    "title": "A Schematic That Works",
+    "body": "Bram Korro's cart is parked at your threshold, and the fourth thing on it is a board under a sheet. He does not pull the sheet off. He stands with one hand on it.\n\n'The third trial,' he says. 'Forty years of figures, every one going the same way. Fewer people every year can learn to cast at all. And the Seal reads like a governor on the engine of the world, turned down a little more every year.' He does not look at you. 'That part is true. I'd show you the curve. I've shown it to myself every night for a year.'\n\n'He showed me a schematic where everything does exactly what it's supposed to do. I'd never seen one. Not once in my life. I wanted to see one run.' He takes his hand off the board. 'You want the rest. Ask me where I ran it.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'In the hall, then.'",
+        "resultText": "'In the hall,' he says, and writes it down, which is the first thing you have seen him write all day. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_engineer_shadow_experiment_heard"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'It didn't work.'",
+        "resultText": "'No,' says Bram. 'It didn't. That wasn't supposed to happen.' He laughs, once, and it is not a good sound. 'Write it down.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_engineer_shadow_experiment_heard"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      },
+      {
+        "label": "'He showed you a schematic where everything works, and you wanted to see it run.'",
+        "resultText": "Bram looks at you for a long time. 'You've heard this before,' he says. 'You came back for the same data twice.' He seems to find that the most hopeful thing anyone has done in a year. 'Now. The audience.'",
+        "requiredFlag": "chronicle_engineer_shadow_experiment_heard",
+        "setMetaFlags": [
+          "chronicle_engineer_shadow_experiment_heard"
+        ],
+        "swayArchmage": "engineer",
+        "swayAmount": 25
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_shadow_penance",
+    "title": "What Did He Show You?",
+    "body": "You walk Bram Korro through the edge and into the ceremony hall. He does not take out his notebook. He walks up to the dais with his hands in his pockets and stops in front of the Bram Korro of that afternoon.\n\nThat one is caught mid-stride, one palm flat on the sphere as it breaks, the other hand out of its pocket for once and raised toward the lectern. The spell runs from it in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'The measurements,' says Bram. 'Mine. He didn't have to show me anything I hadn't measured. The curve, and the Seal throttling the engine. He just read me the end of it, like a result.' He looks at the spell. 'Then he showed me a schematic where everything did exactly what it was supposed to. The wards open from inside. The voice that names goes quiet, so the schools stop renewing themselves and the old order ends with the Seal. Her voice. No misfires. No research half.' A long pause. 'And then you stepped forward. That wasn't supposed to do that. I wrote it down.'\n\n'I'll stand on that dais at the end,' he says. 'And whatever happens I'll write it down, all of it, the half that works and the half that doesn't. Nobody knows the outcome. That's why you run the experiment.' He takes his hands out of his pockets for the first time since the edge. 'I ran it on the whole world. I'd like to be there when it comes back.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Then write it down.'",
+        "resultText": "'I always do,' he says. Under your arm the Register writes his answer in his hand, and under it, in its own: 'Recorded.'"
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing. He stands in front of himself a while longer, and then, very carefully, does not touch anything."
+      }
+    ]
+  },
+  {
+    "id": "arc_engineer_shadow_treachery",
+    "title": "What Did He Show You?",
+    "body": "You walk Bram Korro through the edge and into the ceremony hall. He does not take out his notebook. He walks up to the dais with his hands in his pockets and stops in front of the Bram Korro of that afternoon.\n\nThat one is caught mid-stride, one palm flat on the sphere as it breaks, the other hand out of its pocket for once and raised toward the lectern. The spell runs from it in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'The measurements,' says Bram. 'Mine. He didn't have to show me anything I hadn't measured. The curve, and the Seal throttling the engine. He just read me the end of it, like a result.' He looks at the spell. 'Then he showed me a schematic where everything did exactly what it was supposed to. The wards open from inside. The voice that names goes quiet, so the schools stop renewing themselves and the old order ends with the Seal. Her voice. No misfires. No research half.' A long pause. 'And then you stepped forward. That wasn't supposed to do that. I wrote it down.'\n\n'You took the cart,' he says. 'The research half. All of it. You left me the half that works.' He looks at the frozen spell, and at his own frozen hand. 'He'd approve. I'll stand where you put me. I'll be very precise about it.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Bram.'",
+        "resultText": "'That wasn't a question,' he says. 'Don't write it down.'"
+      },
+      {
+        "label": "Walk him out.",
+        "resultText": "You walk him out. He does not stop at the infirmary. He does not look at the mending spell at all."
+      }
+    ]
+  }
+]

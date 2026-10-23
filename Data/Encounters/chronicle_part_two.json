@@ -1,0 +1,211 @@
+[
+  {
+    "id": "chronicle_part_two",
+    "title": "The Second Volume",
+    "body": "The Register has been getting heavier. You notice it properly one day in the stillness, if the Second has days: it will not close. The minutes have reached the back board, and there is nowhere left to write.\n\nIt does not seem troubled. It turns back through itself to the first page, where your stated intention sits in the margin in your own hand, and forward again through everything since, and then it does something you have never seen a book do. It divides. Between one page and the next there are two of it: the old volume, full, and a new one, clean.\n\n'The minutes,' it says, 'now run to two volumes.' It considers the clean one. 'The first was what happened to you. The Register suspects the second will be what you do about him.'\n\nOn the first page of the new volume, in its own hand, it writes a heading, and underlines it once: The Counter-Reading.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin the second volume.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_counter_lens",
+    "title": "The Counter-Lens",
+    "body": "The counter-lens is ground and the night-ledgers are in their frames, and for the first time since Commencement somebody can read the sky slowly.\n\nYou put your eye to it.\n\nThrough the counter-lens you are not looking at the sky over the Anchorhold, which has not moved since the naming. You are looking at the one he reads. It is not stars. It is script, line under line from one horizon to the other, very small and very close, the way the Register writes when it is trying to fit a long speech onto the foot of a page. Most of it you cannot read. The night-ledgers help: wherever the sky of the week of the Sundering differs from the sky held still in the Second, the difference stands out like fresh ink, and you can follow it line by line toward the place where it all bends.\n\nIt bends around a blank.\n\nThe blank is small, no wider than a word, and the script on every side of it has been written and struck through and written again so many times that the lines are nearly black. Something is moving at its edge. It is the writing. Somewhere outside the Second, at this moment, someone is reading this exact line, and the sky is answering him the way a page answers a reader's finger.\n\nHe has found the margin. He has been working in it for a long time.\n\nAs you watch, a line comes up beside the blank, small and upright and patient, one word at a time:\n\nTo whoever stands in my margin: you are welcome to it. It is the only room in the world I did not furnish.\n\nUnder your arm the Register is copying it out in the same hand. It does not seem able to help it.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Answer him.",
+        "resultText": "You answer aloud, into the lens. The Register writes your answer down in your own hand, word for word. In the sky nothing changes. He cannot read it, and he never will; the line in the margin stays exactly as he left it, courteous, addressed to someone he cannot see.",
+        "loreId": "the_margin_note"
+      },
+      {
+        "label": "Read the lines around the blank.",
+        "resultText": "You read until your eye aches. The struck lines are all one sentence, written a hundred ways: what happens next, in the place where you are standing. He has tried every version, and none of them holds, and each is struck through in the same patient hand. Under the last of them, very small, he has written a note to himself: Read around it.",
+        "loreId": "the_margin_note"
+      },
+      {
+        "label": "Step back from the lens.",
+        "resultText": "You step back. To your own eyes the sky over the Anchorhold is only sky again, holding still for you. But you know what the other one says now, and you know he is out there at the edge of your blank, reading.",
+        "loreId": "the_margin_note"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_offered_ending",
+    "title": "The Offered Ending",
+    "body": "The envoy finds the Wizard's Party where it has stopped, as if he had been told the place in advance, which he has. He wears the Keepers' sealed-sky blue, and he walks up to the party alone, with his hands open, and nobody stops him: it is very hard to stop someone who is that sure where he is going.\n\nHe has a letter. He holds it out to the party, and his eyes go along the faces one at a time, and pass over you, and come back, and pass over you again. 'For the one who is not here,' he says.\n\nYou take it. He watches it leave his hand and go nowhere he can see.\n\nThe seal is the blue of a clear night. Inside, on heavy paper, in a small, upright, patient hand:\n\nTo whoever stands in my margin.\n\nYou are bringing home the pieces of a thing I opened. I would rather you did not. I am not going to make you stop; I do not make anyone do anything. I am offering you an ending instead.\n\nKeep your door. Keep your campus and its bell and its bread. Stop bringing the pieces home, and live the same gentle year inside it as many times as you like, and I will write around you. Nothing in that year will hurt you that you do not walk out to meet. You will be the one thing in the world I never finish reading, and I find I do not mind.\n\nIt is a good ending. I have read worse for better people.\n\nAnswer the bearer. He will carry it.\n\nKassian Vor-Aleth",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Refuse.",
+        "resultText": "You tell the envoy no. He nods, as if he had expected nothing else, and he had: it is the answer he was told he would carry back. 'As read,' he says, in a voice not quite his own, and goes. Under your arm the Register writes your refusal in your hand, and the envoy's two words in another.",
+        "setMetaFlags": [
+          "deal_answered",
+          "deal_refused"
+        ],
+        "loreId": "the_offered_ending"
+      },
+      {
+        "label": "Accept.",
+        "resultText": "You tell the envoy yes. He looks at the letter, and at the place where you are standing, and for the first time he seems unsure of something. Then he writes your answer down, folds it, seals it, and goes, carrying it the way a man carries a parcel nobody told him about.",
+        "setMetaFlags": [
+          "deal_answered",
+          "deal_accepted"
+        ]
+      },
+      {
+        "label": "Not yet.",
+        "resultText": "You fold the letter into the Register. The envoy waits a long time, looking at nothing in particular. Then he bows to the party in general. 'At the new moon,' he says as he goes. 'I am to wait for an answer.'"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_envoy_returns",
+    "title": "The Envoy Returns",
+    "body": "At the new moon the envoy is back, exactly where the party has stopped, with his hands open.\n\n'I am to wait for an answer,' he says, to the party in general. His eyes go along the faces, and pass over you.\n\nHe waits. He is very good at it. He was told how long it would take, and he was told wrong, and he does not seem to mind.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Refuse.",
+        "resultText": "You tell him no. 'As read,' he says, in a voice not quite his own, and goes. The Register writes it down: your refusal in your hand, his two words in another.",
+        "setMetaFlags": [
+          "deal_answered",
+          "deal_refused"
+        ],
+        "loreId": "the_offered_ending"
+      },
+      {
+        "label": "Accept.",
+        "resultText": "You tell him yes. He hesitates, for the first time, and then he writes it down, and folds it, and goes, carrying it as if it might be heavier than it looks.",
+        "setMetaFlags": [
+          "deal_answered",
+          "deal_accepted"
+        ]
+      },
+      {
+        "label": "Not yet.",
+        "resultText": "He bows to the party and goes. He will be back at the next new moon. He has not been told anything else."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_returned_unopened",
+    "title": "Returned Unopened",
+    "body": "At the new moon the envoy comes back with your answer.\n\nHe has not opened it. Nobody has. It is folded exactly as he folded it, the seal unbroken, and tucked under the seal, where it will be the first thing you see, is a card in a small, upright, patient hand:\n\nNot the answer I read. Interesting.\n\nThe envoy gives it to you, bows to the place beside you, and goes, and does not look back. Under your arm the Register copies the card into the minutes in his hand, and then sits with it for a while. It is the first time the minutes have shown him surprised.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Keep the card.",
+        "resultText": "There was never a deal. You keep the card anyway. Of everything he has written, it is the only line he did not read first.",
+        "loreId": "not_the_answer_i_read"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_erratum_second",
+    "title": "The Second Message",
+    "body": "When the glass lets you go, something happens in the hall that you have never felt in the Second before. The stillness takes a breath. It is the anchor, you understand: the piece it was made from is back where it was taken from, and everything the Second stands on has grown a little stronger, the way a floor does when someone sets a beam under it.\n\nThen a voice speaks from nowhere in particular, as it did once before, as if it had been left here for whoever would be standing where you stand.\n\n'If you are hearing this, the second I spent has come back to where I took it. I am sorry it came back in pieces. I am sorry for most of what I did that night, and for what it has cost you, which I could not count, because I did not know who you would be.'\n\n'The second I made was only ever wide enough for one. With this piece home it will hold one more. There is a room for them. I made it ready, in case.'\n\n'Think before you ask anyone to stay in it. Whoever stays will remember every reading you lose, and will remember losing them with you. That is the cost. I know it better than anyone. I am the only one who remembers the reading I came from.'\n\nThe voice does not speak again. You are sure, without knowing how, that it never will.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Who are you?'",
+        "resultText": "Nothing answers, as nothing answered the first time. Under your arm the Register writes a heading in its own hand, considers it, and lets it stand: An Erratum. It is the word for the slip a printer tips into a book to correct it, and the Register seems to feel it is the right word for him.",
+        "setMetaFlags": [
+          "erratum_second_heard"
+        ],
+        "loreId": "the_second_message"
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "The bell holds its note. Somewhere down the hill, at the end of the tutors' corridor, a door you have walked past a hundred times is standing open.",
+        "setMetaFlags": [
+          "erratum_second_heard"
+        ],
+        "loreId": "the_second_message"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_room_one_chair",
+    "title": "The Room That Holds One Chair",
+    "body": "The door is at the end of the tutors' corridor, where you have walked a hundred times and never seen a door. It is open.\n\nInside is a tutor's office, small, with one window and one chair. The window looks out on the campus at its stillest: the bell's held note, the steam over the refectory, the dust standing in the light. There is a desk with nothing on it and a shelf with nothing on it. The chair stands in the middle of the floor, facing the door, the way a chair is set for someone who is expected.\n\nWhen you look at the desk again there is a card on it. It has been there all along, the way everything in this room has been there all along. The hand leans, and hurries, and goes back once to write a word again more carefully:\n\nFor whoever stays.\n\nYou sit down, because there is nowhere else to sit, and the room settles around you the way a house settles when someone sits down in it. It is not your chair. You can feel that it is not. It is waiting for someone else, and it will wait as long as you like.\n\n'Be it recorded,' says the Register, and then, for once, waits to be told what.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'It is for someone to remember.'",
+        "resultText": "'Then it is a hall for a remembrancer,' says the Register, which likes a proper title, 'however small.' It writes at the head of a clean page, in your hand: The Remembrancer's Hall. Under it, in its own hand, smaller, it adds what the voice said, so that nobody can ever say they were not told: Whoever sits here will remember every reading you spend together, and all the ones where their friends forget them.",
+        "setMetaFlags": [
+          "remembrancers_hall_named"
+        ],
+        "loreId": "the_remembrancers_hall"
+      },
+      {
+        "label": "'It is for no one yet.'",
+        "resultText": "'A room still needs a name in the minutes,' says the Register. It writes at the head of a clean page: The Remembrancer's Hall. Under it, in its own hand, smaller, it adds what the voice said, so that nobody can ever say they were not told: Whoever sits here will remember every reading you spend together, and all the ones where their friends forget them. Then it leaves the rest of the page empty, for whoever comes.",
+        "setMetaFlags": [
+          "remembrancers_hall_named"
+        ],
+        "loreId": "the_remembrancers_hall"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_examiner_report_2",
+    "title": "A Second Report",
+    "body": "The Examiner is where she always is, at the foot of the dais, caught in the nod that is for you. It is further along than it was. You are almost sure.\n\nYou stand in your place on the examination floor, at the distance she likes, and find you have more to tell her than you did the first time. That is what a report is for.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Report the pieces.",
+        "resultText": "You tell her about the glass: how each piece goes home into itself, and what the hall shows you from where it sat. You keep it brief, because she would. The Register writes 'Reported' a second time and underlines it twice. Her chin is lower than it was. You would swear to it now, before anyone.",
+        "requiredFlag": "angle_3_seen",
+        "setMetaFlags": [
+          "examiner_report_2"
+        ]
+      },
+      {
+        "label": "Report your namings.",
+        "resultText": "You tell her that you have been named twice now, in two different hands, and that the line that stopped is still stopped. She examined you first; she should know what you have been made since. The nod moves. Not much. Enough.",
+        "requiredFlag": "chronicle_second_declaration",
+        "setMetaFlags": [
+          "examiner_report_2"
+        ]
+      },
+      {
+        "label": "Stand in your place a while.",
+        "resultText": "You say nothing. The bell's note hangs overhead, and her nod hangs in front of you, a little lower than it was, and still not finished.",
+        "setMetaFlags": [
+          "examiner_report_2"
+        ]
+      }
+    ]
+  }
+]

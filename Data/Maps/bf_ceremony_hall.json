@@ -1,0 +1,78 @@
+{
+  "id": "ceremony_hall",
+  "display_name": "The Ceremony Hall",
+  "shape": {
+    "type": "rectangle",
+    "width": 10,
+    "height": 8
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.0,
+    "moisture_frequency": 0.0,
+    "max_height_step": 0,
+    "min_height_step": 0,
+    "palette": [
+      {
+        "terrain": "stone"
+      }
+    ]
+  },
+  "atmosphere": {
+    "sun_color": [
+      1.0,
+      0.9,
+      0.74
+    ],
+    "sun_energy": 1.0,
+    "ambient_color": [
+      0.52,
+      0.48,
+      0.42
+    ],
+    "ambient_energy": 0.9,
+    "fog_color": [
+      0.66,
+      0.6,
+      0.5
+    ],
+    "fog_density": 0.012
+  },
+  "obstacles": {
+    "low": "low_wall",
+    "high": "wall",
+    "pillar": "stone_pillar"
+  },
+  "tactics": {
+    "max_visibility": 1.0,
+    "min_cover": 0.0
+  },
+  "features": [
+    {
+      "feature": "obstacle_band",
+      "phase": "skeleton",
+      "at": "flank:3",
+      "dir": "axis",
+      "length": 8,
+      "kind": "stone_pillar",
+      "fill": 0.5
+    },
+    {
+      "feature": "obstacle_band",
+      "phase": "skeleton",
+      "at": "flank:-3",
+      "dir": "axis",
+      "length": 8,
+      "kind": "stone_pillar",
+      "fill": 0.5
+    }
+  ],
+  "deployments": [
+    {
+      "id": "hall",
+      "weight": 1,
+      "axis": [
+        0
+      ]
+    }
+  ]
+}

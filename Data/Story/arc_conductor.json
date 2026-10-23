@@ -1,0 +1,543 @@
+{
+  "_doc": "Ondria Vell's arc, Last Orders. The rules are C1, C3 and C5 in docs/story_wiring_v1.md; the script is docs/archmage_arc_conductor_v1.md. Lines are file-local: tokens here read only this file's lines.",
+  "arc": "conductor",
+  "encounterFile": "arc_conductor",
+  "lineTokens": {
+    "trial_title": "trial_title",
+    "trial_followup": "trial_followup",
+    "shadow": "shadow",
+    "remembrance": "remembrance"
+  },
+  "beats": [
+    {
+      "id": "conductor_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_conductor"
+      ],
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor",
+        "coconspirator_conductor",
+        "conductor_fault_heard"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_ask_set",
+      "alsoSetMeta": [
+        "chronicle_conductor_ask_seen"
+      ],
+      "rememberFlag": "chronicle_conductor_ask_seen",
+      "show": "arc_conductor_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "ask"
+        }
+      }
+    },
+    {
+      "id": "conductor_shadow_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_conductor",
+        "coconspirator_conductor"
+      ],
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor",
+        "conductor_fault_heard"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_ask_set",
+      "alsoSetMeta": [
+        "chronicle_conductor_shadow_ask_seen"
+      ],
+      "rememberFlag": "chronicle_conductor_shadow_ask_seen",
+      "show": "arc_conductor_shadow_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_ask"
+        }
+      }
+    },
+    {
+      "id": "conductor_order_1",
+      "hook": "on_deed",
+      "requires": [
+        "conductor_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_order_1_done",
+      "alsoSetTimeline": [
+        "conductor_order_{deed}"
+      ],
+      "show": "arc_conductor_order_{deed}",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "1"
+        },
+        "trial_followup": {
+          "n": "1"
+        },
+        "shadow": {
+          "beat": "{deed}"
+        }
+      }
+    },
+    {
+      "id": "conductor_order_2",
+      "hook": "on_deed",
+      "requires": [
+        "conductor_order_1_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor",
+        "conductor_order_{deed}"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_order_2_done",
+      "alsoSetTimeline": [
+        "conductor_order_{deed}"
+      ],
+      "show": "arc_conductor_order_{deed}",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "2"
+        },
+        "trial_followup": {
+          "n": "2"
+        },
+        "shadow": {
+          "beat": "{deed}"
+        }
+      }
+    },
+    {
+      "id": "conductor_fault_after_orders",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "conductor"
+      },
+      "requires": [
+        "conductor_order_2_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor",
+        "coconspirator_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_fault_heard",
+      "rememberFlag": "chronicle_conductor_fault_heard",
+      "group": "conductor_fault",
+      "show": "arc_conductor_fault",
+      "lore": "whose_fault",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "fault"
+        }
+      }
+    },
+    {
+      "id": "conductor_fault_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "conductor",
+        "unite_open": "true"
+      },
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor",
+        "coconspirator_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_fault_heard",
+      "alsoSetTimeline": [
+        "conductor_order_1_done",
+        "conductor_order_2_done"
+      ],
+      "rememberFlag": "chronicle_conductor_fault_heard",
+      "group": "conductor_fault",
+      "show": "arc_conductor_fault",
+      "lore": "whose_fault",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "fault"
+        }
+      }
+    },
+    {
+      "id": "conductor_shadow_fault_after_orders",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "conductor"
+      },
+      "requires": [
+        "conductor_order_2_done",
+        "coconspirator_conductor"
+      ],
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_fault_heard",
+      "rememberFlag": "chronicle_conductor_shadow_fault_heard",
+      "group": "conductor_fault",
+      "show": "arc_conductor_shadow_fault",
+      "lore": "whose_fault",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_fault"
+        }
+      }
+    },
+    {
+      "id": "conductor_shadow_fault_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "conductor",
+        "unite_open": "true"
+      },
+      "requires": [
+        "coconspirator_conductor"
+      ],
+      "excludes": [
+        "qe_archmage_answered_conductor",
+        "qe_archmage_corrupted_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_fault_heard",
+      "alsoSetTimeline": [
+        "conductor_order_1_done",
+        "conductor_order_2_done"
+      ],
+      "rememberFlag": "chronicle_conductor_shadow_fault_heard",
+      "group": "conductor_fault",
+      "show": "arc_conductor_shadow_fault",
+      "lore": "whose_fault",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_fault"
+        }
+      }
+    },
+    {
+      "id": "conductor_inside",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "qe_archmage_united_conductor"
+      ],
+      "excludes": [
+        "coconspirator_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "conductor_inside",
+      "alsoSetMeta": [
+        "chronicle_conductor_inside_seen"
+      ],
+      "rememberFlag": "chronicle_conductor_inside_seen",
+      "show": "arc_conductor_inside",
+      "lore": "the_class_named",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "inside"
+        }
+      }
+    },
+    {
+      "id": "conductor_shadow_end_united_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_conductor",
+        "qe_archmage_united_conductor",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_conductor_answered",
+      "alsoSetMeta": [
+        "chronicle_conductor_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_conductor_penance"
+      ],
+      "rememberFlag": "chronicle_conductor_shadow_end_seen",
+      "group": "conductor_shadow_end",
+      "show": "arc_conductor_shadow_penance",
+      "lore": "what_he_showed_conductor",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "conductor_shadow_end_united_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_conductor",
+        "qe_archmage_united_conductor",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_conductor_answered",
+      "alsoSetMeta": [
+        "chronicle_conductor_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_conductor_penance"
+      ],
+      "rememberFlag": "chronicle_conductor_shadow_end_seen",
+      "group": "conductor_shadow_end",
+      "show": "arc_conductor_shadow_penance",
+      "lore": "what_he_showed_conductor",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "conductor_shadow_end_coerced_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_conductor",
+        "qe_archmage_coerced_conductor",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_conductor_answered",
+      "alsoSetMeta": [
+        "chronicle_conductor_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_conductor_treachery"
+      ],
+      "rememberFlag": "chronicle_conductor_shadow_end_seen",
+      "group": "conductor_shadow_end",
+      "show": "arc_conductor_shadow_treachery",
+      "lore": "what_he_showed_conductor",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "conductor_shadow_end_coerced_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_conductor",
+        "qe_archmage_coerced_conductor",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_conductor"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_conductor_answered",
+      "alsoSetMeta": [
+        "chronicle_conductor_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_conductor_treachery"
+      ],
+      "rememberFlag": "chronicle_conductor_shadow_end_seen",
+      "group": "conductor_shadow_end",
+      "show": "arc_conductor_shadow_treachery",
+      "lore": "what_he_showed_conductor",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "trial_title",
+      "when": {
+        "n": "1"
+      },
+      "text": "The First Order"
+    },
+    {
+      "key": "trial_title",
+      "when": {
+        "n": "2"
+      },
+      "text": "The Second Order"
+    },
+    {
+      "key": "trial_followup",
+      "when": {
+        "n": "1"
+      },
+      "text": "'That's one,' she says. 'Fill me another.'"
+    },
+    {
+      "key": "trial_followup",
+      "when": {
+        "n": "2"
+      },
+      "text": "'Two filled,' she says. 'Come back to the table. I'll pour, and you'll tell me the third.'"
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "field",
+        "traitor": "conductor"
+      },
+      "text": "The Register notes that Dace has never asked Ondria how the hall fell, and that she has never offered to tell him."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "table",
+        "traitor": "conductor"
+      },
+      "text": "The Register notes that Ivo's bowl was full tonight, and that Ondria did not fill it. She could not lift the jug."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "road",
+        "traitor": "conductor"
+      },
+      "text": "The Register notes the day Pell died: a week after the hall, a day short of home, of something that came in through the opened Seal. It does not remark on it."
+    },
+    {
+      "key": "shadow",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same three at the bar. The same orders. Dace asked first last time too.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "fault",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'She asked the same question. She poured herself the same drink.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "inside",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same names, in the same order. She did not pour last time either.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'A fourth glass last time too. Nobody drank it.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_fault",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'She has always known. She said so last time, in the same words.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_end",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same rows. She knew every face last time, too.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    }
+  ]
+}

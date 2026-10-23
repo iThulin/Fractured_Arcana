@@ -1,0 +1,24 @@
+{
+  "id": "examiner_trial",
+  "threatLabel": "The Examiner",
+  "role": "elite",
+  "factionId": "",
+  "intelDescription": "She is not trying to win. When she reads a spell aloud, it lands where you were standing when she began.",
+  "maxHealth": 40,
+  "baseSpeed": 2,
+  "armor": 1,
+  "attackRange": 4,
+  "attackDamage": 3,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [],
+  "intentCycle": [
+    "hold_ground",
+    "ranged_charge"
+  ],
+  "cycleLoops": false,
+  "casterSpell": "arclance",
+  "colorR": 0.85,
+  "colorG": 0.74,
+  "colorB": 0.46
+}

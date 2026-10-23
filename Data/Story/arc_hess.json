@@ -1,0 +1,233 @@
+{
+  "_doc": "Hess's arc, The Ninth Ending. The rules are C1 and C5 in docs/story_wiring_v1.md; the script is docs/archmage_arc_hess_v1.md. Lines are file-local: tokens here read only this file's lines.",
+  "arc": "hess",
+  "encounterFile": "arc_hess",
+  "lineTokens": {
+    "arrival_open": "arrival_open",
+    "arrival_reason": "arrival_reason",
+    "remembrance": "remembrance"
+  },
+  "beats": [
+    {
+      "id": "hess_crow",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_hess"
+      ],
+      "excludes": [
+        "qe_archmage_answered_hess",
+        "qe_archmage_corrupted_hess",
+        "hess_arrived"
+      ],
+      "layer": "Timeline",
+      "once": "hess_crow_set",
+      "alsoSetMeta": [
+        "chronicle_hess_crow_seen"
+      ],
+      "rememberFlag": "chronicle_hess_crow_seen",
+      "show": "arc_hess_crow",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "crow"
+        }
+      }
+    },
+    {
+      "id": "hess_arrival",
+      "hook": "on_deed",
+      "when": {
+        "deed": "road",
+        "given": "true"
+      },
+      "requires": [
+        "hess_given_2"
+      ],
+      "excludes": [
+        "qe_archmage_answered_hess",
+        "qe_archmage_corrupted_hess"
+      ],
+      "layer": "Timeline",
+      "once": "hess_arrived",
+      "rememberFlag": "chronicle_hess_ninth_heard",
+      "group": "hess_audit",
+      "show": "arc_hess_arrival",
+      "lore": "the_ninth_ending",
+      "tokens": [
+        "arrival_open",
+        "arrival_reason",
+        "remembrance"
+      ],
+      "lineArgs": {
+        "arrival_open": {
+          "route": "audit"
+        },
+        "arrival_reason": {
+          "route": "audit"
+        },
+        "remembrance": {
+          "beat": "arrival"
+        }
+      }
+    },
+    {
+      "id": "hess_given_2",
+      "hook": "on_deed",
+      "when": {
+        "deed": "road",
+        "given": "true"
+      },
+      "requires": [
+        "hess_given_1"
+      ],
+      "excludes": [
+        "qe_archmage_answered_hess",
+        "qe_archmage_corrupted_hess",
+        "hess_arrived"
+      ],
+      "layer": "Timeline",
+      "once": "hess_given_2",
+      "group": "hess_audit"
+    },
+    {
+      "id": "hess_given_1",
+      "hook": "on_deed",
+      "when": {
+        "deed": "road",
+        "given": "true"
+      },
+      "requires": [
+        "hess_crow_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_hess",
+        "qe_archmage_corrupted_hess",
+        "hess_arrived"
+      ],
+      "layer": "Timeline",
+      "once": "hess_given_1",
+      "group": "hess_audit"
+    },
+    {
+      "id": "hess_arrival_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "hess",
+        "unite_open": "true"
+      },
+      "excludes": [
+        "qe_archmage_answered_hess",
+        "qe_archmage_corrupted_hess"
+      ],
+      "layer": "Timeline",
+      "once": "hess_arrived",
+      "rememberFlag": "chronicle_hess_ninth_heard",
+      "show": "arc_hess_arrival",
+      "lore": "the_ninth_ending",
+      "delivery": "immediate",
+      "tokens": [
+        "arrival_open",
+        "arrival_reason",
+        "remembrance"
+      ],
+      "lineArgs": {
+        "arrival_open": {
+          "route": "audience"
+        },
+        "arrival_reason": {
+          "route": "audience"
+        },
+        "remembrance": {
+          "beat": "arrival"
+        }
+      }
+    },
+    {
+      "id": "hess_inside",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "qe_archmage_united_hess"
+      ],
+      "layer": "Timeline",
+      "once": "hess_inside",
+      "alsoSetMeta": [
+        "chronicle_hess_inside_seen"
+      ],
+      "rememberFlag": "chronicle_hess_inside_seen",
+      "show": "arc_hess_inside",
+      "lore": "the_witness_sits",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "inside"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "arrival_open",
+      "when": {
+        "route": "audit"
+      },
+      "text": "'Three,' she says. She does not say three what. You do not need her to."
+    },
+    {
+      "key": "arrival_open",
+      "when": {
+        "route": "audience"
+      },
+      "text": "'You found me,' she says. 'Most people don't. Sit, if you like.'"
+    },
+    {
+      "key": "arrival_reason",
+      "when": {
+        "route": "audit"
+      },
+      "text": "'Because you paid for things nobody would have paid you back for,' she says. 'Three times. Nobody was watching. I was.'"
+    },
+    {
+      "key": "arrival_reason",
+      "when": {
+        "route": "audience"
+      },
+      "text": "'Because the land has decided about you,' she says, 'and I have stopped arguing with it.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "crow",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'A crow, last time as well. The Register does not think it is the same crow. The Register is not... certain.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "arrival",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same stone. The same reason. She has still told nobody else.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "inside",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same chair, the same hour. She sat down the same way.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    }
+  ]
+}

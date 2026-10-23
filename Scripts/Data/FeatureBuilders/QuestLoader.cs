@@ -25,13 +25,13 @@ public static class QuestLoader
         if (_cache != null) return _cache;
         _cache = new List<QuestDefinition>();
 
-        if (!DirAccess.DirExistsAbsolute(ProjectSettings.GlobalizePath(QUESTS_DIR)))
+        // Open res:// directly: GlobalizePath on res:// does not work in an exported build.
+        using var dir = DirAccess.Open(QUESTS_DIR);
+        if (dir == null)
         {
             GD.Print($"QuestLoader: no quests directory at {QUESTS_DIR}");
             return _cache;
         }
-        using var dir = DirAccess.Open(QUESTS_DIR);
-        if (dir == null) return _cache;
 
         dir.ListDirBegin();
         for (string fn = dir.GetNext(); fn != ""; fn = dir.GetNext())

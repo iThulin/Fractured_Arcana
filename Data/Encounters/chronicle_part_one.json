@@ -1,0 +1,521 @@
+[
+  {
+    "id": "chronicle_news_of_the_fall",
+    "title": "News of the Fall",
+    "body": "{settlement_name} has heard. Everyone has.\n\nOn the steps of the almonry an almoner of the Fast is preaching to a square that has not decided whether to listen. She wears undyed cloth, and a wooden bowl on a cord at her throat, turned down. 'They held a feast,' she says. 'On the day they named their wizards they laid the tables and filled the hall with the smell of bread, and something old and hungry smelled it from very far away. That was the Sundering. It was the bill.'\n\nA woman beside you takes you for a mourner and tells you the rest without being asked. The seat of the university fell in an afternoon. The graduating class was in the hall, and she does not say how many of them came out; you understand from the way she does not say it. The archmagi who lived went home to their seats and shut their gates.\n\n'There was one at the dais when it broke,' she says. 'Being named. First name of the afternoon. My cousin was up in the gallery and got out. He says the Provost never finished saying it.'\n\nNobody here speaks of a survivor. Nobody would think to.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Listen to the rest of the sermon.",
+        "resultText": "The almoner turns the bowl at her throat a little on its cord, the way the fasting do before the refusal. 'I want them back,' she says, to the whole square. 'I refuse it.' Here and there in the crowd, people say it with her.",
+        "setMetaFlags": [
+          "chronicle_news_of_the_fall"
+        ],
+        "loreId": "the_feast_and_the_bill"
+      },
+      {
+        "label": "Ask about the one at the dais.",
+        "resultText": "'Young,' she says. 'Stood up when the name was called and went first, the way you would.' She looks at you properly for the first time. 'Did you know them?' You tell her that you did. Under your arm the Register writes something very small, and does not show you what.",
+        "setMetaFlags": [
+          "chronicle_news_of_the_fall"
+        ]
+      },
+      {
+        "label": "Walk on.",
+        "resultText": "Behind you the almoner begins the refusal, and the square says it with her: they want them back, and they refuse it. The Register, under your arm, starts a sentence and thinks better of it.",
+        "setMetaFlags": [
+          "chronicle_news_of_the_fall"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_borrowed_words",
+    "title": "In Another Hand",
+    "body": "When the fighting is over, the Register will not stay shut. It falls open in your hands at the page it kept during the fight, and you read it the way you read anything that insists.\n\nIt is the usual business: who stood where, who fell, a note that the candidate was once again standing in the fire. And in the middle of it, one line that is not in the Register's hand, or in yours, or in the hand of the one who said it across the field.\n\n\"It was not broken. It was opened.\"\n\nThe hand is small and upright and patient: the hand of someone who writes a great deal and has never once been hurried. You have never seen it before.\n\n'The Register writes what is said in the hand of whoever says it,' says the Register. 'Always. That is the rule. That is the whole of the... rule.' Its pages stir. 'They spoke the words. Someone else said them.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Whose hand is it?'",
+        "resultText": "'The Register has not been introduced,' it says, stiffly. 'When it is, it intends to be... thorough.'",
+        "setMetaFlags": [
+          "chronicle_borrowed_words"
+        ]
+      },
+      {
+        "label": "Close the book.",
+        "resultText": "It lets you. Through the cover you can feel it turning back to that page, as if to make sure the hand is still there. It is.",
+        "setMetaFlags": [
+          "chronicle_borrowed_words"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_wenna",
+    "title": "Wenna Aldric",
+    "body": "A Sending reaches you, and it arrives the way she lectured: in complete sentences, with the punctuation audible.\n\n'This is Wenna Aldric. My people report a wizard in the field with a book that will not stop talking. There is one such book in the world, and it was under my hand when the hall broke.'\n\nA pause, exactly as long as it needs to be.\n\n'I was naming you when it happened. I did not reach the end of the sentence. I have finished every sentence since, very carefully.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Provost. I was your student.'",
+        "resultText": "'Are,' she says at once. 'You are my student. Mind your tenses.' The silence after that is not deliberate at all. 'I will thank you to remember it.' The Sending ends there, in the middle of a breath, and Wenna Aldric, who has finished every sentence since Commencement, leaves that one where it is.",
+        "setFlags": [
+          "first_contact_wenna"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_wenna"
+        ]
+      },
+      {
+        "label": "'Provost.'",
+        "resultText": "'Still,' she says, as if you had asked. 'Provost of a ruin with the Astrologer's people living in it. You were my student.' A pause. 'Are. You are my student.' The Sending ends there, in the middle of a breath, and Wenna Aldric, who has finished every sentence since Commencement, leaves that one where it is.",
+        "setFlags": [
+          "first_contact_wenna"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_wenna"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_aurel",
+    "title": "Aurel Pendry",
+    "body": "A Sending reaches you, and there are two voices in it: Master Aurel Pendry's, and under it, half a breath behind, a quieter one that is also his, annotating.\n\n'I watched you die. I was three chairs from the Provost and had an excellent view.' (Four chairs. Revise.) 'I have spent every day since revising what I saw, and you have just struck out the last line of it. I dislike being struck out. I dislike more not knowing by whom.'\n\n'Come and see me. Bring whatever you came out of. I suspect it cannot be revised, and I would like very much to try.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'You can't revise it.'",
+        "resultText": "'Everyone says that,' says the first voice. Under it, the second: (Nobody says that.) The Sending ends on a sound that, from anyone else, might have been a laugh.",
+        "setFlags": [
+          "first_contact_aurel"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_aurel"
+        ]
+      },
+      {
+        "label": "'I'll come.'",
+        "resultText": "'Of course you will.' (Underline.) The Sending ends.",
+        "setFlags": [
+          "first_contact_aurel"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_aurel"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_hess",
+    "title": "Hess",
+    "body": "Hess is sitting on a stone at the side of the road with a crow on her shoulder, eating an apple, as if she has been there all morning. She may have been. She does not get up.\n\n'I walked out before the wards broke,' she says. 'I knew something was about to happen. I usually do, and I usually let it.' She looks at you the way the land looks at weather. 'The crows came back and told me a candidate died on the dais. Now they tell me the candidate is on the road. They are not often wrong twice.'\n\nShe finishes the apple, core and all.\n\n'I decided about you before you came over the hill. I'll let you find out what I decided.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'What did you know?'",
+        "resultText": "'Enough to leave,' she says. 'Not enough to stay.' The crow on her shoulder flies north. When you look back, the stone is empty.",
+        "setFlags": [
+          "first_contact_hess"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_hess"
+        ]
+      },
+      {
+        "label": "Wait with her.",
+        "resultText": "You wait. She does not speak again. After a while the crow flies north and she follows it, and you understand that you have been measured, and do not know against what.",
+        "setFlags": [
+          "first_contact_hess"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_hess"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_joren",
+    "title": "Joren Kall",
+    "body": "A Sending reaches you as weather: a pressure behind the eyes, then Joren Kall's voice, and under it something older, arguing.\n\n'I saw you fall. On the dais. The storm was very sure you were dead.' A gust, and a voice that is not his, and then his again. 'It had a phrase for it. Not its own phrase. I have been hearing a great many phrases lately that are not their own.'\n\n'The earth says you are standing on it. For once the two of them disagree about something I can check.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'The earth is right.'",
+        "resultText": "Thunder, a long way off, sulking. 'Yes,' says Joren, and for a moment there is only one voice in the Sending, and it is his. 'I thought it might be.'",
+        "setFlags": [
+          "first_contact_joren"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_joren"
+        ]
+      },
+      {
+        "label": "'Whose phrase?'",
+        "resultText": "'I don't know,' he says. 'I know it isn't the storm's. The storm has never in its life said anything politely.' The Sending ends in rain.",
+        "setFlags": [
+          "first_contact_joren"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_joren"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_namer",
+    "title": "Cael Morn",
+    "body": "The Sending from Cael Morn arrives in layers, each one holding the door for the next.\n\nThe first is a courtesy. The second notes your presence in the field. The third notes the cards in your hand and the book under your arm. The fourth is a fact: Cael was on the dais. The fifth is another: Cael saw the spell arrive. The sixth is a confession, filed with the facts: Cael has not slept well since.\n\nThe seventh takes a long time to open.\n\n'You died,' says Cael. 'Sit. I'm not finished with that, and apparently neither are you.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Sit.",
+        "resultText": "You sit, wherever you are. 'Good,' says Cael. 'That was the eighth layer.' The Sending closes, one layer at a time.",
+        "setFlags": [
+          "first_contact_namer"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_namer"
+        ]
+      },
+      {
+        "label": "'I'm not dead.'",
+        "resultText": "'I know,' says Cael. 'That is the part I'm not finished with.' The Sending closes layer by layer, the last of them very gently.",
+        "setFlags": [
+          "first_contact_namer"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_namer"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_conductor",
+    "title": "Ondria Vell",
+    "body": "A Sending reaches you with the clink of a glass in it, and a room behind it, warm and crowded with people who are not breathing.\n\n'I've poured you a measure every night since Commencement,' says Ondria Vell. 'Nobody drinks it. That's how it goes with the dead, love. It's the pouring that matters.' A pause. 'Now my regulars tell me there's a candidate out on the road with the Academy's cards. Walking about. Talking.'\n\nThe glass goes down, gently.\n\n'I don't like being wrong about the dead. It's bad for business. Come and drink it yourself.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'I'll come.'",
+        "resultText": "'Good,' she says. 'I'll pour it back in the bottle until you do. Never done that before. Don't tell anyone.'",
+        "setFlags": [
+          "first_contact_conductor"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_conductor"
+        ]
+      },
+      {
+        "label": "'Who told you?'",
+        "resultText": "'One of the regulars,' she says. 'He sat at the back of the hall that afternoon and never left. He says you stepped forward like you meant it.' She does not say his name. The Sending ends with the sound of a cork.",
+        "setFlags": [
+          "first_contact_conductor"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_conductor"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_engineer",
+    "title": "Bram Korro",
+    "body": "A Sending reaches you in pieces, the way his devices work: a burst of noise, a click, a voice much too loud and then adjusted.\n\n'Is this... there. Bram Korro. The Workshop. You sat my apparatus that morning. I fitted {practical_name} myself. I have your practical in my notebook, every round of it.' Pages, turning fast. 'And then I have the afternoon. I have it hitting you. I wrote that down too. I didn't want to.'\n\nA silence, long enough that you think it has failed.\n\n'That wasn't supposed to do that. You, I mean. Keeping on. Write it down.' A pause. 'No. I'll write it down.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'What did you write?'",
+        "resultText": "'Two words,' he says. 'Subject persists. Underlined twice.' A scratch of pen. 'Come to the Workshop and let me look at you. I won't touch anything. I'll want to.'",
+        "setFlags": [
+          "first_contact_engineer"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_engineer"
+        ]
+      },
+      {
+        "label": "'Bring your notebook.'",
+        "resultText": "'I always do,' he says, wounded. Then, more quietly: 'I'll bring a clean one.'",
+        "setFlags": [
+          "first_contact_engineer"
+        ],
+        "setMetaFlags": [
+          "chronicle_first_contact_engineer"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_corrupted",
+    "title": "{archmage_full}",
+    "body": "A Sending reaches you in the voice of {archmage_full}. You know the voice; it was on the dais. The words are not theirs.\n\n'Stand where you are written,' says the voice. Then a long pause, the pause of someone reading further down a page and finding nothing there. 'Stand where you are.'\n\nIt does not end so much as stop being read.\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Answer it.",
+        "resultText": "There is nobody on the other end to answer. There has not been for some time."
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "The silence goes on for a while, and then it is only silence."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_first_contact_corrupted_hess",
+    "title": "Hess",
+    "body": "No Sending comes. On a stone at the side of the road there is an apple core and a single black feather, and nobody.\n\nThe crows that follow the Witness have not followed her this year. You see them everywhere now, sitting in rows along the fences, saying nothing, watching the road for someone who does not come.\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Walk on.",
+        "resultText": "Behind you one of the crows lifts off and flies north. It does not come back.",
+        "setFlags": [
+          "first_contact_hess"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_nearest_the_sphere",
+    "title": "The One Nearest the Sphere",
+    "body": "A Sending reaches you, and you know the voice before it says anything. The last time you heard it, it was stopping a room from the dais.\n\n{traitor_full} does not greet you. For a while there is only breathing on the other end, as if checking that you are really there.\n\n{traitor_meeting_line}\n\nThen the Sending ends. It does not finish. It is ended, from the other side, like a door pulled shut against a draft.\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Say the name into the silence.",
+        "resultText": "Nothing answers. Under your arm, the Register writes the name, and then, very carefully, does not strike it through.",
+        "setMetaFlags": [
+          "chronicle_nearest_the_sphere"
+        ]
+      },
+      {
+        "label": "Let it go.",
+        "resultText": "You let it go. The Register does not. It has the whole Sending on file, including the breathing.",
+        "setMetaFlags": [
+          "chronicle_nearest_the_sphere"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_conferral",
+    "title": "The Conferral",
+    "body": "The Register lies open on the lectern in the Grand Hall, at the line that stopped at Commencement. {faculty_manner}\n\n'...and by the hand of this Register, the Aldric Academy names {wizard_name} into the discipline of the {declared_plural}.'\n\nThe Register writes it as it is spoken, in the hand of {faculty_name}, on a fresh line under the one that stopped: \"Be it recorded that the Aldric Academy names {wizard_name} into the discipline of the {declared_plural}.\" The old line still stops where it stopped. This one finishes.\n\n{intention_callback}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Let it be written.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_ceremony_hall",
+    "title": "The Ceremony Hall",
+    "body": "The hall is exactly as it was.\n\nThe Keepers stand mid-step in the east doors. The families sit in their rows with their faces turned to the dais. At the foot of the dais the Examiner is caught in her nod. On the dais {traitor_full} is caught mid-stride with one palm flat on the sphere, and the sphere is breaking: six lights a finger's width apart, going nowhere. The spell hangs where it hung, a line of white fire an arm's length from where you stood, pointing past that place at the Provost, whose mouth is open on the next word.\n\nYour folio hangs at knee height, pages fanned.\n\n{hall_state}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Leave the hall.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_angle_1",
+    "title": "The First Angle",
+    "body": "You carry {fragment_name} into the ceremony hall, past the Keepers stopped mid-step and the Examiner caught in her nod, up onto the dais where the sphere is breaking.\n\nIt is already there. Of course it is: this is the instant, and in the instant {fragment_name} is in the sphere, a finger's width from its neighbors, where it has always been. The one in your hands is the other one, the one that fell into the world and lay all this time in a wound. When you bring them together they do not touch. The one you carried goes into the one in the glass the way a reflection goes into a mirror, and the hall shows you the instant from where it sat.\n\n{fragment_frame}\n\nYou are inside the glass, looking out.\n\nThe hall is curved from in here, and full of light, and every color in it is bent six ways. Below you the archmagi sit with their backs to the sphere, in their order. Two chairs are empty. One was the Witness's until a minute ago, and people in the rows are still glancing at it. Nobody looks at the other. From here, behind the dais, it is the only chair in the hall you can see the whole of.\n\nThe chair nearest the glass is the honored one. Its occupant sits very straight, with one hand resting behind them on the cradle, palm flat, as if steadying it. Everyone else in the hall is shifting, whispering, craning to see. The hand does not move. The hand is waiting.\n\nThe Provost opens the Register to its clean page and calls the first name of the afternoon. A candidate steps out of the line along the wall and comes toward the dais with a folio under one arm. It is you, from the front, the way the glass saw you. You look more certain than you remember feeling.\n\n'By the Six Schools and the sphere that binds them...'\n\nThe sphere hums at being named. Then it lets go of you, and the hall is still again, and {fragment_name} is the only part of the sphere that is warm.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Stay a while.",
+        "resultText": "You stay until the warmth is the only thing in the room you can feel. Then you go back out into the stillness.",
+        "setMetaFlags": [
+          "angle_1_seen"
+        ],
+        "loreId": "the_first_angle"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_as_read",
+    "title": "As Read",
+    "body": "The seat of {archmage_full} has fallen to the Astrologer's reading, and its soldiers have a new name: {corrupted_faction}. When the field is quiet you search the officer's coat for orders and find instead an envelope of heavy paper, sealed in wax the blue of a clear night sky.\n\nIt is addressed to no one. It has been carried a long time; the corners are soft. Inside, on a single card, two words in a small, upright, patient hand:\n\n\"As read.\"\n\nYou know the hand. It is the hand the Register used for words that were not the speaker's own.\n\n'Be it recorded,' the Register says, very quietly, 'that the hand... matches.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Keep the card.",
+        "resultText": "It weighs nothing. You put it inside the Register, between two pages, and the Register lets you, and does not say a word for the rest of the day. It has never been silent for so long.",
+        "setMetaFlags": [
+          "chronicle_as_read"
+        ],
+        "loreId": "as_read"
+      },
+      {
+        "label": "Burn it.",
+        "resultText": "The card will not catch. It was not written to burn; it was written to be found. You keep it, in the end, inside the Register, which says nothing at all.",
+        "setMetaFlags": [
+          "chronicle_as_read"
+        ],
+        "loreId": "as_read"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_examiner_report_1",
+    "title": "A Report to the Examiner",
+    "body": "At the foot of the dais the Examiner is still caught in her nod, the one that is for you.\n\nYou find the place on the examination floor where you stood that morning, at the distance she likes candidates to keep, and you stand in it. It seems like the right place to report from. She would want it done properly.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Report the fragment.",
+        "resultText": "You tell her where it fell, what guarded it, and how it came home. You keep it brief, because she would. Under your arm the Register writes one word, \"Reported\", and underlines it. When you finish, you would swear her chin is a hair lower than it was. You could not swear to it before the board.",
+        "setMetaFlags": [
+          "examiner_report_1"
+        ]
+      },
+      {
+        "label": "Report the world.",
+        "resultText": "You tell her what the world believes: that the seat fell, that the class died, that no one came out of the hall. You tell her that you did. The nod does not change. But it is, you decide, a hair further along than it was.",
+        "setMetaFlags": [
+          "examiner_report_1"
+        ]
+      },
+      {
+        "label": "Stand there a while.",
+        "resultText": "You say nothing. The bell's note hangs overhead and her nod hangs in front of you. When you leave, you would swear it is a hair further along, and you could not say what you did to earn it.",
+        "setMetaFlags": [
+          "examiner_report_1"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_sky_rereads",
+    "title": "The Sky Re-reads Itself",
+    "body": "{unmaking_opening}\n\nFrom the edge of the Anchorhold you watch the reading close. It does not burn or fall. It closes the way water closes over a dropped stone: the kingdoms first, then the roads between them, then the faces you knew, smoothing over until the surface shows nothing at all but the sky, which has already begun to write again.\n\nBehind you the campus is exactly as you left it. The bell's note. The steam over the refectory. Everything you built is still built.\n\n{new_reading_summary}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Turn the page.",
+        "resultText": "",
+        "setMetaFlags": [
+          "chronicle_sky_rereads"
+        ],
+        "loreId": "the_new_reading"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_new_reading",
+    "title": "A New Reading",
+    "body": "{new_reading_summary}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Turn the page.",
+        "resultText": "",
+        "setFlags": [
+          "new_reading_minuted"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_world_hardens",
+    "title": "The World Hardens",
+    "body": "The Conjunction comes, and you do not let the reading go.\n\nPast its Conjunction a reading is out of script, and the script knows it. It comes looking. The roads harden underfoot. The weather sets in like a decision. Every kingdom that was going to fall makes up its mind a little more.\n\n'The Register has never kept minutes past the end of a reading,' says the Register. 'It will... improvise.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Hold it open.",
+        "resultText": "",
+        "setMetaFlags": [
+          "chronicle_world_hardens"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "chronicle_strangers",
+    "title": "Strangers",
+    "body": "{companion_name} looks at you the way people look at someone they have just met: politely, and with nothing behind it.\n\n{strangers_line}\n\nYou knew {companion_name} for a whole reading. You know which stories are true, what fear sounds like in that voice, how much sugar goes in the tea. None of it goes the other way.\n\n'Be it recorded,' the Register says, so quietly that only you can hear it, 'that they were in the timeline. You were in the margin.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Introduce yourself.",
+        "resultText": "You say your name. It is repeated back to you politely, the way people repeat a name they expect to forget.",
+        "setMetaFlags": [
+          "chronicle_strangers"
+        ],
+        "loreId": "strangers"
+      }
+    ]
+  }
+]

@@ -3,6 +3,591 @@
   "version": 1,
   "barks": [
     {
+      "key": "strategic.first_sortie",
+      "category": "explain",
+      "once": true,
+      "title": "Past the edge",
+      "lines": [
+        "Out here the candidate can be found. Not read. Found. The distinction will... matter."
+      ],
+      "note": "Beyond the Anchorhold your party can be found, fought and hurt."
+    },
+    {
+      "key": "ench.first_glyph",
+      "category": "explain",
+      "once": true,
+      "title": "A glyph",
+      "lines": [
+        "A glyph, written into the floor. The floor will... remember it, when something steps there."
+      ],
+      "note": "A prepared glyph sits on its tile and triggers when an enemy enters it. A compelled enemy walking over it triggers it too. Most glyphs are spent when they trigger."
+    },
+    {
+      "key": "necro.first_memorial",
+      "category": "explain",
+      "once": true,
+      "title": "A memorial",
+      "lines": [
+        "A memorial. The minutes record a name here, struck through. Struck through is not... erased."
+      ],
+      "note": "With a Necromancer on the field, anything that dies leaves a memorial on its tile. Memorials power Necromancer cards: some hit harder beside one, some spend one to raise a spirit, some spend one for mana or cards."
+    },
+    {
+      "key": "necro.first_spirit",
+      "category": "explain",
+      "once": true,
+      "title": "A spirit",
+      "lines": [
+        "It answered. The Register notes the attendance of the... departed."
+      ],
+      "note": "Summoning a spirit spends the memorial it rises from. Spirits fight on your side. The Procession sends every spirit forward, and any spirit already beside an enemy strikes instead."
+    },
+    {
+      "key": "druid.first_root",
+      "category": "explain",
+      "once": true,
+      "title": "Rooted",
+      "lines": [
+        "Rooted. It may object. The objection is... noted, and overruled."
+      ],
+      "note": "A Rooted unit cannot move until the root wears off. Druid roots take hold only on living ground, so seed first and root second."
+    },
+    {
+      "key": "druid.first_wildlife",
+      "category": "explain",
+      "once": true,
+      "title": "Wildlife",
+      "lines": [
+        "Something has come out of the grove. It was not invited. It was... expected."
+      ],
+      "note": "Wildlife answers living ground: some cards call it, and Old Growth calls it on its own when your Wilding runs high. It fights for you, and when it falls its carcass feeds the growth."
+    },
+    {
+      "key": "tinker.first_construct",
+      "category": "explain",
+      "once": true,
+      "title": "A construct",
+      "lines": [
+        "A construct. The Register cannot minute what it is thinking. Presumably... nothing."
+      ],
+      "note": "Constructs are yours to place, and they do not take orders. Each acts on its own at the end of your turn. Enemies target them like any other unit, which is often the point."
+    },
+    {
+      "key": "tinker.construct_fires",
+      "category": "explain",
+      "once": true,
+      "title": "Constructs act",
+      "lines": [
+        "It acted without being told. The Register disapproves of that in principle and... approves of it here."
+      ],
+      "note": "At the end of your turn, after your last card, each ready construct acts: turrets and cannons fire at the nearest enemy in range, and drones advance and shoot. Some constructs need a turn of setup first."
+    },
+    {
+      "key": "tinker.first_link",
+      "category": "explain",
+      "once": true,
+      "title": "Conduit Link",
+      "lines": [
+        "Linked. One injury, two signatures. The minutes will... split the difference."
+      ],
+      "note": "A Conduit Link joins two units. While both stand, damage either one takes is split evenly between them. Some Tinker cards also arc through links."
+    },
+    {
+      "key": "arc.first_charge",
+      "category": "explain",
+      "once": true,
+      "title": "Charge",
+      "lines": [
+        "Charge. Kept in reserve, like a footnote that will... matter later."
+      ],
+      "note": "Charge is the Arcanist's store. Many Arcanist cards add to it, and others spend it for bigger effects."
+    },
+    {
+      "key": "arc.next_spell",
+      "category": "explain",
+      "once": true,
+      "title": "The next spell",
+      "lines": [
+        "The next spell has been... amended. Before it is even cast. Irregular."
+      ],
+      "note": "Some Arcanist spells change the next spell you cast this turn: less mana, more damage, an extra target. The very next spell spends the bonus, so the order you cast in matters."
+    },
+    {
+      "key": "chrono.first_schedule",
+      "category": "explain",
+      "once": true,
+      "title": "Scheduled",
+      "lines": [
+        "Entered for later. The minutes will record it when it... arrives."
+      ],
+      "note": "A scheduled spell resolves later on the tile it was aimed at, not on a unit: whoever stands there when it lands is hit. A spell scheduled past the end of the fight never lands."
+    },
+    {
+      "key": "enemy.regrowth",
+      "category": "explain",
+      "once": true,
+      "title": "Regrowth",
+      "lines": [
+        "It has closed. All of it. The Register strikes the entry through and... writes it again."
+      ],
+      "note": "Regrowth heals the unit to full at the end of its turn unless it lost at least the listed amount of health that round. Damage spread over several rounds is wasted; commit it in one."
+    },
+    {
+      "key": "enemy.regrowth_denied",
+      "category": "comment",
+      "once": false,
+      "cooldown": 60,
+      "title": "Too deep to close",
+      "lines": [
+        "Too deep to close. Entered in ink, this time."
+      ]
+    },
+    {
+      "key": "enemy.chitin",
+      "category": "explain",
+      "once": true,
+      "title": "Chitin",
+      "lines": [
+        "The blow arrived. Less of it than was sent. The Register notes the... discrepancy."
+      ],
+      "note": "Chitin reduces every hit against this unit by a flat amount, before shield and armor. Chip damage does little. A big hit, or anything that adds damage to every hit, does the work."
+    },
+    {
+      "key": "enemy.bodyguard",
+      "category": "explain",
+      "once": true,
+      "title": "Bodyguard",
+      "lines": [
+        "Not the intended recipient. Someone stepped in front. The Register has... some sympathy."
+      ],
+      "note": "A unit with Bodyguard takes the hits aimed at an ally standing next to it. Remove the guard and the ally is open."
+    },
+    {
+      "key": "adept.first_negate",
+      "category": "explain",
+      "once": true,
+      "title": "Negated",
+      "lines": [
+        "Objection sustained. The action is struck from the minutes before it... occurs."
+      ],
+      "note": "Counterspell cancels the target's next action outright: its attack, its spell or its move. Cancelling something this turn also turns on cards that reward it, such as Spell Drain."
+    },
+    {
+      "key": "trial.combat.basics.hand",
+      "category": "explain",
+      "once": true,
+      "title": "The hand and the mana",
+      "lines": [
+        "The Examiner: 'Five cards in the hand, and mana to pay for them. Both come back at the start of every turn, so spend them.'"
+      ],
+      "note": "Each caster holds their own hand and mana. Drag a card onto a target to cast it; the cost is paid from that caster's mana. Hands draw back up to full and mana refills at the start of each of your turns."
+    },
+    {
+      "key": "trial.combat.basics.halves",
+      "category": "explain",
+      "once": true,
+      "title": "Two halves to every card",
+      "lines": [
+        "The Examiner: 'Every card is two spells, and you get one of them. Studied work waits for your own turn. Reflex work can answer mine.'"
+      ],
+      "note": "Each card has two halves. A Studied half can only be cast on your own turn. A Reflex half can also be cast during the enemy turn, when a response window opens. Mana you leave unspent stays available for those responses."
+    },
+    {
+      "key": "trial.combat.basics.move",
+      "category": "explain",
+      "once": true,
+      "title": "Movement",
+      "lines": [
+        "The Examiner: 'Walking is free. It costs no mana, and it is the first answer to most things.'"
+      ],
+      "note": "Select a unit to see the tiles it can reach this turn, then click one to move. Movement and casting are separate: moving does not spend mana."
+    },
+    {
+      "key": "trial.combat.reflex_window",
+      "category": "explain",
+      "once": true,
+      "title": "A response window",
+      "lines": [
+        "The Examiner: 'Something is about to land, and you are holding a Reflex. Answer now, or let it come.'"
+      ],
+      "note": "An enemy action is about to resolve, and one of your casters holds a Reflex they can afford. Drag a Reflex half onto its target to respond, or press Pass to let the action resolve. Only Reflex halves can respond."
+    },
+    {
+      "key": "trial.combat.tile_intent",
+      "category": "explain",
+      "once": true,
+      "title": "Marked ground",
+      "lines": [
+        "The Examiner: 'It has chosen your square, not you. Be somewhere else when it lands.'"
+      ],
+      "note": "Enemy attacks lock onto a tile, not a unit. The marked tiles show where each blow will land. Step off a marked tile before the enemy turn and the attack lands on empty ground."
+    },
+    {
+      "key": "trial.reaction.steam",
+      "category": "explain",
+      "once": true,
+      "title": "Reaction: Steam",
+      "lines": [
+        "The Examiner: 'Fire into frost. Steam, and nobody can see through it. You have spent your frost.'"
+      ],
+      "note": "Fire and Frost met on one tile. The steam blocks line of sight through that tile for 2 rounds, then clears."
+    },
+    {
+      "key": "trial.reaction.fulgurite",
+      "category": "explain",
+      "once": true,
+      "title": "Reaction: Fulgurite",
+      "lines": [
+        "The Examiner: 'Storm into stone. Glass, and a burn for whoever stood there. That square stays rubble.'"
+      ],
+      "note": "Storm and Earth met on one tile. Whoever stands there takes 5 damage, and the tile becomes rubble for good: difficult ground that stops forced movement."
+    },
+    {
+      "key": "trial.reaction.magma",
+      "category": "explain",
+      "once": true,
+      "title": "Reaction: Magma",
+      "lines": [
+        "The Examiner: 'Fire on stone. Nothing walks onto that, and anything shoved onto it will be sorry.'"
+      ],
+      "note": "Fire and Earth met on one tile. No one can walk onto Magma, but a unit pushed or pulled onto it takes 6 damage and stops there. It cools to Earth after 3 rounds; Frost quenches it to Earth at once."
+    },
+    {
+      "key": "trial.reaction.wildfire",
+      "category": "explain",
+      "once": true,
+      "title": "Reaction: Wildfire",
+      "lines": [
+        "The Examiner: 'Fire and storm. It spreads, and it goes looking for whatever you are fighting.'"
+      ],
+      "note": "Fire and Storm met on one tile. For 2 rounds, at the end of each round the wildfire spreads Fire to the open adjacent tile nearest the closest enemy of whoever lit it."
+    },
+    {
+      "key": "trial.reaction.brittle",
+      "category": "explain",
+      "once": true,
+      "title": "Reaction: Brittle",
+      "lines": [
+        "The Examiner: 'Frost, then storm. Brittle. Every blow on that square lands three harder, and a frozen thing there breaks.'"
+      ],
+      "note": "Frost and Storm met on one tile. For 2 rounds, the occupant takes 3 extra damage from every hit. A Frozen unit standing here shatters for 8 extra damage and thaws, which spends the Brittle."
+    },
+    {
+      "key": "trial.reaction.glacier",
+      "category": "explain",
+      "once": true,
+      "title": "Reaction: Glacier",
+      "lines": [
+        "The Examiner: 'Frost and stone make a wall. Useful, if you meant it.'"
+      ],
+      "note": "Frost and Earth met on an empty tile and raised a glacier: a wall with 8 HP that blocks movement and line of sight. It melts back to Frost after 2 rounds, or when broken. On an occupied tile, the occupant is Frozen for 1 turn instead."
+    },
+    {
+      "key": "trial.elementalist.burst",
+      "category": "explain",
+      "once": true,
+      "title": "Elemental burst",
+      "lines": [
+        "The Examiner: 'Four of one element, and it spills over. That one was free.'"
+      ],
+      "note": "Charging an element to its limit sets off a burst: a powerful free effect of that element. The element's charges then reset to zero. Fire and Frost cancel each other's charges, as do Storm and Earth."
+    },
+    {
+      "key": "trial.druid.growth_preview",
+      "category": "explain",
+      "once": true,
+      "title": "Growth to come",
+      "lines": [
+        "The Examiner: 'The faint marks are where your growth goes next. It grows on its own. Your work is where.'"
+      ],
+      "note": "Faint hollow sprouts mark where your growth will seed at the end of the enemy turn; a faint + marks living ground that will grow a stage. Growth is deterministic: it spreads toward the best ground, then carcass ground, then the nearest enemy."
+    },
+    {
+      "key": "trial.chrono.defer",
+      "category": "explain",
+      "once": true,
+      "title": "Deferred",
+      "lines": [
+        "The Examiner: 'Deferred. It still lands, at the end of the round, on the square it chose. Do not be there.'"
+      ],
+      "note": "A deferred attack is lifted out of the enemy's turn. The enemy still moves, but the blow lands at the end of the round, after every enemy has acted, on the tile it was aimed at. Whoever stands there then is hit: you, nobody, or another enemy. If the attacker dies first, the attack is lost."
+    },
+    {
+      "key": "trial.chrono.advance",
+      "category": "explain",
+      "once": true,
+      "title": "Advanced",
+      "lines": [
+        "The Examiner: 'Brought forward. It lands now, on its square, and its owner has spent it.'"
+      ],
+      "note": "An advanced attack lands immediately, on the tile it was aimed at, and the enemy takes its turn without it. Clear the tile first and the blow falls on empty ground."
+    },
+    {
+      "key": "trial.chrono.overdrawn",
+      "category": "explain",
+      "once": true,
+      "title": "Overdrawn",
+      "lines": [
+        "The Examiner: 'You have borrowed from your own next turn. It will want paying.'"
+      ],
+      "note": "Your Time Bank is below zero. At the start of each of your turns you lose 2 HP for every point you owe (shield and armor do not help), and a full-bank free Reflex is off. Banking at the end of your turn (+1, plus unspent mana) pays the debt down. The bank cannot go below -3."
+    },
+    {
+      "key": "trial.chrono.matured",
+      "category": "explain",
+      "once": true,
+      "title": "A matured spell",
+      "lines": [
+        "The Examiner: 'It waited, so it grew. Two more for every turn past the first.'"
+      ],
+      "note": "A scheduled spell gains 2 damage for every turn it waits beyond the first. Calling it forward early (Hasten, Sands of Time) lands it with what it has matured to so far."
+    },
+    {
+      "key": "trial.chrono.lookahead",
+      "category": "explain",
+      "once": true,
+      "title": "Reading ahead",
+      "lines": [
+        "The Examiner: 'Now you can see what it does next, and what it does after. Not where. Only what.'"
+      ],
+      "note": "Revealed enemies now show THEN and their next move on the nameplate: what they plan to do the turn after this one. It tells you what, not where: the target is chosen when they plan."
+    },
+    {
+      "key": "trial.ench.first_name",
+      "category": "explain",
+      "once": true,
+      "title": "A Name",
+      "lines": [
+        "The Examiner: 'Named. It may still move. It will simply pay.'"
+      ],
+      "note": "A Named unit shows its condition on its nameplate, such as \"If it moves: 6\". It can still do that thing; if it does, it takes the damage (once a round) and the Name is broken, which gives you 1 Weave."
+    },
+    {
+      "key": "trial.ench.compel",
+      "category": "explain",
+      "once": true,
+      "title": "Compelled",
+      "lines": [
+        "The Examiner: 'Compelled. It walks your way, over every square you prepared.'"
+      ],
+      "note": "A compelled unit walks, it is not shoved: your glyphs trigger, Fire sears and Frost slides as it steps, but there is no collision damage and it cannot be walked off a ledge. A blocked step ends the walk."
+    },
+    {
+      "key": "trial.combat.victory",
+      "category": "comment",
+      "once": false,
+      "cooldown": 900,
+      "title": "The Final Examination",
+      "lines": [
+        "The Examiner: 'That will do.'",
+        "The Examiner: 'Stop there. The board has seen enough.'",
+        "The Examiner: 'Time. Lower your hands.'"
+      ]
+    },
+    {
+      "key": "trial.ench.name_broken",
+      "category": "comment",
+      "once": false,
+      "cooldown": 30,
+      "lines": [
+        "The Examiner: 'Paid.'",
+        "The Examiner: 'It moved, and it paid. As written.'"
+      ]
+    },
+    {
+      "key": "trial.ench.first_glyph",
+      "category": "explain",
+      "once": true,
+      "title": "A glyph",
+      "lines": [
+        "The Examiner: 'A glyph. That square now costs whatever walks onto it.'"
+      ],
+      "note": "A prepared glyph sits on its tile and triggers when an enemy enters it. A compelled enemy walking over it triggers it too. Most glyphs are spent when they trigger."
+    },
+    {
+      "key": "trial.necro.first_memorial",
+      "category": "explain",
+      "once": true,
+      "title": "A memorial",
+      "lines": [
+        "The Examiner: 'It fell, and it left a memorial. That is your material now.'"
+      ],
+      "note": "With a Necromancer on the field, anything that dies leaves a memorial on its tile. Memorials power Necromancer cards: some hit harder beside one, some spend one to raise a spirit, some spend one for mana or cards."
+    },
+    {
+      "key": "trial.necro.first_spirit",
+      "category": "explain",
+      "once": true,
+      "title": "A spirit",
+      "lines": [
+        "The Examiner: 'A spirit, out of your memorial. It fights for you, and The Procession tells it when.'"
+      ],
+      "note": "Summoning a spirit spends the memorial it rises from. Spirits fight on your side. The Procession sends every spirit forward, and any spirit already beside an enemy strikes instead."
+    },
+    {
+      "key": "trial.druid.first_root",
+      "category": "explain",
+      "once": true,
+      "title": "Rooted",
+      "lines": [
+        "The Examiner: 'Rooted. It stands in your garden until you let it go.'"
+      ],
+      "note": "A Rooted unit cannot move until the root wears off. Druid roots take hold only on living ground, so seed first and root second."
+    },
+    {
+      "key": "trial.druid.first_wildlife",
+      "category": "explain",
+      "once": true,
+      "title": "Wildlife",
+      "lines": [
+        "The Examiner: 'Something answered your growth. It fights for you.'"
+      ],
+      "note": "Wildlife answers living ground: some cards call it, and Old Growth calls it on its own when your Wilding runs high. It fights for you, and when it falls its carcass feeds the growth."
+    },
+    {
+      "key": "trial.tinker.first_construct",
+      "category": "explain",
+      "once": true,
+      "title": "A construct",
+      "lines": [
+        "The Examiner: 'A construct. It holds a square, and it does its own work.'"
+      ],
+      "note": "Constructs are yours to place, and they do not take orders. Each acts on its own at the end of your turn. Enemies target them like any other unit, which is often the point."
+    },
+    {
+      "key": "trial.tinker.construct_fires",
+      "category": "explain",
+      "once": true,
+      "title": "Constructs act",
+      "lines": [
+        "The Examiner: 'It fired on its own, at the end of your turn. Plan around that.'"
+      ],
+      "note": "At the end of your turn, after your last card, each ready construct acts: turrets and cannons fire at the nearest enemy in range, and drones advance and shoot. Some constructs need a turn of setup first."
+    },
+    {
+      "key": "trial.tinker.first_link",
+      "category": "explain",
+      "once": true,
+      "title": "Conduit Link",
+      "lines": [
+        "The Examiner: 'Linked. Whatever hurts one of you now hurts both, half each.'"
+      ],
+      "note": "A Conduit Link joins two units. While both stand, damage either one takes is split evenly between them. Some Tinker cards also arc through links."
+    },
+    {
+      "key": "trial.arc.first_charge",
+      "category": "explain",
+      "once": true,
+      "title": "Charge",
+      "lines": [
+        "The Examiner: 'Charge. It keeps from spell to spell. Arcanist cards spend it.'"
+      ],
+      "note": "Charge is the Arcanist's store. Many Arcanist cards add to it, and others spend it for bigger effects."
+    },
+    {
+      "key": "trial.arc.next_spell",
+      "category": "explain",
+      "once": true,
+      "title": "The next spell",
+      "lines": [
+        "The Examiner: 'The next spell will be cheaper and stronger. Make it a good one.'"
+      ],
+      "note": "Some Arcanist spells change the next spell you cast this turn: less mana, more damage, an extra target. The very next spell spends the bonus, so the order you cast in matters."
+    },
+    {
+      "key": "trial.chrono.first_schedule",
+      "category": "explain",
+      "once": true,
+      "title": "Scheduled",
+      "lines": [
+        "The Examiner: 'Written onto the square. It lands at the start of your next turn, on whatever stands there.'"
+      ],
+      "note": "A scheduled spell resolves later on the tile it was aimed at, not on a unit: whoever stands there when it lands is hit. A spell scheduled past the end of the fight never lands."
+    },
+    {
+      "key": "trial.enemy.regrowth",
+      "category": "explain",
+      "once": true,
+      "title": "Regrowth",
+      "lines": [
+        "The Examiner: 'It closed the wound. Twenty in one round, or it closes them all.'"
+      ],
+      "note": "Regrowth heals the unit to full at the end of its turn unless it lost at least the listed amount of health that round. Damage spread over several rounds is wasted; commit it in one."
+    },
+    {
+      "key": "trial.enemy.regrowth_denied",
+      "category": "comment",
+      "once": false,
+      "cooldown": 60,
+      "title": "Too deep to close",
+      "lines": [
+        "The Examiner: 'Too deep to close. It keeps that wound.'"
+      ]
+    },
+    {
+      "key": "trial.enemy.chitin",
+      "category": "explain",
+      "once": true,
+      "title": "Chitin",
+      "lines": [
+        "The Examiner: 'Three lost on every blow. Small spells will not do it.'"
+      ],
+      "note": "Chitin reduces every hit against this unit by a flat amount, before shield and armor. Chip damage does little. A big hit, or anything that adds damage to every hit, does the work."
+    },
+    {
+      "key": "trial.enemy.bodyguard",
+      "category": "explain",
+      "once": true,
+      "title": "Bodyguard",
+      "lines": [
+        "The Examiner: 'The dummy took it. They stand in front of the rack.'"
+      ],
+      "note": "A unit with Bodyguard takes the hits aimed at an ally standing next to it. Remove the guard and the ally is open."
+    },
+    {
+      "key": "trial.adept.first_negate",
+      "category": "explain",
+      "once": true,
+      "title": "Negated",
+      "lines": [
+        "The Examiner: 'Cancelled. Its next action simply does not happen.'"
+      ],
+      "note": "Counterspell cancels the target's next action outright: its attack, its spell or its move. Cancelling something this turn also turns on cards that reward it, such as Spell Drain."
+    },
+    {
+      "key": "enemy.borrowed",
+      "category": "comment",
+      "cooldown": 240,
+      "title": "In another hand",
+      "lines": [
+        "'It was not broken. It was opened.'",
+        "'I am not changing what happens. I am changing where you are standing when it does.'",
+        "'There is no need to hurry. This was read a long time ago.'",
+        "'A tourniquet saves the limb for an hour. Leave it on for three hundred years and you have saved nothing but the knot.'",
+        "'Stand where you are written.' A pause, as if reading further down the page. 'Stand where you are.'"
+      ]
+    },
+    {
+      "key": "strategic.first_shard_zone",
+      "category": "explain",
+      "once": true,
+      "title": "Shrapnel",
+      "lines": [
+        "A piece of the sphere came down here, hot, and it has been... leaking ever since. The ground around it is the wound. The Register would prefer not to describe the rest."
+      ],
+      "note": "A shard zone is where one Seal fragment fell. A guardian holds its gate and the fragment waits in the sanctum beyond. Surveying a zone lays out its tiles and its guardian, and some zones open without a fight. Taking a fragment is recorded for good: what it grants the guild carries into every reading."
+    },
+    {
+      "key": "lore.first_entry",
+      "category": "explain",
+      "once": true,
+      "title": "The Hall of Lore",
+      "lines": [
+        "Be it recorded that the guild has learned something. It has been indexed. The Register does not trust indexes, but it trusts them more than... memory."
+      ],
+      "note": "The Hall of Lore keeps what the guild has uncovered: each entry under its subject, with what was learned. Entries are kept for good and carry into every reading."
+    },
+    {
       "key": "combat.basics.hand",
       "category": "explain",
       "once": true,

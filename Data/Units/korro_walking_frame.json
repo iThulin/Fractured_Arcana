@@ -1,0 +1,18 @@
+{
+  "id": "korro_walking_frame",
+  "threatLabel": "Walking Frame",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "Four jointed legs and a short temper. It walks at whoever is nearest, two steps a round, and kicks.",
+  "maxHealth": 26,
+  "baseSpeed": 2,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 3,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [],
+  "colorR": 0.6,
+  "colorG": 0.48,
+  "colorB": 0.36
+}

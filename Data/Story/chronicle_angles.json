@@ -1,0 +1,378 @@
+{
+  "_doc": "Chronicle scheduler table for W4: the Ceremony Hall's angles 2 to 6 (C2). The rules are C1 in docs/story_wiring_v1.md; the script is docs/angles_and_warden_v1.md. Lines are file-local, so the fragment names and frames repeat Part I's, word for word.",
+  "arc": "angles",
+  "encounterFile": "chronicle_angles",
+  "lineTokens": {
+    "fragment_name": "fragment_name",
+    "fragment_frame": "fragment_frame",
+    "hand_work": "hand_work",
+    "reading_seen": "reading_seen",
+    "reading_answer": "reading_answer"
+  },
+  "beats": [
+    {
+      "id": "c2_angle_2",
+      "hook": "on_hall",
+      "group": "angles",
+      "when": {
+        "pending": "true",
+        "placed": "1"
+      },
+      "requires": [
+        "angle_1_seen"
+      ],
+      "layer": "Eternal",
+      "once": "angle_2_seen",
+      "alsoSetMeta": [
+        "fragment_{pending_fragment}_placed"
+      ],
+      "delivery": "immediate",
+      "show": "chronicle_angle_2",
+      "tokens": [
+        "fragment_name",
+        "fragment_frame",
+        "hand_work"
+      ],
+      "lineArgs": {
+        "fragment_name": {
+          "fragment": "{pending_fragment}"
+        },
+        "fragment_frame": {
+          "fragment": "{pending_fragment}"
+        }
+      }
+    },
+    {
+      "id": "c2_angle_3",
+      "hook": "on_hall",
+      "group": "angles",
+      "when": {
+        "pending": "true",
+        "placed": "2"
+      },
+      "requires": [
+        "angle_2_seen"
+      ],
+      "layer": "Eternal",
+      "once": "angle_3_seen",
+      "alsoSetMeta": [
+        "fragment_{pending_fragment}_placed"
+      ],
+      "delivery": "immediate",
+      "show": "chronicle_angle_3",
+      "tokens": [
+        "fragment_name",
+        "fragment_frame"
+      ],
+      "lineArgs": {
+        "fragment_name": {
+          "fragment": "{pending_fragment}"
+        },
+        "fragment_frame": {
+          "fragment": "{pending_fragment}"
+        }
+      }
+    },
+    {
+      "id": "c2_angle_4",
+      "hook": "on_hall",
+      "group": "angles",
+      "when": {
+        "pending": "true",
+        "placed": "3"
+      },
+      "requires": [
+        "angle_3_seen"
+      ],
+      "layer": "Eternal",
+      "once": "angle_4_seen",
+      "alsoSetMeta": [
+        "fragment_{pending_fragment}_placed"
+      ],
+      "delivery": "immediate",
+      "show": "chronicle_angle_4",
+      "tokens": [
+        "fragment_name",
+        "fragment_frame",
+        "reading_seen",
+        "reading_answer"
+      ],
+      "lineArgs": {
+        "fragment_name": {
+          "fragment": "{pending_fragment}"
+        },
+        "fragment_frame": {
+          "fragment": "{pending_fragment}"
+        }
+      }
+    },
+    {
+      "id": "c2_angle_5",
+      "hook": "on_hall",
+      "group": "angles",
+      "when": {
+        "pending": "true",
+        "placed": "4"
+      },
+      "requires": [
+        "angle_4_seen"
+      ],
+      "layer": "Eternal",
+      "once": "angle_5_seen",
+      "alsoSetMeta": [
+        "fragment_{pending_fragment}_placed"
+      ],
+      "delivery": "immediate",
+      "show": "chronicle_angle_5",
+      "tokens": [
+        "fragment_name",
+        "fragment_frame"
+      ],
+      "lineArgs": {
+        "fragment_name": {
+          "fragment": "{pending_fragment}"
+        },
+        "fragment_frame": {
+          "fragment": "{pending_fragment}"
+        }
+      }
+    },
+    {
+      "id": "c2_angle_6",
+      "hook": "on_hall",
+      "group": "angles",
+      "when": {
+        "pending": "true",
+        "placed": "5"
+      },
+      "requires": [
+        "angle_5_seen"
+      ],
+      "layer": "Eternal",
+      "once": "angle_6_seen",
+      "alsoSetMeta": [
+        "fragment_{pending_fragment}_placed"
+      ],
+      "delivery": "immediate",
+      "show": "chronicle_angle_6",
+      "tokens": [
+        "fragment_name",
+        "fragment_frame"
+      ],
+      "lineArgs": {
+        "fragment_name": {
+          "fragment": "{pending_fragment}"
+        },
+        "fragment_frame": {
+          "fragment": "{pending_fragment}"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "primal"
+      },
+      "text": "the Primal Shard"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "axiom"
+      },
+      "text": "the Axiom Stone"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "moment"
+      },
+      "text": "the Moment Eternal"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "binding"
+      },
+      "text": "the Binding Thread"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "schema"
+      },
+      "text": "the Schema Core"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "deathless"
+      },
+      "text": "the Deathless Covenant"
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "primal"
+      },
+      "text": "The Primal Shard tells it as weather. Every person in the hall becomes a pressure, every glance a shift of wind, and what is about to happen is a front coming in low and fast that nobody has looked up to see."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "axiom"
+      },
+      "text": "The Axiom Stone tells it as a proof. The hall lays itself out as a diagram, every figure lettered, every line between them a step in the argument, and the conclusion already written at the bottom before you reach it. One line of the proof has been struck out. You can still read it through the strike."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "moment"
+      },
+      "text": "The Moment Eternal tells it as the instant itself. It does not render or explain. It slows the hall to the pace of the Second, so that you could walk between the people in it, and it lets you look for as long as you like. It is home. It is in no hurry."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "binding"
+      },
+      "text": "The Binding Thread tells it as the threads between everyone in the hall: who owed whom, who loved whom, who was afraid of whom. Every bond is a line of light, and the hall is a loom strung so tight it hums. Some of the threads have been cut already. Some have been tied that should not have been."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "schema"
+      },
+      "text": "The Schema Core tells it as a blueprint. The hall comes back in pale lines on dark paper: walls, wards, the dais, the cradle, every figure drawn as a part with a purpose, and the moving parts marked. It is very clear what everything was for. It is less clear who drew it."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "deathless"
+      },
+      "text": "The Deathless Covenant does not show it to you. It lets the dead of the hall tell it: the class that died in the running world, speaking all at once and then one at a time, the way the dead do when someone finally asks. Some of them say your name. They are not unkind about it."
+    },
+    {
+      "key": "hand_work",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "Aurel Pendry does not break the sigils. He revises them. He takes them one at a time, in order, and reverses each with a single stroke, the way he would correct a student's proof, and after every stroke he stops and checks his work. A second voice, his own, half a breath behind, reads each correction back to him. It finds no errors."
+    },
+    {
+      "key": "hand_work",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "Joren Kall lays his palm on the stone and lets the weather in. Frost runs into the sigil cuts and splits them, then rain, then a hot dry wind that turns every line back on itself. All the while the storm talks through him in a low voice that is not his, and he does not tell it to be quiet."
+    },
+    {
+      "key": "hand_work",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "Cael Morn reads the ward first, all seven layers of it. Then they take it apart in the same order, naming each layer as they lift it and setting the name down somewhere else, so that the ward still looks whole and holds nothing. It is the most beautiful working you have ever seen. It is architectural."
+    },
+    {
+      "key": "hand_work",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "Ondria Vell talks to the ward the way she talks to a regular at closing time. She tells it that it has done its work, that it can rest now, that nobody will blame it. She closes it the way you close the eyes of the dead, one sigil at a time, gently, and each one goes cold and turns over under her hand. Her face is wet. Her hand is perfectly steady."
+    },
+    {
+      "key": "hand_work",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "Bram Korro takes a roll of fine tools out of his coat and strips the ward down the way he would strip down a machine of his own: every sigil a part, every part laid out on a cloth in order. He reverses the last pin, puts the whole thing back together exactly as it was, and checks it twice. It is perfect. It is the first thing he has ever built to fail."
+    },
+    {
+      "key": "hand_work",
+      "when": {},
+      "text": "The hand moves over the sigils one at a time, and each one turns over under it, quietly, and stays turned. Whoever it is knows exactly what they are doing."
+    },
+    {
+      "key": "reading_seen",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "Aurel Pendry does not look at the ending first. He looks at the figures. 'You want me to believe this,' he says. 'No,' says Kassian. 'I want you to check it.' Aurel takes out his pen, and a second voice, his own, begins to read the passage back to him, half a breath behind, looking for the error."
+    },
+    {
+      "key": "reading_seen",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "Joren Kall looks at the passage, and the weather in his face changes. In it the fire goes out first, and then the storm, and the earth goes on waiting with nothing left to wait for. Somewhere in him the storm begins to repeat what Kassian is saying, half a breath behind, in Kassian's words. 'It has no words of its own left,' Kassian says, not unkindly. 'It is borrowing mine.'"
+    },
+    {
+      "key": "reading_seen",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "Cael Morn reads the passage once, all seven layers of it, and goes very still. 'I have been trying to name this for years,' they say. 'Every working needs more layers than the last to hold the same weight.' Kassian nods. 'It is called the narrowing,' he says, and as soon as he says it, it is true, and you can see that they will never be able to unsay it."
+    },
+    {
+      "key": "reading_seen",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "Ondria Vell reads the passage where the magic thins and necromancy starves first, because it needs the most, and the dead stop answering. Her table goes quiet one chair at a time. Then the door shuts, and there is nobody on the other side of it to pour for. She puts her hand over the page as if to keep it warm. 'How long?' she says. 'Three lifetimes,' says Kassian. 'Perhaps four.'"
+    },
+    {
+      "key": "reading_seen",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "Bram Korro reads it the way he reads anything, one finger on the figures. They are his own figures, forty years of them, every one going the same way, and the Seal sitting on the engine of the world like a governor, turned down a little more every year. 'That's a projection,' he says. 'No,' says Kassian. 'It is a result. I have read the end of it.' Then he turns another page that is not a page, and it is a schematic where everything does exactly what it is supposed to do, and Bram looks at it for a long time."
+    },
+    {
+      "key": "reading_seen",
+      "when": {},
+      "text": "For a long time {traitor_full} reads the passage. From here you cannot see their face, only their hand, flat on the table beside the page, very still."
+    },
+    {
+      "key": "reading_answer",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "Aurel checks it all night. Near dawn he lays down his pen. 'Three errors,' he says. 'None of them in the ending.' 'No,' Kassian agrees. 'There never are.'"
+    },
+    {
+      "key": "reading_answer",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "'Open the door,' says the storm in Joren, in Kassian's words, before Kassian has finished saying them. Joren closes his eyes. 'I know whose words those are,' he says. Then, after a long time: 'I'm tired.' He does not say no."
+    },
+    {
+      "key": "reading_answer",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "'The wards,' says Cael, 'and the voice.' They take out a pen and begin to draw, there and then, on the back of the passage: the gatehouse, the dais, the lectern, every line very clean. There is nobody standing in front of the lectern in the drawing. There was no reason there should be."
+    },
+    {
+      "key": "reading_answer",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "Ondria sits down at last, across from him, as if at her own bar after closing. 'I'll open your gate,' she says. 'For them. So the table doesn't go quiet.' She does not look at him when she says it. She looks at the lamp that nobody has lit."
+    },
+    {
+      "key": "reading_answer",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "'No misfires,' Bram says at last. 'None,' says Kassian. Bram puts his hands in his pockets, the way he does when he has decided not to touch something. 'I'd like to see one run,' he says."
+    },
+    {
+      "key": "reading_answer",
+      "when": {},
+      "text": "In the end they nod, once. The hand on the table does not move."
+    }
+  ]
+}

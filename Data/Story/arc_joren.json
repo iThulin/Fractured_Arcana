@@ -1,0 +1,721 @@
+{
+  "_doc": "Joren Kall's arc, The Argument's Verdict. The rules are C1, C3 and C5 in docs/story_wiring_v1.md; the script is docs/archmage_arc_joren_v1.md. Lines are file-local: tokens here read only this file's lines.",
+  "arc": "joren",
+  "encounterFile": "arc_joren",
+  "lineTokens": {
+    "trial_title": "trial_title",
+    "trial_followup": "trial_followup",
+    "shadow": "shadow",
+    "remembrance": "remembrance"
+  },
+  "beats": [
+    {
+      "id": "joren_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_joren"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren",
+        "coconspirator_joren",
+        "joren_told_heard"
+      ],
+      "layer": "Timeline",
+      "once": "joren_ask_set",
+      "alsoSetMeta": [
+        "chronicle_joren_ask_seen"
+      ],
+      "rememberFlag": "chronicle_joren_ask_seen",
+      "show": "arc_joren_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "ask"
+        }
+      }
+    },
+    {
+      "id": "joren_shadow_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_joren",
+        "coconspirator_joren"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren",
+        "joren_told_heard"
+      ],
+      "layer": "Timeline",
+      "once": "joren_ask_set",
+      "alsoSetMeta": [
+        "chronicle_joren_shadow_ask_seen"
+      ],
+      "rememberFlag": "chronicle_joren_shadow_ask_seen",
+      "show": "arc_joren_shadow_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_ask"
+        }
+      }
+    },
+    {
+      "id": "joren_storm_1",
+      "hook": "on_combat_end",
+      "when": {
+        "won": "true",
+        "prologue": "false",
+        "weather": [
+          "rain",
+          "gale",
+          "storm"
+        ]
+      },
+      "requires": [
+        "joren_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_trial_1_done",
+      "alsoSetTimeline": [
+        "joren_voice_storm"
+      ],
+      "show": "arc_joren_storm",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "1"
+        },
+        "trial_followup": {
+          "n": "1"
+        },
+        "shadow": {
+          "beat": "storm"
+        }
+      }
+    },
+    {
+      "id": "joren_ice_1",
+      "hook": "on_combat_end",
+      "when": {
+        "won": "true",
+        "prologue": "false",
+        "weather": [
+          "fog",
+          "blizzard"
+        ]
+      },
+      "requires": [
+        "joren_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_trial_1_done",
+      "alsoSetTimeline": [
+        "joren_voice_ice"
+      ],
+      "show": "arc_joren_ice",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "1"
+        },
+        "trial_followup": {
+          "n": "1"
+        },
+        "shadow": {
+          "beat": "ice"
+        }
+      }
+    },
+    {
+      "id": "joren_fire_1",
+      "hook": "on_combat_end",
+      "when": {
+        "won": "true",
+        "prologue": "false",
+        "weather": "ashfall"
+      },
+      "requires": [
+        "joren_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_trial_1_done",
+      "alsoSetTimeline": [
+        "joren_voice_fire"
+      ],
+      "show": "arc_joren_fire",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "1"
+        },
+        "trial_followup": {
+          "n": "1"
+        },
+        "shadow": {
+          "beat": "fire"
+        }
+      }
+    },
+    {
+      "id": "joren_storm_2",
+      "hook": "on_combat_end",
+      "when": {
+        "won": "true",
+        "prologue": "false",
+        "weather": [
+          "rain",
+          "gale",
+          "storm"
+        ]
+      },
+      "requires": [
+        "joren_trial_1_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren",
+        "joren_voice_storm"
+      ],
+      "layer": "Timeline",
+      "once": "joren_trial_2_done",
+      "alsoSetTimeline": [
+        "joren_voice_storm"
+      ],
+      "show": "arc_joren_storm",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "2"
+        },
+        "trial_followup": {
+          "n": "2"
+        },
+        "shadow": {
+          "beat": "storm"
+        }
+      }
+    },
+    {
+      "id": "joren_ice_2",
+      "hook": "on_combat_end",
+      "when": {
+        "won": "true",
+        "prologue": "false",
+        "weather": [
+          "fog",
+          "blizzard"
+        ]
+      },
+      "requires": [
+        "joren_trial_1_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren",
+        "joren_voice_ice"
+      ],
+      "layer": "Timeline",
+      "once": "joren_trial_2_done",
+      "alsoSetTimeline": [
+        "joren_voice_ice"
+      ],
+      "show": "arc_joren_ice",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "2"
+        },
+        "trial_followup": {
+          "n": "2"
+        },
+        "shadow": {
+          "beat": "ice"
+        }
+      }
+    },
+    {
+      "id": "joren_fire_2",
+      "hook": "on_combat_end",
+      "when": {
+        "won": "true",
+        "prologue": "false",
+        "weather": "ashfall"
+      },
+      "requires": [
+        "joren_trial_1_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren",
+        "joren_voice_fire"
+      ],
+      "layer": "Timeline",
+      "once": "joren_trial_2_done",
+      "alsoSetTimeline": [
+        "joren_voice_fire"
+      ],
+      "show": "arc_joren_fire",
+      "tokens": [
+        "trial_title",
+        "trial_followup",
+        "shadow"
+      ],
+      "lineArgs": {
+        "trial_title": {
+          "n": "2"
+        },
+        "trial_followup": {
+          "n": "2"
+        },
+        "shadow": {
+          "beat": "fire"
+        }
+      }
+    },
+    {
+      "id": "joren_told_after_trials",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "joren"
+      },
+      "requires": [
+        "joren_trial_2_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren",
+        "coconspirator_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_told_heard",
+      "rememberFlag": "chronicle_joren_told_heard",
+      "group": "joren_told",
+      "show": "arc_joren_told",
+      "lore": "what_he_told_the_storm",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "told"
+        }
+      }
+    },
+    {
+      "id": "joren_told_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "joren",
+        "unite_open": "true"
+      },
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren",
+        "coconspirator_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_told_heard",
+      "alsoSetTimeline": [
+        "joren_trial_1_done",
+        "joren_trial_2_done"
+      ],
+      "rememberFlag": "chronicle_joren_told_heard",
+      "group": "joren_told",
+      "show": "arc_joren_told",
+      "lore": "what_he_told_the_storm",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "told"
+        }
+      }
+    },
+    {
+      "id": "joren_shadow_told_after_trials",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "joren"
+      },
+      "requires": [
+        "joren_trial_2_done",
+        "coconspirator_joren"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_told_heard",
+      "rememberFlag": "chronicle_joren_shadow_told_heard",
+      "group": "joren_told",
+      "show": "arc_joren_shadow_told",
+      "lore": "what_he_told_the_storm",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_told"
+        }
+      }
+    },
+    {
+      "id": "joren_shadow_told_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "joren",
+        "unite_open": "true"
+      },
+      "requires": [
+        "coconspirator_joren"
+      ],
+      "excludes": [
+        "qe_archmage_answered_joren",
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_told_heard",
+      "alsoSetTimeline": [
+        "joren_trial_1_done",
+        "joren_trial_2_done"
+      ],
+      "rememberFlag": "chronicle_joren_shadow_told_heard",
+      "group": "joren_told",
+      "show": "arc_joren_shadow_told",
+      "lore": "what_he_told_the_storm",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_told"
+        }
+      }
+    },
+    {
+      "id": "joren_inside",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "qe_archmage_united_joren"
+      ],
+      "excludes": [
+        "coconspirator_joren"
+      ],
+      "layer": "Timeline",
+      "once": "joren_inside",
+      "alsoSetMeta": [
+        "chronicle_joren_inside_seen"
+      ],
+      "rememberFlag": "chronicle_joren_inside_seen",
+      "show": "arc_joren_inside",
+      "lore": "where_the_weather_stops",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "inside"
+        }
+      }
+    },
+    {
+      "id": "joren_shadow_end_united_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_joren",
+        "qe_archmage_united_joren",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_joren_answered",
+      "alsoSetMeta": [
+        "chronicle_joren_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_joren_penance"
+      ],
+      "rememberFlag": "chronicle_joren_shadow_end_seen",
+      "group": "joren_shadow_end",
+      "show": "arc_joren_shadow_penance",
+      "lore": "what_he_showed_joren",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "joren_shadow_end_united_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_joren",
+        "qe_archmage_united_joren",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_joren_answered",
+      "alsoSetMeta": [
+        "chronicle_joren_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_joren_penance"
+      ],
+      "rememberFlag": "chronicle_joren_shadow_end_seen",
+      "group": "joren_shadow_end",
+      "show": "arc_joren_shadow_penance",
+      "lore": "what_he_showed_joren",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "joren_shadow_end_coerced_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_joren",
+        "qe_archmage_coerced_joren",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_joren_answered",
+      "alsoSetMeta": [
+        "chronicle_joren_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_joren_treachery"
+      ],
+      "rememberFlag": "chronicle_joren_shadow_end_seen",
+      "group": "joren_shadow_end",
+      "show": "arc_joren_shadow_treachery",
+      "lore": "what_he_showed_joren",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "joren_shadow_end_coerced_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_joren",
+        "qe_archmage_coerced_joren",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_joren"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_joren_answered",
+      "alsoSetMeta": [
+        "chronicle_joren_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_joren_treachery"
+      ],
+      "rememberFlag": "chronicle_joren_shadow_end_seen",
+      "group": "joren_shadow_end",
+      "show": "arc_joren_shadow_treachery",
+      "lore": "what_he_showed_joren",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "trial_title",
+      "when": {
+        "n": "1"
+      },
+      "text": "The First Voice Returns"
+    },
+    {
+      "key": "trial_title",
+      "when": {
+        "n": "2"
+      },
+      "text": "The Second Voice Returns"
+    },
+    {
+      "key": "trial_followup",
+      "when": {
+        "n": "1"
+      },
+      "text": "'One voice back at the table,' he says. 'Bring me another.'"
+    },
+    {
+      "key": "trial_followup",
+      "when": {
+        "n": "2"
+      },
+      "text": "'Two,' he says. 'Come and stand in the field with me. The earth wants a word, and so does the storm, and for once they want to talk about the same thing.'"
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "storm",
+        "traitor": "joren"
+      },
+      "text": "The Register notes, without comment, that the last time this storm asked Joren Kall for something, he opened the wards."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "ice",
+        "traitor": "joren"
+      },
+      "text": "The Register notes that the ice was the only voice at his table that never asked him to open anything."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "fire",
+        "traitor": "joren"
+      },
+      "text": "The Register notes that the fire agreed with the man the storm was quoting, and walked out anyway. It does not say who else might have."
+    },
+    {
+      "key": "shadow",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same table. The fire walked out last time too, on the same night.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "told",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same field. The same condition. He has still told nobody else.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "inside",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same quiet. He shut his eyes for exactly as long.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The storm spoke first last time as well. He stopped it at the same word.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_told",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'He knew they were his words last time, too.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_end",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same hall. The same quiet, and what he heard in it.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    }
+  ]
+}

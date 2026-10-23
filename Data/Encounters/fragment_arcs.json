@@ -92,7 +92,7 @@
     "choices": [
       {
         "label": "Take the Axiom Stone",
-        "resultText": "The Stone weighs nothing and settles everything; nearby, contradictions quietly resolve. One fragment of the Seal, recovered. Four remain.",
+        "resultText": "The Stone weighs nothing and settles everything; nearby, contradictions quietly resolve. One fragment of the Seal, recovered. In the Anchorhold, in the hall where it broke, its place in the sphere is waiting.",
         "requiredFlag": "axiom_trial_passed",
         "setMetaFlags": [
           "fragment_axiom_collected"
@@ -203,7 +203,7 @@
     "choices": [
       {
         "label": "Take Moment Eternal",
-        "resultText": "The instant folds into your keeping; for a breath, everything around you is briefly, perfectly still. One fragment of the Seal, recovered. Three remain.",
+        "resultText": "The instant folds into your keeping; for a breath, everything around you is briefly, perfectly still. One fragment of the Seal, recovered. It is the piece the Long Second was made from, and it knows the way home.",
         "requiredFlag": "moment_trial_passed",
         "setMetaFlags": [
           "fragment_moment_collected"
@@ -314,7 +314,7 @@
     "choices": [
       {
         "label": "Take the Binding Thread",
-        "resultText": "The Thread coils into your keeping, and the fragments you do not yet hold feel, somehow, already nearer. One fragment of the Seal, recovered, and the others made easier.",
+        "resultText": "The Thread coils into your keeping, and the fragments you do not yet hold feel, somehow, already nearer. One fragment of the Seal, recovered, and the others made easier. Its place in the sphere is waiting, in the hall where it broke.",
         "requiredFlag": "binding_trial_passed",
         "setMetaFlags": [
           "fragment_binding_collected"
@@ -425,7 +425,7 @@
     "choices": [
       {
         "label": "Take the Schema Core",
-        "resultText": "You lift the Core from its spindle and the Engine, for the first time in an age, slows, and is content. One fragment of the Seal, recovered. Two remain.",
+        "resultText": "You lift the Core from its spindle and the Engine, for the first time in an age, slows, and is content. One fragment of the Seal, recovered. Behind the edge, in the ceremony hall, the sphere is still breaking, and there is a place in it this one fits.",
         "requiredFlag": "schema_trial_passed",
         "setMetaFlags": [
           "fragment_schema_collected"
@@ -536,7 +536,7 @@
     "choices": [
       {
         "label": "Take the Deathless Covenant",
-        "resultText": "The Covenant settles into your keeping, cold and certain, and the wardens bow their ruined heads. One fragment of the Seal, recovered. One remains.",
+        "resultText": "The Covenant settles into your keeping, cold and certain, and the wardens bow their ruined heads. One fragment of the Seal, recovered. The dead of the hall will want to see it home.",
         "requiredFlag": "deathless_trial_passed",
         "setMetaFlags": [
           "fragment_deathless_collected"

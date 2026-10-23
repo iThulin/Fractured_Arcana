@@ -1,0 +1,307 @@
+[
+  {
+    "id": "arc_joren_ask",
+    "title": "The Table",
+    "body": "A Sending reaches you as weather: a pressure behind the eyes, then Joren Kall's voice, and under it the others, arguing.\n\n'I have a table,' he says. 'Not a real one. The place in me where they sit and argue. Fire, ice, storm, earth. Thirty years they have argued there, loudly, and nobody won, and that was the point.'\n\nA gust, and a voice that is not his: 'There is no need to hurry.' Then his again, sharper. 'That. The storm says that now. It says things it heard somewhere, in someone else's words, and it says them so loudly that the others have stopped coming to the table. The fire walked out a month ago. The ice has not said a word since the hall.'\n\n'I cannot go and fetch them. I am the table. But you are out there, where the weather is. Win me a fight inside a front, any front, and listen while you do it. Something will be saying something. Tell me what it wanted.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'I'll listen.'",
+        "resultText": "'That is all I ever did,' he says. 'Everyone thinks it was something harder.' The Sending ends in rain."
+      },
+      {
+        "label": "'What did you tell the storm, the first time?'",
+        "resultText": "The weather in the Sending goes very still. 'Nobody asks that,' he says. 'Ask me again when the table is full.' It is not a no. It is the most hopeful thing he has said."
+      },
+      {
+        "label": "'Ask it once, and then wait.'",
+        "resultText": "A long silence. Then a sound that might be thunder, or might be Joren Kall laughing for the first time in a month. 'Who taught you that?' he says. 'No. Don't tell me. Somebody I would have liked.' The weather in the Sending changes. 'The fire came back to the table last night. It says you told it something. I am counting that as one.'",
+        "requiredFlag": "chronicle_joren_listened",
+        "setFlags": [
+          "joren_trial_1_done",
+          "joren_voice_fire"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_storm",
+    "title": "{trial_title}",
+    "body": "When the field is quiet, Joren's Sending finds you, and it smells of rain.\n\n'You fought in the storm's weather,' he says. 'I felt it. It was loud the whole time, and half of what it said was his.' A gust, and the borrowed voice: 'This was read a long time ago.' Then his own, tired: 'That half. Never mind that half. Under it, between the gusts, it was saying something of its own. It used to. What did it want?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'To be quiet.'",
+        "resultText": "'No,' he says. 'That is what I want. Don't give it my wants. It has enough of other people's.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 20
+      },
+      {
+        "label": "'To move.'",
+        "resultText": "Thunder, a long way off, and something in it like relief. 'Yes,' says Joren. 'It wants to move. It always did. It never wanted to win. It wanted to go somewhere.' The rain on the line softens. 'It said so at the table just now. In its own words. The first time since the hall.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      },
+      {
+        "label": "'There is no need to hurry.'",
+        "resultText": "'That is his,' Joren says, very quietly. 'You heard it too. Good. Now you know what it sounds like when it is not its own. Listen under it, next time.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 25
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_ice",
+    "title": "{trial_title}",
+    "body": "Joren's Sending reaches you with frost in it.\n\n'You fought in the ice's weather,' he says. 'The cold, the white, the air that will not move. The ice was there. It has not come to the table since the hall. The storm talks over it, and the ice does not argue with people who talk over it. It waits. But it was in that fight with you. What did it want?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'To hold.'",
+        "resultText": "'Yes,' says Joren, and his voice catches. 'To hold. That is all it ever wants: for things to stay where they are put.' A long pause. 'It sat down at the table this morning. It has not said a word. But it sat down.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      },
+      {
+        "label": "'To win.'",
+        "resultText": "'Nothing at my table wants to win,' he says. 'That is a man's want. They want older things.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 20
+      },
+      {
+        "label": "'To be left alone.'",
+        "resultText": "'Close,' he says. 'That is what it wants from the storm. Ask what it wants for itself.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 25
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_fire",
+    "title": "{trial_title}",
+    "body": "The Sending comes hot, and smells of ash.\n\n'You fought under the ash,' Joren says. 'The fire was there. It walked out of my table a month ago, and it has been burning across three regions to make a point. You heard it. What did it want?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'To burn everything down.'",
+        "resultText": "'That is what it does,' he says. 'Not what it wants. Nobody wants ash.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 20
+      },
+      {
+        "label": "'To be heard over the storm.'",
+        "resultText": "'Yes, but that is about the storm,' he says. 'Ask what it wants about itself.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 25
+      },
+      {
+        "label": "'To spread.'",
+        "resultText": "'To spread,' says Joren, and something in the Sending crackles, pleased. 'Yes. It wants to go further than it has ever been allowed. It wants more room.' He laughs a little. 'Do you know, I think it agrees with him. It still walked out. It does not like being told it agrees with someone.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_joren_listened"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_told",
+    "title": "What He Told the Storm",
+    "body": "Joren Kall is standing in a field under a sky that cannot make up its mind, the way it was the day it started: rain on one side of him, sun on the other. He looks very tired, and glad to see you.\n\n'They are all at the table now,' he says. 'Listen.' And he lets them speak.\n\nThe storm goes first, in his voice and in someone else's words: the Seal was a ration, the elements have been starving behind it, and the opening was a door. 'There is no need to hurry,' it says. 'This was read a long time ago.'\n\nThen the earth, which speaks slowly, and only when it has to. It was here before the Seal. It will be here after. It does not starve. It waits. It does not know the man the storm is quoting, and it does not want to.\n\n'For once they disagree about something I can check,' Joren says, 'and I can't. I am only where they argue.' He is quiet a moment. 'Thirty years ago a storm went on for three days over a field, and I stood in it and asked it what it wanted. It told me. And then I told it something. I have never told anyone what.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'What did you tell it?'",
+        "resultText": "'I told the storm it could say anything through me,' he says. 'Anything at all, for as long as it liked. As long as it said it in its own words.' The rain on his side of the field comes down harder. 'That was the only condition. And now it doesn't. That is what frightens me. Not him. That my storm broke the one thing I asked of it, and I don't know if it even noticed.' He wipes his face. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_joren_told_heard"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      },
+      {
+        "label": "Ask once, and wait.",
+        "resultText": "You ask him once, and then you wait. It takes a long time. 'I told the storm it could say anything through me,' he says at last, 'as long as it said it in its own words. That was all. And now it doesn't.' He looks at you. 'Nobody has ever waited long enough before.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_joren_told_heard"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      },
+      {
+        "label": "'You told it to speak in its own words.'",
+        "resultText": "Joren Kall sits down in the wet grass all at once, the way a tired man sits when his legs decide for him. 'Nobody knows that,' he says. 'Nobody. I never even told the earth.' The storm says nothing, for the first time you have heard. 'You have been here before,' he says. It is not a question. 'Was it the same? Was I?' After a while he stands. 'Now. The audience.'",
+        "requiredFlag": "chronicle_joren_told_heard",
+        "setMetaFlags": [
+          "chronicle_joren_told_heard"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_inside",
+    "title": "Where the Weather Stops",
+    "body": "You walk Joren Kall through the edge, and the argument in him stops.\n\nInside the Second nothing moves: not the steam over the refectory, not the dust in the window light, not the weather. The fire has nothing to spread into. The ice has nothing left to hold that is not already held. The storm has nowhere to go. The earth, which only ever wanted to stay, is getting exactly what it wants, and has nothing to say about it.\n\nFor the first time in thirty years Joren Kall hears one voice in his head, and it is his.\n\nHe stands in the middle of the lawn for a long time with his eyes shut. When he opens them you realize you have never seen his face without weather in it.\n\nAt the gate, on the way out, where the wind starts again, he stops. 'I promised you a question,' he says. 'One. I will ask the storm for you, in its own words. What do you want to know?'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Where is he?'",
+        "resultText": "Joren asks. The storm answers, and he translates: 'High pressure over the place where the lines cross. It has not moved in a year. It is sitting on a hall with no roof.' He frowns. 'It says he is reading. It says it the way you would say a man is drowning.'",
+        "loreId": "storm_answer_where"
+      },
+      {
+        "label": "'Was he right?'",
+        "resultText": "Joren asks. The storm says yes at once, in its own words this time, the first thing you have heard it say that was not borrowed. Then the earth says something under it, slowly. Joren listens to both, and does not translate the second. 'The earth says it is still here,' he says at last. 'That is all it ever says. I have never known if it is an answer.'",
+        "loreId": "storm_answer_right"
+      },
+      {
+        "label": "'Ask it about me.'",
+        "resultText": "Joren asks, and listens, and looks at you strangely. 'It says there is one place in every reading it cannot read,' he says. 'A blank. It moves.' He glances up at the sky over the gate. 'It is always where you are.'",
+        "loreId": "storm_answer_you"
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_shadow_ask",
+    "title": "Quiet, All of You",
+    "body": "A Sending reaches you as weather, and it is the storm that speaks first, in borrowed words, and Joren Kall who has to stop it. 'Quiet,' he says. 'Quiet. Let me.'\n\n'I told you not to come looking for me. You came anyway. The earth told me where you were standing.'\n\n'The others have left my table. The storm talks over them. I listened to it, and it asked me to open a door, in his words, and I could not think of a reason to refuse. So I opened it.' A long gust. 'If you want to know why, bring them back. Win a fight inside the weather and tell me what the voice in it wanted. Maybe one of them will tell me I was wrong.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'I'll listen.'",
+        "resultText": "'Someone should,' he says. 'I stopped.' The Sending ends in rain that does not sound like rain."
+      },
+      {
+        "label": "'You opened the door.'",
+        "resultText": "'I opened the door,' he says. The storm starts to say something, and he does not let it. 'I know what I did. I would like to know who I did it for.' The Sending ends."
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_shadow_told",
+    "title": "In Someone Else's Words",
+    "body": "Joren Kall is standing in a field under a sky that cannot make up its mind, the way it was the day it started: rain on one side of him, sun on the other. When he sees you he does not look glad. He looks like someone who has been waiting to be found.\n\n'They are all at the table now,' he says. 'Listen.'\n\nThe storm goes first, in his voice and in someone else's words: the Seal was a ration, the elements have been starving behind it, and the opening was a door. 'There is no need to hurry,' it says. 'This was read a long time ago.'\n\nThen the earth, which speaks slowly, and only when it has to. It was here before the Seal. It will be here after. It does not starve. It waits. It does not know the man the storm is quoting, and it does not want to.\n\n'Thirty years ago I told the storm it could say anything through me, as long as it said it in its own words,' Joren says. 'That was the only condition. The night before Commencement it asked me to open a door, and it asked in his words, and I knew. I knew they were his. I opened it anyway.'\n\n'You want to know what he showed me. Ask me where I did it.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'In the hall, then.'",
+        "resultText": "'In the hall,' he agrees. The storm says something. For once he lets it, and does not translate. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_joren_shadow_told_heard"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      },
+      {
+        "label": "'Why?'",
+        "resultText": "'I was tired,' he says. 'That is not an answer. It is the truth. They look similar from a distance.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_joren_shadow_told_heard"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      },
+      {
+        "label": "'You knew they were his words. You opened it anyway.'",
+        "resultText": "Joren Kall looks at you for a long time while the rain and the sun argue over his head. 'You have heard me say it before,' he says. 'And you still came to the field.' 'Now. The audience.'",
+        "requiredFlag": "chronicle_joren_shadow_told_heard",
+        "setMetaFlags": [
+          "chronicle_joren_shadow_told_heard"
+        ],
+        "swayArchmage": "joren",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_shadow_penance",
+    "title": "What Did He Show You?",
+    "body": "You walk Joren Kall through the edge and into the ceremony hall, and the argument in him stops. For the first time in thirty years he can hear himself think, and the first thing he hears is what he did.\n\nThe Joren Kall of that afternoon is caught mid-stride on the dais, one palm flat on the sphere as it breaks, weather standing in his face. The spell runs from his hand in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'That the elements are starving,' he says. 'He showed me the passage where the Seal holds. In it the fire goes out first, and then the storm, and the earth goes on waiting with nothing left to wait for. Then the storm said it to me at my table, the night before, in his words. Open the door. Silence the voice that names, so the schools stop renewing themselves and the old order ends with the Seal.' He looks at the spell. 'Her voice. I was too tired to keep arguing. I let the loudest voice win. I had never done that before, not once in thirty years.'\n\n'In here it is quiet,' he says. 'I can hear what I think. I think I was wrong to let it win.' He looks at the weather frozen in his own face. 'I will stand on that dais at the end and let them all argue, out loud, every one of them. Even the storm. Even in his words. And this time I will not open anything.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Then stand there.'",
+        "resultText": "He nods. At the gate, where the wind starts again and the voices come back, he flinches, and then he stands up straight and lets them. Under your arm the Register writes his answer in his own hand, and under it, in its own: 'One voice.'"
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing, and he does not need you to. In here, for once, nobody is talking over him."
+      }
+    ]
+  },
+  {
+    "id": "arc_joren_shadow_treachery",
+    "title": "What Did He Show You?",
+    "body": "You walk Joren Kall through the edge and into the ceremony hall, and the argument in him stops. For the first time in thirty years he can hear himself think, and the first thing he hears is what he did.\n\nThe Joren Kall of that afternoon is caught mid-stride on the dais, one palm flat on the sphere as it breaks, weather standing in his face. The spell runs from his hand in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'That the elements are starving,' he says. 'He showed me the passage where the Seal holds. In it the fire goes out first, and then the storm, and the earth goes on waiting with nothing left to wait for. Then the storm said it to me at my table, the night before, in his words. Open the door. Silence the voice that names, so the schools stop renewing themselves and the old order ends with the Seal.' He looks at the spell. 'Her voice. I was too tired to keep arguing. I let the loudest voice win. I had never done that before, not once in thirty years.'\n\nHe tells you all of it in one voice, his own, flat as a field after rain. 'You made me pledge,' he says. 'You did not argue. You backed one voice against the rest, the way he did. I know what that sounds like now.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Joren.'",
+        "resultText": "He does not answer. At the gate the weather starts again, and the storm says something in borrowed words, and Joren Kall does not tell it to be quiet."
+      },
+      {
+        "label": "Walk him out.",
+        "resultText": "You walk him out. At the gate he stops and listens to the weather for a long time, and you cannot tell which voice he is listening to."
+      }
+    ]
+  }
+]

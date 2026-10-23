@@ -525,5 +525,28 @@
         ]
       }
     ]
+  },
+  {
+    "id": "ripple_borrowed_overheard",
+    "title": "Overheard",
+    "body": "Two farmers at the next table in the taproom are arguing about a fence, the way farmers do, until one of them says: 'There is no need to hurry. This was read a long time ago.'\n\nHis friend stops with the cup halfway to his mouth. The farmer who said it looks surprised too, as if someone else had used his mouth to say it, which in a way is what happened. They go back to the fence. Neither of them mentions it again.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Open the Register.",
+        "resultText": "It is ahead of you. The line is already there on a fresh page, in a small, upright, patient hand. Not the farmer's.",
+        "loreId": "borrowed_language"
+      },
+      {
+        "label": "Buy the farmer a drink.",
+        "resultText": "He accepts, and talks about the fence, and says nothing strange again. When you leave he is still turning the cup in his hands, as if trying to remember what it was he said."
+      },
+      {
+        "label": "Leave.",
+        "resultText": "Behind you, the argument about the fence goes on, in the farmers' own words."
+      }
+    ],
+    "requiredFlag": "qe_corruption_advanced_lv2"
   }
 ]

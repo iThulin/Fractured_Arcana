@@ -1,0 +1,222 @@
+{
+  "_doc": "Chronicle scheduler table for Part II, The Counter-Reading. The rules are C1 in docs/story_wiring_v1.md; the script is docs/chronicle_part_two_v1.md. Beats are evaluated in file order on each raise of their hook.",
+  "part": 2,
+  "encounterFile": "chronicle_part_two",
+  "lineTokens": {},
+  "beats": [
+    {
+      "id": "ii0_part_two_counter",
+      "requires": [
+        "chronicle_part_1",
+        "chronicle_counter_reading"
+      ],
+      "hook": "on_scene_ready",
+      "group": "part_two",
+      "layer": "Eternal",
+      "once": "chronicle_part_2",
+      "show": "chronicle_part_two"
+    },
+    {
+      "id": "ii0_part_two_unmaking",
+      "requires": [
+        "chronicle_part_1",
+        "chronicle_sky_rereads"
+      ],
+      "hook": "on_scene_ready",
+      "group": "part_two",
+      "layer": "Eternal",
+      "once": "chronicle_part_2",
+      "show": "chronicle_part_two"
+    },
+    {
+      "id": "ii0_part_two_angle",
+      "requires": [
+        "chronicle_part_1",
+        "angle_2_seen"
+      ],
+      "hook": "on_scene_ready",
+      "group": "part_two",
+      "layer": "Eternal",
+      "once": "chronicle_part_2",
+      "show": "chronicle_part_two"
+    },
+    {
+      "id": "ii0_part_two_seats",
+      "when": {
+        "answered_seats": [
+          "5",
+          "6",
+          "7"
+        ]
+      },
+      "requires": [
+        "chronicle_part_1"
+      ],
+      "hook": "on_scene_ready",
+      "group": "part_two",
+      "layer": "Eternal",
+      "once": "chronicle_part_2",
+      "show": "chronicle_part_two"
+    },
+    {
+      "id": "ii1_counter_lens",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "chronicle_part_1",
+        "campus_observatory_complete"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_counter_reading",
+      "delivery": "immediate",
+      "show": "chronicle_counter_lens"
+    },
+    {
+      "id": "ii2_deal_two_fallen",
+      "when": {
+        "screen": "strategic",
+        "corrupted_seats": [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ]
+      },
+      "hook": "on_scene_ready",
+      "group": "deal",
+      "requires": [
+        "chronicle_part_2"
+      ],
+      "layer": "Eternal",
+      "once": "deal_offered",
+      "show": "chronicle_offered_ending"
+    },
+    {
+      "id": "ii2_deal_late",
+      "when": {
+        "screen": "strategic",
+        "lunations_left": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7"
+        ]
+      },
+      "hook": "on_scene_ready",
+      "group": "deal",
+      "requires": [
+        "chronicle_part_2"
+      ],
+      "layer": "Eternal",
+      "once": "deal_offered",
+      "show": "chronicle_offered_ending"
+    },
+    {
+      "id": "ii2_envoy_returns",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "deal_offered"
+      ],
+      "excludes": [
+        "deal_answered"
+      ],
+      "layer": "Timeline",
+      "show": "chronicle_envoy_returns"
+    },
+    {
+      "id": "ii2_returned_unopened",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "deal_accepted"
+      ],
+      "layer": "Eternal",
+      "once": "deal_returned",
+      "show": "chronicle_returned_unopened"
+    },
+    {
+      "id": "ii4_second_message",
+      "hook": "on_hall",
+      "when": {
+        "pending": "true",
+        "pending_fragment": "moment"
+      },
+      "requires": [
+        "chronicle_part_1"
+      ],
+      "layer": "Eternal",
+      "once": "erratum_second_shown",
+      "show": "chronicle_erratum_second"
+    },
+    {
+      "id": "ii5_the_room",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "erratum_second_heard"
+      ],
+      "layer": "Eternal",
+      "once": "remembrancers_hall_found",
+      "delivery": "immediate",
+      "show": "chronicle_room_one_chair"
+    },
+    {
+      "id": "ii7_report_2_pieces",
+      "when": {
+        "pending": "false",
+        "placed": [
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
+      },
+      "requires": [
+        "chronicle_part_2",
+        "examiner_report_1"
+      ],
+      "hook": "on_hall",
+      "group": "report_2",
+      "layer": "Eternal",
+      "once": "examiner_report_2_given",
+      "delivery": "immediate",
+      "show": "chronicle_examiner_report_2"
+    },
+    {
+      "id": "ii7_report_2_namings",
+      "when": {
+        "pending": "false"
+      },
+      "requires": [
+        "chronicle_part_2",
+        "examiner_report_1",
+        "chronicle_second_declaration"
+      ],
+      "hook": "on_hall",
+      "group": "report_2",
+      "layer": "Eternal",
+      "once": "examiner_report_2_given",
+      "delivery": "immediate",
+      "show": "chronicle_examiner_report_2"
+    },
+    {
+      "id": "ii7_second_declaration",
+      "hook": "on_declaration",
+      "when": {
+        "first": "false"
+      },
+      "layer": "Eternal",
+      "once": "chronicle_second_declaration"
+    }
+  ],
+  "lines": []
+}

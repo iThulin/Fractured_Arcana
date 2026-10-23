@@ -1,0 +1,20 @@
+{
+  "id": "korro_target_frame",
+  "threatLabel": "Target Frame",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "Painted rings and a small crossbow. It shoots whatever stands nearest, out to 4 squares.",
+  "maxHealth": 36,
+  "baseSpeed": 0,
+  "armor": 0,
+  "attackRange": 4,
+  "attackDamage": 4,
+  "preferredDistance": 3,
+  "behaviorKey": "ranged_kite",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "colorR": 0.8,
+  "colorG": 0.3,
+  "colorB": 0.25
+}

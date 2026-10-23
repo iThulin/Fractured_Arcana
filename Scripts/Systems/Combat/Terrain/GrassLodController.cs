@@ -19,7 +19,9 @@ using System.Collections.Generic;
 //                 its exports; the node lives in the painterly_grass
 //                 group, so ClearPainterlyGrass frees it with the field).
 //
-// LOD curve (distances are camera -> closest point of the chunk AABB):
+// LOD curve (distances are camera -> closest point of the chunk AABB,
+// divided by CameraController.LensDistanceScale so they track the shader
+// fade under any lens; camera_lens_slice1):
 //   d <= FullDistance                : 100% of blades (VisibleInstanceCount -1)
 //   FullDistance < d < EndDistance   : lerp 100% -> MinFraction
 //   d >= EndDistance                 : 0 blades. EndDistance must be >= the
@@ -87,6 +89,10 @@ public partial class GrassLodController : Node
         if (cam == null)
             return;
         Vector3 camPos = cam.GlobalPosition;
+        // Lens compensation: FullDistance/EndDistance are tuned for a 75 degree lens,
+        // like the shader fade they must stay behind. A narrower lens sits the camera
+        // farther back for the same framing, so measure in reference-lens terms.
+        float lens = CameraController.LensDistanceScale(cam);
 
         float span = Mathf.Max(0.001f, EndDistance - FullDistance);
 
@@ -102,7 +108,7 @@ public partial class GrassLodController : Node
                 Mathf.Clamp(camPos.X, e.Bounds.Position.X, e.Bounds.End.X),
                 Mathf.Clamp(camPos.Y, e.Bounds.Position.Y, e.Bounds.End.Y),
                 Mathf.Clamp(camPos.Z, e.Bounds.Position.Z, e.Bounds.End.Z));
-            float d = camPos.DistanceTo(nearest);
+            float d = camPos.DistanceTo(nearest) / lens;
 
             int target;
             if (d >= EndDistance)

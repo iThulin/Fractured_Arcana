@@ -1,0 +1,396 @@
+{
+  "_doc": "The Hall of Lore's entries (docs/lore_codex_v1.md, W7; loaded by LoreCodex.cs, C7). id: the lore id in EternalLedger.UnlockedLoreEntries. title: the entry's name in the Hall. category: the subject it is listed under; categories lists them in display order, and the first file (by name) to list a category places it. body: what was learned, as static text with no tokens. Never use the long dash in any line. This file: the ids the story packages grant.",
+  "version": 1,
+  "categories": [
+    "The Sundering",
+    "The Anchorhold",
+    "The Running World",
+    "The Fast",
+    "The Seal",
+    "The Astrologer",
+    "The Seven Seats",
+    "Companions",
+    "The Schools",
+    "The Convergence"
+  ],
+  "entries": [
+    {
+      "id": "the_first_angle",
+      "title": "The Sphere",
+      "category": "The Sundering",
+      "body": "The first piece you brought home went into its frozen self the way a reflection goes into a mirror, and the hall showed you the instant from inside the glass. Two chairs on the dais stood empty: the Witness's, and one that nobody looked at. In the honored chair nearest the sphere a hand lay flat on the cradle, very still. It was waiting. Then the Provost called the first name of the afternoon, and you stepped forward. The pieces you bring home are the only warm parts of the sphere."
+    },
+    {
+      "id": "the_hand",
+      "title": "The Hand",
+      "category": "The Sundering",
+      "body": "That morning, before the families came, the archmage who would sit nearest the sphere stood alone at the ward-stone in the gatehouse arch, where every ward in the seat is knotted together, and turned its sigils over one at a time. Afterward the wards looked the same as ever, and held, until someone said a word. Then the wards opened inward, all at once, from the inside. The hand that did it was not shaking. It had had all night to stop."
+    },
+    {
+      "id": "the_window",
+      "title": "The Window",
+      "category": "The Sundering",
+      "body": "Through the east windows the glass saw the ridge above the seat: the Keepers standing in rows, in a blue nearly the sky's own, and a man a little apart from them with his face turned up, reading the sky the way other people read a page held close. For one moment he looked down at the hall. An ordinary face, patient, a little tired. He closed his eyes and said one word: 'Now.' Kassian Vor-Aleth did not come in."
+    },
+    {
+      "id": "the_reading",
+      "title": "The Reading",
+      "category": "The Sundering",
+      "body": "The night before Commencement, in a high room at the seat with the shutters open on the sky, Kassian Vor-Aleth turned a passage across the table to the one who would open the wards. In it the Seal holds, and in every generation fewer people can learn to cast, until the last wizard dies in a cold room with no student to hand the lamp to. He asked for the wards, opened from inside, and for the voice that names, silenced. Many would die; he had read how many. It was said in a room where nobody was writing."
+    },
+    {
+      "id": "the_margin",
+      "title": "The Margin",
+      "category": "The Sundering",
+      "body": "Weeks before Commencement, at night, a man with Kassian's face came into the empty hall by the side door, knelt at the foot of the cradle, and wrote in the foundation stone with one finger. The letters are Kassian's letters, but they lean, and hurry, and once he went back to write a line again. He was writing a second down and fastening it to the naming. Where the name should go he left a blank. Then he laid his palm over one of the sphere's six lights, and in the margin beside the blank he wrote: \"I am sorry.\""
+    },
+    {
+      "id": "the_rushed_hand",
+      "title": "The Rushed Hand",
+      "category": "The Sundering",
+      "body": "From inside the instant itself: a palm flat on the glass, so near you could count its lines, and under it a pulse, very fast. The other hand came up and drafted the spell all at once, without a second look: a line of white fire toward the lectern, toward the voice. It was aimed past you. It ran through the place where you stood because you were standing there. Wenna Aldric saw it leave the hand, looked at you, and did not change her voice."
+    },
+    {
+      "id": "the_one_nearest_the_sphere",
+      "title": "The One Nearest the Sphere",
+      "category": "The Sundering",
+      "body": "The first time your party crossed the forces of the archmage who sat nearest the sphere, a Sending came, and you knew the voice before it spoke: the last time you heard it, it was stopping a room from the dais. It did not greet you. For a while there was only breathing, as if checking that you were really there. Then the Sending ended. It did not finish. It was ended, from the other side, like a door pulled shut against a draft."
+    },
+    {
+      "id": "what_he_showed_aurel",
+      "title": "What He Showed Aurel",
+      "category": "The Sundering",
+      "body": "The night before Commencement, Kassian Vor-Aleth showed Aurel Pendry the passage and did not ask him to believe it. He asked him to check it. Aurel found his three errors, and not one of them was in the ending. So he agreed to open the wards from inside and to silence the voice that names, Wenna Aldric's, so that the schools would stop renewing themselves and the old order would end with the Seal. The spell in the hall runs from his hand."
+    },
+    {
+      "id": "what_he_showed_joren",
+      "title": "What He Showed Joren",
+      "category": "The Sundering",
+      "body": "In the passage Kassian showed Joren Kall, the elements starve too: the fire goes out first, then the storm, and the earth goes on waiting with nothing left to wait for. The night before Commencement the storm said it to him at his table, in Kassian's words: open the door, and silence the voice that names. Joren was too tired to keep arguing. For the first time in thirty years he let the loudest voice win."
+    },
+    {
+      "id": "what_he_showed_namer",
+      "title": "What He Showed Cael",
+      "category": "The Sundering",
+      "body": "Kassian showed Cael Morn the passage where the Seal holds and the world narrows inside it, one generation at a time, until the last wizard dies with no one to teach. Then he gave them a name for it: the narrowing. Cael had been trying to name it for years. He asked for two things, the wards opened from inside and the voice that names new wizards silenced, and Cael drew the design themselves. It was architectural."
+    },
+    {
+      "id": "what_he_showed_conductor",
+      "title": "What He Showed Ondria",
+      "category": "The Sundering",
+      "body": "In the passage Kassian showed Ondria Vell, the Seal holds and the magic thins, and necromancy starves first because it needs the most. The dead stop answering. Her table goes quiet one chair at a time, until there is nobody left to pour for. The night before Commencement he asked her to open the gate and to silence the voice that names. She thought she was choosing where to stand before the last of them left. She filled her own bar instead."
+    },
+    {
+      "id": "what_he_showed_engineer",
+      "title": "What He Showed Bram",
+      "category": "The Sundering",
+      "body": "Kassian did not have to show Bram Korro anything Bram had not measured himself: the curve, and the Seal throttling the engine of the world. He read him the end of it, like a result. Then he showed him a schematic where everything did exactly what it was supposed to. The wards open from inside. The voice that names goes quiet. No misfires, and no research half. Then you stepped forward. That was not supposed to happen. Bram wrote it down."
+    },
+    {
+      "id": "the_second_message",
+      "title": "The Second Message",
+      "category": "The Anchorhold",
+      "body": "When the Moment Eternal came home the stillness took a breath, and the voice from the first moment of the Second spoke once more. It was sorry the second came back in pieces. With this piece home the Second can hold one more person, and a room has been made ready. Whoever stays will remember every reading you lose, and will remember losing them with you. 'I know it better than anyone,' the voice said. 'I am the only one who remembers the reading I came from.'"
+    },
+    {
+      "id": "the_remembrancers_hall",
+      "title": "The Remembrancer's Hall",
+      "category": "The Anchorhold",
+      "body": "At the end of the tutors' corridor, where you had walked a hundred times and never seen a door, a door stands open. Inside is a small tutor's office: one window, a bare desk, and one chair facing the door, the way a chair is set for someone who is expected. On the desk is a card in a hand that leans and hurries: \"For whoever stays.\" The Register named the room, and wrote under the name what the voice had said: whoever sits here will remember every reading you spend together, and all the ones where their friends forget them."
+    },
+    {
+      "id": "the_examiners_opinion",
+      "title": "The Examiner's Opinion",
+      "category": "The Anchorhold",
+      "body": "The Examiner examined you twice on the morning of Commencement: the fundamentals against her, then your practical. Then she closed her copy of your folio and froze at the foot of the dais in the middle of a nod. The nod was for you. She would keep her opinion until the board had had theirs. On the night of the Convergence the nod finished, the first thing in the hall to finish."
+    },
+    {
+      "id": "news_of_the_fall",
+      "title": "News of the Fall",
+      "category": "The Running World",
+      "body": "Everyone in the running world has heard. The seat of the university fell in an afternoon, with the graduating class in the hall, and nobody says how many of them came out. The archmagi who lived went home to their seats and shut their gates. There was one at the dais when it broke, being named, the first name of the afternoon, and the Provost never finished saying it. Nobody speaks of a survivor. Nobody would think to."
+    },
+    {
+      "id": "wild_talents",
+      "title": "Wild Talents",
+      "category": "The Running World",
+      "body": "Near the wounds where the pieces came down, magic is turning up in people who never had it. In a farm wagon on the road a girl of nine or ten sat holding a cup of water that had boiled in her hands since breakfast without burning her. Since the sky broke, her father said. Before that she was ordinary. The reeve would want to send her to a school, and the only school anyone has heard of fell at Commencement."
+    },
+    {
+      "id": "the_old_bestiary",
+      "title": "Something from the Old Books",
+      "category": "The Running World",
+      "body": "At dusk, near a wound in the hills, something crossed the road: tall as a horse, pale as frost, too many joints in its legs, a heron's head carried very high. It looked at you once, without fear, and stepped off the road into the dark. The next village knew it before you had finished describing it. Their grandmothers' stories had a name for it, and the stories said the last of its kind died when the Seal was forged."
+    },
+    {
+      "id": "the_unnamed_glamour",
+      "title": "A Face You Cannot Keep",
+      "category": "The Running World",
+      "body": "The brokers of the Veiled Concord are easy to talk to. You will remember the conversation for the rest of your life, and you will not remember the face: it slides off your attention like rain off oilcloth, even while you look straight at it. It is not an enchantment. You know enchantments. It is not anything any school you know would put a name to."
+    },
+    {
+      "id": "the_new_reading",
+      "title": "The Sky Re-reads Itself",
+      "category": "The Running World",
+      "body": "When a reading ends you watch it close from the edge of the Anchorhold. It does not burn or fall. It closes the way water closes over a dropped stone: the kingdoms first, then the roads between them, then the faces you knew, until nothing shows but the sky, which has already begun to write again. Behind you the campus is exactly as you left it, and everything you built is still built. The Register writes down what was carried over and what was struck through."
+    },
+    {
+      "id": "strangers",
+      "title": "Strangers",
+      "category": "The Running World",
+      "body": "In a new reading the people you knew do not know you. They look at you the way people look at someone they have just met, politely and with nothing behind it. You know which of their stories are true, and what fear sounds like in their voices, and how much sugar goes in the tea, and none of it goes the other way. They were in the timeline. You were in the margin."
+    },
+    {
+      "id": "the_class_stone",
+      "title": "The Stone by the Road",
+      "category": "The Running World",
+      "body": "A hundred paces short of the fallen seat's gate, where the families used to wait for the students to come down, the town at the foot of the hill has set up a stone for the class who died in the hall. They cut it themselves and signed it small along the base. Yours is the first name, because the Provost called you first, and it is cut a little deeper than the rest. Under every name stands a wooden bowl turned right way up, for the dead. Somebody turned up yours, and has been back since to pull the weeds."
+    },
+    {
+      "id": "the_fallen_seat",
+      "title": "The Hall Without a Roof",
+      "category": "The Running World",
+      "body": "In the running world the ceremony hall has no roof. Rain has had the rows for a long time, grass grows between the stones of the examination floor, and the cradle on the dais holds nothing but rain. Nothing in it is still. In this hall the afternoon finished, and the place in front of the lectern where you stood is where you died. Nobody in the running world knows you came back from it. Behind the dais is a stair the students were never allowed to climb."
+    },
+    {
+      "id": "the_feast_and_the_bill",
+      "title": "The Feast and the Bill",
+      "category": "The Fast",
+      "body": "The Fast preaches that the Academy held a feast on the day it named its wizards. It laid the tables and filled the hall with the smell of bread, and something old and hungry smelled it from very far away. The Sundering was the bill. At the end of the sermon the almoner said to the whole square, 'I want them back. I refuse it.' Here and there in the crowd, people said it with her."
+    },
+    {
+      "id": "the_refusal",
+      "title": "The Refusal",
+      "category": "The Fast",
+      "body": "The refusal is the Fast's only prayer. An almonry keeps its shutters closed and its doors open. Inside there are no benches, only people standing, and an altar that is a wooden bowl as wide as a cartwheel, turned upside down. One at a time, anyone who wishes to says aloud a thing they want, and then refuses it. 'I want my brother home. I refuse it.' Nobody asks for anything. The Fast never asks."
+    },
+    {
+      "id": "the_lean_barns",
+      "title": "The Lean Barns",
+      "category": "The Fast",
+      "body": "Every household refuses a tenth of its harvest to the Fast's lean barns: stone barns with iron doors and a turned bowl carved over the lintel, guarded by the Order of the Tenth in undyed cloth. The barns open in famine and not before. That is the whole of the rule, and it is why there is anything in them at all. The Fast has fed every famine for centuries. In a lean year that has not yet decided to be a famine, the village beside the barn goes thin."
+    },
+    {
+      "id": "the_righted_bowl",
+      "title": "The Righted Bowls",
+      "category": "The Fast",
+      "body": "A bowl is turned right way up only for the dead, because the fast ends at death. Behind a tannery, where the almoner does not walk, somebody keeps a shelf of righted bowls, with a heel of bread or a spoon of honey or a copper in each, for the one who opened the sky. The almoner says it was a feast and the town is paying for it. A grandmother in the town says it was a door, and you leave a little something for whoever holds a door."
+    },
+    {
+      "id": "a_refusal_repaid",
+      "title": "A Refusal Repaid",
+      "category": "The Fast",
+      "body": "An almoner refused warmth at the winter refusal for thirty-one years, and kept her hearth cold to prove it. The morning after her last refusal the snow melted off her roof and nowhere else in town, and nothing has settled there since, not even the dew. Since the Sundering, refusals have begun to be repaid, and nobody knows by whom. The Six Houses sent strangers in undyed cloth to look. Nobody is sure whether they came to bless the almonry or to close it."
+    },
+    {
+      "id": "the_shrapnel",
+      "title": "Shrapnel",
+      "category": "The Seal",
+      "body": "When the sphere broke, its six pieces came down in the running world like hot coals, each near a kingdom's seat, and each has been leaking its school's magic ever since. The zone around each is the wound, and the same leak poisons its ground. A piece dreams its own guards in its school's idiom. Nobody stationed them, so no archmage can order them aside. A guardian holds the gate, and the piece waits beyond it."
+    },
+    {
+      "id": "the_seventh_angle",
+      "title": "The Road Down",
+      "category": "The Seal",
+      "body": "The land has an angle of its own. On the afternoon of Commencement the crows left the roof of the seat first, all at once, and a minute after them the Witness came out of the side door with a crow on her shoulder and walked down the old road. At the bend she stopped. Behind her, up on the hill, something gave way. For one breath she stood in the road with her back to the hall, deciding, and the land held its breath with her. Then she went on down, and did not look back."
+    },
+    {
+      "id": "the_ring_of_stones",
+      "title": "The Ring of Stones",
+      "category": "The Seal",
+      "body": "Where the old road below the fallen seat meets the plain stands a ring of standing stones, none taller than a person, each leaning a little toward the middle the way people lean in to listen. One place in the ring has no stone. When the six were forged, the Druids came here and stood in this ring, and stayed. The almonries count six refusals; the seventh school refused nothing. It gave itself. The ring is not a door, and it is not a relic. It is a watch, still kept."
+    },
+    {
+      "id": "the_land_will_hold",
+      "title": "The Land Will Hold",
+      "category": "The Seal",
+      "body": "At dusk the crows led you back to the ring, where the grass in the middle was pressed flat, as if someone had slept there and left before you came. The whole plain was listening, the way it waited in the road for the Witness to decide. You did not have to ask it for anything. The wardens never asked. A line came up through the Register's page in letters like roots in a cut bank: \"At the end, the land will hold.\" Far off, something that slept through the Seal is waking."
+    },
+    {
+      "id": "borrowed_language",
+      "title": "In Another Hand",
+      "category": "The Astrologer",
+      "body": "The Register writes what is said in the hand of whoever says it. That is the rule. After a fight it fell open at a line spoken across the field, and the line was not in the speaker's hand: \"It was not broken. It was opened.\" The hand was small, upright and patient, the hand of someone who writes a great deal and has never once been hurried. The words were spoken by one person and said by someone else."
+    },
+    {
+      "id": "as_read",
+      "title": "As Read",
+      "category": "The Astrologer",
+      "body": "When a seat falls to the Astrologer's reading, its officers carry envelopes of heavy paper, sealed in wax the blue of a clear night sky and addressed to no one. In the first you found there was a single card with two words: \"As read.\" The hand was small, upright and patient. You knew it: the hand the Register uses for words that are not the speaker's own. 'Be it recorded,' the Register said, very quietly, 'that the hand... matches.'"
+    },
+    {
+      "id": "the_margin_note",
+      "title": "The Margin Note",
+      "category": "The Astrologer",
+      "body": "Through the counter-lens the sky he reads is not stars but script, line under line from one horizon to the other, and all of it bends around a blank no wider than a word: the place where you stand. On every side the lines have been written and struck through so often they are nearly black. As you watched, a line came up beside the blank in a small, upright, patient hand: \"To whoever stands in my margin: you are welcome to it. It is the only room in the world I did not furnish.\""
+    },
+    {
+      "id": "the_offered_ending",
+      "title": "The Offered Ending",
+      "category": "The Astrologer",
+      "body": "A Keeper envoy found the party with a letter for the one who is not here, his eyes passing over you twice. In it Kassian Vor-Aleth offered an ending. Keep your door, your campus, its bell and its bread. Stop bringing the pieces home, live the same gentle year as many times as you like, and he will write around you. \"It is a good ending. I have read worse for better people.\" You refused. 'As read,' said the envoy, in a voice not quite his own."
+    },
+    {
+      "id": "not_the_answer_i_read",
+      "title": "Not the Answer I Read",
+      "category": "The Astrologer",
+      "body": "You accepted his ending, and at the next new moon the envoy brought your answer back unopened, its seal unbroken. Tucked under the seal was a card in the small, upright, patient hand: \"Not the answer I read. Interesting.\" There was never a deal. Of everything he has written, it is the only line he did not read before he wrote it."
+    },
+    {
+      "id": "the_study",
+      "title": "The Study",
+      "category": "The Astrologer",
+      "body": "Up the stair behind the fallen seat's dais is his reading room, its shutters open on the sky, and in the dust by the table the shape of two feet where someone stood the night before Commencement. Kassian Vor-Aleth reads on the roof above it, and he spoke down through the shutters to the hole in the room where you stood. In his reading the Seal keeps magic in, and the world behind it is starving. He chose the deaths, and would again. The spell was for the sentence, not for her. He has not read where the seep stops."
+    },
+    {
+      "id": "number_fifteen",
+      "title": "Number Fifteen",
+      "category": "The Seven Seats",
+      "body": "Wenna Aldric's list of the ways magical education fails has seventeen lines. Fourteen are struck through, sixteen and seventeen are written out in full, and fifteen is a number and nothing else. For eleven years nobody sat it. Every year the entrance examination is easier, and every year fewer pass it; she has been lowering the bar to keep the rooms full, and she did not want to write down why. The Register wrote it down, in her careful script."
+    },
+    {
+      "id": "the_provosts_hour",
+      "title": "The Provost's Hour",
+      "category": "The Seven Seats",
+      "body": "Walked through the edge, the founder of the Academy spent her hour correcting the frozen chalkboards in her school, every one, in order, though the chalk leaves no mark. Last she stood at the foot of the dais, below the Wenna Aldric of that afternoon with her mouth open on the next word, and the spell pointing past the place where you stood, at her. 'It was meant for me,' she said. She had never said it before. The Register wrote it one line below the line that stops."
+    },
+    {
+      "id": "the_sixty_pages",
+      "title": "The Sixty Pages",
+      "category": "The Seven Seats",
+      "body": "Aurel Pendry's sixty pages, close-written in a shorthand nobody else reads, find three errors in Kassian's reading. One: he reads the sky as a text and himself as its reader, and never allowed for a reader standing inside the text. Two: he took his rate from the Fast's dispensation rolls, which have stood nearly empty since Wenna Aldric struck the clause, and that is fatal to his timetable. Three: he priced the opening in lives, once, and never priced the seep. Wenna's own numbers fall too."
+    },
+    {
+      "id": "the_annotation",
+      "title": "The Annotation",
+      "category": "The Seven Seats",
+      "body": "Walked through the edge, Aurel Pendry went straight to the spell in the ceremony hall, walked its whole length twice the way he reads a page, and spent most of his hour annotating it. His last line: whoever drafted this was rushed. Look where the line ends. It was never addressed to you, and if it ever finishes casting, it will miss."
+    },
+    {
+      "id": "the_ninth_ending",
+      "title": "The Ninth Ending",
+      "category": "The Seven Seats",
+      "body": "Hess has watched eight endings happen and let every one of them, because she does not intervene. At Commencement she felt the ninth coming up through the floor, and knew that if she stayed in her chair she would have to decide whether to let it. She has never decided anything. So she walked out by the side door, and let it, and did not have to watch. She has told you, and nobody else. The land is louder this year, and she has not decided if that is good."
+    },
+    {
+      "id": "the_witness_sits",
+      "title": "Her Chair",
+      "category": "The Seven Seats",
+      "body": "Walked through the edge, Hess stopped in the side door she left by. On the dais two chairs stand empty, the Astrologer's and hers. She crossed the hall, climbed the dais and sat down in hers for the hour. 'I have watched eight endings happen,' she said, to the hall or to the land under it. 'I am willing to watch one be refused.'"
+    },
+    {
+      "id": "what_he_told_the_storm",
+      "title": "What He Told the Storm",
+      "category": "The Seven Seats",
+      "body": "Thirty years ago a storm went on for three days over a field, and Joren Kall stood in it and asked it what it wanted. It told him. Then he told it something he would tell nobody else for thirty years: it could say anything through him, for as long as it liked, as long as it said it in its own words. That was the only condition. Now the storm speaks in someone else's words. Borrowed language breaks the one thing he asked of it."
+    },
+    {
+      "id": "where_the_weather_stops",
+      "title": "Where the Weather Stops",
+      "category": "The Seven Seats",
+      "body": "Inside the Second nothing moves, not even weather. The fire has nothing to spread into, the ice nothing left to hold, the storm nowhere to go, and the earth, which only ever wanted to stay, has exactly what it wants. Walked through the edge, Joren Kall heard one voice in his head for the first time in thirty years, and it was his. At the gate, where the wind starts again, he offered to ask the storm one question for you, in its own words."
+    },
+    {
+      "id": "storm_answer_where",
+      "title": "Where He Is",
+      "category": "The Seven Seats",
+      "body": "Asked where he is, the storm answered through Joren Kall: high pressure over the place where the lines cross. It has not moved in a year. It is sitting on a hall with no roof. It says he is reading, and it says it the way you would say a man is drowning."
+    },
+    {
+      "id": "storm_answer_right",
+      "title": "Whether He Was Right",
+      "category": "The Seven Seats",
+      "body": "Asked whether he was right, the storm said yes at once, in its own words for once, the first thing you had heard it say that was not borrowed. Then the earth said something under it, slowly. Joren Kall listened to both, and translated only that the earth says it is still here. That is all it ever says. He has never known if it is an answer."
+    },
+    {
+      "id": "storm_answer_you",
+      "title": "The Blank That Moves",
+      "category": "The Seven Seats",
+      "body": "Asked about you, the storm told Joren Kall that there is one place in every reading it cannot read. A blank. It moves. It is always where you are."
+    },
+    {
+      "id": "the_narrowing",
+      "title": "The Narrowing",
+      "category": "The Seven Seats",
+      "body": "Cael Morn builds seven layers into every working because, Cael says, every year there is less to build with, and it takes more layers to hold the same weight: more than the last working, every year, everywhere. Cael noticed it long before anyone could name it. Now it has a name, the narrowing, and Kassian says it in his own sentences. Once a thing is named, Cael says, it is true."
+    },
+    {
+      "id": "the_seventh_layer",
+      "title": "The Seventh Layer",
+      "category": "The Seven Seats",
+      "body": "Walked through the edge, Cael Morn went nowhere but the gatehouse and spent the hour on the gate. You counted six layers going down, each fitted to the last, and lost count at the seventh, because it does not look like anything. It looks like the gate. It fires once, Cael says, when it matters. Then, for the first time you have ever heard, they said: 'I'm finished.'"
+    },
+    {
+      "id": "whose_fault",
+      "title": "Whose Fault",
+      "category": "The Seven Seats",
+      "body": "Every time the sky re-reads itself, Ondria Vell's regulars die again: Dace in his rout, Sister Ivo righting her bowl in the famine, Old Pell a day short of home. Then it un-happens, and then it happens again. They have noticed. They sit at their tables facing the door, and they want to know whose fault it is. It is the third of her last orders, and it is her own."
+    },
+    {
+      "id": "the_class_named",
+      "title": "Twenty-Six",
+      "category": "The Seven Seats",
+      "body": "Walked through the edge, Ondria Vell went straight to the ceremony hall. She walked the line of the graduating class, twenty-six of them, mid-step, and said their names the way she says her regulars' at closing. At the back of the hall a man sits half-risen from his seat, about to call out to someone in the line. He has sat at the back of her bar for a year. She did not pour anything. Nothing in the Second is dead."
+    },
+    {
+      "id": "the_governor",
+      "title": "The Governor",
+      "category": "The Seven Seats",
+      "body": "Bram Korro has forty years of figures, and every one goes the same way: fewer people every year can learn to cast at all. He measured it every way he knows. He measured the Seal too, when it was whole, and it reads like a governor, the thing that keeps an engine from running too fast, turned down a little more every year. What happens when you take the governor off, nobody has measured."
+    },
+    {
+      "id": "page_forty_four",
+      "title": "Page Forty-Four",
+      "category": "The Seven Seats",
+      "body": "Walked through the edge, Bram Korro kept both hands in his pockets, touched nothing, and diagrammed everything: the spell in its line of white fire, the bell holding its note, the steam standing over the refectory. In the infirmary he watched the mending spell for a long while. Then he wrote one line, underlined it, and showed you: \"it's tired. bring it something. see p.44.\""
+    },
+    {
+      "id": "the_convergence",
+      "title": "The Gathering",
+      "category": "The Convergence",
+      "body": "On the night of the Convergence the hall is full again. The families sit in the rows. The twenty-six stand along the wall in borrowed robes, with a gap where you stood. The Keepers are stopped mid-step in the east doors. Among all of it, moving and keeping quiet, is everyone you brought through the edge. The Astrologer's chair is empty, as it was at the naming. Above the lectern the ink of the next letter still stands in the air: the one thing in the hall that is yours, and what he is coming to finish."
+    },
+    {
+      "id": "the_east_doors",
+      "title": "The East Doors",
+      "category": "The Convergence",
+      "body": "You are the door. At the Convergence you stood in the east doors and opened, and the edge went out of you all the way around the Anchorhold at once. Through the doors stood this hall as the running world kept it: no roof, grass between the stones, rain on the empty dais, a lamp lit in a high window. Where the two floors met, the rain stopped in the air. Then everything in the hall that is his began to move. The Keepers finished their step, and the spell finished its flight toward the lectern."
+    },
+    {
+      "id": "not_as_read",
+      "title": "Not As Read",
+      "category": "The Convergence",
+      "body": "Beaten, Kassian Vor-Aleth went up the steps of the dais slowly, the way a man goes up to bed, and sat down in his own chair, and the Second took him the way it took the afternoon: a man with ink on one finger, looking at the lectern. The Astrologer's chair is not empty anymore. The Register began to record it, stopped, and for a long moment did not go on. Then, in its own hand, very small: \"Not as read.\""
+    },
+    {
+      "id": "the_rebinding",
+      "title": "Restoration",
+      "category": "The Convergence",
+      "body": "The breach closed the way a wound closes, from the edges in, and the last sound from the other side went with it. In the running world the wounds stopped leaking, the blight died back, and the things that came up through the seep went quiet, or went home. A child who lit a candle last winter with nobody to teach her tried again, and could not. The Fast will say the fast has been kept. Wenna Aldric's entrance examination will go on getting easier. You have bet the world that someone will be there to take the lamp."
+    },
+    {
+      "id": "the_harnessing",
+      "title": "Dominion",
+      "category": "The Convergence",
+      "body": "The breach did not close. It stays open the width of a hand, and it is yours: when you want it to come, it comes, and when you want it to stop, it stops. Mostly. In the running world the leaks became wells. Children light candles nobody taught them to light, the schools fill, and the Fast rings its bells for the dead and does not stop. Things still come up through the seep, and nobody has read where it stops. Now it is your hand that has to."
+    },
+    {
+      "id": "the_membrane",
+      "title": "Synthesis",
+      "category": "The Convergence",
+      "body": "You did not close the breach, and you did not keep it. You changed it. Piece by piece, with the other hand writing beside yours, you set the Seal back into the glass as a weave: six refusals with room between them, a membrane the world can breathe through that still holds back the flood. Magic comes back slowly, as much as the world can hold. The seep still comes in by measures, and something on the far side of it is paying attention. Nobody can read where any of it goes."
+    },
+    {
+      "id": "the_seventh_light",
+      "title": "The Seventh Light",
+      "category": "The Convergence",
+      "body": "On Restoration the glass took the pieces and held, and asked for one thing more. The Seal was never only six refusals: when it was forged a seventh school gave itself to keep it, and the land counted seven. The glass needed someone to stay in it and hold the places that would otherwise come apart, and someone stayed. The Register's voice was not steady when it recorded that the glass holds, and who holds it."
+    },
+    {
+      "id": "the_conferral_completed",
+      "title": "The Conferral",
+      "category": "The Convergence",
+      "body": "The naming that stopped at Commencement is done. The name is yours, of the guild: not a school. Any faculty in the world could have named you into a school, and some did; the other half was never theirs to give. The Examiner kept her word at last and told you what she thinks. Then the Register finished a sentence, its first since the afternoon: \"that the candidate was named.\" It read the sentence over to itself twice before it turned the page."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "id": "q_resolve_hess",
+    "title": "The Ninth Ending",
+    "category": "Story",
+    "permanent": false,
+    "layer": "Timeline",
+    "summary": "Hess decided something about you before you came over the hill, and said you would find out what. A crow has been keeping pace with the party ever since. Whatever she is counting, she has not said, and the crow is not telling.",
+    "requiredFlag": "hess_crow_set",
+    "objectives": [
+      {
+        "text": "Be seen",
+        "flag": "hess_arrived"
+      },
+      {
+        "text": "Answer the Witness's seat",
+        "flag": "qe_archmage_answered_hess"
+      }
+    ]
+  }
+]

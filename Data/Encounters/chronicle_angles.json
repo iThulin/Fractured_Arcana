@@ -1,0 +1,112 @@
+[
+  {
+    "id": "chronicle_angle_2",
+    "title": "The Second Angle",
+    "body": "You bring {fragment_name} up onto the dais. It is in the sphere already, as the first one was, a finger's width from its neighbors, and the one you carried goes into it the way a reflection goes into a mirror.\n\n{fragment_frame}\n\nThis time the glass does not look out at the hall. It looks down its own wards.\n\nThey were cut to the sphere, every one of them, the way a bell rope is tied to a bell, and when anything touched them the sphere felt it. That morning, early, before the families came, something touched the oldest of them: the ward-stone in the gatehouse arch, where every ward in the seat is knotted together.\n\nThe gatehouse is gray and empty, and the dew is still on the steps. At the ward-stone, alone, with one hand flat on it the way that hand will rest on the cradle in the afternoon, stands {traitor_full}.\n\n{hand_work}\n\nIt takes a long time. When it is done the wards look exactly as they did, and they will hold exactly as they did, until someone says a word. Then they will open inward, all at once, from the inside.\n\nThe hand comes away from the stone. It is not shaking. It had all night to stop shaking.\n\nThe glass lets you go. Out at the gatehouse the arch stands where it always has, and now you know whose hand turned its sigils.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go out to the gatehouse.",
+        "resultText": "You stand under the arch for a long time. Read in reverse, the breaking always made sense. Under your arm the Register writes down whose hand turned the sigils, and underlines it, once.",
+        "loreId": "the_hand"
+      },
+      {
+        "label": "Stay with the glass.",
+        "resultText": "You stay on the dais until the piece you brought is warm under your hand. It was planned. You knew that. It is a different thing to have watched it planned.",
+        "loreId": "the_hand"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_angle_3",
+    "title": "The Third Angle",
+    "body": "The glass takes {fragment_name} home, and this time it turns your eyes toward the east windows.\n\n{fragment_frame}\n\nThe windows stand open for the heat. Past them, beyond the roofs of the seat, a ridge runs along the sky, and on the ridge there are people standing in rows, in a blue so dark it is nearly the sky's own: the Keepers, a long way off, perfectly still, the way a sentence is still before its verb.\n\nIn front of them a man stands a little apart, with his face turned up.\n\nHe is reading. He has no book. He reads the sky the way other people read a page held close, his lips moving a little, and now and then he tilts his head as if a line has surprised him, and then, on reflection, has not.\n\nBelow him, in the hall, the Provost is calling the first name of the afternoon. You can hear it from here, faintly. It is yours.\n\nThe man on the ridge lowers his eyes from the sky to the hall, and for one moment the glass sees his face: an ordinary face, patient, a little tired, the face of someone who has read to the end of a thing and is sorry about the end and is going to let it happen anyway.\n\nHe closes his eyes.\n\n'Now,' says Kassian Vor-Aleth.\n\nHe does not come down. The Keepers go past him, down the slope toward the gate, and he stays where he is, on the ridge, outside. Then he opens his eyes and goes back to reading.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Look at his face until the glass lets go.",
+        "resultText": "It lets go, in the end, and you will know the face again. Under your arm the Register writes one word in a small, upright, patient hand: 'Now.' Then, in its own: 'Be it recorded that he did not come in.'",
+        "loreId": "the_window"
+      },
+      {
+        "label": "Look at the gate.",
+        "resultText": "The Keepers are already at it, and the wards open inward for them as if they were expected, which they were. Behind you, in the hall, the Provost does not stop speaking.",
+        "loreId": "the_window"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_angle_4",
+    "title": "The Fourth Angle",
+    "body": "You bring {fragment_name} home, and this time the glass does not look anywhere at all. It remembers a hand.\n\n{fragment_frame}\n\nIn the afternoon a palm lay flat on the cradle, waiting, and then flat on the glass itself as it broke, and the glass took everything that hand was holding. Most of it was the hall. Some of it was the night before.\n\nIt is late, and it is not the hall. It is a high room in the seat with the shutters open on the sky, and a lamp on the table that nobody has lit, because there is no need: the sky gives light enough to read by. Kassian Vor-Aleth sits at the table. Across it stands {traitor_full}.\n\n'Here,' he says, and turns a page that is not a page around on the table, toward {traitor_short}. It is a passage, and you see it the way {traitor_short} saw it.\n\nThe Seal holds. The world goes on as it is, lean and careful, and in every generation fewer people can learn to cast at all. The schools ration what is left. In a few lifetimes the last wizard dies in a cold room with no student to hand the lamp to, and nothing comes after.\n\n'That is the world where nothing happens tomorrow,' he says. 'I have read it to the end. I have read every version of it, and every version ends in that room.'\n\n{reading_seen}\n\n'Tomorrow, at the naming,' he says. 'The wards open from inside. You will open them; they will let you. And when the Provost begins the naming, you silence the voice that names. If no one is named, the schools stop renewing themselves, and the old order ends with the Seal. Many people will die. I have read how many. It is a price, and I have decided to pay it, and I am not asking you to like it.'\n\nHe does not ask {traitor_short} to believe him. He waits.\n\n{reading_answer}\n\n'Be it recorded,' the Register says, and stops. It has nothing to record. None of this is in the minutes. It was said in a room where nobody was writing.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'He could be right.'",
+        "resultText": "The Register does not answer. It never confirms him, and it never refutes him. It writes down, in your hand, exactly what you said.",
+        "loreId": "the_reading"
+      },
+      {
+        "label": "'He could be wrong.'",
+        "resultText": "The Register does not answer. It never refutes him, and it never confirms him. It writes down, in your hand, exactly what you said.",
+        "loreId": "the_reading"
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing. Neither does the Register, for a long time.",
+        "loreId": "the_reading"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_angle_5",
+    "title": "The Fifth Angle",
+    "body": "The glass takes {fragment_name} home and looks down, through its own cradle, into the stone it stands on.\n\n{fragment_frame}\n\nIt is weeks earlier, and night, and the hall is empty. The chairs are stacked along the wall. Somebody has left a window open, and a moth is going around the sphere in slow circles, as if the light might be a door.\n\nA man comes in by the side door and stands for a while looking at the dais. Then he climbs it, kneels at the foot of the cradle, and lays his hand flat on the floor.\n\nThe floor opens for him like a page. Under it is the foundation stone of the hall, laid when the hall was the Fast's house of the sphere, and he begins to write in it with one finger.\n\nYou know the face. It is the face from the ridge. But the hand is not his. The letters are the same letters, and they lean, and they hurry, and once he stops and goes back and writes a line again more carefully, which the man on the ridge has never needed to do in his life.\n\nHe is writing a second down, and fastening it to an instant: the naming at Commencement, the moment the first name of the afternoon is half spoken. When he comes to the place where the name should go, he stops. He does not know whose it will be. He leaves it blank.\n\nHe looks at the blank for a long time.\n\nThen he reaches up and lays his palm on the sphere, over one of its six lights, and the light dims for a breath, as if something has been signed for. In the margin of the stone, beside the blank, very small, he writes: I am sorry.\n\nHe closes the floor, and stands, and goes out the way he came. The moth goes on around the sphere. It has not found the door.\n\n'That hand,' the Register says slowly, 'is not in the minutes. It is very like one that is.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Kneel where he knelt.",
+        "resultText": "The floor does not open for you. But you know what is under it now: a second, fastened to an instant, with a space in it the shape of a name. You have been standing in that space since the afternoon of Commencement.",
+        "loreId": "the_margin"
+      },
+      {
+        "label": "'He wrote that he was sorry.'",
+        "resultText": "'He wrote it down,' says the Register. 'That is not the same thing as saying it.' It considers this. 'It is... nearer.'",
+        "loreId": "the_margin"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_angle_6",
+    "title": "The Sixth Angle",
+    "body": "You bring {fragment_name} home, the last of the six, and the glass takes it in and does not look anywhere else. It has been waiting to show you this. It has been showing it to itself since the afternoon of Commencement, over and over, like a wound that cannot finish opening.\n\n{fragment_frame}\n\nThe hall, the afternoon, the naming. Close now, closer than any angle has come, because the glass is not looking at the instant. It is in it.\n\nA palm lies flat on the glass, right there, so near that you could count the lines in it. It is {traitor_short}'s. Through it you can feel a pulse, very fast.\n\nBeyond the palm the Provost is speaking. '...and by the hand of this Register, the Aldric Academy names...' In front of the lectern, between it and the dais, a candidate stands with a folio slipping from under one arm, looking straight up at the dais. It is you. You put yourself there.\n\nThe traitor's other hand comes up.\n\nThe spell is drafted in a hurry. You can watch it being drafted: a line of white fire, written all at once, without a second look, from the hand toward the lectern, toward the voice. It is aimed past you. It runs through the place where you are standing because that is where you are standing.\n\nWenna Aldric sees it leave the hand. Her eyes go to it, and then to you, standing in front of her with your back to her, and then they come back to the Register, and her voice does not change at all.\n\n'...{wizard_name} into the discipline of...'\n\nThe glass breaks. The six lights pull away from one another, a finger's width, and stop. The line of white fire stops an arm's length from your chest. Nothing in the hall moves except you.\n\n'Six,' says the Register, after a while. 'From inside, that is all of it.' A pause. 'The Witness left by the side door. The minutes do not say where she went.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Stand where you stood.",
+        "resultText": "You go down off the dais and stand in the place in front of the lectern, with the spell an arm's length from your chest and the Provost behind you with her mouth open on your name. You have stood here many times. It is the first time you have known that she saw it coming, and did not stop.",
+        "loreId": "the_rushed_hand"
+      },
+      {
+        "label": "Look at the Provost.",
+        "resultText": "Her eyes are on the Register, where she put them back. She saw it, and she decided not to stop. You have never once known her to leave a sentence unfinished, and you were standing in this one.",
+        "loreId": "the_rushed_hand"
+      }
+    ]
+  }
+]

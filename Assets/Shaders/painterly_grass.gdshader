@@ -437,6 +437,27 @@ float dither_bayer(vec2 fc)
 // everywhere unless use_imbuement_field is on.
 varying vec4 v_imbue;
 
+// Lens compensation (camera_lens_slice1, 2026-10-06). The far-fade and depth-tint
+// distances in this shader were tuned under a 75 degree lens. A narrower lens frames
+// the same board from farther back, so a blade of the same SCREEN size sits at a
+// larger true distance. lens_k rescales those thresholds by exactly the camera's
+// zoom scale. The near fade keeps true distance: it is about the lens touching blades.
+group_uniforms;
+uniform bool lens_compensate_distance = true;
+
+float lens_k(mat4 proj)
+{
+    // |proj[1][1]| = 1 / tan(vertical half-FOV) for a perspective camera; 0.767327 is
+    // tan(37.5 deg), the reference half-angle. The MAGNITUDE matters: Godot's Forward+
+    // renderer folds a Y flip into PROJECTION_MATRIX, so [1][1] is negative there (the
+    // signed value clamped to 0.05 and faded every blade as if it were 20x farther
+    // away). proj[3][3] is 1 for orthographic passes (directional shadow maps), which
+    // keep the raw distance.
+    if (!lens_compensate_distance || proj[3][3] > 0.5)
+        return 1.0;
+    return max(abs(proj[1][1]) * 0.767327, 0.05);
+}
+
 void vertex()
 {
     // Height normalisation, priority order: per-instance custom-data height
@@ -666,7 +687,7 @@ void fragment()
     // 6. Atmospheric depth tint — distant grass recedes toward haze.
     if (use_depth_tint)
     {
-        float dt = smoothstep(depth_start, depth_end, v_view_dist) * depth_strength;
+        float dt = smoothstep(depth_start, depth_end, v_view_dist / lens_k(PROJECTION_MATRIX)) * depth_strength;
         col = mix(col, depth_color, dt);
     }
 
@@ -691,7 +712,7 @@ void fragment()
     //    material must stay opaque or tile-order overwrites come back.
     float fade = 1.0;
     if (use_distance_fade)
-        fade = 1.0 - smoothstep(fade_start, fade_end, v_view_dist);
+        fade = 1.0 - smoothstep(fade_start, fade_end, v_view_dist / lens_k(PROJECTION_MATRIX));
     if (use_near_fade)
         fade *= smoothstep(near_fade_end,
                            max(near_fade_start, near_fade_end + 0.01), v_view_dist);

@@ -1,0 +1,79 @@
+[
+  {
+    "id": "arc_hess_crow",
+    "title": "The Crow",
+    "body": "Since the road, a crow has kept pace with the party. It does not come closer and it does not leave. It sits on fence posts and chimney pots and the roofs of burned barns, and when the party moves on, it is on the next one.\n\nIt is not a pet, and it is not a messenger. The crows that follow the Witness are present for the same reason carrion birds are present at anything: something is about to happen, and they would like to be there when it does.\n\n'Be it recorded,' the Register says, 'that the party is being... observed.' It considers this. 'Procedurally, so is everyone. This is different.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Leave it be.",
+        "resultText": "You leave it be. It does not seem to have expected anything else."
+      },
+      {
+        "label": "Leave it something.",
+        "resultText": "You set a crust on the post. The crow eats it, and goes on watching. It was not that kind of test."
+      }
+    ]
+  },
+  {
+    "id": "arc_hess_arrival",
+    "title": "Why She Left",
+    "body": "Hess is sitting on a stone at the side of the road with three crows on the wall behind her, eating an apple, as if she has been there all morning. She may have been.\n\n{arrival_open}\n\nShe finishes the apple, core and all, and looks at you the way the land looks at weather.\n\n'I walked out of the hall before the wards broke,' she says. 'Everyone asks me why, so I have never said. I knew something was about to end. I usually do. I have watched eight endings happen, and I let every one of them, because that is what I do. I do not intervene.'\n\n'I could feel the ninth coming up through the floor. And I knew that if I stayed in my chair I would have to decide whether to let it. I have never decided anything. So I got up and walked out, and let it, and did not have to watch.'\n\nA crow shifts on the wall.\n\n'The land is louder this year,' she says. 'Every wound where a piece came down is singing. Things are waking that slept through the Seal. He says that is the world breathing again. I have not decided if that is good. They count six, in the almonries. The land counts seven.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Why tell me?'",
+        "resultText": "{arrival_reason} She gets up. 'I decided about you before you came over the hill. Now you know what I decided.' The crows go north. She follows them.",
+        "setMetaFlags": [
+          "chronicle_hess_ninth_heard"
+        ],
+        "swayArchmage": "hess",
+        "swayAmount": 160
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing, and she seems to like that better than anything you could have said. After a while she gets up and goes north with the crows, and you understand that the audience, when you seek it, will be a formality. Hess does not keep formalities. She will make an exception.",
+        "setMetaFlags": [
+          "chronicle_hess_ninth_heard"
+        ],
+        "swayArchmage": "hess",
+        "swayAmount": 160
+      },
+      {
+        "label": "'You left so you would not have to decide.'",
+        "resultText": "Hess goes still, in a way the land around her does not. 'Nobody has said that to me,' she says. 'I have said it to myself, at night, and I did not like hearing it then.' She looks at you for a long time. 'You have been here before.' It is not a question. She gets up, and the crows go north, and this time she nods to you before she follows them.",
+        "requiredFlag": "chronicle_hess_ninth_heard",
+        "setMetaFlags": [
+          "chronicle_hess_ninth_heard"
+        ],
+        "swayArchmage": "hess",
+        "swayAmount": 160
+      }
+    ]
+  },
+  {
+    "id": "arc_hess_inside",
+    "title": "Her Chair",
+    "body": "You walk Hess through the edge. She does not like rooms, and she likes this one less than most, and she comes anyway.\n\nIn the ceremony hall she stops in the side door, the one she left by. From there she can see all of it: the families in their rows, the Keepers stopped in the east doors, the spell in its line of white fire, the sphere caught breaking. On the dais, among the others, two chairs stand empty. One is the Astrologer's.\n\nThe other is hers. She left it a minute before the wards broke, and it has been empty ever since.\n\nShe crosses the hall, climbs the dais, and sits down in it.\n\n'I have watched eight endings happen,' she says, to the hall, or to the land under it. 'I am willing to watch one be refused.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Sit with her.",
+        "resultText": "You sit on the dais step below her chair, and neither of you says anything, and the hour goes by the way water goes downhill. Under your arm the Register writes one line: 'Be it recorded that the Witness has returned to her seat.' Then, more quietly: 'For an hour.'"
+      },
+      {
+        "label": "Leave her to it.",
+        "resultText": "You leave her to it. When the hour is up she is at the side door, and on her way out she nods to you, which is more than she did for the hall."
+      }
+    ]
+  }
+]

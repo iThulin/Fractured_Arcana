@@ -1,0 +1,29 @@
+[
+  {
+    "id": "q_resolve_conductor",
+    "title": "Last Orders",
+    "category": "Story",
+    "permanent": false,
+    "layer": "Timeline",
+    "summary": "Three of Ondria Vell's regulars each have one thing left undone: Dace wants to see a fight won properly, Sister Ivo a bargain where nobody goes hungry, and Old Pell the road answered for him. Fill any two of their last orders. The third is hers.",
+    "requiredFlag": "conductor_ask_set",
+    "objectives": [
+      {
+        "text": "Fill the first order",
+        "flag": "conductor_order_1_done"
+      },
+      {
+        "text": "Fill the second",
+        "flag": "conductor_order_2_done"
+      },
+      {
+        "text": "Hear her own order",
+        "flag": "conductor_fault_heard"
+      },
+      {
+        "text": "Answer the Conductor's seat",
+        "flag": "qe_archmage_answered_conductor"
+      }
+    ]
+  }
+]

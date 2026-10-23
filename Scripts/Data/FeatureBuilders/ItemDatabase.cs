@@ -47,14 +47,13 @@ public static class ItemDatabase
         _loaded = true;
         _cache.Clear();
 
-        if (!DirAccess.DirExistsAbsolute(ProjectSettings.GlobalizePath(ITEMS_DIR)))
+        // Open res:// directly: GlobalizePath on res:// does not work in an exported build.
+        using var dir = DirAccess.Open(ITEMS_DIR);
+        if (dir == null)
         {
             GD.PrintErr($"ItemDatabase: No items directory at {ITEMS_DIR}");
             return;
         }
-
-        using var dir = DirAccess.Open(ITEMS_DIR);
-        if (dir == null) return;
 
         dir.ListDirBegin();
         string filename = dir.GetNext();

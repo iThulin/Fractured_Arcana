@@ -1,0 +1,261 @@
+[
+  {
+    "id": "arc_aurel_ask",
+    "title": "Broken Workings",
+    "body": "A Sending reaches you with two voices in it: Master Aurel Pendry's, and under it, half a breath behind, the quieter one that is also his, annotating.\n\n'I am told your sentence cannot be revised,' he says. (He is told this by himself, nightly.) 'Very well. I will not try. Not yet. First I want to see how you look at things that can be revised.'\n\n'Bring me broken workings. The world has been full of them since the hall: wards failing at town gates, and the wounds where the pieces came down, which are workings too, if you have the patience to read them. Find me two. Look at each one until you can tell me what it is failing to do. Not what is wrong with it. What it is failing to do.' (Different question. Most people answer the first.)\n\n'The third broken working I will supply myself. I have been studying it for twenty years.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Agree.",
+        "resultText": "'Good.' (He means it. Mark the date.) The Sending closes on the sound of a page turning."
+      },
+      {
+        "label": "'What is the difference?'",
+        "resultText": "'A thing that is wrong can be put right,' he says. 'A thing that is failing to do something can be revised. One of those is a repair. The other is a reading.' (He has said this before. He enjoys it every time.)"
+      },
+      {
+        "label": "'I have one already. The Academy's ward, broken from the inside.'",
+        "resultText": "A long silence on the line. (Underline. Twice.) 'And what is it failing to do?' he says, and you tell him: it is failing to keep out anyone who was already in. 'Yes,' says Aurel Pendry, very quietly. 'That is precisely what it is failing to do. I will enter it as the first.'",
+        "requiredFlag": "chronicle_aurel_revised",
+        "setFlags": [
+          "aurel_trial_1_done"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_ward",
+    "title": "{trial_title}",
+    "body": "As you pass under the gate, Aurel's Sending arrives, both voices at once. He is looking through your eyes at the ward cut into the arch: a ring of old figures, worn smooth, one of them dark.\n\n'There,' he says. 'Third ring, fourth figure. The town has been patching it with chalk since the hall fell.' (Badly.) 'It has failed every night for a season, and every morning they draw it again, exactly as it was.'\n\n'Tell me what it is failing to do.'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Hold.'",
+        "resultText": "'That is the symptom,' he says. 'I asked for the failure.' (Try again. Not now.) {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_aurel_revised"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 20
+      },
+      {
+        "label": "'Keep out what it was drawn against.'",
+        "resultText": "'Closer,' he says. 'That is what it was for. I asked what it is failing to do.' (Different question.) {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_aurel_revised"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 25
+      },
+      {
+        "label": "'Fit the town. The town grew past it.'",
+        "resultText": "A pause on the line. (Underline.) 'Yes,' he says. 'It was drawn around the town as the town was forty years ago. Half the houses stand outside it now. It is not broken. It is out of date, and they keep redrawing it exactly as it was.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_aurel_revised"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_wound",
+    "title": "{trial_title}",
+    "body": "At the edge of the wound Aurel's Sending arrives, and for once both of his voices are quiet for a moment.\n\n'So that is a wound,' he says. 'A piece of the sphere, lying where it fell, doing its school's magic into the ground with nothing to stop it. Everyone calls it a leak. A leak is a failure of a container.' (It is not the container that interests me.)\n\n'Tell me what it is failing to do.'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'It isn't failing. It's doing exactly what it was made to do, and nothing is stopping it.'",
+        "resultText": "'Correct,' he says, and does not sound pleased. 'The Fast says each piece was a refusal: something its maker wanted and set aside. For once the church has the mechanism right. The sphere held the refusals. Take the sphere away and the refusing stops.' (That is the uncomfortable part. Underline it anyway.) {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_aurel_revised"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      },
+      {
+        "label": "'Stay shut.'",
+        "resultText": "'Things that were never shut do not fail to stay shut,' he says. (Look again.) {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_aurel_revised"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 20
+      },
+      {
+        "label": "'Hold the Seal together.'",
+        "resultText": "'That was the sphere's work, not the piece's,' he says. 'You are describing the container.' (Everyone does.) {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_aurel_revised"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 25
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_pages",
+    "title": "The Sixty Pages",
+    "body": "Master Aurel Pendry receives you at his bench, among the disassembled spells of every school, and before you can speak he sets a document on top of them. Sixty pages, close-written, in a shorthand nobody else reads. The margins have margins.\n\n'The third broken working,' he says. 'His. The reading he broke the Seal for. I have checked his figures for twenty years.' (Twenty-one.) 'There are three errors.'\n\nHe turns the pages for you, one finger on each line.\n\n'The first error: he reads the sky as a text and himself as its reader. He never allowed for a reader standing inside the text.' (I wrote that twenty years ago as a technicality. It has since acquired a face.)\n\n'The second: his rate. He took it from the Fast's dispensation rolls, which count everyone who asked the church for leave to cast. For forty years most of the world has not asked, because Wenna Aldric struck the clause. He fitted his curve to the years she emptied the rolls, and called her success the world starving. That error is fatal to his timetable.'\n\n'The third: he priced the opening in lives, once, as if it could be paid once. He never priced the seep, because he cannot read where it stops.'\n\nHe closes the document. 'I have not yet decided whether the second is fatal to his conclusion,' he says. 'Wenna's own numbers fall too, and she never asked the church for anything.' (That is the part I lie awake on.) 'Which would you check first?'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'The second.'",
+        "resultText": "'So would I,' he says. 'So I did. Twice.' He slides the document across to you. 'Keep it. I have the original in my head.' (And a copy. And a copy of the copy.) 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_aurel_pages_heard"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      },
+      {
+        "label": "'The third.'",
+        "resultText": "'Nobody checks the third,' he says. 'Everyone wants to know when. Nobody asks where it stops.' (Underline.) He slides the document across. 'Keep it.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_aurel_pages_heard"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      },
+      {
+        "label": "'The second is fatal to his timetable. You haven't decided about his conclusion.'",
+        "resultText": "Aurel Pendry looks at you for a long moment, and the second voice says nothing at all, which you have never heard it do. 'I have told no one that,' he says. 'Not in so many words.' He does not ask how. He writes something small in the margin of the sixtieth page and turns it so you can read it: (Reader in the text. See error one.) 'Now. The audience.'",
+        "requiredFlag": "chronicle_aurel_pages_heard",
+        "setMetaFlags": [
+          "chronicle_aurel_pages_heard"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_inside",
+    "title": "The Annotation",
+    "body": "You walk Aurel Pendry through the edge. He does not look at the bell, or the feast, or the Keepers stopped mid-step in the east doors. He asks for the ceremony hall, and when you bring him there he goes straight to the spell.\n\nIt hangs where it has always hung: a line of white fire an arm's length from the place where you stood, running back to {traitor_short}'s hand and pointing past that place, at the lectern. He walks its whole length twice, slowly, the way he reads a page. Then he takes out his shorthand and begins to annotate it.\n\nIt takes him most of the hour. When he is done he reads you the last line.\n\n'Whoever drafted this was rushed,' he says. 'Look where the line ends. It was never addressed to you. And if it ever finishes casting, it will miss.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Show me your working.'",
+        "resultText": "He does. It takes another hour, which he does not have, and he takes it anyway. Under your arm the Register copies every annotation in his hand, very small, and at the end adds a line of its own: 'Received.'"
+      },
+      {
+        "label": "Thank him.",
+        "resultText": "'Do not thank me,' he says. 'Check me.' On the way out he stops under the gatehouse arch, where the wards were broken from inside, and looks at it for a long time without taking out his pen."
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_shadow_ask",
+    "title": "The Second Voice",
+    "body": "A Sending reaches you with two voices in it, as before. This time the second one does not annotate. It only repeats, a little behind, as if checking each word for errors and finding none.\n\n'I aimed past you,' says Aurel Pendry. (Past you.) 'I have told you that. I find I want to keep telling you, which is not like me.' (Not like me.)\n\n'You will come to my seat whether I ask or not. So I will ask, and we will both pretend the asking is the part that matters. Bring me broken workings. Two. Wards failing at town gates; the wounds where the pieces came down. Look at each until you can tell me what it is failing to do. I am, it turns out, very good at finding where things fail.' (From the inside.)\n\n'The third I will supply. I have checked it for twenty years, and it does not fail where I need it to.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Agree.",
+        "resultText": "'Good,' he says, and then, after a moment, with nothing behind it at all: 'Thank you.' The second voice does not repeat it."
+      },
+      {
+        "label": "'You opened the wards.'",
+        "resultText": "'Yes,' he says. (Yes.) 'I have revised that sentence every way I know. It does not improve.' The Sending closes on the sound of a page turning, and then of the same page being turned back."
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_shadow_pages",
+    "title": "A Confession with Footnotes",
+    "body": "Master Aurel Pendry receives you at his bench, and the sixty pages are already on it, squared to the edge, as if he has been waiting a long time to set them in front of someone.\n\n'His reading,' he says. 'The third broken working. Three errors. I found every one of them.' (Every one.)\n\nHe turns the pages for you, one finger on each line.\n\n'The first error: he reads the sky as a text and himself as its reader. He never allowed for a reader standing inside the text.' (I wrote that twenty years ago as a technicality. It has since acquired a face.)\n\n'The second: his rate. He took it from the Fast's dispensation rolls, which count everyone who asked the church for leave to cast. For forty years most of the world has not asked, because Wenna Aldric struck the clause. He fitted his curve to the years she emptied the rolls, and called her success the world starving. That error is fatal to his timetable.'\n\n'The third: he priced the opening in lives, once, as if it could be paid once. He never priced the seep, because he cannot read where it stops.'\n\n'Three errors,' he says, 'and not one of them in the ending. I checked. The world narrows more slowly than he says, and it narrows. Wenna's own numbers fall, and she never asked the church for anything.' He closes the document. 'So I opened the wards. These pages are not a refutation. They are a confession with footnotes.'\n\n'You want to know what he showed me. Not here. Ask me where it happened.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'In the hall, then.'",
+        "resultText": "'In the hall,' he agrees. (In the hall.) He slides the pages across to you. 'Keep them. I know them by heart. That has not helped.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_aurel_shadow_pages_heard"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      },
+      {
+        "label": "'You could have been wrong.'",
+        "resultText": "'I could have been wrong,' he says. 'That is the only sentence in sixty pages I would still sign.' He slides them across. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_aurel_shadow_pages_heard"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      },
+      {
+        "label": "'Not one of them in the ending. You checked for twenty years.'",
+        "resultText": "He looks at you as if you had read his own handwriting back to him. 'You have heard this before,' he says. (Before.) 'And still you came.' 'Now. The audience.'",
+        "requiredFlag": "chronicle_aurel_shadow_pages_heard",
+        "setMetaFlags": [
+          "chronicle_aurel_shadow_pages_heard"
+        ],
+        "swayArchmage": "aurel",
+        "swayAmount": 35
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_shadow_penance",
+    "title": "What Did He Show You?",
+    "body": "You walk Aurel Pendry through the edge and into the ceremony hall, and he stops at the foot of the dais, in front of himself.\n\nThe Aurel Pendry of that afternoon is caught mid-stride, one palm flat on the sphere as it breaks, his face turned to the lectern. The spell runs from his hand in a line of white fire, past the place where you stood, toward the Provost. He looks at it for a long time. He does not take out his pen.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'The passage,' he says. 'The world where the Seal holds and the last wizard dies in a cold room with no student to hand the lamp to. He showed it to me the night before, in his reading room, and he did not ask me to believe it. He asked me to check it.' (He knew I would.) 'I found my three errors, and not one of them was in the ending. So I agreed to open the wards, and to silence the voice that names. Her voice. If no one is named, the schools stop renewing themselves, and the old order ends with the Seal.'\n\n'I drafted that,' he says, looking at the spell. 'In a hurry. It is the only thing I have ever drafted in a hurry.' Then he turns his back on it, which you have never seen him do to a text. 'I said I was only revising where I stood when it arrived. I am revising it again. I will stand on that dais at the end, in that chair, and watch it refused. And then I will check whether I was wrong. I would like, very much, to have been wrong.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Then stand there.'",
+        "resultText": "He nods. On the way out he stops under the gatehouse arch, where he broke the wards, and stands there until you call him. Under your arm the Register writes his answer in his hand, and under it, in its own: 'Revised.'"
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing. He seems to prefer it. When you reach the gate he says, without turning: 'Check me at the end.' (Check me.)"
+      }
+    ]
+  },
+  {
+    "id": "arc_aurel_shadow_treachery",
+    "title": "What Did He Show You?",
+    "body": "You walk Aurel Pendry through the edge and into the ceremony hall, and he stops at the foot of the dais, in front of himself.\n\nThe Aurel Pendry of that afternoon is caught mid-stride, one palm flat on the sphere as it breaks, his face turned to the lectern. The spell runs from his hand in a line of white fire, past the place where you stood, toward the Provost. He looks at it for a long time. He does not take out his pen.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'The passage,' he says. 'The world where the Seal holds and the last wizard dies in a cold room with no student to hand the lamp to. He showed it to me the night before, in his reading room, and he did not ask me to believe it. He asked me to check it.' (He knew I would.) 'I found my three errors, and not one of them was in the ending. So I agreed to open the wards, and to silence the voice that names. Her voice. If no one is named, the schools stop renewing themselves, and the old order ends with the Seal.'\n\nHe says all of it to you, not to the spell, the way he would read out a correction.\n\n'You coerced me,' he says. 'You did not refute me. Those are different verbs, and I have not stopped knowing the difference.' (Note it.) 'I will stand where you put me. At the end you may want to remember that you never once asked whether I was wrong. You only asked what I was shown.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'I'm asking now.'",
+        "resultText": "'Too late in the draft,' he says, and walks out ahead of you. Under your arm the Register writes his answer in his hand, and does not add anything of its own."
+      },
+      {
+        "label": "Walk him out.",
+        "resultText": "You walk him out. Under the gatehouse arch, where he broke the wards, he does not look up. (He knows them by heart.)"
+      }
+    ]
+  }
+]

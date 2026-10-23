@@ -1,0 +1,31 @@
+{
+  "id": "korro_proving_coil",
+  "threatLabel": "Proving Coil",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "A coil of copper wire wound so tight it hums. It mends every wound at the end of its turn, unless it lost 20 or more that round.",
+  "maxHealth": 24,
+  "baseSpeed": 0,
+  "armor": 0,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 1,
+  "behaviorKey": "inert",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "regrowth",
+      "trigger": "onTurnEnd",
+      "name": "Mends",
+      "intelDescription": "Heals to full at the end of its turn unless it lost 20 or more health that round.",
+      "params": {
+        "threshold": "20"
+      }
+    }
+  ],
+  "colorR": 0.78,
+  "colorG": 0.5,
+  "colorB": 0.28
+}

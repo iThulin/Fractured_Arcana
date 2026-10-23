@@ -1,0 +1,33 @@
+{
+  "id": "korro_dummy_rack",
+  "threatLabel": "Dummy Rack",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "A rack of practice dummies. While a dummy stands beside it, the dummy takes the blow. It puts out a fresh one every round.",
+  "maxHealth": 20,
+  "baseSpeed": 0,
+  "armor": 0,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 1,
+  "behaviorKey": "inert",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "summon_cadence",
+      "trigger": "everyNRounds",
+      "name": "Fresh Dummy",
+      "intelDescription": "Puts out one Practice Dummy beside itself every round.",
+      "params": {
+        "n": "1",
+        "count": "1",
+        "unit": "korro_practice_dummy"
+      }
+    }
+  ],
+  "colorR": 0.5,
+  "colorG": 0.42,
+  "colorB": 0.32
+}

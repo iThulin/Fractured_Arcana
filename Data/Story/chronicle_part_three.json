@@ -1,0 +1,255 @@
+{
+  "_doc": "Chronicle scheduler table for Part III, The Fallen Seat. The rules are C1 in docs/story_wiring_v1.md; the script is docs/chronicle_part_three_v1.md. Beats are evaluated in file order on each raise of their hook; lineTokens maps each line token to its key in this file's lines.",
+  "part": 3,
+  "encounterFile": "chronicle_part_three",
+  "lineTokens": {
+    "study_way_in": "study_way_in",
+    "seats_title": "seats_title",
+    "seats_answered": "seats_answered"
+  },
+  "beats": [
+    {
+      "id": "iii0_part_three_angle",
+      "hook": "on_scene_ready",
+      "group": "part_three",
+      "requires": [
+        "chronicle_part_2",
+        "angle_4_seen"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_part_3",
+      "show": "chronicle_part_three"
+    },
+    {
+      "id": "iii0_part_three_seats",
+      "hook": "on_scene_ready",
+      "group": "part_three",
+      "when": {
+        "answered_seats": [
+          "5",
+          "6",
+          "7"
+        ]
+      },
+      "requires": [
+        "chronicle_part_2"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_part_3",
+      "show": "chronicle_part_three"
+    },
+    {
+      "id": "iii0_part_three_reading",
+      "hook": "on_new_reading",
+      "when": {
+        "previous": "2"
+      },
+      "requires": [
+        "chronicle_part_2"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_part_3",
+      "show": "chronicle_part_three"
+    },
+    {
+      "id": "iii1_gate_shut",
+      "hook": "on_fallen_seat",
+      "requires": [
+        "chronicle_part_1"
+      ],
+      "excludes": [
+        "chronicle_part_3"
+      ],
+      "layer": "Timeline",
+      "once": "fallen_seat_gate_seen",
+      "delivery": "immediate",
+      "show": "chronicle_fallen_seat_shut"
+    },
+    {
+      "id": "iii1_seat_that_fell",
+      "hook": "on_fallen_seat",
+      "requires": [
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "fallen_seat_walked"
+      ],
+      "layer": "Timeline",
+      "delivery": "immediate",
+      "show": "chronicle_seat_that_fell",
+      "tokens": [
+        "wizard_name"
+      ]
+    },
+    {
+      "id": "iii1_hall_without_a_roof",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "strategic"
+      },
+      "requires": [
+        "fallen_seat_gone_in"
+      ],
+      "layer": "Eternal",
+      "once": "fallen_seat_hall_shown",
+      "delivery": "immediate",
+      "show": "chronicle_hall_without_a_roof"
+    },
+    {
+      "id": "iii2_the_study",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "strategic"
+      },
+      "requires": [
+        "fallen_seat_study_next"
+      ],
+      "lineArgs": {
+        "study_way_in": {
+          "route": "hall"
+        }
+      },
+      "layer": "Eternal",
+      "once": "kassian_study_shown",
+      "delivery": "immediate",
+      "show": "chronicle_the_study",
+      "tokens": [
+        "study_way_in",
+        "traitor_short"
+      ]
+    },
+    {
+      "id": "iii2_the_study_again",
+      "hook": "on_fallen_seat",
+      "requires": [
+        "fallen_seat_walked"
+      ],
+      "lineArgs": {
+        "study_way_in": {
+          "route": "gate"
+        }
+      },
+      "layer": "Eternal",
+      "once": "kassian_study_shown",
+      "delivery": "immediate",
+      "show": "chronicle_the_study",
+      "tokens": [
+        "study_way_in",
+        "traitor_short"
+      ]
+    },
+    {
+      "id": "iii4_one_seat_left",
+      "hook": "on_scene_ready",
+      "when": {
+        "answered_seats": [
+          "6",
+          "7"
+        ]
+      },
+      "requires": [
+        "chronicle_part_3"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_one_seat_left",
+      "show": "chronicle_one_seat_left",
+      "tokens": [
+        "seats_title",
+        "seats_answered"
+      ]
+    },
+    {
+      "id": "iii4_every_seat",
+      "hook": "on_scene_ready",
+      "when": {
+        "answered_seats": "7"
+      },
+      "requires": [
+        "chronicle_part_3"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_all_seats_once"
+    },
+    {
+      "id": "iii5_report_3_seat",
+      "when": {
+        "pending": "false"
+      },
+      "requires": [
+        "chronicle_part_3",
+        "examiner_report_2",
+        "fallen_seat_walked"
+      ],
+      "hook": "on_hall",
+      "group": "report_3",
+      "layer": "Eternal",
+      "once": "examiner_report_3_given",
+      "delivery": "immediate",
+      "show": "chronicle_examiner_report_3"
+    },
+    {
+      "id": "iii5_report_3_pieces",
+      "when": {
+        "pending": "false",
+        "placed": [
+          "5",
+          "6"
+        ]
+      },
+      "requires": [
+        "chronicle_part_3",
+        "examiner_report_2"
+      ],
+      "hook": "on_hall",
+      "group": "report_3",
+      "layer": "Eternal",
+      "once": "examiner_report_3_given",
+      "delivery": "immediate",
+      "show": "chronicle_examiner_report_3"
+    }
+  ],
+  "lines": [
+    {
+      "key": "study_way_in",
+      "when": {
+        "route": "hall"
+      },
+      "text": "The stair goes up inside the wall, and turns, and turns again. It is evening by the time it comes out at a door, standing open."
+    },
+    {
+      "key": "study_way_in",
+      "when": {
+        "route": "gate"
+      },
+      "text": "The gate is open again, and the Keepers let the party through. You cross the hall without a roof to the stair behind the dais and climb it, and it is evening by the time you reach the door at the top, standing open."
+    },
+    {
+      "key": "seats_answered",
+      "when": {
+        "answered_seats": "6"
+      },
+      "text": "'Be it recorded,' says the Register, very formally, as if it has been waiting a long time to say it, 'that six of the seven seats are answered in this reading. One is left.'"
+    },
+    {
+      "key": "seats_answered",
+      "when": {
+        "answered_seats": "7"
+      },
+      "text": "'Be it recorded,' says the Register, very formally, as if it has been waiting a long time to say it, 'that all seven seats are answered in this reading.'"
+    },
+    {
+      "key": "seats_title",
+      "when": {
+        "answered_seats": "6"
+      },
+      "text": "One Seat Left"
+    },
+    {
+      "key": "seats_title",
+      "when": {
+        "answered_seats": "7"
+      },
+      "text": "Every Seat Answered"
+    }
+  ]
+}

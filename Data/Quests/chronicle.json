@@ -1,0 +1,56 @@
+[
+  {
+    "id": "q_unfinished_sentence",
+    "title": "The Unfinished Sentence",
+    "category": "Story",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "You were being named when the second stopped, and the sentence never finished. Somewhere between here and the Convergence, it will.",
+    "requiredFlag": "prologue_complete",
+    "objectives": [
+      {
+        "text": "Survive Commencement",
+        "flag": "prologue_complete"
+      },
+      {
+        "text": "Cross the edge of the Anchorhold",
+        "flag": "chronicle_first_sortie"
+      },
+      {
+        "text": "Be named into a discipline",
+        "counter": "flags:declared_",
+        "counterTarget": 1
+      },
+      {
+        "text": "Bring a fragment of the Seal home",
+        "counter": "fragments_collected",
+        "counterTarget": 1
+      },
+      {
+        "text": "Read the sky back",
+        "flag": "campus_observatory_complete"
+      },
+      {
+        "text": "Answer him",
+        "flag": "deal_answered"
+      },
+      {
+        "text": "Walk the fallen seat",
+        "flag": "fallen_seat_walked"
+      },
+      {
+        "text": "Answer every seat in one timeline",
+        "flag": "chronicle_all_seats_once"
+      },
+      {
+        "text": "Open the Anchorhold",
+        "flag": "chronicle_convergence_entered"
+      },
+      {
+        "text": "Be written",
+        "flag": "chronicle_convergence_won"
+      }
+    ],
+    "rewardLore": "the_conferral_completed"
+  }
+]

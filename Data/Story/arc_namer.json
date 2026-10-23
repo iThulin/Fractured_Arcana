@@ -1,0 +1,536 @@
+{
+  "_doc": "Cael Morn's arc, The Seventh Layer. The rules are C1, C3 and C5 in docs/story_wiring_v1.md; the script is docs/archmage_arc_namer_v1.md. Lines are file-local: tokens here read only this file's lines.",
+  "arc": "namer",
+  "encounterFile": "arc_namer",
+  "lineTokens": {
+    "shadow": "shadow",
+    "remembrance": "remembrance"
+  },
+  "beats": [
+    {
+      "id": "namer_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_namer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer",
+        "coconspirator_namer",
+        "namer_layer_5"
+      ],
+      "layer": "Timeline",
+      "once": "namer_ask_set",
+      "alsoSetMeta": [
+        "chronicle_namer_ask_seen"
+      ],
+      "rememberFlag": "chronicle_namer_ask_seen",
+      "show": "arc_namer_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "ask"
+        }
+      }
+    },
+    {
+      "id": "namer_shadow_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_namer",
+        "coconspirator_namer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer",
+        "namer_layer_5"
+      ],
+      "layer": "Timeline",
+      "once": "namer_ask_set",
+      "alsoSetMeta": [
+        "chronicle_namer_shadow_ask_seen"
+      ],
+      "rememberFlag": "chronicle_namer_shadow_ask_seen",
+      "show": "arc_namer_shadow_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_ask"
+        }
+      }
+    },
+    {
+      "id": "namer_parcel",
+      "hook": "on_forces_met",
+      "when": {
+        "archmage": "namer",
+        "corrupted": "false"
+      },
+      "requires": [
+        "namer_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_layer_2",
+      "show": "arc_namer_parcel",
+      "tokens": [
+        "shadow"
+      ],
+      "lineArgs": {
+        "shadow": {
+          "beat": "parcel"
+        }
+      }
+    },
+    {
+      "id": "namer_witness",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": [
+          "wenna",
+          "aurel",
+          "hess",
+          "joren",
+          "conductor",
+          "engineer"
+        ]
+      },
+      "requires": [
+        "namer_layer_2"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_layer_3",
+      "show": "arc_namer_witness",
+      "tokens": [
+        "shadow"
+      ],
+      "lineArgs": {
+        "shadow": {
+          "beat": "witness"
+        }
+      }
+    },
+    {
+      "id": "namer_clause",
+      "hook": "on_deed",
+      "when": {
+        "deed": "table"
+      },
+      "requires": [
+        "namer_layer_3"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_layer_4",
+      "show": "arc_namer_clause",
+      "tokens": [
+        "shadow"
+      ],
+      "lineArgs": {
+        "shadow": {
+          "beat": "clause"
+        }
+      }
+    },
+    {
+      "id": "namer_five_after_favors",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "namer"
+      },
+      "requires": [
+        "namer_layer_4"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer",
+        "coconspirator_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_layer_5",
+      "rememberFlag": "chronicle_namer_narrowing_heard",
+      "group": "namer_five",
+      "show": "arc_namer_five",
+      "lore": "the_narrowing",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "five"
+        }
+      }
+    },
+    {
+      "id": "namer_five_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "namer",
+        "unite_open": "true"
+      },
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer",
+        "coconspirator_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_layer_5",
+      "alsoSetTimeline": [
+        "namer_layer_2",
+        "namer_layer_3",
+        "namer_layer_4"
+      ],
+      "rememberFlag": "chronicle_namer_narrowing_heard",
+      "group": "namer_five",
+      "show": "arc_namer_five",
+      "lore": "the_narrowing",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "five"
+        }
+      }
+    },
+    {
+      "id": "namer_shadow_five_after_favors",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "namer"
+      },
+      "requires": [
+        "namer_layer_4",
+        "coconspirator_namer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_layer_5",
+      "rememberFlag": "chronicle_namer_shadow_five_heard",
+      "group": "namer_five",
+      "show": "arc_namer_shadow_five",
+      "lore": "the_narrowing",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_five"
+        }
+      }
+    },
+    {
+      "id": "namer_shadow_five_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "namer",
+        "unite_open": "true"
+      },
+      "requires": [
+        "coconspirator_namer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_namer",
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_layer_5",
+      "alsoSetTimeline": [
+        "namer_layer_2",
+        "namer_layer_3",
+        "namer_layer_4"
+      ],
+      "rememberFlag": "chronicle_namer_shadow_five_heard",
+      "group": "namer_five",
+      "show": "arc_namer_shadow_five",
+      "lore": "the_narrowing",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_five"
+        }
+      }
+    },
+    {
+      "id": "namer_inside",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "qe_archmage_united_namer"
+      ],
+      "excludes": [
+        "coconspirator_namer"
+      ],
+      "layer": "Timeline",
+      "once": "namer_inside",
+      "alsoSetMeta": [
+        "chronicle_namer_inside_seen"
+      ],
+      "alsoSetTimeline": [
+        "namer_seventh_layer"
+      ],
+      "rememberFlag": "chronicle_namer_inside_seen",
+      "show": "arc_namer_inside",
+      "lore": "the_seventh_layer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "inside"
+        }
+      }
+    },
+    {
+      "id": "namer_shadow_end_united_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_namer",
+        "qe_archmage_united_namer",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_namer_answered",
+      "alsoSetMeta": [
+        "chronicle_namer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_namer_penance",
+        "namer_seventh_layer"
+      ],
+      "rememberFlag": "chronicle_namer_shadow_end_seen",
+      "group": "namer_shadow_end",
+      "show": "arc_namer_shadow_penance",
+      "lore": "what_he_showed_namer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "namer_shadow_end_united_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_namer",
+        "qe_archmage_united_namer",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_namer_answered",
+      "alsoSetMeta": [
+        "chronicle_namer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_namer_penance",
+        "namer_seventh_layer"
+      ],
+      "rememberFlag": "chronicle_namer_shadow_end_seen",
+      "group": "namer_shadow_end",
+      "show": "arc_namer_shadow_penance",
+      "lore": "what_he_showed_namer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "namer_shadow_end_coerced_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_namer",
+        "qe_archmage_coerced_namer",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_namer_answered",
+      "alsoSetMeta": [
+        "chronicle_namer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_namer_treachery"
+      ],
+      "rememberFlag": "chronicle_namer_shadow_end_seen",
+      "group": "namer_shadow_end",
+      "show": "arc_namer_shadow_treachery",
+      "lore": "what_he_showed_namer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "namer_shadow_end_coerced_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_namer",
+        "qe_archmage_coerced_namer",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_namer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_namer_answered",
+      "alsoSetMeta": [
+        "chronicle_namer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_namer_treachery"
+      ],
+      "rememberFlag": "chronicle_namer_shadow_end_seen",
+      "group": "namer_shadow_end",
+      "show": "arc_namer_shadow_treachery",
+      "lore": "what_he_showed_namer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "parcel",
+        "traitor": "namer"
+      },
+      "text": "The Register notes that the last delivery this hand arranged was a candidate to the dais, and that it did not go as drawn."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "witness",
+        "traitor": "namer"
+      },
+      "text": "The Register notes that the Namer once watched a whole hall from the honored chair, and saw everything in it but you."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "clause",
+        "traitor": "namer"
+      },
+      "text": "The Register notes that the Namer's papers were withdrawn once before. It does not say what else was."
+    },
+    {
+      "key": "shadow",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'One layer last time as well. The Register checked it twice then, too.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "five",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same four cards. The same word. They still have not said it to anyone else.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "inside",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same six layers. The Register still cannot see the seventh.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'One layer, last time too. Somewhere else, they said.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_five",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same name, given the same way.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_end",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same drawings. You were not in them last time either.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    }
+  ]
+}

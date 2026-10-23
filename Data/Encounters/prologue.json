@@ -1,0 +1,553 @@
+[
+  {
+    "id": "prologue_trial_intention",
+    "title": "The Final Examination",
+    "body": "The ceremony hall is dressed for Commencement and empty of everyone who matters. Chairs stand in rows for the families. Up in the gallery the examining board is still finding its seats, arguing quietly about a footnote. On a lectern beside the dais, the Commencement Register lies open to a clean page, waiting for this afternoon's names.\n\nThe Examiner meets you on the floor. She has a voice built for long halls and has never once needed to raise it.\n\n'Before the board sits, a formality they will ignore,' she says. 'What do you intend to be named? You will sit your practical in it, so the board has something to argue about.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Adept.",
+        "resultText": "'The school nobody stays in.' One eyebrow, briefly. 'Most candidates cannot leave it fast enough. You will sit the common practical, then, and mean it. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_adept"
+        ]
+      },
+      {
+        "label": "Elementalist.",
+        "resultText": "'Fire, frost, storm and stone, and you in the middle of their quarrel.' She nods. 'Loud work. Keep your own voice in it. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_elementalist"
+        ]
+      },
+      {
+        "label": "Arcanist.",
+        "resultText": "'You want to know how it works.' Not quite a smile. 'Everyone does. Arcanists are the ones who will not stop at the answer. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_arcanist"
+        ]
+      },
+      {
+        "label": "Chronomancer.",
+        "resultText": "'The readers.' She looks at you a moment longer than she needs to. 'Patient work, and lonely. Do not read ahead. The board likes to see the whole of your reasoning. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_chronomancer"
+        ]
+      },
+      {
+        "label": "Enchanter.",
+        "resultText": "'Seven layers, the Namer says. Four will carry you through an examination.' A glance at the gallery. 'Do not tell them I said so. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_enchanter"
+        ]
+      },
+      {
+        "label": "Druid.",
+        "resultText": "'The land does what it was going to do anyway, and the Druid asks it politely.' She considers your boots. 'You will need better ones. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_druid"
+        ]
+      },
+      {
+        "label": "Necromancer.",
+        "resultText": "'A serious school, whatever the jokes say. The dead are patient teachers and poor company for the impatient.' She nods. 'Keep a list. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_necromancer"
+        ]
+      },
+      {
+        "label": "Tinker.",
+        "resultText": "'Half of everything you build will not work.' She says it like a blessing. 'The other half is why you build it. Noted.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_tinker"
+        ]
+      },
+      {
+        "label": "I would rather not say.",
+        "resultText": "'Good.' She sounds as if she means it. 'Nobody should have to say it aloud before they have earned it. The board will decide, and argue, and decide again. You will sit the common practical, which is the hardest one to show off in. Noted all the same.'",
+        "setMetaFlags": [
+          "stated_intention_set",
+          "stated_intention_unstated"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_trial_rules",
+    "title": "Begin When the Bell Stills",
+    "body": "Behind you, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner walks to the far end of the examination floor and turns to face you.\n\n'Two parts. First the fundamentals: you and me, three rounds, with the Academy's own cards. The trial is not to defeat me. The trial is to show me you know why each card leaves your hand. I will read one spell aloud before we are done. Do not be standing where I was looking when I began.'\n\n'Then your practical. Part one first.'\n\nSomewhere above you, the bell for Commencement is being tested, one stroke at a time.\n\n'Begin when the bell stills.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Take your place.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "prologue_trial_rules_waived",
+    "title": "Part One Waived",
+    "body": "Behind you, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner reads a note pinned to her copy of the schedule, then turns it over in case there is more. There is not.\n\n'The board has waived part one,' she says. 'It does that now and then, and never says why. Your practical, then.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Very well.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_trial_part_one_waived"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_trial_part_one_clean",
+    "title": "Part One",
+    "body": "The bell stills for good. Up in the gallery, someone has stopped arguing about the footnote.\n\nThe Examiner lowers her hands. Her spell came down on an empty floor, and nothing of hers ever touched you. She looks as if that was the point.\n\n'Part one, adequate,' she says. Then, after a moment: 'More than adequate. I will deny saying so.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Part two.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_trial_clean"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_trial_part_one",
+    "title": "Part One",
+    "body": "The bell stills for good. Up in the gallery, someone has stopped arguing about the footnote.\n\nThe Examiner lowers her hands and looks at the place where her spell came down, then at you.\n\n'Part one, adequate,' she says. 'Part two is yours.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Part two.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "prologue_trial_part_one_floor",
+    "title": "The Floor",
+    "body": "You are on the floor of the examination hall, which is cold, and closer than you expected.\n\nThe Examiner offers you a hand, and does not pull until you take it.\n\n'Get up. The board does not grade the floor.' She brushes the dust off your sleeve with two fingers. 'You knew why each card left your hand. That was the examination. The rest was me. Part two does not care how part one went.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Part two.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_trial_floor"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_apparatus",
+    "title": "The Apparatus",
+    "body": "Two students roll a machine out from under a dust sheet: Master Korro's examination apparatus, the fourth model. The first three, he tells everyone, were research. Up in the gallery, Master Korro himself has stopped pretending to read his notebook.\n\nThe Examiner hands you a folio: the cards the board sets for your practical, written out in a careful hand and already soft at the corners from the candidates before you.\n\n'The apparatus has a fitting for every discipline,' she says. 'Yours is going on now.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Watch them fit it.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_elementalist",
+    "title": "The Frost Plate",
+    "body": "The students bolt a plate of gray iron to the apparatus and pour a bucket of water around its feet. Master Korro opens a valve. The water whitens and stays that way: frost, a pace wide, with the plate standing in the middle of it.\n\n'It is plated,' the Examiner says. 'Every blow against it loses three. Chip at it and you will be here all afternoon.'\n\n'An Elementalist does not hit harder. An Elementalist hits the floor first. Two elements on one square make something new. Frost and storm make brittle ground, and whatever stands on brittle ground takes three more from every blow, which is exactly what the plate takes away. Frost and fire make steam, which helps nobody today. Your folio has Static Field. Put storm on that frost, then hit it while it is brittle.'\n\n'Three rounds.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_elementalist"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_arcanist",
+    "title": "The Proving Coil",
+    "body": "The students fit a coil of copper wire to the apparatus, wound so tight it hums. Master Korro scratches it with a pencil, and the scratch closes while you watch.\n\n'It mends,' the Examiner says. 'At the end of every round it closes every wound it took, unless it took twenty or more in that round. Spread your work across the afternoon and it will outlast you.'\n\n'An Arcanist does not cast a spell. An Arcanist casts a turn. Spell Weave makes your next spell cheaper and stronger; weave into a second Weave and the gift carries on to the spell after. Mana Conduit pays for the extra. The order is the examination: conduit, weave, weave, then the bolt.'\n\n'Three rounds. You will want only one of them.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_arcanist"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_chronomancer",
+    "title": "The Swing Arm",
+    "body": "The students fit a weighted arm to the apparatus, on a ratchet that clicks as they draw it back. Master Korro lets it go once, to show you. It takes a full round to draw back, and then it swings at the square it chose when it started.\n\n'It aims at where you stand when it begins,' the Examiner says, 'not where you stand when it lands.'\n\n'A Chronomancer moves things in time. Slow Fuse writes a spell onto a square now, and it lands at the start of your next turn on whatever stands there. The arm cannot step aside. Hold That Thought pushes its blow to the end of the round, which gives you time to be elsewhere. Foresight builds as you read and as you leave mana unspent; Paradox Bolt hits twice as hard with two of it.'\n\n'Yes, I told you not to read ahead. The board set the folio, not me. Three rounds, and a spell set in the last of them lands after the bell.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_chronomancer"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_enchanter",
+    "title": "The Walking Frame",
+    "body": "The students fit four jointed legs to the apparatus and step well back. It gets up. It walks at whoever is nearest, two steps a round, and kicks whatever it reaches.\n\n'Nothing in your folio hits very hard,' the Examiner says. 'That is the point of it.'\n\n'An Enchanter decides what things cost. A glyph makes a square cost whatever steps onto it; Runic Trap writes one. A Name sets a price on what the frame does: Geas Names it, and any round it moves, it pays six. It will move. It cannot help itself. Compel walks it two steps toward you, over your glyphs, whether it likes it or not.'\n\n'Three rounds. Make the floor expensive.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_enchanter"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_necromancer",
+    "title": "The Dummy Rack",
+    "body": "The students hang a rack of practice dummies from the apparatus: straw and canvas on posts, two of them standing in front of it and more hanging behind. Master Korro tests the crank, and somewhere inside the rack the next dummy shuffles forward a place.\n\n'The dummies stand in front of the rack,' the Examiner says. 'Strike the rack while one stands beside it, and the dummy takes the blow. It puts out a fresh one every round.'\n\n'A Necromancer works with what is left. Anything that dies on this floor leaves a memorial where it fell, and memorials are your materials. Grief Strike hits harder at a target beside one. Final Escort spends one to raise a spirit, and The Procession sends your spirits forward to strike. The dummies will fall. Let them fall where you can use them.'\n\n'Four rounds.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_necromancer"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_druid",
+    "title": "The Tiller",
+    "body": "The students fit a ploughshare and a pair of iron feet to the apparatus. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' the Examiner says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'Four rounds.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_druid"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_tinker",
+    "title": "The Target Frame",
+    "body": "The students bolt a target frame to the apparatus: painted rings, a sighting slit, and a small crossbow where the bullseye should be. It swivels toward the nearest thing in the hall and puts a bolt into the far wall to show that it can.\n\n'It shoots whatever stands nearest,' the Examiner says. 'Give it something nearer than you.'\n\n'A Tinker builds the help. Deploy Turret sets down a turret that fires on its own at the end of your turn. Conduit Bolt hits harder while you have a construct standing. Conduit Link ties you to one and splits the hurt between you. The frame cannot tell a candidate from a turret. Use that.'\n\n'Three rounds.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_tinker"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_brief_adept",
+    "title": "The Caster Arm",
+    "body": "The students fit a long brass arm to the apparatus, its hand cupped like a lecturer's. Master Korro reads it a line from his notebook, and it begins to read the line back at you, slowly.\n\n'It reads a spell at your square, and the spell lands a round later,' the Examiner says. 'Stepping aside is one answer. The fundamentals have others.'\n\n'Counterspell cancels the arm's next action outright. Cancel something, and Spell Drain on your second Counterspell pays you two mana back. Riposte makes whatever hits you pay for it. Chalk Mark adds three to the next spell that lands. None of it is clever. All of it works.'\n\n'Three rounds.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_practical_adept"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_after_pass",
+    "title": "Adequate",
+    "body": "The apparatus gives up with a noise Master Korro will be describing for weeks. Up in the gallery he is already writing it down.\n\n'{practical_remark}'\n\nThe Examiner closes her copy of the folio. 'Adequate,' she says. Then, after a moment: 'More than adequate. The board will argue about you for an hour and then name you something.'\n\nA beat.\n\n'I have my own opinion. I will keep it until they've had theirs.'\n\nShe hands the folio back to you. 'Carry it to the dais this afternoon. Candidates carry the folio they sat. The board will ignore it, as is traditional.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Bow to the board.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_trial_done",
+          "prologue_practical_passed"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_after_time",
+    "title": "Adequate",
+    "body": "The Examiner rings a small hand bell. The practical is over, and the apparatus is still standing, which Master Korro will count as a success for the apparatus.\n\n'{practical_remark}'\n\nThe Examiner closes her copy of the folio. 'Adequate,' she says. 'The board will argue about you for an hour and then name you something.'\n\nA beat.\n\n'I have my own opinion. I will keep it until they've had theirs.'\n\nShe hands the folio back to you. 'Carry it to the dais this afternoon. Candidates carry the folio they sat. The board will ignore it, as is traditional.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Bow to the board.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_trial_done"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_practical_after_floor",
+    "title": "The Floor",
+    "body": "You are on the floor of the examination hall, and the apparatus has stopped, politely, a pace away.\n\nThe Examiner offers you a hand, and does not pull until you take it.\n\n'Get up. The board does not grade the floor.' She looks at the apparatus, then up at the gallery, where Master Korro is writing very fast. 'He will call that a result. I will call it a practical.'\n\nA beat.\n\n'I have my own opinion. I will keep it until they've had theirs.'\n\nShe hands the folio back to you. 'Carry it to the dais this afternoon. Candidates carry the folio they sat. The board will ignore it, as is traditional.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Bow to the board.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_trial_done",
+          "prologue_practical_floor"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_commencement",
+    "title": "Commencement",
+    "body": "By afternoon the hall is full. Families crowd the rows. The graduating class stands along the wall in borrowed robes, twenty-six of them and you, each with the folio they sat under one arm.\n\nThe archmagi sit on the dais in their order: the Reviser with a pen behind his ear, the Witness with a crow on her shoulder, the Vessel with the weather in his face, the Namer, the Conductor, and the Engineer, Master Korro, with his hands folded so they will stay still. {traitor_full} has the honored chair this year, nearest the sphere. One chair stands empty, the Astrologer's. Nobody looks at it.\n\nBehind them, in a cradle of old stone, the magisphere turns slowly: six lights in one glass, the Seal the whole world rests on, kept in this hall since before the Academy was an Academy.\n\nThe Witness rises, nods to no one, and leaves by the side door. Nobody remarks on it. Hess comes and goes.\n\nThe Provost, Wenna Aldric, opens the Register to its clean page and calls the first name of the afternoon. It is yours. She speaks the old formula. The Academy kept the words when it took this rite from the church, and struck out only the part about permission.\n\n'By the Six Schools and the sphere that binds them, we confer upon you the name you have earned. Step forward and be written.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Step forward.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_commencement_done"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_sundering_open",
+    "title": "The Wards",
+    "body": "You step forward. On the lectern the Register begins to write what the Provost speaks, in her careful hand, the way it has for every name.\n\nAt the far end of the hall, the wards break.\n\nNot from outside. The sound comes from within the walls, a long crack like a river letting go of its ice, and the east doors open on figures in sealed-sky blue who do not run, because they have never needed to.\n\nOn the dais, {traitor_full} stands. Every face in the hall turns toward them, and they look back at all of it, tired and certain.\n\n'{traitor_line}'\n\nThe Provost does not stop speaking. She is three words into the next clause, and she will finish it, because she has never left a sentence unfinished in her life.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Put yourself between them and the Provost.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "prologue_sundering_cast",
+    "title": "The Last Clause",
+    "body": "The Keepers keep coming, and the Provost keeps speaking.\n\n'...and by the hand of this Register, the Aldric Academy names {wizard_name} into the discipline of...'\n\nAt the sphere, {traitor_short} has one hand flat on the glass, and the glass is breaking: six lights pulling away from one another inside it. Their other hand comes up toward the lectern, toward the voice that has not stopped. The spell is fast and ugly, and it is aimed at the Provost.\n\nYou are standing in front of her.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "There is no time to move.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_sundering_done"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_long_second",
+    "title": "The Long Second",
+    "body": "It does not arrive.\n\nThe dust in the window light stops falling. The bell above the hall holds a single note and does not let it go. The spell hangs an arm's length from your chest, a line of white fire that runs back to {traitor_short}'s hand and points, past you, at the lectern, where the Provost stands with her mouth open on the next word.\n\nBeyond it the sphere is caught in the act of breaking, six shards lifted a finger's width apart. {traitor_short} is frozen mid-stride with one palm on the glass. At the foot of the dais the Examiner is caught in the middle of a nod, and the nod is for you. The Keepers have stopped mid-step, every one of them. The folio you carried to the dais has slipped from under your arm and hangs at knee height, pages fanned, going nowhere.\n\nYou can move. Nothing else in the hall can.\n\nA voice speaks from nowhere in particular, as if someone left it here for whoever would be standing where you are.\n\n'He read the sky and chose this. I read the same passage and could not. So I spent the one second I owned. I stretched it wide enough to live in, and I hid it where he cannot read: inside a choice he never made. You were being named when it closed. The writing never finished. You are the only sentence in his script that does not end. I am sorry. That is the whole of your armor, and it will have to be enough.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Who are you?",
+        "resultText": "Nothing answers. Whoever he was, he is not here. He left his voice where he knew someone would be standing, and the someone was you.",
+        "setMetaFlags": [
+          "prologue_long_second_seen"
+        ]
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "The voice does not speak again. The bell holds its note.",
+        "setMetaFlags": [
+          "prologue_long_second_seen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_the_margin",
+    "title": "The Margin",
+    "body": "Only one other thing in the hall is moving.\n\nOn the lectern, the Register lies open under the Provost's hand. The line reads, in her careful script: \"Be it recorded that the Aldric Academy names {wizard_name} into the discipline of\", and then nothing. The ink of the next letter stands in the air above the page, unfinished.\n\nIn the margin, smaller, in your own handwriting from this morning: \"{stated_intention_phrase}\"\n\nThe Register's pages stir. It tries to finish the line and cannot. It begins another.\n\n'Be it recorded that the candidate... that the candidate...'\n\nIt stops. It begins again.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Take the Register.",
+        "resultText": "It is lighter than it looks, and it will not stop talking. 'Be it recorded that the candidate has... has taken up the minutes. Irregular. Noted.'",
+        "setMetaFlags": [
+          "prologue_register_taken"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_anchorhold",
+    "title": "The Anchorhold",
+    "body": "Outside, the Academy has stopped in the middle of its afternoon.\n\nSteam stands over the refectory windows, where twenty-seven places are laid for a feast that is still warm. The bell's note hangs over everything, more felt than heard. In the infirmary a healer bends over a student with a mending spell half woven between her hands, and the spell is still working, the only magic here that did not stop. The observatory dome is shut. In the library wing, ten thousand books hang in the air between hands and shelves. Where the assault reached, the stone is broken. Where it had not reached yet, nothing has happened at all.\n\nThe Register clears its throat, if a book can.\n\n'The Commencement Register of the Aldric Academy. Minutes, names, conferrals and... interruptions. This is one. The Register has never kept minutes for an interruption before. It intends to be thorough.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Walk to the gate.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "prologue_the_door",
+    "title": "The Door",
+    "body": "At the gatehouse the broken wards are still breaking: the same half-second of shattering, over and over, a wound that cannot finish opening.\n\nBeyond the arch the world is moving. Wind. Weather. The trees along the far road have turned since this morning, which is not possible, and is true. Out there it is weeks after Commencement already, and the weeks are still passing.\n\nSomething waits where the road begins: the Academy's walking hall, the house that took students out on field study every summer. The students called it the Bastion Errant. Its hearth has gone strange and still. A splinter of this second has lodged in it like a seed.\n\n'Be it recorded,' says the Register, 'that the intruders wore the colors of the Astrologer's Keepers. That the Astrologer's chair was empty. That the sphere broke, and its pieces went out there.' A pause. 'Nothing out there can find this place. Nothing comes in unless the candidate brings it. The candidate is, procedurally, the door.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go out.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_complete"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_legible",
+    "title": "Legible",
+    "body": "The edge passes over you like a held breath let go.\n\nSound comes back first: wind in the grass, a dog somewhere, the bastion's timbers settling as it walks. Then weight. Then a feeling, faint and unmistakable, of standing in a world that can touch you.\n\n'Be it recorded,' the Register says, very quietly, 'that the candidate has left the margin.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Onward.",
+        "resultText": "",
+        "setMetaFlags": [
+          "chronicle_first_sortie"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_skip_recap",
+    "title": "Commencement",
+    "body": "You sat the Final Examination and were found adequate. The Examiner kept her opinion. That afternoon you stood along the wall with twenty-six others and the folio you sat, and the Provost, Wenna Aldric, called your name first.\n\nThe wards broke from within. On the dais {traitor_full} stood and said what they had come to say, and the Keepers came through the east doors. The Provost did not stop speaking. You stood in front of her until the spell came.\n\nIt did not arrive. The second stopped, and a voice that was not there apologized for it. You took up the Register, which has not stopped talking since, and walked out to the gate, where the Academy's walking hall was waiting.\n\nYou are the door.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go out.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_trial_done",
+          "prologue_commencement_done",
+          "prologue_sundering_done",
+          "prologue_long_second_seen",
+          "prologue_register_taken",
+          "prologue_complete",
+          "prologue_skipped"
+        ]
+      }
+    ]
+  }
+]

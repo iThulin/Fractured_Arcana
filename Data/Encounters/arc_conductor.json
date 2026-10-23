@@ -1,0 +1,300 @@
+[
+  {
+    "id": "arc_conductor_ask",
+    "title": "One Night at the Long Table",
+    "body": "A Sending reaches you with the clink of a glass in it. 'You said you'd come and drink it yourself,' says Ondria Vell. 'Come and pour instead. I'm short a pair of hands tonight.'\n\nYou go. The bar is warm and crowded and nobody in it is breathing. You tend it for one night, the way she shows you: listen first, pour second, never ask how they died. They tell you anyway.\n\nBy closing three of the regulars are still at the bar, and each of them has one thing left undone.\n\nDace, a soldier killed in a rout, wants to see a fight won properly, with nobody left on the field. Sister Ivo, an almoner of the Fast who righted her bowl in a famine year, wants to see a bargain struck where nobody goes hungry. Old Pell, a drover who died a day short of home, wants someone to answer the road for him, the way he never got to.\n\n'Last orders,' says Ondria, wiping the bar. 'Fill any two of them and come back. The third is mine, and I'll tell you what it is when you've earned it.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'I'll fill them.'",
+        "resultText": "'Good,' she says. 'They'll ride along. You won't see them. You'll know.' She pours a measure for each of the three and sets it on the bar, and nobody drinks it, and that is how it goes with the dead."
+      },
+      {
+        "label": "'Why do they need me?'",
+        "resultText": "'Because every time the sky re-reads itself, they die again,' she says. 'It un-happens and re-happens, and they notice. It's put them off finishing things. They want to see someone finish something.' She does not say who she thinks is doing it. She looks at you a moment too long."
+      },
+      {
+        "label": "'Pour for Dace first. He hates waiting.'",
+        "resultText": "Ondria Vell sets down the bottle. 'How do you know that?' she says, and then, before you can answer: 'No. Don't tell me, love. I can guess.' Dace, at the end of the bar, raises his empty glass to you, which he has never done for anyone. 'That's his order filled, then,' she says, quietly. 'Somehow.'",
+        "requiredFlag": "chronicle_conductor_ordered",
+        "setFlags": [
+          "conductor_order_1_done",
+          "conductor_order_field"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_order_field",
+    "title": "{trial_title}",
+    "body": "When the fighting is over you feel it before you understand it: someone standing at your shoulder who was not there, looking out over the field, counting. Dace. He counts twice. Then he is gone.\n\nThat night a Sending comes with the clink of a glass in it. 'He's back at the bar,' says Ondria. 'He won't tell me how it went. He says to ask you. So. How did it go?'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Everyone came home who could.'",
+        "resultText": "'Who could,' says Ondria. 'That's an honest count. He'll drink to an honest count.' Something in the room behind her goes quiet. 'He's having it now. First one in a year.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      },
+      {
+        "label": "'We won.'",
+        "resultText": "'He knew you won,' says Ondria. 'He was there. He wanted to know who you brought home.' The glass goes down, gently. {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 22
+      },
+      {
+        "label": "'He'd have been proud.'",
+        "resultText": "'Don't tell the dead what they'd have been,' says Ondria, not unkindly. 'Tell them what happened. They've had enough guessing.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 30
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_order_table",
+    "title": "{trial_title}",
+    "body": "The bargain is struck, and as the other party rises you smell, for a moment, bread and cold stone: an almonry in a famine year. Sister Ivo is at your elbow, reading the terms over your shoulder, her bowl the right way up at her throat, the way the Fast leaves its dead. Then she is gone.\n\nOndria's Sending finds you that night. 'Ivo's back,' she says. 'I've filled her bowl. She wants to know what you think you did.'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'I got a good price.'",
+        "resultText": "'She heard,' says Ondria. 'She was there. She wants to know who ate.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 22
+      },
+      {
+        "label": "'I was fair.'",
+        "resultText": "'Fair is the other side's word,' says Ondria. 'Ivo wants yours.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 30
+      },
+      {
+        "label": "'Nobody walked away hungrier than they came.'",
+        "resultText": "A long quiet on the line. 'She's crying,' says Ondria. 'The dead can, you know. Not often.' The glass goes down. 'She says the Fast has fed every famine for centuries and never once let anyone see the barns open. She says that's the first bargain she's seen where nobody had to refuse anything.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_order_road",
+    "title": "{trial_title}",
+    "body": "The road asks its question and you answer it, and as you walk on you hear, very close, the creak of a drover's boots and a man humming the same four notes over and over, the way men hum when they are a day from home. Old Pell. He walks with you to the next rise. Then he is gone.\n\n'He's back,' says Ondria's Sending, that night. 'He's stopped humming. He says you answered it. He wants to know what you'd have said if it had been him asking.'\n\n{shadow}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'The same thing.'",
+        "resultText": "'He says that's a drover's answer,' says Ondria. 'He means it kindly. He means it's no answer.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 22
+      },
+      {
+        "label": "'Go home, Pell.'",
+        "resultText": "Silence on the line, and then the sound of a man setting down a glass he has finished. 'He's gone,' says Ondria, softly. 'Not from the bar. They never leave the bar. But he's stopped looking at the door.' A pause. 'That's the best thing anybody's said in here all year.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      },
+      {
+        "label": "'Keep walking.'",
+        "resultText": "'He did,' says Ondria. 'For a day. That was the trouble.' {trial_followup}",
+        "setMetaFlags": [
+          "chronicle_conductor_ordered"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 30
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_fault",
+    "title": "Whose Fault",
+    "body": "The bar is quiet when you come in, and the regulars are all at their tables, facing the door, the way people sit when they have been waiting for someone. Ondria pours without being asked and slides the glass across, and then she pours one for herself, which you have never seen her do.\n\n'The third order's mine,' she says. 'Every time the sky re-reads itself, my regulars die again. Dace dies in his rout. Ivo rights her bowl in the famine. Pell dies a day short of home. Then it un-happens, and then it happens again. They've noticed. They want to know whose fault it is.'\n\nShe drinks. 'So do I.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Mine.'",
+        "resultText": "Ondria looks at you for a long time, and the whole room looks with her. 'Yours,' she says. 'Every reading you let go, they die again.' She sets down her glass. 'Thank you. Nobody's ever said it to their faces.' Behind you someone laughs, short and surprised: Dace. 'Then finish it,' Ondria says. 'Whatever you're doing out there. Finish it, and they can stop.' She marks the tab. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_conductor_fault_heard"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      },
+      {
+        "label": "'His.'",
+        "resultText": "'His,' Ondria agrees. 'He opened the Seal and counted them as the price, paid once.' She looks around the room. 'They don't count themselves as paid. They count themselves as Dace and Ivo and Pell. The church rights a dead man's bowl and forgets to fill it. He does the same with a whole hall, and calls it a price. I fill the bowl.' She marks the tab. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_conductor_fault_heard"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      },
+      {
+        "label": "'Mine, and his. And you knew before you asked.'",
+        "resultText": "Ondria Vell laughs, the real one, the one you have only heard through Sendings. 'I knew,' she says. 'I wanted to see if you'd say it. You've been here before.' It isn't a question. She marks the tab. 'Now. The audience.'",
+        "requiredFlag": "chronicle_conductor_fault_heard",
+        "setMetaFlags": [
+          "chronicle_conductor_fault_heard"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_inside",
+    "title": "Twenty-Six",
+    "body": "You walk Ondria Vell through the edge, and she goes straight to the ceremony hall, as if she has been there before. In a way she has: every night for a year.\n\nThe graduating class stands along the wall in borrowed robes, twenty-six of them, mid-step, each with a folio under one arm. In the running world most of them died that afternoon. She knows which. She says their names as she walks the line, one at a time, the way she says the names of her regulars at closing.\n\nAt the back of the hall, in the last row, a man sits half-risen from his seat with his mouth open, as if about to call out to someone in the line. He has sat at the back of her bar for a year and never left.\n\nOndria stands in front of him for a long time. She does not pour anything. There is nothing in here to pour into, and nothing in here is dead.\n\n'He told me you stepped forward like you meant it,' she says, without turning around. 'He was right.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Who was he calling to?'",
+        "resultText": "'His niece,' says Ondria. 'Third from the end. He came to see her named.' She looks at the girl in the line, mid-step, folio under her arm. 'In here she's still about to be.' She wipes her eyes with the back of her wrist, briskly, the way she wipes the bar. 'Come on. I've a business to run.'"
+      },
+      {
+        "label": "Leave her with him.",
+        "resultText": "You leave her with him. When the hour is up she finds you at the gate. 'I'll pour for him tonight,' she says, 'same as ever. But I'll know where he is.'"
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_shadow_ask",
+    "title": "A Quiet Table",
+    "body": "A Sending reaches you with the clink of a glass in it, and then nothing, for a long time.\n\n'Come and pour,' says Ondria Vell at last. 'I can't tonight.'\n\nYou go. The bar is warm and crowded and nobody in it is breathing, and half of them were in the hall that afternoon. They know you. They know her. They drink what you pour and say nothing about either of you, which is worse than anything they could say.\n\nBy closing three of the regulars are still at the bar, and each of them has one thing left undone.\n\nDace, a soldier killed in a rout, wants to see a fight won properly, with nobody left on the field. Sister Ivo, an almoner of the Fast who righted her bowl in a famine year, wants to see a bargain struck where nobody goes hungry. Old Pell, a drover who died a day short of home, wants someone to answer the road for him, the way he never got to.\n\n'Last orders,' says Ondria, not looking at you. 'Fill any two. I'll tell you the third when I can.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'I'll fill them.'",
+        "resultText": "'Good,' she says. She pours three measures and sets them on the bar, and then a fourth, and stands looking at the fourth for a long time. Nobody drinks any of them."
+      },
+      {
+        "label": "'Half of them died in the hall.'",
+        "resultText": "'I know who's in my bar,' she says. 'I pour for every one of them. Every night. It was mine to pour.' She does not say what else was hers."
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_shadow_fault",
+    "title": "Her Own Order",
+    "body": "The bar is quiet when you come in, and the regulars are all at their tables, facing the door. Ondria pours one glass, for herself, and drinks it, and does not pour you one.\n\n'The third order's mine,' she says. 'They want to know whose fault it is. I know. I've always known.'\n\n'In every passage he showed me, the dead stop answering. The Seal holds, and the magic thins, and necromancy starves first, because we need the most of it. My table goes quiet one chair at a time, and then the door shuts and there's nobody on the other side of it. I could not stand to watch that. So I opened the gate.'\n\nShe sets down the empty glass. 'You want the rest. Not here. Ask me where I did it.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'In the hall, then.'",
+        "resultText": "'In the hall,' she says. 'Where they were.' She pours you a glass at last, and slides it across. 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_conductor_shadow_fault_heard"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      },
+      {
+        "label": "'They're here because of you.'",
+        "resultText": "'They're here because I pour,' she says. 'They died because I opened the gate. Both are true. I've had a year to make them fit, and they don't.' 'Now. The audience.'",
+        "setMetaFlags": [
+          "chronicle_conductor_shadow_fault_heard"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      },
+      {
+        "label": "'You opened the gate so they wouldn't go quiet. And they died.'",
+        "resultText": "Ondria looks at you for a long time, and the whole room looks with her. 'You've heard me say it before,' she says. 'And you came back to the bar.' She pours you a glass. 'Now. The audience.'",
+        "requiredFlag": "chronicle_conductor_shadow_fault_heard",
+        "setMetaFlags": [
+          "chronicle_conductor_shadow_fault_heard"
+        ],
+        "swayArchmage": "conductor",
+        "swayAmount": 40
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_shadow_penance",
+    "title": "What Did He Show You?",
+    "body": "You walk Ondria Vell through the edge and into the ceremony hall. She does not look at the dais first. She looks at the rows, and the line of candidates along the wall, and the families, and she knows them, because they have sat at her bar for a year.\n\nThen she looks at the dais, where the Ondria Vell of that afternoon is caught mid-stride, one palm flat on the sphere as it breaks. The spell runs from her hand in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'The passage where the Seal holds,' she says. 'The magic thins, and necromancy starves first, and the dead stop answering. My table goes quiet one chair at a time, and then there's nobody left to pour for. He showed me that the night before. Then he asked me to open the gate, and to silence the voice that names, so the schools stop and the old order ends with the Seal.' She looks at the spell. 'Her voice. I thought I was choosing where to stand before the last of them left. I filled my own bar instead.'\n\nShe goes along the line of candidates and says their names, all twenty-six, and stops in front of the man at the back of the hall, half-risen from his seat. 'I've poured for him every night,' she says. 'I'll stand on that dais at the end and pour for all of them, out loud, in front of everyone. It's the only penance I know how to do.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Then pour.'",
+        "resultText": "'Every night,' she says. 'And at the end.' Under your arm the Register writes her answer in her hand, and under it, in its own: 'Settled.'"
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing. She says the names again, quietly, all the way to the end of the line."
+      }
+    ]
+  },
+  {
+    "id": "arc_conductor_shadow_treachery",
+    "title": "What Did He Show You?",
+    "body": "You walk Ondria Vell through the edge and into the ceremony hall. She does not look at the dais first. She looks at the rows, and the line of candidates along the wall, and the families, and she knows them, because they have sat at her bar for a year.\n\nThen she looks at the dais, where the Ondria Vell of that afternoon is caught mid-stride, one palm flat on the sphere as it breaks. The spell runs from her hand in a line of white fire, past the place where you stood, toward the Provost.\n\n'You opened the wards,' you say. 'What did he show you?'\n\n'The passage where the Seal holds,' she says. 'The magic thins, and necromancy starves first, and the dead stop answering. My table goes quiet one chair at a time, and then there's nobody left to pour for. He showed me that the night before. Then he asked me to open the gate, and to silence the voice that names, so the schools stop and the old order ends with the Seal.' She looks at the spell. 'Her voice. I thought I was choosing where to stand before the last of them left. I filled my own bar instead.'\n\n'You threatened my bar,' she says. 'The only thing I had left that was quiet. You made me sign with my regulars listening.' She does not look at the line of candidates. 'I'll stand where you put me. They've long memories, love. So do I.'\n\n{remembrance}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Ondria.'",
+        "resultText": "'Don't,' she says. 'Don't say it gently. That's my trick, love, and you've no right to it.'"
+      },
+      {
+        "label": "Walk her out.",
+        "resultText": "You walk her out. At the gate she stops, and for a moment you think she will say the names. She does not."
+      }
+    ]
+  }
+]

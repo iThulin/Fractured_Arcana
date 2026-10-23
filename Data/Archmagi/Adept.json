@@ -3,6 +3,8 @@
   "displayName": "The Scholar",
   "title": "Wenna Aldric, Founder of the Academy",
   "school": "Adept",
+  "callName": "Wenna",
+  "fullName": "Wenna Aldric",
   "description": "She wrote the 'Aldric curriculum' and has been correcting people's pronunciation for forty years. Wenna Aldric founded the Academy not because she had mastered magic but because she had identified, with rigorous precision, the seventeen ways in which magical education was failing its students. She fixed fourteen of them. The other three are on a list on her desk. She has been working on number fifteen for eleven years. She knows the proper name of every spell, the eight classical schools, and the seventeen permitted variant pronunciations, but more importantly she knows better than anyone alive, the precise distance between knowing something and understanding it.",
   "personalityTrait": "Meticulous",
   "isVillainFaction": false,

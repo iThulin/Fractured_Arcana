@@ -1,0 +1,7 @@
+Scripts/UI/CameraController.cs
+Scripts/Systems/Combat/Terrain/HexGridManager.cs
+Scripts/Systems/Combat/Terrain/HexGridManager.FarField.cs
+Scripts/Systems/Combat/Terrain/GrassLodController.cs
+Assets/Shaders/terrain_splat.gdshader
+Assets/Shaders/painterly_grass.gdshader
+Assets/Shaders/painterly_canopy.gdshader

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "q_resolve_namer",
+    "title": "The Seventh Layer",
+    "category": "Story",
+    "permanent": false,
+    "layer": "Timeline",
+    "summary": "Cael Morn asked three small favors of you, in a single layer, which is not like them. You will find them dull. That is probably the point.",
+    "requiredFlag": "namer_ask_set",
+    "objectives": [
+      {
+        "text": "Carry the Namer's parcel",
+        "flag": "namer_layer_2",
+        "doneText": "Layer Two: Provenance"
+      },
+      {
+        "text": "Be received by another seat, and watch",
+        "flag": "namer_layer_3",
+        "doneText": "Layer Three: Witness"
+      },
+      {
+        "text": "Get the Namer's clause into a bargain",
+        "flag": "namer_layer_4",
+        "doneText": "Layer Four: Terms"
+      },
+      {
+        "text": "Return to the Namer",
+        "flag": "namer_layer_5",
+        "doneText": "Layer Five: Disclosure"
+      },
+      {
+        "text": "Answer the Namer's seat",
+        "flag": "qe_archmage_answered_namer",
+        "doneText": "Layer Six: Resolution"
+      }
+    ]
+  }
+]

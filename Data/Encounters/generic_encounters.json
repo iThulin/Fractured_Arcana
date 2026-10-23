@@ -343,7 +343,7 @@
     "choices": [
       {
         "label": "Take the Primal Shard",
-        "resultText": "The Shard settles into your keeping, colder and heavier than anything its size should be. One fragment of the failing Seal, recovered. Five remain.",
+        "resultText": "The Shard settles into your keeping, colder and heavier than anything its size should be. One fragment of the failing Seal, recovered. Its place in the sphere is waiting, back in the hall where it broke.",
         "requiredFlag": "primal_trial_passed",
         "setMetaFlags": [
           "fragment_primal_collected"
@@ -913,6 +913,101 @@
         "hpDelta": -12,
         "stepDelta": -2,
         "revealPois": 1
+      }
+    ]
+  },
+  {
+    "id": "lean_barn",
+    "title": "The Lean Barn",
+    "body": "At the edge of the village stands the biggest building in it: a stone barn with an iron door and a turned bowl carved over the lintel. A lean barn of the Fast, full to the rafters with a refused tenth. Two of the Order of the Tenth sit outside it in undyed cloth, staves across their knees.\n\nThe village is thin. Not starving. Thin, the way people get in a lean year that has not yet decided to be a famine.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Ask the guards when the barn opens.",
+        "resultText": "'In famine,' says the older one. 'Not before. That is the whole of the rule, and it is why there is anything in there at all.' He is not wrong. He is not entirely right, either, and from the look of him he knows it.",
+        "loreId": "the_lean_barns"
+      },
+      {
+        "label": "Leave the village some coin (10 gold).",
+        "resultText": "The reeve takes it without a word and walks it straight past the barn to the miller.",
+        "goldDelta": -10,
+        "loreId": "the_lean_barns"
+      },
+      {
+        "label": "Move on.",
+        "resultText": "The guards do not watch you go. They are watching the village."
+      }
+    ]
+  },
+  {
+    "id": "wild_talent",
+    "title": "A Wild Talent",
+    "body": "A farm wagon has stopped in the road, and a crowd with it. In the back sits a girl of nine or ten, very still, holding a cup of water that is boiling in her hands. It does not burn her. It has not stopped boiling since breakfast.\n\n'Since the sky broke,' says her father, to anyone. 'Since the thing in the hills. Before that she was ordinary.' He is taking her to the reeve. The reeve will want to send her to a school, and the father wants to know which one, because the only school anyone has heard of fell at Commencement.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Show her how to let it cool.",
+        "resultText": "You kneel in the wagon bed and show her the first exercise in the Academy's first book: breathe out, and let it go with the breath. The cup goes still. She looks at you as if you had done a miracle, and you think of the Examiner, who would have called it adequate.",
+        "loreId": "wild_talents"
+      },
+      {
+        "label": "Tell the father there is no school to send her to.",
+        "resultText": "He knew. He wanted to hear it from someone who would know. He turns the wagon toward home, and behind him the girl's cup goes on boiling.",
+        "loreId": "wild_talents"
+      },
+      {
+        "label": "Move on.",
+        "resultText": "The crowd closes around the wagon. Nobody in it knows what to do either."
+      }
+    ]
+  },
+  {
+    "id": "old_bestiary_sighting",
+    "title": "Something from the Old Books",
+    "body": "At dusk, near the wound in the hills, something crosses the road ahead of you: tall as a horse, pale as frost, with too many joints in its legs and a heron's head carried very high. It does not hurry. It looks at you once, without fear, and steps off the road into the dark.\n\nIn the next village they know what it was before you have finished describing it. Their grandmothers' stories had a name for it, and the stories said the last of them died when the Seal was forged.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Ask what the stories said.",
+        "resultText": "Two old men answer at once, and disagree. One says the stories called it hungry: one of the things that came through at the Collapse, back for more now that the door is open. The other says the stories called it shy: one of the things that hid when the world went lean, coming out now there is something to eat. They have not agreed about it since they were boys.",
+        "loreId": "the_old_bestiary"
+      },
+      {
+        "label": "Follow its tracks.",
+        "resultText": "The tracks go a hundred paces into the trees and stop, as if it had stepped up onto something that was not there. You stand in the spot a while. Nothing happens.",
+        "stepDelta": -1,
+        "loreId": "the_old_bestiary"
+      },
+      {
+        "label": "Keep moving.",
+        "resultText": "You keep moving. Something in the trees keeps pace for a while, and then does not."
+      }
+    ]
+  },
+  {
+    "id": "concord_glamour",
+    "title": "A Face You Cannot Keep",
+    "body": "A broker of the Veiled Concord sits across a table from you in a back room that smells of candle wax and wet wool, and names a price for something you have not yet told anyone you were carrying.\n\nThe broker is easy to talk to. You will remember the conversation for the rest of your life. You will not remember the face. Even now, looking straight at it, you cannot keep it: it slides off your attention like rain off oilcloth. It is not an enchantment. You know enchantments. It is not anything any school you know would put a name to.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Ask what the working is called.",
+        "resultText": "'Manners,' says the broker, and smiles, probably.",
+        "loreId": "the_unnamed_glamour"
+      },
+      {
+        "label": "Look harder.",
+        "resultText": "You hold your attention on the broker's face until your eyes water and your head aches. For a moment you have it. Then it is gone, and the broker is politely waiting for you to finish.",
+        "hpDelta": -2,
+        "loreId": "the_unnamed_glamour"
+      },
+      {
+        "label": "Decline, and leave.",
+        "resultText": "Out in the street you try to describe the broker to the Register, and find you can describe the room, and the table, and the broker's hands, and nothing else."
       }
     ]
   }

@@ -422,7 +422,9 @@ public static class QuestLogView
 
     // ── Lore codex ──────────────────────────────────────────────────────
 
-    /// <summary>Clear <paramref name="box"/> and render the discovered-lore codex.</summary>
+    /// <summary>Clear <paramref name="box"/> and render the discovered-lore codex: each entry
+    /// under its subject, with its title and what was learned (Data/Lore, LoreCodex.cs; W7). An
+    /// unlocked id with no entry keeps the prettified line, under Unindexed.</summary>
     public static void BuildLoreInto(VBoxContainer box, GuildSaveData save)
     {
         if (box == null)
@@ -442,12 +444,64 @@ public static class QuestLogView
             box.AddChild(stub);
             return;
         }
-        foreach (var id in lore)
+
+        // The Register explains the Hall the first time it holds an entry (once, on the ledger).
+        RegisterManager.Fire("lore.first_entry");
+
+        // Children freed above stay in the tree until the frame ends, so the first heading
+        // tracks its own spacing instead of counting children.
+        bool first = true;
+        var groups = LoreCodex.Group(lore, out var uncatalogued);
+        foreach (var g in groups)
         {
-            var lbl = new Label { Text = "• " + Prettify(id), AutowrapMode = TextServer.AutowrapMode.WordSmart };
-            lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-            box.AddChild(lbl);
+            AddLoreCategory(box, g.Category, first);
+            first = false;
+            foreach (var entry in g.Entries)
+                AddLoreEntry(box, entry);
         }
+        if (uncatalogued.Count > 0)
+        {
+            AddLoreCategory(box, "Unindexed", first);
+            foreach (var id in uncatalogued)
+            {
+                var lbl = new Label { Text = "• " + Prettify(id), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                lbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+                box.AddChild(lbl);
+            }
+        }
+    }
+
+    /// <summary>A subject heading in the codex, styled like the quest log's category labels.</summary>
+    private static void AddLoreCategory(VBoxContainer box, string category, bool first)
+    {
+        if (!first)
+            box.AddChild(new Control { CustomMinimumSize = new Godot.Vector2(0, 8) });
+        var head = new Label { Text = category };
+        head.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+        head.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
+        box.AddChild(head);
+    }
+
+    /// <summary>One codex entry: its title, and under it what was learned.</summary>
+    private static void AddLoreEntry(VBoxContainer box, LoreEntry entry)
+    {
+        var card = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        card.AddThemeConstantOverride("separation", 2);
+
+        string titleText = string.IsNullOrEmpty(entry.Title) ? Prettify(entry.Id) : entry.Title;
+        var title = new Label { Text = "• " + titleText, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        title.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        card.AddChild(title);
+
+        if (!string.IsNullOrEmpty(entry.Body))
+        {
+            var body = new Label { Text = entry.Body, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            body.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
+            body.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            card.AddChild(body);
+        }
+        box.AddChild(card);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

@@ -109,24 +109,24 @@
   {
     "id": "cs_saint_of_small_repairs",
     "title": "The Saint of Small Repairs",
-    "body": "There's a shrine here to a saint no church recognizes: the Saint of Small Repairs, patron of mended handles, patched roofs, and apologies delivered late but delivered. Offerings are broken things. The shrine-keeper mends them overnight and returns them to the city's stoops by dawn. She is visibly exhausted. DRAFT: rewrite in author voice.",
+    "body": "There is a shrine here to a saint the Fast does not count: the Saint of Small Repairs, patron of mended handles, patched roofs, and apologies delivered late but delivered. The almoner will tell you, kindly, that there is no such saint. The street keeps her anyway.\n\nHer offering bowl sits the right way up, as folk shrines do, and it holds broken things: a cracked cup, a hinge, a doll with one arm. The shrine-keeper takes them home each night and mends them, and by dawn they are back on the steps they came from. She looks as if she has not slept since the Sundering.",
     "terrainTags": [],
     "regionTags": [],
     "choices": [
       {
-        "label": "Leave gold in the offering bowl (15 gold)",
-        "resultText": "She uses it for solder and thread, which is to say, for the city.",
+        "label": "Leave gold in the bowl (15 gold)",
+        "resultText": "She buys solder and thread with it, which is to say she buys the street another week.",
         "goldDelta": -15,
         "setFlags": ["cs_shrine_tended"]
       },
       {
         "label": "Spend the evening mending beside her",
-        "resultText": "Your hands learn six small skills and one large one: how to fix a thing without being asked whose fault the breaking was.",
+        "resultText": "Your hands learn six small skills and one large one: how to fix a thing without asking whose fault the breaking was.",
         "setFlags": ["cs_shrine_tended"]
       },
       {
         "label": "Leave a broken thing of your own",
-        "resultText": "By dawn it's on the stoop of the inn where you slept, whole. You did not tell anyone where you were staying."
+        "resultText": "By dawn it is on the step of the inn where you slept, whole. You did not tell anyone where you were staying."
       }
     ]
   },
@@ -208,6 +208,77 @@
         "label": "Ask which name this city will keep for you",
         "resultText": "He looks at you longer than is comfortable. 'Depends on what you break,' he says, 'and what you mend.'",
         "setMetaFlags": ["cs_gate_names_warned"]
+      }
+    ]
+  },
+  {
+    "id": "cs_the_refusal",
+    "title": "The Refusal",
+    "body": "The almonry keeps its shutters closed and its doors open. Inside there are no benches, only people standing, and an altar that is a wooden bowl as wide as a cartwheel, turned upside down.\n\nOne at a time, anyone who wishes to says aloud a thing they want, and then refuses it. 'I want my brother home. I refuse it.' 'I want the rain to stop. I refuse it.' 'I want to be warm.' A long pause. 'I refuse it.' Nobody asks for anything. The Fast never asks.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Say something you want, and refuse it.",
+        "resultText": "You say it. You will not write down what it was, and neither will the Register, which has turned to a blank page out of something like good manners. The almoner nods to you on your way out, as to one of her own.",
+        "setFlags": ["cs_refusal_spoken"],
+        "loreId": "the_refusal"
+      },
+      {
+        "label": "Stand at the back and listen.",
+        "resultText": "You listen to a town refuse what it wants for as long as it takes the light to cross the floor. It is the most honest thing you have heard since you left the margin.",
+        "loreId": "the_refusal"
+      },
+      {
+        "label": "Leave quietly.",
+        "resultText": "Nobody turns. Leaving quietly is also a kind of refusal."
+      }
+    ]
+  },
+  {
+    "id": "cs_refusal_repaid",
+    "title": "A Refusal Repaid",
+    "body": "The almoner of this town has refused warmth at the winter refusal for thirty-one years, as the rite asks, and kept her almonry's hearth cold through every winter to prove it. At the last refusal, the morning after she spoke it, the snow melted off her roof and nowhere else in town. Nothing has settled there since: not snow, not frost, not even the dew.\n\nTwo strangers in undyed cloth arrived from one of the Six Houses yesterday to look at it. Nobody here is sure whether they came to bless the almonry or to close it.",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Ask the almoner what she thinks it means.",
+        "resultText": "'That I was heard,' she says. 'Which is the one thing the Fast has always said does not happen. We do not ask. We refuse.' She looks up at her roof. 'Something is answering anyway. I would like to know who.'",
+        "loreId": "a_refusal_repaid"
+      },
+      {
+        "label": "Ask the strangers.",
+        "resultText": "They are polite, and tell you nothing, and write your name down. One of them asks, very casually, whether you have refused anything lately.",
+        "loreId": "a_refusal_repaid"
+      },
+      {
+        "label": "Leave them to it.",
+        "resultText": "Behind you, a little steam rises off the almonry roof into the cold, like breath."
+      }
+    ]
+  },
+  {
+    "id": "cs_righted_bowls",
+    "title": "The Righted Bowls",
+    "body": "Behind the tannery, where the almoner does not walk, someone has put up a shelf of bowls. Every one of them is the right way up, which in this country is a thing you do only for the dead. Every one has something in it: a heel of bread, a spoon of honey, a copper.\n\n'For the one who opened the sky,' says the boy minding them, when you ask. 'The almoner says it was a feast and we're paying for it. My nan says it was a door, and somebody held it open for us, and you leave a little something for whoever holds a door.' He shrugs. 'The almoner says that's setting the table for the dead. My nan says the dead get hungry too.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "choices": [
+      {
+        "label": "Leave a coin in a bowl.",
+        "resultText": "The boy thanks you on behalf of whoever it was. The Register, under your arm, says nothing at all, which is how you know it disapproves.",
+        "goldDelta": -1,
+        "loreId": "the_righted_bowl"
+      },
+      {
+        "label": "Ask who opened the sky.",
+        "resultText": "'Nobody knows,' says the boy. 'That's why you leave something. In case.'",
+        "loreId": "the_righted_bowl"
+      },
+      {
+        "label": "Walk on.",
+        "resultText": "Behind you, the boy straightens a bowl that did not need straightening."
       }
     ]
   }

@@ -1,0 +1,507 @@
+{
+  "_doc": "Bram Korro's arc, Not Yet, But Close. The rules are C1, C3 and C5 in docs/story_wiring_v1.md; the script is docs/archmage_arc_engineer_v1.md. Lines are file-local: tokens here read only this file's lines.",
+  "arc": "engineer",
+  "encounterFile": "arc_engineer",
+  "lineTokens": {
+    "trial_outcome": "trial_outcome",
+    "shadow": "shadow",
+    "remembrance": "remembrance"
+  },
+  "beats": [
+    {
+      "id": "engineer_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_engineer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer",
+        "coconspirator_engineer",
+        "engineer_experiment_heard"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_ask_set",
+      "alsoSetMeta": [
+        "chronicle_engineer_ask_seen"
+      ],
+      "rememberFlag": "chronicle_engineer_ask_seen",
+      "show": "arc_engineer_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "ask"
+        }
+      }
+    },
+    {
+      "id": "engineer_shadow_ask",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_engineer",
+        "coconspirator_engineer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer",
+        "engineer_experiment_heard"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_ask_set",
+      "alsoSetMeta": [
+        "chronicle_engineer_shadow_ask_seen"
+      ],
+      "rememberFlag": "chronicle_engineer_shadow_ask_seen",
+      "show": "arc_engineer_shadow_ask",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_ask"
+        }
+      }
+    },
+    {
+      "id": "engineer_trial_2",
+      "hook": "on_combat_end",
+      "when": {
+        "prologue": "false"
+      },
+      "requires": [
+        "engineer_trial_1_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_trial_2_done",
+      "group": "engineer_trials",
+      "show": "arc_engineer_second_opinion",
+      "tokens": [
+        "trial_outcome",
+        "shadow"
+      ],
+      "lineArgs": {
+        "shadow": {
+          "beat": "second_opinion"
+        }
+      }
+    },
+    {
+      "id": "engineer_trial_1",
+      "hook": "on_combat_end",
+      "when": {
+        "prologue": "false"
+      },
+      "requires": [
+        "engineer_ask_set"
+      ],
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_trial_1_done",
+      "group": "engineer_trials",
+      "show": "arc_engineer_steady_hand",
+      "tokens": [
+        "trial_outcome",
+        "shadow"
+      ],
+      "lineArgs": {
+        "shadow": {
+          "beat": "steady_hand"
+        }
+      }
+    },
+    {
+      "id": "engineer_third_after_trials",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "engineer"
+      },
+      "requires": [
+        "engineer_trial_2_done"
+      ],
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer",
+        "coconspirator_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_experiment_heard",
+      "rememberFlag": "chronicle_engineer_experiment_heard",
+      "group": "engineer_third",
+      "show": "arc_engineer_third_trial",
+      "lore": "the_governor",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "third_trial"
+        }
+      }
+    },
+    {
+      "id": "engineer_third_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "engineer",
+        "unite_open": "true"
+      },
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer",
+        "coconspirator_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_experiment_heard",
+      "alsoSetTimeline": [
+        "engineer_trial_1_done",
+        "engineer_trial_2_done"
+      ],
+      "rememberFlag": "chronicle_engineer_experiment_heard",
+      "group": "engineer_third",
+      "show": "arc_engineer_third_trial",
+      "lore": "the_governor",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "third_trial"
+        }
+      }
+    },
+    {
+      "id": "engineer_shadow_third_after_trials",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "engineer"
+      },
+      "requires": [
+        "engineer_trial_2_done",
+        "coconspirator_engineer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_experiment_heard",
+      "rememberFlag": "chronicle_engineer_shadow_experiment_heard",
+      "group": "engineer_third",
+      "show": "arc_engineer_shadow_third_trial",
+      "lore": "the_governor",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_third_trial"
+        }
+      }
+    },
+    {
+      "id": "engineer_shadow_third_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "engineer",
+        "unite_open": "true"
+      },
+      "requires": [
+        "coconspirator_engineer"
+      ],
+      "excludes": [
+        "qe_archmage_answered_engineer",
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_experiment_heard",
+      "alsoSetTimeline": [
+        "engineer_trial_1_done",
+        "engineer_trial_2_done"
+      ],
+      "rememberFlag": "chronicle_engineer_shadow_experiment_heard",
+      "group": "engineer_third",
+      "show": "arc_engineer_shadow_third_trial",
+      "lore": "the_governor",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_third_trial"
+        }
+      }
+    },
+    {
+      "id": "engineer_inside",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "qe_archmage_united_engineer"
+      ],
+      "excludes": [
+        "coconspirator_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "engineer_inside",
+      "alsoSetMeta": [
+        "chronicle_engineer_inside_seen"
+      ],
+      "rememberFlag": "chronicle_engineer_inside_seen",
+      "show": "arc_engineer_inside",
+      "lore": "page_forty_four",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "inside"
+        }
+      }
+    },
+    {
+      "id": "engineer_shadow_end_united_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_engineer",
+        "qe_archmage_united_engineer",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_engineer_answered",
+      "alsoSetMeta": [
+        "chronicle_engineer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_engineer_penance"
+      ],
+      "rememberFlag": "chronicle_engineer_shadow_end_seen",
+      "group": "engineer_shadow_end",
+      "show": "arc_engineer_shadow_penance",
+      "lore": "what_he_showed_engineer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "engineer_shadow_end_united_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_engineer",
+        "qe_archmage_united_engineer",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_engineer_answered",
+      "alsoSetMeta": [
+        "chronicle_engineer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_engineer_penance"
+      ],
+      "rememberFlag": "chronicle_engineer_shadow_end_seen",
+      "group": "engineer_shadow_end",
+      "show": "arc_engineer_shadow_penance",
+      "lore": "what_he_showed_engineer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "engineer_shadow_end_coerced_angle",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_engineer",
+        "qe_archmage_coerced_engineer",
+        "angle_4_seen"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_engineer_answered",
+      "alsoSetMeta": [
+        "chronicle_engineer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_engineer_treachery"
+      ],
+      "rememberFlag": "chronicle_engineer_shadow_end_seen",
+      "group": "engineer_shadow_end",
+      "show": "arc_engineer_shadow_treachery",
+      "lore": "what_he_showed_engineer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    },
+    {
+      "id": "engineer_shadow_end_coerced_part",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "coconspirator_engineer",
+        "qe_archmage_coerced_engineer",
+        "chronicle_part_3"
+      ],
+      "excludes": [
+        "qe_archmage_corrupted_engineer"
+      ],
+      "layer": "Timeline",
+      "once": "shadow_engineer_answered",
+      "alsoSetMeta": [
+        "chronicle_engineer_shadow_end_seen"
+      ],
+      "alsoSetTimeline": [
+        "shadow_engineer_treachery"
+      ],
+      "rememberFlag": "chronicle_engineer_shadow_end_seen",
+      "group": "engineer_shadow_end",
+      "show": "arc_engineer_shadow_treachery",
+      "lore": "what_he_showed_engineer",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "shadow_end"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "trial_outcome",
+      "when": {
+        "won": "true"
+      },
+      "text": "You won. The device is warm, and smells of hot tin."
+    },
+    {
+      "key": "trial_outcome",
+      "when": {
+        "won": "false"
+      },
+      "text": "You lost. The device is warm, and smells of hot tin, and does not seem to mind."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "steady_hand",
+        "traitor": "engineer"
+      },
+      "text": "The Register notes that the hand that built this device was steady once before, on the dais, with its palm on the glass."
+    },
+    {
+      "key": "shadow",
+      "when": {
+        "beat": "second_opinion",
+        "traitor": "engineer"
+      },
+      "text": "The Register notes that the box clicked once at the very start of the fight, before anything had happened. It does not say what it was warning about."
+    },
+    {
+      "key": "shadow",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same crate. The same stencil, on the bottom as well.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "third_trial",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same board, the same curve. The chalk is new.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "inside",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same page. The same underline.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_ask",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same careful hand. The same crossing out.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_third_trial",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The sheet stayed on the board last time as well.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "shadow_end",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'Hands in his pockets last time too, the whole way up.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    }
+  ]
+}

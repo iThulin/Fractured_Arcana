@@ -1,0 +1,611 @@
+[
+  {
+    "id": "prologue_trial",
+    "encounter": {
+      "id": "prologue_trial",
+      "displayName": "The Final Examination",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "examiner_trial",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 3,
+        "description": "Stand three rounds against the Examiner."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "fundamentals",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "persistent",
+      "registerMode": "trial",
+      "cleanMeans": "the wizard ends the fight at full health",
+      "onWinClean": "prologue_trial_part_one_clean",
+      "onWin": "prologue_trial_part_one",
+      "onLoss": "prologue_trial_part_one_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_elementalist",
+    "encounter": {
+      "id": "prologue_practical_elementalist",
+      "displayName": "The Practical: Frost Plate",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_frost_plate",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall_frost",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 3,
+        "description": "Break the Frost Plate within three rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Elementalist",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "elementalist_ember_bolt",
+        "elementalist_ember_bolt",
+        "elementalist_frost_lance",
+        "elementalist_static_field",
+        "elementalist_chain_lightning",
+        "elementalist_chain_lightning",
+        "elementalist_glare_ice",
+        "elementalist_frost_shard",
+        "elementalist_frost_step",
+        "elementalist_tremor_step"
+      ],
+      "innate": [
+        "elementalist_static_field",
+        "elementalist_chain_lightning",
+        "elementalist_ember_bolt",
+        "elementalist_frost_lance",
+        "elementalist_tremor_step"
+      ],
+      "passUnit": "korro_frost_plate",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "Storm through frost. The plate will need replacing. Master Korro will be thrilled.",
+      "remarkTime": "The plate is still plated. Frost first, then storm. The floor does the work, if you let it.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_arcanist",
+    "encounter": {
+      "id": "prologue_practical_arcanist",
+      "displayName": "The Practical: Proving Coil",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_proving_coil",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 3,
+        "description": "Break the Proving Coil within three rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Arcanist",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "arcanist_spell_weave",
+        "arcanist_spell_weave",
+        "arcanist_arcane_missile",
+        "arcanist_arcane_missile",
+        "arcanist_mana_conduit",
+        "arcanist_mana_conduit",
+        "arcanist_cascade_bolt",
+        "arcanist_warding_glyph",
+        "arcanist_eldritch_catalyst",
+        "arcanist_arcane_echo"
+      ],
+      "innate": [
+        "arcanist_mana_conduit",
+        "arcanist_spell_weave",
+        "arcanist_spell_weave",
+        "arcanist_cascade_bolt",
+        "arcanist_arcane_missile"
+      ],
+      "passUnit": "korro_proving_coil",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "Five spells in one breath, and in the right order. The coil had no time to mend.",
+      "remarkTime": "It mended. It always will, for anyone who spreads the work out. One turn, all of it, in order.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_chronomancer",
+    "encounter": {
+      "id": "prologue_practical_chronomancer",
+      "displayName": "The Practical: Swing Arm",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_swing_arm",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 3,
+        "description": "Break the Swing Arm within three rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Chronomancer",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "chronomancer_slow_fuse",
+        "chronomancer_slow_fuse",
+        "chronomancer_read_ahead",
+        "chronomancer_read_ahead",
+        "chronomancer_temporal_anchor",
+        "chronomancer_temporal_anchor",
+        "chronomancer_split_second",
+        "chronomancer_stolen_moment",
+        "chronomancer_patient_hand",
+        "chronomancer_glimpse"
+      ],
+      "innate": [
+        "chronomancer_slow_fuse",
+        "chronomancer_slow_fuse",
+        "chronomancer_stolen_moment",
+        "chronomancer_read_ahead",
+        "chronomancer_temporal_anchor"
+      ],
+      "passUnit": "korro_swing_arm",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "You set the spell before you needed it. That is the whole discipline, and most of them never learn it.",
+      "remarkTime": "You cast everything when you saw it. A Chronomancer casts it before.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_enchanter",
+    "encounter": {
+      "id": "prologue_practical_enchanter",
+      "displayName": "The Practical: Walking Frame",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_walking_frame",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 3,
+        "description": "Break the Walking Frame within three rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Enchanter",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "enchanter_runic_trap",
+        "enchanter_runic_trap",
+        "enchanter_compel",
+        "enchanter_compel",
+        "enchanter_charm_drift",
+        "enchanter_snare_glyph",
+        "enchanter_geas",
+        "enchanter_mana_tithe",
+        "enchanter_hex_mark",
+        "enchanter_dispel_walk"
+      ],
+      "innate": [
+        "enchanter_geas",
+        "enchanter_runic_trap",
+        "enchanter_compel",
+        "enchanter_runic_trap",
+        "enchanter_snare_glyph"
+      ],
+      "passUnit": "korro_walking_frame",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "It walked into every price you set. They always do.",
+      "remarkTime": "You hit it. An Enchanter makes it hit itself. Next time, make the floor expensive first.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_necromancer",
+    "encounter": {
+      "id": "prologue_practical_necromancer",
+      "displayName": "The Practical: Dummy Rack",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_dummy_rack",
+          "difficultyMult": 1.0
+        },
+        {
+          "unitId": "korro_practice_dummy",
+          "difficultyMult": 1.0
+        },
+        {
+          "unitId": "korro_practice_dummy",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 4,
+        "description": "Break the Dummy Rack within four rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Necromancer",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "necromancer_grief_strike",
+        "necromancer_grief_strike",
+        "necromancer_the_price_of_knowing",
+        "necromancer_communion",
+        "necromancer_final_escort",
+        "necromancer_final_escort",
+        "necromancer_elegy",
+        "necromancer_release_and_remember",
+        "necromancer_the_procession",
+        "necromancer_unfinished_business"
+      ],
+      "innate": [
+        "necromancer_grief_strike",
+        "necromancer_final_escort",
+        "necromancer_the_procession",
+        "necromancer_grief_strike",
+        "necromancer_communion"
+      ],
+      "passUnit": "korro_dummy_rack",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "You let them fall where you could use them. The dead are patient teachers.",
+      "remarkTime": "You fought the rack. A Necromancer fights with what the rack leaves behind.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_druid",
+    "encounter": {
+      "id": "prologue_practical_druid",
+      "displayName": "The Practical: Tiller",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_tiller",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 4,
+        "description": "Break the Tiller within four rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Druid",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "druid_creeping_thorn",
+        "druid_creeping_thorn",
+        "druid_first_green",
+        "druid_take_root",
+        "druid_bramblewall",
+        "druid_mire",
+        "druid_spores",
+        "druid_foragers_path",
+        "druid_wolves_come",
+        "druid_bramble_guard"
+      ],
+      "innate": [
+        "druid_first_green",
+        "druid_creeping_thorn",
+        "druid_mire",
+        "druid_creeping_thorn",
+        "druid_wolves_come"
+      ],
+      "passUnit": "korro_tiller",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "On a stone floor, too. The land tried harder because you asked it to.",
+      "remarkTime": "You struck it where it stood. A Druid plants where it will stand.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_tinker",
+    "encounter": {
+      "id": "prologue_practical_tinker",
+      "displayName": "The Practical: Target Frame",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_target_frame",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 3,
+        "description": "Break the Target Frame within three rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Tinker",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "tinker_deploy_turret",
+        "tinker_deploy_turret",
+        "tinker_conduit_bolt",
+        "tinker_conduit_bolt",
+        "tinker_fabricate_armor",
+        "tinker_deploy_cannon",
+        "tinker_arc_bolt",
+        "tinker_conduit_link",
+        "tinker_shock_net",
+        "tinker_deploy_sentinel"
+      ],
+      "innate": [
+        "tinker_deploy_turret",
+        "tinker_conduit_bolt",
+        "tinker_deploy_turret",
+        "tinker_conduit_bolt",
+        "tinker_conduit_link"
+      ],
+      "passUnit": "korro_target_frame",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "It shot your turrets and you let it. That is most of the Tinker's art, and Master Korro will want it in writing.",
+      "remarkTime": "You stood in front of your own machines. Let them stand in front of you.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_practical_adept",
+    "encounter": {
+      "id": "prologue_practical_adept",
+      "displayName": "The Practical: Caster Arm",
+      "tier": "Skirmish",
+      "enemies": [
+        {
+          "unitId": "korro_caster_arm",
+          "difficultyMult": 1.0
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 1.0,
+      "objective": {
+        "kind": "survive",
+        "rounds": 3,
+        "description": "Break the Caster Arm within three rounds."
+      },
+      "waves": []
+    },
+    "script": {
+      "part": "practical",
+      "school": "Adept",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio",
+      "folio": [
+        "adept_counterspell",
+        "adept_counterspell",
+        "adept_rote_glyph",
+        "adept_magic_missile",
+        "adept_magic_missile",
+        "adept_focused_strike",
+        "adept_riposte",
+        "adept_jolt",
+        "adept_arcane_sight",
+        "adept_ward"
+      ],
+      "innate": [
+        "adept_counterspell",
+        "adept_magic_missile",
+        "adept_rote_glyph",
+        "adept_focused_strike",
+        "adept_riposte"
+      ],
+      "passUnit": "korro_caster_arm",
+      "endOnPassUnit": true,
+      "registerMode": "trial",
+      "remarkPass": "Read, answer, strike. None of it clever, and all of it adequate.",
+      "remarkTime": "It read its spell, and you read yours. Next time, answer it first.",
+      "onPass": "prologue_practical_after_pass",
+      "onTime": "prologue_practical_after_time",
+      "onLoss": "prologue_practical_after_floor"
+    }
+  },
+  {
+    "id": "prologue_sundering",
+    "encounter": {
+      "id": "prologue_sundering",
+      "displayName": "The Sundering of Commencement",
+      "tier": "Siege",
+      "enemies": [
+        {
+          "unitId": "astrologer_read_ahead",
+          "difficultyMult": 0.85
+        },
+        {
+          "unitId": "astrologer_read_ahead",
+          "difficultyMult": 0.85
+        },
+        {
+          "unitId": "fracture_keeper",
+          "difficultyMult": 0.85
+        },
+        {
+          "unitId": "astrologer_sealkeeper",
+          "difficultyMult": 0.85
+        }
+      ],
+      "regionId": "",
+      "terrainType": "",
+      "mapRecipe": "ceremony_hall",
+      "difficultyMult": 0.85,
+      "objective": {
+        "kind": "protect",
+        "wardUnitId": "provost_wenna",
+        "rounds": 3,
+        "description": "Protect the Provost. She has not stopped speaking."
+      },
+      "waves": [
+        {
+          "round": 2,
+          "enemies": [
+            {
+              "unitId": "astrologer_read_ahead",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "astrologer_read_ahead",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "fracture_keeper",
+              "difficultyMult": 0.85
+            }
+          ],
+          "announce": "The east doors give. The faculty are falling back."
+        },
+        {
+          "round": 3,
+          "enemies": [
+            {
+              "unitId": "astrologer_sealkeeper",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "astrologer_sealkeeper",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "astrologer_foregone",
+              "difficultyMult": 0.85
+            }
+          ],
+          "announce": "They do not hurry. They were always going to arrive now."
+        }
+      ]
+    },
+    "script": {
+      "part": "sundering",
+      "party": "wizard_only",
+      "noDefeat": true,
+      "suppressRewards": true,
+      "suppressDeeds": true,
+      "deck": "folio_sat",
+      "registerMode": "sundering",
+      "onAnyOutcome": "prologue_sundering_cast"
+    }
+  }
+]

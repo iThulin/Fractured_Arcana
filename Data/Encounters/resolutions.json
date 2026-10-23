@@ -3,22 +3,23 @@
     "id": "resolution_wenna",
     "archmageId": "wenna",
     "title": "An Audience with The Scholar",
-    "body": "Wenna Aldric receives you standing, in a field tent pitched a careful hundred paces from the bubble's edge, the closest thing the founder of the Academy has to a door home. She corrects the tense of your greeting before answering it.\n\nOn the desk between you: fifteen examinations, fourteen marked. She has been working on the fifteenth for eleven years. She looks at you the way she looks at the unfinished one.\n\n'You never technically graduated. And yet the only working school in the world answers to you. I have opinions about that. First, show me you know the proper name of what you are about to do.'",
+    "body": "Wenna Aldric receives you standing, at a folding desk set in the road a careful hundred paces from the edge, which is the closest the founder of the Academy has to a door home. Your greeting comes out in the right tense. She notices, and says nothing, which from her is a mark.\n\nOn the desk lies her list, seventeen lines in her careful script, fourteen of them struck through.\n\n'You never technically graduated,' she says. 'And yet the only working school in the world answers to you. I have opinions about that. Before you say anything, show me that you know the proper name of what you are about to do.'",
     "choices": [
       {
-        "label": "Unite: sit her final examination",
+        "label": "Unite: ask for her mark",
         "resolutionKind": "unite",
-        "resultText": "The examination takes the rest of the day. She never says whether you passed. But at dusk she folds her spectacles, pledges The Aldric Academy to the guild's cause, and asks (precisely, and only once) to be walked through the bubble's edge, to stand in her school for one hour. She will correct the frozen chalkboards. All of them."
+        "resultText": "'Ask properly.' You do. She takes your student record from the desk, kept current to the day, and writes one word at its foot, where a mark would go: \"Promising.\" She does not say whether you passed. Then she pledges the Aldric Academy to the guild's cause, and asks, precisely and only once, to be walked through the edge to stand in her school for one hour."
       },
       {
         "label": "Coerce: show her the accession list from the Uncatalogued Wing",
         "resolutionKind": "coerce",
-        "resultText": "She reads the pulled titles until she reaches the one annotated in Kassian's hand: hers. She goes very still. 'So he was in my library.' The Academy complies. Fear accomplished what standards would not, and she will not thank you for teaching her that."
+        "requiredFlag": "campus_library_complete",
+        "resultText": "She reads the pulled titles until she reaches the one annotated in a small, upright, patient hand. The title is hers. She goes very still. 'So he was in my library.' The Academy complies. Fear has done what standards would not, and she will not thank you for teaching her that."
       },
       {
         "label": "Overthrow: take the Academy by force",
         "resolutionKind": "overthrow",
-        "resultText": "She rises and dusts the chalk from her sleeves. 'Very well. The examination will be practical.' She fights like a syllabus, escalating by unit. And she grades."
+        "resultText": "She sets down the pen and dusts the chalk from her sleeves. 'Very well. The examination will be practical.' She fights like a syllabus, escalating by unit. And she grades."
       },
       {
         "label": "Withdraw: this is not the day",
@@ -30,12 +31,12 @@
     "id": "resolution_aurel",
     "archmageId": "aurel",
     "title": "An Audience with The Reviser",
-    "body": "Master Aurel Pendry does not look up when you enter. He is mid-argument with a text that cannot argue back, shorthand crawling down the margin like corrections to a river. Then he sets his pen down. You will learn later how rare that is.\n\n'They say your campus holds a sentence that does not end,' he says. 'A working suspended mid-word. I have revised every text in this world worth the ink, and I cannot get at that one.'\n\nHe waits. There are no miracles, he has written, only observers who lacked the patience to understand what they were watching. He has been patient a very long time.",
+    "body": "Master Aurel Pendry receives you at his bench, among the disassembled spells of every school, with his pen set down. You will learn later how rare that is.\n\n'They say your campus holds a sentence that does not end,' he says. 'A working stopped mid-word, that nobody can get at but you. I have revised every text in this world worth the ink.' (And several that were not.) 'I cannot get at that one.'\n\nHe waits. There are no miracles, he has written, only observers who lacked the patience to understand what they were watching. He has been patient a very long time.",
     "choices": [
       {
         "label": "Unite: offer him one hour inside the Second",
         "resolutionKind": "unite",
-        "resultText": "In the ceremony hall he stands before the half-cast killing spell (the one that almost ended you), takes out his shorthand, and begins annotating. 'Whoever drafted this was rushed. If it ever finishes casting, it will miss.' The Annotated Circle is yours. You will want that annotation at the Convergence."
+        "resultText": "'One hour,' he says. 'I will need all of it.' (He will need more. He will not ask.) The Annotated Circle pledges to the guild's cause, and he asks to be walked through the edge and into the ceremony hall, to stand in front of the one working he cannot revise."
       },
       {
         "label": "Coerce: refuse him entry until he pledges",
@@ -57,12 +58,12 @@
     "id": "resolution_hess",
     "archmageId": "hess",
     "title": "An Audience with The Witness",
-    "body": "You do not find Hess. You arrive where she is, which is different, and she was there first. A crow shifts its weight on her shoulder. She does not ask why you have come.\n\nShe has been present at eight significant endings and intervened at none of them. She was at Commencement. She walked out before the wards broke, and she has never said why.\n\nShe has already decided whether to trust you. She decided before you entered the region. You are not negotiating. You are confirming her suspicions.",
+    "body": "You do not find Hess. You arrive where she is, which is different, and she was there first. A crow shifts its weight on her shoulder. She does not ask why you have come.\n\nShe has watched eight endings happen and intervened in none of them. The ninth she walked out of, before the wards broke.\n\nShe has already decided whether to trust you. She decided before you entered the region. You are not negotiating. You are confirming her suspicions.",
     "choices": [
       {
         "label": "Unite: stand and be seen",
         "resolutionKind": "unite",
-        "resultText": "A long silence, the kind rivers make. Then: 'I have watched eight endings happen. I am willing to watch one be refused.' The Living Compact does not sign, does not seal, does not swear. It simply, from this day, is with you."
+        "resultText": "A long silence, the kind rivers make. Then she nods, once, the way she nodded to no one on the dais. The Living Compact does not sign, does not seal, does not swear. It simply, from this day, is with you. She asks for one thing, and she asks it of the ground rather than of you: to be walked back into the hall she left."
       },
       {
         "label": "Bargain: ask her price",
@@ -88,7 +89,7 @@
       {
         "label": "Unite: help him steady the argument",
         "resolutionKind": "unite",
-        "resultText": "The table quiets, one voice at a time, until the argument is merely ancient again instead of poisoned. When it is done, Joren asks the storm your question for you (one question), and the answer arrives phrased as weather. The Elemental Covenant stands with the guild."
+        "resultText": "The table quiets, one voice at a time, until the argument is merely ancient again instead of poisoned. The Elemental Covenant stands with the guild. Joren asks one thing in return, in his own voice only: to stand for one hour somewhere the weather does not move. For that hour he promises you one question of the storm."
       },
       {
         "label": "Coerce: back one element against the rest",
@@ -110,16 +111,17 @@
     "id": "resolution_namer",
     "archmageId": "namer",
     "title": "An Audience with The Namer",
-    "body": "You are shown to a chair that was placed for you before you decided to come. The Namer does not look up from the working on their desk. 'I'm not finished. Sit.'\n\nYou count the layers you can see in the working and reach four before the count stops behaving. They have been watching you since before you entered the region. They know what layer you are on. You do not.\n\nAt last they set the working aside and fold their hands. 'You are here to resolve me. That is layer one. Shall we discuss what the others are?'",
+    "body": "You are shown to a chair that was placed for you before you decided to come. The Namer does not look up from the working on their desk. 'I'm not finished. Sit.'\n\nYou count the layers you can see in the working and reach four before the count stops behaving. They have been watching you since before you entered the region. They know what layer you are on. You do not.\n\nAt last they set the working aside and fold their hands. 'You are here to resolve me,' they say. 'You think that is layer one. Shall we discuss what the others were?'",
     "choices": [
       {
         "label": "Unite: accept the interview, all layers",
         "resolutionKind": "unite",
-        "resultText": "'You're not finished either,' they say at the end, which you take as approval. The Seventh Layer pledges to the guild, and they enchant the Anchorhold's gate with a layer they refuse to describe. With the Namer, the reward is contractual trust in a sealed clause. It fires once, when it matters."
+        "resultText": "'You're not finished either,' they say at the end, which you take as approval. The Seventh Layer pledges to the guild. Cael asks one thing in return, in a single layer: to be walked through your edge, and left alone with your gate for an hour."
       },
       {
         "label": "Coerce: produce the withdrawn conference paper",
         "resolutionKind": "coerce",
+        "requiredFlag": "namer_paper_held",
         "resultText": "They read the proof that four layers once failed them without any expression at all. 'Provenance,' they say. 'Good.' They comply. From this day forward, everything they make for you carries an eighth layer."
       },
       {
@@ -137,12 +139,12 @@
     "id": "resolution_conductor",
     "archmageId": "conductor",
     "title": "An Audience with The Conductor",
-    "body": "The bar is also a funeral home, depending on what you need tonight. The regulars do not breathe, which keeps the room restful. The Conductor pours without being asked and slides the glass across. Accept it. This matters more than it should.\n\n'Every time the sky re-reads itself,' she says, 'my regulars die again. Their deaths un-happen and re-happen, and they have noticed. They've started asking whose fault it is. I've started wanting to know the answer.'\n\nShe sets the Long Table's ledger on the bar, beside the shape of yours. Hers is longer. She keeps a good list too.",
+    "body": "The bar is also a funeral home, depending on what you need tonight. The regulars do not breathe, which keeps the room restful. The Conductor pours without being asked and slides the glass across. Accept it. This matters more than it should.\n\nShe sets the Long Table's ledger on the bar, beside the shape of yours. Hers is longer. She keeps a good list too.\n\n'Go on, then,' she says. 'Tell me what you came for.'",
     "choices": [
       {
         "label": "Unite: open your ledger of the honored dead",
         "resolutionKind": "unite",
-        "resultText": "She reads every name (all of it, every timeline) and pours one measure for each. It takes all night. At dawn she says only: 'You keep a good list.' The Long Table stands with the guild."
+        "resultText": "She reads every name (all of it, every timeline) and pours one measure for each. It takes all night. At dawn she says only: 'You keep a good list.' The Long Table stands with the guild. On your way out she asks one thing: to be walked through your edge, into the hall where the class she pours for is still standing."
       },
       {
         "label": "Coerce: threaten the bar's quiet",
@@ -169,7 +171,7 @@
       {
         "label": "Unite: let him take notes",
         "resolutionKind": "unite",
-        "resultText": "Inside, he touches nothing, which costs him visibly. He diagrams the frozen killing spell, the hanging bell-note, the standing mending. The notebook page on the mending says only: 'it's tired. bring it something. see p.44.' The Korro Workshop is with you. And so, for better or worse, is the cart."
+        "resultText": "'Notes,' he says. 'Just notes. I won't touch anything.' He will want to. The Korro Workshop pledges to the guild, and so, for better or worse, does the cart. Then he asks when he can come in. He asks three times, in three different ways, in case one of them works."
       },
       {
         "label": "Coerce: confiscate the cart",

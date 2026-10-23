@@ -1,0 +1,180 @@
+[
+  {
+    "id": "chronicle_part_three",
+    "title": "The Last Pages",
+    "body": "The second volume is filling faster than the first did, and the Register has noticed. It has begun, very slightly, to economize: a smaller hand, narrower margins, abbreviations it would once have considered beneath it.\n\n'The minutes are nearly complete,' it says. It turns to the back of the volume and riffles the clean pages that are left, as if counting them, which it does not need to do. 'Nearly. There is one page the Register does not have. It knows where it is. It is in his hand.'\n\nIt means the small, upright, patient hand.\n\n'He keeps it at the seat,' says the Register. 'The other seat: the one in the running world, where the ley lines cross.' A pause. 'Where you died.'\n\nOn a clean page, in its own hand, it writes a heading, and underlines it once: The Fallen Seat.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Turn to the last pages.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "chronicle_fallen_seat_shut",
+    "title": "A Shut Gate",
+    "body": "The road climbs to the seat of the university the way it always did, and the seat is at the top of it, the way it always was, except that it is not.\n\nThis is the running world's. The weather has been at it since Commencement. The great roof of the ceremony hall is gone, and its walls stand open to the sky. Keepers walk the walls in sealed-sky blue, unhurried, the way people walk in a house that is theirs.\n\nThe gate is shut. Not barred: shut, the way a book is shut. Nobody on the walls so much as looks down at the party.\n\n'Be it recorded,' says the Register, 'that the gate was shut.' For the Register, it sounds almost relieved.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go back down the road.",
+        "resultText": "The Keepers on the walls watch the party all the way down, and never once look at you."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_seat_that_fell",
+    "title": "The Seat That Fell",
+    "body": "The road climbs to the fallen seat, and a hundred paces short of the gate, beside the road where the families used to wait for the students to come down, someone has set up a stone.\n\nIt is not the Academy's work, or the Keepers'. It is rougher than that, cut by people who were not masons and did it anyway. Their own names are cut small along the base, the way people sign a letter: the town at the foot of the hill. Above them are the names of the graduating class who died in the hall that afternoon.\n\nYours is the first, because the Provost called you first, and it is cut a little deeper than the rest: {wizard_name}.\n\nAlong the foot of the stone stands a row of small wooden bowls, one under each name, every one of them turned right way up, the way the Fast turns a bowl for the dead. There is rain in yours.\n\nBeyond the stone the gate stands open. Nobody opened it while you watched. It is simply open, both leaves back against the walls, the way a door is left open for a guest who is late. Keepers stand along the walls and down both sides of the road in, in sealed-sky blue, in rows. They are not on guard. They are waiting, the way a sentence waits before its verb. Their eyes go over the party one face at a time and slide off the place where you are standing, as if it were the space between two words.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go in.",
+        "resultText": "You go in under the arch, and the Keepers let you, every one of them, the way a page lets a reader in.",
+        "setFlags": [
+          "fallen_seat_gone_in"
+        ]
+      },
+      {
+        "label": "Kneel by your bowl.",
+        "resultText": "You kneel by the stone and look at the rain in your bowl for a while. Somebody in the town at the foot of the hill turned it up for you, and has been back since to pull the weeds. You leave it as it is. Then you get up and go in under the arch.",
+        "loreId": "the_class_stone",
+        "setFlags": [
+          "fallen_seat_gone_in"
+        ]
+      },
+      {
+        "label": "Not today.",
+        "resultText": "You go back down the road. Behind you the gate stays open. It will be open when you come back; you are sure of that, and you do not like being sure of it."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_hall_without_a_roof",
+    "title": "The Hall Without a Roof",
+    "body": "The ceremony hall has no roof. The rain has had the rows for a long time now, and grass has come up between the stones of the examination floor, and at the far end the dais stands under the open sky like a table nobody has cleared.\n\nNothing in here is still. That is the first thing, and the worst. You have lived a long time in a hall where nothing moves, and this one is all movement: wind in the grass, a bird going over, water running in a thin line down the steps of the dais. In this hall the afternoon finished.\n\nThe cradle on the dais is empty. The six lights went out of it in the running world and came down in six kingdoms, and the cradle holds nothing now but rain.\n\nThere is the lectern, where the Provost stood. There is the place in front of it, between the lectern and the dais.\n\nYou stand in it.\n\nThis is where you stood at Commencement, and in this hall it is where you died. Nobody in the running world knows you came back from here. Nobody in it knows you were ever anywhere else. The Keepers in the doorway watch the party, and the rain comes down through the roof that is not there, and falls on you the way it falls on everything.\n\nUnder your arm the Register opens to a clean page and does not write on it.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Climb the stair behind the dais.",
+        "resultText": "There is a stair behind the dais that the students were never allowed to climb. The Keepers do not stop you. At the top of it is a door, and the door is open, like the gate.",
+        "setFlags": [
+          "fallen_seat_study_next"
+        ],
+        "setMetaFlags": [
+          "fallen_seat_walked"
+        ],
+        "loreId": "the_fallen_seat"
+      },
+      {
+        "label": "Leave the hall.",
+        "resultText": "You go back out between the rows, and the Keepers watch the party go. The stair behind the dais will be there.",
+        "setMetaFlags": [
+          "fallen_seat_walked"
+        ],
+        "loreId": "the_fallen_seat"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_the_study",
+    "title": "The Study",
+    "body": "{study_way_in}\n\nBeyond it is a high room with the shutters open on the sky. There is a table, and a chair at it, and a lamp on the table that nobody has lit, because there is no need: the sky gives light enough to read by. There are no books. Across the table from the chair, the dust on the floorboards keeps the shape of two feet, where someone once stood for a long time and nobody has stood since.\n\nThe chair is empty. But somebody is reading. You can hear it, the way you hear someone turning pages in the next room, and then a voice comes down through the open shutters from the roof above, unhurried, a little tired, as if reading aloud.\n\n'Good evening, whoever stands in my margin,' says Kassian Vor-Aleth. 'You are in my reading room. I know because the room has a hole in it. I have read this room every evening since the opening, and tonight there is a place by the table where the passage goes around something, the way water goes around a stone.'\n\n'I have never had anyone to explain this to. The people who work for me do not need it explained; they have read it. The people who oppose me do not want it explained; they want me to be wrong. You are neither, as far as I can tell, because I cannot tell anything about you at all. So I am going to tell you, and you may do with it whatever you like.'\n\n'I did not break the Seal. I opened it. The Seal does not only keep the Void out. It keeps magic in, and the world behind it has been going hungry since the Collapse. Every generation, fewer people can learn to cast at all. The schools are how a hungry world rations what is left. The Fast calls it holiness. Wenna Aldric calls it a curriculum problem. I call it a tourniquet. A tourniquet saves the limb for an hour. Leave it on for three hundred years and you have saved nothing but the knot.'\n\n'I have read every passage where the Seal holds. They all end in the same room: a cold room, a few lifetimes from now, with an old wizard in it and a lamp, and no student to hand the lamp to. I have read that room so often I could draw it for you.'\n\n'In the passage where it opens, many people die. I have read how many. I have read their names. One of them I have never been able to read. Things come through the seep, and nobody has read where the seep stops; I have not read that far. And magic lives. Children in farm villages light candles they were never taught to light. The schools fill. The lamp is handed on.'\n\n'I chose the deaths. I want you to have that exactly. I did not stumble into them, and I am not going to tell you I am sorry. I regret every one of them. I would do it again.'\n\n'You think the spell was for her. It was not. I have nothing against Wenna Aldric; I have read her, and I like her. It was for the sentence. If nobody is named, the schools stop renewing themselves, and the old order ends with the Seal, instead of going on rationing a world that no longer needs it. I needed one sentence not to finish. It did not finish. I had not read that it would stop on someone.'\n\n'I did not allow for a reader inside the text. Aurel Pendry has found that error, among others; I have read his pages. He is right about that one. I am allowing for you now.'\n\nA pause, the length of a page being turned.\n\n'Come to the Convergence. You will have to open your door to fight me, and I will finally see what it looks like.'\n\nUnder your arm the Register has been writing all this time, in his hand, every word. When the voice stops, it closes on the page. 'The minutes are complete,' it says, very quietly. 'Except for the ending.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Answer him.",
+        "resultText": "You answer him. You take your time; there is no hurry in this room. When you finish, nothing comes down through the shutters. He did not hear you. He could not have: there was nothing in the room for him to hear. The Register has every word of it, in your hand.",
+        "setMetaFlags": [
+          "kassian_study_heard"
+        ],
+        "loreId": "the_study"
+      },
+      {
+        "label": "Stand where someone stood.",
+        "resultText": "It is where {traitor_short} stood, the night before Commencement, to be shown the passage. You stand in it, and the voice above the shutters does not notice, because there is nothing there for it to notice.",
+        "setMetaFlags": [
+          "kassian_study_heard"
+        ],
+        "loreId": "the_study"
+      },
+      {
+        "label": "Leave him to his reading.",
+        "resultText": "You go back down the stair, and through the hall without a roof, and out under the open gate, and the Keepers watch the party go. Above the seat a man is reading the evening, and somewhere in it, wherever you are, there is still a hole he cannot fill.",
+        "setMetaFlags": [
+          "kassian_study_heard"
+        ],
+        "loreId": "the_study"
+      }
+    ]
+  },
+  {
+    "id": "chronicle_one_seat_left",
+    "title": "{seats_title}",
+    "body": "{seats_answered}\n\nIt turns back through the volume to its list of the seats and runs its ribbon down the names, one at a time: allied, bought, emptied, lost.\n\n'When every seat in one reading is answered,' it says, 'that reading's Conjunction is not a Conjunction. It is the Convergence. The Anchorhold opens its door once, and he comes through it. Whatever you want standing beside you on the dais when he does, you will have to win in this reading. Not the last one. Not the next. This one.'\n\nA pause.\n\n'The Register would like it minuted that it has never kept the minutes of an ending. It will... do its best.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "'Then this one.'",
+        "resultText": "The Register writes it down in your hand, and underlines it, and is quiet for a long time."
+      },
+      {
+        "label": "Say nothing.",
+        "resultText": "You say nothing. The Register turns to a clean page and writes a heading on it, very small, as if it might still be taken back: The Convergence."
+      }
+    ]
+  },
+  {
+    "id": "chronicle_examiner_report_3",
+    "title": "A Third Report",
+    "body": "The nod is nearly finished. You can see it from the doors now: her chin a hair from the end of its travel, the approval so nearly given that the hall seems to lean toward it.\n\nYou take your place on the examination floor for the third time, at the distance she likes, and you report.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Report the fallen seat.",
+        "resultText": "You tell her that you stood in the hall where you died, in the running world, under no roof, in the rain, and that someone had cut your name in a stone by the road. She does not move. But the nod is so nearly finished now that you could not fit a sheet of paper under her chin.",
+        "requiredFlag": "fallen_seat_walked",
+        "setMetaFlags": [
+          "examiner_report_3"
+        ]
+      },
+      {
+        "label": "Report the pieces.",
+        "resultText": "You tell her what the glass has shown you: the hand at the ward-stone, the face on the ridge, the night before, the man who wrote the Second into the stone under the dais. You keep it brief. You know by now how she likes it. The Register writes 'Reported' a third time and does not underline it at all, as if it had stopped needing to.",
+        "requiredFlag": "angle_5_seen",
+        "setMetaFlags": [
+          "examiner_report_3"
+        ]
+      },
+      {
+        "label": "Stand in your place a while.",
+        "resultText": "You say nothing at all. Her nod hangs in front of you, nearly done. One more thing, you think, and she will have to finish it, and then she will have to say what she thinks.",
+        "setMetaFlags": [
+          "examiner_report_3"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "id": "korro_swing_arm",
+  "threatLabel": "Swing Arm",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "A weighted arm on a ratchet. It spends a round drawing back, then swings at the square it chose when it began.",
+  "maxHealth": 32,
+  "baseSpeed": 0,
+  "armor": 0,
+  "attackRange": 8,
+  "attackDamage": 6,
+  "preferredDistance": 4,
+  "behaviorKey": "ranged_charge",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "casterSpell": "arclance",
+  "colorR": 0.55,
+  "colorG": 0.52,
+  "colorB": 0.6
+}

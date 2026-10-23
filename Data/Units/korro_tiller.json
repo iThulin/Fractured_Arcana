@@ -1,0 +1,18 @@
+{
+  "id": "korro_tiller",
+  "threatLabel": "Tiller",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "A ploughshare on iron feet. It walks one furrow a round toward whoever is nearest, and kicks what it reaches.",
+  "maxHealth": 34,
+  "baseSpeed": 1,
+  "armor": 0,
+  "attackRange": 1,
+  "attackDamage": 3,
+  "preferredDistance": 1,
+  "behaviorKey": "melee_advance",
+  "behaviorTags": [],
+  "colorR": 0.45,
+  "colorG": 0.4,
+  "colorB": 0.34
+}

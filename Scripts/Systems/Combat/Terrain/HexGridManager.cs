@@ -415,6 +415,9 @@ public partial class HexGridManager : Node3D
         }
 
         controller.FrameGrid(GridBoundsMin, GridBoundsMax);
+        // How much world exists to look at: the far field (radius 0 turns containment
+        // off when no far field was built). FrameGrid cleared the previous map's extent.
+        controller.SetWorldExtent(WorldExtentCenter, WorldExtentRadius, WorldFloorY);
 
         Vector3 center = (GridBoundsMin + GridBoundsMax) * 0.5f;
         GD.Print($"Grid center: {center}");
@@ -486,14 +489,23 @@ public partial class HexGridManager : Node3D
         ApplyRecipeSandStyle();
 
         ApplyTileHeights();
-        ApplyTileVisuals();
-        BuildVistaMeshes();
-        BuildArenaBoundary();
 
+        // Atmosphere BEFORE the vista meshes (camera_lens_slice1). Tiles duplicate the
+        // splat template in SetGeneratedMesh, so the horizon_color that ApplyHorizon
+        // pushes must already be on the template, or every VISTA tile melts toward the
+        // PREVIOUS fight's fog colour. (Playable tiles duplicate earlier, inside
+        // ApplyTileHeights, but never read horizon_color.) ApplyHorizon only needs
+        // _lastWorldFloor, which ApplyTileHeights has just computed.
         if (_activeRecipe?.Atmosphere != null)
             ApplyRecipeAtmosphere(_activeRecipe.Atmosphere);
         else
             ApplyThemeAtmosphere();
+        ApplyCameraLens();        // combat lens + fog compensation (FarField partial)
+
+        ApplyTileVisuals();
+        BuildVistaMeshes();
+        BuildArenaBoundary();
+        BuildFarField(field);     // landscape beyond the vista (FarField partial)
 
         SpawnObstacleVisuals();
         SpawnPainterlyGrass();

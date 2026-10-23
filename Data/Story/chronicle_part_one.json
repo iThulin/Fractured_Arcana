@@ -1,0 +1,1046 @@
+{
+  "_doc": "Chronicle scheduler table for Part I. The rules are C1 in docs/story_wiring_v1.md; the script is docs/chronicle_part_one_v1.md. Beats are evaluated in file order on each raise of their hook; lineTokens maps each line token to its key in this file's lines, and the first matching line wins.",
+  "part": 1,
+  "encounterFile": "chronicle_part_one",
+  "lineTokens": {
+    "remembrance": "remembrance",
+    "traitor_meeting_line": "traitor_meeting_line",
+    "practical_name": "practical_name",
+    "faculty_manner": "faculty_manner",
+    "declared_plural": "school_plural",
+    "intended_plural": "school_plural",
+    "intention_callback": "intention_callback",
+    "fragment_name": "fragment_name",
+    "fragment_frame": "fragment_frame",
+    "hall_state": "hall_state",
+    "unmaking_opening": "unmaking_opening",
+    "new_reading_summary": "new_reading_summary",
+    "previous_ordinal": "ordinal",
+    "echo_note": "echo_note",
+    "strangers_line": "strangers_line"
+  },
+  "beats": [
+    {
+      "id": "i0_part_one",
+      "hook": "on_scene_ready",
+      "requires": [
+        "prologue_complete"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_part_1"
+    },
+    {
+      "id": "i1_news_of_the_fall",
+      "hook": "on_settlement_enter",
+      "when": {
+        "home": "false"
+      },
+      "requires": [
+        "chronicle_part_1"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_news_of_the_fall",
+      "show": "chronicle_news_of_the_fall",
+      "lore": "news_of_the_fall",
+      "tokens": [
+        "settlement_name"
+      ]
+    },
+    {
+      "id": "i2_borrowed_language",
+      "hook": "on_combat_start",
+      "when": {
+        "borrowed": "true",
+        "prologue": "false"
+      },
+      "layer": "Timeline",
+      "bark": "enemy.borrowed"
+    },
+    {
+      "id": "i2_borrowed_words",
+      "hook": "on_combat_end",
+      "when": {
+        "borrowed": "true",
+        "prologue": "false"
+      },
+      "requires": [
+        "chronicle_part_1"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_borrowed_words",
+      "show": "chronicle_borrowed_words",
+      "lore": "borrowed_language"
+    },
+    {
+      "id": "i3c_first_contact_corrupted_hess",
+      "hook": "on_forces_met",
+      "group": "first_contact",
+      "when": {
+        "archmage": "hess",
+        "corrupted": "true"
+      },
+      "layer": "Timeline",
+      "once": "first_contact_{archmage}",
+      "alsoSetMeta": [
+        "chronicle_first_contact_{archmage}"
+      ],
+      "show": "chronicle_first_contact_corrupted_hess",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "corrupted"
+        }
+      }
+    },
+    {
+      "id": "i3c_first_contact_corrupted",
+      "hook": "on_forces_met",
+      "group": "first_contact",
+      "when": {
+        "corrupted": "true"
+      },
+      "layer": "Timeline",
+      "once": "first_contact_{archmage}",
+      "alsoSetMeta": [
+        "chronicle_first_contact_{archmage}"
+      ],
+      "show": "chronicle_first_contact_corrupted",
+      "tokens": [
+        "archmage_full",
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "corrupted"
+        }
+      }
+    },
+    {
+      "id": "i4_nearest_the_sphere",
+      "hook": "on_forces_met",
+      "group": "first_contact",
+      "when": {
+        "coconspirator": "true",
+        "corrupted": "false"
+      },
+      "layer": "Timeline",
+      "once": "first_contact_{archmage}",
+      "alsoSetMeta": [
+        "chronicle_nearest_the_sphere",
+        "chronicle_first_contact_{archmage}"
+      ],
+      "show": "chronicle_nearest_the_sphere",
+      "lore": "the_one_nearest_the_sphere",
+      "tokens": [
+        "traitor_meeting_line",
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "nearest"
+        }
+      }
+    },
+    {
+      "id": "i3_first_contact",
+      "hook": "on_forces_met",
+      "group": "first_contact",
+      "when": {
+        "coconspirator": "false",
+        "corrupted": "false"
+      },
+      "layer": "Timeline",
+      "once": "first_contact_{archmage}",
+      "alsoSetMeta": [
+        "chronicle_first_contact_{archmage}"
+      ],
+      "show": "chronicle_first_contact_{archmage}",
+      "tokens": [
+        "remembrance",
+        "practical_name"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "first_contact"
+        }
+      }
+    },
+    {
+      "id": "i5_conferral",
+      "hook": "on_declaration",
+      "layer": "Timeline",
+      "delivery": "immediate",
+      "show": "chronicle_conferral",
+      "tokens": [
+        "faculty_manner",
+        "faculty_name",
+        "declared_plural",
+        "intention_callback",
+        "intended",
+        "intended_plural"
+      ],
+      "lineArgs": {
+        "intended_plural": {
+          "school": "{intention}"
+        }
+      }
+    },
+    {
+      "id": "i5_first_declaration",
+      "hook": "on_declaration",
+      "when": {
+        "first": "true"
+      },
+      "layer": "Eternal",
+      "once": "chronicle_first_declaration"
+    },
+    {
+      "id": "i5_intention_answered",
+      "hook": "on_declaration",
+      "when": {
+        "answered": "true"
+      },
+      "layer": "Eternal",
+      "once": "chronicle_intention_answered"
+    },
+    {
+      "id": "i6_shrapnel",
+      "hook": "on_shard_zone",
+      "requires": [
+        "chronicle_part_1"
+      ],
+      "layer": "Eternal",
+      "once": "chronicle_shrapnel",
+      "bark": "strategic.first_shard_zone",
+      "lore": "the_shrapnel"
+    },
+    {
+      "id": "c2_angle_1",
+      "hook": "on_hall",
+      "group": "hall",
+      "when": {
+        "pending": "true",
+        "placed": "0"
+      },
+      "layer": "Eternal",
+      "once": "angle_1_seen",
+      "alsoSetMeta": [
+        "fragment_{pending_fragment}_placed"
+      ],
+      "delivery": "immediate",
+      "show": "chronicle_angle_1",
+      "tokens": [
+        "fragment_name",
+        "fragment_frame"
+      ],
+      "lineArgs": {
+        "fragment_name": {
+          "fragment": "{pending_fragment}"
+        },
+        "fragment_frame": {
+          "fragment": "{pending_fragment}"
+        }
+      }
+    },
+    {
+      "id": "c2_examiner_report_1",
+      "hook": "on_hall",
+      "group": "hall",
+      "requires": [
+        "angle_1_seen"
+      ],
+      "layer": "Eternal",
+      "once": "examiner_report_1",
+      "delivery": "immediate",
+      "fallback": true,
+      "show": "chronicle_examiner_report_1"
+    },
+    {
+      "id": "c2_rest",
+      "hook": "on_hall",
+      "group": "hall",
+      "layer": "Timeline",
+      "delivery": "immediate",
+      "fallback": true,
+      "show": "chronicle_ceremony_hall",
+      "tokens": [
+        "hall_state"
+      ],
+      "lineArgs": {
+        "hall_state": {
+          "home": "{placed}"
+        }
+      }
+    },
+    {
+      "id": "i8_as_read",
+      "hook": "on_combat_end",
+      "when": {
+        "won": "true",
+        "corrupted_seat": "true",
+        "prologue": "false"
+      },
+      "layer": "Eternal",
+      "once": "chronicle_as_read",
+      "show": "chronicle_as_read",
+      "lore": "as_read",
+      "tokens": [
+        "archmage_full",
+        "corrupted_faction"
+      ]
+    },
+    {
+      "id": "i10_sky_rereads",
+      "hook": "on_new_reading",
+      "group": "new_reading",
+      "layer": "Eternal",
+      "once": "chronicle_sky_rereads",
+      "alsoSetTimeline": [
+        "new_reading_minuted"
+      ],
+      "show": "chronicle_sky_rereads",
+      "lore": "the_new_reading",
+      "tokens": [
+        "unmaking_opening",
+        "new_reading_summary",
+        "previous_ordinal",
+        "door_region",
+        "echo_note"
+      ],
+      "lineArgs": {
+        "previous_ordinal": {
+          "n": "{previous}"
+        }
+      }
+    },
+    {
+      "id": "i10b_new_reading",
+      "hook": "on_new_reading",
+      "group": "new_reading",
+      "layer": "Timeline",
+      "once": "new_reading_minuted",
+      "show": "chronicle_new_reading",
+      "tokens": [
+        "new_reading_summary",
+        "previous_ordinal",
+        "door_region",
+        "echo_note"
+      ],
+      "lineArgs": {
+        "previous_ordinal": {
+          "n": "{previous}"
+        }
+      }
+    },
+    {
+      "id": "i10c_world_hardens",
+      "hook": "on_continue",
+      "layer": "Eternal",
+      "once": "chronicle_world_hardens",
+      "show": "chronicle_world_hardens"
+    },
+    {
+      "id": "i11_strangers",
+      "hook": "on_companion_join",
+      "when": {
+        "known": "true",
+        "anchored": "false"
+      },
+      "layer": "Eternal",
+      "once": "chronicle_strangers",
+      "show": "chronicle_strangers",
+      "lore": "strangers",
+      "tokens": [
+        "companion_name",
+        "strangers_line"
+      ]
+    }
+  ],
+  "lines": [
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "first_contact",
+        "archmage": "wenna",
+        "remembered": "true"
+      },
+      "text": "Under your arm, the Register murmurs: 'This Sending is on file. Word for word, every comma. She does not remember sending it. The Register... does.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "first_contact",
+        "archmage": "aurel",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'He corrected the same number last time. He does not know there was a last time. The Register has decided not to... annotate.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "first_contact",
+        "archmage": "hess",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same stone. The same apple. The Register suspects she would not be... surprised.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "first_contact",
+        "archmage": "joren",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The storm said the same thing last time, in the same borrowed words. The Register has both... copies.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "first_contact",
+        "archmage": "namer",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'Seven layers last time. Seven again. The Namer does not know there was a last time. The Register finds that... architectural.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "first_contact",
+        "archmage": "conductor",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'She poured for you last time, too. She does not remember. The dead might.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "first_contact",
+        "archmage": "engineer",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'He wrote it down last time. The notebook is new. The note is the same.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "nearest",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'Ended by the sender last time too, at the same word. The Register has... underlined it.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "corrupted",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The words were borrowed last time as well. From the same... lender.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "traitor_meeting_line",
+      "when": {
+        "archmage": "aurel"
+      },
+      "text": "'I aimed past you,' says Aurel Pendry. 'I have been over the line every night since, and the line is correct. It should have reached her. It reached you. And now you are on the road, which means somewhere in my arithmetic there is a fourth error.' A breath. 'Do not make me find it.'"
+    },
+    {
+      "key": "traitor_meeting_line",
+      "when": {
+        "archmage": "joren"
+      },
+      "text": "'The storm said you were dead,' says Joren Kall. 'It said it in his words, like everything it says now. I believed it. I am so tired of believing it.' Something in the Sending rumbles, and he stops it. 'Don't come looking for me.'"
+    },
+    {
+      "key": "traitor_meeting_line",
+      "when": {
+        "archmage": "namer"
+      },
+      "text": "'You were not supposed to be standing there,' says Cael Morn. 'It was supposed to be her. That was the whole of the design.' A pause, very precise. 'Sit down. Somewhere else, this time.'"
+    },
+    {
+      "key": "traitor_meeting_line",
+      "when": {
+        "archmage": "conductor"
+      },
+      "text": "'I poured for you, love,' says Ondria Vell. 'Every night. It was mine to pour, and I knew it was.' The glass goes down, hard. 'Don't you make me pour it back.'"
+    },
+    {
+      "key": "traitor_meeting_line",
+      "when": {
+        "archmage": "engineer"
+      },
+      "text": "'No. No, I measured it,' says Bram Korro. 'It hit you. I watched it hit you, I wrote it down, it's on page...' Pages, fast. 'That wasn't supposed to... Don't. I'll have to measure it again.'"
+    },
+    {
+      "key": "traitor_meeting_line",
+      "when": {},
+      "text": "'Don't,' says the voice. 'Don't look at me like that.'"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "elementalist"
+      },
+      "text": "the Frost Plate"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "arcanist"
+      },
+      "text": "the Proving Coil"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "chronomancer"
+      },
+      "text": "the Swing Arm"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "enchanter"
+      },
+      "text": "the Walking Frame"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "necromancer"
+      },
+      "text": "the Dummy Rack"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "druid"
+      },
+      "text": "the Tiller"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "tinker"
+      },
+      "text": "the Target Frame"
+    },
+    {
+      "key": "practical_name",
+      "when": {
+        "practical": "adept"
+      },
+      "text": "the Caster Arm"
+    },
+    {
+      "key": "practical_name",
+      "when": {},
+      "text": "the apparatus"
+    },
+    {
+      "key": "faculty_manner",
+      "when": {
+        "faculty": "aurel"
+      },
+      "text": "Master Aurel Pendry reads the clause from his own copy of the rite. He has annotated it, naturally, and corrected two of its words. For you, he reads the originals."
+    },
+    {
+      "key": "faculty_manner",
+      "when": {
+        "faculty": "hess"
+      },
+      "text": "Hess will not stand at the lectern. She stands in the doorway, where she can see out, and says the clause the way she says everything: as if the land had already said it and she is only agreeing."
+    },
+    {
+      "key": "faculty_manner",
+      "when": {
+        "faculty": "joren"
+      },
+      "text": "Joren Kall speaks the clause, and the storm in him says it too, half a breath behind. For once they say the same thing."
+    },
+    {
+      "key": "faculty_manner",
+      "when": {
+        "faculty": "namer"
+      },
+      "text": "Cael Morn speaks the clause in seven layers. You hear the first. The Register, which hears everything said in its presence, writes all seven, very small."
+    },
+    {
+      "key": "faculty_manner",
+      "when": {
+        "faculty": "conductor"
+      },
+      "text": "Ondria Vell pours a measure before she begins and sets it on the lectern beside the book, for whoever was supposed to be speaking instead."
+    },
+    {
+      "key": "faculty_manner",
+      "when": {
+        "faculty": "engineer"
+      },
+      "text": "Bram Korro reads the clause off a card he wrote it on, checks the card twice, gets it right the first time, and is visibly surprised."
+    },
+    {
+      "key": "faculty_manner",
+      "when": {},
+      "text": "{faculty_name} has never spoken the rite before, and speaks it carefully, as if carrying something full to the brim."
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "adept"
+      },
+      "text": "Adepts"
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "elementalist"
+      },
+      "text": "Elementalists"
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "arcanist"
+      },
+      "text": "Arcanists"
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "chronomancer"
+      },
+      "text": "Chronomancers"
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "enchanter"
+      },
+      "text": "Enchanters"
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "necromancer"
+      },
+      "text": "Necromancers"
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "druid"
+      },
+      "text": "Druids"
+    },
+    {
+      "key": "school_plural",
+      "when": {
+        "school": "tinker"
+      },
+      "text": "Tinkers"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match",
+        "school": "elementalist"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...' 'The Frost Plate,' it adds, 'is to be informed. The Register will see to it.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match",
+        "school": "arcanist"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...' 'The Proving Coil mends everything,' it adds. 'Not this. This is in ink.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match",
+        "school": "chronomancer"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...' 'Set down before it was needed,' it adds. 'The Examiner would approve. The Examiner is, technically, still approving.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match",
+        "school": "enchanter"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...' 'The Register notes that the floor has, at last, been made... expensive.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match",
+        "school": "necromancer"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...' 'The Register records the attendance of the candidate, the faculty, and an unknown number of... others.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match",
+        "school": "druid"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...' 'On a stone floor, too,' it adds. 'Noted.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match",
+        "school": "tinker"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...' 'Master Korro will want this in writing,' it adds. 'He has it.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "match"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register inks the note into the line, slowly, as if it might smudge. 'As intended,' it says. 'Let it be written...'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "differs_lost"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" 'There is no one left in this reading to teach the {intended_plural},' the Register says. 'The minutes will show that it was not for want of... intending.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "adept"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: Adept.\" 'The school nobody stays in,' the Register says, in a fair copy of the Examiner's voice. 'Procedurally, this was foreseen.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "differs"
+      },
+      "text": "In the margin, in your own hand from the morning of Commencement: \"Stated intention: {intended}.\" The Register reads it twice and leaves it where it is. 'Entered among the {declared_plural},' it says. 'The margin will stand. Margins are where the board keeps the things it means to ignore.' In the ceremony hall, the folio you sat still hangs at knee height. It does not seem to mind."
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "unstated"
+      },
+      "text": "Beside the line the margin holds only your own hand from that morning: \"Stated intention: none given.\" 'No intention was entered,' says the Register. 'The board would have argued for an hour. Let it be written...'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {
+        "shape": "later"
+      },
+      "text": "Beside the line, your note from the morning of Commencement has waited a long time: \"Stated intention: {intended}.\" The Register strikes it through and writes it again beside the line, in ink. 'As intended,' it says. 'Eventually.'"
+    },
+    {
+      "key": "intention_callback",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "primal"
+      },
+      "text": "the Primal Shard"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "axiom"
+      },
+      "text": "the Axiom Stone"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "moment"
+      },
+      "text": "the Moment Eternal"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "binding"
+      },
+      "text": "the Binding Thread"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "schema"
+      },
+      "text": "the Schema Core"
+    },
+    {
+      "key": "fragment_name",
+      "when": {
+        "fragment": "deathless"
+      },
+      "text": "the Deathless Covenant"
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "primal"
+      },
+      "text": "The Primal Shard tells it as weather. Every person in the hall becomes a pressure, every glance a shift of wind, and what is about to happen is a front coming in low and fast that nobody has looked up to see."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "axiom"
+      },
+      "text": "The Axiom Stone tells it as a proof. The hall lays itself out as a diagram, every figure lettered, every line between them a step in the argument, and the conclusion already written at the bottom before you reach it. One line of the proof has been struck out. You can still read it through the strike."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "moment"
+      },
+      "text": "The Moment Eternal tells it as the instant itself. It does not render or explain. It slows the hall to the pace of the Second, so that you could walk between the people in it, and it lets you look for as long as you like. It is home. It is in no hurry."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "binding"
+      },
+      "text": "The Binding Thread tells it as the threads between everyone in the hall: who owed whom, who loved whom, who was afraid of whom. Every bond is a line of light, and the hall is a loom strung so tight it hums. Some of the threads have been cut already. Some have been tied that should not have been."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "schema"
+      },
+      "text": "The Schema Core tells it as a blueprint. The hall comes back in pale lines on dark paper: walls, wards, the dais, the cradle, every figure drawn as a part with a purpose, and the moving parts marked. It is very clear what everything was for. It is less clear who drew it."
+    },
+    {
+      "key": "fragment_frame",
+      "when": {
+        "fragment": "deathless"
+      },
+      "text": "The Deathless Covenant does not show it to you. It lets the dead of the hall tell it: the class that died in the running world, speaking all at once and then one at a time, the way the dead do when someone finally asks. Some of them say your name. They are not unkind about it."
+    },
+    {
+      "key": "hall_state",
+      "when": {
+        "home": "0"
+      },
+      "text": "Nothing in the sphere is warm."
+    },
+    {
+      "key": "hall_state",
+      "when": {
+        "home": "1"
+      },
+      "text": "One of its six pieces is warm."
+    },
+    {
+      "key": "hall_state",
+      "when": {
+        "home": "2"
+      },
+      "text": "Two of its six pieces are warm."
+    },
+    {
+      "key": "hall_state",
+      "when": {
+        "home": "3"
+      },
+      "text": "Three of its six pieces are warm."
+    },
+    {
+      "key": "hall_state",
+      "when": {
+        "home": "4"
+      },
+      "text": "Four of its six pieces are warm."
+    },
+    {
+      "key": "hall_state",
+      "when": {
+        "home": "5"
+      },
+      "text": "Five of its six pieces are warm."
+    },
+    {
+      "key": "hall_state",
+      "when": {
+        "home": "6"
+      },
+      "text": "All six of its pieces are warm, and the sphere is still breaking. Nobody has told it that it can stop."
+    },
+    {
+      "key": "unmaking_opening",
+      "when": {
+        "outcome": "Abandoned"
+      },
+      "text": "The Conjunction comes, and you let the reading go. Or it lets go of you; at the end it is hard to say which."
+    },
+    {
+      "key": "unmaking_opening",
+      "when": {
+        "outcome": "ConvergenceDefeat"
+      },
+      "text": "The blow does not land. The anchor takes you back before it can, the way it always will, and the reading goes on without you for one more breath, and closes."
+    },
+    {
+      "key": "unmaking_opening",
+      "when": {
+        "outcome": "Victory"
+      },
+      "text": "You let it rest. It has earned that."
+    },
+    {
+      "key": "unmaking_opening",
+      "when": {
+        "outcome": "CorruptionLoss"
+      },
+      "text": "The reading closes over the map faster than you can cross it. Before it can close over you, the anchor takes you back through the door."
+    },
+    {
+      "key": "unmaking_opening",
+      "when": {},
+      "text": "The reading ends."
+    },
+    {
+      "key": "new_reading_summary",
+      "when": {},
+      "text": "'A new reading,' says the Register. 'The sky has rewritten the...' It stops, and starts again, the way it always does. 'The minutes of the {previous_ordinal} reading are closed. Carried into this one: the campus, the guild's essence and its mastery, the Regalia, and every name the Register holds. Struck through: the kingdoms, the roads, and everyone on them. The door opens onto {door_region} this time.' {echo_note}"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "1"
+      },
+      "text": "first"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "2"
+      },
+      "text": "second"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "3"
+      },
+      "text": "third"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "4"
+      },
+      "text": "fourth"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "5"
+      },
+      "text": "fifth"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "6"
+      },
+      "text": "sixth"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "7"
+      },
+      "text": "seventh"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "8"
+      },
+      "text": "eighth"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "9"
+      },
+      "text": "ninth"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "10"
+      },
+      "text": "tenth"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "11"
+      },
+      "text": "eleventh"
+    },
+    {
+      "key": "ordinal",
+      "when": {
+        "n": "12"
+      },
+      "text": "twelfth"
+    },
+    {
+      "key": "ordinal",
+      "when": {},
+      "text": "last"
+    },
+    {
+      "key": "echo_note",
+      "when": {
+        "echoes": "true"
+      },
+      "text": "A pause. 'Something of the last reading has been left in this one. The Register cannot say where. Only that it is... there.'"
+    },
+    {
+      "key": "echo_note",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "strangers_line",
+      "when": {
+        "companion": "brannoc_helm",
+        "remembered": "true"
+      },
+      "text": "'Brannoc Helm,' he says, and puts out a hand like a plank. 'I walk the castle. Never asked where to, and I'm not about to start. Where to?' It is, word for word, what he said on the first morning of the first reading. The Register has it on file. Behind him, on the Helm rail, there is a scratch, north by a hair, that he does not seem to know is there."
+    },
+    {
+      "key": "strangers_line",
+      "when": {
+        "companion": "brannoc_helm"
+      },
+      "text": "'Brannoc Helm,' he says, and puts out a hand like a plank. 'I walk the castle. Never asked where to, and I'm not about to start. Where to?' It is, word for word, what he said on the first morning of the first reading. The Register has it on file."
+    },
+    {
+      "key": "strangers_line",
+      "when": {},
+      "text": "'Have we met?' {companion_name} asks, and means it kindly."
+    }
+  ]
+}

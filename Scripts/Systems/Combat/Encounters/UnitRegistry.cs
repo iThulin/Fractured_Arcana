@@ -59,14 +59,13 @@ public static class UnitRegistry
         _loaded = true;
         _cache.Clear();
 
-        if (!DirAccess.DirExistsAbsolute(ProjectSettings.GlobalizePath(UNITS_DIR)))
+        // Open res:// directly: GlobalizePath on res:// does not work in an exported build.
+        using var dir = DirAccess.Open(UNITS_DIR);
+        if (dir == null)
         {
             GD.PrintErr($"UnitRegistry: No units directory at {UNITS_DIR}");
             return;
         }
-
-        using var dir = DirAccess.Open(UNITS_DIR);
-        if (dir == null) return;
 
         dir.ListDirBegin();
         string filename = dir.GetNext();

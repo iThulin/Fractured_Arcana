@@ -1,0 +1,29 @@
+[
+  {
+    "id": "q_resolve_engineer",
+    "title": "Not Yet, But Close",
+    "category": "Story",
+    "permanent": false,
+    "layer": "Timeline",
+    "summary": "Bram Korro sent two prototypes and a page of instructions: carry each into a fight, win or lose, and report what it did. Either result is data. The third trial he is running himself, and has been for a while.",
+    "requiredFlag": "engineer_ask_set",
+    "objectives": [
+      {
+        "text": "Report on the first prototype",
+        "flag": "engineer_trial_1_done"
+      },
+      {
+        "text": "Report on the second",
+        "flag": "engineer_trial_2_done"
+      },
+      {
+        "text": "See the third trial",
+        "flag": "engineer_experiment_heard"
+      },
+      {
+        "text": "Answer the Engineer's seat",
+        "flag": "qe_archmage_answered_engineer"
+      }
+    ]
+  }
+]

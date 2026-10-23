@@ -1,0 +1,31 @@
+{
+  "id": "korro_frost_plate",
+  "threatLabel": "Frost Plate",
+  "role": "line",
+  "factionId": "",
+  "intelDescription": "Master Korro's examination apparatus, fitted with an iron plate and standing on frost. Every blow against it loses 3.",
+  "maxHealth": 16,
+  "baseSpeed": 0,
+  "armor": 0,
+  "attackRange": 0,
+  "attackDamage": 0,
+  "preferredDistance": 1,
+  "behaviorKey": "inert",
+  "behaviorTags": [
+    "immobile"
+  ],
+  "abilities": [
+    {
+      "key": "chitin",
+      "trigger": "aura",
+      "name": "Plated",
+      "intelDescription": "Every hit against it is reduced by 3.",
+      "params": {
+        "amount": "3"
+      }
+    }
+  ],
+  "colorR": 0.66,
+  "colorG": 0.74,
+  "colorB": 0.8
+}

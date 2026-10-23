@@ -1,0 +1,4128 @@
+{
+  "_doc": "Chronicle scheduler table for the finale, The Convergence. The rules are C1 in docs/story_wiring_v1.md, and the director that raises on_convergence is C6 there; the script is docs/chronicle_finale_v1.md. Beats are evaluated in file order on each raise; lineTokens maps each line token to its key in this file's lines. Keys that no token uses are director lines: the director reads them itself with ChronicleScheduler.Line.",
+  "part": 4,
+  "encounterFile": "chronicle_finale",
+  "lineTokens": {
+    "sphere_state": "sphere_state",
+    "remembrance": "remembrance",
+    "dais_wenna": "dais_wenna",
+    "dais_aurel": "dais_aurel",
+    "dais_hess": "dais_hess",
+    "dais_joren": "dais_joren",
+    "dais_namer": "dais_namer",
+    "dais_conductor": "dais_conductor",
+    "dais_engineer": "dais_engineer",
+    "dais_traitor": "dais_traitor",
+    "council_tally": "council_tally",
+    "nod_progress": "nod_progress",
+    "spell_fate": "spell_fate",
+    "warden_watch": "warden_watch",
+    "hold_glass": "hold_glass",
+    "penance_kept": "penance_kept",
+    "walk_in": "walk_in",
+    "seen_coming": "seen_coming",
+    "at_sphere": "at_sphere",
+    "treachery_kept": "treachery_kept",
+    "lost_to_him": "lost_to_him",
+    "voice_words": "voice_words",
+    "seventh_layer": "seventh_layer",
+    "rebinding_pieces": "rebinding_pieces",
+    "rebinding_begin": "rebinding_begin",
+    "hess_watch": "hess_watch",
+    "first_sight": "first_sight",
+    "study_line": "study_line",
+    "deal_line": "deal_line",
+    "path_read": "path_read",
+    "his_last": "his_last",
+    "rebound_pieces": "rebound_pieces",
+    "warden_held": "warden_held",
+    "honored_spirits": "honored_spirits",
+    "fates_open": "fates_open",
+    "fates_again": "fates_again",
+    "anchor_volunteer": "anchor_volunteer",
+    "anchor_after": "anchor_after",
+    "anchor_last": "anchor_last",
+    "conferral_setting": "conferral_setting",
+    "conferral_place": "conferral_place",
+    "conferral_speaker": "conferral_speaker",
+    "conferral_words": "conferral_words",
+    "conferral_hand": "conferral_hand",
+    "examiner_opinion": "examiner_opinion",
+    "examiner_margin": "examiner_margin",
+    "erratum_margin": "erratum_margin",
+    "defeat_where": "defeat_where"
+  },
+  "beats": [
+    {
+      "id": "fin_gathering",
+      "when": {
+        "step": "gathering"
+      },
+      "group": "gathering",
+      "rememberFlag": "chronicle_convergence_entered",
+      "alsoSetMeta": [
+        "chronicle_convergence_entered",
+        "chronicle_all_seats_once"
+      ],
+      "show": "chronicle_fin_gathering",
+      "lore": "the_convergence",
+      "tokens": [
+        "sphere_state",
+        "dais_wenna",
+        "dais_aurel",
+        "dais_hess",
+        "dais_joren",
+        "dais_namer",
+        "dais_conductor",
+        "dais_engineer",
+        "dais_traitor",
+        "remembrance",
+        "traitor_full",
+        "traitor_short"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_council",
+      "when": {
+        "step": "council"
+      },
+      "group": "council",
+      "show": "chronicle_fin_council",
+      "tokens": [
+        "council_votes",
+        "council_tally"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_commit",
+      "when": {
+        "step": "commit"
+      },
+      "group": "commit",
+      "show": "chronicle_fin_commit",
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_dissent",
+      "when": {
+        "step": "dissent",
+        "dissent": "true"
+      },
+      "group": "dissent",
+      "show": "chronicle_fin_dissent",
+      "tokens": [
+        "dissenter_names"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_nod",
+      "when": {
+        "step": "nod"
+      },
+      "group": "nod",
+      "alsoSetMeta": [
+        "examiner_nod_complete"
+      ],
+      "show": "chronicle_fin_nod",
+      "tokens": [
+        "nod_progress"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_fracture",
+      "when": {
+        "step": "fracture"
+      },
+      "group": "fracture",
+      "flagArgs": {
+        "annotated": "aurel_annotation",
+        "warden": "warden_communion_earned"
+      },
+      "show": "chronicle_fin_east_doors",
+      "lore": "the_east_doors",
+      "tokens": [
+        "spell_fate",
+        "warden_watch"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_mirror_stand",
+      "when": {
+        "step": "mirror",
+        "traitor_disp": "allied"
+      },
+      "group": "mirror",
+      "flagArgs": {
+        "answered": "shadow_{traitor}_penance"
+      },
+      "show": "chronicle_fin_mirror_stand",
+      "tokens": [
+        "traitor_full",
+        "traitor_short",
+        "traitor_redemption",
+        "hold_glass",
+        "penance_kept"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_mirror_second",
+      "when": {
+        "step": "mirror",
+        "traitor_disp": "coerced"
+      },
+      "group": "mirror",
+      "flagArgs": {
+        "glass": "angle_6_seen",
+        "answered": "shadow_{traitor}_treachery"
+      },
+      "show": "chronicle_fin_mirror_second",
+      "tokens": [
+        "traitor_full",
+        "traitor_short",
+        "traitor_second",
+        "walk_in",
+        "seen_coming",
+        "at_sphere",
+        "treachery_kept"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_mirror_his",
+      "when": {
+        "step": "mirror",
+        "traitor_disp": "corrupted"
+      },
+      "group": "mirror",
+      "show": "chronicle_fin_mirror_his",
+      "tokens": [
+        "traitor_full",
+        "traitor_short",
+        "traitor_second",
+        "lost_to_him",
+        "voice_words"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_fracture_won",
+      "when": {
+        "step": "fracture_won"
+      },
+      "group": "fracture_won",
+      "flagArgs": {
+        "layer": "namer_seventh_layer"
+      },
+      "show": "chronicle_fin_hall_holds",
+      "tokens": [
+        "front_news",
+        "seventh_layer"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_threshold_restoration",
+      "when": {
+        "step": "threshold",
+        "path": "restoration"
+      },
+      "group": "threshold",
+      "show": "chronicle_fin_threshold_restoration",
+      "tokens": [
+        "rebinding_pieces",
+        "rebinding_begin",
+        "traitor_short"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_threshold_harness",
+      "when": {
+        "step": "threshold",
+        "path": "harness"
+      },
+      "group": "threshold",
+      "show": "chronicle_fin_threshold_harness",
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_threshold_synthesis",
+      "when": {
+        "step": "threshold",
+        "path": "synthesis"
+      },
+      "group": "threshold",
+      "show": "chronicle_fin_threshold_synthesis",
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_question_1",
+      "when": {
+        "step": "question_1",
+        "path": "synthesis"
+      },
+      "group": "question_1",
+      "show": "chronicle_fin_question_1",
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_question_2",
+      "when": {
+        "step": "question_2",
+        "path": "synthesis"
+      },
+      "group": "question_2",
+      "show": "chronicle_fin_question_2",
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_question_3",
+      "when": {
+        "step": "question_3",
+        "path": "synthesis"
+      },
+      "group": "question_3",
+      "show": "chronicle_fin_question_3",
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_reckoning",
+      "when": {
+        "step": "reckoning"
+      },
+      "group": "reckoning",
+      "rememberFlag": "chronicle_reckoning_seen",
+      "alsoSetMeta": [
+        "chronicle_reckoning_seen"
+      ],
+      "flagArgs": {
+        "study": "kassian_study_heard",
+        "refused": "deal_refused",
+        "accepted": "deal_accepted"
+      },
+      "show": "chronicle_fin_reckoning",
+      "tokens": [
+        "hess_watch",
+        "first_sight",
+        "study_line",
+        "deal_line",
+        "path_read"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_reckoning_mid",
+      "when": {
+        "step": "reckoning_mid",
+        "path": "synthesis"
+      },
+      "group": "reckoning_mid",
+      "show": "chronicle_fin_next_line",
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_reckoning_won",
+      "when": {
+        "step": "reckoning_won"
+      },
+      "group": "reckoning_won",
+      "show": "chronicle_fin_not_as_read",
+      "lore": "not_as_read",
+      "tokens": [
+        "his_last"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_aftermath_restoration",
+      "when": {
+        "step": "aftermath",
+        "path": "restoration"
+      },
+      "group": "aftermath",
+      "flagArgs": {
+        "warden": "warden_communion_earned"
+      },
+      "show": "chronicle_fin_aftermath_restoration",
+      "lore": "the_rebinding",
+      "tokens": [
+        "warden_held",
+        "rebound_pieces"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_aftermath_harness",
+      "when": {
+        "step": "aftermath",
+        "path": "harness"
+      },
+      "group": "aftermath",
+      "flagArgs": {
+        "warden": "warden_communion_earned"
+      },
+      "show": "chronicle_fin_aftermath_harness",
+      "lore": "the_harnessing",
+      "tokens": [
+        "warden_held"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_aftermath_synthesis",
+      "when": {
+        "step": "aftermath",
+        "path": "synthesis"
+      },
+      "group": "aftermath",
+      "flagArgs": {
+        "warden": "warden_communion_earned"
+      },
+      "show": "chronicle_fin_aftermath_synthesis",
+      "lore": "the_membrane",
+      "tokens": [
+        "warden_held"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_anchor",
+      "when": {
+        "step": "anchor",
+        "path": "restoration",
+        "anchor": [
+          "wizard",
+          "bram_thistlewade",
+          "brannoc_helm",
+          "corvin_ashdown",
+          "dagny_thornhelm",
+          "elara_stormcaller",
+          "fenna_boltwright",
+          "harl_denner",
+          "isolde_marrec",
+          "kael_ashblade",
+          "maren_gravesong",
+          "miro_fletch",
+          "odile_vantrec",
+          "ondrej_vael",
+          "petra_quillane",
+          "ruslan_vane",
+          "sable_voss",
+          "seraphine_duskwell",
+          "tamsin_greywood",
+          "torrin_ironward",
+          "wren_holloway",
+          "yara_ellswood"
+        ]
+      },
+      "group": "anchor",
+      "show": "chronicle_fin_seventh_light",
+      "lore": "the_seventh_light",
+      "tokens": [
+        "anchor_volunteer",
+        "anchor_after",
+        "anchor_last",
+        "anchor_name",
+        "traitor_short"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_fates",
+      "when": {
+        "step": "fates"
+      },
+      "group": "fates",
+      "show": "chronicle_fin_fates",
+      "tokens": [
+        "fates_open",
+        "companion_fates",
+        "honored_spirits",
+        "fates_again"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_conferral",
+      "when": {
+        "step": "conferral"
+      },
+      "group": "conferral",
+      "alsoSetMeta": [
+        "chronicle_convergence_won"
+      ],
+      "flagArgs": {
+        "heard": "erratum_second_heard"
+      },
+      "show": "chronicle_fin_conferral",
+      "lore": "the_conferral_completed",
+      "tokens": [
+        "conferral_setting",
+        "conferral_place",
+        "conferral_speaker",
+        "conferral_words",
+        "conferral_hand",
+        "examiner_opinion",
+        "examiner_margin",
+        "erratum_margin",
+        "wizard_name",
+        "guild_name"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_minutes",
+      "when": {
+        "step": "minutes"
+      },
+      "group": "minutes",
+      "show": "chronicle_fin_minutes",
+      "tokens": [
+        "reading_recap"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    },
+    {
+      "id": "fin_defeat",
+      "when": {
+        "step": "defeat"
+      },
+      "group": "defeat",
+      "show": "chronicle_fin_defeat",
+      "tokens": [
+        "defeat_where"
+      ],
+      "hook": "on_convergence",
+      "layer": "Timeline",
+      "delivery": "immediate"
+    }
+  ],
+  "lines": [
+    {
+      "key": "sphere_state",
+      "when": {
+        "fragments_home": "0"
+      },
+      "text": "Above the dais the sphere is caught in the act of breaking, six shards a finger's width apart, and none of them is warm."
+    },
+    {
+      "key": "sphere_state",
+      "when": {
+        "fragments_home": "1"
+      },
+      "text": "Above the dais the sphere is caught in the act of breaking, six shards a finger's width apart, and one of them is warm: the piece you brought home."
+    },
+    {
+      "key": "sphere_state",
+      "when": {
+        "fragments_home": "2"
+      },
+      "text": "Above the dais the sphere is caught in the act of breaking, six shards a finger's width apart, and two of them are warm: the pieces you brought home."
+    },
+    {
+      "key": "sphere_state",
+      "when": {
+        "fragments_home": "3"
+      },
+      "text": "Above the dais the sphere is caught in the act of breaking, six shards a finger's width apart, and three of them are warm: the pieces you brought home."
+    },
+    {
+      "key": "sphere_state",
+      "when": {
+        "fragments_home": "4"
+      },
+      "text": "Above the dais the sphere is caught in the act of breaking, six shards a finger's width apart, and four of them are warm: the pieces you brought home."
+    },
+    {
+      "key": "sphere_state",
+      "when": {
+        "fragments_home": "5"
+      },
+      "text": "Above the dais the sphere is caught in the act of breaking, six shards a finger's width apart, and five of them are warm: the pieces you brought home."
+    },
+    {
+      "key": "sphere_state",
+      "when": {
+        "fragments_home": "6"
+      },
+      "text": "Above the dais the sphere is caught in the act of breaking, six shards a finger's width apart, and every one of them is warm. From the doors it very nearly looks whole."
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "remembered": "true"
+      },
+      "text": "Under your arm the Register murmurs that it has this on file: the full hall, the empty chair, the letter in the air. Another reading, the same hall. It turns to a clean page anyway."
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "dais_wenna",
+      "when": {
+        "disp_wenna": "allied"
+      },
+      "text": "Wenna Aldric stands along the wall with the graduating class, in the gap where you stood, in a borrowed robe buttoned to the throat. She has her spectacles folded in one hand. She does not look at the lectern, where she is also standing."
+    },
+    {
+      "key": "dais_wenna",
+      "when": {
+        "disp_wenna": "coerced"
+      },
+      "text": "Wenna Aldric stands along the wall with the graduating class, in the gap where you stood. She came because the accession list left her no proper alternative, and she has told you so, in complete sentences. She has never left a sentence unfinished in her life. She does not mean to start tonight."
+    },
+    {
+      "key": "dais_wenna",
+      "when": {
+        "disp_wenna": "overthrown"
+      },
+      "text": "Only one Wenna Aldric is in the hall: the one at the lectern, with her mouth open on the next word. The other lost her seat to you, and is somewhere out in the running world, keeping a list."
+    },
+    {
+      "key": "dais_wenna",
+      "when": {},
+      "text": "Only one Wenna Aldric is in the hall: the one at the lectern, with her mouth open on the next word. The other is his now. The Severed Curriculum teaches everything her Academy taught, except how to stop."
+    },
+    {
+      "key": "dais_aurel",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": ""
+    },
+    {
+      "key": "dais_aurel",
+      "when": {
+        "disp_aurel": "allied"
+      },
+      "text": "Aurel Pendry stands behind his own chair, where the Aurel Pendry of that afternoon sits with a pen behind his ear. He has his shorthand open, and he is annotating the room."
+    },
+    {
+      "key": "dais_aurel",
+      "when": {
+        "disp_aurel": "coerced"
+      },
+      "text": "Aurel Pendry stands behind his own chair, where your terms require him to stand. He corrected the terms twice before he signed them, both times in your favor. You still have not worked out why."
+    },
+    {
+      "key": "dais_aurel",
+      "when": {
+        "disp_aurel": "overthrown"
+      },
+      "text": "In the Reviser's chair the Aurel Pendry of that afternoon sits alone, a pen behind his ear. The other lost his seat to you, and his margins are empty."
+    },
+    {
+      "key": "dais_aurel",
+      "when": {},
+      "text": "In the Reviser's chair the Aurel Pendry of that afternoon sits alone. The other is his now, revising everything toward the Astrologer's preferred conclusion."
+    },
+    {
+      "key": "dais_hess",
+      "when": {
+        "disp_hess": "allied"
+      },
+      "text": "Hess is in her chair. It was empty at the naming; she left it before the wards broke. Tonight she came in by the side door and sat down in it without a word, and the crow on her shoulder is facing the east doors."
+    },
+    {
+      "key": "dais_hess",
+      "when": {
+        "disp_hess": "coerced"
+      },
+      "text": "Hess is in her chair. Nobody can say what brought her. The land does not bargain, and neither, as far as anyone knows, does she."
+    },
+    {
+      "key": "dais_hess",
+      "when": {
+        "disp_hess": "overthrown"
+      },
+      "text": "Hess's chair is empty, as it was at the naming. Her seat was taken from her, and the land did not intervene."
+    },
+    {
+      "key": "dais_hess",
+      "when": {},
+      "text": "Hess's chair is empty, as it was at the naming. The Severed Root does not come indoors."
+    },
+    {
+      "key": "dais_joren",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": ""
+    },
+    {
+      "key": "dais_joren",
+      "when": {
+        "disp_joren": "allied"
+      },
+      "text": "Joren Kall stands behind his own chair, where the Joren Kall of that afternoon sits with the weather in his face. In here the argument in him has stopped. He looks like a man listening to one voice, and it is his."
+    },
+    {
+      "key": "dais_joren",
+      "when": {
+        "disp_joren": "coerced"
+      },
+      "text": "Joren Kall stands behind his own chair. He came on terms, and he keeps his eyes on the east doors, where the weather will come in."
+    },
+    {
+      "key": "dais_joren",
+      "when": {
+        "disp_joren": "overthrown"
+      },
+      "text": "In the Vessel's chair the Joren Kall of that afternoon sits alone with the weather in his face. The other lost his seat to you, and the Covenant answers to the guild."
+    },
+    {
+      "key": "dais_joren",
+      "when": {},
+      "text": "In the Vessel's chair the Joren Kall of that afternoon sits alone. The other is out in the Scoured, where one side of the argument won."
+    },
+    {
+      "key": "dais_namer",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": ""
+    },
+    {
+      "key": "dais_namer",
+      "when": {
+        "disp_namer": "allied"
+      },
+      "text": "Cael Morn stands behind their own chair, every layer of them turned toward the east doors. They have not sat down. They have not said they are not finished, either, which you have learned is a layer of its own."
+    },
+    {
+      "key": "dais_namer",
+      "when": {
+        "disp_namer": "coerced"
+      },
+      "text": "Cael Morn stands behind their own chair. The paper they put in your pocket is still there. They have not asked for it back."
+    },
+    {
+      "key": "dais_namer",
+      "when": {
+        "disp_namer": "overthrown"
+      },
+      "text": "In the Namer's chair the Cael Morn of that afternoon sits alone. The other lost their seat to you, layer by layer."
+    },
+    {
+      "key": "dais_namer",
+      "when": {},
+      "text": "In the Namer's chair the Cael Morn of that afternoon sits alone. The other is with the Unwritten now, unmaking what they used to build."
+    },
+    {
+      "key": "dais_conductor",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": ""
+    },
+    {
+      "key": "dais_conductor",
+      "when": {
+        "disp_conductor": "allied"
+      },
+      "text": "Ondria Vell stands behind her own chair with a bottle she cannot open in here and has brought anyway. Now and then she looks along the line of the class to the third from the end, and then at the man in the back row, half risen from his seat."
+    },
+    {
+      "key": "dais_conductor",
+      "when": {
+        "disp_conductor": "coerced"
+      },
+      "text": "Ondria Vell stands behind her own chair. She came on your terms. She has added them to the tab."
+    },
+    {
+      "key": "dais_conductor",
+      "when": {
+        "disp_conductor": "overthrown"
+      },
+      "text": "In the Conductor's chair the Ondria Vell of that afternoon sits alone. The other lost her seat to you, and nobody is pouring."
+    },
+    {
+      "key": "dais_conductor",
+      "when": {},
+      "text": "In the Conductor's chair the Ondria Vell of that afternoon sits alone. The other has closed the bar. The Silent Table serves no one."
+    },
+    {
+      "key": "dais_engineer",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": ""
+    },
+    {
+      "key": "dais_engineer",
+      "when": {
+        "disp_engineer": "allied"
+      },
+      "text": "Bram Korro stands behind his own chair with both hands in his pockets, because it is the only way he can keep them there. His notebook is open on the seat beside the Bram Korro of that afternoon, and he is writing down everything that has not happened yet."
+    },
+    {
+      "key": "dais_engineer",
+      "when": {
+        "disp_engineer": "coerced"
+      },
+      "text": "Bram Korro stands behind his own chair, on terms he read twice and signed once. He has marked seventeen places where tonight could go wrong. He considers that optimistic."
+    },
+    {
+      "key": "dais_engineer",
+      "when": {
+        "disp_engineer": "overthrown"
+      },
+      "text": "In the Engineer's chair the Bram Korro of that afternoon sits alone, his hands folded so they will stay still. The other lost his workshop to you."
+    },
+    {
+      "key": "dais_engineer",
+      "when": {},
+      "text": "In the Engineer's chair the Bram Korro of that afternoon sits alone. The other builds without safety constraints now, in the Unshackled Forge."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "allied",
+        "traitor": "aurel"
+      },
+      "text": "At the sphere, beside {traitor_short} as he was that afternoon, frozen mid-stride with one palm flat on the glass as it breaks, stands {traitor_full} as he is now. He keeps both hands at his sides, and he does not look away."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "allied",
+        "traitor": "joren"
+      },
+      "text": "At the sphere, beside {traitor_short} as he was that afternoon, frozen mid-stride with one palm flat on the glass as it breaks, stands {traitor_full} as he is now. He keeps both hands at his sides, and he does not look away."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "allied",
+        "traitor": "namer"
+      },
+      "text": "At the sphere, beside {traitor_short} as they were that afternoon, frozen mid-stride with one palm flat on the glass as it breaks, stands {traitor_full} as they are now. They keep both hands at their sides, and they do not look away."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "allied",
+        "traitor": "conductor"
+      },
+      "text": "At the sphere, beside {traitor_short} as she was that afternoon, frozen mid-stride with one palm flat on the glass as it breaks, stands {traitor_full} as she is now. She keeps both hands at her sides, and she does not look away."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "allied",
+        "traitor": "engineer"
+      },
+      "text": "At the sphere, beside {traitor_short} as he was that afternoon, frozen mid-stride with one palm flat on the glass as it breaks, stands {traitor_full} as he is now. He keeps both hands at his sides, and he does not look away."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "allied"
+      },
+      "text": "At the sphere, beside {traitor_short} as they were that afternoon, frozen mid-stride with one palm flat on the glass as it breaks, stands {traitor_full} as they are now. They keep both hands at their sides, and they do not look away."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "coerced",
+        "traitor": "aurel"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside him is empty. The one who pledged to you is late."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "coerced",
+        "traitor": "joren"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside him is empty. The one who pledged to you is late."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "coerced",
+        "traitor": "namer"
+      },
+      "text": "At the sphere {traitor_short} stands as they were that afternoon, frozen mid-stride with one palm flat on the glass. The place beside them is empty. The one who pledged to you is late."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "coerced",
+        "traitor": "conductor"
+      },
+      "text": "At the sphere {traitor_short} stands as she was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside her is empty. The one who pledged to you is late."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "coerced",
+        "traitor": "engineer"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside him is empty. The one who pledged to you is late."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "coerced"
+      },
+      "text": "At the sphere {traitor_short} stands as they were that afternoon, frozen mid-stride with one palm flat on the glass. The place beside them is empty. The one who pledged to you is late."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "overthrown",
+        "traitor": "aurel"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass, and nobody stands beside him. You took that seat by force. There is no one left to bring in."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "overthrown",
+        "traitor": "joren"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass, and nobody stands beside him. You took that seat by force. There is no one left to bring in."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "overthrown",
+        "traitor": "namer"
+      },
+      "text": "At the sphere {traitor_short} stands as they were that afternoon, frozen mid-stride with one palm flat on the glass, and nobody stands beside them. You took that seat by force. There is no one left to bring in."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "overthrown",
+        "traitor": "conductor"
+      },
+      "text": "At the sphere {traitor_short} stands as she was that afternoon, frozen mid-stride with one palm flat on the glass, and nobody stands beside her. You took that seat by force. There is no one left to bring in."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "overthrown",
+        "traitor": "engineer"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass, and nobody stands beside him. You took that seat by force. There is no one left to bring in."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "overthrown"
+      },
+      "text": "At the sphere {traitor_short} stands as they were that afternoon, frozen mid-stride with one palm flat on the glass, and nobody stands beside them. You took that seat by force. There is no one left to bring in."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "corrupted",
+        "traitor": "aurel"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside him is empty. The one from the running world belongs to the Astrologer now, and is somewhere on the far side of the east doors."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "corrupted",
+        "traitor": "joren"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside him is empty. The one from the running world belongs to the Astrologer now, and is somewhere on the far side of the east doors."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "corrupted",
+        "traitor": "namer"
+      },
+      "text": "At the sphere {traitor_short} stands as they were that afternoon, frozen mid-stride with one palm flat on the glass. The place beside them is empty. The one from the running world belongs to the Astrologer now, and is somewhere on the far side of the east doors."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "corrupted",
+        "traitor": "conductor"
+      },
+      "text": "At the sphere {traitor_short} stands as she was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside her is empty. The one from the running world belongs to the Astrologer now, and is somewhere on the far side of the east doors."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "corrupted",
+        "traitor": "engineer"
+      },
+      "text": "At the sphere {traitor_short} stands as he was that afternoon, frozen mid-stride with one palm flat on the glass. The place beside him is empty. The one from the running world belongs to the Astrologer now, and is somewhere on the far side of the east doors."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {
+        "traitor_disp": "corrupted"
+      },
+      "text": "At the sphere {traitor_short} stands as they were that afternoon, frozen mid-stride with one palm flat on the glass. The place beside them is empty. The one from the running world belongs to the Astrologer now, and is somewhere on the far side of the east doors."
+    },
+    {
+      "key": "dais_traitor",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "council_tally",
+      "when": {
+        "council_split": "unanimous"
+      },
+      "text": "When the last of them has spoken the hall is very quiet. Every answer in it is the same answer, each in its own words."
+    },
+    {
+      "key": "council_tally",
+      "when": {
+        "council_split": "majority"
+      },
+      "text": "When the last of them has spoken, more than half the hall has given one answer, and the rest have not. The Register writes every word in the hand that said it, and does not count."
+    },
+    {
+      "key": "council_tally",
+      "when": {
+        "council_split": "split"
+      },
+      "text": "When the last of them has spoken, no answer has more than half the hall. The Register writes them all down and leaves the last line for your hand."
+    },
+    {
+      "key": "council_tally",
+      "when": {},
+      "text": "There is nobody to ask. The Register writes the question down anyway, in your hand, and leaves the answer to you."
+    },
+    {
+      "key": "nod_progress",
+      "when": {
+        "reports": "3"
+      },
+      "text": "You have reported to her three times. The nod is so nearly finished that the whole hall seems to lean toward it."
+    },
+    {
+      "key": "nod_progress",
+      "when": {
+        "reports": "2"
+      },
+      "text": "You have reported to her twice. The nod has come a long way since that morning. It has a little way still to go."
+    },
+    {
+      "key": "nod_progress",
+      "when": {
+        "reports": "1"
+      },
+      "text": "You reported to her once, after the first piece came home. The nod has moved since then. You are almost sure of it."
+    },
+    {
+      "key": "nod_progress",
+      "when": {
+        "reports": "0"
+      },
+      "text": "You have never reported to her. You meant to. The nod has waited for you anyway, exactly where it was."
+    },
+    {
+      "key": "spell_fate",
+      "when": {
+        "annotated": "true"
+      },
+      "text": "The spell moves. After a year an arm's length from the place where you stood, it finishes its flight down the line it was drafted on, past that place, toward the lectern. Under your arm the Register falls open at Aurel Pendry's annotations, copied in his hand, and the spell, as if it had been reading over your shoulder, goes where the margin says. It misses. It passes the lectern by a hand's breadth and goes out against the stone behind the dais, and leaves a mark there no wider than a pen stroke. 'Received,' says the Register."
+    },
+    {
+      "key": "spell_fate",
+      "when": {},
+      "text": "The spell moves. After a year an arm's length from the place where you stood, it finishes its flight down the line it was drafted on, past that place, toward the lectern, and strikes the letter of ink standing in the air above it. The letter shudders, and holds. It was never addressed to you. It was addressed to the next word, and the next word has not been said."
+    },
+    {
+      "key": "warden_watch",
+      "when": {
+        "warden": "true"
+      },
+      "text": "Far below, at the ring of stones under the fallen seat, the land takes hold. Out in the rain one of the Keepers stops, and cannot start again. At the end, the land will hold. It has begun early."
+    },
+    {
+      "key": "warden_watch",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "hold_glass",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "Beside him {traitor_short} stands as he was that afternoon, frozen mid-stride, one palm flat on the glass as it breaks. The one from the running world looks at that hand for a long moment. Then he lays his own beside it, flat on the glass, and presses, the way you hold a cracked bowl together."
+    },
+    {
+      "key": "hold_glass",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "Beside him {traitor_short} stands as he was that afternoon, frozen mid-stride, one palm flat on the glass as it breaks. The one from the running world looks at that hand for a long moment. Then he lays his own beside it, flat on the glass, and presses, the way you hold a cracked bowl together."
+    },
+    {
+      "key": "hold_glass",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "Beside them {traitor_short} stands as they were that afternoon, frozen mid-stride, one palm flat on the glass as it breaks. The one from the running world looks at that hand for a long moment. Then they lay their own beside it, flat on the glass, and press, the way you hold a cracked bowl together."
+    },
+    {
+      "key": "hold_glass",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "Beside her {traitor_short} stands as she was that afternoon, frozen mid-stride, one palm flat on the glass as it breaks. The one from the running world looks at that hand for a long moment. Then she lays her own beside it, flat on the glass, and presses, the way you hold a cracked bowl together."
+    },
+    {
+      "key": "hold_glass",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "Beside him {traitor_short} stands as he was that afternoon, frozen mid-stride, one palm flat on the glass as it breaks. The one from the running world looks at that hand for a long moment. Then he lays his own beside it, flat on the glass, and presses, the way you hold a cracked bowl together."
+    },
+    {
+      "key": "hold_glass",
+      "when": {},
+      "text": "Beside them {traitor_short} stands as they were that afternoon, frozen mid-stride, one palm flat on the glass as it breaks. The one from the running world looks at that hand for a long moment. Then they lay their own beside it, flat on the glass, and press, the way you hold a cracked bowl together."
+    },
+    {
+      "key": "penance_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "aurel"
+      },
+      "text": "He answered you once in this hall, in front of his own hand. He is keeping the answer."
+    },
+    {
+      "key": "penance_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "joren"
+      },
+      "text": "He answered you once in this hall, in front of his own hand. He is keeping the answer."
+    },
+    {
+      "key": "penance_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "namer"
+      },
+      "text": "They answered you once in this hall, in front of their own hand. They are keeping the answer."
+    },
+    {
+      "key": "penance_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "conductor"
+      },
+      "text": "She answered you once in this hall, in front of her own hand. She is keeping the answer."
+    },
+    {
+      "key": "penance_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "engineer"
+      },
+      "text": "He answered you once in this hall, in front of his own hand. He is keeping the answer."
+    },
+    {
+      "key": "penance_kept",
+      "when": {
+        "answered": "true"
+      },
+      "text": "They answered you once in this hall, in front of their own hand. They are keeping the answer."
+    },
+    {
+      "key": "penance_kept",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "walk_in",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "Up the aisle among the Keepers, unhurried, the way he walked to the sphere that afternoon, comes {traitor_full}, and nobody in sealed-sky blue looks at him twice. You do."
+    },
+    {
+      "key": "walk_in",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "Up the aisle among the Keepers, unhurried, the way he walked to the sphere that afternoon, comes {traitor_full}, and nobody in sealed-sky blue looks at him twice. You do."
+    },
+    {
+      "key": "walk_in",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "Up the aisle among the Keepers, unhurried, the way they walked to the sphere that afternoon, comes {traitor_full}, and nobody in sealed-sky blue looks at them twice. You do."
+    },
+    {
+      "key": "walk_in",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "Up the aisle among the Keepers, unhurried, the way she walked to the sphere that afternoon, comes {traitor_full}, and nobody in sealed-sky blue looks at her twice. You do."
+    },
+    {
+      "key": "walk_in",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "Up the aisle among the Keepers, unhurried, the way he walked to the sphere that afternoon, comes {traitor_full}, and nobody in sealed-sky blue looks at him twice. You do."
+    },
+    {
+      "key": "walk_in",
+      "when": {},
+      "text": "Up the aisle among the Keepers, unhurried, the way they walked to the sphere that afternoon, comes {traitor_full}, and nobody in sealed-sky blue looks at them twice. You do."
+    },
+    {
+      "key": "seen_coming",
+      "when": {
+        "glass": "true"
+      },
+      "text": "This time you see it coming. You have watched it from inside the glass, the rushed hand from behind the palm, and you know the walk."
+    },
+    {
+      "key": "seen_coming",
+      "when": {},
+      "text": "This time you see it coming. You know the walk. You were standing in front of it the first time."
+    },
+    {
+      "key": "at_sphere",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "At the sphere he stops beside {traitor_short} as he was that afternoon, and lays his palm on the glass beside the frozen one."
+    },
+    {
+      "key": "at_sphere",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "At the sphere he stops beside {traitor_short} as he was that afternoon, and lays his palm on the glass beside the frozen one."
+    },
+    {
+      "key": "at_sphere",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "At the sphere they stop beside {traitor_short} as they were that afternoon, and lay their palm on the glass beside the frozen one."
+    },
+    {
+      "key": "at_sphere",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "At the sphere she stops beside {traitor_short} as she was that afternoon, and lays her palm on the glass beside the frozen one."
+    },
+    {
+      "key": "at_sphere",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "At the sphere he stops beside {traitor_short} as he was that afternoon, and lays his palm on the glass beside the frozen one."
+    },
+    {
+      "key": "at_sphere",
+      "when": {},
+      "text": "At the sphere they stop beside {traitor_short} as they were that afternoon, and lay their palm on the glass beside the frozen one."
+    },
+    {
+      "key": "treachery_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "aurel"
+      },
+      "text": "He answered you once, in this hall: what the Astrologer showed him, and why. You coerced him. You never refuted him. He has not stopped knowing the difference."
+    },
+    {
+      "key": "treachery_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "joren"
+      },
+      "text": "He answered you once, in this hall: what the Astrologer showed him, and why. You coerced him. You never refuted him. He has not stopped knowing the difference."
+    },
+    {
+      "key": "treachery_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "namer"
+      },
+      "text": "They answered you once, in this hall: what the Astrologer showed them, and why. You coerced them. You never refuted them. They have not stopped knowing the difference."
+    },
+    {
+      "key": "treachery_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "conductor"
+      },
+      "text": "She answered you once, in this hall: what the Astrologer showed her, and why. You coerced her. You never refuted her. She has not stopped knowing the difference."
+    },
+    {
+      "key": "treachery_kept",
+      "when": {
+        "answered": "true",
+        "traitor": "engineer"
+      },
+      "text": "He answered you once, in this hall: what the Astrologer showed him, and why. You coerced him. You never refuted him. He has not stopped knowing the difference."
+    },
+    {
+      "key": "treachery_kept",
+      "when": {
+        "answered": "true"
+      },
+      "text": "They answered you once, in this hall: what the Astrologer showed them, and why. You coerced them. You never refuted them. They have not stopped knowing the difference."
+    },
+    {
+      "key": "treachery_kept",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "lost_to_him",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "He was never yours to lose. The reading took him before you could answer him. At the sphere he stops beside {traitor_short} as he was that afternoon, and lays a palm on the glass beside the frozen one, the way you would lay a hand on a page you wrote a long time ago."
+    },
+    {
+      "key": "lost_to_him",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "He was never yours to lose. The reading took him before you could answer him. At the sphere he stops beside {traitor_short} as he was that afternoon, and lays a palm on the glass beside the frozen one, the way you would lay a hand on a page you wrote a long time ago."
+    },
+    {
+      "key": "lost_to_him",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "They were never yours to lose. The reading took them before you could answer them. At the sphere they stop beside {traitor_short} as they were that afternoon, and lay a palm on the glass beside the frozen one, the way you would lay a hand on a page you wrote a long time ago."
+    },
+    {
+      "key": "lost_to_him",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "She was never yours to lose. The reading took her before you could answer her. At the sphere she stops beside {traitor_short} as she was that afternoon, and lays a palm on the glass beside the frozen one, the way you would lay a hand on a page you wrote a long time ago."
+    },
+    {
+      "key": "lost_to_him",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "He was never yours to lose. The reading took him before you could answer him. At the sphere he stops beside {traitor_short} as he was that afternoon, and lays a palm on the glass beside the frozen one, the way you would lay a hand on a page you wrote a long time ago."
+    },
+    {
+      "key": "lost_to_him",
+      "when": {},
+      "text": "They were never yours to lose. The reading took them before you could answer them. At the sphere they stop beside {traitor_short} as they were that afternoon, and lay a palm on the glass beside the frozen one, the way you would lay a hand on a page you wrote a long time ago."
+    },
+    {
+      "key": "voice_words",
+      "when": {
+        "traitor": "aurel"
+      },
+      "text": "The voice is his. The words are the Astrologer's. The glass, which has been breaking for a year, begins to break again."
+    },
+    {
+      "key": "voice_words",
+      "when": {
+        "traitor": "joren"
+      },
+      "text": "The voice is his. The words are the Astrologer's. The glass, which has been breaking for a year, begins to break again."
+    },
+    {
+      "key": "voice_words",
+      "when": {
+        "traitor": "namer"
+      },
+      "text": "The voice is theirs. The words are the Astrologer's. The glass, which has been breaking for a year, begins to break again."
+    },
+    {
+      "key": "voice_words",
+      "when": {
+        "traitor": "conductor"
+      },
+      "text": "The voice is hers. The words are the Astrologer's. The glass, which has been breaking for a year, begins to break again."
+    },
+    {
+      "key": "voice_words",
+      "when": {
+        "traitor": "engineer"
+      },
+      "text": "The voice is his. The words are the Astrologer's. The glass, which has been breaking for a year, begins to break again."
+    },
+    {
+      "key": "voice_words",
+      "when": {},
+      "text": "The voice is theirs. The words are the Astrologer's. The glass, which has been breaking for a year, begins to break again."
+    },
+    {
+      "key": "seventh_layer",
+      "when": {
+        "layer": "true"
+      },
+      "text": "At the gatehouse the seventh layer fired, once, when it mattered. The second wave is still standing out in the rain on the far side of the arch, not one of them able to say why they cannot come in. Cael Morn has not moved from where they stood all night. 'Now,' they say, 'you may thank me.'"
+    },
+    {
+      "key": "seventh_layer",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "rebinding_pieces",
+      "when": {
+        "fragments_home": "6"
+      },
+      "text": "Every piece is home. Six refusals lie warm in the glass, waiting to be set back the way they were set the first time."
+    },
+    {
+      "key": "rebinding_pieces",
+      "when": {
+        "fragments_home": "0"
+      },
+      "text": "None of the pieces is home. The glass has nothing to give back but its own cold shards, and the breach knows it."
+    },
+    {
+      "key": "rebinding_pieces",
+      "when": {},
+      "text": "Not every piece is home. Where the missing ones should be the glass is dark, and the breach is wider there, and it will take longer to close."
+    },
+    {
+      "key": "rebinding_begin",
+      "when": {
+        "fragments_home": "0"
+      },
+      "text": "You put both hands on the glass where {traitor_short}'s palm broke it, and begin anyway. The Fast has a word for what you are doing, and the word is refusal. With nothing to give back, you refuse on the world's behalf with your own hands, and hold the breach while the glass remembers how to close. Every round of it, something comes up through the breach to stop you."
+    },
+    {
+      "key": "rebinding_begin",
+      "when": {},
+      "text": "You put both hands on the glass where {traitor_short}'s palm broke it, and begin. The Fast has a word for what you are doing, and the word is refusal. You give the glass back what it held, one piece at a time, and refuse on the world's behalf what each piece's maker refused. Each time, something comes up through the breach to stop you."
+    },
+    {
+      "key": "hess_watch",
+      "when": {
+        "disp_hess": "allied"
+      },
+      "text": "On the dais Hess sits in her chair and watches him come the way she has watched eight endings: without moving. He looks at her a moment. 'You left,' he says. 'I came back,' says Hess. That is all either of them says."
+    },
+    {
+      "key": "hess_watch",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "first_sight",
+      "when": {
+        "remembered": "true"
+      },
+      "text": "He has seen you before, in another reading, and you can tell from his face that he does not remember it. He looks at you the way you would look at a word in a language you never learned: closely, courteously, with no idea at all what it says. 'I have stood in this room before,' he says. 'I remember the ceiling. I do not remember you.' He frowns, very slightly. 'I find I cannot keep you.'"
+    },
+    {
+      "key": "first_sight",
+      "when": {},
+      "text": "It is the first time he has seen you, and you can tell. He looks at you the way you would look at a word in a language you never learned: closely, courteously, with no idea at all what it says."
+    },
+    {
+      "key": "study_line",
+      "when": {
+        "study": "true"
+      },
+      "text": "'I spoke to you once,' he says. 'In my reading room, to a place by the table where the passage bent. I did not know whether anyone was there.' He considers you. 'You were.'"
+    },
+    {
+      "key": "study_line",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "deal_line",
+      "when": {
+        "refused": "true"
+      },
+      "text": "'You refused my ending,' he says, mildly, as if remarking on the weather. 'As read. It is the only answer of yours I have ever read, and I read it off a messenger's face.'"
+    },
+    {
+      "key": "deal_line",
+      "when": {
+        "accepted": "true"
+      },
+      "text": "'You accepted my ending,' he says. 'I sent it back. I could not read it, and I do not sign what I cannot read.' For a moment he looks almost rueful. 'I have wondered since what you meant by it.'"
+    },
+    {
+      "key": "deal_line",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "path_read",
+      "when": {
+        "path": "restoration"
+      },
+      "text": "He looks past you at the glass, where the pieces are back in their places and the breach between them is closing. 'You mean to put it back,' he says. 'I have read that passage. It ends in a cold room.' He takes off his coat and folds it over the back of his empty chair. 'Very well. We will see who is standing in the room at the end of it.'"
+    },
+    {
+      "key": "path_read",
+      "when": {
+        "path": "harness"
+      },
+      "text": "He looks at your hand, and at what is on it from the other side of the breach, and for the first time all night he seems unsettled. 'You went through,' he says. 'You mean to keep it.' A pause. 'Then you agree with me. You only disagree about whose hand.'"
+    },
+    {
+      "key": "path_read",
+      "when": {
+        "path": "synthesis"
+      },
+      "text": "He looks at the clean page under your arm, where a hand that is not a hand has been writing, and reads it, or tries to. 'I cannot read that,' he says, very quietly. It is, you suspect, the first sentence he has spoken in years without knowing how it ends."
+    },
+    {
+      "key": "his_last",
+      "when": {
+        "path": "restoration"
+      },
+      "text": "The titan goes out of him like weather leaving a field, and he is a man again, on one knee on the examination floor in front of the lectern, in the place where you stood that afternoon. 'You have put it back,' he says. He sounds tired, and not at all surprised. 'I hope you are right. I have read the room at the end of this passage. There is a lamp in it, and no one to hand it to.' He looks up at the glass, at the light in it. 'Perhaps you will be the one who proves me wrong. I would like that. I do not expect it.'"
+    },
+    {
+      "key": "his_last",
+      "when": {
+        "path": "harness"
+      },
+      "text": "The breach goes out of him the way it came in, through the hands, and he is a man again, on one knee on the examination floor, in the place where you stood that afternoon. He looks at your hand for a long time. 'Then I was right,' he says, and he does not sound pleased. 'You agree with me. You only wanted it in your own hand.' He gets up, carefully. 'Be careful with it. Reading it and holding it are not the same. I have done the one. You are about to learn the other.'"
+    },
+    {
+      "key": "his_last",
+      "when": {
+        "path": "synthesis"
+      },
+      "text": "He sits back on his heels on the examination floor, in the place where you stood that afternoon, and looks at the clean page under your arm, where the other hand is still writing. 'Half,' he says. 'You are telling me half of it was true.' He almost smiles. 'I did not read that. I did not read anything at all in here.' He listens a moment to the quiet. 'It is very restful, not knowing. I can see why you like it.'"
+    },
+    {
+      "key": "rebound_pieces",
+      "when": {
+        "fragments_home": "6"
+      },
+      "text": "In the glass the six lights that pulled apart at Commencement lean together again, until there is no gap between them a hand could go through. Every piece is in its place. The Seal is whole for the first time since the afternoon it broke."
+    },
+    {
+      "key": "rebound_pieces",
+      "when": {
+        "fragments_home": "0"
+      },
+      "text": "No light comes back into the glass. It closes dark, all six places of it, and something will have to hold every one of them. Something always does."
+    },
+    {
+      "key": "rebound_pieces",
+      "when": {},
+      "text": "In the glass the lights that came home lean together, until there is no gap between them a hand could go through. Where pieces are missing the glass is dark, and something will have to hold those places. Something always does."
+    },
+    {
+      "key": "warden_held",
+      "when": {
+        "warden": "true"
+      },
+      "text": "Below the fallen seat, at the ring of stones, the crows have come down onto every stone. At the end, the land held."
+    },
+    {
+      "key": "warden_held",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "fates_open",
+      "when": {
+        "anchor": "wizard"
+      },
+      "text": "In the morning, if the Second has mornings, someone counts who is still standing, and reads the count to you through the glass."
+    },
+    {
+      "key": "fates_open",
+      "when": {},
+      "text": "In the morning, if the Second has mornings, you count who is still standing."
+    },
+    {
+      "key": "fates_again",
+      "when": {
+        "anchor": "wizard"
+      },
+      "text": "They count again for you, out loud, at the glass. It comes out the same. You are glad."
+    },
+    {
+      "key": "fates_again",
+      "when": {},
+      "text": "You count them again. It comes out the same. You are glad."
+    },
+    {
+      "key": "honored_spirits",
+      "when": {
+        "honored": "true",
+        "path": "restoration"
+      },
+      "text": "The guild's honored dead were here too. You felt them when the glass took the pieces: a pressure at your back, the way a crowd presses forward when it wants to see. Their names are in the Register. They held the Seal while it set."
+    },
+    {
+      "key": "honored_spirits",
+      "when": {
+        "honored": "true",
+        "path": "harness"
+      },
+      "text": "The guild's honored dead were in the breach with you. You saw them on the far side, at the edges of the dark, keeping pace. They did not follow you back. They did not seem to want to."
+    },
+    {
+      "key": "honored_spirits",
+      "when": {
+        "honored": "true",
+        "path": "synthesis"
+      },
+      "text": "The guild's honored dead stood between you and the thing that was reading you, the way the dead stand between the living and the dark. It read them first. It was gentler after that."
+    },
+    {
+      "key": "honored_spirits",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "wizard"
+      },
+      "text": "Nobody steps up. Nobody in the hall has finished becoming who they would need to be for this, and you will not ask anyone who has not. So it is you. You lay both hands on the glass where {traitor_short}'s palm broke it, and the light comes up through your fingers, and you understand what it will cost: the rest of this reading. You will stay in the glass until the reading closes. Behind you someone says your name. It is the first time anyone has said it tonight."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "bram_thistlewade"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "brannoc_helm"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "corvin_ashdown"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "dagny_thornhelm"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "elara_stormcaller"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "fenna_boltwright"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "harl_denner"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "isolde_marrec"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "kael_ashblade"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "maren_gravesong"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "miro_fletch"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "odile_vantrec"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "ondrej_vael"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "petra_quillane"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "ruslan_vane"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "sable_voss"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "seraphine_duskwell"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "tamsin_greywood"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "torrin_ironward"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} He lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through his fingers and takes him in, the way still water takes a stone, and closes over him, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "wren_holloway"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {
+        "anchor": "yara_ellswood"
+      },
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} She lays both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through her fingers and takes her in, the way still water takes a stone, and closes over her, and holds."
+    },
+    {
+      "key": "anchor_volunteer",
+      "when": {},
+      "text": "Before you can ask anyone, {anchor_name} steps up. {anchor_last} They lay both hands flat on the glass where {traitor_short}'s palm broke it, and the light comes up through their fingers and takes them in, the way still water takes a stone, and closes over them, and holds."
+    },
+    {
+      "key": "anchor_after",
+      "when": {
+        "anchor": "wizard",
+        "fragments_home": "6"
+      },
+      "text": "'Be it recorded,' says the Register, and its voice is not steady, 'that there are seven lights in the glass, and that the seventh is the candidate's.'"
+    },
+    {
+      "key": "anchor_after",
+      "when": {
+        "anchor": "wizard"
+      },
+      "text": "'Be it recorded,' says the Register, and its voice is not steady, 'that the glass holds, and that the candidate holds it.'"
+    },
+    {
+      "key": "anchor_after",
+      "when": {
+        "fragments_home": "6"
+      },
+      "text": "In the glass there is a seventh light now, faint and steady, where there were six. 'Be it recorded,' says the Register, and its voice is not steady, 'that there are seven lights in the glass.'"
+    },
+    {
+      "key": "anchor_after",
+      "when": {},
+      "text": "In the glass there is one more light now, faint and steady, and it reaches into the dark places too, where the missing pieces should be. 'Be it recorded,' says the Register, and its voice is not steady, 'that the glass holds, and who holds it.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "bram_thistlewade"
+      },
+      "text": "'I stayed to see whether a grove could refuse,' says Bram. 'I can stay for this.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "brannoc_helm"
+      },
+      "text": "'I held a course for years without asking where it went,' says Brannoc. 'I know where this one goes. Let me hold it.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "corvin_ashdown"
+      },
+      "text": "'Here,' says Corvin. It is the whole of the sentence, and it is finished."
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "dagny_thornhelm"
+      },
+      "text": "'Every place worth keeping has a route, and somebody who walks it,' says Dagny. 'Put me on this one.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "elara_stormcaller"
+      },
+      "text": "'Nothing the fire can't give back,' says Elara. 'Hold me to it.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "fenna_boltwright"
+      },
+      "text": "'Somebody has to maintain it,' says Fenna. 'I'll keep the log.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "harl_denner"
+      },
+      "text": "'A door worth a warden,' says Harl, and puts his hat under his arm."
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "isolde_marrec"
+      },
+      "text": "'Nobody reads ahead in there,' says Isolde. 'I'll take it.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "kael_ashblade"
+      },
+      "text": "'Round four,' says Kael, and grins. 'I always said I'd go the distance.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "maren_gravesong"
+      },
+      "text": "'Write me down,' says Maren. 'Properly.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "miro_fletch"
+      },
+      "text": "'I dreamed this one too,' says Miro. 'I always woke up before I saw who stayed. Now I know.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "odile_vantrec"
+      },
+      "text": "'Marshal requests permission to hold this one for the duration,' says Odile."
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "ondrej_vael"
+      },
+      "text": "'Transferred,' says Ondrej. 'Freely. Permanent.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "petra_quillane"
+      },
+      "text": "'Somebody should keep the post,' says Petra. 'I'll write.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "ruslan_vane"
+      },
+      "text": "'I've found somewhere to send it,' says Ruslan."
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "sable_voss"
+      },
+      "text": "'I'll see it coming,' says Sable. 'All seventeen ways.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "seraphine_duskwell"
+      },
+      "text": "'My terms,' says Seraphine. 'I stay, as a party, not a clause.' She almost smiles. 'No counter-offer. I'll know if you're being soft.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "tamsin_greywood"
+      },
+      "text": "'Chapter last,' says Tamsin. 'Don't spoil it.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "torrin_ironward"
+      },
+      "text": "'Harvest's in a lunation,' says Torrin. 'Somebody bring a scythe.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "wren_holloway"
+      },
+      "text": "'Fourth specialization,' says Wren. 'Keeping a moment alive. Somebody write it down.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {
+        "anchor": "yara_ellswood"
+      },
+      "text": "'We look,' says Yara. 'Always.'"
+    },
+    {
+      "key": "anchor_last",
+      "when": {},
+      "text": "'I'll stay,' they say, and that is all."
+    },
+    {
+      "key": "conferral_place",
+      "when": {
+        "anchor": "wizard"
+      },
+      "text": "You cannot take the Register from under your arm; you are in the glass. Someone takes it for you and lays it open on the lectern, at the line that stopped, under the Provost's hand. From inside the light you can see the place where you stood that afternoon, and your folio hanging in the air there at knee height, pages fanned. Someone takes that too, and holds it up where you can see it, because candidates carry the folio they sat."
+    },
+    {
+      "key": "conferral_place",
+      "when": {},
+      "text": "You take the Register from under your arm and lay it open on the lectern, at the line that stopped, under the Provost's hand. Then you go down the steps to the place where you stood that afternoon. Your folio is there in the air at knee height, pages fanned, where it has hung all along. You take it, because candidates carry the folio they sat."
+    },
+    {
+      "key": "conferral_setting",
+      "when": {
+        "path": "restoration"
+      },
+      "text": "There is one thing left in the hall that has not finished. Above the lectern the ink of the next letter still stands in the air. Behind it the glass is whole and lit, with every light it has."
+    },
+    {
+      "key": "conferral_setting",
+      "when": {
+        "path": "harness"
+      },
+      "text": "There is one thing left in the hall that has not finished. Above the lectern the ink of the next letter still stands in the air. Behind it the breach stands open the width of a hand, and the dark in it moves when you move."
+    },
+    {
+      "key": "conferral_setting",
+      "when": {
+        "path": "synthesis"
+      },
+      "text": "There is one thing left in the hall that has not finished. Above the lectern the ink of the next letter still stands in the air. Behind it the glass is whole and not quite clear, like a window with weather on it, and beyond the windows the sky is reading back."
+    },
+    {
+      "key": "conferral_speaker",
+      "when": {
+        "disp_wenna": "allied"
+      },
+      "text": "Wenna Aldric comes out of the line along the wall, from the gap where you stood, and goes up to the lectern, and stands beside herself. She looks at the Wenna Aldric of that afternoon for exactly as long as it takes to read a line. Then she puts on her spectacles and finishes her sentence, a year late, in the same voice, because she has never left a sentence unfinished in her life."
+    },
+    {
+      "key": "conferral_speaker",
+      "when": {
+        "disp_wenna": "coerced"
+      },
+      "text": "Wenna Aldric comes out of the line along the wall and goes up to the lectern, and stands beside herself. She did not come here willingly, and she has told you so, in complete sentences. She finishes it anyway. She has never left a sentence unfinished in her life, and she will not begin with this one."
+    },
+    {
+      "key": "conferral_speaker",
+      "when": {
+        "path": "restoration",
+        "seats_present": "0"
+      },
+      "text": "The Provost is not here to finish it, and none of the archmagi came. The Register waits. Then it finishes the sentence itself, in its own voice, the way it has wanted to since the afternoon it stopped."
+    },
+    {
+      "key": "conferral_speaker",
+      "when": {
+        "path": "restoration",
+        "seats_present": "1"
+      },
+      "text": "The Provost is not here to finish it. One of the archmagi came, and one is enough. They go up to the lectern alone and stand beside the Wenna Aldric of that afternoon, and speak her sentence for her, in her words."
+    },
+    {
+      "key": "conferral_speaker",
+      "when": {
+        "path": "restoration"
+      },
+      "text": "The Provost is not here to finish it. The archmagi who came go up to the lectern together, the way the board was always meant to, and stand around the Wenna Aldric of that afternoon, and speak her sentence for her, in her words."
+    },
+    {
+      "key": "conferral_speaker",
+      "when": {
+        "path": "harness"
+      },
+      "text": "The Provost is not here to finish it, and nobody left in the hall has the standing she had. So the guild does it. Everyone who came through the edge with you goes up to the lectern, and they do not use her words. They make new ones, there and then, over the open breach."
+    },
+    {
+      "key": "conferral_speaker",
+      "when": {},
+      "text": "The Provost is not here to finish it. So everyone who came through the edge with you finishes it together, with the twenty-six along the wall standing witness. They speak her sentence in her words, and when they finish it something on the far side of the glass reads it back, the way a hall gives back a voice."
+    },
+    {
+      "key": "conferral_words",
+      "when": {
+        "disp_wenna": "allied"
+      },
+      "text": "'...and by the hand of this Register, the Aldric Academy names {wizard_name} into the discipline of {guild_name}.'"
+    },
+    {
+      "key": "conferral_words",
+      "when": {
+        "disp_wenna": "coerced"
+      },
+      "text": "'...and by the hand of this Register, the Aldric Academy names {wizard_name} into the discipline of {guild_name}.'"
+    },
+    {
+      "key": "conferral_words",
+      "when": {
+        "path": "harness"
+      },
+      "text": "'Be it recorded that {guild_name} names {wizard_name} its own.'"
+    },
+    {
+      "key": "conferral_words",
+      "when": {},
+      "text": "'...and by the hand of this Register, the Aldric Academy names {wizard_name} into the discipline of {guild_name}.'"
+    },
+    {
+      "key": "conferral_hand",
+      "when": {
+        "disp_wenna": "allied"
+      },
+      "text": "The Register writes it as she speaks it, in her careful script, on the line that stopped. Not under it: on it. The ink of the next letter comes down out of the air onto the page where it was always going, and the rest of the sentence follows it, and the line that stopped at Commencement finishes."
+    },
+    {
+      "key": "conferral_hand",
+      "when": {
+        "disp_wenna": "coerced"
+      },
+      "text": "The Register writes it as she speaks it, in her careful script, on the line that stopped. Not under it: on it. The ink of the next letter comes down out of the air onto the page where it was always going, and the rest of the sentence follows it, and the line that stopped at Commencement finishes."
+    },
+    {
+      "key": "conferral_hand",
+      "when": {
+        "path": "restoration",
+        "seats_present": "0"
+      },
+      "text": "The Register writes it in its own hand, on the line that stopped, and notes beside it whose sentence it was: the Provost's, Wenna Aldric's, finished for her. The ink of the next letter comes down out of the air onto the page where it was always going, and the rest of the sentence follows it, and the line that stopped at Commencement finishes."
+    },
+    {
+      "key": "conferral_hand",
+      "when": {
+        "path": "restoration",
+        "seats_present": "1"
+      },
+      "text": "The Register writes it as they speak it, in their hand, on the line that stopped, and notes beside it whose sentence it was: the Provost's, Wenna Aldric's, finished for her. The ink of the next letter comes down out of the air onto the page where it was always going, and the rest of the sentence follows it, and the line that stopped at Commencement finishes."
+    },
+    {
+      "key": "conferral_hand",
+      "when": {
+        "path": "restoration"
+      },
+      "text": "The Register writes it as they speak it, in every one of their hands at once, on the line that stopped, and notes beside it whose sentence it was: the Provost's, Wenna Aldric's, finished for her. The ink of the next letter comes down out of the air onto the page where it was always going, and the rest of the sentence follows it, and the line that stopped at Commencement finishes."
+    },
+    {
+      "key": "conferral_hand",
+      "when": {
+        "path": "harness"
+      },
+      "text": "The Register does not write it on the line that stopped. It strikes that line through, once, neatly, and writes the new one under it in all of their hands at once, and notes in the margin whose sentence the old one was: the Provost's, Wenna Aldric's, struck by the guild. The ink of the next letter comes down out of the air and falls on the page as a blot, and stays there."
+    },
+    {
+      "key": "conferral_hand",
+      "when": {},
+      "text": "The Register writes it as they speak it, in every one of their hands at once, on the line that stopped, and notes beside it whose sentence it was: the Provost's, Wenna Aldric's, finished for her by everyone. The ink of the next letter comes down out of the air onto the page where it was always going, and the rest of the sentence follows it, and the line that stopped at Commencement finishes."
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "adept"
+      },
+      "text": "'Adept,' she says. 'The school nobody stays in. You stayed. I would have argued for it, and the board would have laughed, and I would have won.'"
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "arcanist"
+      },
+      "text": "'Arcanist,' she says. 'You would not stop at the answer. I would have argued for Arcanist, and I would have won.'"
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "chronomancer"
+      },
+      "text": "'Chronomancer,' she says. 'Patient, and lonely, and you never once read ahead. I would have argued for it, and I would have won.'"
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "druid"
+      },
+      "text": "'Druid,' she says. 'You asked the land politely, and it answered. I would have argued for Druid, and I would have won.'"
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "elementalist"
+      },
+      "text": "'Elementalist,' she says. 'Loud work, and you kept your own voice in it. I would have argued for Elementalist, and I would have won.'"
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "enchanter"
+      },
+      "text": "'Enchanter,' she says. 'Four layers would have carried you. You used more. I would have argued for it, and I would have won.'"
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "necromancer"
+      },
+      "text": "'Necromancer,' she says. 'You kept a list. I would have argued for Necromancer, and I would have won.'"
+    },
+    {
+      "key": "examiner_opinion",
+      "when": {
+        "highest": "tinker"
+      },
+      "text": "'Tinker,' she says. 'Half of what you built did not work. The other half is why we are standing here. I would have argued for it, and I would have won.'"
+    },
+    {
+      "key": "examiner_margin",
+      "when": {
+        "intention_match": "true"
+      },
+      "text": "'You said so that morning,' she adds. 'It is in the margin, in your hand. The board ignored it, as is traditional. I did not.'"
+    },
+    {
+      "key": "examiner_margin",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "erratum_margin",
+      "when": {
+        "heard": "true"
+      },
+      "text": "In the margin beside the finished line, where your stated intention sits in your own hand, there is room for one more line. You wait, and the Register waits, and nobody writes in it. The voice that apologized for this second spent the last of itself telling you about a room for one more. He is not here. The Register leaves the margin open anyway."
+    },
+    {
+      "key": "erratum_margin",
+      "when": {},
+      "text": "In the margin beside the finished line, where your stated intention sits in your own hand, there is room for one more line. You wait, and the Register waits, and nobody writes in it. The voice that apologized to you in the first moment of the Second does not speak again. The Register leaves the margin open anyway."
+    },
+    {
+      "key": "defeat_where",
+      "when": {
+        "lost_phase": "fracture"
+      },
+      "text": "The letter above the lectern goes out like a lamp in a draft."
+    },
+    {
+      "key": "defeat_where",
+      "when": {
+        "lost_phase": "threshold"
+      },
+      "text": "The breach opens a hand's width wider, and then a door's."
+    },
+    {
+      "key": "defeat_where",
+      "when": {
+        "lost_phase": "reckoning"
+      },
+      "text": "He finishes the passage."
+    },
+    {
+      "key": "defeat_where",
+      "when": {},
+      "text": ""
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "bram_thistlewade"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "brannoc_helm"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "corvin_ashdown"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "dagny_thornhelm"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "elara_stormcaller"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "fenna_boltwright"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "harl_denner"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "isolde_marrec"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "kael_ashblade"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "maren_gravesong"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "miro_fletch"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "odile_vantrec"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "ondrej_vael"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "petra_quillane"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "ruslan_vane"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "sable_voss"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "seraphine_duskwell"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "tamsin_greywood"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "torrin_ironward"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "wren_holloway"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "companion": "yara_ellswood"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "adept"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "arcanist"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "chronomancer"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "druid"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "elementalist"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "enchanter"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "necromancer"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "school": "tinker"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "trait": "Stoic"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "trait": "Loyal"
+      },
+      "text": "restoration"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "trait": "Reckless"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "trait": "Cunning"
+      },
+      "text": "harness"
+    },
+    {
+      "key": "council_lean",
+      "when": {
+        "trait": "Curious"
+      },
+      "text": "synthesis"
+    },
+    {
+      "key": "council_lean",
+      "when": {},
+      "text": "restoration"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "bram_thistlewade",
+        "arc": "complete"
+      },
+      "text": "Bram Thistlewade has the second grove's dirt under his nails. 'A grove held against the blight because something held it,' he says. 'Hold the world the same way. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "brannoc_helm",
+        "arc": "complete"
+      },
+      "text": "Brannoc Helm turns his cap over in his hands. 'I set one heading of my own,' he says. 'I know what it costs to give one up. Put it back on its course. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "corvin_ashdown",
+        "arc": "complete"
+      },
+      "text": "Corvin Ashdown says one word, and then, because of what night it is, ten more. 'Restoration. I wore his colors. They keep it broken on purpose.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "dagny_thornhelm",
+        "arc": "complete"
+      },
+      "text": "Dagny Thornhelm squares her shoulders. 'Twelve years I walked somebody else's route, and they sold it out from under me,' she says. 'Nobody sells this one. Take it. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "elara_stormcaller",
+        "arc": "complete"
+      },
+      "text": "Elara Stormcaller holds up her charter, one clause long. 'Take it,' she says. 'Dominion. But nothing the fire can't give back. Hold me to that, and I'll hold you.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "fenna_boltwright",
+        "arc": "complete"
+      },
+      "text": "Fenna Boltwright has a diagram, of course. 'You don't learn a machine by locking it up or by taking it over,' she says. 'You tend it. Build it so it breathes. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "harl_denner",
+        "arc": "complete"
+      },
+      "text": "Harl Denner stands, hat under his arm. 'Thirty years I guarded a sealed thing without knowing what it was,' he says. 'Now I know. Seal it. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "isolde_marrec",
+        "arc": "complete"
+      },
+      "text": "Isolde Marrec does not look at the east doors. 'He reads ahead,' she says. 'Nobody should be able to read the world ahead. Not him, and not us either. Make it something nobody can finish reading. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "kael_ashblade",
+        "arc": "complete"
+      },
+      "text": "Kael Ashblade is counting something under his breath. 'Round four,' he says. 'You don't win a round by putting the wall back. You win it by going through. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "maren_gravesong",
+        "arc": "complete"
+      },
+      "text": "Maren Gravesong has both ledgers open. 'Every reading I write down the names of the people the seep takes,' she says. 'Close it. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "miro_fletch",
+        "arc": "complete"
+      },
+      "text": "Miro Fletch has his notebook out. 'I've dreamed about you every year on the same night,' he says. 'In none of the dreams did it go back the way it was. Make something new. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "odile_vantrec",
+        "arc": "complete"
+      },
+      "text": "Odile Vantrec stands at parade rest. 'I held one gate until the last wagon was through,' she says. 'Hold this one. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "ondrej_vael",
+        "arc": "complete"
+      },
+      "text": "Ondrej Vael has done the arithmetic twice. 'Every account he opened is still open,' he says. 'Close them. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "petra_quillane",
+        "arc": "complete"
+      },
+      "text": "Petra Quillane holds a letter in her own handwriting that she did not write. 'Correspondence goes both ways,' she says. 'So should this. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "ruslan_vane",
+        "arc": "complete"
+      },
+      "text": "Ruslan Vane taps the wage pouch at his belt. 'My village is under his weather,' he says. 'I don't want it put back. I want it pointed at the roofs. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "sable_voss",
+        "arc": "complete"
+      },
+      "text": "Sable Voss speaks from the shadow by the east doors, where nobody saw her standing. 'Whoever owns the seeing owns the hunt,' she says. 'Own it. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "seraphine_duskwell",
+        "arc": "complete"
+      },
+      "text": "Seraphine Duskwell squares her ledger to the grain of the lectern. 'There is something on the other side,' she says. 'Negotiate with it, as a party, not a clause. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "tamsin_greywood",
+        "arc": "complete"
+      },
+      "text": "Tamsin Greywood has her manuscript under her arm. 'Every saga worth telling ends with somebody taking the thing nobody was supposed to have,' she says. 'Dominion. I'll write it down kindly.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "torrin_ironward",
+        "arc": "complete"
+      },
+      "text": "Torrin Ironward has a little of the barley's dust on his sleeve. 'Put the wall back,' he says, 'and let me get to the harvest. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "wren_holloway",
+        "arc": "complete"
+      },
+      "text": "Wren Holloway washed out of three specializations and declared a fourth. 'The Academy never had a course in this,' she says. 'Good. Make one. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "yara_ellswood",
+        "arc": "complete"
+      },
+      "text": "Yara Ellswood taps the muster board, out of habit. 'We look,' she says. 'At whatever's actually there. Don't wall it off and don't take it. Look at it. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "bram_thistlewade",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' he says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "brannoc_helm",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' he says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "corvin_ashdown",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' he says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "dagny_thornhelm",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would take it. 'He opened it,' she says. 'Now it's ours. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "elara_stormcaller",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would take it. 'He opened it,' she says. 'Now it's ours. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "fenna_boltwright",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would change it. 'Neither,' she says. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "harl_denner",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' he says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "isolde_marrec",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would change it. 'Neither,' she says. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "kael_ashblade",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would take it. 'He opened it,' he says. 'Now it's ours. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "maren_gravesong",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' she says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "miro_fletch",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would change it. 'Neither,' he says. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "odile_vantrec",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' she says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "ondrej_vael",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' he says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "petra_quillane",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would change it. 'Neither,' she says. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "ruslan_vane",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would take it. 'He opened it,' he says. 'Now it's ours. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "sable_voss",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would take it. 'He opened it,' she says. 'Now it's ours. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "seraphine_duskwell",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would change it. 'Neither,' she says. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "tamsin_greywood",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would take it. 'He opened it,' she says. 'Now it's ours. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "torrin_ironward",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' he says, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "wren_holloway",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would change it. 'Neither,' she says. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "companion": "yara_ellswood",
+        "arc": "incomplete"
+      },
+      "text": "{companion_name} would change it. 'Neither,' she says. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "lean": "restoration"
+      },
+      "text": "{companion_name} would put it back. 'The way it was,' they say, 'or as near as we can get. Restoration.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "lean": "harness"
+      },
+      "text": "{companion_name} would take it. 'He opened it,' they say. 'Now it's ours. Dominion.'"
+    },
+    {
+      "key": "council_vote",
+      "when": {
+        "lean": "synthesis"
+      },
+      "text": "{companion_name} would change it. 'Neither,' they say. 'Something the world can breathe through. Synthesis.'"
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "bram_thistlewade",
+        "fate": "unique"
+      },
+      "text": "Bram Thistlewade goes to the second grove and checks the soil, out of habit, and finds it perfect, out of gratitude."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "brannoc_helm",
+        "fate": "unique"
+      },
+      "text": "Brannoc Helm takes the bastion out at first light on a heading of his own, one point off your line, and has it back by dusk."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "corvin_ashdown",
+        "fate": "unique"
+      },
+      "text": "Corvin Ashdown stands on the campus wall at dusk, where he finished his sentence, and says nothing at all, in his own voice."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "dagny_thornhelm",
+        "fate": "unique"
+      },
+      "text": "Dagny Thornhelm walks the Thornhelm Round at dusk, in all weathers, as reliable as the bell."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "elara_stormcaller",
+        "fate": "unique"
+      },
+      "text": "Elara Stormcaller sits up all night with her charter and, at dawn, adds nothing to it. It is still one clause long."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "fenna_boltwright",
+        "fate": "unique"
+      },
+      "text": "Fenna Boltwright writes the night into the anchor's instrument log in her tidiest hand, and then, for the first time in her life, sleeps through a sound she does not understand."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "harl_denner",
+        "fate": "unique"
+      },
+      "text": "Harl Denner walks his dawn lap of the Anchorhold, door by door, and finds every seal where he left it."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "isolde_marrec",
+        "fate": "unique"
+      },
+      "text": "Isolde Marrec writes a letter, the first in nine years that nobody answered before she sent it."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "kael_ashblade",
+        "fate": "unique"
+      },
+      "text": "Kael Ashblade rings the bell himself, for everyone, and stands under it grinning, a man whose count has come out even."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "maren_gravesong",
+        "fate": "unique"
+      },
+      "text": "Maren Gravesong adds the night's names to the ledger, every one, and reads them aloud, and the hall hears who it cost."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "miro_fletch",
+        "fate": "unique"
+      },
+      "text": "Miro Fletch writes the night into his notebook, every detail, and that night, for the first time in years, he does not dream about you, because you are there."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "odile_vantrec",
+        "fate": "unique"
+      },
+      "text": "Odile Vantrec sews a replacement banner before she sleeps, because you always sew the replacement."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "ondrej_vael",
+        "fate": "unique"
+      },
+      "text": "Ondrej Vael closes the night's accounts to the last line and signs them: reconciled."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "petra_quillane",
+        "fate": "unique"
+      },
+      "text": "Petra Quillane finds a reply in the margin of the Register, in her own hand, dated in a reading nobody remembers. It says: well done."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "ruslan_vane",
+        "fate": "unique"
+      },
+      "text": "Ruslan Vane counts out his wage at dawn and sends every coin of it to the address he found."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "sable_voss",
+        "fate": "unique"
+      },
+      "text": "Sable Voss walks the grounds at dusk, the seventeen ways run backward, and nothing in the world comes near unannounced."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "seraphine_duskwell",
+        "fate": "unique"
+      },
+      "text": "Seraphine Duskwell audits the night line by line and finds that the terms were honored. She is visibly disappointed, and then, privately, not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "tamsin_greywood",
+        "fate": "unique"
+      },
+      "text": "Tamsin Greywood writes the last chapter in one sitting, in the held light of the library wing, and does not skip anything."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "torrin_ironward",
+        "fate": "unique"
+      },
+      "text": "Torrin Ironward goes out to the barley at first light, and leaves the spear in its bracket by the door."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "wren_holloway",
+        "fate": "unique"
+      },
+      "text": "Wren Holloway writes her fourth specialization into the Register under her own name, and the Register, which never had a course in it either, takes it down."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "companion": "yara_ellswood",
+        "fate": "unique"
+      },
+      "text": "Yara Ellswood checks the muster board at dawn, the way other people check the weather. Three words, still there."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "bram_thistlewade"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "brannoc_helm"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "corvin_ashdown"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "dagny_thornhelm"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "elara_stormcaller"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "fenna_boltwright"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "harl_denner"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "isolde_marrec"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "kael_ashblade"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "maren_gravesong"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "miro_fletch"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "odile_vantrec"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "ondrej_vael"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "petra_quillane"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "ruslan_vane"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "sable_voss"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "seraphine_duskwell"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "tamsin_greywood"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "torrin_ironward"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank him. You will hear of him again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "wren_holloway"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant",
+        "companion": "yara_ellswood"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank her. You will hear of her again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "distant"
+      },
+      "text": "{companion_name} came through the night, and is gone before anyone can thank them. You will hear of them again, from far off, and it will be good news."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "bram_thistlewade"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "brannoc_helm"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "corvin_ashdown"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "dagny_thornhelm"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "elara_stormcaller"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "fenna_boltwright"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "harl_denner"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "isolde_marrec"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "kael_ashblade"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "maren_gravesong"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "miro_fletch"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "odile_vantrec"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "ondrej_vael"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "petra_quillane"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "ruslan_vane"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "sable_voss"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "seraphine_duskwell"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "tamsin_greywood"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "torrin_ironward"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever he was going to become, he has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "wren_holloway"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished",
+        "companion": "yara_ellswood"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever she was going to become, she has not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unfinished"
+      },
+      "text": "{companion_name} came through the night, and stays. Whatever they were going to become, they have not become it yet. For the first time in a long while, there is time."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "bram_thistlewade"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "brannoc_helm"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "corvin_ashdown"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "dagny_thornhelm"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "elara_stormcaller"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "fenna_boltwright"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "harl_denner"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "isolde_marrec"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "kael_ashblade"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "maren_gravesong"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "miro_fletch"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "odile_vantrec"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "ondrej_vael"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "petra_quillane"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "ruslan_vane"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "sable_voss"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "seraphine_duskwell"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "tamsin_greywood"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "torrin_ironward"
+      },
+      "text": "{companion_name} fought where you put him, and fought well. In the morning he is gone. He left a line in the Register in his own hand: he did not agree. It does not say he is sorry, and he is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "wren_holloway"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves",
+        "companion": "yara_ellswood"
+      },
+      "text": "{companion_name} fought where you put her, and fought well. In the morning she is gone. She left a line in the Register in her own hand: she did not agree. It does not say she is sorry, and she is not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "leaves"
+      },
+      "text": "{companion_name} fought where you put them, and fought well. In the morning they are gone. They left a line in the Register in their own hand: they did not agree. It does not say they are sorry, and they are not."
+    },
+    {
+      "key": "fate",
+      "when": {
+        "fate": "unique"
+      },
+      "text": "{companion_name} came through the night, and stands at the window for a long time, looking at nothing in particular, and is all right."
+    },
+    {
+      "key": "fate",
+      "when": {},
+      "text": "{companion_name} came through the night, and sleeps until noon in the refectory, under the steam."
+    },
+    {
+      "key": "front_name",
+      "when": {
+        "front": "observatory"
+      },
+      "text": "The Observatory Approach"
+    },
+    {
+      "key": "front_name",
+      "when": {
+        "front": "stair"
+      },
+      "text": "The Long Stair"
+    },
+    {
+      "key": "front_name",
+      "when": {
+        "front": "door"
+      },
+      "text": "The Provost's Door"
+    },
+    {
+      "key": "front_desc",
+      "when": {
+        "front": "observatory"
+      },
+      "text": "The path up the hill to the observatory, where the counter-lens points at the sky he reads. Lose it and they watch the hall from above."
+    },
+    {
+      "key": "front_desc",
+      "when": {
+        "front": "stair"
+      },
+      "text": "The stair up from the gatehouse to the halls, the way every student came in. Lose it and they come in behind you."
+    },
+    {
+      "key": "front_desc",
+      "when": {
+        "front": "door"
+      },
+      "text": "The narrow door behind the dais, into the Provost's lodging: the one way into the hall nobody watches. Lose it and they come out at the lectern."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "observatory",
+        "result": "held",
+        "holder": "named"
+      },
+      "text": "The Observatory Approach held. {holder_name} was still on the path under the dome at the end, and would not come down until somebody went up and said so."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "observatory",
+        "result": "held",
+        "holder": "none"
+      },
+      "text": "The Observatory Approach held, with nobody on it. The Keepers who went up the hill came down again looking puzzled, as if they had read something that was not there."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "observatory",
+        "result": "lost",
+        "holder": "named"
+      },
+      "text": "The Observatory Approach fell. {holder_name} is hurt, and furious about it, and alive."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "observatory",
+        "result": "lost",
+        "holder": "none"
+      },
+      "text": "The Observatory Approach fell, with nobody to hold it. For an hour the Keepers watched the hall from the dome, and it did them no good at all."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "stair",
+        "result": "held",
+        "holder": "named"
+      },
+      "text": "The Long Stair held. {holder_name} sat down on the top step afterward and did not get up for some time."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "stair",
+        "result": "held",
+        "holder": "none"
+      },
+      "text": "The Long Stair held, with nobody on it. The Keepers who came up it stopped halfway, as if the stair were longer than they had read."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "stair",
+        "result": "lost",
+        "holder": "named"
+      },
+      "text": "The Long Stair fell. The Keepers came up it, and {holder_name} came up after, more slowly, bleeding, and still in time."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "stair",
+        "result": "lost",
+        "holder": "none"
+      },
+      "text": "The Long Stair fell, with nobody to hold it, and the Keepers came up behind you. You know. You were there."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "door",
+        "result": "held",
+        "holder": "named"
+      },
+      "text": "The Provost's Door held. {holder_name} stood in it, back to the lodging, and let nobody through, and will not say how."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "door",
+        "result": "held",
+        "holder": "none"
+      },
+      "text": "The Provost's Door held, with nobody in it. Nobody watches that door. It turns out nobody needed to."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "door",
+        "result": "lost",
+        "holder": "named"
+      },
+      "text": "The Provost's Door fell. {holder_name} is hurt, and sorry, and alive, and you would rather have that than the door."
+    },
+    {
+      "key": "front_news",
+      "when": {
+        "front": "door",
+        "result": "lost",
+        "holder": "none"
+      },
+      "text": "The Provost's Door fell, with nobody to hold it, and the Keepers came out at the lectern, at your back. It was close."
+    },
+    {
+      "key": "fracture_wave",
+      "when": {
+        "wave": "1"
+      },
+      "text": "He does not hurry. He was always going to arrive now."
+    },
+    {
+      "key": "fracture_wave",
+      "when": {
+        "wave": "2",
+        "layer": "true"
+      },
+      "text": "At the gatehouse the seventh layer fires, once. The second wave stands in the rain on the far side of the arch and cannot say why it does not come in."
+    },
+    {
+      "key": "fracture_wave",
+      "when": {},
+      "text": "More of them come in out of the rain. They know where to stand."
+    },
+    {
+      "key": "objective",
+      "when": {
+        "phase": "fracture"
+      },
+      "text": "Hold the hall. Keep the letter in the air."
+    },
+    {
+      "key": "objective",
+      "when": {
+        "phase": "threshold",
+        "path": "restoration"
+      },
+      "text": "Hold the breach until the glass takes."
+    },
+    {
+      "key": "objective",
+      "when": {
+        "phase": "threshold",
+        "path": "harness"
+      },
+      "text": "Take the breach."
+    },
+    {
+      "key": "objective",
+      "when": {
+        "phase": "threshold",
+        "path": "synthesis"
+      },
+      "text": "Hold the place between."
+    },
+    {
+      "key": "objective",
+      "when": {
+        "phase": "reckoning"
+      },
+      "text": "Finish the passage."
+    },
+    {
+      "key": "warden_banner",
+      "when": {
+        "phase": "fracture"
+      },
+      "text": "At the ring of stones the land takes hold. One of them cannot move."
+    },
+    {
+      "key": "warden_banner",
+      "when": {
+        "phase": "threshold"
+      },
+      "text": "The land holds one of them, as it held the last."
+    },
+    {
+      "key": "warden_banner",
+      "when": {
+        "phase": "reckoning"
+      },
+      "text": "At the end, the land will hold."
+    },
+    {
+      "key": "invocation_name",
+      "when": {
+        "piece": "primal"
+      },
+      "text": "The First Argument"
+    },
+    {
+      "key": "invocation_desc",
+      "when": {
+        "piece": "primal"
+      },
+      "text": "Every tile on the field is imbued at once, and every enemy takes elemental damage by the tile it stands on."
+    },
+    {
+      "key": "invocation_name",
+      "when": {
+        "piece": "axiom"
+      },
+      "text": "The Corrected Text"
+    },
+    {
+      "key": "invocation_desc",
+      "when": {
+        "piece": "axiom"
+      },
+      "text": "For one round, no enemy ability applies."
+    },
+    {
+      "key": "invocation_name",
+      "when": {
+        "piece": "moment"
+      },
+      "text": "The Long Second"
+    },
+    {
+      "key": "invocation_desc",
+      "when": {
+        "piece": "moment"
+      },
+      "text": "Once, when a blow would kill one of yours, it does not land. They stand back up at half strength."
+    },
+    {
+      "key": "invocation_name",
+      "when": {
+        "piece": "binding"
+      },
+      "text": "The Connective Piece"
+    },
+    {
+      "key": "invocation_desc",
+      "when": {
+        "piece": "binding"
+      },
+      "text": "No use of its own. Every other invocation may be used twice."
+    },
+    {
+      "key": "invocation_name",
+      "when": {
+        "piece": "schema"
+      },
+      "text": "The Governed Engine"
+    },
+    {
+      "key": "invocation_desc",
+      "when": {
+        "piece": "schema"
+      },
+      "text": "The fronts' campus bonuses double, and a Grand Turret deploys in the fight at hand."
+    },
+    {
+      "key": "invocation_name",
+      "when": {
+        "piece": "deathless"
+      },
+      "text": "The Long Table"
+    },
+    {
+      "key": "invocation_desc",
+      "when": {
+        "piece": "deathless"
+      },
+      "text": "The honored dead answer: up to two of them fight beside you for the rest of the fight."
+    },
+    {
+      "key": "invocation_name",
+      "when": {
+        "piece": "warden"
+      },
+      "text": "The Warden's Watch"
+    },
+    {
+      "key": "invocation_desc",
+      "when": {
+        "piece": "warden"
+      },
+      "text": "At the start of every fight tonight, the land holds the strongest of them still for two rounds."
+    },
+    {
+      "key": "activation",
+      "when": {
+        "piece": "primal"
+      },
+      "text": "The Primal Shard goes home into the glass. Up through the breach comes the storm that never wanted to be kept."
+    },
+    {
+      "key": "activation",
+      "when": {
+        "piece": "axiom"
+      },
+      "text": "The Axiom Stone goes home into the glass. Up through the breach come things with no rules at all, to see if it will hold them."
+    },
+    {
+      "key": "activation",
+      "when": {
+        "piece": "moment"
+      },
+      "text": "The Moment Eternal goes home into the glass, and the Second steadies under your feet. Up through the breach comes everything that hurries."
+    },
+    {
+      "key": "activation",
+      "when": {
+        "piece": "binding"
+      },
+      "text": "The Binding Thread goes home into the glass, and the other pieces lean toward it. Up through the breach come things that were never bound to anything."
+    },
+    {
+      "key": "activation",
+      "when": {
+        "piece": "schema"
+      },
+      "text": "The Schema Core goes home into the glass, and the glass remembers how it was made. Up through the breach come things nobody made."
+    },
+    {
+      "key": "activation",
+      "when": {
+        "piece": "deathless"
+      },
+      "text": "The Deathless Covenant goes home into the glass. Up through the breach come the dead who never agreed to anything."
+    },
+    {
+      "key": "absence",
+      "when": {},
+      "text": "There is no {piece_name} to give back. Its place in the glass stays dark, and the breach holds open longer."
+    },
+    {
+      "key": "weapon",
+      "when": {
+        "piece": "primal"
+      },
+      "text": "The Primal Shard comes to your hand as weather."
+    },
+    {
+      "key": "weapon",
+      "when": {
+        "piece": "axiom"
+      },
+      "text": "The Axiom Stone comes to your hand as a correction, and the field reads it."
+    },
+    {
+      "key": "weapon",
+      "when": {
+        "piece": "moment"
+      },
+      "text": "The Moment Eternal comes to your hand as a second nobody else can spend."
+    },
+    {
+      "key": "weapon",
+      "when": {
+        "piece": "binding"
+      },
+      "text": "The Binding Thread comes to your hand, and every other piece comes with it."
+    },
+    {
+      "key": "weapon",
+      "when": {
+        "piece": "schema"
+      },
+      "text": "The Schema Core comes to your hand as a working drawing of everything in front of you."
+    },
+    {
+      "key": "weapon",
+      "when": {
+        "piece": "deathless"
+      },
+      "text": "The Deathless Covenant comes to your hand, and the dead come with it."
+    },
+    {
+      "key": "reckoning_shift",
+      "when": {
+        "path": "restoration"
+      },
+      "text": "He stops directing the titan, and puts it on."
+    },
+    {
+      "key": "reckoning_shift",
+      "when": {
+        "path": "harness"
+      },
+      "text": "The breach answers through him."
+    },
+    {
+      "key": "reckoning_shift",
+      "when": {
+        "path": "synthesis"
+      },
+      "text": "He stops reading. He goes on anyway."
+    },
+    {
+      "key": "ledger_title",
+      "when": {},
+      "text": "What You Carry In"
+    },
+    {
+      "key": "ledger_intro",
+      "when": {},
+      "text": "'Be it recorded,' says the Register, 'what the candidate carries through the door.' It lists everything, with where it came from. It has always liked a ledger."
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "fragment"
+      },
+      "text": "{source}: {power_name}. {power}"
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "warden"
+      },
+      "text": "The ring of stones: {power_name}. {power}"
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "allied"
+      },
+      "text": "{seat_name}, allied: {power}"
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "coerced"
+      },
+      "text": "{seat_name}, bought: {power} At reduced strength."
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "overthrown"
+      },
+      "text": "{seat_name}, emptied. Once: {power}"
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "corrupted"
+      },
+      "text": "{seat_name}, lost. The seat's strongest will stand with him at the end."
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "morale"
+      },
+      "text": "The council, and how they feel about it: {morale_text}"
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "campus"
+      },
+      "text": "The campus: every building you raised stands with you tonight."
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "loyalty"
+      },
+      "text": "Loyalty: {loyalty_text}"
+    },
+    {
+      "key": "ledger_row",
+      "when": {
+        "kind": "wall"
+      },
+      "text": "He does not grow stronger for your waiting, and he does not grow weaker for your hurry. Everything else on this page is yours."
+    },
+    {
+      "key": "recap",
+      "when": {
+        "outcome": "Abandoned"
+      },
+      "text": "The {reading_ordinal} reading, let go at the Conjunction."
+    },
+    {
+      "key": "recap",
+      "when": {
+        "outcome": "CorruptionLoss"
+      },
+      "text": "The {reading_ordinal} reading, closed over before you could cross it."
+    },
+    {
+      "key": "recap",
+      "when": {
+        "outcome": "ConvergenceDefeat"
+      },
+      "text": "The {reading_ordinal} reading, where the door was opened and the anchor took you back."
+    },
+    {
+      "key": "recap",
+      "when": {
+        "outcome": "Victory"
+      },
+      "text": "The {reading_ordinal} reading, where you were named, and let it rest."
+    },
+    {
+      "key": "recap",
+      "when": {
+        "outcome": "current"
+      },
+      "text": "This one, the {reading_ordinal}, where the door was opened and the sentence finished."
+    },
+    {
+      "key": "era_banner",
+      "when": {
+        "path": "restoration"
+      },
+      "text": "Year {year}. The Seal holds. Somewhere, someone will always want it open."
+    },
+    {
+      "key": "era_banner",
+      "when": {
+        "path": "harness"
+      },
+      "text": "Year {year}. The breach answers to you. So far."
+    },
+    {
+      "key": "era_banner",
+      "when": {
+        "path": "synthesis"
+      },
+      "text": "Year {year}. The sky reads back."
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "q_begin_when_the_bell_stills",
+    "title": "Begin When the Bell Stills",
+    "category": "Story",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "The Examiner is frozen at the foot of the dais in the middle of a nod, and the nod is for you. She keeps her opinion until the board has had theirs. Report to her when there is something to report.",
+    "requiredFlag": "angle_1_seen",
+    "objectives": [
+      {
+        "text": "Report to the Examiner",
+        "flag": "examiner_report_1"
+      },
+      {
+        "text": "Report again, when there is more to tell",
+        "flag": "examiner_report_2"
+      },
+      {
+        "text": "Report a third time",
+        "flag": "examiner_report_3"
+      },
+      {
+        "text": "The nod completes",
+        "flag": "examiner_nod_complete"
+      }
+    ],
+    "rewardLore": "the_examiners_opinion"
+  }
+]

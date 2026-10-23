@@ -1,0 +1,264 @@
+{
+  "_doc": "Wenna Aldric's arc, The Fifteenth Failure. The rules are C1 and C5 in docs/story_wiring_v1.md; the script is docs/archmage_arc_wenna_v1.md. Lines are file-local: tokens here read only this file's lines.",
+  "arc": "wenna",
+  "encounterFile": "arc_wenna",
+  "lineTokens": {
+    "exam_task_1": "exam_task",
+    "exam_task_2": "exam_task",
+    "exam_title": "exam_title",
+    "exam_followup": "exam_followup",
+    "remembrance": "remembrance"
+  },
+  "beats": [
+    {
+      "id": "wenna_curriculum",
+      "hook": "on_lunation_turn",
+      "requires": [
+        "first_contact_wenna"
+      ],
+      "excludes": [
+        "qe_archmage_answered_wenna",
+        "qe_archmage_corrupted_wenna",
+        "wenna_fifteen_heard"
+      ],
+      "layer": "Timeline",
+      "once": "wenna_curriculum_set",
+      "alsoSetMeta": [
+        "chronicle_wenna_curriculum_seen"
+      ],
+      "alsoSetTimeline": [
+        "wenna_exam_1_{weakest_1}",
+        "wenna_exam_2_{weakest_2}"
+      ],
+      "rememberFlag": "chronicle_wenna_curriculum_seen",
+      "show": "arc_wenna_curriculum",
+      "tokens": [
+        "exam_task_1",
+        "exam_task_2",
+        "remembrance"
+      ],
+      "lineArgs": {
+        "exam_task_1": {
+          "category": "{weakest_1}"
+        },
+        "exam_task_2": {
+          "category": "{weakest_2}"
+        },
+        "remembrance": {
+          "beat": "curriculum"
+        }
+      }
+    },
+    {
+      "id": "wenna_exam_1",
+      "hook": "on_deed",
+      "requires": [
+        "wenna_exam_1_{deed}"
+      ],
+      "excludes": [
+        "qe_archmage_answered_wenna",
+        "qe_archmage_corrupted_wenna"
+      ],
+      "layer": "Timeline",
+      "once": "wenna_exam_1_passed",
+      "show": "arc_wenna_exam_{deed}",
+      "tokens": [
+        "exam_title",
+        "exam_followup"
+      ],
+      "lineArgs": {
+        "exam_title": {
+          "n": "1"
+        },
+        "exam_followup": {
+          "n": "1"
+        }
+      }
+    },
+    {
+      "id": "wenna_exam_2",
+      "hook": "on_deed",
+      "requires": [
+        "wenna_exam_1_passed",
+        "wenna_exam_2_{deed}"
+      ],
+      "excludes": [
+        "qe_archmage_answered_wenna",
+        "qe_archmage_corrupted_wenna"
+      ],
+      "layer": "Timeline",
+      "once": "wenna_exam_2_passed",
+      "show": "arc_wenna_exam_{deed}",
+      "tokens": [
+        "exam_title",
+        "exam_followup"
+      ],
+      "lineArgs": {
+        "exam_title": {
+          "n": "2"
+        },
+        "exam_followup": {
+          "n": "2"
+        }
+      }
+    },
+    {
+      "id": "wenna_fifteen_after_exams",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "wenna"
+      },
+      "requires": [
+        "wenna_exam_2_passed"
+      ],
+      "layer": "Timeline",
+      "once": "wenna_fifteen_heard",
+      "rememberFlag": "chronicle_number_fifteen_heard",
+      "group": "wenna_fifteen",
+      "show": "arc_wenna_fifteen",
+      "lore": "number_fifteen",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "fifteen"
+        }
+      }
+    },
+    {
+      "id": "wenna_fifteen_unite_open",
+      "hook": "on_audience_open",
+      "when": {
+        "archmage": "wenna",
+        "unite_open": "true"
+      },
+      "layer": "Timeline",
+      "once": "wenna_fifteen_heard",
+      "alsoSetTimeline": [
+        "wenna_exam_1_passed",
+        "wenna_exam_2_passed"
+      ],
+      "rememberFlag": "chronicle_number_fifteen_heard",
+      "group": "wenna_fifteen",
+      "show": "arc_wenna_fifteen",
+      "lore": "number_fifteen",
+      "delivery": "immediate",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "fifteen"
+        }
+      }
+    },
+    {
+      "id": "wenna_inside",
+      "hook": "on_scene_ready",
+      "when": {
+        "screen": "campus"
+      },
+      "requires": [
+        "qe_archmage_united_wenna"
+      ],
+      "layer": "Timeline",
+      "once": "wenna_inside",
+      "alsoSetMeta": [
+        "chronicle_wenna_inside_seen"
+      ],
+      "rememberFlag": "chronicle_wenna_inside_seen",
+      "show": "arc_wenna_inside",
+      "lore": "the_provosts_hour",
+      "tokens": [
+        "remembrance"
+      ],
+      "lineArgs": {
+        "remembrance": {
+          "beat": "inside"
+        }
+      }
+    }
+  ],
+  "lines": [
+    {
+      "key": "exam_task",
+      "when": {
+        "category": "field"
+      },
+      "text": "win a fight in the field, and then tell me what you did. Use its proper name. Most people cannot."
+    },
+    {
+      "key": "exam_task",
+      "when": {
+        "category": "table"
+      },
+      "text": "sit down with someone who wants something from you, and do not get up until there is an agreement. Then tell me what you did."
+    },
+    {
+      "key": "exam_task",
+      "when": {
+        "category": "road"
+      },
+      "text": "the next time the road asks you something, answer it. Then tell me what you did, which will not be the same thing."
+    },
+    {
+      "key": "exam_title",
+      "when": {
+        "n": "1"
+      },
+      "text": "The First Examination"
+    },
+    {
+      "key": "exam_title",
+      "when": {
+        "n": "2"
+      },
+      "text": "The Second Examination"
+    },
+    {
+      "key": "exam_followup",
+      "when": {
+        "n": "1"
+      },
+      "text": "Then, before the Sending closes: 'The second examination stands as set.'"
+    },
+    {
+      "key": "exam_followup",
+      "when": {
+        "n": "2"
+      },
+      "text": "Then, before the Sending closes: 'The third I will set in person, at the edge. Come out when you are ready to sit it.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "curriculum",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'She set a curriculum last time as well. The strike is in the same place.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "fifteen",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same seventeen lines. The same bare number. She has still not written it down.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {
+        "beat": "inside",
+        "remembered": "true"
+      },
+      "text": "'On file,' the Register murmurs. 'The same corrections, in the same order. The chalk still does not mark.'"
+    },
+    {
+      "key": "remembrance",
+      "when": {},
+      "text": ""
+    }
+  ]
+}

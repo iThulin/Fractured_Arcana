@@ -1,0 +1,29 @@
+[
+  {
+    "id": "q_resolve_joren",
+    "title": "The Argument's Verdict",
+    "category": "Story",
+    "permanent": false,
+    "layer": "Timeline",
+    "summary": "The storm at Joren Kall's table has started speaking in someone else's words, and the other voices have walked out. Win fights inside the weather, listen for what each element wanted, and bring two of them back to the table.",
+    "requiredFlag": "joren_ask_set",
+    "objectives": [
+      {
+        "text": "Bring back the first voice",
+        "flag": "joren_trial_1_done"
+      },
+      {
+        "text": "Bring back the second",
+        "flag": "joren_trial_2_done"
+      },
+      {
+        "text": "Hear what he told the storm",
+        "flag": "joren_told_heard"
+      },
+      {
+        "text": "Answer the Vessel's seat",
+        "flag": "qe_archmage_answered_joren"
+      }
+    ]
+  }
+]
