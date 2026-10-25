@@ -111,6 +111,12 @@ public static class QuestEvents
         if (!string.IsNullOrEmpty(qualifier))
             save.SetFlag($"qe_{eventId}_{qualifier}");
 
+        // C5 item 7: an archmage answered by any verb (unite, coerce or overthrow) also sets
+        // qe_archmage_answered_<id>, the one flag the seat arcs stop on.
+        if (!string.IsNullOrEmpty(qualifier)
+            && (eventId == ArchmageUnited || eventId == ArchmageCoerced || eventId == ArchmageOverthrown))
+            save.SetFlag($"qe_archmage_answered_{qualifier}");
+
         SaveManager.MarkDirty();
         return QuestNotifier.NotifyNew(before, save);
     }

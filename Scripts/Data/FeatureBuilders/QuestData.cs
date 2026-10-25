@@ -23,6 +23,9 @@ using System.Collections.Generic;
 public class QuestObjective
 {
     public string Text = "";
+    /// <summary>Shown instead of <see cref="Text"/> once the objective is done, when not empty
+    /// (task 9: the Namer's favors rename themselves layer by layer).</summary>
+    public string DoneText = "";
     public string Flag = "";          // WorldFlags / MetaNarrativeFlags / CompletedEvents
     public string Lore = "";          // UnlockedLoreEntries
     public string Counter = "";       // named counter (QuestTracker.CountFor)

@@ -1964,6 +1964,8 @@ public sealed class NegateActionEffect : EffectBase
 			unit.NegateNextAction = true;
 			s.ActionsNegatedThisTurn++;
 			s.Log($"[Negate] {unit.Name}'s next action is countered.");
+			if (!CombatSim.Active)
+				RegisterManager.Fire("adept.first_negate");   // C4
 		}
 	}
 }

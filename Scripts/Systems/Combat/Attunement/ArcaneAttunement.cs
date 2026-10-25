@@ -148,6 +148,8 @@ public class ArcaneAttunement : ISchoolAttunement
 
         if (banked > 0)
             SetCharges(before + banked);
+        if (banked > 0 && !CombatSim.Active)
+            RegisterManager.Fire("arc.first_charge");   // C4
         if (overflow > 0)
             OnChargeOverflow?.Invoke(overflow);
         return banked;

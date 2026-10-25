@@ -244,6 +244,13 @@ public class EternalLedger
     /// </summary>
     public List<string> RegisterSeen = new();
 
+    /// <summary>The save's co-conspirator (canon R3: fixed per save; R19: one of aurel, joren,
+    /// namer, conductor or engineer), pinned by CampaignGenerator.EnsureCoConspiratorPin the
+    /// first time CycleInitializer.EnsureCycleWorld runs for the save, and placed in a tier-3
+    /// region every reading. The pin also writes the Eternal flag coconspirator_&lt;id&gt;.
+    /// Additive save field, no version bump.</summary>
+    public string CoConspiratorId = "";
+
     // ── Knowledge (breadth, never power) ─────────────────────────────────
     /// <summary>
     /// Card blueprints the player has discovered, across all timelines.

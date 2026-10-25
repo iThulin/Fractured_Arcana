@@ -111,6 +111,9 @@ public static class CycleInitializer
         var cycle = save?.Cycle;
         if (cycle == null)
             return;
+        // C3 (R3): the co-conspirator is pinned once per save, before its first world is
+        // generated; a save from before the pin is pinned the first time it loads.
+        string coConspirator = CampaignGenerator.EnsureCoConspiratorPin(save);
         if (cycle.World != null && cycle.World.Tiles.Length > 0)
             return; // already generated this cycle
 
@@ -145,7 +148,9 @@ public static class CycleInitializer
             cycle.WorldSeed = WorldGenerator.DeriveCycleSeed(baseSeed, cycle.CycleNumber);
         }
         int seed = cycle.WorldSeed;
-        var g = WorldGenerator.Generate(seed, cycle.SelectedSchool, scenario.ToWorldParams());
+        var worldParams = scenario.ToWorldParams();
+        worldParams.CoConspirator = coConspirator;
+        var g = WorldGenerator.Generate(seed, cycle.SelectedSchool, worldParams);
         cycle.World = g.World;
         cycle.Kingdoms = g.Kingdoms;
         cycle.Campaign = g.Campaign;

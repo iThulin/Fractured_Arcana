@@ -502,6 +502,10 @@ public static class SaveManager
             },
         };
 
+        // C4: a save founded from here plays the prologue (a save without the marker
+        // predates it and reads the full skip's recap instead).
+        data.Ledger.MetaNarrativeFlags.Add(PrologueDirector.BegunFlag);
+
         SeedDeckForSchool(data, school);
 
         ActiveSave = data;
@@ -595,7 +599,14 @@ public static class SaveManager
         {
             CycleNumber = old.CycleNumber + 1,
             SelectedSchool = school,
+            // The wizard keeps their name from reading to reading (docs/story_wiring_v1.md,
+            // found item 1): every {wizard_name} read "Wizard" from the second reading on.
+            WizardName = old.WizardName,
         };
+
+        // C1: companions met in the ending reading are known to the next, and a chronicle
+        // panel still waiting on an Eternal beat carries over (its once flag is written).
+        ChronicleScheduler.CloseReading(old, ActiveSave.Cycle);
 
         SeedDeckForSchool(ActiveSave, school);
 
@@ -644,6 +655,9 @@ public static class SaveManager
 
         // The world hardens (the forcing clock, progression doc §6).
         CampaignEscalation.Apply(cycle);
+
+        // C1: on_continue, once the year has turned (Part I, the world hardens).
+        ChronicleScheduler.RaiseQueued("on_continue");
 
         Save();
         GD.Print($"SaveManager: Timeline held into Year {cycle.CampaignYear} " +

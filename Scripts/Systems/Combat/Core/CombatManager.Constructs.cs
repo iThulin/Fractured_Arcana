@@ -95,6 +95,8 @@ public partial class CombatManager
         string k = kind.ToLowerInvariant();
 
         unit.IsConstruct = true;
+        if (teamId == 0 && !CombatSim.Active)
+            RegisterManager.Fire("tinker.first_construct");   // C4
         unit.SummonerTeamId = teamId;
         unit.AttackDamage = st.Dmg > 0 ? st.Dmg + deployBonus : 0;
         unit.AttackRange = st.Range;
@@ -253,6 +255,8 @@ public partial class CombatManager
 
                     if (dist <= c.AttackRange && c.AttackDamage > 0)
                     {
+                        if (!CombatSim.Active)
+                            RegisterManager.Fire("tinker.construct_fires");   // C4: it acted unbidden
                         if (c.LineAttack)
                             await ConstructLineAttack(c, target);
                         else

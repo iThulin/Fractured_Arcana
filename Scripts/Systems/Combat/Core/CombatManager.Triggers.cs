@@ -1470,6 +1470,8 @@ public sealed class RegrowthEffect : IEffect
                 "cut too deep to close", $"{_carrier.DamageTakenThisRound}/{_threshold} this round");
             GD.Print(held);
             _cm?.AppendCombatLog(held);
+            if (!CombatSim.Active)
+                RegisterManager.Fire("enemy.regrowth_denied");   // C4
             return;
         }
         int missing = _carrier.Stats.MaxHealth - _carrier.Stats.Health;
@@ -1481,6 +1483,8 @@ public sealed class RegrowthEffect : IEffect
             $"knits shut (+{missing} HP)", $"needed {_threshold} in one round");
         GD.Print(msg);
         _cm?.AppendCombatLog(msg);
+        if (!CombatSim.Active)
+            RegisterManager.Fire("enemy.regrowth");   // C4
     }
 }
 

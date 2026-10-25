@@ -249,6 +249,7 @@ public static class CompanionRoster
         c.IsAvailable = true;
         c.IsRecruited = true;
         EnsureStartingWeapons(save);   // D5: found companions arrive armed too
+        ChronicleScheduler.RaiseCompanionJoin(c.Id);   // C1: on_companion_join
         SaveManager.MarkDirty();
         GD.Print($"[Companion] {c.Name} recruited via exploration.");
         return c.Name;
@@ -302,6 +303,7 @@ public static class CompanionRoster
         save.Gold -= c.RecruitmentCost;
         c.IsRecruited = true;
         EnsureStartingWeapons(save);   // D5: the weapon arrives with the person
+        ChronicleScheduler.RaiseCompanionJoin(c.Id);   // C1: on_companion_join
         SaveManager.Save();
         GD.Print($"Recruited {c.Name} for {c.RecruitmentCost} gold.");
         return true;

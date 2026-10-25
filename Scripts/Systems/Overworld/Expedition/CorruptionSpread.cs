@@ -259,6 +259,13 @@ public static class CorruptionSpread
                 if (flipped)
                     GD.Print($"[Corruption] Kingdom '{kid}' ({region}) archmage fell to corruption.");
 
+                // C5 item 7: the quest events the seat arcs and Part I's ripple read
+                // (qe_corruption_advanced_lv<n>, qe_archmage_corrupted_<id>). Strategic layer, so
+                // no toast pipe: the quest log picks them up on its next view.
+                QuestEvents.Raise(QuestEvents.CorruptionAdvanced, kid, $"lv{curLevel}");
+                if (flipped && !string.IsNullOrEmpty(corrArch))
+                    QuestEvents.Raise(QuestEvents.ArchmageCorrupted, kid, corrArch);
+
                 // Dossier (the Astrologer, quest spec §4): he fields no
                 // patrols, because his forces are the corruption itself. The first
                 // witnessed advance opens his dossier; each archmage lost to

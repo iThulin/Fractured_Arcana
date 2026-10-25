@@ -92,6 +92,8 @@ public static class ConduitLinkSystem
         {
             A = a, B = b, Mode = mode, OwnerTeam = ownerTeam, LineDamage = lineDamage
         });
+        if (ownerTeam == 0 && !CombatSim.Active)
+            RegisterManager.Fire("tinker.first_link");   // C4
     }
 
     // ── Queries ─────────────────────────────────────────────────────

@@ -912,7 +912,9 @@ public partial class NewGameScreen : Control
         // their city. StrategicView's _Ready seeds the save and generates the cycle
         // world on the way in (CycleInitializer), so the fresh save is safe here.
         PlayerSession.StartInCityOnOpen = true;
-        GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
+        // C4: the new save opens in the examination hall; the prologue hands over to the
+        // city when the Register is taken up.
+        GetTree().ChangeSceneToFile(PrologueDirector.ScenePath);
     }
 
     private void ShowError(string msg)

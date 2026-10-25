@@ -198,6 +198,9 @@ public static class UnitRegistry
             // hit the ward opportunistically, so protect fights had no pressure.
             // Hunts the objective ward; behaves as melee_advance when none stands.
             "hunt_ward",
+            // C4 (E-1, docs/prologue_script_v1.md): a target that never acts. The planner
+            // returns no intent; its abilities (chitin, regrowth, summon_cadence) still fire.
+            "inert",
         };
         // U3a: keys legal ONLY inside an IntentCycle. hold_ground braces and never
         // advances, so a unit whose base routine were hold_ground would stand still
@@ -329,7 +332,8 @@ public static class UnitRegistry
                 ok = false;
             }
             // V2: role must be in the §3 vocabulary (missing → "line" default).
-            if (def.Role != "line" && def.Role != "elite" && def.Role != "boss" && def.Role != "summon")
+            if (def.Role != "line" && def.Role != "elite" && def.Role != "boss" && def.Role != "summon"
+                && def.Role != "ward")   // C4 (E-2): protect objectives' wards
             {
                 sb.AppendLine($"  {def.Id}: UNKNOWN Role '{def.Role}'");
                 ok = false;

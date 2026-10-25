@@ -114,6 +114,26 @@ public partial class EncounterRouter : Node
     public List<int> SavedPatrolCooldowns = new();
     public string SavedPatrolArchmageId = "";
 
+    // ── Scripted fights (C4, docs/prologue_script_v1.md section 7) ────────
+    // Set by PrologueDirector.Launch; read by CombatManager.Scripted.cs and by the hall.
+    /// <summary>DefinitionId of every enemy that died in the last fight, in order. Cleared
+    /// at combat start (CombatManager.InitObjectiveState).</summary>
+    public List<string> FallenEnemyUnitIds = new();
+    /// <summary>When set, the fight is won the moment the enemy with this DefinitionId
+    /// falls (hook d): a practical ends when the apparatus breaks.</summary>
+    public string EndOnUnitFall = "";
+    /// <summary>A scripted fight: no gold, splinters, materials or card draft, and either
+    /// outcome returns to <see cref="ReturnScenePath"/> (P-1, noDefeat).</summary>
+    public bool SuppressRewards = false;
+    /// <summary>The scripted fight's id, for the host that consumes the return.</summary>
+    public string ScriptedFightId = "";
+    /// <summary>The transition card's title on a scripted fight's way back.</summary>
+    public string ScriptedReturnTitle = "";
+    /// <summary>The wizard's health when the last fight ended, or -1 when the wizard was
+    /// not on the field. The duel's clean verdict reads it.</summary>
+    public int LastWizardHealth = -1;
+    public int LastWizardMaxHealth = -1;
+
     public override void _Ready()
     {
         Instance = this;
@@ -129,18 +149,39 @@ public partial class EncounterRouter : Node
     {
         EncounterContextCarrier.Clear();
         CombatWon = playerWon;
+        // C1: on_combat_end, won or lost, for every fight that comes back through the router
+        // (the expedition's, the campus's and the strategic map's alike). Debug fights never
+        // reach here, and the scheduler is silent through the prologue's.
+        ChronicleScheduler.RaiseCombatEnd(playerWon, AttributedArchmageId());
         SavedWeather = WeatherType.Clear; // W3: don't leak weather into the next fight
         SavedStrideAmbush = false;        // §3.4: clear the stride-ambush flag too
         GoldReward = CalculateGoldRewardForTier(_currentTier);
         SplinterReward = SplinterDropTable.Combat(_currentTier);
         MaterialReward = CalculateMaterialRewardForTier(_currentTier);
         HasPendingReturn = true;
+        if (SuppressRewards)
+        {
+            // C4 (P-1): a scripted fight pays nothing.
+            GoldReward = 0;
+            SplinterReward = 0;
+            MaterialReward = 0;
+        }
 
         GD.Print($"EncounterRouter: Combat finished. Won: {playerWon}. " +
                 $"Gold: {GoldReward}, Splinters: {SplinterReward}, Materials: {MaterialReward}.");
 
         // Flush any mid-run state changes (cast counts, etc.) to disk
         SaveManager.SaveIfDirty();
+
+        if (SuppressRewards)
+        {
+            // C4: a scripted fight has no reward screen, and a loss is not a defeat
+            // (noDefeat): either way it goes back to its host, which reads the outcome.
+            string title = ScriptedReturnTitle ?? "";
+            GetTree().CreateTimer(2.0f).Timeout += () =>
+                SceneTransition.Go(GetTree(), ReturnScenePath, title);
+            return;
+        }
 
         if (playerWon)
         {
@@ -178,6 +219,13 @@ public partial class EncounterRouter : Node
     /// with a pre-built EncounterDefinition from the scout panel.
     /// </summary>
     public void SetCurrentTier(EncounterTier tier) => _currentTier = tier;
+
+    /// <summary>The archmage a fight is attributed to: the patrol's on an ambush, else the
+    /// fight's own, else the audience's. Empty for none.</summary>
+    private string AttributedArchmageId() =>
+        SavedCombatWasPatrolAmbush ? SavedCombatPatrolArchmageId
+        : !string.IsNullOrEmpty(SavedCombatArchmageId) ? SavedCombatArchmageId
+        : SavedResolutionArchmageId;
 
     /// <summary>K2 (§5b): boss contexts roll death at 40%. The expedition
     /// return path reads the tier of the combat it's returning from.</summary>

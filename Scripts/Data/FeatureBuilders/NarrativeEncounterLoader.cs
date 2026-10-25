@@ -143,6 +143,10 @@ public static class NarrativeEncounterLoader
                 && (save == null || !save.HasFlag(enc.RequiredFlag)))
                 continue;
 
+            // W4: skip an encounter whose ExcludedFlag is set (a finished stage stops appearing).
+            if (!string.IsNullOrEmpty(enc.ExcludedFlag) && save != null && save.HasFlag(enc.ExcludedFlag))
+                continue;
+
             // Companion arc stages only surface when they are the companion's
             // CURRENT stage in a valid expedition context (recruited, prior
             // stages done, party present when required). Non-arc encounters

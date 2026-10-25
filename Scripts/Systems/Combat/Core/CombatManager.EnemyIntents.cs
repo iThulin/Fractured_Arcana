@@ -286,6 +286,7 @@ public partial class CombatManager
             { "shove",                   PlanShove },      // tile_interaction §7: telegraphed gust push
             { "warp_channeler",          PlanWarpChanneler }, // city siege: interruptible teleport assault
             { "hunt_ward",               PlanHuntWard },   // O3: protect-objective pressure
+            { "inert",                   _ => null },      // C4 (E-1): a target that never acts; its abilities still fire
         };
 
         // Portal strike (campus corruption, SiegeBlight): a unit picked as a blight

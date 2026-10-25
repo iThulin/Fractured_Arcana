@@ -65,6 +65,7 @@ public partial class CombatManager
             "hunt_ward"               => (IntentKind.Attack, "goes after the warded objective"),
             "hold_until_near"         => (IntentKind.Guard, "holds until something comes near"),
             "hold_ground"             => (IntentKind.Guard, "holds its ground"),
+            "inert"                   => (IntentKind.Unknown, "does nothing"),
             "ranged_kite"             => (IntentKind.RangedAttack, "shoots and keeps its distance"),
             "ranged_charge"           => intent.Kind == IntentKind.Release
                                             ? (IntentKind.Channel, "begins charging another blast")

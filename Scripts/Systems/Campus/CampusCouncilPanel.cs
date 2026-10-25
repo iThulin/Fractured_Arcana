@@ -117,9 +117,29 @@ public sealed class CampusCouncilPanel : CampusPanel
     /// the boss fight with a campus return.</summary>
     private void OpenResolutionEncounter(string archmageId)
     {
+        // C5 (docs/story_wiring_v1.md, item 5): a seat's arc may have a panel for the moment
+        // before the audience. Show it first and open the audience when it completes, so the
+        // audience's buttons read the sentiment the panel just moved.
+        var pre = ChronicleScheduler.RaiseAudienceOpen(archmageId);
+        if (pre != null)
+        {
+            if (Ctx?.ShowNarrativeThen != null)
+                Ctx.ShowNarrativeThen(pre, () => ShowAudience(archmageId));
+            else
+                Ctx?.ShowNarrative?.Invoke(pre);
+            return;
+        }
+        ShowAudience(archmageId);
+    }
+
+    private void ShowAudience(string archmageId)
+    {
         var campaign = Ctx?.Save?.Cycle?.Campaign;
         var enc = ResolutionEncounterBuilder.BuildAudience(campaign, archmageId);
         if (enc == null) return;
+
+        // C1: an audience is a settlement entered, with audience=true (task 9).
+        ChronicleScheduler.RaiseAudienceSettlement(archmageId);
 
         // The shell's ShowNarrative also wires the completion handler that persists the
         // outcome, and no-ops if the overlay does not exist, so the old

@@ -64,6 +64,10 @@ public class CampusLandmarkData
     /// the last beat's completion flag or a building-completion flag.</summary>
     public string RestoredFlag = "";
 
+    /// <summary>C2: the Ceremony Hall's beats come from the chronicle, not from
+    /// <see cref="Beats"/>. A click raises on_hall and shows what comes back.</summary>
+    public bool ChronicleHall = false;
+
     // ── State resolution ────────────────────────────────────────────────
 
     public enum LandmarkState { Ruined, Active, Restored }
@@ -94,6 +98,11 @@ public class CampusLandmarkData
     /// or null if restored / no eligible beat.</summary>
     public NarrativeEncounterData GetEncounter(System.Func<string, bool> hasFlag)
     {
+        // C2: the hall asks the chronicle. Only the two click handlers call this, so raising
+        // here is raising on the click (docs/story_wiring_v1.md, on_hall).
+        if (ChronicleHall)
+            return ChronicleScheduler.RaiseHall() ?? HallAtRest();
+
         foreach (var beat in Beats)
         {
             bool gateOk = string.IsNullOrEmpty(beat.GateFlag) ||
@@ -106,6 +115,19 @@ public class CampusLandmarkData
         }
         return null;
     }
+
+    /// <summary>The hall when the chronicle has nothing to show (its story data missing): a
+    /// plain panel, rather than the "restored" note an empty landmark would get.</summary>
+    private static NarrativeEncounterData HallAtRest() => new NarrativeEncounterData
+    {
+        Id = "ceremony_hall_at_rest",
+        Title = "The Ceremony Hall",
+        Body = "The hall is exactly as it was.",
+        Choices = new List<EncounterChoice>
+        {
+            new EncounterChoice { Label = "Leave it be.", ResultText = "" },
+        },
+    };
 }
 
 /// <summary>One narrative beat within a campus landmark's restoration arc.</summary>
@@ -156,6 +178,37 @@ public static class CampusLandmarkRegistry
         return null;
     }
 
+    /// <summary>C2: the Ceremony Hall's landmark id.</summary>
+    public const string CeremonyHallId = "ceremony_hall";
+
+    // The hall's candidate hexes, nearest the belfry (0,-1) first. The founding plaza (0,0) is
+    // left out on purpose: it is the Grand Hall's home.
+    private static readonly (int q, int r)[] CeremonyHallSites =
+    {
+        (-1, 0), (1, 0), (0, 1), (2, 0), (1, 1), (0, 2), (2, 1),
+        (3, 0), (4, -1), (0, 3), (3, 1), (4, 0), (1, 3), (-1, 4), (0, 4),
+    };
+
+    /// <summary>C2: put the Ceremony Hall on the first candidate hex that
+    /// <paramref name="free"/> reports open (a tile, with no building on it). Called by
+    /// CampusGridManager.LoadLandmarks before it stamps. An older save may already have a
+    /// building on the first choice; once stamped, the hall's hex is unbuildable, so the hall
+    /// stays put from load to load.</summary>
+    public static void SiteCeremonyHall(System.Func<int, int, bool> free)
+    {
+        var hall = Get(CeremonyHallId);
+        if (hall == null || free == null)
+            return;
+        foreach (var (q, r) in CeremonyHallSites)
+        {
+            if (!free(q, r))
+                continue;
+            hall.Q = q;
+            hall.R = r;
+            return;
+        }
+    }
+
     // ════════════════════════════════════════════════════════════════════
     // Authored landmarks (quest hooks compendium §1)
     // ════════════════════════════════════════════════════════════════════
@@ -164,6 +217,23 @@ public static class CampusLandmarkRegistry
     {
         return new List<CampusLandmarkData>
         {
+            // ── C2: The Ceremony Hall (docs/story_wiring_v1.md) ─────────
+            // The campus's oldest building, beside the belfry. Never restored: its beats
+            // come from the chronicle (Part I's first angle, W4's angles, the Examiner's
+            // reports, the hall at rest). Sited by SiteCeremonyHall.
+            new CampusLandmarkData
+            {
+                Id = CeremonyHallId,
+                DisplayName = "The Ceremony Hall",
+                HexLabel = "CH",
+                Q = -1, R = 0,
+                ChronicleHall = true,
+                Beats = new List<LandmarkBeat>
+                {
+                    // One beat that never completes keeps the hall's tint Active.
+                    new LandmarkBeat { GateFlag = "", CompletionFlag = "", Encounter = null },
+                },
+            },
             // ── 1.2 The Half-Rung Bell ──────────────────────────────────
             new CampusLandmarkData
             {

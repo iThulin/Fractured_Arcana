@@ -146,6 +146,9 @@ public partial class CampusScreen : Control
 
     public override void _Ready()
     {
+        // C4: the campus never runs in the prologue's mode, and a prologue fight abandoned
+        // part way leaves no scripted settings behind for an ordinary one.
+        PrologueDirector.ClearScriptedSession();
         RegisterManager.Fire("campus.visit");
         PlayerDeckSave.UseDebugDeck = false; // campus is the real-deck home; debug routing off
         // Cards BEFORE the save: SaveManager.Load runs ProgressionSweep, which
@@ -323,7 +326,7 @@ public partial class CampusScreen : Control
         _campusToasts = new ToastManager { Name = "CampusQuestToasts" };
         _ctx = new CampusContext(this, _campusToasts, ShowCampusNarrative, RefreshAll,
                                  RefreshGoldLabel, EnterStrategicMap, BeginNextCycle,
-                                 EnsureSaveSeeded);
+                                 EnsureSaveSeeded, ShowCampusNarrativeThen);
 
         _guildPanel.Build((ScrollContainer)_tabPanels[0], _ctx);
         _companionsPanel.Build((ScrollContainer)_tabPanels[1], _ctx);
@@ -374,6 +377,30 @@ public partial class CampusScreen : Control
     /// selectors that call this, and neither is baked into any panel, which is what makes the bar
     /// deletable later rather than something the map has to replace.</summary>
     public void Show(CampusPanelId id) => SelectTab((int)id);
+
+    // ── The chronicle (C1, docs/story_wiring_v1.md): quiet moments ────────
+    private double _chronicleWait = 1.0;
+
+    /// <summary>When the campus is hosted over the world (the overlay) and nothing modal is up,
+    /// show the next chronicle panel through the campus narrative host. Polled about once a
+    /// second. The standalone campus (the slot picker, the new-reading ritual) never drains.</summary>
+    public override void _Process(double delta)
+    {
+        _chronicleWait -= delta;
+        if (_chronicleWait > 0)
+            return;
+        _chronicleWait = 1.0;
+        if (OverlayLeaveHandler == null || _campusNarrativePanel == null || _campusNarrativePanel.Visible)
+            return;
+        if (GetTree().Paused || CouncilScreen.IsOpen || QuestLogScreen.IsOpen)
+            return;
+        foreach (var child in GetChildren())
+            if (child is Window w && w.Visible)
+                return;   // a dialog is up
+        var enc = ChronicleScheduler.DrainIfQuiet("campus");
+        if (enc != null)
+            ShowCampusNarrative(enc);
+    }
 
     /// <summary>Diegetic hub: Escape leaves the overlay-hosted campus back to the world.
     /// It is the keyboard twin of the overlay's "↑ To the World Map" button. Overlay-only:
@@ -1291,6 +1318,24 @@ public partial class CampusScreen : Control
         _campusNarrativePanel.OnCompleted = choice => OnCampusNarrativeCompleted(enc, choice);
     }
 
+    /// <summary>Backs <see cref="CampusContext.ShowNarrativeThen"/> (C5): show the encounter, apply
+    /// its outcome through <see cref="OnCampusNarrativeCompleted"/>, then run
+    /// <paramref name="then"/>. When nothing can be shown, the continuation runs at once.</summary>
+    private void ShowCampusNarrativeThen(NarrativeEncounterData enc, Action then)
+    {
+        if (enc == null || SaveManager.ActiveSave == null || _campusNarrativePanel == null)
+        {
+            then?.Invoke();
+            return;
+        }
+        ShowCampusNarrative(enc);
+        _campusNarrativePanel.OnCompleted = choice =>
+        {
+            OnCampusNarrativeCompleted(enc, choice);
+            then?.Invoke();
+        };
+    }
+
     /// <summary>Landmark clicked on the campus hex grid → show its current
     /// beat's narrative encounter on the campus host.</summary>
     private void OnCampusLandmarkClicked(string landmarkId, Vector2I coord)
@@ -1379,6 +1424,9 @@ public partial class CampusScreen : Control
                 ? $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" complete."
                 : $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
                 QuestToastKind.Progress);
+
+        // C5: the choice's sway, after its other effects.
+        ChronicleScheduler.ApplySway(choice);
 
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();

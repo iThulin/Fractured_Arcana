@@ -57,9 +57,9 @@ public class CampaignState
 
     /// <summary>
     /// Id of the archmage who co-conspired with the Chronomancer to break
-    /// the magisphere seal. Revealed in the intro scripted encounter.
-    /// Always the archmage assigned to the highest-tier region adjacent
-    /// to The Convergence (determined by CampaignGenerator).
+    /// the magisphere seal: this reading's copy of the save's pin
+    /// (EternalLedger.CoConspiratorId, canon R3). CampaignGenerator places
+    /// the pinned archmage in the last tier-3 region every reading.
     /// </summary>
     public string CoConspirator = "";
 

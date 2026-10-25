@@ -95,6 +95,8 @@ public sealed class SummonSpiritEffect : EffectBase
 				continue;
 
 			spirit.IsSpirit = true;
+			if (ownerTeam == 0 && !CombatSim.Active)
+				RegisterManager.Fire("necro.first_spirit");   // C4
 			spirit.SummonerTeamId = ownerTeam;
 			spirit.Stats.MaxHealth = HP;
 			spirit.Stats.Health = HP;
@@ -166,6 +168,8 @@ public sealed class SummonSpiritFromAllMemorialsEffect : EffectBase
 				continue;
 
 			spirit.IsSpirit = true;
+			if (ownerTeam == 0 && !CombatSim.Active)
+				RegisterManager.Fire("necro.first_spirit");   // C4
 			spirit.SummonerTeamId = ownerTeam;
 			spirit.Stats.MaxHealth = hp;
 			spirit.Stats.Health = hp;
@@ -1841,6 +1845,8 @@ internal static class NecroEffectUtil
 			return null;
 
 		spirit.IsSpirit = true;
+		if (team == 0 && !CombatSim.Active)
+			RegisterManager.Fire("necro.first_spirit");   // C4
 		spirit.SummonerTeamId = team;
 		spirit.Stats.MaxHealth = hp;
 		spirit.Stats.Health = hp;

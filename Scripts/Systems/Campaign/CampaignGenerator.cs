@@ -64,8 +64,11 @@ public static class CampaignGenerator
     /// <param name="campaignSeed">Deterministic seed.</param>
     /// <param name="playerSchool">Player's school (betrayal placement rule).</param>
     /// <param name="regions">Placeable regions with tiers, supplied by the caller.</param>
+    /// <param name="pinnedCoConspirator">C3: the save's pinned co-conspirator, placed in the
+    /// last tier-3 region; "" leaves the placement to the shuffle.</param>
     public static CampaignState Generate(int campaignSeed, string playerSchool,
-                                         List<PlaceableRegion> regions)
+                                         List<PlaceableRegion> regions,
+                                         string pinnedCoConspirator = "")
     {
         var rng = new RandomNumberGenerator();
         rng.Seed = (ulong)campaignSeed;
@@ -91,6 +94,9 @@ public static class CampaignGenerator
         // ── Shuffle, then enforce betrayal placement ─────────────────────
         pool = ShuffleList(pool, rng);
         EnforceBetrayalPlacement(pool, regions, playerSchool);
+        // C3 (R3): the save's pinned co-conspirator takes the last tier-3 slot, the seat the
+        // co-conspirator rule below names, every reading.
+        PlacePinnedCoConspirator(pool, regions, playerSchool, pinnedCoConspirator);
 
         // ── Sort regions: tier 3 first, then 2, then 1 ───────────────────
         var sortedRegions = regions.OrderByDescending(r => r.Tier).ToList();
@@ -110,6 +116,10 @@ public static class CampaignGenerator
             state.CoConspirator = state.RegionArchmageMap.TryGetValue(
                 coConspiratorRegion.Id, out var ccId) ? ccId : "";
         }
+        // C3: the pin names the co-conspirator wherever the placement could seat them.
+        if (!string.IsNullOrEmpty(pinnedCoConspirator)
+            && state.RegionArchmageMap.ContainsValue(pinnedCoConspirator))
+            state.CoConspirator = pinnedCoConspirator;
 
         // ── Initialize dispositions and corruption ───────────────────────
         foreach (var pair in state.RegionArchmageMap)
@@ -155,6 +165,89 @@ public static class CampaignGenerator
         }
 
         return result;
+    }
+
+    // ── C3: the pinned co-conspirator (docs/main_story_outline_v1.md R3, R19) ──
+
+    /// <summary>The co-conspirator pool (R19): every placeable seat but Hess, who left the hall
+    /// before the wards broke, and Wenna, the spell's target.</summary>
+    public static readonly string[] TraitorPool = { "aurel", "joren", "namer", "conductor", "engineer" };
+
+    /// <summary>Pin the save's co-conspirator once, store it on the ledger, and write the Eternal
+    /// flag coconspirator_&lt;id&gt; the seat arcs gate on. A save from before the pin keeps the
+    /// archmage its current reading already placed, when that one is in the pool; otherwise one
+    /// is drawn at random. Idempotent. Returns the pinned id, or "" when no definition loads.</summary>
+    public static string EnsureCoConspiratorPin(GuildSaveData save)
+    {
+        var ledger = save?.Ledger;
+        if (ledger == null)
+            return "";
+        string pin = ledger.CoConspiratorId ?? "";
+        if (System.Array.IndexOf(TraitorPool, pin) < 0 || ArchmageRegistry.Get(pin) == null)
+        {
+            string current = save.Cycle?.Campaign?.CoConspirator ?? "";
+            if (System.Array.IndexOf(TraitorPool, current) >= 0 && ArchmageRegistry.Get(current) != null)
+            {
+                pin = current;
+            }
+            else
+            {
+                var candidates = TraitorPool.Where(id => ArchmageRegistry.Get(id) != null).ToList();
+                if (candidates.Count == 0)
+                    return "";
+                var rng = new RandomNumberGenerator();
+                rng.Randomize();
+                pin = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
+            }
+            ledger.CoConspiratorId = pin;
+            SaveManager.MarkDirty();
+            GD.Print($"[CampaignGenerator] Co-conspirator pinned for this save: '{pin}'.");
+        }
+        ledger.MetaNarrativeFlags ??= new List<string>();
+        string flag = $"coconspirator_{pin}";
+        if (!ledger.MetaNarrativeFlags.Contains(flag))
+        {
+            ledger.MetaNarrativeFlags.Add(flag);
+            SaveManager.MarkDirty();
+        }
+        return pin;
+    }
+
+    /// <summary>Move the pinned archmage to the slot of the LAST tier-3 region (regions are
+    /// assigned in tier order, tier 3 first), or to the first slot when the world has no tier-3
+    /// region. The archmage displaced takes the pinned one's old slot, unless that would put the
+    /// player's own-school archmage in tier 1, in which case they trade with a safe slot.</summary>
+    private static void PlacePinnedCoConspirator(List<ArchmageDefinition> pool,
+        List<PlaceableRegion> regions, string playerSchool, string pinned)
+    {
+        if (string.IsNullOrEmpty(pinned) || pool.Count == 0)
+            return;
+        int from = pool.FindIndex(a => a.Id == pinned);
+        if (from < 0)
+            return;
+        int tier3Count = regions.Count(r => r.Tier == 3);
+        int safeSlots = tier3Count + regions.Count(r => r.Tier == 2);
+        int slots = Mathf.Min(pool.Count, regions.Count);
+        int target = tier3Count > 0 ? tier3Count - 1 : 0;
+        if (target >= slots || from == target)
+            return;
+        (pool[target], pool[from]) = (pool[from], pool[target]);
+
+        // The betrayal rule still holds for whoever moved into the pinned archmage's old slot.
+        var moved = pool[from];
+        bool ownSchool = !string.IsNullOrEmpty(playerSchool)
+            && string.Equals(moved.School, playerSchool, System.StringComparison.OrdinalIgnoreCase);
+        if (ownSchool && from >= safeSlots)
+        {
+            for (int i = 0; i < Mathf.Min(safeSlots, pool.Count); i++)
+            {
+                if (i == target)
+                    continue;
+                (pool[i], pool[from]) = (pool[from], pool[i]);
+                break;
+            }
+        }
+        GD.Print($"[CampaignGenerator] Co-conspirator '{pinned}' placed in slot {target}.");
     }
 
     private static void EnforceBetrayalPlacement(

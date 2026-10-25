@@ -75,6 +75,10 @@ public static class WorldGenerator
         public float CityStudFraction = 0.55f;   // fraction of a city's tiles that get a POI
         public float TownStudFraction = 0.50f;
         public int WildPoiPerKingdom = 5;         // thinned wilderness scatter (was PoiPerKingdom=12)
+
+        // C3 (docs/main_story_outline_v1.md R3): the save's pinned co-conspirator, placed in the
+        // last tier-3 region. "" leaves the placement to the shuffle, as before.
+        public string CoConspirator = "";
     }
 
     public static GeneratedWorldData Generate(int seed, string playerSchool, Params p = null)
@@ -158,7 +162,7 @@ public static class WorldGenerator
                 continue;
             placeables.Add(new PlaceableRegion { Id = kingdomRegion[id], Tier = RegionTierOf(kingdomRegion[id]) });
         }
-        var campaign = CampaignGenerator.Generate(seed, playerSchool, placeables);
+        var campaign = CampaignGenerator.Generate(seed, playerSchool, placeables, p.CoConspirator);
 
         // ── 5. KingdomState per territory ────────────────────────────────
         var kingdoms = new Dictionary<string, KingdomState>();

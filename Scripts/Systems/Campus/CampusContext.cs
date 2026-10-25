@@ -59,6 +59,12 @@ public sealed class CampusContext
     /// implementation no-ops.</summary>
     public Action<NarrativeEncounterData> ShowNarrative { get; }
 
+    /// <summary>C5 (docs/story_wiring_v1.md, item 5): show an encounter like
+    /// <see cref="ShowNarrative"/>, then run the continuation once its outcome is applied. The
+    /// council uses it to show a seat's arc panel before the audience it opens. Null on hosts
+    /// that do not support it.</summary>
+    public Action<NarrativeEncounterData, Action> ShowNarrativeThen { get; }
+
     /// <summary>Ask the shell to re-run its full refresh. Panels need this because
     /// building, recruiting, equipping and training all move gold and unlock state that
     /// OTHER panels display. <c>RefreshAll</c> already fans out to slots, companions,
@@ -107,9 +113,11 @@ public sealed class CampusContext
     public CampusContext(Node host, ToastManager toasts,
                          Action<NarrativeEncounterData> showNarrative, Action requestRefreshAll,
                          Action refreshGold, Action enterStrategicMap, Action<string> beginNextCycle,
-                         Action ensureSaveSeeded)
+                         Action ensureSaveSeeded,
+                         Action<NarrativeEncounterData, Action> showNarrativeThen = null)
     {
         EnsureSaveSeeded = ensureSaveSeeded;
+        ShowNarrativeThen = showNarrativeThen;
         Host = host;
         Toasts = toasts;
         ShowNarrative = showNarrative;

@@ -36,6 +36,11 @@ public class NarrativeEncounterData
     /// Choice-level RequiredFlag still applies independently.</summary>
     public string RequiredFlag = "";
 
+    /// <summary>W4 (docs/story_wiring_v1.md, C5 item 9): when this names a flag that is set
+    /// (either layer), NarrativeEncounterLoader.PickRandom skips the encounter. The Warden
+    /// arc's stages carry it, so a finished stage stops coming round.</summary>
+    public string ExcludedFlag = "";
+
     // ── Resolution encounters (Step 9, quest_hooks_compendium §7) ───────
     /// <summary>When non-empty, this encounter is a RESOLUTION audience with
     /// the named archmage. Choices carrying a ResolutionKind are gated against
@@ -135,6 +140,16 @@ public class EncounterChoice
     /// window as beacons ("information is the primary resource",
     /// run_structure). 0 = none. No-op on campus/city narrative hosts.</summary>
     public int RevealPois = 0;
+
+    // ── Seat arcs (docs/story_wiring_v1.md, C5 item 1) ───────────────────
+    /// <summary>Archmage id whose sentiment this choice shifts, or "" for none. Applied by
+    /// ChronicleScheduler.ApplySway from every narrative applier, after the choice's other
+    /// effects.</summary>
+    public string SwayArchmage = "";
+
+    /// <summary>The raw shift, before the archmage's swayResistance (CampaignState.ShiftSentiment
+    /// applies it).</summary>
+    public int SwayAmount = 0;
 
     /// <summary>Shallow field-for-field copy, used by EncounterAssembler.ForDisplay
     /// to build a display clone whose Label/ResultText can carry assembled {slot}

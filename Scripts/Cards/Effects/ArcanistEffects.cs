@@ -587,6 +587,8 @@ public sealed class QueueNextSpellModifierLeafEffect : EffectBase
 		s.ActiveEffects.Add(new QueuedSpellModifier(
 			BonusDamage, ExtraDraw, AppliesTo, GrantStatus, StatusDuration, caster, unit));
 		s.Log($"[QueueNextSpell] Queued +{BonusDamage} dmg / draw {ExtraDraw} on next {AppliesTo} spell(s).");
+		if (!CombatSim.Active)
+			RegisterManager.Fire("arc.next_spell");   // C4
 	}
 }
 

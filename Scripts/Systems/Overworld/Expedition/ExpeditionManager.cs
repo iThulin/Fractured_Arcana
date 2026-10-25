@@ -648,6 +648,12 @@ public partial class ExpeditionManager : Node2D
             if (!_fieldRun)
                 PlayerSession.WizardExpeditionHP = -1;
             _freshSortie = true;   // Clouded Water drains once, on a real start (§21)
+            // C1: on_companion_join for everyone setting out (the helmsman is re-seeded each reading).
+            foreach (var joinId in ActiveRunCompanionIds())
+                ChronicleScheduler.RaiseCompanionJoin(joinId);
+            // C4, P6: the first sortie after the prologue crosses the edge (Legible).
+            if (!_fieldRun)
+                CallDeferred(nameof(ShowPrologueLegible));
             SchoolSeats.ClearWeatherCarry();       // Crucible T2: weather is per expedition
 
             // S4 (Identify) + S5 (True Names): pinned encounters are
@@ -2501,7 +2507,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // the gate and the guardian fight, not attrition between gate and sanctum.
         bool inVault = InsideShardZone(newCoord);
         if (inVault && !_lastInVault)
+        {
             ShowInfo("Within the vault's bounds, the wilds' toll lifts: no terrain, corruption, or supply drain here.");
+            // C1: the party stepped onto a shard zone's ground (on_shard_zone, how=entered).
+            if (_window.TryLocalToWorld(newCoord, out int vaultCol, out int vaultRow))
+                ChronicleScheduler.RaiseShardZone("entered", _world.ShardZoneAt(vaultCol, vaultRow)?.FragmentKey ?? "");
+        }
         _lastInVault = inVault;
 
         // §4 Chronomancer flat + §3.4 momentum. These are temporally disjoint (the
@@ -4811,6 +4822,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         var questBefore = QuestNotifier.Snapshot(SaveManager.ActiveSave);
+        // C5: an encounter from the field's pools, answered: a road deed.
+        ChronicleScheduler.RaiseRoadDeed(encounter, choice);
         int nGoldBefore = GoldEarned, nHpBefore = CurrentHP, nStepsBefore = StepsRemaining;
 
         if (choice.GoldDelta != 0)
@@ -4861,6 +4874,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 { meta.Add(flag); anyMeta = true; }
             if (anyMeta) SaveManager.MarkDirty();
         }
+
+        // C5: the choice's sway (the seat arcs' panels carry it).
+        ChronicleScheduler.ApplySway(choice);
 
         // Companion arc delivery (Step 9 follow-up): if this encounter was the
         // companion's current arc stage, advance the arc and toast it.
@@ -6919,6 +6935,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
     }
 
+    /// <summary>C4, P6 (docs/prologue_script_v1.md): the first sortie once the prologue is
+    /// complete shows Legible. Its choice sets chronicle_first_sortie, and the Register
+    /// marks the crossing (strategic.first_sortie).</summary>
+    private void ShowPrologueLegible()
+    {
+        var save = SaveManager.ActiveSave;
+        var enc = PrologueDirector.LegiblePanel(save);
+        if (enc == null || _narrativePanel == null || _narrativePanel.Visible)
+            return;
+        _narrativePanel.ShowEncounter(enc, save.HasFlag);
+        _narrativePanel.OnCompleted = choice =>
+        {
+            PrologueDirector.ApplyChoice(save, choice);
+            RegisterManager.Fire("strategic.first_sortie");
+            SaveManager.SaveIfDirty();
+        };
+    }
+
     /// <summary>The campus reaches through the stone: the Grand Conjunction is
     /// close. Deferred from _Ready so the HUD and the 3D window exist to carry
     /// the pulse and the pause.</summary>
@@ -8503,6 +8537,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var save = SaveManager.ActiveSave;
         if (save == null) return;
         var before = QuestNotifier.Snapshot(save);
+        // C1: on_forces_met on every crossing, not only the first (the stamp below is once).
+        ChronicleScheduler.RaiseForcesMet(archmageId);
         if (!DossierService.EnsureMet(archmageId)) return;
         var def = ArchmageDefById(archmageId);
         _toasts?.Push($"Dossier opened: {(def != null ? def.DisplayName : archmageId)}.",
@@ -8516,6 +8552,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Cross-cycle combat record (deed:combat_won): powers proven-guild
         // companion unlocks (CompanionUnlocks) and future deed-count quests.
         SaveManager.ActiveSave?.Ledger?.RecordDeed("combat_won");
+        ChronicleScheduler.RaiseDeed("field");   // C5: a field deed (a fight won)
 
         // Marginalia (marginalia_spec_v1 R2/R5): commit the won fight's family
         // kill tally (victory-gated exactly like combat_won) and toast any

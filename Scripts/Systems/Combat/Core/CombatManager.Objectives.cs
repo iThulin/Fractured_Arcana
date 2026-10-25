@@ -88,6 +88,7 @@ public partial class CombatManager
         _breaches = 0;
         _objectiveZoneShown = false;
         _wardUnit = null;   // O3
+        ResetScriptedFightState();   // C4 hook d: the fallen list is this fight's
         _zoneRenderer?.ClearObjectiveZone();
 
         if (def == null)

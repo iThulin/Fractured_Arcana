@@ -358,6 +358,15 @@ public partial class NarrativeEncounterPanel : Control
             outcomes.Add($"{(choice.ReputationAmount > 0 ? "+" : "")}{choice.ReputationAmount} reputation");
         if (!string.IsNullOrEmpty(choice.LoreId)) outcomes.Add("lore uncovered");
 
+        // C4 (docs/prologue_script_v1.md section 7, item 2): a choice with no result text
+        // and no outcome closes the panel at once. Only story panels author an empty result.
+        if (string.IsNullOrWhiteSpace(choice.ResultText) && outcomes.Count == 0)
+        {
+            Visible = false;
+            OnCompleted?.Invoke(_chosenResult);
+            return;
+        }
+
         if (outcomes.Count > 0)
             resultText += $"\n\n{string.Join("  |  ", outcomes)}";
 

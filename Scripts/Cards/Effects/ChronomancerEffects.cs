@@ -586,6 +586,8 @@ public sealed class ScheduleLeafEffect : EffectBase
 			Label = !string.IsNullOrEmpty(s.ResolvingAbilityName) ? s.ResolvingAbilityName : "Scheduled spell"
 		});
 		s.Log($"[Schedule] Effect scheduled for {Turns} turn(s) from now.");
+		if (!CombatSim.Active)
+			RegisterManager.Fire("chrono.first_schedule");   // C4
 	}
 }
 

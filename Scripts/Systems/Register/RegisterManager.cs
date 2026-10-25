@@ -136,6 +136,16 @@ public partial class RegisterManager : Node
     /// <summary>True when the explanation behind <paramref name="key"/> has already been shown.</summary>
     public static bool HasSeen(string key) => Instance != null && Instance.IsSeen(key);
 
+    /// <summary>The prologue's register mode (docs/prologue_script_v1.md §4.1): "trial" from
+    /// new game until the Sundering, "sundering" for that fight, empty from the Long Second
+    /// on. Set by the intro director (C4). The chronicle scheduler is silent while it is set
+    /// (docs/story_wiring_v1.md, C1 rule 9). Session state, not saved.</summary>
+    public static string PrologueMode { get; set; } = "";
+
+    /// <summary>The trial minutes' key prefix (section 4.2): trial.combat.basics.hand is the
+    /// Examiner's minute of combat.basics.hand.</summary>
+    private const string TrialPrefix = "trial.";
+
     // ════════════════════════════════════════════════════════════════════════
     //  Lifecycle
     // ════════════════════════════════════════════════════════════════════════
@@ -210,6 +220,7 @@ public partial class RegisterManager : Node
             if (next.Once && IsSeen(next.SeenId))
                 return;   // shown elsewhere meanwhile
             MarkSeen(next.SeenId);
+            MarkGenericSeen(next);   // P-4
             ShowSlip(next);
             _pendingVoice = null;
             return;
@@ -226,6 +237,7 @@ public partial class RegisterManager : Node
                 _cooldownUntil[voice.SeenId] = Time.GetTicksMsec() + (ulong)(voice.CooldownSeconds * 1000f);
             if (voice.Once)
                 MarkSeen(voice.SeenId);
+            MarkGenericSeen(voice);   // P-4
             ShowSlip(voice);
         }
     }
@@ -234,8 +246,32 @@ public partial class RegisterManager : Node
     //  Firing
     // ════════════════════════════════════════════════════════════════════════
 
+    /// <summary>The key the Register fires for <paramref name="key"/> in a prologue mode, or
+    /// null when it drops (docs/prologue_script_v1.md section 4.1). Before the Long Second
+    /// the Register writes complete sentences. In the trial it minutes the Examiner (the key
+    /// with the trial. prefix, when that line exists; any other key drops without a warning).
+    /// In the Sundering it writes only the conferral, so every key drops. Outside the prologue
+    /// the key is unchanged. Pure, so the prologue's assert can check it without showing or
+    /// marking anything.</summary>
+    public static string ResolveForMode(string key, string mode)
+    {
+        if (string.IsNullOrEmpty(key))
+            return null;
+        mode ??= "";
+        if (mode == "sundering")
+            return null;
+        if (mode == "trial" && !key.StartsWith(TrialPrefix, StringComparison.Ordinal))
+            return RegisterBarks.For(TrialPrefix + key).Count == 0 ? null : TrialPrefix + key;
+        return key;
+    }
+
     private void FireInternal(string key, IReadOnlyDictionary<string, string> args)
     {
+        // C4: the prologue's modes (ResolveForMode).
+        key = ResolveForMode(key, PrologueMode);
+        if (key == null)
+            return;
+
         var candidates = RegisterBarks.For(key);
         if (candidates.Count == 0)
         {
@@ -343,6 +379,28 @@ public partial class RegisterManager : Node
             ledger.RegisterSeen.Add(id);
             SaveManager.MarkDirty();
         }
+    }
+
+    /// <summary>P-4 (docs/prologue_script_v1.md): a trial minute that is shown marks its
+    /// generic bark seen as well, so each rule is explained once, not twice.</summary>
+    private void MarkGenericSeen(RegisterBark shown)
+    {
+        foreach (var id in GenericSeenIds(shown))
+            MarkSeen(id);
+    }
+
+    /// <summary>P-4: the once ids a shown trial minute also marks, so its rule is explained
+    /// once, not twice. Empty for any other bark. Pure, for the prologue's assert.</summary>
+    public static List<string> GenericSeenIds(RegisterBark shown)
+    {
+        var ids = new List<string>();
+        if (shown == null || string.IsNullOrEmpty(shown.Key)
+            || !shown.Key.StartsWith(TrialPrefix, StringComparison.Ordinal))
+            return ids;
+        foreach (var generic in RegisterBarks.For(shown.Key.Substring(TrialPrefix.Length)))
+            if (generic != null && generic.Once)
+                ids.Add(generic.SeenId);
+        return ids;
     }
 
     // ════════════════════════════════════════════════════════════════════════

@@ -42,6 +42,8 @@ public class MemorialManager
         tile.Memorial = new MemorialData(name, wasAlly, strength, ownerTeamId);
         CreatedSinceLastTick.Add(tile);
         OnMemorialCreated?.Invoke(tile);
+        if (!CombatSim.Active)
+            RegisterManager.Fire("necro.first_memorial");   // C4
     }
 
     // ── Overload for non-unit deaths (constructs, summons, etc.) ────
@@ -59,6 +61,8 @@ public class MemorialManager
         tile.Memorial = new MemorialData(sourceName, wasAlly, strength, ownerTeamId);
         CreatedSinceLastTick.Add(tile);
         OnMemorialCreated?.Invoke(tile);
+        if (!CombatSim.Active)
+            RegisterManager.Fire("necro.first_memorial");   // C4
     }
 
     /// <summary>Public strengthening for card effects (strengthen_all_memorials). Same rule as overlap-strengthening: caps at Strong.</summary>

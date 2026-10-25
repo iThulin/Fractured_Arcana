@@ -578,6 +578,19 @@ public partial class CombatManager : Node3D
 
             if (!injectedCompanionCards && unit.CompanionId == "wizard")
             {
+                // C4 hook a: a scripted fight (the prologue) deals the wizard its own deck,
+                // in the school it names (hook b).
+                var scripted = BuildScriptedDeck();
+                if (scripted != null)
+                {
+                    unit.DeckData.Initialize(scripted);
+                    injectedCompanionCards = true;
+                    MatchDeckAttunement(unit, scripted, PlayerSession.ScriptedSchool);
+                    GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
+                             $"({unit.School}) [scripted]");
+                    continue;
+                }
+
                 // The wizard gets the persistent deck + companion cards on top.
                 // Keyed on the id (2026-09-29): with the wizard absent from a
                 // field dive, the first arcane companion must keep its own deck.
@@ -602,7 +615,7 @@ public partial class CombatManager : Node3D
                 unit.DeckData.Initialize(cards);
                 injectedCompanionCards = true;
                 if (PlayerDeckSave.UseDebugDeck)
-                    MatchDebugAttunement(unit, cards);
+                    MatchDeckAttunement(unit, cards);
 
                 GD.Print($"Deck built for {unit.Name}: {unit.DeckData.TotalCards} cards " +
                          $"({unit.School}, {companionCards.Count} companion, " +
@@ -736,7 +749,8 @@ public partial class CombatManager : Node3D
     private List<Card> BuildCompanionCardList()
     {
         var result = new List<Card>();
-        var party = CompanionRoster.GetActiveParty();
+        // C4: a scripted fight fought alone carries no companion cards.
+        var party = PlayerSession.ScriptedWizardOnly ? new List<Companion>() : CompanionRoster.GetActiveParty();
 
         foreach (var companion in party)
         {
@@ -2584,6 +2598,9 @@ public partial class CombatManager : Node3D
         if (!_openingIntentsPlanned)
         {
             _openingIntentsPlanned = true;
+            // C1: the chronicle hears the first round of every fight (on_combat_start).
+            if (!CombatSim.Active)
+                ChronicleScheduler.RaiseCombatStart(enemyUnits);
             // Opening view (2026-10-04): frame the party AND the enemies. Deferred a
             // beat so it lands after the turn-start selection glide.
             GetTree().CreateTimer(0.2).Timeout += FrameOpeningView;
@@ -3311,35 +3328,9 @@ public partial class CombatManager : Node3D
         OnCardChoiceRequested(req);
     }
 
-    /// <summary>Debug fights (2026-10-03): a debug deck is often another school's cards
-    /// on a wizard whose launcher school was left at its default. Its school engine
-    /// (Time Bank, Grief, Weave, ...) then never existed, so every Foresight card
-    /// silently did nothing and no bank was drawn. When one school holds at least half
-    /// of the deck's school cards and differs from the wizard's, the wizard plays as
-    /// that school for this fight: attunement and attunement UI included.</summary>
-    private static void MatchDebugAttunement(Unit unit, List<Card> cards)
-    {
-        if (unit == null || cards == null)
-            return;
-        var counts = new Dictionary<CardSchool, int>();
-        foreach (var c in cards)
-        {
-            var school = c?.TopHalf?.School ?? CardSchool.Adept;
-            if (school == CardSchool.Adept)
-                continue;
-            counts[school] = counts.GetValueOrDefault(school) + 1;
-        }
-        if (counts.Count == 0)
-            return;
-        var top = counts.OrderByDescending(kv => kv.Value).First();
-        int total = counts.Values.Sum();
-        if (top.Key == unit.School || top.Value * 2 < total)
-            return;
-        GD.Print($"[DebugDeck] {unit.Name}'s debug deck is mostly {top.Key} ({top.Value}/{total} school cards); "
-                 + $"playing as {top.Key} instead of {unit.School} for this fight.");
-        unit.School = top.Key;
-        unit.InitializeAttunement();
-    }
+    // MatchDebugAttunement moved to CombatManager.Scripted.cs as MatchDeckAttunement (C4
+    // hook b): the debug deck and the prologue's scripted decks share it, with the Adept's
+    // mana following the school.
 
     /// <summary>Round 1: point the camera from the party toward the enemies and pull back
     /// far enough that both are on screen. Spawn-zone centroids (OrientCameraForCombat)
@@ -3983,6 +3974,7 @@ public partial class CombatManager : Node3D
         // O3: the ward's death latches objective defeat (declaration still
         // flows through CheckCombatEnd, keeping trigger-settle order intact).
         NoteObjectiveUnitDeath(unit);
+        NoteScriptedUnitFall(unit);   // C4 hook d: the fallen list, and the fight that ends on a fall
 
         // (2026-07-28, PT-U3e-5) The camera and the selection used to stay parked on a
         // companion that had just died, most visibly when binding_geas killed one
@@ -4019,7 +4011,8 @@ public partial class CombatManager : Node3D
             _marginaliaFightTally[unit.FactionId] = famKills + 1;
         }
 
-        HonoredDeadService.RecordDeath(unit);
+        if (!ScriptedFight)   // C4 (P-1): the prologue keeps no honored dead
+            HonoredDeadService.RecordDeath(unit);
         if (unit.IsConstruct)          // ← feed Schematics on any construct loss
             RegisterConstructLoss(unit);
         ConduitLinkSystem.OnUnitDied(unit);
@@ -4291,6 +4284,7 @@ public partial class CombatManager : Node3D
             EncounterRouter.Instance.SavedCombatFamilyKills =
                 new Dictionary<string, int>(_marginaliaFightTally);
 
+        RecordWizardEndHealth();   // C4: the duel's clean verdict
         EmitSignal(SignalName.CombatCompleted, true);
         return true;
     }
@@ -4310,6 +4304,7 @@ public partial class CombatManager : Node3D
             EncounterRouter.Instance.SavedCombatFamilyKills =
                 new Dictionary<string, int>();
 
+        RecordWizardEndHealth();
         EmitSignal(SignalName.CombatCompleted, false);
         return true;
     }
@@ -4690,7 +4685,8 @@ public partial class CombatManager : Node3D
         }
 
         // ── Spawn active party companions ─────────────────────────────────
-        var party = CompanionRoster.GetActiveParty();
+        // C4: a scripted fight can field the wizard alone (party: wizard_only).
+        var party = PlayerSession.ScriptedWizardOnly ? new List<Companion>() : CompanionRoster.GetActiveParty();
         int trainingTier = SaveManager.ActiveSave?.TrainingGroundsTier ?? 0;
 
         foreach (var companion in party)
@@ -7018,7 +7014,8 @@ public partial class CombatManager : Node3D
             combatUI?.AppendActionLog($"Cast: {resolvedHalf.Name}.");
             PayLeafCast(cardUi.CardInstance, isTop);   // before the discard below takes it off the page
             // Record mastery cast against the original half's blueprint
-            if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId))
+            // C4 (P-1): a scripted fight counts no casts toward mastery.
+            if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId) && !ScriptedFight)
                 CastMasteryTracker.RecordCast(cardUi.CardInstance.BlueprintId);
 
             CombatTelemetry.RecordCardCast(

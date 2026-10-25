@@ -669,8 +669,16 @@ public partial class WorldAtlas3D : Node3D
     public void EnterCityView(WorldSettlement city)
     {
         if (city == null || _world == null || _camera == null) return;
-        if (city.IsGuildHome) { EnterCityMode(); return; }
+        if (city.IsGuildHome)
+        {
+            // C1: on_settlement_enter, home=true.
+            ChronicleScheduler.RaiseSettlementEnter(true, city.KingdomId, SettlementDisplayName(city));
+            EnterCityMode();
+            return;
+        }
         _activeCity = city;
+        // C1: on_settlement_enter. The town's panels wait for the next quiet moment.
+        ChronicleScheduler.RaiseSettlementEnter(false, city.KingdomId, SettlementDisplayName(city));
 
         // Explore: fetch (or generate + persist) this city's district content. Districts start
         // fogged except the ones previously revealed (the centre seat is revealed on generation).

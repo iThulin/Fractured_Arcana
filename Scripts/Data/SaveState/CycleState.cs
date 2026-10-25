@@ -491,6 +491,19 @@ public class CycleState
     public bool SetFlag(string flag) =>
         !string.IsNullOrEmpty(flag) && WorldFlags.Add(flag);
 
+    // ── The chronicle (wire items C1 and C5, docs/story_wiring_v1.md) ────
+    /// <summary>Chronicle panels waiting for a quiet moment (C1 rule 6), oldest first. A beat
+    /// writes its flags when it fires and its panel waits here, so a crash or a scene change
+    /// cannot lose it. Drained one at a time by ChronicleScheduler.DrainIfQuiet. Dies with the
+    /// timeline, except panels from Eternal beats, which SaveManager.BeginNewCycle carries
+    /// over. Additive save field, no version bump.</summary>
+    public List<ChronicleQueued> ChronicleQueue = new();
+
+    /// <summary>This reading's deed tally (C5): "field", "table" and "road", counted by
+    /// ChronicleScheduler.RaiseDeed. The seat arcs read the two least-done deeds. New each
+    /// reading by construction. Additive save field, no version bump.</summary>
+    public Dictionary<string, int> ReadingDeeds = new();
+
     // ── Phase 3+ stubs (carried over; all timeline-scoped) ───────────────
     public string CharterAlignment = "";
     public int SeasonalThreatLevel = 0;

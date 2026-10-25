@@ -110,6 +110,8 @@ public sealed class GlyphManager
         if (!g.Invisible)
             tile.TileView?.ShowGlyph(g);
         OnGlyphPlaced?.Invoke(tile);
+        if (owner != null && owner.TeamId == 0 && !CombatSim.Active)
+            RegisterManager.Fire("ench.first_glyph");   // C4: player-owned glyphs only
 
         if (owner?.Attunement is WeaveAttunement w)
             w.OnGlyphPrepared();

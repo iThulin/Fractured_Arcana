@@ -34,6 +34,18 @@ public class ArchmageDefinition
     public string PersonalityTrait = ""; // single-word trait for mentor hints
     public bool IsVillainFaction = false; // true only for "astrologer"
 
+    // ── Story fields (wire item C3, docs/main_story_outline_v1.md §12) ───
+    /// <summary>What people call them ("Cael"): {traitor_short} for the pinned co-conspirator.</summary>
+    public string CallName = "";
+    /// <summary>The full name ("Cael Morn"): {traitor_full} and {archmage_full}.</summary>
+    public string FullName = "";
+    /// <summary>The co-conspirator's line at the Sundering (the prologue's P3). Pool of five only.</summary>
+    public string IntroBetrayalLine = "";
+    /// <summary>The finale's mirror beat when the traitor stands with you ({traitor_redemption}).</summary>
+    public string FinaleRedemptionLine = "";
+    /// <summary>The finale's mirror beat when the traitor breaks the glass again ({traitor_second}).</summary>
+    public string FinaleSecondBetrayalLine = "";
+
     // ── Faction identity ─────────────────────────────────────────────────
     /// <summary>Name of the archmage's faction in its normal (uncorrupted) state.</summary>
     public string FactionName = "";

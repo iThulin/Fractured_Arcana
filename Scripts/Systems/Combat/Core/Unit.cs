@@ -1226,7 +1226,11 @@ public partial class Unit : Node3D
                 && guard.Stats.IsAlive && !guard.IsDeathQueued)
             {
                 if (!CombatSim.Active)
+                {
                     GD.Print($"{guard.Name} steps in front of {Name} and takes {amount} instead.");
+                    if (TeamId != 0)
+                        RegisterManager.Fire("enemy.bodyguard");   // C4
+                }
                 guard.ApplyDamage(amount, source);
                 return;
             }
@@ -1325,6 +1329,8 @@ public partial class Unit : Node3D
             GD.Print($"{Name} is Shrouded: {amount} damage capped to 5.");
 
         var (shieldLoss, armorLoss, hpLoss, immortalSave) = ComputeMitigation(amount);
+        if (ChitinAmount > 0 && TeamId != 0 && !CombatSim.Active)
+            RegisterManager.Fire("enemy.chitin");   // C4: the blow arrived, less of it than was sent
 
         if (immortalSave)
             GD.Print($"{Name} is Immortal and survives at 1 HP.");

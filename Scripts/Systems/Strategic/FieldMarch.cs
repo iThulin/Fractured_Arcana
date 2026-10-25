@@ -259,6 +259,7 @@ public static class FieldMarch
             party.X = nx;
             party.Y = ny;
             ChartCorridor(cycle.World, fromX, fromY, nx, ny);
+            ChronicleScheduler.RaisePartyStepped(cycle, party, fromX, fromY);   // C1: on_shard_zone
 
             int remaining = cycle.World.HexDistance(party.X, party.Y, party.DestX, party.DestY);
             party.TravelPhasesRemaining = remaining;
@@ -298,6 +299,7 @@ public static class FieldMarch
             : $"({party.X},{party.Y})";
         string line = $"{party.Name} reaches {where}.";
         line += BankHere(cycle, party, here);
+        ChronicleScheduler.RaisePartyArrived(cycle, party);   // C1: on_fallen_seat
 
         GD.Print($"[FieldMarch] {line}");
         report = report == null ? line : report + " " + line;
@@ -518,6 +520,7 @@ public static class FieldMarch
         }
 
         IsWaystone(cycle, x, y, out string what);
+        int fromX = party.X, fromY = party.Y;
         party.X = x;
         party.Y = y;
         party.State = FieldPartyState.AtAnchor;
@@ -532,6 +535,8 @@ public static class FieldMarch
 
         string line = $"{party.Name} steps through to {what} at ({x},{y}).";
         line += BankHere(cycle, party, here);
+        ChronicleScheduler.RaisePartyStepped(cycle, party, fromX, fromY);   // C1: on_shard_zone
+        ChronicleScheduler.RaisePartyArrived(cycle, party);                 // C1: on_fallen_seat
         GD.Print($"[FieldMarch] {line}");
         return line;
     }

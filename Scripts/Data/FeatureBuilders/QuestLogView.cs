@@ -252,7 +252,9 @@ public static class QuestLogView
                 prog = $"  ({System.Math.Min(cp.have, cp.need)}/{cp.need})";
             }
             string mark = od ? "✓" : "○";
-            var line = new Label { Text = $"   {mark}  {o.Text}{prog}", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            // Task 9: a done objective may read differently (QuestObjective.DoneText).
+            string shown = od && !string.IsNullOrEmpty(o.DoneText) ? o.DoneText : o.Text;
+            var line = new Label { Text = $"   {mark}  {shown}{prog}", AutowrapMode = TextServer.AutowrapMode.WordSmart };
             line.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
             line.AddThemeColorOverride("font_color", od ? UITheme.POINegotiation : UITheme.NegotiationHiddenTerm);
             card.AddChild(line);

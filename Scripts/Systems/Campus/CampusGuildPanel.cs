@@ -352,6 +352,17 @@ public sealed class CampusGuildPanel : CampusPanel
 
         SaveManager.Save();
 
+        // C1: when the story data is in, the chronicle's conferral (Part I, I-5) replaces the
+        // dialog below, through the host's narrative panel and applier.
+        var conferral = ChronicleScheduler.RaiseDeclaration(school);
+        if (conferral != null && Ctx.ShowNarrative != null)
+        {
+            SaveManager.SaveIfDirty();
+            Ctx.ShowNarrative(conferral);
+            Ctx.RequestRefreshAll?.Invoke();
+            return;
+        }
+
         // The Provost's sentence from Beat 2, finally finishing, in the voice of
         // whoever stayed to speak it. The player spends this moment seven times.
         var dialog = new AcceptDialog
@@ -691,6 +702,8 @@ public sealed class CampusGuildPanel : CampusPanel
             "Round-trips the real/debug deck split and prints the result.");
         Act(combat, "Assert Units", () => UnitRegistry.AssertParityAndRoundTrip(),
             "Unit registry parity + save round-trip.");
+        Act(combat, "Assert Prologue", () => PrologueDirector.AssertRoundTrip(),
+            "The prologue's data, folios, profile file and Register modes. Shows and marks nothing.");
         Check(combat, "Skip Deployment", PlayerSession.SkipDeployment,
             on => PlayerSession.SkipDeployment = on);
         Check(combat, "God Mode HP", PlayerSession.GodModeHP,

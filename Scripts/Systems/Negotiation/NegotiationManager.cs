@@ -2071,6 +2071,7 @@ public partial class NegotiationManager : Control
         if (_state.DealAccepted)
         {
             save.Ledger.RecordDeed("negotiation_deal_signed");
+            ChronicleScheduler.RaiseDeed("table");   // C5: a table deed (a deal signed)
             if (record.Stars >= 5)
             {
                 save.Ledger.RecordDeed("negotiation_five_star_deal");

@@ -618,7 +618,11 @@ public class GrowthManager
         }
 
         if (_wildlifeSpawner != null)
+        {
             _wildlifeSpawner(spawn, key);
+            if (!CombatSim.Active)
+                RegisterManager.Fire("druid.first_wildlife");   // C4: growth or a card's summon
+        }
         else
             _state?.Log($"[Wilding] (no spawner wired) would summon {key} at {spawn.Axial}.");
 
@@ -645,7 +649,11 @@ public class GrowthManager
     private void ApplyRoot(Unit u, int duration)
     {
         if (_rootHandler != null)
+        {
             _rootHandler(u, duration);
+            if (!CombatSim.Active)
+                RegisterManager.Fire("druid.first_root");   // C4: growth or a card's entangle
+        }
         else
             _state?.Log($"[Wilding] (no root handler) would root {u?.Name} for {duration}.");
     }

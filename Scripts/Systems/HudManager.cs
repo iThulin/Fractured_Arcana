@@ -341,6 +341,10 @@ public partial class HudManager : Node
         {
             return true; // pre-game menus only, since the bar spans all gameplay, combat included
         }
+        // C4: the prologue comes before the guild has a purse or a campus to return to, so
+        // there is no bar in the examination hall or in its fights.
+        if (lower.Contains("prologue") || !string.IsNullOrEmpty(RegisterManager.PrologueMode))
+            return true;
         return false;
     }
 }

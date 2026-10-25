@@ -89,7 +89,9 @@ public static class QuestNotifier
 
                 if (isObj && !wasObj)
                 {
-                    msgs.Add(new QuestToast($"{q.Title}: {o.Text}", QuestToastKind.Progress));
+                    // Done: the objective's done text when it has one (QuestObjective.DoneText).
+                    string doneText = string.IsNullOrEmpty(o.DoneText) ? o.Text : o.DoneText;
+                    msgs.Add(new QuestToast($"{q.Title}: {doneText}", QuestToastKind.Progress));
                     continue;
                 }
                 if (!isObj && !string.IsNullOrEmpty(o.Counter))

@@ -401,6 +401,13 @@ public partial class CampusGridManager : HexGridManager
         _landmarkAtHex.Clear();
         _landmarkStateAtHex.Clear();
 
+        // C2: site the Ceremony Hall on a free hex beside the belfry before stamping.
+        CampusLandmarkRegistry.SiteCeremonyHall((q, r) =>
+        {
+            var at = new Vector2I(q, r);
+            return Tiles.ContainsKey(at) && string.IsNullOrEmpty(_buildingAtHex.GetValueOrDefault(at, ""));
+        });
+
         foreach (var lm in CampusLandmarkRegistry.All)
         {
             var coord = new Vector2I(lm.Q, lm.R);

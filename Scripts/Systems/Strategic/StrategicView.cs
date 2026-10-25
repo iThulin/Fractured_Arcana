@@ -234,6 +234,9 @@ public partial class StrategicView : Node2D
         // expedition-scene state and nothing else.
         PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Castle;
         PlayerSession.ExpeditionFieldPartyId = "";
+        // C4: nothing here runs in the prologue's mode, and a prologue fight abandoned part
+        // way leaves no scripted settings behind for an ordinary one.
+        PrologueDirector.ClearScriptedSession();
         // An audience is a scene argument for the NEXT field deploy only. The
         // strategic map coming up means no deploy consumed it: drop it.
         PlayerSession.AudienceEncounterId = "";
@@ -268,6 +271,19 @@ public partial class StrategicView : Node2D
                 }
                 CycleInitializer.EnsureSaveSeeded();
                 CycleInitializer.EnsureCycleWorld();
+                // The session's school follows the save, as CampusScreen._Ready does: a cold
+                // boot straight into the hub (Continue) left it at its Elementalist default, and
+                // the wizard fights in PlayerSession.SelectedSchool.
+                if (System.Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, true, out var savedSchool))
+                    PlayerSession.SelectedSchool = savedSchool;
+
+                // C4: a save still inside the examination hall (P1 to P4) goes back to it,
+                // and resumes where its flags say it stands.
+                if (PrologueDirector.NeedsHall(SaveManager.ActiveSave))
+                {
+                    CallDeferred(nameof(RouteToPrologue));
+                    return;
+                }
 
                 // Real strategic scene: read the resident cycle world.
                 var cycle = SaveManager.ActiveSave?.Cycle;
@@ -451,6 +467,9 @@ public partial class StrategicView : Node2D
     /// is the slot picker and founding room, so a boot with nothing to show lands there.
     /// Deferred because changing scenes inside _Ready tears the tree mid-build.</summary>
     private void RouteToCampusFallback() => GetTree().ChangeSceneToFile(CampusScenePath);
+
+    /// <summary>C4: back to the examination hall (PrologueDirector.NeedsHall).</summary>
+    private void RouteToPrologue() => GetTree().ChangeSceneToFile(PrologueDirector.ScenePath);
 
     /// <summary>Inject the real cycle world (campus integration path).</summary>
     public void SetWorld(WorldData world, System.Collections.Generic.Dictionary<string, KingdomState> kingdoms = null)
@@ -2266,6 +2285,7 @@ public partial class StrategicView : Node2D
         if (_cityNarrativePanel != null) _cityNarrativePanel.Visible = false;
         if (_atlas3D != null) _atlas3D.AcceptInput = true;
         ApplyNarrativeOutcome(enc, choice);
+        ChronicleScheduler.RaiseRoadDeed(enc, choice);   // C5: a road deed
         ClearDistrict(entry);
         // Phase 3 contracts: a resolved district event advances "aid" contracts.
         var cycle = SaveManager.ActiveSave?.Cycle;
@@ -2308,6 +2328,7 @@ public partial class StrategicView : Node2D
             if (_cityNarrativePanel != null) _cityNarrativePanel.Visible = false;
             if (_atlas3D != null) _atlas3D.AcceptInput = true;
             ApplyNarrativeOutcome(enc, choice);
+            ChronicleScheduler.RaiseRoadDeed(enc, choice);   // C5: a road deed
             ClearDistrict(entry);
         };
     }
@@ -2909,6 +2930,9 @@ public partial class StrategicView : Node2D
                 : $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
                 QuestToastKind.Progress);
         }
+
+        // C5: the choice's sway, after its other effects.
+        ChronicleScheduler.ApplySway(choice);
 
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
@@ -4106,6 +4130,54 @@ public partial class StrategicView : Node2D
             _debugReveal = reveal;
             _atlas3D?.SetRevealAll(reveal);   // full Rebuild: re-reveals tiles, settlements, grey regions
         }
+
+        PollChronicle(delta);
+    }
+
+    // ── The chronicle (C1, docs/story_wiring_v1.md): quiet moments ────────
+    private double _chronicleWait = 1.0;
+
+    /// <summary>On a quiet moment, show the next chronicle panel over the map: the queue first,
+    /// then whatever the scene-ready beats raise. Polled about once a second, so a run of queued
+    /// panels plays one at a time. The home city view is the campus; anywhere else is the
+    /// strategic map.</summary>
+    private void PollChronicle(double delta)
+    {
+        _chronicleWait -= delta;
+        if (_chronicleWait > 0)
+            return;
+        _chronicleWait = 1.0;
+        if (Standalone || !ChronicleQuiet())
+            return;
+        string screen = InCityView && (_atlas3D?.ActiveCityIsHome ?? false) ? "campus" : "strategic";
+        var enc = ChronicleScheduler.DrainIfQuiet(screen);
+        if (enc != null)
+            ShowFloatedPanelNarrative(enc);
+    }
+
+    /// <summary>Nothing modal is up: no panel, card, dialog, overlay, march or menu.</summary>
+    private bool ChronicleQuiet()
+    {
+        if (_world == null || _atlas3D == null || !_atlas3D.AcceptInput)
+            return false;   // a panel, a card or a march owns the map
+        if (_campusOverlay != null || _floatingPanel != null || _constructCard != null || _cityServices != null)
+            return false;
+        if (_deployUi != null || _warfrontUi != null || _supplyUi != null)
+            return false;
+        if (_cityNarrativePanel != null && _cityNarrativePanel.Visible)
+            return false;
+        if (_helpLayer != null && _helpLayer.Visible)
+            return false;
+        if (GetTree().Paused || CouncilScreen.IsOpen || QuestLogScreen.IsOpen)
+            return false;
+        foreach (var child in GetChildren())
+        {
+            if (child is Window w && w.Visible)
+                return false;   // a dialog
+            if (child is CanvasLayer layer && (layer.Name == "ConjunctionUI" || layer.Name == "ConvergenceOutcomeUI"))
+                return false;
+        }
+        return true;
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -6875,6 +6947,9 @@ public partial class StrategicView : Node2D
         // unlocks its named card into the permanent draft pool. This is the ONE
         // per-lunation call site; calling it twice would double the countdown.
         CardCommissionService.TickLunation(SaveManager.ActiveSave);
+
+        // C5: the seat arcs' new moon (on_lunation_turn), at the end of the tick.
+        ChronicleScheduler.RaiseQueued("on_lunation_turn");
     }
 
     /// <summary>The Grand Conjunction has arrived. For now the cycle simply ends;
@@ -6951,7 +7026,7 @@ public partial class StrategicView : Node2D
             ? "You left the Anchorhold open. It is still open. Nothing else in this timeline is going to happen until you walk back through it."
             : resolved
                 ? "The sky has finished reading itself. Every seat is answered: allied, bought, emptied, or lost. The script has one passage left, and it converges on a second that was never written. The Anchorhold can open its door exactly once. He will be through it before it closes. So will you."
-                : "The moons align and the timeline strains toward its close. You can let it unmake: return to the campus, keep everything you have learned, and begin a new world. Or refuse the reset and hold this timeline into another year. Perfect it, and all you have built endures; but the world hardens, the corruption deepens, and a defeat now unmakes it all.";
+                : "The moons align and the timeline strains toward its close. You can let it unmake: return to the campus, keep everything you have learned, and begin a new world. Or refuse to let it go, and hold this timeline into another year. Perfect it, and all you have built endures; but the world hardens, the corruption deepens, and a defeat now unmakes it all.";
 
         var body = new Label
         {
@@ -7222,7 +7297,7 @@ public partial class StrategicView : Node2D
         var body = new Label
         {
             Text = won
-                ? "The Long Second closes, and this time it closes on your terms. The hall lets go of the moment it has been holding since before you were a wizard. Whatever else is true of this timeline, it ended where it was always going to end, and you were the one still standing in the room."
+                ? "The Long Second closes, and this time it closes on your terms. The hall lets go of the moment it has been holding since before you were a wizard. Whatever else is true of this timeline, it ended in the one room nobody could read, and you were the one still standing in it."
                 : "The anchor takes you back before the blow lands. The timeline closes over the Convergence like water. He does not gloat; he schedules. Somewhere behind your eyes, the Long Second holds, and everything carried inside it holds with you.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,

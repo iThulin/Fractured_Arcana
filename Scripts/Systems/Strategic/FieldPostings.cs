@@ -1089,6 +1089,7 @@ public static class FieldPostings
             }
         }
         zone.Surveyed = true;
+        ChronicleScheduler.RaiseShardZone("surveyed", zone.FragmentKey);   // C1: on_shard_zone
         force.WorkProgress = 0;
         string gate = zone.GuardianCleared ? "The guardian has already fallen." : $"The guardian waits at the gate ({zone.GateX},{zone.GateY}).";
         string body = $"{zone.Name} is surveyed: every tile of it is known. {gate} "

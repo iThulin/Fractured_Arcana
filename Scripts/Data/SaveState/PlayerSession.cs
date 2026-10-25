@@ -155,6 +155,19 @@ public static class PlayerSession
     // Force a specific POI type for the next encounter (-1 = no override)
     public static int ForceNextEncounterType = -1;
 
+    // ── Scripted fights (C4, docs/prologue_script_v1.md section 7, hook a) ──
+    // Set by PrologueDirector.Launch before a prologue fight and cleared when it returns
+    // (PrologueDirector.ClearScriptedSession). Session state, never saved.
+    /// <summary>Card ids the wizard fights with instead of the save's deck, or null.</summary>
+    public static List<string> ScriptedDeck = null;
+    /// <summary>Card ids flagged Innate on one matching instance each, so the opening
+    /// hand is exactly these.</summary>
+    public static List<string> ScriptedInnate = null;
+    /// <summary>The school the wizard plays for the fight, or null for the save's.</summary>
+    public static CardSchool? ScriptedSchool = null;
+    /// <summary>The wizard fights alone: no companions and no companion cards.</summary>
+    public static bool ScriptedWizardOnly = false;
+
     // ── Feature flags ────────────────────────────────────────────────────
     // Populated by BuildingEffectApplier.CalculateRunBonuses() via SetFeature().
     // Also populated by BuildingEffectApplier.ApplyCampusEffects() so campus
