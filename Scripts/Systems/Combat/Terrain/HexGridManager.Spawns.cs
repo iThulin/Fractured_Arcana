@@ -220,8 +220,13 @@ public partial class HexGridManager
         float centerZ = sumZ / n;
         float span = maxX - minX;
 
-        PlayerLayoutAnchor = NearestTileTo(new Vector3(minX + span * 0.12f, 0f, centerZ));
-        EnemyLayoutAnchor = NearestTileTo(new Vector3(minX + span * 0.88f, 0f, centerZ));
+        // The recipe may move the anchors in from the ends (MapRecipe.AnchorPlayer and
+        // AnchorEnemy, default 0.12 / 0.88): the prologue's long examination floor
+        // starts its fighters six hexes apart, not ten.
+        float atPlayer = _activeRecipe?.AnchorPlayer ?? 0.12f;
+        float atEnemy = _activeRecipe?.AnchorEnemy ?? 0.88f;
+        PlayerLayoutAnchor = NearestTileTo(new Vector3(minX + span * atPlayer, 0f, centerZ));
+        EnemyLayoutAnchor = NearestTileTo(new Vector3(minX + span * atEnemy, 0f, centerZ));
         _centerCoord = NearestTileTo(new Vector3((minX + maxX) * 0.5f, 0f, centerZ));
 
         // Siege recipes carry AUTHORED anchors (attacker at the approach,

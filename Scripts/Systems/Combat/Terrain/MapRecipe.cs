@@ -555,6 +555,58 @@ public sealed class SiegeSpec
     }
 }
 
+/// <summary>An interior set the fight is staged inside, in place of the outdoor world
+/// (the prologue's Ceremony Hall). While a recipe with one is active the grid builds no
+/// vista rings, no far field and no ground scatter, gives the scene its own copy of the
+/// environment with a plain background instead of the sky, flattens the tile tops, can
+/// dress the tiles as a laid floor, and builds the set around the board
+/// (HexGridManager.Interior.cs).
+/// Example: { "set": "ceremony_hall", "background": [0.06, 0.062, 0.07], "tile_relief": 0.0,
+///            "board_rise": 0.04, "floor_cool": [0.70, 0.67, 0.61], "floor_warm": [0.78, 0.73, 0.64],
+///            "floor_joint": [0.30, 0.28, 0.25] }</summary>
+public sealed class InteriorSpec
+{
+    /// <summary>The set to build: HallSet.SetId. An unknown id builds nothing but still
+    /// turns the outdoor world off, so the board stands alone in the dark.</summary>
+    public string Set = "";
+
+    /// <summary>The environment's background color behind the set (no sky indoors).</summary>
+    public Color Background = new Color(0.045f, 0.038f, 0.032f);
+
+    /// <summary>The most tile-top noise any terrain gets while this recipe is active, in
+    /// world units: it caps HexGridManager's per-terrain NoiseAmp exports (stone's own is
+    /// half a meter). 0 lays a flat floor. The authored amplitudes return on the next
+    /// outdoor map. Negative leaves them alone.</summary>
+    public float TileRelief = 0.03f;
+
+    /// <summary>How far the lowest tiles' tops stand above the set's floor, in world units.
+    /// Small (a few centimeters) lays the board into the floor; negative stands the board on
+    /// its full skirts, a stage one height step tall. Keep it above TileRelief, or the floor
+    /// shows through the lowest tile tops.</summary>
+    public float BoardRise = -1f;
+
+    /// <summary>When both are set, the tiles' stone tops are painted as dressed floor stone
+    /// between these two tones, nearly flat, on the interior's own copy of the splat
+    /// template. Null leaves the terrain's own look.</summary>
+    public Color? FloorCool;
+    public Color? FloorWarm;
+
+    /// <summary>The floor's joints: the hex grid lines and the few centimeters of tile edge
+    /// that show above the set's floor. Null keeps the template's.</summary>
+    public Color? FloorJoint;
+
+    public static InteriorSpec FromDict(Godot.Collections.Dictionary d) => new()
+    {
+        Set = MapRecipe.Str(d, "set", ""),
+        Background = MapRecipe.Col(d, "background", new Color(0.045f, 0.038f, 0.032f)),
+        TileRelief = MapRecipe.Flt(d, "tile_relief", 0.03f),
+        BoardRise = MapRecipe.Flt(d, "board_rise", -1f),
+        FloorCool = d.ContainsKey("floor_cool") ? (Color?)MapRecipe.Col(d, "floor_cool", Colors.White) : null,
+        FloorWarm = d.ContainsKey("floor_warm") ? (Color?)MapRecipe.Col(d, "floor_warm", Colors.White) : null,
+        FloorJoint = d.ContainsKey("floor_joint") ? (Color?)MapRecipe.Col(d, "floor_joint", Colors.Black) : null,
+    };
+}
+
 public sealed class MapRecipe
 {
     public string Id = "";
@@ -567,6 +619,14 @@ public sealed class MapRecipe
     public SiegeSpec Siege;
     public TacticsSpec Tactics;
     public ObstaclePalette Obstacles;
+    /// <summary>The set this fight is staged inside, or null outdoors (InteriorSpec).</summary>
+    public InteriorSpec Interior;
+    /// <summary>Without a deployments block, where along the board's length (west to
+    /// east, 0 to 1) the player's and the enemy's layout anchors sit. The defaults are
+    /// the pre-spec plan; a long board (the prologue's examination floor) moves them in.
+    /// JSON: "anchors": { "player": 0.25, "enemy": 0.75 }.</summary>
+    public float AnchorPlayer = 0.12f;
+    public float AnchorEnemy = 0.88f;
     public List<FeatureOp> Features = new();
     public List<MapEventDef> MapEvents = new();
     /// <summary>battlefield_variety_spec_v1 §3: deployment variants. Empty = the
@@ -594,6 +654,9 @@ public sealed class MapRecipe
             Siege = Siege,
             Tactics = Tactics,
             Obstacles = skin.Obstacles ?? Obstacles,
+            Interior = Interior,
+            AnchorPlayer = AnchorPlayer,
+            AnchorEnemy = AnchorEnemy,
             Features = Features,
             MapEvents = MapEvents,
             Deployments = Deployments,
@@ -645,6 +708,16 @@ public sealed class MapRecipe
 
         if (d.ContainsKey("obstacles"))
             r.Obstacles = ObstaclePalette.FromDict(d["obstacles"].AsGodotDictionary());
+
+        if (d.ContainsKey("interior"))
+            r.Interior = InteriorSpec.FromDict(d["interior"].AsGodotDictionary());
+
+        if (d.ContainsKey("anchors"))
+        {
+            var an = d["anchors"].AsGodotDictionary();
+            r.AnchorPlayer = Mathf.Clamp(Flt(an, "player", 0.12f), 0f, 1f);
+            r.AnchorEnemy = Mathf.Clamp(Flt(an, "enemy", 0.88f), 0f, 1f);
+        }
 
         if (d.ContainsKey("features"))
         {

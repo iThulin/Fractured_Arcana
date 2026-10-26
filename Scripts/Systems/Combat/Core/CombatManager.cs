@@ -5106,7 +5106,8 @@ public partial class CombatManager : Node3D
         // objective: the launcher's own dropdown is the source of truth there.
         if (EncounterContextCarrier.HasEncounter &&
             EncounterContextCarrier.Current.Objective == null &&
-            !PlayerSession.DebugCombat)
+            !PlayerSession.DebugCombat &&
+            !ScriptedFight)   // C4: a scripted fight keeps its authored objective, or none
         {
             EncounterContextCarrier.Current.Objective = BattlefieldRoster.RollObjective(
                 EncounterContextCarrier.Current.RegionId, EncounterContextCarrier.Tier);
@@ -5150,11 +5151,15 @@ public partial class CombatManager : Node3D
             grid.PlayerSpawnCount = partyHeadcount;
 
         string terrain = EncounterContextCarrier.SourceTerrain;
-        if (!string.IsNullOrEmpty(terrain))
+        // A fight that names its map needs no terrain to find it. The prologue's are
+        // fought indoors with no overworld terrain at all, and without this they fell
+        // through to the grid's inspector defaults (2026-10-25 playtest: a 25 x 25
+        // lake map instead of the Ceremony Hall).
+        string forcedRecipe = EncounterContextCarrier.Current?.MapRecipe;
+        if (!string.IsNullOrEmpty(terrain) || !string.IsNullOrEmpty(forcedRecipe))
         {
             // battlefield_variety_spec_v1 §2: E5 override → region + global weighted
             // pools (minus the recent-history window) → the 1:1 terrain table.
-            string forcedRecipe = EncounterContextCarrier.Current?.MapRecipe;
             grid.MapRecipeId = BattlefieldRoster.ResolveRecipe(
                 EncounterContextCarrier.Current?.RegionId ?? "",
                 EncounterContextCarrier.Tier, terrain, forcedRecipe);
@@ -5202,7 +5207,8 @@ public partial class CombatManager : Node3D
         // AFTER GenerateMap so its coord tokens resolve against the rolled axis at
         // the first round boundary, like every recipe event.
         grid.InjectedMapEvents.Clear();
-        if (EncounterContextCarrier.HasEncounter && !PlayerSession.DebugCombat)
+        // C4: a scripted fight (the prologue) is exactly as authored; no straggler joins it.
+        if (EncounterContextCarrier.HasEncounter && !PlayerSession.DebugCombat && !ScriptedFight)
         {
             var cur = EncounterContextCarrier.Current;
             bool hasWaves = cur.Waves != null && cur.Waves.Count > 0;

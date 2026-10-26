@@ -429,6 +429,7 @@ public partial class HexGridManager : Node3D
     {
         InitRng();
         ResolveRecipe();          // may override Shape/size from the recipe; null = enum path
+        PrepareInteriorGeneration(); // hand back the splat template; an interior flattens the tile tops (Interior partial)
         GenerateBaseGrid();
         ClearReservedTiles();
 
@@ -478,11 +479,17 @@ public partial class HexGridManager : Node3D
         // Vista DATA must exist before the playable meshes build (edge tiles
         // blend outward into it); vista MESHES build after ApplyTileVisuals,
         // once _lastWorldFloor + the splat template exist. See HexGridManager.Vista.cs.
-        GenerateVistaRing(field);
+        GenerateVistaRing(InteriorActive ? null : field);   // indoors there is no world past the board
 
         // Water bodies (playable + vista water) must sit in real basins dug
         // below their banks BEFORE heights bake. See WaterPlane partial.
         DigWaterBasins();
+
+        // An interior's laid floor goes on its own copy of the splat template, BEFORE
+        // the sand style, the heights and the horizon write to whichever template is
+        // current (Interior partial; the copy is handed back at the top of the next
+        // generation).
+        ApplyInteriorGroundStyle();
 
         // Per-recipe sand palette into the shared splat template, before
         // tiles duplicate it in ApplyTileVisuals. See Visuals partial.
@@ -496,26 +503,40 @@ public partial class HexGridManager : Node3D
         // PREVIOUS fight's fog colour. (Playable tiles duplicate earlier, inside
         // ApplyTileHeights, but never read horizon_color.) ApplyHorizon only needs
         // _lastWorldFloor, which ApplyTileHeights has just computed.
+        PrepareInteriorEnvironment();   // an interior writes its atmosphere to its own copy (Interior partial)
         if (_activeRecipe?.Atmosphere != null)
             ApplyRecipeAtmosphere(_activeRecipe.Atmosphere);
         else
             ApplyThemeAtmosphere();
         ApplyCameraLens();        // combat lens + fog compensation (FarField partial)
+        ApplyInteriorBackground(); // no sky indoors
 
         ApplyTileVisuals();
         BuildVistaMeshes();
         BuildArenaBoundary();
-        BuildFarField(field);     // landscape beyond the vista (FarField partial)
+        BuildFarField(InteriorActive ? null : field);     // landscape beyond the vista (FarField partial); none indoors
 
         SpawnObstacleVisuals();
-        SpawnPainterlyGrass();
-        SpawnFlowerProps();
-        SpawnRockProps();
-        SpawnCanopyProps();
+        if (InteriorActive)
+        {
+            // A hall floor grows no grass and sheds no scree; the set dresses it instead.
+            ClearPainterlyGrass();
+            ClearFlowerProps();
+            ClearRockProps();
+            ClearCanopyProps();
+        }
+        else
+        {
+            SpawnPainterlyGrass();
+            SpawnFlowerProps();
+            SpawnRockProps();
+            SpawnCanopyProps();
+        }
         SpawnWaterPlane();
         RefreshAllTileLabels();
 
         RecomputeGridBounds();
+        BuildInteriorSet();       // the set around the board, or clear a previous map's (Interior partial)
         CenterCameraOverGrid();
     }
 

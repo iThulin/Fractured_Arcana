@@ -18,7 +18,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 3,
-        "description": "Stand three rounds against the Examiner."
+        "description": "Stand against the Examiner"
       },
       "waves": []
     },
@@ -55,7 +55,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 3,
-        "description": "Break the Frost Plate within three rounds."
+        "description": "Break the Frost Plate"
       },
       "waves": []
     },
@@ -115,7 +115,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 3,
-        "description": "Break the Proving Coil within three rounds."
+        "description": "Break the Proving Coil"
       },
       "waves": []
     },
@@ -175,7 +175,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 3,
-        "description": "Break the Swing Arm within three rounds."
+        "description": "Break the Swing Arm"
       },
       "waves": []
     },
@@ -235,7 +235,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 3,
-        "description": "Break the Walking Frame within three rounds."
+        "description": "Break the Walking Frame"
       },
       "waves": []
     },
@@ -303,7 +303,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 4,
-        "description": "Break the Dummy Rack within four rounds."
+        "description": "Break the Dummy Rack"
       },
       "waves": []
     },
@@ -363,7 +363,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 4,
-        "description": "Break the Tiller within four rounds."
+        "description": "Break the Tiller"
       },
       "waves": []
     },
@@ -423,7 +423,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 3,
-        "description": "Break the Target Frame within three rounds."
+        "description": "Break the Target Frame"
       },
       "waves": []
     },
@@ -483,7 +483,7 @@
       "objective": {
         "kind": "survive",
         "rounds": 3,
-        "description": "Break the Caster Arm within three rounds."
+        "description": "Break the Caster Arm"
       },
       "waves": []
     },
@@ -556,7 +556,7 @@
         "kind": "protect",
         "wardUnitId": "provost_wenna",
         "rounds": 3,
-        "description": "Protect the Provost. She has not stopped speaking."
+        "description": "Protect the Provost"
       },
       "waves": [
         {
