@@ -182,6 +182,17 @@ public partial class Unit : Node3D
     /// took off (DamageTakenThisCombat counts health alone). Read by the prologue trial's
     /// damage counter, so a blow the armor eats still marks up (CombatManager.Tutorial.cs).</summary>
     public int DamageLandedThisCombat = 0;
+    /// <summary>A checklist's wards (CombatManager.Tutorial.cs, ruled 2026-10-27): the health
+    /// bar is split into WardSections even sections, and each of the WardsStanding wards keeps
+    /// one of them, from the bottom up, from taking damage. Both are 0 on every unit a checklist
+    /// does not ward.</summary>
+    public int WardSections = 0;
+    public int WardsStanding = 0;
+
+    /// <summary>The least health the standing wards allow: the top of the highest warded
+    /// section (MitigateCore's floor). 0 when no ward stands.</summary>
+    public int WardFloor => WardSections <= 0 || WardsStanding <= 0 ? 0
+        : (int)Math.Ceiling(Stats.MaxHealth * (double)Math.Min(WardsStanding, WardSections) / WardSections);
     /// <summary>Unit id whose profile this unit adopts at the head of its NEXT
     /// activation. Set by mode_shift; applied and cleared in RunEnemyTurn, so the
     /// shift is telegraph-honest (§7a P2), never mid-turn.</summary>
@@ -1141,10 +1152,11 @@ public partial class Unit : Node3D
     /// formula). Static so the preview can replay multi-hit sequences against
     /// VIRTUAL shield/armor/HP without touching live stats. Does NOT model
     /// link/redirect rerouting: ApplyDamage handles those before this runs;
-    /// the preview surfaces them as a warning instead.</summary>
+    /// the preview surfaces them as a warning instead. <paramref name="floor"/> is the
+    /// least health the blow may leave (a checklist's wards, <see cref="WardFloor"/>).</summary>
     public static (int shieldLoss, int armorLoss, int hpLoss, bool immortalSave) MitigateCore(
         int amount, int shield, int armor, int health, bool shrouded, bool immortal,
-        int chitin = 0)
+        int chitin = 0, int floor = 0)
     {
         if (amount <= 0)
             return (0, 0, 0, false);
@@ -1181,13 +1193,18 @@ public partial class Unit : Node3D
         }
 
         int hpLoss = Math.Min(remaining, health);
+
+        // Wards (a checklist's apparatus): a warded section takes no damage, so the blow
+        // stops at the floor. Shield and armor still spend first, as on any hit.
+        if (floor > 0)
+            hpLoss = Math.Min(hpLoss, Math.Max(0, health - floor));
         return (shieldLoss, armorLoss, hpLoss, immortalSave);
     }
 
-    /// <summary>Instance convenience over MitigateCore against LIVE stats.</summary>
+    /// <summary>Instance convenience over MitigateCore against LIVE stats, wards included.</summary>
     public (int shieldLoss, int armorLoss, int hpLoss, bool immortalSave) ComputeMitigation(int amount)
         => MitigateCore(amount, Stats.Shield, Stats.Armor, Stats.Health,
-            HasStatus("shrouded"), HasStatus("immortal"), ChitinAmount);
+            HasStatus("shrouded"), HasStatus("immortal"), ChitinAmount, WardFloor);
 
     /// <summary>U3c: <paramref name="source"/> is the unit that dealt this damage,
     /// when one is known. Optional, so all pre-U3c callers are unaffected; the enemy
@@ -1338,6 +1355,13 @@ public partial class Unit : Node3D
 
         if (immortalSave)
             GD.Print($"{Name} is Immortal and survives at 1 HP.");
+        if (WardsStanding > 0)
+        {
+            int unwarded = MitigateCore(amount, Stats.Shield, Stats.Armor, Stats.Health,
+                HasStatus("shrouded"), HasStatus("immortal"), ChitinAmount).hpLoss;
+            if (unwarded > hpLoss)
+                GD.Print($"{Name}'s wards hold: {unwarded - hpLoss} damage stopped ({WardsStanding} of {WardSections} standing).");
+        }
 
         Stats.Shield -= shieldLoss;
         Stats.Armor -= armorLoss;

@@ -306,22 +306,14 @@ public partial class CombatManager
         TryInterruptWarpChannel(struck, hpLoss);
         TryInterruptRitual(struck, hpLoss);   // portal strike: a blight ritual breaks the same way
 
-        // Riposte re-hook (2026-07-28). ResolveRetaliation was called from
-        // PerformAttack / PerformRangedAttack, but the U2 intent-AI migration routed
-        // every enemy attack through ExecuteIntent -> StrikeTile -> ResolveStrike, and
-        // left those two methods behind. PerformAttack now has ZERO callers;
-        // PerformRangedAttack has exactly one (Tinker constructs). So the player's
-        // Riposte card fired only against a construct's shot and never against the
-        // enemy AI. It was an orphaned hook, not dead code.
-        //
-        // Unit.OnStruck (U3b) is the correct home: it fires on ANY damage with a known
-        // source, so Riposte now answers melee, ranged, spells and constructs alike,
-        // through ONE call site that cannot be orphaned by a future AI refactor. Both
-        // legacy calls were removed to avoid a double-fire.
-        //
-        // Terminates: ResolveRetaliation deals its damage with NO source, so the
-        // victim's own OnStruck sees source == null and returns, so no ping-pong.
-        ResolveRetaliation(struck, source);
+        // Riposte (2026-07-28 re-hook, moved 2026-10-27). The 2026-07-28 pass moved
+        // ResolveRetaliation off PerformAttack / PerformRangedAttack, which the U2 intent
+        // AI had orphaned, onto this handler: one call site for melee, ranged, spells and
+        // constructs alike. But Unit.OnStruck fires only when health is lost, and the card
+        // reads "any attacker that hits you": Riposte's own 3 shield kept it from answering
+        // any blow of 3 or less. It now hangs off Unit.OnAttacked (HandleUnitAttacked,
+        // CombatManager.cs), which every attributable hit raises before mitigation, through
+        // the same one call site.
     }
 
     /// <summary>U3b: onSpawn call site. Fires INLINE, mirroring FireItemSpawnTriggers

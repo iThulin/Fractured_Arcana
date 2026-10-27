@@ -223,6 +223,26 @@
       "note": "Enemy attacks lock onto a tile, not a unit. The marked tiles show where each blow will land. Step off a marked tile before the enemy turn and the attack lands on empty ground."
     },
     {
+      "key": "trial.combat.deployment",
+      "category": "explain",
+      "once": true,
+      "title": "Deployment",
+      "lines": [
+        "The Examiner: 'Stand where you like on your end of the floor. The apparatus is set down after you choose, as near to you as its end allows.'"
+      ],
+      "note": "Before a fight begins, place your units on the highlighted tiles: select a unit, then click a tile. Press Confirm Deployment, or Enter, to begin. The enemy takes the field after you confirm, as close to you as its side allows."
+    },
+    {
+      "key": "trial.combat.opening_hand",
+      "category": "explain",
+      "once": true,
+      "title": "The opening hand",
+      "lines": [
+        "The Examiner: 'Your opening hand. You may send up to two back and draw again. The board dealt this one with care, but the board is not sitting the practical.'"
+      ],
+      "note": "At the start of a fight you may put up to 2 cards from your opening hand on the bottom of your deck and draw that many. Cancel to keep the hand you were dealt."
+    },
+    {
       "key": "trial.reaction.steam",
       "category": "explain",
       "once": true,
@@ -555,6 +575,27 @@
       "note": "Counterspell cancels the target's next action outright: its attack, its spell or its move. Cancelling something this turn also turns on cards that reward it, such as Spell Drain."
     },
     {
+      "key": "trial.practical.warded",
+      "category": "explain",
+      "once": true,
+      "title": "Warded",
+      "lines": [
+        "The Examiner: 'It is warded. Every answer you show me breaks one ward and opens a little more of it to harm.'"
+      ],
+      "note": "This apparatus is warded. Its health bar is split into one section per step under the objective, and a warded section takes no damage. Each step you finish breaks one ward and opens the next section. Break every ward, then break the apparatus. There is no round limit. If you would rather stop, yield from the menu (Esc)."
+    },
+    {
+      "key": "trial.practical.released",
+      "category": "comment",
+      "once": false,
+      "cooldown": 60,
+      "title": "The Practical",
+      "lines": [
+        "The Examiner: 'That is every answer. Now break it.'",
+        "The Examiner: 'The last ward is down. Break it.'"
+      ]
+    },
+    {
       "key": "enemy.borrowed",
       "category": "comment",
       "cooldown": 240,
@@ -636,6 +677,46 @@
         "It has written your square into its plans. Plans can be... amended. Stand elsewhere."
       ],
       "note": "Enemy attacks lock onto a tile, not a unit. The marked tiles show where each blow will land. Step off a marked tile before the enemy turn and the attack lands on empty ground."
+    },
+    {
+      "key": "combat.deployment",
+      "category": "explain",
+      "once": true,
+      "title": "Deployment",
+      "lines": [
+        "The candidate may arrange the party before the other side arrives. The other side is not... consulted."
+      ],
+      "note": "Before a fight begins, place your units on the highlighted tiles: select a unit, then click a tile. Press Confirm Deployment, or Enter, to begin. The enemy takes the field after you confirm, as close to you as its side allows."
+    },
+    {
+      "key": "combat.opening_hand",
+      "category": "explain",
+      "once": true,
+      "title": "The opening hand",
+      "lines": [
+        "A hand, dealt. Up to two pages may go back under the stack, and as many come up. The Register keeps every page it is given. The Register is not... playing."
+      ],
+      "note": "At the start of a fight you may put up to 2 cards from your opening hand on the bottom of your deck and draw that many. Cancel to keep the hand you were dealt."
+    },
+    {
+      "key": "practical.warded",
+      "category": "explain",
+      "once": true,
+      "title": "Warded",
+      "lines": [
+        "The apparatus is warded. It may not be harmed past a ward until the step that breaks it is... minuted."
+      ],
+      "note": "This apparatus is warded. Its health bar is split into one section per step under the objective, and a warded section takes no damage. Each step you finish breaks one ward and opens the next section. Break every ward, then break the apparatus. There is no round limit. If you would rather stop, yield from the menu (Esc) and sit it again."
+    },
+    {
+      "key": "practical.released",
+      "category": "comment",
+      "once": false,
+      "cooldown": 60,
+      "title": "The Register",
+      "lines": [
+        "Every step, minuted. The apparatus may now be... broken."
+      ]
     },
     {
       "key": "reaction.steam",

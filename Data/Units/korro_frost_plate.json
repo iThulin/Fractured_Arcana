@@ -3,7 +3,7 @@
   "threatLabel": "Frost Plate",
   "role": "line",
   "factionId": "",
-  "intelDescription": "Master Korro's examination apparatus, fitted with an iron plate and standing on frost. Every blow against it loses 3.",
+  "intelDescription": "Master Korro's examination apparatus, fitted with an iron plate and standing on frost. Every blow against it loses 3. In an examination it is warded: each step under the objective breaks one ward.",
   "maxHealth": 16,
   "baseSpeed": 0,
   "armor": 0,

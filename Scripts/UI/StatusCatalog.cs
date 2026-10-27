@@ -91,7 +91,7 @@ public readonly struct UnitCondition
         return Key switch
         {
             "poisoned" => $"{Label} ({Count} per turn)",
-            "chitin" or "heat" => $"{Label} {Count}",
+            "chitin" or "heat" or "apparatus_ward" => $"{Label} {Count}",
             _ => Count == 1 ? $"{Label} (1 turn)" : $"{Label} ({Count} turns)",
         };
     }
@@ -145,6 +145,7 @@ public static class StatusCatalog
         { "chaining",      new("Chaining",     "CHN",  StatusTone.Buff,   "Its damage spells chain to extra targets.") },
         { "shrouded",      new("Shrouded",     "SHRD", StatusTone.Buff,   "Each hit against it deals at most 5 damage.") },
         { "immortal",      new("Immortal",     "IMM",  StatusTone.Buff,   "Lethal damage leaves it at 1 HP.") },
+        { "apparatus_ward", new("Warded",      "WARD", StatusTone.Buff,   "Wards standing: {n}. Each keeps one section of its health bar from taking damage, and each step under the objective breaks one.") },
         { "untargetable",  new("Untargetable", "HIDE", StatusTone.Buff,   "Enemies cannot target it.") },
         { "dancing",       new("The Dance",    "DNC",  StatusTone.Buff,   "Its allies may swap places freely.") },
         { "invulnerable",  new("Invulnerable", "INV",  StatusTone.Buff,   "Takes no damage.") },
@@ -270,6 +271,9 @@ public static class StatusCatalog
             list.Add(new UnitCondition("taunting", Get("taunting"), 0));
         if (u.Heat > 0)
             list.Add(new UnitCondition("heat", Get("heat"), u.Heat));
+        // A checklist's wards (CombatManager.Tutorial.cs): unit fields, never a status key.
+        if (u.WardSections > 0 && u.WardsStanding > 0)
+            list.Add(new UnitCondition("apparatus_ward", Get("apparatus_ward"), u.WardsStanding));
 
         // Spirit wards are flags plus a turn counter, never status keys.
         if (u.IsUndying)

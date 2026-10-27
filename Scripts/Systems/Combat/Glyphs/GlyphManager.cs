@@ -439,6 +439,10 @@ public sealed class GlyphManager
         if (g == null)
             return false;
 
+        // A checklist's glyph step: an enemy walked into a player's glyph.
+        if (g.OwnerTeam == 0 && cause != null && GodotObject.IsInstanceValid(cause) && cause.TeamId != 0)
+            CombatManager.NoteMoment("ench.glyph_sprung");
+
         if (g.Owner?.Attunement is WeaveAttunement w)
             w.OnGlyphTriggered();
 

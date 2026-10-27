@@ -77,6 +77,18 @@ using System.Threading.Tasks;
 //                               (adjacent to the mark, not adjacent
 //                               to other player units) on ties.
 //                     immobile: never moves (turrets, rooted growths).
+//                     unerring: its ranged shot always finds its mark
+//                               (2026-10-27, the trial's Examiner).
+//                               No marked tile: when it fires it
+//                               re-aims at the unit it planned
+//                               against, wherever that unit stands,
+//                               and range, sight and cover never
+//                               refuse it. It still enters the stack,
+//                               so a Reflex can answer it, and a
+//                               Reflex teleport in that window still
+//                               leaves it empty ground. A redirect
+//                               (Chronomancer) makes it an ordinary
+//                               tile-locked shot again.
 //                 - Telegraph honesty: EnemyIntent.Value is the
 //                   plan-time ESTIMATE (base + tag bonuses as the
 //                   board stood at planning); EnemyIntent.BaseValue
@@ -131,6 +143,11 @@ public class EnemyIntent
     public int BaseValue;
     /// <summary>Full details visible (value + threat tiles). Kind glyph shows regardless when ShowIntentKindByDefault.</summary>
     public bool Revealed;
+
+    /// <summary>An unerring shot (the unerring behavior tag): no threat tiles, and it re-aims at
+    /// <see cref="TargetUnit"/> when it fires. A redirect clears it, which locks the shot to the
+    /// tile it was drawn to like any other.</summary>
+    public bool Unerring;
 
     /// <summary>For <see cref="IntentKind.Imbue"/>: the element written onto every
     /// <see cref="ThreatTiles"/> tile at execution. None for every other kind.</summary>
@@ -247,7 +264,9 @@ public partial class CombatManager
 
         foreach (var enemy in enemyUnits)
         {
-            if (IsValidActor(enemy) && enemy.CurrentIntent?.TargetTile != null)
+            // An unerring shot has no marked tile to step off, so it never raises the
+            // marked-ground explanation.
+            if (IsValidActor(enemy) && enemy.CurrentIntent?.TargetTile != null && !enemy.CurrentIntent.Unerring)
             {
                 RegisterManager.Fire("combat.tile_intent");
                 break;
@@ -755,6 +774,15 @@ public partial class CombatManager
             intent.Value = estimate;
         }
 
+        // unerring (2026-10-27): the shot finds its mark wherever it stands, so there is no
+        // tile to mark. ExecuteRangedIntent re-aims it at TargetUnit when it fires. Last, so
+        // it also clears a tile another tag aimed.
+        if (intent.Kind == IntentKind.RangedAttack && enemy.HasBehaviorTag("unerring"))
+        {
+            intent.Unerring = true;
+            intent.ThreatTiles.Clear();
+        }
+
         return intent;
     }
 
@@ -1176,6 +1204,8 @@ public partial class CombatManager
             parts.Add("SKIRM");     // shoots, then backs off to cover
         if (enemy.HasBehaviorTag("pinner"))
             parts.Add("PIN");       // ends beside a caster; leaving costs a strike
+        if (enemy.HasBehaviorTag("unerring"))
+            parts.Add("SURE");      // its shot finds its mark wherever the mark stands
         if (enemy.HasBehaviorTag("bulwark"))
             parts.Add("BLWK");
         if (string.Equals(enemy.BehaviorKey, "melee_hunt_wounded", StringComparison.OrdinalIgnoreCase))
@@ -1292,6 +1322,7 @@ public partial class CombatManager
         const string legend =
             "[Markers] MOVn=tiles it can cover  APn=action points  CHG+1=charge rider  " +
             "PACK(+1)=pack rider, live  FLANK=breaks off when crowded  BLWK=plants for wounded allies  " +
+            "SURE=its shot finds its mark wherever the mark stands  " +
             "IMM=cannot move  PLANT=held this turn  HUNTS-WEAK=targets lowest current HP  " +
             "SPELL:x=channel rider  ONDEATH:SPAWNn=deathburst  REQ+n(xN)=requiem, live stacks  " +
             "GUARDS-rN=intercepts damage for allies within N  GUARDED=an ally is taking its hits  " +
@@ -1544,6 +1575,7 @@ public partial class CombatManager
                 enemy.NegateNextAction = false;
                 GD.Print($"{enemy.Name}'s action is negated!");
                 combatUI?.AppendActionLog($"{enemy.Name}'s action is negated!");
+                NoteTutorialNegate(enemy);   // the practical's negate step
                 enemy.CurrentIntent = null;
                 enemy.ClearIntentDisplay();
                 continue;
@@ -1590,6 +1622,7 @@ public partial class CombatManager
                 enemy.CurrentIntent.TargetTile = newTile;
                 enemy.CurrentIntent.ThreatTiles.Clear();
                 enemy.CurrentIntent.ThreatTiles.Add(newTile);
+                enemy.CurrentIntent.Unerring = false;   // a redirected shot lands where it was drawn
                 if (enemy.CurrentIntent.Kind == IntentKind.Release)
                     enemy.ChannelTile = newTile;
                 GD.Print($"{enemy.Name}'s intent is redirected to {newTile}.");
@@ -2307,6 +2340,15 @@ public partial class CombatManager
 
         var tile = intent.TargetTile.Value;
 
+        // unerring: the shot goes where its mark stands now, not where it stood at planning.
+        if (intent.Unerring)
+        {
+            var aim = UnerringAim(enemy, intent);
+            if (aim == null)
+                return;
+            tile = aim.Value;
+        }
+
         // Skirmisher (forced_movement_v1 §4): shoot FIRST from where it stands when
         // the shot is clear and in range, then spend what movement is left backing
         // off to cover. Moving first drew free strikes and gave the mark a turn of
@@ -2338,8 +2380,9 @@ public partial class CombatManager
             // Flank (cover_and_zoc_v1 §12): in range but the mark sits behind full
             // cover or out of sight from here. Spend the move on a tile with a clear
             // shot instead of wasting the arrow. A tile that also gives the shooter
-            // Low cover against the mark wins ties.
-            if (IsValidActor(enemy) && !HasClearShot(enemy.CurrentTile.Axial, tile)
+            // Low cover against the mark wins ties. An unerring shot needs no clear
+            // shot, so it never flanks.
+            if (!intent.Unerring && IsValidActor(enemy) && !HasClearShot(enemy.CurrentTile.Axial, tile)
                 && CanSpendMoveAP(enemy))
                 await MoveForClearShot(enemy, tile, preferred);
         }
@@ -2347,7 +2390,19 @@ public partial class CombatManager
         if (!IsValidActor(enemy))
             return;
 
+        // unerring: aim again after the kite, in case anything moved the mark meanwhile.
+        if (intent.Unerring && UnerringAim(enemy, intent) is Vector2I late)
+            tile = late;
+
         await FireRangedShot(enemy, intent, tile);
+    }
+
+    /// <summary>An unerring shot's tile: where its mark stands now (the intent's TargetUnit, or
+    /// the nearest player unit when that one is gone). Null when nobody is left to aim at.</summary>
+    private Vector2I? UnerringAim(Unit enemy, EnemyIntent intent)
+    {
+        var mark = IsValidActor(intent.TargetUnit) ? intent.TargetUnit : FindNearestPlayerUnit(enemy);
+        return mark?.CurrentTile?.Axial;
     }
 
     /// <summary>Effective ranged reach from the shooter's current tile to
@@ -2368,24 +2423,32 @@ public partial class CombatManager
            && HasClearShot(enemy.CurrentTile.Axial, tile);
 
     /// <summary>The shot itself: range, sight, and cover checks, then StrikeTile.
-    /// Each refusal says why, so a wasted arrow is never silent.</summary>
+    /// Each refusal says why, so a wasted arrow is never silent. A wasted shot whose
+    /// mark had stepped off the tile is the checklist's dodge. An unerring shot is
+    /// never refused.</summary>
     private async Task FireRangedShot(Unit enemy, EnemyIntent intent, Vector2I tile)
     {
-        int tileDist = grid.Distance(enemy.CurrentTile.Axial, tile);
-        if (tileDist > EffectiveRangedReach(enemy, tile))
+        if (!intent.Unerring)
         {
-            combatUI?.AppendActionLog($"{enemy.Name} finds its mark out of range. The shot is wasted.");
-            return;
-        }
-        if (!grid.HasLineOfSight(enemy.CurrentTile.Axial, tile))
-        {
-            combatUI?.AppendActionLog($"{enemy.Name} has no line of sight!");
-            return;
-        }
-        if (grid.CoverBetween(tile, enemy.CurrentTile.Axial) == CoverKind.High)
-        {
-            combatUI?.AppendActionLog($"{enemy.Name}'s shot thuds into full cover.");
-            return;
+            int tileDist = grid.Distance(enemy.CurrentTile.Axial, tile);
+            if (tileDist > EffectiveRangedReach(enemy, tile))
+            {
+                combatUI?.AppendActionLog($"{enemy.Name} finds its mark out of range. The shot is wasted.");
+                NoteTutorialWhiff(enemy, tile, null);
+                return;
+            }
+            if (!grid.HasLineOfSight(enemy.CurrentTile.Axial, tile))
+            {
+                combatUI?.AppendActionLog($"{enemy.Name} has no line of sight!");
+                NoteTutorialWhiff(enemy, tile, null);
+                return;
+            }
+            if (grid.CoverBetween(tile, enemy.CurrentTile.Axial) == CoverKind.High)
+            {
+                combatUI?.AppendActionLog($"{enemy.Name}'s shot thuds into full cover.");
+                NoteTutorialWhiff(enemy, tile, null);
+                return;
+            }
         }
 
         await StrikeTile(enemy, tile, intent.Value, ranged: true);
@@ -2588,6 +2651,7 @@ public partial class CombatManager
             string missMsg = $"{enemy.Name} finds the blast point beyond reach. The charge is wasted.";
             GD.Print(missMsg);
             combatUI?.AppendActionLog(missMsg);
+            NoteTutorialWhiff(enemy, tile, null);   // the checklist's dodge, when its mark stepped off
             return;
         }
 
@@ -2904,7 +2968,7 @@ public partial class CombatManager
                 : $"{attackerName} {verb} at empty ground!";
             GD.Print(whiff);
             combatUI?.AppendActionLog(whiff);
-            NoteTutorialWhiff(attacker, tile, originalVictim);   // C4: the trial's dodge step
+            NoteTutorialWhiff(attacker, tile, originalVictim);   // C4: the checklist's dodge step
         }
         else if (victim == attacker && _backfiring.Remove(attacker))
         {
@@ -2949,7 +3013,11 @@ public partial class CombatManager
                 GD.Print(hit);
                 combatUI?.AppendActionLog(hit);
                 CombatPresenter.EmitStrike(attacker, victim, ranged ? Delivery.Bolt : Delivery.Melee);   // spell_vfx_pipeline_v1 §5 phase 2
+                int guardBefore = victim.Stats.Shield + victim.Stats.Armor;
                 victim.ApplyDamage(damage, attacker, ranged ? Delivery.Bolt : Delivery.Melee);
+                NoteTutorialBlock(attacker, victim, guardBefore);   // the trial's block step
+                if (victim.IsConstruct && victim.TeamId == 0)
+                    NoteMoment("tinker.construct_struck");   // the Tinker exam's decoy step
                 LastStrikeVictim = victim;
                 OnWardedStruck(attacker, victim);
             }

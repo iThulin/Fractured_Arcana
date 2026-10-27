@@ -100,7 +100,7 @@
   {
     "id": "prologue_trial_rules",
     "title": "Begin When the Bell Stills",
-    "body": "On the lectern, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner walks to the far end of the examination floor and turns to face you.\n\n'Two parts. First the fundamentals: you and me, with the Academy's own cards, until the board has seen enough. The trial is not to defeat me. The trial is to show me you know why each card leaves your hand. I will read one spell aloud before we are done. Do not be standing where I was looking when I began.'\n\n'Then your practical. Part one first.'\n\nSomewhere above you, the bell for Commencement is being tested, one stroke at a time.\n\n'Begin when the bell stills.'",
+    "body": "On the lectern, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner walks to the far end of the examination floor and turns to face you.\n\n'Two parts. First the fundamentals: you and me, with the Academy's own cards, until the board has seen enough. The trial is not to defeat me. The trial is to show me you know why each card leaves your hand. At the end of each of my turns I will read a spell at you, and it will land wherever you stand. Catch it on a shield, or keep a little mana back and answer it as it comes.'\n\n'Then your practical. Part one first.'\n\nSomewhere above you, the bell for Commencement is being tested, one stroke at a time.\n\n'Begin when the bell stills.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -133,7 +133,7 @@
   {
     "id": "prologue_trial_part_one_clean",
     "title": "Part One",
-    "body": "The bell stills for good. Up in the gallery, someone has stopped arguing about the footnote.\n\nThe Examiner lowers her hands. Her spell came down on an empty floor, and nothing of hers ever touched you. She looks as if that was the point.\n\n'Part one, adequate,' she says. Then, after a moment: 'More than adequate. I will deny saying so.'",
+    "body": "The bell stills for good. Up in the gallery, someone has stopped arguing about the footnote.\n\nThe Examiner lowers her hands. Nothing she read at you ever reached you. She looks as if that was the point.\n\n'Part one, adequate,' she says. Then, after a moment: 'More than adequate. I will deny saying so.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -151,7 +151,7 @@
   {
     "id": "prologue_trial_part_one",
     "title": "Part One",
-    "body": "The bell stills for good. Up in the gallery, someone has stopped arguing about the footnote.\n\nThe Examiner lowers her hands and looks at the place where her spell came down, then at you.\n\n'Part one, adequate,' she says. 'Part two is yours.'",
+    "body": "The bell stills for good. Up in the gallery, someone has stopped arguing about the footnote.\n\nThe Examiner lowers her hands and looks you over once, the way she checks a page for blots.\n\n'Part one, adequate,' she says. 'Part two is yours.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -199,7 +199,7 @@
   {
     "id": "prologue_practical_brief_elementalist",
     "title": "The Frost Plate",
-    "body": "The students bolt a plate of gray iron to the apparatus and pour a bucket of water around its feet. Master Korro opens a valve. The water whitens and stays that way: frost, a pace wide, with the plate standing in the middle of it.\n\n'It is plated,' the Examiner says. 'Every blow against it loses three. Chip at it and you will be here all afternoon.'\n\n'An Elementalist does not hit harder. An Elementalist hits the floor first. Two elements on one square make something new. Frost and storm make brittle ground, and whatever stands on brittle ground takes three more from every blow, which is exactly what the plate takes away. Frost and fire make steam, which helps nobody today. Your folio has Static Field. Put storm on that frost, then hit it while it is brittle.'\n\n'Three rounds.'",
+    "body": "The students bolt a plate of gray iron to the apparatus and pour a bucket of water around its feet. Master Korro opens a valve. The water whitens and stays that way: frost, a pace wide, with the plate standing in the middle of it.\n\n'It is plated,' the Examiner says. 'Every blow against it loses three. Chip at it and you will be here all afternoon.'\n\n'An Elementalist does not hit harder. An Elementalist hits the floor first. Two elements on one square make something new. Frost and storm make brittle ground, and whatever stands on brittle ground takes three more from every blow, which is exactly what the plate takes away. Frost and fire make steam, which helps nobody today. Your folio has Static Field. Put storm on that frost, then hit it while it is brittle.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Put storm on the frost. Hit it while it is brittle. Charge one element until it bursts. Each of those breaks a ward. Then break the plate.'\n\n'Take as many rounds as you need.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -217,7 +217,7 @@
   {
     "id": "prologue_practical_brief_arcanist",
     "title": "The Proving Coil",
-    "body": "The students fit a coil of copper wire to the apparatus, wound so tight it hums. Master Korro scratches it with a pencil, and the scratch closes while you watch.\n\n'It mends,' the Examiner says. 'At the end of every round it closes every wound it took, unless it took twenty or more in that round. Spread your work across the afternoon and it will outlast you.'\n\n'An Arcanist does not cast a spell. An Arcanist casts a turn. Spell Weave makes your next spell cheaper and stronger; weave into a second Weave and the gift carries on to the spell after. Mana Conduit pays for the extra. The order is the examination: conduit, weave, weave, then the bolt.'\n\n'Three rounds. You will want only one of them.'",
+    "body": "The students fit a coil of copper wire to the apparatus, wound so tight it hums. Master Korro scratches it with a pencil, and the scratch closes while you watch.\n\n'It mends,' the Examiner says. 'At the end of every round it closes every wound it took, unless it took twenty or more in that round. Spread your work across the afternoon and it will outlast you.'\n\n'An Arcanist does not cast a spell. An Arcanist casts a turn. Spell Weave makes your next spell cheaper and stronger; weave into a second Weave and the gift carries on to the spell after. Mana Conduit pays for the extra. The order is the examination: conduit, weave, weave, then the bolt.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Bank Charge. Weave a spell. Cast four spells in one turn. Each of those breaks a ward. Then break the coil, all in one turn if you can.'\n\n'Take as many rounds as you need. You will want only one of them.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -235,7 +235,7 @@
   {
     "id": "prologue_practical_brief_chronomancer",
     "title": "The Swing Arm",
-    "body": "The students fit a weighted arm to the apparatus, on a ratchet that clicks as they draw it back. Master Korro lets it go once, to show you. It takes a full round to draw back, and then it swings at the square it chose when it started.\n\n'It aims at where you stand when it begins,' the Examiner says, 'not where you stand when it lands.'\n\n'A Chronomancer moves things in time. Slow Fuse writes a spell onto a square now, and it lands at the start of your next turn on whatever stands there. The arm cannot step aside. Hold That Thought pushes its blow to the end of the round, which gives you time to be elsewhere. Foresight builds as you read and as you leave mana unspent; Paradox Bolt hits twice as hard with two of it.'\n\n'Yes, I told you not to read ahead. The board set the folio, not me. Three rounds, and a spell set in the last of them lands after the bell.'",
+    "body": "The students fit a weighted arm to the apparatus, on a ratchet that clicks as they draw it back. Master Korro lets it go once, to show you. It takes a full round to draw back, and then it swings at the square it chose when it started.\n\n'It aims at where you stand when it begins,' the Examiner says, 'not where you stand when it lands.'\n\n'A Chronomancer moves things in time. Slow Fuse writes a spell onto a square now, and it lands at the start of your next turn on whatever stands there. The arm cannot step aside. Hold That Thought pushes its blow to the end of the round, which gives you time to be elsewhere. Foresight builds as you read and as you leave mana unspent; Paradox Bolt hits twice as hard with two of it.'\n\n'Yes, I told you not to read ahead. The board set the folio, not me.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Land a scheduled spell on it. Read what it will do next. Push its blow to the end of the round. Each of those breaks a ward. Then break the arm.'\n\n'Take as many rounds as you need, but a spell still set when the arm breaks lands after the bell.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -253,7 +253,7 @@
   {
     "id": "prologue_practical_brief_enchanter",
     "title": "The Walking Frame",
-    "body": "The students fit four jointed legs to the apparatus and step well back. It gets up. It walks at whoever is nearest, two steps a round, and kicks whatever it reaches.\n\n'Nothing in your folio hits very hard,' the Examiner says. 'That is the point of it.'\n\n'An Enchanter decides what things cost. A glyph makes a square cost whatever steps onto it; Runic Trap writes one. A Name sets a price on what the frame does: Geas Names it, and any round it moves, it pays six. It will move. It cannot help itself. Compel walks it two steps toward you, over your glyphs, whether it likes it or not.'\n\n'Three rounds. Make the floor expensive.'",
+    "body": "The students fit four jointed legs to the apparatus and step well back. It gets up. It walks at whoever is nearest, two steps a round, and kicks whatever it reaches.\n\n'Nothing in your folio hits very hard,' the Examiner says. 'That is the point of it.'\n\n'An Enchanter decides what things cost. A glyph makes a square cost whatever steps onto it; Runic Trap writes one. A Name sets a price on what the frame does: Geas Names it, and any round it moves, it pays six. It will move. It cannot help itself. Compel walks it two steps toward you, over your glyphs, whether it likes it or not.'\n\n'It is warded four times over, and each ward keeps a part of it whole until the ward breaks. Spring a glyph on it. Name it. Make it pay the Name. Compel it toward you. Each of those breaks a ward. Then break the frame.'\n\n'Take as many rounds as you need. Make the floor expensive.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -271,7 +271,7 @@
   {
     "id": "prologue_practical_brief_necromancer",
     "title": "The Dummy Rack",
-    "body": "The students hang a rack of practice dummies from the apparatus: straw and canvas on posts, two of them standing in front of it and more hanging behind. Master Korro tests the crank, and somewhere inside the rack the next dummy shuffles forward a place.\n\n'The dummies stand in front of the rack,' the Examiner says. 'Strike the rack while one stands beside it, and the dummy takes the blow. It puts out a fresh one every round.'\n\n'A Necromancer works with what is left. Anything that dies on this floor leaves a memorial where it fell, and memorials are your materials. Grief Strike hits harder at a target beside one. Final Escort spends one to raise a spirit, and The Procession sends your spirits forward to strike. The dummies will fall. Let them fall where you can use them.'\n\n'Four rounds.'",
+    "body": "The students hang a rack of practice dummies from the apparatus: straw and canvas on posts, two of them standing in front of it and more hanging behind. Master Korro tests the crank, and somewhere inside the rack the next dummy shuffles forward a place.\n\n'The dummies stand in front of the rack,' the Examiner says. 'Strike the rack while one stands beside it, and the dummy takes the blow. It puts out a fresh one every round.'\n\n'A Necromancer works with what is left. Anything that dies on this floor leaves a memorial where it fell, and memorials are your materials. Grief Strike hits harder at a target beside one. Final Escort spends one to raise a spirit, and The Procession sends your spirits forward to strike. The dummies will fall. Let them fall where you can use them.'\n\n'The rack is warded three times over, and each ward keeps a part of it whole until the ward breaks. Leave a memorial. Raise a spirit on it. Send a spirit to strike. Each of those breaks a ward. Then break the rack.'\n\n'Take as many rounds as you need.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -289,7 +289,7 @@
   {
     "id": "prologue_practical_brief_druid",
     "title": "The Tiller",
-    "body": "The students fit a plowshare and a pair of iron feet to the apparatus. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' the Examiner says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'Four rounds.'",
+    "body": "The students fit a plowshare and a pair of iron feet to the apparatus. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' the Examiner says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Root it on living ground. Thorn it on your growth. Call a wolf. Each of those breaks a ward. Then break the Tiller.'\n\n'Take as many rounds as you need.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -307,7 +307,7 @@
   {
     "id": "prologue_practical_brief_tinker",
     "title": "The Target Frame",
-    "body": "The students bolt a target frame to the apparatus: painted rings, a sighting slit, and a small crossbow where the bullseye should be. It swivels toward the nearest thing in the hall and puts a bolt into the far wall to show that it can.\n\n'It shoots whatever stands nearest,' the Examiner says. 'Give it something nearer than you.'\n\n'A Tinker builds the help. Deploy Turret sets down a turret that fires on its own at the end of your turn. Conduit Bolt hits harder while you have a construct standing. Conduit Link ties you to one and splits the hurt between you. The frame cannot tell a candidate from a turret. Use that.'\n\n'Three rounds.'",
+    "body": "The students bolt a target frame to the apparatus: painted rings, a sighting slit, and a small crossbow where the bullseye should be. It swivels toward the nearest thing in the hall and puts a bolt into the far wall to show that it can.\n\n'It shoots whatever stands nearest,' the Examiner says. 'Give it something nearer than you.'\n\n'A Tinker builds the help. Deploy Turret sets down a turret that fires on its own at the end of your turn. Conduit Bolt hits harder while you have a construct standing. Conduit Link ties you to one and splits the hurt between you. The frame cannot tell a candidate from a turret. Use that.'\n\n'It is warded four times over, and each ward keeps a part of it whole until the ward breaks. Build a turret. Let a construct fire on its own. Let the frame shoot a construct instead of you. Link yourself to one. Each of those breaks a ward. Then break the frame.'\n\n'Take as many rounds as you need.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -325,7 +325,7 @@
   {
     "id": "prologue_practical_brief_adept",
     "title": "The Caster Arm",
-    "body": "The students fit a long brass arm to the apparatus, its hand cupped like a lecturer's. Master Korro reads it a line from his notebook, and it begins to read the line back at you, slowly.\n\n'It reads a spell at your square, and the spell lands a round later,' the Examiner says. 'Stepping aside is one answer. The fundamentals have others.'\n\n'Counterspell cancels the arm's next action outright. Cancel something, and Spell Drain on your second Counterspell pays you two mana back. Riposte makes whatever hits you pay for it. Chalk Mark adds three to the next spell that lands. None of it is clever. All of it works.'\n\n'Three rounds.'",
+    "body": "The students fit a long brass arm to the apparatus, its hand cupped like a lecturer's. Master Korro reads it a line from his notebook, and it begins to read the line back at you, slowly.\n\n'It is less certain than I am,' the Examiner says. 'At the end of its turn it reads a spell at your square, and on its next turn the spell lands on that square, whoever is standing there.'\n\n'Show me four answers. Step off the square it has marked, and let its spell land on nobody. Counterspell takes its next action away, so the spell it marked never comes. Riposte makes whatever hits you pay for it, so cast it and let the arm hit you. Chalk Mark adds three to the next spell that lands on it, so mark it, then hit it. None of it is clever. All of it works.'\n\n'It is warded four times over, and each ward keeps a part of it whole until the ward breaks. Each answer breaks one. When the last ward breaks, break it. Take as many rounds as you need.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",

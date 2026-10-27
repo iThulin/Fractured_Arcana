@@ -3,7 +3,7 @@
   "threatLabel": "Tiller",
   "role": "line",
   "factionId": "",
-  "intelDescription": "A ploughshare on iron feet. It walks one furrow a round toward whoever is nearest, and kicks what it reaches.",
+  "intelDescription": "A ploughshare on iron feet. It walks one furrow a round toward whoever is nearest, and kicks what it reaches. In an examination it is warded: each step under the objective breaks one ward.",
   "maxHealth": 34,
   "baseSpeed": 1,
   "armor": 0,

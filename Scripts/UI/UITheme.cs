@@ -436,6 +436,9 @@ public static class UITheme
     public static readonly Color PlateNeutralFill = new Color(0.62f, 0.60f, 0.56f, 1f);
     public static readonly Color PlateBarBack     = new Color(0.06f, 0.05f, 0.08f, 0.92f);
     public static readonly Color PlatePreview     = new Color(1.00f, 0.92f, 0.85f, 1f); // near-white flash on the red/green fill
+    // A checklist's wards (UnitNameplate.DrawHealthBar): the warded part of the bar, and its sections.
+    public static readonly Color PlateWard     = new Color(0.62f, 0.80f, 1.00f, 0.45f); // pale blue veil over the sections the wards keep
+    public static readonly Color PlateWardLine = new Color(0.86f, 0.94f, 1.00f, 0.95f); // the line the next blow stops at
     public static readonly Color PlateAp   = Gold;
     public static readonly Color PlateEdge = new Color(1.00f, 0.60f, 0.20f, 1f);
     public static readonly Color PlateNameAlly  = new Color(0.92f, 0.96f, 0.92f, 1f);

@@ -241,6 +241,8 @@ public partial class HealthBarRoot : Node3D
             }
             d.Edge = u.Edge;
             d.MaxEdge = u.MaxEdge;
+            d.Wards = u.WardsStanding;
+            d.WardSections = u.WardSections;
             d.Conditions = StatusCatalog.Collect(u);
         }
         else

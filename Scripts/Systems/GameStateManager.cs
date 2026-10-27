@@ -63,6 +63,10 @@ public sealed class GameState
 
     /// <summary>Enemy actions negated since the start of the player's turn (Counterspell). Incremented at cast; reset in StartPlayerTurn. Read by actions_negated_this_turn (Spell Drain).</summary>
     public int ActionsNegatedThisTurn = 0;
+
+    /// <summary>Arcane marks on enemy units that paid out this fight (DealDamageEffect's mark
+    /// bonus, never in a preview). Read by a checklist's mark step (CombatManager.Tutorial.cs).</summary>
+    public int MarksSpentOnEnemies = 0;
     public int LastDamageDealt = 0;   // set by DealDamageEffect after each hit
     public int LastGriefSpent = 0;    // set by GriefDischargeDamageEffect
 

@@ -44,6 +44,9 @@ public sealed class NameplateData
     public int Mana, MaxMana;
     public int Ap, MaxAp;
     public int Edge, MaxEdge;
+    /// <summary>A checklist's wards (Unit.WardsStanding of Unit.WardSections). 0 for every
+    /// unit a checklist does not ward.</summary>
+    public int Wards, WardSections;
 
     public List<UnitCondition> Conditions = new();
 
@@ -77,6 +80,7 @@ public sealed class NameplateData
           .Append('|').Append(Shield).Append(',').Append(Armor).Append(',').Append(BraceArmor).Append(',').Append(Cover)
           .Append('|').Append(Mana).Append(',').Append(MaxMana)
           .Append('|').Append(Ap).Append(',').Append(MaxAp).Append(',').Append(Edge).Append(',').Append(MaxEdge)
+          .Append('|').Append(Wards).Append('/').Append(WardSections)
           .Append('|').Append(HasIntent).Append(IntentKind).Append(IntentRevealed).Append(IntentValue).Append(',').Append(IntentShoveTiles).Append(IntentElement)
           .Append(Staggered).Append(Poise).Append('/').Append(MaxPoise).Append(',').Append(Openings).Append(',').Append(Postponed).Append(IntentMarkers)
           .Append(',').Append(IntentTiming).Append(',').Append(IntentReaction)
@@ -548,6 +552,27 @@ public partial class UnitNameplate : Control
             DrawRect(new Rect2(r.End.X - ww, r.Position.Y, ww, r.Size.Y), UITheme.WitherFill);
         }
 
+        // A checklist's wards: the bar in even sections, a veil over the ones still warded, and
+        // a bright line where the next blow stops. Boundaries match Unit.WardFloor's rounding.
+        bool warded = d.WardSections > 0 && d.Wards > 0 && d.MaxHp > 0;
+        if (warded)
+        {
+            float SectionX(int boundary) =>
+                r.Position.X + r.Size.X * Mathf.Clamp(
+                    (float)Math.Ceiling(d.MaxHp * (double)boundary / d.WardSections) / total, 0f, 1f);
+            int standing = Math.Min(d.Wards, d.WardSections);
+            float floorX = Mathf.Round(SectionX(standing));
+            DrawRect(new Rect2(r.Position, new Vector2(floorX - r.Position.X, r.Size.Y)), UITheme.PlateWard);
+            for (int k = 1; k < d.WardSections; k++)
+            {
+                float x = Mathf.Round(SectionX(k));
+                Color line = k == standing ? UITheme.PlateWardLine : UITheme.PlateWardLine with { A = 0.45f };
+                DrawLine(new Vector2(x, r.Position.Y), new Vector2(x, r.End.Y), line, k == standing ? 2f : 1f);
+            }
+            if (standing >= d.WardSections)
+                DrawLine(new Vector2(r.End.X - 1f, r.Position.Y), new Vector2(r.End.X - 1f, r.End.Y), UITheme.PlateWardLine, 2f);
+        }
+
         // Damage preview: flash the span that the predicted hit removes.
         if (_previewLoss > 0 && d.Hp > 0)
         {
@@ -558,8 +583,8 @@ public partial class UnitNameplate : Control
             DrawRect(new Rect2(r.Position.X + hpW - lossW, r.Position.Y, lossW, r.Size.Y), c with { A = a });
         }
 
-        // Tick every 5 HP when that stays readable.
-        if (total >= 10 && total <= 80)
+        // Tick every 5 HP when that stays readable (the ward sections replace them).
+        if (!warded && total >= 10 && total <= 80)
         {
             for (int hp = 5; hp < total; hp += 5)
             {
@@ -733,6 +758,9 @@ public partial class UnitNameplate : Control
             sb.Append($" Poison has eaten {d.Withered} max HP (the violet end of the bar).");
         if (d.Shield > 0 || d.Armor > 0)
             sb.Append($" Damage hits shield ({d.Shield}) first, then armor ({d.Armor}), then HP.");
+        if (d.WardSections > 0 && d.Wards > 0)
+            sb.Append($" Warded: {Math.Min(d.Wards, d.WardSections)} of its {d.WardSections} sections take no damage."
+                      + " Each step under the objective breaks one ward.");
         return sb.ToString();
     }
 

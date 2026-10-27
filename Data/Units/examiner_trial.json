@@ -3,7 +3,7 @@
   "threatLabel": "The Examiner",
   "role": "elite",
   "factionId": "",
-  "intelDescription": "She is not trying to win. When she reads a spell aloud, it lands where you were standing when she began.",
+  "intelDescription": "She is not trying to win. At the end of each of her turns she reads a spell at you, and it lands wherever you stand. Catch it on a shield, or answer it as it comes.",
   "maxHealth": 40,
   "baseSpeed": 2,
   "armor": 1,
@@ -11,12 +11,9 @@
   "attackDamage": 3,
   "preferredDistance": 3,
   "behaviorKey": "ranged_kite",
-  "behaviorTags": [],
-  "intentCycle": [
-    "hold_ground",
-    "ranged_charge"
+  "behaviorTags": [
+    "unerring"
   ],
-  "cycleLoops": false,
   "casterSpell": "arclance",
   "colorR": 0.85,
   "colorG": 0.74,

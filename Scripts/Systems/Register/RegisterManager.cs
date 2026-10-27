@@ -116,10 +116,13 @@ public partial class RegisterManager : Node
     /// <summary>
     /// Offers the trigger <paramref name="key"/> to the Register. Whether anything is said
     /// is decided by the bark data, the toggles, once flags, cooldowns and rate limits.
-    /// Unknown keys are ignored (warned once). Safe to call with no instance.
+    /// Unknown keys are ignored (warned once). Safe to call with no instance. Every key is
+    /// first raised as a combat moment, which a fight's checklist may count
+    /// (CombatManager.NoteMoment), whatever the Register then says.
     /// </summary>
     public static void Fire(string key, IReadOnlyDictionary<string, string> args = null)
     {
+        CombatManager.NoteMoment(key);
         if (Instance == null || string.IsNullOrEmpty(key))
             return;
         Instance.FireInternal(key, args);

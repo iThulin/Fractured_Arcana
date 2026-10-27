@@ -83,6 +83,10 @@ public sealed class PrologueEnemySlot
 public sealed class PrologueObjective
 {
     public string Kind = "";
+    /// <summary>survive: won at the end of this round. 0 is no cap: the checklist fights run until
+    /// they are done, the candidate falls or the candidate yields (ruled 2026-10-27). The
+    /// director builds the objective itself, so the general loader's "survive needs rounds" rule
+    /// does not apply here.</summary>
     public int Rounds = 0;
     public string WardUnitId = "";
     public string Description = "";
@@ -96,7 +100,9 @@ public sealed class PrologueWave
 }
 
 /// <summary>One step of a fight's checklist (CombatManager.Tutorial.cs): an id the engine
-/// counts (walk, damage, dodge, reflex), the label the banner shows, and how many it takes.</summary>
+/// counts (CombatManager.TutorialStepIds: its own, such as walk, dodge, mark or turn_spells, and
+/// the school moments, such as arc.first_charge), the label the banner shows, and how many it
+/// takes.</summary>
 public sealed class PrologueStep
 {
     public string Id = "";
@@ -131,9 +137,18 @@ public sealed class PrologueFightScript
     public string OnPass = "";
     public string OnTime = "";
     public string OnAnyOutcome = "";
-    /// <summary>The fight's checklist (the trial, ruled 2026-10-26): the fight is won once every
-    /// step is done, with the objective's rounds as the cap. Empty for every other fight.</summary>
+    /// <summary>The fight's checklist (the trial, ruled 2026-10-26; the practicals,
+    /// 2026-10-27). With no pass unit the fight is won once every step is done; with one, the
+    /// pass unit is warded, one ward per step, and each step done breaks one. Neither has a
+    /// round cap (2026-10-27): the fight also ends on the floor, or when the candidate yields
+    /// (PauseMenu). Empty for every other fight.</summary>
     public List<PrologueStep> Steps = new();
+    /// <summary>The player places the party, as in a fight outside the prologue (the common
+    /// practical, 2026-10-27). Every other scripted fight confirms deployment itself.</summary>
+    public bool PlayerDeploys = false;
+    /// <summary>The opening-hand sculpt is offered, as in a fight outside the prologue (the
+    /// common practical, 2026-10-27). Every other scripted fight keeps the hand it deals.</summary>
+    public bool OfferOpeningHand = false;
     /// <summary>A school practical's map when it is sat as the Grand Hall's examination for the
     /// school (E3: "grand_hall", or "grand_hall_frost" for the Frost Plate). Empty for every
     /// fight that is not an examination.</summary>
@@ -482,6 +497,12 @@ public static class PrologueDirector
         return steps != null && steps.Count > 0 ? steps : null;
     }
 
+    /// <summary>The fight's script hands deployment to the player (CombatManager.Scripted.cs).</summary>
+    public static bool DeploysByHand(string fightId) => Fight(fightId)?.Script?.PlayerDeploys == true;
+
+    /// <summary>The fight's script offers the opening-hand sculpt (CombatManager.Scripted.cs).</summary>
+    public static bool OffersOpeningHand(string fightId) => Fight(fightId)?.Script?.OfferOpeningHand == true;
+
     /// <summary>Close the prologue as a full skip: the recap's flags, and an unstated
     /// intention when none was given. The hall's last resort when its data is missing.</summary>
     public static void ForceComplete(GuildSaveData save)
@@ -647,6 +668,7 @@ public static class PrologueDirector
         router.EndOnUnitFall = script.EndOnPassUnit ? (script.PassUnit ?? "") : "";
         router.ScriptedFightId = fightId;
         router.ScriptedReturnTitle = def.DisplayName ?? "";
+        router.ScriptedFightYielded = false;
         router.FallenEnemyUnitIds.Clear();
         router.LastWizardHealth = -1;
         router.LastWizardMaxHealth = -1;
@@ -679,6 +701,7 @@ public static class PrologueDirector
         bool won = router.CombatWon;
         var fallen = new List<string>(router.FallenEnemyUnitIds);
         bool unhurt = router.LastWizardMaxHealth > 0 && router.LastWizardHealth >= router.LastWizardMaxHealth;
+        bool yielded = router.ScriptedFightYielded;
 
         router.HasPendingReturn = false;
         router.ReturnSceneOverride = "";
@@ -693,7 +716,8 @@ public static class PrologueDirector
         string next = null;
         if (fightId == TrialFightId)
         {
-            string r = !won ? "floor" : unhurt ? "clean" : "win";
+            // A yield (PauseMenu) is her plain verdict: the bell, not the floor.
+            string r = yielded ? "win" : !won ? "floor" : unhurt ? "clean" : "win";
             SetMeta(save, ResultPartOnePrefix + r);
             next = PartOneVerdict(r);
         }
@@ -704,13 +728,13 @@ public static class PrologueDirector
         }
         else if (fightId.StartsWith(PracticalFightPrefix, StringComparison.Ordinal))
         {
-            string r = PracticalOutcome(script, won, fallen);
+            string r = PracticalOutcome(script, won, fallen, yielded);
             SetMeta(save, ResultPracticalPrefix + r);
             next = PracticalVerdict(save, r);
         }
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
-        GD.Print($"[Prologue] {fightId} came back (won {won}); next {next}.");
+        GD.Print($"[Prologue] {fightId} came back (won {won}{(yielded ? ", yielded" : "")}); next {next}.");
         return next;
     }
 
@@ -731,6 +755,7 @@ public static class PrologueDirector
             router.ScriptedFightId = "";
             router.ScriptedReturnTitle = "";
             router.ExamFitting = null;
+            router.ScriptedFightYielded = false;
         }
         RegisterManager.PrologueMode = "";
     }
@@ -799,16 +824,19 @@ public static class PrologueDirector
     }
 
     /// <summary>A practical's result from its return: "pass" when its pass unit fell, "time" when
-    /// the fight ended on its rounds, "floor" when the wizard went down.</summary>
-    private static string PracticalOutcome(PrologueFightScript script, bool won, ICollection<string> fallen)
+    /// the fight ended on its rounds or the candidate yielded (the bell; a practical has had no
+    /// round cap since 2026-10-27, so a yield is the usual way to it), "floor" when the wizard
+    /// went down.</summary>
+    private static string PracticalOutcome(PrologueFightScript script, bool won, ICollection<string> fallen,
+                                           bool yielded = false)
     {
         bool passed = !string.IsNullOrEmpty(script?.PassUnit) && fallen != null && fallen.Contains(script.PassUnit);
-        return passed ? "pass" : won ? "time" : "floor";
+        return passed ? "pass" : won || yielded ? "time" : "floor";
     }
 
     /// <summary>A declaration exam's result (DisciplineExam), by the practical's own rule.</summary>
-    public static string ExamOutcome(string school, bool won, ICollection<string> fallen) =>
-        PracticalOutcome(Fight(PracticalFightPrefix + SchoolKey(school))?.Script, won, fallen);
+    public static string ExamOutcome(string school, bool won, ICollection<string> fallen, bool yielded = false) =>
+        PracticalOutcome(Fight(PracticalFightPrefix + SchoolKey(school))?.Script, won, fallen, yielded);
 
     private static string PracticalResult(GuildSaveData save)
     {
@@ -1151,7 +1179,9 @@ public static class PrologueDirector
             if (string.IsNullOrEmpty(RemarkForIntention(key)))
                 fails.Add($"the read-back has no answer for intention '{key}' (no choice on {IntentionPanelId} sets stated_intention_{key})");
 
-        // Checklists: every step is one the engine counts, and the fight has a round cap.
+        // Checklists: every step is one the engine counts. A fight whose pass unit ends it wards
+        // that unit, one ward per step (Tutorial.cs). None needs a round cap (ruled 2026-10-27):
+        // each ends on its pass unit or its checklist, on the floor, or on a yield (PauseMenu).
         int checklists = 0;
         foreach (var kv in _fights)
         {
@@ -1166,8 +1196,6 @@ public static class PrologueDirector
                 else if (step.Count < 1 || string.IsNullOrEmpty(step.Label))
                     fails.Add($"fight {kv.Key}: step '{step.Id}' needs a label and a count of at least 1");
             }
-            if ((kv.Value.Encounter?.Objective?.Rounds ?? 0) <= 0)
-                fails.Add($"fight {kv.Key} has a checklist but no round cap, so it could stall");
         }
 
         // 2. Each practical: its panels, its school, and its folio as the fight deals it.

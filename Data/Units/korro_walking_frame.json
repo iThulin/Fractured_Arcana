@@ -3,7 +3,7 @@
   "threatLabel": "Walking Frame",
   "role": "line",
   "factionId": "",
-  "intelDescription": "Four jointed legs and a short temper. It walks at whoever is nearest, two steps a round, and kicks.",
+  "intelDescription": "Four jointed legs and a short temper. It walks at whoever is nearest, two steps a round, and kicks. In an examination it is warded: each step under the objective breaks one ward.",
   "maxHealth": 26,
   "baseSpeed": 2,
   "armor": 0,

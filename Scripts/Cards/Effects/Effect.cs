@@ -181,9 +181,14 @@ public class AlmanacEntry
 			s.Log($"[Almanac] {Label} has matured: +{bonus} damage.");
 			RegisterManager.Fire("chrono.matured");
 		}
+		// A checklist's chrono.lands: the spell lands on an enemy. Read before it resolves,
+		// since a lethal hit clears the tile.
+		Unit landedOn = LandingOccupant();
 		try
 		{
 			Child?.Resolve(s, Caster, Targets, Snapshot);
+			if (landedOn != null && landedOn.TeamId != 0)
+				CombatManager.NoteMoment("chrono.lands");
 		}
 		finally
 		{
@@ -191,6 +196,22 @@ public class AlmanacEntry
 				unit.BonusSpellDamage -= bonus;
 			s.ActiveCasterUnit = prevCaster;
 		}
+	}
+
+	/// <summary>The living unit standing where this entry lands right now: its targeted unit,
+	/// or the occupant of its targeted tile. Null when nobody stands there.</summary>
+	private Unit LandingOccupant()
+	{
+		if (Targets?.Items == null || Targets.Items.Count == 0)
+			return null;
+		Unit u = Targets.Items[0] switch
+		{
+			Unit unit => unit,
+			TileData td => td.Occupant,
+			HexTile ht => ht.Data?.Occupant,
+			_ => null,
+		};
+		return u != null && GodotObject.IsInstanceValid(u) && u.Stats.IsAlive ? u : null;
 	}
 }
 
@@ -428,6 +449,8 @@ public sealed class DealDamageEffect : EffectBase
 				victim.RemoveStatus("arcane_mark");
 				victim.ApplyDamage(ArcaneMarkBonus, s.ActiveCasterUnit);
 				s.Log($"[ArcaneMark] {victim.Name} takes {ArcaneMarkBonus} bonus damage. Mark consumed.");
+				if (!CombatSim.Active && victim.TeamId != 0)
+					s.MarksSpentOnEnemies++;   // the practical's mark step (CombatManager.Tutorial.cs)
 			}
 		}
 

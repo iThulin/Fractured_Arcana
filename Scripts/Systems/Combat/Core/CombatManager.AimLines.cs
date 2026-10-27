@@ -67,7 +67,7 @@ public partial class CombatManager
     }
 
     /// <summary>Per frame: redraw the aim arcs when an aimed intent, its enemy's
-    /// position, or its visibility changed.</summary>
+    /// position, or its visibility changed, or an unerring shot's mark moved.</summary>
     private void RefreshAimLines()
     {
         if (grid == null || enemyUnits == null || _aimLines == null || !IsInstanceValid(_aimLines))
@@ -86,7 +86,10 @@ public partial class CombatManager
                 continue;
             if (!intent.Revealed && !ShowIntentKindByDefault)
                 continue;
-            var target = intent.TargetTile.Value;
+            // An unerring shot is aimed at its mark, not at a tile, so its arc follows the mark.
+            var target = intent.Unerring && IsValidActor(intent.TargetUnit)
+                ? intent.TargetUnit.CurrentTile.Axial
+                : intent.TargetTile.Value;
             if (grid.Distance(enemy.CurrentTile.Axial, target) <= 1)
                 continue;   // melee reads already: the threat sits beside its enemy
             var view = grid.GetTileView(target);

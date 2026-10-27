@@ -41,7 +41,7 @@
       "when": {
         "faculty": "seraphine_duskwell"
       },
-      "text": "Seraphine Duskwell reads the practical's terms aloud as if they were a contract she had been asked to witness, and initials the page. 'Standard terms,' she says. 'The apparatus gets its rounds. You get everything else. I would sign.'"
+      "text": "Seraphine Duskwell reads the practical's terms aloud as if they were a contract she had been asked to witness, and initials the page. 'Standard terms,' she says. 'The apparatus gets its wards. You get everything else. I would sign.'"
     },
     {
       "key": "exam_teacher",
@@ -115,53 +115,53 @@
       "when": {
         "school": "elementalist"
       },
-      "text": "The fitting goes on first: a plate of gray iron, bolted to the apparatus, and a bucket of water poured around its feet. A valve opens. The water whitens and stays that way: frost, a pace wide, with the plate standing in the middle of it.\n\n'It is plated,' {faculty_name} says. 'Every blow against it loses {exam_plate}. Chip at it and you will be here all afternoon.'\n\n'An Elementalist does not hit harder. An Elementalist hits the floor first. Two elements on one square make something new. Frost and storm make brittle ground, and whatever stands on brittle ground takes three more from every blow. Frost and fire make steam, which helps nobody today. Your folio has Static Field. Put storm on that frost, then hit it while it is brittle.'\n\n'Three rounds.'"
+      "text": "The fitting goes on first: a plate of gray iron, bolted to the apparatus, and a bucket of water poured around its feet. A valve opens. The water whitens and stays that way: frost, a pace wide, with the plate standing in the middle of it.\n\n'It is plated,' {faculty_name} says. 'Every blow against it loses {exam_plate}. Chip at it and you will be here all afternoon.'\n\n'An Elementalist does not hit harder. An Elementalist hits the floor first. Two elements on one square make something new. Frost and storm make brittle ground, and whatever stands on brittle ground takes three more from every blow. Frost and fire make steam, which helps nobody today. Your folio has Static Field. Put storm on that frost, then hit it while it is brittle.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Put storm on the frost. Hit it while it is brittle. Charge one element until it bursts. Each of those breaks a ward. Then break the plate.'\n\n'Take as many rounds as you need.'"
     },
     {
       "key": "exam_brief",
       "when": {
         "school": "arcanist"
       },
-      "text": "The fitting goes on first: a coil of copper wire, wound so tight it hums. A pencil drawn across it leaves a scratch, and the scratch closes while you watch.\n\n'It mends,' {faculty_name} says. 'At the end of every round it closes every wound it took, unless it took {exam_mend} or more in that round. Spread your work out and it will outlast you.'\n\n'An Arcanist does not cast a spell. An Arcanist casts a turn. Spell Weave makes your next spell cheaper and stronger; weave into a second Weave and the gift carries on to the spell after. Mana Conduit pays for the extra. The order is the examination: conduit, weave, weave, then the bolt.'\n\n'Three rounds. You will want only one of them.'"
+      "text": "The fitting goes on first: a coil of copper wire, wound so tight it hums. A pencil drawn across it leaves a scratch, and the scratch closes while you watch.\n\n'It mends,' {faculty_name} says. 'At the end of every round it closes every wound it took, unless it took {exam_mend} or more in that round. Spread your work out and it will outlast you.'\n\n'An Arcanist does not cast a spell. An Arcanist casts a turn. Spell Weave makes your next spell cheaper and stronger; weave into a second Weave and the gift carries on to the spell after. Mana Conduit pays for the extra. The order is the examination: conduit, weave, weave, then the bolt.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Bank Charge. Weave a spell. Cast four spells in one turn. Each of those breaks a ward. Then break the coil, all in one turn if you can.'\n\n'Take as many rounds as you need. You will want only one of them.'"
     },
     {
       "key": "exam_brief",
       "when": {
         "school": "chronomancer"
       },
-      "text": "The fitting goes on first: a weighted arm, on a ratchet that clicks as it is drawn back. It is let go once, to show you. It takes a full round to draw back, and then it swings at the square it chose when it started.\n\n'It aims at where you stand when it begins,' {faculty_name} says, 'not where you stand when it lands.'\n\n'A Chronomancer moves things in time. Slow Fuse writes a spell onto a square now, and it lands at the start of your next turn on whatever stands there. The arm cannot step aside. Hold That Thought pushes its blow to the end of the round, which gives you time to be elsewhere. Foresight builds as you read and as you leave mana unspent; Paradox Bolt hits twice as hard with two of it.'\n\n'Three rounds, and a spell set in the last of them lands after the bell.'"
+      "text": "The fitting goes on first: a weighted arm, on a ratchet that clicks as it is drawn back. It is let go once, to show you. It takes a full round to draw back, and then it swings at the square it chose when it started.\n\n'It aims at where you stand when it begins,' {faculty_name} says, 'not where you stand when it lands.'\n\n'A Chronomancer moves things in time. Slow Fuse writes a spell onto a square now, and it lands at the start of your next turn on whatever stands there. The arm cannot step aside. Hold That Thought pushes its blow to the end of the round, which gives you time to be elsewhere. Foresight builds as you read and as you leave mana unspent; Paradox Bolt hits twice as hard with two of it.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Land a scheduled spell on it. Read what it will do next. Push its blow to the end of the round. Each of those breaks a ward. Then break the arm.'\n\n'Take as many rounds as you need, but a spell still set when the arm breaks lands after the bell.'"
     },
     {
       "key": "exam_brief",
       "when": {
         "school": "enchanter"
       },
-      "text": "The fitting goes on first: four jointed legs, and everyone stands well back. It gets up. It walks at whoever is nearest, two steps a round, and kicks whatever it reaches.\n\n'Nothing in your folio hits very hard,' {faculty_name} says. 'That is the point of it.'\n\n'An Enchanter decides what things cost. A glyph makes a square cost whatever steps onto it; Runic Trap writes one. A Name sets a price on what the frame does: Geas Names it, and any round it moves, it pays six. It will move. It cannot help itself. Compel walks it two steps toward you, over your glyphs, whether it likes it or not.'\n\n'Three rounds. Make the floor expensive.'"
+      "text": "The fitting goes on first: four jointed legs, and everyone stands well back. It gets up. It walks at whoever is nearest, two steps a round, and kicks whatever it reaches.\n\n'Nothing in your folio hits very hard,' {faculty_name} says. 'That is the point of it.'\n\n'An Enchanter decides what things cost. A glyph makes a square cost whatever steps onto it; Runic Trap writes one. A Name sets a price on what the frame does: Geas Names it, and any round it moves, it pays six. It will move. It cannot help itself. Compel walks it two steps toward you, over your glyphs, whether it likes it or not.'\n\n'It is warded four times over, and each ward keeps a part of it whole until the ward breaks. Spring a glyph on it. Name it. Make it pay the Name. Compel it toward you. Each of those breaks a ward. Then break the frame.'\n\n'Take as many rounds as you need. Make the floor expensive.'"
     },
     {
       "key": "exam_brief",
       "when": {
         "school": "necromancer"
       },
-      "text": "The fitting goes on first: a rack of practice dummies, straw and canvas on posts, two of them standing in front of it and more hanging behind. A turn of the crank, and somewhere inside the rack the next dummy shuffles forward a place.\n\n'The dummies stand in front of the rack,' {faculty_name} says. 'Strike the rack while one stands beside it, and the dummy takes the blow. It puts out a fresh one every round.'\n\n'A Necromancer works with what is left. Anything that dies on this floor leaves a memorial where it fell, and memorials are your materials. Grief Strike hits harder at a target beside one. Final Escort spends one to raise a spirit, and The Procession sends your spirits forward to strike. The dummies will fall. Let them fall where you can use them.'\n\n'Four rounds.'"
+      "text": "The fitting goes on first: a rack of practice dummies, straw and canvas on posts, two of them standing in front of it and more hanging behind. A turn of the crank, and somewhere inside the rack the next dummy shuffles forward a place.\n\n'The dummies stand in front of the rack,' {faculty_name} says. 'Strike the rack while one stands beside it, and the dummy takes the blow. It puts out a fresh one every round.'\n\n'A Necromancer works with what is left. Anything that dies on this floor leaves a memorial where it fell, and memorials are your materials. Grief Strike hits harder at a target beside one. Final Escort spends one to raise a spirit, and The Procession sends your spirits forward to strike. The dummies will fall. Let them fall where you can use them.'\n\n'The rack is warded three times over, and each ward keeps a part of it whole until the ward breaks. Leave a memorial. Raise a spirit on it. Send a spirit to strike. Each of those breaks a ward. Then break the rack.'\n\n'Take as many rounds as you need.'"
     },
     {
       "key": "exam_brief",
       "when": {
         "school": "druid"
       },
-      "text": "The fitting goes on first: a plowshare and a pair of iron feet. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' {faculty_name} says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'Four rounds.'"
+      "text": "The fitting goes on first: a plowshare and a pair of iron feet. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' {faculty_name} says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'It is warded three times over, and each ward keeps a part of it whole until the ward breaks. Root it on living ground. Thorn it on your growth. Call a wolf. Each of those breaks a ward. Then break the Tiller.'\n\n'Take as many rounds as you need.'"
     },
     {
       "key": "exam_brief",
       "when": {
         "school": "tinker"
       },
-      "text": "The fitting goes on first: a target frame with painted rings, a sighting slit, and a small crossbow where the bullseye should be. It swivels toward the nearest thing in the hall and puts a bolt into the far wall to show that it can.\n\n'It shoots whatever stands nearest,' {faculty_name} says. 'Give it something nearer than you.'\n\n'A Tinker builds the help. Deploy Turret sets down a turret that fires on its own at the end of your turn. Conduit Bolt hits harder while you have a construct standing. Conduit Link ties you to one and splits the hurt between you. The frame cannot tell a candidate from a turret. Use that.'\n\n'Three rounds.'"
+      "text": "The fitting goes on first: a target frame with painted rings, a sighting slit, and a small crossbow where the bullseye should be. It swivels toward the nearest thing in the hall and puts a bolt into the far wall to show that it can.\n\n'It shoots whatever stands nearest,' {faculty_name} says. 'Give it something nearer than you.'\n\n'A Tinker builds the help. Deploy Turret sets down a turret that fires on its own at the end of your turn. Conduit Bolt hits harder while you have a construct standing. Conduit Link ties you to one and splits the hurt between you. The frame cannot tell a candidate from a turret. Use that.'\n\n'It is warded four times over, and each ward keeps a part of it whole until the ward breaks. Build a turret. Let a construct fire on its own. Let the frame shoot a construct instead of you. Link yourself to one. Each of those breaks a ward. Then break the frame.'\n\n'Take as many rounds as you need.'"
     },
     {
       "key": "exam_brief",
-      "text": "The fitting goes on first. {faculty_name} reads you the practical's terms from the page the board left: break the apparatus within its rounds, by your discipline's own means."
+      "text": "The fitting goes on first. {faculty_name} reads you the practical's terms from the page the board left: break the apparatus by your discipline's own means, in as many rounds as you need."
     },
     {
       "key": "exam_fitted",

@@ -5,7 +5,8 @@ using Godot;
 //
 // Purpose:        Pause overlay controller. Hosts the Resume /
 //                 Settings / Card Library / Return to Campus /
-//                 Forfeit Combat / Quit buttons; also manages an
+//                 Forfeit Combat (Yield, in a checklist fight) /
+//                 Quit buttons; also manages an
 //                 inline sub-overlay slot (for Settings and Card
 //                 Library) so opening them doesn't unload the
 //                 underlying scene.
@@ -89,6 +90,9 @@ public partial class PauseMenu : Control
         _cardLibraryButton.Visible = true;
         _returnToCampusButton.Visible = inOverworld;
         _forfeitCombatButton.Visible = inCombat;
+        // A checklist fight (the trial, a practical) has no round cap, so its way out is a
+        // yield, which the director reads as the bell, not the floor (ruled 2026-10-27).
+        _forfeitCombatButton.Text = inCombat && InChecklistFight() ? "Yield" : "Forfeit Combat";
         _quitButton.Visible = true;
     }
 
@@ -142,6 +146,11 @@ public partial class PauseMenu : Control
 
         if (EncounterRouter.Instance != null)
         {
+            if (InChecklistFight())
+            {
+                EncounterRouter.Instance.ScriptedFightYielded = true;   // the bell, not the floor
+                GD.Print("[PauseMenu] The candidate yields the fight.");
+            }
             EncounterRouter.Instance.OnCombatFinished(playerWon: false);
         }
         else
@@ -150,6 +159,15 @@ public partial class PauseMenu : Control
                 EncounterRouter.Instance?.OverworldScenePath
                 ?? OverworldScenePath);
         }
+    }
+
+    /// <summary>A scripted fight with a checklist (CombatManager.Tutorial.cs): the trial or a
+    /// practical. It has no round cap, so its forfeit is a yield.</summary>
+    private static bool InChecklistFight()
+    {
+        var router = EncounterRouter.Instance;
+        return router != null && router.SuppressRewards && !string.IsNullOrEmpty(router.ScriptedFightId)
+            && PrologueDirector.StepsFor(router.ScriptedFightId) != null;
     }
 
     private void OnQuitPressed() => GetTree().Quit();

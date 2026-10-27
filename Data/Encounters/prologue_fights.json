@@ -17,7 +17,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 6,
+        "rounds": 0,
         "description": "Stand against the Examiner"
       },
       "waves": []
@@ -46,8 +46,8 @@
           "count": 10
         },
         {
-          "id": "dodge",
-          "label": "Step off her marked square",
+          "id": "block",
+          "label": "Block her spell (shield or armor)",
           "count": 1
         },
         {
@@ -76,7 +76,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 3,
+        "rounds": 0,
         "description": "Break the Frost Plate"
       },
       "waves": []
@@ -116,7 +116,24 @@
       "remarkTime": "The plate is still plated. Frost first, then storm. The floor does the work, if you let it.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "reaction.brittle",
+          "label": "Put storm on the frost (Static Field)",
+          "count": 1
+        },
+        {
+          "id": "elementalist.brittle_hit",
+          "label": "Hit it while it is brittle",
+          "count": 1
+        },
+        {
+          "id": "elementalist.burst",
+          "label": "Charge one element to a burst",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -137,7 +154,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 3,
+        "rounds": 0,
         "description": "Break the Proving Coil"
       },
       "waves": []
@@ -177,7 +194,24 @@
       "remarkTime": "It mended. It always will, for anyone who spreads the work out. One turn, all of it, in order.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "arc.first_charge",
+          "label": "Bank Charge (Mana Conduit)",
+          "count": 1
+        },
+        {
+          "id": "arc.next_spell",
+          "label": "Weave a spell (Spell Weave)",
+          "count": 1
+        },
+        {
+          "id": "turn_spells",
+          "label": "Cast four spells in one turn",
+          "count": 4
+        }
+      ]
     }
   },
   {
@@ -198,7 +232,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 3,
+        "rounds": 0,
         "description": "Break the Swing Arm"
       },
       "waves": []
@@ -238,7 +272,24 @@
       "remarkTime": "You cast everything when you saw it. A Chronomancer casts it before.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "chrono.lands",
+          "label": "Land a scheduled spell (Slow Fuse)",
+          "count": 1
+        },
+        {
+          "id": "chrono.lookahead",
+          "label": "Read its next move (Read Ahead)",
+          "count": 1
+        },
+        {
+          "id": "chrono.defer",
+          "label": "Defer its blow (Hold That Thought)",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -259,7 +310,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 3,
+        "rounds": 0,
         "description": "Break the Walking Frame"
       },
       "waves": []
@@ -299,7 +350,29 @@
       "remarkTime": "You hit it. An Enchanter makes it hit itself. Next time, make the floor expensive first.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "ench.glyph_sprung",
+          "label": "Spring a glyph on it (Runic Trap)",
+          "count": 1
+        },
+        {
+          "id": "ench.first_name",
+          "label": "Name it (Geas)",
+          "count": 1
+        },
+        {
+          "id": "ench.name_broken",
+          "label": "Make it pay its Name",
+          "count": 1
+        },
+        {
+          "id": "ench.compel",
+          "label": "Walk it toward you (Compel)",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -328,7 +401,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 4,
+        "rounds": 0,
         "description": "Break the Dummy Rack"
       },
       "waves": []
@@ -368,7 +441,24 @@
       "remarkTime": "You fought the rack. A Necromancer fights with what the rack leaves behind.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "necro.first_memorial",
+          "label": "Leave a memorial (break a dummy)",
+          "count": 1
+        },
+        {
+          "id": "necro.first_spirit",
+          "label": "Raise a spirit (Final Escort)",
+          "count": 1
+        },
+        {
+          "id": "necro.spirit_strikes",
+          "label": "Send a spirit in (The Procession)",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -389,7 +479,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 4,
+        "rounds": 0,
         "description": "Break the Tiller"
       },
       "waves": []
@@ -429,7 +519,24 @@
       "remarkTime": "You struck it where it stood. A Druid plants where it will stand.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "druid.first_root",
+          "label": "Root it on living ground (Mire)",
+          "count": 1
+        },
+        {
+          "id": "druid.thorn_grown",
+          "label": "Thorn it on growth (Creeping Thorn)",
+          "count": 1
+        },
+        {
+          "id": "druid.first_wildlife",
+          "label": "Call a wolf (Wolves Come)",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -450,7 +557,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 3,
+        "rounds": 0,
         "description": "Break the Target Frame"
       },
       "waves": []
@@ -490,7 +597,29 @@
       "remarkTime": "You stood in front of your own machines. Let them stand in front of you.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "tinker.first_construct",
+          "label": "Build a turret (Deploy Turret)",
+          "count": 1
+        },
+        {
+          "id": "tinker.construct_fires",
+          "label": "Let a construct fire on its own",
+          "count": 1
+        },
+        {
+          "id": "tinker.construct_struck",
+          "label": "Let it shoot a construct, not you",
+          "count": 1
+        },
+        {
+          "id": "tinker.first_link",
+          "label": "Link to a construct (Conduit Link)",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -511,7 +640,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 3,
+        "rounds": 0,
         "description": "Break the Caster Arm"
       },
       "waves": []
@@ -546,11 +675,35 @@
       "passUnit": "korro_caster_arm",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "playerDeploys": true,
+      "offerOpeningHand": true,
       "remarkPass": "Read, answer, strike. None of it clever, and all of it adequate.",
       "remarkTime": "It read its spell, and you read yours. Next time, answer it first.",
       "onPass": "prologue_practical_after_pass",
       "onTime": "prologue_practical_after_time",
-      "onLoss": "prologue_practical_after_floor"
+      "onLoss": "prologue_practical_after_floor",
+      "steps": [
+        {
+          "id": "dodge",
+          "label": "Step off its marked square",
+          "count": 1
+        },
+        {
+          "id": "negate",
+          "label": "Cancel its spell (Counterspell)",
+          "count": 1
+        },
+        {
+          "id": "riposte",
+          "label": "Make it pay (Riposte)",
+          "count": 1
+        },
+        {
+          "id": "mark",
+          "label": "Mark it, then hit it (Chalk Mark)",
+          "count": 1
+        }
+      ]
     }
   },
   {

@@ -3,7 +3,7 @@
   "threatLabel": "Target Frame",
   "role": "line",
   "factionId": "",
-  "intelDescription": "Painted rings and a small crossbow. It shoots whatever stands nearest, out to 4 squares.",
+  "intelDescription": "Painted rings and a small crossbow. It shoots whatever stands nearest, out to 4 squares. In an examination it is warded: each step under the objective breaks one ward.",
   "maxHealth": 36,
   "baseSpeed": 0,
   "armor": 0,

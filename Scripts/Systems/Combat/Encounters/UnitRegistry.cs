@@ -220,6 +220,11 @@ public static class UnitRegistry
             "pack", "bulwark", "charge", "scout", "immobile",
             // tile_interaction §7 hazard-avoidance temperament (read by Unit.HazardCaution):
             "reckless", "cautious",
+            // forced_movement_v1 §4: read by the planners and movers, but missing from this
+            // list, so every unit carrying one failed this check (found 2026-10-27).
+            "skirmisher", "pinner",
+            // 2026-10-27: a ranged shot that always finds its mark (the trial's Examiner).
+            "unerring",
         };
         // U3: ability audit. Keys against the trigger-bus handler map, triggers
         // against the bounded taxonomy (units doc §5), hard cap two per unit.

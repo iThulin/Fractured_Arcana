@@ -327,6 +327,8 @@ public sealed class ThornlashEffect : EffectBase
 			int dmg = Damage + PerStage * stage;
 			target.ApplyDamage(dmg);
 			s.Log($"[Thornlash] {target.Name} takes {dmg} ({Damage} + {PerStage}x{stage} growth).");
+			if (stage > 0 && target.TeamId != 0)
+				CombatManager.NoteMoment("druid.thorn_grown");   // a checklist's thorn step
 		}
 	}
 }

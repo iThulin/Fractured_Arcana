@@ -3,7 +3,7 @@
   "threatLabel": "Proving Coil",
   "role": "line",
   "factionId": "",
-  "intelDescription": "A coil of copper wire wound so tight it hums. It mends every wound at the end of its turn, unless it lost 20 or more that round.",
+  "intelDescription": "A coil of copper wire wound so tight it hums. It mends every wound at the end of its turn, unless it lost 20 or more that round. In an examination it is warded: each step under the objective breaks one ward.",
   "maxHealth": 24,
   "baseSpeed": 0,
   "armor": 0,

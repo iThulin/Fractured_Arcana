@@ -156,6 +156,7 @@ public static class DisciplineExam
         _pendingSchool = "";
         _pendingScene = "";
         bool won = router.CombatWon;
+        bool yielded = router.ScriptedFightYielded;   // a yield is the bell (PauseMenu, 2026-10-27)
         var fallen = new List<string>(router.FallenEnemyUnitIds);
         router.HasPendingReturn = false;
         router.ReturnSceneOverride = "";
@@ -167,7 +168,7 @@ public static class DisciplineExam
         var outcome = new Outcome
         {
             School = school,
-            Result = PrologueDirector.ExamOutcome(school, won, fallen),
+            Result = PrologueDirector.ExamOutcome(school, won, fallen, yielded),
         };
         var save = SaveManager.ActiveSave;
         if (save?.Ledger == null)
@@ -203,7 +204,7 @@ public static class DisciplineExam
             outcome.Toast = $"The {school} practical is not passed. You may sit it again.";
         }
         SaveManager.SaveIfDirty();
-        GD.Print($"[Exam] The {school} practical came back: {outcome.Result} (won {won}), declared {outcome.Declared}.");
+        GD.Print($"[Exam] The {school} practical came back: {outcome.Result} (won {won}{(yielded ? ", yielded" : "")}), declared {outcome.Declared}.");
         return outcome;
     }
 

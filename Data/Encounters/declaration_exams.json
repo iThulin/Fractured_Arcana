@@ -2,7 +2,7 @@
   {
     "id": "declaration_exam_open",
     "title": "{exam_name}",
-    "body": "{exam_setting}\n\n{exam_teacher}\n\n{exam_brief}\n\n{exam_fitted}\n\nBreak the apparatus within its rounds, and {faculty_name} finishes the line that stopped. If it is still standing at the end, you may sit the practical again.",
+    "body": "{exam_setting}\n\n{exam_teacher}\n\n{exam_brief}\n\n{exam_fitted}\n\nBreak the apparatus, and {faculty_name} finishes the line that stopped. If you yield, or it puts you on the floor first, you may sit the practical again.",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",

@@ -364,6 +364,8 @@ public static class ElementReactions
         var tile = victim?.CurrentTile;
         if (tile == null || tile.Reaction != ElementReaction.Brittle || amount <= 0)
             return amount;
+        if (victim.TeamId != 0)
+            CombatManager.NoteMoment("elementalist.brittle_hit");   // a checklist's brittle step (never counted in a preview)
 
         if (victim.HasStatus("frozen"))
         {

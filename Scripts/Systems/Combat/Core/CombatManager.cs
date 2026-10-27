@@ -366,6 +366,7 @@ public partial class CombatManager : Node3D
         UninstallIntentTime();
         UninstallAnchorHooks();
         UninstallEnchanterHooks();
+        StopTutorialMoments();   // a checklist stops listening with its fight
         CardUi.HalfSpentProvider = null;
         CardDropHandler.SelfCastRedirect = null;
     }
@@ -2552,6 +2553,7 @@ public partial class CombatManager : Node3D
                 combatUI?.AppendActionLog($"Sculpted opening hand: {bottomed} card(s) exchanged.");
             },
         };
+        RegisterManager.Fire("combat.opening_hand");   // T2: explained once (the Examiner's minute in the trial)
         State.DispatchCardChoice(req);
     }
 
@@ -2803,8 +2805,10 @@ public partial class CombatManager : Node3D
         // Once per combat, on turn one: bottom up to N cards from the opening hand
         // and redraw that many. AllowFewer + cancel = "keep everything" is one click;
         // DefaultToNone = a headless fight keeps its dealt hand untouched.
-        // A scripted fight (the prologue) deals an authored opening hand, so it never offers.
-        if (!_openingSculptOffered && roundNumber == 1 && currentPhase == CombatPhase.PlayerTurn && !ScriptedFight)
+        // A scripted fight (the prologue) deals an authored opening hand, so it offers only when
+        // its script asks (the common practical, 2026-10-27, which teaches it).
+        if (!_openingSculptOffered && roundNumber == 1 && currentPhase == CombatPhase.PlayerTurn
+            && (!ScriptedFight || ScriptedOffersOpeningHand))
         {
             _openingSculptOffered = true;
             OfferOpeningSculpt();
@@ -3399,13 +3403,18 @@ public partial class CombatManager : Node3D
     /// ate whole still counts as being struck (Unit.OnStruck fires only on HP
     /// loss, which would make the armour stance's own trigger self-defeating).
     /// Defensive pays the target; Guardian pays its adjacent allies. Both claim
-    /// at most once per activation id.</summary>
+    /// at most once per activation id. Riposte answers here too (ResolveRetaliation).</summary>
     private void HandleUnitAttacked(Unit target, Unit source, int amount)
     {
         if (target == null || !IsInstanceValid(target) || !target.IsPlayerControlled)
             return;
         if (source == null || !IsInstanceValid(source) || source.TeamId == target.TeamId)
             return;
+
+        // Riposte (moved here from HandleUnitStruck, 2026-10-27): a blow the shield or the
+        // armor took whole still hit. Its damage carries no source, so it cannot answer
+        // itself, and the team check above keeps it off a friendly blow.
+        ResolveRetaliation(target, source);
 
         EdgeRules.OnStruck(target, _edgeActivationId);
 
@@ -3753,7 +3762,11 @@ public partial class CombatManager : Node3D
     // PerformRangedAttack is KEPT, because Tinker constructs still call it.
 
 
-    /// <summary>Riposte: a defender with RetaliateDamage strikes back at whoever just hit it.</summary>
+    /// <summary>Riposte: a defender with RetaliateDamage strikes back at whoever just hit it.
+    /// Called from HandleUnitAttacked (2026-10-27), so it answers every enemy hit, including
+    /// one the shield or the armor took whole, as the card reads ("any attacker that hits
+    /// you"). It hung off Unit.OnStruck, which fires only when health is lost, so Riposte's own
+    /// 3 shield kept it from ever answering a blow of 3 or less.</summary>
     private void ResolveRetaliation(Unit defender, Unit attacker)
     {
         if (defender == null || attacker == null)
@@ -3764,6 +3777,7 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog($"[Riposte] {defender.Name} strikes back at {attacker.Name} " +
                                   $"for {defender.RetaliateDamage}!");
         attacker.ApplyDamage(defender.RetaliateDamage);
+        NoteTutorialRiposte(defender, attacker);   // the practical's riposte step
     }
 
     private async System.Threading.Tasks.Task PerformRangedAttack(Unit enemy, Unit target, int bonusDamage = 0)
@@ -4340,9 +4354,13 @@ public partial class CombatManager : Node3D
         CallDeferred(nameof(OrientCameraForCombat));
         CallDeferred(nameof(ShowDeploymentIntel));
 
-        // A scripted fight (the prologue) places the party where the story stands it.
-        if (ScriptedFight)
+        // A scripted fight (the prologue) places the party where the story stands it, unless
+        // its script hands deployment to the player (the common practical, 2026-10-27). When the
+        // player deploys, the Register explains it once (T2), or the Examiner does in the trial.
+        if (ScriptedFight && !ScriptedPlayerDeploys)
             GetTree().CreateTimer(ScriptedDeployDelay).Timeout += AutoConfirmScriptedDeployment;
+        else
+            RegisterManager.Fire("combat.deployment");
     }
 
     private void ShowDeploymentIntel()
@@ -7401,7 +7419,7 @@ public partial class CombatManager : Node3D
             int hpLoss = 0;
             foreach (int hit in perVictim[v])
             {
-                var (sL, aL, hL, _) = Unit.MitigateCore(hit, shield, armor, hp, shrouded, immortal, v.ChitinAmount);
+                var (sL, aL, hL, _) = Unit.MitigateCore(hit, shield, armor, hp, shrouded, immortal, v.ChitinAmount, v.WardFloor);
                 shield -= sL; armor -= aL; hp -= hL; hpLoss += hL;
             }
             if (hpLoss > 0)

@@ -3,7 +3,7 @@
   "threatLabel": "Swing Arm",
   "role": "line",
   "factionId": "",
-  "intelDescription": "A weighted arm on a ratchet. It spends a round drawing back, then swings at the square it chose when it began.",
+  "intelDescription": "A weighted arm on a ratchet. It spends a round drawing back, then swings at the square it chose when it began. In an examination it is warded: each step under the objective breaks one ward.",
   "maxHealth": 32,
   "baseSpeed": 0,
   "armor": 0,

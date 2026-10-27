@@ -3,7 +3,7 @@
   "threatLabel": "Dummy Rack",
   "role": "line",
   "factionId": "",
-  "intelDescription": "A rack of practice dummies. While a dummy stands beside it, the dummy takes the blow. It puts out a fresh one every round.",
+  "intelDescription": "A rack of practice dummies. While a dummy stands beside it, the dummy takes the blow. It puts out a fresh one every round. In an examination it is warded: each step under the objective breaks one ward.",
   "maxHealth": 20,
   "baseSpeed": 0,
   "armor": 0,

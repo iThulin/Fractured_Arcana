@@ -16,7 +16,9 @@ using System.Linq;
 //                 paying out (P-1: no rewards, mastery or honored dead).
 //                 A scripted fight also skips the two pre-fight choices:
 //                 the opening-hand sculpt (its hand is authored) and
-//                 deployment (the party stands where the story puts it).
+//                 deployment (the party stands where the story puts it),
+//                 unless its script asks for them (playerDeploys and
+//                 offerOpeningHand: the common practical teaches both).
 // Layer:          Combat / runtime
 // Collaborators:  PlayerSession (ScriptedDeck, ScriptedInnate,
 //                 ScriptedSchool, ScriptedWizardOnly), EncounterRouter
@@ -34,6 +36,16 @@ public partial class CombatManager
     /// toward mastery and the fallen are not kept as honored dead.</summary>
     private static bool ScriptedFight =>
         EncounterRouter.Instance != null && EncounterRouter.Instance.SuppressRewards;
+
+    /// <summary>The scripted fight's script hands deployment to the player (the common
+    /// practical, 2026-10-27): StartDeploymentPhase skips the auto-confirm.</summary>
+    private static bool ScriptedPlayerDeploys =>
+        PrologueDirector.DeploysByHand(EncounterRouter.Instance?.ScriptedFightId);
+
+    /// <summary>The scripted fight's script offers the opening-hand sculpt, as a fight outside
+    /// the prologue does (the common practical, 2026-10-27).</summary>
+    private static bool ScriptedOffersOpeningHand =>
+        PrologueDirector.OffersOpeningHand(EncounterRouter.Instance?.ScriptedFightId);
 
     /// <summary>Hook a: the wizard's deck for a scripted fight, one card per id in
     /// PlayerSession.ScriptedDeck, with each ScriptedInnate entry flagged on one matching

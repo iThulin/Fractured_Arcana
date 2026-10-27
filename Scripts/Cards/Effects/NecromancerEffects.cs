@@ -380,6 +380,8 @@ public sealed class AdvanceAllSpiritsEffect : EffectBase
 				}
 				nearestEnemy.ApplyDamage(spiritDmg);
 				s.Log($"[AdvanceSpirits] {spirit.Name} attacks {nearestEnemy.Name} for {spiritDmg}.");
+				if (spirit.TeamId == 0 && nearestEnemy.TeamId != 0)
+					CombatManager.NoteMoment("necro.spirit_strikes");   // a checklist's spirit step
 
 				// On-kill riders (Call to Purpose and upgrades) are consumed here because
 				// spirits only ever attack through this effect.

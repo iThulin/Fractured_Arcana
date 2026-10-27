@@ -129,6 +129,11 @@ public partial class EncounterRouter : Node
     public string ScriptedFightId = "";
     /// <summary>The transition card's title on a scripted fight's way back.</summary>
     public string ScriptedReturnTitle = "";
+    /// <summary>The candidate yielded a checklist fight from the pause menu (PauseMenu, ruled
+    /// 2026-10-27). Those fights have no round cap, so a yield is how a stuck attempt ends,
+    /// and the director reads it as the bell, not the floor. Cleared at every scripted launch
+    /// and with the scripted session.</summary>
+    public bool ScriptedFightYielded = false;
     /// <summary>The wizard's health when the last fight ended, or -1 when the wizard was
     /// not on the field. The duel's clean verdict reads it.</summary>
     public int LastWizardHealth = -1;
