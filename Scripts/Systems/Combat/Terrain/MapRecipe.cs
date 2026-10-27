@@ -64,6 +64,10 @@ public sealed class BaseTerrainSpec
     public float DetailWeight = -1f;       // <0 = use default
     public int MaxHeightStep = 0;          // 0 = use default
     public int MinHeightStep = 0;
+    /// <summary>Every tile at height step 0: no hills, no basins. The height steps above
+    /// use 0 to mean "the field's default" (-2 to 3), so they cannot say "flat"; this can.
+    /// Feature ops may still raise or lower tiles afterwards.</summary>
+    public bool Flat = false;
     public List<PaletteRule> Palette = new();
 
     public static BaseTerrainSpec FromDict(Godot.Collections.Dictionary d)
@@ -74,7 +78,8 @@ public sealed class BaseTerrainSpec
             MoistureFrequency = MapRecipe.Flt(d, "moisture_frequency", 0f),
             DetailWeight = MapRecipe.Flt(d, "detail_weight", -1f),
             MaxHeightStep = MapRecipe.Int(d, "max_height_step", 0),
-            MinHeightStep = MapRecipe.Int(d, "min_height_step", 0)
+            MinHeightStep = MapRecipe.Int(d, "min_height_step", 0),
+            Flat = d.ContainsKey("flat") && d["flat"].AsBool(),
         };
 
         if (d.ContainsKey("palette"))
@@ -595,6 +600,10 @@ public sealed class InteriorSpec
     /// that show above the set's floor. Null keeps the template's.</summary>
     public Color? FloorJoint;
 
+    /// <summary>The set's great doors stand open (the Ceremony Hall's east doors, for the
+    /// Sundering: "the east doors open on figures in sealed-sky blue").</summary>
+    public bool DoorsOpen;
+
     public static InteriorSpec FromDict(Godot.Collections.Dictionary d) => new()
     {
         Set = MapRecipe.Str(d, "set", ""),
@@ -604,6 +613,7 @@ public sealed class InteriorSpec
         FloorCool = d.ContainsKey("floor_cool") ? (Color?)MapRecipe.Col(d, "floor_cool", Colors.White) : null,
         FloorWarm = d.ContainsKey("floor_warm") ? (Color?)MapRecipe.Col(d, "floor_warm", Colors.White) : null,
         FloorJoint = d.ContainsKey("floor_joint") ? (Color?)MapRecipe.Col(d, "floor_joint", Colors.Black) : null,
+        DoorsOpen = d.ContainsKey("doors_open") && d["doors_open"].AsBool(),
     };
 }
 
@@ -671,6 +681,7 @@ public sealed class MapRecipe
                 DetailWeight = BaseTerrain?.DetailWeight ?? -1f,
                 MaxHeightStep = BaseTerrain?.MaxHeightStep ?? 0,
                 MinHeightStep = BaseTerrain?.MinHeightStep ?? 0,
+                Flat = BaseTerrain?.Flat ?? false,
                 Palette = skin.Palette,
             };
         }

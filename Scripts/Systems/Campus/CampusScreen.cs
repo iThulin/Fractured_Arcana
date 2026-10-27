@@ -1592,6 +1592,18 @@ public partial class CampusScreen : Control
             router.ReturnSceneOverride != CampusScenePath)
             return;
 
+        // The declaration exam (DisciplineExam, R7e) consumes its own return: a pass declares
+        // the discipline and shows the conferral, a miss shows the teacher's note.
+        var exam = DisciplineExam.ConsumeReturn(CampusScenePath);
+        if (exam != null)
+        {
+            if (exam.Panel != null)
+                ShowCampusNarrative(exam.Panel);
+            if (!string.IsNullOrEmpty(exam.Toast))
+                _campusToasts?.Push(exam.Toast, exam.ToastKind);
+            return;
+        }
+
         var save = SaveManager.ActiveSave;
         bool won = router.CombatWon;
         string guardianKey = router.SavedCombatGuardianKey;

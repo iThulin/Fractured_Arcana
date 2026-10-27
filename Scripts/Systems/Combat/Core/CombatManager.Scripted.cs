@@ -14,13 +14,17 @@ using System.Linq;
 //                 at the end of a fight, which the duel's clean verdict
 //                 reads, and the switch that keeps a scripted fight from
 //                 paying out (P-1: no rewards, mastery or honored dead).
+//                 A scripted fight also skips the two pre-fight choices:
+//                 the opening-hand sculpt (its hand is authored) and
+//                 deployment (the party stands where the story puts it).
 // Layer:          Combat / runtime
 // Collaborators:  PlayerSession (ScriptedDeck, ScriptedInnate,
 //                 ScriptedSchool, ScriptedWizardOnly), EncounterRouter
 //                 (FallenEnemyUnitIds, EndOnUnitFall, SuppressRewards,
 //                 LastWizardHealth), PrologueDirector.cs (sets them),
 //                 CombatManager.cs (InitializeUnitDecks, HandleUnitDeath,
-//                 DeclareVictory, DeclareDefeat),
+//                 DeclareVictory, DeclareDefeat, the opening-hand sculpt,
+//                 StartDeploymentPhase),
 //                 CombatManager.Objectives.cs (the victory latch)
 // ============================================================
 
@@ -149,6 +153,25 @@ public partial class CombatManager
             _objectiveVictory = true;
             GD.Print($"[Objective] {unit.Name} has fallen. The scripted fight is won.");
         }
+    }
+
+    /// <summary>How long a scripted fight shows its starting positions before deployment
+    /// confirms itself. A timer, not a deferred call: StartDeploymentPhase runs inside
+    /// SpawnTestUnits, before _Ready queues InitializeUnitDecks, so a deferred confirm would
+    /// start round 1 before the decks exist (the skip-deployment path's old "one turn
+    /// delay").</summary>
+    private const double ScriptedDeployDelay = 0.25;
+
+    /// <summary>Deployment in a scripted fight: the party keeps the tiles it spawned on and the
+    /// fight begins, through the same EndDeploymentPhase the confirm button calls (enemies
+    /// spawn, the starting tile seeds attunement, round 1 starts). A no-op when the combat is
+    /// gone or deployment has already ended.</summary>
+    private void AutoConfirmScriptedDeployment()
+    {
+        if (!IsInstanceValid(this) || !isInDeploymentPhase)
+            return;
+        GD.Print("[Scripted] Deployment confirmed: the party stands where the story puts it.");
+        EndDeploymentPhase();
     }
 
     /// <summary>Combat start: the fallen list belongs to the fight about to begin. Called from

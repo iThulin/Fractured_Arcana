@@ -139,7 +139,7 @@ public partial class PrologueScreen : Control
             return;
         }
         Ask("Skip Commencement?",
-            $"You have played the {PrologueDirector.PracticalName(save)} prologue before on this computer. "
+            "You have played the prologue before on this computer. "
             + "Skip to the gate? You will read one page that names who betrayed the hall in this save.",
             "Skip to the gate", "Play the prologue",
             () => ShowPanel(PrologueDirector.RecapPanelId),

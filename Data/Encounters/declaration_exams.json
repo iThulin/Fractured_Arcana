@@ -1,0 +1,36 @@
+[
+  {
+    "id": "declaration_exam_open",
+    "title": "{exam_name}",
+    "body": "{exam_setting}\n\n{exam_teacher}\n\n{exam_brief}\n\n{exam_fitted}\n\nBreak the apparatus within its rounds, and {faculty_name} finishes the line that stopped. If it is still standing at the end, you may sit the practical again.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Begin the practical.",
+        "resultText": ""
+      },
+      {
+        "label": "Not yet.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "declaration_exam_missed",
+    "title": "{exam_name}",
+    "body": "The apparatus is still standing, and the line that stopped stays stopped.\n\nIn the margin, the Register writes the note for a candidate who misses it, in the hand of {faculty_name}: '{exam_remark}'\n\n{exam_again}",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "When I am ready.",
+        "resultText": ""
+      }
+    ]
+  }
+]

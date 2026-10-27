@@ -46,6 +46,8 @@ public sealed class CampusGuildPanel : CampusPanel
     private VBoxContainer _guildResultContainer;
     private VBoxContainer _declarationContainer;
     private VBoxContainer _charterContainer;
+    /// <summary>The school whose practical (R7e, DisciplineExam) is open under its row, or "".</summary>
+    private string _examOpenSchool = "";
 
     // Last-run result snapshot (see RefreshGuildResultPanel): RunResultData is
     // CONSUMED on first read because StrategicView's warfront resolution keys on
@@ -179,7 +181,9 @@ public sealed class CampusGuildPanel : CampusPanel
     /// One row per non-Adept school: declared, declarable, or locked with the
     /// single most actionable reason why. Eligibility is recomputed on every
     /// refresh because it depends on cycle state (companions, dispositions) that
-    /// changes underneath this panel.
+    /// changes underneath this panel. R7e (2026-10-26): the last step is the
+    /// school's practical (DisciplineExam), opened under its row, and the stated
+    /// intention shows as the first goal until it is declared.
     /// </summary>
     private void RefreshDeclarations()
     {
@@ -201,7 +205,8 @@ public sealed class CampusGuildPanel : CampusPanel
         var intro = new Label
         {
             Text = "Declared disciplines are permanent and playable at every new timeline. " +
-                   "Declaring takes a teacher, that school's mastery, and the Grand Hall.",
+                   "Declaring takes a teacher, that school's mastery and the Grand Hall. " +
+                   "Then you sit its practical.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         intro.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -213,6 +218,20 @@ public sealed class CampusGuildPanel : CampusPanel
         tally.AddThemeColorOverride("font_color", UITheme.Gold);
         _declarationContainer.AddChild(tally);
 
+        // R7e: the stated intention is the first goal, shown until it is declared.
+        string goal = IntendedSchool(save);
+        if (goal.Length > 0 && goal != DeclarationService.StartingSchool && !DeclarationService.IsDeclared(save, goal))
+        {
+            var goalLbl = new Label
+            {
+                Text = $"Your first goal: {goal}, the discipline you intend to be named into.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            goalLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            goalLbl.AddThemeColorOverride("font_color", UITheme.GoldDim);
+            _declarationContainer.AddChild(goalLbl);
+        }
+
         // Adept first, since it is always playable and never declared. Skipping it entirely
         // read as a hole in the list during playtest.
         _declarationContainer.AddChild(BuildAdeptRow());
@@ -223,7 +242,21 @@ public sealed class CampusGuildPanel : CampusPanel
             if (name == DeclarationService.StartingSchool) continue;   // row above
 
             _declarationContainer.AddChild(BuildDeclarationRow(save, name));
+            if (name == _examOpenSchool)
+                _declarationContainer.AddChild(BuildExamCard(save, name));
         }
+    }
+
+    /// <summary>The stated intention's school (R7b), "" when unstated or never asked.</summary>
+    private static string IntendedSchool(GuildSaveData save)
+    {
+        var flags = save?.Ledger?.MetaNarrativeFlags;
+        if (flags == null)
+            return "";
+        foreach (var name in Enum.GetNames(typeof(CardSchool)))
+            if (flags.Contains($"stated_intention_{name.ToLowerInvariant()}"))
+                return name;
+        return "";
     }
 
     /// <summary>The one row that needs no evaluation: where every guild begins.</summary>
@@ -313,29 +346,128 @@ public sealed class CampusGuildPanel : CampusPanel
         bool hasHall = DeclarationService.HasGrandHall(save);
         bool hasTeacher = status.FacultySource != null;
         bool hasMastery = status.MasteryPoints >= status.MasteryRequired;
+        bool hasExam = DisciplineExam.HasExam(school);
+        bool passed = hasExam && DisciplineExam.HasPassed(save, school);
         detail.Text =
             $"Teacher {(hasTeacher ? "✓ " + status.FacultySource : "-")}   ·   " +
             $"Mastery {status.MasteryPoints}/{status.MasteryRequired}{(hasMastery ? " ✓" : "")}   ·   " +
-            $"Grand Hall {(hasHall ? "✓" : "-")}";
+            $"Grand Hall {(hasHall ? "✓" : "-")}" +
+            (hasExam ? $"   ·   Practical {(passed ? "✓" : "-")}" : "");
         detail.AddThemeColorOverride("font_color",
             status.Eligible ? UITheme.HealthGreen : UITheme.CampusSubtleText);
         row.AddChild(detail);
 
         if (status.Eligible)
         {
-            var btn = MakeButton($"Declare {school}", 170, 34, UITheme.CampusSmallFontSize);
+            // R7e: with the gate met, the practical comes first, unless it is already passed.
+            bool examFirst = hasExam && !passed;
+            var btn = MakeButton(examFirst ? "Sit the practical" : $"Declare {school}", 170, 34,
+                                 UITheme.CampusSmallFontSize);
             string captured = school;
-            btn.Pressed += () => OnDeclarePressed(captured);
+            if (examFirst)
+            {
+                btn.TooltipText = $"Pass the {school} practical to declare it. If you miss, you may sit it again.";
+                btn.Pressed += () => ToggleExamCard(captured);
+            }
+            else
+                btn.Pressed += () => OnDeclarePressed(captured);
             row.AddChild(btn);
         }
 
         return row;
     }
 
+    /// <summary>Open or close a school's practical under its row.</summary>
+    private void ToggleExamCard(string school)
+    {
+        _examOpenSchool = _examOpenSchool == school ? "" : school;
+        RefreshDeclarations();
+    }
+
+    /// <summary>The practical's page under its row (DisciplineExam.OpeningPanel): the teacher
+    /// setting it and giving the brief in their own voice (E2), then Begin or Not yet.</summary>
+    private Control BuildExamCard(GuildSaveData save, string school)
+    {
+        var page = DisciplineExam.OpeningPanel(save, school);
+        if (page == null)
+            return MakeStubLabel($"The page for the {school} practical is missing from the data.");
+
+        var card = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var style = new StyleBoxFlat
+        {
+            BgColor = UITheme.BgCard,
+            BorderColor = UITheme.GoldDim,
+            ContentMarginLeft = 14,
+            ContentMarginRight = 14,
+            ContentMarginTop = 10,
+            ContentMarginBottom = 10,
+        };
+        style.SetBorderWidthAll(1);
+        style.SetCornerRadiusAll(UITheme.CornerRadius);
+        card.AddThemeStyleboxOverride("panel", style);
+
+        var box = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        box.AddThemeConstantOverride("separation", 8);
+        card.AddChild(box);
+
+        var title = new Label { Text = page.Title, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        box.AddChild(title);
+
+        var body = new Label
+        {
+            Text = page.Body,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+        body.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        body.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
+        box.AddChild(body);
+
+        string beginLabel = page.Choices.Count > 0 && !string.IsNullOrEmpty(page.Choices[0]?.Label)
+            ? page.Choices[0].Label : "Begin.";
+        string laterLabel = page.Choices.Count > 1 && !string.IsNullOrEmpty(page.Choices[1]?.Label)
+            ? page.Choices[1].Label : "Not yet.";
+        var buttons = new HBoxContainer();
+        buttons.AddThemeConstantOverride("separation", 12);
+        box.AddChild(buttons);
+        string captured = school;
+        var beginBtn = MakeButton(beginLabel, 190, 34, UITheme.CampusSmallFontSize);
+        beginBtn.Pressed += () => OnSitPressed(captured);
+        buttons.AddChild(beginBtn);
+        var laterBtn = MakeButton(laterLabel, 120, 34, UITheme.CampusSmallFontSize, isPrimary: false);
+        laterBtn.Pressed += () => ToggleExamCard(captured);
+        buttons.AddChild(laterBtn);
+        return card;
+    }
+
+    /// <summary>Begin: the practical launches, and the scene changes to the examination floor.
+    /// Its return is consumed by the scene it left (DisciplineExam.ConsumeReturn).</summary>
+    private void OnSitPressed(string school)
+    {
+        var save = Ctx.Save;
+        if (save == null) return;
+        if (DisciplineExam.Sit(Ctx.Host, save, school))
+            return;
+        Ctx.Toasts?.Push($"The {school} practical cannot be sat just now.", QuestToastKind.Progress);
+        _examOpenSchool = "";
+        RefreshDeclarations();
+    }
+
     private void OnDeclarePressed(string school)
     {
         var save = Ctx.Save;
         if (save == null) return;
+
+        // R7e: a school with a practical is declared by passing it (DisciplineExam), so a stale
+        // Declare press opens the practical instead.
+        if (DisciplineExam.HasExam(school) && !DisciplineExam.HasPassed(save, school))
+        {
+            _examOpenSchool = school;
+            RefreshDeclarations();
+            return;
+        }
 
         // Capture the teacher before declaring, because Evaluate reports FacultySource
         // for a declared school too, but reading it first keeps the conferral

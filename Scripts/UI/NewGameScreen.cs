@@ -6,16 +6,24 @@ using System.Collections.Generic;
 // NewGameScreen.cs
 //
 // Purpose:        One-time guild founding screen. The 8-school browser
-//                 is a READER WITH LOCKS, not a picker (A1 hard ruling +
-//                 2026-08-04 playtest ruling): the seven disciplines render
-//                 locked, Adept is marked as where you begin, and confirm
-//                 always founds the guild as Adept. Disciplines are declared
-//                 later in the Grand Hall (CampusGuildPanel's Disciplines
-//                 section / DeclarationService).
+//                 is a reader with locks (the 2026-08-04 ruling, restored
+//                 by R7e on 2026-10-26) that also takes the stated
+//                 intention: the discipline the candidate intends to be
+//                 named into, any of the eight or none (R7d: it replaces
+//                 the Examiner's question, and she reads the answer back
+//                 at the trial). Adept is where every guild begins; the
+//                 seven others render locked, and the one marked is the
+//                 first goal. The intention is recorded, never binding:
+//                 confirm always founds the guild as Adept (A1 hard
+//                 ruling), every candidate sits the common practical, and
+//                 disciplines are declared later in the Grand Hall, each
+//                 by its own practical (CampusGuildPanel's Disciplines
+//                 section, DisciplineExam, DeclarationService).
 // Layer:          UI
 // Collaborators:  SaveManager.cs, StarterDeckLoader.cs,
 //                 PlayerSession.cs, CardLoaderV2.cs,
-//                 SchoolColors.cs, UITheme.cs
+//                 SchoolColors.cs, UITheme.cs, PrologueDirector.cs
+//                 (RecordFoundingIntention)
 // ============================================================
 
 public partial class NewGameScreen : Control
@@ -78,9 +86,11 @@ public partial class NewGameScreen : Control
     private LineEdit _wizardNameInput;
     private Label _errorLabel;
     private Button _confirmBtn;
-    // Preview cursor for the reader on the left, NOT a choice. Every guild
-    // starts undeclared as an Adept; see OnConfirmPressed.
+    // The school marked on the left: the stated intention, unless it is left
+    // unstated (then only what is being read). Never the guild's school: every
+    // guild starts undeclared as an Adept; see OnConfirmPressed.
     private CardSchool _selectedSchool = CardSchool.Adept;
+    private bool _intentionUnstated = false;
     private int _targetSlot = -1;
 
     // Detail panel refs
@@ -167,11 +177,11 @@ public partial class NewGameScreen : Control
 
         var sub = new Label
         {
-            Text = "You sat the examination. You were standing for the conferral when it stopped " +
-                   "mid-sentence, half-written, the only unfinished thing in the room. Every guild " +
-                   "begins as an Adept: the fundamentals and no discipline. The other seven are " +
-                   "locked. Read them, want them, then declare one in the Grand Hall once someone " +
-                   "is left who can teach it.",
+            Text = "Every guild begins as an Adept: the fundamentals and no discipline, and every " +
+                   "candidate sits the final examination in it. The other seven are locked. State the " +
+                   "one you intend to be named into, and it becomes your first goal. Disciplines are " +
+                   "declared later, in the Grand Hall: each takes a teacher, that school's mastery, " +
+                   "and its own practical.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         sub.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
@@ -211,6 +221,17 @@ public partial class NewGameScreen : Control
 
         foreach (CardSchool school in Enum.GetValues(typeof(CardSchool)))
             col.AddChild(BuildSchoolCard(school));
+
+        // R7b: the intention may be left unstated. The list still reads; nothing is marked.
+        var unstated = new CheckBox
+        {
+            Text = "Leave my intention unstated",
+            FocusMode = FocusModeEnum.None,
+        };
+        unstated.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        unstated.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        unstated.Toggled += on => { _intentionUnstated = on; UpdateAll(); };
+        col.AddChild(unstated);
     }
 
     private Control BuildSchoolCard(CardSchool school)
@@ -256,19 +277,13 @@ public partial class NewGameScreen : Control
         nameWrapper.SizeFlagsVertical = SizeFlags.ShrinkCenter;
         row.AddChild(nameWrapper);
 
-        // The lockout affordance (2026-08-04 playtest ruling): the browser is
-        // for reading, but a locked school must LOOK locked at the list level,
-        // not only in the detail panel. The earlier reader form kept picker
-        // affordances and read as a bug when confirm founded an Adept anyway.
+        // The lockout affordance (2026-08-04 playtest ruling, restored by R7e): a locked school
+        // must LOOK locked at the list level, not only in the detail panel. Any school can still
+        // be marked as the stated intention, the first goal; the detail panel says which.
         bool isStartSchool = school == CardSchool.Adept;
-        var nameLbl = new Label
-        {
-            Text = isStartSchool ? school.ToString() : $"🔒 {school}",
-        };
+        var nameLbl = new Label { Text = isStartSchool ? school.ToString() : $"🔒 {school}" };
         nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        nameLbl.AddThemeColorOverride("font_color",
-            isStartSchool ? (sel ? Colors.White : new Color(0.85f, 0.78f, 0.55f))
-                          : sel ? new Color(0.75f, 0.75f, 0.82f) : new Color(0.45f, 0.45f, 0.55f));
+        nameLbl.AddThemeColorOverride("font_color", SchoolNameColor(school, sel));
         nameWrapper.AddChild(nameLbl);
 
         var identityLbl = new Label
@@ -600,22 +615,30 @@ public partial class NewGameScreen : Control
         UpdateConfirmButton();
     }
 
-    /// <summary>
-    /// Founding is only possible with Adept selected (2026-08-04 playtest ruling:
-    /// a locked selection must not be confirmable. The earlier form let you pick
-    /// Necromancer, hit confirm, and silently receive an Adept, which read as a
-    /// bug). The button itself carries the reason while disabled.
-    /// </summary>
+    /// <summary>Founding is always open (R7d): the marked school is an intention, not the guild's
+    /// school, so no mark can be refused, and the guild still founds as an Adept (A1). A locked
+    /// school can be marked: it is the first goal (R7e). The tooltip says what the mark does.</summary>
     private void UpdateConfirmButton()
     {
         if (_confirmBtn == null) return;
-        bool locked = _selectedSchool != CardSchool.Adept;
-        _confirmBtn.Disabled = locked;
-        _confirmBtn.Text = locked ? $"🔒 {_selectedSchool} is locked" : "Found the Guild";
-        _confirmBtn.TooltipText = locked
-            ? "Every guild begins as an Adept. Select Adept to found. Other " +
-              "disciplines are declared in play, in the Grand Hall."
-            : "";
+        _confirmBtn.Disabled = false;
+        _confirmBtn.Text = "Found the Guild";
+        const string common = "The guild begins as an Adept, and every candidate sits the common practical.";
+        _confirmBtn.TooltipText = _intentionUnstated
+            ? $"Your intention is unstated. {common}"
+            : _selectedSchool == CardSchool.Adept
+                ? $"You intend to be named Adept. {common}"
+                : $"Your stated intention is {_selectedSchool}: your first goal. {common}";
+    }
+
+    /// <summary>A school row's name color (UITheme): Adept, where every guild begins, reads gold;
+    /// the seven locked schools read dim; the marked intention reads brightest.</summary>
+    private Color SchoolNameColor(CardSchool school, bool sel)
+    {
+        bool marked = sel && !_intentionUnstated;
+        if (school == CardSchool.Adept)
+            return marked ? UITheme.TextPrimary : UITheme.Gold;
+        return marked ? UITheme.TextPrimary : sel ? UITheme.TextSecondary : UITheme.TextDim;
     }
 
     private void UpdateSchoolCards()
@@ -625,14 +648,9 @@ public partial class NewGameScreen : Control
             bool sel = school == _selectedSchool;
             var accent = SchoolColors.GetBorderColor(school);
             ApplySchoolCardStyle(card, sel, accent);
-            // Mirror BuildSchoolCard's lockout palette EXACTLY. BuildUI ends
-            // with UpdateAll(), so whatever is set here is what actually paints.
-            // The first version of this method used a uniform scheme and erased
-            // the Adept-gold/locked-dim distinction before the first frame.
-            bool isStartSchool = school == CardSchool.Adept;
-            nameLbl.AddThemeColorOverride("font_color",
-                isStartSchool ? (sel ? Colors.White : new Color(0.85f, 0.78f, 0.55f))
-                              : sel ? new Color(0.75f, 0.75f, 0.82f) : new Color(0.45f, 0.45f, 0.55f));
+            // Mirror BuildSchoolCard's palette EXACTLY. BuildUI ends with UpdateAll(),
+            // so whatever is set here is what actually paints.
+            nameLbl.AddThemeColorOverride("font_color", SchoolNameColor(school, sel));
             symLbl.AddThemeColorOverride("font_color",
                 sel ? accent : new Color(0.30f, 0.30f, 0.40f));
         }
@@ -694,13 +712,18 @@ public partial class NewGameScreen : Control
         _detailDesc.Text = desc;
 
         int count = CountCardsForSchool(_selectedSchool);
-        bool isStart = _selectedSchool.ToString() == DeclarationService.StartingSchool;
+        bool isStart = _selectedSchool == CardSchool.Adept;
+        string gate = "Declare it in the Grand Hall with a teacher, " +
+                      $"{SchoolMasteryService.DeclarableThreshold} mastery and its practical.";
         _detailCardCount.Text = isStart
-            ? $"{count} cards  ·  YOU BEGIN HERE"
-            : $"{count} cards  ·  🔒 LOCKED. Every guild begins as Adept. Declare this " +
-              $"later, in the Grand Hall, once someone here can teach it.";
+            ? (_intentionUnstated
+                ? $"{count} cards  ·  YOU BEGIN HERE."
+                : $"{count} cards  ·  YOU BEGIN HERE, and you intend to be named here.")
+            : (_intentionUnstated
+                ? $"{count} cards  ·  🔒 LOCKED. {gate}"
+                : $"{count} cards  ·  🔒 YOUR STATED INTENTION: your first goal. {gate}");
         _detailCardCount.AddThemeColorOverride("font_color",
-            isStart ? UITheme.Gold : new Color(accent.R, accent.G, accent.B, 0.6f));
+            _intentionUnstated ? new Color(accent.R, accent.G, accent.B, 0.6f) : UITheme.Gold);
 
         _detailFlavor.Text = flavor;
     }
@@ -866,17 +889,8 @@ public partial class NewGameScreen : Control
             ShowError("No save slot selected. Return to campus and try again.");
             return;
         }
-        if (_selectedSchool != CardSchool.Adept)
-        {
-            // Belt-and-braces behind the disabled button: a stale click must not
-            // found a guild while a locked school is the visible selection.
-            ShowError($"{_selectedSchool} is locked. Every guild begins as an Adept. " +
-                      "Select Adept to found, and declare other disciplines in play.");
-            return;
-        }
-
-        // Every guild begins UNDECLARED (A1 hard ruling). _selectedSchool is a
-        // reading cursor for the locked browser, never a choice. The school is
+        // Every guild begins UNDECLARED (A1 hard ruling). _selectedSchool is the
+        // stated intention, never the guild's school. The school is
         // passed to NewGame EXPLICITLY, because its default parameter is "Elementalist",
         // which would violate the ruling and seed the wrong starter deck.
         // Disciplines are declared later, in the Grand Hall (DeclarationService).
@@ -889,6 +903,8 @@ public partial class NewGameScreen : Control
         // when the ledger's FoundingScenario is still unset.
         PlayerSession.PendingStartScenarioId = _selectedScenarioId;
 
+        // A host on this path creates the save and records no intention, so the
+        // Examiner asks for one (the prologue's fallback).
         if (OnComplete != null)
         { OnComplete.Invoke(startingSchool, guildName); return; }
 
@@ -906,8 +922,13 @@ public partial class NewGameScreen : Control
         // Store wizard name on save
 
         save.WizardName = wizardName;
+        // R7d: the intention is stated here, and the Examiner reads it back at the trial
+        // instead of asking. R7e: it is the first goal; it sets no practical.
+        string intention = _intentionUnstated ? "unstated" : _selectedSchool.ToString();
+        PrologueDirector.RecordFoundingIntention(save, intention);
         SaveManager.Save();
-        GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {startingSchool} (undeclared).");
+        GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {startingSchool} " +
+                 $"(undeclared), stated intention {intention}.");
         // The hub is the strategic city (2026-08-19): founding drops the player into
         // their city. StrategicView's _Ready seeds the save and generates the cycle
         // world on the way in (CycleInitializer), so the fresh save is safe here.
@@ -957,10 +978,9 @@ public partial class NewGameScreen : Control
             CornerRadiusBottomLeft = 4,
             CornerRadiusBottomRight = 4,
         };
-        // The confirm button now spends real time DISABLED (locked-school
-        // selection). Without an explicit disabled stylebox it fell back to the
-        // engine-default grey with the white font override, which read as broken
-        // rather than locked.
+        // An explicit disabled stylebox: without one a disabled button falls back to
+        // the engine-default grey with the white font override, which reads as broken.
+        // (The confirm button was disabled for a locked school until 2026-10-26.)
         var disabled = new StyleBoxFlat
         {
             BgColor = new Color(0.10f, 0.09f, 0.14f),

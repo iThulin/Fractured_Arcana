@@ -178,6 +178,10 @@ public partial class Unit : Node3D
     public int DamageTakenThisRound = 0;
     /// <summary>HP lost across the whole combat. Read by mode_shift's threshold.</summary>
     public int DamageTakenThisCombat = 0;
+    /// <summary>Damage that landed across the whole combat: the shield, armor and health it
+    /// took off (DamageTakenThisCombat counts health alone). Read by the prologue trial's
+    /// damage counter, so a blow the armor eats still marks up (CombatManager.Tutorial.cs).</summary>
+    public int DamageLandedThisCombat = 0;
     /// <summary>Unit id whose profile this unit adopts at the head of its NEXT
     /// activation. Set by mode_shift; applied and cleared in RunEnemyTurn, so the
     /// shift is telegraph-honest (§7a P2), never mid-turn.</summary>
@@ -1360,6 +1364,7 @@ public partial class Unit : Node3D
             DamageTakenThisRound += hpLoss;
             DamageTakenThisCombat += hpLoss;
         }
+        DamageLandedThisCombat += shieldLoss + armorLoss + hpLoss;
 
         // U3b: wounded-and-standing. Ordered before the death check so a lethal hit
         // raises onDeath ONLY; a corpse does not react to being hurt.

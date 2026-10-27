@@ -296,10 +296,7 @@ public partial class HudManager : Node
         {
             return;
         }
-        // Hidden while the campus is an in-world overlay (Stage 3), because the campus draws
-        // its own top bar, so the global one would double up.
-        _layer.Visible = SaveManager.ActiveSave != null && !IsHiddenScene()
-                         && !PlayerSession.CampusOverlayOpen;
+        _layer.Visible = BarShownForCurrentScene();
 
         // Return to Campus shows on menu/utility screens (deck editor, card upgrade,
         // library, the strategic map, etc.) but is hidden where it would abandon an
@@ -332,6 +329,15 @@ public partial class HudManager : Node
         }
         return true;
     }
+
+    /// <summary>True when the bar shows over the current scene: the test RefreshVisibility
+    /// applies, evaluated on demand, so a scene building its UI in the frame of the swap gets the
+    /// answer the bar will settle on. CombatUI reads it to seat its top panels at the very top
+    /// while the bar is hidden (the prologue's fights).</summary>
+    public bool BarShownForCurrentScene() =>
+        // Hidden while the campus is an in-world overlay (Stage 3), because the campus draws
+        // its own top bar, so the global one would double up.
+        SaveManager.ActiveSave != null && !IsHiddenScene() && !PlayerSession.CampusOverlayOpen;
 
     private bool IsHiddenScene()
     {

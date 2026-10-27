@@ -372,6 +372,7 @@ public partial class CombatManager : Node3D
 
     public override void _Process(double delta)
     {
+        RefreshTutorialSteps();   // C4: the trial's checklist (CombatManager.Tutorial.cs)
         SyncMoveZoneDim();   // derived every frame, so no hover-event ordering can strand it
         RefreshAlmanacView(); // Almanac list + tile markers; repaints only when it changed
         RefreshAimLines();    // ranged intents: arc from the enemy to its locked tile
@@ -1885,6 +1886,7 @@ public partial class CombatManager : Node3D
             int edgeBeforeMove = selectedUnit.Edge;
             EdgeRules.OnAction(selectedUnit, EdgeActionKind.Move);   // Skirmish momentum
             RecordMartial(selectedUnit, "move", "", edgeBeforeMove);
+            NoteTutorialMove(selectedUnit);   // C4: the trial's walk step
             ClearMoveTiles();
             ShowMoveTilesWithCost(selectedUnit);
             RefreshSelectedUnitUI();
@@ -2801,7 +2803,8 @@ public partial class CombatManager : Node3D
         // Once per combat, on turn one: bottom up to N cards from the opening hand
         // and redraw that many. AllowFewer + cancel = "keep everything" is one click;
         // DefaultToNone = a headless fight keeps its dealt hand untouched.
-        if (!_openingSculptOffered && roundNumber == 1 && currentPhase == CombatPhase.PlayerTurn)
+        // A scripted fight (the prologue) deals an authored opening hand, so it never offers.
+        if (!_openingSculptOffered && roundNumber == 1 && currentPhase == CombatPhase.PlayerTurn && !ScriptedFight)
         {
             _openingSculptOffered = true;
             OfferOpeningSculpt();
@@ -4336,6 +4339,10 @@ public partial class CombatManager : Node3D
 
         CallDeferred(nameof(OrientCameraForCombat));
         CallDeferred(nameof(ShowDeploymentIntel));
+
+        // A scripted fight (the prologue) places the party where the story stands it.
+        if (ScriptedFight)
+            GetTree().CreateTimer(ScriptedDeployDelay).Timeout += AutoConfirmScriptedDeployment;
     }
 
     private void ShowDeploymentIntel()
@@ -5608,6 +5615,7 @@ public partial class CombatManager : Node3D
         // Portal strike: foundations beside the guild's buildings, and the
         // ritualists who mean to foul them (campus corruption, SiegeBlight).
         SpawnBuildingFoundations();
+        ScaleExamToWizard();   // E4: a declaration exam fits its apparatus to the wizard (CombatManager.Exam.cs)
         RefreshEnemyRoster();
     }
 
@@ -7018,6 +7026,7 @@ public partial class CombatManager : Node3D
         if (ok)
         {
             combatUI?.AppendActionLog($"Cast: {resolvedHalf.Name}.");
+            NoteTutorialCast(resolvedHalf);   // C4: the trial's Reflex step
             PayLeafCast(cardUi.CardInstance, isTop);   // before the discard below takes it off the page
             // Record mastery cast against the original half's blueprint
             // C4 (P-1): a scripted fight counts no casts toward mastery.

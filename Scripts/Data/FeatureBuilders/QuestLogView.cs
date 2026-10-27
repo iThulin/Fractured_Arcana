@@ -7,8 +7,8 @@ using System.Collections.Generic;
 // can never drift. Pure UI over QuestLoader/QuestTracker.
 //
 // Groups quests by persistence layer (quest spec §7):
-//   ETERNAL  ("the Chronicle"): cross-cycle arcs, dossiers,
-//            fragments, campus restoration. Never resets.
+//   ETERNAL  ("the Chronicle"): the first goal, cross-cycle arcs,
+//            dossiers, fragments, campus restoration. Never resets.
 //   THIS TIMELINE: resolution arcs, companion arcs, kingdom
 //            chains, incidentals. Header shows year/lunation.
 //   UNFINISHED BUSINESS: archived Timeline quests from past
@@ -18,6 +18,10 @@ using System.Collections.Generic;
 /// <summary>Renders quest cards + the lore codex into caller-supplied VBoxes.</summary>
 public static class QuestLogView
 {
+    /// <summary>The first goal's category (Data/Quests/first_goal.json, E5): shown first among
+    /// the Eternal quests, and only the quest for the stated intention's school.</summary>
+    public const string FirstGoalCategory = "First Goal";
+
     /// <summary>Clear <paramref name="box"/> and render grouped quest cards.
     /// Returns the summary line ("N complete · M active · K undiscovered").</summary>
     public static string BuildInto(VBoxContainer box, GuildSaveData save,
@@ -50,13 +54,17 @@ public static class QuestLogView
             AddSectionHeader(box, "ETERNAL");
 
             // Sub-group Eternal quests by Category for visual structure
-            string[] eternalCats = { "Story", "Fragments", "Dossiers", "Expansion", "Campus", "Fluency" };
+            string[] eternalCats = { FirstGoalCategory, "Story", "Fragments", "Dossiers", "Expansion", "Campus", "Fluency" };
             foreach (var cat in eternalCats)
             {
                 var inCat = new List<QuestDefinition>();
                 foreach (var q in eternal)
                     if (string.Equals(q.Category, cat, System.StringComparison.OrdinalIgnoreCase))
                         inCat.Add(q);
+                // E5: the first goal is the stated intention's quest alone. The other schools'
+                // stay locked for good, so they are neither shown nor counted as undiscovered.
+                if (string.Equals(cat, FirstGoalCategory, System.StringComparison.OrdinalIgnoreCase))
+                    inCat.RemoveAll(q => QuestTracker.StatusOf(q, save) == QuestStatus.Locked);
                 if (inCat.Count == 0)
                     continue;
 

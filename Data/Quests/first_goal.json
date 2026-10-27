@@ -1,0 +1,226 @@
+[
+  {
+    "id": "q_first_goal_elementalist",
+    "title": "As Intended: Elementalist",
+    "category": "First Goal",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "On the morning of Commencement you stated the discipline you intended to be named into, and the Register wrote it in the margin. The line it was writing for you stopped at the Sundering. It finishes in the Grand Hall, once someone is left who can teach Elementalist.",
+    "requiredFlag": "stated_intention_elementalist",
+    "objectives": [
+      {
+        "text": "Find someone left who can teach Elementalist",
+        "counter": "declare:Elementalist:teacher"
+      },
+      {
+        "text": "Earn Elementalist mastery",
+        "counter": "declare:Elementalist:mastery"
+      },
+      {
+        "text": "Reopen the Grand Hall",
+        "counter": "declare:Elementalist:hall"
+      },
+      {
+        "text": "Pass the Elementalist practical: the Frost Plate",
+        "counter": "declare:Elementalist:practical"
+      },
+      {
+        "text": "Be named into the discipline of the Elementalists",
+        "doneText": "Named into the discipline of the Elementalists. As intended.",
+        "counter": "declare:Elementalist:named"
+      }
+    ]
+  },
+  {
+    "id": "q_first_goal_arcanist",
+    "title": "As Intended: Arcanist",
+    "category": "First Goal",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "On the morning of Commencement you stated the discipline you intended to be named into, and the Register wrote it in the margin. The line it was writing for you stopped at the Sundering. It finishes in the Grand Hall, once someone is left who can teach Arcanist.",
+    "requiredFlag": "stated_intention_arcanist",
+    "objectives": [
+      {
+        "text": "Find someone left who can teach Arcanist",
+        "counter": "declare:Arcanist:teacher"
+      },
+      {
+        "text": "Earn Arcanist mastery",
+        "counter": "declare:Arcanist:mastery"
+      },
+      {
+        "text": "Reopen the Grand Hall",
+        "counter": "declare:Arcanist:hall"
+      },
+      {
+        "text": "Pass the Arcanist practical: the Proving Coil",
+        "counter": "declare:Arcanist:practical"
+      },
+      {
+        "text": "Be named into the discipline of the Arcanists",
+        "doneText": "Named into the discipline of the Arcanists. As intended.",
+        "counter": "declare:Arcanist:named"
+      }
+    ]
+  },
+  {
+    "id": "q_first_goal_chronomancer",
+    "title": "As Intended: Chronomancer",
+    "category": "First Goal",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "On the morning of Commencement you stated the discipline you intended to be named into, and the Register wrote it in the margin. The line it was writing for you stopped at the Sundering. It finishes in the Grand Hall, once someone is left who can teach Chronomancer.",
+    "requiredFlag": "stated_intention_chronomancer",
+    "objectives": [
+      {
+        "text": "Find someone left who can teach Chronomancer",
+        "counter": "declare:Chronomancer:teacher"
+      },
+      {
+        "text": "Earn Chronomancer mastery",
+        "counter": "declare:Chronomancer:mastery"
+      },
+      {
+        "text": "Reopen the Grand Hall",
+        "counter": "declare:Chronomancer:hall"
+      },
+      {
+        "text": "Pass the Chronomancer practical: the Swing Arm",
+        "counter": "declare:Chronomancer:practical"
+      },
+      {
+        "text": "Be named into the discipline of the Chronomancers",
+        "doneText": "Named into the discipline of the Chronomancers. As intended.",
+        "counter": "declare:Chronomancer:named"
+      }
+    ]
+  },
+  {
+    "id": "q_first_goal_enchanter",
+    "title": "As Intended: Enchanter",
+    "category": "First Goal",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "On the morning of Commencement you stated the discipline you intended to be named into, and the Register wrote it in the margin. The line it was writing for you stopped at the Sundering. It finishes in the Grand Hall, once someone is left who can teach Enchanter.",
+    "requiredFlag": "stated_intention_enchanter",
+    "objectives": [
+      {
+        "text": "Find someone left who can teach Enchanter",
+        "counter": "declare:Enchanter:teacher"
+      },
+      {
+        "text": "Earn Enchanter mastery",
+        "counter": "declare:Enchanter:mastery"
+      },
+      {
+        "text": "Reopen the Grand Hall",
+        "counter": "declare:Enchanter:hall"
+      },
+      {
+        "text": "Pass the Enchanter practical: the Walking Frame",
+        "counter": "declare:Enchanter:practical"
+      },
+      {
+        "text": "Be named into the discipline of the Enchanters",
+        "doneText": "Named into the discipline of the Enchanters. As intended.",
+        "counter": "declare:Enchanter:named"
+      }
+    ]
+  },
+  {
+    "id": "q_first_goal_necromancer",
+    "title": "As Intended: Necromancer",
+    "category": "First Goal",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "On the morning of Commencement you stated the discipline you intended to be named into, and the Register wrote it in the margin. The line it was writing for you stopped at the Sundering. It finishes in the Grand Hall, once someone is left who can teach Necromancer.",
+    "requiredFlag": "stated_intention_necromancer",
+    "objectives": [
+      {
+        "text": "Find someone left who can teach Necromancer",
+        "counter": "declare:Necromancer:teacher"
+      },
+      {
+        "text": "Earn Necromancer mastery",
+        "counter": "declare:Necromancer:mastery"
+      },
+      {
+        "text": "Reopen the Grand Hall",
+        "counter": "declare:Necromancer:hall"
+      },
+      {
+        "text": "Pass the Necromancer practical: the Dummy Rack",
+        "counter": "declare:Necromancer:practical"
+      },
+      {
+        "text": "Be named into the discipline of the Necromancers",
+        "doneText": "Named into the discipline of the Necromancers. As intended.",
+        "counter": "declare:Necromancer:named"
+      }
+    ]
+  },
+  {
+    "id": "q_first_goal_druid",
+    "title": "As Intended: Druid",
+    "category": "First Goal",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "On the morning of Commencement you stated the discipline you intended to be named into, and the Register wrote it in the margin. The line it was writing for you stopped at the Sundering. It finishes in the Grand Hall, once someone is left who can teach Druid.",
+    "requiredFlag": "stated_intention_druid",
+    "objectives": [
+      {
+        "text": "Find someone left who can teach Druid",
+        "counter": "declare:Druid:teacher"
+      },
+      {
+        "text": "Earn Druid mastery",
+        "counter": "declare:Druid:mastery"
+      },
+      {
+        "text": "Reopen the Grand Hall",
+        "counter": "declare:Druid:hall"
+      },
+      {
+        "text": "Pass the Druid practical: the Tiller",
+        "counter": "declare:Druid:practical"
+      },
+      {
+        "text": "Be named into the discipline of the Druids",
+        "doneText": "Named into the discipline of the Druids. As intended.",
+        "counter": "declare:Druid:named"
+      }
+    ]
+  },
+  {
+    "id": "q_first_goal_tinker",
+    "title": "As Intended: Tinker",
+    "category": "First Goal",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "On the morning of Commencement you stated the discipline you intended to be named into, and the Register wrote it in the margin. The line it was writing for you stopped at the Sundering. It finishes in the Grand Hall, once someone is left who can teach Tinker.",
+    "requiredFlag": "stated_intention_tinker",
+    "objectives": [
+      {
+        "text": "Find someone left who can teach Tinker",
+        "counter": "declare:Tinker:teacher"
+      },
+      {
+        "text": "Earn Tinker mastery",
+        "counter": "declare:Tinker:mastery"
+      },
+      {
+        "text": "Reopen the Grand Hall",
+        "counter": "declare:Tinker:hall"
+      },
+      {
+        "text": "Pass the Tinker practical: the Target Frame",
+        "counter": "declare:Tinker:practical"
+      },
+      {
+        "text": "Be named into the discipline of the Tinkers",
+        "doneText": "Named into the discipline of the Tinkers. As intended.",
+        "counter": "declare:Tinker:named"
+      }
+    ]
+  }
+]

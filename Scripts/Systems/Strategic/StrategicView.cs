@@ -297,6 +297,11 @@ public partial class StrategicView : Node2D
                 _kingdoms = cycle.Kingdoms;
                 _debugReveal = PlayerSession.DebugMode && PlayerSession.DebugRevealStrategicMap;
 
+                // The declaration exam (DisciplineExam, R7e) takes its own return first. It is
+                // keyed on the exam's pending school, so no other fight's return is touched;
+                // StrategicView.Exam.cs shows the outcome at the first quiet moment.
+                ConsumeExamReturn();
+
                 // W3: pay the emergency-extraction debt BEFORE anything renders.
                 // The straggle lunations advance the calendar and tick the
                 // world, and the HUD/markers must show the post-tick state.
@@ -4148,6 +4153,9 @@ public partial class StrategicView : Node2D
             return;
         _chronicleWait = 1.0;
         if (Standalone || !ChronicleQuiet())
+            return;
+        // A declaration exam's outcome (StrategicView.Exam.cs) comes before the chronicle.
+        if (ShowPendingExamOutcome())
             return;
         string screen = InCityView && (_atlas3D?.ActiveCityIsHome ?? false) ? "campus" : "strategic";
         var enc = ChronicleScheduler.DrainIfQuiet(screen);

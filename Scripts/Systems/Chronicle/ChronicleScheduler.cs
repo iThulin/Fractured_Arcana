@@ -167,6 +167,32 @@ public static class ChronicleScheduler
         });
     }
 
+    /// <summary>A story panel shown outside any beat (the declaration exams, DisciplineExam):
+    /// panel <paramref name="panelId"/> of story file <paramref name="file"/>'s encounter file,
+    /// filled now by the beat rules (rule 7). The arguments and the code tokens come first, then
+    /// every line token the file declares, matched against the context and the arguments, two
+    /// passes deep, and paragraphs that resolve to nothing are dropped. Writes nothing: no once
+    /// flag, no queue, no grant. Null when the save is not live or the file or panel is missing.</summary>
+    public static NarrativeEncounterData Page(string file, string panelId, Dictionary<string, string> args)
+    {
+        var save = SaveManager.ActiveSave;
+        if (!Live(save) || string.IsNullOrEmpty(file) || string.IsNullOrEmpty(panelId))
+            return null;
+        EnsureLoaded();
+        if (!_fileByName.TryGetValue(file, out var f))
+            return null;
+        var panel = Panel(f.EncounterFile, panelId);
+        if (panel == null)
+            return null;
+        var all = Context(save);
+        if (args != null)
+            foreach (var kv in args)
+                all[kv.Key] = kv.Value ?? "";
+        var beat = new ChronicleBeat { Id = $"page:{file}:{panelId}", Tokens = new List<string>(f.LineTokens.Keys) };
+        var resolver = new TokenResolver(save, f, beat, all, null);
+        return BuildDisplay(panel, resolver.Fill);
+    }
+
     private static NarrativeEncounterData RaiseCore(string hook, Dictionary<string, string> args,
                                                     bool queueImmediate)
     {
@@ -958,6 +984,13 @@ public static class ChronicleScheduler
             return NonEmpty(def.FullName, def.DisplayName);
         return CompanionName(save, id);
     }
+
+    /// <summary>Whoever teaches <paramref name="school"/> in this reading, by FacultyId's rule:
+    /// the companion's or the archmage's id, or "" when nobody can. The declaration exam passes
+    /// it to its pages as the faculty argument (Page), which {faculty_name} and the teachers'
+    /// lines read.</summary>
+    public static string FacultyIdFor(GuildSaveData save, string school) =>
+        save == null || string.IsNullOrWhiteSpace(school) ? "" : FacultyId(save, school.Trim());
 
     /// <summary>Who in this reading teaches <paramref name="school"/>: the id, by
     /// DeclarationService.FindFacultySource's rule (a recruited, living companion of that school

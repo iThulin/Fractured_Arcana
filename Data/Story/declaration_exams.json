@@ -1,0 +1,273 @@
+{
+  "_doc": "The declaration exams' pages (E2, ruled 2026-10-26: the teacher sets the practical and gives the brief in their own voice). DisciplineExam shows them through ChronicleScheduler.Page; there are no beats. Lines match the page's arguments: school (lower case), faculty (the teacher's id) and fitted (E4). The briefs' mechanics paragraphs are the prologue's, word for word, with {exam_plate} and {exam_mend} for the fitted numbers. The rules are docs/declaration_exams_v1.md.",
+  "arc": "declaration_exams",
+  "encounterFile": "declaration_exams",
+  "lineTokens": {
+    "exam_setting": "exam_setting",
+    "exam_teacher": "exam_teacher",
+    "exam_brief": "exam_brief",
+    "exam_fitted": "exam_fitted",
+    "exam_again": "exam_again"
+  },
+  "beats": [],
+  "lines": [
+    {
+      "key": "exam_setting",
+      "text": "The long tables of the Grand Hall stand back along the walls, and the floor between them is clear. In the middle of it waits an examination apparatus of Master Korro's pattern, with a fitting for every discipline."
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "elara_stormcaller"
+      },
+      "text": "Elara Stormcaller shoves the apparatus the last yard into place with her boot. 'Nobody examined me,' she says. 'People shot at me until I learned. This is kinder. Slightly.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "maren_gravesong"
+      },
+      "text": "Maren Gravesong sets a ledger on the long table beside the lectern, a thin one, and writes the date and your name before she says a word. 'I keep a record of everyone I teach,' she says. 'It is much shorter than the other one.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "fenna_boltwright"
+      },
+      "text": "Fenna Boltwright has had the apparatus's back panel off twice already, and has put it back on once. 'Master Korro's pattern,' she says, with real love. 'Half of it is held on with optimism. Do not lean on the left side.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "seraphine_duskwell"
+      },
+      "text": "Seraphine Duskwell reads the practical's terms aloud as if they were a contract she had been asked to witness, and initials the page. 'Standard terms,' she says. 'The apparatus gets its rounds. You get everything else. I would sign.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "ondrej_vael"
+      },
+      "text": "Ondrej Vael sets out paper, ink and a ruler on the long table beside the lectern, and rules two columns. 'Spent, and gained,' he says. 'Every point of mana you cast today goes in one or the other. I will know which.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "isolde_marrec"
+      },
+      "text": "Isolde Marrec is already standing beside the apparatus when you arrive, which should not be possible, since you came straight here. 'I read your itinerary,' she says. 'Everyone's is three days old by the time it reaches me. Yours was early.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "bram_thistlewade"
+      },
+      "text": "Bram Thistlewade sets a clay pot of grove cuttings on the corner of the long table where the light falls, and checks the soil before anything else. 'They are watching,' he says, quite seriously. 'Show them something worth growing toward.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "aurel"
+      },
+      "text": "Master Aurel Pendry has the practical's page in his own copy, annotated, and has corrected two of its words. 'The originals are adequate,' he says. 'I will hold you to mine.'"
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "hess"
+      },
+      "text": "Hess will not come past the doorway. She leans in the frame of the east doors, where she can see out, and sets the practical from there, as if the land had set it and she were only passing it on."
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "joren"
+      },
+      "text": "Joren Kall does not speak until the storm in him has said the practical first. Then he says it again, more slowly, for you."
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "namer"
+      },
+      "text": "Cael Morn sets the practical in seven layers. You hear the first. The other six, the Register assures you afterward, were mostly encouragement."
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "conductor"
+      },
+      "text": "Ondria Vell lays a place at the end of the long table before she begins: one cup, poured, for whoever ought to be setting this practical instead of her."
+    },
+    {
+      "key": "exam_teacher",
+      "when": {
+        "faculty": "engineer"
+      },
+      "text": "Bram Korro walks twice round the apparatus before he lets anyone near it, checking each fitting against a card from his pocket. Every one matches. He looks faintly let down. 'Well,' he says. 'Let us find out what it does.'"
+    },
+    {
+      "key": "exam_teacher",
+      "text": "This practical is set by {faculty_name}, who has never set one before and reads it carefully from the page the board left, as if carrying something full to the brim."
+    },
+    {
+      "key": "exam_brief",
+      "when": {
+        "school": "elementalist"
+      },
+      "text": "The fitting goes on first: a plate of gray iron, bolted to the apparatus, and a bucket of water poured around its feet. A valve opens. The water whitens and stays that way: frost, a pace wide, with the plate standing in the middle of it.\n\n'It is plated,' {faculty_name} says. 'Every blow against it loses {exam_plate}. Chip at it and you will be here all afternoon.'\n\n'An Elementalist does not hit harder. An Elementalist hits the floor first. Two elements on one square make something new. Frost and storm make brittle ground, and whatever stands on brittle ground takes three more from every blow. Frost and fire make steam, which helps nobody today. Your folio has Static Field. Put storm on that frost, then hit it while it is brittle.'\n\n'Three rounds.'"
+    },
+    {
+      "key": "exam_brief",
+      "when": {
+        "school": "arcanist"
+      },
+      "text": "The fitting goes on first: a coil of copper wire, wound so tight it hums. A pencil drawn across it leaves a scratch, and the scratch closes while you watch.\n\n'It mends,' {faculty_name} says. 'At the end of every round it closes every wound it took, unless it took {exam_mend} or more in that round. Spread your work out and it will outlast you.'\n\n'An Arcanist does not cast a spell. An Arcanist casts a turn. Spell Weave makes your next spell cheaper and stronger; weave into a second Weave and the gift carries on to the spell after. Mana Conduit pays for the extra. The order is the examination: conduit, weave, weave, then the bolt.'\n\n'Three rounds. You will want only one of them.'"
+    },
+    {
+      "key": "exam_brief",
+      "when": {
+        "school": "chronomancer"
+      },
+      "text": "The fitting goes on first: a weighted arm, on a ratchet that clicks as it is drawn back. It is let go once, to show you. It takes a full round to draw back, and then it swings at the square it chose when it started.\n\n'It aims at where you stand when it begins,' {faculty_name} says, 'not where you stand when it lands.'\n\n'A Chronomancer moves things in time. Slow Fuse writes a spell onto a square now, and it lands at the start of your next turn on whatever stands there. The arm cannot step aside. Hold That Thought pushes its blow to the end of the round, which gives you time to be elsewhere. Foresight builds as you read and as you leave mana unspent; Paradox Bolt hits twice as hard with two of it.'\n\n'Three rounds, and a spell set in the last of them lands after the bell.'"
+    },
+    {
+      "key": "exam_brief",
+      "when": {
+        "school": "enchanter"
+      },
+      "text": "The fitting goes on first: four jointed legs, and everyone stands well back. It gets up. It walks at whoever is nearest, two steps a round, and kicks whatever it reaches.\n\n'Nothing in your folio hits very hard,' {faculty_name} says. 'That is the point of it.'\n\n'An Enchanter decides what things cost. A glyph makes a square cost whatever steps onto it; Runic Trap writes one. A Name sets a price on what the frame does: Geas Names it, and any round it moves, it pays six. It will move. It cannot help itself. Compel walks it two steps toward you, over your glyphs, whether it likes it or not.'\n\n'Three rounds. Make the floor expensive.'"
+    },
+    {
+      "key": "exam_brief",
+      "when": {
+        "school": "necromancer"
+      },
+      "text": "The fitting goes on first: a rack of practice dummies, straw and canvas on posts, two of them standing in front of it and more hanging behind. A turn of the crank, and somewhere inside the rack the next dummy shuffles forward a place.\n\n'The dummies stand in front of the rack,' {faculty_name} says. 'Strike the rack while one stands beside it, and the dummy takes the blow. It puts out a fresh one every round.'\n\n'A Necromancer works with what is left. Anything that dies on this floor leaves a memorial where it fell, and memorials are your materials. Grief Strike hits harder at a target beside one. Final Escort spends one to raise a spirit, and The Procession sends your spirits forward to strike. The dummies will fall. Let them fall where you can use them.'\n\n'Four rounds.'"
+    },
+    {
+      "key": "exam_brief",
+      "when": {
+        "school": "druid"
+      },
+      "text": "The fitting goes on first: a plowshare and a pair of iron feet. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' {faculty_name} says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'Four rounds.'"
+    },
+    {
+      "key": "exam_brief",
+      "when": {
+        "school": "tinker"
+      },
+      "text": "The fitting goes on first: a target frame with painted rings, a sighting slit, and a small crossbow where the bullseye should be. It swivels toward the nearest thing in the hall and puts a bolt into the far wall to show that it can.\n\n'It shoots whatever stands nearest,' {faculty_name} says. 'Give it something nearer than you.'\n\n'A Tinker builds the help. Deploy Turret sets down a turret that fires on its own at the end of your turn. Conduit Bolt hits harder while you have a construct standing. Conduit Link ties you to one and splits the hurt between you. The frame cannot tell a candidate from a turret. Use that.'\n\n'Three rounds.'"
+    },
+    {
+      "key": "exam_brief",
+      "text": "The fitting goes on first. {faculty_name} reads you the practical's terms from the page the board left: break the apparatus within its rounds, by your discipline's own means."
+    },
+    {
+      "key": "exam_fitted",
+      "when": {
+        "fitted": "true"
+      },
+      "text": "It has been set to your measure, not to the candidate of that morning. You have grown since Commencement, and the practical has grown with you."
+    },
+    {
+      "key": "exam_fitted",
+      "text": ""
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "elara_stormcaller"
+      },
+      "text": "'Again,' Elara Stormcaller says. 'Sooner is better. You are angry now, and angry is useful if you aim it.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "maren_gravesong"
+      },
+      "text": "Maren Gravesong writes a line in the thin ledger and closes it. 'Attempted,' she says. 'Not failed. I only write failed in the other book, and you are not in it.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "fenna_boltwright"
+      },
+      "text": "Fenna Boltwright is already tightening something on the apparatus. 'It survived,' she says, delighted. 'That is data. Come back and break it properly.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "seraphine_duskwell"
+      },
+      "text": "'The terms stand,' Seraphine Duskwell says. 'They always stand. Come back when you have read them more closely.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "ondrej_vael"
+      },
+      "text": "Ondrej Vael totals the two columns and turns the page so you can see the difference. 'Spent,' he says, tapping it. 'Next time, gained.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "isolde_marrec"
+      },
+      "text": "'I knew how that would go,' Isolde Marrec says. 'I came anyway. So will you.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "bram_thistlewade"
+      },
+      "text": "Bram Thistlewade turns the pot of cuttings a quarter turn toward the window. 'What roots slowly holds best,' he says. 'Again, when you are ready.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "aurel"
+      },
+      "text": "Master Aurel Pendry makes a note in his margin. 'Revision is the discipline,' he says. 'Again.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "hess"
+      },
+      "text": "Hess is already gone from the doorway. Outside, the light has moved a little, as if the land is willing to wait."
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "joren"
+      },
+      "text": "The storm in Joren Kall has an opinion about the result. He keeps it to himself. 'Again,' he says, 'when you are ready for it.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "namer"
+      },
+      "text": "Cael Morn says something in seven layers. The first is 'again'. The Register writes all seven, very small, and keeps the other six to itself."
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "conductor"
+      },
+      "text": "Ondria Vell fills the cup at the end of the table again. 'It keeps,' she says. 'So will you. Come back hungrier.'"
+    },
+    {
+      "key": "exam_again",
+      "when": {
+        "faculty": "engineer"
+      },
+      "text": "Bram Korro is on his knees beside the apparatus, measuring something with great happiness. 'It held,' he says. 'Splendid. Now come back and prove me wrong. Please.'"
+    },
+    {
+      "key": "exam_again",
+      "text": "'Again, when you are ready,' says {faculty_name}."
+    }
+  ]
+}

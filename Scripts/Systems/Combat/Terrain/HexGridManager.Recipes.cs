@@ -71,6 +71,13 @@ public partial class HexGridManager : Node3D
             if (b.DetailWeight >= 0f) f.DetailWeight = b.DetailWeight;
             if (b.MaxHeightStep != 0) f.MaxHeightStep = b.MaxHeightStep;
             if (b.MinHeightStep != 0) f.MinHeightStep = b.MinHeightStep;
+            if (b.Flat)
+            {
+                // "flat": every tile at step 0. The height steps' 0 means "default", so a
+                // recipe that wrote 0 and 0 for flat got the field's -2..3 hills.
+                f.MaxHeightStep = 0;
+                f.MinHeightStep = 0;
+            }
         }
 
         return f;

@@ -10,33 +10,19 @@ using System.Collections.Generic;
 //                 All children built via CallDeferred(nameof(BuildUI))
 //                 to satisfy Mac + Metal Compatibility mode rules.
 //
-// Layout:
-//   Top-left  (280px wide, shrinks to content)
-//             ┌─ Left Panel ──────────────────────────┐
-//             │  ROUND 1 - PLAYER TURN                │
-//             │  ─────────────────────────────────── │
-//             │  Wizard_1  (large name)               │
-//             │  HP ████████░░  12/20                 │
-//             │  MP ████░░░░░░   4/10                 │
-//             │  ARM 3  AP ●●○  SPD 4                 │
-//             │  🔥 ❄ (status icons)                  │
-//             │  ── LOG ─────────────────────────── │
-//             │  Ranger_1 repositions.                │
-//             │  Wizard_3 begins channelling...       │
-//             │  ── PARTY ───────────────────────── │
-//             │  [Wiz1 ●●●][Wiz2 ●○○]                │
-//             │  [Deck 5]  [Grave 2]                  │
-//             │  [     End Turn     ]                 │
-//             └───────────────────────────────────────┘
-//
-//   Top-right (220px wide, shrinks to content)
-//             ┌─ Enemy Roster ────────────────────────┐
-//             │  ─ ENEMIES ─                          │
-//             │  Ranger_1   ████████░░  18/20         │
-//             │  Wizard_3   ████░░░░░░  10/20         │
-//             └───────────────────────────────────────┘
-//
-//   Cards sit at the bottom of the screen with no bar below them.
+// Layout (2026-10-26):
+//   Top-left      the selected unit: name, HP, MP, stats, stance and
+//                 action rows, status icons, attunement (280 px).
+//   Top-right     one column (300 px): the enemy roster, and under it
+//                 the turn panel (phase, objective or checklist, hint).
+//                 It moved off the top center, where it covered the
+//                 board, and it grows downward with the roster.
+//   Top-center    the party strip: a chip per unit with a portrait, name,
+//                 AP pips and HP; click to select. Not an initiative bar:
+//                 the player phase has no order.
+//   Bottom-left   a 3-line log ticker.
+//   Bottom-center the hand, flanked by Deck and Grave.
+//   Bottom-right  End Turn, Satchel, the stack stops.
 //
 // Layer:          UI
 // Collaborators:  CombatManager.cs, Unit.cs, UITheme.cs
@@ -68,15 +54,21 @@ public partial class CombatUI : CanvasLayer
 
 	// ── Layout constants (design-space px, V1 resolution ruling) ─────────
 	private const int LeftPanelWidth = 280;
-	private const int RightPanelWidth = 220;
+	private const int RightColumnWidth = 300;  // the enemy roster and the turn panel under it
+
+	/// <summary>Where the top-anchored panels start: under the global top bar while it shows,
+	/// at the very top while it is hidden (the prologue's fights hide it).</summary>
+	private static int TopInset =>
+		(HudManager.Instance?.BarShownForCurrentScene() ?? false) ? HudManager.BarHeight : 0;
 	private const int PanelPadding = 10;
 	private const int BarHeight = 10;
 	private const int ManaBarHeight = 8;
 	private const int LogLineCount = 3;          // V1: 3-line ticker (was 6-line panel section)
 	private const int LogHistoryCap = 200;       // full-history popup buffer
-	private const int UnitButtonWidth = 110;
 	private const int EnemyBarWidth = 90;
-	private const int BottomLeftWidth = 360;     // party chips + ticker block (chips may overflow right; they sit above the deck button's row, so nothing collides until 5+ chips)
+	private const int BottomLeftWidth = 360;     // the log ticker block
+	private const int PartyChipWidth = 150;      // top-center party strip, one chip per unit
+	private const int PartyPortraitSize = 40;
 	private const int EndTurnWidth = 180;
 	private const int FlankButtonWidth = 96;     // deck/grave beside the fan
 
@@ -117,6 +109,7 @@ public partial class CombatUI : CanvasLayer
 	private VBoxContainer _inspectBlock;   // V2: enemy behavior/ability/faction blocks
 
 	// ── Right panel nodes ────────────────────────────────────────────────
+	private VBoxContainer _rightColumn;      // top-right: the roster, then the turn panel
 	private PanelContainer _rightPanel;
 	private VBoxContainer _enemyRosterBox;
 
@@ -185,12 +178,15 @@ public partial class CombatUI : CanvasLayer
 			return;
 		_built = true;
 
-		// V1 layout (combat_ui_v2 §5): banner top-center, End Turn bottom-right,
+		// V1 layout (combat_ui_v2 §5), with the turn panel moved under the enemy
+		// roster on 2026-10-26: End Turn bottom-right,
 		// log ticker + party chips bottom-left, hint + deck/grave flanking the
 		// bottom-center hand, left panel slimmed to unit card + attunement.
-		BuildTopBanner();
-		BuildLeftPanel();
+		BuildRightColumn();
 		BuildRightPanel();
+		BuildTurnPanel();
+		BuildPartyStrip();
+		BuildLeftPanel();
 		BuildBottomLeft();
 		BuildBottomRight();
 		BuildBottomCenter();
@@ -234,7 +230,7 @@ public partial class CombatUI : CanvasLayer
 			AnchorTop = 0f,
 			AnchorRight = 0f,
 			AnchorBottom = 0f,
-			OffsetTop = HudManager.BarHeight, // clear the global top bar
+			OffsetTop = TopInset, // clear the global top bar when it shows
 			OffsetRight = LeftPanelWidth,
 			GrowHorizontal = Control.GrowDirection.End,
 			GrowVertical = Control.GrowDirection.End,
@@ -255,7 +251,7 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddThemeConstantOverride("separation", 6);
 		margin.AddChild(vbox);
 
-		// (V1: phase banner moved to top center; see BuildTopBanner.)
+		// (The phase line lives in the turn panel; see BuildTurnPanel.)
 
 		// ── Unit name ────────────────────────────────────────────────
 		_unitNameLabel = MakeLabel("-", UITheme.FontSizeLarge, UITheme.TextPrimary);
@@ -336,23 +332,17 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	// ════════════════════════════════════════════════════════════════════
-	// V1: top-center banner (phase line; V4 adds the context strip below)
+	// The turn panel: phase line, objective (or checklist), hint. It sat at the
+	// top center until 2026-10-26, where a checklist covered the board; it now
+	// rides the right column under the enemy roster.
 	// ════════════════════════════════════════════════════════════════════
 
-	private void BuildTopBanner()
+	private void BuildTurnPanel()
 	{
-		var banner = new PanelContainer
-		{
-			Name = "TopBanner",
-			AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0f, AnchorBottom = 0f,
-			OffsetLeft = -260, OffsetRight = 260,
-			OffsetTop = HudManager.BarHeight + 6,
-			GrowHorizontal = Control.GrowDirection.Both,
-			GrowVertical = Control.GrowDirection.End,
-		};
+		var banner = new PanelContainer { Name = "TurnPanel" };
 		banner.AddThemeStyleboxOverride("panel",
 			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
-		AddChild(banner);
+		_rightColumn.AddChild(banner);
 
 		var margin = new MarginContainer { Name = "Margin" };
 		margin.AddThemeConstantOverride("margin_left", PanelPadding);
@@ -375,7 +365,7 @@ public partial class CombatUI : CanvasLayer
 		// expedition objective marker and they mean the same kind of thing.
 		_objectiveLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.Gold);
 		_objectiveLabel.Name = "ObjectiveLabel";
-		_objectiveLabel.HorizontalAlignment = HorizontalAlignment.Center;
+		_objectiveLabel.HorizontalAlignment = HorizontalAlignment.Left;   // a list reads from the left
 		_objectiveLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		_objectiveLabel.Visible = false;
 		vbox.AddChild(_objectiveLabel);
@@ -385,7 +375,7 @@ public partial class CombatUI : CanvasLayer
 		// strip takes this slot later; the hint then moves or dies.
 		_hintLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.TextDim);
 		_hintLabel.Name = "HintLabel";
-		_hintLabel.HorizontalAlignment = HorizontalAlignment.Center;
+		_hintLabel.HorizontalAlignment = HorizontalAlignment.Left;
 		_hintLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		vbox.AddChild(_hintLabel);
 	}
@@ -409,10 +399,7 @@ public partial class CombatUI : CanvasLayer
 		block.AddThemeConstantOverride("separation", 6);
 		AddChild(block);
 
-		// Party chips: slim row above the ticker (§5: ambient awareness).
-		_playerUnitBar = new HBoxContainer { Name = "UnitBar" };
-		_playerUnitBar.AddThemeConstantOverride("separation", 4);
-		block.AddChild(_playerUnitBar);
+		// (The party chips moved to the top-center strip on 2026-10-26; see BuildPartyStrip.)
 
 		// Log ticker: 3 lines, panel-backed, clickable for full history.
 		var logPanel = new PanelContainer { Name = "LogTicker" };
@@ -580,26 +567,35 @@ public partial class CombatUI : CanvasLayer
 	}
 
 	// ════════════════════════════════════════════════════════════════════
-	// Right panel: enemy roster
+	// Right column: the enemy roster, then the turn panel under it
 	// ════════════════════════════════════════════════════════════════════
 
-	private void BuildRightPanel()
+	/// <summary>The top-right column. It carries the anchors; the roster and the turn panel
+	/// stack inside it, so the turn panel follows the roster down as enemies arrive.</summary>
+	private void BuildRightColumn()
 	{
-		_rightPanel = new PanelContainer
+		_rightColumn = new VBoxContainer
 		{
-			Name = "RightPanel",
+			Name = "RightColumn",
 			AnchorLeft = 1f,
 			AnchorTop = 0f,
 			AnchorRight = 1f,
 			AnchorBottom = 0f,
-			OffsetTop = HudManager.BarHeight, // clear the global top bar
-			OffsetLeft = -RightPanelWidth,
+			OffsetTop = TopInset, // clear the global top bar when it shows
+			OffsetLeft = -RightColumnWidth,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.End,
 		};
+		_rightColumn.AddThemeConstantOverride("separation", 6);
+		AddChild(_rightColumn);
+	}
+
+	private void BuildRightPanel()
+	{
+		_rightPanel = new PanelContainer { Name = "RightPanel" };
 		_rightPanel.AddThemeStyleboxOverride("panel",
 			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.VioletDim));
-		AddChild(_rightPanel);
+		_rightColumn.AddChild(_rightPanel);
 
 		var margin = new MarginContainer { Name = "Margin" };
 		margin.AddThemeConstantOverride("margin_left", PanelPadding);
@@ -1648,7 +1644,88 @@ public partial class CombatUI : CanvasLayer
 		_enemyRosterBox.AddChild(hint);
 	}
 
-	// ── Player unit bar ──────────────────────────────────────────────────
+	// ── Party strip (2026-10-26) ─────────────────────────────────────────
+	// The party at the top center: one chip per unit with a portrait, the name, AP
+	// pips and HP; click a chip to select that unit. It replaces the chips that sat
+	// above the log ticker. Not an initiative bar: the player phase has no order,
+	// so the strip shows who still has actions, never who goes next.
+
+	/// <summary>Swappable unit portraits: <c>&lt;CompanionId&gt;.png</c> or
+	/// <c>&lt;DefinitionId&gt;.png</c> here replaces the school crest.</summary>
+	private const string UnitPortraitDir = "res://Assets/Portraits/Units/";
+	private static readonly Dictionary<string, Texture2D> _unitPortraits = new();
+
+	private void BuildPartyStrip()
+	{
+		_playerUnitBar = new HBoxContainer
+		{
+			Name = "PartyStrip",
+			AnchorLeft = 0.5f,
+			AnchorTop = 0f,
+			AnchorRight = 0.5f,
+			AnchorBottom = 0f,
+			OffsetTop = TopInset + 6,
+			GrowHorizontal = Control.GrowDirection.Both,
+			GrowVertical = Control.GrowDirection.End,
+			Alignment = BoxContainer.AlignmentMode.Center,
+		};
+		_playerUnitBar.AddThemeConstantOverride("separation", 6);
+		AddChild(_playerUnitBar);
+	}
+
+	/// <summary>The unit's portrait texture, or null for the crest. Looked up once per key.</summary>
+	private static Texture2D UnitPortrait(Unit unit)
+	{
+		foreach (var key in new[] { unit.CompanionId, unit.DefinitionId })
+		{
+			if (string.IsNullOrEmpty(key))
+				continue;
+			if (!_unitPortraits.TryGetValue(key, out var tex))
+			{
+				string path = UnitPortraitDir + key + ".png";
+				tex = ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
+				_unitPortraits[key] = tex;
+			}
+			if (tex != null)
+				return tex;
+		}
+		return null;
+	}
+
+	/// <summary>The portrait slot: the unit's portrait when one is authored, else a crest in
+	/// its school's color with its initial (martials read neutral).</summary>
+	private Control BuildPartyPortrait(Unit unit, bool isAlive)
+	{
+		var size = new Vector2(PartyPortraitSize, PartyPortraitSize);
+		var tex = UnitPortrait(unit);
+		if (tex != null)
+		{
+			var rect = new TextureRect
+			{
+				Texture = tex,
+				ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+				StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+				CustomMinimumSize = size,
+			};
+			if (!isAlive)
+				rect.Modulate = UITheme.TextDim;
+			return rect;
+		}
+
+		Color school = unit.IsMartial ? UITheme.Neutral : SchoolColors.GetBorderColor(unit.School);
+		var crest = new PanelContainer { CustomMinimumSize = size };
+		var crestStyle = new StyleBoxFlat { BgColor = school.Darkened(0.7f), BorderColor = school };
+		crestStyle.SetBorderWidthAll(2);
+		crestStyle.SetCornerRadiusAll(UITheme.CornerRadius);
+		crest.AddThemeStyleboxOverride("panel", crestStyle);
+		string name = unit.DisplayName ?? "";
+		var initial = MakeLabel(name.Length > 0 ? name.Substring(0, 1).ToUpperInvariant() : "?",
+			UITheme.FontSizeNormal, isAlive ? school : UITheme.TextDim);
+		initial.HorizontalAlignment = HorizontalAlignment.Center;
+		initial.VerticalAlignment = VerticalAlignment.Center;
+		crest.AddChild(initial);
+		return crest;
+	}
 
 	public void RefreshPlayerUnitBar(List<Unit> playerUnits, Unit selectedUnit)
 	{
@@ -1673,21 +1750,29 @@ public partial class CombatUI : CanvasLayer
 			bool inTransit = unit.IsAwaitingArrival;   // castle_defense_v1: in the waystone
 
 			var panel = new PanelContainer { Name = $"UnitPanel_{i}" };
-			panel.CustomMinimumSize = new Vector2(UnitButtonWidth, 0);
+			panel.CustomMinimumSize = new Vector2(PartyChipWidth, 0);
 
 			var style = new StyleBoxFlat
 			{
 				BgColor = isSelected ? UITheme.UnitBarSelected : UITheme.BgRaised,
 				BorderColor = isSelected ? UITheme.UnitBarBorder : UITheme.Neutral,
+				ContentMarginLeft = 4,
+				ContentMarginRight = 6,
+				ContentMarginTop = 4,
+				ContentMarginBottom = 4,
 			};
 			style.SetBorderWidthAll(isSelected ? 2 : 1);
 			style.SetCornerRadiusAll(UITheme.CornerRadius);
 			panel.AddThemeStyleboxOverride("panel", style);
-			panel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
 
-			var vbox = new VBoxContainer { Name = "VBox" };
+			var chipRow = new HBoxContainer { Name = "Row" };
+			chipRow.AddThemeConstantOverride("separation", 6);
+			panel.AddChild(chipRow);
+			chipRow.AddChild(BuildPartyPortrait(unit, isAlive && !inTransit));
+
+			var vbox = new VBoxContainer { Name = "VBox", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 			vbox.AddThemeConstantOverride("separation", 2);
-			panel.AddChild(vbox);
+			chipRow.AddChild(vbox);
 
 			// Name
 			var nameLbl = MakeLabel(
@@ -1695,14 +1780,12 @@ public partial class CombatUI : CanvasLayer
 				UITheme.FontSizeSmall,
 				!isAlive || inTransit ? UITheme.TextDim
 					: (isSelected ? UITheme.TextPrimary : UITheme.TextSecondary));
-			nameLbl.HorizontalAlignment = HorizontalAlignment.Center;
-			nameLbl.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			nameLbl.ClipText = true;
 			vbox.AddChild(nameLbl);
 
 			if (inTransit)
 			{
 				var transitLbl = MakeLabel("in the waystone", UITheme.FontSizeSmall - 1, UITheme.TextDim);
-				transitLbl.HorizontalAlignment = HorizontalAlignment.Center;
 				vbox.AddChild(transitLbl);
 			}
 			else if (isAlive)
@@ -1714,7 +1797,6 @@ public partial class CombatUI : CanvasLayer
 
 				var pipLbl = MakeLabel(pips, UITheme.FontSizeSmall,
 					isSelected ? UITheme.Violet : UITheme.NeutralDim);
-				pipLbl.HorizontalAlignment = HorizontalAlignment.Center;
 				vbox.AddChild(pipLbl);
 
 				// HP text
@@ -1725,7 +1807,6 @@ public partial class CombatUI : CanvasLayer
 						? $"{unit.Stats.Health}/{unit.Stats.MaxHealth} (−{chipWither})"
 						: $"{unit.Stats.Health}/{unit.Stats.MaxHealth}",
 					UITheme.FontSizeSmall - 1, UITheme.TextSecondary);
-				hpLbl.HorizontalAlignment = HorizontalAlignment.Center;
 				vbox.AddChild(hpLbl);
 
 				// HP strip (V2.2: original max = full width, withered span painted)

@@ -2904,6 +2904,7 @@ public partial class CombatManager
                 : $"{attackerName} {verb} at empty ground!";
             GD.Print(whiff);
             combatUI?.AppendActionLog(whiff);
+            NoteTutorialWhiff(attacker, tile, originalVictim);   // C4: the trial's dodge step
         }
         else if (victim == attacker && _backfiring.Remove(attacker))
         {

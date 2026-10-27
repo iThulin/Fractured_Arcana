@@ -5,7 +5,9 @@ using Godot;
 //
 // Purpose:        Interior recipes (MapRecipe.Interior): fights staged
 //                 inside a built set instead of the outdoor world. The
-//                 first is the prologue's Ceremony Hall (HallSet.cs).
+//                 first is the prologue's Ceremony Hall (HallSet.cs);
+//                 the second the declaration exams' Grand Hall
+//                 (HallSet.GrandHall.cs).
 //                 While an interior is active GenerateMap builds no
 //                 vista rings, no far field and no ground scatter;
 //                 this partial gives the scene its own copy of the
@@ -169,7 +171,8 @@ public partial class HexGridManager : Node3D
         if (!InteriorActive)
             return;
 
-        if (ActiveInterior.Set != HallSet.SetId)
+        bool grand = ActiveInterior.Set == HallSet.GrandHallSetId;
+        if (!grand && ActiveInterior.Set != HallSet.SetId)
         {
             GD.PushWarning($"[Interior] Unknown set '{ActiveInterior.Set}' on recipe '{MapRecipeId}'; the board stands alone in the dark.");
             return;
@@ -179,7 +182,12 @@ public partial class HexGridManager : Node3D
             ? _lastWorldFloor + HexTile.HeightStep - ActiveInterior.BoardRise
             : _lastWorldFloor;
 
-        var set = new HallSet { Name = "CeremonyHall" };
+        var set = new HallSet
+        {
+            Name = grand ? "GrandHall" : "CeremonyHall",
+            Look = ActiveInterior.Set,
+            DoorsOpen = ActiveInterior.DoorsOpen,
+        };
         set.AddToGroup(HallSet.GroupName);
         AddChild(set);
         set.Build(GridBoundsMin, GridBoundsMax, floorY);

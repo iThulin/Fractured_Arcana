@@ -1,0 +1,89 @@
+{
+  "id": "grand_hall_frost",
+  "display_name": "The Grand Hall (frost fitting)",
+  "shape": {
+    "type": "rectangle",
+    "width": 13,
+    "height": 5
+  },
+  "base_terrain": {
+    "elevation_frequency": 0.0,
+    "moisture_frequency": 0.0,
+    "max_height_step": 0,
+    "min_height_step": 0,
+    "palette": [
+      {
+        "terrain": "stone"
+      }
+    ],
+    "flat": true
+  },
+  "atmosphere": {
+    "sun_color": [
+      1.0,
+      0.9,
+      0.74
+    ],
+    "sun_energy": 0.7,
+    "ambient_color": [
+      0.62,
+      0.56,
+      0.48
+    ],
+    "ambient_energy": 0.7,
+    "fog_color": [
+      0.07,
+      0.055,
+      0.04
+    ],
+    "fog_density": 0.004
+  },
+  "interior": {
+    "set": "grand_hall",
+    "background": [
+      0.07,
+      0.055,
+      0.04
+    ],
+    "tile_relief": 0.0,
+    "board_rise": 0.04,
+    "floor_cool": [
+      0.58,
+      0.55,
+      0.5
+    ],
+    "floor_warm": [
+      0.66,
+      0.61,
+      0.53
+    ],
+    "floor_joint": [
+      0.27,
+      0.24,
+      0.2
+    ]
+  },
+  "anchors": {
+    "player": 0.75,
+    "enemy": 0.25
+  },
+  "obstacles": {
+    "low": "low_wall",
+    "high": "wall",
+    "pillar": "stone_pillar"
+  },
+  "tactics": {
+    "max_visibility": 1.0,
+    "min_cover": 0.0
+  },
+  "features": [
+    {
+      "feature": "element_patch",
+      "phase": "skeleton",
+      "at": "enemy_anchor",
+      "element": "frost",
+      "radius": 1,
+      "strength": 1.0
+    }
+  ]
+}

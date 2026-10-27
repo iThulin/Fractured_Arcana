@@ -9,13 +9,24 @@ using System.Text.RegularExpressions;
 //
 // Purpose:        The intro director (wire item C4,
 //                 docs/prologue_script_v1.md, section 7). Runs
-//                 Commencement for a new save: the stated intention,
-//                 the skip offers, the two-part examination,
+//                 Commencement for a new save: the stated intention
+//                 (stated on the founding screen and read back by the
+//                 Examiner, R7d; asked, for a save founded without one),
+//                 the skip offers, the two-part examination (the duel,
+//                 then the common practical, which every candidate sits
+//                 since R7e),
 //                 Commencement, the Sundering, the Long Second and the
 //                 Margin in the examination hall (PrologueScreen); the
 //                 Anchorhold and the Door at the first quiet moment in
 //                 the home city (ChronicleScheduler.DrainIfQuiet); and
 //                 Legible on the first sortie (ExpeditionManager).
+//
+//                 The seven school practicals are also the examinations
+//                 that declare those schools in the Grand Hall (R7e):
+//                 HasPractical, PracticalScript, PracticalTitle, LaunchExam
+//                 and ExamOutcome, for DisciplineExam. An exam is sat in
+//                 its practical's Grand Hall recipe (examMapRecipe, E3)
+//                 with its apparatus fitted to the wizard (ExamScaling, E4).
 //
 //                 Every step resumes from the prologue's meta flags. The
 //                 panels' own flags mark most steps; the director adds
@@ -28,8 +39,10 @@ using System.Text.RegularExpressions;
 //                 EncounterRouter (the fight round trip and its
 //                 scripted fields), PlayerSession (the scripted deck),
 //                 RegisterManager (PrologueMode), CombatManager.Scripted.cs
-//                 (the engine hooks), SaveManager.NewGame (the begun
-//                 marker)
+//                 (the engine hooks), CombatManager.Tutorial.cs (a
+//                 fight's checklist, StepsFor), NewGameScreen
+//                 (RecordFoundingIntention), SaveManager.NewGame (the
+//                 begun marker), DisciplineExam (the declaration exams)
 // See:            docs/prologue_script_v1.md (section 1 Flow, section 5
 //                 Tokens, section 7 C4), docs/story_wiring_addendum_slice2.md
 // ============================================================
@@ -82,6 +95,15 @@ public sealed class PrologueWave
     public string Announce = "";
 }
 
+/// <summary>One step of a fight's checklist (CombatManager.Tutorial.cs): an id the engine
+/// counts (walk, damage, dodge, reflex), the label the banner shows, and how many it takes.</summary>
+public sealed class PrologueStep
+{
+    public string Id = "";
+    public string Label = "";
+    public int Count = 1;
+}
+
 /// <summary>The director's half of a prologue fight (section 7, C4 item 5).</summary>
 public sealed class PrologueFightScript
 {
@@ -109,6 +131,13 @@ public sealed class PrologueFightScript
     public string OnPass = "";
     public string OnTime = "";
     public string OnAnyOutcome = "";
+    /// <summary>The fight's checklist (the trial, ruled 2026-10-26): the fight is won once every
+    /// step is done, with the objective's rounds as the cap. Empty for every other fight.</summary>
+    public List<PrologueStep> Steps = new();
+    /// <summary>A school practical's map when it is sat as the Grand Hall's examination for the
+    /// school (E3: "grand_hall", or "grand_hall_frost" for the Frost Plate). Empty for every
+    /// fight that is not an examination.</summary>
+    public string ExamMapRecipe = "";
 }
 
 /// <summary>Process-wide intro director. Every method is safe with no save loaded and with
@@ -134,6 +163,8 @@ public static class PrologueDirector
 
     // ── Panel and fight ids (Data/Encounters/prologue.json, prologue_fights.json) ──
     public const string IntentionPanelId = "prologue_trial_intention";
+    /// <summary>The Examiner reads back the intention stated on the founding screen.</summary>
+    public const string IntentionReadPanelId = "prologue_trial_intention_read";
     public const string RulesPanelId = "prologue_trial_rules";
     public const string RulesWaivedPanelId = "prologue_trial_rules_waived";
     public const string ApparatusPanelId = "prologue_practical_apparatus";
@@ -150,11 +181,17 @@ public static class PrologueDirector
     public const string TrialFightId = "prologue_trial";
     public const string SunderingFightId = "prologue_sundering";
     public const string PracticalFightPrefix = "prologue_practical_";
+    /// <summary>The practical every candidate sits in the prologue (R7e): the common one.</summary>
+    public const string CommonPracticalSchool = "adept";
 
     // ── The director's own meta flags (the panels set the rest) ──────────
     /// <summary>Written by SaveManager.NewGame. A save without it predates the prologue and
     /// reads the full skip's recap instead (ChronicleScheduler's bridge, B-1).</summary>
     public const string BegunFlag = "prologue_begun";
+    /// <summary>The intention was stated on the founding screen (RecordFoundingIntention), so the
+    /// Examiner reads it back instead of asking.</summary>
+    public const string FoundingIntentionFlag = "stated_intention_founding";
+    private const string IntentionReadFlag = "prologue_intention_read";
     private const string PartOneDoneFlag = "prologue_part_one_done";
     private const string AnchorholdSeenFlag = "prologue_anchorhold_seen";
     private const string ProfileNotedFlag = "prologue_profile_noted";
@@ -167,6 +204,7 @@ public static class PrologueDirector
         "Don't look at me like that. He showed me the ending. I am only choosing where to stand when it arrives.";
     private const string RemarkFallback = "Adequate.";
     private const string PracticalNameFallback = "your practical";
+    private const string IntentionRemarkFallback = "'Noted.'";
 
     /// <summary>The recap's flags, used only when prologue.json is missing and the prologue
     /// has to close as a skip.</summary>
@@ -208,6 +246,8 @@ public static class PrologueDirector
             return StepWorld;
         if (!save.HasFlag("stated_intention_set"))
             return IntentionPanelId;
+        if (HasMeta(save, FoundingIntentionFlag) && !HasMeta(save, IntentionReadFlag))
+            return IntentionReadPanelId;
         if (!PartOneDone(save))
         {
             string r = PartOneResult(save);
@@ -239,6 +279,7 @@ public static class PrologueDirector
         switch (panelId)
         {
             case IntentionPanelId:
+            case IntentionReadPanelId:
                 return StepSkips;
             case RulesPanelId:
                 return FightPrefix + TrialFightId;
@@ -275,19 +316,22 @@ public static class PrologueDirector
         return "trial";
     }
 
-    /// <summary>The practical the stated intention sets (R7b, amended for the prologue): the
-    /// school's own, lower case, or "adept" (the common practical) for Adept or unstated.</summary>
+    /// <summary>The practical this save sits in the prologue: the common one ("adept") for every
+    /// candidate since R7e (2026-10-26). The stated intention is the first goal instead, and its
+    /// school's practical is the Grand Hall's examination for it (DisciplineExam). A save that
+    /// began a school's practical under the old rule (R7b as amended 2026-10-13) keeps it, so it
+    /// resumes, and later reads, as it was sat.</summary>
     public static string PracticalSchool(GuildSaveData save)
     {
-        if (save == null || HasMeta(save, "stated_intention_unstated"))
-            return "adept";
+        if (save == null)
+            return CommonPracticalSchool;
         foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
         {
             string key = s.ToString().ToLowerInvariant();
-            if (HasMeta(save, $"stated_intention_{key}"))
+            if (key != CommonPracticalSchool && HasMeta(save, $"prologue_practical_{key}"))
                 return key;
         }
-        return "adept";
+        return CommonPracticalSchool;
     }
 
     public static string PracticalFightId(GuildSaveData save) => PracticalFightPrefix + PracticalSchool(save);
@@ -299,6 +343,41 @@ public static class PrologueDirector
         return NonEmpty(brief?.Title, PracticalNameFallback);
     }
 
+    /// <summary>True when <paramref name="school"/> has a practical, fight and brief. Every school
+    /// does; the seven besides Adept sit theirs in the Grand Hall to declare it (R7e).</summary>
+    public static bool HasPractical(string school)
+    {
+        string key = SchoolKey(school);
+        return key.Length > 0 && Fight(PracticalFightPrefix + key) != null && RawPanel(BriefPanelPrefix + key) != null;
+    }
+
+    /// <summary>A school's practical script (read only: its pass unit, folio, remarks and exam
+    /// map), or null when the school has none.</summary>
+    public static PrologueFightScript PracticalScript(string school)
+    {
+        string key = SchoolKey(school);
+        return key.Length > 0 ? Fight(PracticalFightPrefix + key)?.Script : null;
+    }
+
+    /// <summary>A school's practical by its apparatus ("The Frost Plate"): its brief's title.</summary>
+    public static string PracticalTitle(string school)
+    {
+        string key = SchoolKey(school);
+        var brief = key.Length > 0 ? RawPanel(BriefPanelPrefix + key) : null;
+        return NonEmpty(brief?.Title, PracticalNameFallback);
+    }
+
+    /// <summary>A CardSchool name in lower case, any case in, or "" when it names none. Names
+    /// only, as IntentionKey: a number never parses as a school here.</summary>
+    private static string SchoolKey(string school)
+    {
+        string v = (school ?? "").Trim();
+        foreach (var name in Enum.GetNames(typeof(CardSchool)))
+            if (string.Equals(name, v, StringComparison.OrdinalIgnoreCase))
+                return name.ToLowerInvariant();
+        return "";
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     //  Panels
     // ════════════════════════════════════════════════════════════════════════
@@ -306,8 +385,8 @@ public static class PrologueDirector
     /// <summary>A display copy of a prologue panel with its tokens filled (section 5). Where a
     /// step sets no flag of its own, the director adds one to every choice: part one's
     /// verdicts mark part one done, the Anchorhold marks itself seen, and the full skip's
-    /// recap writes the practical the intention set (wiring doc, found item 4), so
-    /// {practical_name} resolves later. Null when the panel is missing.</summary>
+    /// recap writes the practical this save sits (the common one since R7e; wiring doc, found
+    /// item 4), so {practical_name} resolves later. Null when the panel is missing.</summary>
     public static NarrativeEncounterData Panel(string id, GuildSaveData save)
     {
         var raw = RawPanel(id);
@@ -318,6 +397,8 @@ public static class PrologueDirector
             add.Add(PartOneDoneFlag);
         if (id == AnchorholdPanelId)
             add.Add(AnchorholdSeenFlag);
+        if (id == IntentionReadPanelId)
+            add.Add(IntentionReadFlag);
         if (id == RecapPanelId && HasMeta(save, BegunFlag))
             add.Add($"prologue_practical_{PracticalSchool(save)}");
         return Render(raw, save, add);
@@ -359,6 +440,48 @@ public static class PrologueDirector
         SaveManager.MarkDirty();
     }
 
+    /// <summary>The intention a new save stated on the founding screen (R7b as amended
+    /// 2026-10-26): a CardSchool name, any case, or "unstated". Writes the meta flags the asking
+    /// panel's choices write, plus the founding marker, so the Examiner reads it back. False,
+    /// and nothing written, when the save already has an intention or the value names none.</summary>
+    public static bool RecordFoundingIntention(GuildSaveData save, string intention)
+    {
+        if (save?.Ledger == null || save.HasFlag("stated_intention_set"))
+            return false;
+        string key = IntentionKey(intention);
+        if (key.Length == 0)
+        {
+            GD.PushWarning($"[Prologue] '{intention}' is not a school or \"unstated\"; the Examiner will ask.");
+            return false;
+        }
+        SetMeta(save, "stated_intention_set");
+        SetMeta(save, $"stated_intention_{key}");
+        SetMeta(save, FoundingIntentionFlag);
+        SaveManager.MarkDirty();
+        GD.Print($"[Prologue] Stated intention at founding: {key}.");
+        return true;
+    }
+
+    /// <summary>"unstated", a CardSchool name in lower case, or empty when the value is
+    /// neither. Names only: a number never parses as a school here.</summary>
+    private static string IntentionKey(string value)
+    {
+        string v = (value ?? "").Trim();
+        if (string.Equals(v, "unstated", StringComparison.OrdinalIgnoreCase))
+            return "unstated";
+        foreach (var name in Enum.GetNames(typeof(CardSchool)))
+            if (string.Equals(name, v, StringComparison.OrdinalIgnoreCase))
+                return name.ToLowerInvariant();
+        return "";
+    }
+
+    /// <summary>A fight's checklist (CombatManager.Tutorial.cs), or null when it has none.</summary>
+    public static IReadOnlyList<PrologueStep> StepsFor(string fightId)
+    {
+        var steps = Fight(fightId)?.Script?.Steps;
+        return steps != null && steps.Count > 0 ? steps : null;
+    }
+
     /// <summary>Close the prologue as a full skip: the recap's flags, and an unstated
     /// intention when none was given. The hall's last resort when its data is missing.</summary>
     public static void ForceComplete(GuildSaveData save)
@@ -386,7 +509,7 @@ public static class PrologueDirector
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>P-2: the full skip is offered only for a practical already completed on this
-    /// computer.</summary>
+    /// computer: the common one, for every save since R7e.</summary>
     public static bool FullSkipOffered(GuildSaveData save) => ReadProfile().Contains(PracticalFightId(save));
 
     /// <summary>P-3: part one can be waived once any prologue is complete on this computer.</summary>
@@ -443,7 +566,31 @@ public static class PrologueDirector
     /// <summary>Launch a prologue fight through the campus round-trip pattern (C4 item 5): the
     /// scripted deck on PlayerSession, the scripted fields on the router, the Register's mode,
     /// and a return to the hall whatever the outcome. False when the fight cannot launch.</summary>
-    public static bool Launch(SceneTree tree, string fightId, GuildSaveData save)
+    public static bool Launch(SceneTree tree, string fightId, GuildSaveData save) =>
+        LaunchFight(tree, fightId, save, ScenePath, null);
+
+    /// <summary>Launch a school's practical as the Grand Hall's examination for it (R7e,
+    /// DisciplineExam): its folio, party and pass unit as the prologue deals them, and no rewards,
+    /// but the Register in its own voice rather than the trial's minutes, the Grand Hall's map
+    /// (the script's examMapRecipe, E3), the apparatus fitted to the wizard
+    /// (<paramref name="scaling"/>, E4), and a return to <paramref name="returnScene"/>, whose host
+    /// consumes it. False when it cannot launch.</summary>
+    public static bool LaunchExam(SceneTree tree, string school, GuildSaveData save, string returnScene,
+                                  ExamScaling scaling)
+    {
+        string key = SchoolKey(school);
+        if (key.Length == 0 || string.IsNullOrEmpty(returnScene))
+            return false;
+        string fightId = PracticalFightPrefix + key;
+        return LaunchFight(tree, fightId, save, returnScene, "", Fight(fightId)?.Script?.ExamMapRecipe, scaling);
+    }
+
+    /// <summary>The launch itself: the hall's fights return to the hall in the script's Register
+    /// mode, on their own map; an exam names its own return and mode (<paramref name="registerMode"/>,
+    /// when not null), its map (<paramref name="mapRecipe"/>, when not empty) and its fitting
+    /// (<paramref name="examScaling"/>, which every other fight clears).</summary>
+    private static bool LaunchFight(SceneTree tree, string fightId, GuildSaveData save, string returnScene,
+                                    string registerMode, string mapRecipe = null, ExamScaling examScaling = null)
     {
         var entry = Fight(fightId);
         if (tree == null || save == null || entry?.Encounter == null)
@@ -451,6 +598,8 @@ public static class PrologueDirector
         var def = BuildEncounter(entry.Encounter);
         if (def.Enemies.Count == 0)
             return false;
+        if (!string.IsNullOrEmpty(mapRecipe))
+            def.MapRecipe = mapRecipe;
         var script = entry.Script ?? new PrologueFightScript();
 
         // The deck (hook a) and the school it plays (hook b).
@@ -492,7 +641,7 @@ public static class PrologueDirector
         router.SavedCombatArchmageId = "";
         router.SavedResolutionArchmageId = "";
         router.SavedWeather = WeatherType.Clear;
-        router.ReturnSceneOverride = ScenePath;
+        router.ReturnSceneOverride = returnScene;
         router.SetCurrentTier(def.Tier);
         router.SuppressRewards = script.SuppressRewards || script.NoDefeat;
         router.EndOnUnitFall = script.EndOnPassUnit ? (script.PassUnit ?? "") : "";
@@ -501,14 +650,17 @@ public static class PrologueDirector
         router.FallenEnemyUnitIds.Clear();
         router.LastWizardHealth = -1;
         router.LastWizardMaxHealth = -1;
+        router.ExamFitting = examScaling;   // E4: an exam's fitting, null for every other fight
 
-        // hook e: the Register minutes the trial and is silent in the Sundering.
-        RegisterManager.PrologueMode = script.RegisterMode ?? "";
+        // hook e: the Register minutes the trial and is silent in the Sundering. An exam keeps
+        // the Register's own voice: the candidate has carried it since the Long Second.
+        RegisterManager.PrologueMode = registerMode ?? script.RegisterMode ?? "";
 
         SaveManager.SaveIfDirty();
         EncounterContextCarrier.Set(def);
         EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
-        GD.Print($"[Prologue] Launching {fightId} (deck {script.Deck}, mode {RegisterManager.PrologueMode}).");
+        GD.Print($"[Prologue] Launching {fightId} (deck {script.Deck}, mode {RegisterManager.PrologueMode}, "
+                 + $"map {def.MapRecipe}, back to {returnScene}).");
         SceneTransition.Go(tree, router.CombatScenePath, def.DisplayName ?? "", def.Objective?.Description ?? "");
         return true;
     }
@@ -552,8 +704,7 @@ public static class PrologueDirector
         }
         else if (fightId.StartsWith(PracticalFightPrefix, StringComparison.Ordinal))
         {
-            bool passed = !string.IsNullOrEmpty(script.PassUnit) && fallen.Contains(script.PassUnit);
-            string r = passed ? "pass" : won ? "time" : "floor";
+            string r = PracticalOutcome(script, won, fallen);
             SetMeta(save, ResultPracticalPrefix + r);
             next = PracticalVerdict(save, r);
         }
@@ -579,6 +730,7 @@ public static class PrologueDirector
             router.EndOnUnitFall = "";
             router.ScriptedFightId = "";
             router.ScriptedReturnTitle = "";
+            router.ExamFitting = null;
         }
         RegisterManager.PrologueMode = "";
     }
@@ -646,6 +798,18 @@ public static class PrologueDirector
         return "";
     }
 
+    /// <summary>A practical's result from its return: "pass" when its pass unit fell, "time" when
+    /// the fight ended on its rounds, "floor" when the wizard went down.</summary>
+    private static string PracticalOutcome(PrologueFightScript script, bool won, ICollection<string> fallen)
+    {
+        bool passed = !string.IsNullOrEmpty(script?.PassUnit) && fallen != null && fallen.Contains(script.PassUnit);
+        return passed ? "pass" : won ? "time" : "floor";
+    }
+
+    /// <summary>A declaration exam's result (DisciplineExam), by the practical's own rule.</summary>
+    public static string ExamOutcome(string school, bool won, ICollection<string> fallen) =>
+        PracticalOutcome(Fight(PracticalFightPrefix + SchoolKey(school))?.Script, won, fallen);
+
     private static string PracticalResult(GuildSaveData save)
     {
         foreach (var r in new[] { "pass", "time", "floor" })
@@ -697,6 +861,10 @@ public static class PrologueDirector
                                 TraitorLineFallback);
             case "stated_intention_phrase":
                 return $"Stated intention: {IntentionDisplay(save)}.";
+            case "intention_on_file":
+                return HasMeta(save, "stated_intention_unstated") ? "left blank" : IntentionDisplay(save);
+            case "intention_remark":
+                return IntentionRemark(save);
             case "practical_remark":
                 return PracticalRemark(save);
             case "practical_name":
@@ -715,6 +883,39 @@ public static class PrologueDirector
             if (HasMeta(save, $"stated_intention_{s.ToString().ToLowerInvariant()}"))
                 return s.ToString();
         return "none given";
+    }
+
+    /// <summary>{intention_remark}: the Examiner's answer to this save's intention, taken from the
+    /// asking panel's choice that sets the same stated_intention_* flag, so the question and the
+    /// read-back share one set of lines.</summary>
+    private static string IntentionRemark(GuildSaveData save)
+    {
+        string key = HasMeta(save, "stated_intention_unstated") ? "unstated" : "";
+        if (key.Length == 0)
+            foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
+            {
+                string k = s.ToString().ToLowerInvariant();
+                if (HasMeta(save, $"stated_intention_{k}"))
+                {
+                    key = k;
+                    break;
+                }
+            }
+        return NonEmpty(RemarkForIntention(key), IntentionRemarkFallback);
+    }
+
+    /// <summary>The asking panel's answer for one intention key, or null.</summary>
+    private static string RemarkForIntention(string key)
+    {
+        if (string.IsNullOrEmpty(key))
+            return null;
+        string flag = $"stated_intention_{key}";
+        var asking = RawPanel(IntentionPanelId);
+        if (asking?.Choices != null)
+            foreach (var c in asking.Choices)
+                if (c?.SetMetaFlags != null && c.SetMetaFlags.Contains(flag))
+                    return c.ResultText;
+        return null;
     }
 
     /// <summary>{practical_remark}: the practical's remarkPass or remarkTime for this save's result.</summary>
@@ -876,7 +1077,7 @@ public static class PrologueDirector
         // 1. The data the director names.
         foreach (var id in new[]
                  {
-                     IntentionPanelId, RulesPanelId, RulesWaivedPanelId, ApparatusPanelId, CommencementPanelId,
+                     IntentionPanelId, IntentionReadPanelId, RulesPanelId, RulesWaivedPanelId, ApparatusPanelId, CommencementPanelId,
                      SunderingOpenPanelId, SunderingCastPanelId, LongSecondPanelId, MarginPanelId,
                      AnchorholdPanelId, DoorPanelId, LegiblePanelId, RecapPanelId,
                  })
@@ -920,8 +1121,8 @@ public static class PrologueDirector
                 fails.Add($"fight {kv.Key}: its pass unit '{pass}' is not one of its enemies");
         }
 
-        // The schools the intention can state, each with its practical (unstated sits the
-        // common practical).
+        // The schools the intention can state, each with its practical: the common one, which
+        // every candidate sits (unstated included), and the seven the Grand Hall examines (R7e).
         var schools = new List<string>();
         var intention = RawPanel(IntentionPanelId);
         if (intention?.Choices != null)
@@ -941,8 +1142,37 @@ public static class PrologueDirector
         if (schools.Count != schoolCount)
             fails.Add($"the intention panel states {schools.Count} practical(s), not one for each of the {schoolCount} schools");
 
+        // The read-back answers every intention the founding screen can state with the asking
+        // panel's own line.
+        var keys = new List<string> { "unstated" };
+        foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
+            keys.Add(s.ToString().ToLowerInvariant());
+        foreach (var key in keys)
+            if (string.IsNullOrEmpty(RemarkForIntention(key)))
+                fails.Add($"the read-back has no answer for intention '{key}' (no choice on {IntentionPanelId} sets stated_intention_{key})");
+
+        // Checklists: every step is one the engine counts, and the fight has a round cap.
+        int checklists = 0;
+        foreach (var kv in _fights)
+        {
+            var steps = kv.Value?.Script?.Steps;
+            if (steps == null || steps.Count == 0)
+                continue;
+            checklists++;
+            foreach (var step in steps)
+            {
+                if (step == null || Array.IndexOf(CombatManager.TutorialStepIds, step.Id ?? "") < 0)
+                    fails.Add($"fight {kv.Key}: step '{step?.Id}' is not one the engine counts ({string.Join(", ", CombatManager.TutorialStepIds)})");
+                else if (step.Count < 1 || string.IsNullOrEmpty(step.Label))
+                    fails.Add($"fight {kv.Key}: step '{step.Id}' needs a label and a count of at least 1");
+            }
+            if ((kv.Value.Encounter?.Objective?.Rounds ?? 0) <= 0)
+                fails.Add($"fight {kv.Key} has a checklist but no round cap, so it could stall");
+        }
+
         // 2. Each practical: its panels, its school, and its folio as the fight deals it.
         int folios = 0;
+        int examPages = 0;
         foreach (var school in schools)
         {
             string fightId = PracticalFightPrefix + school;
@@ -962,6 +1192,33 @@ public static class PrologueDirector
                 fails.Add($"{fightId}: school '{script.School}' is not a CardSchool");
             if (string.IsNullOrEmpty(script.PassUnit) || !script.EndOnPassUnit)
                 fails.Add($"{fightId}: no pass unit ends it, so it can only run out of time");
+            // E2 and E3: a school practical is also its Grand Hall examination, sat on the hall's
+            // map, and its two pages render from the teachers' lines with no token left literal.
+            // The pages need a loaded save outside the prologue, so they are checked only then.
+            if (school != CommonPracticalSchool)
+            {
+                MapRecipeRegistry.EnsureLoaded();
+                string examMap = script.ExamMapRecipe ?? "";
+                if (examMap.Length == 0 || MapRecipeRegistry.Get(examMap) == null)
+                    fails.Add($"{fightId}: its examination map '{examMap}' (examMapRecipe) is not a recipe");
+                var live = SaveManager.ActiveSave;
+                if (live != null && string.IsNullOrEmpty(RegisterManager.PrologueMode))
+                {
+                    foreach (var (pageId, page, choices) in new[]
+                             {
+                                 (DisciplineExam.OpenPageId, DisciplineExam.OpeningPanel(live, school), 2),
+                                 (DisciplineExam.MissedPageId, DisciplineExam.MissedPanel(live, school), 1),
+                             })
+                    {
+                        if (page == null || page.Choices.Count < choices)
+                            fails.Add($"{fightId}: its examination page {pageId} is missing or has fewer than {choices} choice(s)");
+                        else if ((page.Title + "\n" + page.Body).Contains('{'))
+                            fails.Add($"{fightId}: its examination page {pageId} leaves a token unfilled");
+                        else
+                            examPages++;
+                    }
+                }
+            }
 
             var folio = script.Folio ?? new List<string>();
             var innate = script.Innate ?? new List<string>();
@@ -1035,7 +1292,8 @@ public static class PrologueDirector
             GD.PushError($"[Prologue Assert] FAIL: {f}");
         if (fails.Count == 0)
             GD.Print($"[Prologue Assert] PASS: {_panels.Count} panels, {_fights.Count} fights, {folios} folios, "
-                     + $"{trialMinutes} trial minutes, the profile file and the Register's modes.");
+                     + $"{checklists} checklist(s), {examPages} exam page(s), {trialMinutes} trial minutes, "
+                     + "the profile file and the Register's modes.");
         return fails.Count == 0;
     }
 

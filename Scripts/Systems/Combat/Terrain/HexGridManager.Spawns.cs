@@ -302,6 +302,18 @@ public partial class HexGridManager
             GD.PushWarning($"[Deploy] layout anchors coincide at {PlayerLayoutAnchor} on axis {_layoutAxis}; check the recipe's layout fractions.");
     }
 
+    /// <summary>True when <paramref name="side"/> spawns in the west half of the board: the
+    /// half its layout anchor stands in, against the other side's. The player has always
+    /// started west and the enemy east; a recipe may swap its anchors (the Ceremony Hall
+    /// turns the candidate to face the dais), and the halves follow. A tie keeps the old
+    /// fixed halves.</summary>
+    private bool SideHoldsWestHalf(SpawnSide side)
+    {
+        float playerX = AxialToWorld(PlayerLayoutAnchor).X;
+        float enemyX = AxialToWorld(EnemyLayoutAnchor).X;
+        return side == SpawnSide.Player ? playerX <= enemyX : enemyX < playerX;
+    }
+
     private List<Vector2I> GetSideCandidates(SpawnSide side, Vector2I target, List<Vector2I> opposing)
     {
         var result = new List<Vector2I>();
@@ -376,14 +388,13 @@ public partial class HexGridManager
             return result;
         }
 
+        // Each side draws from the half its layout anchor stands in (SideHoldsWestHalf).
+        bool west = SideHoldsWestHalf(side);
         foreach (var coord in Tiles.Keys)
         {
             float x = AxialToWorld(coord).X;
 
-            if (side == SpawnSide.Player && x > centerX)
-                continue;
-
-            if (side == SpawnSide.Enemy && x < centerX)
+            if (west ? x > centerX : x < centerX)
                 continue;
 
             if (Distance(coord, anchor) <= 3)
@@ -591,11 +602,10 @@ public partial class HexGridManager
 
         // Nuclear fallback: scan entire correct half for ANY walkable tile
         GD.PrintErr($"[SpawnPlan] No spawn anchor found for {side}. Using emergency fallback.");
+        bool westHalf = SideHoldsWestHalf(side);
         foreach (var coord in Tiles.Keys)
         {
-            if (side == SpawnSide.Player && coord.X > GridWidth / 2)
-                continue;
-            if (side == SpawnSide.Enemy && coord.X < GridWidth / 2)
+            if (westHalf ? coord.X > GridWidth / 2 : coord.X < GridWidth / 2)
                 continue;
             if (IsValidSpawnTile(coord))
                 return coord;

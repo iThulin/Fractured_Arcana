@@ -45,6 +45,10 @@ using System.Collections.Generic;
 //
 //                 Dollhouse cutaway: each wall hides while the camera
 //                 is outside it, so the board is never behind a wall.
+//
+//                 The same pieces build a second set, the Grand Hall,
+//                 for the declaration exams (HallSet.GrandHall.cs): Build
+//                 makes it when Look is GrandHallSetId.
 // Layer:          Combat / presentation
 // Collaborators:  HexGridManager.Interior.cs (builds and clears it),
 //                 PainterlyPrism (the material factory), SchoolColors
@@ -58,6 +62,10 @@ public partial class HallSet : Node3D
 
     /// <summary>Group the grid uses to find and clear the set.</summary>
     public const string GroupName = "interior_set";
+
+    /// <summary>The east doors stand open (InteriorSpec.DoorsOpen: the Sundering). Set
+    /// before Build.</summary>
+    public bool DoorsOpen;
 
     private const string ModelDir = "res://Assets/Hall/";
 
@@ -184,6 +192,11 @@ public partial class HallSet : Node3D
     {
         TopLevel = true;                       // world coordinates, whatever the grid's transform
         Transform = Transform3D.Identity;
+        if (Look == GrandHallSetId)
+        {
+            BuildGrandHall(boardMin, boardMax, floorY);   // HallSet.GrandHall.cs
+            return;
+        }
 
         _floorY = floorY;
         _cz = (boardMin.Z + boardMax.Z) * 0.5f;
@@ -552,13 +565,25 @@ public partial class HallSet : Node3D
         Box(g, Paint.Stone, false, new Vector3(_xWallE - 0.2f, _floorY + WallHeight - 0.35f, _cz), new Vector3(0.4f, 0.7f, wid), TrimStone);
 
         // The east doors: two plain leaves strapped in iron, shut until the Keepers open them.
+        // Open (DoorsOpen: the Sundering), each stands swung back into the hall on its hinge at
+        // the frame, and the doorway shows the daylight outside.
         foreach (float k in new[] { -1f, 1f })
         {
+            if (DoorsOpen)
+            {
+                float zLeaf = _cz + k * 2.425f;   // hinged 2.6 out, 0.35 thick
+                Box(g, Paint.Wood, false, new Vector3(_xWallE - 1.305f, _floorY + 4.0f, zLeaf), new Vector3(2.55f, 8.0f, 0.35f), DoorWood);
+                foreach (float y in new[] { 1.5f, 4.0f, 6.5f })
+                    Box(g, Paint.Wood, false, new Vector3(_xWallE - 1.305f, _floorY + y, _cz + k * 2.22f), new Vector3(2.4f, 0.18f, 0.06f), Iron);
+                continue;
+            }
             float z = _cz + k * 1.3f;
             Box(g, Paint.Wood, false, new Vector3(_xWallE - 0.2f, _floorY + 4.0f, z), new Vector3(0.35f, 8.0f, 2.55f), DoorWood);
             foreach (float y in new[] { 1.5f, 4.0f, 6.5f })
                 Box(g, Paint.Wood, false, new Vector3(_xWallE - 0.4f, _floorY + y, z), new Vector3(0.06f, 0.18f, 2.4f), Iron);
         }
+        if (DoorsOpen)
+            Box(g, Paint.Glow, false, new Vector3(_xWallE - 0.04f, _floorY + 4.0f, _cz), new Vector3(0.08f, 8.0f, 5.2f), WindowLight);
         Box(g, Paint.Stone, false, new Vector3(_xWallE - 0.35f, _floorY + 4.6f, _cz - 3.0f), new Vector3(0.7f, 9.2f, 0.8f), TrimStone);
         Box(g, Paint.Stone, false, new Vector3(_xWallE - 0.35f, _floorY + 4.6f, _cz + 3.0f), new Vector3(0.7f, 9.2f, 0.8f), TrimStone);
         Box(g, Paint.Stone, false, new Vector3(_xWallE - 0.35f, _floorY + 9.6f, _cz), new Vector3(0.7f, 0.8f, 6.8f), TrimStone);
@@ -839,6 +864,7 @@ public partial class HallSet : Node3D
             }
         }
         _orbs?.RotateY(OrbSpin * (float)delta);
+        TickHearth((float)delta);   // the Grand Hall's fire; nothing in the Ceremony Hall
     }
 
     // ════════════════════════════════════════════════════════════════════════

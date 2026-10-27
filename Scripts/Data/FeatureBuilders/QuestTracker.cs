@@ -18,6 +18,10 @@ using System.Collections.Generic;
 //   "deed:<type>"   → Ledger.DeedCounts[type]  (cross-cycle total)
 //   "flags:<prefix>"→ count of flags matching prefix across
 //                     WorldFlags + MetaNarrativeFlags
+//   "mastery:<school>" → SchoolMastery points
+//   "declare:<school>:<step>" → a step toward declaring the
+//                     school (E5, the first goal): teacher,
+//                     mastery, hall, practical, named
 //   Plus the original named counters for backwards compat.
 // ============================================================
 
@@ -61,13 +65,17 @@ public static class QuestTracker
     /// already exists as a C# constant is defined in exactly one place instead
     /// of being copied into every quest that tracks it and drifting the next
     /// time it is retuned. Currently: "mastery:" defers to
-    /// SchoolMasteryService.FluencyThreshold.</summary>
+    /// SchoolMasteryService.FluencyThreshold, and "declare:" to
+    /// SchoolMasteryService.DeclarableThreshold for its mastery step and 1 for
+    /// the rest.</summary>
     public static int TargetFor(QuestObjective o)
     {
         if (o == null) return 0;
         if (o.CounterTarget > 0) return o.CounterTarget;
         if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith("mastery:"))
             return SchoolMasteryService.FluencyThreshold;
+        if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith("declare:"))
+            return o.Counter.EndsWith(":mastery") ? SchoolMasteryService.DeclarableThreshold : 1;
         return 0;
     }
 
@@ -151,6 +159,13 @@ public static class QuestTracker
             return string.IsNullOrEmpty(school) ? 0 : SchoolMasteryService.Points(save, school);
         }
 
+        // ── Generic family: declare:<school>:<step> ─────────────────────
+        // A step toward declaring a discipline (R7e; E5, the first goal),
+        // read live from the gate itself. See DeclareStep.
+        // Quest JSON example: { "counter": "declare:Elementalist:practical" }
+        if (counter.StartsWith("declare:"))
+            return DeclareStep(counter.Substring(8), save);
+
         // ── Named counters (original, backwards-compatible) ─────────────
         switch (counter)
         {
@@ -178,6 +193,35 @@ public static class QuestTracker
                 if (comps != null) foreach (var cm in comps) if (cm.IsRecruited) c++;
                 return c;
             }
+            default:
+                return 0;
+        }
+    }
+
+    /// <summary>One step of the declaration gate for "&lt;school&gt;:&lt;step&gt;": teacher (someone
+    /// this timeline can teach the school, 1 or 0), mastery (SchoolMastery points), hall (the
+    /// Grand Hall stands), practical (the school's exam is passed) or named (the school is
+    /// declared). A declared school counts every step done, so a school declared before the
+    /// exams, or by the grandfather rule, reads complete. 0 for an unknown step.</summary>
+    private static int DeclareStep(string schoolAndStep, GuildSaveData save)
+    {
+        int colon = schoolAndStep.LastIndexOf(':');
+        if (colon <= 0 || colon == schoolAndStep.Length - 1) return 0;
+        string school = schoolAndStep.Substring(0, colon);
+        string step = schoolAndStep.Substring(colon + 1);
+        bool named = DeclarationService.IsDeclared(save, school);
+        switch (step)
+        {
+            case "teacher":
+                return named || DeclarationService.FindFacultySource(save, school) != null ? 1 : 0;
+            case "mastery":
+                return named ? SchoolMasteryService.DeclarableThreshold : SchoolMasteryService.Points(save, school);
+            case "hall":
+                return named || DeclarationService.HasGrandHall(save) ? 1 : 0;
+            case "practical":
+                return named || DisciplineExam.HasPassed(save, school) ? 1 : 0;
+            case "named":
+                return named ? 1 : 0;
             default:
                 return 0;
         }

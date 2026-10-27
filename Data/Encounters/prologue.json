@@ -2,7 +2,7 @@
   {
     "id": "prologue_trial_intention",
     "title": "The Final Examination",
-    "body": "The ceremony hall is dressed for Commencement and empty of everyone who matters. Benches stand in rows for the families. Up in the gallery the examining board is still finding its seats, arguing quietly about a footnote. On a lectern beside the dais, the Commencement Register lies open to a clean page, waiting for this afternoon's names.\n\nThe Examiner meets you on the floor. She has a voice built for long halls and has never once needed to raise it.\n\n'Before the board sits, a formality they will ignore,' she says. 'What do you intend to be named? You will sit your practical in it, so the board has something to argue about.'",
+    "body": "The ceremony hall is dressed for Commencement and empty of everyone who matters. Benches stand in rows for the families. Up in the gallery the examining board is still finding its seats, arguing quietly about a footnote. On a lectern beside the dais, the Commencement Register lies open to a clean page, waiting for this afternoon's names.\n\nThe Examiner meets you on the floor. She has a voice built for long halls and has never once needed to raise it.\n\n'Before the board sits, a formality they will ignore,' she says. 'What do you intend to be named? Every candidate sits the common practical this morning, whatever the answer. The board argues about the rest this afternoon.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -74,7 +74,7 @@
       },
       {
         "label": "I would rather not say.",
-        "resultText": "'Good.' She sounds as if she means it. 'Nobody should have to say it aloud before they have earned it. The board will decide, and argue, and decide again. You will sit the common practical, which is the hardest one to show off in. Noted all the same.'",
+        "resultText": "'Good.' She sounds as if she means it. 'Nobody should have to say it aloud before they have earned it. The board will decide, and argue, and decide again. Noted all the same.'",
         "setMetaFlags": [
           "stated_intention_set",
           "stated_intention_unstated"
@@ -83,9 +83,24 @@
     ]
   },
   {
+    "id": "prologue_trial_intention_read",
+    "title": "The Final Examination",
+    "body": "The ceremony hall is dressed for Commencement and empty of everyone who matters. Benches stand in rows for the families. Up in the gallery the examining board is still finding its seats, arguing quietly about a footnote. On a lectern beside the dais, the Commencement Register lies open to a clean page, waiting for this afternoon's names.\n\nThe Examiner meets you on the floor. She has a voice built for long halls and has never once needed to raise it. She reads from her copy of the schedule.\n\n'Before the board sits, a formality they will ignore,' she says. 'The discipline you intend to be named, as you filed it: {intention_on_file}. Every candidate sits the common practical this morning, whatever they filed. The board argues about the rest this afternoon.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "As filed.",
+        "resultText": "{intention_remark}"
+      }
+    ]
+  },
+  {
     "id": "prologue_trial_rules",
     "title": "Begin When the Bell Stills",
-    "body": "Behind you, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner walks to the far end of the examination floor and turns to face you.\n\n'Two parts. First the fundamentals: you and me, three rounds, with the Academy's own cards. The trial is not to defeat me. The trial is to show me you know why each card leaves your hand. I will read one spell aloud before we are done. Do not be standing where I was looking when I began.'\n\n'Then your practical. Part one first.'\n\nSomewhere above you, the bell for Commencement is being tested, one stroke at a time.\n\n'Begin when the bell stills.'",
+    "body": "On the lectern, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner walks to the far end of the examination floor and turns to face you.\n\n'Two parts. First the fundamentals: you and me, with the Academy's own cards, until the board has seen enough. The trial is not to defeat me. The trial is to show me you know why each card leaves your hand. I will read one spell aloud before we are done. Do not be standing where I was looking when I began.'\n\n'Then your practical. Part one first.'\n\nSomewhere above you, the bell for Commencement is being tested, one stroke at a time.\n\n'Begin when the bell stills.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -100,7 +115,7 @@
   {
     "id": "prologue_trial_rules_waived",
     "title": "Part One Waived",
-    "body": "Behind you, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner reads a note pinned to her copy of the schedule, then turns it over in case there is more. There is not.\n\n'The board has waived part one,' she says. 'It does that now and then, and never says why. Your practical, then.'",
+    "body": "On the lectern, the Register writes your answer in its margin, in your own handwriting, where the board keeps the things it means to ignore.\n\nThe Examiner reads a note pinned to her copy of the schedule, then turns it over in case there is more. There is not.\n\n'The board has waived part one,' she says. 'It does that now and then, and never says why. Your practical, then.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -169,7 +184,7 @@
   {
     "id": "prologue_practical_apparatus",
     "title": "The Apparatus",
-    "body": "Two students roll a machine out from under a dust sheet: Master Korro's examination apparatus, the fourth model. The first three, he tells everyone, were research. Up in the gallery, Master Korro himself has stopped pretending to read his notebook.\n\nThe Examiner hands you a folio: the cards the board sets for your practical, written out in a careful hand and already soft at the corners from the candidates before you.\n\n'The apparatus has a fitting for every discipline,' she says. 'Yours is going on now.'",
+    "body": "Two students roll a machine out from under a dust sheet: Master Korro's examination apparatus, the fourth model. The first three, he tells everyone, were research. Up in the gallery, Master Korro himself has stopped pretending to read his notebook.\n\nThe Examiner hands you a folio: the cards the board sets for your practical, written out in a careful hand and already soft at the corners from the candidates before you.\n\n'The apparatus has a fitting for every discipline,' she says. 'This morning it wears the common one.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",
@@ -274,7 +289,7 @@
   {
     "id": "prologue_practical_brief_druid",
     "title": "The Tiller",
-    "body": "The students fit a ploughshare and a pair of iron feet to the apparatus. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' the Examiner says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'Four rounds.'",
+    "body": "The students fit a plowshare and a pair of iron feet to the apparatus. It turns toward you and starts walking, one furrow a round, scoring a line across the flagstones as it comes.\n\n'Stone floor,' the Examiner says. 'The land will have to try harder. So will you.'\n\n'A Druid plants first. First Green seeds young growth on a square and the ring around it. Living ground slows whatever walks through it, and it grows a stage at the end of every second enemy turn. Creeping Thorn hits harder for every stage of growth under its target. Mire roots whatever stands on living ground. Wolves Come calls a wolf up out of it. Plant under the Tiller, and keep it standing in your garden.'\n\n'Four rounds.'",
     "terrainTags": [],
     "regionTags": [],
     "requiredFlag": "",

@@ -89,6 +89,7 @@ public partial class CombatManager
         _objectiveZoneShown = false;
         _wardUnit = null;   // O3
         ResetScriptedFightState();   // C4 hook d: the fallen list is this fight's
+        ArmTutorialSteps();          // C4: the trial's checklist (CombatManager.Tutorial.cs)
         _zoneRenderer?.ClearObjectiveZone();
 
         if (def == null)
@@ -591,6 +592,8 @@ public partial class CombatManager
 
     private string ObjectiveBannerText()
     {
+        if (TutorialStepsArmed)
+            return TutorialBannerText();   // C4: the checklist replaces the line
         if (_objective == null && !ObjectiveWavesPending)
             return "";
 

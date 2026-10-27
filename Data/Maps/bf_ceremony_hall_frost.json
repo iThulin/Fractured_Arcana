@@ -15,7 +15,8 @@
       {
         "terrain": "stone"
       }
-    ]
+    ],
+    "flat": true
   },
   "atmosphere": {
     "sun_color": [
@@ -63,8 +64,8 @@
     ]
   },
   "anchors": {
-    "player": 0.25,
-    "enemy": 0.75
+    "player": 0.75,
+    "enemy": 0.25
   },
   "obstacles": {
     "low": "low_wall",

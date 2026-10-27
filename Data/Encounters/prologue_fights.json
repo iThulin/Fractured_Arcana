@@ -17,7 +17,7 @@
       "difficultyMult": 1.0,
       "objective": {
         "kind": "survive",
-        "rounds": 3,
+        "rounds": 6,
         "description": "Stand against the Examiner"
       },
       "waves": []
@@ -33,7 +33,29 @@
       "cleanMeans": "the wizard ends the fight at full health",
       "onWinClean": "prologue_trial_part_one_clean",
       "onWin": "prologue_trial_part_one",
-      "onLoss": "prologue_trial_part_one_floor"
+      "onLoss": "prologue_trial_part_one_floor",
+      "steps": [
+        {
+          "id": "walk",
+          "label": "Walk to a new square",
+          "count": 1
+        },
+        {
+          "id": "damage",
+          "label": "Damage the Examiner",
+          "count": 10
+        },
+        {
+          "id": "dodge",
+          "label": "Step off her marked square",
+          "count": 1
+        },
+        {
+          "id": "reflex",
+          "label": "Answer with a Reflex (keep 1 mana)",
+          "count": 1
+        }
+      ]
     }
   },
   {
@@ -89,6 +111,7 @@
       "passUnit": "korro_frost_plate",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "examMapRecipe": "grand_hall_frost",
       "remarkPass": "Storm through frost. The plate will need replacing. Master Korro will be thrilled.",
       "remarkTime": "The plate is still plated. Frost first, then storm. The floor does the work, if you let it.",
       "onPass": "prologue_practical_after_pass",
@@ -149,6 +172,7 @@
       "passUnit": "korro_proving_coil",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "examMapRecipe": "grand_hall",
       "remarkPass": "Five spells in one breath, and in the right order. The coil had no time to mend.",
       "remarkTime": "It mended. It always will, for anyone who spreads the work out. One turn, all of it, in order.",
       "onPass": "prologue_practical_after_pass",
@@ -209,6 +233,7 @@
       "passUnit": "korro_swing_arm",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "examMapRecipe": "grand_hall",
       "remarkPass": "You set the spell before you needed it. That is the whole discipline, and most of them never learn it.",
       "remarkTime": "You cast everything when you saw it. A Chronomancer casts it before.",
       "onPass": "prologue_practical_after_pass",
@@ -269,6 +294,7 @@
       "passUnit": "korro_walking_frame",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "examMapRecipe": "grand_hall",
       "remarkPass": "It walked into every price you set. They always do.",
       "remarkTime": "You hit it. An Enchanter makes it hit itself. Next time, make the floor expensive first.",
       "onPass": "prologue_practical_after_pass",
@@ -337,6 +363,7 @@
       "passUnit": "korro_dummy_rack",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "examMapRecipe": "grand_hall",
       "remarkPass": "You let them fall where you could use them. The dead are patient teachers.",
       "remarkTime": "You fought the rack. A Necromancer fights with what the rack leaves behind.",
       "onPass": "prologue_practical_after_pass",
@@ -397,6 +424,7 @@
       "passUnit": "korro_tiller",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "examMapRecipe": "grand_hall",
       "remarkPass": "On a stone floor, too. The land tried harder because you asked it to.",
       "remarkTime": "You struck it where it stood. A Druid plants where it will stand.",
       "onPass": "prologue_practical_after_pass",
@@ -457,6 +485,7 @@
       "passUnit": "korro_target_frame",
       "endOnPassUnit": true,
       "registerMode": "trial",
+      "examMapRecipe": "grand_hall",
       "remarkPass": "It shot your turrets and you let it. That is most of the Tinker's art, and Master Korro will want it in writing.",
       "remarkTime": "You stood in front of your own machines. Let them stand in front of you.",
       "onPass": "prologue_practical_after_pass",
@@ -550,7 +579,7 @@
       ],
       "regionId": "",
       "terrainType": "",
-      "mapRecipe": "ceremony_hall",
+      "mapRecipe": "ceremony_hall_sundering",
       "difficultyMult": 0.85,
       "objective": {
         "kind": "protect",

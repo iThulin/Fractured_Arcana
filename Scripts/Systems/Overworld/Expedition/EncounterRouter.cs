@@ -133,6 +133,11 @@ public partial class EncounterRouter : Node
     /// not on the field. The duel's clean verdict reads it.</summary>
     public int LastWizardHealth = -1;
     public int LastWizardMaxHealth = -1;
+    /// <summary>E4 (2026-10-26): a declaration exam's apparatus fitted to the wizard
+    /// (DisciplineExam, ExamScaling), applied at spawn by CombatManager.Exam.cs. Null for every
+    /// other fight: PrologueDirector sets it at every scripted launch and clears it with the
+    /// scripted session.</summary>
+    public ExamScaling ExamFitting;
 
     public override void _Ready()
     {
