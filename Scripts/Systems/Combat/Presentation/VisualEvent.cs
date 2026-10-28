@@ -37,7 +37,12 @@ public enum VisualEventKind
     /// <summary>A unit's rules position changed (Unit.PlaceOnTile). Plays as a short
     /// tween of the body to the new tile. One event per tile stepped, so a walk hops
     /// tile by tile and a push lands AFTER the spell that caused it.</summary>
-    Move
+    Move,
+
+    /// <summary>Something to show at this point in the queue, after whatever was queued before
+    /// it (CombatPresenter.EmitCallback: the Sundering's hold, which plays right after the blow
+    /// it caught). Runs at once and takes no time of its own.</summary>
+    Callback
 }
 
 public sealed class VisualEvent
@@ -83,6 +88,9 @@ public sealed class VisualEvent
     public Unit Mover;
     public Vector3 MoveTo;
     public MovementKind MoveKind = MovementKind.Teleport;
+
+    // ── Callback ────────────────────────────────────────────────────────────
+    public System.Action Callback;
 
     /// <summary>Where the RULES say a unit is: its current tile's view position. The
     /// body may lag behind that while Move events are queued, so snapshots must never

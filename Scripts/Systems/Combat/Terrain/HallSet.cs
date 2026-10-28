@@ -368,8 +368,10 @@ public partial class HallSet : Node3D
         float len = _xWallE - _xWallW;
         float xMid = (_xWallW + _xWallE) * 0.5f;
 
-        Box(g, Paint.Wash, false, new Vector3(xMid, _floorY + WallHeight * 0.5f, face + side * WallThick * 0.5f),
-            new Vector3(len + 2f * WallThick, WallHeight, WallThick), Limewash);
+        // The slab is recorded as it is batched, so a Sundering breach can open a hole in it (S2b,
+        // HallSet.Sundering.cs). It looks the same until then.
+        Slab(g, new Vector3(xMid, _floorY + WallHeight * 0.5f, face + side * WallThick * 0.5f),
+             new Vector3(len + 2f * WallThick, WallHeight, WallThick));
         Box(g, Paint.Stone, false, new Vector3(xMid, _floorY + WallHeight - 0.35f, face - side * 0.2f),
             new Vector3(len, 0.7f, 0.4f), TrimStone);
 
@@ -577,8 +579,8 @@ public partial class HallSet : Node3D
     private void BuildEastWall(Node3D g)
     {
         float wid = _zWallN - _zWallS;
-        Box(g, Paint.Wash, false, new Vector3(_xWallE + WallThick * 0.5f, _floorY + WallHeight * 0.5f, _cz),
-            new Vector3(WallThick, WallHeight, wid + 2f * WallThick), Limewash);
+        Slab(g, new Vector3(_xWallE + WallThick * 0.5f, _floorY + WallHeight * 0.5f, _cz),
+             new Vector3(WallThick, WallHeight, wid + 2f * WallThick));   // recorded for the breaches (S2b)
         // The plinth stops at the door frame on either side.
         float plinth = wid * 0.5f - 3.4f;
         foreach (float k in new[] { -1f, 1f })

@@ -2,6 +2,7 @@
   {
     "id": "sundering",
     "bannerLabel": "Survive the sentence",
+    "bannerProgress": "clause {clause} of {clauses}",
     "bannerTooltip": "The Provost is speaking the sentence that names you, one clause a round. Survive until she reaches its last word. Until then, lethal damage leaves you at 1 health.",
     "traitorLine": "{traitor_short} has one palm on the sphere and the other hand drawn back toward the lectern. It lands when the sentence does.",
     "openingLog": "The wards break from inside. The Keepers do not wait for you to turn around.",
@@ -11,6 +12,7 @@
       "log": "Their first spell takes you between the shoulders."
     },
     "holdLog": "The sentence holds you.",
+    "holdWord": "HELD",
     "volleys": [
       {
         "id": "aurel",
@@ -103,6 +105,11 @@
         "log": ""
       },
       {
+        "boundary": 0,
+        "piece": "breach_east_south",
+        "log": "The wall beside the east doors comes in."
+      },
+      {
         "boundary": 2,
         "piece": "bench_south",
         "log": ""
@@ -118,19 +125,35 @@
         "log": ""
       },
       {
+        "boundary": 3,
+        "piece": "breach_south_a",
+        "log": "A spell from the doors blows out the wall under a south window."
+      },
+      {
         "boundary": 4,
         "piece": "window_south_b",
         "log": ""
       },
       {
+        "boundary": 4,
+        "piece": "breach_east_north",
+        "log": "The wall on the far side of the doors comes in."
+      },
+      {
         "boundary": 5,
         "piece": "west_window",
         "log": ""
+      },
+      {
+        "boundary": 5,
+        "piece": "breach_south_b",
+        "log": "Daylight pours in through the south wall."
       }
     ],
     "floorUnit": "astrologer_read_ahead",
     "floorUnitMult": 0.85,
     "floorLog": "More of them come through the doors.",
+    "climaxSay": "Step forward and be written.",
     "climaxDrawLog": "'Step forward and be written.' The half-written line draws you off the floor and onto your mark.",
     "climaxSpellLog": "{traitor_short}'s hand comes up, and the spell leaves it.",
     "freezeLog": "{count} of them still stand, every one stopped mid-step.",
@@ -142,6 +165,11 @@
     "hoverAlly": "{name}, stopped where you left it.",
     "hoverDoors": "The east doors, and the way out.",
     "hoverGround": "The {element} here stopped where it was.",
-    "hoverMemorial": "Where {name} fell."
+    "hoverMemorial": "Where {name} fell.",
+    "stageTitle": "The Ceremony Hall",
+    "stageSubtitle": "The Long Second holds.",
+    "stageCaption": "Nothing in the hall has moved since you walked out.",
+    "stageLeave": "Leave the hall",
+    "stageReturn": "{guild_name}"
   }
 ]

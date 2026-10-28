@@ -853,7 +853,7 @@
       "volleys": "sundering",
       "hallCamera": "sundering",
       "floorMinimum": 3,
-      "presenterSpeed": 2.0
+      "presenterSpeed": 1.0
     }
   }
 ]

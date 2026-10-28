@@ -46,7 +46,7 @@ public partial class CombatPresenter : Node
     public float SpeedScale = 1f;
 
     /// <summary>The speed playback returns to once a backlog or a Skip is done. 1 everywhere but a
-    /// fight that asks for more (the Sundering's 2x, CombatManager.Sundering.cs).</summary>
+    /// fight whose script asks for another pace (presenterSpeed; CombatManager.Sundering.cs).</summary>
     public float BaseSpeed = 1f;
 
     /// <summary>Backlog length above which playback fast-forwards.</summary>
@@ -227,6 +227,17 @@ public partial class CombatPresenter : Node
         Current._queue.Enqueue(ev);
     }
 
+    /// <summary>Runs <paramref name="callback"/> when playback reaches this point, after everything
+    /// queued before it: a visual that must follow the blow that caused it (the Sundering's hold).
+    /// False when no presenter is live, and the caller should run it now.</summary>
+    public static bool EmitCallback(System.Action callback)
+    {
+        if (!Live || callback == null)
+            return false;
+        Current._queue.Enqueue(new VisualEvent { Kind = VisualEventKind.Callback, Callback = callback });
+        return true;
+    }
+
     /// <summary>Fast-forward everything queued (hold-to-skip hook for later UI).</summary>
     public void Skip() => SpeedScale = 6f;
 
@@ -263,6 +274,16 @@ public partial class CombatPresenter : Node
                         break;
                     case VisualEventKind.Move:
                         await PlayMove(ev, speed);
+                        break;
+                    case VisualEventKind.Callback:
+                        try
+                        {
+                            ev.Callback?.Invoke();
+                        }
+                        catch (System.Exception e)
+                        {
+                            GD.PrintErr($"[Presenter] A queued callback threw: {e.Message}");
+                        }
                         break;
                 }
             }
@@ -414,7 +435,10 @@ public partial class CombatPresenter : Node
         else
             at = Vector3.Zero;
 
-        if (atKnown)
+        // A blow the Sundering's hold took whole (nothing lost from any pool) shows the hold, which is
+        // queued right behind it, not "absorbed".
+        bool held = alive && u.HeldBySentence && ev.HpLoss <= 0 && ev.ShieldLoss <= 0 && ev.ArmorLoss <= 0;
+        if (atKnown && !held)
         {
             var number = VfxLibrary.MakeDamageNumber(ev.HpLoss, ev.ShieldLoss, ev.ArmorLoss);
             _fxRoot.AddChild(number);

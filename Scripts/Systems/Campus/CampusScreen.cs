@@ -1344,6 +1344,13 @@ public partial class CampusScreen : Control
         var save = SaveManager.ActiveSave;
         if (lm == null || save == null || _campusNarrativePanel == null) return;
 
+        // S3: while the Long Second holds, the Ceremony Hall is the frozen fight (HallStage).
+        if (lm.ChronicleHall && HallStage.Holds(save))
+        {
+            HallStage.Enter(GetTree());
+            return;
+        }
+
         var enc = lm.GetEncounter(save.HasFlag);
         if (enc == null)
         {

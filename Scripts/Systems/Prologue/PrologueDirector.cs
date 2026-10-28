@@ -1294,6 +1294,11 @@ public static class PrologueDirector
                 fails.Add($"{set.Id}: its floor unit '{set.FloorUnit}' does not resolve");
             if (string.IsNullOrEmpty(set.FreezeLog) || string.IsNullOrEmpty(set.WalkHint))
                 fails.Add($"{set.Id}: it has no line for the freeze or the way out (freezeLog, walkHint)");
+            if (string.IsNullOrEmpty(set.BannerProgress) || string.IsNullOrEmpty(set.ClimaxSay) || string.IsNullOrEmpty(set.HoldWord))
+                fails.Add($"{set.Id}: it has no words for the objective's count, the Provost at the climax or the hold "
+                          + "(bannerProgress, climaxSay, holdWord)");
+            if (string.IsNullOrEmpty(set.StageTitle) || string.IsNullOrEmpty(set.StageLeave))
+                fails.Add($"{set.Id}: it has no words for the hall seen again (stageTitle, stageLeave)");
         }
 
         // The Long Second's tableau (S2): it goes through the real save options field by field, and

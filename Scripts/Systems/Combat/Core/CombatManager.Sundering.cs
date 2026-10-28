@@ -49,6 +49,17 @@ using System.Threading.Tasks;
 //                    the east doors are the way out, to the city (P5).
 //                 At the freeze the Godot output gets one timing line:
 //                 how long the player's turns and each watched phase took.
+//                 S2b, after the first play: the watched phases at the
+//                 presenter's own pace, with longer holds at each beat;
+//                 the hold shown each time it catches a blow (the
+//                 candidate staggers and springs back up in a ring of the
+//                 sentence's ink, and HELD rises over them); the
+//                 Provost's clauses in a speech bubble over her, which
+//                 the Long Second stops in the air; four breaches blown
+//                 through the walls; and the hall at war from the
+//                 opening to the freeze: stray spells crossing it, wild
+//                 spells with every volley, lightning with the storm, and
+//                 the camera shaken by the heaviest blows.
 //                 Inert in every fight whose script has no sentence.
 // Layer:          Combat / runtime
 // Collaborators:  PrologueDirector (PrologueFightScript, the panels, the
@@ -59,6 +70,8 @@ using System.Threading.Tasks;
 //                 CameraController (SwingToward, AcceptInput), CombatUI
 //                 (SetObjectiveTooltip, SetTurnControlsVisible),
 //                 NarrativeEncounterPanel (the hall's panels),
+//                 SpeechBubble (the Provost's words), ProjectileVfx and
+//                 BurstVfx (the stray spells),
 //                 LongSecondTableau (the save), CombatManager.cs (the
 //                 hooks), CombatManager.Objectives.cs (ArmSundering, the
 //                 banner), CombatManager.AimLines.cs (the traitor's line)
@@ -79,18 +92,17 @@ public partial class CombatManager
     /// swing follows the turn-start selection glide rather than fighting it.</summary>
     private const double SunderingSideDelay = 0.35;
     /// <summary>A standing figure's chest above its feet (the shared rig's stand-in).</summary>
-    private const float SunderingChest = 0.95f;
-    /// <summary>Where the spell stops short of the candidate's chest, along its line.</summary>
-    private const float SunderingArmLength = 0.7f;
+    private const float SunderingChest = HallSet.FigureChest;
+    /// <summary>Where the spell stops short of the candidate's chest, along its line (the hall seen
+    /// again hangs it at the same point: HallSet.SpellStopPoint).</summary>
+    private const float SunderingArmLength = HallSet.SpellArmLength;
     private const float SunderingDrawLift = 0.35f;
     private const float SunderingDrawSeconds = 1.4f;
     private const float SunderingSpellSeconds = 0.9f;
     /// <summary>How far from the candidate Write That Down's turret may land.</summary>
     private const int SunderingTurretReach = 2;
-    /// <summary>The graduating class: twenty-six, and you (canon sheet).</summary>
-    private const int SunderingClassSize = 26;
     /// <summary>How far a spent member of the class sinks: down behind the benches.</summary>
-    private const float SunderingClassDrop = 0.6f;
+    private const float SunderingClassDrop = HallSet.ClassDrop;
     /// <summary>The counter-volley at the tiers flies at this many of the class.</summary>
     private const int SunderingClassTargets = 6;
     /// <summary>The longest one beat waits on the presenter, in seconds.</summary>
@@ -113,19 +125,70 @@ public partial class CombatManager
     private const string SunderingFrozenPhase = "The Long Second";
     private const string SunderingWalkPhase = "The Way Out";
 
+    // ── The pace (S2b: the first play found the watched phases too quick to read) ──
+    /// <summary>Seconds before the faculty's first volley, and between volleys.</summary>
+    private const float SunderingVolleyLead = 0.6f;
+    private const float SunderingVolleyGap = 0.4f;
+    /// <summary>A boundary: the new clause in the bubble before the counter-volley, the spent figure
+    /// down before the hall breaks, and the break before the doors.</summary>
+    private const float SunderingClauseLead = 1.2f;
+    private const float SunderingKneelHold = 0.7f;
+    private const float SunderingBreakHold = 1.4f;
+    /// <summary>After the draw onto the mark, before the cast panel.</summary>
+    private const float SunderingClimaxHold = 0.9f;
+
+    // ── The Provost's words (S2b) ─────────────────────────────────────────
+    /// <summary>A clause stays in her bubble this long once it is all there.</summary>
+    private const float SunderingClauseHold = 7f;
+    /// <summary>Her head above her feet: where the bubble's tail points.</summary>
+    private const float SunderingSpeakerHead = 2.1f;
+    /// <summary>The bubble draws over the HUD (90) and under the hall's panels (95); the hold's gold
+    /// edges draw under the HUD.</summary>
+    private const int SunderingSpeechLayer = 91;
+    private const int SunderingEdgeLayer = 89;
+    /// <summary>The HUD panels (CombatUI's) the bubble keeps clear of.</summary>
+    private static readonly string[] SunderingBubbleClear = { "LeftPanel", "PartyStrip" };
+
+    // ── The hold, shown (S2b) ─────────────────────────────────────────────
+    private const float SunderingHoldSeconds = 1.1f;
+    /// <summary>A small hold this soon after the last is not shown again.</summary>
+    private const ulong SunderingHoldGapMs = 450;
+    /// <summary>The ring of ink: at most this many of the clause's letters, this far out.</summary>
+    private const int SunderingInkLetters = 24;
+    private const float SunderingInkRadius = 0.9f;
+    private const float SunderingHeldHeight = 2.2f;
+    /// <summary>The Register's hand, for the ink and HELD.</summary>
+    private const string SunderingInkFontPath = "res://Assets/Fonts/Caladea-Bold.ttf";
+
+    // ── The hall at war (S2b) ─────────────────────────────────────────────
+    /// <summary>Seconds between stray spells: in the watched phases and the climax, and in your turns
+    /// (each round a little less).</summary>
+    private const float SunderingStrayHotMin = 0.25f;
+    private const float SunderingStrayHotMax = 0.7f;
+    private const float SunderingStrayCoolMin = 0.9f;
+    private const float SunderingStrayCoolMax = 2.2f;
+    /// <summary>Wild spells: with each faculty volley, with the class's, with a counter-volley, and as
+    /// the traitor's spell leaves the hand; and the storm's lightning beyond its Keepers.</summary>
+    private const int SunderingVolleyWild = 2;
+    private const int SunderingClassWild = 5;
+    private const int SunderingCounterWild = 8;
+    private const int SunderingReleaseStrays = 8;
+    private const int SunderingStormExtra = 3;
+    /// <summary>The lightning falls from this high, this fast.</summary>
+    private const float SunderingLightningDrop = 14f;
+    private const float SunderingLightningSpeed = 90f;
+    /// <summary>Camera shakes, in meters of lens: the opening strike, the round's first hold, a
+    /// counter-volley landing, the storm, a breach, and a heavy stray.</summary>
+    private const float SunderingStrikeShake = 0.25f;
+    private const float SunderingHoldShake = 0.12f;
+    private const float SunderingCounterShake = 0.3f;
+    private const float SunderingStormShake = 0.15f;
+    private const float SunderingBreachShake = 0.45f;
+    private const float SunderingStrayShake = 0.05f;
+
     private const string SunderingClassId = "class";
     private const string SunderingExaminerId = "examiner";
-    private const string SunderingProvostId = "wenna";
-    private const string SunderingWitnessId = "hess";
     private const string SunderingLastClause = "The Last Clause";
-
-    /// <summary>The six chairs in Commencement's order (the Astrologer's is the seventh, at the
-    /// north end). The traitor's is the honored chair, and the others fill the ring from the
-    /// south end in this order. The Witness left before the wards broke, so hers stays empty.</summary>
-    private static readonly string[] SunderingChairOrder =
-    {
-        "aurel", "hess", "joren", "namer", "conductor", "engineer",
-    };
 
     private static readonly string[] SunderingGlobals =
     {
@@ -182,6 +245,18 @@ public partial class CombatManager
     private string _sunderingPhaseNow = "";
     private ulong _sunderingPhaseSince;
     private int _sunderingVolleyPhases;
+
+    // ── State of the Provost's words, the hold shown and the hall at war (S2b) ──
+    private Node3D _sunderingProvost;
+    private CanvasLayer _sunderingSpeechLayer;
+    private SpeechBubble _sunderingBubble;
+    private CanvasLayer _sunderingEdgeLayer;
+    private TextureRect _sunderingEdge;
+    private ulong _sunderingHoldShownMs;
+    private Vector3? _sunderingHoldRest;
+    private Tween _sunderingStagger;
+    private bool _sunderingChaosOn;
+    private static Font _sunderingInkFont;
 
     // ── Predicates (the hooks in CombatManager.cs read these) ────────────
     /// <summary>This fight runs on a sentence (the Sundering).</summary>
@@ -245,6 +320,11 @@ public partial class CombatManager
         _sunderingPhaseNow = "";
         _sunderingPhaseSince = 0;
         _sunderingVolleyPhases = 0;
+        _sunderingProvost = null;
+        _sunderingHoldShownMs = 0;
+        _sunderingHoldRest = null;
+        _sunderingStagger = null;
+        _sunderingChaosOn = false;
         if (!ScriptedFight)
             return;
         var script = PrologueDirector.ScriptFor(EncounterRouter.Instance?.ScriptedFightId);
@@ -300,9 +380,10 @@ public partial class CombatManager
         }
     }
 
-    /// <summary>Stands the set figures once (D39 to D41): the loyal archmagi in front of their
-    /// chairs, the traitor at the sphere, the Provost at the lectern facing the dais, the Examiner
-    /// at the foot of the dais, and the class along both walks. Figures belong to the hall.</summary>
+    /// <summary>Stands the set figures once (D39 to D41), as the hall stages them for the fight and
+    /// for the hall seen again alike (HallSet.StageSundering): the loyal archmagi in front of their
+    /// chairs, the traitor at the sphere, the Provost at the lectern facing the dais, the Examiner at
+    /// the foot of the dais, and the class along both walks. Figures belong to the hall.</summary>
     private void StageSunderingFigures()
     {
         if (_sunderingStaged || grid == null)
@@ -315,55 +396,17 @@ public partial class CombatManager
         }
         _sunderingStaged = true;
         Vector3 board = (grid.GridBoundsMin + grid.GridBoundsMax) * 0.5f;
-
-        // The chairs: the traitor's is the honored one (they are at the sphere, out of it), the
-        // Astrologer's stays empty, and the rest fill from the south end.
-        bool hasTraitor = SunderingHasTraitor;
-        var chairs = new List<int>();
-        for (int i = 0; i < HallSet.ChairCount; i++)
-            if (i != HallSet.AstrologerChair && !(hasTraitor && i == HallSet.HonoredChair))
-                chairs.Add(i);
-        int next = 0;
-        foreach (var id in SunderingChairOrder)
-        {
-            if (id == _sunderingTraitor || next >= chairs.Count)
-                continue;
-            int chair = chairs[next++];
-            if (id == SunderingWitnessId)
-                continue;   // the Witness left before the wards broke: her chair stands empty
-            Vector3 feet = hall.ChairStandPoint(chair);
-            _sunderingFigures[id] = hall.PlaceFigure(id, feet, board - feet, SunderingRobe(id));
-        }
-
-        if (hasTraitor)
-        {
-            Vector3 stand = hall.TraitorStandPoint;
-            hall.PlaceFigure("traitor", stand, hall.SphereCenter - stand, SunderingRobe(_sunderingTraitor));
-        }
-        hall.PlaceFigure("provost", hall.ReaderPoint, hall.DaisCenter - hall.ReaderPoint, SunderingRobe(SunderingProvostId));
-        _sunderingFigures[SunderingExaminerId] = hall.PlaceFigure("examiner", hall.ExaminerPoint,
-            board - hall.ExaminerPoint, HallSet.ExaminerRobe);
-
-        var points = hall.ClassStandPoints(SunderingClassSize);
-        for (int i = 0; i < points.Count; i++)
-        {
-            Vector3 p = points[i];
-            _sunderingClass.Add(hall.PlaceFigure("class_" + i, p, new Vector3(0f, 0f, board.Z - p.Z), HallSet.ClassRobe));
-        }
+        var cast = hall.StageSundering(_sunderingTraitor, board);
+        foreach (var kv in cast.Archmagi)
+            _sunderingFigures[kv.Key] = kv.Value;
+        _sunderingFigures[SunderingExaminerId] = cast.Examiner;
+        _sunderingProvost = cast.Provost;
+        _sunderingClass.AddRange(cast.Class);
         GD.Print($"[Sundering] Staged {_sunderingFigures.Count - 1} archmagi on the dais, the Examiner, the Provost"
-                 + (hasTraitor ? ", the traitor at the sphere" : "") + $" and {_sunderingClass.Count} of the class.");
+                 + (cast.Traitor != null ? ", the traitor at the sphere" : "") + $" and {_sunderingClass.Count} of the class.");
     }
 
-    /// <summary>A figure's robe: the school of the archmagus, gold when unknown.</summary>
-    private static Color SunderingRobe(string archmageId)
-    {
-        var def = ArchmageRegistry.Get(archmageId);
-        return def != null && Enum.TryParse<CardSchool>(def.School, true, out var school)
-            ? SchoolColors.GetBorderColor(school)
-            : UITheme.Gold;
-    }
-
-    /// <summary>The presenter's pace for the whole fight (the script's presenterSpeed; 2x).</summary>
+    /// <summary>The presenter's pace for the whole fight (the script's presenterSpeed).</summary>
     private void ApplySunderingPace()
     {
         var presenter = CombatPresenter.Current;
@@ -394,16 +437,54 @@ public partial class CombatManager
         GD.Print($"[Sundering] {candidate.Name} is held by the sentence until it ends.");
     }
 
-    /// <summary>The hold kept the candidate standing: the log line and the ink's flare, once a
-    /// round at most. The hold itself never lapses.</summary>
+    /// <summary>The hold kept the candidate standing. Every time it does, it shows (S2b): the
+    /// candidate staggers and springs back up in a ring of the sentence's ink, the ink flares, and
+    /// HELD rises over them. The first time in a round the log says so, the edges of the screen
+    /// flush gold and the camera jolts. The hold itself never lapses.</summary>
     private void OnSentenceHeld(Unit unit)
     {
-        if (!IsInstanceValid(this) || unit == null || !IsInstanceValid(unit) || _sunderingHoldRound == roundNumber)
+        if (!IsInstanceValid(this) || unit == null || !IsInstanceValid(unit))
             return;
-        _sunderingHoldRound = roundNumber;
-        SunderingLog(_sunderingSet?.HoldLog);
-        // A beat after the blow, so the flare answers the hit rather than racing its flight.
-        GetTree().CreateTimer(0.3).Timeout += () => SunderingFlare(unit);
+        bool first = _sunderingHoldRound != roundNumber;
+        if (first)
+        {
+            _sunderingHoldRound = roundNumber;
+            SunderingLog(_sunderingSet?.HoldLog);
+        }
+        // ApplyDamage raises this before it queues the blow's own number, so the hold is queued at
+        // the end of the frame: it plays right after the blow lands, not before it flies.
+        Callable.From(() => QueueSunderingHold(unit, first)).CallDeferred();
+    }
+
+    /// <summary>The hold, in the presenter's queue behind the blow it caught (at once when there is
+    /// no presenter).</summary>
+    private void QueueSunderingHold(Unit unit, bool big)
+    {
+        if (!IsInstanceValid(this) || unit == null || !IsInstanceValid(unit))
+            return;
+        if (!CombatPresenter.EmitCallback(() => PlaySunderingHold(unit, big)))
+            PlaySunderingHold(unit, big);
+    }
+
+    /// <summary>The hold, shown once. A small one too soon after the last is skipped, so a flurry of
+    /// blows reads as one; the round's first always plays, and with it the gold edges and the jolt.</summary>
+    private void PlaySunderingHold(Unit unit, bool big)
+    {
+        if (!IsInstanceValid(this) || unit == null || !IsInstanceValid(unit) || !unit.IsInsideTree()
+            || currentPhase == CombatPhase.Frozen)
+            return;
+        ulong now = Time.GetTicksMsec();
+        if (!big && now - _sunderingHoldShownMs < SunderingHoldGapMs)
+            return;
+        _sunderingHoldShownMs = now;
+        SunderingStagger(unit);
+        SunderingFlare(unit);
+        SunderingInkRing(unit);
+        SunderingHeldWord(unit);
+        if (!big)
+            return;
+        SunderingEdgePulse();
+        SunderingCamera?.Shake(SunderingHoldShake, 0.3f);
     }
 
     /// <summary>The ink of the half-written line flares round the candidate.</summary>
@@ -415,6 +496,157 @@ public partial class CombatManager
         AddChild(burst);
         burst.GlobalPosition = unit.GlobalPosition + new Vector3(0f, SunderingChest, 0f);
         _ = burst.Play(1f);
+    }
+
+    /// <summary>The blow lands and the candidate stays up: squashed down onto their feet, then sprung
+    /// back to their height (the whole unit, about its feet).</summary>
+    private void SunderingStagger(Unit unit)
+    {
+        _sunderingHoldRest ??= unit.Scale;
+        Vector3 rest = _sunderingHoldRest.Value;
+        if (_sunderingStagger != null && _sunderingStagger.IsValid())
+            _sunderingStagger.Kill();
+        _sunderingStagger = unit.CreateTween();
+        _sunderingStagger.TweenProperty(unit, "scale", new Vector3(rest.X * 1.16f, rest.Y * 0.72f, rest.Z * 1.16f), 0.07)
+            .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        _sunderingStagger.TweenProperty(unit, "scale", rest, 0.55)
+            .SetTrans(Tween.TransitionType.Elastic).SetEase(Tween.EaseType.Out);
+    }
+
+    /// <summary>The sentence's ink round the candidate: the clause so far, its letters in a ring at the
+    /// chest that opens out, turns and fades.</summary>
+    private void SunderingInkRing(Unit unit)
+    {
+        string words = SunderingClause(roundNumber).Trim('.', ',', ' ');
+        if (words.Length > SunderingInkLetters)
+        {
+            // Its last few words, whole.
+            int cut = words.Length - SunderingInkLetters;
+            int space = words.IndexOf(' ', cut);
+            words = space >= 0 ? words.Substring(space + 1) : words.Substring(cut);
+        }
+        if (words.Length == 0)
+            return;
+        var ring = new Node3D { Name = "HeldInk", TopLevel = true };
+        AddChild(ring);
+        ring.GlobalPosition = unit.GlobalPosition + new Vector3(0f, SunderingChest, 0f);
+        ring.Scale = Vector3.One * 0.45f;
+        var font = SunderingInkFont();
+        var tw = ring.CreateTween().SetParallel(true);
+        for (int i = 0; i < words.Length; i++)
+        {
+            if (char.IsWhiteSpace(words[i]))
+                continue;
+            float a = Mathf.Tau * i / words.Length;
+            var letter = new Label3D
+            {
+                Text = words[i].ToString(),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                Shaded = false,
+                DoubleSided = true,
+                FontSize = 46,
+                OutlineSize = 10,
+                PixelSize = 0.0045f,
+                Modulate = UITheme.Gold,
+                OutlineModulate = UITheme.CardInk,
+                Position = new Vector3(Mathf.Cos(a) * SunderingInkRadius, 0.12f * Mathf.Sin(a * 3f),
+                                       Mathf.Sin(a) * SunderingInkRadius),
+            };
+            if (font != null)
+                letter.Font = font;
+            ring.AddChild(letter);
+            tw.TweenProperty(letter, "modulate:a", 0f, 0.5).SetDelay(SunderingHoldSeconds - 0.5f);
+            tw.TweenProperty(letter, "outline_modulate:a", 0f, 0.5).SetDelay(SunderingHoldSeconds - 0.5f);
+        }
+        tw.TweenProperty(ring, "scale", Vector3.One * 1.15f, SunderingHoldSeconds)
+          .SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+        tw.TweenProperty(ring, "rotation:y", 1.4f, SunderingHoldSeconds)
+          .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+        tw.Chain().TweenCallback(Callable.From(ring.QueueFree));
+    }
+
+    /// <summary>HELD, rising over the candidate as a blow's number does, in the sentence's gold.</summary>
+    private void SunderingHeldWord(Unit unit)
+    {
+        string text = SunderingFill(_sunderingSet?.HoldWord);
+        if (text.Length == 0)
+            return;
+        var word = new Label3D
+        {
+            Name = "HeldWord",
+            Text = text,
+            TopLevel = true,
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            NoDepthTest = true,
+            Shaded = false,
+            DoubleSided = true,
+            FontSize = 60,
+            OutlineSize = 16,
+            PixelSize = 0.006f,
+            Modulate = UITheme.Gold,
+            OutlineModulate = UITheme.CardInk,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var font = SunderingInkFont();
+        if (font != null)
+            word.Font = font;
+        AddChild(word);
+        Vector3 at = unit.GlobalPosition + new Vector3(0f, SunderingHeldHeight, 0f);
+        word.GlobalPosition = at;
+        word.Scale = Vector3.One * 0.5f;
+        var tw = word.CreateTween().SetParallel(true);
+        tw.TweenProperty(word, "scale", Vector3.One, 0.2)
+          .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        tw.TweenProperty(word, "global_position", at + new Vector3(0f, 0.6f, 0f), 1.1)
+          .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        tw.TweenProperty(word, "modulate:a", 0f, 0.45).SetDelay(0.65);
+        tw.TweenProperty(word, "outline_modulate:a", 0f, 0.45).SetDelay(0.65);
+        tw.Chain().TweenCallback(Callable.From(word.QueueFree));
+    }
+
+    /// <summary>The edges of the screen flush the sentence's gold and fade.</summary>
+    private void SunderingEdgePulse()
+    {
+        if (_sunderingEdge == null || !IsInstanceValid(_sunderingEdge))
+        {
+            _sunderingEdgeLayer = new CanvasLayer { Name = "HoldEdgeLayer", Layer = SunderingEdgeLayer };
+            AddChild(_sunderingEdgeLayer);
+            var ramp = new Gradient();
+            ramp.Offsets = new float[] { 0f, 0.55f, 1f };
+            ramp.Colors = new Color[] { new Color(UITheme.Gold, 0f), new Color(UITheme.Gold, 0f), new Color(UITheme.Gold, 0.55f) };
+            _sunderingEdge = new TextureRect
+            {
+                Name = "HoldEdge",
+                Texture = new GradientTexture2D
+                {
+                    Gradient = ramp,
+                    Fill = GradientTexture2D.FillEnum.Radial,
+                    FillFrom = new Vector2(0.5f, 0.5f),
+                    FillTo = new Vector2(1.05f, 0.5f),
+                    Width = 256,
+                    Height = 256,
+                },
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.Scale,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Modulate = Colors.Transparent,
+            };
+            _sunderingEdgeLayer.AddChild(_sunderingEdge);
+            _sunderingEdge.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        }
+        var tw = _sunderingEdge.CreateTween();
+        tw.TweenProperty(_sunderingEdge, "modulate:a", 1f, 0.08);
+        tw.TweenProperty(_sunderingEdge, "modulate:a", 0f, 0.7)
+          .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+    }
+
+    /// <summary>The Register's hand (Caladea Bold), for the ink and HELD; null for the default.</summary>
+    private static Font SunderingInkFont()
+    {
+        if (_sunderingInkFont == null && ResourceLoader.Exists(SunderingInkFontPath))
+            _sunderingInkFont = GD.Load<Font>(SunderingInkFontPath);
+        return _sunderingInkFont;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -457,7 +689,9 @@ public partial class CombatManager
         combatUI?.SetHintText("The Keepers act first.");
 
         SunderingLog(_sunderingSet?.OpeningLog);
-        SunderingBreaks(0);
+        SunderingSay(SunderingClause(1), SunderingClauseHold);   // she does not stop speaking (S2b)
+        RunSunderingChaos();
+        await SunderingBreaks(0);
         await SunderingPause(0.5f);
 
         // Their first spell, from the doors, between your shoulders (D37).
@@ -467,6 +701,7 @@ public partial class CombatManager
         {
             CombatPresenter.EmitVolley(SunderingDoorway(), new[] { VisualEvent.RulesPositionOf(candidate) },
                                        VfxLibrary.ArchBolt, SunderingKeeperStyle);
+            SunderingImpactQueued(null, SunderingStrikeShake);   // S2b: it lands hard
             candidate.ApplyDamage(strike.Damage);
             SunderingLog(strike.Log);
             await SunderingAwaitPresenter();
@@ -580,7 +815,7 @@ public partial class CombatManager
         combatUI?.SetHintText("The dais and the tiers answer.");
         WatchSunderingKeepers();
         FrameSunderingSide();
-        await SunderingPause(0.3f);
+        await SunderingPause(SunderingVolleyLead);
 
         foreach (var volley in _sunderingSet.Volleys)
         {
@@ -591,7 +826,7 @@ public partial class CombatManager
             if (!await CastSunderingVolley(volley))
                 continue;
             await SunderingAwaitPresenter();
-            await SunderingPause(0.15f);
+            await SunderingPause(SunderingVolleyGap);
         }
 
         PruneDeadUnits();
@@ -709,6 +944,7 @@ public partial class CombatManager
             return false;
         var at = eye.CurrentTile.Axial;
         var hit = keepers.Where(k => grid.Distance(at, k.CurrentTile.Axial) <= radius).ToList();
+        SunderingLightningQueued(hit);   // S2b: lightning down on them as the storm breaks
         SunderingHit(v, hit, v.Damage);
         SunderingLog(v.Log, ("caster", SunderingCasterName(v.Id)), ("count", hit.Count.ToString()),
                      ("damage", v.Damage.ToString()));
@@ -771,7 +1007,9 @@ public partial class CombatManager
             if (risen == null)
                 continue;
             rose = true;
-            CombatPresenter.EmitVolley(SunderingOrigin(v.Id), new[] { VisualEvent.RulesPositionOf(risen) },
+            Vector3 origin = SunderingOrigin(v.Id);
+            SunderingWildQueued(() => origin, SunderingVolleyWild, west: false, SunderingTint(v.Style));
+            CombatPresenter.EmitVolley(origin, new[] { VisualEvent.RulesPositionOf(risen) },
                                        SunderingArchetype(v), v.Style);
             SunderingLog(v.Log, ("caster", caster));
         }
@@ -883,6 +1121,8 @@ public partial class CombatManager
         var keepers = SunderingKeepers();
         if (keepers.Count == 0)
             return false;
+        // S2b: the whole of the tiers casts, and most of it goes wide.
+        SunderingWildQueued(SunderingClassOrigin, SunderingClassWild, west: false, SunderingTint(v.Style), 1.0f);
         int fired = 0;
         for (int i = 0; i < Math.Max(1, v.Count); i++)
         {
@@ -900,14 +1140,18 @@ public partial class CombatManager
     }
 
     /// <summary>The volley's flight from its caster to each target, then the damage. The numbers
-    /// wait for the flight in the presenter's queue, as a card's do.</summary>
+    /// wait for the flight in the presenter's queue, as a card's do. Wild spells leave with it (S2b),
+    /// except from a storm, which brings its own lightning.</summary>
     private void SunderingHit(SunderingVolley v, List<Unit> targets, int damage)
     {
         var points = new List<Vector3>();
         foreach (var t in targets)
             if (IsValidActor(t))
                 points.Add(VisualEvent.RulesPositionOf(t));
-        CombatPresenter.EmitVolley(SunderingOrigin(v.Id), points, SunderingArchetype(v), v.Style);
+        Vector3 origin = SunderingOrigin(v.Id);
+        if (SunderingArchetype(v) != VfxLibrary.ArchBurst)
+            SunderingWildQueued(() => origin, SunderingVolleyWild, west: false, SunderingTint(v.Style));
+        CombatPresenter.EmitVolley(origin, points, SunderingArchetype(v), v.Style);
         if (damage <= 0)
             return;
         foreach (var t in targets)
@@ -920,8 +1164,8 @@ public partial class CombatManager
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>StartEnemyTurn's hook, after the round has advanced and before the wave: the
-    /// Provost adds a clause, the Keepers' counter-volley spends one figure, and the hall breaks.
-    /// One moment, then the doors.</summary>
+    /// Provost reads the next clause (in her bubble, with a moment to read it), the Keepers'
+    /// counter-volley spends one figure, it goes down, and the hall breaks. Then the doors.</summary>
     private async Task SunderingBoundaryBeat()
     {
         if (!SunderingArmed || _sunderingClimaxStarted)
@@ -932,15 +1176,24 @@ public partial class CombatManager
 
         string clause = SunderingClause(boundary);
         if (clause.Length > 0)
+        {
             combatUI?.AppendActionLog($"The Provost reads on: \"{clause}\"");
+            SunderingSay(clause, SunderingClauseHold);
+        }
         RefreshObjectiveBanner();
+        await SunderingPause(SunderingClauseLead);
+        if (!IsInstanceValid(this))
+            return;
 
         string spent = SpendSunderingFigure();
         if (spent != null)
             await SunderingAwaitPresenter();   // the counter-volley lands, then they go down
         SunderingKneel(spent);
-        SunderingBreaks(boundary);
-        await SunderingPause(0.45f);
+        await SunderingPause(SunderingKneelHold);
+        if (!IsInstanceValid(this))
+            return;
+        await SunderingBreaks(boundary);
+        await SunderingPause(SunderingBreakHold);
     }
 
     /// <summary>The next in the spend order still casting (never the traitor or the Examiner):
@@ -971,8 +1224,12 @@ public partial class CombatManager
                     targets.Add(archmage.GlobalPosition);
                 SunderingLog(_sunderingSet.SpendArchmageLog, ("archmage", SunderingCasterName(id)));
             }
+            // S2b: their spell flies in a storm of wild ones at the dais end, and the hall shakes as it lands.
+            SunderingWildQueued(SunderingKeeperMuzzle, SunderingCounterWild, west: true,
+                                SunderingTint(SunderingKeeperStyle), 0.9f);
             CombatPresenter.EmitVolley(SunderingDoorway(), targets,
                 id == SunderingClassId ? VfxLibrary.ArchArc : VfxLibrary.ArchBolt, SunderingKeeperStyle);
+            SunderingImpactQueued(targets, SunderingCounterShake);
             GD.Print($"[Sundering] The counter-volley spends {id}.");
             return id;
         }
@@ -996,19 +1253,43 @@ public partial class CombatManager
         }
     }
 
-    /// <summary>The hall's breaks at a boundary (0 is the opening): visual only (D50).</summary>
-    private void SunderingBreaks(int boundary)
+    /// <summary>The hall's breaks at a boundary (0 is the opening): visual only (D50). A breach in
+    /// the south wall is found first by one of their spells from the doors; the ones beside the doors
+    /// come in from outside. Each breach shakes the hall (S2b).</summary>
+    private async Task SunderingBreaks(int boundary)
     {
         if (_sunderingSet?.SetBeats == null)
             return;
-        var hall = SunderingHall;
         foreach (var beat in _sunderingSet.SetBeats)
         {
             if (beat == null || beat.Boundary != boundary)
                 continue;
-            hall?.BreakPiece(beat.Piece);
+            var hall = SunderingHall;
+            if (hall != null && HallSet.IsBreach(beat.Piece))
+            {
+                if (!HallSet.IsEastBreach(beat.Piece))
+                    await SunderingBreachBolt(hall.PiecePoint(beat.Piece));
+                if (!IsInstanceValid(this) || !IsInstanceValid(hall))
+                    return;
+                if (hall.BreakPiece(beat.Piece))
+                    SunderingCamera?.Shake(SunderingBreachShake, 0.55f);
+            }
+            else
+            {
+                hall?.BreakPiece(beat.Piece);
+            }
             SunderingLog(beat.Log);
         }
+    }
+
+    /// <summary>One of their spells from the doors, at the wall it is about to take out.</summary>
+    private async Task SunderingBreachBolt(Vector3 at)
+    {
+        if (!IsInsideTree())
+            return;
+        var bolt = new ProjectileVfx { Name = "BreachBolt", Tint = SunderingTint(SunderingKeeperStyle) };
+        AddChild(bolt);
+        await bolt.Launch(SunderingDoorway(), at, 1f);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -1044,7 +1325,9 @@ public partial class CombatManager
         var candidate = SunderingCandidate;
         bool present = candidate != null && IsInstanceValid(candidate) && candidate.IsInsideTree();
 
-        // The hold's last act draws the candidate off the floor and onto the mark.
+        // "Step forward and be written": the hold's last act draws the candidate off the floor and
+        // onto the mark.
+        SunderingSay(SunderingFill(_sunderingSet?.ClimaxSay), 0f);
         SunderingLog(_sunderingSet?.ClimaxDrawLog);
         if (hall != null && present)
         {
@@ -1060,11 +1343,12 @@ public partial class CombatManager
                 .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
             await ToSignal(draw, Tween.SignalName.Finished);
         }
-        await SunderingPause(0.5f);
+        await SunderingPause(SunderingClimaxHold);
         if (!IsInstanceValid(this))
             return;
 
-        // The last clause, in the hall: its answer is the spell.
+        // The last clause, in the hall: its answer is the spell. Her words so far stay in the air.
+        SunderingSay(SunderingClause(_sunderingScript.Clauses.Count), 0f);
         SunderingMark("reading");
         ShowHallPanel(PrologueDirector.SunderingCastPanelId, _ => ReleaseTheSpell());
     }
@@ -1086,6 +1370,7 @@ public partial class CombatManager
         SunderingLog(_sunderingSet?.ClimaxSpellLog);
         hall?.CatchSphere(SunderingSpellSeconds);
         hall?.DropFolio(SunderingSpellSeconds);
+        SunderingReleaseFlurry();   // S2b: both sides throw what they have left; the freeze catches it in the air
         if (SunderingTraitorAim(out var hand, out var lectern))
         {
             Vector3 chest = (present ? candidate.GlobalPosition : hall.MarkPoint) + new Vector3(0f, SunderingChest, 0f);
@@ -1219,6 +1504,8 @@ public partial class CombatManager
         if (grid != null && IsInstanceValid(grid))
             SunderingStillUnder(grid);
         SunderingHall?.Still();
+        if (_sunderingBubble != null && IsInstanceValid(_sunderingBubble))
+            _sunderingBubble.Freeze();   // her words stop in the air, an instant before the discipline
 
         SunderingHideTurnControls();
         combatUI?.SetPhaseText(SunderingFrozenPhase);
@@ -1795,14 +2082,20 @@ public partial class CombatManager
     //  The banner, the traitor's line, the camera
     // ════════════════════════════════════════════════════════════════════════
 
-    /// <summary>The objective line: the label, then the sentence so far.</summary>
+    /// <summary>The objective line: the label, then how far the sentence has come ("clause 2 of 5").
+    /// The words themselves are in the Provost's bubble (S2b).</summary>
     private string SunderingBannerText()
     {
         string label = SunderingFill(_sunderingSet?.BannerLabel);
         if (label.Length == 0)
             label = _objective != null && !string.IsNullOrEmpty(_objective.Description) ? _objective.Description : "Survive";
-        string clause = SunderingClause(roundNumber);
-        return clause.Length > 0 ? $"{label}: \"{clause}\"" : label;
+        int clauses = _sunderingScript?.Clauses?.Count ?? 0;
+        if (clauses == 0)
+            return label;
+        string progress = SunderingFill(_sunderingSet?.BannerProgress,
+            ("clause", Math.Clamp(roundNumber, 1, clauses).ToString(CultureInfo.InvariantCulture)),
+            ("clauses", clauses.ToString(CultureInfo.InvariantCulture)));
+        return progress.Length > 0 ? $"{label}: {progress}" : label;
     }
 
     /// <summary>The objective line's hover text: what the sentence is and what it holds, then the
@@ -1908,6 +2201,268 @@ public partial class CombatManager
     }
 
     // ════════════════════════════════════════════════════════════════════════
+    //  The Provost's words (S2b)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>The Provost says <paramref name="text"/> in a bubble over her, held
+    /// <paramref name="hold"/> seconds once it is all there (0: until she says the next thing, or the
+    /// hall stops). Nothing without her figure.</summary>
+    private void SunderingSay(string text, float hold)
+    {
+        if (string.IsNullOrEmpty(text) || _sunderingProvost == null || !IsInstanceValid(_sunderingProvost))
+            return;
+        if (_sunderingBubble == null || !IsInstanceValid(_sunderingBubble))
+        {
+            _sunderingSpeechLayer = new CanvasLayer { Name = "SpeechLayer", Layer = SunderingSpeechLayer };
+            AddChild(_sunderingSpeechLayer);
+            _sunderingBubble = new SpeechBubble { Name = "ProvostBubble" };
+            _sunderingSpeechLayer.AddChild(_sunderingBubble);
+            foreach (string name in SunderingBubbleClear)
+            {
+                var panel = combatUI?.GetNodeOrNull<Control>(name);
+                if (panel != null)
+                    _sunderingBubble.KeepClearOf.Add(panel);
+            }
+        }
+        _sunderingBubble.Speaker = _sunderingProvost;
+        _sunderingBubble.HeadHeight = SunderingSpeakerHead;
+        _sunderingBubble.Say(text, hold);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The hall at war (S2b): stray spells, wild spells, lightning, shakes
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>From the opening to the freeze, stray spells cross the hall between the beats: the
+    /// Keepers' from the doors (now and then from one of them on the floor) at the dais end, the
+    /// faculty's and the class's at the doors' end, each bursting on stone off the board. Visual only.
+    /// Hot in the watched phases and the climax, cooler in your turns and while the cast panel is
+    /// read, hotter each round; the Keepers' share grows as the faculty is spent. The pause menu holds
+    /// it.</summary>
+    private async void RunSunderingChaos()
+    {
+        if (_sunderingChaosOn || !SunderingArmed || SunderingHall == null)
+            return;
+        _sunderingChaosOn = true;
+        try
+        {
+            while (IsInstanceValid(this) && IsInsideTree() && currentPhase != CombatPhase.Frozen && !_sunderingLeaving)
+            {
+                bool hot = currentPhase != CombatPhase.PlayerTurn && !SunderingPanelUp;
+                float heat = Mathf.Clamp(1f - 0.08f * (roundNumber - 1), 0.6f, 1f);
+                float wait = hot ? SunderingRandom(SunderingStrayHotMin, SunderingStrayHotMax)
+                                 : SunderingRandom(SunderingStrayCoolMin, SunderingStrayCoolMax);
+                await SunderingPause(wait * heat);
+                if (!IsInstanceValid(this) || !IsInsideTree() || currentPhase == CombatPhase.Frozen || _sunderingLeaving)
+                    break;
+                if (!GetTree().Paused)
+                    FireSunderingStray();
+            }
+        }
+        finally
+        {
+            if (IsInstanceValid(this))
+                _sunderingChaosOn = false;
+        }
+    }
+
+    /// <summary>One of the hall's panels is up (the cast panel, before the spell).</summary>
+    private bool SunderingPanelUp => _hallPanel != null && IsInstanceValid(_hallPanel) && _hallPanel.Visible;
+
+    /// <summary>One stray spell, the Keepers' or the faculty's.</summary>
+    private void FireSunderingStray()
+    {
+        var hall = SunderingHall;
+        if (hall == null)
+            return;
+        var casting = SunderingStrayCasters();
+        float keeperShare = Mathf.Clamp(0.45f + 0.07f * roundNumber, 0.45f, 0.85f);
+        bool theirs = casting.Count == 0 || _sunderingRng.NextDouble() < keeperShare;
+        bool lobbed = _sunderingRng.NextDouble() < 0.35;
+        bool heavy = _sunderingRng.NextDouble() < 0.18;
+        if (theirs)
+        {
+            SunderingStray(SunderingKeeperMuzzle(), hall.StrayTarget(_sunderingRng, west: true),
+                           SunderingTint(SunderingKeeperStyle), lobbed, heavy);
+            return;
+        }
+        var (origin, style) = casting[_sunderingRng.Next(casting.Count)];
+        SunderingStray(origin, hall.StrayTarget(_sunderingRng, west: false), SunderingTint(style), lobbed, heavy);
+    }
+
+    /// <summary>Everyone on the dais and the tiers still casting: where each casts from, and its palette.</summary>
+    private List<(Vector3 origin, string style)> SunderingStrayCasters()
+    {
+        var casters = new List<(Vector3 origin, string style)>();
+        if (_sunderingSet?.Volleys == null)
+            return casters;
+        foreach (var v in _sunderingSet.Volleys)
+            if (v != null && SunderingCasts(v.Id))
+                casters.Add((SunderingOrigin(v.Id), v.Style));
+        return casters;
+    }
+
+    /// <summary>Where a Keepers' stray leaves from: the doorway, or now and then one of them on the floor.</summary>
+    private Vector3 SunderingKeeperMuzzle()
+    {
+        var keepers = SunderingKeepers();
+        if (keepers.Count > 0 && _sunderingRng.NextDouble() < 0.35)
+            return keepers[_sunderingRng.Next(keepers.Count)].GlobalPosition + new Vector3(0f, SunderingChest, 0f);
+        return SunderingDoorway() + new Vector3(0.4f, SunderingRandom(-1.0f, 1.4f), SunderingRandom(-2.0f, 2.0f));
+    }
+
+    /// <summary>A stray spell from <paramref name="origin"/> to <paramref name="to"/>, bursting there with
+    /// a puff of grit; a heavy one jolts the camera. It is this node's child, so the freeze stops it in
+    /// the air. Nothing once the hall is still.</summary>
+    private async void SunderingStray(Vector3 origin, Vector3 to, Color tint, bool lobbed, bool heavy,
+                                      float speed = 0f, bool grit = true)
+    {
+        if (!IsInstanceValid(this) || !IsInsideTree() || currentPhase == CombatPhase.Frozen || _sunderingLeaving)
+            return;
+        var bolt = new ProjectileVfx { Name = "Stray", Tint = tint, Lobbed = lobbed };
+        if (speed > 0f)
+            bolt.BoltSpeed = speed;
+        AddChild(bolt);
+        await bolt.Launch(origin, to, 1f);
+        if (!IsInstanceValid(this) || !IsInsideTree() || currentPhase == CombatPhase.Frozen)
+            return;
+        var burst = new BurstVfx { Tint = tint, Radius = heavy ? 0.9f : 0.5f, GroundRing = false };
+        AddChild(burst);
+        burst.GlobalPosition = to;
+        _ = burst.Play(1f);
+        if (grit)
+            SunderingHall?.ImpactDust(to, heavy ? 1.2f : 0.6f);
+        if (heavy)
+            SunderingCamera?.Shake(SunderingStrayShake, 0.2f);
+    }
+
+    /// <summary>Wild spells with a volley: <paramref name="count"/> strays from <paramref name="origin"/>
+    /// over <paramref name="over"/> seconds, set off when the presenter reaches this point in its queue,
+    /// so they leave with the spell they belong to.</summary>
+    private void SunderingWildQueued(Func<Vector3> origin, int count, bool west, Color tint, float over = 0.35f)
+    {
+        if (count <= 0 || SunderingHall == null)
+            return;
+        void Fire() => SunderingFlurry(origin, count, west, tint, over);
+        if (!CombatPresenter.EmitCallback(Fire))
+            Fire();
+    }
+
+    private void SunderingFlurry(Func<Vector3> origin, int count, bool west, Color tint, float over)
+    {
+        var hall = SunderingHall;
+        if (hall == null || !IsInsideTree())
+            return;
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 from = origin();
+            Vector3 to = hall.StrayTarget(_sunderingRng, west);
+            bool lobbed = _sunderingRng.NextDouble() < 0.3;
+            float delay = count > 1 ? over * i / (count - 1) : 0f;
+            if (delay <= 0.01f)
+                SunderingStray(from, to, tint, lobbed, false);
+            else
+                GetTree().CreateTimer(delay).Timeout += () => SunderingStray(from, to, tint, lobbed, false);
+        }
+    }
+
+    /// <summary>The First Argument's lightning: a bolt straight down on each Keeper the storm takes and a
+    /// few on the floor round them, the moment it breaks; the hall shakes.</summary>
+    private void SunderingLightningQueued(List<Unit> struck)
+    {
+        var points = new List<Vector3>();
+        Vector3 middle = Vector3.Zero;
+        int count = 0;
+        foreach (var k in struck)
+        {
+            if (!IsValidActor(k))
+                continue;
+            Vector3 feet = VisualEvent.RulesPositionOf(k);
+            points.Add(feet + new Vector3(0f, SunderingChest, 0f));
+            middle += feet;
+            count++;
+        }
+        if (count == 0)
+            return;
+        middle /= count;
+        for (int i = 0; i < SunderingStormExtra; i++)
+            points.Add(middle + new Vector3(SunderingRandom(-1.4f, 1.4f), 0.05f, SunderingRandom(-1.4f, 1.4f)));
+        Color tint = SunderingTint("lightning");
+        void Strike()
+        {
+            for (int n = 0; n < points.Count; n++)
+            {
+                Vector3 to = points[n];
+                Vector3 from = to + new Vector3(SunderingRandom(-0.6f, 0.6f), SunderingLightningDrop, SunderingRandom(-0.6f, 0.6f));
+                float delay = n * 0.06f;
+                if (delay <= 0.01f)
+                    SunderingStray(from, to, tint, false, false, SunderingLightningSpeed, grit: false);
+                else
+                    GetTree().CreateTimer(delay).Timeout += () =>
+                        SunderingStray(from, to, tint, false, false, SunderingLightningSpeed, grit: false);
+            }
+            SunderingCamera?.Shake(SunderingStormShake, 0.35f);
+        }
+        if (!CombatPresenter.EmitCallback(Strike))
+            Strike();
+    }
+
+    /// <summary>When the presenter reaches this point (a spell just landed): the hall shakes, and grit
+    /// bursts where it struck.</summary>
+    private void SunderingImpactQueued(List<Vector3> at, float shake)
+    {
+        void Land()
+        {
+            SunderingCamera?.Shake(shake, 0.45f);
+            var hall = SunderingHall;
+            if (hall == null || at == null)
+                return;
+            foreach (var p in at)
+                hall.ImpactDust(p + new Vector3(0f, SunderingChest, 0f), 1.3f);
+        }
+        if (!CombatPresenter.EmitCallback(Land))
+            Land();
+    }
+
+    /// <summary>As the spell leaves the hand, both sides throw what they have left: strays set off
+    /// across the spell's flight, so the freeze catches most of them in the air.</summary>
+    private void SunderingReleaseFlurry()
+    {
+        var hall = SunderingHall;
+        if (hall == null || !IsInsideTree())
+            return;
+        var casting = SunderingStrayCasters();
+        Color theirs = SunderingTint(SunderingKeeperStyle);
+        for (int i = 0; i < SunderingReleaseStrays; i++)
+        {
+            Vector3 from;
+            Vector3 to;
+            Color tint;
+            if (casting.Count == 0 || i % 2 == 0)
+            {
+                from = SunderingKeeperMuzzle();
+                to = hall.StrayTarget(_sunderingRng, west: true);
+                tint = theirs;
+            }
+            else
+            {
+                var (origin, style) = casting[_sunderingRng.Next(casting.Count)];
+                from = origin;
+                to = hall.StrayTarget(_sunderingRng, west: false);
+                tint = SunderingTint(style);
+            }
+            bool lobbed = _sunderingRng.NextDouble() < 0.4;
+            float delay = SunderingSpellSeconds * (0.1f + 0.75f * i / (SunderingReleaseStrays - 1));
+            GetTree().CreateTimer(delay).Timeout += () => SunderingStray(from, to, tint, lobbed, false);
+        }
+    }
+
+    /// <summary>A palette by VfxLibrary's style names ("temporal", "arcane", "lightning"...).</summary>
+    private static Color SunderingTint(string style) => VfxLibrary.TintFor(new VisualEvent { VfxStyle = style ?? "" });
+
+    private float SunderingRandom(float a, float b) => a + (b - a) * (float)_sunderingRng.NextDouble();
+
+    // ════════════════════════════════════════════════════════════════════════
     //  Helpers
     // ════════════════════════════════════════════════════════════════════════
 
@@ -2002,8 +2557,9 @@ public partial class CombatManager
     }
 
     /// <summary>Fills a line's tokens: the arguments first, then the four globals
-    /// (ChronicleScheduler.Token, with its fallbacks when no save is loaded).</summary>
-    private static string SunderingFill(string text, params (string key, string value)[] args)
+    /// (ChronicleScheduler.Token, with its fallbacks when no save is loaded). The hall seen again
+    /// fills its words the same way (HallStage).</summary>
+    internal static string SunderingFill(string text, params (string key, string value)[] args)
     {
         if (string.IsNullOrEmpty(text))
             return "";

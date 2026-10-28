@@ -14,7 +14,10 @@ using System.Text.Json;
 //                 floor minimum's arrivals and the climax's lines; and
 //                 (S2) the lines of the Long Second and the way out:
 //                 the freeze's count, the walk's hint and what the mouse
-//                 reads in the frozen hall. Read from
+//                 reads in the frozen hall; and (S2b) the objective
+//                 line's count of the clauses, the Provost's words at the
+//                 climax and the word the hold shows; and (S3) the lines
+//                 of the hall seen again (HallStage). Read from
 //                 Data/Encounters/sundering_volleys.json and named by a
 //                 prologue fight's script ("volleys"). Data only:
 //                 CombatManager.Sundering.cs runs it.
@@ -27,8 +30,11 @@ using System.Text.Json;
 public sealed class SunderingVolleySet
 {
     public string Id = "";
-    /// <summary>The objective line's label; the sentence so far follows it.</summary>
+    /// <summary>The objective line's label; how far the sentence has come follows it.</summary>
     public string BannerLabel = "";
+    /// <summary>How far the sentence has come, after the label ({clause} of {clauses}). Its words are
+    /// in the Provost's speech bubble (S2b).</summary>
+    public string BannerProgress = "";
     /// <summary>The objective line's hover text: what the sentence is and what it holds.</summary>
     public string BannerTooltip = "";
     /// <summary>The traitor's spell, said once in the banner's hover text.</summary>
@@ -39,6 +45,18 @@ public sealed class SunderingVolleySet
     public SunderingStrike OpeningStrike = null;
     /// <summary>The log line when the hold keeps the candidate standing (once a round at most).</summary>
     public string HoldLog = "";
+    /// <summary>The word that rises over the candidate each time the hold catches a blow (S2b).</summary>
+    public string HoldWord = "";
+
+    // ── The hall seen again (S3, HallStage) ──
+    /// <summary>The curtain's title and subtitle going into the hall.</summary>
+    public string StageTitle = "";
+    public string StageSubtitle = "";
+    /// <summary>The line at the top of the screen in the frozen hall.</summary>
+    public string StageCaption = "";
+    /// <summary>The way out's button, and the curtain's title going back to the city.</summary>
+    public string StageLeave = "";
+    public string StageReturn = "";
     /// <summary>The faculty and the class, in casting order each round.</summary>
     public List<SunderingVolley> Volleys = new();
     /// <summary>Who the Keepers spend, one at each round boundary: "class" or an archmage id.
@@ -54,7 +72,9 @@ public sealed class SunderingVolleySet
     public string FloorUnit = "";
     public float FloorUnitMult = 1f;
     public string FloorLog = "";
-    /// <summary>The climax: the candidate drawn onto the mark, then the spell.</summary>
+    /// <summary>The climax: what the Provost says as the hold draws the candidate onto the mark (her
+    /// bubble, S2b), the log line for it, then the spell's.</summary>
+    public string ClimaxSay = "";
     public string ClimaxDrawLog = "";
     public string ClimaxSpellLog = "";
 

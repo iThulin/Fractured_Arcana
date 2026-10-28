@@ -185,6 +185,12 @@ public partial class CameraController : Node3D
     private float _swingYawTarget;
     private const float SwingLerpSpeed = 2.2f;
 
+    // Scripted shake (Shake): a decaying jolt of the lens, input or not.
+    private float _shakeStrength;
+    private float _shakeTime;
+    private float _shakeDuration;
+    private Vector2 _shakeRest;
+
     // ── Input gate ───────────────────────────────────────────────────────────
     private bool _acceptInput = true;
 
@@ -358,6 +364,7 @@ public partial class CameraController : Node3D
     // ── Process ──────────────────────────────────────────────────────────────
     public override void _Process(double delta)
     {
+        TickShake((float)delta);   // a shake plays out whether or not the player has the camera
         if (!AcceptInput)
             return;
         if (!EnsureCameraNodes())
@@ -873,6 +880,45 @@ public partial class CameraController : Node3D
         FocusOn(center);
         if (zoom > 0f)
             _zoomTarget = Mathf.Clamp(zoom, MinZoom, _maxZoomDynamic);
+    }
+
+    /// <summary>A short, decaying shake of the lens (the Sundering's blows and breaks): up to
+    /// <paramref name="strength"/> meters across the view, dying away over <paramref name="seconds"/>.
+    /// A weaker shake does not cut a stronger one short. Only the lens moves, never the rig, so
+    /// the framing, the pan clamp and any glide are untouched.</summary>
+    public void Shake(float strength, float seconds = 0.35f)
+    {
+        if (strength <= 0f || seconds <= 0f || !EnsureCameraNodes())
+            return;
+        bool shaking = _shakeDuration > 0f;
+        float left = shaking ? _shakeStrength * (1f - _shakeTime / _shakeDuration) : 0f;
+        if (strength < left)
+            return;
+        if (!shaking)
+            _shakeRest = new Vector2(_camera.Position.X, _camera.Position.Y);
+        _shakeStrength = strength;
+        _shakeDuration = seconds;
+        _shakeTime = 0f;
+    }
+
+    private void TickShake(float delta)
+    {
+        if (_shakeDuration <= 0f || _camera == null || !IsInstanceValid(_camera))
+            return;
+        _shakeTime += delta;
+        Vector3 p = _camera.Position;
+        if (_shakeTime >= _shakeDuration)
+        {
+            _shakeDuration = 0f;
+            p.X = _shakeRest.X;
+            p.Y = _shakeRest.Y;
+            _camera.Position = p;
+            return;
+        }
+        float k = _shakeStrength * (1f - _shakeTime / _shakeDuration);
+        p.X = _shakeRest.X + (float)GD.RandRange(-1.0, 1.0) * k;
+        p.Y = _shakeRest.Y + (float)GD.RandRange(-1.0, 1.0) * k;
+        _camera.Position = p;
     }
 
     public void FaceToward(Vector3 fromCenter, Vector3 towardPoint)

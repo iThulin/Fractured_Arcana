@@ -1818,6 +1818,14 @@ public partial class StrategicView : Node2D
         var save = SaveManager.ActiveSave;
         if (lm == null || save == null) return;
 
+        // S3: while the Long Second holds, the Ceremony Hall is the frozen fight. Going in shows it,
+        // with the hall's own panel over it (HallStage raises on_hall there, as this did here).
+        if (lm.ChronicleHall && HallStage.Holds(save))
+        {
+            HallStage.Enter(GetTree());
+            return;
+        }
+
         var enc = lm.GetEncounter(save.HasFlag);
         if (enc == null)
         {
@@ -2885,62 +2893,16 @@ public partial class StrategicView : Node2D
     /// mutations, including the item/companion/reputation/lore/arc verbs the
     /// city path had deferred. HP/steps don't apply off-expedition;
     /// ResolutionKind/LaunchGuardian encounters must NOT route here (the
-    /// Council panel stays on the campus overlay until session two).</summary>
+    /// Council panel stays on the campus overlay until session two).
+    /// S3: the mutations live in NarrativeOutcome, which the hall seen again
+    /// (HallStage) applies its panel through too; the arc's toast stays here.</summary>
     private void ApplyNarrativeOutcome(NarrativeEncounterData enc, EncounterChoice choice)
     {
-        var save = SaveManager.ActiveSave;
-        if (choice == null || save == null) return;
-
-        if (choice.GoldDelta != 0)
-            save.Gold = Mathf.Max(0, save.Gold + choice.GoldDelta);
-
-        if (enc != null && !string.IsNullOrEmpty(enc.Id)
-            && !save.CompletedEvents.Contains(enc.Id))
-            save.CompletedEvents.Add(enc.Id);
-
-        if (choice.SetFlags != null)
-            foreach (var flag in choice.SetFlags)
-                if (!string.IsNullOrEmpty(flag)) save.SetFlag(flag);
-
-        if (choice.SetMetaFlags != null && save.Ledger != null)
-            foreach (var flag in choice.SetMetaFlags)
-                if (!string.IsNullOrEmpty(flag) && !save.Ledger.MetaNarrativeFlags.Contains(flag))
-                    save.Ledger.MetaNarrativeFlags.Add(flag);
-
-        if (!string.IsNullOrEmpty(choice.ItemReward))
-        {
-            var idef = ItemDatabase.Get(choice.ItemReward);
-            if (idef != null) save.Armory.AddItem(idef);
-        }
-
-        if (!string.IsNullOrEmpty(choice.CompanionUnlock))
-            CompanionRoster.GrantFromEncounter(choice.CompanionUnlock);
-
-        if (!string.IsNullOrEmpty(choice.ReputationFactionId) && choice.ReputationAmount != 0)
-        {
-            save.FactionReputation.TryGetValue(choice.ReputationFactionId, out int cur);
-            save.FactionReputation[choice.ReputationFactionId] = cur + choice.ReputationAmount;
-        }
-
-        if (!string.IsNullOrEmpty(choice.LoreId) &&
-            !save.UnlockedLoreEntries.Contains(choice.LoreId))
-            save.UnlockedLoreEntries.Add(choice.LoreId);
-
-        var arcStatus = CompanionArcTracker.TryCompleteByEncounter(enc?.Id, save);
-        if (arcStatus != null)
-        {
-            EnsureCityExploreToasts();
-            _cityExploreToasts?.Push(arcStatus.IsComplete
-                ? $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" complete."
-                : $"{arcStatus.CompanionName}: \"{arcStatus.ArcName}\" advances ({arcStatus.CurrentStage}/{arcStatus.TotalStages}).",
-                QuestToastKind.Progress);
-        }
-
-        // C5: the choice's sway, after its other effects.
-        ChronicleScheduler.ApplySway(choice);
-
-        SaveManager.MarkDirty();
-        SaveManager.SaveIfDirty();
+        var arcStatus = NarrativeOutcome.Apply(enc, choice);
+        if (arcStatus == null)
+            return;
+        EnsureCityExploreToasts();
+        _cityExploreToasts?.Push(NarrativeOutcome.ArcLine(arcStatus), QuestToastKind.Progress);
     }
 
     /// <summary>Session-one extraction: a floated campus panel's narrative
