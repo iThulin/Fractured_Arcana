@@ -161,7 +161,15 @@ public partial class PrologueScreen : Control
     }
 
     /// <summary>A two-button question. The cancel button, Escape and the close box all count
-    /// as the second answer; whichever arrives first wins.</summary>
+    /// as the second answer; whichever arrives first wins.
+    ///
+    /// <para>The second answer hides the dialog itself before it goes on. Godot hides a
+    /// confirmed dialog before it emits <c>confirmed</c>, but a canceled one only on the next
+    /// idle (<c>AcceptDialog._cancel_pressed</c> defers its hide, then emits <c>canceled</c>),
+    /// so while <paramref name="onNo"/> runs the dialog is still the root's exclusive child.
+    /// Declining the full skip asks the part-one question at once, and that popup logged
+    /// "Attempting to make child window exclusive, but the parent window already has another
+    /// exclusive child" (2026-10-27).</para></summary>
     private void Ask(string title, string body, string yes, string no, Action onYes, Action onNo)
     {
         bool answered = false;
@@ -185,6 +193,7 @@ public partial class PrologueScreen : Control
             if (answered)
                 return;
             answered = true;
+            dialog.Hide();   // frees the exclusive slot now; see the summary
             dialog.QueueFree();
             onNo?.Invoke();
         };

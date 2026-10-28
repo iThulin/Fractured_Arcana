@@ -46,6 +46,11 @@ public sealed class VisualEvent
 
     // ── Cast ────────────────────────────────────────────────────────────────
     public Unit Caster;
+    /// <summary>A cast from a world point rather than a unit (CombatPresenter.EmitVolley: the
+    /// Sundering's faculty cast from the dais and the tiers, off the board). Wins over the
+    /// caster's position when set.</summary>
+    public Vector3 Origin;
+    public bool OriginKnown;
     public Delivery Delivery = Delivery.Untyped;
     public CardSchool School = CardSchool.Adept;
     public bool SchoolKnown;

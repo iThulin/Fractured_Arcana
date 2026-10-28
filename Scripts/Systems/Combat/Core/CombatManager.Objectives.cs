@@ -90,6 +90,7 @@ public partial class CombatManager
         _wardUnit = null;   // O3
         ResetScriptedFightState();   // C4 hook d: the fallen list is this fight's
         ArmTutorialSteps();          // C4: the trial's checklist (CombatManager.Tutorial.cs)
+        ArmSundering();              // S1: the Sundering's sentence and volleys (CombatManager.Sundering.cs)
         _zoneRenderer?.ClearObjectiveZone();
 
         if (def == null)
@@ -594,6 +595,8 @@ public partial class CombatManager
     {
         if (TutorialStepsArmed)
             return TutorialBannerText();   // C4: the checklist replaces the line
+        if (SunderingArmed)
+            return SunderingBannerText();  // S1: the sentence so far replaces the line
         if (_objective == null && !ObjectiveWavesPending)
             return "";
 

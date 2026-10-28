@@ -348,12 +348,24 @@ public partial class HealthBarRoot : Node3D
     };
 
     /// <summary>Takes a Label3D off every camera without touching its Visible
-    /// flag, which the Unit still drives and this node reads.</summary>
+    /// flag, which the Unit still drives and this node reads.
+    ///
+    /// <para>The label is hidden on the render server while its layers change. In Godot
+    /// 4.6, Forward+ changes an instance's layers without first unpairing it from the
+    /// lights it touches (only renderers that pair lights per instance unpair first), and
+    /// an unpair under an empty mask skips the light's own list. A label adopted while lit
+    /// was left in the list of every omni light near it, and leaving a ceremony hall fight
+    /// logged "BUG, indexing did not unpair geometries from light" for each lamp that had
+    /// one (2026-10-27). Hiding the instance unpairs it under its old layers; showing it
+    /// again pairs it under the empty ones, which pairs it with nothing.</para></summary>
     private static Label3D Adopt(Label3D label)
     {
         if (label == null || !IsInstanceValid(label))
             return null;
+        Rid instance = label.GetInstance();
+        RenderingServer.InstanceSetVisible(instance, false);
         label.Layers = 0;
+        RenderingServer.InstanceSetVisible(instance, label.IsVisibleInTree());
         return label;
     }
 }

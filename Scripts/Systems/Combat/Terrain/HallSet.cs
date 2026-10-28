@@ -304,8 +304,14 @@ public partial class HallSet : Node3D
                 for (int b = 0; b < TierBlocks; b++)
                 {
                     float x0 = _xTierW + b * (blockLen + TierAisle);
+                    // The Sundering breaks one block of the south rows (HallSet.Sundering.cs), so it
+                    // is built in a group of its own; it looks the same until it breaks.
+                    var rows = side < 0f && b == BreakBenchBlock
+                        ? Breakable(PieceBench, _hall, new Vector3(x0 + blockLen * 0.5f, _floorY + TierRise * 2f,
+                                                                    _cz + side * (_tierFront + Tiers * TierDepth * 0.5f)))
+                        : _hall;
                     for (int i = 0; i < perBlock; i++)
-                        BenchSegment(_hall, new Vector3(x0 + segment * (i + 0.5f), top, z), segment);
+                        BenchSegment(rows, new Vector3(x0 + segment * (i + 0.5f), top, z), segment);
                 }
             }
 
@@ -313,8 +319,12 @@ public partial class HallSet : Node3D
             var lampXs = new List<float> { _xTierW + 0.45f, _xTierE - 0.45f };
             for (int b = 1; b < TierBlocks; b++)
                 lampXs.Add(_xTierW + b * (blockLen + TierAisle) - TierAisle * 0.5f);
-            foreach (float x in lampXs)
-                LampStand(_hall, new Vector3(x, walkTop, zLamp), true);
+            for (int li = 0; li < lampXs.Count; li++)
+            {
+                var at = new Vector3(lampXs[li], walkTop, zLamp);
+                // One south lamp-stand goes over in the Sundering: its own group, light and all.
+                LampStand(side < 0f && li == BreakLampIndex ? Breakable(PieceLamp, _hall, at) : _hall, at, true);
+            }
         }
     }
 
@@ -343,7 +353,7 @@ public partial class HallSet : Node3D
             Add(g, Prim.Hex, Paint.Wood, true, at * new Transform3D(Basis.FromScale(new Vector3(0.44f, 0.08f, 0.44f)), new Vector3(0f, 2.75f, 0f)), Iron);
         }
         if (lit)
-            Light(basePos + new Vector3(0f, 2.5f, 0f), 1.1f, 9f);
+            Light(basePos + new Vector3(0f, 2.5f, 0f), 1.1f, 9f, g);
     }
 
     // ── Walls ────────────────────────────────────────────────────────────
@@ -388,8 +398,19 @@ public partial class HallSet : Node3D
         Plinth(g, face, side, doorX);
 
         bool south = side < 0f;
+        // The Sundering tears the shutters off two south windows (HallSet.Sundering.cs): the one
+        // nearest the breaking bench block, and the one nearest the block toward the doors.
+        int breakA = south ? NearestWindow(x0, count, TierBlockCenterX(BreakBenchBlock)) : -1;
+        int breakB = south ? NearestWindow(x0, count, TierBlockCenterX(BreakBenchBlock + 1), breakA) : -1;
         for (int i = 0; i < count; i++)
-            RoundWindow(g, x0 + i * WindowSpacing, face, side, south ? ShutterOpen : ShutterFolded, south);
+        {
+            float x = x0 + i * WindowSpacing;
+            var shutterPivot = new Vector3(x, _floorY + WindowSill + WindowHeight * 0.5f, face);
+            Node3D shutters = i == breakA ? Breakable(PieceWindowA, g, shutterPivot)
+                            : i == breakB ? Breakable(PieceWindowB, g, shutterPivot)
+                            : null;
+            RoundWindow(g, x, face, side, south ? ShutterOpen : ShutterFolded, south, shutters);
+        }
 
         var flatToHall = new Basis(Vector3.Up, Mathf.Pi / 6f);   // a hexagon's flat face toward the hall
         for (int i = 0; i <= count; i++)
@@ -403,7 +424,8 @@ public partial class HallSet : Node3D
     /// <summary>A round-headed window on a long wall: a stone surround, the light, an iron
     /// upright and cross bar, two shutters, and (on the south wall) a shaft of daylight
     /// falling steeply onto the tiers below it.</summary>
-    private void RoundWindow(Node3D g, float x, float face, float side, float shutterDeg, bool shaft)
+    private void RoundWindow(Node3D g, float x, float face, float side, float shutterDeg, bool shaft,
+                             Node3D shutterGroup = null)
     {
         float sill = _floorY + WindowSill;
         float r = WindowWidth * 0.5f;
@@ -425,7 +447,7 @@ public partial class HallSet : Node3D
         Box(g, Paint.Wood, false, new Vector3(x, sill + WindowHeight * 0.62f, face - side * 0.1f), new Vector3(WindowWidth, 0.1f, 0.1f), Iron);
 
         foreach (float away in new[] { -1f, 1f })
-            Shutter(g, x + away * (r + 0.12f), away, face, side, sill, shutterDeg);
+            Shutter(shutterGroup ?? g, x + away * (r + 0.12f), away, face, side, sill, shutterDeg);
 
         if (shaft)
         {
@@ -619,6 +641,7 @@ public partial class HallSet : Node3D
         Box(g, Paint.Stone, false, new Vector3(_xWallW + 0.1f, _floorY + 0.6f, _cz), new Vector3(0.2f, 1.2f, wid), PlinthStone);
         Box(g, Paint.Stone, false, new Vector3(_xWallW + 0.2f, _floorY + WallHeight - 0.35f, _cz), new Vector3(0.4f, 0.7f, wid), TrimStone);
         EndWallWindow(g, _xWallW, 1f, _cz, 6.0f, 9.0f, _floorY + 3.0f, 2);
+        WestWindowCrack(g);   // the Sundering's last break, hidden until it happens (HallSet.Sundering.cs)
         float pitch = Mathf.DegToRad(35f);
         Shaft(g, new Vector3(_xWallW + 0.2f, _floorY + 7.5f, _cz), new Vector3(Mathf.Cos(pitch), -Mathf.Sin(pitch), 0f), 13f, 5.4f, new Vector3(0f, 0f, 1f));
     }
@@ -756,9 +779,9 @@ public partial class HallSet : Node3D
             PieceBox(g, Paint.Wood, true, at, new Vector3(-0.29f, 0.54f + back + 0.12f, 0f), new Vector3(0.14f, 0.24f, 0.3f), Brass);
     }
 
-    private void Light(Vector3 position, float energy, float range)
+    private void Light(Vector3 position, float energy, float range, Node3D parent = null)
     {
-        _hall.AddChild(new OmniLight3D
+        (parent ?? _hall).AddChild(new OmniLight3D
         {
             Name = "Lamplight",
             Position = position,

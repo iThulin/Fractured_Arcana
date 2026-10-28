@@ -216,6 +216,8 @@ public partial class CombatUI : CanvasLayer
 			SetHintText(_lastHintText);
 		if (_lastObjectiveText != null)
 			SetObjectiveText(_lastObjectiveText);
+		if (_lastObjectiveTooltip != null)
+			SetObjectiveTooltip(_lastObjectiveTooltip);
 	}
 	// ════════════════════════════════════════════════════════════════════
 	// Left panel
@@ -661,6 +663,7 @@ public partial class CombatUI : CanvasLayer
 	private string _lastPhaseText;
 	private string _lastHintText;
 	private string _lastObjectiveText;
+	private string _lastObjectiveTooltip;
 
 	public void SetPhaseText(string text)
 	{
@@ -681,6 +684,19 @@ public partial class CombatUI : CanvasLayer
 			return;
 		_objectiveLabel.Text = _lastObjectiveText;
 		_objectiveLabel.Visible = _lastObjectiveText.Length > 0;
+	}
+
+	/// <summary>The objective line's hover text (the Sundering: what the sentence is, what it
+	/// holds, and the traitor's spell). Empty clears it, and the line stops taking the mouse.</summary>
+	public void SetObjectiveTooltip(string text)
+	{
+		_lastObjectiveTooltip = text ?? "";
+		if (_objectiveLabel == null)
+			return;
+		_objectiveLabel.TooltipText = _lastObjectiveTooltip;
+		_objectiveLabel.MouseFilter = _lastObjectiveTooltip.Length > 0
+			? Control.MouseFilterEnum.Pass
+			: Control.MouseFilterEnum.Ignore;
 	}
 
 	public void SetHintText(string text)

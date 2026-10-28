@@ -15,6 +15,10 @@ using System.Text;
 //                 the enemy to that tile, ending in an arrowhead.
 //                 Hidden-value intents draw dim, revealed ones draw
 //                 hot, deferred ones draw in the temporal colour.
+//                 The Sundering (S1, 2026-10-28) adds one fixed line
+//                 that is not an intent: the traitor's spell, straight
+//                 from the hand at the sphere to the lectern, in white
+//                 (CombatManager.Sundering.cs, SunderingTraitorAim).
 //                 One persistent MeshInstance3D (ImmediateMesh), created
 //                 once at combat start (never from _Process), rebuilt only
 //                 when an aimed intent, its enemy's TILE, or its visibility
@@ -110,13 +114,19 @@ public partial class CombatManager
                .Append(target).Append(intent.Revealed ? 'R' : 'h').Append((int)enemy.AttackTiming).Append(';');
         }
 
+        // The Sundering: the traitor's spell, drawn at the lectern all fight. Its ends never move,
+        // so a word in the signature is enough.
+        bool spell = SunderingTraitorAim(out var spellFrom, out var spellTo);
+        if (spell)
+            sig.Append("traitor;");
+
         string s = sig.ToString();
         if (s == _aimSignature)
             return;
         _aimSignature = s;
 
         _aimMesh.ClearSurfaces();
-        if (aims.Count == 0)
+        if (aims.Count == 0 && !spell)
         {
             _aimLines.Visible = false;
             return;
@@ -125,18 +135,22 @@ public partial class CombatManager
         _aimMesh.SurfaceBegin(Mesh.PrimitiveType.Triangles);
         foreach (var (from, to, color) in aims)
             AddAimArc(from, to, color);
+        if (spell)
+            AddAimArc(spellFrom, spellTo, SunderingSpellColor, straight: true);
         _aimMesh.SurfaceEnd();
     }
 
-    /// <summary>A flat ribbon along a raised arc, ending in an arrowhead on the tile.</summary>
-    private void AddAimArc(Vector3 from, Vector3 to, Color color)
+    /// <summary>A flat ribbon along a raised arc, ending in an arrowhead on the tile. With
+    /// <paramref name="straight"/> the ribbon runs point to point with no arc (the Sundering's
+    /// traitor line, from a hand to the lectern).</summary>
+    private void AddAimArc(Vector3 from, Vector3 to, Color color, bool straight = false)
     {
         Vector3 flat = new Vector3(to.X - from.X, 0f, to.Z - from.Z);
         float length = flat.Length();
         if (length < 0.01f)
             return;
         Vector3 side = new Vector3(-flat.Z, 0f, flat.X) / length * (AimRibbonWidth * 0.5f);
-        float arch = Mathf.Clamp(length * 0.22f, 0.4f, 2.2f);
+        float arch = straight ? 0f : Mathf.Clamp(length * 0.22f, 0.4f, 2.2f);
 
         Vector3 Point(float t) =>
             from.Lerp(to, t) + new Vector3(0f, 4f * arch * t * (1f - t), 0f);

@@ -726,6 +726,10 @@
           "difficultyMult": 0.85
         },
         {
+          "unitId": "fracture_keeper",
+          "difficultyMult": 0.85
+        },
+        {
           "unitId": "astrologer_sealkeeper",
           "difficultyMult": 0.85
         }
@@ -735,10 +739,10 @@
       "mapRecipe": "ceremony_hall_sundering",
       "difficultyMult": 0.85,
       "objective": {
-        "kind": "protect",
-        "wardUnitId": "provost_wenna",
-        "rounds": 3,
-        "description": "Protect the Provost"
+        "kind": "survive",
+        "wardUnitId": "",
+        "rounds": 0,
+        "description": "Survive the sentence"
       },
       "waves": [
         {
@@ -754,6 +758,10 @@
             },
             {
               "unitId": "fracture_keeper",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "astrologer_sealkeeper",
               "difficultyMult": 0.85
             }
           ],
@@ -771,11 +779,55 @@
               "difficultyMult": 0.85
             },
             {
+              "unitId": "astrologer_read_ahead",
+              "difficultyMult": 0.85
+            },
+            {
               "unitId": "astrologer_foregone",
               "difficultyMult": 0.85
             }
           ],
           "announce": "They do not hurry. They were always going to arrive now."
+        },
+        {
+          "round": 4,
+          "enemies": [
+            {
+              "unitId": "astrologer_read_ahead",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "astrologer_read_ahead",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "fracture_keeper",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "fracture_keeper",
+              "difficultyMult": 0.85
+            }
+          ],
+          "announce": "The doors are off their hinges now. More come through."
+        },
+        {
+          "round": 5,
+          "enemies": [
+            {
+              "unitId": "astrologer_sealkeeper",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "astrologer_sealkeeper",
+              "difficultyMult": 0.85
+            },
+            {
+              "unitId": "astrologer_foregone",
+              "difficultyMult": 0.85
+            }
+          ],
+          "announce": "The last of them walk in as if they were expected."
         }
       ]
     },
@@ -787,7 +839,21 @@
       "suppressDeeds": true,
       "deck": "folio_sat",
       "registerMode": "sundering",
-      "onAnyOutcome": "prologue_sundering_cast"
+      "onAnyOutcome": "prologue_sundering_cast",
+      "clauses": [
+        "...and by the hand of this Register,",
+        "...and by the hand of this Register, the Aldric Academy",
+        "...the Aldric Academy names {wizard_name}",
+        "...names {wizard_name} into the discipline",
+        "...into the discipline of"
+      ],
+      "enemiesOpen": true,
+      "endsOnSentence": true,
+      "hold": true,
+      "volleys": "sundering",
+      "hallCamera": "sundering",
+      "floorMinimum": 3,
+      "presenterSpeed": 2.0
     }
   }
 ]

@@ -1275,6 +1275,10 @@ public partial class CombatManager : Node3D
         if (controller == null || grid == null)
             return;
 
+        // S1: the Sundering stages its figures and frames the dais itself (CombatManager.Sundering.cs).
+        if (BeginSunderingStage(controller))
+            return;
+
         // Compute player zone centroid
         Vector3 playerCenter = Vector3.Zero;
         int playerCount = 0;
@@ -2622,6 +2626,7 @@ public partial class CombatManager : Node3D
                 }
             }
         }
+        SunderingTurnStart();             // S1: the hold, the floor minimum, the side view
         _edgeActivationId++;              // Edge: the player phase is its own activation
 
         // (2026-07-28, U3e) Ritardando's "+1 enemy spell cost" expires HERE, not at
@@ -2967,6 +2972,7 @@ public partial class CombatManager : Node3D
         }
 
         await RunConstructPhase();   // ← only on the path that hands off to the enemy
+        await RunSunderingVolleys(); // S1: the faculty and the class cast (CombatManager.Sundering.cs)
 
         StartEnemyTurn();
     }
@@ -3346,6 +3352,8 @@ public partial class CombatManager : Node3D
     {
         if (!IsInstanceValid(this) || CombatCamera == null || !IsInstanceValid(CombatCamera))
             return;
+        if (SunderingOwnsCamera)
+            return;   // S1: the Sundering frames its own views (CombatManager.Sundering.cs)
         var party = playerUnits.Where(u => u != null && IsInstanceValid(u) && u.Stats.IsAlive
                                            && u.CurrentTile != null && !u.IsAwaitingArrival && !u.IsStructure)
                                .Select(u => u.GlobalPosition).ToList();
@@ -3562,6 +3570,14 @@ public partial class CombatManager : Node3D
         if (CheckCombatEnd())
             return;
 
+        // S1: the last clause's enemy phase is over. The climax ends the fight in place of a
+        // round boundary (CombatManager.Sundering.cs).
+        if (SunderingClimaxDue)
+        {
+            RunSunderingClimax();
+            return;
+        }
+
         roundNumber++;
 
         // O-track: THE round boundary. Every objective state change (rounds
@@ -3577,6 +3593,10 @@ public partial class CombatManager : Node3D
 
         // E3: Ward Stone aura, granting armour to whoever holds ground near a ward stone.
         ApplyWardStoneAuras();
+
+        // S1: the Sundering's boundary (a clause, a counter-volley, a break in the hall), before
+        // the wave comes through the doors. Inert in every other fight.
+        await SunderingBoundaryBeat();
 
         // Inert when the encounter carries no objective and no waves.
         EvaluateObjectiveRoundBoundary();
@@ -4232,7 +4252,8 @@ public partial class CombatManager : Node3D
         // O-track ruling 4: an empty board is only a victory once every
         // authored wave has actually arrived. Inert on every encounter that
         // carries no waves, which is every encounter authored before O1.
-        if (allEnemiesDead && !ObjectiveWavesPending)
+        // S1: a fight that ends on its sentence (the Sundering) is never won by an empty board.
+        if (allEnemiesDead && !ObjectiveWavesPending && !SunderingEndsOnSentence)
             return DeclareVictory();
 
         if (allPlayersDead)
@@ -4392,7 +4413,13 @@ public partial class CombatManager : Node3D
         RefreshEnemyRoster();
 
         if (AutoStartAfterDeployment)
-            StartPlayerTurn();
+        {
+            // The Sundering (S1): the Keepers act before the first turn (CombatManager.Sundering.cs).
+            if (SunderingOpensWithEnemies)
+                RunSunderingOpening();
+            else
+                StartPlayerTurn();
+        }
     }
 
     private void OnConfirmDeploymentPressed()

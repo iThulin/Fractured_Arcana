@@ -180,6 +180,11 @@ public partial class CameraController : Node3D
     private bool _lensManaged = false;   // SetLensFov was called: zoom tilt + horizon guard apply
     private float _openingZoomCap = 12f;  // FrameGrid: OpeningZoomSpanFactor x board span (reference units)
 
+    // Scripted swing (SwingToward): the yaw it is easing to, while it eases.
+    private bool _swinging;
+    private float _swingYawTarget;
+    private const float SwingLerpSpeed = 2.2f;
+
     // ── Input gate ───────────────────────────────────────────────────────────
     private bool _acceptInput = true;
 
@@ -246,6 +251,7 @@ public partial class CameraController : Node3D
 
         ClearFocus();
         _lastFocusNode = null;
+        _swinging = false;
 
         Vector3 center = (min + max) * 0.5f;
         Vector3 size = max - min;
@@ -473,6 +479,27 @@ public partial class CameraController : Node3D
     // ── Rotation ─────────────────────────────────────────────────────────────
     private void HandleRotation(float delta)
     {
+        // A scripted swing (SwingToward) eases the yaw until it arrives or the player turns the
+        // camera themselves: the player always wins.
+        if (_swinging)
+        {
+            bool turning = Input.IsActionPressed("rotate_left") || Input.IsActionPressed("rotate_right")
+                           || Input.IsMouseButtonPressed(MouseButton.Middle);
+            if (turning)
+            {
+                _swinging = false;
+            }
+            else
+            {
+                _yaw = Mathf.Lerp(_yaw, _swingYawTarget, Mathf.Min(1f, SwingLerpSpeed * delta));
+                if (Mathf.Abs(_swingYawTarget - _yaw) < 0.05f)
+                {
+                    _yaw = _swingYawTarget;
+                    _swinging = false;
+                }
+            }
+        }
+
         if (Input.IsActionPressed("rotate_left"))
             _yaw -= RotationSpeed * MouseToKeyboardRotationRatio * delta;
         if (Input.IsActionPressed("rotate_right"))
@@ -826,12 +853,35 @@ public partial class CameraController : Node3D
         GD.Print($"[Camera] Opening view: center {center}, extent {extent:0.0}, zoom {zoom:0.0}.");
     }
 
+    /// <summary>A scripted framing (the Sundering, CombatManager.Sundering.cs): glide the rig to
+    /// <paramref name="center"/>, swing the yaw the short way round until the camera looks from
+    /// there toward <paramref name="towardPoint"/> (as <see cref="FaceToward"/> sets it at once), and
+    /// ease the zoom to <paramref name="zoom"/> (reference units) when it is positive. Pan input stops
+    /// the glide and rotation input the swing, as they stop any focus glide.</summary>
+    public void SwingToward(Vector3 center, Vector3 towardPoint, float zoom = -1f)
+    {
+        if (!EnsureCameraNodes())
+            return;
+        Vector3 dir = towardPoint - center;
+        dir.Y = 0f;
+        if (dir.LengthSquared() < 1e-6f)
+            return;
+        dir = dir.Normalized();
+        float target = Mathf.RadToDeg(Mathf.Atan2(dir.X, dir.Z)) + 180f;
+        _swingYawTarget = _yaw + Mathf.Wrap(target - _yaw, -180f, 180f);
+        _swinging = true;
+        FocusOn(center);
+        if (zoom > 0f)
+            _zoomTarget = Mathf.Clamp(zoom, MinZoom, _maxZoomDynamic);
+    }
+
     public void FaceToward(Vector3 fromCenter, Vector3 towardPoint)
     {
         if (!EnsureCameraNodes())
             return;
 
         ClearFocus();
+        _swinging = false;
 
         // Pan to player spawn center
         Position = fromCenter;

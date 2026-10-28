@@ -146,6 +146,7 @@ public static class StatusCatalog
         { "shrouded",      new("Shrouded",     "SHRD", StatusTone.Buff,   "Each hit against it deals at most 5 damage.") },
         { "immortal",      new("Immortal",     "IMM",  StatusTone.Buff,   "Lethal damage leaves it at 1 HP.") },
         { "apparatus_ward", new("Warded",      "WARD", StatusTone.Buff,   "Wards standing: {n}. Each keeps one section of its health bar from taking damage, and each step under the objective breaks one.") },
+        { "being_written", new("Being Written", "WRIT", StatusTone.Buff,  "The sentence naming you is not finished. Until it is, lethal damage leaves you at 1 health.") },
         { "untargetable",  new("Untargetable", "HIDE", StatusTone.Buff,   "Enemies cannot target it.") },
         { "dancing",       new("The Dance",    "DNC",  StatusTone.Buff,   "Its allies may swap places freely.") },
         { "invulnerable",  new("Invulnerable", "INV",  StatusTone.Buff,   "Takes no damage.") },
@@ -274,6 +275,9 @@ public static class StatusCatalog
         // A checklist's wards (CombatManager.Tutorial.cs): unit fields, never a status key.
         if (u.WardSections > 0 && u.WardsStanding > 0)
             list.Add(new UnitCondition("apparatus_ward", Get("apparatus_ward"), u.WardsStanding));
+        // The Sundering's hold (CombatManager.Sundering.cs): a unit field, as the wards are.
+        if (u.HeldBySentence)
+            list.Add(new UnitCondition("being_written", Get("being_written"), 0));
 
         // Spirit wards are flags plus a turn counter, never status keys.
         if (u.IsUndying)

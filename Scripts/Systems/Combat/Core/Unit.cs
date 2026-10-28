@@ -193,6 +193,15 @@ public partial class Unit : Node3D
     /// section (MitigateCore's floor). 0 when no ward stands.</summary>
     public int WardFloor => WardSections <= 0 || WardsStanding <= 0 ? 0
         : (int)Math.Ceiling(Stats.MaxHealth * (double)Math.Min(WardsStanding, WardSections) / WardSections);
+
+    /// <summary>The Sundering's hold (CombatManager.Sundering.cs, ruled 2026-10-27): the sentence
+    /// naming the candidate is not finished, so lethal damage leaves this unit at 1 health, and so
+    /// does a death that is not damage (KillFromEffect). A field and not a status, as the wards
+    /// are, so nothing can strip it. False on every unit but the Sundering's candidate.</summary>
+    public bool HeldBySentence = false;
+
+    /// <summary>Raised when the hold kept this unit standing (its health is already 1).</summary>
+    public event Action<Unit> SentenceHeld;
     /// <summary>Unit id whose profile this unit adopts at the head of its NEXT
     /// activation. Set by mode_shift; applied and cleared in RunEnemyTurn, so the
     /// shift is telegraph-honest (§7a P2), never mid-turn.</summary>
@@ -1204,7 +1213,7 @@ public partial class Unit : Node3D
     /// <summary>Instance convenience over MitigateCore against LIVE stats, wards included.</summary>
     public (int shieldLoss, int armorLoss, int hpLoss, bool immortalSave) ComputeMitigation(int amount)
         => MitigateCore(amount, Stats.Shield, Stats.Armor, Stats.Health,
-            HasStatus("shrouded"), HasStatus("immortal"), ChitinAmount, WardFloor);
+            HasStatus("shrouded"), HasStatus("immortal") || HeldBySentence, ChitinAmount, WardFloor);
 
     /// <summary>U3c: <paramref name="source"/> is the unit that dealt this damage,
     /// when one is known. Optional, so all pre-U3c callers are unaffected; the enemy
@@ -1354,7 +1363,12 @@ public partial class Unit : Node3D
             RegisterManager.Fire("enemy.chitin");   // C4: the blow arrived, less of it than was sent
 
         if (immortalSave)
-            GD.Print($"{Name} is Immortal and survives at 1 HP.");
+        {
+            GD.Print(HeldBySentence ? $"{Name} is held by the sentence and survives at 1 HP."
+                                    : $"{Name} is Immortal and survives at 1 HP.");
+            if (HeldBySentence)
+                SentenceHeld?.Invoke(this);
+        }
         if (WardsStanding > 0)
         {
             int unwarded = MitigateCore(amount, Stats.Shield, Stats.Armor, Stats.Health,
@@ -1429,7 +1443,21 @@ public partial class Unit : Node3D
     /// </summary>
     public void KillFromEffect()
     {
-        if (IsDeathQueued || !Stats.IsAlive)
+        if (IsDeathQueued)
+            return;
+        // The Sundering's hold: not even a death that is not damage (an overdraft, a maximum
+        // drained to nothing) comes before the sentence ends. Checked before the alive test,
+        // because those callers lower health first and call here at 0.
+        if (HeldBySentence)
+        {
+            Stats.MaxHealth = Math.Max(1, Stats.MaxHealth);
+            Stats.Health = 1;
+            RefreshHealthBar();
+            GD.Print($"{Name} is held by the sentence and survives at 1 HP.");
+            SentenceHeld?.Invoke(this);
+            return;
+        }
+        if (!Stats.IsAlive)
             return;
         Stats.Health = 0;
         OnDied?.Invoke(this);

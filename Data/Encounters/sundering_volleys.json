@@ -1,0 +1,137 @@
+[
+  {
+    "id": "sundering",
+    "bannerLabel": "Survive the sentence",
+    "bannerTooltip": "The Provost is speaking the sentence that names you, one clause a round. Survive until she reaches its last word. Until then, lethal damage leaves you at 1 health.",
+    "traitorLine": "{traitor_short} has one palm on the sphere and the other hand drawn back toward the lectern. It lands when the sentence does.",
+    "openingLog": "The wards break from inside. The Keepers do not wait for you to turn around.",
+    "openingStrike": {
+      "damage": 6,
+      "style": "temporal",
+      "log": "Their first spell takes you between the shoulders."
+    },
+    "holdLog": "The sentence holds you.",
+    "volleys": [
+      {
+        "id": "aurel",
+        "name": "The Corrected Text",
+        "rule": "worst_intent",
+        "damage": 6,
+        "negate": true,
+        "style": "arcane",
+        "archetype": "bolt",
+        "log": "{caster}: The Corrected Text. {target} takes {damage}, and its next action is struck from the minutes."
+      },
+      {
+        "id": "joren",
+        "name": "The First Argument",
+        "rule": "cluster_storm",
+        "damage": 6,
+        "radius": 1,
+        "style": "storm",
+        "archetype": "burst",
+        "log": "{caster}: The First Argument. Storm breaks over {count} of them for {damage} each."
+      },
+      {
+        "id": "namer",
+        "name": "Terms",
+        "rule": "name_nearest",
+        "damage": 6,
+        "count": 2,
+        "turns": 2,
+        "style": "glyph",
+        "archetype": "arc",
+        "log": "{caster}: Terms. Named for two turns, {damage} if they move: {targets}."
+      },
+      {
+        "id": "conductor",
+        "name": "Last Orders",
+        "rule": "raise_fallen",
+        "damage": 4,
+        "health": 10,
+        "speed": 2,
+        "style": "spirit",
+        "archetype": "arc",
+        "log": "{caster}: Last Orders. A fallen Keeper rises where it fell, on your side.",
+        "strikeLog": "Her spirits strike: {count} blow(s).",
+        "fallbackLog": "{caster}: Last Orders. {target} takes {damage}."
+      },
+      {
+        "id": "engineer",
+        "name": "Write That Down",
+        "rule": "turret_then_bolt",
+        "damage": 6,
+        "style": "gold",
+        "archetype": "arc",
+        "log": "{caster}: Write That Down. A turret off the apparatus lands beside you.",
+        "repeatLog": "{caster}: Write That Down. {target} takes {damage}."
+      },
+      {
+        "id": "examiner",
+        "name": "The Examiner's mark",
+        "rule": "unerring_nearest",
+        "damage": 8,
+        "style": "light",
+        "archetype": "bolt",
+        "log": "The Examiner's mark: {target} takes {damage}."
+      },
+      {
+        "id": "class",
+        "name": "What they sat this morning",
+        "rule": "random_bolts",
+        "damage": 3,
+        "count": 4,
+        "style": "arcane",
+        "archetype": "arc",
+        "log": "The class, from the tiers: {count} bolts of {damage}."
+      }
+    ],
+    "spendOrder": [
+      "class",
+      "engineer",
+      "joren",
+      "conductor",
+      "namer",
+      "aurel"
+    ],
+    "spendClassLog": "From the east doors the Keepers read one spell together, at the tiers. The class goes down behind the benches. Not fallen. Spent.",
+    "spendArchmageLog": "From the east doors the Keepers read one spell together, at the dais. {archmage} goes down on one knee. Not fallen. Spent.",
+    "setBeats": [
+      {
+        "boundary": 0,
+        "piece": "doors",
+        "log": ""
+      },
+      {
+        "boundary": 2,
+        "piece": "bench_south",
+        "log": ""
+      },
+      {
+        "boundary": 2,
+        "piece": "window_south_a",
+        "log": ""
+      },
+      {
+        "boundary": 3,
+        "piece": "lamp_south",
+        "log": ""
+      },
+      {
+        "boundary": 4,
+        "piece": "window_south_b",
+        "log": ""
+      },
+      {
+        "boundary": 5,
+        "piece": "west_window",
+        "log": ""
+      }
+    ],
+    "floorUnit": "astrologer_read_ahead",
+    "floorUnitMult": 0.85,
+    "floorLog": "More of them come through the doors.",
+    "climaxDrawLog": "'Step forward and be written.' The half-written line draws you off the floor and onto your mark.",
+    "climaxSpellLog": "{traitor_short}'s hand comes up, and the spell leaves it."
+  }
+]

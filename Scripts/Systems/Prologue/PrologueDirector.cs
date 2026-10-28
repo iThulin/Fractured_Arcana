@@ -153,6 +153,25 @@ public sealed class PrologueFightScript
     /// school (E3: "grand_hall", or "grand_hall_frost" for the Frost Plate). Empty for every
     /// fight that is not an examination.</summary>
     public string ExamMapRecipe = "";
+
+    // ── The Sundering (S1, docs/sundering_long_second_founding_v1.md section 2) ──
+    /// <summary>The sentence the fight runs on, one clause a round, shown on the banner
+    /// (CombatManager.Sundering.cs). Empty for every other fight.</summary>
+    public List<string> Clauses = new();
+    /// <summary>The enemies act before the first player turn: the opening is theirs.</summary>
+    public bool EnemiesOpen = false;
+    /// <summary>The fight ends when its last clause does, never on an empty board.</summary>
+    public bool EndsOnSentence = false;
+    /// <summary>The unfinished sentence holds the wizard: lethal damage leaves 1 health.</summary>
+    public bool Hold = false;
+    /// <summary>The volley set (Data/Encounters/sundering_volleys.json, SunderingScript).</summary>
+    public string Volleys = "";
+    /// <summary>The camera's framings: "sundering" (the dais, then the side view, then the climax).</summary>
+    public string HallCamera = "";
+    /// <summary>The least number of enemies standing at each player turn; the doors make it up.</summary>
+    public int FloorMinimum = 0;
+    /// <summary>The presenter's base speed for the whole fight (1 is normal).</summary>
+    public float PresenterSpeed = 1f;
 }
 
 /// <summary>Process-wide intro director. Every method is safe with no save loaded and with
@@ -502,6 +521,9 @@ public static class PrologueDirector
 
     /// <summary>The fight's script offers the opening-hand sculpt (CombatManager.Scripted.cs).</summary>
     public static bool OffersOpeningHand(string fightId) => Fight(fightId)?.Script?.OfferOpeningHand == true;
+
+    /// <summary>A fight's whole script, or null (CombatManager.Sundering.cs reads the Sundering's).</summary>
+    public static PrologueFightScript ScriptFor(string fightId) => Fight(fightId)?.Script;
 
     /// <summary>Close the prologue as a full skip: the recap's flags, and an unstated
     /// intention when none was given. The hall's last resort when its data is missing.</summary>
@@ -1198,6 +1220,41 @@ public static class PrologueDirector
             }
         }
 
+        // The Sundering (S1): its sentence, its volley set, who casts and who is spent, and the
+        // hall's pieces that break.
+        int sentences = 0;
+        foreach (var kv in _fights)
+        {
+            var sc = kv.Value?.Script;
+            if (sc?.Clauses == null || sc.Clauses.Count == 0)
+                continue;
+            sentences++;
+            if (sc.Clauses.Exists(string.IsNullOrWhiteSpace))
+                fails.Add($"fight {kv.Key}: a clause of its sentence is empty");
+            var set = SunderingScript.Get(sc.Volleys);
+            if (set == null)
+            {
+                fails.Add($"fight {kv.Key}: its volley set '{sc.Volleys}' is not in {SunderingScript.DataPath}");
+                continue;
+            }
+            foreach (var v in set.Volleys ?? new List<SunderingVolley>())
+            {
+                string who = v?.Id ?? "";
+                if (who != "class" && who != "examiner" && Array.IndexOf(CampaignGenerator.TraitorPool, who) < 0)
+                    fails.Add($"{set.Id}: volley '{who}' is neither the class, the Examiner nor one of the five");
+                else if (Array.IndexOf(SunderingScript.Rules, v.Rule ?? "") < 0)
+                    fails.Add($"{set.Id}: volley '{who}' has rule '{v.Rule}', not one the fight runs ({string.Join(", ", SunderingScript.Rules)})");
+            }
+            foreach (var id in set.SpendOrder ?? new List<string>())
+                if (id != "class" && Array.IndexOf(CampaignGenerator.TraitorPool, id ?? "") < 0)
+                    fails.Add($"{set.Id}: its spend order names '{id}', who is not on the dais");
+            foreach (var beat in set.SetBeats ?? new List<SunderingSetBeat>())
+                if (beat == null || Array.IndexOf(HallSet.Pieces, beat.Piece ?? "") < 0)
+                    fails.Add($"{set.Id}: set beat '{beat?.Piece}' is not one of the hall's pieces ({string.Join(", ", HallSet.Pieces)})");
+            if (!string.IsNullOrEmpty(set.FloorUnit) && !UnitRegistry.TryResolveId(set.FloorUnit, out _))
+                fails.Add($"{set.Id}: its floor unit '{set.FloorUnit}' does not resolve");
+        }
+
         // 2. Each practical: its panels, its school, and its folio as the fight deals it.
         int folios = 0;
         int examPages = 0;
@@ -1320,8 +1377,8 @@ public static class PrologueDirector
             GD.PushError($"[Prologue Assert] FAIL: {f}");
         if (fails.Count == 0)
             GD.Print($"[Prologue Assert] PASS: {_panels.Count} panels, {_fights.Count} fights, {folios} folios, "
-                     + $"{checklists} checklist(s), {examPages} exam page(s), {trialMinutes} trial minutes, "
-                     + "the profile file and the Register's modes.");
+                     + $"{checklists} checklist(s), {sentences} sentence(s), {examPages} exam page(s), "
+                     + $"{trialMinutes} trial minutes, the profile file and the Register's modes.");
         return fails.Count == 0;
     }
 

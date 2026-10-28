@@ -45,6 +45,10 @@ public partial class CombatPresenter : Node
     /// Spell Storm does not take ten seconds to show.</summary>
     public float SpeedScale = 1f;
 
+    /// <summary>The speed playback returns to once a backlog or a Skip is done. 1 everywhere but a
+    /// fight that asks for more (the Sundering's 2x, CombatManager.Sundering.cs).</summary>
+    public float BaseSpeed = 1f;
+
     /// <summary>Backlog length above which playback fast-forwards.</summary>
     public int BacklogFastForwardThreshold = 6;
     public float BacklogSpeed = 2.5f;
@@ -66,6 +70,9 @@ public partial class CombatPresenter : Node
     public float DeathHold = 0.35f;
 
     public bool IsPlaying => _playing;
+
+    /// <summary>Nothing playing and nothing queued.</summary>
+    public bool IsIdle => !_playing && _queue.Count == 0;
 
     /// <summary>Seconds per tile for a walked step / a forced push. Teleports snap.</summary>
     public float WalkStepDuration = 0.14f;
@@ -198,6 +205,28 @@ public partial class CombatPresenter : Node
         Current._queue.Enqueue(ev);
     }
 
+    /// <summary>A cast from a world point rather than a unit (the Sundering's faculty, who cast from
+    /// the dais and the tiers, off the board, and the Keepers' counter-volleys at them): the same
+    /// playback as a card's cast, flown from <paramref name="origin"/> to each of
+    /// <paramref name="targets"/> (feet points; the flight aims at chest height), in the palette
+    /// <paramref name="style"/> names (VfxLibrary's style tints).</summary>
+    public static void EmitVolley(Vector3 origin, IReadOnlyList<Vector3> targets, string archetype, string style)
+    {
+        if (!Live || targets == null || targets.Count == 0)
+            return;
+        var ev = new VisualEvent
+        {
+            Kind = VisualEventKind.Cast,
+            Origin = origin,
+            OriginKnown = true,
+            VfxArchetype = archetype,
+            VfxStyle = style,
+            HasUnitTargets = true,
+        };
+        ev.TargetPoints.AddRange(targets);
+        Current._queue.Enqueue(ev);
+    }
+
     /// <summary>Fast-forward everything queued (hold-to-skip hook for later UI).</summary>
     public void Skip() => SpeedScale = 6f;
 
@@ -242,7 +271,7 @@ public partial class CombatPresenter : Node
         {
             _playing = false;
             if (_queue.Count == 0)
-                SpeedScale = 1f;   // a Skip() lasts until the backlog is gone
+                SpeedScale = BaseSpeed;   // a Skip() lasts until the backlog is gone
         }
     }
 
@@ -253,7 +282,9 @@ public partial class CombatPresenter : Node
         Vector3 origin;
         bool casterValid = ev.Caster != null && GodotObject.IsInstanceValid(ev.Caster)
                            && ev.Caster.IsInsideTree();
-        if (casterValid)
+        if (ev.OriginKnown)
+            origin = ev.Origin;
+        else if (casterValid)
             origin = ev.Caster.GlobalPosition + new Vector3(0f, ChestHeight, 0f);
         else if (ev.TargetPoints.Count > 0)
             origin = ev.TargetPoints[0] + new Vector3(0f, ChestHeight + 2.5f, 0f);
@@ -262,7 +293,7 @@ public partial class CombatPresenter : Node
 
         // Caster release flash. Not awaited in full: the projectile leaves while
         // the flash is still fading, which reads as "thrown from the flash".
-        if (casterValid && archetype != null && archetype != VfxLibrary.ArchImpact)
+        if ((casterValid || ev.OriginKnown) && archetype != null && archetype != VfxLibrary.ArchImpact)
         {
             var release = VfxLibrary.MakeBurst(VfxLibrary.ArchCast, ev, 0.25f);
             _fxRoot.AddChild(release);
