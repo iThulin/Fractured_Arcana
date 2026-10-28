@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -8,7 +9,9 @@ using System.Threading.Tasks;
 // CombatManager.Sundering.cs  (partial of CombatManager)
 //
 // Purpose:        The Sundering, rebuilt (S1,
-//                 docs/sundering_long_second_founding_v1.md section 2).
+//                 docs/sundering_long_second_founding_v1.md section 2),
+//                 and how it ends: the Long Second and the walk out (S2,
+//                 section 3).
 //                 A scripted fight whose script carries a sentence runs
 //                 on it: one clause a round, shown on the objective
 //                 line, and the fight ends when the last clause does,
@@ -30,19 +33,35 @@ using System.Threading.Tasks;
 //                  - the traitor's line, from the hand at the sphere to
 //                    the lectern, all fight (CombatManager.AimLines.cs);
 //                  - three framings: the dais, the side, the climax;
-//                  - the climax: the candidate is drawn onto the mark,
-//                    the spell leaves the hand and stops an arm's length
-//                    away, and the fight is won. The cast panel follows.
+//                  - the climax: the candidate is drawn onto the mark and
+//                    the board is saved as it stands (the tableau, on the
+//                    Eternal ledger). The cast panel shows over the hall,
+//                    and its answer releases the spell, which leaves the
+//                    hand and stops an arm's length away;
+//                  - the freeze (S2): a phase of its own, Frozen. Every
+//                    unit but the candidate, the presenter, every burst
+//                    still open and the hall's set stop where they are,
+//                    and the log counts the Keepers still standing. The
+//                    Long Second and the Margin show over the frozen
+//                    hall; then the candidate steps down from the mark
+//                    and walks out, free, around the frozen Keepers. The
+//                    mouse reads one line off whatever it rests on, and
+//                    the east doors are the way out, to the city (P5).
+//                 At the freeze the Godot output gets one timing line:
+//                 how long the player's turns and each watched phase took.
 //                 Inert in every fight whose script has no sentence.
 // Layer:          Combat / runtime
-// Collaborators:  PrologueDirector (PrologueFightScript), SunderingScript
-//                 (the volley set), HallSet.Sundering.cs (the points, the
-//                 figures, the breaks), Unit (HeldBySentence,
+// Collaborators:  PrologueDirector (PrologueFightScript, the panels, the
+//                 climax's result, the way out), SunderingScript (the
+//                 volley set), HallSet.Sundering.cs (the points, the
+//                 figures, the breaks, the stillness), Unit (HeldBySentence,
 //                 SentenceHeld), CombatPresenter (EmitVolley, BaseSpeed),
-//                 CameraController (SwingToward), CombatUI
-//                 (SetObjectiveTooltip), CombatManager.cs (the hooks),
-//                 CombatManager.Objectives.cs (ArmSundering, the banner),
-//                 CombatManager.AimLines.cs (the traitor's line)
+//                 CameraController (SwingToward, AcceptInput), CombatUI
+//                 (SetObjectiveTooltip, SetTurnControlsVisible),
+//                 NarrativeEncounterPanel (the hall's panels),
+//                 LongSecondTableau (the save), CombatManager.cs (the
+//                 hooks), CombatManager.Objectives.cs (ArmSundering, the
+//                 banner), CombatManager.AimLines.cs (the traitor's line)
 // ============================================================
 
 public partial class CombatManager
@@ -80,6 +99,20 @@ public partial class CombatManager
     /// Enchanter effects (the Weave, The Price Compounds, The Seventh Name) reads it as yours.</summary>
     private const int SunderingFacultyTeam = -1;
 
+    // ── The freeze and the way out (S2) ──────────────────────────────────
+    /// <summary>Seconds of stillness between the freeze and the voice.</summary>
+    private const float SunderingFreezeHold = 1.6f;
+    private const float SunderingStepDownSeconds = 0.5f;
+    /// <summary>Seconds a step takes on the way out (the presenter walks a tile in 0.14).</summary>
+    private const float SunderingStepSeconds = 0.16f;
+    private const float SunderingWalkZoom = 13f;
+    /// <summary>Seconds on the doors' tiles before the hall lets you go.</summary>
+    private const float SunderingExitPause = 0.3f;
+    /// <summary>The hall's panels draw over the HUD (90) and under the pause menu (100).</summary>
+    private const int SunderingPanelLayer = 95;
+    private const string SunderingFrozenPhase = "The Long Second";
+    private const string SunderingWalkPhase = "The Way Out";
+
     private const string SunderingClassId = "class";
     private const string SunderingExaminerId = "examiner";
     private const string SunderingProvostId = "wenna";
@@ -97,6 +130,14 @@ public partial class CombatManager
     private static readonly string[] SunderingGlobals =
     {
         "wizard_name", "guild_name", "traitor_full", "traitor_short",
+    };
+
+    /// <summary>{count} in the freeze's line, as a word.</summary>
+    private static readonly string[] SunderingCounts =
+    {
+        "none", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+        "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen",
+        "nineteen", "twenty",
     };
 
     // ── State (one fight; ArmSundering clears it) ────────────────────────
@@ -118,6 +159,29 @@ public partial class CombatManager
     /// <summary>Where Keepers fell since Last Orders last read it, oldest first.</summary>
     private readonly List<Vector2I> _sunderingFallen = new();
     private readonly Random _sunderingRng = new();
+
+    // ── State of the climax, the freeze and the way out (S2) ─────────────
+    /// <summary>Who the counter-volleys spent, in the order they went down (the tableau keeps it).</summary>
+    private readonly List<string> _sunderingSpentOrder = new();
+    private bool _sunderingReleased;
+    private bool _sunderingLeaving;
+    private CanvasLayer _hallPanelLayer;
+    private NarrativeEncounterPanel _hallPanel;
+    private bool _walkOn;
+    private bool _walking;
+    /// <summary>The doors are walled off by frozen Keepers: the way out is as far east as you can get.</summary>
+    private bool _walkWalled;
+    private Vector2I _walkAt;
+    private readonly HashSet<Vector2I> _walkReach = new();
+    private readonly HashSet<Vector2I> _walkExits = new();
+    private Vector2I? _walkHover;
+    private Unit _walkHoverUnit;
+    private string _walkHint = "";
+    // The timing line: real milliseconds by phase, from the opening to the freeze.
+    private readonly Dictionary<string, ulong> _sunderingPhaseMs = new();
+    private string _sunderingPhaseNow = "";
+    private ulong _sunderingPhaseSince;
+    private int _sunderingVolleyPhases;
 
     // ── Predicates (the hooks in CombatManager.cs read these) ────────────
     /// <summary>This fight runs on a sentence (the Sundering).</summary>
@@ -166,6 +230,21 @@ public partial class CombatManager
         _sunderingSpent.Clear();
         _sunderingWatched.Clear();
         _sunderingFallen.Clear();
+        _sunderingSpentOrder.Clear();
+        _sunderingReleased = false;
+        _sunderingLeaving = false;
+        _walkOn = false;
+        _walking = false;
+        _walkWalled = false;
+        _walkReach.Clear();
+        _walkExits.Clear();
+        _walkHover = null;
+        _walkHoverUnit = null;
+        _walkHint = "";
+        _sunderingPhaseMs.Clear();
+        _sunderingPhaseNow = "";
+        _sunderingPhaseSince = 0;
+        _sunderingVolleyPhases = 0;
         if (!ScriptedFight)
             return;
         var script = PrologueDirector.ScriptFor(EncounterRouter.Instance?.ScriptedFightId);
@@ -352,6 +431,7 @@ public partial class CombatManager
             StartPlayerTurn();
             return;
         }
+        SunderingMark("opening");
         currentPhase = CombatPhase.EnemyTurn;
         enemyPhaseRunning = true;
         _zoneRenderer?.Clear();
@@ -420,6 +500,7 @@ public partial class CombatManager
     {
         if (!SunderingArmed || _sunderingClimaxStarted)
             return;
+        SunderingMark("turns");
         HoldTheCandidate();
         TopUpSunderingFloor();
         WatchSunderingKeepers();
@@ -492,6 +573,8 @@ public partial class CombatManager
             return;
         if (currentPhase == CombatPhase.Victory || currentPhase == CombatPhase.Defeat)
             return;
+        _sunderingVolleyPhases++;
+        SunderingMark("faculty");
         currentPhase = CombatPhase.EnemyTurn;
         combatUI?.SetPhaseText($"Round {roundNumber} - The Faculty");
         combatUI?.SetHintText("The dais and the tiers answer.");
@@ -516,6 +599,7 @@ public partial class CombatManager
         RefreshEnemyRoster();
         RefreshThreatTiles();
         RefreshAllUI();
+        SunderingMark("keepers");   // the Keepers' phase follows at once
     }
 
     /// <summary>True for a figure that still casts: the class, the Examiner or one of the five,
@@ -842,6 +926,7 @@ public partial class CombatManager
     {
         if (!SunderingArmed || _sunderingClimaxStarted)
             return;
+        SunderingMark("boundaries");   // the beat and the wave behind it
         int boundary = roundNumber;   // the round about to begin
         FrameSunderingSide();
 
@@ -870,6 +955,7 @@ public partial class CombatManager
             if (string.IsNullOrEmpty(id) || id == SunderingExaminerId || !SunderingCasts(id))
                 continue;
             _sunderingSpent.Add(id);
+            _sunderingSpentOrder.Add(id);
             var targets = new List<Vector3>();
             if (id == SunderingClassId)
             {
@@ -929,26 +1015,36 @@ public partial class CombatManager
     //  The climax
     // ════════════════════════════════════════════════════════════════════════
 
-    /// <summary>StartEnemyTurn's hook in place of the sixth round: "Step forward and be written."
-    /// The candidate is drawn onto the mark, the spell leaves the traitor's hand down its line and
-    /// stops an arm's length from the candidate's chest, and the fight is won (D43). The cast panel
-    /// follows through the router, as before.</summary>
+    /// <summary>StartEnemyTurn's hook in place of the sixth round, after the last clause's enemy
+    /// phase: "Step forward and be written." The board is saved as it stands (nothing on it moves
+    /// again), the candidate is drawn onto the mark, and the cast panel shows over the hall (S2).
+    /// Its answer releases the spell (ReleaseTheSpell). The fight is never won: it freezes.</summary>
     private async void RunSunderingClimax()
     {
         if (_sunderingClimaxStarted)
             return;
         _sunderingClimaxStarted = true;
+        SunderingMark("climax");
         GD.Print("[Sundering] The last clause is spoken. The climax.");
         combatUI?.SetPhaseText(SunderingLastClause);
         combatUI?.SetHintText("");
+        SunderingHideTurnControls();
         FrameSunderingClimax();
         await SunderingAwaitPresenter();
+        await DrainTriggerStackAsync();
+        if (!IsInstanceValid(this))
+            return;
+
+        // The tableau, saved now (S2, section 4): no one on the board acts again, and a quit from
+        // here on resumes at the cast panel with it already on the ledger.
+        CaptureSunderingTableau();
+        PrologueDirector.NoteSunderingClimax(SaveManager.ActiveSave);
 
         var hall = SunderingHall;
         var candidate = SunderingCandidate;
         bool present = candidate != null && IsInstanceValid(candidate) && candidate.IsInsideTree();
 
-        // 1. The hold's last act draws the candidate off the floor and onto the mark.
+        // The hold's last act draws the candidate off the floor and onto the mark.
         SunderingLog(_sunderingSet?.ClimaxDrawLog);
         if (hall != null && present)
         {
@@ -965,9 +1061,31 @@ public partial class CombatManager
             await ToSignal(draw, Tween.SignalName.Finished);
         }
         await SunderingPause(0.5f);
+        if (!IsInstanceValid(this))
+            return;
 
-        // 2. The traitor's hand comes up, and the spell leaves it, down the line it was drawn on.
+        // The last clause, in the hall: its answer is the spell.
+        SunderingMark("reading");
+        ShowHallPanel(PrologueDirector.SunderingCastPanelId, _ => ReleaseTheSpell());
+    }
+
+    /// <summary>The cast panel is answered: the traitor's hand comes up, and the spell leaves it,
+    /// down the line it was drawn on all fight. As it flies the sphere breaks and the folio slips;
+    /// an arm's length from the candidate's chest the spell stops, and the hall freezes with it. A
+    /// beat of stillness, then the Long Second, then the Margin, then the way out.</summary>
+    private async void ReleaseTheSpell()
+    {
+        if (_sunderingReleased || !IsInstanceValid(this))
+            return;
+        _sunderingReleased = true;
+        SunderingMark("climax");
+        var hall = SunderingHall;
+        var candidate = SunderingCandidate;
+        bool present = candidate != null && IsInstanceValid(candidate) && candidate.IsInsideTree();
+
         SunderingLog(_sunderingSet?.ClimaxSpellLog);
+        hall?.CatchSphere(SunderingSpellSeconds);
+        hall?.DropFolio(SunderingSpellSeconds);
         if (SunderingTraitorAim(out var hand, out var lectern))
         {
             Vector3 chest = (present ? candidate.GlobalPosition : hall.MarkPoint) + new Vector3(0f, SunderingChest, 0f);
@@ -977,7 +1095,14 @@ public partial class CombatManager
             float along = Mathf.Clamp((chest - hand).Dot(dir) - SunderingArmLength, 0f, length);
             var spell = MakeSunderingSpell();
             spell.GlobalPosition = hand;
-            var flash = new BurstVfx { Tint = UITheme.TextPrimary, Radius = 0.5f, GroundRing = false };
+            // The flash at the hand is slow to open, so the freeze catches it half open.
+            var flash = new BurstVfx
+            {
+                Tint = UITheme.TextPrimary,
+                Radius = 0.5f,
+                GroundRing = false,
+                FlashDuration = SunderingSpellSeconds * 2f,
+            };
             AddChild(flash);
             flash.GlobalPosition = hand;
             _ = flash.Play(1f);
@@ -986,14 +1111,24 @@ public partial class CombatManager
                   .SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
             await ToSignal(flight, Tween.SignalName.Finished);
         }
+        else
+        {
+            await SunderingPause(SunderingSpellSeconds);
+        }
+        if (!IsInstanceValid(this))
+            return;
 
-        // 3. An arm's length from your chest, it stops (S2 makes the stillness). The fight is won.
-        await SunderingPause(1.2f);
-        await DrainTriggerStackAsync();
-        _objectiveVictory = true;
-        CheckCombatEnd();
-        combatUI?.SetPhaseText(SunderingLastClause);
-        combatUI?.SetHintText("");
+        // It does not arrive.
+        FreezeTheHall();
+        await SunderingPause(SunderingFreezeHold);
+        if (!IsInstanceValid(this))
+            return;
+        ShowHallPanel(PrologueDirector.LongSecondPanelId,
+            first => ShowHallPanel(PrologueDirector.MarginPanelId, second =>
+            {
+                SunderingHall?.TakeRegister();
+                BeginWalkOut();
+            }));
     }
 
     /// <summary>The spell: a small white light that hangs where it stops.</summary>
@@ -1019,6 +1154,641 @@ public partial class CombatManager
         });
         AddChild(spell);
         return spell;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The freeze (S2)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>The Long Second: the phase becomes Frozen, and everything but the candidate stops
+    /// where it is. Every other unit stops processing (its tweens, animations and particles with it;
+    /// its nameplate still follows the camera), as do the presenter and every burst or projectile
+    /// still open, under this node and under the board, and the hall's set (HallSet.Still). Nothing
+    /// is selected, aimed or threatened any more. The log counts the Keepers still standing, and the
+    /// Godot output gets the fight's timing line.</summary>
+    private void FreezeTheHall()
+    {
+        if (currentPhase == CombatPhase.Frozen)
+            return;
+        currentPhase = CombatPhase.Frozen;
+        var candidate = SunderingCandidate;
+
+        // Nothing is selected, aimed or threatened any more.
+        DisarmAction(refresh: false);
+        DisarmManeuver(refresh: false);
+        foreach (var held in new[] { selectedUnit, inspectedEnemyUnit, candidate })
+        {
+            if (held == null || !IsInstanceValid(held))
+                continue;
+            held.SetSelected(false);
+            held.SetDetailedBar(false);
+        }
+        if (_hoveredUnit != null && IsInstanceValid(_hoveredUnit))
+            _hoveredUnit.SetHovered(false);
+        selectedUnit = null;
+        inspectedEnemyUnit = null;
+        _hoveredUnit = null;
+        ClearMoveTiles();
+        _zoneRenderer?.Clear();
+        foreach (var enemy in enemyUnits)
+        {
+            if (enemy == null || !IsInstanceValid(enemy))
+                continue;
+            enemy.CurrentIntent = null;
+            enemy.ClearIntentDisplay();
+        }
+        RefreshThreatTiles();
+        RefreshCoverMarkers();
+
+        // Everyone else stops mid-step. Their plates keep following the camera.
+        int stopped = 0;
+        foreach (Node node in GetTree().GetNodesInGroup("units"))
+        {
+            if (node is not Unit unit || unit == candidate || !IsInstanceValid(unit))
+                continue;
+            unit.ProcessMode = ProcessModeEnum.Disabled;
+            var plate = unit.GetNodeOrNull<HealthBarRoot>("HealthBarRoot");
+            if (plate != null)
+                plate.ProcessMode = ProcessModeEnum.Pausable;
+            stopped++;
+        }
+        var presenter = CombatPresenter.Current;
+        if (presenter != null && IsInstanceValid(presenter))
+            presenter.ProcessMode = ProcessModeEnum.Disabled;
+        SunderingStillUnder(this);
+        if (grid != null && IsInstanceValid(grid))
+            SunderingStillUnder(grid);
+        SunderingHall?.Still();
+
+        SunderingHideTurnControls();
+        combatUI?.SetPhaseText(SunderingFrozenPhase);
+        combatUI?.SetHintText("");
+        CombatTelemetry.EndFight(true, roundNumber);
+
+        int standing = SunderingKeepers().Count;
+        string count = standing == 0 ? _sunderingSet?.FreezeLogNone
+            : standing == 1 ? _sunderingSet?.FreezeLogOne
+            : _sunderingSet?.FreezeLog;
+        SunderingLog(count, ("count", SunderingCountWord(standing)));
+        GD.Print($"[Sundering] The Long Second: {stopped} unit(s) stopped where they stood, {standing} of them Keepers.");
+        SunderingMark("");
+        PrintSunderingTiming();
+    }
+
+    /// <summary>Stops every burst, projectile, particle system, animation player and tile overlay
+    /// under <paramref name="root"/>, so whatever was open stays open. Units are left alone (they
+    /// are stopped one by one, and the candidate keeps moving), and nothing else is touched: the
+    /// board's tiles keep their colliders for the mouse, and the set keeps its cutaway.</summary>
+    private static void SunderingStillUnder(Node root)
+    {
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is Unit)
+                continue;
+            if (child is BurstVfx || child is ProjectileVfx || child is GpuParticles3D || child is CpuParticles3D
+                || child is AnimationMixer || child is ImbuementOverlay)
+            {
+                child.ProcessMode = ProcessModeEnum.Disabled;
+                continue;
+            }
+            SunderingStillUnder(child);
+        }
+    }
+
+    /// <summary>The fight is over for the hand and the turn controls: from the last clause on there
+    /// are no cards to play and no turns to end.</summary>
+    private void SunderingHideTurnControls()
+    {
+        var deck = GetNodeOrNull<CanvasLayer>("../DeckUI");
+        if (deck != null)
+            deck.Visible = false;
+        combatUI?.SetTurnControlsVisible(false);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The hall's panels (S2): the cast, the Long Second and the Margin
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Shows a prologue panel over the hall, as the hall screen would (its tokens, its
+    /// gating, the Register's mode for it), with the camera held still, and on its answer applies
+    /// the choice, saves, and hands the choice on. A missing panel closes the prologue as a full
+    /// skip and leaves the hall, as the hall screen does.</summary>
+    private void ShowHallPanel(string id, Action<EncounterChoice> then)
+    {
+        var save = SaveManager.ActiveSave;
+        if (save == null)
+        {
+            then?.Invoke(null);
+            return;
+        }
+        RegisterManager.PrologueMode = PrologueDirector.RegisterModeFor(id);
+        var panel = PrologueDirector.Panel(id, save);
+        if (panel == null)
+        {
+            GD.PushError($"[Sundering] Panel {id} is missing; the prologue closes as a skip.");
+            PrologueDirector.ForceComplete(save);
+            LeaveTheHall();
+            return;
+        }
+        var camera = SunderingCamera;
+        if (camera != null)
+            camera.AcceptInput = false;
+        EnsureHallPanel();
+        _hallPanel.OnCompleted = choice =>
+        {
+            var live = SaveManager.ActiveSave;
+            if (live != null)
+            {
+                PrologueDirector.ApplyChoice(live, choice);
+                SaveManager.SaveIfDirty();
+            }
+            then?.Invoke(choice);
+        };
+        _hallPanel.ShowEncounter(panel, save.HasFlag);
+        GD.Print($"[Sundering] Over the hall: {id}.");
+    }
+
+    /// <summary>The hall's narrative panel: one, on a canvas layer of its own, made the first time.</summary>
+    private void EnsureHallPanel()
+    {
+        if (_hallPanel != null && IsInstanceValid(_hallPanel))
+            return;
+        _hallPanelLayer = new CanvasLayer { Name = "HallPanelLayer", Layer = SunderingPanelLayer };
+        AddChild(_hallPanelLayer);
+        _hallPanel = new NarrativeEncounterPanel { Name = "HallPanel", Visible = false };
+        _hallPanelLayer.AddChild(_hallPanel);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The way out (S2)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>The Margin is answered: the candidate steps down from the mark onto the nearest free
+    /// floor, and may walk anywhere the frozen Keepers leave open, free, with no action points. The
+    /// east doors' tiles are the way out (drawn in gold); when frozen Keepers wall them off, the way
+    /// out is as near the doors as the candidate can get, so the hall can never shut anyone in.</summary>
+    private async void BeginWalkOut()
+    {
+        if (!IsInstanceValid(this) || _sunderingLeaving || _walkOn || _walking)
+            return;
+        var candidate = SunderingCandidate;
+        if (candidate == null || !IsInstanceValid(candidate) || !candidate.IsInsideTree() || grid == null)
+        {
+            LeaveTheHall();
+            return;
+        }
+        var hall = SunderingHall;
+        var start = SunderingStepDownTile(candidate, hall != null ? hall.MarkPoint : candidate.GlobalPosition);
+        if (start == null)
+        {
+            LeaveTheHall();
+            return;
+        }
+        combatUI?.SetPhaseText(SunderingWalkPhase);
+        combatUI?.SetHintText("");
+        _walkAt = start.Axial;
+        _walking = true;
+
+        Vector3 to = start.TileView != null ? start.TileView.GlobalPosition : candidate.GlobalPosition;
+        var camera = SunderingCamera;
+        if (camera != null)
+        {
+            camera.AcceptInput = true;
+            camera.SwingToward(to, to + Vector3.Right, SunderingWalkZoom);   // toward the doors
+            camera.FocusOn(candidate);
+        }
+        var step = CreateTween();
+        step.TweenProperty(candidate, "global_position", to, SunderingStepDownSeconds)
+            .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+        await ToSignal(step, Tween.SignalName.Finished);
+        if (!IsInstanceValid(this))
+            return;
+        _walking = false;
+
+        SunderingFindReach(candidate);
+        _walkHint = SunderingCapital(SunderingFill(_walkWalled ? _sunderingSet?.WalkBlocked : _sunderingSet?.WalkHint));
+        combatUI?.SetHintText(_walkHint);
+        if (_walkExits.Count > 0)
+            _zoneRenderer?.ShowObjectiveZone(new HashSet<Vector2I>(_walkExits), grid);
+        _walkOn = true;
+        GD.Print($"[Sundering] The way out: {_walkReach.Count} tile(s) open, {_walkExits.Count} at the "
+                 + (_walkWalled ? "nearest the doors you can get." : "doors."));
+        if (_walkExits.Contains(_walkAt))
+        {
+            await SunderingPause(SunderingExitPause);
+            LeaveTheHall();
+        }
+    }
+
+    /// <summary>CombatManager._UnhandledInput's hook: false unless the hall is frozen. Frozen, it takes
+    /// every event (no card, turn or unit control answers), and a left click on the floor walks the
+    /// candidate there. The camera keeps its own input.</summary>
+    private bool SunderingWalkInput(InputEvent e)
+    {
+        if (currentPhase != CombatPhase.Frozen)
+            return false;
+        if (_walkOn && !_walking && !_sunderingLeaving
+            && e is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.Left && mb.Pressed)
+        {
+            var at = GetHoveredTile();
+            if (at.HasValue)
+                WalkTo(at.Value);
+        }
+        return true;
+    }
+
+    /// <summary>Walks the candidate to <paramref name="target"/> by the shortest open way, a step at
+    /// a time, the camera following; nothing on the way reacts (it is all stopped). On the doors'
+    /// tiles, the hall lets the candidate go.</summary>
+    private async void WalkTo(Vector2I target)
+    {
+        if (!_walkOn || _walking || _sunderingLeaving || grid == null)
+            return;
+        var candidate = SunderingCandidate;
+        if (candidate == null || !IsInstanceValid(candidate))
+        {
+            LeaveTheHall();
+            return;
+        }
+        var path = _walkReach.Contains(target) ? SunderingPath(_walkAt, target, candidate) : null;
+        if (path == null)
+        {
+            var tile = grid.GetTile(target);
+            if (tile != null && (tile.Occupant == null || tile.Occupant == candidate))
+                combatUI?.SetHintText(SunderingCapital(SunderingFill(_sunderingSet?.WalkBlocked)));
+            return;
+        }
+
+        _walking = true;
+        SunderingClearWalkHover();
+        _walkHover = null;
+        combatUI?.SetHintText(_walkHint);
+        var steps = new List<Vector3>();
+        foreach (var at in path)
+        {
+            var view = grid.GetTileView(at);
+            if (view != null)
+                steps.Add(view.GlobalPosition);
+        }
+        if (steps.Count > 0)
+        {
+            var walk = CreateTween();
+            foreach (var point in steps)
+                walk.TweenProperty(candidate, "global_position", point, SunderingStepSeconds);
+            SunderingCamera?.FocusOn(candidate);
+            await ToSignal(walk, Tween.SignalName.Finished);
+            if (!IsInstanceValid(this))
+                return;
+        }
+        _walkAt = target;
+        _walking = false;
+        if (_walkExits.Contains(_walkAt))
+        {
+            await SunderingPause(SunderingExitPause);
+            LeaveTheHall();
+        }
+    }
+
+    /// <summary>Out through the east doors: the round trip is closed by hand (the fight never ends
+    /// through the router, so nothing comes back to the hall screen), and the director takes the
+    /// save to the city, where the Anchorhold waits (P5).</summary>
+    private void LeaveTheHall()
+    {
+        if (_sunderingLeaving)
+            return;
+        _sunderingLeaving = true;
+        _walkOn = false;
+        SunderingClearWalkHover();
+        _zoneRenderer?.ClearObjectiveZone();
+        combatUI?.SetHintText("");
+        var router = EncounterRouter.Instance;
+        if (router != null)
+        {
+            router.HasPendingReturn = false;
+            router.ReturnSceneOverride = "";
+            router.SavedCombatFamilyKills = new Dictionary<string, int>();   // P-1: no Marginalia
+        }
+        EncounterContextCarrier.Clear();
+        PrologueDirector.ClearScriptedSession();
+        GD.Print("[Sundering] Out through the east doors.");
+        PrologueDirector.ExitToWorld(GetTree());
+    }
+
+    /// <summary>_Process's hook while frozen: the tile under the mouse, read once each time it changes.
+    /// A frozen unit there takes the hover ring and its full plate.</summary>
+    private void SunderingWalkHover()
+    {
+        if (!_walkOn || _sunderingLeaving)
+            return;
+        Vector2I? at = _walking ? null : GetHoveredTile();
+        if (at == _walkHover)
+            return;
+        _walkHover = at;
+        SunderingClearWalkHover();
+        string line = at.HasValue ? SunderingHoverLine(at.Value) : "";
+        combatUI?.SetHintText(line.Length > 0 ? line : _walkHint);
+    }
+
+    /// <summary>One line for a tile of the frozen hall: whoever stands on it, else the way out, a
+    /// memorial, or what lies on the ground. Empty when there is nothing to say.</summary>
+    private string SunderingHoverLine(Vector2I at)
+    {
+        var tile = grid?.GetTile(at);
+        if (tile == null)
+            return "";
+        var set = _sunderingSet;
+        var unit = tile.Occupant;
+        if (unit != null && IsInstanceValid(unit) && unit != SunderingCandidate && unit.Stats.IsAlive)
+        {
+            _walkHoverUnit = unit;
+            unit.SetHovered(true);
+            unit.SetDetailedBar(true);
+            return unit.TeamId != 0
+                ? SunderingCapital(SunderingFill(set?.HoverKeeper, ("name", SunderingArticled(SunderingLabel(unit)))))
+                : SunderingCapital(SunderingFill(set?.HoverAlly, ("name", "your " + SunderingLabel(unit).ToLowerInvariant())));
+        }
+        if (_walkExits.Contains(at))
+            return SunderingCapital(SunderingFill(_walkWalled ? set?.WalkBlocked : set?.HoverDoors));
+        if (tile.Memorial != null)
+        {
+            string name = SunderingCleanName(tile.Memorial.SourceName);
+            return SunderingCapital(SunderingFill(set?.HoverMemorial,
+                ("name", tile.Memorial.WasAlly ? "your " + name.ToLowerInvariant() : SunderingArticled(name))));
+        }
+        string ground = SunderingGroundWord(tile);
+        return ground.Length > 0 ? SunderingCapital(SunderingFill(set?.HoverGround, ("element", ground))) : "";
+    }
+
+    private void SunderingClearWalkHover()
+    {
+        if (_walkHoverUnit != null && IsInstanceValid(_walkHoverUnit))
+        {
+            _walkHoverUnit.SetHovered(false);
+            _walkHoverUnit.SetDetailedBar(false);
+        }
+        _walkHoverUnit = null;
+    }
+
+    /// <summary>Floor the candidate can stand on in the frozen hall: walkable, not blocked, and no one
+    /// else standing there (the candidate's last tile is free: they were drawn off it).</summary>
+    private bool SunderingWalkable(TileData tile, Unit candidate)
+    {
+        if (tile == null || !tile.IsWalkable || tile.IsBlocked)
+            return false;
+        var occupant = tile.Occupant;
+        return occupant == null || occupant == candidate || !IsInstanceValid(occupant) || !occupant.Stats.IsAlive;
+    }
+
+    /// <summary>The free floor nearest <paramref name="point"/> (the mark), or null when there is none.</summary>
+    private TileData SunderingStepDownTile(Unit candidate, Vector3 point)
+    {
+        TileData best = null;
+        float bestDistance = float.MaxValue;
+        foreach (var kv in grid.Tiles)
+        {
+            var tile = kv.Value;
+            if (tile?.TileView == null || !SunderingWalkable(tile, candidate))
+                continue;
+            Vector3 p = tile.TileView.GlobalPosition;
+            float d = new Vector2(p.X - point.X, p.Z - point.Z).LengthSquared();
+            if (d < bestDistance)
+            {
+                bestDistance = d;
+                best = tile;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>Everywhere the candidate can walk from where they stand, and the way out: the reach's
+    /// tiles in the board's east column, at the doors, or when frozen Keepers wall that off, the
+    /// reach's tiles nearest it.</summary>
+    private void SunderingFindReach(Unit candidate)
+    {
+        _walkReach.Clear();
+        _walkExits.Clear();
+        var queue = new Queue<Vector2I>();
+        _walkReach.Add(_walkAt);
+        queue.Enqueue(_walkAt);
+        while (queue.Count > 0)
+        {
+            var at = queue.Dequeue();
+            foreach (var next in grid.GetNeighbors(at))
+            {
+                if (_walkReach.Contains(next) || !SunderingWalkable(grid.GetTile(next), candidate))
+                    continue;
+                _walkReach.Add(next);
+                queue.Enqueue(next);
+            }
+        }
+        int east = grid.Tiles.Count > 0 ? grid.Tiles.Keys.Max(k => k.X) : _walkAt.X;
+        foreach (var at in _walkReach)
+            if (at.X == east)
+                _walkExits.Add(at);
+        _walkWalled = _walkExits.Count == 0;
+        if (!_walkWalled)
+            return;
+        int nearest = _walkReach.Max(k => k.X);
+        foreach (var at in _walkReach)
+            if (at.X == nearest)
+                _walkExits.Add(at);
+    }
+
+    /// <summary>The shortest open way from <paramref name="from"/> to <paramref name="to"/>, without
+    /// the first tile; empty when they are the same; null when there is none.</summary>
+    private List<Vector2I> SunderingPath(Vector2I from, Vector2I to, Unit candidate)
+    {
+        var path = new List<Vector2I>();
+        if (from == to)
+            return path;
+        var cameFrom = new Dictionary<Vector2I, Vector2I> { [from] = from };
+        var queue = new Queue<Vector2I>();
+        queue.Enqueue(from);
+        while (queue.Count > 0 && !cameFrom.ContainsKey(to))
+        {
+            var at = queue.Dequeue();
+            foreach (var next in grid.GetNeighbors(at))
+            {
+                if (cameFrom.ContainsKey(next) || !SunderingWalkable(grid.GetTile(next), candidate))
+                    continue;
+                cameFrom[next] = at;
+                queue.Enqueue(next);
+            }
+        }
+        if (!cameFrom.ContainsKey(to))
+            return null;
+        for (var at = to; at != from; at = cameFrom[at])
+            path.Add(at);
+        path.Reverse();
+        return path;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The tableau (S2, section 4)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Saves the board as the Long Second will hold it, on the Eternal ledger: every unit but
+    /// the candidate (where it stands, which way it was turned, its health, statuses and Names), the
+    /// floor (elements, reactions, growth, memorials, glyphs), the traitor and who the Keepers spent,
+    /// in order. Called at the climax, after the last clause's enemy phase: nothing on the board acts
+    /// after it.</summary>
+    private void CaptureSunderingTableau()
+    {
+        var save = SaveManager.ActiveSave;
+        if (!SunderingArmed || save?.Ledger == null || grid == null)
+            return;
+        var candidate = SunderingCandidate;
+        var hall = SunderingHall;
+        Vector3 mark = hall != null ? hall.MarkPoint
+            : candidate != null && IsInstanceValid(candidate) ? candidate.GlobalPosition
+            : (grid.GridBoundsMin + grid.GridBoundsMax) * 0.5f;
+        var keepers = SunderingKeepers();
+        var t = new LongSecondTableau
+        {
+            Captured = true,
+            MapRecipe = grid.MapRecipeId ?? "",
+            Clause = Math.Clamp(roundNumber, 1, Math.Max(1, _sunderingScript.Clauses.Count)),
+            TraitorId = SunderingHasTraitor ? _sunderingTraitor : "",
+            SpentFaculty = new List<string>(_sunderingSpentOrder),
+        };
+
+        foreach (Node node in GetTree().GetNodesInGroup("units"))
+        {
+            if (node is not Unit unit || unit == candidate || !IsValidActor(unit) || unit.IsDeathQueued
+                || unit.IsStructure || unit.IsMapObject || unit.IsObjectiveWard)
+                continue;
+            bool keeper = unit.TeamId != 0;
+            Vector3 at = unit.GlobalPosition;
+            Vector3 look = keeper ? SunderingPlanPoint(unit) ?? mark : SunderingNearestKeeperPoint(keepers, at);
+            Vector3 facing = look - at;
+            facing.Y = 0f;
+            t.Figures.Add(new TableauFigure
+            {
+                UnitId = !string.IsNullOrEmpty(unit.DefinitionId) ? unit.DefinitionId
+                    : unit.IsSpirit ? "spirit"
+                    : SunderingCleanId(unit.Name.ToString()),
+                Team = unit.TeamId,
+                Kind = keeper ? LongSecondTableau.KindKeeper
+                    : unit.IsConstruct ? LongSecondTableau.KindConstruct
+                    : unit.IsSpirit ? LongSecondTableau.KindSpirit
+                    : LongSecondTableau.KindSummon,
+                Q = unit.CurrentTile.Axial.X,
+                R = unit.CurrentTile.Axial.Y,
+                Facing = facing.LengthSquared() > 1e-4f ? Mathf.Atan2(facing.X, facing.Z) : 0f,
+                Health = unit.Stats.Health,
+                MaxHealth = unit.Stats.MaxHealth,
+                Statuses = LongSecondTableau.StatusList(unit.Stats.StatusEffects,
+                    unit.Names.Where(n => n != null && n.TurnsRemaining > 0).Select(n => n.TurnsRemaining)),
+            });
+        }
+
+        foreach (var kv in grid.Tiles)
+        {
+            var tile = kv.Value;
+            if (tile == null)
+                continue;
+            string row = LongSecondTableau.TileRow(kv.Key,
+                tile.ElementType != TileElementType.None ? tile.ElementType.ToString() : "",
+                tile.Reaction != ElementReaction.None ? tile.Reaction.ToString() : "",
+                tile.GrowthStage,
+                tile.Memorial != null ? SunderingCleanName(tile.Memorial.SourceName) : "",
+                tile.Glyph != null && !tile.Glyph.Consumed ? SunderingGlyphName(tile.Glyph) : "");
+            if (row != null)
+                t.Tiles.Add(row);
+        }
+
+        save.Ledger.Tableau = t;
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        int keeperCount = t.Figures.Count(f => f.Kind == LongSecondTableau.KindKeeper);
+        GD.Print($"[Sundering] The tableau is on the ledger: {keeperCount} Keeper(s) and "
+                 + $"{t.Figures.Count - keeperCount} of yours, {t.Tiles.Count} marked tile(s), "
+                 + $"clause {t.Clause}, spent [{string.Join(", ", t.SpentFaculty)}].");
+    }
+
+    /// <summary>Where a Keeper's plan was aimed: its target's tile, or the tile it was going to take.
+    /// Null when it had no plan left (the Keepers have just acted).</summary>
+    private Vector3? SunderingPlanPoint(Unit keeper)
+    {
+        var intent = keeper?.CurrentIntent;
+        if (intent == null)
+            return null;
+        if (intent.TargetUnit != null && IsInstanceValid(intent.TargetUnit) && intent.TargetUnit.IsInsideTree())
+            return intent.TargetUnit.GlobalPosition;
+        var view = intent.TargetTile.HasValue ? grid.GetTileView(intent.TargetTile.Value) : null;
+        return view?.GlobalPosition;
+    }
+
+    /// <summary>The nearest Keeper to <paramref name="at"/>, or the doors' way when none stands.</summary>
+    private static Vector3 SunderingNearestKeeperPoint(List<Unit> keepers, Vector3 at)
+    {
+        Vector3 best = at + Vector3.Right;
+        float bestDistance = float.MaxValue;
+        foreach (var k in keepers)
+        {
+            float d = k.GlobalPosition.DistanceSquaredTo(at);
+            if (d < bestDistance)
+            {
+                bestDistance = d;
+                best = k.GlobalPosition;
+            }
+        }
+        return best;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The timing line (S2: how long the fight took to play, and to watch)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Closes the phase being timed and opens <paramref name="phase"/> ("" closes only).
+    /// Real time: the pause menu counts.</summary>
+    private void SunderingMark(string phase)
+    {
+        if (!SunderingArmed)
+            return;
+        ulong now = Time.GetTicksMsec();
+        if (_sunderingPhaseNow.Length > 0)
+        {
+            _sunderingPhaseMs.TryGetValue(_sunderingPhaseNow, out ulong sum);
+            _sunderingPhaseMs[_sunderingPhaseNow] = sum + (now - _sunderingPhaseSince);
+        }
+        _sunderingPhaseNow = phase ?? "";
+        _sunderingPhaseSince = now;
+    }
+
+    /// <summary>One line in the Godot output at the freeze: the player's turns against the phases
+    /// the player watches (the faculty, the Keepers, the boundaries with their waves, the opening
+    /// and the climax), and what a round takes to watch. The cast panel is reading, not counted.</summary>
+    private void PrintSunderingTiming()
+    {
+        ulong turns = SunderingMs("turns");
+        ulong faculty = SunderingMs("faculty");
+        ulong keepers = SunderingMs("keepers");
+        ulong boundaries = SunderingMs("boundaries");
+        ulong opening = SunderingMs("opening");
+        ulong climax = SunderingMs("climax");
+        ulong reading = SunderingMs("reading");
+        ulong watching = faculty + keepers + boundaries + opening + climax;
+        ulong total = watching + turns;
+        int rounds = Math.Max(1, _sunderingVolleyPhases);
+        ulong perRound = (faculty + keepers + boundaries) / (ulong)rounds;
+        int share = total > 0 ? (int)Math.Round(100.0 * watching / total) : 0;
+        GD.Print($"[Sundering] Timing: {SunderingSpan(total)} from the opening to the freeze, {share}% of it watching. "
+                 + $"Your turns {SunderingSpan(turns)}. The faculty {SunderingSpan(faculty)}, the Keepers "
+                 + $"{SunderingSpan(keepers)}, the boundaries {SunderingSpan(boundaries)}: about "
+                 + $"{SunderingSpan(perRound)} a round to watch, over {rounds} round(s). The opening "
+                 + $"{SunderingSpan(opening)}, the climax {SunderingSpan(climax)}; the cast panel's "
+                 + $"{SunderingSpan(reading)} is not counted.");
+    }
+
+    private ulong SunderingMs(string phase) => _sunderingPhaseMs.TryGetValue(phase, out ulong ms) ? ms : 0;
+
+    /// <summary>Minutes and seconds, "4:07".</summary>
+    private static string SunderingSpan(ulong ms)
+    {
+        ulong seconds = (ms + 500) / 1000;
+        return (seconds / 60).ToString(CultureInfo.InvariantCulture) + ":"
+               + (seconds % 60).ToString("00", CultureInfo.InvariantCulture);
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -1256,10 +2026,101 @@ public partial class CombatManager
         _ => "the traitor",
     };
 
+    /// <summary>The line with its first letter capitalized: a token can open it ("a Read-Ahead,
+    /// stopped mid-step", "seven of them still stand").</summary>
+    private static string SunderingCapital(string line)
+    {
+        if (string.IsNullOrEmpty(line) || !char.IsLower(line[0]))
+            return line ?? "";
+        return char.ToUpperInvariant(line[0]) + line.Substring(1);
+    }
+
+    private static string SunderingCountWord(int n) =>
+        n >= 0 && n < SunderingCounts.Length ? SunderingCounts[n] : n.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>What a unit is called on its own: its kind's label (Read-Ahead, Keeper of the Seal),
+    /// not the numbered name the board gives each one.</summary>
+    private static string SunderingLabel(Unit unit)
+    {
+        if (!string.IsNullOrEmpty(unit.DefinitionId) && UnitRegistry.TryResolveId(unit.DefinitionId, out var id))
+        {
+            string label = UnitRegistry.Get(id)?.ThreatLabel;
+            if (!string.IsNullOrEmpty(label))
+                return label;
+        }
+        return SunderingCleanName(!string.IsNullOrEmpty(unit.DisplayName) ? unit.DisplayName : unit.Name.ToString());
+    }
+
+    /// <summary>"a Read-Ahead", "an Archivist", "the Foregone Conclusion".</summary>
+    private static string SunderingArticled(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "something";
+        if (name.StartsWith("The ", StringComparison.Ordinal))
+            return "the " + name.Substring(4);
+        return ("aeiouAEIOU".IndexOf(name[0]) >= 0 ? "an " : "a ") + name;
+    }
+
+    /// <summary>A board name without its number: "Read-Ahead_2" and "Turret2" read "Read-Ahead" and
+    /// "Turret".</summary>
+    private static string SunderingCleanName(string name)
+    {
+        string s = (name ?? "").Trim();
+        int cut = s.Length;
+        while (cut > 0 && char.IsDigit(s[cut - 1]))
+            cut--;
+        if (cut == 0)
+            cut = s.Length;   // all digits: leave it be
+        s = s.Substring(0, cut).TrimEnd('_', ' ').Replace('_', ' ').Trim();
+        return s.Length > 0 ? s : "it";
+    }
+
+    /// <summary>A summon's kind as an id, for the tableau when it has no registry id: "turret".</summary>
+    private static string SunderingCleanId(string name)
+    {
+        var chars = SunderingCleanName(name).ToLowerInvariant().Replace(' ', '_')
+            .Where(c => (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_').ToArray();
+        return chars.Length > 0 ? new string(chars) : "summon";
+    }
+
+    private static string SunderingGlyphName(GlyphData glyph)
+    {
+        if (!string.IsNullOrEmpty(glyph.SourceName))
+            return glyph.SourceName;
+        return !string.IsNullOrEmpty(glyph.SourceCardId) ? glyph.SourceCardId : "glyph";
+    }
+
+    /// <summary>{element} in the ground's hover line: the reaction on a tile, else its element, else
+    /// its growth; empty for bare floor.</summary>
+    private static string SunderingGroundWord(TileData tile)
+    {
+        switch (tile.Reaction)
+        {
+            case ElementReaction.Steam: return "steam";
+            case ElementReaction.Fulgurite: return "fused stone";
+            case ElementReaction.Magma: return "magma";
+            case ElementReaction.Wildfire: return "wildfire";
+            case ElementReaction.Brittle: return "brittle frost";
+            case ElementReaction.Glacier: return "ice";
+        }
+        switch (tile.ElementType)
+        {
+            case TileElementType.Fire: return "fire";
+            case TileElementType.Water: return "water";
+            case TileElementType.Earth: return "earth";
+            case TileElementType.Air: return "wind";
+            case TileElementType.Arcane: return "arcane light";
+            case TileElementType.Frost: return "frost";
+            case TileElementType.Shadow: return "shadow";
+            case TileElementType.Lightning: return "storm";
+        }
+        return tile.GrowthStage > 0 ? "growth" : "";
+    }
+
     /// <summary>A filled line to the action log (and the console); nothing when it is empty.</summary>
     private void SunderingLog(string template, params (string key, string value)[] args)
     {
-        string line = SunderingFill(template, args);
+        string line = SunderingCapital(SunderingFill(template, args));
         if (line.Length == 0)
             return;
         GD.Print($"[Sundering] {line}");

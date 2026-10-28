@@ -11,9 +11,12 @@ using System.Text.Json;
 //                 what the faculty and the class cast from the dais and
 //                 the tiers each round, the order in which the Keepers
 //                 spend them, the hall's breaks, the opening strike, the
-//                 floor minimum's arrivals and the climax's lines. Read
-//                 from Data/Encounters/sundering_volleys.json and named
-//                 by a prologue fight's script ("volleys"). Data only:
+//                 floor minimum's arrivals and the climax's lines; and
+//                 (S2) the lines of the Long Second and the way out:
+//                 the freeze's count, the walk's hint and what the mouse
+//                 reads in the frozen hall. Read from
+//                 Data/Encounters/sundering_volleys.json and named by a
+//                 prologue fight's script ("volleys"). Data only:
 //                 CombatManager.Sundering.cs runs it.
 // Layer:          System (static, data)
 // Collaborators:  PrologueDirector.cs (PrologueFightScript.Volleys, the
@@ -54,6 +57,26 @@ public sealed class SunderingVolleySet
     /// <summary>The climax: the candidate drawn onto the mark, then the spell.</summary>
     public string ClimaxDrawLog = "";
     public string ClimaxSpellLog = "";
+
+    // ── The Long Second and the way out (S2) ──
+    /// <summary>The log line at the freeze ({count}: how many Keepers still stand, as a word).</summary>
+    public string FreezeLog = "";
+    /// <summary>The freeze's line when one Keeper still stands.</summary>
+    public string FreezeLogOne = "";
+    /// <summary>The freeze's line when none does.</summary>
+    public string FreezeLogNone = "";
+    /// <summary>The hint while you walk out of the frozen hall.</summary>
+    public string WalkHint = "";
+    /// <summary>The hint when the frozen Keepers wall off the doors: the way out is then as far
+    /// toward the doors as you can get.</summary>
+    public string WalkBlocked = "";
+    /// <summary>What the mouse reads in the frozen hall, one line each: a Keeper ({name}), a unit
+    /// of yours ({name}), the way out, the ground ({element}) and a memorial ({name}).</summary>
+    public string HoverKeeper = "";
+    public string HoverAlly = "";
+    public string HoverDoors = "";
+    public string HoverGround = "";
+    public string HoverMemorial = "";
 }
 
 /// <summary>A scripted strike from off the board (the opening's).</summary>

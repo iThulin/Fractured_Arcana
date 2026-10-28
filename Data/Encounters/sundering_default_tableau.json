@@ -1,0 +1,114 @@
+{
+  "captured": false,
+  "mapRecipe": "ceremony_hall_sundering",
+  "clause": 5,
+  "traitorId": "",
+  "spentFaculty": [],
+  "figures": [
+    {
+      "unitId": "astrologer_sealkeeper",
+      "team": 1,
+      "kind": "keeper",
+      "q": 12,
+      "r": -5,
+      "facing": -1.4681,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "astrologer_sealkeeper",
+      "team": 1,
+      "kind": "keeper",
+      "q": 12,
+      "r": -3,
+      "facing": -1.6326,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "astrologer_sealkeeper",
+      "team": 1,
+      "kind": "keeper",
+      "q": 11,
+      "r": -3,
+      "facing": -1.593,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "astrologer_foregone",
+      "team": 1,
+      "kind": "keeper",
+      "q": 10,
+      "r": -3,
+      "facing": -1.5467,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "astrologer_read_ahead",
+      "team": 1,
+      "kind": "keeper",
+      "q": 9,
+      "r": -4,
+      "facing": -1.3891,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "astrologer_read_ahead",
+      "team": 1,
+      "kind": "keeper",
+      "q": 8,
+      "r": 0,
+      "facing": -1.7702,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "astrologer_read_ahead",
+      "team": 1,
+      "kind": "keeper",
+      "q": 7,
+      "r": -2,
+      "facing": -1.4749,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "fracture_keeper",
+      "team": 1,
+      "kind": "keeper",
+      "q": 5,
+      "r": 0,
+      "facing": -1.612,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    },
+    {
+      "unitId": "fracture_keeper",
+      "team": 1,
+      "kind": "keeper",
+      "q": 4,
+      "r": 1,
+      "facing": -1.7141,
+      "health": 0,
+      "maxHealth": 0,
+      "statuses": ""
+    }
+  ],
+  "tiles": [
+    "8,-3|Lightning||0||",
+    "8,-2|Lightning||0||",
+    "9,-3|Lightning||0||",
+    "6,-1|||0|Read-Ahead|"
+  ]
+}

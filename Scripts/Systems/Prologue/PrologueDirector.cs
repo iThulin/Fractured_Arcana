@@ -16,7 +16,10 @@ using System.Text.RegularExpressions;
 //                 then the common practical, which every candidate sits
 //                 since R7e),
 //                 Commencement, the Sundering, the Long Second and the
-//                 Margin in the examination hall (PrologueScreen); the
+//                 Margin in the examination hall (PrologueScreen; since
+//                 S2 the fight plays the cast, the Long Second and the
+//                 Margin itself, in the frozen hall, and the hall shows
+//                 them only to a save that resumes past the climax); the
 //                 Anchorhold and the Door at the first quiet moment in
 //                 the home city (ChronicleScheduler.DrainIfQuiet); and
 //                 Legible on the first sortie (ExpeditionManager).
@@ -746,7 +749,11 @@ public static class PrologueDirector
         else if (fightId == SunderingFightId)
         {
             SetMeta(save, ResultSunderingFlag);
-            next = NonEmpty(script.OnAnyOutcome, SunderingCastPanelId);
+            // S2: a fight forfeited from the frozen hall has already shown the cast panel there (and
+            // perhaps the Long Second and the Margin), so the flags say where it resumes.
+            next = save.HasFlag("prologue_sundering_done")
+                ? NextStep(save)
+                : NonEmpty(script.OnAnyOutcome, SunderingCastPanelId);
         }
         else if (fightId.StartsWith(PracticalFightPrefix, StringComparison.Ordinal))
         {
@@ -780,6 +787,38 @@ public static class PrologueDirector
             router.ScriptedFightYielded = false;
         }
         RegisterManager.PrologueMode = "";
+    }
+
+    /// <summary>The Sundering's last clause is spoken (S2, CombatManager.Sundering.cs): its result,
+    /// written now and saved, so a save closed from here on resumes at the cast panel, the Long
+    /// Second or the Margin, by the flags those set, and never relaunches the fight.</summary>
+    public static void NoteSunderingClimax(GuildSaveData save)
+    {
+        if (save?.Ledger == null || HasMeta(save, ResultSunderingFlag))
+            return;
+        SetMeta(save, ResultSunderingFlag);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+    }
+
+    /// <summary>The way out of the hall, from either side of it: the Margin answered in the hall
+    /// screen or the recap read (PrologueScreen), or the walk out through the east doors of the
+    /// frozen hall (S2). Out to the city, where the Anchorhold and the Door wait for the first quiet
+    /// moment. A save that leaves without a tableau of the Long Second (the full skip) is given
+    /// the authored floor here (LongSecondTableau.EnsureDefault).</summary>
+    public static void ExitToWorld(SceneTree tree)
+    {
+        var save = SaveManager.ActiveSave;
+        RegisterManager.PrologueMode = "";
+        if (save != null)
+        {
+            LongSecondTableau.EnsureDefault(save);
+            NoteProfileCompletion(save);
+            SaveManager.Save();
+        }
+        PlayerSession.StartInCityOnOpen = true;
+        string title = save != null && save.HasFlag("prologue_complete") ? "The Gate" : "The Anchorhold";
+        SceneTransition.Go(tree, StrategicScenePath, title);
     }
 
     private static EncounterDefinition BuildEncounter(PrologueEncounterData d)
@@ -1253,7 +1292,14 @@ public static class PrologueDirector
                     fails.Add($"{set.Id}: set beat '{beat?.Piece}' is not one of the hall's pieces ({string.Join(", ", HallSet.Pieces)})");
             if (!string.IsNullOrEmpty(set.FloorUnit) && !UnitRegistry.TryResolveId(set.FloorUnit, out _))
                 fails.Add($"{set.Id}: its floor unit '{set.FloorUnit}' does not resolve");
+            if (string.IsNullOrEmpty(set.FreezeLog) || string.IsNullOrEmpty(set.WalkHint))
+                fails.Add($"{set.Id}: it has no line for the freeze or the way out (freezeLog, walkHint)");
         }
+
+        // The Long Second's tableau (S2): it goes through the real save options field by field, and
+        // the authored floor a skipped prologue is given reads, resolves and parses.
+        fails.AddRange(LongSecondTableau.RoundTripFailures());
+        fails.AddRange(LongSecondTableau.DefaultFailures());
 
         // 2. Each practical: its panels, its school, and its folio as the fight deals it.
         int folios = 0;
@@ -1378,7 +1424,7 @@ public static class PrologueDirector
         if (fails.Count == 0)
             GD.Print($"[Prologue Assert] PASS: {_panels.Count} panels, {_fights.Count} fights, {folios} folios, "
                      + $"{checklists} checklist(s), {sentences} sentence(s), {examPages} exam page(s), "
-                     + $"{trialMinutes} trial minutes, the profile file and the Register's modes.");
+                     + $"{trialMinutes} trial minutes, the profile file, the Register's modes and the Long Second's tableau.");
         return fails.Count == 0;
     }
 

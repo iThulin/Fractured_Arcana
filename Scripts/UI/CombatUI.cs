@@ -699,6 +699,18 @@ public partial class CombatUI : CanvasLayer
 			: Control.MouseFilterEnum.Ignore;
 	}
 
+	/// <summary>Shows or hides the turn controls in the bottom-right corner (End Turn, the
+	/// satchel and the stops): hidden while there are no turns, from the Sundering's last clause
+	/// through its frozen hall (S2, CombatManager.Sundering.cs).</summary>
+	public void SetTurnControlsVisible(bool visible)
+	{
+		var block = GetNodeOrNull<Control>("BottomRight");
+		if (block != null)
+			block.Visible = visible;
+		if (_endTurnButton != null)
+			_endTurnButton.Visible = visible;
+	}
+
 	public void SetHintText(string text)
 	{
 		_lastHintText = text;

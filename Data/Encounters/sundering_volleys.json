@@ -132,6 +132,16 @@
     "floorUnitMult": 0.85,
     "floorLog": "More of them come through the doors.",
     "climaxDrawLog": "'Step forward and be written.' The half-written line draws you off the floor and onto your mark.",
-    "climaxSpellLog": "{traitor_short}'s hand comes up, and the spell leaves it."
+    "climaxSpellLog": "{traitor_short}'s hand comes up, and the spell leaves it.",
+    "freezeLog": "{count} of them still stand, every one stopped mid-step.",
+    "freezeLogOne": "One of them still stands, stopped mid-step.",
+    "freezeLogNone": "Not one of them is left standing.",
+    "walkHint": "You can move. Nothing else can. Walk out through the east doors.",
+    "walkBlocked": "They stand between you and the doors, and they will not move. Get as near the doors as you can.",
+    "hoverKeeper": "{name}, stopped mid-step.",
+    "hoverAlly": "{name}, stopped where you left it.",
+    "hoverDoors": "The east doors, and the way out.",
+    "hoverGround": "The {element} here stopped where it was.",
+    "hoverMemorial": "Where {name} fell."
   }
 ]

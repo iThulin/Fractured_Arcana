@@ -149,7 +149,9 @@ public partial class CombatManager : Node3D
     private const float DragThresholdPixels = 8f; // must move this far to count as drag
 
     // ── Phase ───────────────────────────────────────────────────────────────
-    public enum CombatPhase { Deployment, PlayerTurn, EnemyTurn, Victory, Defeat }
+    /// <summary>Frozen: the Sundering's Long Second (S2, CombatManager.Sundering.cs). No turns,
+    /// no AI, no input but the candidate's walk out; the fight is over without being won or lost.</summary>
+    public enum CombatPhase { Deployment, PlayerTurn, EnemyTurn, Victory, Defeat, Frozen }
     private CombatPhase currentPhase = CombatPhase.Deployment;
     private int roundNumber = 1;
 
@@ -405,6 +407,13 @@ public partial class CombatManager : Node3D
 
         if (currentPhase == CombatPhase.EnemyTurn)
             return;
+
+        // S2: in the frozen hall the mouse only reads what it rests on (CombatManager.Sundering.cs).
+        if (currentPhase == CombatPhase.Frozen)
+        {
+            SunderingWalkHover();
+            return;
+        }
 
         // ── Guard: viewport and world may not be ready on first frames ──
         var viewport = GetViewport();
@@ -948,6 +957,10 @@ public partial class CombatManager : Node3D
             HandleDeploymentInput(e);
             return;
         }
+
+        // S2: the frozen hall takes only the walk out (CombatManager.Sundering.cs).
+        if (SunderingWalkInput(e))
+            return;
 
         if (e is InputEventMouseButton mb)
         {
@@ -4208,6 +4221,11 @@ public partial class CombatManager : Node3D
         // guard, DEFEAT/VICTORY emitted CombatCompleted repeatedly (observed:
         // 4× on one loss, re-rolling the router's gold each time).
         if (currentPhase == CombatPhase.Victory || currentPhase == CombatPhase.Defeat)
+            return true;
+
+        // S2: the Long Second has stopped the fight. It ends when the candidate walks out of the
+        // hall, never on the board (CombatManager.Sundering.cs).
+        if (currentPhase == CombatPhase.Frozen)
             return true;
 
         // U3: defer while death triggers are pending or on the stack. Killing

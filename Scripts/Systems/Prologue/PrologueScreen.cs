@@ -204,18 +204,7 @@ public partial class PrologueScreen : Control
     // ── The way out ──────────────────────────────────────────────────────
 
     /// <summary>The Margin is answered (or the recap read): out to the city, where the
-    /// Anchorhold and the Door wait for the first quiet moment.</summary>
-    private void ExitToWorld()
-    {
-        var save = SaveManager.ActiveSave;
-        RegisterManager.PrologueMode = "";
-        if (save != null)
-        {
-            PrologueDirector.NoteProfileCompletion(save);
-            SaveManager.Save();
-        }
-        PlayerSession.StartInCityOnOpen = true;
-        string title = save != null && save.HasFlag("prologue_complete") ? "The Gate" : "The Anchorhold";
-        SceneTransition.Go(GetTree(), PrologueDirector.StrategicScenePath, title);
-    }
+    /// Anchorhold and the Door wait for the first quiet moment. The director's, since the frozen
+    /// hall's walk out leaves the same way (S2).</summary>
+    private void ExitToWorld() => PrologueDirector.ExitToWorld(GetTree());
 }

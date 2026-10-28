@@ -806,8 +806,11 @@ public partial class HallSet : Node3D
         PieceBox(_hall, Paint.Wood, true, at, new Vector3(0f, 0.6f, 0f), new Vector3(0.24f, 1.0f, 0.3f), Timber);
         var slope = at * new Transform3D(new Basis(new Vector3(0f, 0f, 1f), -Mathf.DegToRad(18f)), new Vector3(0f, 1.16f, 0f));
         PieceBox(_hall, Paint.Wood, true, slope, Vector3.Zero, new Vector3(0.62f, 0.06f, 0.8f), Timber);
-        PieceBox(_hall, Paint.Wood, false, slope, new Vector3(0f, 0.045f, 0f), new Vector3(0.5f, 0.03f, 0.66f), RegisterCover);
-        PieceBox(_hall, Paint.Wood, false, slope, new Vector3(0f, 0.07f, 0f), new Vector3(0.46f, 0.03f, 0.6f), Parchment);
+        // The Register lies in a group of its own, so the candidate can take it at the Margin
+        // (S2, HallSet.Sundering.cs). It looks the same until then.
+        var book = RegisterBook();
+        PieceBox(book, Paint.Wood, false, slope, new Vector3(0f, 0.045f, 0f), new Vector3(0.5f, 0.03f, 0.66f), RegisterCover);
+        PieceBox(book, Paint.Wood, false, slope, new Vector3(0f, 0.07f, 0f), new Vector3(0.46f, 0.03f, 0.6f), Parchment);
     }
 
     /// <summary>The magisphere in its cradle of old stone at the dais's center: six lights in
@@ -886,7 +889,8 @@ public partial class HallSet : Node3D
                     _ceiling.Visible = !above;
             }
         }
-        _orbs?.RotateY(OrbSpin * (float)delta);
+        if (!_stilled)
+            _orbs?.RotateY(OrbSpin * (float)delta);   // S2: the Long Second stops the six lights
         TickHearth((float)delta);   // the Grand Hall's fire; nothing in the Ceremony Hall
     }
 

@@ -251,6 +251,13 @@ public class EternalLedger
     /// Additive save field, no version bump.</summary>
     public string CoConspiratorId = "";
 
+    /// <summary>The Sundering as the Long Second froze it (S2, LongSecondTableau.cs): the Keepers and
+    /// summons standing, the floor, the traitor and who the Keepers spent. Captured once, at the
+    /// fight's last clause, or written from the authored floor when the save leaves the hall
+    /// without it (the full skip). The hall stage shows it (S3) and the Fracture resumes from it
+    /// (S6). Null until then. Additive save field, no version bump.</summary>
+    public LongSecondTableau Tableau = null;
+
     // ── Knowledge (breadth, never power) ─────────────────────────────────
     /// <summary>
     /// Card blueprints the player has discovered, across all timelines.

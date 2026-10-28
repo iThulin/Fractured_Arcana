@@ -20,7 +20,18 @@ using System.Collections.Generic;
 //                 across the great west window, which stays hidden
 //                 until it happens. They look exactly as before until
 //                 BreakPiece is called, so every other fight in the
-//                 hall is unchanged.
+//                 hall is unchanged. When the first window breaks, its
+//                 shaft of light fills with dust.
+//
+//                 The Long Second (S2, section 3): the sphere caught
+//                 breaking (six shards a finger's width apart, light in
+//                 the seams, the six lights pulled apart), the folio
+//                 caught at knee height with its pages fanned, the
+//                 Register on the lectern in a group of its own so the
+//                 candidate can take it, and Still, which stops the
+//                 figures, the shards, the folio, the dust and any burst
+//                 still open, and the six lights' turning. The cutaway
+//                 keeps working through it.
 // Layer:          Combat / presentation
 // Collaborators:  HallSet.cs (the build and its helpers),
 //                 CombatManager.Sundering.cs (the only caller),
@@ -53,17 +64,45 @@ public partial class HallSet
     private const int BreakBenchBlock = 1;
     /// <summary>The south walk's lamps, in BuildTiers' order: the two ends, then the aisles.</summary>
     private const int BreakLampIndex = 2;
+    /// <summary>The south windows' shafts as RoundWindow lays them: this long, from the middle of
+    /// the window.</summary>
+    private const float ShaftLength = 9.5f;
+
+    // ── The Long Second (S2) ─────────────────────────────────────────────
+    /// <summary>How far each of the sphere's six shards lifts away: canon's finger's width, a
+    /// little more so the seams read at the camera's distance.</summary>
+    private const float ShardLift = 0.06f;
+    /// <summary>The six lights pull apart inside the breaking glass by this much.</summary>
+    private const float OrbSpread = 1.3f;
+    /// <summary>Half the width of the light in each of the sphere's seams.</summary>
+    private const float SeamHalfWidth = 0.014f;
+    private const float FolioWidth = 0.24f;    // a leaf, spine to fore-edge
+    private const float FolioHeight = 0.34f;   // along the spine
+    private const float LeafThick = 0.004f;
+    private const float CoverThick = 0.012f;
+    private const int FolioLeaves = 9;
+    /// <summary>The folio falls this far: from under the candidate's arm to knee height.</summary>
+    private const float FolioFall = 0.5f;
 
     // ── The robes (figure tints; the archmagi and the Provost take their school's) ──
     public static readonly Color ClassRobe = new(0.70f, 0.66f, 0.58f);      // borrowed robes, undyed
     public static readonly Color ExaminerRobe = new(0.30f, 0.27f, 0.33f);
     private static readonly Color DustTint = new(0.86f, 0.80f, 0.70f);
     private static readonly Color CrackDark = new(0.10f, 0.10f, 0.11f);
+    private static readonly Color MoteLight = new(1.0f, 0.95f, 0.82f);      // dust catching the daylight
+    private static readonly Color SeamLight = new(0.92f, 0.96f, 1.0f);      // the light in the sphere's cracks
+    private static readonly Color FolioCover = new(0.24f, 0.27f, 0.33f);
 
     private readonly Dictionary<string, Node3D> _breakables = new();
     private readonly Dictionary<string, Vector3> _breakPivots = new();
     private readonly HashSet<string> _broken = new();
     private Node3D _figures;
+
+    private bool _stilled;
+    private Node3D _shards;
+    private Node3D _folio;
+    private Node3D _registerBook;
+    private readonly List<GpuParticles3D> _shaftDust = new();
 
     /// <summary>True for the Ceremony Hall once it is built (not the Grand Hall).</summary>
     public bool IsCeremonyHall => Look != GrandHallSetId && _hall != null;
@@ -98,6 +137,9 @@ public partial class HallSet
 
     /// <summary>The traitor's other hand, drawn back toward the lectern: where the spell leaves from.</summary>
     public Vector3 TraitorHandPoint => new(_xDais + 1.9f, _daisTop + 1.45f, _cz + 1.05f);
+
+    /// <summary>Where the folio stops (S2): at knee height, beside the candidate's mark.</summary>
+    public Vector3 FolioPoint => MarkPoint + new Vector3(0.05f, 0.5f, 0.42f);
 
     /// <summary>The floor in front of chair <paramref name="index"/>, where its archmagus stands to
     /// cast (the chairs face out from the sphere).</summary>
@@ -193,8 +235,9 @@ public partial class HallSet
 
     /// <summary>Breaks a piece once: the bench block drops and tilts, a window's shutters tear away
     /// onto the walk, the lamp-stand goes over and its light rolls low, the crack appears across
-    /// the west window; and dust bursts where it happened. The doors only take the dust. False
-    /// when the piece is unknown or already broken.</summary>
+    /// the west window; and dust bursts where it happened. The first window's shaft of light fills
+    /// with dust and stays full of it. The doors only take the dust. False when the piece is unknown
+    /// or already broken.</summary>
     public bool BreakPiece(string id)
     {
         if (string.IsNullOrEmpty(id) || System.Array.IndexOf(Pieces, id) < 0 || !_broken.Add(id))
@@ -242,6 +285,8 @@ public partial class HallSet
         }
 
         Dust(PiecePoint(id), id == PieceDoors ? 2.4f : 1.4f);
+        if (id == PieceWindowA)
+            ShaftDust(id);
         GD.Print($"[Hall] {id} breaks.");
         return true;
     }
@@ -341,5 +386,310 @@ public partial class HallSet
         AddChild(burst);
         burst.GlobalPosition = at;
         _ = burst.Play(1f);
+    }
+
+    /// <summary>The broken window's shaft of light fills with dust (canon: the dust in the window
+    /// light, which the Long Second stops falling): motes drifting slowly down the shaft, in the
+    /// south wall's group so the cutaway hides them with it.</summary>
+    private void ShaftDust(string id)
+    {
+        if (!_breakPivots.TryGetValue(id, out var pivot))
+            return;
+        Node3D parent = _breakables.TryGetValue(id, out var g) && g != null && IsInstanceValid(g)
+            ? g.GetParent() as Node3D
+            : null;
+        parent ??= this;
+
+        // The shaft as RoundWindow lays it on the south wall: from the middle of the window, steeply
+        // down and into the hall (+Z).
+        float pitch = Mathf.DegToRad(ShaftPitch);
+        Vector3 along = new Vector3(0f, -Mathf.Sin(pitch), Mathf.Cos(pitch));
+        Vector3 start = new Vector3(pivot.X, pivot.Y, pivot.Z + 0.1f);
+        Vector3 center = start + along * (ShaftLength * 0.5f);
+        Vector3 across = Vector3.Right;
+        var basis = new Basis(across, along, across.Cross(along).Normalized());
+
+        var fade = new Gradient();
+        fade.Offsets = new float[] { 0f, 0.2f, 0.8f, 1f };
+        fade.Colors = new Color[]
+        {
+            new Color(MoteLight, 0f), new Color(MoteLight, 0.6f), new Color(MoteLight, 0.6f), new Color(MoteLight, 0f),
+        };
+        var motes = new GpuParticles3D
+        {
+            Name = "ShaftDust",
+            Amount = 64,
+            Lifetime = 8.0,
+            Explosiveness = 0f,
+            Randomness = 0.5f,
+            LocalCoords = false,
+            Emitting = true,
+            VisibilityAabb = new Aabb(new Vector3(-2f, -5.5f, -1.5f), new Vector3(4f, 11f, 3f)),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            ProcessMaterial = new ParticleProcessMaterial
+            {
+                EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
+                EmissionBoxExtents = new Vector3(WindowWidth * 0.4f, ShaftLength * 0.45f, 0.45f),
+                Direction = Vector3.Down,
+                Spread = 180f,
+                InitialVelocityMin = 0.02f,
+                InitialVelocityMax = 0.08f,
+                Gravity = new Vector3(0f, -0.04f, 0f),
+                ScaleMin = 0.6f,
+                ScaleMax = 1.3f,
+                ColorRamp = new GradientTexture1D { Gradient = fade },
+            },
+        };
+        var mote = new QuadMesh { Size = new Vector2(0.035f, 0.035f) };
+        mote.Material = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            BlendMode = BaseMaterial3D.BlendModeEnum.Add,
+            VertexColorUseAsAlbedo = true,
+            BillboardMode = BaseMaterial3D.BillboardModeEnum.Particles,
+        };
+        motes.DrawPass1 = mote;
+        parent.AddChild(motes);
+        motes.GlobalTransform = new Transform3D(basis, center);
+        _shaftDust.Add(motes);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The Long Second (S2)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Everything on the set stops where it is: the figures, the breaking glass, the
+    /// falling folio, the dust in the window light and any burst still open stop processing (their
+    /// tweens, animations and particles with them), and the six lights stop turning. The set itself
+    /// keeps processing, so the cutaway still answers the camera.</summary>
+    public void Still()
+    {
+        _stilled = true;
+        foreach (var node in new[] { _figures, _shards, _folio })
+            if (node != null && IsInstanceValid(node))
+                node.ProcessMode = ProcessModeEnum.Disabled;
+        foreach (var motes in _shaftDust)
+            if (motes != null && IsInstanceValid(motes))
+                motes.ProcessMode = ProcessModeEnum.Disabled;
+        foreach (Node child in GetChildren())
+            if (child is BurstVfx)
+                child.ProcessMode = ProcessModeEnum.Disabled;
+        GD.Print("[Hall] The Long Second: the hall is still.");
+    }
+
+    /// <summary>The sphere caught breaking: the glass parts along six meridians into shards that
+    /// lift a finger's width apart, light shows in the seams, and the six lights pull apart, all
+    /// over <paramref name="seconds"/> (the spell's flight) and slowing into the stop, so the freeze
+    /// catches it there. The tween belongs to the shards, which Still stops. When the sphere is a
+    /// model, only the lights pull apart (and when they are part of it too, nothing does).</summary>
+    public void CatchSphere(float seconds)
+    {
+        if (_hall == null || (_shards != null && IsInstanceValid(_shards)))
+            return;
+        var glass = _hall.GetNodeOrNull<MeshInstance3D>("Magisphere");
+        var sphere = glass?.Mesh as SphereMesh;
+        bool lights = _orbs != null && IsInstanceValid(_orbs);
+        if (sphere == null && !lights)
+            return;
+
+        _shards = new Node3D { Name = "Shards" };
+        _hall.AddChild(_shards);
+        float span = Mathf.Max(0.05f, seconds);
+        var tw = _shards.CreateTween().SetParallel(true);
+
+        if (sphere != null)
+        {
+            float r = sphere.Radius;
+            var shardGlass = (StandardMaterial3D)GlassMaterial().Duplicate();
+            shardGlass.CullMode = BaseMaterial3D.CullModeEnum.Disabled;   // a shard shows its inside face
+            var seamGlow = new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                BlendMode = BaseMaterial3D.BlendModeEnum.Add,
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                AlbedoColor = new Color(SeamLight, 0f),
+            };
+            for (int k = 0; k < 6; k++)
+            {
+                float from = Mathf.Tau * k / 6f;
+                float to = Mathf.Tau * (k + 1) / 6f;
+                float mid = (from + to) * 0.5f;
+                var shard = new MeshInstance3D
+                {
+                    Name = "Shard" + k,
+                    Mesh = LuneMesh(r, from, to),
+                    MaterialOverride = shardGlass,
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                    Position = glass.Position,
+                };
+                _shards.AddChild(shard);
+                var outward = new Vector3(Mathf.Cos(mid), 0f, Mathf.Sin(mid));
+                tw.TweenProperty(shard, "position", glass.Position + outward * ShardLift, span)
+                  .SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+                _shards.AddChild(new MeshInstance3D
+                {
+                    Name = "Seam" + k,
+                    Mesh = SeamMesh(r, from),
+                    MaterialOverride = seamGlow,
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                    Position = glass.Position,
+                });
+            }
+            tw.TweenProperty(seamGlow, "albedo_color:a", 0.85f, span);
+            glass.Visible = false;
+        }
+        if (lights)
+            tw.TweenProperty(_orbs, "scale", Vector3.One * OrbSpread, span)
+              .SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
+        GD.Print("[Hall] The sphere breaks: six shards, a finger's width apart.");
+    }
+
+    /// <summary>The folio slips from under the candidate's arm: it falls toward knee height,
+    /// turning, its pages fanning open, over <paramref name="seconds"/> and slowing into the stop,
+    /// so the freeze catches it there. The tween belongs to the folio, which Still stops.</summary>
+    public void DropFolio(float seconds)
+    {
+        if (_hall == null || (_folio != null && IsInstanceValid(_folio)))
+            return;
+        Vector3 rest = FolioPoint;
+        _folio = new Node3D
+        {
+            Name = "Folio",
+            Position = rest + new Vector3(0f, FolioFall, 0f),
+            Rotation = new Vector3(Mathf.DegToRad(4f), Mathf.DegToRad(-20f), 0f),
+        };
+        _hall.AddChild(_folio);
+        float span = Mathf.Max(0.05f, seconds);
+        var tw = _folio.CreateTween().SetParallel(true);
+        tw.TweenProperty(_folio, "position", rest, span)
+          .SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+        tw.TweenProperty(_folio, "rotation", new Vector3(Mathf.DegToRad(-14f), Mathf.DegToRad(-32f), Mathf.DegToRad(9f)), span)
+          .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
+
+        // The leaves turn about the spine (the folio's Z axis): 0 degrees lies flat to one side, 180
+        // to the other. Shut, they lie stacked; open, the covers lie nearly flat and the pages fan
+        // between them.
+        int count = FolioLeaves + 2;
+        for (int i = 0; i < count; i++)
+        {
+            bool cover = i == 0 || i == count - 1;
+            float open = i == 0 ? 6f : i == count - 1 ? 174f : Mathf.Lerp(24f, 156f, (i - 1f) / (FolioLeaves - 1f));
+            var leaf = new Node3D { Name = cover ? "Cover" : "Leaf", Rotation = new Vector3(0f, 0f, Mathf.DegToRad(i * 0.4f)) };
+            _folio.AddChild(leaf);
+            var size = new Vector3(FolioWidth, cover ? CoverThick : LeafThick, cover ? FolioHeight + 0.02f : FolioHeight);
+            Solo(leaf, Prim.Box, Paint.Wood, Scaled(new Vector3(FolioWidth * 0.5f, 0f, 0f), Basis.Identity, size),
+                 cover ? FolioCover : Parchment);
+            tw.TweenProperty(leaf, "rotation:z", Mathf.DegToRad(open), span)
+              .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+        }
+    }
+
+    /// <summary>The Margin: the candidate takes the Register from the lectern.</summary>
+    public void TakeRegister()
+    {
+        if (_registerBook != null && IsInstanceValid(_registerBook))
+            _registerBook.Visible = false;
+    }
+
+    /// <summary>The group the Register on the lectern is built in (BuildLectern), so it can be
+    /// taken. Made on first use, under the hall.</summary>
+    private Node3D RegisterBook()
+    {
+        if (_registerBook == null || !IsInstanceValid(_registerBook))
+        {
+            _registerBook = new Node3D { Name = "Register" };
+            _hall.AddChild(_registerBook);
+        }
+        return _registerBook;
+    }
+
+    /// <summary>One painted piece of its own, for the props made after the build (the folio): a
+    /// MultiMesh of one, so the painterly shader reads its color as it reads the batched pieces'.</summary>
+    private static void Solo(Node3D parent, Prim prim, Paint paint, Transform3D xf, Color color)
+    {
+        var mm = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            UseColors = true,
+            Mesh = MeshFor(prim),
+        };
+        mm.InstanceCount = 1;
+        mm.SetInstanceTransform(0, xf);
+        mm.SetInstanceColor(0, color);
+        parent.AddChild(new MultiMeshInstance3D
+        {
+            Multimesh = mm,
+            MaterialOverride = MaterialFor(paint),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+    }
+
+    /// <summary>One of the six shards: the glass between longitudes <paramref name="from"/> and
+    /// <paramref name="to"/>, pole to pole, with smooth normals.</summary>
+    private static ArrayMesh LuneMesh(float radius, float from, float to)
+    {
+        const int lonSegs = 6;
+        const int latSegs = 16;
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        for (int i = 0; i < lonSegs; i++)
+        {
+            float p0 = Mathf.Lerp(from, to, (float)i / lonSegs);
+            float p1 = Mathf.Lerp(from, to, (float)(i + 1) / lonSegs);
+            for (int j = 0; j < latSegs; j++)
+            {
+                float t0 = Mathf.Lerp(-Mathf.Pi * 0.5f, Mathf.Pi * 0.5f, (float)j / latSegs);
+                float t1 = Mathf.Lerp(-Mathf.Pi * 0.5f, Mathf.Pi * 0.5f, (float)(j + 1) / latSegs);
+                Vector3 a = SpherePoint(p0, t0), b = SpherePoint(p1, t0), c = SpherePoint(p1, t1), d = SpherePoint(p0, t1);
+                SmoothTri(st, radius, a, b, c);
+                SmoothTri(st, radius, a, c, d);
+            }
+        }
+        return st.Commit();
+    }
+
+    /// <summary>The light in one of the sphere's cracks: a thin strip just outside the glass along
+    /// the meridian at <paramref name="lon"/>, pole to pole.</summary>
+    private static ArrayMesh SeamMesh(float radius, float lon)
+    {
+        const int latSegs = 16;
+        float half = SeamHalfWidth / Mathf.Max(0.1f, radius);
+        float lifted = radius * 1.004f;
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        for (int j = 0; j < latSegs; j++)
+        {
+            float t0 = Mathf.Lerp(-Mathf.Pi * 0.5f, Mathf.Pi * 0.5f, (float)j / latSegs);
+            float t1 = Mathf.Lerp(-Mathf.Pi * 0.5f, Mathf.Pi * 0.5f, (float)(j + 1) / latSegs);
+            Vector3 a = SpherePoint(lon - half, t0), b = SpherePoint(lon + half, t0);
+            Vector3 c = SpherePoint(lon + half, t1), d = SpherePoint(lon - half, t1);
+            SmoothTri(st, lifted, a, b, c);
+            SmoothTri(st, lifted, a, c, d);
+        }
+        return st.Commit();
+    }
+
+    /// <summary>A point on the unit sphere: <paramref name="lon"/> round from +X toward +Z,
+    /// <paramref name="lat"/> up from the equator.</summary>
+    private static Vector3 SpherePoint(float lon, float lat) =>
+        new(Mathf.Cos(lat) * Mathf.Cos(lon), Mathf.Sin(lat), Mathf.Cos(lat) * Mathf.Sin(lon));
+
+    /// <summary>A triangle of unit-sphere points scaled to <paramref name="radius"/>, each corner with
+    /// its own outward normal, wound as Tri winds (Godot's front faces are clockwise seen from the
+    /// front). Degenerate triangles at the poles are skipped.</summary>
+    private static void SmoothTri(SurfaceTool st, float radius, Vector3 a, Vector3 b, Vector3 c)
+    {
+        Vector3 face = (b - a).Cross(c - a);
+        if (face.LengthSquared() < 1e-12f)
+            return;
+        if (face.Dot(a + b + c) > 0f)
+            (b, c) = (c, b);
+        foreach (var v in new[] { a, b, c })
+        {
+            st.SetNormal(v);
+            st.AddVertex(v * radius);
+        }
     }
 }
