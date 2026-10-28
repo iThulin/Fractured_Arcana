@@ -24,11 +24,14 @@ using Godot;
 //                 forfeited if the run ends without extraction). Right
 //                 cluster: Return to Campus (menu screens only) +
 //                 Council + Quests + Menu. Extend readouts in BuildBar's
-//                 left cluster, buttons in the right.
+//                 left cluster, buttons in the right. Between them (S5):
+//                 the first lunation's Next line, the step not yet done,
+//                 which goes there when clicked (FirstLunation).
 // Layer:          System (autoload)
 // Collaborators:  PauseManager.cs (Menu button -> OpenPauseMenu),
 //                 CouncilScreen.cs (Council button -> Toggle),
-//                 SaveManager.cs (resource readouts), UITheme.cs
+//                 SaveManager.cs (resource readouts), UITheme.cs,
+//                 FirstLunation.cs (the Next line)
 // See:            (none)
 // ============================================================
 
@@ -52,6 +55,9 @@ public partial class HudManager : Node
     private ResourceReadout _materials;
     private ResourceReadout _supplies;
     private Button _returnButton; // gated by ShouldShowReturnToCampus (menu screens only)
+    private Button _nextButton;   // S5: the first lunation's Next line (RefreshNextLine)
+    private double _nextRefreshIn;
+    private const double NextRefreshSeconds = 0.5;
 
     private int _lastLunation = int.MinValue;
 
@@ -136,6 +142,18 @@ public partial class HudManager : Node
         _materials = MakeResourceReadout(row, UITheme.TextPrimary);
         _supplies = MakeResourceReadout(row, UITheme.Success);
 
+        // S5: the first lunation's Next line, centred between the two clusters by a spacer on
+        // each side. Flat, in gold: a line to read and click, not another nav button.
+        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        _nextButton = new Button { Flat = true, Visible = false, FocusMode = Control.FocusModeEnum.None };
+        _nextButton.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        _nextButton.AddThemeColorOverride("font_color", UITheme.Gold);
+        _nextButton.AddThemeColorOverride("font_hover_color", UITheme.TextPrimary);
+        _nextButton.AddThemeColorOverride("font_pressed_color", UITheme.TextPrimary);
+        _nextButton.AddThemeColorOverride("font_disabled_color", UITheme.GoldDim);
+        _nextButton.Pressed += () => FirstLunation.Go(GetTree());
+        row.AddChild(_nextButton);
+
         // Spacer pushes the buttons to the right edge.
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
@@ -213,6 +231,43 @@ public partial class HudManager : Node
     public override void _Process(double delta)
     {
         RefreshReadouts(force: false);
+        _nextRefreshIn -= delta;
+        if (_nextRefreshIn <= 0)
+        {
+            _nextRefreshIn = NextRefreshSeconds;
+            RefreshNextLine();
+        }
+    }
+
+    /// <summary>The first lunation's Next line (S5): the step not yet done, with the save's own
+    /// state settled first (FirstLunation.Settle). Hidden while there is none or the bar is down,
+    /// and greyed where clicking cannot go there (a fight, an expedition, a negotiation).</summary>
+    private void RefreshNextLine()
+    {
+        if (_nextButton == null)
+        {
+            return;
+        }
+        var save = SaveManager.ActiveSave;
+        if (save == null || _layer == null || !_layer.Visible)
+        {
+            _nextButton.Visible = false;
+            return;
+        }
+        var scene = GetTree().CurrentScene;
+        FirstLunation.Settle(save, scene);
+        string text = FirstLunation.NextLine(save, scene, out string tip, out bool canGo);
+        _nextButton.Visible = text != null;
+        if (text == null)
+        {
+            return;
+        }
+        if (_nextButton.Text != text)
+        {
+            _nextButton.Text = text;
+        }
+        _nextButton.TooltipText = tip;
+        _nextButton.Disabled = !canGo;
     }
 
     /// <summary>Update the resource labels when their values change. Cheap
@@ -306,6 +361,7 @@ public partial class HudManager : Node
         {
             _returnButton.Visible = ShouldShowReturnToCampus();
         }
+        RefreshNextLine();
     }
 
     /// <summary>True on menu screens where a one-click hop to campus is safe. False in

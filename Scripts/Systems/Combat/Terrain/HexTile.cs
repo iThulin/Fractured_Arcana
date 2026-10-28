@@ -119,6 +119,9 @@ public partial class HexTile : Node3D
     private bool threatHighlighted = false;
     private bool telegraphHighlighted = false;
     private string _terrainScar = "";
+    /// <summary>The terrain scar this tile shows ("" for none; see SetTerrainScar). The Sundering's
+    /// tableau keeps it (S4a).</summary>
+    public string TerrainScar => _terrainScar;
     private float _pulsePhase = 0f;
     private bool threatRevealed = true;   // hot vs dim threat tint (see SetThreatHighlight)
 

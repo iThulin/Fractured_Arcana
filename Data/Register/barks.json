@@ -909,6 +909,166 @@
       "note": "The timeline has been unmade and a new one begins. What the guild made eternal carries over: essence, the campus, mastery, the Regalia, and every name the Register holds. The kingdoms, companions and fragments start fresh."
     },
     {
+      "key": "campus.first_ledger",
+      "category": "explain",
+      "once": true,
+      "title": "The guild's ledger",
+      "lines": [
+        "The guild's own ledger. Kept by somebody else. The Register will try not to... correct it."
+      ],
+      "note": "The Grand Hall keeps the guild's ledger: the disciplines you can declare, your first goal among them, the charters that put a building's doctrine in force, and your save slots."
+    },
+    {
+      "key": "strategic.first_forces",
+      "category": "explain",
+      "once": true,
+      "title": "Forces",
+      "lines": [
+        "A roll call. The Register approves of roll calls. They are the only lists anyone... finishes."
+      ],
+      "note": "The Forces screen shows every force the guild has: the castle's crew, each field party, the campus bench, and anyone away. Each member's stats and gear are here, and people can be moved between forces."
+    },
+    {
+      "key": "campus.first_armory",
+      "category": "explain",
+      "once": true,
+      "title": "The Armory",
+      "lines": [
+        "Equipment, issued. The Register has no hands and has never wanted a sword. It is... noted."
+      ],
+      "note": "Gear belongs to whoever carries it, not to a force: what someone wears goes with them into any party."
+    },
+    {
+      "key": "campus.first_deck",
+      "category": "explain",
+      "once": true,
+      "title": "The Sanctum",
+      "lines": [
+        "The cards you sat with, and a few more. The Academy's own. On paper you are still... an Adept."
+      ],
+      "note": "The Sanctum is where the deck your wizard fights with is built. Slotting a card costs gold. Until you declare a discipline, you fight as an Adept."
+    },
+    {
+      "key": "strategic.first_world",
+      "category": "explain",
+      "once": true,
+      "title": "The world",
+      "lines": [
+        "The world, then. The Register has it on good authority that it is... large."
+      ],
+      "note": "The world map is the guild's home screen, and your city is one zoom of it. The castle and your parties are pieces on it: pick one in FORCES to give it orders."
+    },
+    {
+      "key": "strategic.first_return",
+      "category": "explain",
+      "once": true,
+      "title": "Home again",
+      "lines": [
+        "Back, with the days added up. The Register did the adding. Nobody ever thanks the... adding."
+      ],
+      "note": "A sortie's days are charged when it ends: about half a day for each fuel the castle burned, a quarter for each ration a party ate. The force is busy until they have passed."
+    },
+    {
+      "key": "strategic.first_quests",
+      "category": "explain",
+      "once": true,
+      "title": "The quest log",
+      "lines": [
+        "Everything the guild means to do, in one book. Not this one. The Register is... relieved."
+      ],
+      "note": "The quest log keeps what the guild is working toward: your first goal, the threads that carry across readings, and this reading's own. The Hall of Lore under it keeps what has been learned."
+    },
+    {
+      "key": "campus.first_charter",
+      "category": "explain",
+      "once": true,
+      "title": "A charter",
+      "lines": [
+        "A doctrine, put in force by charter. The Register drafts charters for... recreation."
+      ],
+      "note": "A building at its third tier offers two doctrines, and only a chartered one is in force. The Grand Hall holds one charter for each of its tiers, and each reading's first charters are free. Changing a charter is a refit: it costs materials and holds from the next moon."
+    },
+    {
+      "key": "campus.first_declaration",
+      "category": "explain",
+      "once": true,
+      "title": "A discipline in reach",
+      "lines": [
+        "A teacher, a candidate and a Grand Hall. The Register has the... form ready."
+      ],
+      "note": "A discipline can be declared once someone left can teach it, your mastery in it is high enough, and the Grand Hall stands. Then you sit its practical. A declared discipline is yours in every reading after."
+    },
+    {
+      "key": "campus.first_build",
+      "category": "explain",
+      "once": true,
+      "title": "Building",
+      "lines": [
+        "New rooms for a guild of one. The Register admires the... optimism."
+      ],
+      "note": "Build raises a building on open ground for gold and materials, and its tiers rise the same way. Annex a district buys more ground when the walls get tight."
+    },
+    {
+      "key": "campus.first_landmark",
+      "category": "explain",
+      "once": true,
+      "title": "A landmark",
+      "lines": [
+        "Part of the old Academy, waiting to be... remembered properly."
+      ],
+      "note": "The Academy's landmarks are restored a step at a time, and each visit carries one along. A restored landmark can become a room of the guild."
+    },
+    {
+      "key": "strategic.first_march",
+      "category": "explain",
+      "once": true,
+      "title": "The castle marches",
+      "lines": [
+        "The Academy's walking hall, walking. The Register had taken the name for a... figure of speech."
+      ],
+      "note": "Marching the castle costs fuel by the tile. When it arrives, its crews make camp for a few days, and it is exposed until they finish."
+    },
+    {
+      "key": "strategic.first_dive",
+      "category": "explain",
+      "once": true,
+      "title": "Into the field",
+      "lines": [
+        "On foot, then. The Register approves of walking. It is... thorough."
+      ],
+      "note": "A field dive sends a party out from where it stands, with rations for a budget. Its days are charged when it comes back: about a quarter of a day for each ration eaten."
+    },
+    {
+      "key": "strategic.first_depot",
+      "category": "explain",
+      "once": true,
+      "title": "A supply depot",
+      "lines": [
+        "Stores. Somebody else's, for now. The Register notes the... distinction."
+      ],
+      "note": "A depot yields supplies every new moon to whoever holds it. Storm one to take it, and post a party there as a garrison to draw more. Supplies keep your postings in the field."
+    },
+    {
+      "key": "strategic.first_warfront",
+      "category": "explain",
+      "once": true,
+      "title": "A warfront",
+      "lines": [
+        "Two kingdoms, disagreeing at length. The Register has kept minutes of... worse."
+      ],
+      "note": "Where two kingdoms fight, the front moves every new moon until it falls or is driven back. A field party standing at the front can take a side and fight: a field dive, charged in days."
+    },
+    {
+      "key": "strategic.first_city_services",
+      "category": "explain",
+      "once": true,
+      "title": "Another city",
+      "lines": [
+        "Someone else's city, open for business. The Register will keep the... receipts."
+      ],
+      "note": "Another city's services open when you enter it: a market for items and cards, and in a city (not a waystop town) a hiring hall and a board of the city's contracts."
+    },
+    {
       "key": "combat.victory",
       "category": "comment",
       "cooldown": 900,

@@ -147,6 +147,7 @@ public sealed class CampusGuildPanel : CampusPanel
                 PlayerSession.ForceNextEncounterType = -1;
                 PlayerSession.DebugRevealStrategicMap = false;
                 PlayerSession.DebugGrantStagingArmed = false;
+                PlayerSession.DebugUnlockAllClasses = false;
             }
         };
 
@@ -298,6 +299,8 @@ public sealed class CampusGuildPanel : CampusPanel
     private Control BuildDeclarationRow(GuildSaveData save, string school)
     {
         var status = DeclarationService.Evaluate(save, school);
+        if (status.Eligible && !status.Declared)
+            RegisterManager.Fire("campus.first_declaration");   // S5: taught when first met
 
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 12);
@@ -840,6 +843,15 @@ public sealed class CampusGuildPanel : CampusPanel
             on => PlayerSession.SkipDeployment = on);
         Check(combat, "God Mode HP", PlayerSession.GodModeHP,
             on => PlayerSession.GodModeHP = on);
+
+        // ── PROLOGUE ─────────────────────────────────────────────────────
+        var prologue = Section("PROLOGUE",
+            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk First Lunation Again is for this guild, and saves at once.");
+        Check(prologue, "Unlock All Classes", PlayerSession.DebugUnlockAllClasses,
+            on => PlayerSession.DebugUnlockAllClasses = on);
+        Grant(prologue, "Walk First Lunation Again", save => FirstLunation.DebugForget(save),
+            "This guild's first-lunation steps go back to undone (S5). Steps its own state shows, such as a "
+            + "sortie, a won fight or a new moon, tick again at once. The Register's notes stay seen on this computer.");
 
         var diplomacy = Section("DIPLOMACY DEBUG",
             "Sit at any negotiation table directly: encounter, school, standing, goodwill / patience overrides, forced grievance, extra leverage, allies. Nothing is recorded. Returns to the hub.");

@@ -223,6 +223,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         if (_panel == null) return;   // strip-only host (building with no system panel)
         _panel.Build(scroll, ctx);
         _panel.Refresh();
+        FirstLunation.NotePanelShown(_panelId);   // S5: the ledger and the quest log are steps
     }
 
     /// <summary>Repaint the tier label + upgrade button from the save, at

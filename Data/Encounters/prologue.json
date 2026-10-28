@@ -500,7 +500,22 @@
     "archmageId": "",
     "choices": [
       {
-        "label": "Walk to the gate.",
+        "label": "Walk to the Grand Hall.",
+        "resultText": ""
+      }
+    ]
+  },
+  {
+    "id": "prologue_founding",
+    "title": "The Founding",
+    "body": "The Stillness has followed you as far as the doors of the Grand Hall, and no farther. Inside, the hearth is still burning.\n\nOver the door, {guild_name} cuts itself into the lintel one letter at a time, in your own hand.\n\nYou set the Register down on the lectern, where a reader stands to face the room. On the west wall, the Roll of Cycles takes its first line.\n\n'Be it recorded,' says the Register, 'that a guild was... founded. Inside the interruption. Members present: one.' A pause. 'The Register will need a new section.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Take the lectern.",
         "resultText": ""
       }
     ]

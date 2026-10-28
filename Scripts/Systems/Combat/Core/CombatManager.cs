@@ -175,6 +175,7 @@ public partial class CombatManager : Node3D
         State = new GameState();
         CombatPresenter.Ensure(this);   // spell_vfx_pipeline_v1: presentation seam
         ConduitLinkSystem.Clear();
+        ImbuementField.Clear();   // the last fight's ground marks never show on this one (S4a); the map's own stamp after this
         EtchingSystem.Clear();
         ElementReactions.Reset();
         ElementReactions.Log = line => State?.Log(line);

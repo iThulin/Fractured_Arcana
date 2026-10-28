@@ -31,6 +31,11 @@ using System.Text.RegularExpressions;
 //                 its practical's Grand Hall recipe (examMapRecipe, E3)
 //                 with its apparatus fitted to the wizard (ExamScaling, E4).
 //
+//                 Debug: a save founded with the debug panel's Unlock All
+//                 Classes on (DebugAllClassesFlag) sits its stated
+//                 intention's practical, as every save did before R7e, so
+//                 the practical and the Sundering play that school's folio.
+//
 //                 Every step resumes from the prologue's meta flags. The
 //                 panels' own flags mark most steps; the director adds
 //                 a few of its own where a step sets none: the begun
@@ -212,6 +217,8 @@ public static class PrologueDirector
     public const string LongSecondPanelId = "prologue_long_second";
     public const string MarginPanelId = "prologue_the_margin";
     public const string AnchorholdPanelId = "prologue_anchorhold";
+    /// <summary>S4: the founding, in the Grand Hall (FoundingStage), between the Anchorhold and the Door.</summary>
+    public const string FoundingPanelId = "prologue_founding";
     public const string DoorPanelId = "prologue_the_door";
     public const string LegiblePanelId = "prologue_legible";
     public const string RecapPanelId = "prologue_skip_recap";
@@ -231,6 +238,12 @@ public static class PrologueDirector
     private const string IntentionReadFlag = "prologue_intention_read";
     private const string PartOneDoneFlag = "prologue_part_one_done";
     private const string AnchorholdSeenFlag = "prologue_anchorhold_seen";
+    /// <summary>The founding's choice ("Take the lectern."): the guild is founded in the story.</summary>
+    public const string FoundingDoneFlag = "prologue_founding_done";
+    /// <summary>Debug: written at founding while the debug panel's Unlock All Classes is on
+    /// (UnlockAllClassesForDebug). The save sits its stated intention's practical in the prologue
+    /// (PracticalSchool), so the practical and the Sundering play that school's folio.</summary>
+    public const string DebugAllClassesFlag = "prologue_debug_all_classes";
     private const string ProfileNotedFlag = "prologue_profile_noted";
     private const string ResultSunderingFlag = "prologue_result_sundering";
     private const string ResultPartOnePrefix = "prologue_result_part_one_";     // clean, win, floor
@@ -345,6 +358,7 @@ public static class PrologueDirector
             case LongSecondPanelId:
             case MarginPanelId:
             case AnchorholdPanelId:
+            case FoundingPanelId:
             case DoorPanelId:
             case LegiblePanelId:
             case RecapPanelId:
@@ -357,7 +371,9 @@ public static class PrologueDirector
     /// candidate since R7e (2026-10-26). The stated intention is the first goal instead, and its
     /// school's practical is the Grand Hall's examination for it (DisciplineExam). A save that
     /// began a school's practical under the old rule (R7b as amended 2026-10-13) keeps it, so it
-    /// resumes, and later reads, as it was sat.</summary>
+    /// resumes, and later reads, as it was sat. A save founded with every class unlocked (debug,
+    /// DebugAllClassesFlag) sits its stated intention's practical, unless it has already begun the
+    /// common one; its brief's choice then writes that school's flag, so it keeps it from there.</summary>
     public static string PracticalSchool(GuildSaveData save)
     {
         if (save == null)
@@ -368,7 +384,28 @@ public static class PrologueDirector
             if (key != CommonPracticalSchool && HasMeta(save, $"prologue_practical_{key}"))
                 return key;
         }
+        if (HasMeta(save, DebugAllClassesFlag) && !HasMeta(save, $"prologue_practical_{CommonPracticalSchool}"))
+        {
+            string intended = StatedSchoolKey(save);
+            if (intended.Length > 0 && HasPractical(intended))
+                return intended;
+        }
         return CommonPracticalSchool;
+    }
+
+    /// <summary>The stated intention's school in lower case, or "" when it is unstated or was never
+    /// stated.</summary>
+    private static string StatedSchoolKey(GuildSaveData save)
+    {
+        if (HasMeta(save, "stated_intention_unstated"))
+            return "";
+        foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
+        {
+            string key = s.ToString().ToLowerInvariant();
+            if (HasMeta(save, $"stated_intention_{key}"))
+                return key;
+        }
+        return "";
     }
 
     public static string PracticalFightId(GuildSaveData save) => PracticalFightPrefix + PracticalSchool(save);
@@ -434,6 +471,8 @@ public static class PrologueDirector
             add.Add(PartOneDoneFlag);
         if (id == AnchorholdPanelId)
             add.Add(AnchorholdSeenFlag);
+        if (id == FoundingPanelId)
+            add.Add(FoundingDoneFlag);
         if (id == IntentionReadPanelId)
             add.Add(IntentionReadFlag);
         if (id == RecapPanelId && HasMeta(save, BegunFlag))
@@ -441,15 +480,29 @@ public static class PrologueDirector
         return Render(raw, save, add);
     }
 
-    /// <summary>P5 at a quiet moment in the home city (screen "campus"): the Anchorhold, then
-    /// the Door, whose choice completes the prologue. Null for any other moment or save.</summary>
+    /// <summary>P5 at a quiet moment in the home city (screen "campus"): the Anchorhold. Its choice
+    /// walks you to the Grand Hall, where the founding and then the Door play (S4, FoundingStage;
+    /// the hosts send you there while FoundingDue holds). Null for any other moment or save.</summary>
     public static NarrativeEncounterData WorldPanel(GuildSaveData save, string screen)
     {
         if (save?.Ledger == null || screen != "campus" || !HasMeta(save, BegunFlag)
             || !save.HasFlag("prologue_register_taken") || save.HasFlag("prologue_complete"))
             return null;
-        return Panel(HasMeta(save, AnchorholdSeenFlag) ? DoorPanelId : AnchorholdPanelId, save);
+        return HasMeta(save, AnchorholdSeenFlag) ? null : Panel(AnchorholdPanelId, save);
     }
+
+    /// <summary>S4: the Anchorhold has been seen and the prologue is not complete, so the founding (or,
+    /// once it is done, the Door) waits in the Grand Hall. The city and the campus send you there at
+    /// their next quiet moment, and again after a quit.</summary>
+    public static bool FoundingDue(GuildSaveData save) =>
+        save?.Ledger != null && HasMeta(save, BegunFlag) && save.HasFlag("prologue_register_taken")
+        && HasMeta(save, AnchorholdSeenFlag) && !save.HasFlag("prologue_complete");
+
+    /// <summary>The guild is founded in the story: the founding's choice is made, or the prologue is
+    /// complete (a save from before S4, or a skip). The Grand Hall's Roll keeps a line for the cycle
+    /// being spent from then on.</summary>
+    public static bool Founded(GuildSaveData save) =>
+        save?.Ledger != null && (HasMeta(save, FoundingDoneFlag) || save.HasFlag("prologue_complete"));
 
     /// <summary>P6 on the first sortie once the prologue is complete (or skipped): Legible.
     /// Its choice sets chronicle_first_sortie.</summary>
@@ -496,6 +549,19 @@ public static class PrologueDirector
         SetMeta(save, FoundingIntentionFlag);
         SaveManager.MarkDirty();
         GD.Print($"[Prologue] Stated intention at founding: {key}.");
+        return true;
+    }
+
+    /// <summary>Debug (the founding screen, while the debug panel's Unlock All Classes is on): this save
+    /// sits its stated intention's practical in the prologue (PracticalSchool). Written on the save, so
+    /// it holds after a quit whatever the debug panel says then. False when there is no save.</summary>
+    public static bool UnlockAllClassesForDebug(GuildSaveData save)
+    {
+        if (save?.Ledger == null)
+            return false;
+        SetMeta(save, DebugAllClassesFlag);
+        SaveManager.MarkDirty();
+        GD.Print($"[Prologue] Debug: every class unlocked. This save sits the {PracticalSchool(save)} practical.");
         return true;
     }
 
@@ -1168,7 +1234,7 @@ public static class PrologueDirector
                  {
                      IntentionPanelId, IntentionReadPanelId, RulesPanelId, RulesWaivedPanelId, ApparatusPanelId, CommencementPanelId,
                      SunderingOpenPanelId, SunderingCastPanelId, LongSecondPanelId, MarginPanelId,
-                     AnchorholdPanelId, DoorPanelId, LegiblePanelId, RecapPanelId,
+                     AnchorholdPanelId, FoundingPanelId, DoorPanelId, LegiblePanelId, RecapPanelId,
                  })
             if (RawPanel(id) == null)
                 fails.Add($"panel {id} is missing");
@@ -1306,6 +1372,18 @@ public static class PrologueDirector
         fails.AddRange(LongSecondTableau.RoundTripFailures());
         fails.AddRange(LongSecondTableau.DefaultFailures());
 
+        // The founding (S4): its stage's words read, and its panel has the one choice the stage waits on.
+        fails.AddRange(FoundingStage.WordsFailures());
+        if ((RawPanel(FoundingPanelId)?.Choices?.Count ?? 0) != 1)
+            fails.Add($"panel {FoundingPanelId} should have exactly one choice (\"Take the lectern.\")");
+
+        // Debug (Unlock All Classes): which practical a save sits, read from flags on scratch saves.
+        fails.AddRange(DebugAllClassesFailures());
+
+        // The first lunation (S5), which the founding unlocks: its quest, its explanations, its
+        // counters on scratch saves and its profile file (FirstLunation).
+        fails.AddRange(FirstLunation.AssertFailures());
+
         // 2. Each practical: its panels, its school, and its folio as the fight deals it.
         int folios = 0;
         int examPages = 0;
@@ -1429,8 +1507,55 @@ public static class PrologueDirector
         if (fails.Count == 0)
             GD.Print($"[Prologue Assert] PASS: {_panels.Count} panels, {_fights.Count} fights, {folios} folios, "
                      + $"{checklists} checklist(s), {sentences} sentence(s), {examPages} exam page(s), "
-                     + $"{trialMinutes} trial minutes, the profile file, the Register's modes and the Long Second's tableau.");
+                     + $"{trialMinutes} trial minutes, the profile file, the Register's modes, the Long Second's tableau, "
+                     + "the founding, the first lunation and the debug unlock.");
         return fails.Count == 0;
+    }
+
+    /// <summary>The debug unlock's rule (PracticalSchool), on scratch saves that are never saved: a save
+    /// founded with every class unlocked sits each school's practical as its intention; one that began the
+    /// common practical, or left its intention unstated, sits the common one; one founded without it sits
+    /// the common one whatever it intends; and one that began a school's practical keeps it.</summary>
+    private static List<string> DebugAllClassesFailures()
+    {
+        var fails = new List<string>();
+        string Sits(params string[] flags)
+        {
+            var probe = new GuildSaveData();
+            foreach (var flag in flags)
+                SetMeta(probe, flag);
+            return PracticalSchool(probe);
+        }
+        string other = "";
+        foreach (CardSchool s in Enum.GetValues(typeof(CardSchool)))
+        {
+            string key = s.ToString().ToLowerInvariant();
+            if (key == CommonPracticalSchool)
+                continue;
+            if (other.Length == 0)
+                other = key;
+            string got = Sits(DebugAllClassesFlag, "stated_intention_set", $"stated_intention_{key}");
+            if (got != key)
+                fails.Add($"debug unlock: a save founded intending {key} sits the {got} practical, not its own");
+        }
+        if (other.Length == 0)
+            return fails;
+        foreach (var (what, got, want) in new[]
+                 {
+                     ("began the common practical",
+                      Sits(DebugAllClassesFlag, "stated_intention_set", $"stated_intention_{other}",
+                           $"prologue_practical_{CommonPracticalSchool}"), CommonPracticalSchool),
+                     ("left its intention unstated",
+                      Sits(DebugAllClassesFlag, "stated_intention_set", "stated_intention_unstated"), CommonPracticalSchool),
+                     ("was founded without the unlock",
+                      Sits("stated_intention_set", $"stated_intention_{other}"), CommonPracticalSchool),
+                     ("began its own practical",
+                      Sits(DebugAllClassesFlag, "stated_intention_set", $"stated_intention_{other}",
+                           $"prologue_practical_{other}"), other),
+                 })
+            if (got != want)
+                fails.Add($"debug unlock: a save that {what} sits the {got} practical, not the {want} one");
+        return fails;
     }
 
     private static void DeleteUserFile(string path)

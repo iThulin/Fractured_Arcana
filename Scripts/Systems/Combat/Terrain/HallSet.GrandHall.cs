@@ -137,6 +137,18 @@ public partial class HallSet
     private float _hearthBase;
     private float _hearthTime;
 
+    // ── The founding's pieces (S4): kept so the founding stage can stage them ──
+    /// <summary>Each letter of the guild's name in a group of its own, at the letter's middle.</summary>
+    private readonly List<Node3D> _guildLetters = new();
+    private Vector3 _ghLectern;
+    private float _ghLintelY;
+    /// <summary>The Roll's wall group, where its next line goes, and that line's index.</summary>
+    private Node3D _rollWall;
+    private float _rollTop;
+    private float _rollZLeft;
+    private float _rollInkX;
+    private int _rollNext;
+
     // ════════════════════════════════════════════════════════════════════════
     //  Build
     // ════════════════════════════════════════════════════════════════════════
@@ -479,6 +491,7 @@ public partial class HallSet
                 new Vector3(0.4f, GhDoorHeight + 0.3f, 0.4f), TrimStone);
         }
         float lintelY = _floorY + GhDoorHeight + 0.75f;
+        _ghLintelY = lintelY;
         Box(g, Paint.Stone, false, new Vector3(_xWallE - 0.2f, lintelY, _cz), new Vector3(0.4f, 0.9f, 2f * GhDoorLeaf + 1.2f), TrimStone);
         GuildName(g, lintelY, save);
 
@@ -487,9 +500,12 @@ public partial class HallSet
     }
 
     /// <summary>"The guild's name is cut over the door": a raised gilt block for each letter on the
-    /// lintel's face, read from inside the hall (south to north, the reader facing east).</summary>
+    /// lintel's face, read from inside the hall (south to north, the reader facing east). Each letter
+    /// is a group of its own at its middle, so the founding can cut them in one at a time (S4); they
+    /// look the same in an exam.</summary>
     private void GuildName(Node3D g, float y, GuildSaveData save)
     {
+        _guildLetters.Clear();
         string name = (save?.Ledger?.GuildName ?? "").Trim();
         if (name.Length == 0)
             return;
@@ -504,7 +520,14 @@ public partial class HallSet
                 continue;
             float w = 0.1f + 0.03f * (c % 3);
             float h = char.IsUpper(c) ? 0.42f : 0.32f;
-            Box(g, Paint.Wood, false, new Vector3(_xWallE - 0.42f, y - 0.2f + h * 0.5f, z0 + i * pitch), new Vector3(0.04f, h, w), Brass);
+            var letter = new Node3D
+            {
+                Name = "Letter" + i,
+                Position = new Vector3(_xWallE - 0.42f, y - 0.2f + h * 0.5f, z0 + i * pitch),
+            };
+            g.AddChild(letter);
+            _guildLetters.Add(letter);
+            Box(letter, Paint.Wood, false, Vector3.Zero, new Vector3(0.04f, h, w), Brass);
         }
     }
 
@@ -573,7 +596,33 @@ public partial class HallSet
             Box(g, Paint.Wood, false, new Vector3(xInk, y, zLeft - 0.04f), new Vector3(0.012f, 0.06f, 0.06f), mark);
             Box(g, Paint.Wood, false, new Vector3(xInk, y, zLeft - 0.12f - length * 0.5f), new Vector3(0.01f, 0.03f, length), GhInk);
         }
+        _rollWall = g;
+        _rollTop = top;
+        _rollZLeft = zLeft;
+        _rollInkX = xInk;
+        _rollNext = lines;
+
+        // S4: "The Roll of Cycles takes its first line" at the founding. From then on the cycle being
+        // spent has its line too, under the ones spent, in ink until it is spent.
+        if (lines < GhRollCap && PrologueDirector.Founded(save))
+        {
+            float length = CurrentLineLength(save);
+            float y = top - 0.48f - lines * GhRollPitch;
+            Box(g, Paint.Wood, false, new Vector3(xInk, y, zLeft - 0.04f), new Vector3(0.012f, 0.06f, 0.06f), GhInk);
+            Box(g, Paint.Wood, false, new Vector3(xInk, y, zLeft - 0.12f - length * 0.5f), new Vector3(0.01f, 0.03f, length), GhInk);
+            lines++;
+            _rollNext = lines;
+        }
         return lines;
+    }
+
+    /// <summary>The length of the line for the cycle being spent: the spent lines' measure, from its
+    /// number and its place, with no school yet.</summary>
+    private static float CurrentLineLength(GuildSaveData save)
+    {
+        int index = Mathf.Min(save?.Ledger?.LoopHistory?.Count ?? 0, GhRollCap);
+        int hash = Math.Abs((save?.Cycle?.CycleNumber ?? index + 1) * 31 + index * 13);
+        return 0.9f + (hash % 7) * 0.1f;
     }
 
     /// <summary>The charters: a frame for each seat the hall holds (Charters.Slots: one a tier,
@@ -696,6 +745,7 @@ public partial class HallSet
                     Chair(_hall, new Transform3D(Basis.Identity, new Vector3(xBack + 0.5f, top, _cz + k * off)), 0);
             lectern = new Vector3(xFront - 1.0f, top, _cz);
         }
+        _ghLectern = lectern;
         GhLectern(lectern);
     }
 
@@ -708,8 +758,11 @@ public partial class HallSet
             PieceBox(_hall, Paint.Wood, true, at, new Vector3(0f, 0.6f, 0f), new Vector3(0.24f, 1.0f, 0.3f), Timber);
             var slope = at * new Transform3D(new Basis(new Vector3(0f, 0f, 1f), -Mathf.DegToRad(18f)), new Vector3(0f, 1.16f, 0f));
             PieceBox(_hall, Paint.Wood, true, slope, Vector3.Zero, new Vector3(0.62f, 0.06f, 0.8f), Timber);
-            PieceBox(_hall, Paint.Wood, false, slope, new Vector3(0f, 0.045f, 0f), new Vector3(0.5f, 0.03f, 0.66f), RegisterCover);
-            PieceBox(_hall, Paint.Wood, false, slope, new Vector3(0f, 0.07f, 0f), new Vector3(0.46f, 0.03f, 0.6f), Parchment);
+            // The Register lies in a group of its own, as on the Ceremony Hall's lectern, so the
+            // founding can set it down (S4). It looks the same in an exam.
+            var book = RegisterBook();
+            PieceBox(book, Paint.Wood, false, slope, new Vector3(0f, 0.045f, 0f), new Vector3(0.5f, 0.03f, 0.66f), RegisterCover);
+            PieceBox(book, Paint.Wood, false, slope, new Vector3(0f, 0.07f, 0f), new Vector3(0.46f, 0.03f, 0.6f), Parchment);
         }
 
         var stand = basePos + new Vector3(0.1f, 0f, 0.75f);
@@ -748,5 +801,111 @@ public partial class HallSet
         };
         _hall.AddChild(light);
         return light;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  The founding (S4, docs/sundering_long_second_founding_v1.md section 6)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>The lectern's foot to where a reader stands behind it, facing the room.</summary>
+    private const float GhReaderBack = 0.75f;
+    /// <summary>The seconds one letter of the guild's name takes to cut itself in.</summary>
+    private const float GhLetterCut = 0.22f;
+    /// <summary>How far above the slope the Register is when it is set down.</summary>
+    private const float GhRegisterDrop = 0.22f;
+    /// <summary>The Register's open page, above the lectern's foot.</summary>
+    private const float GhPageHeight = 1.24f;
+
+    /// <summary>True once the Grand Hall is built (the founding stage waits for it).</summary>
+    public bool IsGrandHall => Look == GrandHallSetId && _hall != null;
+
+    /// <summary>The lectern's foot: on the floor, or on the dais from tier 3.</summary>
+    public Vector3 GrandLecternPoint => _ghLectern;
+
+    /// <summary>Where a reader stands to face the room: behind the lectern, on its west side (the
+    /// reading slope faces west).</summary>
+    public Vector3 GrandReaderPoint => _ghLectern + new Vector3(-GhReaderBack, 0f, 0f);
+
+    /// <summary>The Register's open page on the lectern's slope.</summary>
+    public Vector3 GrandPagePoint => _ghLectern + new Vector3(0f, GhPageHeight, 0f);
+
+    /// <summary>The middle of the lintel over the east doors, where the guild's name is cut.</summary>
+    public Vector3 GrandLintelPoint => new(_xWallE - 0.42f, _ghLintelY, _cz);
+
+    /// <summary>The floor just inside the east doors.</summary>
+    public Vector3 GrandDoorsPoint => new(_xWallE - 1.6f, _floorY, _cz);
+
+    /// <summary>The middle of the Roll of Cycles, on the west wall.</summary>
+    public Vector3 GrandRollPoint => new(_xWallW + 0.16f, _floorY + GhRollBottom + GhRollHeight * 0.5f, _cz);
+
+    /// <summary>Before the founding: the guild's name not yet cut over the door, and the Register not
+    /// yet on the lectern (the candidate is carrying it).</summary>
+    public void HideFoundingPieces()
+    {
+        foreach (var letter in _guildLetters)
+            if (letter != null && IsInstanceValid(letter))
+                letter.Visible = false;
+        if (_registerBook != null && IsInstanceValid(_registerBook))
+            _registerBook.Visible = false;
+    }
+
+    /// <summary>The letters of the guild's name cut themselves into the lintel one at a time, in
+    /// order, over <paramref name="seconds"/>: each springs out of the stone to its full height.
+    /// Returns how many letters were cut (none when the guild has no name).</summary>
+    public int CutGuildName(float seconds)
+    {
+        var letters = new List<Node3D>();
+        foreach (var letter in _guildLetters)
+            if (letter != null && IsInstanceValid(letter))
+                letters.Add(letter);
+        if (letters.Count == 0)
+            return 0;
+        float step = letters.Count > 1 ? Mathf.Max(0f, seconds - GhLetterCut) / (letters.Count - 1) : 0f;
+        var tween = CreateTween().SetParallel(true);
+        for (int i = 0; i < letters.Count; i++)
+        {
+            var letter = letters[i];
+            float at = i * step;
+            letter.Visible = false;
+            letter.Scale = new Vector3(0.05f, 0.6f, 0.6f);   // flush with the stone (X is its depth)
+            tween.TweenCallback(Callable.From(() => { letter.Visible = true; })).SetDelay(at);
+            tween.TweenProperty(letter, "scale", Vector3.One, GhLetterCut).SetDelay(at)
+                 .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        }
+        return letters.Count;
+    }
+
+    /// <summary>The Register set down on the lectern: it comes down onto the slope and settles over
+    /// <paramref name="seconds"/>.</summary>
+    public void SetRegisterDown(float seconds)
+    {
+        if (_registerBook == null || !IsInstanceValid(_registerBook))
+            return;
+        _registerBook.Visible = true;
+        _registerBook.Position = new Vector3(0f, GhRegisterDrop, 0f);
+        CreateTween().TweenProperty(_registerBook, "position", Vector3.Zero, Mathf.Max(0.05f, seconds))
+            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+    }
+
+    /// <summary>The Roll of Cycles takes its next line, for the cycle being spent: a mark in ink, then
+    /// the line written out from it, from the reader's left, over <paramref name="seconds"/>. The
+    /// same line the Roll draws for this cycle from the founding on (RollOfCycles). False when the
+    /// Roll has no room left.</summary>
+    public bool WriteRollLine(GuildSaveData save, float seconds)
+    {
+        if (_rollWall == null || !IsInstanceValid(_rollWall) || _rollNext >= GhRollCap)
+            return false;
+        float y = _rollTop - 0.48f - _rollNext * GhRollPitch;
+        float length = CurrentLineLength(save);
+        var line = new Node3D { Name = "RollLine" + _rollNext, Position = new Vector3(_rollInkX, y, _rollZLeft - 0.12f) };
+        _rollWall.AddChild(line);
+        Solo(line, Prim.Box, Paint.Wood, Scaled(new Vector3(0f, 0f, 0.08f), Basis.Identity, new Vector3(0.012f, 0.06f, 0.06f)), GhInk);
+        var pen = new Node3D { Name = "Ink", Scale = new Vector3(1f, 1f, 0.01f) };
+        line.AddChild(pen);
+        Solo(pen, Prim.Box, Paint.Wood, Scaled(new Vector3(0f, 0f, -length * 0.5f), Basis.Identity, new Vector3(0.01f, 0.03f, length)), GhInk);
+        _rollNext++;
+        CreateTween().TweenProperty(pen, "scale", Vector3.One, Mathf.Max(0.05f, seconds))
+            .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+        return true;
     }
 }

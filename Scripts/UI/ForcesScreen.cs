@@ -53,6 +53,7 @@ public partial class ForcesScreen : Control
         screen.MouseFilter = MouseFilterEnum.Stop;
         layer.AddChild(screen);
         screen.Rebuild();
+        FirstLunation.Tick(FirstLunation.Forces);   // S5: the first lunation's forces step
         return screen;
     }
 
@@ -947,6 +948,7 @@ public partial class ForcesScreen : Control
                 armory.Unequip(cid, s);
             }
             armory.Equip(cid, iid);
+            FirstLunation.Tick(FirstLunation.Equip);   // S5
             Changed();
         };
         row.AddChild(eq);

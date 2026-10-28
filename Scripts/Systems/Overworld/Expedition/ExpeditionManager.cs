@@ -654,6 +654,8 @@ public partial class ExpeditionManager : Node2D
             // C4, P6: the first sortie after the prologue crosses the edge (Legible).
             if (!_fieldRun)
                 CallDeferred(nameof(ShowPrologueLegible));
+            else
+                RegisterManager.Fire("strategic.first_dive");   // S5: a field dive's own first crossing
             SchoolSeats.ClearWeatherCarry();       // Crucible T2: weather is per expedition
 
             // S4 (Identify) + S5 (True Names): pinned encounters are

@@ -318,4 +318,11 @@ public static class PlayerSession
     /// interceptions), so the map can be walked freely, e.g. to reach a distant enemy capital
     /// while testing. Does not affect player-initiated combat (walking into a combat POI).</summary>
     public static bool DebugNoAmbush = false;
+
+    /// <summary>Debug (the campus debug panel's Unlock All Classes): the founding screen opens every
+    /// school, and a guild founded with it sits its stated intention's practical in the prologue, so
+    /// the practical and the Sundering play that school's folio. The founding writes it onto the save
+    /// (PrologueDirector.DebugAllClassesFlag), so the save keeps it after a quit. The guild still
+    /// founds as an Adept.</summary>
+    public static bool DebugUnlockAllClasses = false;
 }

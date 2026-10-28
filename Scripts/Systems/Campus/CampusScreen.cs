@@ -397,6 +397,12 @@ public partial class CampusScreen : Control
         foreach (var child in GetChildren())
             if (child is Window w && w.Visible)
                 return;   // a dialog is up
+        // S4: the founding waits in the Grand Hall once the Anchorhold has been seen (as in the city).
+        if (FoundingStage.Due(SaveManager.ActiveSave))
+        {
+            FoundingStage.Enter(GetTree());
+            return;
+        }
         var enc = ChronicleScheduler.DrainIfQuiet("campus");
         if (enc != null)
             ShowCampusNarrative(enc);
@@ -424,6 +430,7 @@ public partial class CampusScreen : Control
     private void SelectTab(int index)
     {
         _activeTab = index;
+        FirstLunation.NotePanelShown((CampusPanelId)index);   // S5: the ledger and the quest log are steps
 
         // Campus IS the map view; every other panel covers a dimmed map.
         bool mapMode = index == (int)CampusPanelId.Campus;

@@ -45,6 +45,7 @@ public partial class QuestLogScreen : CanvasLayer
     {
         var save = SaveManager.ActiveSave;
         if (save != null) QuestTracker.SyncCompletions(save);
+        FirstLunation.Tick(FirstLunation.Quests);   // S5: the first lunation's last step
 
         var backdrop = new Panel
         {

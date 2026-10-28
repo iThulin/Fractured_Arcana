@@ -7,8 +7,10 @@ using System.Collections.Generic;
 // can never drift. Pure UI over QuestLoader/QuestTracker.
 //
 // Groups quests by persistence layer (quest spec §7):
-//   ETERNAL  ("the Chronicle"): the first goal, cross-cycle arcs,
-//            dossiers, fragments, campus restoration. Never resets.
+//   ETERNAL  ("the Chronicle"): the first lunation (S5, first
+//            while it is walked, last once it is), the first goal,
+//            cross-cycle arcs, dossiers, fragments, campus
+//            restoration. Never resets.
 //   THIS TIMELINE: resolution arcs, companion arcs, kingdom
 //            chains, incidentals. Header shows year/lunation.
 //   UNFINISHED BUSINESS: archived Timeline quests from past
@@ -54,7 +56,9 @@ public static class QuestLogView
             AddSectionHeader(box, "ETERNAL");
 
             // Sub-group Eternal quests by Category for visual structure
-            string[] eternalCats = { FirstGoalCategory, "Story", "Fragments", "Dossiers", "Expansion", "Campus", "Fluency" };
+            var eternalCats = new List<string> { FirstGoalCategory, "Story", "Fragments", "Dossiers", "Expansion", "Campus", "Fluency" };
+            // S5: the first lunation leads while it is being walked and goes to the end once it is done.
+            eternalCats.Insert(FirstLunation.Current(save) != null ? 0 : eternalCats.Count, FirstLunation.Category);
             foreach (var cat in eternalCats)
             {
                 var inCat = new List<QuestDefinition>();
@@ -65,6 +69,10 @@ public static class QuestLogView
                 // stay locked for good, so they are neither shown nor counted as undiscovered.
                 if (string.Equals(cat, FirstGoalCategory, System.StringComparison.OrdinalIgnoreCase))
                     inCat.RemoveAll(q => QuestTracker.StatusOf(q, save) == QuestStatus.Locked);
+                // S5: the first lunation is not shown before the founding (locked for good on an older
+                // save, so not counted as undiscovered either), nor once it has been skipped.
+                if (string.Equals(cat, FirstLunation.Category, System.StringComparison.OrdinalIgnoreCase))
+                    inCat.RemoveAll(q => QuestTracker.StatusOf(q, save) == QuestStatus.Locked || FirstLunation.Skipped(save));
                 if (inCat.Count == 0)
                     continue;
 
@@ -254,7 +262,8 @@ public static class QuestLogView
         {
             bool od = QuestTracker.ObjectiveDone(o, save);
             string prog = "";
-            if (!string.IsNullOrEmpty(o.Counter))
+            // A first-lunation step is done or not, so it reads as a checklist without a count.
+            if (!string.IsNullOrEmpty(o.Counter) && !o.Counter.StartsWith(FirstLunation.CounterPrefix))
             {
                 var cp = QuestTracker.CounterProgress(o, save);
                 prog = $"  ({System.Math.Min(cp.have, cp.need)}/{cp.need})";

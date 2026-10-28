@@ -71,6 +71,7 @@ public partial class DeckEditorUi : Control
 
     public override void _Ready()
     {
+        FirstLunation.Tick(FirstLunation.Deck);   // S5: the first lunation's Sanctum step
         CallDeferred(nameof(BuildUI));
     }
 

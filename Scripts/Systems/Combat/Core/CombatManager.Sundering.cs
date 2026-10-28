@@ -226,6 +226,9 @@ public partial class CombatManager
     // ── State of the climax, the freeze and the way out (S2) ─────────────
     /// <summary>Who the counter-volleys spent, in the order they went down (the tableau keeps it).</summary>
     private readonly List<string> _sunderingSpentOrder = new();
+    /// <summary>Each tile's ground at the opening (LongSecondTableau.GroundKey), so the capture keeps
+    /// every tile the fight changed (S4a).</summary>
+    private readonly Dictionary<Vector2I, string> _sunderingFloorAtStart = new();
     private bool _sunderingReleased;
     private bool _sunderingLeaving;
     private CanvasLayer _hallPanelLayer;
@@ -306,6 +309,7 @@ public partial class CombatManager
         _sunderingWatched.Clear();
         _sunderingFallen.Clear();
         _sunderingSpentOrder.Clear();
+        _sunderingFloorAtStart.Clear();
         _sunderingReleased = false;
         _sunderingLeaving = false;
         _walkOn = false;
@@ -664,6 +668,7 @@ public partial class CombatManager
             return;
         }
         SunderingMark("opening");
+        SnapSunderingFloor();   // before anyone acts: the floor the fight starts from
         currentPhase = CombatPhase.EnemyTurn;
         enemyPhaseRunning = true;
         _zoneRenderer?.Clear();
@@ -1964,24 +1969,32 @@ public partial class CombatManager
                 Facing = facing.LengthSquared() > 1e-4f ? Mathf.Atan2(facing.X, facing.Z) : 0f,
                 Health = unit.Stats.Health,
                 MaxHealth = unit.Stats.MaxHealth,
+                Armor = unit.Stats.Armor,
+                Shield = unit.Stats.Shield,
+                Poise = unit.Poise,
+                WitheredMaxHp = unit.Stats.WitheredMaxHp,
                 Statuses = LongSecondTableau.StatusList(unit.Stats.StatusEffects,
                     unit.Names.Where(n => n != null && n.TurnsRemaining > 0).Select(n => n.TurnsRemaining)),
             });
         }
 
+        // The floor (S4a): every tile with a mark, and every tile whose ground the fight changed
+        // since the opening (all of them when there was no opening to compare with), each with all
+        // of both.
+        int marked = 0;
         foreach (var kv in grid.Tiles)
         {
             var tile = kv.Value;
             if (tile == null)
                 continue;
-            string row = LongSecondTableau.TileRow(kv.Key,
-                tile.ElementType != TileElementType.None ? tile.ElementType.ToString() : "",
-                tile.Reaction != ElementReaction.None ? tile.Reaction.ToString() : "",
-                tile.GrowthStage,
-                tile.Memorial != null ? SunderingCleanName(tile.Memorial.SourceName) : "",
-                tile.Glyph != null && !tile.Glyph.Consumed ? SunderingGlyphName(tile.Glyph) : "");
-            if (row != null)
-                t.Tiles.Add(row);
+            var row = SunderingTileRow(kv.Key, tile);
+            bool changed = !_sunderingFloorAtStart.TryGetValue(kv.Key, out var before)
+                           || before != LongSecondTableau.GroundKey(row);
+            if (!row.HasMarks && !changed)
+                continue;
+            if (row.HasMarks)
+                marked++;
+            t.Tiles.Add(LongSecondTableau.Row(row));
         }
 
         save.Ledger.Tableau = t;
@@ -1989,8 +2002,71 @@ public partial class CombatManager
         SaveManager.SaveIfDirty();
         int keeperCount = t.Figures.Count(f => f.Kind == LongSecondTableau.KindKeeper);
         GD.Print($"[Sundering] The tableau is on the ledger: {keeperCount} Keeper(s) and "
-                 + $"{t.Figures.Count - keeperCount} of yours, {t.Tiles.Count} marked tile(s), "
-                 + $"clause {t.Clause}, spent [{string.Join(", ", t.SpentFaculty)}].");
+                 + $"{t.Figures.Count - keeperCount} of yours, {t.Tiles.Count} tile(s) of floor ({marked} marked, "
+                 + $"{t.Tiles.Count - marked} with the ground changed alone), clause {t.Clause}, "
+                 + $"spent [{string.Join(", ", t.SpentFaculty)}].");
+    }
+
+    /// <summary>The floor at the opening, before anyone acts: each tile's ground, for the capture to
+    /// compare with (S4a).</summary>
+    private void SnapSunderingFloor()
+    {
+        _sunderingFloorAtStart.Clear();
+        if (grid == null)
+            return;
+        foreach (var kv in grid.Tiles)
+            if (kv.Value != null)
+                _sunderingFloorAtStart[kv.Key] = LongSecondTableau.GroundKey(SunderingTileRow(kv.Key, kv.Value));
+    }
+
+    /// <summary>A tile as the tableau keeps it: its marks (the names cleaned of their board numbers)
+    /// and every detail of them, and its ground, with the scar its view shows.</summary>
+    private static TableauTileRow SunderingTileRow(Vector2I at, TileData tile)
+    {
+        var memorial = tile.Memorial;
+        var glyph = tile.Glyph != null && !tile.Glyph.Consumed ? tile.Glyph : null;
+        return new TableauTileRow
+        {
+            At = at,
+            Element = tile.ElementType != TileElementType.None ? tile.ElementType.ToString() : "",
+            Reaction = tile.Reaction != ElementReaction.None ? tile.Reaction.ToString() : "",
+            Growth = tile.GrowthStage,
+            Memorial = memorial != null ? SunderingCleanName(memorial.SourceName) : "",
+            Glyph = glyph != null ? SunderingGlyphName(glyph) : "",
+            Full = true,
+            Height = tile.Height,
+            Terrain = tile.TerrainType.ToString(),
+            Modifier = tile.TerrainModifier ?? "",
+            Scar = tile.TileView?.TerrainScar ?? "",
+            MoveCost = tile.MoveCost,
+            BaseMoveCost = tile.BaseMoveCost,
+            Hazardous = tile.IsHazardous,
+            Walkable = tile.IsWalkable,
+            Blocked = tile.IsBlocked,
+            BlocksSight = tile.BlocksLineOfSight,
+            Cover = tile.AuthoredCover.ToString(),
+            Obstacle = tile.ObstacleKind ?? "",
+            ObstacleHp = tile.ObstacleHp,
+            Strength = tile.ElementStrength,
+            ReactionRounds = tile.ReactionRounds,
+            ReactionTeam = tile.ReactionTeam,
+            GrowthAge = tile.GrowthAge,
+            GrowthTeam = tile.GrowthOwner != null && IsInstanceValid(tile.GrowthOwner) ? tile.GrowthOwner.TeamId : -1,
+            Carcass = tile.CarcassTicks,
+            Discount = tile.SummonDiscount,
+            DiscountTurns = tile.SummonDiscountTurns,
+            MemorialState = memorial != null ? memorial.State.ToString() : "",
+            MemorialStrength = memorial != null ? memorial.Strength.ToString() : "",
+            MemorialAlly = memorial != null && memorial.WasAlly,
+            MemorialTeam = memorial?.OwnerTeamId ?? 0,
+            MemorialSourceTeam = memorial?.SourceTeamId ?? -1,
+            MemorialTurns = memorial?.TurnsAlive ?? 0,
+            GlyphCard = glyph?.SourceCardId ?? "",
+            GlyphHalf = glyph?.SourceHalf ?? "",
+            GlyphTeam = glyph?.OwnerTeam ?? 0,
+            GlyphTrigger = glyph != null ? glyph.Trigger.ToString() : "",
+            GlyphReflect = glyph?.ReflectCharges ?? 0,
+        };
     }
 
     /// <summary>Where a Keeper's plan was aimed: its target's tile, or the tile it was going to take.

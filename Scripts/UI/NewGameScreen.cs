@@ -18,7 +18,12 @@ using System.Collections.Generic;
 //                 ruling), every candidate sits the common practical, and
 //                 disciplines are declared later in the Grand Hall, each
 //                 by its own practical (CampusGuildPanel's Disciplines
-//                 section, DisciplineExam, DeclarationService).
+//                 section, DisciplineExam, DeclarationService). With the
+//                 debug panel's Unlock All Classes on, every school reads
+//                 unlocked, and the stated intention is the practical the
+//                 save sits in the prologue
+//                 (PrologueDirector.UnlockAllClassesForDebug). The guild
+//                 still founds as an Adept.
 // Layer:          UI
 // Collaborators:  SaveManager.cs, StarterDeckLoader.cs,
 //                 PlayerSession.cs, CardLoaderV2.cs,
@@ -92,6 +97,10 @@ public partial class NewGameScreen : Control
     private CardSchool _selectedSchool = CardSchool.Adept;
     private bool _intentionUnstated = false;
     private int _targetSlot = -1;
+
+    /// <summary>Debug (the campus debug panel's Unlock All Classes): every school reads unlocked, and
+    /// the stated intention is the practical this save sits in the prologue (OnConfirmPressed).</summary>
+    private static bool AllClassesUnlocked => PlayerSession.DebugMode && PlayerSession.DebugUnlockAllClasses;
 
     // Detail panel refs
     private Panel _detailPanel;
@@ -188,6 +197,21 @@ public partial class NewGameScreen : Control
         sub.AddThemeColorOverride("font_color", new Color(0.50f, 0.50f, 0.60f));
         vbox.AddChild(sub);
 
+        // Debug (the campus debug panel's Unlock All Classes): what this founding does instead.
+        if (AllClassesUnlocked)
+        {
+            var debugNote = new Label
+            {
+                Text = "Debug: every school is unlocked. The one you state as your intention is the practical " +
+                       "you sit in the prologue, and its folio is the one you carry into the Sundering. The " +
+                       "guild still begins as an Adept, and the trial is still the Adept duel.",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            debugNote.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            debugNote.AddThemeColorOverride("font_color", UITheme.Warning);
+            vbox.AddChild(debugNote);
+        }
+
         // Thin violet rule
         var rule = new Panel { CustomMinimumSize = new Vector2(0, 1) };
         rule.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -279,9 +303,11 @@ public partial class NewGameScreen : Control
 
         // The lockout affordance (2026-08-04 playtest ruling, restored by R7e): a locked school
         // must LOOK locked at the list level, not only in the detail panel. Any school can still
-        // be marked as the stated intention, the first goal; the detail panel says which.
+        // be marked as the stated intention, the first goal; the detail panel says which. The
+        // debug panel's Unlock All Classes shows none locked.
         bool isStartSchool = school == CardSchool.Adept;
-        var nameLbl = new Label { Text = isStartSchool ? school.ToString() : $"🔒 {school}" };
+        bool locked = !isStartSchool && !AllClassesUnlocked;
+        var nameLbl = new Label { Text = locked ? $"🔒 {school}" : school.ToString() };
         nameLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         nameLbl.AddThemeColorOverride("font_color", SchoolNameColor(school, sel));
         nameWrapper.AddChild(nameLbl);
@@ -617,12 +643,19 @@ public partial class NewGameScreen : Control
 
     /// <summary>Founding is always open (R7d): the marked school is an intention, not the guild's
     /// school, so no mark can be refused, and the guild still founds as an Adept (A1). A locked
-    /// school can be marked: it is the first goal (R7e). The tooltip says what the mark does.</summary>
+    /// school can be marked: it is the first goal (R7e). The tooltip says what the mark does, and
+    /// with the debug unlock, which practical the save sits.</summary>
     private void UpdateConfirmButton()
     {
         if (_confirmBtn == null) return;
         _confirmBtn.Disabled = false;
         _confirmBtn.Text = "Found the Guild";
+        if (AllClassesUnlocked && !_intentionUnstated && _selectedSchool != CardSchool.Adept)
+        {
+            _confirmBtn.TooltipText = $"Debug: you sit the {_selectedSchool} practical in the prologue, and carry its " +
+                                      "folio into the Sundering. The guild still begins as an Adept.";
+            return;
+        }
         const string common = "The guild begins as an Adept, and every candidate sits the common practical.";
         _confirmBtn.TooltipText = _intentionUnstated
             ? $"Your intention is unstated. {common}"
@@ -632,13 +665,14 @@ public partial class NewGameScreen : Control
     }
 
     /// <summary>A school row's name color (UITheme): Adept, where every guild begins, reads gold;
-    /// the seven locked schools read dim; the marked intention reads brightest.</summary>
+    /// the seven locked schools read dim (with the debug unlock, as the one being read does); the
+    /// marked intention reads brightest.</summary>
     private Color SchoolNameColor(CardSchool school, bool sel)
     {
         bool marked = sel && !_intentionUnstated;
         if (school == CardSchool.Adept)
             return marked ? UITheme.TextPrimary : UITheme.Gold;
-        return marked ? UITheme.TextPrimary : sel ? UITheme.TextSecondary : UITheme.TextDim;
+        return marked ? UITheme.TextPrimary : (sel || AllClassesUnlocked) ? UITheme.TextSecondary : UITheme.TextDim;
     }
 
     private void UpdateSchoolCards()
@@ -724,6 +758,15 @@ public partial class NewGameScreen : Control
                 : $"{count} cards  ·  🔒 YOUR STATED INTENTION: your first goal. {gate}");
         _detailCardCount.AddThemeColorOverride("font_color",
             _intentionUnstated ? new Color(accent.R, accent.G, accent.B, 0.6f) : UITheme.Gold);
+
+        // Debug (Unlock All Classes): no school is locked, and the stated one is the prologue's practical.
+        if (!isStart && AllClassesUnlocked)
+        {
+            _detailCardCount.Text = _intentionUnstated
+                ? $"{count} cards. UNLOCKED (debug): state it as your intention to sit its practical in the prologue."
+                : $"{count} cards. UNLOCKED (debug): you sit its practical in the prologue, and carry its folio into the Sundering.";
+            _detailCardCount.AddThemeColorOverride("font_color", UITheme.Warning);
+        }
 
         _detailFlavor.Text = flavor;
     }
@@ -926,6 +969,9 @@ public partial class NewGameScreen : Control
         // instead of asking. R7e: it is the first goal; it sets no practical.
         string intention = _intentionUnstated ? "unstated" : _selectedSchool.ToString();
         PrologueDirector.RecordFoundingIntention(save, intention);
+        // Debug (Unlock All Classes): the stated intention is the practical this save sits in the prologue.
+        if (AllClassesUnlocked)
+            PrologueDirector.UnlockAllClassesForDebug(save);
         SaveManager.Save();
         GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {startingSchool} " +
                  $"(undeclared), stated intention {intention}.");

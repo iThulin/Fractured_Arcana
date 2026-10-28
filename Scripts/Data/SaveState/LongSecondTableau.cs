@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 
 // ============================================================
@@ -10,14 +11,23 @@ using System.Text.Json;
 // Purpose:        The frozen fight (S2, docs/sundering_long_second_founding_v1.md
 //                 section 4): every Keeper and every summon standing when
 //                 the Long Second closed, where it stood and how hurt it
-//                 was; the floor's elements, reactions, growth, memorials
-//                 and glyphs; the traitor; and who on the dais and the
-//                 tiers the Keepers had spent. Saved once per save, on the
-//                 Eternal ledger, so it survives every unmaking. The hall
-//                 stage shows it (S3) and the Fracture resumes from it (S6).
+//                 was; the floor as the fight left it; the traitor; and
+//                 who on the dais and the tiers the Keepers had spent.
+//                 Saved once per save, on the Eternal ledger, so it
+//                 survives every unmaking. The hall stage shows it (S3)
+//                 and the Fracture resumes from it (S6).
+//
+//                 The floor (S4a, section 16): every tile that carries a
+//                 mark (an element, a reaction, growth, a memorial, a
+//                 glyph) or whose ground the fight changed (its height,
+//                 terrain, rubble, scar, cost, hazard, an obstacle such
+//                 as a Glacier's ice) keeps a row, with every detail of
+//                 both, so the fight starts again from the same floor. A
+//                 row from before S4a has the marks alone, and its ground
+//                 is as the map builds it.
 //
 //                 Not stored: the candidate (who walked out), the canon
-//                 figures, the hall's five breaks, the spell and the folio.
+//                 figures, the hall's breaks, the spell and the folio.
 //                 Canon and the fight's fixed beats put those in the same
 //                 place on every visit, from the traitor and the spent list.
 //
@@ -31,7 +41,8 @@ using System.Text.Json;
 //                 hall stage can ask for it too).
 // Layer:          Data (save)
 // Collaborators:  EternalLedger.Tableau, CombatManager.Sundering.cs (the
-//                 capture), PrologueDirector (the default, the assert),
+//                 capture), HallStage (the floor laid again),
+//                 PrologueDirector (the default, the assert),
 //                 SunderingScript (the spend order), SaveManager.JsonOptions
 // ============================================================
 
@@ -51,7 +62,9 @@ public sealed class LongSecondTableau
     /// seen.</summary>
     public List<string> SpentFaculty = new();
     public List<TableauFigure> Figures = new();
-    /// <summary>One row per tile carrying anything: "q,r|element|reaction|growth|memorial|glyph".</summary>
+    /// <summary>One row per tile with a mark or a changed ground (Row, TryParseTile):
+    /// "q,r|element|reaction|growth|memorial|glyph|key=value,...". A row from before the full
+    /// floor stops after the glyph.</summary>
     public List<string> Tiles = new();
 
     // ── Kinds and the default floor ──────────────────────────────────────
@@ -71,44 +84,149 @@ public sealed class LongSecondTableau
     //  Rows
     // ════════════════════════════════════════════════════════════════════════
 
-    /// <summary>A tile's row, or null when the tile carries none of the five. "|" separates the
-    /// fields, so it never appears inside one.</summary>
-    public static string TileRow(Vector2I at, string element, string reaction, int growth, string memorial,
-                                 string glyph)
+    /// <summary>The marks' six fields: the coordinate, element, reaction, growth, memorial, glyph.</summary>
+    private const int MarkFields = 6;
+
+    /// <summary>A tile's row: the six fields of its marks, then its ground and the marks' details as
+    /// "key=value" pairs, every key written. "|" separates the fields and "," the pairs, so neither
+    /// appears inside one.</summary>
+    public static string Row(TableauTileRow t)
     {
-        element = Field(element);
-        reaction = Field(reaction);
-        memorial = Field(memorial);
-        glyph = Field(glyph);
-        growth = Math.Max(0, growth);
-        if (element.Length == 0 && reaction.Length == 0 && growth == 0 && memorial.Length == 0 && glyph.Length == 0)
+        if (t == null)
             return null;
-        return string.Join("|", $"{at.X},{at.Y}", element, reaction,
-                           growth.ToString(CultureInfo.InvariantCulture), memorial, glyph);
+        var g = new StringBuilder();
+        void Pair(string key, string value)
+        {
+            if (g.Length > 0)
+                g.Append(',');
+            g.Append(key).Append('=').Append(Value(value));
+        }
+        Pair("h", Int(t.Height));
+        Pair("terrain", t.Terrain);
+        Pair("mod", t.Modifier);
+        Pair("scar", t.Scar);
+        Pair("cost", Int(t.MoveCost));
+        Pair("basecost", Int(t.BaseMoveCost));
+        Pair("hazard", Bit(t.Hazardous));
+        Pair("walk", Bit(t.Walkable));
+        Pair("blocked", Bit(t.Blocked));
+        Pair("sight", Bit(t.BlocksSight));
+        Pair("cover", t.Cover);
+        Pair("obstacle", t.Obstacle);
+        Pair("obstaclehp", Int(t.ObstacleHp));
+        Pair("strength", t.Strength.ToString("0.###", CultureInfo.InvariantCulture));
+        Pair("rounds", Int(t.ReactionRounds));
+        Pair("team", Int(t.ReactionTeam));
+        Pair("growthage", Int(t.GrowthAge));
+        Pair("growthteam", Int(t.GrowthTeam));
+        Pair("carcass", Int(t.Carcass));
+        Pair("discount", Int(t.Discount));
+        Pair("discountturns", Int(t.DiscountTurns));
+        Pair("mstate", t.MemorialState);
+        Pair("mstrength", t.MemorialStrength);
+        Pair("mally", Bit(t.MemorialAlly));
+        Pair("mteam", Int(t.MemorialTeam));
+        Pair("msource", Int(t.MemorialSourceTeam));
+        Pair("mturns", Int(t.MemorialTurns));
+        Pair("gcard", t.GlyphCard);
+        Pair("ghalf", t.GlyphHalf);
+        Pair("gteam", Int(t.GlyphTeam));
+        Pair("gtrigger", t.GlyphTrigger);
+        Pair("greflect", Int(t.GlyphReflect));
+        return string.Join("|", $"{Int(t.At.X)},{Int(t.At.Y)}", Field(t.Element), Field(t.Reaction),
+                           Int(Math.Max(0, t.Growth)), Field(t.Memorial), Field(t.Glyph), g.ToString());
     }
 
-    /// <summary>Reads a row back. False when it is not six fields with a coordinate and a growth.</summary>
-    public static bool TryParseTileRow(string row, out Vector2I at, out string element, out string reaction,
-                                       out int growth, out string memorial, out string glyph)
+    /// <summary>Reads a row back: six fields (a row from before the full floor, Full false) or seven.
+    /// False when the coordinate, the growth or a known value does not read. Keys it does not know
+    /// are passed over, so a later key never breaks an older build.</summary>
+    public static bool TryParseTile(string row, out TableauTileRow tile)
     {
-        at = Vector2I.Zero;
-        element = reaction = memorial = glyph = "";
-        growth = 0;
+        tile = null;
         var fields = (row ?? "").Split('|');
-        if (fields.Length != 6)
+        if (fields.Length != MarkFields && fields.Length != MarkFields + 1)
             return false;
         var qr = fields[0].Split(',');
-        if (qr.Length != 2
-            || !int.TryParse(qr[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int q)
-            || !int.TryParse(qr[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int r)
-            || !int.TryParse(fields[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out growth))
+        if (qr.Length != 2 || !TryInt(qr[0], out int q) || !TryInt(qr[1], out int r) || !TryInt(fields[3], out int growth))
             return false;
-        at = new Vector2I(q, r);
-        element = fields[1];
-        reaction = fields[2];
-        memorial = fields[4];
-        glyph = fields[5];
+        var t = new TableauTileRow
+        {
+            At = new Vector2I(q, r),
+            Element = fields[1],
+            Reaction = fields[2],
+            Growth = Math.Max(0, growth),
+            Memorial = fields[4],
+            Glyph = fields[5],
+        };
+        if (fields.Length == MarkFields)
+        {
+            tile = t;
+            return true;
+        }
+        t.Full = true;
+        foreach (var pair in fields[MarkFields].Split(','))
+        {
+            int eq = pair.IndexOf('=');
+            if (eq <= 0)
+                continue;
+            string key = pair.Substring(0, eq);
+            string v = pair.Substring(eq + 1);
+            bool ok = true;
+            switch (key)
+            {
+                case "h": ok = TryInt(v, out t.Height); break;
+                case "terrain": t.Terrain = v; break;
+                case "mod": t.Modifier = v; break;
+                case "scar": t.Scar = v; break;
+                case "cost": ok = TryInt(v, out t.MoveCost); break;
+                case "basecost": ok = TryInt(v, out t.BaseMoveCost); break;
+                case "hazard": ok = TryBit(v, out t.Hazardous); break;
+                case "walk": ok = TryBit(v, out t.Walkable); break;
+                case "blocked": ok = TryBit(v, out t.Blocked); break;
+                case "sight": ok = TryBit(v, out t.BlocksSight); break;
+                case "cover": t.Cover = v; break;
+                case "obstacle": t.Obstacle = v; break;
+                case "obstaclehp": ok = TryInt(v, out t.ObstacleHp); break;
+                case "strength":
+                    ok = float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out t.Strength);
+                    break;
+                case "rounds": ok = TryInt(v, out t.ReactionRounds); break;
+                case "team": ok = TryInt(v, out t.ReactionTeam); break;
+                case "growthage": ok = TryInt(v, out t.GrowthAge); break;
+                case "growthteam": ok = TryInt(v, out t.GrowthTeam); break;
+                case "carcass": ok = TryInt(v, out t.Carcass); break;
+                case "discount": ok = TryInt(v, out t.Discount); break;
+                case "discountturns": ok = TryInt(v, out t.DiscountTurns); break;
+                case "mstate": t.MemorialState = v; break;
+                case "mstrength": t.MemorialStrength = v; break;
+                case "mally": ok = TryBit(v, out t.MemorialAlly); break;
+                case "mteam": ok = TryInt(v, out t.MemorialTeam); break;
+                case "msource": ok = TryInt(v, out t.MemorialSourceTeam); break;
+                case "mturns": ok = TryInt(v, out t.MemorialTurns); break;
+                case "gcard": t.GlyphCard = v; break;
+                case "ghalf": t.GlyphHalf = v; break;
+                case "gteam": ok = TryInt(v, out t.GlyphTeam); break;
+                case "gtrigger": t.GlyphTrigger = v; break;
+                case "greflect": ok = TryInt(v, out t.GlyphReflect); break;
+            }
+            if (!ok)
+                return false;
+        }
+        tile = t;
         return true;
+    }
+
+    /// <summary>The ground alone, as one string: what the capture compares with the floor at the
+    /// fight's opening to know which tiles the fight changed. The marks and their details are not
+    /// in it.</summary>
+    public static string GroundKey(TableauTileRow t)
+    {
+        if (t == null)
+            return "";
+        return string.Join(",", Int(t.Height), Value(t.Terrain), Value(t.Modifier), Value(t.Scar),
+                           Int(t.MoveCost), Int(t.BaseMoveCost), Bit(t.Hazardous), Bit(t.Walkable),
+                           Bit(t.Blocked), Bit(t.BlocksSight), Value(t.Cover), Value(t.Obstacle),
+                           Int(t.ObstacleHp), Int(t.Carcass), Int(t.Discount), Int(t.DiscountTurns));
     }
 
     /// <summary>A figure's statuses: "status:turns;..." and each live Name as "named:turns".</summary>
@@ -127,6 +245,21 @@ public sealed class LongSecondTableau
     }
 
     private static string Field(string value) => (value ?? "").Replace("|", "/").Replace(";", ",").Trim();
+
+    /// <summary>A pair's value: ids, enum names and numbers, with no separator inside.</summary>
+    private static string Value(string value) =>
+        (value ?? "").Replace("|", "").Replace(",", "").Replace("=", "").Replace(";", "").Trim();
+
+    private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
+    private static string Bit(bool value) => value ? "1" : "0";
+    private static bool TryInt(string s, out int value) =>
+        int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+
+    private static bool TryBit(string s, out bool value)
+    {
+        value = s == "1";
+        return s == "1" || s == "0";
+    }
 
     // ════════════════════════════════════════════════════════════════════════
     //  The default floor
@@ -157,7 +290,8 @@ public sealed class LongSecondTableau
 
     /// <summary>Gives a save the authored floor when it has no tableau: this save's traitor, the
     /// first of the spend order for each boundary the sentence crossed (skipping the traitor), and
-    /// every Keeper at full health. False when the save already has one, or the file is missing.</summary>
+    /// every Keeper whole (full health, armor and poise for the fight's difficulty). False when the
+    /// save already has one, or the file is missing.</summary>
     public static bool EnsureDefault(GuildSaveData save)
     {
         if (save?.Ledger == null || (save.Ledger.Tableau != null && save.Ledger.Tableau.Captured))
@@ -185,6 +319,11 @@ public sealed class LongSecondTableau
             figure.MaxHealth = max;
             if (figure.Health <= 0)
                 figure.Health = max;
+            if (def != null)
+            {
+                figure.Armor = def.Armor;
+                figure.Poise = def.ResolvedPoise;
+            }
         }
         save.Ledger.Tableau = t;
         SaveManager.MarkDirty();
@@ -215,7 +354,8 @@ public sealed class LongSecondTableau
 
     /// <summary>The house rule for a new save field: a tableau with every field set goes through the
     /// real save options on a ledger and comes back equal, field by field, and a ledger with none
-    /// keeps none. Empty when it passes.</summary>
+    /// keeps none. A tile row with every key set comes back with every value, and a row from before
+    /// the full floor still reads. Empty when it passes.</summary>
     public static List<string> RoundTripFailures()
     {
         var fails = new List<string>();
@@ -239,9 +379,16 @@ public sealed class LongSecondTableau
                 Facing = -1.25f,
                 Health = 9,
                 MaxHealth = 21,
+                Armor = 2,
+                Shield = 3,
+                Poise = 1,
+                WitheredMaxHp = 4,
                 Statuses = "rooted:1;named:2",
             });
-            probe.Tiles.Add(TileRow(new Vector2I(3, -1), "Lightning", "Brittle", 2, "Read-Ahead", "The Seventh Name"));
+            var tileProbe = Probe();
+            probe.Tiles.Add(Row(tileProbe));
+            const string OldRow = "8,-3|Lightning||0||";
+            probe.Tiles.Add(OldRow);
 
             var back = JsonSerializer.Deserialize<EternalLedger>(
                 JsonSerializer.Serialize(new EternalLedger { Tableau = probe }, SaveManager.JsonOptions),
@@ -258,14 +405,20 @@ public sealed class LongSecondTableau
             var f = back.Figures != null && back.Figures.Count == 1 ? back.Figures[0] : null;
             if (f == null || f.UnitId != "probe_unit" || f.Team != 1 || f.Kind != KindKeeper || f.Q != 7 || f.R != -2
                 || Math.Abs(f.Facing - (-1.25f)) > 1e-5f || f.Health != 9 || f.MaxHealth != 21
+                || f.Armor != 2 || f.Shield != 3 || f.Poise != 1 || f.WitheredMaxHp != 4
                 || f.Statuses != "rooted:1;named:2")
                 fails.Add("the tableau's figure changed on the round trip");
-            if (back.Tiles == null || back.Tiles.Count != 1 || back.Tiles[0] != probe.Tiles[0]
-                || !TryParseTileRow(back.Tiles[0], out var at, out var element, out var reaction, out int growth,
-                                    out var memorial, out var glyph)
-                || at != new Vector2I(3, -1) || element != "Lightning" || reaction != "Brittle" || growth != 2
-                || memorial != "Read-Ahead" || glyph != "The Seventh Name")
-                fails.Add("the tableau's tile row changed on the round trip");
+            if (back.Tiles == null || back.Tiles.Count != 2 || back.Tiles[0] != probe.Tiles[0] || back.Tiles[1] != OldRow)
+                fails.Add("the tableau's tile rows changed on the round trip");
+            else
+            {
+                string differs = Differs(tileProbe, back.Tiles[0]);
+                if (differs.Length > 0)
+                    fails.Add($"the tableau's full tile row did not read back: {differs}");
+                if (!TryParseTile(back.Tiles[1], out var old) || old.Full || old.At != new Vector2I(8, -3)
+                    || old.Element != "Lightning" || old.Reaction.Length > 0 || old.Growth != 0)
+                    fails.Add("a tile row from before the full floor no longer reads");
+            }
 
             var none = JsonSerializer.Deserialize<EternalLedger>(
                 JsonSerializer.Serialize(new EternalLedger(), SaveManager.JsonOptions), SaveManager.JsonOptions);
@@ -277,6 +430,104 @@ public sealed class LongSecondTableau
             fails.Add($"the tableau round trip threw: {e.Message}");
         }
         return fails;
+    }
+
+    /// <summary>A tile row with every value away from its default.</summary>
+    private static TableauTileRow Probe() => new()
+    {
+        At = new Vector2I(3, -1),
+        Element = "Lightning",
+        Reaction = "Brittle",
+        Growth = 2,
+        Memorial = "Read-Ahead",
+        Glyph = "The Seventh Name",
+        Full = true,
+        Height = 2,
+        Terrain = "Ice",
+        Modifier = "rubble",
+        Scar = "rubble",
+        MoveCost = 3,
+        BaseMoveCost = 2,
+        Hazardous = true,
+        Walkable = false,
+        Blocked = true,
+        BlocksSight = true,
+        Cover = "Low",
+        Obstacle = "glacier",
+        ObstacleHp = 7,
+        Strength = 0.625f,
+        ReactionRounds = 2,
+        ReactionTeam = 1,
+        GrowthAge = 3,
+        GrowthTeam = 0,
+        Carcass = 4,
+        Discount = 1,
+        DiscountTurns = 2,
+        MemorialState = "Established",
+        MemorialStrength = "Solid",
+        MemorialAlly = true,
+        MemorialTeam = 1,
+        MemorialSourceTeam = 0,
+        MemorialTurns = 5,
+        GlyphCard = "probe_card",
+        GlyphHalf = "b",
+        GlyphTeam = 1,
+        GlyphTrigger = "StartOfTurn",
+        GlyphReflect = 2,
+    };
+
+    /// <summary>The fields of <paramref name="row"/> that do not read back as <paramref name="want"/>,
+    /// named; empty when every one does.</summary>
+    private static string Differs(TableauTileRow want, string row)
+    {
+        if (!TryParseTile(row, out var got) || got == null)
+            return "the row does not parse";
+        var bad = new List<string>();
+        void Check(string name, bool same)
+        {
+            if (!same)
+                bad.Add(name);
+        }
+        Check("coordinate", got.At == want.At);
+        Check("element", got.Element == want.Element);
+        Check("reaction", got.Reaction == want.Reaction);
+        Check("growth", got.Growth == want.Growth);
+        Check("memorial", got.Memorial == want.Memorial);
+        Check("glyph", got.Glyph == want.Glyph);
+        Check("full", got.Full);
+        Check("height", got.Height == want.Height);
+        Check("terrain", got.Terrain == want.Terrain);
+        Check("modifier", got.Modifier == want.Modifier);
+        Check("scar", got.Scar == want.Scar);
+        Check("cost", got.MoveCost == want.MoveCost);
+        Check("base cost", got.BaseMoveCost == want.BaseMoveCost);
+        Check("hazard", got.Hazardous == want.Hazardous);
+        Check("walkable", got.Walkable == want.Walkable);
+        Check("blocked", got.Blocked == want.Blocked);
+        Check("sight", got.BlocksSight == want.BlocksSight);
+        Check("cover", got.Cover == want.Cover);
+        Check("obstacle", got.Obstacle == want.Obstacle);
+        Check("obstacle health", got.ObstacleHp == want.ObstacleHp);
+        Check("strength", Math.Abs(got.Strength - want.Strength) < 1e-4f);
+        Check("reaction rounds", got.ReactionRounds == want.ReactionRounds);
+        Check("reaction team", got.ReactionTeam == want.ReactionTeam);
+        Check("growth age", got.GrowthAge == want.GrowthAge);
+        Check("growth team", got.GrowthTeam == want.GrowthTeam);
+        Check("carcass", got.Carcass == want.Carcass);
+        Check("discount", got.Discount == want.Discount);
+        Check("discount turns", got.DiscountTurns == want.DiscountTurns);
+        Check("memorial state", got.MemorialState == want.MemorialState);
+        Check("memorial strength", got.MemorialStrength == want.MemorialStrength);
+        Check("memorial ally", got.MemorialAlly == want.MemorialAlly);
+        Check("memorial team", got.MemorialTeam == want.MemorialTeam);
+        Check("memorial source", got.MemorialSourceTeam == want.MemorialSourceTeam);
+        Check("memorial turns", got.MemorialTurns == want.MemorialTurns);
+        Check("glyph card", got.GlyphCard == want.GlyphCard);
+        Check("glyph half", got.GlyphHalf == want.GlyphHalf);
+        Check("glyph team", got.GlyphTeam == want.GlyphTeam);
+        Check("glyph trigger", got.GlyphTrigger == want.GlyphTrigger);
+        Check("glyph reflect", got.GlyphReflect == want.GlyphReflect);
+        return string.Join(", ", bad);
     }
 
     /// <summary>The default floor reads, names a map, and holds only Keepers that resolve, on
@@ -305,7 +556,7 @@ public sealed class LongSecondTableau
                 fails.Add($"default tableau: two figures stand on {figure.Q},{figure.R}");
         }
         foreach (var row in t.Tiles ?? new List<string>())
-            if (!TryParseTileRow(row, out _, out _, out _, out _, out _, out _))
+            if (!TryParseTile(row, out _))
                 fails.Add($"default tableau: tile row '{row}' does not parse");
         return fails;
     }
@@ -328,6 +579,47 @@ public sealed class TableauFigure
     public float Facing;
     /// <summary>The Fracture resumes them as they were. 0 in the default file is full health.</summary>
     public int Health, MaxHealth;
+    /// <summary>The rest of the damage it had taken (S4a): its armor and shield as they stood, its
+    /// poise, and the maximum health withered away. The default file's Keepers are whole.</summary>
+    public int Armor, Shield, Poise, WitheredMaxHp;
     /// <summary>"status:turns;..." with each live Name as "named:turns".</summary>
     public string Statuses = "";
+}
+
+/// <summary>One tile row of the tableau's floor, read (TryParseTile) or to write (Row). Never saved
+/// itself: the tableau keeps the rows, so a row from before the full floor still reads, with Full
+/// false and its ground left as the map builds it.</summary>
+public sealed class TableauTileRow
+{
+    public Vector2I At;
+
+    // ── The marks: the six fields every row has ──────────────────────────
+    public string Element = "", Reaction = "", Memorial = "", Glyph = "";
+    public int Growth;
+
+    // ── The ground, and the marks' details: the seventh field (S4a) ───────
+    /// <summary>True when the row carried the seventh field.</summary>
+    public bool Full;
+    public int Height;
+    /// <summary>TileTerrainType, CoverKind and the obstacle kind by name; "" when not carried.</summary>
+    public string Terrain = "", Modifier = "", Scar = "", Cover = "", Obstacle = "";
+    public int MoveCost = 1, BaseMoveCost = 1, ObstacleHp;
+    public bool Hazardous, Walkable = true, Blocked, BlocksSight;
+    public float Strength = 1f;
+    public int ReactionRounds, ReactionTeam = -1;
+    /// <summary>The growth's age, and its owner's side (-1: none).</summary>
+    public int GrowthAge, GrowthTeam = -1;
+    public int Carcass, Discount, DiscountTurns;
+    /// <summary>The memorial's MemorialState and MemorialStrength by name, and the rest of it.</summary>
+    public string MemorialState = "", MemorialStrength = "";
+    public bool MemorialAlly;
+    public int MemorialTeam, MemorialSourceTeam = -1, MemorialTurns;
+    /// <summary>The glyph's card (its sigil), its side, and its GlyphTrigger by name.</summary>
+    public string GlyphCard = "", GlyphHalf = "", GlyphTrigger = "";
+    public int GlyphTeam, GlyphReflect;
+
+    /// <summary>Anything on the tile the fight marked: an element, a reaction, growth, a memorial
+    /// or a glyph.</summary>
+    public bool HasMarks => Element.Length > 0 || Reaction.Length > 0 || Growth > 0
+                            || Memorial.Length > 0 || Glyph.Length > 0;
 }

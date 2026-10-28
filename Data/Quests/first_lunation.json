@@ -1,0 +1,53 @@
+[
+  {
+    "id": "q_first_lunation",
+    "title": "The First Lunation",
+    "category": "First Lunation",
+    "permanent": true,
+    "layer": "Eternal",
+    "summary": "The Academy is stopped in its afternoon, and the guild is one candidate and a book. Out past the gate the world is moving, and the Grand Conjunction is twelve moons off. The Register suggests learning the way around before the first moon turns.",
+    "requiredFlag": "prologue_founding_done",
+    "objectives": [
+      {
+        "text": "Open the guild's ledger in the Grand Hall",
+        "counter": "tutorial:ledger"
+      },
+      {
+        "text": "Look over your forces",
+        "counter": "tutorial:forces"
+      },
+      {
+        "text": "Equip someone at the Armory",
+        "counter": "tutorial:equip"
+      },
+      {
+        "text": "Look over your cards in the Sanctum",
+        "counter": "tutorial:deck"
+      },
+      {
+        "text": "Go out to the world map",
+        "counter": "tutorial:world"
+      },
+      {
+        "text": "Sortie the castle",
+        "counter": "tutorial:sortie"
+      },
+      {
+        "text": "Win a fight in the field",
+        "counter": "tutorial:fight"
+      },
+      {
+        "text": "Come home from the field",
+        "counter": "tutorial:home"
+      },
+      {
+        "text": "Pass time to the new moon",
+        "counter": "tutorial:moon"
+      },
+      {
+        "text": "Open the quest log",
+        "counter": "tutorial:quests"
+      }
+    ]
+  }
+]

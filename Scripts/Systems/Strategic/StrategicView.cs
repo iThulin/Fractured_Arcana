@@ -284,6 +284,7 @@ public partial class StrategicView : Node2D
                     CallDeferred(nameof(RouteToPrologue));
                     return;
                 }
+                FirstLunation.AssertOnce();   // S5: logs only, once per process
 
                 // Real strategic scene: read the resident cycle world.
                 var cycle = SaveManager.ActiveSave?.Cycle;
@@ -1844,6 +1845,7 @@ public partial class StrategicView : Node2D
         }
         // Restoration advances change the grounds themselves (ruined → active
         // → restored stamps), so rebuild the 3D grounds after the beat applies.
+        RegisterManager.Fire("campus.first_landmark");   // S5: taught when first met
         ShowFloatedPanelNarrative(enc, onApplied: () => _atlas3D?.RefreshCityGrowth());
     }
 
@@ -1861,6 +1863,7 @@ public partial class StrategicView : Node2D
         _buildMode = pressed;
         if (pressed)
         {
+            RegisterManager.Fire("campus.first_build");   // S5: taught when first met
             if (_annexButton != null) _annexButton.ButtonPressed = false;
             EnsureCityExploreToasts();
             _cityExploreToasts?.Push("Build mode: click open ground to choose what to raise there.",
@@ -2074,6 +2077,8 @@ public partial class StrategicView : Node2D
     /// Return-to-Campus button can hide itself while we're already home.</summary>
     private void OnCityModeChanged(bool on)
     {
+        if (!on)
+            FirstLunation.Tick(FirstLunation.World);   // S5: out to the world map
         HudManager.Instance?.RefreshVisibility();
         bool home = _atlas3D?.ActiveCityIsHome ?? true;
         // Annexing/building are home-campus affordances only; hide them in an NPC city (Phase 3).
@@ -2125,9 +2130,9 @@ public partial class StrategicView : Node2D
         bool city = _atlas3D?.CityMode ?? false;
         bool home = _atlas3D?.ActiveCityIsHome ?? true;
         _hintLabel.Text = !city
-            ? "Click a gold beacon to deploy an expedition  ·  Q/E to rotate  ·  zoom into your city to return home."
+            ? "Pick a force in FORCES to give it orders  ·  \u263D Pass time lets the days go by  ·  Q/E to rotate  ·  wheel in over your city to go home."
             : home
-                ? "Click a building to open it  ·  ⚒ Build raises new buildings  ·  Q/E to rotate  ·  ↑ To the World Map to send expeditions."
+                ? "Click a building to open it  ·  ⚒ Build raises new buildings  ·  Q/E to rotate  ·  Escape goes up to the world map."
                 : "Click a fogged district to scout it  ·  click a revealed marker to enter it.";
     }
 
@@ -2179,16 +2184,24 @@ public partial class StrategicView : Node2D
             vbox.AddChild(l);
         }
 
-        HelpLine("•  Every building is a working room of the guild. Click one to open it.");
-        HelpLine("•  The Grand Hall keeps the guild ledger and your save slots.");
-        HelpLine("•  The Gatehouse Yard mounts expeditions.");
-        HelpLine("•  ⚒ Build raises new buildings on open ground.");
-        HelpLine("•  ＋ Annex a district buys a neighbouring tile when the guild outgrows its walls.");
-        HelpLine("•  ↑ To the World Map ascends to the strategic view. Click a gold staging " +
-                 "beacon there to deploy an expedition.");
-        HelpLine("•  Each expedition costs one lunation of the calendar. When the calendar " +
-                 "runs out, the cycle ends at the Grand Conjunction.");
+        HelpLine("•  The world map is the guild's home, and your city is one zoom of it: wheel in over the " +
+                 "city, or press \u25C8 To the home city at the head of FORCES. Escape goes back up.");
+        HelpLine("•  In the city, every building is a room of the guild. Click one to open it: the Grand Hall " +
+                 "keeps the ledger and your save slots, the Armory your gear, the Sanctum your cards.");
+        HelpLine("•  ⚒ Build raises a new building on open ground. ＋ Annex a district buys more ground " +
+                 "when the walls get tight.");
+        HelpLine("•  FORCES lists the castle and your parties. Click one to give it orders.");
+        HelpLine("•  The castle sorties from where it stands. Fuel is the budget, and the days a sortie " +
+                 "costs are charged when it comes home.");
+        HelpLine("•  Days pass only when you press \u263D Pass time. It stops at the next thing that needs " +
+                 "you, or at the new moon.");
+        HelpLine($"•  Every new moon ({CalendarState.DaysPerLunation} days) the world takes its turn. After " +
+                 $"{SaveManager.ActiveSave?.Cycle?.Calendar?.LunationsPerCycle ?? 12}, the Grand Conjunction " +
+                 "ends the reading.");
         HelpLine("•  Camera: WASD or left-drag pans · wheel zooms · Q/E or middle-drag rotates.");
+        if (FirstLunation.Current(SaveManager.ActiveSave) != null)
+            HelpLine("•  While you learn the way around, the Next line in the top bar names the next step. " +
+                     "Click it to go there.");
 
         var okBtn = new Button
         {
@@ -2214,6 +2227,7 @@ public partial class StrategicView : Node2D
     private void ShowCityServices()
     {
         if (_cityServices != null || (_atlas3D?.ActiveCityIsHome ?? true)) return;
+        RegisterManager.Fire("strategic.first_city_services");   // S5: taught when first met
         if (_atlas3D != null) _atlas3D.AcceptInput = false;
         _cityServices = CityServicesHost.Create(
             _atlas3D?.ActiveCityName ?? "", _atlas3D?.ActiveCity, HideCityServices);
@@ -3086,6 +3100,8 @@ public partial class StrategicView : Node2D
         _annexButton.Visible = cityNow && homeNow;
         _annexButton.Toggled += pressed =>
         {
+            if (pressed)
+                RegisterManager.Fire("campus.first_build");   // S5: taught when first met
             _atlas3D?.SetAnnexMode(pressed);
             // One ground-click mode at a time: arming annex disarms build.
             if (pressed && _buildModeBtn != null) _buildModeBtn.ButtonPressed = false;
@@ -4120,6 +4136,19 @@ public partial class StrategicView : Node2D
         if (ShowPendingExamOutcome())
             return;
         string screen = InCityView && (_atlas3D?.ActiveCityIsHome ?? false) ? "campus" : "strategic";
+        // S4: once the Anchorhold has been seen, the founding (and the Door after it) waits in the
+        // Grand Hall, a scene of its own. A quit there comes back to it here.
+        if (FoundingStage.Due(SaveManager.ActiveSave))
+        {
+            FoundingStage.Enter(GetTree());
+            return;
+        }
+        // S5: a step the top bar's Next line asked for from another screen (FirstLunation.Go).
+        if (FirstLunation.TakePendingGo(out string step))
+        {
+            FirstLunationGo(step);
+            return;
+        }
         var enc = ChronicleScheduler.DrainIfQuiet(screen);
         if (enc != null)
             ShowFloatedPanelNarrative(enc);
@@ -4616,6 +4645,7 @@ public partial class StrategicView : Node2D
         string ctrl = SupplyCacheSystem.ControllerOf(poi);
         bool guildOwned = ctrl == KingdomTickSimulation.GuildFactionId;
         var siege = SupplyCacheSystem.SiegeFor(cycle, poiIndex);
+        RegisterManager.Fire("strategic.first_depot");   // S5: taught when first met
 
         _supplyUi?.QueueFree();
         _supplyUi = new CanvasLayer { Name = "SupplyCacheUI" };
@@ -4972,6 +5002,7 @@ public partial class StrategicView : Node2D
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle == null || !wf.HasFocus)
             return;
+        RegisterManager.Fire("strategic.first_warfront");   // S5: taught when first met
 
         _warfrontUi?.QueueFree();
         _warfrontUi = new CanvasLayer { Name = "WarfrontUI" };
@@ -6497,6 +6528,7 @@ public partial class StrategicView : Node2D
         {
             return;   // refused; the caller already said why
         }
+        RegisterManager.Fire("strategic.first_march");   // S5: taught when first met
 
         cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
         cycle.PendingSiegeReports.Add(line);
@@ -6765,6 +6797,7 @@ public partial class StrategicView : Node2D
             GD.Print($"[StrategicView] Field party dives from '{_pendingStaging.Name}' "
                      + $"({_pendingStaging.X},{_pendingStaging.Y}) on day {WorldClock.Now(cycle)}.");
 
+            FirstLunation.Tick(FirstLunation.Sortie);   // S5
             GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
             return;
         }
@@ -6808,6 +6841,7 @@ public partial class StrategicView : Node2D
                  $"Lunation {cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle} " +
                  $"· {cycle.Calendar.CurrentMoonName}.");
 
+        FirstLunation.Tick(FirstLunation.Sortie);   // S5
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
     }
 

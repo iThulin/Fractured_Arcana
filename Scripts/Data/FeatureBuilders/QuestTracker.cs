@@ -22,6 +22,8 @@ using System.Collections.Generic;
 //   "declare:<school>:<step>" → a step toward declaring the
 //                     school (E5, the first goal): teacher,
 //                     mastery, hall, practical, named
+//   "tutorial:<step>" → a step of the first lunation (S5,
+//                     FirstLunation): 1 once it is done
 //   Plus the original named counters for backwards compat.
 // ============================================================
 
@@ -67,7 +69,7 @@ public static class QuestTracker
     /// time it is retuned. Currently: "mastery:" defers to
     /// SchoolMasteryService.FluencyThreshold, and "declare:" to
     /// SchoolMasteryService.DeclarableThreshold for its mastery step and 1 for
-    /// the rest.</summary>
+    /// the rest; "tutorial:" to 1 (a step is done or it is not).</summary>
     public static int TargetFor(QuestObjective o)
     {
         if (o == null) return 0;
@@ -76,6 +78,8 @@ public static class QuestTracker
             return SchoolMasteryService.FluencyThreshold;
         if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith("declare:"))
             return o.Counter.EndsWith(":mastery") ? SchoolMasteryService.DeclarableThreshold : 1;
+        if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith(FirstLunation.CounterPrefix))
+            return 1;
         return 0;
     }
 
@@ -165,6 +169,13 @@ public static class QuestTracker
         // Quest JSON example: { "counter": "declare:Elementalist:practical" }
         if (counter.StartsWith("declare:"))
             return DeclareStep(counter.Substring(8), save);
+
+        // ── Generic family: tutorial:<step> ─────────────────────────────
+        // A step of the first lunation (S5), read live by FirstLunation:
+        // its tick on the save, or the save's own state where it says so.
+        // Quest JSON example: { "counter": "tutorial:sortie" }
+        if (counter.StartsWith(FirstLunation.CounterPrefix))
+            return FirstLunation.Count(counter.Substring(FirstLunation.CounterPrefix.Length), save);
 
         // ── Named counters (original, backwards-compatible) ─────────────
         switch (counter)

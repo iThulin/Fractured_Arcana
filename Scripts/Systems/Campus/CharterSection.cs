@@ -65,6 +65,7 @@ public static class CharterSection
                 "No building has reached its doctrine tier yet. Raise one to its third tier to charter a doctrine."));
             return;
         }
+        RegisterManager.Fire("campus.first_charter");   // S5: taught when first met
         buildings.Sort((a, b) => string.CompareOrdinal(a.template.Name, b.template.Name));
 
         foreach (var (template, tier) in buildings)

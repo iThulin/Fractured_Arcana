@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 // ============================================================
 // HallStage.cs
@@ -17,10 +18,12 @@ using System.Collections.Generic;
 //                 camera frames them, and this stands everything where it
 //                 stopped. From the save's tableau: every Keeper and
 //                 summon on its tile, turned the way it was going, and the
-//                 floor's elements, reactions, growth, memorials and
-//                 glyphs. From canon and the fight's fixed beats: every
-//                 break in the hall, the archmagi at their chairs (the
-//                 spent ones down on one knee), the traitor at the sphere,
+//                 floor as the fight left it, its ground (heights, rubble,
+//                 obstacles, scars) and its marks (elements, reactions,
+//                 growth, memorials, glyphs). From canon and the fight's
+//                 fixed beats: every break in the hall, the archmagi at
+//                 their chairs (the spent ones down on one knee), the
+//                 traitor at the sphere,
 //                 the Provost at the lectern with her last words in the
 //                 air, the Examiner, the class down behind the benches,
 //                 the sphere in its six shards (the fragments brought home
@@ -36,7 +39,8 @@ using System.Collections.Generic;
 // Layer:          Prologue / presentation
 // Collaborators:  LongSecondTableau (the save), HallSet (.Sundering: the
 //                 cast, the breaks, the settled sphere and folio, the
-//                 spell), HexGridManager, Unit, SpeechBubble,
+//                 spell), StageField (the battlefield without its
+//                 fight), HexGridManager, Unit, SpeechBubble,
 //                 CampusLandmarkRegistry (the hall's panel),
 //                 NarrativeOutcome, NarrativeEncounterPanel,
 //                 SceneTransition, PrologueDirector, StrategicView and
@@ -47,11 +51,7 @@ using System.Collections.Generic;
 public partial class HallStage : Node3D
 {
     public const string ScenePath = "res://Scenes/Prologue/HallStage.tscn";
-    private const string FieldScenePath = "res://Scenes/Combat/Battlefield.tscn";
     private const string DefaultRecipe = "ceremony_hall_sundering";
-    /// <summary>The fight's nodes, taken out of its scene before it enters the tree: the fight itself,
-    /// its HUD, the hand and the cards.</summary>
-    private static readonly string[] FightNodes = { "GameRunner", "CombatUI", "DeckUI", "Player", "CardData", "CardDropHandler" };
     private const string ClassId = "class";
     private const string ExaminerId = "examiner";
 
@@ -78,6 +78,7 @@ public partial class HallStage : Node3D
     private static readonly Color GhostAlbedo = new(0.72f, 0.88f, 1.0f, 0.45f);
     private static readonly Color GhostGlow = new(0.55f, 0.78f, 1.0f);
 
+    private StageField _field;
     private HexGridManager _grid;
     private CameraController _camera;
     private PackedScene _unitScene;
@@ -87,6 +88,8 @@ public partial class HallStage : Node3D
     private LongSecondTableau _tableau;
     private SunderingVolleySet _words;
     private readonly List<Unit> _figures = new();
+    /// <summary>The tableau's floor: each row with its tile (ReadTheFloor).</summary>
+    private readonly List<(TileData tile, TableauTileRow row)> _floor = new();
     private readonly HashSet<string> _spent = new();
     private int _waited;
     private bool _built;
@@ -152,42 +155,21 @@ public partial class HallStage : Node3D
         BuildUi();
     }
 
-    /// <summary>The fight's scene without the fight: the grid (set to the tableau's map), the hall it
-    /// builds, the camera, the light and the environment. The two unit scenes the fight spawns from are
-    /// kept for the frozen ones: the dummy's (Keepers and most summons) and the player's (wildlife).</summary>
+    /// <summary>The fight's scene without the fight (StageField): the grid (set to the tableau's map),
+    /// the hall it builds, the camera, the light and the environment. The two unit scenes the fight
+    /// spawns from are kept for the frozen ones: the dummy's (Keepers and most summons) and the
+    /// player's (wildlife).</summary>
     private bool BuildField()
     {
-        var packed = GD.Load<PackedScene>(FieldScenePath);
-        var field = packed?.Instantiate<Node3D>();
-        if (field == null)
-        {
-            GD.PushError($"[HallStage] {FieldScenePath} does not load: back to the city.");
+        // The recipe is authored throughout: any seed builds the same hall.
+        string recipe = !string.IsNullOrEmpty(_tableau?.MapRecipe) ? _tableau.MapRecipe : DefaultRecipe;
+        _field = StageField.Build(this, recipe, 1, "HallStage");
+        if (_field == null)
             return false;
-        }
-        if (field.GetNodeOrNull("GameRunner") is CombatManager fight)
-        {
-            _unitScene = fight.DummyUnitScene;
-            _wildScene = fight.PlayerUnitScene;
-        }
-        foreach (var name in FightNodes)
-        {
-            var node = field.GetNodeOrNull(name);
-            if (node == null)
-                continue;
-            field.RemoveChild(node);
-            node.Free();
-        }
-        _grid = field.GetNodeOrNull<HexGridManager>("HexGridManager");
-        _camera = field.GetNodeOrNull<CameraController>("CameraController");
-        if (_grid == null)
-        {
-            GD.PushError("[HallStage] The battlefield has no HexGridManager: back to the city.");
-            field.Free();
-            return false;
-        }
-        _grid.MapRecipeId = !string.IsNullOrEmpty(_tableau?.MapRecipe) ? _tableau.MapRecipe : DefaultRecipe;
-        _grid.MapSeed = 1;   // the recipe is authored throughout: any seed builds the same hall
-        AddChild(field);     // the grid builds itself once the frame settles (HexGridManager._Ready)
+        _grid = _field.Grid;
+        _camera = _field.Camera;
+        _unitScene = _field.DummyUnitScene;
+        _wildScene = _field.PlayerUnitScene;
         return true;
     }
 
@@ -215,15 +197,7 @@ public partial class HallStage : Node3D
     }
 
     /// <summary>The Ceremony Hall round the board, once the grid has built it.</summary>
-    private HallSet FindHall()
-    {
-        if (_grid == null || !IsInstanceValid(_grid) || _grid.Tiles.Count == 0)
-            return null;
-        foreach (Node child in _grid.GetChildren())
-            if (child is HallSet hall && !hall.IsQueuedForDeletion() && hall.IsCeremonyHall)
-                return hall;
-        return null;
-    }
+    private HallSet FindHall() => _field?.FindHall(hall => hall.IsCeremonyHall);
 
     // ════════════════════════════════════════════════════════════════════════
     //  The frozen fight
@@ -263,24 +237,27 @@ public partial class HallStage : Node3D
         if (_cast.Traitor != null)
             hall.HangSpell();   // the spell is the traitor's: with no traitor there is none
 
-        // The figures stand on bare tiles first: a tile's entry reactions (Unit.PlaceOnTile) would
-        // sear a Keeper standing in fire or set off a glyph under one. The floor's marks go down
-        // after, as plain writes that never touch whoever stands there. The last fight's conduit links
-        // stay listed until the next fight clears them as it starts; their units are gone, but one
-        // would still zap a figure set down on its old line, so they go first. The hall is no fight.
+        // The floor in three passes. Its ground first, so every figure stands at its tile's height
+        // and none where an obstacle is. Then the figures, on tiles with no marks yet: a tile's entry
+        // reactions (Unit.PlaceOnTile) would sear a Keeper standing in fire or set off a glyph under
+        // one. Then the marks, as plain writes that never touch whoever stands there. The last fight's
+        // conduit links stay listed until the next fight clears them as it starts; their units are
+        // gone, but one would still zap a figure set down on its old line, so they go first. The hall
+        // is no fight. An earlier scene's stamps in the ground's element field would show on this
+        // floor, so the field is cleared before the marks: only the tableau's belong here.
+        ReadTheFloor();
         ConduitLinkSystem.Clear();
+        LayTheGround();
         StandTheFigures();
-        // The ground's element field keeps every stamp until something clears it (nothing does as a
-        // fight ends), so an earlier scene's scorch or frost would show on this floor. Only the
-        // tableau's marks belong here.
         ImbuementField.Clear();
-        LayTheFloor();
+        LayTheMarks();
         CatchTheStrays();
         FrameTheHall();
         SayTheLastWords();
         _settle = SettleFrames;
         GD.Print($"[HallStage] The hall, as it stopped: {_figures.Count} figure(s) on the floor, "
-                 + $"{_tableau?.Tiles?.Count ?? 0} marked tile(s), spent [{string.Join(", ", _spent)}].");
+                 + $"{_floor.Count} tile(s) of floor ({_floor.Count(f => f.row.Full)} with their ground), "
+                 + $"spent [{string.Join(", ", _spent)}].");
     }
 
     /// <summary>Everything stops: the hall's set, and every figure on the floor. Then its panel.</summary>
@@ -293,52 +270,141 @@ public partial class HallStage : Node3D
         GetTree().CreateTimer(PanelDelay, processAlways: false).Timeout += ShowHallPanel;   // waits out a pause
     }
 
-    /// <summary>The floor's marks as the tableau keeps them: elements, reactions, growth, memorials
-    /// (where something fell) and glyphs.</summary>
-    private void LayTheFloor()
+    /// <summary>The tableau's floor rows, each with its tile, read once (LongSecondTableau.TryParseTile).
+    /// A row whose tile is not on this board is passed over.</summary>
+    private void ReadTheFloor()
     {
+        _floor.Clear();
         if (_tableau?.Tiles == null)
             return;
-        foreach (var row in _tableau.Tiles)
+        foreach (var text in _tableau.Tiles)
         {
-            if (!LongSecondTableau.TryParseTileRow(row, out var at, out var element, out var reaction,
-                                                   out int growth, out var memorial, out var glyph))
+            if (!LongSecondTableau.TryParseTile(text, out var row))
                 continue;
-            var tile = _grid.GetTile(at);
-            if (tile == null)
-                continue;
-            if (Enum.TryParse<TileElementType>(element, true, out var kind) && kind != TileElementType.None)
-                ElementReactions.WriteRaw(tile, kind);
-            if (Enum.TryParse<ElementReaction>(reaction, true, out var marked) && marked != ElementReaction.None)
-                MarkReaction(tile, marked);
-            if (growth > 0)
-            {
-                tile.GrowthStage = growth;
-                tile.TileView?.SetGrowth(growth);
-            }
-            if (memorial.Length > 0)
-            {
-                tile.Memorial = new MemorialData(memorial, false, MemorialStrength.Faint, 0);
-                tile.TileView?.SetMemorial(tile.Memorial);
-            }
-            if (glyph.Length > 0)
-            {
-                tile.Glyph = new GlyphData { SourceName = glyph, OwnerTeam = 0 };
-                tile.TileView?.ShowGlyph(tile.Glyph);
-            }
+            var tile = _grid.GetTile(row.At);
+            if (tile != null)
+                _floor.Add((tile, row));
         }
     }
 
-    /// <summary>A reaction's mark on a tile, as ElementReactions leaves it, without its effects.</summary>
-    private static void MarkReaction(TileData tile, ElementReaction reaction)
+    /// <summary>The ground as the fight left it, from each row that carries it (an older row's ground
+    /// is the map's): the height, raised as a card raises a tile; the terrain, its rubble and its cost;
+    /// the hazard; an obstacle with its health (a Glacier's ice); the scar; and what growth and the dead
+    /// left in the soil.</summary>
+    private void LayTheGround()
+    {
+        bool obstacles = false;
+        foreach (var (tile, row) in _floor)
+        {
+            if (!row.Full)
+                continue;
+            if (tile.Height != row.Height)
+            {
+                tile.Height = row.Height;
+                tile.TileView?.SetHeight(row.Height);
+            }
+            if (Enum.TryParse<TileTerrainType>(row.Terrain, true, out var terrain))
+                tile.TerrainType = terrain;
+            tile.TerrainModifier = row.Modifier;
+            tile.MoveCost = row.MoveCost;
+            tile.BaseMoveCost = row.BaseMoveCost;
+            tile.IsHazardous = row.Hazardous;
+            if (tile.IsBlocked || (tile.ObstacleKind ?? "").Length > 0 || row.Blocked || row.Obstacle.Length > 0)
+                obstacles = true;
+            tile.IsWalkable = row.Walkable;
+            tile.IsBlocked = row.Blocked;
+            tile.BlocksLineOfSight = row.BlocksSight;
+            tile.AuthoredCover = Enum.TryParse<CoverKind>(row.Cover, true, out var cover) ? cover : CoverKind.None;
+            tile.ObstacleKind = row.Obstacle;
+            tile.ObstacleHp = row.ObstacleHp;
+            tile.CarcassTicks = row.Carcass;
+            tile.SummonDiscount = row.Discount;
+            tile.SummonDiscountTurns = row.DiscountTurns;
+            tile.TileView?.SetTerrainScar(row.Scar);
+            _grid.ApplyVisualToTile(tile);
+        }
+        if (obstacles)
+            _grid.RefreshObstacleVisuals();
+    }
+
+    /// <summary>The marks as the fight left them: elements at their strength, reactions with their
+    /// rounds and side, growth with its age, memorials in their state (where something fell), and
+    /// glyphs in their own sigils. An older row's details are the ones the fight starts a mark with.</summary>
+    private void LayTheMarks()
+    {
+        foreach (var (tile, row) in _floor)
+        {
+            if (Enum.TryParse<TileElementType>(row.Element, true, out var kind) && kind != TileElementType.None)
+                ElementReactions.WriteRaw(tile, kind, row.Full ? row.Strength : 1f);
+            if (Enum.TryParse<ElementReaction>(row.Reaction, true, out var marked) && marked != ElementReaction.None)
+                MarkReaction(tile, marked, row);
+            if (row.Growth > 0)
+            {
+                tile.GrowthStage = row.Growth;
+                tile.GrowthAge = row.GrowthAge;
+                tile.TileView?.SetGrowth(row.Growth);
+            }
+            if (row.Memorial.Length > 0)
+            {
+                tile.Memorial = MemorialOf(row);
+                tile.TileView?.SetMemorial(tile.Memorial);
+            }
+            if (row.Glyph.Length > 0)
+            {
+                tile.Glyph = GlyphOf(row);
+                tile.TileView?.ShowGlyph(tile.Glyph);
+            }
+            if (row.Full)
+                tile.IsHazardous = row.Hazardous;   // an element's write works the hazard out again; the fight's stands
+        }
+    }
+
+    /// <summary>A reaction's mark on a tile, as ElementReactions leaves it, without its effects. A full
+    /// row brings its rounds, its side and its scar (laid with the ground); an older row has the ones
+    /// the reaction starts with.</summary>
+    private static void MarkReaction(TileData tile, ElementReaction reaction, TableauTileRow row)
     {
         tile.Reaction = reaction;
-        tile.ReactionRounds = reaction == ElementReaction.Fulgurite ? -1 : 1;
+        tile.ReactionRounds = row.Full ? row.ReactionRounds : reaction == ElementReaction.Fulgurite ? -1 : 1;
+        tile.ReactionTeam = row.Full ? row.ReactionTeam : -1;
         if (reaction == ElementReaction.Magma)
             tile.TileView?.SetElement(TileElementType.Fire);   // reads as molten
-        if (reaction == ElementReaction.Fulgurite)
+        if (reaction == ElementReaction.Fulgurite && !row.Full)
             tile.TileView?.SetTerrainScar("rubble");
         tile.TileView?.SetReaction(reaction, tile.ReactionRounds);
+    }
+
+    /// <summary>A memorial as the fight left it: its name, side and strength, and from a full row its
+    /// state (Fresh, Established, Hallowed), its source and its age.</summary>
+    private static MemorialData MemorialOf(TableauTileRow row)
+    {
+        var strength = Enum.TryParse<MemorialStrength>(row.MemorialStrength, true, out var s) ? s : MemorialStrength.Faint;
+        var memorial = new MemorialData(row.Memorial, row.MemorialAlly, strength, row.MemorialTeam);
+        if (row.Full)
+        {
+            if (Enum.TryParse<MemorialState>(row.MemorialState, true, out var state))
+                memorial.State = state;
+            memorial.SourceTeamId = row.MemorialSourceTeam;
+            memorial.TurnsAlive = row.MemorialTurns;
+        }
+        return memorial;
+    }
+
+    /// <summary>A glyph as it shows: its name, and from a full row its card (so its own sigil is
+    /// drawn, not the plain marker), its side and its trigger (which set its colors).</summary>
+    private static GlyphData GlyphOf(TableauTileRow row)
+    {
+        var glyph = new GlyphData
+        {
+            SourceName = row.Glyph,
+            SourceCardId = row.GlyphCard,
+            SourceHalf = row.GlyphHalf,
+            OwnerTeam = row.GlyphTeam,
+            ReflectCharges = row.GlyphReflect,
+        };
+        if (Enum.TryParse<GlyphTrigger>(row.GlyphTrigger, true, out var trigger))
+            glyph.Trigger = trigger;
+        return glyph;
     }
 
     /// <summary>Every unit the tableau keeps, on its tile, turned the way it was going, in the colors the

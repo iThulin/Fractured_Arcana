@@ -499,6 +499,7 @@ public sealed class CampusArmoryPanel : CampusPanel
                     if (currentInstanceId != null)
                         save.Armory.Unequip(_selectedUnitId, itemSlot);
                     save.Armory.Equip(_selectedUnitId, capturedInstId);
+                    FirstLunation.Tick(FirstLunation.Equip);   // S5: the first lunation's Armory step
                     SaveManager.Save();
                     Refresh();
                 };
