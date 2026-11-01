@@ -1,0 +1,261 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Systems/Prologue/DirectionCues.cs" id="1_474cu"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ptdk6"]
+albedo_color = Color(0.7, 0.66, 0.58, 1)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_5x1s8"]
+radius = 0.22
+height = 1.75
+
+[sub_resource type="BoxMesh" id="BoxMesh_kuefo"]
+size = Vector3(0.1, 0.1, 0.3)
+
+[sub_resource type="Animation" id="Animation_kl00k"]
+
+[sub_resource type="Animation" id="Animation_kiq4i"]
+length = 1.8
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lens")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, -2, -11.370001, 1.7, -0.8000002, 1.8, 1, -17.32, 2.0900002, 0.1500001)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lens")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, -2, -0.010481616, 0.7505599, 0.011908778, 0.66061187, 1.8, 1, -0.41073787, -0.5042267, -0.29604304, 0.6995773)
+
+[sub_resource type="Animation" id="Animation_ewm85"]
+length = 5.1
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lens")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 11.050003, 1.9, 1.1999998)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lens")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, 0.11397816, -0.6511222, 0.09978975, 0.7437008)
+tracks/2/type = "position_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Cast/Candidate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, 18.870003, 0, 0)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Cast/Candidate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, 0, 0.70710677, 0, 0.70710677)
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("FadeLayer/Fade:modulate:a")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 4.7, 5.1),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 0.0, 1.0]
+}
+tracks/5/type = "method"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Cues")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(1),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": ["cut_name", 2.6],
+"method": &"CueFor"
+}]
+}
+
+[sub_resource type="Animation" id="Animation_ujxoo"]
+length = 1.7
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lens")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, -2, -12.870001, 1.85, 2.4000006, 1.7, 1, -11.370001, 1.7, -0.8000002)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lens")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, -2, -0.029969757, 0.5101543, 0.017791038, 0.85937643, 1.7, 1, -0.010481616, 0.7505599, 0.011908778, 0.66061187)
+tracks/2/type = "position_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Cast/Candidate")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, -16.17, 0, -0.5500002, 0.35, 1, -16.376099, 0, -0.8257045, 0.7, 1, -16.882502, 0, -0.98749995, 1.05, 1, -17.401403, 0, -0.43679553, 1.4, 1, -17.62, 0, 0)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Cast/Candidate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, 0, -0.96285987, 0, 0.27000168, 0.35, 1, 0, -0.9272059, 0, 0.37455204, 0.7, 1, 0, -0.56804305, 0, 0.8229988, 1.05, 1, 0, -0.25942647, 0, 0.96576285, 1.4, 0.5, 0, -0.20625496, 0, 0.9784983, 1.7, 1, 0, 0.70710677, 0, 0.70710677)
+tracks/4/type = "method"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Cues")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 1.4),
+"transitions": PackedFloat32Array(1, 1),
+"values": [{
+"args": ["candidate:walk"],
+"method": &"Cue"
+}, {
+"args": ["candidate:idle"],
+"method": &"Cue"
+}]
+}
+
+[sub_resource type="Animation" id="Animation_jutlj"]
+length = 4.2
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Lens")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, -12.870001, 1.85, 2.4000006)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Lens")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, -0.029969757, 0.5101543, 0.017791038, 0.85937643)
+tracks/2/type = "position_3d"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Cast/Candidate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = PackedFloat32Array(0, 1, -16.17, 0, -0.5500002)
+tracks/3/type = "rotation_3d"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Cast/Candidate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = PackedFloat32Array(0, 1, 0, -0.43713745, 0, 0.8993947)
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("FadeLayer/Fade:modulate:a")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/5/type = "method"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Cues")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(1, 1.9),
+"transitions": PackedFloat32Array(1, 1),
+"values": [{
+"args": ["register_down", 0.5],
+"method": &"CueFor"
+}, {
+"args": ["roll_line", 1.4],
+"method": &"CueFor"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_put24"]
+_data = {
+&"door_wait": SubResource("Animation_kl00k"),
+&"go_out": SubResource("Animation_kiq4i"),
+&"open": SubResource("Animation_ewm85"),
+&"take_lectern": SubResource("Animation_ujxoo"),
+&"west": SubResource("Animation_jutlj")
+}
+
+[node name="Founding" type="Node3D" unique_id=739868408]
+
+[node name="SetPreview" type="Node3D" parent="." unique_id=1621838743]
+
+[node name="Body" type="Node3D" parent="SetPreview" unique_id=1403930316 instance_placeholder="res://Scenes/Prologue/Sets/grand_hall/body.scn"]
+
+[node name="WallNorth" type="Node3D" parent="SetPreview" unique_id=1797710166 instance_placeholder="res://Scenes/Prologue/Sets/grand_hall/wall_north.scn"]
+
+[node name="WallSouth" type="Node3D" parent="SetPreview" unique_id=1948994552 instance_placeholder="res://Scenes/Prologue/Sets/grand_hall/wall_south.scn"]
+
+[node name="WallEast" type="Node3D" parent="SetPreview" unique_id=1999556239 instance_placeholder="res://Scenes/Prologue/Sets/grand_hall/wall_east.scn"]
+
+[node name="WallWest" type="Node3D" parent="SetPreview" unique_id=1148792576 instance_placeholder="res://Scenes/Prologue/Sets/grand_hall/wall_west.scn"]
+
+[node name="Ceiling" type="Node3D" parent="SetPreview" unique_id=1480331345 instance_placeholder="res://Scenes/Prologue/Sets/grand_hall/ceiling.scn"]
+
+[node name="Lens" type="Camera3D" parent="." unique_id=1550726180]
+transform = Transform3D(0.1321637, -0.29685485, -0.94573253, 1.4901161e-08, 0.954102, -0.29948196, 0.9912279, 0.039580643, 0.12609768, 11.050003, 1.9, 1.1999998)
+fov = 55.0
+far = 400.0
+
+[node name="Cast" type="Node3D" parent="." unique_id=2015555969]
+
+[node name="Candidate" type="Node3D" parent="Cast" unique_id=1437745539]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 18.870003, 0, 0)
+
+[node name="EditorOnly" type="Node3D" parent="Cast/Candidate" unique_id=530596354]
+
+[node name="Body" type="MeshInstance3D" parent="Cast/Candidate/EditorOnly" unique_id=1659227066]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.875, 0)
+material_override = SubResource("StandardMaterial3D_ptdk6")
+mesh = SubResource("CapsuleMesh_5x1s8")
+
+[node name="Nose" type="MeshInstance3D" parent="Cast/Candidate/EditorOnly" unique_id=1515173121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, 0.25)
+material_override = SubResource("StandardMaterial3D_ptdk6")
+mesh = SubResource("BoxMesh_kuefo")
+
+[node name="Cues" type="Node" parent="." unique_id=723343930]
+script = ExtResource("1_474cu")
+
+[node name="FadeLayer" type="CanvasLayer" parent="." unique_id=746059086]
+layer = 90
+
+[node name="Fade" type="ColorRect" parent="FadeLayer" unique_id=2058855801]
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.102, 0.086, 0.078, 1)
+
+[node name="Direction" type="AnimationPlayer" parent="." unique_id=1696354872]
+libraries/ = SubResource("AnimationLibrary_put24")

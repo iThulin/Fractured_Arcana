@@ -35,6 +35,13 @@ public sealed class StageField
     /// its HUD, the hand and the cards.</summary>
     private static readonly string[] FightNodes = { "GameRunner", "CombatUI", "DeckUI", "Player", "CardData", "CardDropHandler" };
 
+    /// <summary>The battlefield scene, read once and held for the session (D23). A scene only a C# wrapper
+    /// holds can be collected while Instantiate reads it, and reading the same path again while its last
+    /// wrapper is being collected can stop the game in Godot's C# bindings.</summary>
+    private static PackedScene _battlefield;
+
+    /// <summary>The battlefield's root, under the parent Build was given (the bake frees it after each hall).</summary>
+    public Node3D Root { get; private set; }
     public HexGridManager Grid { get; private set; }
     public CameraController Camera { get; private set; }
     /// <summary>The scene the fight spawns Keepers and most summons from.</summary>
@@ -47,14 +54,14 @@ public sealed class StageField
     /// <paramref name="who"/>, when the scene does not load or has no grid.</summary>
     public static StageField Build(Node parent, string recipe, int seed, string who)
     {
-        var packed = GD.Load<PackedScene>(ScenePath);
-        var root = packed?.Instantiate<Node3D>();
+        _battlefield ??= GD.Load<PackedScene>(ScenePath);
+        var root = _battlefield?.Instantiate<Node3D>();
         if (root == null)
         {
             GD.PushError($"[{who}] {ScenePath} does not load: back to the city.");
             return null;
         }
-        var field = new StageField();
+        var field = new StageField { Root = root };
         if (root.GetNodeOrNull("GameRunner") is CombatManager fight)
         {
             field.DummyUnitScene = fight.DummyUnitScene;

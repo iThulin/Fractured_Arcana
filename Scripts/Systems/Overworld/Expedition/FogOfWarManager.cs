@@ -41,6 +41,22 @@ public partial class FogOfWarManager : Node2D
     /// isolation (falls back to node reads, same belt-and-braces as EffectiveFog).</summary>
     public WindowOverlayModel Overlay;
 
+    /// <summary>Terrain at a grid-local coord, read from the world (the authority
+    /// the move costs read), injected by ExpeditionManager. Null in isolation,
+    /// where the hex node's terrain is the fallback.</summary>
+    public System.Func<Vector2I, OverworldHex.TerrainType?> TerrainQuery;
+
+    /// <summary>High ground widens sight. Ruled 2026-10-30: the base stays one
+    /// tile and the bonus comes from where the party stands. Starting values. The
+    /// point is the decision: a climb costs fuel and buys a look around.</summary>
+    public const int HillsSightBonus = 1;
+    public const int MountainSightBonus = 2;
+
+    /// <summary>The reveal radius the last UpdateVision used, every modifier
+    /// included. A stride reads it to tell a sighting from ground that merely
+    /// streamed in at the window's edge.</summary>
+    public int LastRevealRange { get; private set; } = 1;
+
     public override void _Ready()
     {
         _grid = GetParent<OverworldHexGrid>();
@@ -100,6 +116,28 @@ public partial class FogOfWarManager : Node2D
 
     // ── Vision ───────────────────────────────────────────────────────────
 
+    /// <summary>Sight added by the ground the party stands on: Hills and Mountain
+    /// only. Zero under the Classic Exploration debug switch, so the A/B audit
+    /// compares like with like.</summary>
+    private int HighGroundBonus(Vector2I partyCoord)
+    {
+        if (PlayerSession.DebugClassicExploration)
+        {
+            return 0;
+        }
+        OverworldHex.TerrainType? terrain = TerrainQuery?.Invoke(partyCoord);
+        if (terrain == null && _grid != null && _grid.Hexes.TryGetValue(partyCoord, out var hex))
+        {
+            terrain = hex.Terrain;
+        }
+        return terrain switch
+        {
+            OverworldHex.TerrainType.Mountain => MountainSightBonus,
+            OverworldHex.TerrainType.Hills => HillsSightBonus,
+            _ => 0,
+        };
+    }
+
     /// <summary>
     /// Call this whenever the party moves. Reveals hexes within vision radius
     /// and sets silhouettes on the fringe.
@@ -110,7 +148,11 @@ public partial class FogOfWarManager : Node2D
         // Floored at 1 so the castle always scries its OWN tile plus the adjacent
         // ring. The tiles it can step into must always show their move cost, even
         // in the worst storm (weather blinds the far lens, never the near one).
-        int revealRange = Mathf.Max(1, BaseVisionRadius + bonusRadius + VisionModifiers.ScryBonus);
+        // High ground (2026-10-30) joins the same sum, so a storm on a peak and a
+        // clear day in a valley trade off on one scale.
+        int revealRange = Mathf.Max(1, BaseVisionRadius + bonusRadius + VisionModifiers.ScryBonus
+                                       + HighGroundBonus(partyCoord));
+        LastRevealRange = revealRange;
         int silhouetteRange = revealRange + 1;
 
         foreach (var kvp in _grid.Hexes)

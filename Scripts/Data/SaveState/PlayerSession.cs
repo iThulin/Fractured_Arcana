@@ -319,6 +319,13 @@ public static class PlayerSession
     /// while testing. Does not affect player-initiated combat (walking into a combat POI).</summary>
     public static bool DebugNoAmbush = false;
 
+    /// <summary>Debug A/B switch for the 2026-10-30 exploration information slice
+    /// (claude/exploration_information_gap_2026-10-30.md). When true, a sortie plays
+    /// as it did before the slice: frontier lures draw as ordinary markers in the 3D
+    /// view, a stride does not stop on a sighting, and high ground adds no sight. It
+    /// exists so the decision audit can compare the two in one build. Not saved.</summary>
+    public static bool DebugClassicExploration = false;
+
     /// <summary>Debug (the campus debug panel's Unlock All Classes): the founding screen opens every
     /// school, and a guild founded with it sits its stated intention's practical in the prologue, so
     /// the practical and the Sundering play that school's folio. The founding writes it onto the save

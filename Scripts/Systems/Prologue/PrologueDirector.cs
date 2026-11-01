@@ -35,6 +35,10 @@ using System.Text.RegularExpressions;
 //                 Classes on (DebugAllClassesFlag) sits its stated
 //                 intention's practical, as every save did before R7e, so
 //                 the practical and the Sundering play that school's folio.
+//                 Rehearse the Sundering (J7, stage direction SD3) plays
+//                 the fight on the current guild and keeps nothing: the
+//                 save is not written while it runs, and is read back
+//                 from its slot at its end.
 //
 //                 Every step resumes from the prologue's meta flags. The
 //                 panels' own flags mark most steps; the director adds
@@ -887,6 +891,65 @@ public static class PrologueDirector
         SceneTransition.Go(tree, StrategicScenePath, title);
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    //  Rehearse the Sundering (Debug Mode, PROLOGUE; J7)
+    // ════════════════════════════════════════════════════════════════════════
+
+    private static bool _sunderingRehearsal;
+
+    /// <summary>A rehearsal of the Sundering is running on the active save (RehearseSundering). Loading any save
+    /// ends it, as reading its own save back does.</summary>
+    public static bool SunderingRehearsal => _sunderingRehearsal && SaveManager.Rehearsing;
+
+    /// <summary>Rehearse the Sundering (Debug Mode, PROLOGUE; J7): the prologue's fight on the current guild, from
+    /// its opening to the walk out, with its panels shown and nothing kept. The launch writes the save as it
+    /// stands; from then on it is not written (SaveManager.BeginRehearsal), and at the end it is read back from its
+    /// slot, so whatever the fight changed is dropped, and you go back to the city. For watching a change to
+    /// Scenes/Prologue/Direction/sundering.tscn. False when it cannot launch.</summary>
+    public static bool RehearseSundering(SceneTree tree)
+    {
+        var save = SaveManager.ActiveSave;
+        if (tree == null || save?.Ledger == null || SaveManager.ActiveSlot < 0 || SceneTransition.IsTransitioning)
+            return false;
+        if (!LaunchFight(tree, SunderingFightId, save, StrategicScenePath, null))
+        {
+            GD.PushError("[Prologue] The Sundering could not launch for a rehearsal.");
+            return false;
+        }
+        SaveManager.BeginRehearsal();
+        _sunderingRehearsal = true;
+        GD.Print("[Prologue] Rehearsing the Sundering: nothing it does is kept.");
+        return true;
+    }
+
+    /// <summary>The rehearsal's end, by the walk out (CombatManager.LeaveTheHall) or any way the fight finishes
+    /// (EncounterRouter.OnCombatFinished): the scripted session cleared, the save read back from its slot, and
+    /// back to the city.</summary>
+    public static void EndSunderingRehearsal(SceneTree tree)
+    {
+        if (!_sunderingRehearsal)
+            return;
+        _sunderingRehearsal = false;
+        var router = EncounterRouter.Instance;
+        if (router != null)
+        {
+            router.HasPendingReturn = false;
+            router.ReturnSceneOverride = "";
+            router.SavedCombatFamilyKills = new Dictionary<string, int>();
+        }
+        EncounterContextCarrier.Clear();
+        ClearScriptedSession();
+        int slot = SaveManager.ActiveSlot;
+        if (slot >= 0 && SaveManager.Load(slot))
+            GD.Print("[Prologue] The rehearsal is over: the save is read back from its slot, so nothing it did is kept.");
+        else
+            GD.PushError("[Prologue] The rehearsal's save could not be read back from its slot, so nothing is "
+                         + "written until you load your guild again.");
+        PlayerSession.StartInCityOnOpen = true;
+        if (tree != null)
+            SceneTransition.Go(tree, StrategicScenePath, "Back to the city", "A rehearsal: nothing in it was kept.");
+    }
+
     private static EncounterDefinition BuildEncounter(PrologueEncounterData d)
     {
         var def = new EncounterDefinition
@@ -1383,6 +1446,10 @@ public static class PrologueDirector
         // The first lunation (S5), which the founding unlocks: its quest, its explanations, its
         // counters on scratch saves and its profile file (FirstLunation).
         fails.AddRange(FirstLunation.AssertFailures());
+
+        // Stage direction (SD2, docs/stage_direction_v1.md): each direction scene present loads, has what its
+        // stage needs, and cues only what its stage performs.
+        fails.AddRange(StageDirection.AssertFailures());
 
         // 2. Each practical: its panels, its school, and its folio as the fight deals it.
         int folios = 0;

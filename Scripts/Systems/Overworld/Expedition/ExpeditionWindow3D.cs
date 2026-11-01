@@ -100,6 +100,11 @@ public partial class ExpeditionWindow3D : Node3D
     public event System.Action<Vector2I> TileHovered;
     public event System.Action TileUnhovered;
 
+    /// <summary>The words a frontier lure carries (world-offset coord in). The live
+    /// host supplies the signal its tooltip gives, so label and tooltip never
+    /// disagree. Null in the standalone harness, which falls back to the POI kind.</summary>
+    public System.Func<Vector2I, string> LureLabel;
+
     // ── Scene ───────────────────────────────────────────────────────────────
     private Camera3D _camera;
     private GeometryInstance3D _landLayer;      // welded ArrayMesh (stage 2) or MultiMesh fallback
@@ -3067,7 +3072,68 @@ void fragment() {
                 { AlbedoColor = col, EmissionEnabled = true, Emission = col, EmissionEnergyMultiplier = 0.4f, NoDepthTest = true },
                 Position = pos,
             }));
+
+            // Frontier lures and the warfront objective (2026-10-30): a column of
+            // light that stands above the mist, with the place's signal over it.
+            // The 2D hex drew these as a glow and ring; this view drew them as
+            // ordinary dabs, so the horizon pull never reached 3D play.
+            if (ov.Landmark && !PlayerSession.DebugClassicExploration)
+            {
+                AddLureBeacon(c, ov, pos);
+            }
         }
+    }
+
+    /// <summary>Height of a lure's column above its marker, in world units. Tall
+    /// enough to clear the mist deck at the default pitch.</summary>
+    private const float LureColumnHeight = 5f;
+
+    /// <summary>Column plus label for one lure. Both join <see cref="_markers"/>,
+    /// so the next rebuild frees them with the dabs.</summary>
+    private void AddLureBeacon(Vector2I c, TileOverlay ov, Vector3 markerPos)
+    {
+        Color tint = ov.Objective ? UITheme.POIObjective : PoiColor(ov.Poi);
+        var column = new MeshInstance3D
+        {
+            Mesh = new CylinderMesh
+            {
+                TopRadius = 0.04f, BottomRadius = 0.16f, Height = LureColumnHeight,
+                RadialSegments = 12, Rings = 1,
+            },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(tint, 0.55f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                NoDepthTest = true,
+            },
+            Position = markerPos + new Vector3(0f, LureColumnHeight * 0.5f, 0f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        AddChild(column);
+        _markers.Add(column);
+
+        string text = LureLabel != null ? LureLabel(c) : ov.Poi.ToString();
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+        var label = new Label3D
+        {
+            Text = text,
+            Position = markerPos + new Vector3(0f, LureColumnHeight + 0.35f, 0f),
+            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+            NoDepthTest = true,
+            RenderPriority = 4,
+            OutlineRenderPriority = 3,
+            FontSize = 34,
+            PixelSize = 0.012f,
+            Modulate = tint,
+            OutlineSize = 12,
+            OutlineModulate = UITheme.RoadChoiceOutline,
+        };
+        AddChild(label);
+        _markers.Add(label);
     }
 
     // ── Party pawn ────────────────────────────────────────────────────────────

@@ -49,6 +49,13 @@ using System.Collections.Generic;
 //                 The same pieces build a second set, the Grand Hall,
 //                 for the declaration exams (HallSet.GrandHall.cs): Build
 //                 makes it when Look is GrandHallSetId.
+//
+//                 For the editor (stage direction,
+//                 docs/stage_direction_v1.md): SetOrigin, the board's
+//                 center on the hall floor, which previews and direction
+//                 scenes are laid out from; Landmarks, the set's named
+//                 points; and ShowWholeSet, every wall and the ceiling
+//                 shown with the cutaway off, for a snapshot (StageBake).
 // Layer:          Combat / presentation
 // Collaborators:  HexGridManager.Interior.cs (builds and clears it),
 //                 PainterlyPrism (the material factory), SchoolColors
@@ -168,6 +175,8 @@ public partial class HallSet : Node3D
     private Node3D _orbs;
     private Node3D _ceiling;
     private float _ceilingY;
+    /// <summary>ShowWholeSet: the cutaway is off, for a snapshot of the whole set.</summary>
+    private bool _wholeSet;
 
     private float _floorY, _cz, _hw;
     private float _xStripW, _xStripE, _xTierW, _xTierE, _xDais, _xWallW, _xWallE, _zWallN, _zWallS;
@@ -874,7 +883,7 @@ public partial class HallSet : Node3D
     /// of its windows and shutters.</summary>
     public override void _Process(double delta)
     {
-        var camera = GetViewport()?.GetCamera3D();
+        var camera = _wholeSet ? null : GetViewport()?.GetCamera3D();
         if (camera != null)
         {
             Vector3 eye = camera.GlobalPosition;
@@ -894,6 +903,57 @@ public partial class HallSet : Node3D
         if (!_stilled)
             _orbs?.RotateY(OrbSpin * (float)delta);   // S2: the Long Second stops the six lights
         TickHearth((float)delta);   // the Grand Hall's fire; nothing in the Ceremony Hall
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  For the editor (stage direction, docs/stage_direction_v1.md)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>The set's origin: the board's center on the hall floor. Previews and direction scenes are laid
+    /// out from it, so they stay with the hall wherever the grid stands.</summary>
+    public Vector3 SetOrigin => new((_xStripW + _xStripE) * 0.5f, _floorY, _cz);
+
+    /// <summary>Every wall and the ceiling shown, and the cutaway off from now on: the whole set, as a snapshot
+    /// of it needs (StageBake).</summary>
+    public void ShowWholeSet()
+    {
+        _wholeSet = true;
+        foreach (var (node, _, _) in _walls)
+            if (node != null && IsInstanceValid(node))
+                node.Visible = true;
+        if (_ceiling != null && IsInstanceValid(_ceiling))
+            _ceiling.Visible = true;
+    }
+
+    /// <summary>The set's named points, where the code stands people and aims shots from: a preview marks each
+    /// one (StageBake).</summary>
+    public List<(string name, Vector3 point)> Landmarks()
+    {
+        var marks = new List<(string name, Vector3 point)> { ("Origin", SetOrigin) };
+        if (IsGrandHall)
+        {
+            marks.Add(("Lectern", GrandLecternPoint));
+            marks.Add(("Reader", GrandReaderPoint));
+            marks.Add(("Page", GrandPagePoint));
+            marks.Add(("Lintel", GrandLintelPoint));
+            marks.Add(("Doors", GrandDoorsPoint));
+            marks.Add(("Roll", GrandRollPoint));
+        }
+        else if (IsCeremonyHall)
+        {
+            marks.Add(("Dais", DaisCenter));
+            marks.Add(("Sphere", SphereCenter));
+            marks.Add(("Mark", MarkPoint));
+            marks.Add(("Reader", ReaderPoint));
+            marks.Add(("Doorway", DoorwayPoint));
+            marks.Add(("Examiner", ExaminerPoint));
+            marks.Add(("TraitorStand", TraitorStandPoint));
+            marks.Add(("TraitorHand", TraitorHandPoint));
+            marks.Add(("Folio", FolioPoint));
+            for (int i = 0; i < ChairCount; i++)
+                marks.Add(($"Chair{i}", ChairStandPoint(i)));
+        }
+        return marks;
     }
 
     // ════════════════════════════════════════════════════════════════════════

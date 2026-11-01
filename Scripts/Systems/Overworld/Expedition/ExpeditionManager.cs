@@ -443,6 +443,9 @@ public partial class ExpeditionManager : Node2D
         _fog.SyncFromWindow();
         // Step 2: the landmark-lure scan reads the overlay model, not node POIs.
         _fog.Overlay = _overlay;
+        // High-ground sight (2026-10-30) reads terrain from the world, the same
+        // source the move costs read, not from the display hexes.
+        _fog.TerrainQuery = local => TryTileAt(local, out var vt) ? vt.Terrain : (OverworldHex.TerrainType?)null;
 
         // Faction patrols, keyed to the staging tile's kingdom, if any.
         _factionManager = new OverworldFactionManager { Name = "FactionManager" };
@@ -1316,6 +1319,7 @@ public partial class ExpeditionManager : Node2D
         _window3D.MoveRequested += OnWindow3DMove;
         _window3D.TileHovered += OnWindow3DHover;
         _window3D.TileUnhovered += OnWindow3DUnhover;
+        _window3D.LureLabel = LureLabelAtWorld;
         vp.AddChild(_window3D);
         _window3D.AcceptInput = true;
         // Re-arm on hover, but never after the run has ended: ShowReturnButton
@@ -1428,6 +1432,24 @@ public partial class ExpeditionManager : Node2D
         ShowStridePreview(local);
     }
 
+    /// <summary>The words a frontier lure carries in the 3D view: the signal the
+    /// tooltip gives, computed from the grid-local coord exactly as the tooltip
+    /// computes it, or the stronghold for a warfront objective.</summary>
+    private string LureLabelAtWorld(Vector2I worldCoord)
+    {
+        if (_window == null)
+        {
+            return "";
+        }
+        Vector2I local = _window.LocalOf(worldCoord.X, worldCoord.Y);
+        TileOverlay ov = _overlay.OverlayAt(local);
+        if (ov.Objective)
+        {
+            return "the stronghold";
+        }
+        return PoiSignal.Label(ov.Poi, TerrainAt(local), local);
+    }
+
     private void OnWindow3DUnhover()
     {
         if (_hoveredCoord.HasValue)
@@ -1493,6 +1515,11 @@ public partial class ExpeditionManager : Node2D
     private Vector2I _strideLastTile;  // the tile we came from (blind march no-backtrack)
     private int _strideBestDist;       // best hex distance to the goal achieved so far
     private int _strideStuck;          // blind steps without improving _strideBestDist
+    /// <summary>A sighting noted on the last step (ruled 2026-10-30: a stride stops
+    /// when a place comes into view). Read at the top of the next beat, once the
+    /// pawn has landed; cleared by EndStride so it never leaks into the next
+    /// order. Null when nothing is pending.</summary>
+    private string _strideSightNote;
     private Button _haltButton;
     private const float StrideStepSeconds = 0.25f;   // pacing per tile (watchable)
 
@@ -2068,6 +2095,17 @@ public partial class ExpeditionManager : Node2D
         if (_party.IsMoving)
         { ScheduleStrideTick(0.05f); return; }
 
+        // A place came into view on the last step (2026-10-30). The march stops
+        // so the player chooses: press on, or turn aside. Checked before the
+        // arrival test so a sighting on the final step is still announced.
+        if (_strideSightNote != null)
+        {
+            string sighted = _strideSightNote;
+            _strideSightNote = null;
+            EndStride(sighted, "Something sighted", HaltTone.Choice);
+            return;
+        }
+
         // Arrived at the ordered tile. A road-follow has no destination, so it
         // stops at the places a decision exists instead.
         if (_roadFollow)
@@ -2145,10 +2183,15 @@ public partial class ExpeditionManager : Node2D
         // the castle's business and does not stop the march.
 
         var from = _party.CurrentCoord;
+        HashSet<Vector2I> seenBefore = PlayerSession.DebugClassicExploration ? null : VisiblePoiTiles();
         if (!_party.TryMoveTo(next))
         {
             EndStride("The way is blocked.", "Blocked", HaltTone.Trouble);
             return;
+        }
+        if (seenBefore != null)
+        {
+            NoteStrideSighting(seenBefore);
         }
         _strideLastTile = from;
         _strideHasMoved = true;
@@ -2234,6 +2277,7 @@ public partial class ExpeditionManager : Node2D
         if (!_striding)
             return;
         _striding = false;
+        _strideSightNote = null;   // a pending sighting dies with the order
         _roadFollow = false;   // a halt ends the road order; the player re-issues
         _roadSeed = null;      // and a cancelled order never leaks a direction
         _strideConsecutive = 0;
@@ -2248,6 +2292,98 @@ public partial class ExpeditionManager : Node2D
             // HUD could not tell them apart.
             ShowHaltNotice(headline ?? "The castle halts", note, tone);
         }
+    }
+
+    /// <summary>Does a place on this tile count as a sighting? Wild places only:
+    /// any kind but a settlement's or a seat's own marker, on a tile outside every
+    /// settlement footprint. A town's studs are part of the town you can already
+    /// see, and the road halt names the town on arrival, so walking past one must
+    /// not stop the march at every stud (the friction the 2026-09-21 ruling
+    /// removed). Wild outposts do count: an unclaimed forward base is a find.</summary>
+    private bool IsSighting(Vector2I local, OverworldHex.POIType kind)
+    {
+        if (kind == OverworldHex.POIType.None
+            || kind == OverworldHex.POIType.Settlement
+            || kind == OverworldHex.POIType.Seat)
+        {
+            return false;
+        }
+        return TryTileAt(local, out var st) && st.SettlementIndex < 0;
+    }
+
+    /// <summary>Tiles holding a live, visible place: the stride's picture of what
+    /// it could already see before a step.</summary>
+    private HashSet<Vector2I> VisiblePoiTiles()
+    {
+        var seen = new HashSet<Vector2I>();
+        foreach (var kvp in _overlay.All)
+        {
+            if (!kvp.Value.Consumed && IsSighting(kvp.Key, kvp.Value.Poi)
+                && _fog.FogAt(kvp.Key) == OverworldHex.FogState.Revealed)
+            {
+                seen.Add(kvp.Key);
+            }
+        }
+        return seen;
+    }
+
+    /// <summary>After a stride step: did the view just take in a place it could not
+    /// see before? Only tiles inside the sight the step used count, so ground that
+    /// streams in at the window's edge is never mistaken for a sighting. The
+    /// party's own tile opens its own encounter, and the goal is already the
+    /// order, so neither counts. Writes the halt's words to _strideSightNote.</summary>
+    private void NoteStrideSighting(HashSet<Vector2I> seenBefore)
+    {
+        if (_party == null || _fog == null || _grid == null)
+        {
+            return;
+        }
+        Vector2I here = _party.CurrentCoord;
+        int sight = _fog.LastRevealRange;
+        Vector2I? nearest = null;
+        int nearestDist = int.MaxValue;
+        int count = 0;
+        foreach (var kvp in _overlay.All)
+        {
+            Vector2I c = kvp.Key;
+            TileOverlay ov = kvp.Value;
+            if (ov.Consumed || seenBefore.Contains(c) || !IsSighting(c, ov.Poi))
+            {
+                continue;
+            }
+            if (c == here || (!_roadFollow && c == _strideGoal))
+            {
+                continue;
+            }
+            if (_fog.FogAt(c) != OverworldHex.FogState.Revealed)
+            {
+                continue;
+            }
+            int d = _grid.Distance(here, c);
+            if (d > sight)
+            {
+                continue;
+            }
+            count++;
+            if (d < nearestDist)
+            {
+                nearestDist = d;
+                nearest = c;
+            }
+        }
+        if (nearest == null)
+        {
+            return;
+        }
+        Vector2I at = nearest.Value;
+        string what = PoiSignal.Label(_overlay.OverlayAt(at).Poi, TerrainAt(at), at);
+        if (what.Length > 0)
+        {
+            what = char.ToUpperInvariant(what[0]) + what.Substring(1);
+        }
+        string range = nearestDist == 1 ? "one tile off" : $"{nearestDist} tiles off";
+        string more = count > 1 ? $" {count - 1} more in view." : "";
+        _strideSightNote = $"{what}, {range}.{more} Press on, or turn aside.";
     }
 
     private void SetHaltButton(bool show)

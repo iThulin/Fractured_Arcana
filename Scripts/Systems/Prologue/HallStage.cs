@@ -34,7 +34,10 @@ using System.Linq;
 //                 The hall's own panel (the chronicle's on_hall) shows
 //                 over it, as it showed over the city, and its choice is
 //                 applied as the city's are (NarrativeOutcome). The camera
-//                 is the fight's, bounded to the hall, free to turn.
+//                 is the fight's, bounded to the hall, free to turn, and
+//                 opens on the Frame shot of the stage's direction scene,
+//                 Scenes/Prologue/Direction/hall_stage.tscn (stage
+//                 direction SD3; the built-in shot when it has none).
 //                 Leave goes back to the city.
 // Layer:          Prologue / presentation
 // Collaborators:  LongSecondTableau (the save), HallSet (.Sundering: the
@@ -44,7 +47,8 @@ using System.Linq;
 //                 CampusLandmarkRegistry (the hall's panel),
 //                 NarrativeOutcome, NarrativeEncounterPanel,
 //                 SceneTransition, PrologueDirector, StrategicView and
-//                 CampusScreen (the way in)
+//                 CampusScreen (the way in), StageDirection and
+//                 DefaultDirections (the Frame shot)
 // ============================================================
 
 /// <summary>The frozen Ceremony Hall (see the file header). The root of HallStage.tscn.</summary>
@@ -62,7 +66,21 @@ public partial class HallStage : Node3D
     private const int SettleFrames = 3;
     /// <summary>Seconds of the still hall before its panel shows.</summary>
     private const float PanelDelay = 1.2f;
-    private const float FrameZoom = 11f;
+    public const float FrameZoom = 11f;
+
+    // ── The opening frame (stage direction SD3, docs/stage_direction_v1.md section 6) ──
+    /// <summary>The stage's direction scene: Scenes/Prologue/Direction/hall_stage.tscn.</summary>
+    public const string DirectionId = "hall_stage";
+    public const string FrameShot = "Frame";
+
+    /// <summary>What the stage needs of its direction: the Frame shot (StageDirection checks it on load and in the
+    /// assert).</summary>
+    public static readonly StageDirection.Needs DirectionNeeds = new()
+    {
+        Id = DirectionId,
+        Shots = new[] { FrameShot },
+    };
+
     private const int StrayCount = 7;
     private const float StrayTrail = 1.4f;
     private const float SpeakerHead = 2.1f;
@@ -81,6 +99,8 @@ public partial class HallStage : Node3D
     private StageField _field;
     private HexGridManager _grid;
     private CameraController _camera;
+    /// <summary>The direction's rig shots (SD3), read once the hall stands.</summary>
+    private StageDirection.ShotSet _shots;
     private PackedScene _unitScene;
     private PackedScene _wildScene;
     private HallSet _hall;
@@ -252,6 +272,9 @@ public partial class HallStage : Node3D
         ImbuementField.Clear();
         LayTheMarks();
         CatchTheStrays();
+        if (_camera != null && IsInstanceValid(_camera))
+            _shots = StageDirection.LoadShots(DirectionId, hall.SetOrigin,
+                () => DefaultDirections.HallStageShots(hall, _grid, _camera), DirectionNeeds);
         FrameTheHall();
         SayTheLastWords();
         _settle = SettleFrames;
@@ -609,19 +632,21 @@ public partial class HallStage : Node3D
         st.AddVertex(at);
     }
 
-    /// <summary>The camera as the climax framed it: at the dais end, looking south, so the empty mark,
-    /// the spell, the lectern and the traitor's line sit across the screen. Free to turn from there,
-    /// bounded to the hall as in the fight.</summary>
+    /// <summary>The camera on the direction's Frame shot (SD3); with none, as the climax framed it: at the dais
+    /// end, looking south, so the empty mark, the spell, the lectern and the traitor's line sit across the
+    /// screen. Free to turn from there, bounded to the hall as in the fight.</summary>
     private void FrameTheHall()
     {
         if (_camera == null || !IsInstanceValid(_camera))
+            return;
+        _camera.AcceptInput = true;
+        if (_shots != null && _shots.Frame(_camera, FrameShot, instant: true))
             return;
         Vector3 min = _grid.GridBoundsMin;
         Vector3 max = _grid.GridBoundsMax;
         float x = min.X + Mathf.Min(_camera.PanEdgeInset, (max.X - min.X) * 0.5f);
         var center = new Vector3(x, max.Y, (min.Z + max.Z) * 0.5f);
         var toward = center + new Vector3(0f, 0f, -1f);
-        _camera.AcceptInput = true;
         _camera.FaceToward(center, toward);
         _camera.SwingToward(center, toward, FrameZoom);
     }

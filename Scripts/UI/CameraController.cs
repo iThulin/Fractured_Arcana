@@ -45,6 +45,17 @@ using Godot;
 //                   frustum-corner ground hits must stay inside the
 //                   terrain disc. Pan is clamped first, zoom second,
 //                   and the actual rig is hard-clamped every frame.
+//
+//                 Rig shots (stage direction SD3, docs/stage_direction_v1.md
+//                 section 6): a shot is the pose of a camera with the
+//                 rig's lens, set in a direction scene. The rig's stance
+//                 for it is read off the pose: the center where its view
+//                 meets the top of the board, its turn, its tilt, and its
+//                 zoom (the distance to the center over the lens scale),
+//                 each held to what the rig allows. SwingToPose eases the
+//                 turn, the tilt and the zoom there (the tilt too, J3);
+//                 TakePose sets them at once. PoseFor is the inverse: the
+//                 pose of a stance, for the built-in shots.
 // Layer:          UI
 // Collaborators:  CardDropHandler.cs (forwards left-click drops),
 //                 HexGridManager.cs (GenerateMap → FrameGrid with
@@ -180,9 +191,10 @@ public partial class CameraController : Node3D
     private bool _lensManaged = false;   // SetLensFov was called: zoom tilt + horizon guard apply
     private float _openingZoomCap = 12f;  // FrameGrid: OpeningZoomSpanFactor x board span (reference units)
 
-    // Scripted swing (SwingToward): the yaw it is easing to, while it eases.
+    // Scripted swing (SwingToward, SwingToPose): the yaw and the pitch it is easing to, while it eases.
     private bool _swinging;
     private float _swingYawTarget;
+    private float _swingPitchTarget;
     private const float SwingLerpSpeed = 2.2f;
 
     // Scripted shake (Shake): a decaying jolt of the lens, input or not.
@@ -498,10 +510,13 @@ public partial class CameraController : Node3D
             }
             else
             {
-                _yaw = Mathf.Lerp(_yaw, _swingYawTarget, Mathf.Min(1f, SwingLerpSpeed * delta));
-                if (Mathf.Abs(_swingYawTarget - _yaw) < 0.05f)
+                float k = Mathf.Min(1f, SwingLerpSpeed * delta);
+                _yaw = Mathf.Lerp(_yaw, _swingYawTarget, k);
+                _pitch = Mathf.Lerp(_pitch, _swingPitchTarget, k);
+                if (Mathf.Abs(_swingYawTarget - _yaw) < 0.05f && Mathf.Abs(_swingPitchTarget - _pitch) < 0.05f)
                 {
                     _yaw = _swingYawTarget;
+                    _pitch = _swingPitchTarget;
                     _swinging = false;
                 }
             }
@@ -557,13 +572,16 @@ public partial class CameraController : Node3D
     /// MinCameraClearance at the current pitch: camera world Y rises by
     /// zoom · sin(|pitch|) above the rig. Shallower pitch → larger floor.
     /// </summary>
-    private float MinSafeZoom()
+    private float MinSafeZoom() => MinSafeZoomAt(_pitch, Position.Y);
+
+    /// <summary>MinSafeZoom for a pitch of <paramref name="pitch"/> with the rig at height <paramref name="rigY"/>.</summary>
+    private float MinSafeZoomAt(float pitch, float rigY)
     {
-        float sin = Mathf.Sin(Mathf.DegToRad(Mathf.Abs(_pitch)));
+        float sin = Mathf.Sin(Mathf.DegToRad(Mathf.Abs(pitch)));
         if (sin < 0.05f)
             return _maxZoomDynamic; // defensive; MaxPitch should keep us far from here
 
-        float requiredRise = _boundsMax.Y + MinCameraClearance - Position.Y;
+        float requiredRise = _boundsMax.Y + MinCameraClearance - rigY;
         if (requiredRise <= 0f)
             return MinZoom;
 
@@ -653,17 +671,20 @@ public partial class CameraController : Node3D
 
     /// <summary>The pitch the pivot actually uses at a given zoom (reference units): the
     /// player's _pitch, steepened by the zoom tilt and then by the horizon guard.</summary>
-    private float EffectivePitch(float zoomRef)
+    private float EffectivePitch(float zoomRef) => EffectivePitch(_pitch, zoomRef);
+
+    /// <summary>EffectivePitch for a player pitch of <paramref name="pitch"/>.</summary>
+    private float EffectivePitch(float pitch, float zoomRef)
     {
         // Only a lens-managed rig (combat, through SetLensFov) or one with a world
         // extent gets the tilt and the guard. The guard must hold whenever containment
         // is on: sky in frame makes the footprint infinite and would pin the rig. The
         // campus does neither, so it keeps exactly the old pitch behaviour.
         if (!_lensManaged && !_hasWorldExtent)
-            return Mathf.Max(_pitch, -89f);
+            return Mathf.Max(pitch, -89f);
 
         float shallow = Mathf.Min(MaxPitch, -30f);
-        float p = _pitch;
+        float p = pitch;
 
         float span = _maxZoomDynamic - MinZoom;
         if (ZoomedOutMaxPitch < shallow && span > 0.01f)
@@ -719,14 +740,17 @@ public partial class CameraController : Node3D
     /// <summary>Largest reference zoom whose footprint fits the world disc with the pivot
     /// at the disc centre (the pan clamp then pulls the pivot inward as needed). MaxValue
     /// when containment is off.</summary>
-    private float ContainedZoomCeiling()
+    private float ContainedZoomCeiling() => ContainedZoomCeiling(_pitch);
+
+    /// <summary>ContainedZoomCeiling for a player pitch of <paramref name="pitch"/>.</summary>
+    private float ContainedZoomCeiling(float pitch)
     {
         if (!ContainmentActive)
             return float.MaxValue;
 
         float limit = _worldRadius - WorldContainmentMargin;
         float scale = FovZoomScale;
-        bool Fits(float z) => FootprintRadius(z * scale, EffectivePitch(z)) <= limit;
+        bool Fits(float z) => FootprintRadius(z * scale, EffectivePitch(pitch, z)) <= limit;
 
         // The zoom tilt makes the footprint non-monotonic in zoom (a steeper pitch can
         // shrink it while the distance grows it), so a plain bisection could skip a band
@@ -876,10 +900,163 @@ public partial class CameraController : Node3D
         dir = dir.Normalized();
         float target = Mathf.RadToDeg(Mathf.Atan2(dir.X, dir.Z)) + 180f;
         _swingYawTarget = _yaw + Mathf.Wrap(target - _yaw, -180f, 180f);
+        _swingPitchTarget = _pitch;   // the tilt stays the player's
         _swinging = true;
         FocusOn(center);
         if (zoom > 0f)
             _zoomTarget = Mathf.Clamp(zoom, MinZoom, _maxZoomDynamic);
+    }
+
+    // ── Rig shots (SD3) ──────────────────────────────────────────────────────
+    /// <summary>The player's pitch the built-in shots are set at: FrameGrid's default.</summary>
+    public const float DefaultPitch = -35f;
+
+    /// <summary>The rig's own camera, for the built-in shots' lens; null before the rig has one.</summary>
+    public Camera3D RigCamera => EnsureCameraNodes() ? _camera : null;
+
+    /// <summary>The yaw that looks from <paramref name="from"/> toward <paramref name="toward"/>, as FaceToward
+    /// sets it.</summary>
+    public static float YawToward(Vector3 from, Vector3 toward)
+    {
+        Vector3 dir = toward - from;
+        dir.Y = 0f;
+        if (dir.LengthSquared() < 1e-8f)
+            return 0f;
+        return Mathf.RadToDeg(Mathf.Atan2(dir.X, dir.Z)) + 180f;
+    }
+
+    /// <summary>The pitch the rig shows at <paramref name="zoomRef"/> (reference units) for a player pitch of
+    /// <paramref name="pitch"/>: after the zoom tilt and the horizon guard.</summary>
+    public float ShownPitch(float pitch, float zoomRef) => EffectivePitch(pitch, zoomRef);
+
+    /// <summary>The pose of the rig's camera standing at <paramref name="center"/>, turned to
+    /// <paramref name="yawDeg"/>, tilted to <paramref name="pitchDeg"/>, at <paramref name="zoomRef"/> (reference
+    /// units): where the camera is, and how it is turned, in the world.</summary>
+    public Transform3D PoseFor(Vector3 center, float yawDeg, float pitchDeg, float zoomRef)
+    {
+        var basis = Basis.FromEuler(new Vector3(Mathf.DegToRad(pitchDeg), Mathf.DegToRad(yawDeg), 0f));
+        return new Transform3D(basis, center + basis * new Vector3(0f, 0f, zoomRef * FovZoomScale));
+    }
+
+    /// <summary>A rig shot, swung to: the rig glides to the shot's center (unless <paramref name="moveCenter"/> is
+    /// false, when the caller keeps its own focus) and eases its turn, its tilt and its zoom to the shot's, as
+    /// SwingToward eases the turn and the zoom. Input stops the glide and the swing, as it stops any.
+    /// <paramref name="fit"/> is what the rig could not match, as a note for the log ("" when it matches the
+    /// shot). False, with the rig left as it is, when the shot cannot be taken at all.</summary>
+    public bool SwingToPose(Transform3D pose, float fov, bool moveCenter, out string fit)
+    {
+        fit = "the rig has no camera";
+        if (!EnsureCameraNodes())
+            return false;
+        if (!StanceFor(pose, fov, moveCenter, out var center, out float yaw, out float pitch, out float zoom, out fit))
+            return false;
+        _swingYawTarget = _yaw + Mathf.Wrap(yaw - _yaw, -180f, 180f);
+        _swingPitchTarget = pitch;
+        _swinging = true;
+        if (moveCenter)
+            FocusOn(center);
+        _zoomTarget = zoom;
+        return true;
+    }
+
+    /// <summary>A rig shot, taken at once (an opening frame), as FaceToward and FrameGrid set the rig.
+    /// <paramref name="fit"/> and the result are as for SwingToPose.</summary>
+    public bool TakePose(Transform3D pose, float fov, out string fit)
+    {
+        fit = "the rig has no camera";
+        if (!EnsureCameraNodes())
+            return false;
+        if (!StanceFor(pose, fov, true, out var center, out float yaw, out float pitch, out float zoom, out fit))
+            return false;
+        ClearFocus();
+        _swinging = false;
+        Position = center;
+        _desiredPosition = center;
+        _yaw = yaw;
+        _pitch = pitch;
+        _zoomTarget = zoom;
+        Vector3 camPos = _camera.Position;
+        camPos.Z = zoom * FovZoomScale;
+        _camera.Position = camPos;
+        _pivot.RotationDegrees = new Vector3(EffectivePitch(zoom), _yaw, 0f);
+        return true;
+    }
+
+    /// <summary>The rig's stance for a camera <paramref name="pose"/>: the center where its view meets the top of the
+    /// board, its turn and tilt, and its zoom (reference units), each held to what the rig allows, and a note of
+    /// what was held (<paramref name="fit"/>, "" when nothing). False, with the rig left as it is, when the pose does
+    /// not look down at the board from above it. With <paramref name="useCenter"/> false the center is not the
+    /// rig's to take, so it is neither held nor noted.</summary>
+    private bool StanceFor(Transform3D pose, float fov, bool useCenter, out Vector3 center, out float yaw,
+                           out float pitch, out float zoom, out string fit)
+    {
+        center = Position;
+        yaw = _yaw;
+        pitch = _pitch;
+        zoom = _zoomTarget;
+        Basis turn = pose.Basis.Orthonormalized();
+        Vector3 forward = -turn.Z;
+        float planeY = _boundsMax.Y;
+        float reach = forward.Y < -0.02f ? (planeY - pose.Origin.Y) / forward.Y : -1f;
+        if (reach <= 0.01f)
+        {
+            fit = "it does not look down at the board from above it, so the rig keeps its stance";
+            return false;
+        }
+        var notes = new System.Collections.Generic.List<string>();
+        center = pose.Origin + forward * reach;
+        yaw = Mathf.RadToDeg(Mathf.Atan2(-forward.X, -forward.Z));
+        float shotPitch = Mathf.RadToDeg(Mathf.Asin(Mathf.Clamp(forward.Y, -1f, 1f)));
+
+        // Its roll: the rig never rolls.
+        var level = Basis.FromEuler(new Vector3(Mathf.DegToRad(shotPitch), Mathf.DegToRad(yaw), 0f));
+        float roll = Mathf.RadToDeg(level.Y.AngleTo(turn.Y));
+        if (roll > 1f)
+            notes.Add($"its roll of {roll:0} degrees is dropped (the rig does not roll)");
+
+        // Its tilt, within the rig's.
+        float shallow = Mathf.Min(MaxPitch, -30f);
+        pitch = Mathf.Clamp(shotPitch, MinPitch, shallow);
+        if (Mathf.Abs(pitch - shotPitch) > 0.5f)
+            notes.Add($"it tilts {-shotPitch:0} degrees down and the rig tilts {-shallow:0} to {-MinPitch:0}, so {-pitch:0}");
+
+        // Its zoom, within the rig's floor and ceiling at that tilt.
+        float scale = FovZoomScale;
+        float wanted = reach / scale;
+        float floor = Mathf.Max(MinZoom, MinSafeZoomAt(pitch, planeY));
+        float ceiling = Mathf.Max(Mathf.Min(_maxZoomDynamic, ContainedZoomCeiling(pitch)), floor);
+        zoom = Mathf.Clamp(wanted, floor, ceiling);
+        if (Mathf.Abs(zoom - wanted) > 0.05f)
+            notes.Add(zoom > wanted
+                ? $"it stands at zoom {wanted:0.0}, closer than the rig may, so {zoom:0.0}"
+                : $"it stands at zoom {wanted:0.0}, past the rig's ceiling of {ceiling:0.0}, so {zoom:0.0}");
+
+        // What the rig shows at that zoom: its zoom tilt and its horizon guard may steepen the tilt.
+        float shown = EffectivePitch(pitch, zoom);
+        if (shown < pitch - 0.5f)
+            notes.Add($"at that zoom the rig tilts at least {-shown:0} degrees down (its zoom tilt and its horizon guard)");
+
+        // Its center, within the rig's pan bounds and the world.
+        if (useCenter)
+        {
+            float insetX = Mathf.Min(PanEdgeInset, (_boundsMax.X - _boundsMin.X) * 0.5f);
+            float insetZ = Mathf.Min(PanEdgeInset, (_boundsMax.Z - _boundsMin.Z) * 0.5f);
+            var held = new Vector3(Mathf.Clamp(center.X, _boundsMin.X + insetX, _boundsMax.X - insetX), planeY,
+                                   Mathf.Clamp(center.Z, _boundsMin.Z + insetZ, _boundsMax.Z - insetZ));
+            if (ContainmentActive)
+                held = ClampToWorldDisc(held, _worldRadius - WorldContainmentMargin - FootprintRadius(zoom * scale, shown));
+            float moved = new Vector2(held.X - center.X, held.Z - center.Z).Length();
+            if (moved > 0.1f)
+                notes.Add($"its center is {moved:0.0} m past where the rig may stand, so it stands at the nearest point");
+            center = held;
+        }
+
+        // Its lens: the rig keeps its own.
+        if (fov > 0f && Mathf.Abs(fov - _camera.Fov) > 0.5f)
+            notes.Add($"its lens is {fov:0} degrees and the rig keeps its {_camera.Fov:0}");
+
+        fit = string.Join("; ", notes);
+        return true;
     }
 
     /// <summary>A short, decaying shake of the lens (the Sundering's blows and breaks): up to

@@ -32,7 +32,11 @@ using System.Threading.Tasks;
 //                    make the Keepers up to the script's floor;
 //                  - the traitor's line, from the hand at the sphere to
 //                    the lectern, all fight (CombatManager.AimLines.cs);
-//                  - three framings: the dais, the side, the climax;
+//                  - four framings: the dais, the side, the climax and
+//                    the walk out, from the rig shots in its direction
+//                    scene, Scenes/Prologue/Direction/sundering.tscn
+//                    (stage direction SD3; the built-in shots when it has
+//                    none);
 //                  - the climax: the candidate is drawn onto the mark and
 //                    the board is saved as it stands (the tableau, on the
 //                    Eternal ledger). The cast panel shows over the hall,
@@ -67,7 +71,8 @@ using System.Threading.Tasks;
 //                 volley set), HallSet.Sundering.cs (the points, the
 //                 figures, the breaks, the stillness), Unit (HeldBySentence,
 //                 SentenceHeld), CombatPresenter (EmitVolley, BaseSpeed),
-//                 CameraController (SwingToward, AcceptInput), CombatUI
+//                 CameraController (SwingToward, AcceptInput), StageDirection
+//                 and DefaultDirections (the rig shots, SD3), CombatUI
 //                 (SetObjectiveTooltip, SetTurnControlsVisible),
 //                 NarrativeEncounterPanel (the hall's panels),
 //                 SpeechBubble (the Provost's words), ProjectileVfx and
@@ -84,10 +89,10 @@ public partial class CombatManager
     private const string SunderingCameraMode = "sundering";
     /// <summary>The side view's center, as a fraction of the board from its west edge: left of
     /// the middle, so the dais is in frame at the left of the screen and the doors at the right.</summary>
-    private const float SunderingSideAlong = 0.38f;
-    private const float SunderingSideZoom = 15f;
-    private const float SunderingDaisZoom = 10f;
-    private const float SunderingClimaxZoom = 10f;
+    public const float SunderingSideAlong = 0.38f;
+    public const float SunderingSideZoom = 15f;
+    public const float SunderingDaisZoom = 10f;
+    public const float SunderingClimaxZoom = 10f;
     /// <summary>Seconds after the first turn starts before the camera swings to the side, so the
     /// swing follows the turn-start selection glide rather than fighting it.</summary>
     private const double SunderingSideDelay = 0.35;
@@ -117,13 +122,30 @@ public partial class CombatManager
     private const float SunderingStepDownSeconds = 0.5f;
     /// <summary>Seconds a step takes on the way out (the presenter walks a tile in 0.14).</summary>
     private const float SunderingStepSeconds = 0.16f;
-    private const float SunderingWalkZoom = 13f;
+    public const float SunderingWalkZoom = 13f;
     /// <summary>Seconds on the doors' tiles before the hall lets you go.</summary>
     private const float SunderingExitPause = 0.3f;
     /// <summary>The hall's panels draw over the HUD (90) and under the pause menu (100).</summary>
     private const int SunderingPanelLayer = 95;
     private const string SunderingFrozenPhase = "The Long Second";
     private const string SunderingWalkPhase = "The Way Out";
+
+    // ── Its rig shots (stage direction SD3, docs/stage_direction_v1.md section 6) ──
+    /// <summary>The Sundering's direction scene: Scenes/Prologue/Direction/sundering.tscn.</summary>
+    public const string SunderingDirectionId = "sundering";
+    public const string SunderingDaisShot = "Dais";
+    public const string SunderingSideShot = "Side";
+    public const string SunderingClimaxShot = "Climax";
+    /// <summary>Its turn, tilt and zoom only: the center is the candidate, walking.</summary>
+    public const string SunderingWalkOutShot = "WalkOut";
+
+    /// <summary>What the Sundering needs of its direction: its four shots (StageDirection checks it on load and in
+    /// the assert).</summary>
+    public static readonly StageDirection.Needs SunderingDirectionNeeds = new()
+    {
+        Id = SunderingDirectionId,
+        Shots = new[] { SunderingDaisShot, SunderingSideShot, SunderingClimaxShot, SunderingWalkOutShot },
+    };
 
     // ── The pace (S2b: the first play found the watched phases too quick to read) ──
     /// <summary>Seconds before the faculty's first volley, and between volleys.</summary>
@@ -210,6 +232,8 @@ public partial class CombatManager
     private HallSet _sunderingHall;
     private bool _sunderingStaged;
     private bool _sunderingSideFramed;
+    /// <summary>The rig shots (SD3), read as the fight opens.</summary>
+    private StageDirection.ShotSet _sunderingShots;
     private bool _sunderingClimaxStarted;
     private bool _sunderingTurretLanded;
     private int _sunderingHoldRound = -1;
@@ -299,6 +323,7 @@ public partial class CombatManager
         _sunderingHall = null;
         _sunderingStaged = false;
         _sunderingSideFramed = false;
+        _sunderingShots = null;
         _sunderingClimaxStarted = false;
         _sunderingTurretLanded = false;
         _sunderingHoldRound = -1;
@@ -358,6 +383,7 @@ public partial class CombatManager
         RefreshObjectiveBanner();
         if (!SunderingOwnsCamera || controller == null)
             return false;
+        _sunderingShots = LoadSunderingShots(controller);
         FrameSunderingDais(controller);
         return true;
     }
@@ -1646,7 +1672,9 @@ public partial class CombatManager
         if (camera != null)
         {
             camera.AcceptInput = true;
-            camera.SwingToward(to, to + Vector3.Right, SunderingWalkZoom);   // toward the doors
+            // The walk-out shot's turn, tilt and zoom; its center is the candidate's, walking.
+            if (_sunderingShots == null || !_sunderingShots.Frame(camera, SunderingWalkOutShot, moveCenter: false))
+                camera.SwingToward(to, to + Vector3.Right, SunderingWalkZoom);   // toward the doors
             camera.FocusOn(candidate);
         }
         var step = CreateTween();
@@ -1763,6 +1791,11 @@ public partial class CombatManager
         EncounterContextCarrier.Clear();
         PrologueDirector.ClearScriptedSession();
         GD.Print("[Sundering] Out through the east doors.");
+        if (PrologueDirector.SunderingRehearsal)
+        {
+            PrologueDirector.EndSunderingRehearsal(GetTree());   // J7: back to the city, keeping nothing
+            return;
+        }
         PrologueDirector.ExitToWorld(GetTree());
     }
 
@@ -2232,6 +2265,18 @@ public partial class CombatManager
     {
         if (camera == null || grid == null)
             return;
+        if (_sunderingShots != null && _sunderingShots.Frame(camera, SunderingDaisShot, instant: true))
+            return;
+        Vector3 center = SunderingDaisCenter();
+        Vector3 toward = center + new Vector3(-1f, 0f, 0f);   // west: the lectern, the mark, the dais
+        camera.FaceToward(center, toward);
+        camera.SwingToward(center, toward, SunderingDaisZoom);
+    }
+
+    /// <summary>Where the opening's framing stands: over the candidate as the fight opens, on the top of the
+    /// board.</summary>
+    private Vector3 SunderingDaisCenter()
+    {
         Vector3 min = grid.GridBoundsMin;
         Vector3 max = grid.GridBoundsMax;
         var candidate = SunderingCandidate;
@@ -2239,9 +2284,20 @@ public partial class CombatManager
             ? candidate.GlobalPosition
             : new Vector3(Mathf.Lerp(min.X, max.X, 0.25f), max.Y, (min.Z + max.Z) * 0.5f);
         center.Y = max.Y;
-        Vector3 toward = center + new Vector3(-1f, 0f, 0f);   // west: the lectern, the mark, the dais
-        camera.FaceToward(center, toward);
-        camera.SwingToward(center, toward, SunderingDaisZoom);
+        return center;
+    }
+
+    /// <summary>The Sundering's rig shots (SD3): its direction scene's, or else the built-in ones, set from where
+    /// the candidate stands as the fight opens. Null when there is no hall to stand them in: the framings then
+    /// set the camera as they did before the shots.</summary>
+    private StageDirection.ShotSet LoadSunderingShots(CameraController camera)
+    {
+        var hall = SunderingHall;
+        if (hall == null || grid == null || camera == null)
+            return null;
+        Vector3 start = SunderingDaisCenter();
+        return StageDirection.LoadShots(SunderingDirectionId, hall.SetOrigin,
+            () => DefaultDirections.SunderingShots(hall, grid, camera, start), SunderingDirectionNeeds);
     }
 
     /// <summary>The fight's framing (D38): from over the north tiers looking south, the dais at the
@@ -2253,6 +2309,8 @@ public partial class CombatManager
             return;
         var camera = SunderingCamera;
         if (camera == null)
+            return;
+        if (_sunderingShots != null && _sunderingShots.Frame(camera, SunderingSideShot))
             return;
         Vector3 min = grid.GridBoundsMin;
         Vector3 max = grid.GridBoundsMax;
@@ -2268,6 +2326,8 @@ public partial class CombatManager
             return;
         var camera = SunderingCamera;
         if (camera == null)
+            return;
+        if (_sunderingShots != null && _sunderingShots.Frame(camera, SunderingClimaxShot))
             return;
         Vector3 min = grid.GridBoundsMin;
         Vector3 max = grid.GridBoundsMax;

@@ -846,12 +846,24 @@ public sealed class CampusGuildPanel : CampusPanel
 
         // ── PROLOGUE ─────────────────────────────────────────────────────
         var prologue = Section("PROLOGUE",
-            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk First Lunation Again is for this guild, and saves at once.");
+            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk First Lunation Again is for this guild, and saves at once. Rehearse the Founding and Rehearse the Sundering play the founding and the Sundering on this guild and keep nothing. Bake Stage Previews (only while the game runs from the editor) saves the prologue's halls for the direction scenes in the editor.");
         Check(prologue, "Unlock All Classes", PlayerSession.DebugUnlockAllClasses,
             on => PlayerSession.DebugUnlockAllClasses = on);
         Grant(prologue, "Walk First Lunation Again", save => FirstLunation.DebugForget(save),
             "This guild's first-lunation steps go back to undone (S5). Steps its own state shows, such as a "
             + "sortie, a won fight or a new moon, tick again at once. The Register's notes stay seen on this computer.");
+        Act(prologue, "Rehearse the Founding", () => FoundingStage.Rehearse(Ctx.Host.GetTree()),
+            "The founding in the Grand Hall from its first beat, on this guild, with its panels shown and nothing "
+            + "applied, then back to the city. For watching a change to Scenes/Prologue/Direction/founding.tscn.");
+        Act(prologue, "Rehearse the Sundering", () => PrologueDirector.RehearseSundering(Ctx.Host.GetTree()),
+            "The Sundering from its opening to the walk out, on this guild, with its panels shown. Nothing is saved "
+            + "while it runs, and at the end the guild is read back from its slot, so nothing it did is kept. For "
+            + "watching a change to Scenes/Prologue/Direction/sundering.tscn.");
+        if (StageBake.Available)
+            Act(prologue, "Bake Stage Previews", () => StageBake.Begin(Ctx.Host.GetTree()),
+                "Builds each of the prologue's halls as the game does and saves it under Scenes/Prologue/Sets, for the "
+                + "direction scenes to show in the editor, then writes any direction scene that is missing. Only while "
+                + "the game runs from the editor.");
 
         var diplomacy = Section("DIPLOMACY DEBUG",
             "Sit at any negotiation table directly: encounter, school, standing, goodwill / patience overrides, forced grievance, extra leverage, allies. Nothing is recorded. Returns to the hub.");
@@ -882,6 +894,8 @@ public sealed class CampusGuildPanel : CampusPanel
         Check(expedition, "No Fog", PlayerSession.NoFog, on => PlayerSession.NoFog = on);
         Check(expedition, "Unlimited Fuel", PlayerSession.UnlimitedSteps, on => PlayerSession.UnlimitedSteps = on);
         Check(expedition, "No Enemy Ambushes", PlayerSession.DebugNoAmbush, on => PlayerSession.DebugNoAmbush = on);
+        Check(expedition, "Classic Exploration (A/B baseline)", PlayerSession.DebugClassicExploration,
+            on => PlayerSession.DebugClassicExploration = on);
         Check(expedition, "Grant Staging (press G)", PlayerSession.DebugGrantStagingArmed,
             on => PlayerSession.DebugGrantStagingArmed = on);
         Check(expedition, "Start With Gold", PlayerSession.StartWithGold, on => PlayerSession.StartWithGold = on);

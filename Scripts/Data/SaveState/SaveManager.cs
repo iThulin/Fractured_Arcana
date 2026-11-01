@@ -18,6 +18,10 @@ using System.Text.Json.Serialization;
 //                 v100 is a clean break: legacy slot_N.json saves
 //                 are not migrated and are ignored (and removed
 //                 by DeleteSlot).
+//                 A rehearsal (Rehearse the Sundering, J7) plays on the
+//                 active save without writing it: BeginRehearsal, and
+//                 the next Load of a slot ends it (the save read back
+//                 from disk drops what the rehearsal changed).
 // Layer:          System
 // Collaborators:  GuildSaveData.cs (envelope + shims),
 //                 EternalLedger.cs, CycleState.cs (the tiers),
@@ -73,6 +77,22 @@ public static class SaveManager
 
     public static void MarkDirty() => _isDirty = true;
 
+    // ── A rehearsal (PrologueDirector.RehearseSundering, J7) ─────────────
+    /// <summary>The save a rehearsal plays on. While it is the active save it is never written; loading a slot
+    /// ends that.</summary>
+    private static GuildSaveData _rehearsed;
+
+    /// <summary>True while a rehearsal plays on the active save: it is not written.</summary>
+    public static bool Rehearsing => _rehearsed != null && object.ReferenceEquals(ActiveSave, _rehearsed);
+
+    /// <summary>The active save is not written from now on, until a slot is loaded. The caller writes it
+    /// first, so the slot holds the save as it was before the rehearsal.</summary>
+    public static void BeginRehearsal()
+    {
+        _rehearsed = ActiveSave;
+        _isDirty = false;
+    }
+
     /// <summary>
     /// Save the active data to the active slot.
     /// Call this after every run completion and campus change.
@@ -85,6 +105,11 @@ public static class SaveManager
             return false;
         }
         _isDirty = false;
+        if (Rehearsing)
+        {
+            GD.Print($"SaveManager: A rehearsal is running, so slot {ActiveSlot} is not written.");
+            return true;
+        }
 
         // Settle any outstanding permanent progression (SchoolMastery, Regalia)
         // BEFORE the write, so grants are persisted in the same atomic save.
@@ -111,6 +136,11 @@ public static class SaveManager
     /// </summary>
     public static bool SaveToSlot(int slot, GuildSaveData data)
     {
+        if (_rehearsed != null && object.ReferenceEquals(data, _rehearsed))
+        {
+            GD.Print($"SaveManager: A rehearsal is running, so slot {slot} is not written.");
+            return true;
+        }
         if (slot < 0 || slot >= MAX_SLOTS)
         {
             GD.PrintErr($"SaveManager: Invalid slot {slot}");
@@ -251,6 +281,7 @@ public static class SaveManager
 
         ActiveSave = data;
         ActiveSlot = slot;
+        _rehearsed = null;   // a rehearsal ends when its save is read back (or any other is loaded)
 
         // Draft-pool breadth on load. SeedUnlockedPool otherwise only runs from
         // SeedStarterDeck, i.e. on new game and on a new cycle, so a save loaded
@@ -510,6 +541,7 @@ public static class SaveManager
 
         ActiveSave = data;
         ActiveSlot = slot;
+        _rehearsed = null;
         SaveToSlot(slot, data);
 
         GD.Print($"SaveManager: New guild in slot {slot} (school: {school})");

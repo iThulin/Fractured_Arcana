@@ -157,6 +157,12 @@ public partial class EncounterRouter : Node
     /// </summary>
     public void OnCombatFinished(bool playerWon)
     {
+        if (PrologueDirector.SunderingRehearsal)
+        {
+            // Rehearse the Sundering (J7): whatever the outcome, nothing is kept and no host reads a return.
+            PrologueDirector.EndSunderingRehearsal(GetTree());
+            return;
+        }
         EncounterContextCarrier.Clear();
         CombatWon = playerWon;
         // C1: on_combat_end, won or lost, for every fight that comes back through the router
