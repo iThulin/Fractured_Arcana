@@ -234,6 +234,36 @@ public partial class CampusScreen : Control
         quitBtn.Pressed += () => GetTree().Quit();
         titleBar.AddChild(quitBtn);
 
+        // Z14 (docs/sundering_long_second_founding_v1.md section 7, ruled 2026-10-27): an
+        // ended reading's campus had no way on. The next reading begins only from the
+        // Expedition panel's launch (the picker, then BeginNextCycle), and the diegetic hub
+        // hides the tab bar that reached it. So the title bar carries the way on itself,
+        // and the Guild panel stays in view for declaring first.
+        if (PlayerSession.CycleEndedByConjunction && OverlayLeaveHandler == null)
+        {
+            var nextBtn = new Button
+            {
+                Text = "Begin the Next Reading",
+                TooltipText = "This reading has ended. Declare what you can in the Disciplines " +
+                              "section first: the next reading is walked in a declared discipline, " +
+                              "and the door opens somewhere new.",
+                AnchorLeft = 0f,
+                AnchorTop = 0.5f,
+                AnchorRight = 0f,
+                AnchorBottom = 0.5f,
+                GrowHorizontal = Control.GrowDirection.End,
+                GrowVertical = Control.GrowDirection.Both,
+                OffsetLeft = 8,
+                OffsetRight = 248,
+                OffsetTop = -16,
+                OffsetBottom = 16,
+            };
+            nextBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(nextBtn, isPrimary: true);
+            nextBtn.Pressed += () => _expeditionPanel.BeginNextReading();
+            titleBar.AddChild(nextBtn);
+        }
+
         // Tab bar. Hidden under the diegetic hub, but the buttons still exist and SelectTab
         // still drives their pressed state, so flipping DiegeticHubOnly back on restores
         // the bar with zero other changes.

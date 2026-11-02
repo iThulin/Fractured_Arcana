@@ -492,7 +492,7 @@ public sealed class StageDirection
     /// <summary>What is wrong in <paramref name="root"/> that its stage can still play around: a cue no stage
     /// performs, a method key that is not Cue or CueFor on Cues, a key on a node that is not there, a sequence
     /// that loops.</summary>
-    public static List<string> Advice(Needs needs, Node root)
+    public static List<string> Advice(Needs needs, Node3D root)
     {
         var notes = new List<string>();
         foreach (var shot in needs?.Shots ?? Array.Empty<string>())

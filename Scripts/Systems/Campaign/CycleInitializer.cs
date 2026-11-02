@@ -41,6 +41,8 @@ public static class CycleInitializer
         // D5 (2026-09-28): recruited martials arrive armed. After the starter
         // items, so the item database is loaded and the armory exists.
         CompanionRoster.EnsureStartingWeapons(SaveManager.ActiveSave);
+        // Knowledge ladder L1: a lead whose place has been sighted since it was heard is gone.
+        LeadService.Prune(SaveManager.ActiveSave.Cycle);
     }
 
     private static void EnsureStarterItems()

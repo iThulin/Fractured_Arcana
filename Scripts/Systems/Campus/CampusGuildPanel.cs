@@ -1091,6 +1091,7 @@ public sealed class CampusGuildPanel : CampusPanel
             ProgressionSaveAssert.AssertAll();
             ArmorySaveAssert.AssertAll();   // Edge M6: belts, charges, bindings
             CharterSaveAssert.AssertAll();  // campus doctrines: charters, fills
+            LeadsSaveAssert.AssertAll();    // knowledge ladder L1: leads, Known
         });
 
         return panel;

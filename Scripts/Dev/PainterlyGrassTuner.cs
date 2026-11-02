@@ -17,7 +17,9 @@ using System.Collections.Generic;
 public partial class PainterlyGrassTuner : PanelContainer
 {
     [Export] public NodePath GrassFieldPath;
-    [Export] public ShaderMaterial Material;
+    // Hides CanvasItem.Material on purpose: this slot is the grass's shader, and
+    // CharacterStaging.tscn binds it by this name.
+    [Export] public new ShaderMaterial Material;
 
     private const string PainterlyGrassGroup = "painterly_grass";
 

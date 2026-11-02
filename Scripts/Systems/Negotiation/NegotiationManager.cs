@@ -1251,9 +1251,6 @@ public partial class NegotiationManager : Control
     private Control BuildSlip(Clause c)
     {
         bool open = c.IsOpen && !_state.IsResolved;
-        bool selected = false;
-        bool targetable = false;
-        bool bundleFirst = false;
         bool refused = c.State == ClauseState.Refused;
         bool lockedYours = c.IsAgreed && c.Side == ClauseSide.Theirs;   // you receive it
         bool lockedTheirs = c.IsAgreed && c.Side == ClauseSide.Yours;   // they keep it

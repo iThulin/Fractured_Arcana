@@ -181,6 +181,10 @@ public sealed class CampusExpeditionPanel : CampusPanel
         Ctx.EnterStrategicMap?.Invoke();
     }
 
+    /// <summary>Z14: the ended reading's campus begins the next reading from its title bar,
+    /// whatever panel is showing. The same path as this panel's launch button.</summary>
+    public void BeginNextReading() => OnOpenStrategicMap();
+
     /// <summary>After a Conjunction, let the player choose the next cycle's school
     /// (the same school is allowed, since they keep their unlocked card pool either way,
     /// but the deck rebuilds from a starter). Then begin the new cycle and open the
@@ -229,7 +233,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
         var vbox = MakeVBox(14);
         margin.AddChild(vbox);
 
-        var title = new Label { Text = "A New Timeline" };
+        var title = new Label { Text = "A New Reading" };
         title.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
         title.AddThemeColorOverride("font_color", UITheme.Gold);
         title.HorizontalAlignment = HorizontalAlignment.Center;
@@ -242,10 +246,10 @@ public sealed class CampusExpeditionPanel : CampusPanel
         // names what actually carries. See docs/progression_card_acquisition_v1.md §1b.
         var body = new Label
         {
-            Text = "Kassian weaves the world anew. Choose the school of this cycle. " +
-                   "Your campus, your card knowledge, your mastery and your regalia " +
-                   "endure. They were never in the timeline. Your deck begins again " +
-                   "from its foundations.",
+            Text = "The sky re-reads the world. Take up one of your declared disciplines " +
+                   "for this reading. Your campus, your card knowledge, your mastery and " +
+                   "your regalia endure: they were never in the timeline. Your deck begins " +
+                   "again from its foundations.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
@@ -328,6 +332,21 @@ public sealed class CampusExpeditionPanel : CampusPanel
             };
             grid.AddChild(btn);
         }
+
+        // Z14: the picker had no way back, and its lock tooltip says to declare an eligible
+        // discipline first. From the ended reading's campus that is the Guild panel behind
+        // this layer, so the picker lets you step back to it.
+        var notYet = new Button { Text = "Not Yet", CustomMinimumSize = new Vector2(160, 40) };
+        notYet.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(notYet, isPrimary: false);
+        notYet.Pressed += () =>
+        {
+            if (transitioning) return;
+            layer.QueueFree();
+        };
+        var notYetRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+        notYetRow.AddChild(notYet);
+        vbox.AddChild(notYetRow);
     }
 
     /// <summary>

@@ -134,18 +134,18 @@ public partial class GlyphCipherView : Control
     /// spoke tips, markers and the hub outline, B = hub fill. The rim, backing and pips are
     /// skipped because the shader draws its own rings. Never used for card art.
     /// </summary>
-    public bool LightMask
+    public bool CoverageMask
     {
-        get => _lightMask;
+        get => _coverageMask;
         set
         {
-            if (_lightMask == value) return;
-            _lightMask = value;
+            if (_coverageMask == value) return;
+            _coverageMask = value;
             Material = value ? new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add } : null;
             QueueRedraw();
         }
     }
-    private bool _lightMask;
+    private bool _coverageMask;
 
     private static readonly Color MaskStave = new Color(1f, 0f, 0f, 1f);
     private static readonly Color MaskFunction = new Color(0f, 1f, 0f, 1f);
@@ -182,7 +182,7 @@ public partial class GlyphCipherView : Control
 
         int reveal = Mathf.RoundToInt(_glyph.OrderedCount * _progress);
 
-        if (_lightMask)
+        if (_coverageMask)
         {
             inkA = MaskStave;
             fn = MaskFunction;
@@ -195,7 +195,7 @@ public partial class GlyphCipherView : Control
 
         // Backing first, under everything, so the composite no longer depends on what
         // terrain happens to be under the tile.
-        if (p.BackingAlpha > 0.001f && !_lightMask)
+        if (p.BackingAlpha > 0.001f && !_coverageMask)
         {
             // Stacked discs rather than one flat fill: a single hard-edged circle on
             // grass reads as a sticker, whereas an accumulating vignette reads as
@@ -210,13 +210,13 @@ public partial class GlyphCipherView : Control
             }
         }
 
-        if (p.Pips && !_lightMask) DrawPips(ToScreen, radius, fn);
+        if (p.Pips && !_coverageMask) DrawPips(ToScreen, radius, fn);
 
         // Order matters: rim, then the stave, then the function layer on top. The
         // function layer is the readable one and must never be occluded by the stave.
         foreach (var s in _glyph.Strokes)
         {
-            if (s.Layer != CipherLayer.Rim || _lightMask) continue;
+            if (s.Layer != CipherLayer.Rim || _coverageMask) continue;
             DrawStrokePolyline(s, ToScreen, inkA, Mathf.Max(p.MinPxIdentity, (float)s.Weight * radius * p.IdentityWeightMul));
         }
 
@@ -308,7 +308,7 @@ public partial class GlyphCipherView : Control
                 break;
 
             case CipherMark.Hub:
-                if (_lightMask) DrawHubMask(at, size, lineW);
+                if (_coverageMask) DrawHubMask(at, size, lineW);
                 else DrawHub(at, size, col);
                 break;
         }

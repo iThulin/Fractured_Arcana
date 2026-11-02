@@ -367,6 +367,12 @@ public class CycleState
     /// the desk can show what was said after the moment has passed.</summary>
     public List<ScryMessage> ScryInbox = new();
 
+    /// <summary>Rumours about places this reading: the knowledge ladder's Rumored stage
+    /// (docs/knowledge_ladder_spec_v1.md, section 3). A lead goes once its place is
+    /// Sighted (LeadService.Prune). Additive: a save from before the ladder reads as
+    /// no leads.</summary>
+    public List<Lead> Leads = new();
+
     /// <summary>Field parties operating away from the castle. Iterated by the
     /// turn loop from day one even while MaxFieldParties is 1, so unlocking
     /// another party is a data change rather than a refactor.</summary>

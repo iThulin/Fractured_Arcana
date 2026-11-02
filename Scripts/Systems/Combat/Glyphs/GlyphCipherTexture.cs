@@ -120,7 +120,7 @@ public partial class GlyphCipherTexture : Node
                 Progress = 1f,
                 Position = Vector2.Zero,
                 Size = new Vector2(px, px),
-                LightMask = lightMask,
+                CoverageMask = lightMask,
             };
             vp.AddChild(view);
             AddChild(vp);

@@ -133,6 +133,12 @@ public class WorldPoi
     /// are absent from the strategic view.</summary>
     public bool Discovered = false;
 
+    /// <summary>The knowledge ladder's Known stage (docs/knowledge_ladder_spec_v1.md,
+    /// section 2): what the place holds is known (its danger, who holds it, what it
+    /// pays), from a visit, a scout's report or the Scrying Chambers. Meaningful only
+    /// on a Discovered place, which is the Sighted stage. Additive, default false.</summary>
+    public bool Known = false;
+
     /// <summary>True once resolved (combat won, rest used, narrative completed).
     /// A consumed POI persists as consumed so it isn't re-offered on revisit.</summary>
     public bool Consumed = false;

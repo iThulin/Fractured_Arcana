@@ -43,6 +43,18 @@ public static class SaveManager
     /// <summary>Build materials a new guild is founded with (see NewGame).</summary>
     public const int FoundingMaterials = 150;
 
+    /// <summary>Base gold a new guild is founded with (see NewGame). The founding
+    /// scenario's StartingGold is applied on top, floored at 0: by NewGameScreen at the
+    /// founding, and by <see cref="FoundingPurse"/> at every later reading.</summary>
+    public const int FoundingGold = 200;
+
+    /// <summary>The purse a reading opens with: the base founding gold plus the founding
+    /// scenario's adjustment, floored at 0. U18, docs/standing_orders_first_reading_v1.md:
+    /// gold and materials are timeline state, struck through with the reading they were
+    /// earned in, but a new reading must not open with nothing.</summary>
+    public static int FoundingPurse(StartScenario scenario) =>
+        Math.Max(0, FoundingGold + (scenario?.StartingGold ?? 0));
+
     /// <summary>
     /// Schema version for BOTH tier files. v100 marks the three-tier era;
     /// anything older is a legacy save and is rejected, not migrated.
@@ -525,7 +537,7 @@ public static class SaveManager
                 // as a delta on top (NewGameScreen.OnConfirmPressed), floored at 0,
                 // so a positive base lets negative scenario deltas actually bite
                 // (e.g. Brutal −200 → 0 cushion) instead of being inert. Tune freely.
-                Gold = 200,
+                Gold = FoundingGold,
                 // Founding materials (2026-09-29), replacing the 10,000 placeholder
                 // now that fights and held caches pay materials: enough for one
                 // first-tier building or a few waystones. Tune freely.
@@ -634,6 +646,9 @@ public static class SaveManager
             // The wizard keeps their name from reading to reading (docs/story_wiring_v1.md,
             // found item 1): every {wizard_name} read "Wizard" from the second reading on.
             WizardName = old.WizardName,
+            // U18: every reading opens with the founding's purse, as the first one did.
+            Gold = FoundingPurse(ActiveSave.Ledger?.FoundingScenario),
+            BuildMaterials = FoundingMaterials,
         };
 
         // C1: companions met in the ending reading are known to the next, and a chronicle
