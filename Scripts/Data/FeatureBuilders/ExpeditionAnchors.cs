@@ -766,6 +766,10 @@ public static class ExpeditionAnchors
         {
             return;
         }
+        if (Interval.Walking(cycle))
+        {
+            repairLunations = 0;   // Standing Orders O1 (D148): the moon is held, so a camp takes no days
+        }
         // The day clock (2026-09-23): the resupply counts its days from the
         // camp, not from the next new moon.
         cycle.CastleRepairDayAccum = 0;
@@ -811,6 +815,10 @@ public static class ExpeditionAnchors
         cycle.LastDeployStagingKey = $"{x},{y}";
         GD.Print($"[ExpeditionAnchors] {name} parks at ({x},{y}) on lunation {cycle.CastleParkedLunation}, "
                  + $"resupply {cycle.CastleRepairLunations} day(s).");
+
+        // Knowledge ladder L2: every camp looks around. Places in sight become
+        // Sighted, and the desk and the frontier news say what was seen.
+        CampSight.Sight(cycle, x, y, name);
     }
 
     /// <summary>Advance the resupply by one lunation. Called from the lunation
@@ -886,7 +894,8 @@ public static class ExpeditionAnchors
         }
         cycle.CastleParked = true;
         cycle.CastleRepairLunations = 0;
-        if (cycle.CastleMaxFuel > 0)
+        // Never in the interval (Standing Orders O1): the store refuels the castle.
+        if (cycle.CastleMaxFuel > 0 && !Interval.Walking(cycle))
         {
             cycle.CastleFuel = cycle.CastleMaxFuel;   // the dock turnaround refuels
         }

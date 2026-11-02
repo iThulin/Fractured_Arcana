@@ -55,6 +55,13 @@ public static class CompanionInjurySystem
     {
         if (save == null)
             return "";
+        if (Interval.Walking(save.Cycle))
+        {
+            // Standing Orders O1 (U16, D147): a fight lost in the interval unmakes no one
+            // and sends no one to the infirmary. The party comes back to the castle bruised.
+            GD.Print($"[Injury] No wipe rolls for {context}: the interval takes bruises, not lives.");
+            return "";
+        }
         AssertRoundTripOnce();
         var summary = new System.Text.StringBuilder();
 
@@ -189,6 +196,8 @@ public static class CompanionInjurySystem
 
             if (c.IsInjured)
                 continue;   // already in the infirmary from an earlier wipe
+            if (Interval.Walking(save.Cycle))
+                continue;   // Standing Orders O1 (D147): carried HP clears, and nobody goes to the infirmary
 
             if (hp == 0)
             {

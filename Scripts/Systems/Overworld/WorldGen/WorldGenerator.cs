@@ -74,7 +74,7 @@ public static class WorldGenerator
 
         public float CityStudFraction = 0.55f;   // fraction of a city's tiles that get a POI
         public float TownStudFraction = 0.50f;
-        public int WildPoiPerKingdom = 5;         // thinned wilderness scatter (was PoiPerKingdom=12)
+        public int WildPoiPerKingdom = 8;         // wilderness scatter: 5 -> 8 with story places (W1, 2026-11-02); was PoiPerKingdom=12
 
         // C3 (docs/main_story_outline_v1.md R3): the save's pinned co-conspirator, placed in the
         // last tier-3 region. "" leaves the placement to the shuffle, as before.
@@ -593,17 +593,20 @@ public static class WorldGenerator
     {
         // 1. Archmage seats. Each sits at its kingdom's primary (seat) city centre,
         //    and is that city's staging POI.
+        //
+        // The convergence: Kassian's seat and the final objective. A distinct POI
+        // kind so it reads as the endgame target, not a normal capital. Fog-gated like
+        // any seat, so it stays hidden until the player reaches it (dramatic reveal).
+        // grantsStaging stays FALSE: it's an objective marker, not a deploy point;
+        // the assault on it is a later phase and will hook here.
+        // Placed once, before the seats (2026-11-02). Inside the loop it was added once
+        // per capital, so a world carried a stack of copies on Kassian's seat.
+        int convIdx = kingdomIds.IndexOf(convergenceKingdom);
+        if (convIdx >= 0 && convIdx < capitals.Count)
+            AddPoi(world, capitals[convIdx].x, capitals[convIdx].y,
+                   PoiKind.Convergence, convergenceKingdom, grantsStaging: false);
         for (int i = 0; i < capitals.Count; i++)
         {
-            // The convergence: Kassian's seat and the final objective. A distinct POI
-            // kind so it reads as the endgame target, not a normal capital. Fog-gated like
-            // any seat, so it stays hidden until the player reaches it (dramatic reveal).
-            // grantsStaging stays FALSE: it's an objective marker, not a deploy point;
-            // the assault on it is a later phase and will hook here.
-            int convIdx = kingdomIds.IndexOf(convergenceKingdom);
-            if (convIdx >= 0)
-                AddPoi(world, capitals[convIdx].x, capitals[convIdx].y,
-                       PoiKind.Convergence, convergenceKingdom, grantsStaging: false);
             string id = kingdomIds[i];
             if (id == convergenceKingdom)
                 continue;
@@ -647,9 +650,17 @@ public static class WorldGenerator
             }
         }
 
-        // 3. Wilderness scatter on non-settlement tiles: thinner, martial. Outposts
-        //    still grant staging so the exploration loop can bootstrap from the wild.
-        PoiKind[] wildKinds = { PoiKind.Combat, PoiKind.Combat, PoiKind.Combat, PoiKind.Outpost, PoiKind.Rest };
+        // 3. Wilderness scatter on non-settlement tiles. Outposts still grant staging
+        //    so the exploration loop can bootstrap from the wild. W1 (knowledge ladder,
+        //    ruled 2026-11-02): story and meeting places join the fights, so camps,
+        //    lures and rumors have anomalies in the wild to point at. Fights stay at
+        //    about three a kingdom on average: 8 places at 3 in 8, where it was 5 at 3 in 5.
+        PoiKind[] wildKinds =
+        {
+            PoiKind.Combat, PoiKind.Combat, PoiKind.Combat,
+            PoiKind.Narrative, PoiKind.Narrative, PoiKind.Negotiation,
+            PoiKind.Rest, PoiKind.Outpost,
+        };
 
         foreach (var id in kingdomIds)
         {

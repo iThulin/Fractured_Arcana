@@ -263,6 +263,33 @@ public partial class CampusScreen : Control
             nextBtn.Pressed += () => _expeditionPanel.BeginNextReading();
             titleBar.AddChild(nextBtn);
         }
+        // Standing Orders O1a fix (2026-11-02): the standalone campus (the title screen's Guild
+        // Hall) offered only Quit, which closes the game. While the interval walks the home is
+        // shut, so the Guild panel's debug buttons are reached from here, and the way back into
+        // the reading has to be here too. Standalone means this screen is the scene itself, not
+        // the campus opened over the map (which has its own leave button).
+        else if (GetParent() == GetTree().Root && SaveManager.ActiveSave?.Cycle != null)
+        {
+            var worldBtn = new Button
+            {
+                Text = "To the World Map",
+                TooltipText = "Out to the world map, where this reading is played.",
+                AnchorLeft = 0f,
+                AnchorTop = 0.5f,
+                AnchorRight = 0f,
+                AnchorBottom = 0.5f,
+                GrowHorizontal = Control.GrowDirection.End,
+                GrowVertical = Control.GrowDirection.Both,
+                OffsetLeft = 8,
+                OffsetRight = 208,
+                OffsetTop = -16,
+                OffsetBottom = 16,
+            };
+            worldBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(worldBtn, isPrimary: true);
+            worldBtn.Pressed += EnterStrategicMap;
+            titleBar.AddChild(worldBtn);
+        }
 
         // Tab bar. Hidden under the diegetic hub, but the buttons still exist and SelectTab
         // still drives their pressed state, so flipping DiegeticHubOnly back on restores

@@ -864,9 +864,22 @@ public partial class WorldAtlas3D : Node3D
     /// clicks take priority. The surrounding world tiles stay visible around the edges.</summary>
     public void EnterCityMode() => EnterCityMode(fly: true);
 
+    /// <summary>Standing Orders O1: raised when the home city refuses entry because the
+    /// interval's door is not set, so the host can say why.</summary>
+    public event System.Action HomeEntryRefused;
+
+    /// <summary>Standing Orders O1: the home is shut. No NPC city is active, so an entry now
+    /// would be the home's, and the interval's door is not set.</summary>
+    private bool HomeDoorShut => _activeCity == null && Interval.DoorShut(SaveManager.ActiveSave?.Cycle);
+
     private void EnterCityMode(bool fly)
     {
         if (_cityMode || _homeGrounds == null || _world == null || _camera == null) return;
+        if (HomeDoorShut)
+        {
+            HomeEntryRefused?.Invoke();
+            return;
+        }
         _cityMode = true;
 
         if (_cityBorders != null) _cityBorders.Visible = true;
@@ -964,8 +977,8 @@ public partial class WorldAtlas3D : Node3D
         else if (_homeGrounds != null && _camDist < CityAutoEnterDist)
         {
             float d = new Vector2(_camTarget.X - _cityCentre.X, _camTarget.Z - _cityCentre.Z).Length();
-            if (d <= 2.5f * ColSpacing)
-                EnterCityMode(fly: false);
+            if (d <= 2.5f * ColSpacing && !HomeDoorShut)
+                EnterCityMode(fly: false);   // silent while the home is shut: each wheel tick would say so
         }
     }
 
@@ -2001,6 +2014,10 @@ public partial class WorldAtlas3D : Node3D
         // POIs: discovered only (or reveal), same rule as StrategicView's POI layer.
         // A7: a flattened DAB of paint on the map rather than a floating ball.
         var poiMesh = new SphereMesh { Radius = 0.34f, Height = 0.26f, RadialSegments = 10, Rings = 6 };
+        // Knowledge ladder L2 (spec section 8): a place that is Sighted but not yet
+        // visited wears a thin ring in its kind's color, flattened onto the tile,
+        // until someone goes to look (CampSight.SightedUnvisited).
+        var unvisitedRing = new TorusMesh { InnerRadius = 0.5f, OuterRadius = 0.6f, Rings = 24, RingSegments = 4 };
         foreach (var poi in _world.Pois)
         {
             if (!poi.Discovered && !_revealAll) continue;
@@ -2015,6 +2032,21 @@ public partial class WorldAtlas3D : Node3D
                 },
                 Position = MarkerPos(poi.X, poi.Y, 0.16f),   // A7: sits ON the ground, a dab of paint
             }, poi.X, poi.Y);
+            if (CampSight.SightedUnvisited(_world, poi))
+            {
+                AddMarker(new MeshInstance3D
+                {
+                    Mesh = unvisitedRing,
+                    MaterialOverride = new StandardMaterial3D
+                    {
+                        AlbedoColor = c,
+                        EmissionEnabled = true, Emission = c, EmissionEnergyMultiplier = 0.5f,
+                    },
+                    Position = MarkerPos(poi.X, poi.Y, 0.04f),
+                    Scale = new Vector3(1f, 0.35f, 1f),
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                }, poi.X, poi.Y);
+            }
         }
 
         // Settlements: one marker at the center, sized by tier, named label.
@@ -2023,7 +2055,8 @@ public partial class WorldAtlas3D : Node3D
         // the campus is (Phase 2, campus-as-world-location).
         foreach (var s in _world.Settlements)
         {
-            bool home = s.IsGuildHome;
+            // Standing Orders O1: until the door is set, {home} is the city it is, not the guild's seat.
+            bool home = s.IsGuildHome && !Interval.DoorShut(SaveManager.ActiveSave?.Cycle);
             if (!home && !SettlementVisible(s)) continue;
             bool city = s.Tier == SettlementTier.City;
             Color c = home ? UITheme.Violet : (s.IsSeat ? UITheme.Gold : UITheme.ArcaneBlue);
@@ -2079,8 +2112,13 @@ public partial class WorldAtlas3D : Node3D
         // the beacon has to stand up off the map to stay visible and aimable.
         // A beacon standing ON the city represents the PORTAL BUILDING (map travel);
         // AddMarker's city-tile tracking hides it in city view like the seat block.
+        bool dockShut = Interval.DoorShut(SaveManager.ActiveSave?.Cycle);   // Standing Orders O1
         foreach (var sp in _world.StagingPoints)
         {
+            if (dockShut && sp != null && sp.Source == Interval.DockSource)
+            {
+                continue;   // the dock waits for the door: no beacon over the shut home
+            }
             // A7: a planted gold STANDARD instead of the cone, the guild's launch
             // flag in the world. The glowing orb cap stays smaller but bright: it
             // is the "see me from across the map" element (loudness law).

@@ -402,6 +402,11 @@ public static class FieldPostings
             why = "Nothing to post.";
             return null;
         }
+        if (Interval.Walking(cycle))
+        {
+            why = Interval.PostingLine;   // Standing Orders O1 (D146): work is counted in days
+            return null;
+        }
         if (IsDetachment(party))
         {
             why = "A detachment cannot split again. Collect it first.";

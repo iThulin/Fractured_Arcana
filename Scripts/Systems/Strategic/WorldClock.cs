@@ -131,6 +131,10 @@ public static class WorldClock
         {
             return;
         }
+        if (Interval.RefuseDay(cycle, "WorldClock.StepDay"))
+        {
+            return;   // Standing Orders O1: the moon is held
+        }
         int now = Now(cycle);
 
         if (cycle.CastleBusyUntilDay > 0 && cycle.CastleBusyUntilDay == now)

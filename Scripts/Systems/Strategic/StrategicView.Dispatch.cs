@@ -876,6 +876,32 @@ public partial class StrategicView
             _turnMoonBtn.Text = $"☽  Pass {days} day(s)\nuntil {until}";
             _turnMoonBtn.TooltipText = $"Let the days pass until {until}. Stops early for anything that "
                                      + "happens on the way, and always at the new moon.";
+            _turnMoonBtn.Disabled = false;
+        }
+        if (_passOneDayBtn != null)
+        {
+            _passOneDayBtn.TooltipText = "Let a single day pass. Still stops for anything that happens on it.";
+            _passOneDayBtn.Disabled = false;
+        }
+
+        // Standing Orders O1: while the interval walks the moon is held. The date says so,
+        // and neither button passes time (OnPassTimePressed and PassTime refuse as well).
+        if (Interval.Walking(cycle))
+        {
+            _timeDateLabel.Text = "Before the first new moon";
+            _timeYearLabel.Text = Interval.HeldLine;
+            _timeYearLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            if (_turnMoonBtn != null)
+            {
+                _turnMoonBtn.Text = "The moon is held";
+                _turnMoonBtn.TooltipText = Interval.HeldLine;
+                _turnMoonBtn.Disabled = true;
+            }
+            if (_passOneDayBtn != null)
+            {
+                _passOneDayBtn.TooltipText = Interval.HeldLine;
+                _passOneDayBtn.Disabled = true;
+            }
         }
     }
 

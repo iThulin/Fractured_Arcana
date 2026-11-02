@@ -342,6 +342,10 @@ public partial class StrategicView : Node2D
                 // it no-ops once any posting exists. BeginLunation rolls the
                 // one-move-plus-K-dives budget, and runs AFTER ProcessPendingStraggle
                 // so a straggled lunation is already on the calendar.
+                // Standing Orders O1: while the interval walks, the castle starts on the
+                // road. Before the dock siting below, which then leaves it where this put it.
+                Interval.EnsureStarted(cycle);
+                Interval.AssertHeld(cycle, "the map's load");
                 ExpeditionAnchors.EnsureCastleSited(cycle);
                 ExpeditionAnchors.BackfillPostings(cycle);
                 ExpeditionAnchors.ReconcilePostings(cycle);
@@ -421,6 +425,13 @@ public partial class StrategicView : Node2D
         if (owed <= 0)
             return;
         cycle.PendingStraggleLunations = 0;
+        if (Interval.Walking(cycle))
+        {
+            // Standing Orders O1: the moon is held, so the interval owes no lunations.
+            GD.Print($"[Interval] {owed} owed lunation(s) dropped: the moon is held.");
+            SaveManager.MarkDirty();
+            return;
+        }
 
         for (int i = 0; i < owed; i++)
         {
@@ -553,6 +564,7 @@ public partial class StrategicView : Node2D
         _atlas3D.HomeDistrictPicked += OnHomeDistrictPicked;
         _atlas3D.HomeGroundPicked += OnHomeGroundPicked;
         _atlas3D.CityModeChanged += OnCityModeChanged;
+        _atlas3D.HomeEntryRefused += () => SayInterval(Interval.DoorLine);   // Standing Orders O1
         _atlas3D.DistrictContentTriggered += OnDistrictContentTriggered;
         _atlas3D.DistrictScouted += OnDistrictScouted;
         vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
@@ -611,7 +623,11 @@ public partial class StrategicView : Node2D
         {
             PlayerSession.StartInCityOnOpen = false;
             PlayerSession.ZoomFromHomeOnOpen = false;
-            if (_world.InBounds(_world.HomeX, _world.HomeY) && _atlas3D.HasCityGrounds)
+            if (Interval.DoorShut(SaveManager.ActiveSave?.Cycle))
+            {
+                RiseFromCastle();   // Standing Orders O1: the home is shut, so the map opens on the castle
+            }
+            else if (_world.InBounds(_world.HomeX, _world.HomeY) && _atlas3D.HasCityGrounds)
             {
                 _atlas3D.SnapToTileClose(_world.HomeX, _world.HomeY);
                 _atlas3D.EnterCityMode();
@@ -624,12 +640,53 @@ public partial class StrategicView : Node2D
         else if (PlayerSession.ZoomFromHomeOnOpen)
         {
             PlayerSession.ZoomFromHomeOnOpen = false;
-            if (_world.InBounds(_world.HomeX, _world.HomeY))
+            if (Interval.DoorShut(SaveManager.ActiveSave?.Cycle))
+            {
+                RiseFromCastle();   // Standing Orders O1: the rise is from the castle on the road
+            }
+            else if (_world.InBounds(_world.HomeX, _world.HomeY))
             {
                 _atlas3D.SnapToTileClose(_world.HomeX, _world.HomeY);
                 _atlas3D.FlyToOverview();
             }
         }
+    }
+
+    /// <summary>Standing Orders O1: while the home is shut the map rises from the castle on
+    /// the road, as it rises from the home after a founding.</summary>
+    private void RiseFromCastle()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || _atlas3D == null || _world == null || !_world.InBounds(cycle.CastleX, cycle.CastleY))
+        {
+            return;
+        }
+        _atlas3D.SnapToTileClose(cycle.CastleX, cycle.CastleY);
+        _atlas3D.FlyToTile(cycle.CastleX, cycle.CastleY);
+    }
+
+    /// <summary>Standing Orders O1: say why the interval refused something, as a toast on
+    /// the map.</summary>
+    private void SayInterval(string line)
+    {
+        GD.Print($"[Interval] {line}");
+        EnsureCityExploreToasts();
+        _cityExploreToasts?.Push(line, QuestToastKind.Progress);
+    }
+
+    /// <summary>Standing Orders O1a fix (2026-11-02): while the home's door is not set,
+    /// Debug Mode still reaches the campus's panels, where the debug panel lives, as the
+    /// overlay over the map. The home itself stays shut: no city view. True when it opened
+    /// them.</summary>
+    private bool OpenCampusPanelsThroughShutDoor()
+    {
+        if (!PlayerSession.DebugMode)
+        {
+            return false;
+        }
+        GD.Print("[Interval] Debug Mode: the campus's panels open over the map; the home stays shut.");
+        ShowCampusOverlay(CampusPanelId.Guild);
+        return true;
     }
 
     /// <summary>A 3D map click resolved to (col,row): route it to the same handler
@@ -952,6 +1009,11 @@ public partial class StrategicView : Node2D
         {
             return;
         }
+        if (Interval.Walking(cycle))
+        {
+            GD.Print("[Interval] Pass time: the moon is held, so no day passes.");   // Standing Orders O1
+            return;
+        }
         cycle.PendingSiegeReports?.Clear();
 
         var events = new System.Collections.Generic.List<string>();
@@ -1093,6 +1155,11 @@ public partial class StrategicView : Node2D
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle?.Calendar == null)
         {
+            return;
+        }
+        if (Interval.Walking(cycle))
+        {
+            SayInterval(Interval.HeldLine);   // Standing Orders O1: the moon is held
             return;
         }
 
@@ -1257,10 +1324,14 @@ public partial class StrategicView : Node2D
             _viewToggleBtn.Text = cityNow
                 ? "\u25C8  To the world map"
                 : "\u25C8  To the home city";
-            _viewToggleBtn.Disabled = !cityNow && (_atlas3D == null || !_atlas3D.HasCityGrounds);
+            bool doorShut = Interval.DoorShut(SaveManager.ActiveSave?.Cycle);   // Standing Orders O1
+            bool shutToPlayer = doorShut && !PlayerSession.DebugMode;          // Debug Mode reaches the panels
+            _viewToggleBtn.Disabled = !cityNow && (_atlas3D == null || !_atlas3D.HasCityGrounds || shutToPlayer);
             _viewToggleBtn.TooltipText = cityNow
                 ? (home ? "Up to the world. Escape does the same." : "Leave this city. Escape does the same.")
-                : "Down into the guild's own city.";
+                : (shutToPlayer ? Interval.DoorLine
+                   : doorShut ? "Debug Mode: the campus's panels, over the map. The home stays shut."
+                   : "Down into the guild's own city.");
         }
 
         if (_sortieBtn != null)
@@ -1641,6 +1712,16 @@ public partial class StrategicView : Node2D
     {
         if (_atlas3D == null || !_atlas3D.HasCityGrounds)
             return false;
+        if (Interval.DoorShut(SaveManager.ActiveSave?.Cycle))
+        {
+            // Standing Orders O1: handled, so the HUD does not reload the map into a shut home.
+            // In Debug Mode the campus's panels still open, over the map.
+            if (!OpenCampusPanelsThroughShutDoor())
+            {
+                SayInterval(Interval.DoorLine);
+            }
+            return true;
+        }
         // True geometry merge: the campus is permanently in the world at true scale, so
         // "descending" is nothing but the camera flying down; EnterCityMode does the swoop.
         _atlas3D.EnterCityMode();
@@ -5832,6 +5913,15 @@ public partial class StrategicView : Node2D
             _atlas3D.LeaveCityMode();
             return;
         }
+        if (Interval.DoorShut(SaveManager.ActiveSave?.Cycle))
+        {
+            // Standing Orders O1: refused before the camera moves. Debug Mode reaches the panels.
+            if (!OpenCampusPanelsThroughShutDoor())
+            {
+                SayInterval(Interval.DoorLine);
+            }
+            return;
+        }
         if (_world != null && _atlas3D.HasCityGrounds && _world.InBounds(_world.HomeX, _world.HomeY))
         {
             _atlas3D.FlyToTile(_world.HomeX, _world.HomeY, 30f, 0f);
@@ -5848,6 +5938,11 @@ public partial class StrategicView : Node2D
         if (cycle?.World == null)
         {
             why = "There is no world.";
+            return false;
+        }
+        if (Interval.Walking(cycle))
+        {
+            why = Interval.CastleSortieLine;   // Standing Orders O1 (D145)
             return false;
         }
         if (cycle.CastleSortie != null && cycle.CastleSortie.IsLive())
@@ -6855,6 +6950,10 @@ public partial class StrategicView : Node2D
     /// K2 (§5b/R24): infirmary recovery last.</summary>
     private void RunLunationTick(CycleState cycle)
     {
+        if (Interval.RefuseDay(cycle, "RunLunationTick"))
+        {
+            return;   // Standing Orders O1: the moon is held
+        }
         RegisterManager.Fire("strategic.first_lunation");
         // The open camp's threat roll moved to WorldClock.StepDay on
         // 2026-09-29: it is rolled once per exposed day, before that day's

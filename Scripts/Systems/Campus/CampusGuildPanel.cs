@@ -846,12 +846,34 @@ public sealed class CampusGuildPanel : CampusPanel
 
         // ── PROLOGUE ─────────────────────────────────────────────────────
         var prologue = Section("PROLOGUE",
-            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk First Lunation Again is for this guild, and saves at once. Rehearse the Founding and Rehearse the Sundering play the founding and the Sundering on this guild and keep nothing. Bake Stage Previews (only while the game runs from the editor) saves the prologue's halls for the direction scenes in the editor.");
+            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk First Lunation Again is for this guild, and saves at once. Walk the Interval and End the Interval are for this guild too: each saves, then opens the map. Rehearse the Founding and Rehearse the Sundering play the founding and the Sundering on this guild and keep nothing. Bake Stage Previews (only while the game runs from the editor) saves the prologue's halls for the direction scenes in the editor.");
         Check(prologue, "Unlock All Classes", PlayerSession.DebugUnlockAllClasses,
             on => PlayerSession.DebugUnlockAllClasses = on);
         Grant(prologue, "Walk First Lunation Again", save => FirstLunation.DebugForget(save),
             "This guild's first-lunation steps go back to undone (S5). Steps its own state shows, such as a "
             + "sortie, a won fight or a new moon, tick again at once. The Register's notes stay seen on this computer.");
+        // Standing Orders O1a: the interval's buttons move the castle and shut or open the
+        // home, so after saving they open the map afresh from whichever host this panel is in
+        // (the title screen's Guild Hall, or the campus over the map).
+        void IntervalDebug(Action<GuildSaveData> apply)
+        {
+            var save = Ctx.Save;
+            if (save?.Ledger == null) { GD.PrintErr("[Debug] No save loaded."); return; }
+            apply(save);
+            SaveManager.Save();
+            CampusScreen.OverlayLeaveHandler = null;   // an overlay goes with the scene
+            PlayerSession.CampusOverlayOpen = false;
+            PlayerSession.ZoomFromHomeOnOpen = true;   // the map rises: from the castle while the door is shut
+            Ctx.Host.GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
+        }
+        Act(prologue, "Walk the Interval", () => IntervalDebug(save => Interval.Begin(save)),
+            "Standing Orders O1, for testing: this reading enters the interval. The moon is held, the home's door is "
+            + "shut, and the castle stands on a road with 8 fuel and the party beside it. Saves, then opens the map "
+            + "on the castle.");
+        Act(prologue, "End the Interval", () => IntervalDebug(save => Interval.End(save)),
+            "The interval lets go: the door is set, the moon runs again, and the castle berths at home with a full "
+            + "furnace. Saves, then opens the map. While the interval walks, Debug Mode lets the HUD's Return to "
+            + "Campus open these panels over the map.");
         Act(prologue, "Rehearse the Founding", () => FoundingStage.Rehearse(Ctx.Host.GetTree()),
             "The founding in the Grand Hall from its first beat, on this guild, with its panels shown and nothing "
             + "applied, then back to the city. For watching a change to Scenes/Prologue/Direction/founding.tscn.");
@@ -1092,6 +1114,7 @@ public sealed class CampusGuildPanel : CampusPanel
             ArmorySaveAssert.AssertAll();   // Edge M6: belts, charges, bindings
             CharterSaveAssert.AssertAll();  // campus doctrines: charters, fills
             LeadsSaveAssert.AssertAll();    // knowledge ladder L1: leads, Known
+            IntervalSaveAssert.AssertAll(); // Standing Orders O1: the interval
         });
 
         return panel;

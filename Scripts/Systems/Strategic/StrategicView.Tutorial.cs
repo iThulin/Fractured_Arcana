@@ -92,6 +92,11 @@ public partial class StrategicView
         {
             return;
         }
+        if (Interval.DoorShut(SaveManager.ActiveSave?.Cycle))
+        {
+            SayInterval(Interval.DoorLine);   // Standing Orders O1: the rooms are behind the door
+            return;
+        }
         if (_atlas3D.CityMode && !_atlas3D.ActiveCityIsHome)
         {
             _atlas3D.LeaveCityMode();   // another city first: the guild's rooms are at home

@@ -373,6 +373,12 @@ public class CycleState
     /// no leads.</summary>
     public List<Lead> Leads = new();
 
+    /// <summary>The interval between the Sundering and the first new moon (Standing
+    /// Orders, docs/standing_orders_o1_interval_rules_v1.md): whether it is being walked,
+    /// its route, and whether the door is set. Additive: a save from before the interval
+    /// reads as not walking.</summary>
+    public IntervalState Interval = new();
+
     /// <summary>Field parties operating away from the castle. Iterated by the
     /// turn loop from day one even while MaxFieldParties is 1, so unlocking
     /// another party is a data change rather than a refactor.</summary>

@@ -156,6 +156,11 @@ public static class CastleMarch
             reason = "The castle does not swim.";
             return false;
         }
+        if (Interval.DoorShut(cycle) && Interval.IsHomeGround(cycle, x, y))
+        {
+            reason = Interval.DoorLine;   // Standing Orders O1 (D150): the castle berths at home once the door is set
+            return false;
+        }
         if (dest.Discovery == TileDiscovery.Unseen)
         {
             reason = "The lens cannot command ground it has never seen. Stride into it first.";

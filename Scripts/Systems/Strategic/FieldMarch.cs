@@ -112,6 +112,11 @@ public static class FieldMarch
         {
             return false;
         }
+        if (Interval.Walking(cycle))
+        {
+            reason = Interval.FootLine;   // Standing Orders O1 (D146): a day on the road would turn the moon
+            return false;
+        }
         if (FieldPostings.IsDetachment(party))
         {
             reason = "A detachment does not move. Collect it with the party, or recall it through a waystone.";
@@ -456,7 +461,8 @@ public static class FieldMarch
         {
             foreach (var sp in cycle.World.StagingPoints)
             {
-                if (sp != null && sp.Source == "Start" && sp.X == x && sp.Y == y)
+                // Not while the interval's door is not set (Standing Orders O1, D150).
+                if (sp != null && sp.Source == "Start" && sp.X == x && sp.Y == y && !Interval.DoorShut(cycle))
                 {
                     what = "the guild dock";
                     return true;

@@ -918,13 +918,17 @@ public partial class ExpeditionManager : Node2D
             {
                 poi.Discovered = true;
                 changed = true;
-
-                // Settlements grant staging the moment they're DISCOVERED: a
-                // friendly hub, no fight needed. (Outposts/seats still grant on
-                // being secured, via OnPartyArrived/GrantStagingPointAt.)
-                if (poi.Kind == PoiKind.Settlement && poi.GrantsStaging)
-                    GrantStagingPointAt(local);
             }
+
+            // Settlements grant staging on contact by foot: a friendly hub, no
+            // fight needed. (Outposts/seats still grant on being secured, via
+            // OnPartyArrived/GrantStagingPointAt.) Checked on every revealed
+            // settlement tile, not only on the un->discovered flip, because a
+            // place can be Sighted before anyone walks to it (a camp's lookouts,
+            // knowledge ladder L2) and sighting grants no staging. The grant
+            // skips a tile that already stages, so a repeat costs one list scan.
+            if (poi != null && poi.Kind == PoiKind.Settlement && poi.GrantsStaging)
+                GrantStagingPointAt(local);
         }
 
         if (changed)
@@ -1045,6 +1049,10 @@ public partial class ExpeditionManager : Node2D
         if (poi != null && !poi.Consumed)
         {
             poi.Consumed = true;
+            // Resolving a place is a visit: what it holds is Known (knowledge
+            // ladder, spec section 6.1), so a site that regrows does not read as
+            // unvisited again (CampSight.SightedUnvisited).
+            poi.Known = true;
             // A site that regrows starts its clock here (2026-09-28).
             HarvestSites.OnConsumed(SaveManager.ActiveSave?.Cycle, poi);
             SaveManager.MarkDirty();
@@ -1073,9 +1081,10 @@ public partial class ExpeditionManager : Node2D
         if (poi == null || !poi.GrantsStaging)
             return;
 
-        // Already a staging point? Skip.
+        // Already a staging point? Skip. (This runs on every revealed
+        // settlement tile now, so a stray null entry must not throw.)
         foreach (var sp in _world.StagingPoints)
-            if (sp.X == col && sp.Y == row)
+            if (sp != null && sp.X == col && sp.Y == row)
                 return;
 
         var questBefore = QuestNotifier.Snapshot(SaveManager.ActiveSave);
@@ -3388,6 +3397,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 if (_window.TryLocalToWorld(coord, out int seatCol, out int seatRow)
                     && _world.SettlementAt(seatCol, seatRow) is { IsGuildHome: true })
                 {
+                    if (Interval.DoorShut(SaveManager.ActiveSave?.Cycle))
+                    {
+                        // Standing Orders O1 (D150): until the door is set the seat is not
+                        // home. No dock and no mending, and no services, as at home.
+                        ShowInfo(Interval.DoorLine);
+                        break;
+                    }
                     Hull = MaxHull;
                     _spells?.RestoreEssenceFull();
                     Refuel(0, "home seat (full)", coord, full: true);
@@ -3869,6 +3885,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         int days = WorldClock.SortieDays(burned, _fieldRun);
         int summonDays = _fieldRun && slot != null ? slot.SummonDays : 0;   // Administrator (§19)
         days += summonDays;
+        if (Interval.Walking(cycle))
+        {
+            days = 0;   // Standing Orders O1: the moon is held, so no order costs days
+            summonDays = 0;
+        }
         int until = Mathf.Max(now, startDay + days);
         if (_fieldRun)
         {
@@ -5562,7 +5583,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
 
         var cycle = SaveManager.ActiveSave?.Cycle;
-        if (cycle != null)
+        if (cycle != null && !Interval.Walking(cycle))   // Standing Orders O1: no lunation is owed in the interval
             cycle.PendingStraggleLunations += 1;
 
         BankResources(extracted: true);
@@ -5574,8 +5595,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             goldBanked: true, materials: MaterialEarned, supplies: SuppliesEarned);
         // §2.2 turnaround: the recall IS the refuel/restock/unload/repair, the
         // narration for the existing lunation cadence (no new timer).
-        ShowInfo($"{emReason} The castle limps home to refuel, restock, unload, and repair, and a lunation will pass. " +
-                 $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
+        ShowInfo(Interval.Walking(cycle)
+            ? $"{emReason} {Interval.RecallLine} Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}"
+            : $"{emReason} The castle limps home to refuel, restock, unload, and repair, and a lunation will pass. " +
+              $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
         _casualtyNote = null;
         ShowReturnButton();
         EmitSignal(SignalName.ExpeditionEnded, true);
@@ -8820,7 +8843,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             };
             charted = ChartRadius(poi.X, poi.Y, 3);
             // Remote settlement discovery must still grant staging (the
-            // WriteVisibleToWorld grant only fires on the un->discovered flip).
+            // WriteVisibleToWorld grant only reaches tiles the party can see).
             if (poi.Kind == PoiKind.Settlement && poi.GrantsStaging)
                 GrantStagingPointAtWorld(poi.X, poi.Y);
             break;
