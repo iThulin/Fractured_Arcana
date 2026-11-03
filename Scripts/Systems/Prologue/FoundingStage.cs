@@ -36,6 +36,18 @@ using System.Text.Json;
 //                 lunation has been finished on this computer is asked
 //                 whether to mark its steps done (FirstLunation).
 //
+//                 Standing Orders O2 (chapter I, the last fire): a guild
+//                 walking the arc (Interval.ArcFor) comes here for the
+//                 Grand Hall's first visit instead of the founding: the
+//                 same shots with no name cut and no line on the Roll,
+//                 then the statutes, then the gate (the Door amended and
+//                 the Helm), whose "Go out." begins the interval. Legible
+//                 plays as the bastion crosses the edge, and the map rises
+//                 from the castle on the road. Each beat resumes after a
+//                 quit (PrologueDirector.ChapterOneStep). The interval's
+//                 skip is offered at the gate. Rehearse Chapter I plays it
+//                 with nothing applied.
+//
 //                 Stage direction (SD2, docs/stage_direction_v1.md section
 //                 5): how the founding is shot and how you move is its
 //                 direction scene, Scenes/Prologue/Direction/founding.tscn.
@@ -103,6 +115,8 @@ public partial class FoundingStage : Node3D
     private static FoundingStageWords _words;
     /// <summary>Set by Rehearse for the next founding stage to open.</summary>
     private static bool _rehearseNext;
+    /// <summary>Set by RehearseArc for the next stage to open on chapter I (O2).</summary>
+    private static bool _rehearseArcNext;
 
     private StageField _field;
     private HallSet _hall;
@@ -118,6 +132,10 @@ public partial class FoundingStage : Node3D
     private bool _rehearsing;
     /// <summary>Back after the founding's choice: at the reader's place, for the Door.</summary>
     private bool _founded;
+    /// <summary>Standing Orders O2: chapter I (the Grand Hall's first visit and the gate), not the founding.</summary>
+    private bool _arc;
+    /// <summary>Chapter I's beat to begin at (PrologueDirector.ChapterOneStep).</summary>
+    private string _arcStep = "";
 
     // ════════════════════════════════════════════════════════════════════════
     //  The way in, and the words
@@ -144,6 +162,17 @@ public partial class FoundingStage : Node3D
         if (tree == null || SceneTransition.IsTransitioning || SaveManager.ActiveSave?.Ledger == null)
             return;
         _rehearseNext = true;
+        SceneTransition.Go(tree, ScenePath, Fill(Words().EnterTitle), "A rehearsal: nothing you choose here is kept.");
+    }
+
+    /// <summary>Rehearse Chapter I (Debug Mode, PROLOGUE; Standing Orders O2): the Grand Hall's first visit,
+    /// the gate and Legible on the current save, with the panels shown and nothing applied, then back to the
+    /// city.</summary>
+    public static void RehearseArc(SceneTree tree)
+    {
+        if (tree == null || SceneTransition.IsTransitioning || SaveManager.ActiveSave?.Ledger == null)
+            return;
+        _rehearseArcNext = true;
         SceneTransition.Go(tree, ScenePath, Fill(Words().EnterTitle), "A rehearsal: nothing you choose here is kept.");
     }
 
@@ -198,8 +227,14 @@ public partial class FoundingStage : Node3D
 
     public override void _Ready()
     {
-        _rehearsing = _rehearseNext;
+        // O2: a rehearsal of chapter I, or a guild on the arc that has not gone out of the gate yet, plays
+        // chapter I rather than the founding.
+        var arcSave = SaveManager.ActiveSave;
+        _arc = _rehearseArcNext
+               || (!_rehearseNext && Interval.ArcFor(arcSave) && !(arcSave?.HasFlag("prologue_complete") ?? false));
+        _rehearsing = _rehearseNext || _rehearseArcNext;
         _rehearseNext = false;
+        _rehearseArcNext = false;
         if (SaveManager.ActiveSave?.Ledger == null)
         {
             GD.PushWarning("[FoundingStage] No save is loaded: back to the city.");
@@ -256,17 +291,25 @@ public partial class FoundingStage : Node3D
         }
         _direction.Cued += OnCue;
         _direction.Lens?.MakeCurrent();
-        _founded = !_rehearsing && PrologueDirector.Founded(SaveManager.ActiveSave);
+        _founded = !_rehearsing && !_arc && PrologueDirector.Founded(SaveManager.ActiveSave);
+        _arcStep = !_arc ? "" : _rehearsing ? PrologueDirector.StatutesPanelId
+                 : PrologueDirector.ChapterOneStep(SaveManager.ActiveSave);
+        bool resumeArc = _arc && _arcStep != PrologueDirector.StatutesPanelId;
         if (!_founded)
             hall.HideFoundingPieces();
         _candidate = hall.PlaceFigure("candidate", hall.GrandDoorsPoint, Vector3.Right, HallSet.ClassRobe);
         _direction.Bind(CandidatePuppet, _candidate);
         if (_founded)
             _direction.Pose(TakeLectern, atEnd: true);   // the reader's place, facing the room
+        else if (resumeArc)
+            _direction.Pose(West, atEnd: true);          // O2: back at the lectern, for the gate
         else
             _direction.Pose(Open, atEnd: false);         // the opening shot, drawn once before it starts
         _settle = SettleFrames;
         GD.Print("[FoundingStage] The Grand Hall, " + (_founded ? "founded: on to the Door."
+                 : _arc ? (_rehearsing ? "for a rehearsal of chapter I: its panels show and nothing is applied."
+                           : resumeArc ? $"chapter I, back for the gate ({_arcStep})."
+                           : "chapter I: the first visit.")
                  : _rehearsing ? "for a rehearsal of the founding: its panels show and nothing is applied."
                  : "for the founding."));
     }
@@ -274,10 +317,14 @@ public partial class FoundingStage : Node3D
     /// <summary>The founding, sequence by sequence; or, back after its choice, the Door.</summary>
     private async void Begin()
     {
-        if (_founded)
+        if (_founded || (_arc && _arcStep != PrologueDirector.StatutesPanelId))
         {
             await _direction.Play(DoorWait);
-            if (!Gone)
+            if (Gone)
+                return;
+            if (_arc)
+                ShowGate(_arcStep);   // O2: back for the gate
+            else
                 ShowDoor();
             return;
         }
@@ -285,7 +332,11 @@ public partial class FoundingStage : Node3D
         if (Gone)
             return;
         await _direction.Play(West);
-        if (!Gone)
+        if (Gone)
+            return;
+        if (_arc)
+            ShowStatutes();   // O2: the first visit
+        else
             ShowFounding();
     }
 
@@ -394,6 +445,165 @@ public partial class FoundingStage : Node3D
         dialog.PopupCentered();
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    //  Chapter I, the last fire (Standing Orders O2)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>The statutes: the Register counts the members and reads what a guild needs. Its choice
+    /// ("Take a light from the hearth.") lights the lantern; then the gate.</summary>
+    private void ShowStatutes()
+    {
+        var enc = PrologueDirector.Panel(PrologueDirector.StatutesPanelId, SaveManager.ActiveSave);
+        if (enc == null)
+        {
+            GD.PushError("[FoundingStage] The statutes' panel is missing: the lantern is lit without it.");
+            if (!_rehearsing)
+                NarrativeOutcome.Apply(null, Flags(PrologueDirector.LanternFlag));
+            ToTheGate();
+            return;
+        }
+        ShowPanel(enc, ToTheGate);
+    }
+
+    /// <summary>From the lectern to the gate (the direction's wait), then the gate.</summary>
+    private async void ToTheGate()
+    {
+        if (Gone)
+            return;
+        await _direction.Play(DoorWait);
+        if (!Gone)
+            ShowGate(PrologueDirector.DoorArcPanelId);
+    }
+
+    /// <summary>The gate. With the hearth already lit it is the Helm. Otherwise the interval's skip is
+    /// offered first, where it is (D173), and then the Door, amended.</summary>
+    private void ShowGate(string step)
+    {
+        if (Gone)
+            return;
+        if (step == PrologueDirector.HelmPanelId)
+        {
+            ShowHelm();
+            return;
+        }
+        if (!_rehearsing && StandingOrders.SkipOffered(SaveManager.ActiveSave))
+        {
+            OfferIntervalSkip();
+            return;
+        }
+        ShowArcDoor();
+    }
+
+    /// <summary>The Door, amended: Brannoc on the bastion's step. Its choice ("Light the hearth.") lights
+    /// the bastion from the lantern; then the Helm.</summary>
+    private void ShowArcDoor()
+    {
+        if (Gone)
+            return;
+        var enc = PrologueDirector.Panel(PrologueDirector.DoorArcPanelId, SaveManager.ActiveSave);
+        if (enc == null)
+        {
+            GD.PushError("[FoundingStage] The amended Door's panel is missing: the hearth is lit without it.");
+            if (!_rehearsing)
+                NarrativeOutcome.Apply(null, Flags(PrologueDirector.HearthLitFlag));
+            ShowHelm();
+            return;
+        }
+        ShowPanel(enc, ShowHelm);
+    }
+
+    /// <summary>The Helm: Brannoc's greeting, and "Go out.", which completes the prologue.</summary>
+    private void ShowHelm()
+    {
+        if (Gone)
+            return;
+        var enc = PrologueDirector.Panel(PrologueDirector.HelmPanelId, SaveManager.ActiveSave);
+        if (enc == null)
+        {
+            GD.PushError("[FoundingStage] The Helm's panel is missing: the prologue completes without it.");
+            if (!_rehearsing)
+                NarrativeOutcome.Apply(null, Flags(PrologueCompleteFlag));
+            GoOutOnTheRoad();
+            return;
+        }
+        ShowPanel(enc, GoOutOnTheRoad);
+    }
+
+    /// <summary>"Go out." on the arc (D169): the interval begins (the moon held, the castle on the road),
+    /// the lens comes down onto the page, Legible plays as the bastion crosses the edge, and the map rises
+    /// from the castle.</summary>
+    private async void GoOutOnTheRoad()
+    {
+        if (Gone)
+            return;
+        var save = SaveManager.ActiveSave;
+        if (!_rehearsing)
+        {
+            Interval.Begin(save);
+            SaveManager.SaveIfDirty();
+        }
+        await _direction.Play(GoOutSequence);
+        if (Gone)
+            return;
+        var legible = _rehearsing
+            ? PrologueDirector.Panel(PrologueDirector.LegiblePanelId, save)
+            : PrologueDirector.LegiblePanel(save);
+        if (legible == null)
+        {
+            LeaveForTheRoad();
+            return;
+        }
+        ShowPanel(legible, LeaveForTheRoad);
+    }
+
+    /// <summary>Out of the gate: a rehearsal ends in the city; otherwise the map, rising from the castle.</summary>
+    private void LeaveForTheRoad()
+    {
+        if (_rehearsing)
+        {
+            BackToTheCity();
+            return;
+        }
+        Leave();
+    }
+
+    /// <summary>The interval's skip (U17, D173), a system question outside the fiction like the first
+    /// lunation's. Taken, the guild is founded at once and the map rises from home. Declined, or closed, the
+    /// gate goes on. Whichever answer arrives first wins.</summary>
+    private void OfferIntervalSkip()
+    {
+        bool answered = false;
+        var dialog = new ConfirmationDialog
+        {
+            Title = "Skip the interval?",
+            DialogText = "You have walked the interval to the founding before on this computer. Skip it? "
+                         + "The guild is founded at once, and the first reading begins at home.",
+            OkButtonText = "Skip it",
+            CancelButtonText = "Walk it again",
+        };
+        dialog.Confirmed += () =>
+        {
+            if (answered)
+                return;
+            answered = true;
+            dialog.QueueFree();
+            PrologueDirector.SkipInterval(SaveManager.ActiveSave);
+            SaveManager.SaveIfDirty();
+            Leave();
+        };
+        dialog.Canceled += () =>
+        {
+            if (answered)
+                return;
+            answered = true;
+            dialog.Hide();   // frees the exclusive slot now, as the prologue's Ask does
+            dialog.QueueFree();
+            ShowArcDoor();
+        };
+        AddChild(dialog);
+        dialog.PopupCentered();
+    }
+
     /// <summary>A cue from the direction (DirectionCues): the hall's own beats, and your model's clips.</summary>
     private void OnCue(string id, float seconds)
     {
@@ -402,13 +612,15 @@ public partial class FoundingStage : Node3D
         switch (id)
         {
             case CueCutName:
-                _hall.CutGuildName(seconds > 0f ? seconds : DefaultDirections.NameSeconds);
+                if (!_arc)   // O2: chapter I's first visit cuts no name; the founding does
+                    _hall.CutGuildName(seconds > 0f ? seconds : DefaultDirections.NameSeconds);
                 break;
             case CueRegisterDown:
                 _hall.SetRegisterDown(seconds);
                 break;
             case CueRollLine:
-                _hall.WriteRollLine(SaveManager.ActiveSave, seconds);   // drawn here; the Roll's own record is the save's
+                if (!_arc)   // O2: nor does the Roll take its first line
+                    _hall.WriteRollLine(SaveManager.ActiveSave, seconds);   // drawn here; the Roll's own record is the save's
                 break;
             default:
                 if (id.StartsWith(CueCandidateClip, StringComparison.Ordinal) && id.Length > CueCandidateClip.Length)
@@ -466,8 +678,11 @@ public partial class FoundingStage : Node3D
         PlayerSession.StartInCityOnOpen = false;
         PlayerSession.ZoomFromHomeOnOpen = true;
         var words = Words();
-        SceneTransition.Go(GetTree(), PrologueDirector.StrategicScenePath, Capital(Fill(words.LeaveTitle)),
-                           Fill(words.LeaveSubtitle));
+        // O2: out of the gate onto the road, the arc's own curtain; a founded guild's otherwise.
+        bool road = _arc && Interval.Walking(SaveManager.ActiveSave?.Cycle);
+        string title = road && !string.IsNullOrEmpty(words.ArcLeaveTitle) ? words.ArcLeaveTitle : words.LeaveTitle;
+        string subtitle = road && !string.IsNullOrEmpty(words.ArcLeaveSubtitle) ? words.ArcLeaveSubtitle : words.LeaveSubtitle;
+        SceneTransition.Go(GetTree(), PrologueDirector.StrategicScenePath, Capital(Fill(title)), Fill(subtitle));
     }
 
     /// <summary>Back to the city: with no save there is nothing to found, and a rehearsal ends there.</summary>
@@ -495,6 +710,17 @@ public partial class FoundingStage : Node3D
             BackToTheCity();
             return;
         }
+        if (_arc)
+        {
+            // O2: chapter I without its scene: the lantern and the hearth lit, out of the gate, the interval begun.
+            GD.PushError($"[FoundingStage] {why}: chapter I passes without its scene, and the interval begins.");
+            NarrativeOutcome.Apply(null, Flags(PrologueDirector.LanternFlag, PrologueDirector.HearthLitFlag,
+                                               PrologueCompleteFlag));
+            Interval.Begin(SaveManager.ActiveSave);
+            SaveManager.SaveIfDirty();
+            Leave();
+            return;
+        }
         GD.PushError($"[FoundingStage] {why}: the guild is founded without its scene, and the prologue completes.");
         NarrativeOutcome.Apply(null, Flags(PrologueDirector.FoundingDoneFlag, PrologueCompleteFlag));
         Leave();
@@ -513,4 +739,8 @@ public sealed class FoundingStageWords
     public string EnterSubtitle = "";
     public string LeaveTitle = "";
     public string LeaveSubtitle = "";
+    /// <summary>Standing Orders O2: the curtain out of the gate onto the road (chapter I). Empty: the
+    /// founded guild's curtain is used.</summary>
+    public string ArcLeaveTitle = "";
+    public string ArcLeaveSubtitle = "";
 }

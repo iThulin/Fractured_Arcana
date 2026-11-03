@@ -42,7 +42,13 @@ public static class CycleInitializer
         // items, so the item database is loaded and the armory exists.
         CompanionRoster.EnsureStartingWeapons(SaveManager.ActiveSave);
         // Knowledge ladder L1: a lead whose place has been sighted since it was heard is gone.
-        LeadService.Prune(SaveManager.ActiveSave.Cycle);
+        // L4a: it goes with a note that it held true, so the prune is saved at once and the
+        // note is never posted twice (D182).
+        if (LeadService.Prune(SaveManager.ActiveSave.Cycle) > 0)
+        {
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+        }
     }
 
     private static void EnsureStarterItems()

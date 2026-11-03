@@ -411,6 +411,67 @@ public static class StrategicDebug
         }
     }
 
+    /// <summary>Knowledge ladder L4a test lever (D185): a scripted lead from the source
+    /// "debug" on the nearest undiscovered place in the wild to the castle that has no
+    /// lead yet. It is a lead like any other: its ring shows on the next map load, and
+    /// when a camp sights the place it goes with its note that it held true. Each press
+    /// rumors the next place. Saves.</summary>
+    public static void RumorNearestPlace()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var world = cycle?.World;
+        if (world?.Pois == null || !world.InBounds(cycle.CastleX, cycle.CastleY))
+        {
+            GD.PrintErr("[StrategicDebug] No world, or the castle is not on the map.");
+            return;
+        }
+
+        var led = new System.Collections.Generic.HashSet<int>();
+        foreach (var standing in LeadService.Active(cycle))
+        {
+            led.Add(standing.PoiIndex);
+        }
+
+        int best = -1;
+        int bestDist = int.MaxValue;
+        for (int i = 0; i < world.Pois.Count; i++)
+        {
+            var poi = world.Pois[i];
+            if (poi == null || poi.Discovered || poi.Consumed || led.Contains(i) || !CampSight.WildPlace(world, poi))
+            {
+                continue;
+            }
+            int d = world.HexDistance(cycle.CastleX, cycle.CastleY, poi.X, poi.Y);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = i;
+            }
+        }
+        if (best < 0)
+        {
+            GD.PrintErr("[StrategicDebug] No undiscovered place in the wild is left to rumor.");
+            return;
+        }
+
+        var place = world.Pois[best];
+        int radius = LeadService.CityRadius;
+        var (cx, cy) = LeadService.RingCenter(world, cycle.WorldSeed, best, radius);
+        string bearing = CampSight.Bearing(cycle.CastleX, cycle.CastleY, cx, cy);
+        string toward = bearing.Length == 0 ? "close by" : $"somewhere to the {bearing}";
+        string what = CampSight.PlacePhrase(world, place);
+        var lead = LeadService.AddScripted(cycle, best, LeadService.DebugSource, $"Word (debug): {what}, {toward}.", radius);
+        if (lead == null)
+        {
+            return;
+        }
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] Rumored {what} at ({place.X},{place.Y}), {bestDist} tiles from the castle, "
+                 + $"as lead {lead.Id}: a ring of {lead.Radius} around ({lead.CenterX},{lead.CenterY}). "
+                 + "Open the map to see it. March and camp within sight of the place to run it down.");
+    }
+
     private static bool HasOpenFront(CycleState cycle, string kingdomId)
     {
         var fronts = cycle.Warfronts;

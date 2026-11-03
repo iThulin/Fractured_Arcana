@@ -40,6 +40,12 @@ using System.Text.RegularExpressions;
 //                 save is not written while it runs, and is read back
 //                 from its slot at its end.
 //
+//                 Standing Orders O2: a guild walking the arc
+//                 (Interval.ArcFor) meets chapter I in the Grand Hall
+//                 instead of the founding (FoundingStage): the statutes,
+//                 the Door amended and the Helm, whose "Go out." begins
+//                 the interval. Its recap lands at the gate.
+//
 //                 Every step resumes from the prologue's meta flags. The
 //                 panels' own flags mark most steps; the director adds
 //                 a few of its own where a step sets none: the begun
@@ -226,6 +232,17 @@ public static class PrologueDirector
     public const string DoorPanelId = "prologue_the_door";
     public const string LegiblePanelId = "prologue_legible";
     public const string RecapPanelId = "prologue_skip_recap";
+    /// <summary>Standing Orders O2, chapter I (a guild walking the arc): the statutes, the Door amended
+    /// and the Helm, in the Grand Hall stage (FoundingStage).</summary>
+    public const string StatutesPanelId = "prologue_statutes";
+    public const string DoorArcPanelId = "prologue_the_door_arc";
+    public const string HelmPanelId = "prologue_the_helm";
+    /// <summary>The statutes' choice: the lantern lit at the Grand Hall's hearth.</summary>
+    public const string LanternFlag = "interval_lantern";
+    /// <summary>The amended Door's choice: the bastion's hearth lit from the lantern.</summary>
+    public const string HearthLitFlag = "interval_hearth_lit";
+    /// <summary>The recap's choice for a guild on the arc, which it takes to the gate (D172).</summary>
+    private const string RecapToTheGate = "To the gate.";
     public const string TrialFightId = "prologue_trial";
     public const string SunderingFightId = "prologue_sundering";
     public const string PracticalFightPrefix = "prologue_practical_";
@@ -481,7 +498,23 @@ public static class PrologueDirector
             add.Add(IntentionReadFlag);
         if (id == RecapPanelId && HasMeta(save, BegunFlag))
             add.Add($"prologue_practical_{PracticalSchool(save)}");
-        return Render(raw, save, add);
+        // Standing Orders O2 (D172): a guild on the arc lands at the gate with the lantern lit, so its
+        // recap stops short of the prologue's end: the Anchorhold seen and the lantern, not
+        // prologue_complete, which the gate's "Go out." writes.
+        bool toTheGate = id == RecapPanelId && Interval.ArcFor(save);
+        if (toTheGate)
+        {
+            add.Add(AnchorholdSeenFlag);
+            add.Add(LanternFlag);
+        }
+        var rendered = Render(raw, save, add);
+        if (toTheGate)
+            foreach (var c in rendered.Choices)
+            {
+                c.SetMetaFlags.Remove("prologue_complete");
+                c.Label = RecapToTheGate;
+            }
+        return rendered;
     }
 
     /// <summary>P5 at a quiet moment in the home city (screen "campus"): the Anchorhold. Its choice
@@ -504,9 +537,36 @@ public static class PrologueDirector
 
     /// <summary>The guild is founded in the story: the founding's choice is made, or the prologue is
     /// complete (a save from before S4, or a skip). The Grand Hall's Roll keeps a line for the cycle
-    /// being spent from then on.</summary>
+    /// being spent from then on. A guild walking the arc is founded only by its founding (O6) or the
+    /// interval's skip: its gate's prologue_complete founds nothing (O2).</summary>
     public static bool Founded(GuildSaveData save) =>
-        save?.Ledger != null && (HasMeta(save, FoundingDoneFlag) || save.HasFlag("prologue_complete"));
+        save?.Ledger != null && (HasMeta(save, FoundingDoneFlag)
+                                 || (save.HasFlag("prologue_complete") && !Interval.ArcFor(save)));
+
+    /// <summary>Standing Orders O2 (D171): chapter I's next panel for a guild walking the arc, read from
+    /// its flags, so a quit resumes where it stood: the statutes, then the Door, then the Helm.</summary>
+    public static string ChapterOneStep(GuildSaveData save)
+    {
+        if (!HasMeta(save, LanternFlag))
+            return StatutesPanelId;
+        return HasMeta(save, HearthLitFlag) ? HelmPanelId : DoorArcPanelId;
+    }
+
+    /// <summary>Standing Orders O2 (D173): the interval's skip, taken at the gate. The guild is founded at
+    /// once, the prologue completes and the orders count as adopted; the interval counts as skipped and
+    /// over (StandingOrders.Skip). The map then rises from home, as for a guild without the arc. O6 adds
+    /// the rest of the arc's end state.</summary>
+    public static void SkipInterval(GuildSaveData save)
+    {
+        if (save?.Ledger == null)
+            return;
+        SetMeta(save, FoundingDoneFlag);
+        SetMeta(save, "prologue_complete");
+        SetMeta(save, StandingOrders.AdoptedFlag);
+        StandingOrders.Skip(save);
+        SaveManager.MarkDirty();
+        GD.Print("[Prologue] The interval is skipped at the gate: the guild is founded, and the first reading begins at home.");
+    }
 
     /// <summary>P6 on the first sortie once the prologue is complete (or skipped): Legible.
     /// Its choice sets chronicle_first_sortie.</summary>
@@ -611,6 +671,8 @@ public static class PrologueDirector
             : FallbackRecapFlags;
         foreach (var flag in flags)
             SetMeta(save, flag);
+        if (Interval.ArcFor(save))
+            SetMeta(save, FoundingDoneFlag);   // O2: closed without its data, a guild on the arc founds as one without it
         if (!save.HasFlag("stated_intention_set"))
         {
             SetMeta(save, "stated_intention_set");
@@ -887,7 +949,9 @@ public static class PrologueDirector
             SaveManager.Save();
         }
         PlayerSession.StartInCityOnOpen = true;
-        string title = save != null && save.HasFlag("prologue_complete") ? "The Gate" : "The Anchorhold";
+        // O2: the arc's full skip lands at the gate too (the lantern lit).
+        string title = save != null && (save.HasFlag("prologue_complete") || HasMeta(save, LanternFlag))
+            ? "The Gate" : "The Anchorhold";
         SceneTransition.Go(tree, StrategicScenePath, title);
     }
 
@@ -1440,6 +1504,10 @@ public static class PrologueDirector
         if ((RawPanel(FoundingPanelId)?.Choices?.Count ?? 0) != 1)
             fails.Add($"panel {FoundingPanelId} should have exactly one choice (\"Take the lectern.\")");
 
+        // Chapter I (Standing Orders O2): its panels and their flags, where each beat resumes, the full
+        // skip landing at the gate, and the gate founding nothing for a guild on the arc.
+        fails.AddRange(ChapterOneFailures());
+
         // Debug (Unlock All Classes): which practical a save sits, read from flags on scratch saves.
         fails.AddRange(DebugAllClassesFailures());
 
@@ -1577,6 +1645,63 @@ public static class PrologueDirector
                      + $"{trialMinutes} trial minutes, the profile file, the Register's modes, the Long Second's tableau, "
                      + "the founding, the first lunation and the debug unlock.");
         return fails.Count == 0;
+    }
+
+    /// <summary>Standing Orders O2: chapter I's checks, on scratch saves. Each panel is there with the one
+    /// choice the stage waits on, setting its flag; each beat resumes from the flags; the recap lands a guild
+    /// on the arc at the gate and leaves every other guild's as it was; and the gate's prologue_complete
+    /// founds no guild on the arc.</summary>
+    private static List<string> ChapterOneFailures()
+    {
+        var fails = new List<string>();
+        foreach (var (id, flag) in new[]
+                 {
+                     (StatutesPanelId, LanternFlag),
+                     (DoorArcPanelId, HearthLitFlag),
+                     (HelmPanelId, "prologue_complete"),
+                 })
+        {
+            var raw = RawPanel(id);
+            if (raw == null)
+                fails.Add($"chapter I: panel {id} is missing");
+            else if ((raw.Choices?.Count ?? 0) != 1)
+                fails.Add($"chapter I: panel {id} should have exactly one choice");
+            else if (!(raw.Choices[0]?.SetMetaFlags?.Contains(flag) ?? false))
+                fails.Add($"chapter I: panel {id}'s choice does not set {flag}");
+        }
+        GuildSaveData Probe(params string[] flags)
+        {
+            var probe = new GuildSaveData();
+            foreach (var flag in flags)
+                SetMeta(probe, flag);
+            return probe;
+        }
+        string arc = Interval.ArcFlag;
+        foreach (var (what, flags, want) in new[]
+                 {
+                     ("at the Grand Hall", new[] { arc }, StatutesPanelId),
+                     ("with the lantern lit", new[] { arc, LanternFlag }, DoorArcPanelId),
+                     ("with the hearth lit", new[] { arc, LanternFlag, HearthLitFlag }, HelmPanelId),
+                 })
+        {
+            string got = ChapterOneStep(Probe(flags));
+            if (got != want)
+                fails.Add($"chapter I: a guild {what} resumes at {got}, not {want}");
+        }
+        var arcRecap = Panel(RecapPanelId, Probe(arc, BegunFlag));
+        var toGate = arcRecap?.Choices != null && arcRecap.Choices.Count > 0 ? arcRecap.Choices[0] : null;
+        if (toGate == null || toGate.SetMetaFlags.Contains("prologue_complete")
+            || !toGate.SetMetaFlags.Contains(LanternFlag) || !toGate.SetMetaFlags.Contains(AnchorholdSeenFlag))
+            fails.Add("chapter I: the full skip does not land a guild on the arc at the gate with the lantern lit");
+        var plainRecap = Panel(RecapPanelId, Probe(BegunFlag));
+        var plain = plainRecap?.Choices != null && plainRecap.Choices.Count > 0 ? plainRecap.Choices[0] : null;
+        if (plain == null || !plain.SetMetaFlags.Contains("prologue_complete") || plain.SetMetaFlags.Contains(LanternFlag))
+            fails.Add("chapter I: the full skip changed for a guild without the arc");
+        if (Founded(Probe(arc, "prologue_complete")))
+            fails.Add("chapter I: a guild on the arc reads as founded once it is out of the gate, before its founding");
+        if (!Founded(Probe("prologue_complete")))
+            fails.Add("chapter I: a guild without the arc no longer reads as founded at prologue_complete");
+        return fails;
     }
 
     /// <summary>The debug unlock's rule (PracticalSchool), on scratch saves that are never saved: a save

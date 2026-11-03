@@ -972,6 +972,9 @@ public partial class NewGameScreen : Control
         // Debug (Unlock All Classes): the stated intention is the practical this save sits in the prologue.
         if (AllClassesUnlocked)
             PrologueDirector.UnlockAllClassesForDebug(save);
+        // Debug (Walk the Arc, Standing Orders O2): this guild walks chapter I and the interval.
+        if (PlayerSession.DebugMode && PlayerSession.DebugWalkArc)
+            Interval.MarkArcForDebug(save);
         SaveManager.Save();
         GD.Print($"[NewGame] Guild '{guildName}' / Wizard '{wizardName}' founded as {startingSchool} " +
                  $"(undeclared), stated intention {intention}.");

@@ -148,6 +148,7 @@ public sealed class CampusGuildPanel : CampusPanel
                 PlayerSession.DebugRevealStrategicMap = false;
                 PlayerSession.DebugGrantStagingArmed = false;
                 PlayerSession.DebugUnlockAllClasses = false;
+                PlayerSession.DebugWalkArc = false;
             }
         };
 
@@ -846,9 +847,14 @@ public sealed class CampusGuildPanel : CampusPanel
 
         // ── PROLOGUE ─────────────────────────────────────────────────────
         var prologue = Section("PROLOGUE",
-            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk First Lunation Again is for this guild, and saves at once. Walk the Interval and End the Interval are for this guild too: each saves, then opens the map. Rehearse the Founding and Rehearse the Sundering play the founding and the Sundering on this guild and keep nothing. Bake Stage Previews (only while the game runs from the editor) saves the prologue's halls for the direction scenes in the editor.");
+            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk the Arc is for the next guild you found too: chapter I in the Grand Hall instead of the founding, then out of the gate into the interval. Walk First Lunation Again is for this guild, and saves at once. Walk the Interval, Next Standing Order and End the Interval are for this guild too: each saves, then opens the map. Rehearse the Founding, Rehearse Chapter I and Rehearse the Sundering play those scenes on this guild and keep nothing. Bake Stage Previews (only while the game runs from the editor) saves the prologue's halls for the direction scenes in the editor.");
         Check(prologue, "Unlock All Classes", PlayerSession.DebugUnlockAllClasses,
             on => PlayerSession.DebugUnlockAllClasses = on);
+        Check(prologue, "Walk the Arc", PlayerSession.DebugWalkArc,
+            on => PlayerSession.DebugWalkArc = on).TooltipText =
+            "Standing Orders O2, for the next guild you found: after the Anchorhold it meets chapter I in the "
+            + "Grand Hall (the statutes, the hearth, the gate) instead of the founding, and goes out of the gate "
+            + "into the interval. Until the later chapters exist, Next Standing Order walks the rest.";
         Grant(prologue, "Walk First Lunation Again", save => FirstLunation.DebugForget(save),
             "This guild's first-lunation steps go back to undone (S5). Steps its own state shows, such as a "
             + "sortie, a won fight or a new moon, tick again at once. The Register's notes stay seen on this computer.");
@@ -866,10 +872,22 @@ public sealed class CampusGuildPanel : CampusPanel
             PlayerSession.ZoomFromHomeOnOpen = true;   // the map rises: from the castle while the door is shut
             Ctx.Host.GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
         }
-        Act(prologue, "Walk the Interval", () => IntervalDebug(save => Interval.Begin(save)),
-            "Standing Orders O1, for testing: this reading enters the interval. The moon is held, the home's door is "
-            + "shut, and the castle stands on a road with 8 fuel and the party beside it. Saves, then opens the map "
-            + "on the castle.");
+        // O1b: a walk starts the interval's quest over with it.
+        void WalkInterval(GuildSaveData save)
+        {
+            StandingOrders.DebugForget(save);
+            Interval.Begin(save);
+        }
+        Act(prologue, "Walk the Interval", () => IntervalDebug(WalkInterval),
+            "Standing Orders O1, for testing: this reading enters the interval, and its quest starts over. The moon "
+            + "is held, the home's door is shut, and the castle stands on a road with 8 fuel and the party beside "
+            + "it. Saves, then opens the map on the castle.");
+        Act(prologue, "Next Standing Order", () => IntervalDebug(save => StandingOrders.DebugAdvance(save)),
+            "Standing Orders O1b, for testing: the quest's current step is done as its chapter will do it. The store "
+            + "is taken back (O3: the furnace filled, the cash box and the order book taken), the quorum is ticked, "
+            + "the door is set at home (the castle berths there, and the moon stays held), "
+            + "and the orders are adopted. Saves, then opens the map. Walked to the end, the finish is noted on this "
+            + "computer, which offers the skip once the gate exists.");
         Act(prologue, "End the Interval", () => IntervalDebug(save => Interval.End(save)),
             "The interval lets go: the door is set, the moon runs again, and the castle berths at home with a full "
             + "furnace. Saves, then opens the map. While the interval walks, Debug Mode lets the HUD's Return to "
@@ -877,6 +895,9 @@ public sealed class CampusGuildPanel : CampusPanel
         Act(prologue, "Rehearse the Founding", () => FoundingStage.Rehearse(Ctx.Host.GetTree()),
             "The founding in the Grand Hall from its first beat, on this guild, with its panels shown and nothing "
             + "applied, then back to the city. For watching a change to Scenes/Prologue/Direction/founding.tscn.");
+        Act(prologue, "Rehearse Chapter I", () => FoundingStage.RehearseArc(Ctx.Host.GetTree()),
+            "Standing Orders O2: chapter I on this guild (the Grand Hall's first visit, the statutes, the gate and "
+            + "Legible), with its panels shown and nothing applied, then back to the city.");
         Act(prologue, "Rehearse the Sundering", () => PrologueDirector.RehearseSundering(Ctx.Host.GetTree()),
             "The Sundering from its opening to the walk out, on this guild, with its panels shown. Nothing is saved "
             + "while it runs, and at the end the guild is read back from its slot, so nothing it did is kept. For "
@@ -947,6 +968,10 @@ public sealed class CampusGuildPanel : CampusPanel
         Act(strategic, "Resolve All Seats", StrategicDebug.ResolveAllSeats);
         Act(strategic, "Dump Expedition State", StrategicDebug.DumpExpeditionState);
         Act(strategic, "March Castle", StrategicDebug.MarchCastleToNearestAnchor);
+        Act(strategic, "Rumor the Nearest Place", StrategicDebug.RumorNearestPlace,
+            "Knowledge ladder L4a: a lead on the nearest undiscovered place in the wild to the castle, then saves. "
+            + "Its ring shows on the next map load. March and camp within sight of the place, and the lead goes "
+            + "with a note that it held true.");
         Act(strategic, "Force Castle Raid", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.PatrolRaid));
         Act(strategic, "Force Castle Assault", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.KingdomAssault));
         Act(strategic, "Force Portal Strike", () =>

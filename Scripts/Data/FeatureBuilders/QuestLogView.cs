@@ -7,8 +7,9 @@ using System.Collections.Generic;
 // can never drift. Pure UI over QuestLoader/QuestTracker.
 //
 // Groups quests by persistence layer (quest spec §7):
-//   ETERNAL  ("the Chronicle"): the first lunation (S5, first
-//            while it is walked, last once it is), the first goal,
+//   ETERNAL  ("the Chronicle"): Standing Orders (O1b, the
+//            interval) and the first lunation (S5), each first
+//            while it is walked and last once it is; the first goal,
 //            cross-cycle arcs, dossiers, fragments, campus
 //            restoration. Never resets.
 //   THIS TIMELINE: resolution arcs, companion arcs, kingdom
@@ -59,6 +60,8 @@ public static class QuestLogView
             var eternalCats = new List<string> { FirstGoalCategory, "Story", "Fragments", "Dossiers", "Expansion", "Campus", "Fluency" };
             // S5: the first lunation leads while it is being walked and goes to the end once it is done.
             eternalCats.Insert(FirstLunation.Current(save) != null ? 0 : eternalCats.Count, FirstLunation.Category);
+            // Standing Orders O1b: the interval's quest does the same, ahead of the first lunation.
+            eternalCats.Insert(StandingOrders.Current(save) != null ? 0 : eternalCats.Count, StandingOrders.Category);
             foreach (var cat in eternalCats)
             {
                 var inCat = new List<QuestDefinition>();
@@ -73,6 +76,10 @@ public static class QuestLogView
                 // save, so not counted as undiscovered either), nor once it has been skipped.
                 if (string.Equals(cat, FirstLunation.Category, System.StringComparison.OrdinalIgnoreCase))
                     inCat.RemoveAll(q => QuestTracker.StatusOf(q, save) == QuestStatus.Locked || FirstLunation.Skipped(save));
+                // Standing Orders O1b (D161): shown while the interval walks and once walked to the end;
+                // not before it begins, once skipped, or when the interval ended part way.
+                if (string.Equals(cat, StandingOrders.Category, System.StringComparison.OrdinalIgnoreCase))
+                    inCat.RemoveAll(q => QuestTracker.StatusOf(q, save) == QuestStatus.Locked || !StandingOrders.ShownInLog(save));
                 if (inCat.Count == 0)
                     continue;
 
@@ -262,8 +269,10 @@ public static class QuestLogView
         {
             bool od = QuestTracker.ObjectiveDone(o, save);
             string prog = "";
-            // A first-lunation step is done or not, so it reads as a checklist without a count.
-            if (!string.IsNullOrEmpty(o.Counter) && !o.Counter.StartsWith(FirstLunation.CounterPrefix))
+            // A first-lunation or Standing Orders step is done or not, so it reads as a checklist
+            // without a count.
+            if (!string.IsNullOrEmpty(o.Counter) && !o.Counter.StartsWith(FirstLunation.CounterPrefix)
+                && !o.Counter.StartsWith(StandingOrders.CounterPrefix))
             {
                 var cp = QuestTracker.CounterProgress(o, save);
                 prog = $"  ({System.Math.Min(cp.have, cp.need)}/{cp.need})";

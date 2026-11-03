@@ -16,9 +16,14 @@ using Godot;
 //                 world; the castle's sortie drawer; Pass time; the quest
 //                 log. Where a step cannot be done from here, the castle
 //                 is picked and a notice says why.
+//
+//                 Standing Orders O1b: the interval's steps go to the
+//                 castle, with a line saying where the step's place
+//                 lies, or to the Grand Hall once the door is set.
 // Layer:          UI (strategic view)
-// Collaborators:  FirstLunation (the steps), StrategicView (its verbs),
-//                 HudManager (the Next line), QuestLogScreen
+// Collaborators:  FirstLunation and StandingOrders (the steps),
+//                 StrategicView (its verbs), HudManager (the Next
+//                 line), QuestLogScreen, CampSight (the bearing)
 // ============================================================
 
 public partial class StrategicView
@@ -82,6 +87,106 @@ public partial class StrategicView
                 }
                 break;
         }
+    }
+
+    /// <summary>Standing Orders O1b (D160): the Next line was clicked for one of the interval's steps,
+    /// or the step arrived from another screen. The castle is picked, and a line says where the step's
+    /// place lies from it, by distance and bearing. No marker: the store is only rumored until a camp
+    /// sights it. The orders are adopted in the Grand Hall, once the door is set.</summary>
+    public void StandingOrdersGo(string step)
+    {
+        if (_atlas3D == null || _world == null)
+        {
+            return;
+        }
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var iv = cycle?.Interval;
+        if (iv == null)
+        {
+            return;
+        }
+        if (step == StandingOrders.Orders)
+        {
+            OpenHomeRoom(Charters.GrandHallId, CampusPanelId.Guild);
+            return;
+        }
+        if (_atlas3D.CityMode)
+        {
+            _atlas3D.LeaveCityMode();
+        }
+        FocusForce("");
+        switch (step)
+        {
+            case StandingOrders.Store:
+            {
+                // O3 (D190): while the Register's lead stands, the line points at its ring, not the store.
+                var lead = IntervalStore.StandingLead(cycle);
+                if (lead != null)
+                {
+                    SayWhere(cycle, lead.CenterX, lead.CenterY, "The Register's itinerary puts the field store inside the ring");
+                }
+                else
+                {
+                    SayWhere(cycle, iv.StoreX, iv.StoreY, "The Academy's field store");
+                }
+                break;
+            }
+            case StandingOrders.Quorum:
+            {
+                var list = _world.Settlements;
+                var city = list != null && iv.CitySettlement >= 0 && iv.CitySettlement < list.Count
+                    ? list[iv.CitySettlement]
+                    : null;
+                if (city != null)
+                {
+                    SayWhere(cycle, city.CenterX, city.CenterY, string.IsNullOrEmpty(city.Name) ? "The city" : city.Name);
+                }
+                break;
+            }
+            case StandingOrders.Door:
+            {
+                var home = _world.SettlementAt(_world.HomeX, _world.HomeY);
+                SayWhere(cycle, _world.HomeX, _world.HomeY, string.IsNullOrEmpty(home?.Name)
+                    ? "The Academy's field house"
+                    : $"The Academy's field house at {home.Name}");
+                break;
+            }
+        }
+    }
+
+    /// <summary>Standing Orders O3 (D189): the itinerary is read. The Register's lead rings the store on
+    /// the map at once, the camera swings to the ring, and the Register explains the furnace.</summary>
+    private void OnItineraryRead()
+    {
+        var lead = IntervalStore.HearItinerary(SaveManager.ActiveSave);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        _atlas3D?.RefreshMarkers();
+        if (lead != null)
+        {
+            _atlas3D?.FlyToTile(lead.CenterX, lead.CenterY, 30f, 0f);
+        }
+        RegisterManager.Fire(IntervalStore.FurnaceBark);
+    }
+
+    /// <summary>Say where (x, y) lies from the castle, as a line on the map.</summary>
+    private void SayWhere(CycleState cycle, int x, int y, string what)
+    {
+        if (!_world.InBounds(x, y))
+        {
+            return;
+        }
+        int d = _world.HexDistance(cycle.CastleX, cycle.CastleY, x, y);
+        if (d <= 0)
+        {
+            SayInterval($"{what}: the castle stands at it.");
+            return;
+        }
+        string tiles = d == 1 ? "1 tile" : $"{d} tiles";
+        string bearing = CampSight.Bearing(cycle.CastleX, cycle.CastleY, x, y);
+        SayInterval(bearing.Length == 0
+            ? $"{what}: {tiles} from the castle."
+            : $"{what}: {tiles} to the {bearing} of the castle.");
     }
 
     /// <summary>Down into the home city if the map is not there, then the building's panel over it, as

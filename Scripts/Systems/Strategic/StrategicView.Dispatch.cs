@@ -888,7 +888,7 @@ public partial class StrategicView
         // and neither button passes time (OnPassTimePressed and PassTime refuse as well).
         if (Interval.Walking(cycle))
         {
-            _timeDateLabel.Text = "Before the first new moon";
+            _timeDateLabel.Text = Interval.DateLine;
             _timeYearLabel.Text = Interval.HeldLine;
             _timeYearLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
             if (_turnMoonBtn != null)

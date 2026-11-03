@@ -23,8 +23,11 @@ using System.Collections.Generic;
 //                 seat), ExpeditionAnchors (camps, the refuel),
 //                 CompanionInjurySystem, FieldMarch, FieldPostings,
 //                 CastleMarch, WorldClock, WorldAtlas3D (the home's
-//                 entry and marker, the dock's beacon). CampusGuildPanel
-//                 holds the debug buttons.
+//                 entry and marker, the dock's beacon), HudManager (the
+//                 top bar's date). StandingOrders.cs walks the quest
+//                 over it (O1b), and IntervalStore.cs holds chapter
+//                 II's store (O3). CampusGuildPanel holds the debug
+//                 buttons.
 // ============================================================
 
 /// <summary>The interval's rules: the predicates, the placement, the walk's start and end.</summary>
@@ -33,6 +36,8 @@ public static class Interval
     // ── The lines the gates say (placeholders for the copy pass) ─────────
     public const string HeldLine = "The moon will not turn until the guild is founded.";
     public const string DoorLine = "The door is not set.";
+    /// <summary>The date while the moon is held, on the map's time bar and the top bar (D164).</summary>
+    public const string DateLine = "Before the first new moon";
     public const string CastleSortieLine =
         "Until the door is set, the castle marches but does not take the field. Send the party out from its camp.";
     public const string FootLine =
@@ -48,6 +53,11 @@ public static class Interval
 
     public const string BegunFlag = "interval_begun";
     public const string DoneFlag = "interval_done";
+
+    /// <summary>The guild walks the arc (Standing Orders O2, D166): chapter I in the Grand Hall instead
+    /// of the founding, and the interval from the gate. Written at the founding screen while Debug
+    /// Mode's Walk the Arc is on, until the arc can be walked end to end (O6).</summary>
+    public const string ArcFlag = "interval_arc";
 
     // ── Placement, in tiles (docs/standing_orders_first_reading_v1.md, section 8) ──
     public const int CityMin = 10;
@@ -89,8 +99,26 @@ public static class Interval
 
     // ── The walk ─────────────────────────────────────────────────────────
 
-    /// <summary>Begin the interval on this reading (the debug button for now; the Door's
-    /// "Go out." once the chapters exist). The moon is held at today's date, and the castle
+    /// <summary>The guild walks the arc (ArcFlag on its ledger).</summary>
+    public static bool ArcFor(GuildSaveData save) =>
+        save?.Ledger?.MetaNarrativeFlags?.Contains(ArcFlag) ?? false;
+
+    /// <summary>Debug (the founding screen, while Walk the Arc is on): this new guild walks the arc.
+    /// False when there is no save.</summary>
+    public static bool MarkArcForDebug(GuildSaveData save)
+    {
+        if (save?.Ledger == null)
+        {
+            return false;
+        }
+        SetMeta(save, ArcFlag);
+        SaveManager.MarkDirty();
+        GD.Print("[Interval] Debug: this guild walks the arc. Chapter I waits in the Grand Hall.");
+        return true;
+    }
+
+    /// <summary>Begin the interval on this reading: the gate's "Go out." for a guild walking the arc
+    /// (O2), and the debug panel's Walk the Interval. The moon is held at today's date, and the castle
     /// takes the road at once (EnsureStarted); the map shows it from its next load.</summary>
     public static void Begin(GuildSaveData save)
     {
@@ -105,14 +133,17 @@ public static class Interval
             GD.PrintErr("[Interval] The castle is in the field. Bring it in, then walk the interval.");
             return;
         }
+        int store = IntervalStore.Detach(cycle);   // O3 (D188): a walk begun again reuses its store
         cycle.Interval = new IntervalState
         {
             Active = true,
             HeldLunation = cycle.Calendar?.CurrentLunation ?? 1,
             HeldDay = cycle.Calendar?.DayOfLunation ?? 0,
+            StorePoiIndex = store,
         };
         cycle.PendingStraggleLunations = 0;
         SetMeta(save, BegunFlag);
+        RemoveMeta(save, DoneFlag);   // O1b: a walk begun again is not over (the debug panel's Walk)
         GD.Print($"[Interval] Walking. The moon is held at lunation {cycle.Interval.HeldLunation}, "
                  + $"day {cycle.Interval.HeldDay + 1}.");
         EnsureStarted(cycle);
@@ -138,13 +169,40 @@ public static class Interval
         GD.Print("[Interval] Ended. The door is set, and the moon runs again.");
     }
 
+    /// <summary>Set the door at {home} (D163; chapter IV's "Set the door" in O5, the debug
+    /// panel's Next Standing Order for now): the home opens and the dock with it, and the castle
+    /// berths at {home} with a full furnace. The moon stays held until the founding.</summary>
+    public static void SetDoor(GuildSaveData save)
+    {
+        var cycle = save?.Cycle;
+        if (!Walking(cycle))
+        {
+            GD.Print("[Interval] The interval is not being walked; there is no door to set.");
+            return;
+        }
+        if (cycle.Interval.DoorSet)
+        {
+            return;
+        }
+        cycle.Interval.DoorSet = true;
+        SetDockAvailable(cycle.World, true);
+        BerthAtHome(cycle);
+        SaveManager.MarkDirty();
+        GD.Print("[Interval] The door is set at home. The home is open; the moon stays held until the founding.");
+    }
+
     /// <summary>Place the route and stand the castle on the road, once, while the interval
     /// walks. StrategicView._Ready calls it just before ExpeditionAnchors.EnsureCastleSited,
     /// which then leaves the castle where this put it.</summary>
     public static void EnsureStarted(CycleState cycle)
     {
-        if (!Walking(cycle) || cycle.Interval.Placed || cycle.World == null)
+        if (!Walking(cycle) || cycle.World == null)
         {
+            return;
+        }
+        if (cycle.Interval.Placed)
+        {
+            IntervalStore.Place(cycle);   // O3 (D187): a walk placed before the store was a place gets it now
             return;
         }
         var world = cycle.World;
@@ -169,6 +227,7 @@ public static class Interval
         {
             return;   // PlaceRoute said why; the castle stays where it is
         }
+        IntervalStore.Place(cycle);   // O3 (D187): the store becomes a place on the route
         StandOnRoad(cycle, iv.RoadX, iv.RoadY);
     }
 
@@ -467,5 +526,10 @@ public static class Interval
         {
             save.Ledger.MetaNarrativeFlags.Add(flag);
         }
+    }
+
+    private static void RemoveMeta(GuildSaveData save, string flag)
+    {
+        save?.Ledger?.MetaNarrativeFlags?.Remove(flag);
     }
 }

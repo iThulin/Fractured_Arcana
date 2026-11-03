@@ -332,4 +332,9 @@ public static class PlayerSession
     /// (PrologueDirector.DebugAllClassesFlag), so the save keeps it after a quit. The guild still
     /// founds as an Adept.</summary>
     public static bool DebugUnlockAllClasses = false;
+
+    /// <summary>Debug (the campus debug panel's Walk the Arc, Standing Orders O2): a guild founded with it
+    /// walks the arc, chapter I in the Grand Hall instead of the founding and the interval from the gate.
+    /// The founding writes it onto the save (Interval.ArcFlag), so the save keeps it after a quit.</summary>
+    public static bool DebugWalkArc = false;
 }

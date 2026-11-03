@@ -539,6 +539,94 @@
     ]
   },
   {
+    "id": "prologue_statutes",
+    "title": "The Statutes",
+    "body": "The Stillness has followed you as far as the doors of the Grand Hall, and no farther. Inside, the hearth is still burning: the only fire left in the Academy.\n\nYou set the Register on the lectern. Its pages turn to a clean leaf on their own.\n\n'Be it recorded,' it says, 'that a guild was...' It stops. It counts. 'Members present: one.'\n\nA longer pause. 'The Academy's statutes are very clear about chapter houses. A fire. A quorum. A doorway the world can knock on. And standing orders, so the house still stands when the sitting rises.' The pages settle. 'The Register has the fire. It is missing... the rest.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Take a light from the hearth.",
+        "resultText": "The walking hall's lantern hangs on its hook by the hearth, where it hung every spring until the summer road. You light it. It is the only light in the Academy that moves.",
+        "setMetaFlags": [
+          "interval_lantern"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_the_door_arc",
+    "title": "The Door",
+    "body": "At the gatehouse the broken wards are still breaking: the same half-second of shattering, over and over, a wound that cannot finish opening.\n\nBeyond the arch the world is moving. Wind. Weather. The trees along the far road have turned since this morning, which is not possible, and is true. Out there it is weeks after Commencement already, and the weeks are still passing.\n\nSomething waits where the road begins: the Academy's walking hall, the house that took students out on field study every summer. The students called it the Bastion Errant. Its hearth has gone strange and still. A splinter of this second has lodged in it like a seed.\n\nOn its step sits a big man with a cap in his hands, who stands when he sees the lantern. He looks past you at the arch, for the twenty-six who are not coming out. 'Fire went out the afternoon of the ceremony,' he says. 'Wouldn't take a light from anything I had.'\n\n'Be it recorded,' says the Register, 'that the intruders wore the colors of the Astrologer's Keepers. That the Astrologer's chair was empty. That the sphere broke, and its pieces went out there.' A pause. 'Nothing out there can find this place. Nothing comes in unless the candidate brings it. The candidate is, procedurally, the door.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Light the hearth.",
+        "resultText": "The coal goes in, and the splinter takes it like a held breath taken back. The timbers settle. Somewhere below you, something very large shifts its weight from one foot to the other.",
+        "setMetaFlags": [
+          "interval_hearth_lit"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prologue_the_helm",
+    "title": "The Helm",
+    "body": "'Brannoc Helm,' he says, and puts out a hand like a plank. 'I walk the castle. Never asked where to, and I'm not about to start. Where to?'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Go out.",
+        "resultText": "",
+        "setMetaFlags": [
+          "prologue_complete"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "interval_itinerary",
+    "title": "The Itinerary",
+    "body": "The Register turns back to a page from the spring: the walking hall's itinerary for the summer term, in the Provost's hand. 'The first station on the summer road,' it reads, 'is the Academy's field store. Provisioned for twenty-seven.'\n\nIt turns to the furnace's tally. 'The furnace holds what was left from the spring term. Enough to reach the store. If nobody... wanders.'",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Make for the store.",
+        "resultText": "",
+        "setMetaFlags": [
+          "interval_itinerary"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "interval_field_store",
+    "title": "The Field Store",
+    "body": "The store's door is off its hinges, and most of what was meant for twenty-seven is gone. Most. The fuel was too heavy to steal, and the cash box was under the counter, where looters in a hurry do not look.\n\nOn the shelf by the door, under a sack of meal, is the kitchen-master's order book, open at a page headed 'The Feast'. The last order on it was never delivered.",
+    "terrainTags": [],
+    "regionTags": [],
+    "requiredFlag": "",
+    "archmageId": "",
+    "choices": [
+      {
+        "label": "Take the order book. Send the fuel.",
+        "resultText": "The store's own wagon is still in the yard. The fuel goes onto it, and the wagon goes to the castle. The order book goes under your arm, beside the Register.",
+        "setMetaFlags": []
+      }
+    ]
+  },
+  {
     "id": "prologue_legible",
     "title": "Legible",
     "body": "The edge passes over you like a held breath let go.\n\nSound comes back first: wind in the grass, a dog somewhere, the bastion's timbers settling as it walks. Then weight. Then a feeling, faint and unmistakable, of standing in a world that can touch you.\n\n'Be it recorded,' the Register says, very quietly, 'that the candidate has left the margin.'",

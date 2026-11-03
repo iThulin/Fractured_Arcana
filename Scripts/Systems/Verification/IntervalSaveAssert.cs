@@ -10,7 +10,10 @@ using System.Text.Json;
 //                 5): IntervalState on CycleState.Interval, with every
 //                 field set to a distinctive value, and the additive
 //                 default on a save written before the interval. Same
-//                 serializer and contract as LeadsSaveAssert.
+//                 serializer and contract as LeadsSaveAssert. Also runs
+//                 the interval quest's checks (O1b,
+//                 StandingOrders.AssertFailures) and the field store's
+//                 (O3, IntervalStore.AssertFailures).
 // Layer:          Verification
 // Collaborators:  IntervalState.cs, CycleState.cs, SaveManager.cs
 //                 (JsonOptions), CampusGuildPanel.cs (the "Assert
@@ -28,10 +31,12 @@ public static class IntervalSaveAssert
 
         bool ok = AssertEveryField(sb);
         ok &= AssertLegacyDefault(sb);
+        ok &= AssertQuest(sb);
+        ok &= AssertStore(sb);
 
         sb.AppendLine(ok
-            ? "RESULT: ALL PASSED. The interval round-trips clean."
-            : "RESULT: FAILURES ABOVE. A field is being dropped or renamed.");
+            ? "RESULT: ALL PASSED. The interval round-trips clean, and its quest and its store check out."
+            : "RESULT: FAILURES ABOVE.");
         GD.Print(sb.ToString());
 
         if (!ok)
@@ -58,6 +63,7 @@ public static class IntervalSaveAssert
                 StoreX = 46,
                 StoreY = 25,
                 CitySettlement = 7,
+                StorePoiIndex = 33,
             },
         };
         var rt = RoundTrip(src);
@@ -77,6 +83,7 @@ public static class IntervalSaveAssert
             ok &= Check(sb, "IntervalState.StoreX", b.StoreX == a.StoreX);
             ok &= Check(sb, "IntervalState.StoreY", b.StoreY == a.StoreY);
             ok &= Check(sb, "IntervalState.CitySettlement", b.CitySettlement == a.CitySettlement);
+            ok &= Check(sb, "IntervalState.StorePoiIndex", b.StorePoiIndex == a.StorePoiIndex);
         }
         else
         {
@@ -92,10 +99,37 @@ public static class IntervalSaveAssert
         var legacy = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":2}", SaveManager.JsonOptions);
         bool ok = Check(sb, "CycleState.Interval present and not walking on legacy JSON",
             legacy?.Interval != null && !legacy.Interval.Active && !legacy.Interval.Placed
-            && !legacy.Interval.DoorSet && legacy.Interval.RoadX == -1 && legacy.Interval.CitySettlement == -1);
+            && !legacy.Interval.DoorSet && legacy.Interval.RoadX == -1 && legacy.Interval.CitySettlement == -1
+            && legacy.Interval.StorePoiIndex == -1);
         ok &= Check(sb, "Interval.Walking false on legacy JSON", !Interval.Walking(legacy));
         sb.AppendLine(ok ? "  Legacy default: PASS" : "  Legacy default: FAIL");
         return ok;
+    }
+
+    /// <summary>Standing Orders O1b: the quest's own checks, on scratch saves and a scratch profile
+    /// file (StandingOrders.AssertFailures).</summary>
+    private static bool AssertQuest(StringBuilder sb)
+    {
+        var fails = StandingOrders.AssertFailures();
+        foreach (var f in fails)
+        {
+            sb.AppendLine($"    FAIL: {f}");
+        }
+        sb.AppendLine(fails.Count == 0 ? "  The quest: PASS" : "  The quest: FAIL");
+        return fails.Count == 0;
+    }
+
+    /// <summary>Standing Orders O3: the field store's own checks, on scratch saves
+    /// (IntervalStore.AssertFailures).</summary>
+    private static bool AssertStore(StringBuilder sb)
+    {
+        var fails = IntervalStore.AssertFailures();
+        foreach (var f in fails)
+        {
+            sb.AppendLine($"    FAIL: {f}");
+        }
+        sb.AppendLine(fails.Count == 0 ? "  The store: PASS" : "  The store: FAIL");
+        return fails.Count == 0;
     }
 
     private static T RoundTrip<T>(T obj)

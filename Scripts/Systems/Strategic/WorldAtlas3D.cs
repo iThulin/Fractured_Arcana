@@ -1061,6 +1061,16 @@ public partial class WorldAtlas3D : Node3D
             RebuildMarkers();
     }
 
+    /// <summary>Redraw the marker layer from the save as it stands, so a lead heard on the map (Standing
+    /// Orders O3's itinerary) draws its ring at once rather than at the next load.</summary>
+    public void RefreshMarkers()
+    {
+        if (_world != null && IsInsideTree())
+        {
+            RebuildMarkers();
+        }
+    }
+
     public StrategicLens Lens => _lens;
 
     /// <summary>Switch lens. Color-only: heights don't change, so this is a recolor
@@ -2049,6 +2059,9 @@ public partial class WorldAtlas3D : Node3D
             }
         }
 
+        // Knowledge ladder L4a: the Rumored stage, a ring for every standing lead.
+        AddLeadRings();
+
         // Settlements: one marker at the center, sized by tier, named label.
         // The guild's own seat (IsGuildHome) ALWAYS shows and reads distinctly: a
         // taller, glowing violet block labelled with the guild name. This is where
@@ -2943,6 +2956,65 @@ public partial class WorldAtlas3D : Node3D
             Position = at + new Vector3(0.5f, PoleHeight - 0.32f, 0f),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
+    }
+
+    /// <summary>Width of a lead's ring band, in world units: thin enough to read as a
+    /// boundary, wide enough to hold up at whole-world zoom.</summary>
+    private const float LeadRingBand = 0.4f;
+
+    /// <summary>Knowledge ladder L4a (spec sections 8 and 13, D183): every standing
+    /// lead draws as a translucent ring of its radius in tiles, in the neutral beacon
+    /// tint, flattened onto the map and drawn through the terrain, with its line as a
+    /// wrapped label in the scaled-label system. The ring holds the place without
+    /// centering on it. Drawing never prunes: it reads LeadService.Stands, and the
+    /// prune, with its note that the lead held true, runs where leads are read and on
+    /// every open.</summary>
+    private void AddLeadRings()
+    {
+        var leads = SaveManager.ActiveSave?.Cycle?.Leads;
+        if (leads == null || leads.Count == 0 || _world?.Pois == null)
+        {
+            return;
+        }
+        Color tint = UITheme.BeaconMark;
+        foreach (var lead in leads)
+        {
+            if (!LeadService.Stands(lead, _world.Pois) || !_world.InBounds(lead.CenterX, lead.CenterY))
+            {
+                continue;
+            }
+            float outer = (System.Math.Max(1, lead.Radius) + 0.5f) * RowSpacing;
+            AddMarker(new MeshInstance3D
+            {
+                Mesh = new TorusMesh
+                {
+                    InnerRadius = outer - LeadRingBand,
+                    OuterRadius = outer,
+                    Rings = 64,
+                    RingSegments = 4,
+                },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = new Color(tint, 0.55f),
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    NoDepthTest = true,
+                },
+                Position = MarkerPos(lead.CenterX, lead.CenterY, 0.06f),
+                Scale = new Vector3(1f, 0.2f, 1f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            }, lead.CenterX, lead.CenterY);
+
+            if (string.IsNullOrEmpty(lead.Line))
+            {
+                continue;
+            }
+            var label = StackedLabel(new Vector2I(lead.CenterX, lead.CenterY), lead.Line, tint,
+                                     MarkerPos(lead.CenterX, lead.CenterY, 1.2f), 30, 0.018f);
+            label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            label.Width = 640f;
+            AddMarker(label, lead.CenterX, lead.CenterY);
+        }
     }
 
     private static MeshInstance3D SelectionRing(Color tint, Vector3 at)

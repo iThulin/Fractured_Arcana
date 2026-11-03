@@ -2,5 +2,7 @@
   "enterTitle": "The Grand Hall",
   "enterSubtitle": "Inside, the hearth is still burning.",
   "leaveTitle": "{guild_name}",
-  "leaveSubtitle": "The world is still moving."
+  "leaveSubtitle": "The world is still moving.",
+  "arcLeaveTitle": "The Summer Road",
+  "arcLeaveSubtitle": "Out there, the weeks are still passing."
 }

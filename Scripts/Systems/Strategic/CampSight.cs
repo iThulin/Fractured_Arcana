@@ -18,7 +18,10 @@ using System.Collections.Generic;
 //                 place resolves), ScryInbox (the desk),
 //                 CycleState.PendingSiegeReports (the map's frontier
 //                 news), CrewStations (the Lens Room), WorldAtlas3D
-//                 (the unvisited ring, through SightedUnvisited).
+//                 (the unvisited ring, through SightedUnvisited),
+//                 ExpeditionManager.StampSighted (L3: the field's
+//                 beacons, through FieldBeacon), LeadService (L4a: a
+//                 true lead's note names the place, PlacePhrase).
 //
 // Sighting from camp never grants staging. Staging stays contact by
 // foot: ExpeditionManager.WriteVisibleToWorld grants it on every
@@ -209,7 +212,24 @@ public static class CampSight
         {
             return false;
         }
-        if (!VisitedInPerson(poi.Kind) || !world.InBounds(poi.X, poi.Y))
+        return WildPlace(world, poi);
+    }
+
+    /// <summary>Knowledge ladder L3 (spec sections 5 and 13, D175): a place that
+    /// stands in a sortie window as a beacon, even under fog. Sighted, not resolved,
+    /// and a wild place. Known places count too: knowing more about a place is no
+    /// reason to hide it in the field. ExpeditionManager.StampSighted marks and
+    /// reveals these.</summary>
+    public static bool FieldBeacon(WorldData world, WorldPoi poi)
+        => poi != null && poi.Discovered && !poi.Consumed && WildPlace(world, poi);
+
+    /// <summary>A place in the wild of a kind a party goes to in person (D176): the
+    /// places the ladder rings, sets as beacons and rumors. A place on a settlement's
+    /// tile is part of the settlement, and settlements, seats, caches and Concord
+    /// nodes have other faces on the map.</summary>
+    public static bool WildPlace(WorldData world, WorldPoi poi)
+    {
+        if (world == null || poi == null || !VisitedInPerson(poi.Kind) || !world.InBounds(poi.X, poi.Y))
         {
             return false;
         }
@@ -281,7 +301,7 @@ public static class CampSight
     /// flat-top odd-q (WorldData): columns sit 1.5 apart, rows sqrt(3) apart, and
     /// odd columns half a row lower (WorldAtlas3D.TileOrigin). Row 0 is north, the
     /// top of the map in the atlas's default view.</summary>
-    private static string Bearing(int fromX, int fromY, int toX, int toY)
+    public static string Bearing(int fromX, int fromY, int toX, int toY)   // also the Next line's (O1b)
     {
         double east = (toX - fromX) * 1.5;
         double fromRow = fromY + ((fromX & 1) == 1 ? 0.5 : 0.0);
@@ -307,8 +327,14 @@ public static class CampSight
 
     /// <summary>What the lookouts can say of a wild place from afar: its kind,
     /// never its contents (that is Known). A narrative site reads as its signal,
-    /// so it stays an anomaly worth the steps (PoiSignal).</summary>
-    private static string PlacePhrase(WorldData world, WorldPoi poi) => poi.Kind switch
+    /// so it stays an anomaly worth the steps (PoiSignal). The leads use it too:
+    /// a true lead's note, and the debug lever's line (L4a). The Academy's field
+    /// store goes by its name (Standing Orders O3, D191).</summary>
+    public static string PlacePhrase(WorldData world, WorldPoi poi)
+        => IntervalStore.IsStore(SaveManager.ActiveSave?.Cycle, world, poi) ? IntervalStore.StoreName : KindPhrase(world, poi);
+
+    /// <summary>The phrase for the place's kind alone.</summary>
+    private static string KindPhrase(WorldData world, WorldPoi poi) => poi.Kind switch
     {
         PoiKind.Combat => "a hostile encampment",
         PoiKind.Rest => "a refuge",

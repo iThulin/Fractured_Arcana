@@ -830,6 +830,7 @@ public partial class ExpeditionManager : Node2D
 
         SpawnRoamer();
         StampStronghold(); // warfront objective: place + reveal the besieging stronghold
+        StampSighted();    // knowledge ladder L3: places on the map stand as beacons in the field
         PaintContestedGround();   // and show WHICH ground the war is over
         ApplyScryingReveals(bonuses);   // Scrying Chambers run-start intel (scrying_chambers_spec_v1)
 
@@ -1442,8 +1443,8 @@ public partial class ExpeditionManager : Node2D
     }
 
     /// <summary>The words a frontier lure carries in the 3D view: the signal the
-    /// tooltip gives, computed from the grid-local coord exactly as the tooltip
-    /// computes it, or the stronghold for a warfront objective.</summary>
+    /// tooltip gives, keyed on the world tile as the tooltip and the camp's desk
+    /// note key it (SignalKey, D179), or the stronghold for a warfront objective.</summary>
     private string LureLabelAtWorld(Vector2I worldCoord)
     {
         if (_window == null)
@@ -1456,8 +1457,22 @@ public partial class ExpeditionManager : Node2D
         {
             return "the stronghold";
         }
-        return PoiSignal.Label(ov.Poi, TerrainAt(local), local);
+        if (IntervalStore.IsStoreAt(SaveManager.ActiveSave?.Cycle, worldCoord.X, worldCoord.Y))
+        {
+            return IntervalStore.StoreName;   // Standing Orders O3 (D191)
+        }
+        return PoiSignal.Label(ov.Poi, TerrainAt(local), worldCoord);
     }
+
+    /// <summary>The key a place's signal is drawn from: its world tile, so a story
+    /// place reads the same in every window and in the camp's desk note, which keys
+    /// on world tiles (CampSight.PlacePhrase). Before L3 the field keyed it on
+    /// window-local coordinates, so one place read differently from window to
+    /// window (D179). Falls back to the local coord past the world's edge.</summary>
+    private Vector2I SignalKey(Vector2I local)
+        => _window != null && _window.TryLocalToWorld(local, out int col, out int row)
+            ? new Vector2I(col, row)
+            : local;
 
     private void OnWindow3DUnhover()
     {
@@ -2385,7 +2400,7 @@ public partial class ExpeditionManager : Node2D
             return;
         }
         Vector2I at = nearest.Value;
-        string what = PoiSignal.Label(_overlay.OverlayAt(at).Poi, TerrainAt(at), at);
+        string what = PoiSignal.Label(_overlay.OverlayAt(at).Poi, TerrainAt(at), SignalKey(at));
         if (what.Length > 0)
         {
             what = char.ToUpperInvariant(what[0]) + what.Substring(1);
@@ -3064,7 +3079,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // Step 2: POI gate + label read the overlay model, not the node.
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
-                line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), axial)}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
+                line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
                         NegotiationPreread(axial); // S5: True Names
             // City tile: name the settlement whose greyed footprint this tile belongs to, so the
             // player can tell they're standing in a city (not just on its terrain).
@@ -3173,7 +3188,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // Step 2: POI gate + label read the overlay model, not the node.
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
-                line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), axial)}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
+                line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
                         NegotiationPreread(axial); // S5: True Names
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
@@ -3488,6 +3503,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Dossier attribution defaults to none (pinned/identified fights keep
         // no attribution. Accepted limit; the pin predates this pass).
         _pendingCombatArchmageId = "";
+
+        // Standing Orders O3 (D192): the Academy's field store holds the looters while the interval walks.
+        if (encounterDef == null && _window.TryLocalToWorld(coord, out int storeCol, out int storeRow))
+        {
+            encounterDef = IntervalStore.LootersAt(SaveManager.ActiveSave, storeCol, storeRow, regionId, terrainType);
+        }
 
         if (encounterDef == null)
         {
@@ -4215,6 +4236,19 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
             }
 
+            // Standing Orders O3 (D193): the field store taken back while the interval walks. Read before
+            // the place is spent, and provisioned at once, so a quit after the fight loses nothing.
+            bool storeTaken = false;
+            if (_window.TryLocalToWorld(resultHex, out int storeCol, out int storeRow)
+                && IntervalStore.LootersDue(SaveManager.ActiveSave, storeCol, storeRow))
+            {
+                storeTaken = true;
+                foreach (string storeLine in IntervalStore.Provision(SaveManager.ActiveSave))
+                {
+                    spoils.Add((storeLine, UITheme.Gold));
+                }
+            }
+
             ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
             ConsumeWorldPoi(resultHex);
             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
@@ -4282,7 +4316,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // The spoils card: everything the win paid, one modal read. Its
             // own backdrop gates map input until Continue; no host state to
             // re-enable on close.
-            CombatSummaryPanel.Show(this, spoils, null);
+            // Standing Orders O3 (D194): the field store's page follows the card.
+            CombatSummaryPanel.Show(this, spoils, storeTaken ? new System.Action(ShowStorePanel) : null);
         }
         else
         {
@@ -4297,8 +4332,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                    $"DEFEAT{(string.IsNullOrEmpty(_casualtyNote) ? "" : ": " + _casualtyNote)}",
                    at: resultHex);
 
-            ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
-            ConsumeWorldPoi(resultHex);
+            // Standing Orders O3 (U16, D195): in the interval a lost fight unmakes nothing, so the place
+            // stays to be tried again, the field store above all.
+            if (!Interval.Walking(SaveManager.ActiveSave?.Cycle))
+            {
+                ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
+                ConsumeWorldPoi(resultHex);
+            }
 
             // RULED (2026-07-09): defeat ENDS the expedition. The old path
             // subtracted router.DamageTaken (which arrived as 0) and carried on
@@ -7114,6 +7154,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         };
     }
 
+    /// <summary>Standing Orders O3 (D194): the field store's page, after the looters' spoils card. The
+    /// store's effects are already applied (IntervalStore.Provision); its one choice only closes it.</summary>
+    private void ShowStorePanel()
+    {
+        var save = SaveManager.ActiveSave;
+        var enc = IntervalStore.StorePanel(save);
+        if (enc == null || _narrativePanel == null || _narrativePanel.Visible)
+        {
+            return;
+        }
+        _narrativePanel.ShowEncounter(enc, save.HasFlag);
+        _narrativePanel.OnCompleted = choice =>
+        {
+            PrologueDirector.ApplyChoice(save, choice);
+            SaveManager.SaveIfDirty();
+        };
+    }
+
     /// <summary>The campus reaches through the stone: the Grand Conjunction is
     /// close. Deferred from _Ready so the HUD and the 3D window exist to carry
     /// the pulse and the pause.</summary>
@@ -8175,6 +8233,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (added > 0)
             StampCivicPois(); // S4.2: newly streamed tiles may hold settlements
         StampStronghold();    // re-stamp the warfront objective if it (re)entered the window
+        if (added > 0)
+            StampSighted();   // knowledge ladder L3: sighted places that streamed in
         PaintContestedGround();   // newly streamed fringe joins (or leaves) the war zone
         if (PlayerSession.DebugMode && (added > 0 || removed > 0))
             GD.Print($"[Window] Slide → ({col},{row}): +{added}/−{removed} tiles, " +
@@ -8256,6 +8316,50 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         ovHold.Consumed = false;
         SetOverlay(local, ovHold);
         _fog?.RevealHex(local);
+    }
+
+    /// <summary>Knowledge ladder L3 (spec sections 5 and 13, D175 to D178): a place
+    /// the world map already shows stands in the field as a beacon, even under fog.
+    /// Every loaded tile holding a place CampSight.FieldBeacon passes is marked a
+    /// landmark first and revealed second, the stronghold stamp's order, so the
+    /// redraw catches the beacon. Settlement tiles are left out: a revealed
+    /// settlement tile grants staging (WriteVisibleToWorld), and staging is contact
+    /// by foot (D134). Revealed from the first frame, these never halt a stride.
+    /// Called after the window is built and whenever tiles stream in. Off under
+    /// Classic Exploration, the A/B baseline.</summary>
+    private void StampSighted()
+    {
+        if (_world?.Pois == null || _grid == null || _window == null || _fog == null
+            || PlayerSession.DebugClassicExploration)
+        {
+            return;
+        }
+        int stamped = 0;
+        foreach (var poi in _world.Pois)
+        {
+            if (!CampSight.FieldBeacon(_world, poi))
+            {
+                continue;
+            }
+            var local = _window.LocalOf(poi.X, poi.Y);
+            if (!_grid.Hexes.ContainsKey(local))
+            {
+                continue;   // not loaded yet: a later stream stamps it
+            }
+            var ov = _overlay.OverlayAt(local);
+            if (ov.Poi == OverworldHex.POIType.None || ov.Consumed || ov.Landmark)
+            {
+                continue;
+            }
+            ov.Landmark = true;
+            SetOverlay(local, ov);
+            _fog.RevealHex(local);
+            stamped++;
+        }
+        if (stamped > 0)
+        {
+            GD.Print($"[Window] {stamped} sighted place(s) stand as beacons in the field.");
+        }
     }
 
     private void StampCivicPois()

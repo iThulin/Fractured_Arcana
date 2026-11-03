@@ -24,6 +24,8 @@ using System.Collections.Generic;
 //                     mastery, hall, practical, named
 //   "tutorial:<step>" → a step of the first lunation (S5,
 //                     FirstLunation): 1 once it is done
+//   "interval:<step>" → a step of Standing Orders (O1b,
+//                     StandingOrders): 1 once it is done
 //   Plus the original named counters for backwards compat.
 // ============================================================
 
@@ -69,7 +71,7 @@ public static class QuestTracker
     /// time it is retuned. Currently: "mastery:" defers to
     /// SchoolMasteryService.FluencyThreshold, and "declare:" to
     /// SchoolMasteryService.DeclarableThreshold for its mastery step and 1 for
-    /// the rest; "tutorial:" to 1 (a step is done or it is not).</summary>
+    /// the rest; "tutorial:" and "interval:" to 1 (a step is done or it is not).</summary>
     public static int TargetFor(QuestObjective o)
     {
         if (o == null) return 0;
@@ -79,6 +81,8 @@ public static class QuestTracker
         if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith("declare:"))
             return o.Counter.EndsWith(":mastery") ? SchoolMasteryService.DeclarableThreshold : 1;
         if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith(FirstLunation.CounterPrefix))
+            return 1;
+        if (!string.IsNullOrEmpty(o.Counter) && o.Counter.StartsWith(StandingOrders.CounterPrefix))
             return 1;
         return 0;
     }
@@ -176,6 +180,13 @@ public static class QuestTracker
         // Quest JSON example: { "counter": "tutorial:sortie" }
         if (counter.StartsWith(FirstLunation.CounterPrefix))
             return FirstLunation.Count(counter.Substring(FirstLunation.CounterPrefix.Length), save);
+
+        // ── Generic family: interval:<step> ─────────────────────────────
+        // A step of Standing Orders (O1b), read live by StandingOrders:
+        // its tick on the save, or the save's own state where it says so.
+        // Quest JSON example: { "counter": "interval:store" }
+        if (counter.StartsWith(StandingOrders.CounterPrefix))
+            return StandingOrders.Count(counter.Substring(StandingOrders.CounterPrefix.Length), save);
 
         // ── Named counters (original, backwards-compatible) ─────────────
         switch (counter)

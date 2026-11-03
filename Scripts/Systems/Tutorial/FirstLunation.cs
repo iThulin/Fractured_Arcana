@@ -318,7 +318,9 @@ public static class FirstLunation
         tooltip = "";
         canGo = false;
         string step = Current(save);
-        if (step == null)
+        // Standing Orders O1b (D159): while the interval walks its own line leads, and this one
+        // yields. Otherwise it could ask for a new moon the hold refuses.
+        if (step == null || Interval.Walking(save?.Cycle))
             return null;
         canGo = CanGoFrom(scene);
         tooltip = $"The first lunation, step {IndexOf(step) + 1} of {Steps.Length}."

@@ -285,6 +285,7 @@ public partial class StrategicView : Node2D
                     return;
                 }
                 FirstLunation.AssertOnce();   // S5: logs only, once per process
+                StandingOrders.AssertOnce();  // Standing Orders O1b: the same
 
                 // Real strategic scene: read the resident cycle world.
                 var cycle = SaveManager.ActiveSave?.Cycle;
@@ -2280,7 +2281,7 @@ public partial class StrategicView : Node2D
                  $"{SaveManager.ActiveSave?.Cycle?.Calendar?.LunationsPerCycle ?? 12}, the Grand Conjunction " +
                  "ends the reading.");
         HelpLine("•  Camera: WASD or left-drag pans · wheel zooms · Q/E or middle-drag rotates.");
-        if (FirstLunation.Current(SaveManager.ActiveSave) != null)
+        if (FirstLunation.Current(SaveManager.ActiveSave) != null || StandingOrders.Current(SaveManager.ActiveSave) != null)
             HelpLine("•  While you learn the way around, the Next line in the top bar names the next step. " +
                      "Click it to go there.");
 
@@ -4224,11 +4225,27 @@ public partial class StrategicView : Node2D
             FoundingStage.Enter(GetTree());
             return;
         }
+        // Standing Orders O1b: the same for the interval's steps (StandingOrders.Go), first.
+        if (StandingOrders.TakePendingGo(out string orderStep))
+        {
+            StandingOrdersGo(orderStep);
+            return;
+        }
         // S5: a step the top bar's Next line asked for from another screen (FirstLunation.Go).
         if (FirstLunation.TakePendingGo(out string step))
         {
             FirstLunationGo(step);
             return;
+        }
+        // Standing Orders O3 (D189): chapter II opens on the map with the Register's itinerary, once.
+        if (IntervalStore.ItineraryDue(SaveManager.ActiveSave))
+        {
+            var itinerary = IntervalStore.ItineraryPanel(SaveManager.ActiveSave);
+            if (itinerary != null)
+            {
+                ShowFloatedPanelNarrative(itinerary, OnItineraryRead);
+                return;
+            }
         }
         var enc = ChronicleScheduler.DrainIfQuiet(screen);
         if (enc != null)

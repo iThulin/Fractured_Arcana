@@ -26,12 +26,15 @@ using Godot;
 //                 Council + Quests + Menu. Extend readouts in BuildBar's
 //                 left cluster, buttons in the right. Between them (S5):
 //                 the first lunation's Next line, the step not yet done,
-//                 which goes there when clicked (FirstLunation).
+//                 which goes there when clicked (FirstLunation). While
+//                 the interval walks, Standing Orders' line leads, the
+//                 first lunation's yields, and the date reads as held
+//                 (O1b, StandingOrders and Interval).
 // Layer:          System (autoload)
 // Collaborators:  PauseManager.cs (Menu button -> OpenPauseMenu),
 //                 CouncilScreen.cs (Council button -> Toggle),
 //                 SaveManager.cs (resource readouts), UITheme.cs,
-//                 FirstLunation.cs (the Next line)
+//                 FirstLunation.cs and StandingOrders.cs (the Next line)
 // See:            (none)
 // ============================================================
 
@@ -151,7 +154,7 @@ public partial class HudManager : Node
         _nextButton.AddThemeColorOverride("font_hover_color", UITheme.TextPrimary);
         _nextButton.AddThemeColorOverride("font_pressed_color", UITheme.TextPrimary);
         _nextButton.AddThemeColorOverride("font_disabled_color", UITheme.GoldDim);
-        _nextButton.Pressed += () => FirstLunation.Go(GetTree());
+        _nextButton.Pressed += GoNext;
         row.AddChild(_nextButton);
 
         // Spacer pushes the buttons to the right edge.
@@ -239,6 +242,18 @@ public partial class HudManager : Node
         }
     }
 
+    /// <summary>The Next line was clicked: Standing Orders' step while the interval walks, else the
+    /// first lunation's (O1b).</summary>
+    private void GoNext()
+    {
+        if (StandingOrders.Current(SaveManager.ActiveSave) != null)
+        {
+            StandingOrders.Go(GetTree());
+            return;
+        }
+        FirstLunation.Go(GetTree());
+    }
+
     /// <summary>The first lunation's Next line (S5): the step not yet done, with the save's own
     /// state settled first (FirstLunation.Settle). Hidden while there is none or the bar is down,
     /// and greyed where clicking cannot go there (a fight, an expedition, a negotiation).</summary>
@@ -256,7 +271,13 @@ public partial class HudManager : Node
         }
         var scene = GetTree().CurrentScene;
         FirstLunation.Settle(save, scene);
-        string text = FirstLunation.NextLine(save, scene, out string tip, out bool canGo);
+        StandingOrders.Settle(save);
+        // Standing Orders O1b (D159): the interval's step leads while it walks; the first lunation's yields.
+        string text = StandingOrders.NextLine(save, scene, out string tip, out bool canGo);
+        if (text == null)
+        {
+            text = FirstLunation.NextLine(save, scene, out tip, out canGo);
+        }
         _nextButton.Visible = text != null;
         if (text == null)
         {
@@ -288,8 +309,10 @@ public partial class HudManager : Node
             lun = cycle.Calendar.CurrentLunation;
             day = cycle.Calendar.DayOfLunation + 1;
         }
-        // The day clock (2026-09-23): lunation and day share one change key.
-        int lunKey = lun * 100 + day;
+        // The day clock (2026-09-23): lunation and day share one change key. Standing Orders O1b
+        // (D164): while the interval walks the moon is held, and the date reads as the map's does.
+        bool held = Interval.Walking(cycle);
+        int lunKey = held ? -1 : lun * 100 + day;
 
         // Expedition-carried spoils (2026-07-29 playtest request, extended
         // 2026-08-05 to all three currencies): a run's earnings are only
@@ -300,7 +323,7 @@ public partial class HudManager : Node
 
         if (force || lunKey != _lastLunation)
         {
-            _lunationLabel.Text = $"Lunation  {lun}  ·  day {day}";
+            _lunationLabel.Text = held ? Interval.DateLine : $"Lunation  {lun}  ·  day {day}";
             _lastLunation = lunKey;
         }
         UpdateReadout(_gold, "Gold", save?.Gold ?? 0, pGold, force);

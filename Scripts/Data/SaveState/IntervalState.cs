@@ -9,6 +9,7 @@
 //                 fresh one that is not walking.
 // Layer:          Data (save)
 // Collaborators:  Interval.cs (the rules), CycleState.cs,
+//                 IntervalStore.cs (the store's place, O3),
 //                 IntervalSaveAssert.cs
 // ============================================================
 
@@ -43,4 +44,9 @@ public sealed class IntervalState
 
     /// <summary>The city of chapter III: an index into WorldData.Settlements, or -1.</summary>
     public int CitySettlement = -1;
+
+    /// <summary>The Academy's field store as a place (Standing Orders O3, D187): an index into
+    /// WorldData.Pois, or -1. Recorded so the store is known by identity, not by coordinates, and kept
+    /// when a walk begins again, so the new walk reuses the same place (D188).</summary>
+    public int StorePoiIndex = -1;
 }
