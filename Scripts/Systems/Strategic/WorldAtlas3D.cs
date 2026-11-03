@@ -2971,7 +2971,8 @@ public partial class WorldAtlas3D : Node3D
     /// every open.</summary>
     private void AddLeadRings()
     {
-        var leads = SaveManager.ActiveSave?.Cycle?.Leads;
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var leads = cycle?.Leads;
         if (leads == null || leads.Count == 0 || _world?.Pois == null)
         {
             return;
@@ -3005,11 +3006,13 @@ public partial class WorldAtlas3D : Node3D
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             }, lead.CenterX, lead.CenterY);
 
-            if (string.IsNullOrEmpty(lead.Line))
+            // Knowledge ladder L4b1 (D218): the label carries the source's record under the words.
+            string text = LeadService.LabelFor(cycle, lead);
+            if (string.IsNullOrEmpty(text))
             {
                 continue;
             }
-            var label = StackedLabel(new Vector2I(lead.CenterX, lead.CenterY), lead.Line, tint,
+            var label = StackedLabel(new Vector2I(lead.CenterX, lead.CenterY), text, tint,
                                      MarkerPos(lead.CenterX, lead.CenterY, 1.2f), 30, 0.018f);
             label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             label.Width = 640f;

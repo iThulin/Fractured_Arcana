@@ -427,6 +427,12 @@ public static class IntervalStore
             fails.Add("hearing the itinerary twice added a second lead, or the standing lead is not the Register's");
         }
 
+        // The errand (O3b): the store, and not the tile beside it.
+        if (!Interval.ErrandAt(cycle, 12, 12) || Interval.ErrandAt(cycle, 13, 12))
+        {
+            fails.Add("the store is not the interval's errand, or the tile beside it is");
+        }
+
         // The looters.
         if (!LootersDue(save, 12, 12) || LootersDue(save, 13, 12))
         {

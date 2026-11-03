@@ -28,6 +28,13 @@ public partial class OverworldPartyToken : Node2D
     // Visual
     private Polygon2D _tokenVisual;
     private float _moveSpeed = 300f; // pixels per second
+
+    /// <summary>Scales the walk animation. 1 is the normal pace. The Resolve from
+    /// Camp A/B switch (2026-11-03) raises it while a field party marches, so the
+    /// march walks briskly. Only the animation changes: the move, its cost and its
+    /// signals are the same, and they fire in the same order.</summary>
+    public float SpeedScale { get; set; } = 1f;
+
     private bool _isMoving = false;
     private Vector2 _moveTarget;
 
@@ -98,7 +105,7 @@ public partial class OverworldPartyToken : Node2D
             // Smooth movement toward target hex
             var direction = (_moveTarget - Position).Normalized();
             float distance = Position.DistanceTo(_moveTarget);
-            float step = _moveSpeed * (float)delta;
+            float step = _moveSpeed * SpeedScale * (float)delta;
 
             if (step >= distance)
             {

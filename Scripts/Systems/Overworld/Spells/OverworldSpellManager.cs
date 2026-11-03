@@ -1023,7 +1023,10 @@ public partial class OverworldSpellManager : Node2D
                 // teach. Terrain-flavored roll at the party's tile, so at a
                 // ruin that means the Communion-adjacent pool leads.
                 string taught = "";
-                if (GD.Randf() < SpellAcquisition.SpeakFallenDropChance)
+                // Standing Orders O3b (D205): while the interval walks the dead teach nothing. The cast
+                // repeats with every dive, and any roll could keep a working for good.
+                if (!Interval.Walking(SaveManager.ActiveSave?.Cycle)
+                    && GD.Randf() < SpellAcquisition.SpeakFallenDropChance)
                 {
                     // Step 4b: terrain from the world (Ruins fallback preserved).
                     var terr = TileQuery != null && TileQuery(_expedition.PartyLocal) is { } sfTile

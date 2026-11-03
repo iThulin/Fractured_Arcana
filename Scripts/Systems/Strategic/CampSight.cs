@@ -156,7 +156,11 @@ public static class CampSight
         }
 
         int resolved = LeadService.Prune(cycle);
-        if (markedTiles.Count > 0 || resolved > 0)
+        // Knowledge ladder L4b1 (D217, D213): the camp settles every false ring it sees whole,
+        // and hears the talk of a settlement it camps beside.
+        resolved += LeadService.SearchFromCamp(cycle, x, y, radius);
+        int heard = LeadService.HearTalkNear(cycle, x, y).Count;
+        if (markedTiles.Count > 0 || resolved > 0 || heard > 0)
         {
             SaveManager.MarkDirty();
         }
@@ -169,7 +173,7 @@ public static class CampSight
 
         GD.Print($"[CampSight] radius {radius} sighted {sightings.Count} at ({x},{y}): "
                  + $"{markedTiles.Count} tile(s) of places marked, {wild} in the wild; "
-                 + $"high ground +{ground}, Lens Room +{lens}; {resolved} lead(s) resolved.");
+                 + $"high ground +{ground}, Lens Room +{lens}; {resolved} lead(s) resolved, {heard} rumor(s) heard.");
         return markedTiles.Count;
     }
 
@@ -334,11 +338,16 @@ public static class CampSight
         => IntervalStore.IsStore(SaveManager.ActiveSave?.Cycle, world, poi) ? IntervalStore.StoreName : KindPhrase(world, poi);
 
     /// <summary>The phrase for the place's kind alone.</summary>
-    private static string KindPhrase(WorldData world, WorldPoi poi) => poi.Kind switch
+    private static string KindPhrase(WorldData world, WorldPoi poi) => KindPhrase(world, poi.Kind, poi.X, poi.Y);
+
+    /// <summary>The phrase for a kind of place at a tile: a story place reads as its signal for
+    /// the tile's terrain. Knowledge ladder L4b1 (D216): a false rumor names a kind with no
+    /// place behind it, in the words a true one would use.</summary>
+    public static string KindPhrase(WorldData world, PoiKind kind, int x, int y) => kind switch
     {
         PoiKind.Combat => "a hostile encampment",
         PoiKind.Rest => "a refuge",
-        PoiKind.Narrative => PoiSignal.Signal(world.GetTile(poi.X, poi.Y).Terrain, new Vector2I(poi.X, poi.Y)),
+        PoiKind.Narrative => PoiSignal.Signal(world.GetTile(x, y).Terrain, new Vector2I(x, y)),
         PoiKind.Negotiation => "a meeting place",
         PoiKind.Outpost => "an outpost",
         PoiKind.Prison => "a prison",

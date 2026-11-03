@@ -955,6 +955,10 @@ public sealed class CampusGuildPanel : CampusPanel
         _forceEncounterDropdown.ItemSelected += (idx) =>
             PlayerSession.ForceNextEncounterType = _forceEncounterDropdown.GetItemId((int)idx);
         expedition.AddChild(_forceEncounterDropdown);
+        // Castle-role review, test 2 (2026-11-03). Added after the dropdown so the
+        // caption and the dropdown keep their row in the three-column grid.
+        Check(expedition, "Resolve from Camp (A/B: a brisk walk that never stops to look)", PlayerSession.DebugResolveFromCamp,
+            on => PlayerSession.DebugResolveFromCamp = on);
         expedition.AddChild(new Control());
 
         // ── STRATEGIC MAP & COURT ────────────────────────────────────────
@@ -972,6 +976,12 @@ public sealed class CampusGuildPanel : CampusPanel
             "Knowledge ladder L4a: a lead on the nearest undiscovered place in the wild to the castle, then saves. "
             + "Its ring shows on the next map load. March and camp within sight of the place, and the lead goes "
             + "with a note that it held true.");
+        Act(strategic, "Hear the Nearest Talk", () => StrategicDebug.HearNearestTalk(false),
+            "Knowledge ladder L4b1: the settlement nearest the castle talks now, ignoring the once-a-lunation rule, "
+            + "true or false by its kingdom's reliability, then saves. Its ring shows on the next map load.");
+        Act(strategic, "Hear a False Rumor", () => StrategicDebug.HearNearestTalk(true),
+            "Knowledge ladder L4b1: a false rumor from the settlement nearest the castle, then saves. Stop on its "
+            + "center in the field, or camp in sight of the whole ring, and it comes to nothing.");
         Act(strategic, "Force Castle Raid", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.PatrolRaid));
         Act(strategic, "Force Castle Assault", () => StrategicDebug.ForceCastleThreat(CastleThreatKind.KingdomAssault));
         Act(strategic, "Force Portal Strike", () =>

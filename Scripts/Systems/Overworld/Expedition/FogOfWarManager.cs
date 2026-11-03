@@ -216,6 +216,12 @@ public partial class FogOfWarManager : Node2D
     /// UpdateVision never re-hides a Revealed tile, so these persist for the run.</summary>
     private void RevealSecondaryLandmarks(Vector2I objCoord)
     {
+        // Standing Orders O3b (D201): while the interval walks the world holds still, and only the
+        // errand's place is a lure, so the window opens with none of its own.
+        if (Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return;
+        }
         // (No MaxSecondaryLandmarks<=0 guard: the const is 3, so the check is
         // dead code, CS0162. The Pass-1 `chosen.Count >= Max` break already
         // no-ops any non-positive value identically.)

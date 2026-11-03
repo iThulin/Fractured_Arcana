@@ -373,6 +373,11 @@ public class CycleState
     /// no leads.</summary>
     public List<Lead> Leads = new();
 
+    /// <summary>Knowledge ladder L4b1 (spec section 14, D218): each rumor source's record
+    /// for the reading (a kingdom's talk) and each settlement's last talk (the once-a-
+    /// lunation rule). Additive: a save from before L4b reads as no records.</summary>
+    public List<LeadRecord> LeadRecords = new();
+
     /// <summary>The interval between the Sundering and the first new moon (Standing
     /// Orders, docs/standing_orders_o1_interval_rules_v1.md): whether it is being walked,
     /// its route, and whether the door is set. Additive: a save from before the interval

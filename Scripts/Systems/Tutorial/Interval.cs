@@ -47,6 +47,62 @@ public static class Interval
         "Postings wait for the founding: their work is counted in days, and the moon is held.";
     public const string RecallLine =
         "The party falls back to the castle. The moon is held, so no time is lost.";
+    // Why the world is held (O3c, D208): until the guild first sits, at the first new moon, the only
+    // business in order is founding it, and the Register will not risk the founding on anything else.
+    // A house that does business before it sits is no house, and only a house's orders stand. The
+    // running world runs; it is the guild that waits. These lines say so where the player meets the
+    // hold (D209).
+
+    /// <summary>Said when a dive arrives on a place the interval holds (O3b, D198) and no line for
+    /// its kind applies (HeldLineFor).</summary>
+    public const string PlaceHeldLine = "'Out of order,' says the Register. 'Entered for the first sitting.'";
+    /// <summary>The Register explains the held world the first time it matters (O3b, D202). Renamed
+    /// from interval.held in O3c, so a guild that saw the old explanation sees this one.</summary>
+    public const string HeldBark = "interval.out_of_order";
+    /// <summary>The held kinds that are not places (O3c): a shard zone's gate or sanctum, and a
+    /// blight site. Places are held by their POIType's name.</summary>
+    public const string HeldShard = "shard";
+    public const string HeldFacet = "facet";
+    /// <summary>A held place's word in the field's tooltip (O3c, D209).</summary>
+    public const string HeldTip = " (out of order until the first sitting)";
+    /// <summary>The stride's halt on a held place (O3c, D209): the place is named, then this.</summary>
+    public const string HeldSightTail = "Out of order until the first sitting. Press on.";
+    /// <summary>The banner of a fight lost while the interval walks (O3c, D209): what D147, D195 and
+    /// D206 do, in the Register's words.</summary>
+    public const string RoutLine =
+        "The Register does not minute a rout. Before the guild sits, a rout costs bruises, not lives, "
+        + "and teaches nothing. The place is still there.";
+
+    /// <summary>What a dive is told on arriving at a held place (O3c, D209), by the kind
+    /// ExpeditionManager found there: a POIType's name, HeldShard or HeldFacet.</summary>
+    public static string HeldLineFor(string kind) => kind switch
+    {
+        nameof(OverworldHex.POIType.Combat) =>
+            "Whoever holds this place would fight for it. The Register closes on your thumb. "
+            + "'Out of order,' it says. 'Entered for the first sitting.'",
+        nameof(OverworldHex.POIType.Rest) =>
+            "A refuge, and someone keeping it. 'Sessional business,' says the Register. "
+            + "'It will keep for the first sitting. Refuges do.'",
+        nameof(OverworldHex.POIType.Narrative) =>
+            "Something here is waiting to be told. The Register turns its page face down. "
+            + "'Entered for the first sitting. The Register does not... read ahead.'",
+        nameof(OverworldHex.POIType.Negotiation) =>
+            "Someone at the meeting place looks up, ready to deal. 'A guild that has not sat cannot "
+            + "treat,' says the Register, 'and this one has not sat.'",
+        nameof(OverworldHex.POIType.Outpost) =>
+            "An outpost, held for whoever takes it. 'The house holds nothing before it sits,' says the "
+            + "Register. 'Not even this.'",
+        nameof(OverworldHex.POIType.Prison) =>
+            "A jail, and someone in it. 'Entered first in the order of business,' says the Register, "
+            + "very carefully, 'for the first sitting.'",
+        HeldShard =>
+            "The air here tastes of the hall, the afternoon it broke. The Register goes very still. "
+            + "'Not this,' it says. 'Not before the guild sits.'",
+        HeldFacet =>
+            "Something bright lies in the blighted ground. 'The guild will want that,' says the "
+            + "Register, 'once there is a guild to carry it home.'",
+        _ => PlaceHeldLine,
+    };
 
     /// <summary>WorldGenerator's Home Camp: the guild's dock.</summary>
     public const string DockSource = "Start";
@@ -79,6 +135,10 @@ public static class Interval
 
     /// <summary>The interval is being walked and the door is not yet set: the home is shut.</summary>
     public static bool DoorShut(CycleState cycle) => Walking(cycle) && !cycle.Interval.DoorSet;
+
+    /// <summary>The errand's places while the interval walks (O3b, D198): the only places a dive can work
+    /// before the founding. The field store (O3); chapter IV's patrol and picket join it in O5.</summary>
+    public static bool ErrandAt(CycleState cycle, int x, int y) => IntervalStore.IsStoreAt(cycle, x, y);
 
     /// <summary>The tile lies inside the guild's home city.</summary>
     public static bool IsHomeGround(CycleState cycle, int x, int y)

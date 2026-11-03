@@ -472,6 +472,56 @@ public static class StrategicDebug
                  + "Open the map to see it. March and camp within sight of the place to run it down.");
     }
 
+    /// <summary>Knowledge ladder L4b1 test levers (D221): the settlement nearest the castle (not
+    /// the guild's home) talks now, ignoring the once-a-lunation rule. With <paramref name="lie"/>
+    /// its rumor is false whatever its kingdom's reliability. The ring shows on the next map
+    /// load; stop on its center in the field, or camp in sight of the whole ring, to run it
+    /// down. Saves.</summary>
+    public static void HearNearestTalk(bool lie)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        var world = cycle?.World;
+        if (world?.Settlements == null || !world.InBounds(cycle.CastleX, cycle.CastleY))
+        {
+            GD.PrintErr("[StrategicDebug] No world, or the castle is not on the map.");
+            return;
+        }
+        WorldSettlement nearest = null;
+        int best = int.MaxValue;
+        foreach (var s in world.Settlements)
+        {
+            if (s == null || s.IsGuildHome)
+            {
+                continue;
+            }
+            int d = world.HexDistance(cycle.CastleX, cycle.CastleY, s.CenterX, s.CenterY);
+            if (d < best)
+            {
+                best = d;
+                nearest = s;
+            }
+        }
+        if (nearest == null)
+        {
+            GD.PrintErr("[StrategicDebug] There is no settlement but the guild's home.");
+            return;
+        }
+        var heard = LeadService.HearTalk(cycle, nearest, 1, anyLunation: true, lie: lie);
+        if (heard.Count == 0)
+        {
+            GD.PrintErr($"[StrategicDebug] The settlement at ({nearest.CenterX},{nearest.CenterY}) had nothing to say.");
+            return;
+        }
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        var reliability = LeadService.TalkReliability(cycle.WorldSeed, nearest.KingdomId);
+        foreach (var lead in heard)
+        {
+            GD.Print($"[StrategicDebug] {lead.Line} ({(lead.IsFalse ? "false" : "true")}; a {reliability} kingdom, "
+                     + $"{best} tiles from the castle): a ring of {lead.Radius} around ({lead.CenterX},{lead.CenterY}).");
+        }
+    }
+
     private static bool HasOpenFront(CycleState cycle, string kingdomId)
     {
         var fronts = cycle.Warfronts;

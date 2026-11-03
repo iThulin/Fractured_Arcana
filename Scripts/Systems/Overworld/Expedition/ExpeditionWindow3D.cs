@@ -105,6 +105,11 @@ public partial class ExpeditionWindow3D : Node3D
     /// disagree. Null in the standalone harness, which falls back to the POI kind.</summary>
     public System.Func<Vector2I, string> LureLabel;
 
+    /// <summary>Knowledge ladder L4b1 (D220): the standing rumors' rings, world-offset coords
+    /// in: each ring's center, its radius in tiles and its label. The live host supplies them;
+    /// null in the standalone harness, which draws none.</summary>
+    public System.Func<List<(Vector2I center, int radius, string label)>> LeadRings;
+
     // ── Scene ───────────────────────────────────────────────────────────────
     private Camera3D _camera;
     private GeometryInstance3D _landLayer;      // welded ArrayMesh (stage 2) or MultiMesh fallback
@@ -131,6 +136,11 @@ public partial class ExpeditionWindow3D : Node3D
     private const float RoadPinBase = 1.7f;
     private const float RoadPinStagger = 0.6f;
     private Node3D _pawn;
+
+    /// <summary>How long the pawn takes to glide one tile in a host-driven run. The
+    /// host shortens it while the Resolve from Camp A/B switch walks the party
+    /// briskly (2026-11-03), so the glide keeps pace with the march.</summary>
+    public float PawnHopSeconds = 0.18f;
 
     private Vector3 _camTarget = Vector3.Zero;
     private float _camDist = 26f;
@@ -3082,6 +3092,84 @@ void fragment() {
                 AddLureBeacon(c, ov, pos);
             }
         }
+
+        // Knowledge ladder L4b1 (D220): the rumors' rings.
+        AddLeadRings();
+    }
+
+    /// <summary>Width of a rumor's ring band in the field, in world units.</summary>
+    private const float LeadRingBand = 0.18f;
+
+    /// <summary>Knowledge ladder L4b1 (D220): every standing rumor whose center is in this
+    /// window draws as a faint ring of its radius, flattened and drawn through the terrain in
+    /// the beacon tint, with a mark at its center, where a party stops to search it, and the
+    /// rumor's words over the mark. All of it joins <see cref="_markers"/>, so the next
+    /// rebuild frees it.</summary>
+    private void AddLeadRings()
+    {
+        var rings = LeadRings?.Invoke();
+        if (rings == null || rings.Count == 0 || PlayerSession.DebugClassicExploration)
+        {
+            return;
+        }
+        var loaded = new HashSet<Vector2I>(_windowTiles);
+        Color tint = UITheme.BeaconMark;
+        foreach (var (center, radius, label) in rings)
+        {
+            if (!loaded.Contains(center))
+            {
+                continue;
+            }
+            var pos = TileOrigin(center.X, center.Y);
+            pos.Y = TileHeight(center) + 0.25f;
+            float outer = (Mathf.Max(1, radius) + 0.5f) * RowSpacing;
+            AddLeadRingMesh(pos, outer - LeadRingBand, outer, new Color(tint, 0.45f));
+            AddLeadRingMesh(pos, HexR * 0.22f, HexR * 0.34f, new Color(tint, 0.85f));
+            if (string.IsNullOrEmpty(label))
+            {
+                continue;
+            }
+            var text = new Label3D
+            {
+                Text = label,
+                Position = pos + new Vector3(0f, 1.2f, 0f),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                RenderPriority = 4,
+                OutlineRenderPriority = 3,
+                FontSize = 26,
+                PixelSize = 0.010f,
+                Modulate = tint,
+                OutlineSize = 10,
+                OutlineModulate = UITheme.RoadChoiceOutline,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                Width = 520f,
+            };
+            AddChild(text);
+            _markers.Add(text);
+        }
+    }
+
+    /// <summary>One flattened ring for <see cref="AddLeadRings"/>: translucent, unshaded and
+    /// drawn through the terrain.</summary>
+    private void AddLeadRingMesh(Vector3 pos, float inner, float outer, Color color)
+    {
+        var ring = new MeshInstance3D
+        {
+            Mesh = new TorusMesh { InnerRadius = inner, OuterRadius = outer, Rings = 64, RingSegments = 4 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = color,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                NoDepthTest = true,
+            },
+            Position = pos,
+            Scale = new Vector3(1f, 0.2f, 1f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
+        AddChild(ring);
+        _markers.Add(ring);
     }
 
     /// <summary>Height of a lure's column above its marker, in world units. Tall
@@ -3148,7 +3236,7 @@ void fragment() {
             var target = TileOrigin(_party.X, _party.Y);
             target.Y = TileHeight(_party);
             var tw = CreateTween();
-            tw.TweenProperty(_pawn, "position", target, 0.18)
+            tw.TweenProperty(_pawn, "position", target, PawnHopSeconds)
               .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
             return;
         }

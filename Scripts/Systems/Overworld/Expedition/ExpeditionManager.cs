@@ -457,7 +457,11 @@ public partial class ExpeditionManager : Node2D
         _grid.AddChild(_factionManager);
         // Patrols key off the TEMPLATE REGION (the campaign's archmage map is
         // keyed by region names like 'dustreach', not 'kingdom_N' ids).
-        _factionManager.Initialize(_grid, StagingTemplateRegion(), cycle.Campaign);
+        // Standing Orders O3b (D199): while the interval walks nothing roams, so no patrols.
+        if (!Interval.Walking(cycle))
+        {
+            _factionManager.Initialize(_grid, StagingTemplateRegion(), cycle.Campaign);
+        }
         _factionManager.PatrolCapturedPlayer += OnPatrolCapturedPlayer;
 
         // Party token
@@ -587,7 +591,11 @@ public partial class ExpeditionManager : Node2D
             fuelCycle.CastleMaxFuel = MaxFuel;
         }
 
-        GoldEarned += bonuses.BonusGold;
+        // Standing Orders O3b (D200): while the interval walks a dive pays nothing on its own.
+        if (!Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            GoldEarned += bonuses.BonusGold;
+        }
 
         PlayerSession.IsOnExpedition = true;
         if (PlayerSession.DebugMode && PlayerSession.StartWithGold)
@@ -698,6 +706,12 @@ public partial class ExpeditionManager : Node2D
                 PlayerSession.ChronoFlatMovesLeft = 0;
                 LogRun("field_party", $"{_fieldPartyId}: {ActiveRunCompanionIds().Count} afoot, "
                                     + $"{MaxFuel} rations, window radius {WindowRadius}");
+                // Castle-role review, test 2 (2026-11-03): name the arm in the journal, so a
+                // dive walked with the Resolve from Camp switch reads as one afterwards.
+                if (PlayerSession.DebugResolveFromCamp)
+                {
+                    LogRun("ab_resolve_camp", "on: a brisk walk that stops for no sighting");
+                }
             }
             else
             {
@@ -1078,6 +1092,14 @@ public partial class ExpeditionManager : Node2D
     /// settlements discovered outside the current window.</summary>
     private void GrantStagingPointAtWorld(int col, int row)
     {
+        // Standing Orders O3b (D204): while the interval walks no place becomes a staging point, so
+        // walking to every settlement before the founding buys no reach and no new places to launch
+        // from. The settlement is still sighted, and contact after the founding grants it as usual,
+        // because WriteVisibleToWorld checks every revealed settlement tile, not only new ones.
+        if (Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return;
+        }
         var poi = _world.PoiAt(col, row);
         if (poi == null || !poi.GrantsStaging)
             return;
@@ -1330,6 +1352,7 @@ public partial class ExpeditionManager : Node2D
         _window3D.TileHovered += OnWindow3DHover;
         _window3D.TileUnhovered += OnWindow3DUnhover;
         _window3D.LureLabel = LureLabelAtWorld;
+        _window3D.LeadRings = LeadRingsInWorld;   // knowledge ladder L4b1 (D220)
         vp.AddChild(_window3D);
         _window3D.AcceptInput = true;
         // Re-arm on hover, but never after the run has ended: ShowReturnButton
@@ -1546,6 +1569,23 @@ public partial class ExpeditionManager : Node2D
     private string _strideSightNote;
     private Button _haltButton;
     private const float StrideStepSeconds = 0.25f;   // pacing per tile (watchable)
+
+    /// <summary>Castle-role review, test 2 (2026-11-03): with the Resolve from Camp
+    /// A/B switch on, a field party's march walks briskly to its end and never stops
+    /// for a sighting. Each step is the same real move (rations, Hull, weather,
+    /// patrols, ambushes, every trouble halt). The walk stays visible, because
+    /// without movement the game reads as a spreadsheet (ruled 2026-11-03). The
+    /// castle's own sorties walk as before.</summary>
+    private bool BriskWalk => _fieldRun && PlayerSession.DebugResolveFromCamp;
+
+    /// <summary>The brisk pace: the 2D hop runs twice as fast and the 3D pawn's
+    /// glide is matched to it, with no pause between steps. About nine tiles a
+    /// second, against about four at the normal pace.</summary>
+    private const float BriskWalkSpeedScale = 2f;
+    private const float BriskHopSeconds = 0.1f;
+
+    /// <summary>The 3D pawn's glide at the normal pace (ExpeditionWindow3D's default).</summary>
+    private const float NormalHopSeconds = 0.18f;
 
     /// <summary>An ENCOUNTER POI stops a stride; a benign anchor/service (outpost,
     /// seat, settlement, rest, cache) does not: the castle may deploy on or stride
@@ -2117,7 +2157,7 @@ public partial class ExpeditionManager : Node2D
 
         // Wait for the previous hop's animation to land before issuing the next.
         if (_party.IsMoving)
-        { ScheduleStrideTick(0.05f); return; }
+        { ScheduleStrideTick(BriskWalk ? 0f : 0.05f); return; }
 
         // A place came into view on the last step (2026-10-30). The march stops
         // so the player chooses: press on, or turn aside. Checked before the
@@ -2150,6 +2190,19 @@ public partial class ExpeditionManager : Node2D
         }
         else if (_party.CurrentCoord == _strideGoal)
         { EndStride("The castle reaches the tile you ordered.", "Arrived"); return; }
+
+        // Castle-role review, test 2 (2026-11-03): under BriskWalk the march never stops
+        // for a sighting, so it stops when it lands on a place on the way. That place's
+        // encounter has just opened, and the party must not walk on out from under it.
+        if (BriskWalk && _strideHasMoved)
+        {
+            var ovOnTheWay = _overlay.OverlayAt(_party.CurrentCoord);
+            if (IsEncounterPoi(ovOnTheWay.Poi) && !ovOnTheWay.Consumed)
+            {
+                EndStride("The party comes upon a place on the way.", "Something here", HaltTone.Choice);
+                return;
+            }
+        }
 
         // An ENCOUNTER opened on a tile we ARRIVED on (scout report, narrative,
         // negotiation, …) stops the march so the player decides. Only checked once
@@ -2207,7 +2260,14 @@ public partial class ExpeditionManager : Node2D
         // the castle's business and does not stop the march.
 
         var from = _party.CurrentCoord;
-        HashSet<Vector2I> seenBefore = PlayerSession.DebugClassicExploration ? null : VisiblePoiTiles();
+        // Under BriskWalk the march does not stop for a sighting, so nothing is noted,
+        // and both pawns walk at the brisk pace.
+        HashSet<Vector2I> seenBefore = (PlayerSession.DebugClassicExploration || BriskWalk) ? null : VisiblePoiTiles();
+        _party.SpeedScale = BriskWalk ? BriskWalkSpeedScale : 1f;
+        if (_window3D != null)
+        {
+            _window3D.PawnHopSeconds = BriskWalk ? BriskHopSeconds : NormalHopSeconds;
+        }
         if (!_party.TryMoveTo(next))
         {
             EndStride("The way is blocked.", "Blocked", HaltTone.Trouble);
@@ -2237,7 +2297,7 @@ public partial class ExpeditionManager : Node2D
             }
         }
 
-        ScheduleStrideTick(StrideStepSeconds);
+        ScheduleStrideTick(BriskWalk ? 0f : StrideStepSeconds);
     }
 
     /// <summary>Pick the next tile of the march. First tries known-ground A* to the
@@ -2302,6 +2362,14 @@ public partial class ExpeditionManager : Node2D
             return;
         _striding = false;
         _strideSightNote = null;   // a pending sighting dies with the order
+        if (_party != null)
+        {
+            _party.SpeedScale = 1f;   // a step taken after the march walks at the normal pace
+        }
+        if (_window3D != null)
+        {
+            _window3D.PawnHopSeconds = NormalHopSeconds;
+        }
         _roadFollow = false;   // a halt ends the road order; the player re-issues
         _roadSeed = null;      // and a cancelled order never leaks a direction
         _strideConsecutive = 0;
@@ -2407,7 +2475,10 @@ public partial class ExpeditionManager : Node2D
         }
         string range = nearestDist == 1 ? "one tile off" : $"{nearestDist} tiles off";
         string more = count > 1 ? $" {count - 1} more in view." : "";
-        _strideSightNote = $"{what}, {range}.{more} Press on, or turn aside.";
+        // Standing Orders O3c (D209): a held place halts the stride as any place does, and the note
+        // says it is out of order, so the party knows before it walks there.
+        string tail = HeldKindAt(at).Length > 0 ? Interval.HeldSightTail : "Press on, or turn aside.";
+        _strideSightNote = $"{what}, {range}.{more} {tail}";
     }
 
     private void SetHaltButton(bool show)
@@ -3080,7 +3151,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
                 line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
-                        NegotiationPreread(axial); // S5: True Names
+                        NegotiationPreread(axial) + HeldTipAt(axial); // S5: True Names. O3c (D209): a held place says so.
             // City tile: name the settlement whose greyed footprint this tile belongs to, so the
             // player can tell they're standing in a city (not just on its terrain).
             if (_window.TryLocalToWorld(axial, out int ccol, out int crow))
@@ -3189,7 +3260,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
                 line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
-                        NegotiationPreread(axial); // S5: True Names
+                        NegotiationPreread(axial) + HeldTipAt(axial); // S5: True Names. O3c (D209): a held place says so.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
                 line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
@@ -3224,6 +3295,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ShowInfo("The waystation serves its purpose and breaks down. Essence restored.");
                 UpdateUI();
             }
+        }
+
+        // Knowledge ladder L4b1 (D217): a party that stops on a rumor's center searches its ring.
+        SearchLeadsAt(coord);
+
+        // Standing Orders O3b (D198): while the interval walks the world holds still. Only the
+        // errand's places can be worked; the rest waits for the first new moon.
+        if (HeldInInterval(coord))
+        {
+            return;
         }
 
         // Facets (2026-09-29): a blight facet site is a Narrative POI that yields
@@ -3430,6 +3511,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     UpdateUI();
                     break;
                 }
+                // Knowledge ladder L4b1 (D213): a party that walks into a settlement hears its talk.
+                HearTalkOnFoot(coord);
+
                 // Phase 3: reaching a CITY centre on foot (a gold seat capital or a blue lesser city)
                 // opens its services menu, the same shell as the strategic-map city view. Gated to
                 // Tier==City inside OpenCityServices, so towns fall through. Persistent (never
@@ -4095,6 +4179,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         else if (router.CombatWon)
         {
+            // Standing Orders O3b (D206): a fight won in the interval records the casts it held back.
+            CastMasteryTracker.CommitInterval();
+
             // Fragment guardian felled → the trial is passed (permanent ledger flag).
             if (!string.IsNullOrEmpty(router.SavedCombatGuardianKey))
             {
@@ -4321,6 +4408,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
         else
         {
+            // Standing Orders O3b (D206): a fight lost in the interval records none of its casts.
+            CastMasteryTracker.DropInterval();
+
             // K2 (§5b): a LOST combat downs the whole fielded party (defeat
             // requires allPlayersDead in CheckCombatEnd): one roll each at the
             // combat hex's territory tier; boss encounters roll at 40%.
@@ -4353,7 +4443,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             else
             {
                 CurrentHP = 0;
-                FailExpedition("Your party was defeated in the field.", injuriesAlreadyRolled: true);
+                // Standing Orders O3c (D209): in the interval the Register says what a rout costs there.
+                FailExpedition(Interval.Walking(SaveManager.ActiveSave?.Cycle)
+                        ? Interval.RoutLine
+                        : "Your party was defeated in the field.",
+                    injuriesAlreadyRolled: true);
                 return;
             }
         }
@@ -4388,6 +4482,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if ((_roamer != null && GodotObject.IsInstanceValid(_roamer)) || _roamerSpent)
             return;
+        if (Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return;   // Standing Orders O3b (D199): while the interval walks nothing roams
+        }
         if (_grid == null || _party == null)
             return;
 
@@ -4777,6 +4875,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// placed (post-StampStronghold), because RevealNearestPois reads _party.CurrentCoord.</summary>
     private void ApplyScryingReveals(BuildingEffectApplier.RunBonuses bonuses)
     {
+        if (Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return;   // Standing Orders O3b (D201): while the interval walks only the errand lures
+        }
         if (bonuses.RevealPoiCount > 0)
         {
             // Clouded Water (blighted Scrying Chambers, design §21): twice the sites.
@@ -5966,8 +6068,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // BEFORE the extraction check: ApplyExtractionCheck resets
         // ExpeditionHP, which is the heroism evidence. Then the Cunning
         // Finder's Fee lands before banking.
-        LoyaltyEvents.OnExtraction(SaveManager.ActiveSave);
-        GoldEarned += CompanionPerks.ExtractionGold(SaveManager.ActiveSave);
+        // Standing Orders O3b (D200): while the interval walks a dive pays nothing on its own: no
+        // loyalty for coming home, and no Finder's Fee.
+        if (!Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            LoyaltyEvents.OnExtraction(SaveManager.ActiveSave);
+            GoldEarned += CompanionPerks.ExtractionGold(SaveManager.ActiveSave);
+        }
 
         // K2.5 ruling: extraction infirmary check: who came home broken?
         // Stabilized (downed in a won fight) → 1–2 lunations; below 25% of
@@ -8079,6 +8186,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle == null || def == null)
             return null;
+        // Standing Orders O3b (D205): while the interval walks no court hears of a cast. Casts repeat
+        // with every dive, and their echoes would all land together at the first lunation.
+        if (Interval.Walking(cycle))
+        {
+            return null;
+        }
         bool grand = def.Magnitude == "Grand";
 
         if (def.School == "Necromancer")
@@ -8318,6 +8431,136 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _fog?.RevealHex(local);
     }
 
+    /// <summary>Knowledge ladder L4b1 (D217): a party that stops on a rumor's center searches
+    /// its ring. A true lead's place is Sighted and stands as a beacon at once; a false lead
+    /// comes to nothing, with its note at the desk. The field says what the search found.</summary>
+    private void SearchLeadsAt(Vector2I coord)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.Leads == null || cycle.Leads.Count == 0 || _window == null
+            || !_window.TryLocalToWorld(coord, out int col, out int row))
+        {
+            return;
+        }
+        string found = LeadService.SearchAt(cycle, col, row);
+        if (found.Length == 0)
+        {
+            return;
+        }
+        StampSighted();
+        SaveManager.MarkDirty();
+        ShowInfo(found);
+        LogRun("search", found, at: coord);
+        if (_window3D != null)
+        {
+            FeedWindow3D(frameCamera: false);
+        }
+    }
+
+    /// <summary>Knowledge ladder L4b1 (D213): a party that walks onto a settlement's center
+    /// hears its talk, once a lunation. The guild's home never talks.</summary>
+    private void HearTalkOnFoot(Vector2I coord)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null || _world == null || _window == null
+            || !_window.TryLocalToWorld(coord, out int col, out int row))
+        {
+            return;
+        }
+        var settlement = _world.SettlementAt(col, row);
+        if (settlement == null || settlement.IsGuildHome)
+        {
+            return;
+        }
+        var heard = LeadService.HearTalk(cycle, settlement, LeadService.TalkCount());
+        if (heard.Count == 0)
+        {
+            return;
+        }
+        SaveManager.MarkDirty();
+        ShowInfo(heard[0].Line);
+        LogRun("talk", heard[0].Line, at: coord);
+        if (_window3D != null)
+        {
+            FeedWindow3D(frameCamera: false);
+        }
+    }
+
+    /// <summary>Knowledge ladder L4b1 (D220): every standing lead as the 3D field draws it:
+    /// its ring's center in world tiles, its radius, and its label with the source's record.
+    /// The view draws those whose center is loaded. None under Classic Exploration.</summary>
+    private List<(Vector2I center, int radius, string label)> LeadRingsInWorld()
+    {
+        var rings = new List<(Vector2I center, int radius, string label)>();
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle?.Leads == null || _world?.Pois == null || PlayerSession.DebugClassicExploration)
+        {
+            return rings;
+        }
+        foreach (var lead in cycle.Leads)
+        {
+            if (LeadService.Stands(lead, _world.Pois))
+            {
+                rings.Add((new Vector2I(lead.CenterX, lead.CenterY), lead.Radius, LeadService.LabelFor(cycle, lead)));
+            }
+        }
+        return rings;
+    }
+
+    /// <summary>Standing Orders O3b (D198): while the interval walks the world holds still. A place
+    /// that is not the errand's (Interval.ErrandAt) cannot be worked, and neither can a shard zone's
+    /// gate or sanctum or a facet site. Towns' services and supply caches stay open, because buying
+    /// and looking clear nothing. Returns what holds the tile: a POIType's name, Interval.HeldShard or
+    /// Interval.HeldFacet, or "" when nothing does. O3c (D208, D209) gives each kind its line.</summary>
+    private string HeldKindAt(Vector2I coord)
+    {
+        var save = SaveManager.ActiveSave;
+        var cycle = save?.Cycle;
+        if (!Interval.Walking(cycle) || _world == null || _window == null
+            || !_window.TryLocalToWorld(coord, out int col, out int row) || Interval.ErrandAt(cycle, col, row))
+        {
+            return "";
+        }
+        var zone = _world.ShardZoneAt(col, row);
+        if (zone != null
+            && ((col == zone.GateX && row == zone.GateY) || (col == zone.SanctumX && row == zone.SanctumY)))
+        {
+            return Interval.HeldShard;
+        }
+        if (Facets.BlightSiteAt(_world, save, col, row) != null)
+        {
+            return Interval.HeldFacet;
+        }
+        var ov = _overlay.OverlayAt(coord);
+        bool place = !ov.Consumed && ov.Poi switch
+        {
+            OverworldHex.POIType.None or OverworldHex.POIType.Settlement or OverworldHex.POIType.Seat
+                or OverworldHex.POIType.SupplyCache => false,
+            _ => true,
+        };
+        return place ? ov.Poi.ToString() : "";
+    }
+
+    /// <summary>Standing Orders O3c (D209): the field's tooltip says a held place is out of order
+    /// before anyone walks to it.</summary>
+    private string HeldTipAt(Vector2I coord) => HeldKindAt(coord).Length > 0 ? Interval.HeldTip : "";
+
+    /// <summary>Standing Orders O3b (D198): arriving at a held place, the party is told why, in the
+    /// Register's words for that kind of place (O3c, D209), and nothing else happens, so the place
+    /// is still there at the first new moon. The first held arrival explains the rule (D202).</summary>
+    private bool HeldInInterval(Vector2I coord)
+    {
+        string kind = HeldKindAt(coord);
+        if (kind.Length == 0)
+        {
+            return false;
+        }
+        ShowInfo(Interval.HeldLineFor(kind));
+        RegisterManager.Fire(Interval.HeldBark);
+        LogRun("held", kind, at: coord);
+        return true;
+    }
+
     /// <summary>Knowledge ladder L3 (spec sections 5 and 13, D175 to D178): a place
     /// the world map already shows stands in the field as a beacon, even under fog.
     /// Every loaded tile holding a place CampSight.FieldBeacon passes is marked a
@@ -8326,7 +8569,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// settlement tile grants staging (WriteVisibleToWorld), and staging is contact
     /// by foot (D134). Revealed from the first frame, these never halt a stride.
     /// Called after the window is built and whenever tiles stream in. Off under
-    /// Classic Exploration, the A/B baseline.</summary>
+    /// Classic Exploration, the A/B baseline. While the interval walks only the
+    /// errand's place is a beacon; held places still show (O3b, D201).</summary>
     private void StampSighted()
     {
         if (_world?.Pois == null || _grid == null || _window == null || _fog == null
@@ -8334,7 +8578,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             return;
         }
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        bool walking = Interval.Walking(cycle);
         int stamped = 0;
+        int beacons = 0;
         foreach (var poi in _world.Pois)
         {
             if (!CampSight.FieldBeacon(_world, poi))
@@ -8351,14 +8598,24 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 continue;
             }
-            ov.Landmark = true;
-            SetOverlay(local, ov);
+            // Standing Orders O3b (D201): while the interval walks only the errand's place is a lure;
+            // a held place still shows, revealed, without the column.
+            if (!walking || Interval.ErrandAt(cycle, poi.X, poi.Y))
+            {
+                ov.Landmark = true;
+                SetOverlay(local, ov);
+                beacons++;
+            }
+            else if (_fog.FogAt(local) == OverworldHex.FogState.Revealed)
+            {
+                continue;
+            }
             _fog.RevealHex(local);
             stamped++;
         }
         if (stamped > 0)
         {
-            GD.Print($"[Window] {stamped} sighted place(s) stand as beacons in the field.");
+            GD.Print($"[Window] {stamped} sighted place(s) shown in the field, {beacons} of them as beacons.");
         }
     }
 

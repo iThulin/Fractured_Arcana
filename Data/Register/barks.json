@@ -1029,6 +1029,16 @@
       "note": "Marching the castle costs fuel by the tile. When it arrives, its crews make camp for a few days, and it is exposed until they finish."
     },
     {
+      "key": "interval.out_of_order",
+      "category": "explain",
+      "once": true,
+      "title": "Out of order",
+      "lines": [
+        "A house that does business before it sits is no house at all. And only a house's orders... stand."
+      ],
+      "note": "Until the guild first sits, at the first new moon, the only business in order is founding it, and the Register will not risk the founding on anything else. Every other place is entered for the first sitting and waits there, unspent. Nothing roams the roads yet, a dive pays nothing of its own, towns grant no staging, and a fight lost here costs nothing and counts for nothing."
+    },
+    {
       "key": "interval.first_furnace",
       "category": "explain",
       "once": true,

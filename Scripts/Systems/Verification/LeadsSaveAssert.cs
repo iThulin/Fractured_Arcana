@@ -16,6 +16,9 @@ using System.Text.Json;
 //                 CharterSaveAssert. Since L3 and L4a (spec section 13):
 //                 scripted leads and their rings, the note a true lead
 //                 leaves, and which places stand as beacons in the field.
+//                 Since L4b1 (section 14): the records (LeadRecord), false
+//                 rumors, a kingdom's reliability, a settlement's talk and
+//                 the search.
 // Layer:          Verification
 // Collaborators:  Lead.cs, LeadService.cs, CycleState.cs, WorldData.cs,
 //                 SaveManager.cs (JsonOptions), CampusGuildPanel.cs
@@ -38,9 +41,13 @@ public static class LeadsSaveAssert
         ok &= AssertScripted(sb);
         ok &= AssertHeldTrue(sb);
         ok &= AssertFieldBeacon(sb);
+        ok &= AssertLeadRecord(sb);
+        ok &= AssertReliability(sb);
+        ok &= AssertTalk(sb);
+        ok &= AssertSearch(sb);
 
         sb.AppendLine(ok
-            ? "RESULT: ALL PASSED. Leads and Known round-trip clean, and the scripted leads, their notes and the field beacons check out."
+            ? "RESULT: ALL PASSED. Leads, Known and the records round-trip clean, and the scripted leads, their notes, the field beacons, the talk and the search check out."
             : "RESULT: FAILURES ABOVE. A field is being dropped or renamed, or a lead rule broke.");
         GD.Print(sb.ToString());
 
@@ -258,6 +265,208 @@ public static class LeadsSaveAssert
 
         sb.AppendLine(ok ? "  Field beacons: PASS" : "  Field beacons: FAIL");
         return ok;
+    }
+
+    /// <summary>L4b1 (D216, D218): a LeadRecord with every field set, and a false lead, survive
+    /// the trip; on legacy JSON the records are an empty list and a lead is not false.</summary>
+    private static bool AssertLeadRecord(StringBuilder sb)
+    {
+        var src = new CycleState
+        {
+            LeadRecords = new List<LeadRecord>
+            {
+                new LeadRecord { Key = "talk:dustreach", Heard = 5, HeldTrue = 3, CameToNothing = 1, LastLunation = 4 },
+            },
+            Leads = new List<Lead>
+            {
+                new Lead
+                {
+                    Id = "talk:dustreach:at:12,30",
+                    PoiIndex = -1,
+                    CenterX = 12,
+                    CenterY = 30,
+                    Radius = 3,
+                    Line = "Talk in Dustreach: a refuge, somewhere to the south.",
+                    Source = "talk:dustreach",
+                    CreatedDay = 9,
+                    IsFalse = true,
+                },
+            },
+        };
+        var rt = RoundTrip(src);
+
+        bool ok = rt?.LeadRecords != null && rt.LeadRecords.Count == 1 && rt.LeadRecords[0] != null
+                  && rt.Leads != null && rt.Leads.Count == 1 && rt.Leads[0] != null;
+        if (ok)
+        {
+            var a = src.LeadRecords[0];
+            var b = rt.LeadRecords[0];
+            ok &= Check(sb, "LeadRecord.Key", b.Key == a.Key);
+            ok &= Check(sb, "LeadRecord.Heard", b.Heard == a.Heard);
+            ok &= Check(sb, "LeadRecord.HeldTrue", b.HeldTrue == a.HeldTrue);
+            ok &= Check(sb, "LeadRecord.CameToNothing", b.CameToNothing == a.CameToNothing);
+            ok &= Check(sb, "LeadRecord.LastLunation", b.LastLunation == a.LastLunation);
+            ok &= Check(sb, "Lead.IsFalse, with no place", rt.Leads[0].IsFalse && rt.Leads[0].PoiIndex == -1);
+        }
+        else
+        {
+            sb.AppendLine("    FAIL: CycleState.LeadRecords or the false lead did not come back.");
+        }
+
+        var legacy = JsonSerializer.Deserialize<CycleState>("{\"cycleNumber\":2}", SaveManager.JsonOptions);
+        ok &= Check(sb, "CycleState.LeadRecords empty (not null) on legacy JSON",
+            legacy != null && legacy.LeadRecords != null && legacy.LeadRecords.Count == 0);
+        var legacyLead = JsonSerializer.Deserialize<Lead>("{\"id\":\"register:3\",\"poiIndex\":3}", SaveManager.JsonOptions);
+        ok &= Check(sb, "Lead.IsFalse default false on legacy JSON", legacyLead != null && !legacyLead.IsFalse);
+
+        sb.AppendLine(ok ? "  Lead sources and false leads: PASS" : "  Lead sources and false leads: FAIL");
+        return ok;
+    }
+
+    /// <summary>L4b1 (D215): a kingdom's reliability holds for a seed, and all three occur.</summary>
+    private static bool AssertReliability(StringBuilder sb)
+    {
+        bool ok = Check(sb, "The same seed and kingdom give the same reliability",
+            LeadService.TalkReliability(77, "dustreach") == LeadService.TalkReliability(77, "dustreach"));
+        var seen = new HashSet<LeadService.Reliability>();
+        for (int i = 0; i < 64; i++)
+        {
+            seen.Add(LeadService.TalkReliability(1234, $"kingdom_{i}"));
+        }
+        ok &= Check(sb, "Sound, mixed and idle all occur", seen.Count == 3);
+
+        sb.AppendLine(ok ? "  Reliability: PASS" : "  Reliability: FAIL");
+        return ok;
+    }
+
+    /// <summary>L4b1 (D213 to D216): a settlement talks once a lunation, and again the next;
+    /// true talk is about the nearest undiscovered place in the wild within range; a lie is a
+    /// false lead with no place, its ring in the wild 3 to 15 tiles out, and it stands through
+    /// the prune.</summary>
+    private static bool AssertTalk(StringBuilder sb)
+    {
+        var cycle = ScratchCycle(SoundSeed("k1"));
+        var world = cycle.World;
+        var town = AddTown(world, 5, 5, "k1");
+        int near = AddPlace(world, 11, 5, PoiKind.Rest, false);
+        int far = AddPlace(world, 13, 9, PoiKind.Combat, false);
+        AddPlace(world, 28, 28, PoiKind.Combat, false);   // out of range
+
+        var first = LeadService.HearTalk(cycle, town, 1);
+        bool ok = Check(sb, "A sound kingdom's settlement tells one true rumor, of the nearest place",
+            first.Count == 1 && !first[0].IsFalse && first[0].PoiIndex == near);
+        ok &= Check(sb, "The rumor is the kingdom's talk", first.Count == 1 && first[0].Source == "talk:k1");
+        ok &= Check(sb, "The kingdom's record counts it", LeadService.Record(cycle, "talk:k1").Heard == 1);
+        ok &= Check(sb, "It talks once a lunation", LeadService.HearTalk(cycle, town, 1).Count == 0);
+        cycle.Calendar.CurrentLunation = 2;
+        var second = LeadService.HearTalk(cycle, town, 1);
+        ok &= Check(sb, "It talks again the next lunation, of the next place",
+            second.Count == 1 && second[0].PoiIndex == far);
+
+        var lie = LeadService.HearTalk(cycle, town, 1, anyLunation: true, lie: true);
+        bool told = lie.Count == 1 && lie[0].IsFalse;
+        ok &= Check(sb, "A lie is a false lead with no place", told && lie[0].PoiIndex == -1);
+        if (told)
+        {
+            var l = lie[0];
+            int off = world.HexDistance(5, 5, l.CenterX, l.CenterY);
+            ok &= Check(sb, "A lie's ring is in the wild, 3 to 15 tiles out",
+                world.InBounds(l.CenterX, l.CenterY) && world.GetTile(l.CenterX, l.CenterY).SettlementIndex < 0
+                && off >= LeadService.FalseMinDistance && off <= LeadService.TalkRange);
+            ok &= Check(sb, "A false lead stands through the prune",
+                LeadService.Prune(cycle) == 0 && cycle.Leads.Contains(l));
+        }
+
+        sb.AppendLine(ok ? "  Talk: PASS" : "  Talk: FAIL");
+        return ok;
+    }
+
+    /// <summary>L4b1 (D217 to D219): searching a false lead's center settles it, with one note
+    /// and one line of news, and counts it in the record; searching a true lead's center sights
+    /// its place, which the prune notes as held true; a camp that sees a whole false ring
+    /// settles it, and one that does not, does not.</summary>
+    private static bool AssertSearch(StringBuilder sb)
+    {
+        var cycle = ScratchCycle(SoundSeed("k2"));
+        var world = cycle.World;
+        var town = AddTown(world, 5, 5, "k2");
+        int place = AddPlace(world, 10, 6, PoiKind.Narrative, false);
+
+        var lie = LeadService.HearTalk(cycle, town, 1, anyLunation: true, lie: true);
+        bool ok = Check(sb, "A false rumor was heard", lie.Count == 1 && lie[0].IsFalse);
+        if (lie.Count == 1)
+        {
+            var l = lie[0];
+            int notes = cycle.ScryInbox.Count;
+            int news = cycle.PendingSiegeReports?.Count ?? 0;
+            string found = LeadService.SearchAt(cycle, l.CenterX, l.CenterY);
+            ok &= Check(sb, "Searching a false lead's center settles it", found.Length > 0 && !cycle.Leads.Contains(l));
+            ok &= Check(sb, "One note, titled as come to nothing",
+                cycle.ScryInbox.Count == notes + 1 && cycle.ScryInbox[notes].Title == LeadService.NothingTitle);
+            ok &= Check(sb, "One line of frontier news", (cycle.PendingSiegeReports?.Count ?? 0) == news + 1);
+            ok &= Check(sb, "The kingdom's record counts it as come to nothing",
+                LeadService.Record(cycle, "talk:k2").CameToNothing == 1);
+        }
+
+        var truth = LeadService.HearTalk(cycle, town, 1, anyLunation: true);
+        bool heardTrue = truth.Count == 1 && !truth[0].IsFalse && truth[0].PoiIndex == place;
+        ok &= Check(sb, "A true rumor was heard", heardTrue);
+        if (heardTrue)
+        {
+            var t = truth[0];
+            string found = LeadService.SearchAt(cycle, t.CenterX, t.CenterY);
+            ok &= Check(sb, "Searching a true lead's center sights its place",
+                found.Length > 0 && world.Pois[place].Discovered && !cycle.Leads.Contains(t));
+            ok &= Check(sb, "The kingdom's record counts it as held true",
+                LeadService.Record(cycle, "talk:k2").HeldTrue == 1);
+            ok &= Check(sb, "The record reads one of two held true",
+                LeadService.RecordLine(cycle, t).Contains("1 of 2 held true"));
+        }
+
+        var again = LeadService.HearTalk(cycle, town, 1, anyLunation: true, lie: true);
+        if (again.Count == 1 && again[0].IsFalse)
+        {
+            var g = again[0];
+            ok &= Check(sb, "A camp that does not see the whole ring leaves it",
+                LeadService.SearchFromCamp(cycle, g.CenterX, g.CenterY, g.Radius - 1) == 0 && cycle.Leads.Contains(g));
+            ok &= Check(sb, "A camp that sees the whole ring settles it",
+                LeadService.SearchFromCamp(cycle, g.CenterX, g.CenterY, g.Radius) == 1 && !cycle.Leads.Contains(g));
+        }
+        else
+        {
+            ok &= Check(sb, "A second false rumor was heard", false);
+        }
+
+        sb.AppendLine(ok ? "  Search: PASS" : "  Search: FAIL");
+        return ok;
+    }
+
+    /// <summary>A seed whose talk in <paramref name="kingdom"/> is sound, so a scratch
+    /// settlement tells the truth unless the lie is asked for.</summary>
+    private static int SoundSeed(string kingdom)
+    {
+        for (int seed = 1; seed < 500; seed++)
+        {
+            if (LeadService.TalkReliability(seed, kingdom) == LeadService.Reliability.Sound)
+            {
+                return seed;
+            }
+        }
+        return 1;
+    }
+
+    /// <summary>A one-tile town on a scratch world: its tile points at it, as a generated
+    /// footprint does.</summary>
+    private static WorldSettlement AddTown(WorldData world, int x, int y, string kingdom)
+    {
+        var town = new WorldSettlement { CenterX = x, CenterY = y, KingdomId = kingdom, Tier = SettlementTier.Town };
+        town.Tiles.Add((x, y));
+        world.Settlements.Add(town);
+        if (world.TryIndex(x, y, out int tile))
+        {
+            world.Tiles[tile].SettlementIndex = world.Settlements.Count - 1;
+        }
+        return town;
     }
 
     /// <summary>A small all-grass world for the lead and beacon checks. Every tile is

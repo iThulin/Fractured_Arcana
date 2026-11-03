@@ -12,12 +12,21 @@ using System.Collections.Generic;
 //                 next campus write; does not save mid-run.
 // Layer:          System
 // Collaborators:  GameRunner.cs (call site),
+//                 ExpeditionManager.cs (the interval's held casts, O3b),
 //                 GuildSaveData / OwnedCard (mutation),
 //                 SaveManager.cs (marks dirty)
 // ============================================================
 
 public static class CastMasteryTracker
 {
+    /// <summary>Standing Orders O3b (D206): the casts made in a field fight while the interval
+    /// walks, held back until the fight ends. A fight lost in the interval unmakes nothing (D147,
+    /// D195), so it can be tried again; if its casts counted, the field store could be lost on
+    /// purpose, again and again, to raise mastery. ExpeditionManager records them when the fight is
+    /// won (CommitInterval) and lets them go when it is lost (DropInterval).</summary>
+    private static readonly List<string> _intervalCasts = new();
+    private static bool _committing;
+
     /// <summary>
     /// Call this every time a card half is successfully cast.
     /// blueprintId is the card's id field from JSON.
@@ -26,6 +35,11 @@ public static class CastMasteryTracker
     {
         var save = SaveManager.ActiveSave;
         if (save == null) return;
+        if (!_committing && PlayerSession.IsOnExpedition && Interval.Walking(save.Cycle))
+        {
+            _intervalCasts.Add(blueprintId);
+            return;
+        }
 
         // PERMANENT record first, and unconditionally. This must not depend on a
         // matching OwnedCard existing: the per-copy counter below lives on
@@ -54,5 +68,42 @@ public static class CastMasteryTracker
         SaveManager.MarkDirty(); // don't save mid-run, just flag it
 
         GD.Print($"[Mastery] {blueprintId} cast count: {target.CastCount}");
+    }
+
+    /// <summary>Standing Orders O3b (D206): a fight won in the interval. Records the casts it held
+    /// back, each as it would have been recorded when it was made.</summary>
+    public static void CommitInterval()
+    {
+        if (_intervalCasts.Count == 0)
+        {
+            return;
+        }
+        var casts = new List<string>(_intervalCasts);
+        _intervalCasts.Clear();
+        _committing = true;
+        try
+        {
+            foreach (var id in casts)
+            {
+                RecordCast(id);
+            }
+        }
+        finally
+        {
+            _committing = false;
+        }
+        GD.Print($"[Mastery] {casts.Count} cast(s) from a fight won in the interval recorded.");
+    }
+
+    /// <summary>Standing Orders O3b (D206): a fight lost in the interval. Its casts are not
+    /// recorded.</summary>
+    public static void DropInterval()
+    {
+        if (_intervalCasts.Count == 0)
+        {
+            return;
+        }
+        GD.Print($"[Mastery] {_intervalCasts.Count} cast(s) from a fight lost in the interval are not recorded.");
+        _intervalCasts.Clear();
     }
 }

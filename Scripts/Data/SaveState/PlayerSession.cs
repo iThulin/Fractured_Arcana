@@ -326,6 +326,16 @@ public static class PlayerSession
     /// exists so the decision audit can compare the two in one build. Not saved.</summary>
     public static bool DebugClassicExploration = false;
 
+    /// <summary>Debug A/B switch for test 2 of the castle-role review (2026-11-03,
+    /// claude/session_log_2026-11-03_resolve_from_camp.md). When true, a field
+    /// party's march walks briskly to its end, about twice the normal pace with no
+    /// pause between steps, and it does not stop for a sighting. Every step is the
+    /// same real move (rations, Hull, weather, patrols, ambushes and every trouble
+    /// halt). The question it answers: is there a decision in the walk, or only
+    /// time? The walk stays visible, because without movement the game reads as a
+    /// spreadsheet. The castle's own sorties walk as before. Not saved.</summary>
+    public static bool DebugResolveFromCamp = false;
+
     /// <summary>Debug (the campus debug panel's Unlock All Classes): the founding screen opens every
     /// school, and a guild founded with it sits its stated intention's practical in the prologue, so
     /// the practical and the Sundering play that school's folio. The founding writes it onto the save
