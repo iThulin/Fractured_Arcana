@@ -3144,6 +3144,12 @@ public partial class WorldAtlas3D : Node3D
             return Jitter(Hex3DPalette.Underpaint(LensBaseColor(t)), col, row, 0.02f);
 
         Color c = LensColor(t);
+        // Provinces (docs/provinces_v1.md, PV1): the Political lens shows the partition.
+        if (_lens == StrategicLens.Political)
+            c = ProvinceShade(c, col, row);
+        // PV2a (section 7b): the Reach lens reads the guild's influence per province.
+        else if (_lens == StrategicLens.Reach)
+            c = ProvinceReach(c, t, col, row);
         // A1: the palette is now authored as FINAL lit-scene painterly swatches in
         // Hex3DPalette; the old Grade() compensation stack is gone. Per-tile value
         // jitter (hash of col,row, stable across recolors) breaks the flat
@@ -3235,6 +3241,88 @@ public partial class WorldAtlas3D : Node3D
             c = c.Lerp(UITheme.StrategicCorruptionWash, k);
         }
         return c;
+    }
+
+    // ── Provinces on the Political lens (docs/provinces_v1.md, PV1) ─────────
+    /// <summary>Brightness of the four province tones: provinces of one kingdom that
+    /// share a border take different tones, so they read apart without a new hue.</summary>
+    private static readonly float[] ProvinceToneScale = { 1.00f, 0.90f, 1.08f, 0.82f };
+
+    /// <summary>How much darker a province-border tile draws.</summary>
+    private const float ProvinceBorderShade = 0.30f;
+
+    /// <summary>Shade a Political-lens color by its tile's province: the province's
+    /// tone, and darker where the province meets a lower-numbered province of the same
+    /// kingdom, so each border inside a kingdom draws as one line of tiles. A border
+    /// between kingdoms already reads as a change of hue and is left alone. A world
+    /// without provinces draws as before.</summary>
+    private Color ProvinceShade(Color c, int col, int row)
+    {
+        int pi = _world.ProvinceIndexAt(col, row);
+        if (pi < 0)
+            return c;
+        var province = _world.Provinces[pi];
+        float k = ProvinceToneScale[province.Tone & 3];
+        var (q, r) = HexCoord.OffsetToAxial(col, row);
+        for (int i = 0; i < 6; i++)
+        {
+            var (dq, dr) = HexCoord.AxialDirections[i];
+            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+            int ni = _world.ProvinceIndexAt(nc, nr);
+            if (ni >= 0 && ni < pi && _world.Provinces[ni].KingdomId == province.KingdomId)
+            {
+                k *= 1f - ProvinceBorderShade;
+                break;
+            }
+        }
+        return new Color(
+            Mathf.Clamp(c.R * k, 0f, 1f),
+            Mathf.Clamp(c.G * k, 0f, 1f),
+            Mathf.Clamp(c.B * k, 0f, 1f),
+            c.A);
+    }
+
+    // ── Provinces on the Reach lens (docs/provinces_v1.md section 7b, PV2a) ──
+    /// <summary>How much gold a held province's edge tiles take.</summary>
+    private const float HeldEdgeGold = 0.65f;
+
+    /// <summary>The Reach lens per province: the realm's standing colour, filled from
+    /// the void in proportion to the guild's influence in the province, so a province
+    /// worked to 40 reads apart from the untouched ones around it. A held province's
+    /// edge tiles (those with a neighbour outside it) draw in gold. Water, and land in
+    /// no province, keep the kingdom read.</summary>
+    private Color ProvinceReach(Color c, in WorldTile t, int col, int row)
+    {
+        if (t.IsWater)
+            return c;
+        int pi = _world.ProvinceIndexAt(col, row);
+        if (pi < 0)
+            return c;
+        var province = _world.Provinces[pi];
+        var stance = KingdomStance.Neutral;
+        var cyc = SaveManager.ActiveSave?.Cycle;
+        if (cyc != null && !string.IsNullOrEmpty(province.KingdomId))
+            stance = CouncilQueries.StanceFor(cyc, province.KingdomId);
+        Color voidDim = new Color(0.10f, 0.10f, 0.13f);
+        Color fill = voidDim.Lerp(StanceColor(stance), Mathf.Clamp(province.Influence, 0, 100) / 100f);
+        if (province.Held && OnProvinceEdge(col, row, pi))
+            fill = fill.Lerp(UITheme.Gold, HeldEdgeGold);
+        return fill;
+    }
+
+    /// <summary>True when any neighbour of the tile lies outside its province: another
+    /// province, water, or off the map.</summary>
+    private bool OnProvinceEdge(int col, int row, int pi)
+    {
+        var (q, r) = HexCoord.OffsetToAxial(col, row);
+        for (int i = 0; i < 6; i++)
+        {
+            var (dq, dr) = HexCoord.AxialDirections[i];
+            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+            if (_world.ProvinceIndexAt(nc, nr) != pi)
+                return true;
+        }
+        return false;
     }
 
     private Color CorruptionLensColor(in WorldTile t)

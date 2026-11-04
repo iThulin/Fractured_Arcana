@@ -1076,8 +1076,8 @@ public partial class ExpeditionManager : Node2D
 
 /// <summary>Securing a staging-granting POI adds a new launch point to the
     /// world. Called when such a POI is resolved.</summary>
-    /// <summary>Influence granted to the host kingdom when a site is secured
-    /// (the strategic Reach-lens ratchet).</summary>
+    /// <summary>Influence granted in a site's province when the site is secured or a
+    /// shard vault taken (the strategic Reach-lens ratchet; provinces PV2a).</summary>
     private const int StagingInfluenceGain = 20;
 
     private void GrantStagingPointAt(Vector2I local)
@@ -1131,13 +1131,13 @@ public partial class ExpeditionManager : Node2D
         {
             _world.Tiles[idx].IsStagingPoint = true;
 
-            // Reach ratchet: securing a site grows guild influence over the host
-            // kingdom, so the strategic Reach lens changes because you played.
-            string kid = _world.Tiles[idx].KingdomId;
-            var kingdoms = SaveManager.ActiveSave?.Cycle?.Kingdoms;
-            if (!string.IsNullOrEmpty(kid) && kingdoms != null &&
-                kingdoms.TryGetValue(kid, out var ks))
-                ks.PlayerInfluence = Mathf.Min(100, ks.PlayerInfluence + StagingInfluenceGain);
+            // Reach ratchet: securing a site grows the guild's influence in its
+            // province (docs/provinces_v1.md section 7b; the host kingdom's influence
+            // is derived from its provinces), so the strategic Reach lens changes
+            // because you played. A province that crosses the hold line says so.
+            string heldNews = ProvinceInfluence.Add(SaveManager.ActiveSave?.Cycle, col, row, StagingInfluenceGain);
+            if (!string.IsNullOrEmpty(heldNews))
+                _toasts?.Push(heldNews, QuestToastKind.Complete);
         }
 
         SaveManager.MarkDirty();
@@ -4660,11 +4660,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (_world.TryIndex(z.CenterX, z.CenterY, out int cidx))
             {
                 _world.Tiles[cidx].IsStagingPoint = true;
-                string kid = _world.Tiles[cidx].KingdomId;
-                var kingdoms = SaveManager.ActiveSave?.Cycle?.Kingdoms;
-                if (!string.IsNullOrEmpty(kid) && kingdoms != null &&
-                    kingdoms.TryGetValue(kid, out var ks))
-                    ks.PlayerInfluence = Mathf.Min(100, ks.PlayerInfluence + StagingInfluenceGain);
+                // The vault's province gains, as a secured site's does (provinces PV2a).
+                string vaultNews = ProvinceInfluence.Add(SaveManager.ActiveSave?.Cycle, z.CenterX, z.CenterY, StagingInfluenceGain);
+                if (!string.IsNullOrEmpty(vaultNews))
+                    _toasts?.Push(vaultNews, QuestToastKind.Complete);
             }
         }
 

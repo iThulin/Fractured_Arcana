@@ -6052,6 +6052,12 @@ public partial class StrategicView : Node2D
             : (_kingdoms.TryGetValue(tile.KingdomId, out var ks) && !string.IsNullOrEmpty(ks.ControllingFactionId)
                 ? FactionDisplay(ks.ControllingFactionId)
                 : tile.KingdomId);
+        // Provinces (docs/provinces_v1.md, PV1): the province's name comes before the realm's.
+        var placeProvince = _world.ProvinceAt(sp.X, sp.Y);
+        if (placeProvince != null && !string.IsNullOrEmpty(placeProvince.Name))
+            kingdomLabel = $"{placeProvince.Name}, {kingdomLabel}";
+        // PV2a: the guild's influence in the province, and whether it holds it.
+        string placeStanding = placeProvince != null ? "\n" + ProvinceInfluence.StandingLine(placeProvince) : "";
         string kind = sp.Source switch
         {
             "Start" => "the guild's dock",
@@ -6067,7 +6073,8 @@ public partial class StrategicView : Node2D
             Title = string.IsNullOrEmpty(sp.Name) ? "Staging point" : sp.Name,
             OkButtonText = "Close",
             DialogText = $"({sp.X},{sp.Y})  ·  {tile.Terrain}  ·  {kingdomLabel}\n{kind}"
-                       + (sp.Available ? ", stages and supplies your forces." : ", overrun: it neither stages nor supplies you until retaken."),
+                       + (sp.Available ? ", stages and supplies your forces." : ", overrun: it neither stages nor supplies you until retaken.")
+                       + placeStanding,
         };
 
         // March the castle here.
@@ -7026,6 +7033,16 @@ public partial class StrategicView : Node2D
 
         CouncilTick.Tick(cycle);
         CorruptionSpread.Tick(cycle.World, cycle.Campaign, cycle.Kingdoms);
+        // Provinces (docs/provinces_v1.md section 7b, PV2a): the castle's presence
+        // raises the guild's influence in its province and the ones beside it, it
+        // fades where the castle is not, and provinces cross into or out of the
+        // guild's hold. Before the kingdom tick, which reads each kingdom's influence
+        // (now derived from its provinces) for stability and fronts.
+        foreach (var provinceLine in ProvinceInfluence.Tick(cycle))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(provinceLine);
+        }
         // Supply envy runs BEFORE the kingdom tick so cache imbalances feed the
         // same border-pressure boil-over that opens warfronts (wars erupt over
         // supply access); the harvest runs AFTER it so a province that just

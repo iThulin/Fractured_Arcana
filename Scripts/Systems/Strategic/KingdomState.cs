@@ -3,8 +3,8 @@ using System.Collections.Generic;
 // ============================================================
 // KingdomState.cs
 //
-// Purpose:        Per-province dynamic strategic state, the
-//                 §3.2 state block. One per generated province,
+// Purpose:        Per-kingdom dynamic strategic state, the
+//                 §3.2 state block. One per generated kingdom,
 //                 stored in CycleState.Kingdoms keyed by region
 //                 id. Phase 1 ships the fields, accessors, and
 //                 generation defaults; the lunation TICK that
@@ -21,11 +21,14 @@ using System.Collections.Generic;
 //                 KingdomTickSimulation (Phase 2, mutates)
 // See:            open_world_refactor_v1.docx §3.2
 //
-// Province identity: for Phase 1, a province's id EQUALS its
-// source template's region id (each template is used at most
-// once). TemplateRegionId is kept distinct so a future cycle can
-// instance one template into several provinces without touching
-// callers.
+// Kingdom identity: a kingdom's id EQUALS its source template's
+// region id (each template is used at most once). TemplateRegionId
+// is kept distinct so a future cycle can instance one template into
+// several kingdoms without touching callers. The Phase 1 documents
+// called a kingdom a "province"; since docs/provinces_v1.md a
+// province is a region of a kingdom (Province.cs), about six to a
+// kingdom, and the guild's influence is held on provinces
+// (ProvinceInfluence.cs).
 // ============================================================
 
 /// <summary>The player's standing with a kingdom. The soft difficulty
@@ -41,17 +44,17 @@ public enum KingdomStance
 }
 
 /// <summary>
-/// Dynamic strategic state for one province. Topology (grid
+/// Dynamic strategic state for one kingdom. Topology (grid
 /// position, adjacency, display) lives in the StrategicNode; this
 /// holds what changes over a cycle.
 /// </summary>
 public class KingdomState
 {
     // ── Identity ─────────────────────────────────────────────────────────
-    /// <summary>Province id. Phase 1: equals the source template's region id.</summary>
+    /// <summary>Kingdom id: equals the source template's region id.</summary>
     public string RegionId = "";
 
-    /// <summary>Source template this province generated from (terrain gen reads this).</summary>
+    /// <summary>Source template this kingdom generated from (terrain gen reads this).</summary>
     public string TemplateRegionId = "";
 
     /// <summary>Cached display name (authoritative copy is on the StrategicNode).</summary>
@@ -65,9 +68,9 @@ public class KingdomState
     // stored stance values are ignored on load.
 
     // ── Difficulty ───────────────────────────────────────────────────────
-    /// <summary>1–3 difficulty tier, derived at generation from distance to
+    /// <summary>Difficulty tier, 1 to 3, derived at generation from distance to
     /// the player's start. Replaces the deleted completedRegions ramp as the
-    /// per-province difficulty floor.</summary>
+    /// per-kingdom difficulty floor.</summary>
     public int Tier = 1;
 
     // ── Simulation state (mutated in Phase 2) ────────────────────────────
@@ -75,11 +78,22 @@ public class KingdomState
     /// and accelerates corruption uptake. Player deeds raise it.</summary>
     public int Stability = 50;
 
-    /// <summary>Zone-of-influence value 0–100. Raised by outposts, resolved
-    /// landmarks, Allied stance, archmage resolution. Painted on the map.</summary>
+    /// <summary>The guild's influence over the kingdom, 0 to 100. Since provinces
+    /// carry influence (docs/provinces_v1.md section 7b) it is derived: the mean of
+    /// the guild's influence in the kingdom's provinces, weighted by their tiles,
+    /// kept current by ProvinceInfluence. Read it freely. To change it, act on a
+    /// province (ProvinceInfluence.Add, AddNear, SetKingdom); a write made here
+    /// anyway is spread over the kingdom's provinces at the next sync.</summary>
     public int PlayerInfluence = 0;
 
-    /// <summary>Accumulated tension per neighboring province id. At threshold a
+    /// <summary>The value ProvinceInfluence last derived into PlayerInfluence. A
+    /// difference between the two is a write made outside the province layer, or a
+    /// save from before provinces carried influence, and the next sync spreads it
+    /// over the kingdom's provinces. 0 on such a save, so every province then starts
+    /// at its kingdom's value.</summary>
+    public int PlayerInfluenceDerived = 0;
+
+    /// <summary>Accumulated tension per neighboring kingdom id. At threshold a
     /// border flips on the lunation tick (Phase 2).</summary>
     public Dictionary<string, int> BorderPressure = new();
 

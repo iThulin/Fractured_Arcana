@@ -123,7 +123,24 @@ public static class CycleInitializer
         // generated; a save from before the pin is pinned the first time it loads.
         string coConspirator = CampaignGenerator.EnsureCoConspiratorPin(save);
         if (cycle.World != null && cycle.World.Tiles.Length > 0)
+        {
+            // Provinces (docs/provinces_v1.md, PV1): a world saved before provinces
+            // existed gets them now. The build reads only what generation fixed
+            // (territories, elevation, rivers, settlements), so the world gets the
+            // partition a fresh generation of it would have made. Saved at once, so
+            // it is built once.
+            bool provincesBuilt = ProvinceBuilder.EnsureBuilt(cycle.World);
+            // PV2a (docs/provinces_v1.md section 7b): the guild's influence lives on
+            // provinces. A kingdom value written outside them, or saved before they
+            // carried influence, is spread over the kingdom's provinces now.
+            bool influenceSynced = ProvinceInfluence.Sync(cycle);
+            if (provincesBuilt || influenceSynced)
+            {
+                SaveManager.MarkDirty();
+                SaveManager.SaveIfDirty();
+            }
             return; // already generated this cycle
+        }
 
         // The founding scenario is guild-level (EternalLedger) and re-applied to
         // every cycle's world generation. The direct founding path sets it on the
@@ -192,6 +209,9 @@ public static class CycleInitializer
             GD.Print($"[Campus] Entry dock resolved to '{campusMap.EntryDockType}' " +
                      $"from home tile ({g.World.HomeX},{g.World.HomeY}).");
         }
+        // Provinces PV2a: the start kingdom's influence is spread over its provinces,
+        // and every kingdom's value derived from them.
+        ProvinceInfluence.Sync(cycle);
         CorruptionSpread.Reset(); // new world, so drop cached adjacency + pressure
         KingdomTickSimulation.Reset(); // new world, so drop cached kingdom adjacency
         // Seed echo-eligible flags from permanent records (quest_hooks §5, step 6).

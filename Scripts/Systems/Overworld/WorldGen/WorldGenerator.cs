@@ -219,6 +219,11 @@ public static class WorldGenerator
         // road edges), regardless of the per-kingdom town cap.
         Settlements.AddJunctionTowns(world);
 
+        // ── 5i. Provinces (docs/provinces_v1.md): each kingdom's land cut into about
+        // six, seeded on its seat, cities and towns, with borders on rivers and ridges.
+        // Draws no RNG, so every later step's output is unchanged by it.
+        ProvinceBuilder.Build(world);
+
         // ── 6. Corruption gradient toward the convergence seat ───────────
         ApplyCorruptionGradient(world, kingdoms, campaign, convergence);
 

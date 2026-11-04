@@ -31,6 +31,9 @@ using System.Collections.Generic;
 //                first), CampaignState (corruption 0-3 truth), KingdomState
 //                (the mutated block), Warfront / WarfrontSide (data),
 //                WorldData (adjacency + border tiles + staging points),
+//                ProvinceInfluence (the guild's influence is held per
+//                province since docs/provinces_v1.md PV2a; falls,
+//                seizures and interventions write through it),
 //                StrategicView (calls Tick + ApplyIntervention; renders
 //                Warfronts + CycleState.PendingSiegeReports).
 // See:      open_world_refactor_v1 §3.2; single_world_refactor_v2 Phase 2;
@@ -90,7 +93,8 @@ public static class KingdomTickSimulation
 
     /// <summary>Stability a just-conquered province is knocked down to.</summary>
     private const int SiegeStabilityFloor = 20;
-    /// <summary>PlayerInfluence at/above which losing a province reads as "yours".</summary>
+    /// <summary>PlayerInfluence at/above which a fallen kingdom reads as "yours". So does
+    /// a kingdom in which the guild held any province (docs/provinces_v1.md section 7b).</summary>
     private const int PlayerHoldingInfluence = 40;
     /// <summary>Sentinel faction id a province seized by the guild carries.</summary>
     public const string GuildFactionId = "guild";
@@ -269,7 +273,10 @@ public static class KingdomTickSimulation
             int adv = WarfrontBaseAdvance + Mathf.Max(0, gap) * WarfrontAdvancePerGap;
             if (def.Stability < InstabilityFloor)
                 adv += WarfrontUnstableBonus;
-            if (def.PlayerInfluence >= InfluenceStabilizeThreshold)
+            // The guild's influence relieves a front where it stands (provinces PV2a):
+            // in the front's own province, at its focus, or across the kingdom.
+            if (Math.Max(def.PlayerInfluence, ProvinceInfluence.InfluenceAt(cycle.World, wf.FocusCol, wf.FocusRow))
+                >= InfluenceStabilizeThreshold)
                 adv -= WarfrontInfluenceRelief;
             if (gap <= 0)
                 adv -= WarfrontStalemateDecay;
@@ -344,13 +351,15 @@ public static class KingdomTickSimulation
         }
 
         bool wasPlayers = def.PlayerInfluence >= PlayerHoldingInfluence
+                          || ProvinceInfluence.HoldsAny(cycle.World, defenderKid)
                           || HoldsStagingPoint(cycle.World, defenderKid);
         string fallenName = string.IsNullOrEmpty(def.DisplayName) ? defenderKid : def.DisplayName;
         string victor = ResolveName(fd, aggressorFactionId);
 
         def.ControllingFactionId = aggressorFactionId;
         def.Stability = SiegeStabilityFloor;
-        def.PlayerInfluence = 0;
+        // The guild's influence goes with the kingdom, province by province (PV2a).
+        ProvinceInfluence.SetKingdom(cycle, defenderKid, 0);
         def.BorderPressure.Clear();
 
         string report = wasPlayers
@@ -373,7 +382,9 @@ public static class KingdomTickSimulation
 
         string name = string.IsNullOrEmpty(def.DisplayName) ? defenderKid : def.DisplayName;
         def.ControllingFactionId = GuildFactionId;
-        def.PlayerInfluence = 100;
+        // Every province of the kingdom passes to the guild with it, until fronts and
+        // seizures work province by province (docs/provinces_v1.md, PV3).
+        ProvinceInfluence.SetKingdom(cycle, defenderKid, 100);
         def.Stability = Mathf.Max(def.Stability, 40);
         def.BorderPressure.Clear();
 
@@ -430,7 +441,8 @@ public static class KingdomTickSimulation
                 if (success)
                 {
                     def.Stability = Mathf.Min(100, def.Stability + 12);
-                    def.PlayerInfluence = Mathf.Min(100, def.PlayerInfluence + 15);
+                    // The front's own province gains (provinces PV2a).
+                    ProvinceInfluence.AddNear(cycle, wf.DefenderKingdomId, wf.FocusCol, wf.FocusRow, 15);
                 }
                 cycle.PendingSiegeReports.Add(success
                     ? $"You held the line at {defName}. The assault falters."
@@ -442,7 +454,8 @@ public static class KingdomTickSimulation
                 if (success)
                 {
                     wf.PlayerSeizing = true;
-                    def.PlayerInfluence = Mathf.Min(100, def.PlayerInfluence + 20);
+                    // The front's own province gains (provinces PV2a).
+                    ProvinceInfluence.AddNear(cycle, wf.DefenderKingdomId, wf.FocusCol, wf.FocusRow, 20);
                 }
                 cycle.PendingSiegeReports.Add(success
                     ? $"You bleed both armies at {defName} and raise the guild's banner."

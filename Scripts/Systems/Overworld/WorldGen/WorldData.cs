@@ -16,7 +16,8 @@ using System.Collections.Generic;
 //                 CycleState.cs (stores it),
 //                 StrategicView (Phase 1b, paints it),
 //                 OverworldHexGrid (Phase 1c, windows into it),
-//                 KingdomState.cs (territories reference tiles)
+//                 KingdomState.cs (territories reference tiles),
+//                 ProvinceBuilder.cs (Provinces, ProvinceMap)
 // See:            single_world_refactor_v2.docx §3
 //
 // Indexing: flat row-major. tile(x,y) = Tiles[y * Width + x].
@@ -312,6 +313,23 @@ public class WorldData
     /// <summary>The rolled continental topology, for save/debug.</summary>
     public string ContinentStyle = "";
 
+    /// <summary>The world's provinces (docs/provinces_v1.md): each kingdom's land cut
+    /// into about six by ProvinceBuilder, at generation (step 5i) or, for a world saved
+    /// before provinces, the first time the cycle opens. Frozen once built: never
+    /// reordered or shortened, so a province's position here is the value ProvinceMap
+    /// stores for its tiles. Save data outside the world names a province by its Id,
+    /// never by this position. Additive: empty on a legacy world.</summary>
+    public List<Province> Provinces = new();
+
+    /// <summary>Each tile's province, one byte per tile in Tiles' row-major order: the
+    /// province's position in Provinces, or NoProvince for water. A byte array, so the
+    /// save carries the whole map as one short base64 string rather than a field on
+    /// every tile. Null on a world saved before provinces existed.</summary>
+    public byte[] ProvinceMap;
+
+    /// <summary>ProvinceMap's value for a tile in no province (water).</summary>
+    public const byte NoProvince = 255;
+
     // ── Access ───────────────────────────────────────────────────────────
     public bool InBounds(int x, int y) => x >= 0 && y >= 0 && x < Width && y < Height;
 
@@ -351,6 +369,32 @@ public class WorldData
             return null;
         int zi = GetTile(x, y).ShardZoneIndex;
         return (zi >= 0 && zi < ShardZones.Count) ? ShardZones[zi] : null;
+    }
+
+    // ── Provinces (docs/provinces_v1.md) ─────────────────────────────────
+    /// <summary>True once the world has its provinces. False on a world saved before
+    /// them until ProvinceBuilder.EnsureBuilt runs. A method, not a property, so the
+    /// save serializer never writes it.</summary>
+    public bool HasProvinces()
+        => ProvinceMap != null && Tiles != null && ProvinceMap.Length == Tiles.Length
+           && Provinces != null && Provinces.Count > 0;
+
+    /// <summary>Position in Provinces of the province holding a tile, or -1 for water,
+    /// out of bounds, land opened from water since the build, or a world without
+    /// provinces.</summary>
+    public int ProvinceIndexAt(int x, int y)
+    {
+        if (!InBounds(x, y) || !HasProvinces())
+            return -1;
+        int p = ProvinceMap[y * Width + x];
+        return (p != NoProvince && p < Provinces.Count) ? p : -1;
+    }
+
+    /// <summary>The province holding a tile, or null where ProvinceIndexAt gives -1.</summary>
+    public Province ProvinceAt(int x, int y)
+    {
+        int p = ProvinceIndexAt(x, y);
+        return p >= 0 ? Provinces[p] : null;
     }
 
     // ── Hex topology (the world is a flat-top odd-q rectangular hex map) ──

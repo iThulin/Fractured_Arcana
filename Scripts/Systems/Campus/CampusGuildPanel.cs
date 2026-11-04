@@ -1150,7 +1150,24 @@ public sealed class CampusGuildPanel : CampusPanel
             CharterSaveAssert.AssertAll();  // campus doctrines: charters, fills
             LeadsSaveAssert.AssertAll();    // knowledge ladder L1: leads, Known
             IntervalSaveAssert.AssertAll(); // Standing Orders O1: the interval
+            ProvinceSaveAssert.AssertAll(); // provinces PV1 and PV2a: the partition, influence, their save
         });
+        Act(verify, "Province Report", () =>
+        {
+            var provinceWorld = SaveManager.ActiveSave?.Cycle?.World;
+            GD.Print(ProvinceBuilder.Report(provinceWorld));
+        }, "Print the active world's provinces: sizes, seats, how often borders follow rivers and ridges, each kingdom, and the checks.");
+        Act(verify, "Province Influence", () =>
+        {
+            GD.Print(ProvinceInfluence.Report(SaveManager.ActiveSave?.Cycle));
+        }, "Provinces PV2a: print each kingdom's influence and each province's, its hold, and where the castle stands.");
+        Act(verify, "Province Deed +20", () =>
+        {
+            var deedCycle = SaveManager.ActiveSave?.Cycle;
+            GD.Print(ProvinceInfluence.DebugDeed(deedCycle, 20));
+            SaveManager.MarkDirty();
+            SaveManager.SaveIfDirty();
+        }, "Provinces PV2a: +20 guild influence in the castle's province, as a deed gives, then saves. From 40, one press holds it.");
 
         return panel;
     }
