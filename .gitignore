@@ -24,7 +24,14 @@ __pycache__/
 # by hand at any time; ignored so it never lands in a commit.
 _to_delete/
 
-# Blender source files and backups — too large for GitHub
+# Blender source files and backups: too large for GitHub
 *.blend
 *.blend1
 *.blend.import
+
+# Claude outputs/ is the drop folder for apply scripts and drop-in copies from Claude
+# sessions. Once applied they are never needed by the game, so the folder stays out of
+# git, and its .gdignore keeps Godot from importing it (the .csproj already keeps its
+# .cs copies out of the build).
+Claude outputs/*
+!Claude outputs/.gdignore

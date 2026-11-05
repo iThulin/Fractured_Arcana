@@ -1,2 +1,0 @@
-Scripts/Cards/Effects/EnchanterEngine.cs
-Scripts/Systems/Combat/Core/CombatManager.Enchanter.cs

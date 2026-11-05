@@ -1,6 +1,0 @@
-Scripts/Systems/Combat/Glyphs/GlyphData.cs
-Scripts/Cards/Effects/EnchanterEffects.cs
-Scripts/Cards/Loader/JsonCardLoader.cs
-Scripts/Cards/Effects/Effect.cs
-Scripts/Systems/Combat/Glyphs/GlyphManager.cs
-Scripts/Systems/TooltipManager.cs
