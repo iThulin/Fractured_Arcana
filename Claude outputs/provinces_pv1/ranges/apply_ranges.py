@@ -8,6 +8,11 @@ import shutil
 import sys
 from pathlib import Path
 
+# The dashes the house style bans, built from code points so this file carries none.
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
+ESCAPED_EM_DASH = "\\" + "u2014"
+
 HERE = Path(__file__).resolve().parent
 TARGETS = [
     ("Scripts/Systems/Overworld/WorldGen/ProvinceBuilder.cs", "04d3cb512d801a8f9c580088f8efc255939ee56b"),
@@ -35,7 +40,7 @@ def main() -> None:
         source = HERE / Path(rel).name
         data = source.read_bytes()
         text = data.decode("utf-8")
-        if "\r" in text or "—" in text or "–" in text or "\\u2014" in text:
+        if "\r" in text or EM_DASH in text or EN_DASH in text or ESCAPED_EM_DASH in text:
             print(f"REFUSED: {source.name} carries CR or a banned dash")
             sys.exit(1)
         if any(ord(c) > 127 and not (0x2500 <= ord(c) <= 0x257F) for c in text):

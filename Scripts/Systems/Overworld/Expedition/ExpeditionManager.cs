@@ -831,7 +831,8 @@ public partial class ExpeditionManager : Node2D
         _ledgerPanel = new LedgerPanel { Name = "LedgerPanel" };
         GetHudCanvas().AddChild(_ledgerPanel);
         _uiHoverBlockers.Add(_ledgerPanel);
-        _ledgerPanel.GetIneligibilityReason = CallInIneligibility;
+        // Provinces PV2b-2 (PR44): the button shows while either use of the favor can be had.
+        _ledgerPanel.GetIneligibilityReason = CallInRowIneligibility;
         _ledgerPanel.OnCallIn = OnLedgerCallIn;
         _encounterPool = NarrativeEncounterLoader.LoadForRegion(StagingTemplateRegion());
 
@@ -1055,11 +1056,13 @@ public partial class ExpeditionManager : Node2D
         SaveManager.SaveIfDirty();
     }
 
-    /// <summary>Mark a world POI consumed (resolved) so it isn't re-offered.</summary>
-    private void ConsumeWorldPoi(Vector2I local)
+    /// <summary>Mark a world POI consumed (resolved) so it isn't re-offered. Returns the
+    /// place it consumed, or null when there was none left to consume (provinces PV2b-1: a
+    /// won fight's deed reads it).</summary>
+    private WorldPoi ConsumeWorldPoi(Vector2I local)
     {
         if (!_window.TryLocalToWorld(local, out int col, out int row))
-            return;
+            return null;
         var poi = _world.PoiAt(col, row);
         if (poi != null && !poi.Consumed)
         {
@@ -1071,7 +1074,9 @@ public partial class ExpeditionManager : Node2D
             // A site that regrows starts its clock here (2026-09-28).
             HarvestSites.OnConsumed(SaveManager.ActiveSave?.Cycle, poi);
             SaveManager.MarkDirty();
+            return poi;
         }
+        return null;
     }
 
 /// <summary>Securing a staging-granting POI adds a new launch point to the
@@ -4337,10 +4342,20 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
 
             ConsumeOverlayPoi(resultHex);   // Step 2: unloaded-guard built into the seam
-            ConsumeWorldPoi(resultHex);
+            var clearedSite = ConsumeWorldPoi(resultHex);
             GrantStagingPointAt(resultHex); // securing a seat/settlement via combat can grant staging
             ShowInfo($"Victory! +{router.GoldReward} gold, +{router.SplinterReward} Splinters, +{router.MaterialReward} materials.");
             EmitCombatDeed(router, resultHex);
+            // Provinces PV2b-1 (docs/provinces_v1_7g_deeds_and_courts.md): a site cleared is a deed
+            // in its province, weighed by its realm's court. A site that grants a staging point
+            // counted as secured just above, so it is not paid twice.
+            if (clearedSite != null && !clearedSite.GrantsStaging)
+            {
+                string clearedNews = ProvinceInfluence.Deed(SaveManager.ActiveSave?.Cycle, clearedSite.X, clearedSite.Y,
+                                                            ProvinceInfluence.SiteClearedGain);
+                if (!string.IsNullOrEmpty(clearedNews))
+                    _toasts?.Push(clearedNews, QuestToastKind.Complete);
+            }
 
             // Sentiment: winning combat in an archmage's region shifts sentiment
             // toward the player. Killing their OWN patrol is handled separately
@@ -7081,6 +7096,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             Text = "The table shows one force at a time. Aim it elsewhere and this "
                  + "one holds where it stands.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(DialogFit.TextWidth, 0f),
         };
         intro.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         intro.AddThemeColorOverride("font_color", UITheme.TextSecondary);
@@ -7172,7 +7188,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         nameLbl.AddThemeColorOverride("font_color", UITheme.TextPrimary);
         col.AddChild(nameLbl);
 
-        var statusLbl = new Label { Text = status, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        // A real width to be measured at, or the dialog sizes itself from a
+        // label one character wide and runs off the screen (DialogFit).
+        var statusLbl = DialogFit.Wrap(new Label { Text = status }, DialogFit.RowTextWidth);
         statusLbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         statusLbl.AddThemeColorOverride("font_color", UITheme.TextSecondary);
         col.AddChild(statusLbl);
@@ -8876,8 +8894,23 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         return null;
     }
 
-    /// <summary>Panel callback: validate, execute, consume, checkpoint.</summary>
+    /// <summary>Panel callback. A favor with a deed opens the choice of its two uses, the
+    /// field effect or the deed (provinces PV2b-2, PR44, ExpeditionManager.FavorDeeds.cs);
+    /// any other goes straight to its field effect.</summary>
     private void OnLedgerCallIn(Favor f)
+    {
+        if (SaveManager.ActiveSave?.Cycle?.Council == null)
+            return;
+        if (FavorDeeds.HasDeed(f))
+        {
+            OpenCallInChoice(f);
+            return;
+        }
+        CallInFieldEffect(f);
+    }
+
+    /// <summary>The field effect: validate, execute, consume, checkpoint.</summary>
+    private void CallInFieldEffect(Favor f)
     {
         var council = SaveManager.ActiveSave?.Cycle?.Council;
         if (council == null)

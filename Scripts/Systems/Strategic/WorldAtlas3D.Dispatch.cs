@@ -158,6 +158,9 @@ public partial class WorldAtlas3D
         {
             vpH = 1080f;
         }
+        // Provinces 7f (PR37): the screen counted in design pixels, as the radii and the floors
+        // below are; the pointer and the projections arrive in render pixels.
+        vpH /= RenderScale;
 
         PickTarget best = null;
         float bestD = float.MaxValue;
@@ -182,7 +185,7 @@ public partial class WorldAtlas3D
                 continue;
             }
             Vector2 at = _camera.UnprojectPosition(world);
-            Vector2 d = screenPos - at;
+            Vector2 d = (screenPos - at) / RenderScale;
 
             bool hit;
             if (t.Chars > 0)

@@ -130,6 +130,7 @@ public static class CouncilSaveAssert
             SecretId = "secret_x",
             SecretKnown = true,
             IsCorruptedAgent = true,
+            EstateProvinceId = "province:kingdom_x:3", // provinces PR14
         });
 
         var rt = RoundTrip(src);
@@ -170,6 +171,7 @@ public static class CouncilSaveAssert
                 ok &= Check(sb, "CourtierState.SecretId", b.SecretId == a.SecretId);
                 ok &= Check(sb, "CourtierState.SecretKnown", b.SecretKnown == a.SecretKnown);
                 ok &= Check(sb, "CourtierState.IsCorruptedAgent", b.IsCorruptedAgent == a.IsCorruptedAgent);
+                ok &= Check(sb, "CourtierState.EstateProvinceId", b.EstateProvinceId == a.EstateProvinceId);
             }
 
             // Derived math must recompute identically post-round-trip. This is the

@@ -387,6 +387,26 @@ public partial class CombatUI : CanvasLayer
 	// history popup)
 	// ════════════════════════════════════════════════════════════════════
 
+	// Provinces 7f (PR42): the bottom-left block (the log ticker) is the Register's floor in a
+	// fight: its slips and margin notes open above the block and grow up, clear of the left
+	// panel and the hand.
+	private Control _registerFloor;
+
+	/// <summary>Tell the Register where it may speak: from under the top inset down to just
+	/// above the bottom-left block, from the block's left edge. Again whenever the block
+	/// moves or grows. The claim ends with this UI: the Register drops an owner that has
+	/// left the tree.</summary>
+	private void ClaimRegisterRegion()
+	{
+		if (_registerFloor == null || !IsInstanceValid(_registerFloor))
+			return;
+		Rect2 block = _registerFloor.GetGlobalRect();
+		float top = TopInset + 8f;
+		float bottom = block.Position.Y - 8f;
+		RegisterManager.ClaimRegion(this,
+			new Rect2(block.Position.X, top, 420f, Mathf.Max(0f, bottom - top)), growUp: true);
+	}
+
 	private void BuildBottomLeft()
 	{
 		var block = new VBoxContainer
@@ -400,6 +420,9 @@ public partial class CombatUI : CanvasLayer
 		};
 		block.AddThemeConstantOverride("separation", 6);
 		AddChild(block);
+		// Provinces 7f (PR42): the Register speaks above this block (ClaimRegisterRegion).
+		_registerFloor = block;
+		block.ItemRectChanged += ClaimRegisterRegion;
 
 		// (The party chips moved to the top-center strip on 2026-10-26; see BuildPartyStrip.)
 

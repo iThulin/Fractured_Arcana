@@ -18,7 +18,15 @@ using System.Text;
 //                 and influence fades where the castle is not. None
 //                 of the passive gains lifts a province past 40, so
 //                 holding takes deeds, and a deed lands on the
-//                 province where it happens.
+//                 province where it happens. It also forecasts the
+//                 next lunation for the strategic map's province
+//                 readout (section 7c), and sorts each province into
+//                 the Reach lens's bands (section 7d). Since slice
+//                 PV2b-1 (docs/provinces_v1_7g_deeds_and_courts.md) a
+//                 deed is weighed by its realm's court, a friendly
+//                 courtier's estate fades no lower than their floor
+//                 (ProvinceCourts), and three more deeds land here: a
+//                 site cleared, a contract turned in, a lead resolved.
 // Layer:          System
 // Collaborators:  Province.cs (Influence, Held), KingdomState.cs
 //                 (PlayerInfluence, PlayerInfluenceDerived),
@@ -26,11 +34,17 @@ using System.Text;
 //                 seizures, the front relief), ExpeditionManager.cs
 //                 (secured sites, shard vaults), StrategicView.cs
 //                 (the lunation tick, the place card),
+//                 StrategicView.ProvinceHover.cs (the readout),
 //                 CycleInitializer.cs (Sync when a cycle opens),
-//                 WorldAtlas3D.cs (the Reach lens),
+//                 WorldAtlas3D.cs and WorldAtlas3D.Provinces.cs
+//                 (the Reach lens, the numbers on the map),
 //                 CampusGuildPanel.cs (report, debug deed),
-//                 ProvinceSaveAssert.cs
-// See:            docs/provinces_v1.md section 7b
+//                 ProvinceCourts.cs (estates, floors, the court's
+//                 weight), CityContractService.cs and LeadService.cs
+//                 (deeds), ProvinceSaveAssert.cs
+// See:            docs/provinces_v1.md sections 7b and 7c;
+//                 docs/provinces_v1_7d_lenses.md;
+//                 docs/provinces_v1_7g_deeds_and_courts.md
 // ============================================================
 
 /// <summary>Moves the guild's influence in each province and keeps each kingdom's
@@ -68,6 +82,16 @@ public static class ProvinceInfluence
     /// <summary>How far, in hexes, a deed on land outside every province (water opened
     /// since the build) or a front's focus looks for a province to count for.</summary>
     public const int NearRadius = 12;
+
+    /// <summary>Deeds of slice PV2b-1 (docs/provinces_v1_7g_deeds_and_courts.md section 7),
+    /// each weighed by its realm's court (ProvinceCourts.DeedGain): a fight won at a site
+    /// that grants no staging point; a contract turned in at a city's board; a rumor whose
+    /// place is Sighted.</summary>
+    public const int SiteClearedGain = 10;
+
+    public const int ContractGain = 8;
+
+    public const int LeadGain = 5;
 
     // ══════════════════════════════════════════════════════════════════════
     // Reading
@@ -118,13 +142,14 @@ public static class ProvinceInfluence
     /// before provinces carried influence: the whole difference is added to every province
     /// of the kingdom, so the kingdom's mean moves by it. That is also the migration: a
     /// legacy save starts every province at its kingdom's value. Hold changes go to lines
-    /// when it is given; the opening of a cycle passes none. True when anything changed,
-    /// so the caller knows to save.</summary>
+    /// when it is given; the opening of a cycle passes none. It also gives every courtier
+    /// without an estate one (PR14, ProvinceCourts.EnsureEstates). True when anything
+    /// changed, so the caller knows to save.</summary>
     public static bool Sync(CycleState cycle, List<string> lines = null)
     {
         if (!Active(cycle))
             return false;
-        bool changed = false;
+        bool changed = ProvinceCourts.EnsureEstates(cycle);
         foreach (var kv in cycle.Kingdoms)
             changed |= Absorb(cycle, kv.Key, kv.Value);
         changed |= SettleAll(cycle, lines);
@@ -134,7 +159,8 @@ public static class ProvinceInfluence
     /// <summary>One lunation (docs/provinces_v1.md section 7b): Sync; the castle's
     /// presence (+8 in its province, +3 in each province beside it) and the held
     /// neighbours (+1 each), none of it past PassiveCap; decay (-2) where the castle is
-    /// neither in nor beside the province, except in a kingdom the guild rules; the hold
+    /// neither in nor beside the province, except in a kingdom the guild rules, and never
+    /// below a friendly courtier's floor in their estate (PR15, ProvinceCourts.Floor); the hold
     /// lines; each kingdom's value derived again. Returns the frontier news: a line for
     /// each province gained or lost. StrategicView.RunLunationTick calls it once a
     /// lunation, before the kingdom tick.</summary>
@@ -175,7 +201,11 @@ public static class ProvinceInfluence
             if (passive > 0 && value < PassiveCap)
                 value = Math.Min(PassiveCap, value + passive);
             if (!near[i] && !GuildRules(cycle, province.KingdomId))
-                value = Math.Max(0, value - Decay);
+            {
+                // It fades no lower than its floor, and not at all from below it (PR15).
+                int floor = ProvinceCourts.Floor(cycle, province);
+                value = Math.Max(Math.Max(0, value - Decay), Math.Min(value, floor));
+            }
             province.Influence = Clamp(value);
         }
 
@@ -229,6 +259,28 @@ public static class ProvinceInfluence
         return AddToProvince(cycle, at, amount);
     }
 
+    /// <summary>A deed of slice PV2b-1 at (x,y): a site cleared, a contract turned in, a lead
+    /// resolved. As Add, except that nothing moves while the interval walks (Standing
+    /// Orders O3b, D204 and D205: before the founding no court hears of the guild and no
+    /// province moves). Returns the news as Add does.</summary>
+    public static string Deed(CycleState cycle, int x, int y, int amount)
+    {
+        if (Interval.Walking(cycle))
+            return "";
+        return Add(cycle, x, y, amount);
+    }
+
+    /// <summary>A deed in a province named by its index (slice PV2b-2: a favor spent as its
+    /// deed lands in a courtier's estate, which may lie anywhere in the realm). As Deed: the
+    /// court weighs it, and nothing moves while the interval walks or in a world without
+    /// provinces. Returns the news as Add does.</summary>
+    public static string DeedIn(CycleState cycle, int index, int amount)
+    {
+        if (cycle?.World == null || !Active(cycle) || Interval.Walking(cycle))
+            return "";
+        return AddToProvince(cycle, index, amount);
+    }
+
     /// <summary>Set the guild's influence in every province of a kingdom at once: 0 when
     /// it falls, 100 when the guild seizes it. The hold follows silently, because the fall
     /// or the seizure reports itself. In a world without provinces the kingdom's value is
@@ -259,8 +311,196 @@ public static class ProvinceInfluence
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    // The next lunation (the province readout, docs/provinces_v1.md 7c)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Why a province's influence moves as it will next lunation.</summary>
+    public enum Drift
+    {
+        /// <summary>Nothing reaches it, and it has nothing to lose.</summary>
+        Still = 0,
+
+        /// <summary>The castle stands in it.</summary>
+        CastleHere = 1,
+
+        /// <summary>The castle stands beside it.</summary>
+        CastleBeside = 2,
+
+        /// <summary>The castle is in it or beside it, but presence stops at PassiveCap.</summary>
+        Capped = 3,
+
+        /// <summary>The guild rules its kingdom, so it does not decay.</summary>
+        Sovereign = 4,
+
+        /// <summary>Away from the castle, held neighbours keep it up.</summary>
+        HeldNeighbors = 5,
+
+        /// <summary>Away from the castle, it fades.</summary>
+        Fading = 6,
+
+        /// <summary>Away from the castle, a friendly courtier's estate: it fades no lower
+        /// than their floor (PR15).</summary>
+        EstateFloor = 7,
+    }
+
+    /// <summary>What the next lunation will do to a province's influence if nothing else
+    /// happens first. It is Tick's own arithmetic, read without changing anything: the
+    /// castle's presence and held neighbours up to PassiveCap, then decay away from the
+    /// castle unless the guild rules the kingdom, stopped at a friendly courtier's floor.
+    /// drift says why. 0 and Still for anything that is not a province of a world with
+    /// provinces.</summary>
+    public static int NextLunation(CycleState cycle, int index, out Drift drift)
+    {
+        drift = Drift.Still;
+        if (!Active(cycle) || index < 0 || index >= cycle.World.Provinces.Count)
+            return 0;
+        var provinces = cycle.World.Provinces;
+        var province = provinces[index];
+        int castle = CastleProvince(cycle);
+        bool here = index == castle;
+        bool beside = !here && castle >= 0 && provinces[castle].Neighbors.Contains(index);
+        int heldNeighbors = 0;
+        foreach (int q in province.Neighbors)
+        {
+            if (q >= 0 && q < provinces.Count && provinces[q].Held)
+                heldNeighbors++;
+        }
+        int passive = (here ? PresenceGain : beside ? PresenceNeighborGain : 0) + heldNeighbors * HeldNeighborGain;
+        int value = province.Influence;
+        int next = value;
+        if (passive > 0 && next < PassiveCap)
+            next = Math.Min(PassiveCap, next + passive);
+        bool ruled = GuildRules(cycle, province.KingdomId);
+        bool floored = false;
+        if (!here && !beside && !ruled)
+        {
+            int decayed = Math.Max(0, next - Decay);
+            int kept = Math.Max(decayed, Math.Min(next, ProvinceCourts.Floor(cycle, province)));
+            floored = kept > decayed;
+            next = kept;
+        }
+        int change = Clamp(next) - value;
+
+        if (here || beside)
+            drift = change > 0 ? (here ? Drift.CastleHere : Drift.CastleBeside) : Drift.Capped;
+        else if (ruled)
+            drift = Drift.Sovereign;
+        else if (floored && change <= 0)
+            drift = Drift.EstateFloor;
+        else if (change < 0)
+            drift = Drift.Fading;
+        else if (heldNeighbors > 0)
+            drift = Drift.HeldNeighbors;
+        return change;
+    }
+
+    /// <summary>Lunations until a held province is lost if the castle stays away and no deed
+    /// lands, or -1 when it is not slipping. A held province stands at LoseLine or more,
+    /// past the presence cap, so away from the castle it loses the same each lunation.</summary>
+    public static int LunationsUntilLost(CycleState cycle, int index)
+    {
+        int change = NextLunation(cycle, index, out Drift drift);
+        if (drift != Drift.Fading || change >= 0 || !cycle.World.Provinces[index].Held)
+            return -1;
+        return (cycle.World.Provinces[index].Influence - LoseLine) / -change + 1;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Bands (provinces on every lens, docs/provinces_v1_7d_lenses.md)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Where a province stands against the rules, as the Reach lens draws it.
+    /// The lens, the numbers on the map and the key all read BandOf, so they agree.</summary>
+    public enum Band
+    {
+        /// <summary>Not held, and the guild has no influence there.</summary>
+        Untouched = 0,
+
+        /// <summary>Not held, between 1 and PassiveCap: presence can still raise it.</summary>
+        Growing = 1,
+
+        /// <summary>Not held, at PassiveCap or more: as far as presence goes, so only deeds
+        /// take it further.</summary>
+        Ready = 2,
+
+        /// <summary>Held, but below HoldLine: it is lost below LoseLine.</summary>
+        HeldSlipping = 3,
+
+        /// <summary>Held, at HoldLine or more.</summary>
+        Held = 4,
+    }
+
+    /// <summary>The band a province is in. Held decides gold; the number decides the
+    /// rest, so the lens never shows a hold the rules have not set.</summary>
+    public static Band BandOf(Province province)
+    {
+        if (province == null)
+            return Band.Untouched;
+        if (province.Held)
+            return province.Influence >= HoldLine ? Band.Held : Band.HeldSlipping;
+        if (province.Influence <= 0)
+            return Band.Untouched;
+        return province.Influence < PassiveCap ? Band.Growing : Band.Ready;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     // Text
     // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>The province readout's influence line: "Guild influence 34 of the 60 that
+    /// holds it." or "Held by the guild: influence 72, lost below 50."</summary>
+    public static string InfluenceLine(Province province)
+    {
+        if (province == null)
+            return "";
+        return province.Held
+            ? $"Held by the guild: influence {province.Influence}, lost below {LoseLine}."
+            : $"Guild influence {province.Influence} of the {HoldLine} that holds it.";
+    }
+
+    /// <summary>The province readout's forecast line: what the next lunation does and why,
+    /// and, for a held province that is slipping, when the hold goes.</summary>
+    public static string NextLunationLine(CycleState cycle, int index)
+    {
+        if (!Active(cycle) || index < 0 || index >= cycle.World.Provinces.Count)
+            return "";
+        int change = NextLunation(cycle, index, out Drift drift);
+        // Invariant culture: some cultures write a negative number with a Unicode minus sign.
+        string amount = change > 0
+            ? "+" + change.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : change.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string who = "";
+        int floor = 0;
+        if (drift == Drift.EstateFloor)
+        {
+            var province = cycle.World.Provinces[index];
+            who = ProvinceCourts.Who(ProvinceCourts.FloorHolder(cycle, province));
+            floor = ProvinceCourts.Floor(cycle, province);
+        }
+        string line = drift switch
+        {
+            Drift.CastleHere => $"Next lunation: {amount}, with the castle here.",
+            Drift.CastleBeside => $"Next lunation: {amount}, with the castle beside it.",
+            Drift.Capped => $"Next lunation: no change. The castle's presence stops at {PassiveCap}; deeds take it further.",
+            Drift.Sovereign => change > 0
+                ? $"Next lunation: {amount}. The guild rules this kingdom, so its influence does not fade."
+                : "Next lunation: no change. The guild rules this kingdom, so its influence does not fade.",
+            Drift.HeldNeighbors => change > 0
+                ? $"Next lunation: {amount}, from the held provinces beside it."
+                : "Next lunation: no change. The held provinces beside it hold off the fading.",
+            Drift.Fading => $"Next lunation: {amount}, with the castle away.",
+            Drift.EstateFloor => change < 0
+                ? $"Next lunation: {amount}, and no lower: {who}'s regard keeps it from fading below {floor}."
+                : $"Next lunation: no change. {who}'s regard keeps it from fading below {floor}.",
+            _ => "Next lunation: no change. Nothing reaches it with the castle away.",
+        };
+        int lost = LunationsUntilLost(cycle, index);
+        if (lost == 1)
+            line += " The hold is lost next lunation.";
+        else if (lost > 1)
+            line += $" The hold is lost in {lost} lunations.";
+        return line;
+    }
 
     /// <summary>The place card's line for a province: its influence, and the line that
     /// holds it or loses it.</summary>
@@ -310,6 +550,9 @@ public static class ProvinceInfluence
         sb.AppendLine($"Held: {held} of {provinces.Count} provinces. Held at {HoldLine}, lost below {LoseLine}. " +
                       $"Each lunation: +{PresenceGain} in the castle's province, +{PresenceNeighborGain} beside it, " +
                       $"+{HeldNeighborGain} per held neighbour, none of it past {PassiveCap}; -{Decay} away from the castle.");
+        sb.AppendLine($"Deeds: a site cleared +{SiteClearedGain}, a contract +{ContractGain}, a lead +{LeadGain}, " +
+                      "each weighed by the realm's court; a friendly courtier's estate fades no lower than " +
+                      $"{ProvinceCourts.FloorPerRegard} per point of Regard.");
 
         var kingdomIds = new List<string>(cycle.Kingdoms.Keys);
         kingdomIds.Sort(string.CompareOrdinal);
@@ -322,7 +565,8 @@ public static class ProvinceInfluence
             int pending = kingdom.PlayerInfluence - kingdom.PlayerInfluenceDerived;
             sb.AppendLine($"{realm} ({kingdomId}): influence {kingdom.PlayerInfluence}"
                           + (GuildRules(cycle, kingdomId) ? ", ruled by the guild" : "")
-                          + (pending != 0 ? $", {pending:+#;-#;0} not yet spread over its provinces" : ""));
+                          + (pending != 0 ? $", {pending:+#;-#;0} not yet spread over its provinces" : "")
+                          + ProvinceCourts.CourtTag(cycle, kingdomId));
             for (int i = 0; i < provinces.Count; i++)
             {
                 var province = provinces[i];
@@ -330,7 +574,8 @@ public static class ProvinceInfluence
                     continue;
                 string name = string.IsNullOrEmpty(province.Name) ? province.Id : province.Name;
                 string where = i == castle ? "  castle" : near[i] ? "  beside the castle" : "";
-                sb.AppendLine($"  {name,-24} {province.Influence,3}{(province.Held ? "  held" : "")}{where}");
+                sb.AppendLine($"  {name,-24} {province.Influence,3}{(province.Held ? "  held" : "")}{where}"
+                              + ProvinceCourts.EstateTag(cycle, province));
             }
         }
         return sb.ToString();
@@ -365,8 +610,9 @@ public static class ProvinceInfluence
            && kingdom != null && kingdom.ControllingFactionId == KingdomTickSimulation.GuildFactionId;
 
     /// <summary>The deed itself: a write made outside the province layer is spread first,
-    /// then the amount lands, then the kingdom's provinces settle their hold (reported)
-    /// and its value is derived again.</summary>
+    /// then the amount lands, a gain weighed by the realm's court (ProvinceCourts.DeedGain),
+    /// then the kingdom's provinces settle their hold (reported) and its value is derived
+    /// again.</summary>
     private static string AddToProvince(CycleState cycle, int index, int amount)
     {
         var provinces = cycle.World.Provinces;
@@ -376,6 +622,10 @@ public static class ProvinceInfluence
         string kingdomId = province.KingdomId ?? "";
         cycle.Kingdoms.TryGetValue(kingdomId, out var kingdom);
         Absorb(cycle, kingdomId, kingdom);
+        // The realm's court weighs a deed, and ill will in an estate halves it (PR18, PR15).
+        // The castle's presence, a fall, a seizure and a spread never pass through here.
+        if (amount > 0)
+            amount = ProvinceCourts.DeedGain(cycle, province, amount);
         province.Influence = Clamp(province.Influence + amount);
 
         var news = new List<string>();

@@ -19,6 +19,11 @@ import hashlib
 import sys
 from pathlib import Path
 
+# The dashes the house style bans, built from code points so this file carries none.
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
+ESCAPED_EM_DASH = "\\" + "u2014"
+
 
 def blob(data: bytes) -> str:
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
@@ -298,7 +303,7 @@ def check_new_file(root: Path, rel: str) -> None:
     bad = sorted({c for c in text if ord(c) > 127 and not (0x2500 <= ord(c) <= 0x257F)})
     if bad:
         fail(f"{rel} carries characters outside ASCII and box drawing: {bad!r}")
-    if "—" in text or "\\u2014" in text or "–" in text:
+    if EM_DASH in text or ESCAPED_EM_DASH in text or EN_DASH in text:
         fail(f"{rel} carries a dash the house style bans")
 
 
@@ -327,7 +332,7 @@ def main() -> None:
             bad = added_chars_ok(anchor, new)
             if bad:
                 fail(f"{rel}: replacement adds characters outside ASCII and box drawing: {bad!r}")
-            if "—" in new or "–" in new or "\\u2014" in new:
+            if EM_DASH in new or EN_DASH in new or ESCAPED_EM_DASH in new:
                 fail(f"{rel}: replacement carries a dash the house style bans")
             for o, c in PAIRS:
                 d_open = new.count(o) - anchor.count(o)

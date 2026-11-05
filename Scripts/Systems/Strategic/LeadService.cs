@@ -668,7 +668,8 @@ public static class LeadService
     /// <summary>The note a true lead leaves (D182): at the desk, its own words and what
     /// the place turned out to be, and for talk its kingdom's record (D219); on the map,
     /// one line. The place reads as the camp's lookouts would name it
-    /// (CampSight.PlacePhrase). Placeholder copy (D186).</summary>
+    /// (CampSight.PlacePhrase). Placeholder copy (D186). Since provinces PV2b-1 it is also
+    /// a deed in the place's province (ProvinceInfluence.LeadGain).</summary>
     private static void AnnounceHeld(CycleState cycle, Lead lead, WorldPoi poi)
     {
         var world = cycle.World;
@@ -687,6 +688,9 @@ public static class LeadService
         cycle.PendingSiegeReports ??= new List<string>();
         cycle.PendingSiegeReports.Add($"A lead held true. On your map now: {what}.");
         GD.Print($"[Leads] {lead.Id} held true: {what} at ({poi.X},{poi.Y}).");
+        // Provinces PV2b-1 (docs/provinces_v1_7g_deeds_and_courts.md): a rumor followed home is
+        // a deed in its place's province, once, as the lead goes.
+        ProvinceInfluence.Deed(cycle, poi.X, poi.Y, ProvinceInfluence.LeadGain);
     }
 
     /// <summary>The note a rumor leaves when it is heard (D219): at the desk, titled for its

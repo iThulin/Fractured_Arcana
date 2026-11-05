@@ -204,12 +204,15 @@ public partial class ExpeditionManager
         box.AddThemeConstantOverride("separation", 8);
         dlg.AddChild(box);
 
-        var title = new Label { Text = msg.Title, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        // Both labels get a real width to be measured at, or the card sizes
+        // itself from text one character wide and runs off the screen with its
+        // button (DialogFit). The card still fits its height to the message.
+        var title = DialogFit.Wrap(new Label { Text = msg.Title });
         title.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize + 2);
         title.AddThemeColorOverride("font_color", accent);
         box.AddChild(title);
 
-        var body = new Label { Text = msg.Body, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var body = DialogFit.Wrap(new Label { Text = msg.Body });
         body.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
         body.AddThemeColorOverride("font_color", UITheme.TextPrimary);
         box.AddChild(body);

@@ -116,9 +116,9 @@ public partial class StrategicView : Node2D
     // stack rebuilds with the HUD.
     private VBoxContainer _rightHudStack;
     // The "to the world map" button that lived in the verb stack is gone
-    // (2026-09-24): navigation is _viewToggleBtn at the head of the FORCES
-    // roster, and Escape. See OnViewTogglePressed.
-    private Button _viewToggleBtn;
+    // (2026-09-24). Since provinces 7f (PR41) the city/world toggle is the
+    // global bar's (HudManager reads HomeToggleState), and Escape. See
+    // OnViewTogglePressed.
     private Button _sortieBtn;             // 2026-09-24: the castle sorties from where it stands
     private Button _annexButton;           // "annex a district" toggle (kept so we can reset it after a purchase)
     private Button _buildModeBtn;          // "build" toggle: arms bare-ground clicks to open the construct card
@@ -148,7 +148,7 @@ public partial class StrategicView : Node2D
     /// Rebuilt whenever anything moves, because a stale roster is worse than
     /// none: it invites an order for a piece that is no longer there.</summary>
     private PanelContainer _forcesPanel;
-    private VBoxContainer _forcesRows;
+    private HFlowContainer _forcesRows;   // provinces 7f (PR40): the roster's chips
     private Button _turnMoonBtn;
     private Button _partyDeployBtn;
     private Button _bankFurnaceBtn;    // 2026-09-23: park a frozen castle from the map
@@ -158,7 +158,6 @@ public partial class StrategicView : Node2D
     private Button _recallBtn;         // 2026-09-24: fold a detachment back in through a waystone
     private Button _interveneBtn;      // 2026-09-24: storm a depot or intervene at a front, from the tile
     private Button _audienceBtn;       // 2026-09-24: open a table with the court whose city the party stands in
-    private Button _musterBtn;         // 2026-09-24: the Forces screen, where everyone is
 
     /// <summary>True when the castle is the piece taking orders.</summary>
     private bool CastleSelected => string.IsNullOrEmpty(_selectedPieceId);
@@ -195,7 +194,6 @@ public partial class StrategicView : Node2D
     private Button _cityServicesBtn;       // "City Services" reopen button, NPC city view only
     private Label _hintLabel;              // bottom context hint; text swaps per view mode
     private CanvasLayer _helpLayer;        // the "first steps" orientation card
-    private Button _helpBtn;               // reopens the help card any time
     private static bool _helpAutoShown;    // once per app session: auto-open on first home-city entry
     private CityServicesHost _cityServices;   // Phase 3: a visited enemy capital's services menu (auto-opened)
     private NarrativeEncounterPanel _cityNarrativePanel;  // Phase 3 explore: hosts a district EVENT over the city view
@@ -548,6 +546,7 @@ public partial class StrategicView : Node2D
 
         var container = new SubViewportContainer { Stretch = true, Name = "Atlas3DView" };
         container.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        container.MouseExited += OnAtlasPointerLeft;   // provinces 7c: the province readout
         _atlas3DLayer.AddChild(container);
 
         var vp = new SubViewport { OwnWorld3D = true, Msaa3D = Viewport.Msaa.Msaa4X };
@@ -557,6 +556,7 @@ public partial class StrategicView : Node2D
         _atlas3D.TilePicked += OnAtlas3DTilePicked;
         _atlas3D.PiecePicked += OnAtlasPiecePicked;   // 2026-09-28: pieces are clickable
         _atlas3D.MapDoubleClicked += OnMapDoubleClicked;   // 2026-09-29: deselect and pull back
+        _atlas3D.TileHovered += OnAtlasTileHovered;   // provinces 7c: the province readout
         // True geometry merge (Phase 2): the campus grounds render as a model on the home
         // tile; when zoomed in, clicking a building on it opens that building's campus panel
         // in place, without the full-screen scene swap.
@@ -569,11 +569,16 @@ public partial class StrategicView : Node2D
         _atlas3D.DistrictContentTriggered += OnDistrictContentTriggered;
         _atlas3D.DistrictScouted += OnDistrictScouted;
         vp.AddChild(_atlas3D);            // _Ready builds the camera (no world yet)
+        // Provinces 7f (PR37): render at the window's own pixels (StrategicView.Corners).
+        _atlasView = container;
+        _atlasViewport = vp;
+        SizeAtlasView();
         // Discovery gates the strategic map exactly as the 2D view did: normal play
         // shows only charted/explored ground (unseen = void), debug reveals all.
         // WorldAtlas3D DEFAULTS to revealed (it's a comparison prototype), so set
         // this explicitly, and before SetWorld, so the first render is already right.
         _atlas3D.SetRevealAll(_debugReveal);
+        UpdateAtlasInsets();   // provinces 7e (PR31): the panels' share of the screen, before the first framing
         _atlas3D.SetWorld(_world, _kingdoms);   // now render the resident world
         _atlas3D.SetLens(_lens);
 
@@ -726,42 +731,38 @@ public partial class StrategicView : Node2D
         // twice. Inside the column's VBox a card gets exactly its content's
         // height, which is the point: no fixed slab of mostly empty panel.
         EnsureCommandColumn();
-        _forcesPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop };
-        _forcesPanel.AddThemeStyleboxOverride("panel", CardStyle());
+        // Provinces 7f (PR40): the roster is a row of chips in the bottom-left corner, over
+        // the selection panel. No card behind it, and nothing in it but the chips takes the
+        // pointer, so the map stays clickable between them.
+        _forcesPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        _forcesPanel.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
         _commandColumn.AddChild(_forcesPanel);
-        // Orders and Destinations follow it down the column (StrategicView.Dispatch).
+        // Orders and Destinations join the corner after it (StrategicView.Dispatch).
         BuildDispatchRail();
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", CardPadX);
-        margin.AddThemeConstantOverride("margin_right", CardPadX);
-        margin.AddThemeConstantOverride("margin_top", CardPadY);
-        margin.AddThemeConstantOverride("margin_bottom", CardPadY);
+        var margin = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         _forcesPanel.AddChild(margin);
 
-        var col = new VBoxContainer();
+        var col = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         col.AddThemeConstantOverride("separation", 6);
         margin.AddChild(col);
 
-        // Navigation lives HERE, at the head of the roster, not in the verb
-        // stack (2026-09-24). "Where am I looking" and "who do I command" are
-        // the two things the player needs in every mode, and the city/world
-        // toggle had been one of fourteen same-sized buttons on the right.
-        _viewToggleBtn = new Button
-        {
-            Text = "\u25C8  To the world map",
-            CustomMinimumSize = new Vector2(0, 34),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-        };
-        _viewToggleBtn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-        UITheme.ApplyButtonStyle(_viewToggleBtn, isPrimary: true);
-        _viewToggleBtn.TooltipText = "Escape does the same.";
-        _viewToggleBtn.Pressed += OnViewTogglePressed;
-        col.AddChild(_viewToggleBtn);
+        // Navigation (2026-09-24) stood here, at the head of the roster. Since provinces 7f
+        // (PR41) the city/world toggle is the global bar's (HomeToggleState).
+        var chipRow = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        chipRow.AddThemeConstantOverride("separation", 8);
+        col.AddChild(chipRow);
 
-        _forcesRows = new VBoxContainer();
-        _forcesRows.AddThemeConstantOverride("separation", 4);
-        col.AddChild(_forcesRows);
+        _forcesRows = new HFlowContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _forcesRows.AddThemeConstantOverride("h_separation", 6);
+        _forcesRows.AddThemeConstantOverride("v_separation", 6);
+        chipRow.AddChild(_forcesRows);
+        chipRow.AddChild(BuildDestinationsChip());   // provinces 7h (fix 8): the folded Destinations card
+        chipRow.AddChild(BuildMusterChip());   // the Forces screen, at the row's end (StrategicView.Corners)
 
         // Docked to the ROSTER, not the chrome stack. The question "have I given
         // everyone their orders" and the button that ends the lunation are the
@@ -831,12 +832,9 @@ public partial class StrategicView : Node2D
             return;
         }
 
-        var title = new Label { Text = "FORCES" };
-        title.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 4);
-        title.AddThemeColorOverride("font_color", UITheme.TextDim);
-        _forcesRows.AddChild(title);
+        // Provinces 7f (PR40): no heading; the chips say what they are.
 
-        AddForceRow("\u25A0  Castle", CastleStatusLine(cycle), UITheme.ArcaneBlue,
+        AddForceRow("\u25A0  Castle", ForceLine(CastlePlace(cycle), CastleStatusLine(cycle)), UITheme.ArcaneBlue,
                     "", CastleSelected);
 
         if (cycle.FieldParties != null)
@@ -847,147 +845,120 @@ public partial class StrategicView : Node2D
                 {
                     continue;
                 }
-                AddForceRow($"\u25B2  {p.Name}", PartyStatusLine(cycle, p), UITheme.Gold,
+                AddForceRow($"\u25B2  {p.Name}", ForceLine(PartyPlace(cycle, p), PartyStatusLine(cycle, p)), UITheme.Gold,
                             p.Id, _selectedPieceId == p.Id);
                 // Detachments sit under their parent, indented, so the roster
                 // reads as "this party, and the pieces of it left behind".
                 foreach (var det in FieldPostings.DetachmentsOf(cycle, p))
                 {
-                    AddForceRow($"      \u25B8  {det.Name}", PartyStatusLine(cycle, det), UITheme.Gold,
+                    AddForceRow($"      \u25B8  {det.Name}", ForceLine(PartyPlace(cycle, det), PartyStatusLine(cycle, det)), UITheme.Gold,
                                 det.Id, _selectedPieceId == det.Id);
                 }
             }
         }
     }
 
-    /// <summary>One selectable force. The accent bar down the left is the
-    /// selection tell, matching the ring the piece wears on the map, so the
-    /// panel and the board agree without the player having to check.</summary>
+    /// <summary>One selectable force, as a chip in the roster's row (provinces 7f, PR40): its
+    /// name, coloured and edged in its accent while selected, matching the ring the piece
+    /// wears on the map, so the row and the board agree. What it is doing is the chip's
+    /// tooltip; the selection panel under the row says it in full.</summary>
     private void AddForceRow(string name, string status, Color accent,
                              string pieceId, bool selected)
     {
         var btn = new Button
         {
-            CustomMinimumSize = new Vector2(0, 46),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            ToggleMode = false,
-            ButtonPressed = false,
+            Text = name.Trim(),
+            TooltipText = status,
+            CustomMinimumSize = new Vector2(0, 34),
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+            FocusMode = Control.FocusModeEnum.None,
         };
         var style = UITheme.MakePanelStyle(
             selected ? UITheme.BgCard : UITheme.BgBase,
             selected ? accent : UITheme.NeutralDim);
-        style.BorderWidthLeft = selected ? 4 : 1;
+        style.SetBorderWidthAll(selected ? 2 : 1);
+        style.ContentMarginLeft = 12;
+        style.ContentMarginRight = 12;
         btn.AddThemeStyleboxOverride("normal", style);
         btn.AddThemeStyleboxOverride("hover", style);
         btn.AddThemeStyleboxOverride("pressed", style);
+        btn.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 3);
+        Color ink = selected ? accent : UITheme.TextPrimary;
+        btn.AddThemeColorOverride("font_color", ink);
+        btn.AddThemeColorOverride("font_hover_color", ink);
+        btn.AddThemeColorOverride("font_pressed_color", ink);
         btn.Pressed += () => FocusForce(pieceId);   // select, fly, show the reach
         _forcesRows.AddChild(btn);
-
-        // The label rides INSIDE the button rather than being its Text, so the
-        // name and the status line can carry different sizes and colours. A
-        // Button's own Text is a single run and cannot.
-        var box = new VBoxContainer
-        {
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            AnchorRight = 1f,
-            AnchorBottom = 1f,
-            OffsetLeft = 12,
-            OffsetTop = 3,
-            OffsetRight = -6,
-            OffsetBottom = -3,
-        };
-        box.AddThemeConstantOverride("separation", 0);
-        btn.AddChild(box);
-
-        var nameLbl = new Label { Text = name, MouseFilter = Control.MouseFilterEnum.Ignore };
-        nameLbl.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-        nameLbl.AddThemeColorOverride("font_color", selected ? accent : UITheme.TextPrimary);
-        box.AddChild(nameLbl);
-
-        var statusLbl = new Label
-        {
-            Text = status,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            ClipText = true,
-            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
-        };
-        btn.TooltipText = status;
-        statusLbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-        statusLbl.AddThemeColorOverride("font_color", UITheme.TextSecondary);
-        box.AddChild(statusLbl);
     }
 
     /// <summary>What the castle is doing, in one line. Leads with the thing that
     /// BLOCKS an order when there is one, because that is what the player is
-    /// about to run into.</summary>
+    /// about to run into. Where it stands is CastlePlace's: the selection panel
+    /// gives the place a line of its own (provinces 7h, fix 7).</summary>
     private string CastleStatusLine(CycleState cycle)
     {
-        string at = cycle.World != null && cycle.World.InBounds(cycle.CastleX, cycle.CastleY)
-            ? $"({cycle.CastleX},{cycle.CastleY})"
-            : "nowhere yet";
-
         if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
         {
-            return $"{at}  ·  under attack";
+            return "under attack";
         }
         if (cycle.CastleRepairLunations > 0)
         {
-            return $"{at}  ·  resupply {WorldClock.ResupplyDaysLeft(cycle)} day(s)";
+            return $"resupply {WorldClock.ResupplyDaysLeft(cycle)} day(s)";
         }
         if (cycle.CastleSortie != null && cycle.CastleSortie.IsLive())
         {
-            return $"{at}  ·  in the field, {cycle.CastleSortie.StepsRemaining}/{cycle.CastleSortie.MaxFuel} fuel";
+            return $"in the field, {cycle.CastleSortie.StepsRemaining}/{cycle.CastleSortie.MaxFuel} fuel";
         }
         if (WorldClock.CastleBusy(cycle))
         {
-            return $"{at}  ·  returning, {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s)";
+            return $"returning, {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s)";
         }
         if (!cycle.CastleParked)
         {
-            return $"{at}  ·  out on a sortie";
+            return "out on a sortie";
         }
         // No standing order. Named rather than left blank, because "nothing is
         // assigned here" is the thing the player needs to notice before they
         // spend a lunation.
-        return $"{at}  ·  fuel {cycle.CastleFuel}/{cycle.CastleMaxFuel}  ·  awaiting orders";
+        return $"fuel {cycle.CastleFuel}/{cycle.CastleMaxFuel}  ·  awaiting orders";
     }
 
-    /// <summary>What a party is doing, in one line.</summary>
+    /// <summary>What a party is doing, in one line. Where it stands is
+    /// PartyPlace's (provinces 7h, fix 7).</summary>
     private string PartyStatusLine(CycleState cycle, FieldParty p)
     {
         if (p.X < 0 || p.Y < 0)
         {
             return "not in the field";
         }
-        string at = $"({p.X},{p.Y})";
-
         if (p.Sortie != null && p.Sortie.IsLive())
         {
-            return $"({p.Sortie.X},{p.Sortie.Y})  ·  in the field, {p.Sortie.StepsRemaining}/{p.Sortie.MaxFuel} rations";
+            return $"in the field, {p.Sortie.StepsRemaining}/{p.Sortie.MaxFuel} rations";
         }
         if (p.State == FieldPartyState.Travelling)
         {
-            return $"{at}  \u2192 ({p.DestX},{p.DestY})  ·  {p.TravelPhasesRemaining} tile(s) to go";
+            string dest = PlaceName(cycle, p.DestX, p.DestY, withRealm: false);
+            return $"\u2192 {dest}  ·  {p.TravelPhasesRemaining} tile(s) to go";
         }
         if (p.State == FieldPartyState.Working)
         {
-            return $"{at}  ·  {FieldPostings.Describe(cycle, p)}";
+            return FieldPostings.Describe(cycle, p);
         }
         if (WorldClock.PartyBusy(cycle, p))
         {
-            return $"{at}  ·  returning, {p.BusyUntilDay - WorldClock.Now(cycle)} day(s)";
+            return $"returning, {p.BusyUntilDay - WorldClock.Now(cycle)} day(s)";
         }
         if (FieldPostings.IsDetachment(p))
         {
             // A detachment with no job is waiting to be picked up. It is not
             // "awaiting orders": it cannot take any.
-            return $"{at}  ·  {p.MemberCompanionIds?.Count ?? 0} posted  ·  awaiting collection";
+            return $"{p.MemberCompanionIds?.Count ?? 0} posted  ·  awaiting collection";
         }
 
         int strength = p.MemberCompanionIds?.Count ?? 0;
         string who = strength == 0 ? "the wizard alone" : $"{strength} afoot";
         string carrying = p.Carrying != null && !p.Carrying.IsEmpty ? "  ·  carrying spoils" : "";
-        return $"{at}  ·  {who}{carrying}  ·  awaiting orders";
+        return $"{who}{carrying}  ·  awaiting orders";
     }
 
     /// <summary>Turn the moon: advance the calendar one lunation and run the
@@ -1319,21 +1290,9 @@ public partial class StrategicView : Node2D
             }
         }
 
-        if (_viewToggleBtn != null)
-        {
-            bool home = _atlas3D?.ActiveCityIsHome ?? true;
-            _viewToggleBtn.Text = cityNow
-                ? "\u25C8  To the world map"
-                : "\u25C8  To the home city";
-            bool doorShut = Interval.DoorShut(SaveManager.ActiveSave?.Cycle);   // Standing Orders O1
-            bool shutToPlayer = doorShut && !PlayerSession.DebugMode;          // Debug Mode reaches the panels
-            _viewToggleBtn.Disabled = !cityNow && (_atlas3D == null || !_atlas3D.HasCityGrounds || shutToPlayer);
-            _viewToggleBtn.TooltipText = cityNow
-                ? (home ? "Up to the world. Escape does the same." : "Leave this city. Escape does the same.")
-                : (shutToPlayer ? Interval.DoorLine
-                   : doorShut ? "Debug Mode: the campus's panels, over the map. The home stays shut."
-                   : "Down into the guild's own city.");
-        }
+        // Provinces 7f (PR41): the city/world toggle is the global bar's now. It reads
+        // HomeToggleState (StrategicView.Corners) and hears of a change here.
+        HudManager.Instance?.RefreshViewToggle();
 
         if (_sortieBtn != null)
         {
@@ -1772,6 +1731,7 @@ public partial class StrategicView : Node2D
         _atlas3D.AcceptInput = false;
         if (_atlas3DLayer != null) _atlas3DLayer.Visible = false;
         PlayerSession.CampusOverlayOpen = true;
+        RegisterManager.ReleaseRegion(this);   // provinces 7f (PR42): the campus keeps its own layout
         CampusScreen.OverlayLeaveHandler = HideCampusOverlay;
         HudManager.Instance?.RefreshVisibility();
     }
@@ -1786,6 +1746,7 @@ public partial class StrategicView : Node2D
 
         CampusScreen.OverlayLeaveHandler = null;
         PlayerSession.CampusOverlayOpen = false;
+        ClaimRegisterRegion();   // provinces 7f (PR42): back on the map, the Register's region again
         if (_atlas3DLayer != null) _atlas3DLayer.Visible = true;
         HudManager.Instance?.RefreshVisibility();
 
@@ -2212,7 +2173,7 @@ public partial class StrategicView : Node2D
         bool city = _atlas3D?.CityMode ?? false;
         bool home = _atlas3D?.ActiveCityIsHome ?? true;
         _hintLabel.Text = !city
-            ? "Pick a force in FORCES to give it orders  ·  \u263D Pass time lets the days go by  ·  Q/E to rotate  ·  wheel in over your city to go home."
+            ? "Pick a force at the lower left to give it orders  ·  \u263D Pass time lets the days go by  ·  Q/E to rotate  ·  wheel in over your city to go home."
             : home
                 ? "Click a building to open it  ·  ⚒ Build raises new buildings  ·  Q/E to rotate  ·  Escape goes up to the world map."
                 : "Click a fogged district to scout it  ·  click a revealed marker to enter it.";
@@ -2267,12 +2228,13 @@ public partial class StrategicView : Node2D
         }
 
         HelpLine("•  The world map is the guild's home, and your city is one zoom of it: wheel in over the " +
-                 "city, or press \u25C8 To the home city at the head of FORCES. Escape goes back up.");
+                 "city, or press Home city in the top bar. Escape goes back up.");
         HelpLine("•  In the city, every building is a room of the guild. Click one to open it: the Grand Hall " +
                  "keeps the ledger and your save slots, the Armory your gear, the Sanctum your cards.");
         HelpLine("•  ⚒ Build raises a new building on open ground. ＋ Annex a district buys more ground " +
                  "when the walls get tight.");
-        HelpLine("•  FORCES lists the castle and your parties. Click one to give it orders.");
+        HelpLine("•  The row at the lower left lists the castle and your parties. Click one, or its " +
+                 "piece on the map, to give it orders. Muster opens the Forces screen.");
         HelpLine("•  The castle sorties from where it stands. Fuel is the budget, and the days a sortie " +
                  "costs are charged when it comes home.");
         HelpLine("•  Days pass only when you press \u263D Pass time. It stops at the next thing that needs " +
@@ -3142,6 +3104,15 @@ public partial class StrategicView : Node2D
             CampusScreen.OverlayLeaveHandler = null;
         if (_campusOverlay != null)
             PlayerSession.CampusOverlayOpen = false;
+        // Provinces 7e (PR34): give the global bar its centre back. 7f (PR41, PR42): and its
+        // screen buttons, and the Register its region.
+        var hud = HudManager.Instance;
+        if (hud != null && IsInstanceValid(hud))
+        {
+            hud.ReleaseCentre(this);
+            hud.ReleaseScreenButtons(this);
+        }
+        RegisterManager.ReleaseRegion(this);
     }
 
     /// <summary>Persistent strategic-map HUD: a free exit back to campus. Returning
@@ -3260,18 +3231,17 @@ public partial class StrategicView : Node2D
         _audienceBtn = MakeCityChromeButton("\u2696  Seek audience", primary: false);
         _audienceBtn.Visible = false;
         _audienceBtn.Pressed += OnSeekAudiencePressed;
-        // The muster board is never gated: "where is everyone" is a question
-        // with an answer in every mode, city view included.
-        _musterBtn = MakeCityChromeButton("\u2637  Forces", primary: false);
-        _musterBtn.Pressed += OpenForcesScreen;
-
-        _helpBtn = MakeCityChromeButton("?  How this works", primary: false);
-        _helpBtn.Pressed += ShowHelpCard;   // visible in every mode; orientation is never gated
+        // Provinces 7f (PR41): the muster board opens from the roster's Muster chip
+        // (BuildMusterChip), still in every mode, city view included. "How this works"
+        // is a screen button in the global bar; orientation is never gated.
+        HudManager.Instance?.SetScreenButton(this, "help", "?", "How this works", ShowHelpCard);
+        // Provinces 7f (PR42): the Register speaks top left, where this screen keeps nothing else.
+        ClaimRegisterRegion();
 
         // Stack order (2026-09-24): the selected piece's verbs first, then the
-        // city's own three, then the fixed footer. Moved rather than rebuilt
-        // in place, so each button's construction stays beside its handler.
-        foreach (var tail in new Button[] { _annexButton, _buildModeBtn, _cityServicesBtn, _musterBtn, _helpBtn })
+        // city's own three. Moved rather than rebuilt in place, so each button's
+        // construction stays beside its handler.
+        foreach (var tail in new Button[] { _annexButton, _buildModeBtn, _cityServicesBtn })
         {
             if (tail != null && tail.GetParent() == _rightHudStack)
             {
@@ -3357,7 +3327,10 @@ public partial class StrategicView : Node2D
             OffsetBottom = -10,
         };
         _hintLabel.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize - 2);
-        _hintLabel.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.5f));
+        // Provinces 7f (PR43): brighter, with a dark outline, so it reads over the desk and the map.
+        _hintLabel.AddThemeColorOverride("font_color", new Color(1f, 1f, 1f, 0.75f));
+        _hintLabel.AddThemeColorOverride("font_outline_color", new Color(0.05f, 0.035f, 0.025f, 1f));
+        _hintLabel.AddThemeConstantOverride("outline_size", 4);
         _hintLabel.HorizontalAlignment = HorizontalAlignment.Center;
         _hud.AddChild(_hintLabel);
         RefreshHint();
@@ -3385,7 +3358,9 @@ public partial class StrategicView : Node2D
         EnsureCommandColumn();
         var lensPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop };
         lensPanel.AddThemeStyleboxOverride("panel", CardStyle());
-        _commandColumn.AddChild(lensPanel);
+        // Provinces 7f (PR40): the lenses' card takes the bottom-right corner
+        // (StrategicView.Corners), the four lenses sharing its width.
+        _lensCorner.AddChild(lensPanel);
 
         var lensMargin = new MarginContainer();
         lensMargin.AddThemeConstantOverride("margin_left", 8);
@@ -3396,12 +3371,17 @@ public partial class StrategicView : Node2D
 
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 4);
-        lensMargin.AddChild(row);
+        // Provinces 7c: the lens row, and under it the Reach lens's key.
+        var lensStack = new VBoxContainer();
+        lensStack.AddThemeConstantOverride("separation", 6);
+        lensMargin.AddChild(lensStack);
+        lensStack.AddChild(row);
 
         AddLensButton(row, "Political", StrategicLens.Political);
         AddLensButton(row, "Terrain", StrategicLens.Terrain);
         AddLensButton(row, "Corruption", StrategicLens.Corruption);
         AddLensButton(row, "Reach", StrategicLens.Reach);
+        lensStack.AddChild(BuildLensKey());   // provinces 7d: the lens key
 
         UpdateLensButtons();
 
@@ -3438,6 +3418,7 @@ public partial class StrategicView : Node2D
             btn.ButtonPressed = active;
             btn.Modulate = active ? Colors.White : new Color(1f, 1f, 1f, 0.55f);
         }
+        UpdateLensKey();    // provinces 7d: the lens key
     }
 
     private void BuildTileLayer()
@@ -4196,6 +4177,8 @@ public partial class StrategicView : Node2D
             _atlas3D?.SetRevealAll(reveal);   // full Rebuild: re-reveals tiles, settlements, grey regions
         }
 
+        TickProvinceHover(delta);   // provinces 7c: the province readout
+        TickTopBar();               // provinces 7e: the clock follows the bar; the insets follow the UI's size
         PollChronicle(delta);
     }
 
@@ -5577,6 +5560,7 @@ public partial class StrategicView : Node2D
             Text = $"They take the field at {sp.Name} ({sp.X},{sp.Y}).\n"
                  + $"The dive costs about {WorldClock.DaysPerRation:0.##} day per ration eaten, charged when they return.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(DialogFit.TextWidth, 0f),
         };
         intro.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         intro.AddThemeColorOverride("font_color", UITheme.TextSecondary);
@@ -5642,6 +5626,7 @@ public partial class StrategicView : Node2D
                  + "fortress loses that effect on its next move. Numbers also deter the patrols "
                  + "that watch the roads.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(DialogFit.TextWidth, 0f),
         };
         warn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         warn.AddThemeColorOverride("font_color", UITheme.Warning);
@@ -5711,8 +5696,10 @@ public partial class StrategicView : Node2D
             PlayerSession.AudienceKingdomId = "";
             dlg.QueueFree();
         };
-        AddChild(dlg);
-        dlg.PopupCentered();
+        // A fixed size. Sizing itself, the dialog could measure its wrapping
+        // labels too narrow, grow past the bottom of the screen and take the
+        // Go button with it (DialogFit). The companion list scrolls instead.
+        DialogFit.PopupFixed(this, dlg, new Vector2I(560, 520));
     }
 
     /// <summary>The party takes the field where it stands. Synthesises a
@@ -6325,7 +6312,7 @@ public partial class StrategicView : Node2D
         picker.Selected = 0;
         box.AddChild(picker);
 
-        var detail = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var detail = DialogFit.Wrap(new Label());
         detail.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         detail.AddThemeColorOverride("font_color", UITheme.TextSecondary);
         box.AddChild(detail);
@@ -6395,7 +6382,7 @@ public partial class StrategicView : Node2D
         // What the chosen people bring (Vocations, 2026-09-25). Re-read on
         // every tick and every posting change, so unticking the Scout shows
         // the survey losing its extra ring before the player commits.
-        var vocLine = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var vocLine = DialogFit.Wrap(new Label());
         vocLine.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         vocLine.AddThemeColorOverride("font_color", UITheme.Gold);
         box.AddChild(vocLine);
@@ -6427,6 +6414,7 @@ public partial class StrategicView : Node2D
                 : "Leave some unchecked and they carry on as the party; the checked ones stay as a detachment. "
                   + "A detachment does not move: collect it by standing with it, or recall it through a waystone.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(DialogFit.TextWidth, 0f),
         };
         note.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         note.AddThemeColorOverride("font_color", UITheme.TextDim);
@@ -6464,8 +6452,8 @@ public partial class StrategicView : Node2D
             RegisterManager.Fire("strategic.first_posting");
         };
         dlg.Canceled += () => dlg.QueueFree();
-        AddChild(dlg);
-        dlg.PopupCentered();
+        // A fixed size, so the buttons stay on the screen (DialogFit).
+        DialogFit.PopupFixed(this, dlg, new Vector2I(560, 640));
     }
 
     private void OnCollectPressed()

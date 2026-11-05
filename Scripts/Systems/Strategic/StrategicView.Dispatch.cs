@@ -47,7 +47,13 @@ public partial class StrategicView
     //    screen, help, the city's own verbs, and the news. One card style, one
     //    padding, one gap, everywhere.
 
-    /// <summary>Width of the left column, cards included.</summary>
+    //    Provinces 7f (PR40): the column became the corners. _commandColumn is
+    //    now the bottom-left stack, growing up: Destinations (folded until asked
+    //    for), the roster's chips with Muster, then Orders as the selection
+    //    panel. The lenses take the bottom-right (StrategicView.Corners).
+
+    /// <summary>The old column's width, cards included; the orders card's notes still wrap
+    /// to it.</summary>
     private const int CommandWidth = 320;
     private const int CardGap = 8;
     private const int CardPadX = 12;
@@ -58,7 +64,7 @@ public partial class StrategicView
     private Label _ordersTitle;
     private Label _ordersStatus;
     private Label _ordersBlocked;
-    private VBoxContainer _ordersBox;
+    private GridContainer _ordersBox;   // provinces 7f (PR40): the verbs in two columns
     private Label _ordersNone;
 
     private PanelContainer _dispatchPanel;
@@ -66,7 +72,7 @@ public partial class StrategicView
     private Button _dispatchCollapseBtn;
     private ScrollContainer _dispatchScroll;
     private VBoxContainer _dispatchRows;
-    private bool _dispatchCollapsed;
+    private bool _dispatchCollapsed = true;   // provinces 7f (PR40): folded until asked for
 
     /// <summary>Tallest the destinations list grows before it scrolls.</summary>
     private const int DestinationsMaxHeight = 340;
@@ -104,29 +110,17 @@ public partial class StrategicView
         return l;
     }
 
-    /// <summary>The column itself: a transparent stack, so the map between and
-    /// below the cards still takes clicks. Built on first use by whichever card
-    /// asks first (the lens row, in practice).</summary>
+    /// <summary>The corners: transparent stacks, so the map between and around the cards
+    /// still takes clicks. Built on first use by whichever card asks first (the lens row, in
+    /// practice). Since provinces 7f (PR40) _commandColumn is the bottom-left stack and the
+    /// lenses have a corner of their own (StrategicView.Corners, BuildCorners).</summary>
     private void EnsureCommandColumn()
     {
         if (_commandColumn != null || _hud == null)
         {
             return;
         }
-        _commandColumn = new VBoxContainer
-        {
-            AnchorLeft = 0f,
-            AnchorTop = 0f,
-            AnchorRight = 0f,
-            AnchorBottom = 1f,
-            OffsetLeft = 16,
-            OffsetRight = 16 + CommandWidth,
-            OffsetTop = 8 + HudManager.BarHeight,
-            OffsetBottom = -16,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        _commandColumn.AddThemeConstantOverride("separation", CardGap);
-        _hud.AddChild(_commandColumn);
+        BuildCorners();
     }
 
     /// <summary>Build the Orders and Destinations cards and move the force
@@ -149,7 +143,24 @@ public partial class StrategicView
         _ordersTitle.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         _ordersTitle.AddThemeColorOverride("font_color", UITheme.TextPrimary);
         ob.AddChild(_ordersTitle);
-        _ordersStatus = new Label { ClipText = true, TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis };
+        // Provinces 7h (fix 7): where the force stands, by province and realm, on a line of
+        // its own; the tile's coordinates are its tooltip. A label shows a tooltip only when
+        // it takes the mouse, so both lines here do.
+        _ordersPlace = new Label
+        {
+            ClipText = true,
+            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
+        _ordersPlace.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        _ordersPlace.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        ob.AddChild(_ordersPlace);
+        _ordersStatus = new Label
+        {
+            ClipText = true,
+            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+        };
         _ordersStatus.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         _ordersStatus.AddThemeColorOverride("font_color", UITheme.TextSecondary);
         ob.AddChild(_ordersStatus);
@@ -162,8 +173,9 @@ public partial class StrategicView
         _ordersBlocked.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         _ordersBlocked.AddThemeColorOverride("font_color", UITheme.Warning);
         ob.AddChild(_ordersBlocked);
-        _ordersBox = new VBoxContainer();
-        _ordersBox.AddThemeConstantOverride("separation", 6);
+        _ordersBox = new GridContainer { Columns = 2 };   // provinces 7f (PR40)
+        _ordersBox.AddThemeConstantOverride("h_separation", 6);
+        _ordersBox.AddThemeConstantOverride("v_separation", 6);
         ob.AddChild(_ordersBox);
         _ordersNone = new Label { Text = "No orders to give here." };
         _ordersNone.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -176,6 +188,9 @@ public partial class StrategicView
         _dispatchPanel = dest;
         _dispatchPanel.Visible = false;
         _commandColumn.AddChild(_dispatchPanel);
+        // Provinces 7f (PR40): first in the bottom-left stack, so it opens upward and the
+        // chips and the orders under it never move.
+        _commandColumn.MoveChild(_dispatchPanel, 0);
 
         var head = new HBoxContainer();
         db.AddChild(head);
@@ -219,6 +234,10 @@ public partial class StrategicView
             b.GetParent()?.RemoveChild(b);
             b.CustomMinimumSize = new Vector2(0, 36);
             b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            // Provinces 7f (PR40): two to a row, so a long name ends in an ellipsis rather
+            // than widening the corner.
+            b.ClipText = true;
+            b.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
             b.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
             _ordersBox.AddChild(b);
         }
@@ -234,6 +253,13 @@ public partial class StrategicView
         {
             _dispatchScroll.Visible = !_dispatchCollapsed;
         }
+        // Provinces 7h (fix 8): folded, the card leaves the corner and a chip in the roster's
+        // row stands for it. The chip opens it; the card's own button folds it again.
+        if (_dispatchPanel != null)
+        {
+            _dispatchPanel.Visible = _dispatchAvailable && !_dispatchCollapsed;
+        }
+        RefreshDestinationsChip();
     }
 
     /// <summary>The selected force's destinations, or empty.</summary>
@@ -303,7 +329,8 @@ public partial class StrategicView
         }
         if (!show)
         {
-            _dispatchPanel.Visible = false;
+            _dispatchAvailable = false;   // provinces 7h (fix 8): hides the card and its chip
+            ApplyDispatchCollapse();
             return;
         }
 
@@ -341,8 +368,10 @@ public partial class StrategicView
         }
 
         // A card with nothing in it is not shown at all: no "nowhere to go"
-        // placeholder holding a slab of screen.
-        _dispatchPanel.Visible = reachable > 0;
+        // placeholder holding a slab of screen. ApplyDispatchCollapse, below, shows the card
+        // or, folded, its chip in the roster's row (provinces 7h, fix 8).
+        _dispatchAvailable = reachable > 0;
+        _dispatchReachable = reachable;
         _dispatchTitle.Text = $"DESTINATIONS  ·  {reachable}";
         int rowsHeight = reachable * (DestinationRowHeight + 4) + (unreachable > 0 ? 22 : 0);
         _dispatchScroll.CustomMinimumSize = new Vector2(0, Mathf.Min(rowsHeight, DestinationsMaxHeight));
@@ -367,6 +396,7 @@ public partial class StrategicView
             _ordersStatus.Text = PartyStatusLine(cycle, party);
         }
         _ordersStatus.TooltipText = _ordersStatus.Text;
+        RefreshOrdersPlace(cycle, party);   // provinces 7h (fix 7)
 
         string blocked = null;
         if (CastleSelected)
@@ -763,15 +793,30 @@ public partial class StrategicView
     private Label _timeDateLabel;
     private Label _timeYearLabel;
     private Button _passOneDayBtn;
+    private CanvasLayer _timeBarLayer;
+
+    /// <summary>The clock's canvas layer (provinces 7e, PR34): just above the global bar
+    /// (HudManager, 90), under the help layer (95) and the pause menu (100).</summary>
+    private const int TimeBarLayer = 91;
 
     /// <summary>Called from BuildForcesPanel in place of docking the Pass time
     /// button into the roster. Takes over <c>_turnMoonBtn</c>.</summary>
     private void BuildTimeBar()
     {
-        if (_hud == null || _turnMoonBtn == null || _timeBar != null)
+        if (_hud == null || _turnMoonBtn == null)
         {
             return;
         }
+        // Provinces 7e (PR34): the clock sits in the global bar's centre, on a canvas layer of
+        // its own just above the bar's, so it is freed with this scene. The bar steps its
+        // centre aside: its own date hides and its Next line drops below it (HudManager).
+        // A second build (the HUD rebuilt) replaces the first.
+        if (_timeBarLayer != null && IsInstanceValid(_timeBarLayer))
+        {
+            _timeBarLayer.QueueFree();
+        }
+        _timeBarLayer = new CanvasLayer { Name = "TimeBarLayer", Layer = TimeBarLayer };
+        AddChild(_timeBarLayer);
         _timeBar = new PanelContainer
         {
             AnchorLeft = 0.5f,
@@ -779,17 +824,15 @@ public partial class StrategicView
             AnchorTop = 0f,
             AnchorBottom = 0f,
             GrowHorizontal = Control.GrowDirection.Both,
-            OffsetTop = HudManager.BarHeight + 8,
-            MouseFilter = Control.MouseFilterEnum.Stop,
+            OffsetTop = 4,
+            OffsetBottom = HudManager.BarHeight - 4,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        _timeBar.AddThemeStyleboxOverride("panel", CardStyle());
-        _hud.AddChild(_timeBar);
+        _timeBar.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
+        _timeBarLayer.AddChild(_timeBar);
+        HudManager.Instance?.ClaimCentre(this);
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", CardPadX + 2);
-        margin.AddThemeConstantOverride("margin_right", CardPadX - 4);
-        margin.AddThemeConstantOverride("margin_top", 8);
-        margin.AddThemeConstantOverride("margin_bottom", 8);
+        var margin = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         _timeBar.AddChild(margin);
 
         var row = new HBoxContainer();
@@ -833,6 +876,51 @@ public partial class StrategicView
         // blank clock and an unfilled column until something else refreshed
         // them. BuildForcesPanel calls this after the roster exists.
         RefreshDispatch();
+    }
+
+    // ── The free screen (provinces 7e, PR31) ─────────────────────────────
+
+    /// <summary>The UI size the atlas last heard the panels' shares for.</summary>
+    private Vector2 _atlasInsetsFor = Vector2.Zero;
+
+    /// <summary>Tell the atlas how much of the screen the panels cover, so its whole-world
+    /// view fits the world into the rest and its view centres there: the global bar with the
+    /// Next strip on top, the hint line at the foot, a margin at the sides. Since provinces 7f
+    /// (PR40) no column: the corner blocks sit over the framed world's corners, which are sea.
+    /// From BuildAtlas3D before the first framing, and again when the UI's size changes.</summary>
+    private void UpdateAtlasInsets()
+    {
+        if (_atlas3D == null)
+        {
+            return;
+        }
+        Vector2 ui = GetViewport().GetVisibleRect().Size;
+        if (ui.X < 1f || ui.Y < 1f)
+        {
+            return;
+        }
+        _atlasInsetsFor = ui;
+        _atlas3D.SetViewInsets(
+            16f / ui.X,
+            (HudManager.BarHeight + 8f + HudManager.NextStripHeight) / ui.Y,
+            16f / ui.X,
+            44f / ui.Y);
+    }
+
+    /// <summary>From _Process: the clock shows only while the global bar does (the campus
+    /// overlay hides the bar), and the atlas hears of a new UI size.</summary>
+    private void TickTopBar()
+    {
+        if (_timeBarLayer != null && IsInstanceValid(_timeBarLayer))
+        {
+            var hud = HudManager.Instance;
+            _timeBarLayer.Visible = hud == null || !IsInstanceValid(hud) || hud.BarVisible;
+        }
+        if (_atlas3D != null && GetViewport().GetVisibleRect().Size != _atlasInsetsFor)
+        {
+            UpdateAtlasInsets();
+        }
+        TickAtlasView();   // provinces 7f (PR37): the atlas follows the window's pixels
     }
 
     /// <summary>The date, the year, the next stop and the button's count.

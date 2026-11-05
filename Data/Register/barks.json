@@ -956,7 +956,7 @@
       "lines": [
         "The world, then. The Register has it on good authority that it is... large."
       ],
-      "note": "The world map is the guild's home screen, and your city is one zoom of it. The castle and your parties are pieces on it: pick one in FORCES to give it orders."
+      "note": "The world map is the guild's home screen, and your city is one zoom of it. The castle and your parties are pieces on it: pick one on the map, or in the row at the lower left, to give it orders."
     },
     {
       "key": "strategic.first_return",

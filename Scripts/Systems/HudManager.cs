@@ -30,6 +30,12 @@ using Godot;
 //                 the interval walks, Standing Orders' line leads, the
 //                 first lunation's yields, and the date reads as held
 //                 (O1b, StandingOrders and Interval).
+//                 Provinces 7f: a slot at the bar's left end where the
+//                 Register places its book (TryGetRegisterSlot); buttons a
+//                 screen puts before Menu (SetScreenButton, released with
+//                 the screen); and on the strategic map Return to Campus
+//                 is that screen's view toggle (Home city, World map), read
+//                 from StrategicView.HomeToggleState.
 // Layer:          System (autoload)
 // Collaborators:  PauseManager.cs (Menu button -> OpenPauseMenu),
 //                 CouncilScreen.cs (Council button -> Toggle),
@@ -61,6 +67,39 @@ public partial class HudManager : Node
     private Button _nextButton;   // S5: the first lunation's Next line (RefreshNextLine)
     private double _nextRefreshIn;
     private const double NextRefreshSeconds = 0.5;
+
+    // Provinces 7e (PR34, PR35): a screen that lays its own controls over the bar's centre (the
+    // strategic map's clock) claims it. The bar's date hides and the Next line drops to a strip
+    // hung under the bar's centre, in the bar's fill. Given back when the screen leaves.
+    private Node _centreOwner;
+    private HBoxContainer _barRow;
+    private int _nextSlot = -1;
+    private PanelContainer _nextStrip;
+
+    /// <summary>Height of the Next strip under the bar, for screens that keep their content
+    /// clear of it.</summary>
+    public const int NextStripHeight = 28;
+
+    // Provinces 7f (PR42): the Register's book stands in this slot at the bar's left end. The
+    // glyph stays the Register's own node on its own layer; the bar only keeps the room.
+    private Control _registerSlot;
+
+    /// <summary>The Register's slot's width: its book glyph's.</summary>
+    public const int RegisterSlotWidth = 44;
+
+    // Provinces 7f (PR41): buttons a screen puts in the bar's right cluster, before Menu, by
+    // key. Each goes when its screen releases it or leaves the tree.
+    private sealed class ScreenButton
+    {
+        public Node Owner;
+        public string Text;
+        public string Tooltip;
+        public System.Action OnPressed;
+        public Button Shown;
+    }
+
+    private readonly System.Collections.Generic.Dictionary<string, ScreenButton> _screenButtons = new();
+    private HBoxContainer _screenSlot;
 
     private int _lastLunation = int.MinValue;
 
@@ -139,6 +178,13 @@ public partial class HudManager : Node
 
         // ── Left: resource readouts (extend here) ────────────────────────
         // Fixed order [Lunation, Gold, Splinters, Materials] (2026-08-05 ask).
+        // Provinces 7f (PR42): first, the Register's slot (RegisterManager places its book here).
+        _registerSlot = new Control
+        {
+            CustomMinimumSize = new Vector2(RegisterSlotWidth, 0),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        row.AddChild(_registerSlot);
         _lunationLabel = MakeLabel(row, UITheme.TextSecondary);
         _gold = MakeResourceReadout(row, UITheme.Gold);
         _splinters = MakeResourceReadout(row, UITheme.ArcaneBlue);
@@ -156,6 +202,8 @@ public partial class HudManager : Node
         _nextButton.AddThemeColorOverride("font_disabled_color", UITheme.GoldDim);
         _nextButton.Pressed += GoNext;
         row.AddChild(_nextButton);
+        _barRow = row;                        // provinces 7e: where the Next line returns to
+        _nextSlot = _nextButton.GetIndex();
 
         // Spacer pushes the buttons to the right edge.
         row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
@@ -167,8 +215,15 @@ public partial class HudManager : Node
         _returnButton = AddNavButton(row, "Return to Campus", ReturnToCampus);
         AddNavButton(row, "Council", () => CouncilScreen.Toggle(GetTree().Root));
         AddNavButton(row, "Quests", () => QuestLogScreen.Toggle(GetTree().Root));
+        // Provinces 7f (PR41): a screen's own buttons sit here, before Menu (SetScreenButton).
+        _screenSlot = new HBoxContainer { Visible = false };
+        _screenSlot.AddThemeConstantOverride("separation", 18);
+        row.AddChild(_screenSlot);
         AddNavButton(row, "Menu", () => PauseManager.Instance?.OpenPauseMenu());
 
+        BuildNextStrip();   // provinces 7e (PR35)
+        ApplyCentre();      // a screen may have claimed the centre before the bar was built
+        ApplyScreenButtons();   // provinces 7f (PR41): and put its buttons in
         RefreshReadouts(force: true);
         RefreshVisibility();
     }
@@ -178,8 +233,12 @@ public partial class HudManager : Node
     /// from every other menu/utility screen it's the plain scene warp.</summary>
     private void ReturnToCampus()
     {
-        if (GetTree().CurrentScene is StrategicView sv && sv.TryDescendToCampus())
+        // Provinces 7f (PR41): on the strategic map the button is that screen's view toggle.
+        if (GetTree().CurrentScene is StrategicView sv)
+        {
+            sv.ToggleHomeView();
             return;
+        }
         // The hub is the strategic city (2026-08-19): from utility screens this warp
         // lands in city view, not on the retired standalone campus screen.
         PlayerSession.StartInCityOnOpen = true;
@@ -239,6 +298,7 @@ public partial class HudManager : Node
         {
             _nextRefreshIn = NextRefreshSeconds;
             RefreshNextLine();
+            RefreshViewToggle();   // provinces 7f (PR41): the door can shut while the map is up
         }
     }
 
@@ -267,6 +327,7 @@ public partial class HudManager : Node
         if (save == null || _layer == null || !_layer.Visible)
         {
             _nextButton.Visible = false;
+            SyncNextStrip();   // provinces 7e
             return;
         }
         var scene = GetTree().CurrentScene;
@@ -279,6 +340,7 @@ public partial class HudManager : Node
             text = FirstLunation.NextLine(save, scene, out tip, out canGo);
         }
         _nextButton.Visible = text != null;
+        SyncNextStrip();   // provinces 7e: the strip shows only with a step
         if (text == null)
         {
             return;
@@ -286,9 +348,268 @@ public partial class HudManager : Node
         if (_nextButton.Text != text)
         {
             _nextButton.Text = text;
+            PulseNext();   // provinces 7e (PR35): a new step pulses once
         }
         _nextButton.TooltipText = tip;
         _nextButton.Disabled = !canGo;
+    }
+
+    // ── The bar's centre (provinces 7e, PR34 and PR35) ───────────────────
+
+    /// <summary>True while the bar is drawn. A screen that lays its own controls over the
+    /// bar's centre follows it, so they hide with the bar (the campus overlay hides it).</summary>
+    public bool BarVisible => _layer != null && _layer.Visible;
+
+    /// <summary>A screen lays its own controls over the bar's centre (the strategic map's
+    /// clock, on its own canvas layer just above the bar's). The bar's date hides, since the
+    /// screen shows its own, and the Next line drops to a strip under the bar's centre. The
+    /// screen gives the centre back with ReleaseCentre when it leaves.</summary>
+    public void ClaimCentre(Node owner)
+    {
+        if (owner == null)
+        {
+            return;
+        }
+        _centreOwner = owner;
+        ApplyCentre();
+    }
+
+    /// <summary>Give the bar's centre back: its date shows again and the Next line returns to
+    /// its place in the bar. Ignored unless <paramref name="owner"/> holds the claim.</summary>
+    public void ReleaseCentre(Node owner)
+    {
+        if (owner == null || owner != _centreOwner)
+        {
+            return;
+        }
+        _centreOwner = null;
+        ApplyCentre();
+    }
+
+    private bool CentreClaimed => _centreOwner != null;
+
+    /// <summary>Put the date and the Next line where the claim says. Waits for BuildBar,
+    /// which calls it again once the bar exists.</summary>
+    private void ApplyCentre()
+    {
+        if (!IsInstanceValid(_nextButton) || !IsInstanceValid(_barRow) || !IsInstanceValid(_nextStrip))
+        {
+            return;
+        }
+        bool claimed = CentreClaimed;
+        if (IsInstanceValid(_lunationLabel))
+        {
+            _lunationLabel.Visible = !claimed;
+        }
+        Node home = claimed ? (Node)_nextStrip : _barRow;
+        if (_nextButton.GetParent() != home)
+        {
+            _nextButton.GetParent()?.RemoveChild(_nextButton);
+            home.AddChild(_nextButton);
+            if (!claimed && _nextSlot >= 0)
+            {
+                _barRow.MoveChild(_nextButton, Mathf.Min(_nextSlot, _barRow.GetChildCount() - 1));
+            }
+        }
+        SyncNextStrip();
+    }
+
+    /// <summary>The strip shows only while a screen holds the centre and there is a step.</summary>
+    private void SyncNextStrip()
+    {
+        if (IsInstanceValid(_nextStrip))
+        {
+            _nextStrip.Visible = CentreClaimed && IsInstanceValid(_nextButton) && _nextButton.Visible;
+        }
+    }
+
+    /// <summary>The strip that holds the Next line while a screen has the bar's centre: hung
+    /// under the bar's middle, in the bar's own fill and violet rule.</summary>
+    private void BuildNextStrip()
+    {
+        _nextStrip = new PanelContainer
+        {
+            AnchorLeft = 0.5f,
+            AnchorTop = 0f,
+            AnchorRight = 0.5f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.Both,
+            OffsetTop = BarHeight,
+            Visible = false,
+        };
+        var style = new StyleBoxFlat
+        {
+            BgColor = UITheme.CampusTitleBarBg,
+            BorderColor = UITheme.CampusTitleBarBorder,
+            BorderWidthLeft = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusBottomLeft = 8,
+            CornerRadiusBottomRight = 8,
+            ContentMarginLeft = 14,
+            ContentMarginRight = 14,
+            ContentMarginTop = 0,
+            ContentMarginBottom = 2,
+        };
+        _nextStrip.AddThemeStyleboxOverride("panel", style);
+        _layer.AddChild(_nextStrip);
+    }
+
+    /// <summary>One pulse when the Next line changes step, so a new step is seen wherever the
+    /// line sits.</summary>
+    private void PulseNext()
+    {
+        Control target = CentreClaimed && IsInstanceValid(_nextStrip) ? (Control)_nextStrip : _nextButton;
+        if (!IsInstanceValid(target) || !target.IsInsideTree())
+        {
+            return;
+        }
+        target.CreateTween()
+              .TweenProperty(target, "modulate", Colors.White, 0.9)
+              .From(new Color(1.8f, 1.6f, 1.0f))
+              .SetTrans(Tween.TransitionType.Sine)
+              .SetEase(Tween.EaseType.Out);
+    }
+
+    // ── The Register's slot (provinces 7f, PR42) ─────────────────────────
+
+    /// <summary>Where the Register's book stands while the bar shows: the slot's rectangle on
+    /// screen. False while the bar is hidden (the prologue, the campus overlay) or not yet laid
+    /// out, and the Register keeps its book on the left edge then.</summary>
+    public bool TryGetRegisterSlot(out Rect2 rect)
+    {
+        rect = new Rect2();
+        if (!BarVisible || !IsInstanceValid(_registerSlot) || !_registerSlot.IsVisibleInTree())
+        {
+            return false;
+        }
+        rect = _registerSlot.GetGlobalRect();
+        return rect.Size.X >= 1f && rect.Size.Y >= 1f;
+    }
+
+    // ── Screen buttons and the view toggle (provinces 7f, PR41) ──────────
+
+    /// <summary>A screen puts a button in the bar's right cluster, before Menu, under a key; the
+    /// same key again replaces it. It goes when the screen calls ReleaseScreenButtons or leaves
+    /// the tree. A screen built before the bar has its buttons placed once the bar exists.</summary>
+    public void SetScreenButton(Node owner, string key, string text, string tooltip, System.Action onPressed)
+    {
+        if (owner == null || string.IsNullOrEmpty(key) || onPressed == null)
+        {
+            return;
+        }
+        if (_screenButtons.TryGetValue(key, out var old) && IsInstanceValid(old.Shown))
+        {
+            old.Shown.QueueFree();
+        }
+        _screenButtons[key] = new ScreenButton { Owner = owner, Text = text, Tooltip = tooltip, OnPressed = onPressed };
+        ApplyScreenButtons();
+    }
+
+    /// <summary>Take away every button <paramref name="owner"/> put in the bar.</summary>
+    public void ReleaseScreenButtons(Node owner)
+    {
+        if (owner == null)
+        {
+            return;
+        }
+        var gone = new System.Collections.Generic.List<string>();
+        foreach (var kv in _screenButtons)
+        {
+            if (kv.Value.Owner == owner)
+            {
+                gone.Add(kv.Key);
+            }
+        }
+        foreach (string key in gone)
+        {
+            var b = _screenButtons[key];
+            if (IsInstanceValid(b.Shown))
+            {
+                b.Shown.QueueFree();
+            }
+            _screenButtons.Remove(key);
+        }
+        SyncScreenSlot();
+    }
+
+    /// <summary>Buttons whose screen left the tree without releasing them go now.</summary>
+    private void ReleaseLostScreenButtons()
+    {
+        var lost = new System.Collections.Generic.List<Node>();
+        foreach (var b in _screenButtons.Values)
+        {
+            if (!IsInstanceValid(b.Owner) || !b.Owner.IsInsideTree())
+            {
+                lost.Add(b.Owner);
+            }
+        }
+        foreach (var owner in lost)
+        {
+            ReleaseScreenButtons(owner);
+        }
+    }
+
+    /// <summary>Put every screen button that is not on the bar yet on it. Waits for BuildBar,
+    /// which calls it again once the bar exists.</summary>
+    private void ApplyScreenButtons()
+    {
+        if (!IsInstanceValid(_screenSlot))
+        {
+            return;
+        }
+        foreach (var b in _screenButtons.Values)
+        {
+            if (IsInstanceValid(b.Shown))
+            {
+                continue;
+            }
+            bool glyph = (b.Text ?? "").Length <= 2;
+            var btn = new Button
+            {
+                Text = b.Text ?? "",
+                TooltipText = b.Tooltip ?? "",
+                CustomMinimumSize = new Vector2(glyph ? 44 : 96, 0),
+            };
+            btn.AddThemeFontSizeOverride("font_size", glyph ? UITheme.CampusBodyFontSize : UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(btn, isPrimary: false);
+            var press = b.OnPressed;
+            btn.Pressed += () => press();
+            _screenSlot.AddChild(btn);
+            b.Shown = btn;
+        }
+        SyncScreenSlot();
+    }
+
+    private void SyncScreenSlot()
+    {
+        if (IsInstanceValid(_screenSlot))
+        {
+            _screenSlot.Visible = _screenButtons.Count > 0;
+        }
+    }
+
+    /// <summary>Return to Campus, read for the screen: on the strategic map it is that screen's
+    /// view toggle (Home city on the world, World map in a city), elsewhere the warp home. From
+    /// RefreshVisibility, the bar's half-second tick, and the strategic map's chrome refresh.</summary>
+    public void RefreshViewToggle()
+    {
+        if (!IsInstanceValid(_returnButton))
+        {
+            return;
+        }
+        string text = "Return to Campus", tip = "";
+        bool disabled = false;
+        if (GetTree()?.CurrentScene is StrategicView sv && IsInstanceValid(sv))
+        {
+            sv.HomeToggleState(out text, out tip, out disabled);
+        }
+        if (_returnButton.Text != text)
+        {
+            _returnButton.Text = text;
+        }
+        _returnButton.TooltipText = tip;
+        _returnButton.Disabled = disabled;
     }
 
     /// <summary>Update the resource labels when their values change. Cheap
@@ -384,6 +705,13 @@ public partial class HudManager : Node
         {
             _returnButton.Visible = ShouldShowReturnToCampus();
         }
+        RefreshViewToggle();          // provinces 7f (PR41)
+        ReleaseLostScreenButtons();   // provinces 7f (PR41): a screen that left without releasing them
+        // Provinces 7e: a screen that left without giving the centre back gives it now.
+        if (_centreOwner != null && (!IsInstanceValid(_centreOwner) || !_centreOwner.IsInsideTree()))
+        {
+            ReleaseCentre(_centreOwner);
+        }
         RefreshNextLine();
     }
 
@@ -393,11 +721,12 @@ public partial class HudManager : Node
     private bool ShouldShowReturnToCampus()
     {
         var current = GetTree().CurrentScene;
-        // City view IS home (2026-08-19 hub): the warp is moot there, and the bar now
-        // stays visible in city view, so gate the button on the atlas state directly.
-        if (current is StrategicView sv && sv.InCityView)
+        // City view IS home (2026-08-19 hub). Since provinces 7f (PR41) the button is the
+        // strategic map's view toggle (Home city on the world, World map in a city), shown in
+        // both views.
+        if (current is StrategicView)
         {
-            return false;
+            return true;
         }
         string lower = (current?.SceneFilePath ?? "").ToLower();
         if (lower.Contains("campus") || lower.Contains("expedition") ||

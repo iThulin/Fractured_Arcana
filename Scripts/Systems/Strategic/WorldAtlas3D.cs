@@ -888,6 +888,7 @@ public partial class WorldAtlas3D : Node3D
         if (_riverLayer != null) _riverLayer.Visible = false;
         if (_roadLayer != null) _roadLayer.Visible = false;
         if (_borderLayer != null) _borderLayer.Visible = false;
+        SetProvinceLayersForCity(true);   // provinces 7d: province ink, rim and names
         foreach (var m in _cityHiddenMarkers)
             if (m != null && IsInstanceValid(m)) m.Visible = false;
         _camera.Near = 0.02f;   // let the camera get in close without slicing tiles
@@ -927,6 +928,7 @@ public partial class WorldAtlas3D : Node3D
         if (_riverLayer != null) _riverLayer.Visible = true;
         if (_roadLayer != null) _roadLayer.Visible = true;
         if (_borderLayer != null) _borderLayer.Visible = true;
+        SetProvinceLayersForCity(false);   // provinces 7d
         foreach (var m in _cityHiddenMarkers)
             if (m != null && IsInstanceValid(m)) m.Visible = true;
         if (_camera != null) { _camera.Near = 0.05f; _camera.Far = 600f; }
@@ -1133,7 +1135,9 @@ public partial class WorldAtlas3D : Node3D
             Environment = new Godot.Environment
             {
                 BackgroundMode = Godot.Environment.BGMode.Color,
-                BackgroundColor = UITheme.WorldDeep,
+                // Provinces 7f (PR39): the desk's darkest wood, for whatever lies past the
+                // far plane (WorldAtlas3D.Frame.cs).
+                BackgroundColor = DeskVoid,
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
                 // A4b (exposure fix after user screenshots): the first daylight rig
                 // recreated the Pass-1 failure: fill ~equal to the sun's top-face
@@ -1185,19 +1189,15 @@ public partial class WorldAtlas3D : Node3D
     private Vector3 WorldCenter()
         => new Vector3(_world.Width * ColSpacing * 0.5f, 0f, _world.Height * RowSpacing * 0.5f);
 
-    /// <summary>The zoom distance that makes the whole world FILL the viewport (minimal
-    /// margin), accounting for the viewport aspect: a wide world on a wide screen is
-    /// width-bound, so the vertical ortho size is driven by width/aspect. Falls back to
-    /// 16:9 if the viewport isn't sized yet.</summary>
+    /// <summary>The zoom distance that makes the whole world fill the screen the host's
+    /// panels leave free (provinces 7e, PR31: FitWorldDist in WorldAtlas3D.Frame.cs),
+    /// accounting for the viewport aspect and for the pitch, which shortens the world's
+    /// depth on screen. Falls back to 16:9 if the viewport isn't sized yet.</summary>
     private float OverviewDist()
     {
-        float w = _world.Width * ColSpacing;
-        float h = _world.Height * RowSpacing;
         var vp = GetViewport()?.GetVisibleRect().Size ?? new Vector2(1920f, 1080f);
         float aspect = vp.Y > 1f ? vp.X / vp.Y : 1.7778f;
-        // Vertical ortho size needed to show the whole world; small pad off the border.
-        float fitSize = Mathf.Max(h, w / Mathf.Max(0.1f, aspect)) * 1.04f;
-        return Mathf.Clamp(fitSize / OrthoSizeFactor, CamDistMin, CamDistMax);
+        return FitWorldDist(aspect);
     }
 
     private void FrameWorld()
@@ -1220,9 +1220,7 @@ public partial class WorldAtlas3D : Node3D
         // Pass 2: close zoom sweeps lower (40°) for the cinematic across-the-model shot.
         // (2026-08-13) Middle-mouse orbit can override the auto pitch; yaw
         // rotates the whole rig around the look target.
-        float pitchDeg = _pitchOverrideDeg >= 0f
-            ? _pitchOverrideDeg
-            : Mathf.Lerp(40f, 68f, zoom01);
+        float pitchDeg = PitchDegFor(_camDist);   // provinces 7e: the rule the whole-world fit counts too
         float pitch = Mathf.DegToRad(pitchDeg);
         Vector3 offset = new Vector3(
             Mathf.Sin(_camYaw) * Mathf.Cos(pitch),
@@ -1242,8 +1240,14 @@ public partial class WorldAtlas3D : Node3D
         {
             _camera.Projection = Camera3D.ProjectionType.Perspective;
         }
+        ApplyViewCentre();     // provinces 7e (PR31): the target shows in the middle of the free screen
         ZoomChanged?.Invoke(zoom01);
         UpdateLabelScales();   // keep map labels a constant on-screen size as the zoom changes
+        ApplyPieceNameZoom();  // provinces 7h (fix 6): the pieces' names step aside at the whole-world view
+        UpdateInkWidths();     // provinces 7d: every ink keeps a least width on screen
+        UpdateProvinceNameFade(zoom01);   // provinces 7d: names show only when the camera is close
+        UpdateSettlementMarks();          // provinces 7e (PR32): the marks keep their width and fade close in
+        UpdateSeaByZoom(zoom01);          // provinces 7f (PR36): the sea's glints only close in
     }
 
     /// <summary>True when showing the orthographic strategic map (uniform tile scale,
@@ -1357,19 +1361,22 @@ public partial class WorldAtlas3D : Node3D
         {
             // (2026-08-13) Orbit: yaw from horizontal, pitch from vertical
             // (an explicit pitch sticks until the next big zoom-slaved fly).
-            _camYaw -= mmOrbit.Relative.X * OrbitYawSens;
+            // Provinces 7f (PR37): the pointer moves in render pixels; the rates are per design pixel.
+            _camYaw -= mmOrbit.Relative.X / RenderScale * OrbitYawSens;
             float basePitch = _pitchOverrideDeg >= 0f
                 ? _pitchOverrideDeg
                 : Mathf.Lerp(40f, 68f, Mathf.InverseLerp(CamDistMin, CamDistMax, _camDist));
             _pitchOverrideDeg = Mathf.Clamp(
-                basePitch + mmOrbit.Relative.Y * OrbitPitchSens, PitchMinDeg, PitchMaxDeg);
+                basePitch + mmOrbit.Relative.Y / RenderScale * OrbitPitchSens, PitchMinDeg, PitchMaxDeg);
             PlaceCamera();
         }
         else if (ev is InputEventMouseMotion mm && _dragging)
         {
-            if (mm.Relative.LengthSquared() > 1f)
+            if (mm.Relative.LengthSquared() > RenderScale * RenderScale)
                 _dragMoved = true;
-            float k = _camDist * 0.0012f;
+            // Provinces 7f (PR37): the pointer moves in render pixels, RenderScale of them to a
+            // design pixel, so the pan divides by it to keep its pace under the cursor.
+            float k = _camDist * 0.0012f / RenderScale;
             // Screen-up drags the map away from the camera; divide by sin(pitch) so a
             // vertical drag covers the same GROUND distance as a horizontal one.
             // (2026-08-13) Pan in the CAMERA's ground frame so dragging right
@@ -1382,6 +1389,10 @@ public partial class WorldAtlas3D : Node3D
             ClampTarget();
             PlaceCamera();
         }
+        // The tile under the pointer, for the strategic view's province readout
+        // (docs/provinces_v1.md section 7c). Drags and orbits are taken above.
+        else if (ev is InputEventMouseMotion hoverMotion)
+            UpdateHover(hoverMotion.Position);
         // macOS trackpad: pinch to zoom (a Mac trackpad never sends wheel events, so
         // wheel-only zoom is dead there) and two-finger drag to pan.
         else if (ev is InputEventMagnifyGesture mag)
@@ -1466,7 +1477,8 @@ public partial class WorldAtlas3D : Node3D
         {
             var vp = GetViewport()?.GetVisibleRect().Size ?? new Vector2(1920f, 1080f);
             float size = dist * OrthoSizeFactor;                 // vertical world extent
-            float worldPerPx = size / (vp.Y > 1f ? vp.Y : 1080f);
+            // Provinces 7f (PR37): vp is in render pixels and the shift in design pixels.
+            float worldPerPx = size * RenderScale / (vp.Y > 1f ? vp.Y : 1080f);
             to.X += screenLeftShiftPx * worldPerPx;
         }
         FlyTo(to, dist);
@@ -1674,6 +1686,7 @@ public partial class WorldAtlas3D : Node3D
         // bands, banded sun glints) on the existing prisms. The full welded
         // water plane (combat's WaterPlane port) remains a later upgrade.
         waterMesh.Material = PainterlyPrism.TileMaterial(PainterlyPrism.Water, 0.55f);
+        AdoptSeaMaterial(waterMesh.Material);   // provinces 7f (PR36): no sky band; glints by zoom
 
         var canvasMesh = new CylinderMesh
         {
@@ -1747,7 +1760,15 @@ public partial class WorldAtlas3D : Node3D
         }
 
         _landLayer = new MultiMeshInstance3D { Name = "LandLayer", Multimesh = landMm };
-        _waterLayer = new MultiMeshInstance3D { Name = "WaterLayer", Multimesh = waterMm };
+        // Provinces 7e (PR30): the sea casts no shadow. Thousands of coplanar water slabs
+        // shadowing themselves printed diagonal panes across it, the canvas layer's old
+        // artifact (see its note below). Land still casts onto the sea, so coasts keep theirs.
+        _waterLayer = new MultiMeshInstance3D
+        {
+            Name = "WaterLayer",
+            Multimesh = waterMm,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        };
         _canvasLayer = new MultiMeshInstance3D
         {
             Name = "CanvasLayer",
@@ -1762,6 +1783,7 @@ public partial class WorldAtlas3D : Node3D
         AddChild(_landLayer);
         AddChild(_waterLayer);
         AddChild(_canvasLayer);
+        RebuildDeskAndFrame();   // provinces 7f (PR39): the desk and the frame, where 7e's paper was
     }
 
     /// <summary>Recolor every instance in place (lens switch). Transforms untouched.</summary>
@@ -1778,6 +1800,7 @@ public partial class WorldAtlas3D : Node3D
         }
         if (PreviewActive)
             ApplyWindowTint();
+        RefreshProvinceNames();   // provinces 7d: the numbers follow the lens and the influence
         ApplyRangeOverlay();   // a force's reach, if one is lit (2026-09-29)
     }
 
@@ -1958,7 +1981,9 @@ public partial class WorldAtlas3D : Node3D
             }
         }
         _borderLayer = MakeEdgeLayer("BorderLayer", borders,
-            new Vector3(HexR * 0.98f, 0.02f, 0.06f), Hex3DPalette.BorderInk);
+            new Vector3(HexR * 0.98f, 0.02f, RealmInkWidth), Hex3DPalette.BorderInk);
+        _borderLayer.MaterialOverride = RealmInkMaterial();   // provinces 7d: a least width on screen
+        RebuildProvinceInk();                                 // provinces 7d: province borders on every lens
 
         _riverLayer.Visible = !_cityMode;
         _roadLayer.Visible = !_cityMode;
@@ -2017,9 +2042,11 @@ public partial class WorldAtlas3D : Node3D
             m.QueueFree();
         _markers.Clear();
         _scaledLabels.Clear();        // label nodes live in _markers, just freed above
+        ForgetFramedLabels();         // provinces 7h: the framed and the hidden names went with them
         _labelStack.Clear();
         ResetPickTargets();           // their nodes too
         _cityHiddenMarkers.Clear();   // its nodes live in _markers, just freed above
+        _settlementMarks.Clear();     // provinces 7e: so do the settlement marks'
 
         // POIs: discovered only (or reveal), same rule as StrategicView's POI layer.
         // A7: a flattened DAB of paint on the map rather than a floating ball.
@@ -2104,10 +2131,18 @@ public partial class WorldAtlas3D : Node3D
             {
                 string label = home
                     ? $"{(SaveManager.ActiveSave?.Ledger?.GuildName ?? "Your Guild")} (your seat)"
-                    : SettlementDisplayName(s);
+                    : SeatMapName(s);   // provinces 7h (fix 5): the realm's name, without "Seat"
+                // Provinces 7h (fix 4): 2 percent of the screen's height, the pieces' size.
                 var lbl = StackedLabel(new Vector2I(s.CenterX, s.CenterY), label, c,
-                                       MarkerPos(s.CenterX, s.CenterY, side + 1.4f), 88, 0.028f);
+                                       MarkerPos(s.CenterX, s.CenterY, side + 1.4f), SeatLabelFont, SeatLabelFrac);
+                // Provinces 7e (PR32): the name stands above its seat's mark, and labels stacked
+                // after it on this tile (the pieces) start half a line higher to clear it.
+                lbl.VerticalAlignment = VerticalAlignment.Bottom;
+                var seatTile = new Vector2I(s.CenterX, s.CenterY);
+                if (_labelStack.TryGetValue(seatTile, out var stacked))
+                    _labelStack[seatTile] = (stacked.anchor, stacked.frac + SeatLabelFrac * 0.5f);
                 AddMarker(lbl);
+                FrameLabel(lbl);   // provinces 7h (fix 3): kept inside the frame on screen
                 if (home)
                 {
                     // Tracked so city view can hide the seat block + label. Zoomed in, they'd
@@ -2117,6 +2152,9 @@ public partial class WorldAtlas3D : Node3D
                     block.Visible = lbl.Visible = !_cityMode;
                 }
             }
+            // Provinces 7e (PR32): the settlement's map mark, after its block and its name so
+            // the block's visibility is settled first.
+            AddSettlementMark(s.CenterX, s.CenterY, home, s.IsSeat, city, block);
         }
 
         // Staging points: gold beacons (the launch options the strategic view deploys
@@ -2238,8 +2276,12 @@ public partial class WorldAtlas3D : Node3D
             AddMarker(MakeLabel("⚔ War", UITheme.Danger, MarkerPos(wf.X, wf.Y, 5.9f)));
         }
 
+        // Provinces 7d: the names, before the pieces and the dispatch marks.
+        AddProvinceNames();
+
         // LAST, so the pieces draw over the places they are standing on.
         BuildPieceMarkers();
+        ApplyPieceNameZoom();   // provinces 7h (fix 6): new names follow the zoom at once
         // And the selected force's destinations over everything (2026-09-28).
         BuildDispatchMarks();
     }
@@ -3079,8 +3121,13 @@ public partial class WorldAtlas3D : Node3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             NoDepthTest = true,
             FontSize = fontSize,
+            Font = MapLabelFont(),   // provinces 7f (PR38): the project's font with mipmaps (or null: the default)
             Modulate = color,
-            OutlineSize = 10,
+            // Provinces 7e (PR33): a halo about 30 percent of the glyph, in near-black ink, so
+            // a name reads over snow and over gold. Labels with a style of their own (the
+            // province names) set theirs after.
+            OutlineSize = LabelHaloSize(fontSize),
+            OutlineModulate = LabelHaloInk,
             // Linear + mipmaps so labels don't render pixelated/aliased when minified at
             // whole-world zoom (the default nearest filter shimmered).
             TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
@@ -3107,6 +3154,11 @@ public partial class WorldAtlas3D : Node3D
         if (stackFrac > 0f && _camera != null)
         {
             lbl.Position = anchor + _camera.GlobalTransform.Basis.Y * (orthoSize * stackFrac);
+        }
+        // Provinces 7h (fix 3): a framed name is placed again, inside the frame's inner edge.
+        if (_framedLabels.Count > 0 && _framedLabels.Contains(lbl))
+        {
+            KeepInsideFrame(lbl, anchor, stackFrac, orthoSize);
         }
     }
 
@@ -3141,7 +3193,7 @@ public partial class WorldAtlas3D : Node3D
         // Charted is the UNDERPAINTING: a flat pale wash with the terrain hue
         // faintly present: known shape, not yet painted in.
         if (discovery == TileDiscovery.Charted)
-            return Jitter(Hex3DPalette.Underpaint(LensBaseColor(t)), col, row, 0.02f);
+            return Jitter(Hex3DPalette.Underpaint(LensBaseColor(t)), col, row, t.IsWater ? 0f : 0.02f);
 
         Color c = LensColor(t);
         // Provinces (docs/provinces_v1.md, PV1): the Political lens shows the partition.
@@ -3160,7 +3212,8 @@ public partial class WorldAtlas3D : Node3D
         if (t.SettlementIndex >= 0 && t.SettlementIndex < _world.Settlements.Count
             && _world.Settlements[t.SettlementIndex].Tier == SettlementTier.City)
             c = CityRegionTint;
-        return Jitter(c, col, row, Hex3DPalette.JitterAmp(t));
+        // Provinces 7f (PR36): the sea reads as one surface, so no per-tile wobble on it.
+        return Jitter(c, col, row, t.IsWater ? 0f : Hex3DPalette.JitterAmp(t));
     }
 
     /// <summary>True when any hex neighbor of an Unseen tile has been discovered:
@@ -3248,33 +3301,16 @@ public partial class WorldAtlas3D : Node3D
     /// share a border take different tones, so they read apart without a new hue.</summary>
     private static readonly float[] ProvinceToneScale = { 1.00f, 0.90f, 1.08f, 0.82f };
 
-    /// <summary>How much darker a province-border tile draws.</summary>
-    private const float ProvinceBorderShade = 0.30f;
-
-    /// <summary>Shade a Political-lens color by its tile's province: the province's
-    /// tone, and darker where the province meets a lower-numbered province of the same
-    /// kingdom, so each border inside a kingdom draws as one line of tiles. A border
-    /// between kingdoms already reads as a change of hue and is left alone. A world
-    /// without provinces draws as before.</summary>
+    /// <summary>Shade a Political-lens color by its tile's province tone. The borders
+    /// between provinces are drawn as ink on every lens (section 7d,
+    /// WorldAtlas3D.Provinces.cs), so no tile is darkened for them. A world without
+    /// provinces draws as before.</summary>
     private Color ProvinceShade(Color c, int col, int row)
     {
         int pi = _world.ProvinceIndexAt(col, row);
         if (pi < 0)
             return c;
-        var province = _world.Provinces[pi];
-        float k = ProvinceToneScale[province.Tone & 3];
-        var (q, r) = HexCoord.OffsetToAxial(col, row);
-        for (int i = 0; i < 6; i++)
-        {
-            var (dq, dr) = HexCoord.AxialDirections[i];
-            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
-            int ni = _world.ProvinceIndexAt(nc, nr);
-            if (ni >= 0 && ni < pi && _world.Provinces[ni].KingdomId == province.KingdomId)
-            {
-                k *= 1f - ProvinceBorderShade;
-                break;
-            }
-        }
+        float k = ProvinceToneScale[_world.Provinces[pi].Tone & 3];
         return new Color(
             Mathf.Clamp(c.R * k, 0f, 1f),
             Mathf.Clamp(c.G * k, 0f, 1f),
@@ -3283,14 +3319,12 @@ public partial class WorldAtlas3D : Node3D
     }
 
     // ── Provinces on the Reach lens (docs/provinces_v1.md section 7b, PV2a) ──
-    /// <summary>How much gold a held province's edge tiles take.</summary>
-    private const float HeldEdgeGold = 0.65f;
-
-    /// <summary>The Reach lens per province: the realm's standing colour, filled from
-    /// the void in proportion to the guild's influence in the province, so a province
-    /// worked to 40 reads apart from the untouched ones around it. A held province's
-    /// edge tiles (those with a neighbour outside it) draw in gold. Water, and land in
-    /// no province, keep the kingdom read.</summary>
+    /// <summary>The Reach lens per province (section 7d): over the quiet base that
+    /// ReachLensColor draws, the guild's blue in steps keyed to the rules, read from
+    /// ProvinceInfluence.BandOf. Growing (1 to 39) washes lightly, deeper with the
+    /// number; Ready (40 or more, not held) washes strongly; a held province is gold, and
+    /// one held but below 60 keeps the strong wash with its edge tiles gold. Water, and
+    /// land in no province, keep the base.</summary>
     private Color ProvinceReach(Color c, in WorldTile t, int col, int row)
     {
         if (t.IsWater)
@@ -3299,15 +3333,21 @@ public partial class WorldAtlas3D : Node3D
         if (pi < 0)
             return c;
         var province = _world.Provinces[pi];
-        var stance = KingdomStance.Neutral;
-        var cyc = SaveManager.ActiveSave?.Cycle;
-        if (cyc != null && !string.IsNullOrEmpty(province.KingdomId))
-            stance = CouncilQueries.StanceFor(cyc, province.KingdomId);
-        Color voidDim = new Color(0.10f, 0.10f, 0.13f);
-        Color fill = voidDim.Lerp(StanceColor(stance), Mathf.Clamp(province.Influence, 0, 100) / 100f);
-        if (province.Held && OnProvinceEdge(col, row, pi))
-            fill = fill.Lerp(UITheme.Gold, HeldEdgeGold);
-        return fill;
+        switch (ProvinceInfluence.BandOf(province))
+        {
+            case ProvinceInfluence.Band.Held:
+                return c.Lerp(UITheme.Gold, ReachGold);
+            case ProvinceInfluence.Band.HeldSlipping:
+                Color slipping = c.Lerp(UITheme.ArcaneBlue, ReachStrong);
+                return OnProvinceEdge(col, row, pi) ? slipping.Lerp(UITheme.Gold, ReachEdgeGold) : slipping;
+            case ProvinceInfluence.Band.Ready:
+                return c.Lerp(UITheme.ArcaneBlue, ReachStrong);
+            case ProvinceInfluence.Band.Growing:
+                float grown = Mathf.Clamp((province.Influence - 1) / (float)Mathf.Max(1, ProvinceInfluence.PassiveCap - 2), 0f, 1f);
+                return c.Lerp(UITheme.ArcaneBlue, Mathf.Lerp(ReachGrowFrom, ReachGrowTo, grown));
+            default:
+                return c;
+        }
     }
 
     /// <summary>True when any neighbour of the tile lies outside its province: another
@@ -3336,33 +3376,18 @@ public partial class WorldAtlas3D : Node3D
         return k < 0.5f ? clean.Lerp(mid, k / 0.5f) : mid.Lerp(hot, (k - 0.5f) / 0.5f);
     }
 
+    /// <summary>The Reach lens's ground (section 7d): the Political colour quieted, its
+    /// saturation cut and moved toward the canvas, so untouched land reads as known
+    /// ground and the guild's blue and gold read on any realm. Water keeps its Political
+    /// colour. The court's stance left this lens for the province readout.</summary>
     private Color ReachLensColor(in WorldTile t)
     {
+        Color c = PoliticalLensColor(t);
         if (t.IsWater)
-            return UITheme.TerrainWater.Darkened(0.55f);
-        int influence = 0;
-        var stance = KingdomStance.Neutral;
-        if (!string.IsNullOrEmpty(t.KingdomId))
-        {
-            if (_kingdoms != null && _kingdoms.TryGetValue(t.KingdomId, out var ks))
-                influence = Mathf.Clamp(ks.PlayerInfluence, 0, 100);
-            var cyc = SaveManager.ActiveSave?.Cycle;
-            if (cyc != null)
-                stance = CouncilQueries.StanceFor(cyc, t.KingdomId);
-        }
-        Color voidDim = new Color(0.10f, 0.10f, 0.13f);
-        return voidDim.Lerp(StanceColor(stance), influence / 100f);
+            return c;
+        c.ToHsv(out float hue, out float sat, out float val);
+        return Color.FromHsv(hue, sat * ReachBaseSaturation, val, 1f).Lerp(UITheme.CanvasUnseen, ReachBaseToCanvas);
     }
-
-    private static Color StanceColor(KingdomStance s) => s switch
-    {
-        KingdomStance.Hostile    => new Color(0.75f, 0.24f, 0.22f),
-        KingdomStance.Unfriendly => new Color(0.80f, 0.46f, 0.22f),
-        KingdomStance.Neutral    => new Color(0.48f, 0.50f, 0.55f),
-        KingdomStance.Friendly   => new Color(0.28f, 0.62f, 0.60f),
-        KingdomStance.Allied     => new Color(0.30f, 0.72f, 0.40f),
-        _                        => new Color(0.48f, 0.50f, 0.55f),
-    };
 
     private static float TerrainLuminance(TT t) => t switch
     {

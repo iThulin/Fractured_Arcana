@@ -13,6 +13,11 @@ import hashlib
 import sys
 from pathlib import Path
 
+# The dashes the house style bans, built from code points so this file carries none.
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
+ESCAPED_EM_DASH = "\\" + "u2014"
+
 
 def blob(data: bytes) -> str:
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
@@ -198,7 +203,7 @@ def main() -> None:
                 fail(f"{rel}: anchor found {count} times: {anchor.splitlines()[0]!r}")
             if not new.isascii():
                 fail(f"{rel}: replacement is not ASCII")
-            if "—" in new or "–" in new or "\\u2014" in new:
+            if EM_DASH in new or EN_DASH in new or ESCAPED_EM_DASH in new:
                 fail(f"{rel}: replacement carries a dash the house style bans")
             for o, c in PAIRS:
                 d_open = new.count(o) - anchor.count(o)

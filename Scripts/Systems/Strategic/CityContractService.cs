@@ -148,9 +148,10 @@ public static class CityContractService
     // ═════════════════════════════════════════════════════════════════════
 
     /// <summary>Pay out a completed contract at its board and remove the posting:
-    /// gold now, and word of dependable work reaching the kingdom's court
-    /// (Steward-routed echo, minor positive). Returns the echo's toast line
-    /// (null when the kingdom has no court).</summary>
+    /// gold now, a deed in the city's province (provinces PV2b-1), and word of
+    /// dependable work reaching the kingdom's court (Steward-routed echo, minor
+    /// positive). Returns the echo's toast line (null when the kingdom has no
+    /// court).</summary>
     public static string TurnIn(CycleState cycle, CityContractBoardState board, CityContract c)
     {
         if (cycle == null || board == null || c == null || !c.Completed)
@@ -159,6 +160,10 @@ public static class CityContractService
         var save = SaveManager.ActiveSave;
         if (save != null) save.Gold += c.GoldReward;
         board.Offers.Remove(c);
+        // Provinces PV2b-1 (docs/provinces_v1_7g_deeds_and_courts.md): dependable work for a
+        // city is a deed in the city's province, weighed by its realm's court.
+        if (TryBoardCenter(board, out int cityX, out int cityY))
+            ProvinceInfluence.Deed(cycle, cityX, cityY, ProvinceInfluence.ContractGain);
         SaveManager.MarkDirty();
 
         return CouncilEcho.EmitDeed(cycle, BoardKingdom(board),
@@ -191,6 +196,24 @@ public static class CityContractService
         if (board == null) return "";
         int i = board.CityId.IndexOf(':');
         return i <= 0 ? "" : board.CityId.Substring(0, i);
+    }
+
+    /// <summary>The tile of a board's city: the centre its CityId carries after the
+    /// kingdom ("{KingdomId}:{Cx},{Cy}"). False for an id that carries none.</summary>
+    public static bool TryBoardCenter(CityContractBoardState board, out int x, out int y)
+    {
+        x = -1;
+        y = -1;
+        if (board == null || string.IsNullOrEmpty(board.CityId))
+            return false;
+        int colon = board.CityId.IndexOf(':');
+        if (colon < 0)
+            return false;
+        string[] parts = board.CityId.Substring(colon + 1).Split(',');
+        var invariant = System.Globalization.CultureInfo.InvariantCulture;
+        return parts.Length == 2
+            && int.TryParse(parts[0], System.Globalization.NumberStyles.Integer, invariant, out x)
+            && int.TryParse(parts[1], System.Globalization.NumberStyles.Integer, invariant, out y);
     }
 
     private static int KingdomTier(CycleState cycle, string kingdomId)

@@ -42,6 +42,12 @@ using System.Text;
 //
 //                 Fire() is safe from anywhere: with no instance
 //                 (headless asserts, tools) it does nothing.
+//
+//                 Provinces 7f (PR42): the book stands in the global
+//                 bar's slot while the bar shows, else on the left edge.
+//                 A screen may claim a region (ClaimRegion); the slip and
+//                 the margin notes then open only inside it. Nothing new
+//                 is built: the same nodes are only placed elsewhere.
 // Layer:          System (autoload)
 // Collaborators:  RegisterBarks.cs (data), RegisterBookGlyph.cs,
 //                 SettingsManager.cs (toggles), SaveManager /
@@ -67,6 +73,11 @@ public partial class RegisterManager : Node
     private const float FadeSeconds = 0.5f;
     private const float DockLeft = 16f;
     private const float DockTopFraction = 0.36f;   // of the viewport height
+
+    // Provinces 7f (PR42): the region a screen claimed (ClaimRegion), in the UI's pixels.
+    private Node _regionOwner;
+    private Rect2 _region;
+    private bool _regionGrowsUp;
 
     // ── Persistent UI (built once; see the lifetime rule above) ─────────
     private CanvasLayer _layer;
@@ -139,6 +150,27 @@ public partial class RegisterManager : Node
     /// <summary>True when the explanation behind <paramref name="key"/> has already been shown.</summary>
     public static bool HasSeen(string key) => Instance != null && Instance.IsSeen(key);
 
+    /// <summary>A screen gives the Register a region of its own (provinces 7f, PR42), in the UI's
+    /// pixels: the slip and the margin notes open only inside it, from its top (or, with
+    /// <paramref name="growUp"/>, from its foot). The newest claim wins. It ends with
+    /// ReleaseRegion, or when the owner leaves the tree.</summary>
+    public static void ClaimRegion(Node owner, Rect2 region, bool growUp)
+    {
+        if (Instance == null || owner == null)
+            return;
+        Instance._regionOwner = owner;
+        Instance._region = region;
+        Instance._regionGrowsUp = growUp;
+    }
+
+    /// <summary>Give the region back. Ignored unless <paramref name="owner"/> holds it.</summary>
+    public static void ReleaseRegion(Node owner)
+    {
+        if (Instance == null || owner == null || Instance._regionOwner != owner)
+            return;
+        Instance._regionOwner = null;
+    }
+
     /// <summary>The prologue's register mode (docs/prologue_script_v1.md §4.1): "trial" from
     /// new game until the Sundering, "sundering" for that fight, empty from the Long Second
     /// on. Set by the intro director (C4). The chronicle scheduler is silent while it is set
@@ -190,6 +222,7 @@ public partial class RegisterManager : Node
         _book.Pending = _explainQueue.Count > 0 && (_slipBark == null || _slipBark.Category != RegisterCategory.Explain);
         if (hidden)
             return;
+        PlaceDock();   // provinces 7f (PR42): the book in the bar, the slip in its region
 
         // A timed remark runs out: fade, then hide (FinishFade).
         if (SlipShowing && _voiceExpireAtMs > 0 && Time.GetTicksMsec() >= _voiceExpireAtMs)
@@ -437,12 +470,99 @@ public partial class RegisterManager : Node
 
     private void PlaceAll()
     {
-        float top = Mathf.Round(ViewportSize.Y * DockTopFraction);
-        _book.Position = new Vector2(DockLeft, top);
-        var beside = new Vector2(DockLeft + RegisterBookGlyph.GlyphSize + 10f, top);
-        _slip.Position = beside;
-        _history.Position = beside;
-        _historyText.CustomMinimumSize = new Vector2(SlipWidth + 12f, Mathf.Min(520f, ViewportSize.Y * 0.5f));
+        // Provinces 7h (fix 1): the notes' list is sized to its area by FitHistoryTo, in PlaceDock.
+        PlaceDock();
+    }
+
+    /// <summary>Provinces 7f (PR42), every frame while shown: the book in the global bar's slot
+    /// while the bar shows, else on the left edge a third down (as before); the slip and the
+    /// margin notes in the current screen's region, else on the left edge at that height
+    /// (beside the book when the book is there). Their sizes follow their text, so this follows
+    /// them rather than placing once.</summary>
+    private void PlaceDock()
+    {
+        Vector2 vp = ViewportSize;
+        float glyph = RegisterBookGlyph.GlyphSize;
+        float dockTop = Mathf.Round(vp.Y * DockTopFraction);
+        Vector2 book;
+        bool inBar = false;
+        var hud = HudManager.Instance;
+        if (hud != null && IsInstanceValid(hud) && hud.TryGetRegisterSlot(out Rect2 slot))
+        {
+            book = (slot.Position + (slot.Size - new Vector2(glyph, glyph)) * 0.5f).Round();
+            inBar = true;
+        }
+        else
+            book = new Vector2(DockLeft, dockTop);
+        if (_book.Position != book)
+            _book.Position = book;
+
+        Rect2 area;
+        bool growUp;
+        if (RegionLive())
+        {
+            area = _region;
+            growUp = _regionGrowsUp;
+        }
+        else
+        {
+            float x = inBar ? DockLeft : DockLeft + glyph + 10f;
+            area = new Rect2(x, dockTop, SlipWidth + 40f, Mathf.Max(0f, vp.Y - dockTop - 16f));
+            growUp = false;
+        }
+        FitHistoryTo(area);
+        PlaceIn(_slip, area, growUp, vp);
+        PlaceIn(_history, area, growUp, vp);
+    }
+
+    /// <summary>The newest claim, while its owner is still in the tree.</summary>
+    private bool RegionLive()
+    {
+        if (_regionOwner == null)
+            return false;
+        if (!IsInstanceValid(_regionOwner) || !_regionOwner.IsInsideTree())
+        {
+            _regionOwner = null;
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>One shown panel at the region's top, or at its foot when it grows up, kept on
+    /// screen.</summary>
+    private static void PlaceIn(Control panel, Rect2 area, bool growUp, Vector2 vp)
+    {
+        if (panel == null || !panel.Visible)
+            return;
+        float h = panel.Size.Y;
+        float y = growUp ? area.End.Y - h : area.Position.Y;
+        y = Mathf.Clamp(y, 8f, Mathf.Max(8f, vp.Y - h - 8f));
+        var at = new Vector2(Mathf.Round(area.Position.X), Mathf.Round(y));
+        if (panel.Position != at)
+            panel.Position = at;
+    }
+
+    /// <summary>The margin notes' list at its tallest, as before provinces 7h.</summary>
+    private const float HistoryListCap = 520f;
+    /// <summary>The list at its shortest, a few notes, however small the area.</summary>
+    private const float HistoryListFloor = 120f;
+
+    /// <summary>Provinces 7h (fix 1): the notes' list takes what the area leaves after the
+    /// panel's header, footer and padding, so the panel ends inside it. With the list alone
+    /// 520 tall, the panel ran 59 design pixels past the strategic map's 520 pixel region.
+    /// Every frame, from PlaceDock; it changes the list only when the answer changes.</summary>
+    private void FitHistoryTo(Rect2 area)
+    {
+        if (_history == null || _historyText == null)
+            return;
+        float cap = Mathf.Min(HistoryListCap, ViewportSize.Y * 0.5f);
+        float chrome = Mathf.Max(0f, _history.GetCombinedMinimumSize().Y - _historyText.GetCombinedMinimumSize().Y);
+        float list = Mathf.Round(Mathf.Clamp(area.Size.Y - chrome, Mathf.Min(HistoryListFloor, cap), cap));
+        var want = new Vector2(SlipWidth + 12f, list);
+        if (_historyText.CustomMinimumSize == want)
+            return;
+        _historyText.CustomMinimumSize = want;
+        _history.ResetSize();
     }
 
     // ════════════════════════════════════════════════════════════════════════

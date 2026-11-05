@@ -24,6 +24,11 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
+# The dashes the house style bans, built from code points so this file carries none.
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
+ESCAPED_EM_DASH = "\\" + "u2014"
+
 
 def blob(data: bytes) -> str:
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
@@ -88,7 +93,7 @@ EDITS = [
 """,
             ),
             (
-                r"""    /// <summary>1–3 difficulty tier, derived at generation from distance to
+                r"""    /// <summary>1""" + EN_DASH + r"""3 difficulty tier, derived at generation from distance to
     /// the player's start. Replaces the deleted completedRegions ramp as the
     /// per-province difficulty floor.</summary>
 """,
@@ -98,7 +103,7 @@ EDITS = [
 """,
             ),
             (
-                r"""    /// <summary>Zone-of-influence value 0–100. Raised by outposts, resolved
+                r"""    /// <summary>Zone-of-influence value 0""" + EN_DASH + r"""100. Raised by outposts, resolved
     /// landmarks, Allied stance, archmage resolution. Painted on the map.</summary>
     public int PlayerInfluence = 0;
 """,
@@ -441,7 +446,7 @@ def check_text(name: str, text: str) -> None:
     bad = sorted({c for c in text if ord(c) > 127 and not (0x2500 <= ord(c) <= 0x257F)})
     if bad:
         fail(f"{name} carries characters outside ASCII and box drawing: {bad!r}")
-    if "—" in text or "\\u2014" in text or "–" in text:
+    if EM_DASH in text or ESCAPED_EM_DASH in text or EN_DASH in text:
         fail(f"{name} carries a dash the house style bans")
 
 
@@ -491,7 +496,7 @@ def main() -> None:
             bad = added_chars_ok(anchor, new)
             if bad:
                 fail(f"{rel}: replacement adds characters outside ASCII and box drawing: {bad!r}")
-            if "—" in new or "–" in new or "\\u2014" in new:
+            if EM_DASH in new or EN_DASH in new or ESCAPED_EM_DASH in new:
                 fail(f"{rel}: replacement carries a dash the house style bans")
             for o, c in PAIRS:
                 d_open = new.count(o) - anchor.count(o)

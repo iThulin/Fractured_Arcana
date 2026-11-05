@@ -138,6 +138,15 @@ public class CourtierState
     /// <summary>The Astrologer's rival agent (§9). Never true at
     /// generation; manifests during play at kingdom corruption 2.</summary>
     public bool IsCorruptedAgent = false;
+
+    /// <summary>The courtier's estate (provinces PR14,
+    /// docs/provinces_v1_7g_deeds_and_courts.md): the Id of a province of
+    /// their realm, where their Regard keeps the guild's influence from
+    /// fading and their ill will halves its deeds. Empty until
+    /// ProvinceInfluence.Sync gives it; given once and never moved.
+    /// Additive: a court from before provinces gets its estates at the
+    /// first sync.</summary>
+    public string EstateProvinceId = "";
 }
 
 /// <summary>

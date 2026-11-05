@@ -144,7 +144,9 @@ public static class KingdomTickSimulation
 
             // ── 1. Stability drift ──────────────────────────────────────────
             int delta = -myCorr * StabilityDecayPerCorruptionLevel;
-            if (k.PlayerInfluence >= InfluenceStabilizeThreshold)
+            // Provinces PR22 (built on its default, docs/provinces_v1_7g_deeds_and_courts.md
+            // section 10): a realm where the guild holds a province steadies as one at 40 did.
+            if (k.PlayerInfluence >= InfluenceStabilizeThreshold || ProvinceInfluence.HoldsAny(world, kid))
                 delta += StabilityFromInfluence;
             if (myCorr == 0 && k.Stability < StabilityBaseline)
                 delta += StabilityHealPerLunation;
@@ -463,6 +465,9 @@ public static class KingdomTickSimulation
                 break;
 
             case WarfrontSide.Aid:
+                // Provinces PR20 (docs/provinces_v1_7g_deeds_and_courts.md section 8): marching with
+                // the invader, won or lost, costs Regard at a court that welcomed the guild.
+                ProvinceCourts.Betrayal(cycle, wf.DefenderKingdomId);
                 wf.Advance += success ? WarfrontWinSwing : -WarfrontLossSwing;
                 cycle.PendingSiegeReports.Add(success
                     ? $"You spearhead the assault on {defName}."
