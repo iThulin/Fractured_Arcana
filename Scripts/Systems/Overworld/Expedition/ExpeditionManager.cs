@@ -7925,6 +7925,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             return false;
 
         _world.Tiles[idx].Terrain = opened;
+        // Provinces 7i (PR50): water opened into land joins the nearest province.
+        if (opened == OverworldHex.TerrainType.Marsh)
+            ProvinceBenefits.JoinOpenedLand(_world, col, row);
         if (_grid.Hexes.TryGetValue(local, out var hexNode))
         {
             hexNode.Terrain = opened;

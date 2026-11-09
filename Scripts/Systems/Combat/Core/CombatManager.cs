@@ -197,6 +197,7 @@ public partial class CombatManager : Node3D
         InstallAnchorHooks(); // Temporal Anchor lethal save
         InstallEnchanterHooks(); // Names break on walk; breaks feed the Weave
         InstallLeafHooks();      // Arcanist leaf: on-demand recital
+        InstallAnnotatorHooks(); // Arcanist: Purloin's seam
         EnsureAimLines();     // ranged-intent arcs: the node is built here, once
 
         // Wire up helper nodes
@@ -1128,8 +1129,9 @@ public partial class CombatManager : Node3D
                 }
                 else
                 {
-                    // The armed bar action, a modifier shortcut, or the default strike.
-                    if (TryArmedOrDefaultAction(unit))
+                    // The armed bar action, a modifier shortcut, or the default strike,
+                    // never at one of the guild's own troop lines (provinces PV7).
+                    if (!IsFieldedLine(unit) && TryArmedOrDefaultAction(unit))
                         return;
                     InspectEnemy(unit);
                 }
@@ -2735,6 +2737,7 @@ public partial class CombatManager : Node3D
         }
         ApplyStationBonuses();   // castle_defense_v1: manned stations at turn start
         ApplyArrivalShock();     // castle_defense_v1: the wizard's arrival turn has no AP
+        PlanTroopIntents();      // provinces PV7: the lines show what they will do
 
 
         // ── Board-wide upkeep: ONCE per round, not once per party member ──────────
@@ -2986,6 +2989,7 @@ public partial class CombatManager : Node3D
         }
 
         await RunConstructPhase();   // ← only on the path that hands off to the enemy
+        await RunTroopPhase();       // provinces PV7: the lines do what they showed
         await RunSunderingVolleys(); // S1: the faculty and the class cast (CombatManager.Sundering.cs)
 
         StartEnemyTurn();
@@ -3171,9 +3175,12 @@ public partial class CombatManager : Node3D
                 }
                 if (tt.anyTile)
                 {
-                    // Borrowed Will: any tile in reach but its own, occupied or not.
-                    if (td.Axial != victim.CurrentTile.Axial
-                        && grid.Distance(victim.CurrentTile.Axial, td.Axial) <= tt.destRange)
+                    // Borrowed Will: any tile in reach of the victim but its own, occupied
+                    // or not. Purloin (from_caster): any tile in reach of the caster.
+                    var origin = tt.fromCaster && selectedUnit?.CurrentTile != null
+                        ? selectedUnit.CurrentTile.Axial : victim.CurrentTile.Axial;
+                    if ((tt.fromCaster || td.Axial != victim.CurrentTile.Axial)
+                        && grid.Distance(origin, td.Axial) <= tt.destRange)
                         yield return td.Axial;
                     continue;
                 }
@@ -4341,6 +4348,7 @@ public partial class CombatManager : Node3D
             EncounterRouter.Instance.SavedCombatFamilyKills =
                 new Dictionary<string, int>(_marginaliaFightTally);
 
+        RecordTroopsAfterFight(true);   // provinces PV7: the lines' losses and their battle
         RecordWizardEndHealth();   // C4: the duel's clean verdict
         EmitSignal(SignalName.CombatCompleted, true);
         return true;
@@ -4361,6 +4369,7 @@ public partial class CombatManager : Node3D
             EncounterRouter.Instance.SavedCombatFamilyKills =
                 new Dictionary<string, int>();
 
+        RecordTroopsAfterFight(false);   // provinces PV7: the lines' losses and their battle
         RecordWizardEndHealth();
         EmitSignal(SignalName.CombatCompleted, false);
         return true;
@@ -4980,6 +4989,7 @@ public partial class CombatManager : Node3D
         // loop above: the ward must not consume a companion_N loadout slot.
         SpawnObjectiveWard();
         TranslocateWizardOut();   // castle_defense_v1: the wizard arrives late
+        FieldGarrison();          // provinces PV7: the army stands garrison on the deck
 
         if (playerUnits.Count == 0)
         {
@@ -6438,6 +6448,26 @@ public partial class CombatManager : Node3D
                         return false;
                     }
                     break;
+
+                case "enemy_casting":
+                {
+                    Unit caster = null;
+                    if (targets?.Items != null)
+                        foreach (var obj in targets.Items)
+                        {
+                            caster = obj as Unit ?? (obj as TileData)?.Occupant;
+                            if (caster != null)
+                                break;
+                        }
+                    var k = caster?.CurrentIntent?.Kind;
+                    if (caster == null || k is not (IntentKind.Channel or IntentKind.Release or IntentKind.Imbue)
+                        || IsRitualist(caster) || IsWarpChanneler(caster))
+                    {
+                        failReason = "Requires an enemy with a spell telegraphed!";
+                        return false;
+                    }
+                    break;
+                }
 
                 case "non_elite_target":
                 {

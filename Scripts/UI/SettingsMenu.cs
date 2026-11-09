@@ -54,6 +54,7 @@ public partial class SettingsMenu : Control
         if (_backButton    == null) GD.PrintErr("[SettingsMenu] BackButton not found");
 
         BuildRegisterRows();
+        BuildDeveloperRow();   // 2026-11-05: the developer tools, in a debug build only
         PopulateResolutionDropdown();
         PopulateWindowModeDropdown();
         ReadCurrentValues();

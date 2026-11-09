@@ -1,0 +1,232 @@
+{
+	"id": "arcanist_red_ink",
+	"status": "ready",
+	"name": "Red Ink",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Red Ink",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Until your next turn, the first enemy spell that lands within 3 of you deals 4 less damage, and you gain Charge equal to the damage cut.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "red_ink",
+			"amount": 4
+		}
+	},
+	"bottom": {
+		"name": "Crossed Out",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deal 5 damage.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage",
+			"amount": 5
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Red Ink+",
+			"bottom_name": "Crossed Out+",
+			"description": "A heavier pen.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "red_ink",
+						"amount": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Until your next turn, the first enemy spell that lands within 3 of you deals 5 less damage, and you gain Charge equal to the damage cut."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 6
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Red Pen",
+			"description": "Red Pen: it cuts deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "red_ink",
+						"amount": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Until your next turn, the first enemy spell that lands within 3 of you deals 6 less damage, and you gain Charge equal to the damage cut."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Struck Through",
+			"description": "Struck Through.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 7
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Red Ink Rewrite",
+			"description": "Red Ink Rewrite: and Charge up front.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "red_ink",
+								"amount": 6
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Until your next turn, the first enemy spell that lands within 3 of you deals 6 less damage, and you gain Charge equal to the damage cut. Gain 1 Charge now."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Blacked Out",
+			"description": "Blacked Out.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 8
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Editor's Hand",
+			"description": "The Editor's Hand.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "red_ink",
+								"amount": 8
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Until your next turn, the first enemy spell that lands within 3 of you deals 8 less damage, and you gain Charge equal to the damage cut. Gain 1 Charge now."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Expunge",
+			"description": "Expunge: and the Charge to show for it.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 9
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 9 damage. Gain 1 Charge."
+				}
+			]
+		}
+	]
+}

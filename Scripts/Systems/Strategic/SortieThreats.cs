@@ -188,10 +188,9 @@ public static class SortieThreats
         }
 
         // ── The roll ─────────────────────────────────────────────────────
-        string kingdomId = cycle.World != null && cycle.World.InBounds(slot.X, slot.Y)
-            ? (cycle.World.GetTile(slot.X, slot.Y).KingdomId ?? "")
-            : "";
-        var stance = CouncilQueries.StanceFor(cycle, kingdomId);
+        // Provinces PV3a (PR57): whoever rules the province the force stands in.
+        string kingdomId = ProvinceControl.KingdomAt(cycle, slot.X, slot.Y);
+        var stance = ProvinceControl.StanceAt(cycle, slot.X, slot.Y, KingdomStance.Hostile);
 
         int defenders = isCastle
             ? ExpeditionAnchors.Crew(cycle).Count

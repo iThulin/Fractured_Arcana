@@ -41,8 +41,9 @@ public partial class WorldAtlas3D
     // ── State ────────────────────────────────────────────────────────────
     /// <summary>The names kept inside the frame (the seats').</summary>
     private readonly HashSet<Label3D> _framedLabels = new();
-    /// <summary>Each framed name's text size in font pixels, kept while its text is unchanged.</summary>
-    private readonly Dictionary<Label3D, (string text, Vector2 size)> _framedTextSize = new();
+    /// <summary>Each framed name's text size in font pixels, kept while its text and its font
+    /// size are unchanged (provinces 7j: a name is drawn at the size it shows at).</summary>
+    private readonly Dictionary<Label3D, (string text, int font, Vector2 size)> _framedTextSize = new();
     /// <summary>The pieces' names this pass hid, and only those: the march hides names of its
     /// own, and those are not this pass's to show again.</summary>
     private readonly HashSet<Label3D> _zoomHiddenNames = new();
@@ -196,13 +197,13 @@ public partial class WorldAtlas3D
     private Vector2 FramedTextSize(Label3D lbl)
     {
         string text = lbl.Text ?? "";
-        if (_framedTextSize.TryGetValue(lbl, out var cached) && cached.text == text)
+        if (_framedTextSize.TryGetValue(lbl, out var cached) && cached.text == text && cached.font == lbl.FontSize)
             return cached.size;
         Font font = lbl.Font ?? ThemeDB.FallbackFont;
         Vector2 size = font != null
             ? font.GetMultilineStringSize(text, HorizontalAlignment.Center, -1f, lbl.FontSize)
             : new Vector2(0.6f * lbl.FontSize * text.Length, lbl.FontSize);
-        _framedTextSize[lbl] = (text, size);
+        _framedTextSize[lbl] = (text, lbl.FontSize, size);
         return size;
     }
 

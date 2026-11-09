@@ -649,7 +649,10 @@ public static class LeadService
             return "";
         }
         string record = RecordLine(cycle, lead);
-        return record.Length == 0 ? lead.Line ?? "" : $"{lead.Line}\n{record}";
+        string text = record.Length == 0 ? lead.Line ?? "" : $"{lead.Line}\n{record}";
+        // Provinces PV8a: a rumor names the province it points to.
+        string where = ProvinceLeads.WhereLine(cycle, lead);
+        return where.Length == 0 ? text : $"{text}\n{where}";
     }
 
     // ── Notes ────────────────────────────────────────────────────────────

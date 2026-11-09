@@ -622,9 +622,13 @@ public partial class NewGameScreen : Control
         backBtn.Pressed += () =>
         {
             if (OnCancel != null)
+            {
                 OnCancel.Invoke();
-            else
-                GetTree().ChangeSceneToFile("res://Scenes/Campus/CampusScene.tscn");
+                return;
+            }
+            // Back to the title, where New Game and Load Game are (2026-11-05). The campus
+            // was the slot picker until then, and with no guild loaded it is a dead end now.
+            GetTree().ChangeSceneToFile("res://Scenes/UI/TitleScreen.tscn");
         };
         btnCol.AddChild(backBtn);
     }
@@ -929,7 +933,7 @@ public partial class NewGameScreen : Control
         }
         if (_targetSlot < 0)
         {
-            ShowError("No save slot selected. Return to campus and try again.");
+            ShowError("No save slot selected. Go back to the title and try again.");
             return;
         }
         // Every guild begins UNDECLARED (A1 hard ruling). _selectedSchool is the

@@ -45,6 +45,13 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     private Action _onClosed;         // fired on close so StrategicView returns to city view
     private CampusPanel _panel;
 
+    // Guild screen part B2 (2026-11-05): the building's doctrines under its tier strip (the
+    // Grand Hall's: the charters it holds), and for a door building its door as Enter.
+    private const string GrandHallId = "grand_hall";
+    private VBoxContainer _doctrineBox;
+    private ToastManager _toasts;
+    private Action _enter;
+
     // Upgrade strip widgets (relabeled after a purchase)
     private Label _tierLabel;
     private Button _upgradeBtn;
@@ -78,7 +85,8 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
     public static HomeBuildingPanelHost Create(Node panelHost, CampusPanelId? id, string title,
         Action onClosed, string buildingId = "",
         Action<NarrativeEncounterData> showNarrative = null,
-        Action onBuildingChanged = null)
+        Action onBuildingChanged = null,
+        Action enter = null)
     {
         if (id.HasValue && !CanFloat(id.Value))
             throw new ArgumentOutOfRangeException(nameof(id), id, "panel is not floatable; guard with CanFloat");
@@ -93,6 +101,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             _onClosed = onClosed,
             _showNarrative = showNarrative,
             _onBuildingChanged = onBuildingChanged,
+            _enter = enter,
         };
     }
 
@@ -154,6 +163,22 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         titleLbl.AddThemeColorOverride("font_color", UITheme.CampusTitleColor);
         header.AddChild(titleLbl);
 
+        // A door building's card (a screen of its own, or the full campus overlay) carries its
+        // door (B2): the card closes, then the door opens.
+        if (_enter != null)
+        {
+            var enterBtn = new Button { Text = "Enter" };
+            enterBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+            UITheme.ApplyButtonStyle(enterBtn, isPrimary: true);
+            enterBtn.Pressed += () =>
+            {
+                var go = _enter;
+                Close();
+                go?.Invoke();
+            };
+            header.AddChild(enterBtn);
+        }
+
         var closeBtn = new Button { Text = "✕  Close" };
         closeBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         UITheme.ApplyButtonStyle(closeBtn, isPrimary: false);
@@ -184,6 +209,11 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             _cleanseBtn.Pressed += OnCleansePressed;
             strip.AddChild(_cleanseBtn);
 
+            // B2: the doctrines, filled once the toasts exist (RefreshDoctrines).
+            _doctrineBox = new VBoxContainer();
+            _doctrineBox.AddThemeConstantOverride("separation", 4);
+            vbox.AddChild(_doctrineBox);
+
             vbox.AddChild(new HSeparator());
             RefreshUpgradeStrip();
         }
@@ -200,6 +230,8 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         // push toasts, but keep it valid and layered on top rather than passing null.
         var toasts = new ToastManager { Name = "FloatingPanelToasts" };
         AddChild(toasts);
+        _toasts = toasts;
+        RefreshDoctrines();
 
         // The seam. Host routes scene changes / confirm dialogs. For a single floated panel,
         // "refresh all" means "redraw me" (panels call it from button handlers after a mutation).
@@ -305,6 +337,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             if (CampusConstruction.TryRepair(save, _buildingId))
             {
                 RefreshUpgradeStrip();
+                RefreshDoctrines();
                 _panel?.Refresh();
             }
             return;
@@ -312,6 +345,7 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         if (CampusConstruction.TryBuildOrUpgrade(SaveManager.ActiveSave, _buildingId))
         {
             RefreshUpgradeStrip();
+            RefreshDoctrines();   // the third tier brings the doctrines
             _panel?.Refresh();   // tier-gated panel content (e.g. Workshop verbs) updates live
             _onBuildingChanged?.Invoke();   // tier-keyed mesh re-stamps (2026-08-13)
         }
@@ -322,9 +356,29 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
         if (CampusBlight.TryCleanse(SaveManager.ActiveSave, _buildingId) != null)
         {
             RefreshUpgradeStrip();
+            RefreshDoctrines();
             _panel?.Refresh();              // a relit doctrine changes the panel's verbs
             _onBuildingChanged?.Invoke();   // the stain on the map lifts
         }
+    }
+
+    /// <summary>The block under the strip (B2): the Grand Hall shows the charters it holds,
+    /// any other building its own doctrines with Charter and Unseat.</summary>
+    private void RefreshDoctrines()
+    {
+        if (_doctrineBox == null)
+            return;
+        var save = SaveManager.ActiveSave;
+        if (_buildingId == GrandHallId)
+        {
+            CharterSection.FillSummary(_doctrineBox, save);
+            return;
+        }
+        CharterSection.FillFor(_doctrineBox, _buildingId, save, _toasts, () =>
+        {
+            RefreshDoctrines();
+            _panel?.Refresh();   // a doctrine changes some panels' verbs
+        });
     }
 
     /// <summary>Close the floated panel and hand control back to the city view via

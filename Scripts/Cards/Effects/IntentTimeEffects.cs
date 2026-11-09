@@ -67,6 +67,16 @@ public static class IntentTime
 
     /// <summary>Borrowed Will: an enemy's next attack strikes the chosen tile.</summary>
     public static Func<Unit, Vector2I, string> CommandAttackHook;
+
+    /// <summary>Purloin (Arcanist): take an enemy caster's telegraphed spell. Null with a
+    /// reason when there is nothing to take.</summary>
+    public delegate StolenSpell PurloinFn(Unit enemy, out string error);
+    public static PurloinFn PurloinHook;
+    public static StolenSpell Purloin(Unit enemy, out string error)
+    {
+        if (PurloinHook == null) { error = "no combat is running"; return null; }
+        return PurloinHook(enemy, out error);
+    }
     public static string CommandAttack(Unit enemy, Vector2I tile) => CommandAttackHook != null ? CommandAttackHook(enemy, tile) : "no combat is running";
     public static string SwapLocks(Unit a, Unit b) => SwapLocksHook != null ? SwapLocksHook(a, b) : "no combat is running";
     public static string Cancel(Unit enemy) => CancelHook != null ? CancelHook(enemy) : "no combat is running";

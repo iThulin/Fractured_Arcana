@@ -156,7 +156,8 @@ public static class FieldMarch
         {
             return 0;
         }
-        return cycle.World.HexDistance(party.X, party.Y, x, y) * DaysPerTile;
+        // Provinces PV5 (PR82): a tile a day on the castle's roads within its reach.
+        return CastleReach.DaysAlong(cycle, party.X, party.Y, x, y);
     }
 
     public static int LunationsTo(CycleState cycle, FieldParty party, int x, int y)
@@ -253,7 +254,7 @@ public static class FieldMarch
             }
 
             party.TravelDayAccum++;
-            if (party.TravelDayAccum < DaysPerTile)
+            if (party.TravelDayAccum < CastleReach.DaysPerTileAt(cycle, party.X, party.Y))   // provinces PV5: the castle's roads
             {
                 continue;
             }
@@ -352,7 +353,8 @@ public static class FieldMarch
     }
 
     /// <summary>Recharge the wands this party's members wear. Called from
-    /// BankHere at a staging anchor or the parked castle.</summary>
+    /// BankHere at a staging anchor, the parked castle, or on held ground
+    /// (provinces 7i).</summary>
     public static int RefillPartyWands(CycleState cycle, FieldParty party)
     {
         var armory = SaveManager.ActiveSave?.Armory;
@@ -370,8 +372,10 @@ public static class FieldMarch
     }
 
     /// <summary>Bank what the party is carrying, if this is somewhere with
-    /// people and a counting house. A shard zone and a bare tile are neither, so
-    /// the hold rides on and the report says so rather than silently keeping it.</summary>
+    /// people and a counting house: a staging anchor, or any tile of a province
+    /// held for its benefits (provinces 7i, PR45). A shard zone and a bare tile
+    /// elsewhere are neither, so the hold rides on and the report says so rather
+    /// than silently keeping it.</summary>
     public static string BankHere(CycleState cycle, FieldParty party, AnchorRef here)
     {
         // Field Party v1 (2026-09-24): an overrun outpost is retaken by
@@ -387,11 +391,15 @@ public static class FieldMarch
             prefix += " " + concord;
         }
 
+        // Provinces 7i (PR45): a province held for its benefits keeps the guild's
+        // people and a counting house on every tile.
+        bool heldGround = ProvinceBenefits.HeldForBenefitsAt(cycle, party.X, party.Y);
+
         // Wands refill where the guild keeps people and a scribe's bench: a
-        // staging anchor or the parked castle, once the Scribe's Tower reaches
-        // its second tier (2026-09-29, spec D7). Before the hold check, so an
-        // empty-handed arrival still recharges.
-        if (here != null && (here.Kind == AnchorKind.Staging || here.Kind == AnchorKind.CastlePark)
+        // staging anchor, the parked castle or held ground, once the Scribe's
+        // Tower reaches its second tier (2026-09-29, spec D7). Before the hold
+        // check, so an empty-handed arrival still recharges.
+        if ((heldGround || (here != null && (here.Kind == AnchorKind.Staging || here.Kind == AnchorKind.CastlePark)))
             && ScribesTower.RechargesAfield(SaveManager.ActiveSave))
         {
             int recharged = RefillPartyWands(cycle, party);
@@ -406,7 +414,8 @@ public static class FieldMarch
         {
             return prefix;
         }
-        if (here == null || here.Kind != AnchorKind.Staging)
+        bool atStaging = here != null && here.Kind == AnchorKind.Staging;
+        if (!atStaging && !heldGround)
         {
             return $"{prefix} They still carry {carrying}, with nowhere here to bank it.";
         }
@@ -415,7 +424,8 @@ public static class FieldMarch
         cycle.ArcaneSplinters += carrying.Splinters;
         cycle.BuildMaterials += carrying.Materials;
         cycle.Supplies += carrying.Supplies;
-        string line = $"{prefix} The hold is banked: {carrying}.";
+        string where = atStaging ? "" : $" in {ProvinceBenefits.NameAt(cycle, party.X, party.Y)}";
+        string line = $"{prefix} The hold is banked{where}: {carrying}.";
         carrying.Clear();
         return line;
     }
@@ -442,6 +452,13 @@ public static class FieldMarch
             && cycle.CastleX == x && cycle.CastleY == y)
         {
             what = "the castle";
+            return true;
+        }
+
+        // Provinces PV5 (PR83): the forward camp the font raised is a waystone while it stands.
+        if (CastleReach.IsForwardCamp(cycle, x, y))
+        {
+            what = "the forward camp";
             return true;
         }
 
@@ -553,7 +570,7 @@ public static class FieldMarch
     /// another, in axial space. Interpolated rather than pathfound: the party
     /// walks a corridor across charted ground, and a true path would need a
     /// cost model the world map does not have.</summary>
-    private static (int x, int y) StepToward(WorldData world, int fromX, int fromY,
+    internal static (int x, int y) StepToward(WorldData world, int fromX, int fromY,
                                              int toX, int toY, int steps)
     {
         int total = world.HexDistance(fromX, fromY, toX, toY);

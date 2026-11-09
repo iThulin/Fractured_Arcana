@@ -1,0 +1,278 @@
+{
+	"id": "arcanist_purloin",
+	"status": "ready",
+	"name": "Purloin",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Purloin",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Steal target enemy caster's telegraphed spell. It never lands. Instead you cast it now, centred on a tile within 4 of you that you choose.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit_then_tile",
+			"range": 6,
+			"dest_range": 4,
+			"enemies_only": true,
+			"any_tile": true,
+			"from_caster": true
+		},
+		"effect": {
+			"type": "purloin"
+		},
+		"requires": [
+			"enemy_casting"
+		]
+	},
+	"bottom": {
+		"name": "Ink Blot",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Target enemy's next spell deals 3 less damage.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "blot_next_spell",
+			"amount": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Purloin+",
+			"bottom_name": "Ink Blot+",
+			"description": "The stolen spell hits harder. The blot spreads.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "purloin",
+						"bonus": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Steal target enemy caster's telegraphed spell. It never lands. Instead you cast it now, centred on a tile within 4 of you that you choose, and it deals 2 more damage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "blot_next_spell",
+						"amount": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target enemy's next spell deals 4 less damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Pickpocket's Grimoire",
+			"description": "Pickpocket's Grimoire: further, and a little Charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 5,
+						"enemies_only": true,
+						"any_tile": true,
+						"from_caster": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "purloin",
+						"bonus": 2,
+						"charge": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Steal target enemy caster's telegraphed spell. It never lands. Instead you cast it now, centred on a tile within 5 of you that you choose, and it deals 2 more damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Spreading Blot",
+			"description": "Spreading Blot.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "blot_next_spell",
+								"amount": 5
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target enemy's next spell deals 5 less damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Grand Larceny",
+			"description": "Grand Larceny.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 5,
+						"enemies_only": true,
+						"any_tile": true,
+						"from_caster": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "purloin",
+						"bonus": 4,
+						"charge": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Steal target enemy caster's telegraphed spell. It never lands. Instead you cast it now, centred on a tile within 5 of you that you choose, and it deals 4 more damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Deep Blot",
+			"description": "Deep Blot.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "blot_next_spell",
+								"amount": 6
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target enemy's next spell deals 6 less damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Stolen Thunder",
+			"description": "Stolen Thunder: theirs, and then some.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "unit_then_tile",
+						"range": 6,
+						"dest_range": 6,
+						"enemies_only": true,
+						"any_tile": true,
+						"from_caster": true
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "purloin",
+						"bonus": 6,
+						"charge": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Steal target enemy caster's telegraphed spell. It never lands. Instead you cast it now, centred on a tile within 6 of you that you choose, and it deals 6 more damage. Gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Black Ink",
+			"description": "Black Ink.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "blot_next_spell",
+								"amount": 8
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Target enemy's next spell deals 8 less damage. Gain 1 Charge."
+				}
+			]
+		}
+	]
+}

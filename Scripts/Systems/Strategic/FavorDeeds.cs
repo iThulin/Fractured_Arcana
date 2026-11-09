@@ -13,8 +13,10 @@ using System.Collections.Generic;
 //                   Military      +15 in the courtier's estate, and the
 //                                 invasion of the realm falls back 10,
 //                                 never far enough to decide it
-//                   Economic      +10 in the courtier's estate (its supply
-//                                 yield waits for PV2c)
+//                   Economic      +10 in the courtier's estate, and the
+//                                 estate's next yield of supplies doubles
+//                                 if it is held for its benefits then
+//                                 (PV2c, ProvinceBenefits.DoubleNextYield)
 //                 Arcane and Passage favors have no deed until the font and
 //                 the castle's hops (PV4).
 //
@@ -25,7 +27,8 @@ using System.Collections.Generic;
 // Collaborators:  ProvinceInfluence (DeedIn, MaxInfluence), ProvinceCourts
 //                 (DeedGain, Who), CouncilState (Favor, CourtState,
 //                 CourtierState), Warfront, ExpeditionManager (the call-in's
-//                 choice of use, the charting of revealed sites)
+//                 choice of use, the charting of revealed sites),
+//                 ProvinceBenefits (the Economic favor's doubled yield)
 // See:            docs/provinces_v1_7g_deeds_and_courts.md
 // ============================================================
 
@@ -105,7 +108,8 @@ public static class FavorDeeds
                 return $"+{Gain(cycle, province, f)} influence in {name}, the courtier's estate{front}.";
             }
             case "Economic":
-                return $"+{Gain(cycle, province, f)} influence in {name}, the courtier's estate.";
+                return $"+{Gain(cycle, province, f)} influence in {name}, the courtier's estate, "
+                       + "and its next yield of supplies doubles if it is held for its benefits then.";
             default:
                 return $"A charter: +{Gain(cycle, province, f)} influence in {name}.";
         }
@@ -116,7 +120,8 @@ public static class FavorDeeds
     {
         "Political" => $"A charter: +{(f.IsMajor ? CharterMajorGain : CharterGain)} influence in the province the party stands in.",
         "Military" => $"+{MarshalGain} influence in the courtier's estate, and the invasion of the realm falls back {MarshalFrontPush}.",
-        "Economic" => $"+{StewardGain} influence in the courtier's estate.",
+        "Economic" => $"+{StewardGain} influence in the courtier's estate, and its next yield of supplies "
+                      + "doubles if it is held for its benefits then.",
         "Intelligence" => "Every site in the province the party stands in becomes known.",
         _ => "No deed.",
     };
@@ -176,6 +181,12 @@ public static class FavorDeeds
                 wf.Advance -= push;
                 line += $" The invasion of {RealmName(cycle, wf)} falls back {push}.";
             }
+        }
+        if (f.Type == "Economic")
+        {
+            // Provinces 7i (PR48): the estate's next yield of supplies doubles.
+            ProvinceBenefits.DoubleNextYield(cycle, target);
+            line += " Its next yield of supplies doubles, if it is held for its benefits at the new moon.";
         }
         if (!string.IsNullOrEmpty(news))
             line += " " + news;

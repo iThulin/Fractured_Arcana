@@ -33,7 +33,10 @@ using Godot;
 // Collaborators:  CycleState (CastleFuel, CastleX/Y, parking),
 //                 ExpeditionAnchors.ParkCastleAt (the arrival),
 //                 WorldData (bounds, terrain, discovery),
-//                 CastleThreats (the camp at the far end is a target)
+//                 CastleThreats (the camp at the far end is a target),
+//                 CastleHops and CastleManeuvers (provinces PV4: where
+//                 the world has provinces, the march goes province by
+//                 province, and the font's maneuvers arm it)
 // See:            docs/session_log_2026-09-21_expedition_v2_step1_data_layer.md
 // ============================================================
 
@@ -82,12 +85,18 @@ public static class CastleMarch
         return cycle.CastleFuel / FuelPerTile;
     }
 
-    /// <summary>Fuel a march to this tile would burn.</summary>
+    /// <summary>Fuel a march to this tile would burn. Where the world has provinces, the
+    /// hops' cost (provinces PV4, CastleHops), or 0 where no land route reaches it.</summary>
     public static int CostTo(CycleState cycle, int x, int y)
     {
         if (cycle?.World == null)
         {
             return 0;
+        }
+        var plan = CastleHops.Plan(cycle, x, y);
+        if (plan != null)
+        {
+            return plan.Reachable ? plan.Fuel : 0;
         }
         return cycle.World.HexDistance(cycle.CastleX, cycle.CastleY, x, y) * FuelPerTile;
     }
@@ -161,17 +170,33 @@ public static class CastleMarch
             reason = Interval.DoorLine;   // Standing Orders O1 (D150): the castle berths at home once the door is set
             return false;
         }
-        if (dest.Discovery == TileDiscovery.Unseen)
+        // Provinces 7j: with the debug reveal on, the map shows unseen ground, and the castle may
+        // march onto it, so the reveal is a way to try a march anywhere.
+        bool revealed = PlayerSession.DebugMode && PlayerSession.DebugRevealStrategicMap;
+        if (dest.Discovery == TileDiscovery.Unseen && !revealed)
         {
-            reason = "The lens cannot command ground it has never seen. Stride into it first.";
+            reason = cycle.World.HasProvinces()
+                ? "The lens cannot command ground it has never seen. March to the edge of the charted "
+                  + "map: wherever the castle stands, its lens charts that province and the ones beside it."
+                : "The lens cannot command ground it has never seen. Stride into it first.";
             return false;
         }
 
+        // Provinces PV4: the march goes province by province, so it needs a land route.
+        var plan = CastleHops.Plan(cycle, x, y);
+        if (plan != null && !plan.Reachable)
+        {
+            reason = "No land route of provinces reaches it: the castle does not swim.";
+            return false;
+        }
         int cost = CostTo(cycle, x, y);
         if (cost > cycle.CastleFuel)
         {
-            reason = $"Not enough fuel: the march needs {cost} and the furnace holds " +
-                     $"{cycle.CastleFuel}, which reaches {RangeInTiles(cycle)} tile(s).";
+            reason = plan != null
+                ? $"Not enough fuel: the route needs {cost} over {plan.Hops.Count} hop(s) and the furnace " +
+                  $"holds {cycle.CastleFuel}."
+                : $"Not enough fuel: the march needs {cost} and the furnace holds " +
+                  $"{cycle.CastleFuel}, which reaches {RangeInTiles(cycle)} tile(s).";
             return false;
         }
         return true;
@@ -193,11 +218,22 @@ public static class CastleMarch
             return "";
         }
 
+        var plan = CastleHops.Plan(cycle, x, y);
         int cost = CostTo(cycle, x, y);
         int fromX = cycle.CastleX, fromY = cycle.CastleY;
         int tiles = cycle.World.HexDistance(fromX, fromY, x, y);
 
-        ChartCorridor(cycle.World, fromX, fromY, x, y);
+        // Provinces PV4: the route is charted leg by leg, seat to seat, and the view
+        // animates the plan it was charged for.
+        if (plan != null)
+        {
+            CastleHops.ChartRoute(cycle.World, plan);
+        }
+        else
+        {
+            ChartCorridor(cycle.World, fromX, fromY, x, y);
+        }
+        CastleHops.LastPlan = plan;
 
         cycle.CastleFuel -= cost;
         if (cycle.CastleFuel < 0)
@@ -206,21 +242,33 @@ public static class CastleMarch
         }
 
         // Arriving IS parking: the castle makes camp wherever the march ends,
-        // which is what keeps a reposition honest about its cost.
-        ExpeditionAnchors.ParkCastleAt(cycle, x, y, castleName, ArrivalCampDays);
+        // which is what keeps a reposition honest about its cost. Provinces PV4:
+        // the Wayfarer's Beacon spares the camp in a held province, Campward wards
+        // it, and the march is recorded for Retrace.
+        int campDays = CastleManeuvers.CampDaysAfterMarch(cycle, x, y, ArrivalCampDays);
+        ExpeditionAnchors.ParkCastleAt(cycle, x, y, castleName, campDays);
+        CastleManeuvers.OnMoved(cycle, fromX, fromY, x, y, cost, true);
 
+        string camp = campDays > 0
+            ? $"The crews need {campDays} day(s) to unpack, and the camp is exposed until they do."
+            : "The beacon brings it in among friends: no camp to make, and no refuel.";
         GD.Print($"[CastleMarch] {castleName} marches {tiles} tile(s) to ({x},{y}) for {cost} fuel; " +
                  $"{cycle.CastleFuel} left.");
-        return $"{castleName} marches {tiles} tile(s) and makes camp. " +
-               $"Fuel {cycle.CastleFuel}/{cycle.CastleMaxFuel}. " +
-               $"The crews need {ArrivalCampDays} day(s) to unpack, and the camp is exposed until they do.";
+        if (plan != null && plan.Hops.Count > 0)
+        {
+            string dest = ProvinceControl.Name(cycle.World.Provinces[plan.ToProvince]);
+            return $"{castleName} marches through {plan.Hops.Count} province(s) to {dest}. " +
+                   $"Fuel {cycle.CastleFuel}/{cycle.CastleMaxFuel}. {camp}";
+        }
+        return $"{castleName} marches {tiles} tile(s). " +
+               $"Fuel {cycle.CastleFuel}/{cycle.CastleMaxFuel}. {camp}";
     }
 
     /// <summary>Write Charted along the route. Sampled by interpolating axial
     /// coordinates rather than walking a true hex line: this paints a fog
     /// corridor, not a path, and being a tile out at the edges of it changes
     /// nothing a player can perceive. Never downgrades Explored ground.</summary>
-    private static void ChartCorridor(WorldData world, int fromX, int fromY, int toX, int toY)
+    internal static void ChartCorridor(WorldData world, int fromX, int fromY, int toX, int toY)
     {
         int steps = world.HexDistance(fromX, fromY, toX, toY);
         if (steps <= 0)

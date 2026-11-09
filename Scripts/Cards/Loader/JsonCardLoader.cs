@@ -787,7 +787,8 @@ public static partial class CardScriptRegistry
             int range = n.TryGetProperty("range", out var r) ? r.GetInt32() : 4;
             int destRange = n.TryGetProperty("dest_range", out var d) ? d.GetInt32() : 2;
             bool anyTile = n.TryGetProperty("any_tile", out var at) && at.ValueKind == JsonValueKind.True;
-            return new SelectUnitThenTileTarget(enemyOnly, range, destRange, friendlyOnly, constructsOnly) { anyTile = anyTile };
+            bool fromCaster = n.TryGetProperty("from_caster", out var fc) && fc.ValueKind == JsonValueKind.True;
+            return new SelectUnitThenTileTarget(enemyOnly, range, destRange, friendlyOnly, constructsOnly) { anyTile = anyTile, fromCaster = fromCaster };
         });
 
         // { "type": "unit_then_direction", "range": n,

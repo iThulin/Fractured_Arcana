@@ -25,8 +25,10 @@ using System.Text;
 //                 (the legacy build), WorldData.cs (Provinces,
 //                 ProvinceMap), Province.cs, WorldAtlas3D.cs (the
 //                 Political lens), ProvinceSaveAssert.cs,
-//                 CampusGuildPanel.cs (the Province Report button)
-// See:            docs/provinces_v1.md section 4
+//                 CampusGuildPanel.cs (the Province Report button),
+//                 ProvinceBenefits.cs (land opened in play, AdoptTile)
+// See:            docs/provinces_v1.md section 4;
+//                 docs/provinces_v1_7i_held_benefits.md section 7
 // ============================================================
 
 /// <summary>Builds, checks and reports a world's provinces.</summary>
@@ -1491,8 +1493,9 @@ public static class ProvinceBuilder
             Fail($"{count} provinces, more than a byte map can name.");
 
         // Every tile: a kingdom's land is in a province of that kingdom, water in none.
-        // Land no kingdom owns may be in a province of any kingdom (it joined the
-        // nearest at the build) or in none (water opened into land since the build).
+        // Land no kingdom owns (water opened into land in play) may be in a province of
+        // any kingdom: it joined the nearest at the build, or as it opened (PR50). Land
+        // opened after the build and before PV2c is in none.
         var tilesIn = new int[count];
         for (int i = 0; i < n; i++)
         {
@@ -1609,7 +1612,8 @@ public static class ProvinceBuilder
                 Fail($"Seat city {s} at ({st.CenterX},{st.CenterY}) is not in a capital province.");
         }
 
-        // A province is one body plus, at most, whole islands of its kingdom.
+        // A province is one body plus, at most, whole islands of its kingdom, judged on
+        // the land as built: land opened in play is left out (PR50).
         foreach (string message in DetachedPieces(world, nb, out _, out _))
             Fail(message);
 
@@ -1620,7 +1624,8 @@ public static class ProvinceBuilder
 
     /// <summary>Counts the pieces of provinces lying apart from their main body (the
     /// largest piece) and returns a failure line for each such piece that is not a
-    /// whole island of its kingdom.</summary>
+    /// whole island of its kingdom. Pieces and islands are both read on the land as
+    /// built: land opened in play is left out (PR50).</summary>
     private static List<string> DetachedPieces(WorldData world, int[] nb, out int detached, out int detachedTiles)
     {
         var problems = new List<string>();
@@ -1635,7 +1640,11 @@ public static class ProvinceBuilder
         for (int i = 0; i < n; i++)
         {
             int p = world.ProvinceMap[i];
-            if (p == WorldData.NoProvince || p >= count)
+            // Provinces 7i (PR50): land no kingdom owns in a kingdom's province is water
+            // opened in play (generation leaves none, see AdoptOwnerless). It is left out,
+            // so a causeway never makes an island part of the mainland.
+            if (p == WorldData.NoProvince || p >= count
+                || (string.IsNullOrEmpty(world.Tiles[i].KingdomId) && !string.IsNullOrEmpty(world.Provinces[p].KingdomId)))
             {
                 realmOf[i] = -1;
                 provOf[i] = -1;
@@ -1683,6 +1692,48 @@ public static class ProvinceBuilder
                 problems.Add($"{world.Provinces[p].Id} is split: a piece of {pieceSize[c]} tiles at ({at % w},{at / w}) is not a whole island.");
         }
         return problems;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Land opened in play (docs/provinces_v1_7i_held_benefits.md section 7, PR50)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>Give a land tile in no province to the province at index: the map takes
+    /// the index, the province's TileCount grows by one, and every province across one of
+    /// the tile's edges becomes its neighbour, both lists kept ascending. The tile keeps
+    /// its KingdomId (empty: opened land is no kingdom's). True when the tile joined.
+    /// ProvinceBenefits.JoinOpenedLand picks the province.</summary>
+    public static bool AdoptTile(WorldData world, int x, int y, int index)
+    {
+        if (world == null || !world.HasProvinces() || !world.TryIndex(x, y, out int i)
+            || index < 0 || index >= world.Provinces.Count || index >= WorldData.NoProvince
+            || !world.Tiles[i].IsLand || world.ProvinceMap[i] != WorldData.NoProvince)
+            return false;
+        world.ProvinceMap[i] = (byte)index;
+        var province = world.Provinces[index];
+        province.TileCount++;
+        province.Neighbors ??= new List<int>();
+        var (q, r) = HexCoord.OffsetToAxial(x, y);
+        for (int d = 0; d < 6; d++)
+        {
+            var (dq, dr) = HexCoord.AxialDirections[d];
+            var (nx, ny) = HexCoord.AxialToOffset(q + dq, r + dr);
+            int other = world.ProvinceIndexAt(nx, ny);
+            if (other < 0 || other == index)
+                continue;
+            world.Provinces[other].Neighbors ??= new List<int>();
+            AddNeighbor(province.Neighbors, other);
+            AddNeighbor(world.Provinces[other].Neighbors, index);
+        }
+        return true;
+    }
+
+    /// <summary>Put a province's index into an ascending neighbour list, once.</summary>
+    private static void AddNeighbor(List<int> neighbors, int index)
+    {
+        int at = neighbors.BinarySearch(index);
+        if (at < 0)
+            neighbors.Insert(~at, index);
     }
 
     /// <summary>A plain-text account of the partition for the guild panel's Province

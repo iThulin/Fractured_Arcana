@@ -32,7 +32,11 @@ using Godot;
 //                 StrategicView.cs (BuildAtlas3D wires the events, the
 //                 lens card adds the key, UpdateLensButtons and _Process
 //                 call in here, StanceColor), TooltipManager.cs (the look
-//                 it copies)
+//                 it copies), ProvinceBenefits.cs (the Patron's estate,
+//                 section 7i), StrategicView.ProvinceCard.cs (the card,
+//                 which shares the kind, stance and meter helpers),
+//                 StrategicView.Rulers.cs (provinces PV3a: who rules
+//                 the province, and the stance is the ruler's)
 // See:            docs/provinces_v1.md section 7c;
 //                 docs/provinces_v1_7d_lenses.md
 // ============================================================
@@ -144,11 +148,15 @@ public partial class StrategicView
         EnsureProvinceHover();
         var province = world.Provinces[_provinceHoverIndex];
         _provinceHoverTitle.Text = string.IsNullOrEmpty(province.Name) ? province.Id : province.Name;
-        _provinceHoverKind.Text = ProvinceKindLine(province);
+        _provinceHoverKind.Text = ProvinceKindLine(province) + ProvinceRulerSuffix(cycle, province)
+                                  + MarchHint(cycle, province)    // provinces PV3a; PV4: a march's cost
+                                  + KeeperNote(cycle, province);  // PV6: the Keeper here, roads it fouled
         RefreshProvinceStance(cycle, province);
         _provinceHoverMeter.Value = province.Influence;
         _provinceHoverFill.BgColor = province.Held ? UITheme.Gold : UITheme.ArcaneBlue;
-        _provinceHoverInfluence.Text = ProvinceInfluence.InfluenceLine(province);
+        // Provinces 7i (PR17): a Patron's estate is held for its benefits, and says so.
+        _provinceHoverInfluence.Text = ProvinceInfluence.InfluenceLine(province)
+                                       + ProvinceBenefits.PatronNote(cycle, province);
         _provinceHoverInfluence.AddThemeColorOverride("font_color", province.Held ? UITheme.Gold : UITheme.TextPrimary);
         _provinceHoverNext.Text = ProvinceInfluence.NextLunationLine(cycle, _provinceHoverIndex);
         // Provinces 7g (PV2b-1): the estates there and the court's weight on deeds.
@@ -193,33 +201,54 @@ public partial class StrategicView
     {
         if (string.IsNullOrEmpty(province.KingdomId))
             return "no kingdom";
+        // Provinces PV3a: a realm fallen with its capital carries its taker's faction, so it
+        // is named by its own name.
+        var realmCycle = SaveManager.ActiveSave?.Cycle;
+        if (ProvinceControl.KingdomFallen(realmCycle, province.KingdomId))
+            return ProvinceControl.RealmName(realmCycle, province.KingdomId);
         if (_kingdoms != null && _kingdoms.TryGetValue(province.KingdomId, out var ks) && ks != null
             && !string.IsNullOrEmpty(ks.ControllingFactionId))
             return FactionDisplay(ks.ControllingFactionId);
         return province.KingdomId;
     }
 
-    /// <summary>The realm's stance toward the guild, in its stance colour (section 7d: the
-    /// stance left the Reach lens for this line). "The guild rules this realm." after a
-    /// seizure; nothing for land in no kingdom.</summary>
+    /// <summary>The readout's stance line (FillProvinceStance).</summary>
     private void RefreshProvinceStance(CycleState cycle, Province province)
+        => FillProvinceStance(_provinceHoverStance, cycle, province);
+
+    /// <summary>The stance toward the guild of whoever rules the province, in its stance
+    /// colour (section 7d: the stance left the Reach lens for this line; provinces PV3a,
+    /// PR57: the ruler's, not the home realm's). "The guild rules this realm." after a
+    /// Seize of a whole realm before fronts walked; the guild's own province and land no one
+    /// rules have no court's stance; nothing for land in no kingdom. The readout's line, and
+    /// the province card's (section 7i).</summary>
+    private void FillProvinceStance(Label label, CycleState cycle, Province province)
     {
-        if (string.IsNullOrEmpty(province.KingdomId))
+        string ruler = ProvinceControl.RulerOf(cycle, province);
+        if (string.IsNullOrEmpty(ruler))
         {
-            _provinceHoverStance.Visible = false;
+            label.Visible = false;
             return;
         }
-        _provinceHoverStance.Visible = true;
-        if (_kingdoms != null && _kingdoms.TryGetValue(province.KingdomId, out var ks) && ks != null
-            && ks.ControllingFactionId == KingdomTickSimulation.GuildFactionId)
+        label.Visible = true;
+        if (ruler == ProvinceControl.Guild)
         {
-            _provinceHoverStance.Text = "The guild rules this realm.";
-            _provinceHoverStance.AddThemeColorOverride("font_color", UITheme.Gold);
+            label.Text = string.IsNullOrEmpty(province.ControllerId)
+                ? "The guild rules this realm."
+                : "No court's stance here: the guild rules it.";
+            label.AddThemeColorOverride("font_color", UITheme.Gold);
             return;
         }
-        var stance = CouncilQueries.StanceFor(cycle, province.KingdomId);
-        _provinceHoverStance.Text = $"Stance of {ProvinceRealm(province)} toward the guild: {stance}.";
-        _provinceHoverStance.AddThemeColorOverride("font_color", StanceColor(stance));
+        if (ruler == ProvinceControl.Neutral)
+        {
+            label.Text = "No court's stance here: no one rules it.";
+            label.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            return;
+        }
+        var stance = CouncilQueries.StanceFor(cycle, ruler);
+        string realm = ruler == province.KingdomId ? ProvinceRealm(province) : RulerDisplay(ruler);
+        label.Text = $"Stance of {realm} toward the guild: {stance}.";
+        label.AddThemeColorOverride("font_color", StanceColor(stance));
     }
 
     /// <summary>Build the readout once, hidden, on a canvas layer just above the HUD.</summary>
@@ -365,13 +394,14 @@ public partial class StrategicView
         switch (lens)
         {
             case StrategicLens.Political:
-                return "Political: heavy ink is a realm's border, light dashes a province's. "
-                     + "Point at a province for its numbers.";
+                return "Political: each province in its ruler's colour, the guild's own land gold, land no one "
+                     + "rules grey. Heavy ink is a border between rulers, light dashes a province's. "
+                     + "Point at a province for its numbers; click it for its card.";
             case StrategicLens.Reach:
                 return $"Reach: blue is the guild's influence, stepping up at {ProvinceInfluence.PassiveCap}, "
                      + "as far as presence goes. Gold is held. A gold edge on blue is held but below "
                      + $"{ProvinceInfluence.HoldLine}, and lost below {ProvinceInfluence.LoseLine}. "
-                     + "Point at a province for its numbers.";
+                     + "Point at a province for its numbers; click it for its card.";
             default:
                 return "";
         }

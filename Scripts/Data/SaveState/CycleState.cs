@@ -246,6 +246,12 @@ public class CycleState
     /// <summary>Which side the pending intervention is fighting for.</summary>
     public WarfrontSide PendingWarfrontSide = WarfrontSide.Defend;
 
+    /// <summary>The province the pending intervention went to defend or take (provinces
+    /// PV3a, Warfront.ProvinceId), so a front that has moved on to another province by the
+    /// party's return is not swung. Empty for a cache siege, and for a front opened before
+    /// fronts walked. Additive save field, no version bump.</summary>
+    public string PendingWarfrontProvinceId = "";
+
     /// <summary>Set by ExpeditionManager once the besieging stronghold is broken
     /// (a combat won during a warfront-intervention run). The intervention counts
     /// as a success only if the stronghold was cleared AND the party extracted.
@@ -482,6 +488,22 @@ public class CycleState
     /// beacons. Spell knowledge is timeline knowledge; it dies with the cycle.
     /// See overworld_spell_system_v1_1 §5/§13 and GrimoireState.cs.</summary>
     public GrimoireState Grimoire = new();
+
+    /// <summary>The castle's maneuvers (docs/provinces_v1_9_bastion.md, PV4): the font's
+    /// Essence, what is armed for the next march or camp, the last march, the fronts a
+    /// spell holds still and the forward camp. Additive: a save from before PV4 reads as
+    /// a full font with nothing armed.</summary>
+    public CastleManeuverState Maneuvers = new();
+
+    /// <summary>The Keeper who hunts the castle (docs/provinces_v1_10_keeper.md, PV6):
+    /// awake or not, where it stands, where it believes the castle is, its next card.
+    /// Additive: a save from before PV6 reads as a Keeper still asleep.</summary>
+    public KeeperState Keeper = new();
+
+    /// <summary>The guild's army (docs/provinces_v1_12_troops.md, PV7): the troop lines it has
+    /// raised, with where each was raised, its strength, its battles and its doctrine.
+    /// Additive: a save from before PV7 reads as an army of no lines.</summary>
+    public ArmyState Army = new();
 
     // ── Faction reputation (the timeline forgets) ────────────────────────
     public Dictionary<string, int> FactionReputation = new();

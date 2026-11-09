@@ -213,10 +213,9 @@ public static class FieldThreats
         // The ground they are crossing: the tile they just walked onto. Was the
         // journey's midpoint while the roll was once a moon; a roll per tile
         // can read the real ground at each step.
-        string kingdomId = cycle.World.InBounds(party.X, party.Y)
-            ? (cycle.World.GetTile(party.X, party.Y).KingdomId ?? "")
-            : "";
-        var stance = CouncilQueries.StanceFor(cycle, kingdomId);
+        // Provinces PV3a (PR57): whoever rules the province underfoot, and their court.
+        string kingdomId = ProvinceControl.KingdomAt(cycle, party.X, party.Y);
+        var stance = ProvinceControl.StanceAt(cycle, party.X, party.Y, KingdomStance.Hostile);
 
         int escort = EscortCount(cycle, party);
         int reduction = Math.Min(MaxEscortReduction,

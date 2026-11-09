@@ -119,6 +119,10 @@ public partial class Unit : Node3D
     /// <summary>Added to this unit's NEXT card resolution only, then cleared (Sigil Slide's
     /// "+2 damage" gift). Consumed by the stack resolver.</summary>
     public int NextSpellBonusDamage = 0;
+    /// <summary>Red Ink (Arcanist): how much the next enemy spell within 3 is cut by.</summary>
+    public int RedInkAmount = 0;
+    /// <summary>Blot (Arcanist): how much this enemy's next spell is cut by.</summary>
+    public int NextSpellPenalty = 0;
 
     /// <summary>Maze of Mirrors: the unit this copy mirrors (null for a real unit).</summary>
     public Unit IllusionOwner;

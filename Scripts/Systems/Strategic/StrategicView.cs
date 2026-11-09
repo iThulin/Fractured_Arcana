@@ -239,6 +239,8 @@ public partial class StrategicView : Node2D
         // strategic map coming up means no deploy consumed it: drop it.
         PlayerSession.AudienceEncounterId = "";
         PlayerSession.AudienceKingdomId = "";
+        // Provinces 7j: every dialog this screen opens wears the HUD's colours (StrategicView.Notices).
+        ChildEnteredTree += StyleNewDialog;
 
         if (_world == null)
         {
@@ -255,7 +257,7 @@ public partial class StrategicView : Node2D
                 // do on the way in happen here. Cards are already primed by the
                 // GameBootstrap autoload; the save is autoloaded, seeded, and its
                 // cycle world generated on demand. A cold boot with NO save routes to
-                // the campus scene, which is now purely the slot picker / founding room.
+                // the title screen (Found a Guild, Load Game) since 2026-11-05.
                 if (SaveManager.ActiveSave == null)
                 {
                     SaveManager.AutoLoadLast();
@@ -311,7 +313,19 @@ public partial class StrategicView : Node2D
                 // to the front here, before anything renders, so markers, control
                 // colours, and the frontier report reflect the post-intervention
                 // state the moment the map comes up.
+                // Guild screen part B5 (2026-11-05): the last expedition's result, which the
+                // Grand Hall showed until then, is one line on the map. Read before the warfront
+                // resolution can clear it, and cleared after, so it shows once.
+                string expeditionResult = RunResultData.HasResults ? ExpeditionResultLine() : "";
                 ResolveReturnedWarfrontIntervention(cycle);
+                if (expeditionResult.Length > 0)
+                {
+                    RunResultData.Clear();
+                    _expeditionResultToast = expeditionResult;
+                    CallDeferred(nameof(PushExpeditionResult));
+                }
+                // B3: a school that has turned declarable is said once (StrategicView.GuildScreen.cs).
+                CallDeferred(nameof(NoteDeclarableSchools));
 
                 // A returning Convergence combat resolves the finale before
                 // anything renders, so the outcome beat lands on the map the
@@ -473,16 +487,20 @@ public partial class StrategicView : Node2D
             cycle, cycle.PendingWarfrontId, cycle.PendingWarfrontSide, success, FactionDisplay);
 
         cycle.PendingWarfrontId = "";
+        cycle.PendingWarfrontProvinceId = "";
         cycle.WarfrontStrongholdCleared = false;
         RunResultData.Clear();
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
     }
 
-    /// <summary>Deferred no-save / no-cycle escape hatch from _Ready: the campus scene
-    /// is the slot picker and founding room, so a boot with nothing to show lands there.
-    /// Deferred because changing scenes inside _Ready tears the tree mid-build.</summary>
-    private void RouteToCampusFallback() => GetTree().ChangeSceneToFile(CampusScenePath);
+    /// <summary>Deferred no-save / no-cycle escape hatch from _Ready. With no save, the title
+    /// screen (Found a Guild, Load Game): the slot picker left the campus on 2026-11-05, and a
+    /// campus with no guild has no way on. With a save whose world could not be built, the
+    /// campus as before. Deferred because changing scenes inside _Ready tears the tree
+    /// mid-build.</summary>
+    private void RouteToCampusFallback() => GetTree().ChangeSceneToFile(
+        SaveManager.ActiveSave == null ? "res://Scenes/UI/TitleScreen.tscn" : CampusScenePath);
 
     /// <summary>C4: back to the examination hall (PrologueDirector.NeedsHall).</summary>
     private void RouteToPrologue() => GetTree().ChangeSceneToFile(PrologueDirector.ScenePath);
@@ -590,6 +608,7 @@ public partial class StrategicView : Node2D
             foreach (var wf in atlasCycle.Warfronts)
                 if (!wf.Closed && wf.HasFocus)
                     warTiles.Add(new Vector2I(wf.FocusCol, wf.FocusRow));
+        ShowKeeperOnAtlas(atlasCycle);   // provinces PV6: the Keeper's mark, drawn with the warfronts
         _atlas3D.SetWarfronts(warTiles);
 
         // Expedition v2: both pieces on the board from the first frame. Without
@@ -681,8 +700,8 @@ public partial class StrategicView : Node2D
     }
 
     /// <summary>Standing Orders O1a fix (2026-11-02): while the home's door is not set,
-    /// Debug Mode still reaches the campus's panels, where the debug panel lives, as the
-    /// overlay over the map. The home itself stays shut: no city view. True when it opened
+    /// Debug Mode still reaches the campus's panels as the overlay over the map (the debug
+    /// panel itself is in Settings since 2026-11-05). The home itself stays shut: no city view. True when it opened
     /// them.</summary>
     private bool OpenCampusPanelsThroughShutDoor()
     {
@@ -1307,6 +1326,10 @@ public partial class StrategicView : Node2D
                     : sortieWhy;
             }
         }
+        // Provinces PV4: the font's maneuvers, for the castle on the world map.
+        RefreshManeuverButton(cycle, cityNow);
+        // Provinces PV7: the army, for the castle on the world map.
+        RefreshArmyButton(cycle, cityNow);
 
         // A detachment is a posted piece: it takes no orders but Stop work,
         // Collect and Recall. Hide the move verb for it rather than letting an
@@ -1528,11 +1551,8 @@ public partial class StrategicView : Node2D
             {
                 if (_buildModeBtn != null) _buildModeBtn.ButtonPressed = false;
                 if (_annexButton != null) _annexButton.ButtonPressed = false;
-                ShowStrategicNotice("Move the field party",
-                    $"Click charted ground to send them there on foot: {FieldMarch.DaysPerTile} "
-                    + "day(s) a tile, and the road is watched. Click the castle, a "
-                    + "raised waystone or the dock to step through instantly instead.");
             }
+            RefreshHint();   // provinces 7j: the move's rules ride the hint line while it is armed
             return;
         }
 
@@ -1550,18 +1570,18 @@ public partial class StrategicView : Node2D
         {
             if (_buildModeBtn != null) _buildModeBtn.ButtonPressed = false;
             if (_annexButton != null) _annexButton.ButtonPressed = false;
-            int range = cycle != null ? CastleMarch.RangeInTiles(cycle) : 0;
-            ShowStrategicNotice("March",
-                $"Click charted ground to send the fortress there. Range {range} tile(s) " +
-                $"on the fuel in the furnace, at {CastleMarch.FuelPerTile} per tile.");
         }
+        RefreshHint();   // provinces 7j: the march's rules ride the hint line while it is armed
     }
 
     /// <summary>A one-shot informational dialog. Used where a refusal has to be
     /// read before the player wastes a click.</summary>
     private void ShowStrategicNotice(string title, string body)
     {
-        var dlg = new AcceptDialog { Title = title, DialogText = body };
+        // Provinces 7j: the text wraps at a fixed width, so a long notice no longer stretches the
+        // dialog past the screen's edges (StyleNewDialog gives it the HUD's colours).
+        var dlg = new AcceptDialog { Title = title };
+        dlg.AddChild(DialogFit.Wrap(new Label { Text = body }, NoticeTextWidth));
         dlg.Confirmed += () => dlg.QueueFree();
         dlg.Canceled += () => dlg.QueueFree();
         AddChild(dlg);
@@ -1656,7 +1676,14 @@ public partial class StrategicView : Node2D
                 if (d < nearestD) { nearestD = d; nearest = sp; }
             }
         if (nearest != null && nearestD <= StagingClickTolerance)
+        {
             OnStagingClicked(nearest);
+            return;
+        }
+
+        // Provinces 7i (PR49): a click that hits nothing else opens the province card.
+        // On water, or on ground not yet on the map, it shuts the card.
+        ShowProvinceCard(col, row);
     }
 
     /// <summary>Stage 2 (Phase 2), the "descend into your city" transition: swoop the
@@ -1800,6 +1827,16 @@ public partial class StrategicView : Node2D
                 ShowFloatingPanel(dest.Panel.Value, buildingId);
                 _atlas3D?.FocusHomeBuilding(coord);   // the showcase swoop (2026-08-13)
             }
+            else if (BuildingCardHasBusiness(buildingId))
+            {
+                // Guild screen part B2 (2026-11-05): a building whose door is the full overlay
+                // (the Embassy) opens its card first, for its tiers and its doctrines, and the
+                // card's Enter opens the overlay. Before, the city could not raise it past its
+                // first tier, and its doctrines were chartered from the Guild screen's list.
+                var lifecyclePanel = dest.Panel.Value;
+                ShowFloatingPanel(null, buildingId, enter: () => ShowCampusOverlay(lifecyclePanel));
+                _atlas3D?.FocusHomeBuilding(coord);
+            }
             else
                 ShowCampusOverlay(dest.Panel.Value);   // lifecycle-heavy panel: full overlay for now
         }
@@ -1807,8 +1844,22 @@ public partial class StrategicView : Node2D
         {
             // Entered from the city, so the utility screen's return warp should land
             // back in the city, consumed by BuildAtlas3D when this scene reloads.
-            PlayerSession.StartInCityOnOpen = true;
-            GetTree().ChangeSceneToFile(dest.ScenePath);
+            string scenePath = dest.ScenePath;
+            void EnterScene()
+            {
+                PlayerSession.StartInCityOnOpen = true;
+                GetTree().ChangeSceneToFile(scenePath);
+            }
+            // B2: a screen door with tiers to buy or doctrines to charter (the Arcane Library,
+            // the Scriptorum) opens its card first, and the card's Enter goes through. The
+            // Sanctum, with neither, still opens straight onto the deck.
+            if (BuildingCardHasBusiness(buildingId))
+            {
+                ShowFloatingPanel(null, buildingId, enter: EnterScene);
+                _atlas3D?.FocusHomeBuilding(coord);
+            }
+            else
+                EnterScene();
         }
     }
 
@@ -1816,7 +1867,8 @@ public partial class StrategicView : Node2D
     /// <see cref="ShowCampusOverlay"/> this leaves the atlas/world VISIBLE (only its input is
     /// gated) and closes back to the city rather than the world: the finish that lets a
     /// building's menu open in place. One panel at a time.</summary>
-    private void ShowFloatingPanel(CampusPanelId? panel, string buildingId, string titleOverride = null)
+    private void ShowFloatingPanel(CampusPanelId? panel, string buildingId, string titleOverride = null,
+                                   System.Action enter = null)
     {
         // (2026-08-13) Panel SWAP: picking another building replaces the open
         // card instead of being swallowed. Atlas input stays ENABLED. The
@@ -1831,7 +1883,8 @@ public partial class StrategicView : Node2D
         string title = titleOverride ?? (BuildingDatabase.GetTemplate(buildingId)?.Name ?? "");
         _floatingPanel = HomeBuildingPanelHost.Create(this, panel, title, HideFloatingPanel,
             buildingId, enc => ShowFloatedPanelNarrative(enc),
-            onBuildingChanged: () => _atlas3D?.RefreshCityGrowth());
+            onBuildingChanged: () => _atlas3D?.RefreshCityGrowth(),
+            enter: enter);
         AddChild(_floatingPanel);
     }
 
@@ -2172,6 +2225,12 @@ public partial class StrategicView : Node2D
         if (_hintLabel == null) return;
         bool city = _atlas3D?.CityMode ?? false;
         bool home = _atlas3D?.ActiveCityIsHome ?? true;
+        // Provinces 7j: while a move is armed, the hint line carries its rules.
+        if (_marchMode && !city)
+        {
+            _hintLabel.Text = CastleSelected ? MarchHintLine(SaveManager.ActiveSave?.Cycle) : PartyMoveHintLine();
+            return;
+        }
         _hintLabel.Text = !city
             ? "Pick a force at the lower left to give it orders  ·  \u263D Pass time lets the days go by  ·  Q/E to rotate  ·  wheel in over your city to go home."
             : home
@@ -3185,6 +3244,11 @@ public partial class StrategicView : Node2D
         _sortieBtn.Visible = false;
         _sortieBtn.Pressed += OnSortiePressed;
 
+        // Provinces PV4: the castle's maneuvers, beside its march and its sortie.
+        BuildManeuverButton();
+        // Provinces PV7: the army, beside the maneuvers.
+        BuildArmyButton();
+
         // The two-state piece toggle that used to live here is gone. It was in
         // the RIGHT-docked stack, which the deploy drawer covers entirely, and it
         // could only ever name two forces. Replaced by the FORCES roster on the
@@ -4178,6 +4242,7 @@ public partial class StrategicView : Node2D
         }
 
         TickProvinceHover(delta);   // provinces 7c: the province readout
+        TickProvinceCard(delta);    // provinces 7i: the province card
         TickTopBar();               // provinces 7e: the clock follows the bar; the insets follow the UI's size
         PollChronicle(delta);
     }
@@ -4262,6 +4327,14 @@ public partial class StrategicView : Node2D
 
     public override void _UnhandledInput(InputEvent e)
     {
+        // Provinces 7i (PR49): Escape shuts the province card first.
+        if (e.IsActionPressed("ui_cancel") && ProvinceCardOpen)
+        {
+            HideProvinceCard();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         // Escape: up from the city (2026-09-24). Only when nothing modal is up,
         // so a dialog's own Escape still means "cancel that".
         if (e.IsActionPressed("ui_cancel") && _atlas3D != null && _atlas3D.CityMode
@@ -4968,6 +5041,7 @@ public partial class StrategicView : Node2D
         var wf = SupplyCacheSystem.OpenPlayerSiege(cycle, poiIndex);
         cycle.PendingWarfrontId = wf.Id;
         cycle.PendingWarfrontSide = WarfrontSide.Seize;
+        cycle.PendingWarfrontProvinceId = "";   // provinces PV3a: a cache siege contests no province
         cycle.WarfrontStrongholdCleared = false;
 
         OpenFieldPartyPicker(new StagingPoint
@@ -5140,8 +5214,9 @@ public partial class StrategicView : Node2D
 
         AddDeployStat(vbox, "Aggressor", wf.AggressorName);
         AddDeployStat(vbox, "Defender", wf.DefenderName);
-        AddDeployStat(vbox, "Advance", $"{wf.Advance}/100  (falls at 100, repelled at 0)");
-        AddDeployStat(vbox, "Front", $"({wf.FocusCol}, {wf.FocusRow})");
+        // Provinces PV3a: the province the front contests, and what each end of the bar does.
+        AddDeployStat(vbox, "Advance", WarfrontAdvanceText(wf));
+        AddDeployStat(vbox, "Front", WarfrontPlace(cycle, wf));
         AddDeployStat(vbox, "Cost", "a field dive: days in proportion to the rations it eats");
 
         var help = new Label
@@ -5213,6 +5288,7 @@ public partial class StrategicView : Node2D
         // Record which front + side so the outcome applies on return.
         cycle.PendingWarfrontId = wf.Id;
         cycle.PendingWarfrontSide = side;
+        cycle.PendingWarfrontProvinceId = wf.ProvinceId ?? "";   // provinces PV3a: the province it went to
         cycle.WarfrontStrongholdCleared = false; // fresh objective for this intervention
 
         OpenFieldPartyPicker(new StagingPoint
@@ -6045,6 +6121,10 @@ public partial class StrategicView : Node2D
             kingdomLabel = $"{placeProvince.Name}, {kingdomLabel}";
         // PV2a: the guild's influence in the province, and whether it holds it.
         string placeStanding = placeProvince != null ? "\n" + ProvinceInfluence.StandingLine(placeProvince) : "";
+        // Provinces PV3a (PR57): who rules the province, when its own realm does not.
+        string placeRuler = placeProvince != null ? ProvinceRulerNote(cycle, placeProvince) : "";
+        if (placeRuler.Length > 0)
+            placeStanding = "\n" + placeRuler + placeStanding;
         string kind = sp.Source switch
         {
             "Start" => "the guild's dock",
@@ -6552,7 +6632,8 @@ public partial class StrategicView : Node2D
             OkButtonText = "March",
             DialogText =
                 $"Send them from ({party.X},{party.Y}) to ({col},{row}).\n\n"
-                + $"{tiles} tile(s) on foot, {marchDays} day(s) at {FieldMarch.DaysPerTile} a tile. "
+                + $"{tiles} tile(s) on foot, {marchDays} day(s): {FieldMarch.DaysPerTile} a tile, "
+                + $"{CastleReach.RoadDaysPerTile} on the castle's roads within its reach. "
                 + "They walk as the days pass, and they cannot take the field while they are walking.\n\n"
                 + "The road is watched. Patrols take a share of whatever they carry and cost them "
                 + "time; in hostile ground, soldiers turn them back outright."
@@ -6599,17 +6680,11 @@ public partial class StrategicView : Node2D
             return;
         }
 
-        int cost = CastleMarch.CostTo(cycle, col, row);
-        int tiles = cycle.World.HexDistance(cycle.CastleX, cycle.CastleY, col, row);
         var dlg = new ConfirmationDialog
         {
             Title = "March the fortress",
             OkButtonText = "March",
-            DialogText =
-                $"Send the castle {tiles} tile(s) to ({col},{row}).\n\n" +
-                $"Fuel: {cost} of {cycle.CastleFuel}.\n" +
-                $"On arrival the crews make camp for {CastleMarch.ArrivalCampDays} day(s), " +
-                "and the castle is exposed until they finish.",
+            DialogText = MarchConfirmText(cycle, col, row),   // provinces PV4: the route hop by hop
         };
         dlg.Confirmed += () => { dlg.QueueFree(); ExecuteCastleMarch(col, row, null); };
         dlg.Canceled += () => dlg.QueueFree();
@@ -6653,7 +6728,7 @@ public partial class StrategicView : Node2D
         // same straight corridor the march charted, then the map rebuilds.
         if (_atlas3D != null && _world != null && _world.InBounds(fromX, fromY))
         {
-            var path = CorridorTiles(fromX, fromY, col, row);
+            var path = MarchPath(fromX, fromY, col, row);   // provinces PV4: seat to seat along the route
             _atlas3D.AcceptInput = false;
             _atlas3D.PlayMarches(
                 new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<Vector2I>>
@@ -7030,6 +7105,33 @@ public partial class StrategicView : Node2D
         {
             cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
             cycle.PendingSiegeReports.Add(provinceLine);
+        }
+        // Provinces 7i (PV2c): what holding gives, once the holds have moved. Each
+        // province held for its benefits has its places Sighted and sends its supplies.
+        foreach (var benefitLine in ProvinceBenefits.NewMoon(cycle))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(benefitLine);
+        }
+        // Provinces PV4 (the Bastion): the font fills again, a ward whose camp has ended
+        // lapses, and holds on fronts that closed are dropped.
+        foreach (var fontLine in CastleManeuvers.NewMoon(cycle))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(fontLine);
+        }
+        // Provinces PV6: the Keeper wakes, or plays its card, and may fall on the castle.
+        foreach (var keeperLine in KeeperHunt.NewMoon(cycle, FactionDisplay))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(keeperLine);
+        }
+        // Provinces PV7: the army is paid its upkeep, oldest line first, after the held
+        // provinces' supplies have come in; a paid line refits, an unpaid one starves.
+        foreach (var armyLine in ArmyMuster.NewMoon(cycle))
+        {
+            cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+            cycle.PendingSiegeReports.Add(armyLine);
         }
         // Supply envy runs BEFORE the kingdom tick so cache imbalances feed the
         // same border-pressure boil-over that opens warfronts (wars erupt over

@@ -1,0 +1,388 @@
+{
+	"id": "arcanist_strike_the_clause",
+	"status": "ready",
+	"name": "Strike the Clause",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Strike the Clause",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Target enemy's next attack or spell loses its rider (status, push or imbue). Only its damage lands.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": false,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "strike_clause"
+		}
+	},
+	"bottom": {
+		"name": "Correction",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 4 damage. If the target has a buff, gain 1 Charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "target_has_buff"
+					},
+					"then": {
+						"type": "gain_charge",
+						"amount": 1
+					}
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Strike the Clause+",
+			"bottom_name": "Correction+",
+			"description": "The red pen pays. The correction cuts deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "strike_clause"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Target enemy's next attack or spell loses its rider (status, push or imbue). Only its damage lands. Gain 1 Charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "target_has_buff"
+								},
+								"then": {
+									"type": "gain_charge",
+									"amount": 1
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage. If the target has a buff, gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Strike the Clauses",
+			"description": "Strike the Clauses: a whole knot of enemies.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "strike_clause"
+								}
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next attack or spell of every enemy within 1 of the target loses its rider (status, push or imbue). Only its damage lands. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Firm Correction",
+			"description": "Firm Correction.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "target_has_buff"
+								},
+								"then": {
+									"type": "gain_charge",
+									"amount": 2
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. If the target has a buff, gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Redline",
+			"description": "Redline: and a card.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 1,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "strike_clause"
+								}
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next attack or spell of every enemy within 1 of the target loses its rider (status, push or imbue). Only its damage lands. Gain 1 Charge. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Stern Correction",
+			"description": "Stern Correction.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "target_has_buff"
+								},
+								"then": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_charge",
+											"amount": 2
+										},
+										{
+											"type": "draw",
+											"count": 1
+										}
+									]
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. If the target has a buff, gain 2 Charge and draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Strike It All",
+			"description": "Strike It All: a wider margin.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "aoe",
+									"radius": 2,
+									"enemies_only": true
+								},
+								"do": {
+									"type": "strike_clause"
+								}
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next attack or spell of every enemy within 2 of the target loses its rider (status, push or imbue). Only its damage lands. Gain 2 Charge. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Final Edit",
+			"description": "The Final Edit.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "target_has_buff"
+								},
+								"then": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_charge",
+											"amount": 2
+										},
+										{
+											"type": "draw",
+											"count": 1
+										}
+									]
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage. If the target has a buff, gain 2 Charge and draw 1 card."
+				}
+			]
+		}
+	]
+}

@@ -584,6 +584,12 @@ public partial class CombatManager
             return;
         }
 
+        if (ClauseStruck(enemy))
+        {
+            LogClause(enemy, "push");   // a shove is all rider: nobody moves
+            return;
+        }
+
         int tiles = intent.ShoveTiles > 0 ? intent.ShoveTiles : ShoveDistance;
         var ctx = new MoveContext(grid);
         var path = ResolveShovePath(victim, enemy.CurrentTile.Axial, tiles, apply: true, ctx: ctx, collision: intent.ShoveCollision);
@@ -1869,6 +1875,7 @@ public partial class CombatManager
                 await ExecuteShoveIntent(enemy, intent);
                 break;
         }
+        SpendClause(enemy, intent.Kind);   // Strike the Clause lasts one attack or spell
     }
 
     /// <summary>Executes a telegraphed imbue (tile_interaction §7): writes the intent's
@@ -1881,6 +1888,11 @@ public partial class CombatManager
     {
         if (!IsValidActor(enemy))
             return;
+        if (ClauseStruck(enemy))
+        {
+            LogClause(enemy, "imbue");   // an imbue is all rider: nothing is written
+            return;
+        }
 
         var element = intent.ImbueElement;
         if (element == TileElementType.None || intent.ThreatTiles == null)
@@ -2659,11 +2671,16 @@ public partial class CombatManager
         combatUI?.AppendActionLog($"{enemy.Name} releases a charged blast!");
 
         LastStrikeVictim = null;
-        await StrikeTile(enemy, tile, intent.Value, ranged: true, label: "Charged Blast");
+        // Arcanist (slice 14b): a Blot or a ready Red Ink cuts the blast as it lands.
+        int blast = AnnotateEnemySpell(enemy, tile, intent.Value);
+        await StrikeTile(enemy, tile, blast, ranged: true, label: "Charged Blast");
 
         // Slow rider follows whoever was actually hit (dodge = nobody; redirect = new victim).
         var victim = LastStrikeVictim;
-        ApplyCasterRider(enemy, victim);
+        if (ClauseStruck(enemy))
+            LogClause(enemy, "rider");
+        else
+            ApplyCasterRider(enemy, victim);
     }
 
     // ── Per-school caster riders (Step 2): the signature effect each wizard
@@ -3027,7 +3044,11 @@ public partial class CombatManager
         // stack route (EnemyStrikeEffect) and the direct route both land here, so a
         // single call site cannot be bypassed by whichever path a given strike took.
         // Queued, not resolved: the drain that follows every strike carries it.
-        QueueAbilityTriggers(attacker, "onAttack", LastStrikeVictim);
+        bool clauseStruck = ClauseStruck(attacker);
+        if (clauseStruck)
+            LogClause(attacker, "on-hit effect");
+        else
+            QueueAbilityTriggers(attacker, "onAttack", LastStrikeVictim);
 
         // Elemental strike rider (tile_interaction_spec): a tagged attacker leaves
         // its element on the ground it STRIKES - hit or miss. A fire spell scorches
@@ -3035,7 +3056,7 @@ public partial class CombatManager
         // damaging a unit: imbue the struck victim's tile if there was one, else the
         // aimed tile (the empty ground the shot hit).
         if (attacker != null && IsInstanceValid(attacker)
-            && attacker.ImbueOnHit != TileElementType.None)
+            && attacker.ImbueOnHit != TileElementType.None && !clauseStruck)
         {
             var groundTile = LastStrikeVictim?.CurrentTile ?? grid.GetTile(tile);
             if (groundTile != null)

@@ -27,6 +27,11 @@ using System.Text;
 //                 courtier's estate fades no lower than their floor
 //                 (ProvinceCourts), and three more deeds land here: a
 //                 site cleared, a contract turned in, a lead resolved.
+//                 Since slice PV3a (docs/provinces_v1_8_fronts_per_
+//                 province.md) the guild's own province does not
+//                 fade, a province no one rules becomes the guild's
+//                 once held (PR10, ProvinceControl.ClaimNeutral), and
+//                 a front's taking sets one province (SetProvince).
 // Layer:          System
 // Collaborators:  Province.cs (Influence, Held), KingdomState.cs
 //                 (PlayerInfluence, PlayerInfluenceDerived),
@@ -76,7 +81,8 @@ public static class ProvinceInfluence
     public const int PassiveCap = 40;
 
     /// <summary>Each lunation a province neither under nor beside the castle loses this
-    /// much, down to 0, unless the guild rules its kingdom.</summary>
+    /// much, down to 0, unless the guild rules it (provinces PV3a: its own province, or a
+    /// kingdom it seized whole before fronts walked).</summary>
     public const int Decay = 2;
 
     /// <summary>How far, in hexes, a deed on land outside every province (water opened
@@ -132,6 +138,11 @@ public static class ProvinceInfluence
         return IndexNear(cycle.World, cycle.CastleX, cycle.CastleY, null);
     }
 
+    /// <summary>Position in WorldData.Provinces of the province nearest (x,y): the one
+    /// holding it, else the first that IndexNear's walk finds within NearRadius, or -1.
+    /// Land opened in play joins it (ProvinceBenefits.JoinOpenedLand, PR50).</summary>
+    public static int NearestProvince(WorldData world, int x, int y) => IndexNear(world, x, y, null);
+
     // ══════════════════════════════════════════════════════════════════════
     // The bridge and the lunation
     // ══════════════════════════════════════════════════════════════════════
@@ -159,7 +170,7 @@ public static class ProvinceInfluence
     /// <summary>One lunation (docs/provinces_v1.md section 7b): Sync; the castle's
     /// presence (+8 in its province, +3 in each province beside it) and the held
     /// neighbours (+1 each), none of it past PassiveCap; decay (-2) where the castle is
-    /// neither in nor beside the province, except in a kingdom the guild rules, and never
+    /// neither in nor beside the province, except where the guild rules (PV3a), and never
     /// below a friendly courtier's floor in their estate (PR15, ProvinceCourts.Floor); the hold
     /// lines; each kingdom's value derived again. Returns the frontier news: a line for
     /// each province gained or lost. StrategicView.RunLunationTick calls it once a
@@ -200,7 +211,7 @@ public static class ProvinceInfluence
             int value = province.Influence;
             if (passive > 0 && value < PassiveCap)
                 value = Math.Min(PassiveCap, value + passive);
-            if (!near[i] && !GuildRules(cycle, province.KingdomId))
+            if (!near[i] && !RuledByGuild(cycle, province))
             {
                 // It fades no lower than its floor, and not at all from below it (PR15).
                 int floor = ProvinceCourts.Floor(cycle, province);
@@ -310,6 +321,24 @@ public static class ProvinceInfluence
             kingdom.PlayerInfluence = value;
     }
 
+    /// <summary>Set the guild's influence in one province, by its index (provinces PV3a,
+    /// PR54): 0 when an aggressor takes it, 100 when the guild does. A write made outside
+    /// the province layer is spread first, as a deed spreads it; the hold follows silently,
+    /// because the taking reports itself; the province's kingdom's value is derived again.
+    /// Nothing in a world without provinces.</summary>
+    public static void SetProvince(CycleState cycle, int index, int value)
+    {
+        if (!Active(cycle) || index < 0 || index >= cycle.World.Provinces.Count)
+            return;
+        var province = cycle.World.Provinces[index];
+        string kingdomId = province.KingdomId ?? "";
+        cycle.Kingdoms.TryGetValue(kingdomId, out var kingdom);
+        Absorb(cycle, kingdomId, kingdom);
+        province.Influence = Clamp(value);
+        UpdateHeld(cycle, province);
+        Derive(cycle, kingdomId, kingdom);
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     // The next lunation (the province readout, docs/provinces_v1.md 7c)
     // ══════════════════════════════════════════════════════════════════════
@@ -329,7 +358,8 @@ public static class ProvinceInfluence
         /// <summary>The castle is in it or beside it, but presence stops at PassiveCap.</summary>
         Capped = 3,
 
-        /// <summary>The guild rules its kingdom, so it does not decay.</summary>
+        /// <summary>The guild rules it (its own province since PV3a, or a kingdom it seized
+        /// whole before), so it does not decay.</summary>
         Sovereign = 4,
 
         /// <summary>Away from the castle, held neighbours keep it up.</summary>
@@ -346,7 +376,7 @@ public static class ProvinceInfluence
     /// <summary>What the next lunation will do to a province's influence if nothing else
     /// happens first. It is Tick's own arithmetic, read without changing anything: the
     /// castle's presence and held neighbours up to PassiveCap, then decay away from the
-    /// castle unless the guild rules the kingdom, stopped at a friendly courtier's floor.
+    /// castle unless the guild rules it, stopped at a friendly courtier's floor.
     /// drift says why. 0 and Still for anything that is not a province of a world with
     /// provinces.</summary>
     public static int NextLunation(CycleState cycle, int index, out Drift drift)
@@ -370,7 +400,7 @@ public static class ProvinceInfluence
         int next = value;
         if (passive > 0 && next < PassiveCap)
             next = Math.Min(PassiveCap, next + passive);
-        bool ruled = GuildRules(cycle, province.KingdomId);
+        bool ruled = RuledByGuild(cycle, province);
         bool floored = false;
         if (!here && !beside && !ruled)
         {
@@ -483,8 +513,8 @@ public static class ProvinceInfluence
             Drift.CastleBeside => $"Next lunation: {amount}, with the castle beside it.",
             Drift.Capped => $"Next lunation: no change. The castle's presence stops at {PassiveCap}; deeds take it further.",
             Drift.Sovereign => change > 0
-                ? $"Next lunation: {amount}. The guild rules this kingdom, so its influence does not fade."
-                : "Next lunation: no change. The guild rules this kingdom, so its influence does not fade.",
+                ? $"Next lunation: {amount}. The guild rules it, so its influence does not fade."
+                : "Next lunation: no change. The guild rules it, so its influence does not fade.",
             Drift.HeldNeighbors => change > 0
                 ? $"Next lunation: {amount}, from the held provinces beside it."
                 : "Next lunation: no change. The held provinces beside it hold off the fading.",
@@ -575,7 +605,21 @@ public static class ProvinceInfluence
                 string name = string.IsNullOrEmpty(province.Name) ? province.Id : province.Name;
                 string where = i == castle ? "  castle" : near[i] ? "  beside the castle" : "";
                 sb.AppendLine($"  {name,-24} {province.Influence,3}{(province.Held ? "  held" : "")}{where}"
-                              + ProvinceCourts.EstateTag(cycle, province));
+                              + ProvinceCourts.EstateTag(cycle, province)
+                              + ProvinceControl.RulerTag(cycle, province));
+            }
+        }
+        // Provinces PV3a: each open front, and the province it contests.
+        if (cycle.Warfronts != null)
+        {
+            foreach (var front in cycle.Warfronts)
+            {
+                if (front == null || front.Closed || front.IsCacheSiege)
+                    continue;
+                var contested = ProvinceControl.ProvinceById(world, front.ProvinceId);
+                sb.AppendLine($"Front {front.Id}: "
+                              + (contested != null ? Label(cycle, contested) : "the whole realm (opened before fronts walked)")
+                              + $", Advance {front.Advance}" + (front.PlayerSeizing ? ", the guild bidding to seize it" : "") + ".");
             }
         }
         return sb.ToString();
@@ -608,6 +652,12 @@ public static class ProvinceInfluence
     private static bool GuildRules(CycleState cycle, string kingdomId)
         => !string.IsNullOrEmpty(kingdomId) && cycle.Kingdoms.TryGetValue(kingdomId, out var kingdom)
            && kingdom != null && kingdom.ControllingFactionId == KingdomTickSimulation.GuildFactionId;
+
+    /// <summary>True when the guild rules the province (provinces PV3a): its own land, by a
+    /// Seize, a collapse or a claim, or a kingdom it seized whole before fronts walked.
+    /// Sovereign land does not decay.</summary>
+    private static bool RuledByGuild(CycleState cycle, Province province)
+        => ProvinceControl.RulerOf(cycle, province) == ProvinceControl.Guild;
 
     /// <summary>The deed itself: a write made outside the province layer is spread first,
     /// then the amount lands, a gain weighed by the realm's court (ProvinceCourts.DeedGain),
@@ -690,20 +740,26 @@ public static class ProvinceInfluence
         return changed;
     }
 
-    /// <summary>Held at HoldLine, lost below LoseLine. Returns the news of a change, else "".</summary>
+    /// <summary>Held at HoldLine, lost below LoseLine; a province no one rules becomes the
+    /// guild's once held (provinces PV3a, PR10: ProvinceControl.ClaimNeutral). Returns the
+    /// news of a change, else "".</summary>
     private static string UpdateHeld(CycleState cycle, Province province)
     {
+        string news = "";
         if (!province.Held && province.Influence >= HoldLine)
         {
             province.Held = true;
-            return $"The guild now holds {Label(cycle, province)}.";
+            news = $"The guild now holds {Label(cycle, province)}.";
         }
-        if (province.Held && province.Influence < LoseLine)
+        else if (province.Held && province.Influence < LoseLine)
         {
             province.Held = false;
             return $"The guild's hold on {Label(cycle, province)} is lost.";
         }
-        return "";
+        string claim = ProvinceControl.ClaimNeutral(cycle, province);
+        if (claim.Length > 0)
+            news = news.Length > 0 ? news + " " + claim : claim;
+        return news;
     }
 
     /// <summary>A kingdom's value: the mean of its provinces' influence weighted by their

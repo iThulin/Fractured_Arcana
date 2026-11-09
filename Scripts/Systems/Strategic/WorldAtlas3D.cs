@@ -1225,7 +1225,7 @@ public partial class WorldAtlas3D : Node3D
         Vector3 offset = new Vector3(
             Mathf.Sin(_camYaw) * Mathf.Cos(pitch),
             Mathf.Sin(pitch),
-            Mathf.Cos(_camYaw) * Mathf.Cos(pitch)) * _camDist;
+            Mathf.Cos(_camYaw) * Mathf.Cos(pitch)) * CameraStandOff();   // provinces 7j (fix 5): ortho stands back
         _camera.Position = _camTarget + offset;
         _camera.LookAt(_camTarget, Vector3.Up);
         // Projection: orthographic (strategic map) samples every tile at one scale, so
@@ -1621,6 +1621,7 @@ public partial class WorldAtlas3D : Node3D
 
     private void Rebuild()
     {
+        RefreshRulers();   // provinces PV3a: who rules each province, read once a rebuild
         RebuildTiles();
         RebuildEdges();
         RebuildMarkers();
@@ -1910,18 +1911,24 @@ public partial class WorldAtlas3D : Node3D
                     (riverMids ??= new List<Vector3>()).Add(edgeMid);
                 if (road)
                 {
-                    Vector3 seg = edgeMid - center;
+                    // Provinces 7j (fix 4): a road keeps to its own tile's top out to the edge,
+                    // and the higher of two tiles drops a riser to its neighbour's top. Sloped to
+                    // the average height, each half ran into the taller prism and was lost there.
+                    float ownH = TileHeightAt(col, row);
+                    Vector3 roadMid = new Vector3(edgeMid.X, ownH + 0.02f, edgeMid.Z);
+                    Vector3 seg = roadMid - center;
                     float len = seg.Length();
                     if (len < 1e-4f)
                         continue;
-                    // Tilted basis: local +X runs along the (possibly sloped)
-                    // segment, slightly overlength so joints at slope kinks close.
+                    // Local +X runs along the segment, slightly overlength so joints close.
                     Vector3 ax = seg / len;
                     Vector3 az = ax.Cross(Vector3.Up);
                     az = az.LengthSquared() > 1e-6f ? az.Normalized() : Vector3.Forward;
                     Vector3 ay = az.Cross(ax).Normalized();
                     roads.Add(new Transform3D(new Basis(ax * (len * 1.05f), ay, az),
-                                              (center + edgeMid) * 0.5f));
+                                              (center + roadMid) * 0.5f));
+                    if (inBounds && ownH - nbrH > ReliefStepMin)
+                        roads.Add(RoadRiser(roadMid, nbrH + 0.02f, az));
                 }
             }
             if (riverMids != null)
@@ -1932,7 +1939,8 @@ public partial class WorldAtlas3D : Node3D
         {
             Name = "RiverLayer",
             // A9c: 0.22 was invisible at map zoom; map rivers are exaggerated, not to scale.
-            Mesh = RiverMesh.Build(riverTiles, 0.36f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank),
+            // Provinces 7j: 0.36 read thin beside the province borders, so wider again.
+            Mesh = RiverMesh.Build(riverTiles, 0.5f, Hex3DPalette.RiverWater, Hex3DPalette.RiverBank),
             MaterialOverride = PainterlyPrism.RiverMaterial(),
         };
         AddChild(_riverLayer);
@@ -1946,6 +1954,7 @@ public partial class WorldAtlas3D : Node3D
         // edges once via direction bits 0–2 (the mirror is the neighbour's 3–5).
         _borderLayer?.QueueFree();
         var borders = new List<Transform3D>();
+        var borderCorners = new Dictionary<(int, int), CornerSpan>();   // provinces 7j (fix 2)
         for (int row = 0; row < _world.Height; row++)
         for (int col = 0; col < _world.Width; col++)
         {
@@ -1968,8 +1977,8 @@ public partial class WorldAtlas3D : Node3D
                 var d2 = _revealAll ? TileDiscovery.Explored : n.Discovery;
                 if (d2 == TileDiscovery.Unseen)
                     continue;
-                if (t.KingdomId == n.KingdomId)
-                    continue;
+                if (RulerKeyAt(t, col, row) == RulerKeyAt(n, nc, nr))
+                    continue;   // provinces PV3a (PR59): the realm ink runs between rulers
                 Vector3 a = TileOrigin(col, row);
                 Vector3 b = TileOrigin(nc, nr);
                 Vector3 mid = (a + b) * 0.5f;
@@ -1978,12 +1987,15 @@ public partial class WorldAtlas3D : Node3D
                 Vector3 perp = new Vector3(-dd.Z, 0f, dd.X);
                 borders.Add(new Transform3D(
                     new Basis(Vector3.Up, Mathf.Atan2(-perp.Z, perp.X)), mid));
+                NoteEdgeCorners(borderCorners, col, row, nc, nr, 0.012f);   // provinces 7j (fix 2)
             }
         }
+        AddCornerPosts(borders, borderCorners, HexR * 0.98f);   // provinces 7j (fix 2): the ink climbs the relief
         _borderLayer = MakeEdgeLayer("BorderLayer", borders,
             new Vector3(HexR * 0.98f, 0.02f, RealmInkWidth), Hex3DPalette.BorderInk);
         _borderLayer.MaterialOverride = RealmInkMaterial();   // provinces 7d: a least width on screen
         RebuildProvinceInk();                                 // provinces 7d: province borders on every lens
+        RebuildSeams();                                       // provinces 7j (fix 3): seams between tiles of one height
 
         _riverLayer.Visible = !_cityMode;
         _roadLayer.Visible = !_cityMode;
@@ -2276,6 +2288,9 @@ public partial class WorldAtlas3D : Node3D
             AddMarker(MakeLabel("⚔ War", UITheme.Danger, MarkerPos(wf.X, wf.Y, 5.9f)));
         }
 
+        // Provinces PV6: the Keeper's mark, with the warfronts' beacons.
+        AddKeeperMarker();
+
         // Provinces 7d: the names, before the pieces and the dispatch marks.
         AddProvinceNames();
 
@@ -2355,6 +2370,8 @@ public partial class WorldAtlas3D : Node3D
             var discovery = _revealAll ? TileDiscovery.Explored : t.Discovery;
             if (discovery != TileDiscovery.Explored || !t.IsLand)
                 continue;
+            if (IsCityGround(t, col, row))
+                continue;   // provinces 7j (fix 4): a city's footprint wears no trees or spires
 
             float h = TileHeightAt(col, row);   // city-aware: decorations sit on the flattened plateau too
             Vector3 basePos = TileOrigin(col, row);
@@ -3128,9 +3145,10 @@ public partial class WorldAtlas3D : Node3D
             // province names) set theirs after.
             OutlineSize = LabelHaloSize(fontSize),
             OutlineModulate = LabelHaloInk,
-            // Linear + mipmaps so labels don't render pixelated/aliased when minified at
-            // whole-world zoom (the default nearest filter shimmered).
-            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
+            // Provinces 7j (fix 1): linear, no mipmaps. ApplyLabelScale draws the glyphs at the
+            // size they show at, so nothing is minified; the font atlas's smaller mips bled the
+            // glyphs packed beside a letter into it ("The Cagwerk Reach").
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
         };
         // Track it so its world size follows the zoom, keeping a constant ON-SCREEN size. Without
         // this a world-sized label shimmers to a few pixels at whole-world zoom and balloons up close.
@@ -3146,7 +3164,12 @@ public partial class WorldAtlas3D : Node3D
     private void ApplyLabelScale(Label3D lbl, float fontSize, float screenFrac, Vector3 anchor, float stackFrac)
     {
         float orthoSize = _camDist * OrthoSizeFactor;   // world units per screen height
-        float px = orthoSize * screenFrac / Mathf.Max(1f, fontSize);
+        // Provinces 7j (fix 1): the glyphs are drawn at the size they show at, one texel to a
+        // pixel; the size changes only when the viewport's height does.
+        int shown = ShownFontSize(screenFrac, Mathf.RoundToInt(fontSize));
+        if (shown != lbl.FontSize)
+            ResizeLabelFont(lbl, shown);
+        float px = orthoSize * screenFrac / Mathf.Max(1f, lbl.FontSize);
         lbl.PixelSize = Mathf.Clamp(px, 0.001f, 0.5f);
         // Stacked labels climb along the camera's own up vector, not world up:
         // at a steep pitch a world lift is mostly foreshortened away, and the
@@ -3193,9 +3216,9 @@ public partial class WorldAtlas3D : Node3D
         // Charted is the UNDERPAINTING: a flat pale wash with the terrain hue
         // faintly present: known shape, not yet painted in.
         if (discovery == TileDiscovery.Charted)
-            return Jitter(Hex3DPalette.Underpaint(LensBaseColor(t)), col, row, t.IsWater ? 0f : 0.02f);
+            return Jitter(Hex3DPalette.Underpaint(LensBaseColor(t, col, row)), col, row, t.IsWater ? 0f : 0.02f);
 
-        Color c = LensColor(t);
+        Color c = LensColor(t, col, row);
         // Provinces (docs/provinces_v1.md, PV1): the Political lens shows the partition.
         if (_lens == StrategicLens.Political)
             c = ProvinceShade(c, col, row);
@@ -3247,36 +3270,40 @@ public partial class WorldAtlas3D : Node3D
             c.A);
     }
 
-    private Color LensColor(in WorldTile t)
+    private Color LensColor(in WorldTile t, int col, int row)
     {
         switch (_lens)
         {
             case StrategicLens.Terrain: return Hex3DPalette.TerrainColorOf(t);
             case StrategicLens.Corruption: return CorruptionLensColor(t);
-            case StrategicLens.Reach: return ReachLensColor(t);
-            default: return PoliticalLensColor(t);
+            case StrategicLens.Reach: return ReachLensColor(t, col, row);
+            default: return PoliticalLensColor(t, col, row);
         }
     }
 
-    private Color LensBaseColor(in WorldTile t)
+    private Color LensBaseColor(in WorldTile t, int col, int row)
     {
         switch (_lens)
         {
             case StrategicLens.Terrain: return Hex3DPalette.TerrainColorOf(t);
             case StrategicLens.Corruption: return CorruptionLensColor(t);
-            case StrategicLens.Reach: return ReachLensColor(t);
+            case StrategicLens.Reach: return ReachLensColor(t, col, row);
             default:
-                bool ownedLand = t.IsLand && !string.IsNullOrEmpty(t.KingdomId);
-                return ownedLand ? KingdomColor(t.KingdomId) : Hex3DPalette.TerrainColorOf(t);
+                // Provinces PV3a (PR59): the ruler's colour, as the painted lens draws it.
+                string ruler = RulerKeyAt(t, col, row);
+                bool ownedLand = t.IsLand && !string.IsNullOrEmpty(ruler);
+                return ownedLand ? RulerColor(ruler) : Hex3DPalette.TerrainColorOf(t);
         }
     }
 
-    private Color PoliticalLensColor(in WorldTile t)
+    private Color PoliticalLensColor(in WorldTile t, int col, int row)
     {
         Color c;
-        if (t.IsLand && !string.IsNullOrEmpty(t.KingdomId))
+        // Provinces PV3a (PR59): each province in its ruler's colour (WorldAtlas3D.Rulers.cs).
+        string ruler = RulerKeyAt(t, col, row);
+        if (t.IsLand && !string.IsNullOrEmpty(ruler))
         {
-            Color bloc = KingdomColor(t.KingdomId);
+            Color bloc = RulerColor(ruler);
             float lum = TerrainLuminance(t.Terrain);
             c = new Color(
                 Mathf.Clamp(bloc.R * lum, 0f, 1f),
@@ -3380,9 +3407,9 @@ public partial class WorldAtlas3D : Node3D
     /// saturation cut and moved toward the canvas, so untouched land reads as known
     /// ground and the guild's blue and gold read on any realm. Water keeps its Political
     /// colour. The court's stance left this lens for the province readout.</summary>
-    private Color ReachLensColor(in WorldTile t)
+    private Color ReachLensColor(in WorldTile t, int col, int row)
     {
-        Color c = PoliticalLensColor(t);
+        Color c = PoliticalLensColor(t, col, row);
         if (t.IsWater)
             return c;
         c.ToHsv(out float hue, out float sat, out float val);

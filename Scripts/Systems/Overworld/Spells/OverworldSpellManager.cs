@@ -257,9 +257,27 @@ public partial class OverworldSpellManager : Node2D
     /// <summary>Full Essence cost right now: base + off-caster tax (+1 for a
     /// non-General spell outside the wizard's school, companion-granted or
     /// debug; waived for the Adept, §7h) + corrupted-ground surcharge
-    /// (casting FROM a tile of corruption tier T costs +T, §5).</summary>
+    /// (casting FROM a tile of corruption tier T costs +T, §5), less held
+    /// ground's discount (casting from a province held for its benefits costs
+    /// 1 less, never below 1: provinces 7i, PR46).</summary>
     public int CastCostOf(OverworldSpellDefinition def)
-        => def.EssenceCost + OffCasterTax(def) + CorruptionSurcharge();
+    {
+        int full = def.EssenceCost + OffCasterTax(def) + CorruptionSurcharge();
+        return full - HeldGroundDiscount(full);
+    }
+
+    /// <summary>Provinces 7i (PR46): the Essence off a cast of the given full cost made
+    /// from a tile of a province held for its benefits, the mirror of corrupted ground's
+    /// surcharge: ProvinceBenefits.HeldCastDiscount, never taking the cost below 1. 0
+    /// anywhere else. The Grimoire's rows and card show it beside the surcharge.</summary>
+    public int HeldGroundDiscount(int fullCost)
+    {
+        if (fullCost <= 1 || _expedition?.WindowRef == null
+            || !_expedition.WindowRef.TryLocalToWorld(_expedition.PartyLocal, out int col, out int row)
+            || !ProvinceBenefits.HeldForBenefitsAt(SaveManager.ActiveSave?.Cycle, col, row))
+            return 0;
+        return Mathf.Min(ProvinceBenefits.HeldCastDiscount, fullCost - 1);
+    }
 
     /// <summary>S3: the off-caster tax for one spell (0 or 1).</summary>
     public int OffCasterTax(OverworldSpellDefinition def)
@@ -491,7 +509,8 @@ public partial class OverworldSpellManager : Node2D
             string tBlock = CastBlockReason(target);
             if (tBlock != null && tBlock != "not enough Essence")
             { _expedition.SpellInfo($"Emulate → {target.Name}: {tBlock}."); return; }
-            int cost = target.EssenceCost + 1 + CorruptionSurcharge();
+            int full = target.EssenceCost + 1 + CorruptionSurcharge();
+            int cost = full - HeldGroundDiscount(full);   // provinces 7i (PR46)
             if (cost > _grimoire.EssenceCurrent)
             { _expedition.SpellInfo("Emulate: not enough Essence."); return; }
             _costOverride = cost;

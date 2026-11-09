@@ -48,6 +48,16 @@ public partial class PauseManager : Node
 
         // Refresh context whenever scenes change.
         GetTree().NodeAdded += OnNodeAdded;
+        // A scene change closes the menu (2026-11-05). The developer tools in Settings can
+        // change scenes while the game is paused, and the menu lives outside the scene, so it
+        // would stay up over the new scene with the tree still paused.
+        GetTree().SceneChanged += OnSceneChanged;
+    }
+
+    private void OnSceneChanged()
+    {
+        if (IsPaused)
+            ClosePauseMenu();
     }
 
     private void OnNodeAdded(Node n)

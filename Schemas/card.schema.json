@@ -164,7 +164,8 @@
 							"old_growth_tile",
 							"memorial_or_spirit_nearby",
 							"friendly_glyph_tile",
-							"non_elite_target"
+							"non_elite_target",
+							"enemy_casting"
 						]
 					}
 				},
@@ -282,6 +283,10 @@
 				"friendly_glyphs": {
 					"type": "boolean",
 					"description": "tile_then_tile: both picks must hold one of your glyphs (default true; Glyph Warp). False for Tripwire Sentence."
+				},
+				"from_caster": {
+					"type": "boolean",
+					"description": "unit_then_tile: the destination is measured from the caster, not the victim (Purloin)."
 				},
 				"any_tile": {
 					"type": "boolean",
@@ -448,7 +453,11 @@
 						"memorize",
 						"recite_oldest",
 						"charge_lock",
-						"spend_charge"
+						"spend_charge",
+						"strike_clause",
+						"red_ink",
+						"blot_next_spell",
+						"purloin"
 					]
 				},
 				"amount": {
@@ -1028,6 +1037,10 @@
 				"reveal": {
 					"type": "integer",
 					"description": "pen from reveal: how many cards to reveal."
+				},
+				"charge": {
+					"type": "integer",
+					"description": "purloin: Charge gained when the stolen spell is cast."
 				},
 				"halt_movement": {
 					"type": "boolean",

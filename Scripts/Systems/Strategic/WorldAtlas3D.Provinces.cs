@@ -170,9 +170,10 @@ void fragment() {
     }
 
     /// <summary>The province ink, from RebuildEdges after the realm ink: one dashed stroke
-    /// on each hex edge between two painted land tiles of the same kingdom that lie in
-    /// different provinces (a tile in none counts as different). Edges between kingdoms
-    /// are the realm ink's, so no edge is inked twice. Hidden in city view.</summary>
+    /// on each hex edge between two painted land tiles of the same ruler (provinces PV3a,
+    /// PR59) that lie in different provinces (a tile in none counts as different). Edges
+    /// between rulers are the realm ink's, so no edge is inked twice. Hidden in city
+    /// view.</summary>
     private void RebuildProvinceInk()
     {
         _provinceLabelTiles = null;   // the painted ground may have changed: names find their tiles again
@@ -198,7 +199,7 @@ void fragment() {
                     if (!_world.InBounds(nc, nr))
                         continue;
                     var n = _world.GetTile(nc, nr);
-                    if (!n.IsLand || !Painted(nc, nr) || n.KingdomId != t.KingdomId)
+                    if (!n.IsLand || !Painted(nc, nr) || RulerKeyAt(n, nc, nr) != RulerKeyAt(t, col, row))
                         continue;
                     if (_world.ProvinceIndexAt(nc, nr) == pi)
                         continue;
@@ -249,6 +250,7 @@ void fragment() {
         SetInkWidth(_realmInkMaterial, RealmInkScreenFrac, RealmInkWidth);
         SetInkWidth(_provinceInkMaterial, ProvinceInkScreenFrac, ProvinceInkWidth);
         SetInkWidth(_rimMaterial, RimScreenFrac, RimWidth);
+        UpdateSeams();   // provinces 7j (fix 3): the seams fade in close and keep a least width
     }
 
     private void SetInkWidth(ShaderMaterial material, float screenFrac, float paintedWidth)
@@ -268,6 +270,8 @@ void fragment() {
     {
         if (_provinceInkLayer != null && IsInstanceValid(_provinceInkLayer))
             _provinceInkLayer.Visible = !city;
+        if (_seamLayer != null && IsInstanceValid(_seamLayer))
+            _seamLayer.Visible = !city && _seamAlphaShown > 0.005f;   // provinces 7j (fix 3)
         if (city)
             HighlightProvince(-1);
         UpdateProvinceNameFade(CurrentZoom01(), force: true);
@@ -289,6 +293,7 @@ void fragment() {
         if (index < 0 || _cityMode || _world == null || !_world.HasProvinces() || index >= _world.Provinces.Count)
             return;
         var strokes = new List<Transform3D>();
+        var rimCorners = new Dictionary<(int, int), CornerSpan>();   // provinces 7j (fix 2)
         for (int row = 0; row < _world.Height; row++)
         for (int col = 0; col < _world.Width; col++)
         {
@@ -302,10 +307,12 @@ void fragment() {
                 if (_world.InBounds(nc, nr) && _world.ProvinceIndexAt(nc, nr) == index)
                     continue;
                 strokes.Add(EdgeStroke(col, row, nc, nr, RimLift));
+                NoteEdgeCorners(rimCorners, col, row, nc, nr, RimLift);
             }
         }
         if (strokes.Count == 0)
             return;
+        AddCornerPosts(strokes, rimCorners, HexR * 1.04f);   // provinces 7j (fix 2): the rim climbs the relief
         _rimMaterial ??= MakeInkMaterial(UITheme.TextPrimary, translucent: false);
         _rimLayer = MakeEdgeLayer("ProvinceRim", strokes,
             new Vector3(HexR * 1.04f, 0.02f, RimWidth), UITheme.TextPrimary);

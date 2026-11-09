@@ -263,11 +263,10 @@ public partial class CampusScreen : Control
             nextBtn.Pressed += () => _expeditionPanel.BeginNextReading();
             titleBar.AddChild(nextBtn);
         }
-        // Standing Orders O1a fix (2026-11-02): the standalone campus (the title screen's Guild
-        // Hall) offered only Quit, which closes the game. While the interval walks the home is
-        // shut, so the Guild panel's debug buttons are reached from here, and the way back into
-        // the reading has to be here too. Standalone means this screen is the scene itself, not
-        // the campus opened over the map (which has its own leave button).
+        // Standing Orders O1a fix (2026-11-02): the standalone campus (then the title screen's
+        // Guild Hall door, retired 2026-11-05) offered only Quit, which closes the game, so the
+        // way back into the reading is here. Standalone means this screen is the scene itself,
+        // not the campus opened over the map (which has its own leave button).
         else if (GetParent() == GetTree().Root && SaveManager.ActiveSave?.Cycle != null)
         {
             var worldBtn = new Button
@@ -302,7 +301,7 @@ public partial class CampusScreen : Control
         tabBar.Visible = !DiegeticHubOnly;
         AddChild(tabBar);
 
-        string[] tabNames = { "Guild", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe", "Seats", "Undercroft" };
+        string[] tabNames = { "Disciplines", "Companions", "Campus", "Expedition", "Armory", "Training", "Records", "Quests", "Council", "Workshop", "Scribe", "Seats", "Undercroft" };
         // CampusPanelId's values ARE these indices. The map routes by enum, the bar routes
         // by index, and nothing else ties them together. Reordering one without the other
         // would silently send every building on the campus to the wrong room.
@@ -409,7 +408,6 @@ public partial class CampusScreen : Control
 
         if (SaveManager.ActiveSave != null && SaveManager.ActiveSlot >= 0)
         {
-            _guildPanel.SelectedSlot = SaveManager.ActiveSlot;
             EnsureSaveSeeded();
             if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave.SelectedSchool, out var school))
                 PlayerSession.SelectedSchool = school;
@@ -1019,7 +1017,7 @@ public partial class CampusScreen : Control
                 {
                     var charter = Charters.EntryFor(save, buildingSave.Id);
                     var active = charter != null ? Charters.Doctrine(buildingSave.Id, charter.DoctrineId) : null;
-                    state = active == null ? "  No doctrine chartered; charter one at the Grand Hall."
+                    state = active == null ? "  No doctrine chartered; charter one from the building's card in the city."
                           : CampusBlight.IsBlighted(save, buildingSave.Id) ? $"  {active.Name} is dark on blighted ground."
                           : Charters.IsOverSlots(save, buildingSave.Id) ? $"  {active.Name} is dark: the Grand Hall is short a seat."
                           : Charters.IsRefitting(save, buildingSave.Id) ? $"  {active.Name} holds from the next moon."

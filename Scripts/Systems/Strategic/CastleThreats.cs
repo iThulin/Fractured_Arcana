@@ -130,7 +130,9 @@ public static class CastleThreats
     /// counting days: a camp open four days and one open twenty were both
     /// rolled once, at the new moon, if they happened to span it). Returns a
     /// result with Kind None when the castle is not exposed or nothing came.
-    /// Called from WorldClock.StepDay before the day's resupply. Non-throwing.</summary>
+    /// Called from WorldClock.StepDay before the day's resupply. Non-throwing. A camp
+    /// in a province held for its benefits takes an ally's land's modifier on top of
+    /// the realm's (provinces 7i, PR45).</summary>
     public static CastleThreatResult RollForDay(CycleState cycle)
     {
         var none = new CastleThreatResult();
@@ -138,9 +140,16 @@ public static class CastleThreats
         {
             return none;
         }
+        // Provinces PV4 (PR70): Campward wards the camp while its crews unpack.
+        if (CastleManeuvers.CampWarded(cycle))
+        {
+            return none;
+        }
 
         string kingdomId = KingdomAtCastle(cycle);
-        var stance = CouncilQueries.StanceFor(cycle, kingdomId);
+        // Provinces PV3a (PR57): the stance of whoever rules the camp's province. The guild's
+        // own land reads as Allied, land no one rules as Neutral, the wilds as before.
+        var stance = ProvinceControl.StanceAt(cycle, cycle.CastleX, cycle.CastleY, KingdomStance.Hostile);
 
         int chance = BaseChancePercent + stance switch
         {
@@ -150,6 +159,14 @@ public static class CastleThreats
             KingdomStance.Allied => AlliedPenalty,
             _ => 0,
         };
+        // Provinces 7i (PR45): in a province held for its benefits the locals warn the
+        // crews, as an ally's would.
+        if (ProvinceBenefits.HeldForBenefitsAt(cycle, cycle.CastleX, cycle.CastleY))
+        {
+            chance += ProvinceBenefits.HeldCampModifier;
+        }
+        // Provinces PV4 (PR69): the Lantern Keep's chassis is harder to find (AmbushChanceMultiplier).
+        chance = (int)Math.Round(chance * CastleHops.Chassis(cycle).AmbushChanceMultiplier);
         chance = Math.Clamp(chance, 0, 95);
 
         var rng = RngFor(cycle);
@@ -334,6 +351,8 @@ public static class CastleThreats
         {
             return "";
         }
-        return cycle.World.GetTile(cycle.CastleX, cycle.CastleY).KingdomId ?? "";
+        // Provinces PV3a (PR57): the kingdom that rules the camp's province, or "" where the
+        // guild or no one does.
+        return ProvinceControl.KingdomAt(cycle, cycle.CastleX, cycle.CastleY);
     }
 }

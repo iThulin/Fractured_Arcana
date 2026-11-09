@@ -7,20 +7,22 @@ using Godot;
 //                 shown before the game routes anywhere. Cold boot used to
 //                 land directly in the city hub (or the campus slot
 //                 picker), which read as the app dumping you mid-game.
-//                 This is deliberately minimal: name, and the three
-//                 verbs a boot actually has. It appears exactly once:
-//                 project.godot's main_scene points here, and no in-game
-//                 flow routes back (the hub remains the game's home).
+//                 This is deliberately minimal: name, and the verbs a
+//                 boot actually has. project.godot's main_scene points
+//                 here, and since 2026-11-05 the Menu's Return to Title
+//                 leads back. Load Game opens the save slots over it
+//                 (they lived in the Guild tab, whose "Guild Hall" door
+//                 here had no way back out).
 // Layer:          UI
 // Collaborators:  SaveManager (AnySaveExists / AutoLoadLast),
 //                 PlayerSession (StartInCityOnOpen), SettingsMenu
-//                 (instanced as an overlay), UITheme.
+//                 (instanced as an overlay), SaveSlotsPanel (Load
+//                 Game), UITheme.
 // ============================================================
 
 public partial class TitleScreen : Control
 {
     private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
-    private const string CampusScenePath = "res://Scenes/Campus/CampusScene.tscn";
     private const string SettingsScenePath = "res://Scenes/UI/SettingsMenu.tscn";
 
     public override void _Ready()
@@ -82,10 +84,13 @@ public partial class TitleScreen : Control
             var cont = MakeBtn("Continue", primary: true);
             cont.Pressed += OnContinue;
             cont.GrabFocus();   // Enter on boot resumes the guild
+
+            var loadBtn = MakeBtn("Load Game", primary: false);
+            loadBtn.Pressed += () => OpenSlots("");
         }
 
-        var newBtn = MakeBtn(hasSave ? "Guild Hall" : "Found a Guild", primary: !hasSave);
-        newBtn.Pressed += () => GetTree().ChangeSceneToFile(CampusScenePath);
+        var newBtn = MakeBtn(hasSave ? "New Game" : "Found a Guild", primary: !hasSave);
+        newBtn.Pressed += OnNewGame;
         if (!hasSave) newBtn.GrabFocus();
 
         var settingsBtn = MakeBtn("Settings", primary: false);
@@ -114,13 +119,34 @@ public partial class TitleScreen : Control
     {
         if (!SaveManager.AutoLoadLast())
         {
-            // Files existed at build time but failed to load. The founding
-            // room owns slot problems.
-            GetTree().ChangeSceneToFile(CampusScenePath);
+            // Files existed at build time but failed to load: the slot list says so and
+            // offers the others (the founding room's job before 2026-11-05).
+            OpenSlots("The last guild could not be loaded. Pick another, or found a new one.");
             return;
         }
         PlayerSession.StartInCityOnOpen = true;
         GetTree().ChangeSceneToFile(StrategicScenePath);
+    }
+
+    /// <summary>A new guild in the first empty slot, founded on the New Game screen. With
+    /// every slot taken, the slot list opens so one can be cleared first.</summary>
+    private void OnNewGame()
+    {
+        int empty = SaveSlotsPanel.FirstEmptySlot();
+        if (empty < 0)
+        {
+            OpenSlots("Every slot holds a guild. Delete one to found another.");
+            return;
+        }
+        SaveSlotsPanel.StartNewGame(GetTree(), empty);
+    }
+
+    /// <summary>The save slots over the title, with a line saying why when there is one.</summary>
+    private void OpenSlots(string note)
+    {
+        if (FindChild("SaveSlots", false, false) != null)
+            return;
+        AddChild(new SaveSlotsPanel { Name = "SaveSlots", Note = note });
     }
 
     /// <summary>Settings as an OVERLAY child (empty ReturnScenePath → its Back

@@ -295,6 +295,13 @@ public partial class DeckEditorUi : Control
         UITheme.ApplyButtonStyle(backBtn, isPrimary: false);
         backBtn.Pressed += () =>
         {
+            // Opened inline over the Menu (Guild screen part B1, 2026-11-05): close, and the
+            // Menu comes back.
+            if (ReturnScenePath == PauseMenu.InlineSentinel)
+            {
+                QueueFree();
+                return;
+            }
             if (!CombatDebugLauncher.TryReturnToLauncher(GetTree()))
                 GetTree().ChangeSceneToFile(ReturnScenePath);
         };

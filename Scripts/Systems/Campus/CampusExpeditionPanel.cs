@@ -295,7 +295,7 @@ public sealed class CampusExpeditionPanel : CampusPanel
             {
                 var declStatus = DeclarationService.Evaluate(Ctx.Save, schoolName);
                 lockTooltip = declStatus.Eligible
-                    ? "Eligible. Declare it in the Guild tab's Disciplines section first."
+                    ? "Eligible. Declare it in the Grand Hall first."
                     : declStatus.Blocker;
             }
 

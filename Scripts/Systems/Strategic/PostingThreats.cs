@@ -62,8 +62,9 @@ public static class PostingThreats
             return result;
         }
 
-        string kid = world.GetTile(force.X, force.Y).KingdomId;
-        var stance = string.IsNullOrEmpty(kid) ? KingdomStance.Neutral : CouncilQueries.StanceFor(cycle, kid);
+        // Provinces PV3a (PR57): whoever rules the posting's province, and their court.
+        string kid = ProvinceControl.KingdomAt(cycle, force.X, force.Y);
+        var stance = ProvinceControl.StanceAt(cycle, force.X, force.Y, KingdomStance.Neutral);
         int able = FieldPostings.AbleCount(cycle, force);
         int reduction = Math.Min(MaxDefenderReduction, Math.Max(0, able - 1) * DefenderPercentEach);
 
@@ -218,7 +219,8 @@ public static class PostingThreats
             {
                 continue;
             }
-            string kid = world.GetTile(sp.X, sp.Y).KingdomId;
+            // Provinces PV3a (PR57): the kingdom that rules the ground, if one does.
+            string kid = ProvinceControl.KingdomAt(cycle, sp.X, sp.Y);
             if (string.IsNullOrEmpty(kid) || CouncilQueries.StanceFor(cycle, kid) != KingdomStance.Hostile)
             {
                 continue;

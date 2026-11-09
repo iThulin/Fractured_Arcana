@@ -24,6 +24,12 @@ using System.Text.Json;
 //                 forecasts; the courts on provinces (estates, floors,
 //                 the court's weight on deeds, the deeds of PV2b-1 and
 //                 betrayal, docs/provinces_v1_7g_deeds_and_courts.md);
+//                 what holding a province gives (PV2c: held, a
+//                 Patron's estate, the new moon's yield and sighting,
+//                 land opened in play joining a province); fronts
+//                 per province (PV3a, ProvinceSaveAssert.Fronts.cs:
+//                 rulers, a front that walks, a capital's fall, a
+//                 Seize, the guild's claim);
 //                 the Reach lens's bands, where a province's
 //                 name goes on the map, the names' fade and the inks'
 //                 least width (docs/provinces_v1_7d_lenses.md); and,
@@ -32,6 +38,7 @@ using System.Text.Json;
 //                 LeadsSaveAssert.
 // Layer:          Verification
 // Collaborators:  Province.cs, ProvinceBuilder.cs, ProvinceInfluence.cs,
+//                 ProvinceBenefits.cs,
 //                 ProvinceCourts.cs, LeadService.cs, CityContractService.cs,
 //                 KingdomTickSimulation.cs (ApplyIntervention),
 //                 KingdomState.cs, WorldData.cs, SaveManager.cs
@@ -40,7 +47,7 @@ using System.Text.Json;
 //                 (the "Assert Round-Trips" debug button)
 // ============================================================
 
-public static class ProvinceSaveAssert
+public static partial class ProvinceSaveAssert
 {
     private const string West = "kingdom_0";
     private const string East = "kingdom_1";
@@ -69,14 +76,22 @@ public static class ProvinceSaveAssert
         ok &= AssertDeeds(sb);
         ok &= AssertBetrayal(sb);
         ok &= AssertFavorDeeds(sb);
+        ok &= AssertBenefits(sb);
+        ok &= AssertFronts(sb);
+        ok &= AssertAnnexation(sb);
+        ok &= AssertBastion(sb);
+        ok &= AssertKeeper(sb);
+        ok &= AssertReach(sb);
+        ok &= AssertArmy(sb);
+        ok &= AssertProvinceLeads(sb);
         ok &= AssertBands(sb);
         ok &= AssertLabelTiles(sb);
         ok &= AssertLensScales(sb);
         ok &= AssertLiveWorld(sb);
 
         sb.AppendLine(ok
-            ? "RESULT: ALL PASSED. Provinces and the province map round-trip clean, legacy worlds load empty and build once, the partition keeps its rules, the guild's influence keeps its rules on provinces, the courts keep theirs, and the map's bands, names and inks keep theirs."
-            : "RESULT: FAILURES ABOVE. A province field is being dropped or renamed, a partition rule broke, an influence rule broke, a court rule broke, or a lens rule broke.");
+            ? "RESULT: ALL PASSED. Provinces and the province map round-trip clean, legacy worlds load empty and build once, the partition keeps its rules, the guild's influence keeps its rules on provinces, the courts keep theirs, holding gives what it should, and the map's bands, names and inks keep theirs."
+            : "RESULT: FAILURES ABOVE. A province field is being dropped or renamed, a partition rule broke, an influence rule broke, a court rule broke, a held benefit broke, or a lens rule broke.");
         GD.Print(sb.ToString());
 
         if (!ok)
@@ -106,6 +121,7 @@ public static class ProvinceSaveAssert
             Tone = 3,
             Influence = 73,
             Held = true,
+            YieldDoubledLunation = 9,
         };
         var rt = RoundTrip(src);
         bool ok = Check(sb, "Province survives the trip", rt != null);
@@ -125,6 +141,7 @@ public static class ProvinceSaveAssert
             ok &= Check(sb, "Province.Tone", rt.Tone == 3);
             ok &= Check(sb, "Province.Influence", rt.Influence == 73);
             ok &= Check(sb, "Province.Held", rt.Held);
+            ok &= Check(sb, "Province.YieldDoubledLunation", rt.YieldDoubledLunation == 9);
         }
 
         sb.AppendLine(ok ? "  Province: PASS" : "  Province: FAIL");
@@ -177,7 +194,7 @@ public static class ProvinceSaveAssert
             sparse != null && sparse.Name == "North Weald" && sparse.Index == -1 && sparse.KingdomId == ""
             && sparse.SeatSettlementIndex == -1 && sparse.Settlements != null && sparse.Neighbors != null
             && sparse.Character == ProvinceCharacter.Lowland && !sparse.IsCapital
-            && sparse.Influence == 0 && !sparse.Held);
+            && sparse.Influence == 0 && !sparse.Held && sparse.YieldDoubledLunation == -1);
 
         sb.AppendLine(ok ? "  Legacy defaults: PASS" : "  Legacy defaults: FAIL");
         return ok;
@@ -362,8 +379,9 @@ public static class ProvinceSaveAssert
 
     /// <summary>Land no kingdom owns, as play makes it by opening water into marsh. Opened
     /// before the build, it joins a province of the nearest kingdom and the rest of the
-    /// map is as it would have been; opened after the build, it is in no province and
-    /// every rule still holds.</summary>
+    /// map is as it would have been; opened after the build, it is in no province until
+    /// it joins the nearest as it opens (PR50), once, and every rule holds throughout,
+    /// a causeway to an island included.</summary>
     private static bool AssertOpenedLand(StringBuilder sb)
     {
         var plain = ScratchWorld();
@@ -388,6 +406,23 @@ public static class ProvinceSaveAssert
         opened.Tiles[6 * opened.Width + 32].Terrain = OverworldHex.TerrainType.Marsh;
         ok &= Check(sb, "land opened after the build is in no province", opened.ProvinceIndexAt(32, 6) == -1);
         ok &= Check(sb, "the rules still hold after it opens", ProvinceBuilder.Validate(opened).Count == 0);
+
+        // Provinces 7i (PR50): land opened in play joins the nearest province.
+        int nearest = ProvinceInfluence.NearestProvince(opened, 32, 6);
+        int tilesBefore = nearest >= 0 ? opened.Provinces[nearest].TileCount : -1;
+        int joinedIndex = ProvinceBenefits.JoinOpenedLand(opened, 32, 6);
+        ok &= Check(sb, "as it opens in play it joins the nearest province, which counts it (PR50)",
+            joinedIndex >= 0 && joinedIndex == nearest && opened.ProvinceIndexAt(32, 6) == joinedIndex
+            && opened.Provinces[joinedIndex].TileCount == tilesBefore + 1);
+        ok &= Check(sb, "the rules hold once it joins", ProvinceBuilder.Validate(opened).Count == 0);
+        ok &= Check(sb, "and it joins only once", ProvinceBenefits.JoinOpenedLand(opened, 32, 6) == -1);
+
+        // A causeway to an island: the island rule is judged on the land as built.
+        var bridged = ScratchWorld();
+        ProvinceBuilder.Build(bridged, log: false);
+        bridged.Tiles[30 * bridged.Width + 3].Terrain = OverworldHex.TerrainType.Marsh;   // south of the small island
+        ok &= Check(sb, "a causeway opened to an island joins a province, and every rule still holds",
+            ProvinceBenefits.JoinOpenedLand(bridged, 3, 30) >= 0 && ProvinceBuilder.Validate(bridged).Count == 0);
 
         sb.AppendLine(ok ? "  Opened land: PASS" : "  Opened land: FAIL");
         return ok;
@@ -1024,6 +1059,141 @@ public static class ProvinceSaveAssert
         cycle.Interval.Active = false;
 
         sb.AppendLine(ok ? "  Favor deeds: PASS" : "  Favor deeds: FAIL");
+        return ok;
+    }
+
+    // ── What holding gives (docs/provinces_v1_7i_held_benefits.md, PV2c) ───
+
+    /// <summary>Held for its benefits is a held province or a Patron's estate (PR17), and the
+    /// Patron's estate is not Held. At the new moon each such province sends 2 supplies, and
+    /// the Economic favor's mark pays twice once, at the next new moon, held then or not. Each
+    /// such province's places not yet on the map are Sighted and their tiles charted, never a
+    /// Concord node, never a place elsewhere, and nothing under Classic Exploration. The tile
+    /// reads agree.</summary>
+    private static bool AssertBenefits(StringBuilder sb)
+    {
+        var cycle = CourtCycle();
+        var world = cycle.World;
+        var provinces = world.Provinces;
+        ProvinceInfluence.Sync(cycle);   // gives the courtiers their estates
+        foreach (var province in provinces)
+        {
+            province.Influence = 0;
+            province.Held = false;
+            province.YieldDoubledLunation = -1;
+        }
+        int capital = world.ProvinceIndexAt(6, 15);
+        int other = world.ProvinceIndexAt(30, 15);
+        var west = cycle.Council.Courts[West];
+        string capitalId = capital >= 0 ? provinces[capital].Id : "";
+        var courtier = west.Courtiers.FirstOrDefault(c => !string.IsNullOrEmpty(c.EstateProvinceId)
+                                                          && c.EstateProvinceId != capitalId);
+        int estate = courtier == null ? -1 : provinces.FindIndex(p => p.Id == courtier.EstateProvinceId);
+        bool ok = Check(sb, "held benefits are 2 supplies, 1 Essence and an ally's -25 on the camp",
+            ProvinceBenefits.HeldYield == 2 && ProvinceBenefits.HeldCastDiscount == 1
+            && ProvinceBenefits.HeldCampModifier == -25);
+        if (capital < 0 || other < 0 || estate < 0)
+        {
+            sb.AppendLine("  Held benefits: FAIL (a capital, or an estate outside the west capital, is missing)");
+            return false;
+        }
+        (int x, int y) TileIn(int index, int nth)
+        {
+            int seen = 0;
+            for (int y = 0; y < world.Height; y++)
+            {
+                for (int x = 0; x < world.Width; x++)
+                {
+                    if (!world.GetTile(x, y).IsWater && world.ProvinceIndexAt(x, y) == index && seen++ == nth)
+                        return (x, y);
+                }
+            }
+            return (-1, -1);
+        }
+
+        // Held for its benefits: held, a Patron's estate, or neither.
+        provinces[capital].Influence = 70;
+        provinces[capital].Held = true;
+        ok &= Check(sb, "a held province is held for its benefits, and one neither held nor a Patron's estate is not",
+            ProvinceBenefits.HeldForBenefits(cycle, provinces[capital])
+            && !ProvinceBenefits.HeldForBenefits(cycle, provinces[estate])
+            && !ProvinceBenefits.HeldForBenefits(cycle, provinces[other]));
+        west.HasContact = true;
+        west.PatronCourtierIds.Add(courtier.Id);
+        ok &= Check(sb, "a Patron's estate is held for its benefits, and is not Held (PR17)",
+            ProvinceBenefits.HeldForBenefits(cycle, provinces[estate]) && !provinces[estate].Held
+            && ProvinceBenefits.EstatePatron(cycle, provinces[estate]) == courtier);
+        ok &= Check(sb, "the readout's note marks the Patron's estate and nothing else",
+            ProvinceBenefits.PatronNote(cycle, provinces[estate]).Length > 0
+            && ProvinceBenefits.PatronNote(cycle, provinces[capital]).Length == 0
+            && ProvinceBenefits.PatronNote(cycle, provinces[other]).Length == 0);
+        ok &= Check(sb, "the tile reads agree: the west seat is held ground, the east seat and the lake are not",
+            ProvinceBenefits.HeldForBenefitsAt(cycle, 6, 15) && !ProvinceBenefits.HeldForBenefitsAt(cycle, 30, 15)
+            && !ProvinceBenefits.HeldForBenefitsAt(cycle, 31, 5));
+
+        // The new moon's yield (PR48). No places yet, so nothing to sight.
+        cycle.Supplies = 0;
+        cycle.Calendar.CurrentLunation = 3;
+        var lines = ProvinceBenefits.NewMoon(cycle);
+        ok &= Check(sb, $"at the new moon each province held for its benefits sends 2 supplies, in one line ({cycle.Supplies}, {lines.Count} line(s))",
+            cycle.Supplies == 4 && lines.Count == 1);
+        ProvinceBenefits.DoubleNextYield(cycle, capital);
+        ProvinceBenefits.DoubleNextYield(cycle, other);
+        ProvinceBenefits.NewMoon(cycle);
+        ok &= Check(sb, $"the Economic favor's mark waits for the next new moon ({cycle.Supplies})",
+            cycle.Supplies == 8 && provinces[capital].YieldDoubledLunation == 4
+            && provinces[other].YieldDoubledLunation == 4);
+        cycle.Calendar.CurrentLunation = 4;
+        ProvinceBenefits.NewMoon(cycle);
+        ok &= Check(sb, $"then pays twice once, and a mark on a province not held is spent all the same ({cycle.Supplies})",
+            cycle.Supplies == 14 && provinces[capital].YieldDoubledLunation == -1
+            && provinces[other].YieldDoubledLunation == -1);
+        ProvinceBenefits.NewMoon(cycle);
+        ok &= Check(sb, $"and the next new moon pays the plain yield ({cycle.Supplies})", cycle.Supplies == 18);
+
+        // The new moon's sighting (PR47), under camp sight's rules.
+        var (cx, cy) = TileIn(capital, 3);
+        var (nx, ny) = TileIn(capital, 5);
+        var (ex, ey) = TileIn(estate, 0);
+        var (ox, oy) = TileIn(other, 0);
+        int first = world.Pois.Count;
+        world.Pois.Add(new WorldPoi { X = cx, Y = cy, Kind = PoiKind.Combat, KingdomId = West });
+        world.Pois.Add(new WorldPoi { X = nx, Y = ny, Kind = PoiKind.Concord, KingdomId = West });
+        world.Pois.Add(new WorldPoi { X = ex, Y = ey, Kind = PoiKind.Rest, KingdomId = West });
+        world.Pois.Add(new WorldPoi { X = ox, Y = oy, Kind = PoiKind.Combat, KingdomId = East });
+        bool classic = PlayerSession.DebugClassicExploration;
+        int supplies = cycle.Supplies;
+        PlayerSession.DebugClassicExploration = false;
+        try
+        {
+            lines = ProvinceBenefits.NewMoon(cycle);
+        }
+        finally
+        {
+            PlayerSession.DebugClassicExploration = classic;
+        }
+        ok &= Check(sb, $"at the new moon the places of each province held for its benefits are Sighted, a line for each beside the yield's ({lines.Count} lines)",
+            world.Pois[first].Discovered && world.Pois[first + 2].Discovered && lines.Count == 3
+            && cycle.Supplies == supplies + 4);
+        ok &= Check(sb, "and their tiles are charted",
+            world.GetTile(cx, cy).Discovery != TileDiscovery.Unseen && world.GetTile(ex, ey).Discovery != TileDiscovery.Unseen);
+        ok &= Check(sb, "a Concord node is never Sighted, nor a place in a province not held for its benefits",
+            !world.Pois[first + 1].Discovered && !world.Pois[first + 3].Discovered);
+        var (lx, ly) = TileIn(capital, 7);
+        int late = world.Pois.Count;
+        world.Pois.Add(new WorldPoi { X = lx, Y = ly, Kind = PoiKind.Rest, KingdomId = West });
+        PlayerSession.DebugClassicExploration = true;
+        try
+        {
+            ProvinceBenefits.NewMoon(cycle);
+        }
+        finally
+        {
+            PlayerSession.DebugClassicExploration = classic;
+        }
+        ok &= Check(sb, "nothing is Sighted under Classic Exploration", !world.Pois[late].Discovered);
+
+        sb.AppendLine(ok ? "  Held benefits: PASS" : "  Held benefits: FAIL");
         return ok;
     }
 

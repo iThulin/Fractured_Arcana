@@ -380,8 +380,9 @@ public class WorldData
            && Provinces != null && Provinces.Count > 0;
 
     /// <summary>Position in Provinces of the province holding a tile, or -1 for water,
-    /// out of bounds, land opened from water since the build, or a world without
-    /// provinces.</summary>
+    /// out of bounds, land opened from water that joined no province (opened after the
+    /// build and before PV2c, or with none in reach: ProvinceBenefits.JoinOpenedLand),
+    /// or a world without provinces.</summary>
     public int ProvinceIndexAt(int x, int y)
     {
         if (!InBounds(x, y) || !HasProvinces())

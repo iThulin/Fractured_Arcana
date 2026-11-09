@@ -222,8 +222,9 @@ public partial class StrategicView
     {
         var verbs = new Button[]
         {
-            _sortieBtn, _partyDeployBtn, _interveneBtn, _marchModeBtn, _postBtn,
-            _audienceBtn, _stopWorkBtn, _collectBtn, _recallBtn, _bankFurnaceBtn,
+            _sortieBtn, _partyDeployBtn, _interveneBtn, _marchModeBtn,
+            _maneuverBtn, _armyBtn,   // provinces 7j: the castle's font and army, with its other orders
+            _postBtn, _audienceBtn, _stopWorkBtn, _collectBtn, _recallBtn, _bankFurnaceBtn,
         };
         foreach (var b in verbs)
         {

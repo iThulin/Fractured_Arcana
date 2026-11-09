@@ -32,7 +32,8 @@ using System.Collections.Generic;
 //                RunLunationTick), WorldData (WorldPoi.SupplyControllerId
 //                / OverseerCompanionId), CycleState (Supplies treasury),
 //                OverworldFactionManager (patrol bonus), CompanionRoster
-//                (overseers are unavailable, like envoys).
+//                (overseers are unavailable, like envoys), ProvinceControl
+//                (provinces PV3a: a cache follows its province's ruler).
 // See:      docs/supply_cache_spec_v1.md
 // ============================================================
 
@@ -274,6 +275,8 @@ public static class SupplyCacheSystem
     {
         if (controllerId == GuildId)
             return "the Guild";
+        if (controllerId == ProvinceControl.Neutral)
+            return "no one";   // provinces PV3a: a cache in a province no one rules
         if (cycle?.Kingdoms != null && cycle.Kingdoms.TryGetValue(controllerId, out var k)
             && !string.IsNullOrEmpty(k.DisplayName))
             return k.DisplayName;
@@ -393,7 +396,8 @@ public static class SupplyCacheSystem
             string kid = kvp.Key;
             var k = kvp.Value;
             int mine = counts.TryGetValue(kid, out var m) ? m : 0;
-            foreach (var n in KingdomTickSimulation.NeighborsOf(cycle.World, kid))
+            // Provinces PV3a: neighbours by the provinces the realms rule.
+            foreach (var n in KingdomTickSimulation.NeighborsOf(cycle, kid))
             {
                 if (!cycle.Kingdoms.TryGetValue(n, out var nk) ||
                     string.IsNullOrEmpty(nk.ControllingFactionId))
@@ -476,6 +480,8 @@ public static class SupplyCacheSystem
             if (string.IsNullOrEmpty(k.ControllingFactionId) ||
                 k.ControllingFactionId == GuildId)
                 continue;
+            if (ProvinceControl.KingdomFallen(cycle, kid))
+                continue; // provinces PV3a: a realm fallen with its capital lays no sieges
             if (HasOpenCacheSiegeBy(cycle, kid))
                 continue;
 
@@ -730,6 +736,27 @@ public static class SupplyCacheSystem
                  $"{wf.TargetPoiIndex}: advance {wf.Advance}, closed={wf.Closed}.");
     }
 
+    /// <summary>Provinces PV3a (PR58): when a province changes hands, the caches its old
+    /// ruler held there pass to the new one: to the guild when the guild takes it, to no one
+    /// (ProvinceControl.Neutral) when no one does. Caches of the guild or of a third realm
+    /// stay theirs. Each flip reports itself, as a siege's does.</summary>
+    public static void FollowProvince(CycleState cycle, int provinceIndex, string oldRuler,
+                                      string newRuler, Func<string, string> fd = null)
+    {
+        var world = cycle?.World;
+        if (world?.Pois == null || provinceIndex < 0 || string.IsNullOrEmpty(oldRuler)
+            || string.IsNullOrEmpty(newRuler) || oldRuler == newRuler)
+            return;
+        cycle.PendingSiegeReports ??= new List<string>();
+        foreach (var poi in world.Pois)
+        {
+            if (poi == null || poi.Kind != PoiKind.SupplyCache || ControllerOf(poi) != oldRuler
+                || world.ProvinceIndexAt(poi.X, poi.Y) != provinceIndex)
+                continue;
+            FlipCache(cycle, poi, newRuler, fd);
+        }
+    }
+
     /// <summary>Control flips. If the guild loses an overseen cache, the overseer
     /// is injured in the rout (the user-ruled stake of the posting) and sent home.</summary>
     private static void FlipCache(CycleState cycle, WorldPoi poi, string newController,
@@ -759,7 +786,9 @@ public static class SupplyCacheSystem
             ? $"★ The supply cache in {place} answers to the guild now."
             : old == GuildId
                 ? $"⚠ YOUR supply cache in {place} has fallen to {ControllerDisplay(cycle, newController)}."
-                : $"The supply cache in {place} falls to {ControllerDisplay(cycle, newController)}.";
+                : newController == ProvinceControl.Neutral
+                    ? $"The supply cache in {place} answers to no one now."
+                    : $"The supply cache in {place} falls to {ControllerDisplay(cycle, newController)}.";
         cycle.PendingSiegeReports.Add(report);
         GD.Print($"[SupplyCache] {report}");
         SaveManager.MarkDirty();

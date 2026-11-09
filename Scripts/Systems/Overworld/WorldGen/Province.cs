@@ -11,6 +11,11 @@ using System.Collections.Generic;
 //                 card. Slice PV2a gives each the guild's influence
 //                 there and whether the guild holds it. Fronts (PV3)
 //                 and the castle's march (PV4) attach to them later.
+//                 Slice PV2c adds the Economic favor's doubled yield
+//                 (ProvinceBenefits.cs). Slice PV3a gives each a
+//                 ruler (ControllerId, read through ProvinceControl.cs).
+//                 Slice PV3b gives land no one rules the bars of its
+//                 annexation (Annexation).
 // Layer:          Data
 // Collaborators:  ProvinceBuilder.cs (builds them), WorldData.cs
 //                 (Provinces, ProvinceMap), ProvinceInfluence.cs
@@ -58,8 +63,8 @@ public class Province
     public string Name = "";
 
     /// <summary>The kingdom whose land this is (WorldTile.KingdomId), or empty for
-    /// land no kingdom owns. Fixed at the build: who controls the province is a
-    /// separate, later question (PV3).</summary>
+    /// land no kingdom owns. Fixed at the build: who rules the province is
+    /// ControllerId (PV3a).</summary>
     public string KingdomId = "";
 
     /// <summary>The province's seat: the centre of its chief settlement, or for a
@@ -102,4 +107,29 @@ public class Province
     /// cleared when it falls below 50. Stored, because that hysteresis needs the past.
     /// Holding brings benefits (PV2c), never sovereignty.</summary>
     public bool Held = false;
+
+    /// <summary>The lunation whose new moon pays this province's supply yield twice
+    /// (docs/provinces_v1_7i_held_benefits.md, PR48): set by the Economic favor spent as
+    /// its deed, to the lunation after the one it was spent in, and cleared by the first
+    /// new moon that reaches it, held then or not. -1 for none.</summary>
+    public int YieldDoubledLunation = -1;
+
+    // ── Who rules it (docs/provinces_v1_8_fronts_per_province.md, PV3a) ────
+    /// <summary>The province's ruler when its own kingdom does not rule it: the id of the
+    /// kingdom that took it, "guild" for the guild's own province, "neutral" for one no
+    /// one rules. Empty while its own kingdom rules it. Read it through
+    /// ProvinceControl.RulerOf, which also answers for a kingdom the guild seized whole
+    /// before fronts walked; change it through ProvinceControl.SetRuler.</summary>
+    public string ControllerId = "";
+
+    /// <summary>The lunation the province last changed hands in, for the readout and the
+    /// card; -1 while it never has.</summary>
+    public int ControlSinceLunation = -1;
+
+    /// <summary>Each kingdom's bar toward annexing the province while no one rules it
+    /// (docs/provinces_v1_8_fronts_per_province.md section 13, PV3b): kingdom id to 0 to
+    /// 100, filled each lunation by KingdomTickSimulation.TickAnnexation and emptied when
+    /// the province changes hands (ProvinceControl.SetRuler). Empty for every province
+    /// someone rules.</summary>
+    public Dictionary<string, int> Annexation = new();
 }

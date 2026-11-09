@@ -94,6 +94,8 @@ public sealed class SelectUnitThenTileTarget : SelectTwoStepTarget
     /// <summary>Any tile within reach, occupied ones included (Borrowed Will picks a
     /// tile to strike, not a place to stand).</summary>
     public bool anyTile;
+    /// <summary>The destination is measured from the caster, not the victim (Purloin).</summary>
+    public bool fromCaster;
 
     public SelectUnitThenTileTarget(bool enemyOnly = true, int range = 4, int destRange = 2,
                                     bool friendlyOnly = false, bool constructsOnly = false)

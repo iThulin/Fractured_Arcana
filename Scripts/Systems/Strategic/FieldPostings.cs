@@ -870,6 +870,15 @@ public static class FieldPostings
                     ScryInbox.Post(cycle, ScryChannel.Note, $"{force.Name}: the front is quiet", over, force.Id, "post");
                     return over;
                 }
+                // Provinces PV3a (PR52): a front that took this ground has moved on to the next
+                // province, and the line held here is behind it now.
+                if (wf.HasFocus && (wf.FocusCol != force.X || wf.FocusRow != force.Y))
+                {
+                    Stop(cycle, force);
+                    string moved = $"The front {force.Name} held has moved on. They stand down and await orders.";
+                    ScryInbox.Post(cycle, ScryChannel.Note, $"{force.Name}: the front has moved on", moved, force.Id, "post");
+                    return moved;
+                }
                 int able = AbleCount(cycle, force);
                 int delta = Math.Min(HoldAdvanceCap, able * HoldAdvancePerMember);
                 bool defend = force.WorkSide != (int)WarfrontSide.Aid;

@@ -46,6 +46,22 @@ public static partial class CardScriptRegistry
         RegisterEffect("charge_lock", n =>
             new ChargeLockEffect(n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2).WithTag("Mana"));
         // { "type": "spend_charge", "amount": n }
+        // ── The Annotator (slice 14b) ──────────────────────────────────
+        // { "type": "strike_clause" }
+        RegisterEffect("strike_clause", _ => new StrikeClauseEffect().WithTag("Control"));
+        // { "type": "red_ink", "amount": n }
+        RegisterEffect("red_ink", n =>
+            new RedInkEffect(n.TryGetProperty("amount", out var a) ? a.GetInt32() : 4).WithTag("Defense"));
+        // { "type": "blot_next_spell", "amount": n }
+        RegisterEffect("blot_next_spell", n =>
+            new BlotNextSpellEffect(n.TryGetProperty("amount", out var a) ? a.GetInt32() : 3).WithTag("Control"));
+        // { "type": "purloin", "bonus": n, "charge": n } with unit_then_tile + from_caster + any_tile
+        RegisterEffect("purloin", n =>
+            new PurloinEffect(n.TryGetProperty("bonus", out var b) ? b.GetInt32() : 0,
+                              n.TryGetProperty("charge", out var c) ? c.GetInt32() : 0).WithTag("Damage"));
+        // { "type": "target_has_buff" }
+        RegisterPredicate("target_has_buff", _ => new TargetHasBuffPredicate());
+
         RegisterEffect("spend_charge", n =>
             new SpendChargeEffect(n.TryGetProperty("amount", out var a) ? a.GetInt32() : 1).WithTag("Mana"));
 

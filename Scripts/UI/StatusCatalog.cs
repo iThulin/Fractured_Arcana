@@ -118,6 +118,8 @@ public static class StatusCatalog
         // ── Debuffs: weakens ───────────────────────────────────────────
         { "blinded",       new("Blinded",      "BLND", StatusTone.Debuff, "Its attacks miss.") },
         { "weakened",      new("Weakened",     "WEAK", StatusTone.Debuff, "Its attacks deal 2 less damage.") },
+        { "clause_struck", new("Clause Struck", "CLS", StatusTone.Debuff, "Its next attack or spell loses its rider: no status, push or imbue. Only the damage lands.") },
+        { "ink_blot",      new("Blotted",      "BLOT", StatusTone.Debuff, "Its next spell deals less damage.") },
         { "named",         new("Named",        "NAME", StatusTone.Debuff, "Its attacks deal half damage.") },
         { "suppressed",    new("Suppressed",   "SUP",  StatusTone.Debuff, "Loses 1 move point next turn.") },
         { "taunted",       new("Taunted",      "TNT",  StatusTone.Debuff, "Must target the unit that taunted it.") },
@@ -142,6 +144,7 @@ public static class StatusCatalog
         // ── Buffs ──────────────────────────────────────────────────────
         { "hasted",        new("Hasted",       "HST",  StatusTone.Buff,   "Gained an extra action.") },
         { "empowered",     new("Empowered",    "EMP",  StatusTone.Buff,   "Its damage spells deal +3 damage.") },
+        { "red_ink",       new("Red Ink",      "INK",  StatusTone.Buff,   "The next enemy spell landing within 3 deals less damage, and the cut becomes Charge.") },
         { "chaining",      new("Chaining",     "CHN",  StatusTone.Buff,   "Its damage spells chain to extra targets.") },
         { "shrouded",      new("Shrouded",     "SHRD", StatusTone.Buff,   "Each hit against it deals at most 5 damage.") },
         { "immortal",      new("Immortal",     "IMM",  StatusTone.Buff,   "Lethal damage leaves it at 1 HP.") },

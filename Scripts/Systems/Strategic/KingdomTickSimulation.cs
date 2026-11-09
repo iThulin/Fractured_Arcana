@@ -37,13 +37,18 @@ using System.Collections.Generic;
 //                StrategicView (calls Tick + ApplyIntervention; renders
 //                Warfronts + CycleState.PendingSiegeReports).
 // See:      open_world_refactor_v1 §3.2; single_world_refactor_v2 Phase 2;
-//           run_structure_v2 (Warfront archetype).
+//           run_structure_v2 (Warfront archetype). Fronts per province
+//           (docs/provinces_v1_8_fronts_per_province.md, PV3a) live in
+//           KingdomTickSimulation.Fronts.cs, and the annexation of land
+//           no one rules (PV3b) in KingdomTickSimulation.Annex.cs.
+//           The war that comes to the castle's camp (PV4) is in
+//           KingdomTickSimulation.Castle.cs.
 // ============================================================
 
 /// <summary>Per-lunation kingdom drift + warfront (siege) resolution. Stateless
 /// except a cached kingdom-adjacency map derived once per world. Reset() on a new
 /// world / cycle.</summary>
-public static class KingdomTickSimulation
+public static partial class KingdomTickSimulation
 {
     // ── Stability / pressure dials (primary knobs; tune after a full cycle) ──
     private const int StabilityDecayPerCorruptionLevel = 6;
@@ -121,7 +126,12 @@ public static class KingdomTickSimulation
         cycle.PendingSiegeReports ??= new List<string>();
         cycle.Warfronts ??= new List<Warfront>();
 
-        EnsureAdjacency(world);
+        // Provinces PV3a: realms border where the provinces they rule touch, and a front
+        // opened before fronts walked finds its province.
+        var adjacency = Adjacency(cycle);
+        bool fronts = FrontsWalk(cycle);
+        if (fronts)
+            MigrateLegacyFronts(cycle);
         string convergence = ConvergenceKingdomId(world);
 
         // Snapshot corruption + control so the tick is simultaneous.
@@ -139,6 +149,8 @@ public static class KingdomTickSimulation
             var k = kvp.Value;
             if (kid == convergence)
                 continue; // the seat corrupts but does not govern, and never falls
+            if (fronts && ProvinceControl.KingdomFallen(cycle, kid))
+                continue; // provinces PV3a: a realm fallen with its capital no longer governs
 
             int myCorr = corr.TryGetValue(kid, out var mc) ? mc : 0;
 
@@ -162,7 +174,7 @@ public static class KingdomTickSimulation
             // ── 2. Border pressure from hotter-corrupted neighbours ─────────
             string topAggressor = null;
             int topPressure = 0;
-            if (_adjacency.TryGetValue(kid, out var neighbours))
+            if (adjacency.TryGetValue(kid, out var neighbours))
             {
                 foreach (var n in neighbours)
                 {
@@ -184,7 +196,9 @@ public static class KingdomTickSimulation
                     k.BorderPressure[n] = cur;
 
                     string nFaction = controlBefore.TryGetValue(n, out var nf) ? nf : "";
-                    if (cur > topPressure && !string.IsNullOrEmpty(nFaction))
+                    // A realm the guild rules never presses on its own: the player starts the
+                    // player's wars (provinces PV3a, as the cache siege guard already says).
+                    if (cur > topPressure && !string.IsNullOrEmpty(nFaction) && nFaction != GuildFactionId)
                     {
                         topPressure = cur;
                         topAggressor = n;
@@ -201,8 +215,19 @@ public static class KingdomTickSimulation
             }
         }
 
+        // Provinces PV3b (PR11, PR61 to PR63): the realms bordering land no one rules move
+        // to annex it, before the fronts move, so land a fall leaves to no one this lunation
+        // is bid for from the next.
+        if (fronts)
+            TickAnnexation(cycle, factionDisplay);
+
         // ── 4. Advance + resolve every open warfront ────────────────────────
         AdvanceAndResolveWarfronts(cycle, corr, factionDisplay);
+
+        // Provinces PV4 (X4, PR72): a front contesting the province the castle stands in
+        // comes for its camp.
+        if (fronts)
+            CastleInTheWar(cycle, factionDisplay);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -223,7 +248,11 @@ public static class KingdomTickSimulation
                                      string aggressorKid, string aggressorFaction,
                                      Func<string, string> fd)
     {
-        var (fc, fr, sc, sr) = FindFrontAndStronghold(cycle.World, defenderKid, aggressorKid);
+        // Provinces PV3a (PR53): where the world has provinces, a front contests one province.
+        int contested = FrontsWalk(cycle) ? ContestedProvince(cycle, defenderKid, aggressorKid) : -1;
+        var (fc, fr, sc, sr) = contested >= 0
+            ? SiteProvinceFront(cycle, contested, aggressorKid)
+            : FindFrontAndStronghold(cycle.World, defenderKid, aggressorKid);
         string defName = string.IsNullOrEmpty(def.DisplayName) ? defenderKid : def.DisplayName;
         string aggName = cycle.Kingdoms.TryGetValue(aggressorKid, out var ak)
             ? ResolveName(fd, ak.ControllingFactionId)
@@ -244,10 +273,13 @@ public static class KingdomTickSimulation
             FocusRow = fr,
             StrongholdCol = sc,
             StrongholdRow = sr,
+            ProvinceId = contested >= 0 ? cycle.World.Provinces[contested].Id : "",
         };
         cycle.Warfronts.Add(wf);
 
-        string rep = $"War breaks out: {aggName} presses into {defName}.";
+        string rep = contested >= 0
+            ? $"War breaks out: {aggName} presses into {ProvinceControl.Name(cycle.World.Provinces[contested])}, {defName}."
+            : $"War breaks out: {aggName} presses into {defName}.";
         cycle.PendingSiegeReports.Add(rep);
         GD.Print($"[Warfront] {rep} (front {fc},{fr} · stronghold {sc},{sr})");
     }
@@ -267,6 +299,8 @@ public static class KingdomTickSimulation
                 wf.Closed = true;
                 continue;
             }
+            if (SettleRulers(cycle, wf))
+                continue; // provinces PV3a: a realm on either side fell, or the war has nowhere to go
 
             int aggCorr = corr.TryGetValue(wf.AggressorKingdomId, out var ac) ? ac : 0;
             int defCorr = corr.TryGetValue(wf.DefenderKingdomId, out var dc) ? dc : 0;
@@ -276,9 +310,9 @@ public static class KingdomTickSimulation
             if (def.Stability < InstabilityFloor)
                 adv += WarfrontUnstableBonus;
             // The guild's influence relieves a front where it stands (provinces PV2a):
-            // in the front's own province, at its focus, or across the kingdom.
-            if (Math.Max(def.PlayerInfluence, ProvinceInfluence.InfluenceAt(cycle.World, wf.FocusCol, wf.FocusRow))
-                >= InfluenceStabilizeThreshold)
+            // since PV3a in the province it contests; without one, at its focus or across
+            // the kingdom, as before.
+            if (ReliefInfluence(cycle, wf, def) >= InfluenceStabilizeThreshold)
                 adv -= WarfrontInfluenceRelief;
             if (gap <= 0)
                 adv -= WarfrontStalemateDecay;
@@ -289,6 +323,9 @@ public static class KingdomTickSimulation
                 adv += aggK.SupplyStock / SupplyMusclePerAdvance;
             adv -= def.SupplyStock / SupplyMusclePerAdvance;
 
+            // Provinces PV4 (PR70): Thornwall or Stasis Snare holds the front still for a lunation.
+            if (CastleManeuvers.TakeFreeze(cycle, wf))
+                adv = 0;
             wf.Advance += adv;
             ResolveWarfront(cycle, wf, def, fd);
         }
@@ -300,6 +337,9 @@ public static class KingdomTickSimulation
     private static void ResolveWarfront(CycleState cycle, Warfront wf, KingdomState def,
                                         Func<string, string> fd)
     {
+        // Provinces PV3a: a front that contests a province settles by the province rules.
+        if (ResolveProvinceFront(cycle, wf, def, fd))
+            return;
         if (wf.Advance >= 100)
         {
             FallToAggressor(cycle, def, wf.DefenderKingdomId, wf.AggressorFactionId, fd);
@@ -432,6 +472,11 @@ public static class KingdomTickSimulation
         }
 
         if (!cycle.Kingdoms.TryGetValue(wf.DefenderKingdomId, out var def))
+            return;
+
+        // Provinces PV3a (PR52): the party went to defend or take one province; a front that
+        // has moved on from it since is not swung.
+        if (FrontMovedOn(cycle, wf))
             return;
 
         string defName = string.IsNullOrEmpty(def.DisplayName) ? wf.DefenderKingdomId : def.DisplayName;

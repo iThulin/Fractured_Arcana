@@ -77,13 +77,22 @@ public class Warfront
     /// province never falls. -1 = a normal province warfront.</summary>
     public int TargetPoiIndex = -1;
 
+    /// <summary>The province this front contests, by its stable id (provinces PV3a,
+    /// docs/provinces_v1_8_fronts_per_province.md): one province of the defender at a
+    /// time. When it is taken the front moves on to the next and keeps its Id, the war's.
+    /// Empty for a cache siege, and for a front opened before fronts walked until the next
+    /// lunation finds its province. Additive save field, no version bump.</summary>
+    public string ProvinceId = "";
+
     /// <summary>True when this warfront besieges a single supply cache.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsCacheSiege => TargetPoiIndex >= 0;
 
     public bool Closed = false;
 
-    /// <summary>How it ended: "" (open), "fell", "repelled", "seized".</summary>
+    /// <summary>How it ended: "" (open), "fell", "repelled", "seized"; since provinces
+    /// PV3a also "halted" (nothing more of the defender within reach) and "collapsed" (a
+    /// realm on either side fell).</summary>
     public string Resolution = "";
 
     /// <summary>True once a valid front tile was found (deployable on the map).</summary>

@@ -5,7 +5,7 @@ using Godot;
 //
 // Purpose:        Test levers for the strategic layer, the one
 //                 subsystem that could previously only be
-//                 exercised by playing a full cycle out. Three
+//                 exercised by playing a full cycle out. Eight
 //                 actions:
 //                   ForceConjunction():  end the cycle NOW.
 //                   OweLunations(n):     advance the calendar n
@@ -15,6 +15,24 @@ using Godot;
 //                                        boil-over threshold so
 //                                        the next tick opens a
 //                                        warfront.
+//                   PushFront(n):        push the open war n
+//                                        toward its aggressor and
+//                                        settle it now (provinces
+//                                        PV3a, Gate PV3a).
+//                   PushAnnex(n):        push the leading bid to
+//                                        annex land no one rules
+//                                        n and settle it now
+//                                        (provinces PV3b, Gate
+//                                        PV3b).
+//                   LearnManeuvers():    the guild knows every
+//                                        maneuver and the font
+//                                        is full (provinces PV4).
+//                   WakeKeeper():        the Keeper wakes two
+//                                        hops from the castle
+//                                        (provinces PV6).
+//                   MusterArmy():        one troop line of each
+//                                        kind joins the army
+//                                        (provinces PV7).
 //                 None of these reimplement game logic: each sets
 //                 the state the shipped path already reads, so a
 //                 forced run exercises the SAME code an organic
@@ -176,6 +194,136 @@ public static class StrategicDebug
                  $"at pressure {KingdomTickSimulation.WarfrontOpenThreshold} " +
                  $"(was {bestPressure}). Owe a lunation and return to the map. " +
                  "The tick opens the warfront and plants the ⚔ marker.");
+    }
+
+    /// <summary>Gate PV3a's lever (docs/provinces_v1_8_fronts_per_province.md section 9):
+    /// the first open war moves <paramref name="amount"/> toward its aggressor and settles
+    /// at once by the rules a lunation applies (KingdomTickSimulation.DebugPush): at 100 the
+    /// province is taken and the front moves on at 60, or the realm falls with its capital.
+    /// Saves. True when a war was pushed; the Debug panel then opens the map afresh.</summary>
+    public static bool PushFront(int amount)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
+            return false;
+        }
+        string line = KingdomTickSimulation.DebugPush(cycle, amount, factionId =>
+            factionId == KingdomTickSimulation.GuildFactionId
+                ? "the Guild"
+                : FactionRegistry.Get(factionId)?.DisplayName ?? factionId);
+        if (line == null)
+        {
+            GD.Print("[StrategicDebug] No open war to push. Prime Warfront, owe a lunation, then push.");
+            return false;
+        }
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] {line}");
+        return true;
+    }
+
+    /// <summary>Gate PV3b's lever (docs/provinces_v1_8_fronts_per_province.md section 13): of
+    /// the provinces no one rules, the one whose leading bid is furthest along gains
+    /// <paramref name="amount"/> on that bid and settles at once
+    /// (KingdomTickSimulation.DebugAnnex): a full bar annexes it. Saves. True when a bid was
+    /// pushed; the Debug panel then opens the map afresh.</summary>
+    public static bool PushAnnex(int amount)
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
+            return false;
+        }
+        string line = KingdomTickSimulation.DebugAnnex(cycle, amount, factionId =>
+            factionId == KingdomTickSimulation.GuildFactionId
+                ? "the Guild"
+                : FactionRegistry.Get(factionId)?.DisplayName ?? factionId);
+        if (line == null)
+        {
+            GD.Print("[StrategicDebug] No land no one rules has a bidder. Fell a realm first "
+                     + "(Push Front +40 until its capital falls), then push.");
+            return false;
+        }
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] {line}");
+        return true;
+    }
+
+    /// <summary>Gate PV4's lever (docs/provinces_v1_9_bastion.md section 9): the guild learns
+    /// every maneuver's spell and the font fills (CastleManeuvers.DebugLearnAll). Saves. True
+    /// when it did; the Debug panel then opens the map afresh.</summary>
+    public static bool LearnManeuvers()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
+            return false;
+        }
+        string line = CastleManeuvers.DebugLearnAll(cycle);
+        if (line == null)
+        {
+            return false;
+        }
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] {line}");
+        return true;
+    }
+
+    /// <summary>Gate PV6's lever (docs/provinces_v1_10_keeper.md section 7): the Keeper wakes
+    /// now, two hops from the castle, knowing where it is (KeeperHunt.DebugWake). Saves. True
+    /// when it woke; the Debug panel then opens the map afresh.</summary>
+    public static bool WakeKeeper()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
+            return false;
+        }
+        string line = KeeperHunt.DebugWake(cycle);
+        if (line == null)
+        {
+            GD.Print("[StrategicDebug] The Keeper walks only where the world has provinces and the castle stands in one.");
+            return false;
+        }
+        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+        cycle.PendingSiegeReports.Add(line);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] {line}");
+        return true;
+    }
+
+    /// <summary>Gate PV7's lever (docs/provinces_v1_12_troops.md section 8): one troop line of each
+    /// kind joins the army at full strength, raised in the castle's province whatever its ground and
+    /// the army's capacity, with 30 supplies for their keep (ArmyMuster.DebugMuster). Saves. True
+    /// when it mustered; then Force Castle Assault puts the lines on the castle's deck.</summary>
+    public static bool MusterArmy()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (cycle == null)
+        {
+            GD.Print("[StrategicDebug] No active cycle. Load or start a game first.");
+            return false;
+        }
+        string line = ArmyMuster.DebugMuster(cycle);
+        if (line == null)
+        {
+            GD.Print("[StrategicDebug] The army musters only where the world has provinces.");
+            return false;
+        }
+        cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+        cycle.PendingSiegeReports.Add(line);
+        SaveManager.MarkDirty();
+        SaveManager.SaveIfDirty();
+        GD.Print($"[StrategicDebug] {line}");
+        return true;
     }
 
     /// <summary>Resolve every unresolved archmage seat so

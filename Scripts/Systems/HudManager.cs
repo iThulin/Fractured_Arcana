@@ -759,6 +759,11 @@ public partial class HudManager : Node
         // there is no bar in the examination hall or in its fights.
         if (lower.Contains("prologue") || !string.IsNullOrEmpty(RegisterManager.PrologueMode))
             return true;
+        // The standalone campus (2026-11-05) draws its own top bar, and the global bar covered
+        // its buttons (To the World Map, Begin the Next Reading). Hidden there, as it already is
+        // over the campus overlay.
+        if (lower.EndsWith("campus/campusscene.tscn"))
+            return true;
         return false;
     }
 }

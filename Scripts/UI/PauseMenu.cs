@@ -3,13 +3,17 @@ using Godot;
 // ============================================================
 // PauseMenu.cs
 //
-// Purpose:        Pause overlay controller. Hosts the Resume /
-//                 Settings / Card Library / Return to Campus /
-//                 Forfeit Combat (Yield, in a checklist fight) /
-//                 Quit buttons; also manages an
-//                 inline sub-overlay slot (for Settings and Card
-//                 Library) so opening them doesn't unload the
-//                 underlying scene.
+// Purpose:        Pause overlay controller. Hosts Resume, Settings,
+//                 Card Library, Reaction Chart, Manage Deck and
+//                 Upgrade Cards, Return to Campus, Forfeit Combat
+//                 (Yield, in a checklist fight), Return to Title and
+//                 Quit, under a line naming the guild in play. It
+//                 also manages an inline sub-overlay slot (Settings,
+//                 the Card Library, the deck editor, the upgrade
+//                 screen) so opening them doesn't unload the
+//                 underlying scene. The two card screens and the
+//                 guild's line came from the retired Guild screen on
+//                 2026-11-05 (docs/guild_screen_retirement_v1.md).
 // Layer:          UI
 // Collaborators:  PauseManager.cs (opens/closes this),
 //                 SettingsMenu.cs, CardLibraryUi.cs (inline
@@ -36,6 +40,13 @@ public partial class PauseMenu : Control
     private Button _returnToCampusButton;
     private Button _forfeitCombatButton;
     private Button _quitButton;
+    private Button _returnToTitleButton;
+    private const string TitleScenePath = "res://Scenes/UI/TitleScreen.tscn";
+    private Button _manageDeckButton;
+    private Button _upgradeCardsButton;
+    private Label _guildLine;
+    private const string DeckEditorScenePath = "res://Scenes/UI/DeckEditor.tscn";
+    private const string CardUpgradeScenePath = "res://Scenes/UI/CardUpgradeScreen.tscn";
 
     private Control _menuContainer;
     private Control _overlayHost;
@@ -69,6 +80,49 @@ public partial class PauseMenu : Control
         menuColumn.MoveChild(chartButton, _cardLibraryButton.GetIndex() + 1);
         chartButton.Pressed += () => ReactionChart.ShowDialog(this);
 
+        // Manage Deck and Upgrade Cards (Guild screen part B1, 2026-11-05): the card
+        // buttons the Guild screen carried, opened inline like the Card Library.
+        // Duplicated the same way, just below the chart.
+        _manageDeckButton = (Button)_cardLibraryButton.Duplicate();
+        _manageDeckButton.Name = "ManageDeckButton";
+        _manageDeckButton.Text = "Manage Deck";
+        menuColumn.AddChild(_manageDeckButton);
+        menuColumn.MoveChild(_manageDeckButton, chartButton.GetIndex() + 1);
+        _manageDeckButton.Pressed += OnManageDeckPressed;
+        _upgradeCardsButton = (Button)_cardLibraryButton.Duplicate();
+        _upgradeCardsButton.Name = "UpgradeCardsButton";
+        _upgradeCardsButton.Text = "Upgrade Cards";
+        menuColumn.AddChild(_upgradeCardsButton);
+        menuColumn.MoveChild(_upgradeCardsButton, _manageDeckButton.GetIndex() + 1);
+        _upgradeCardsButton.Pressed += OnUpgradeCardsPressed;
+
+        // The guild in play, one line under the title (B4): its name, the reading, its seat.
+        // Wraps inside the panel's column instead of widening it.
+        var menuTitle = GetNode<Control>("MenuContainer/Margin/VBox/Title");
+        _guildLine = new Label
+        {
+            Name = "GuildLine",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(312, 0),
+            Visible = false,
+        };
+        _guildLine.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        _guildLine.AddThemeColorOverride("font_color", UITheme.GoldDim);
+        menuColumn.AddChild(_guildLine);
+        menuColumn.MoveChild(_guildLine, menuTitle.GetIndex() + 1);
+
+        // Return to Title (2026-11-05): Continue and the save slots live on the title
+        // screen now, so the Menu leads back to it. Duplicated from Quit before any signal
+        // is wired, like the reaction chart, and placed just above it.
+        _returnToTitleButton = (Button)_quitButton.Duplicate();
+        _returnToTitleButton.Name = "ReturnToTitleButton";
+        _returnToTitleButton.Text = "Return to Title";
+        var quitColumn = _quitButton.GetParent();
+        quitColumn.AddChild(_returnToTitleButton);
+        quitColumn.MoveChild(_returnToTitleButton, _quitButton.GetIndex());
+        _returnToTitleButton.Pressed += OnReturnToTitlePressed;
+
         _resumeButton.Pressed += OnResumePressed;
         _settingsButton.Pressed += OnSettingsPressed;
         _cardLibraryButton.Pressed += OnCardLibraryPressed;
@@ -94,6 +148,22 @@ public partial class PauseMenu : Control
         // yield, which the director reads as the bell, not the floor (ruled 2026-10-27).
         _forfeitCombatButton.Text = inCombat && InChecklistFight() ? "Yield" : "Forfeit Combat";
         _quitButton.Visible = true;
+        // Return to Title: on the strategic map and the screens around it. Never in a fight
+        // or mid-expedition, which have their own ways out, nor on the title itself.
+        var scene = GetTree()?.CurrentScene;
+        bool aroundMap = !inCombat && scene is not TitleScreen
+            && (scene is StrategicView || ctx == PauseManager.PauseContext.MainMenu);
+        _returnToTitleButton.Visible = aroundMap;
+        // Manage Deck and Upgrade Cards (B1, GB2): where Return to Title shows, with a guild
+        // loaded, but not while founding one, in the prologue, or over the same screen.
+        bool cardScreens = aroundMap && SaveManager.ActiveSave != null && scene is not NewGameScreen
+            && string.IsNullOrEmpty(RegisterManager.PrologueMode);
+        _manageDeckButton.Visible = cardScreens && scene is not DeckEditorUi;
+        _upgradeCardsButton.Visible = cardScreens && scene is not CardUpgradeScreen;
+        // The guild's line (B4), anywhere a guild is in play.
+        string guild = scene is TitleScreen || scene is NewGameScreen ? "" : GuildLine(SaveManager.ActiveSave);
+        _guildLine.Text = guild;
+        _guildLine.Visible = guild.Length > 0;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -120,6 +190,63 @@ public partial class PauseMenu : Control
             if (inst is CardLibraryUi lib)
                 lib.ReturnScenePath = InlineSentinel;
         });
+    }
+
+    /// <summary>The deck editor over the Menu (B1), as the Card Library opens: its Back closes
+    /// it and the Menu comes back.</summary>
+    private void OnManageDeckPressed()
+    {
+        OpenInlineOverlay(DeckEditorScenePath, before: inst =>
+        {
+            if (inst is DeckEditorUi deck)
+                deck.ReturnScenePath = InlineSentinel;
+        });
+    }
+
+    /// <summary>The upgrade screen over the Menu (B1). It keeps its own Scriptorum gate.</summary>
+    private void OnUpgradeCardsPressed()
+    {
+        OpenInlineOverlay(CardUpgradeScenePath, before: inst =>
+        {
+            if (inst is CardUpgradeScreen upgrade)
+                upgrade.ReturnScenePath = InlineSentinel;
+        });
+    }
+
+    /// <summary>The guild in play in one line (B4): its name, the reading, and its seat (the
+    /// home city and its realm). The Grand Hall's identity block it replaces also had a stats
+    /// row; gold is on the HUD, and gold and runs are on the Load Game card.</summary>
+    private static string GuildLine(GuildSaveData save)
+    {
+        if (save == null)
+            return "";
+        string line = save.GuildName;
+        int reading = save.Cycle?.CycleNumber ?? 0;
+        if (reading > 0)
+            line += $"  \u00b7  Reading {reading}";
+        string seat = SeatName(save);
+        if (seat.Length > 0)
+            line += $"  \u00b7  {seat}";
+        return line;
+    }
+
+    /// <summary>The home city and its realm, as the Grand Hall's seat line read them; "" before
+    /// the reading's world exists.</summary>
+    private static string SeatName(GuildSaveData save)
+    {
+        var world = save?.Cycle?.World;
+        if (world == null || world.Tiles.Length == 0 || !world.InBounds(world.HomeX, world.HomeY))
+            return "";
+        var home = world.SettlementAt(world.HomeX, world.HomeY);
+        string city = home != null && !string.IsNullOrEmpty(home.Name) ? home.Name : "";
+        string region = "";
+        string kid = world.GetTile(world.HomeX, world.HomeY).KingdomId;
+        if (!string.IsNullOrEmpty(kid) && save.Cycle.Kingdoms != null &&
+            save.Cycle.Kingdoms.TryGetValue(kid, out var ks))
+            region = !string.IsNullOrEmpty(ks.DisplayName) ? ks.DisplayName : ks.TemplateRegionId;
+        if (city.Length > 0 && !string.IsNullOrEmpty(region))
+            return $"{city}, {region}";
+        return city.Length > 0 ? city : region ?? "";
     }
 
     private void OnReturnToCampusPressed()
@@ -171,6 +298,18 @@ public partial class PauseMenu : Control
     }
 
     private void OnQuitPressed() => GetTree().Quit();
+
+    /// <summary>Save, close the Menu and go to the title screen, where Continue and the save
+    /// slots are. The campus overlay's flags go too, or the next visit to the map would think
+    /// the overlay still open and keep the HUD's bar hidden.</summary>
+    private void OnReturnToTitlePressed()
+    {
+        SaveManager.SaveIfDirty();
+        CampusScreen.OverlayLeaveHandler = null;
+        PlayerSession.CampusOverlayOpen = false;
+        PauseManager.Instance?.ClosePauseMenu();
+        GetTree().ChangeSceneToFile(TitleScenePath);
+    }
 
     private void OnBackdropInput(InputEvent @event)
     {

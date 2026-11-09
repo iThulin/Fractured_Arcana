@@ -264,6 +264,10 @@ public partial class GrimoirePanel : PanelContainer
                 cost += $"  +{tax} off-school";
             if (surcharge > 0)
                 cost += $"  +{surcharge} corrupted ground";
+            // Provinces 7i (PR46): held ground takes its discount off the total.
+            int discount = _manager.HeldGroundDiscount(def.EssenceCost + tax + surcharge);
+            if (discount > 0)
+                cost += $"  -{discount} held ground";
             Add(cost, -2, UITheme.EssenceText);
         }
 
@@ -468,6 +472,10 @@ public partial class GrimoirePanel : PanelContainer
                 costText += $"+{tax}";
             if (surcharge > 0)
                 costText += $"+{surcharge}";
+            // Provinces 7i (PR46): held ground takes its discount off the total.
+            int discount = _manager.HeldGroundDiscount(def.EssenceCost + tax + surcharge);
+            if (discount > 0)
+                costText += $"-{discount}";
             costText += "✦";
         }
 
