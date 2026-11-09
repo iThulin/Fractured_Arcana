@@ -271,6 +271,11 @@ public sealed class ChargeLockEffect : EffectBase
     public override void Resolve(GameState s, Entity caster, TargetSet targets, EffectSnapshot snap)
     {
         var owner = FindCasterUnit(s, caster) ?? s?.ActiveCasterUnit;
+        if (HumaneClause.Shields(owner))
+        {
+            s.Log("[HumaneClause] The Charge lockout is struck out.");
+            return;
+        }
         if (owner?.Attunement is ArcaneAttunement arc && !CombatSim.Active)
         {
             arc.LockCharge(Turns);

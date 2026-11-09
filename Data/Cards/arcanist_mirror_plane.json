@@ -1,0 +1,296 @@
+{
+	"id": "arcanist_mirror_plane",
+	"status": "ready",
+	"name": "Mirror Plane",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Mirror Plane",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Raise a Mirror Plane within 3 (HP 8). A single-target spell you aim at it bounces to the nearest enemy within 3 of it, with +2 damage.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "raise_structure",
+			"kind": "mirror_plane",
+			"hp": 8,
+			"bonus_damage": 2
+		}
+	},
+	"bottom": {
+		"name": "Glancing Ray",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Deal 4 damage, +3 if you or the target is adjacent to one of your structures.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 4
+				},
+				{
+					"type": "conditional",
+					"if": {
+						"type": "near_structure",
+						"or_target": true
+					},
+					"then": {
+						"type": "damage",
+						"amount": 3
+					}
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Mirror Plane+",
+			"bottom_name": "Glancing Ray+",
+			"description": "A brighter mirror. A sharper ray.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "mirror_plane",
+						"hp": 10,
+						"bonus_damage": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a Mirror Plane within 3 (HP 10). A single-target spell you aim at it bounces to the nearest enemy within 3 of it, with +3 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "near_structure",
+									"or_target": true
+								},
+								"then": {
+									"type": "damage",
+									"amount": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage, +3 if you or the target is adjacent to one of your structures."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Silvered Plane",
+			"description": "Silvered Plane.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "mirror_plane",
+						"hp": 10,
+						"bonus_damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a Mirror Plane within 3 (HP 10). A single-target spell you aim at it bounces to the nearest enemy within 3 of it, with +4 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Angled Ray",
+			"description": "Angled Ray.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "near_structure",
+									"or_target": true
+								},
+								"then": {
+									"type": "damage",
+									"amount": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage, +4 if you or the target is adjacent to one of your structures."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Hall Mirror",
+			"description": "Hall Mirror.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "mirror_plane",
+						"hp": 12,
+						"bonus_damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a Mirror Plane within 3 (HP 12). A single-target spell you aim at it bounces to the nearest enemy within 3 of it, with +5 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Refracted Ray",
+			"description": "Refracted Ray.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "near_structure",
+									"or_target": true
+								},
+								"then": {
+									"type": "damage",
+									"amount": 4
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage, +4 if you or the target is adjacent to one of your structures."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Looking Glass",
+			"description": "The Looking Glass.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "mirror_plane",
+						"hp": 14,
+						"bonus_damage": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a Mirror Plane within 3 (HP 14). A single-target spell you aim at it bounces to the nearest enemy within 3 of it, with +6 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Perfect Angle",
+			"description": "The Perfect Angle.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "conditional",
+								"if": {
+									"type": "near_structure",
+									"or_target": true
+								},
+								"then": {
+									"type": "damage",
+									"amount": 5
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage, +5 if you or the target is adjacent to one of your structures."
+				}
+			]
+		}
+	]
+}

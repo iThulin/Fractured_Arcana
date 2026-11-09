@@ -8,7 +8,7 @@
 		"name": "Spell Prism",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Create a Prism on a tile within 2 (HP 8). A spell that crosses its line of sight splits: it also resolves on the nearest enemy within 2 of the Prism.",
+		"rules_text": "Raise a Prism within 4 (HP 8). A single-target spell you cast at an enemy within 2 of it also hits the nearest other enemy within 2 of it.",
 		"tags": [
 			"arcane"
 		],
@@ -17,7 +17,7 @@
 			"range": 4
 		},
 		"effect": {
-			"type": "create_arcane_construct",
+			"type": "raise_structure",
 			"kind": "prism",
 			"hp": 8,
 			"split_range": 2
@@ -27,7 +27,7 @@
 		"name": "Charged Conduit",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Imbue a tile: the next spell cast from this tile gains +2 damage per Charge you have, then consumes all Charge.",
+		"rules_text": "Draw a casting circle on a tile within 4. The next spell you cast while standing on it gains +2 damage per Charge you have, then consumes all your Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -36,8 +36,7 @@
 			"range": 4
 		},
 		"effect": {
-			"type": "create_arcane_construct",
-			"kind": "conduit",
+			"type": "casting_circle",
 			"bonus_per_charge": 2
 		}
 	},
@@ -51,28 +50,31 @@
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.hp",
-					"value": 12
-				},
-				{
-					"half": "top",
-					"field": "effect.split_range",
-					"value": 3
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "prism",
+						"hp": 12,
+						"split_range": 3
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (HP 12). Spells passing through it split to the nearest enemy within 3."
+					"value": "Raise a Prism within 4 (HP 12). A single-target spell you cast at an enemy within 3 of it also hits the nearest other enemy within 3 of it."
 				},
 				{
 					"half": "bottom",
-					"field": "effect.bonus_per_charge",
-					"value": 3
+					"field": "effect",
+					"value": {
+						"type": "casting_circle",
+						"bonus_per_charge": 3
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: the next spell cast from it gains +3 damage per Charge, then consumes all Charge."
+					"value": "Draw a casting circle on a tile within 4. The next spell you cast while standing on it gains +3 damage per Charge you have, then consumes all your Charge."
 				}
 			]
 		},
@@ -80,17 +82,23 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Refracting Prism",
-			"description": "Refracting Prism: the split copy deals full damage.",
+			"description": "Refracting Prism: two splits.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.split_fraction",
-					"value": 1.0
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "prism",
+						"hp": 12,
+						"split_range": 3,
+						"split_targets": 2
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (HP 12). Spells passing through it copy at full damage to the nearest enemy within 3."
+					"value": "Raise a Prism within 4 (HP 12). A single-target spell you cast at an enemy within 3 of it also hits the 2 nearest other enemies within 3 of it."
 				}
 			]
 		},
@@ -98,17 +106,21 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Overcharged Conduit",
-			"description": "Overcharged Conduit: keep half your charge instead of consuming all.",
+			"description": "Overcharged Conduit: keeps half.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.consume_fraction",
-					"value": 0.5
+					"field": "effect",
+					"value": {
+						"type": "casting_circle",
+						"bonus_per_charge": 3,
+						"consume_fraction": 0.5
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: the next spell from it gains +3 per Charge, then consumes half your Charge (round up)."
+					"value": "Draw a casting circle on a tile within 4. The next spell you cast while standing on it gains +3 damage per Charge you have, then consumes half your Charge (rounded up)."
 				}
 			]
 		},
@@ -116,17 +128,23 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Hall of Mirrors",
-			"description": "Hall of Mirrors: split to the 2 nearest enemies.",
+			"description": "Hall of Mirrors: three splits.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.split_targets",
-					"value": 2
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "prism",
+						"hp": 14,
+						"split_range": 3,
+						"split_targets": 3
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (HP 12). Spells passing through copy at full damage to the 2 nearest enemies within 3."
+					"value": "Raise a Prism within 4 (HP 14). A single-target spell you cast at an enemy within 3 of it also hits the 3 nearest other enemies within 3 of it."
 				}
 			]
 		},
@@ -134,17 +152,22 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Resonant Conduit",
-			"description": "Resonant Conduit: the empowered spell also banks charge equal to half spent.",
+			"description": "Resonant Conduit.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.refund_fraction",
-					"value": 0.5
+					"field": "effect",
+					"value": {
+						"type": "casting_circle",
+						"bonus_per_charge": 3,
+						"consume_fraction": 0.5,
+						"refund_fraction": 0.5
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: next spell from it gains +3 per Charge, consumes half (round up), then refunds half of that."
+					"value": "Draw a casting circle on a tile within 4. The next spell you cast while standing on it gains +3 damage per Charge you have, then consumes half your Charge (rounded up), then gives back half of that."
 				}
 			]
 		},
@@ -152,24 +175,23 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Kaleidoscope",
-			"description": "Kaleidoscope: an indestructible prism that splits to all nearby enemies.",
+			"description": "Kaleidoscope: everyone near it.",
 			"changes": [
 				{
 					"half": "top",
 					"field": "effect",
 					"value": {
-						"type": "create_arcane_construct",
+						"type": "raise_structure",
 						"kind": "prism",
 						"hp": 20,
 						"split_range": 3,
-						"split_fraction": 1.0,
 						"split_all": true
 					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Create a Prism within 2 (HP 20). Spells passing through copy at full damage to all enemies within 3."
+					"value": "Raise a Prism within 4 (HP 20). A single-target spell you cast at an enemy within 3 of it also hits every other enemy within 3 of it."
 				}
 			]
 		},
@@ -177,14 +199,13 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "Singular Conduit",
-			"description": "Singular Conduit: massive payoff with no net charge loss.",
+			"description": "Singular Conduit.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "create_arcane_construct",
-						"kind": "conduit",
+						"type": "casting_circle",
 						"bonus_per_charge": 4,
 						"consume_fraction": 0.5,
 						"refund_fraction": 1.0
@@ -193,7 +214,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Imbue a tile: next spell from it gains +4 per Charge, consumes half your Charge, then refunds all of that."
+					"value": "Draw a casting circle on a tile within 4. The next spell you cast while standing on it gains +4 damage per Charge you have, then consumes half your Charge (rounded up), then gives all of it back."
 				}
 			]
 		}

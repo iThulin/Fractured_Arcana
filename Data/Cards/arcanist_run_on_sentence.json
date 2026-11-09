@@ -1,0 +1,391 @@
+{
+	"id": "arcanist_run_on_sentence",
+	"status": "ready",
+	"name": "Run-On Sentence",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Run-On Sentence",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Deal 2 damage per spell you have cast this turn (this one included) to the target, then the same to the nearest other enemy within 3.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage_per_spells_cast",
+					"per": 2
+				},
+				{
+					"type": "retarget",
+					"targeting": {
+						"type": "nearest_to_target",
+						"range": 3
+					},
+					"do": {
+						"type": "damage_per_spells_cast",
+						"per": 2
+					}
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Aside",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Pen a card from your hand. Draw 1 card.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "pen",
+					"from": "hand",
+					"count": 1
+				},
+				{
+					"type": "draw",
+					"count": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Run-On Sentence+",
+			"bottom_name": "Aside+",
+			"description": "A longer sentence. A fuller margin.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_per_spells_cast",
+								"per": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage_per_spells_cast",
+									"per": 2
+								}
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 2 damage per spell you have cast this turn (this one included) to the target, then the same to the nearest other enemy within 3. Gain 1 Charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen a card from your hand. Gain 1 Charge. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Comma Splice",
+			"description": "Comma Splice: it carries further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_per_spells_cast",
+								"per": 2
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage_per_spells_cast",
+									"per": 2
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage_per_spells_cast",
+									"per": 2
+								}
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 2 damage per spell you have cast this turn (this one included) to the target, then the same to each of the 2 nearest other enemies within 3. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Parenthesis",
+			"description": "Parenthesis: two pages.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 2,
+								"up_to": true
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 2 cards from your hand. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Breathless Clause",
+			"description": "Breathless Clause.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_per_spells_cast",
+								"per": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage_per_spells_cast",
+									"per": 3
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage_per_spells_cast",
+									"per": 3
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 3 damage per spell you have cast this turn (this one included) to the target, then the same to each of the 2 nearest other enemies within 3."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Footnote",
+			"description": "Footnote.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 2,
+								"up_to": true
+							},
+							{
+								"type": "draw",
+								"count": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 2 cards from your hand. Draw 2 cards."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Endless Sentence",
+			"description": "The Endless Sentence.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage_per_spells_cast",
+								"per": 3
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage_per_spells_cast",
+									"per": 3
+								}
+							},
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "nearest_to_target",
+									"range": 3
+								},
+								"do": {
+									"type": "damage_per_spells_cast",
+									"per": 3
+								}
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 3 damage per spell you have cast this turn (this one included) to the target, then the same to each of the 2 nearest other enemies within 3. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Digression",
+			"description": "Digression.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 2,
+								"up_to": true
+							},
+							{
+								"type": "draw",
+								"count": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 2 cards from your hand. Gain 1 Charge. Draw 2 cards."
+				}
+			]
+		}
+	]
+}

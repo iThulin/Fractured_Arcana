@@ -1,0 +1,274 @@
+{
+	"id": "arcanist_the_humane_clause",
+	"status": "ready",
+	"name": "The Humane Clause",
+	"school": "Arcanist",
+	"rarity": "Rare",
+	"top": {
+		"name": "The Humane Clause",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Your next spell this turn ignores its drawbacks: it deals no damage to you or your allies, roots none of you, and Charge lockouts don't apply.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "humane_clause"
+		}
+	},
+	"bottom": {
+		"name": "Strike the Privilege",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Strip every buff from target enemy. Gain 1 Charge per buff stripped.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "strip_buffs",
+			"charge_per": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Humane Clause+",
+			"bottom_name": "Strike the Privilege+",
+			"description": "A kinder clause. A sharper strike.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "humane_clause",
+						"charge": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn ignores its drawbacks: it deals no damage to you or your allies, roots none of you, and Charge lockouts don't apply. Gain 1 Charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "strip_buffs",
+								"charge_per": 1
+							},
+							{
+								"type": "damage",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Strip every buff from target enemy. Gain 1 Charge per buff stripped. Deal 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "The Merciful Clause",
+			"description": "The Merciful Clause: cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "humane_clause",
+						"charge": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn ignores its drawbacks: it deals no damage to you or your allies, roots none of you, and Charge lockouts don't apply. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Revoke",
+			"description": "Revoke: cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "strip_buffs",
+								"charge_per": 1
+							},
+							{
+								"type": "damage",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Strip every buff from target enemy. Gain 1 Charge per buff stripped. Deal 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Gentle Clause",
+			"description": "The Gentle Clause.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "humane_clause",
+						"charge": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn ignores its drawbacks: it deals no damage to you or your allies, roots none of you, and Charge lockouts don't apply. Gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Annul",
+			"description": "Annul: twice the Charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "strip_buffs",
+								"charge_per": 2
+							},
+							{
+								"type": "damage",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Strip every buff from target enemy. Gain 2 Charge per buff stripped. Deal 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Saving Clause",
+			"description": "The Saving Clause.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "humane_clause",
+						"charge": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn ignores its drawbacks: it deals no damage to you or your allies, roots none of you, and Charge lockouts don't apply. Gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Disendow",
+			"description": "Disendow.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "strip_buffs",
+								"charge_per": 2
+							},
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Strip every buff from target enemy. Gain 2 Charge per buff stripped. Deal 4 damage. Draw 1 card."
+				}
+			]
+		}
+	]
+}

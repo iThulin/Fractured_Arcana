@@ -609,6 +609,34 @@ public partial class HexTile : Node3D
         return (aabb.Position.Y + aabb.Size.Y) * t.Basis.Y.Length() + t.Origin.Y;
     }
 
+    private Label3D _castingCircle;
+
+    /// <summary>Arcanist casting circle (slice 14d): a mark on the tile, not a structure.</summary>
+    public void SetCastingCircle(bool on)
+    {
+        if (!on)
+        {
+            if (_castingCircle != null)
+                _castingCircle.Visible = false;
+            return;
+        }
+        if (_castingCircle == null)
+        {
+            _castingCircle = new Label3D
+            {
+                Text = "◎",
+                FontSize = UITheme.Label3DGlyph,
+                Modulate = UITheme.Warning,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                Position = new Vector3(0, 0.45f, 0),
+                Name = "CastingCircle",
+            };
+            CallDeferred("add_child", _castingCircle);
+        }
+        else
+            _castingCircle.Visible = true;
+    }
+
     private void ShowFallbackMarker()
     {
         if (_glyphDecal != null)

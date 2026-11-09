@@ -34,23 +34,23 @@
 		}
 	},
 	"bottom": {
-		"name": "Arcane Trap",
+		"name": "Focus Shard",
 		"mana": 1,
 		"speed": "Studied",
-		"rules_text": "Create an Arcane Trap on a tile within 2. When an enemy enters, spend 1 Charge to deal 7 damage.",
+		"rules_text": "Raise a Focus Stone within 2 (HP 6). Spells you cast while adjacent to it gain +1 range and +1 damage.",
 		"tags": [
 			"arcane"
 		],
 		"targeting": {
 			"type": "tile",
-			"range": 4
+			"range": 2
 		},
 		"effect": {
-			"type": "create_arcane_construct",
-			"kind": "trap",
-			"radius": 2,
-			"charge_cost": 1,
-			"damage": 7
+			"type": "raise_structure",
+			"kind": "focus_stone",
+			"hp": 6,
+			"bonus_damage": 1,
+			"bonus_range": 1
 		}
 	},
 	"upgrades": [
@@ -58,7 +58,7 @@
 			"tier": 1,
 			"half": "both",
 			"top_name": "Spell Fracture+",
-			"bottom_name": "Arcane Trap+",
+			"bottom_name": "Focus Shard+",
 			"description": "Fracture hits harder. Trap deals more.",
 			"changes": [
 				{
@@ -73,13 +73,19 @@
 				},
 				{
 					"half": "bottom",
-					"field": "effect.damage",
-					"value": 9
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "focus_stone",
+						"hp": 8,
+						"bonus_damage": 1,
+						"bonus_range": 1
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap within 2. When an enemy enters, spend 1 Charge to deal 9 damage."
+					"value": "Raise a Focus Stone within 2 (HP 8). Spells you cast while adjacent to it gain +1 range and +1 damage."
 				}
 			]
 		},
@@ -104,18 +110,24 @@
 		{
 			"tier": 2,
 			"half": "bottom",
-			"bottom_name": "Snare Trap",
-			"description": "Snare Trap: also roots the enemy that triggers it.",
+			"bottom_name": "Lens Shard",
+			"description": "Lens Shard: sharper spells.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.on_trigger_status",
-					"value": "rooted"
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "focus_stone",
+						"hp": 8,
+						"bonus_damage": 2,
+						"bonus_range": 1
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap within 2. On enter: spend 1 Charge to deal 9 damage and root."
+					"value": "Raise a Focus Stone within 2 (HP 8). Spells you cast while adjacent to it gain +1 range and +2 damage."
 				}
 			]
 		},
@@ -140,18 +152,24 @@
 		{
 			"tier": 3,
 			"half": "bottom",
-			"bottom_name": "Glyph Field",
-			"description": "Glyph Field: the trap arms a 2-tile radius.",
+			"bottom_name": "Focus Spire",
+			"description": "Focus Spire.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.trigger_radius",
-					"value": 1
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "focus_stone",
+						"hp": 10,
+						"bonus_damage": 2,
+						"bonus_range": 2
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap. Any enemy entering it or an adjacent tile takes 9 damage and is Rooted (spend 1 Charge)."
+					"value": "Raise a Focus Stone within 2 (HP 10). Spells you cast while adjacent to it gain +2 range and +2 damage."
 				}
 			]
 		},
@@ -202,27 +220,24 @@
 		{
 			"tier": 4,
 			"half": "bottom",
-			"bottom_name": "Annihilation Trap",
-			"description": "Annihilation Trap: a devastating, rearming snare.",
+			"bottom_name": "The Fractured Lens",
+			"description": "The Fractured Lens.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "create_arcane_construct",
-						"kind": "trap",
-						"radius": 2,
-						"charge_cost": 1,
-						"damage": 14,
-						"on_trigger_status": "stunned",
-						"trigger_radius": 1,
-						"rearm": true
+						"type": "raise_structure",
+						"kind": "focus_stone",
+						"hp": 12,
+						"bonus_damage": 3,
+						"bonus_range": 2
 					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create an Arcane Trap (2-tile radius). On trigger: spend 1 Charge to deal 14 and stun, then rearm."
+					"value": "Raise a Focus Stone within 2 (HP 12). Spells you cast while adjacent to it gain +2 range and +3 damage."
 				}
 			]
 		}

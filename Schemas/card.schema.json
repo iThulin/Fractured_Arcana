@@ -457,7 +457,17 @@
 						"strike_clause",
 						"red_ink",
 						"blot_next_spell",
-						"purloin"
+						"purloin",
+						"metamagic",
+						"ally_cast_payoff",
+						"extend",
+						"raise_structure",
+						"casting_circle",
+						"move_structures",
+						"damage_per_spells_cast",
+						"humane_clause",
+						"strip_buffs",
+						"revised_edition"
 					]
 				},
 				"amount": {
@@ -1042,6 +1052,34 @@
 					"type": "integer",
 					"description": "purloin: Charge gained when the stolen spell is cast."
 				},
+				"widen": {
+					"type": "boolean",
+					"description": "metamagic: a single-target spell also hits every enemy adjacent to its target."
+				},
+				"twin": {
+					"type": "boolean",
+					"description": "metamagic: a single-target spell also hits the nearest other enemy within 3, each at 60%."
+				},
+				"bonus_per_buff": {
+					"type": "integer",
+					"description": "metamagic: extra damage per buff on the target (Eldritch Catalyst)."
+				},
+				"ally": {
+					"type": "boolean",
+					"description": "metamagic: applies to the next spell an ally casts within radius of you (Peer Review)."
+				},
+				"label": {
+					"type": "string",
+					"description": "metamagic: the name shown in the combat log."
+				},
+				"per": {
+					"type": "integer",
+					"description": "damage_per_spells_cast: damage per spell you have cast this turn."
+				},
+				"bonus_range": {
+					"type": "integer",
+					"description": "raise_structure focus_stone: extra range for spells cast beside it."
+				},
 				"halt_movement": {
 					"type": "boolean",
 					"description": "prepare_glyph: the unit that triggers it stops moving (Snare Glyph)."
@@ -1433,6 +1471,10 @@
 					"type": "string",
 					"description": "Predicate kind. Registered values include: always_true, was_lethal, target_on_tile, target_adjacent_to_tile, target_adjacent_to_caster, caster_on_terrain, has_elements_near_caster, has_construct, construct_count, target_adjacent_to_construct, count_of_tile_at_least, is_channeled, and, or, not.",
 					"minLength": 1
+				},
+				"or_target": {
+					"type": "boolean",
+					"description": "near_structure: also true when the first target stands beside one of your structures."
 				},
 				"min": {
 					"type": "integer",

@@ -1,0 +1,286 @@
+{
+	"id": "arcanist_the_revised_edition",
+	"status": "ready",
+	"name": "The Revised Edition",
+	"school": "Arcanist",
+	"rarity": "Legendary",
+	"top": {
+		"name": "The Revised Edition",
+		"mana": 4,
+		"speed": "Studied",
+		"rules_text": "For the rest of the fight: when an ally's spell resolves within 3 of you, pay 1 Charge (if you have it) to cast a copy of it at the same targets. When an enemy blast lands within 3 of you, pay 1 Charge to send a copy back at the enemy nearest you.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "revised_edition",
+			"radius": 3
+		},
+		"once_per_fight": true
+	},
+	"bottom": {
+		"name": "Errata",
+		"mana": 3,
+		"speed": "Reflex",
+		"rules_text": "Pen up to 3 cards from your hand.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "pen",
+			"from": "hand",
+			"count": 3,
+			"up_to": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Revised Edition+",
+			"bottom_name": "Errata+",
+			"description": "Fuller margins. Cleaner errata.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "revised_edition",
+						"radius": 3,
+						"bonus": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: when an ally's spell resolves within 3 of you, pay 1 Charge (if you have it) to cast a copy of it at the same targets, with +1 damage. When an enemy blast lands within 3 of you, pay 1 Charge to send a copy back at the enemy nearest you, with +1 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 3,
+								"up_to": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 3 cards from your hand. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "The Second Edition",
+			"description": "The Second Edition: a wider reach.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "revised_edition",
+						"radius": 4,
+						"bonus": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: when an ally's spell resolves within 4 of you, pay 1 Charge (if you have it) to cast a copy of it at the same targets, with +1 damage. When an enemy blast lands within 4 of you, pay 1 Charge to send a copy back at the enemy nearest you, with +1 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Corrigenda",
+			"description": "Corrigenda: cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 3,
+								"up_to": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 3 cards from your hand. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Annotated Edition",
+			"description": "The Annotated Edition: cheaper, sharper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "revised_edition",
+						"radius": 4,
+						"bonus": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: when an ally's spell resolves within 4 of you, pay 1 Charge (if you have it) to cast a copy of it at the same targets, with +2 damage. When an enemy blast lands within 4 of you, pay 1 Charge to send a copy back at the enemy nearest you, with +2 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Addenda",
+			"description": "Addenda.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 3,
+								"up_to": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 3 cards from your hand. Gain 1 Charge. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Definitive Edition",
+			"description": "The Definitive Edition.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "revised_edition",
+						"radius": 5,
+						"bonus": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: when an ally's spell resolves within 5 of you, pay 1 Charge (if you have it) to cast a copy of it at the same targets, with +3 damage. When an enemy blast lands within 5 of you, pay 1 Charge to send a copy back at the enemy nearest you, with +3 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Final Errata",
+			"description": "The Final Errata.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "pen",
+								"from": "hand",
+								"count": 3,
+								"up_to": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Pen up to 3 cards from your hand. Gain 2 Charge. Draw 1 card."
+				}
+			]
+		}
+	]
+}

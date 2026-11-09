@@ -81,6 +81,7 @@ public sealed class ManaCost : ICost
         {
             int glyphDiscount = Names.FirstCardDiscount(u)
                 + GlyphManager.StandingCostReduction(u)
+                + ArcaneStructures.CostReduction(s, u)
                 + GlyphManager.ArchitectureDiscount(s, u, s.CostContextHalf ?? InferHalf(s.CostContextCard, baseAmount));
             if (glyphDiscount > 0)
                 amount = Math.Max(0, amount - glyphDiscount);

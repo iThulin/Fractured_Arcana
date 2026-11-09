@@ -8,7 +8,7 @@
 		"name": "Omniscience",
 		"mana": 5,
 		"speed": "Studied",
-		"rules_text": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile 3 random cards from your discard.",
+		"rules_text": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile the first 3 cards you cast this turn.",
 		"tags": [
 			"arcane"
 		],
@@ -45,7 +45,7 @@
 			"half": "both",
 			"top_name": "Omniscience+",
 			"bottom_name": "Arcane Apotheosis+",
-			"description": "Omniscience exiles fewer cards. Apotheosis lowers the Reflex threshold.",
+			"description": "Omniscience exiles fewer of the cards you cast. Apotheosis lowers the Reflex threshold.",
 			"changes": [
 				{
 					"half": "top",
@@ -55,7 +55,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile 2 random cards from your discard."
+					"value": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile the first 2 cards you cast this turn."
 				},
 				{
 					"half": "bottom",
@@ -73,7 +73,7 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Total Recall",
-			"description": "Total Recall: exile only 1 card at end of turn.",
+			"description": "Total Recall: exile only the first card you cast.",
 			"changes": [
 				{
 					"half": "top",
@@ -83,7 +83,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile 1 random card from your discard."
+					"value": "Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile the first card you cast this turn."
 				}
 			]
 		},
@@ -131,7 +131,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Gain 5 Charge. Draw your entire deck. This turn, all spells cost 0. End of turn: discard hand, exile 1 random card from discard."
+					"value": "Gain 5 Charge. Draw your entire deck. This turn, all spells cost 0. At end of turn, discard your hand and exile the first card you cast this turn."
 				}
 			]
 		},

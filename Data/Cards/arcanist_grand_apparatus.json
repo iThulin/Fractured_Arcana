@@ -1,0 +1,237 @@
+{
+	"id": "arcanist_grand_apparatus",
+	"status": "ready",
+	"name": "Grand Apparatus",
+	"school": "Arcanist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Grand Apparatus",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Raise the Apparatus within 3 (HP 15). While it stands, gain 1 Charge at the start of your turn for each structure you control (max 3).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "raise_structure",
+			"kind": "grand_apparatus",
+			"hp": 15
+		}
+	},
+	"bottom": {
+		"name": "Rearrange",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Each of your structures moves up to 2 tiles toward you.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "move_structures",
+			"tiles": 2
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Grand Apparatus+",
+			"bottom_name": "Rearrange+",
+			"description": "A heavier frame. A longer reach.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "grand_apparatus",
+						"hp": 18
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise the Apparatus within 3 (HP 18). While it stands, gain 1 Charge at the start of your turn for each structure you control (max 3)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "move_structures",
+						"tiles": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each of your structures moves up to 3 tiles toward you."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Geared Apparatus",
+			"description": "Geared Apparatus.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "grand_apparatus",
+						"hp": 22
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise the Apparatus within 3 (HP 22). While it stands, gain 1 Charge at the start of your turn for each structure you control (max 3)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Reorder",
+			"description": "Reorder: and Charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_structures",
+								"tiles": 3
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each of your structures moves up to 3 tiles toward you. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Engine of Margins",
+			"description": "The Engine of Margins: one more each turn.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "grand_apparatus",
+						"hp": 22,
+						"charge_per_turn": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise the Apparatus within 3 (HP 22). While it stands, gain 1 Charge at the start of your turn for each structure you control (max 3), plus 1."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Redraft",
+			"description": "Redraft.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_structures",
+								"tiles": 4
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each of your structures moves up to 4 tiles toward you. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Great Apparatus",
+			"description": "The Great Apparatus.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "grand_apparatus",
+						"hp": 28,
+						"charge_per_turn": 1
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise the Apparatus within 3 (HP 28). While it stands, gain 1 Charge at the start of your turn for each structure you control (max 3), plus 1."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Final Arrangement",
+			"description": "The Final Arrangement.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "move_structures",
+								"tiles": 4
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Each of your structures moves up to 4 tiles toward you. Gain 2 Charge."
+				}
+			]
+		}
+	]
+}

@@ -167,6 +167,8 @@ public sealed class GameState
     public Action<Unit> OnReplanIntent;
     /// <summary>Rapid Notation's bottom (Arcanist): the unit's leaf recites its oldest page now.</summary>
     public Action<Unit> OnReciteOldest;
+    /// <summary>Arcanist casting circle drawn (true) or spent (false) on a tile.</summary>
+    public Action<Vector2I, bool> OnCastingCircleChanged;
     public Action<Unit> OnDrawCards;
 
     /// <summary>Post-cast player choice (2026-07-28). An effect that cannot finish

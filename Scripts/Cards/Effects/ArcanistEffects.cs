@@ -616,9 +616,15 @@ public sealed class OmniscienceLeafEffect : EffectBase
 		if (s.HasActiveEffect<OmniscienceEffect>(caster))
 			return;
 		var unit = FindCasterUnit(s, caster);
+		if (unit == null || CombatSim.Active)
+			return;
 		s.ActiveEffects ??= new List<PersistentEffect>();
 		s.ActiveEffects.Add(new OmniscienceEffect(Turns, ExileOnExpire, caster, unit));
-		s.Log($"[Omniscience] All spells free for {Turns} turn(s). {ExileOnExpire} exiled on expire.");
+		// Draw your entire deck (the draw pile only: no reshuffle of the discard).
+		var d = unit.DeckData;
+		int drawn = d != null ? d.Draw(d.DrawPile.Count).Count : 0;
+		s.OnDrawCards?.Invoke(unit);
+		s.Log($"[Omniscience] Drew {drawn} card(s). All spells cost 0 this turn; at end of turn, discard the hand and exile the first {ExileOnExpire} card(s) cast.");
 	}
 }
 
@@ -986,17 +992,26 @@ public sealed class OmniscienceEffect : PersistentEffect
         OwnerUnit = ownerUnit;
     }
 
-    public override void Tick(GameState s)
-    {
-        TurnsRemaining--;
-        if (TurnsRemaining <= 0)
-            ExileHand(s);
-    }
+    /// <summary>The first cards cast under Omniscience, in order (exiled at end of turn).</summary>
+    public readonly List<Card> CastCards = new();
+    private bool _skippedOwnCast;
+
+    // Ends at the owner's end of turn (EndOfTurn); the tick only sweeps a stale one.
+    public override void Tick(GameState s) { TurnsRemaining = 0; }
 
     public override void OnSpellResolved(GameState s, Unit casterUnit, TargetSet targets)
     {
-        if (casterUnit != OwnerUnit)
+        if (casterUnit != OwnerUnit || IsExpired)
             return;
+        var card = s.LastResolvedItem?.SourceCard;
+        // The Omniscience cast itself resolves after this effect is created: not refunded, not counted.
+        if (!_skippedOwnCast && IsOmniscienceCard(card))
+        {
+            _skippedOwnCast = true;
+            return;
+        }
+        if (card != null && CastCards.Count < ExileOnExpire && !CastCards.Contains(card))
+            CastCards.Add(card);
         int manaCost = CastModifierHelpers.ReadManaCost(s.LastResolvedItem);
         if (manaCost <= 0)
             return;
@@ -1006,14 +1021,40 @@ public sealed class OmniscienceEffect : PersistentEffect
         s.Log($"[Omniscience] Refunded {manaCost} mana. The spell was free.");
     }
 
-    private void ExileHand(GameState s)
+    private static bool IsOmniscienceCard(Card c) =>
+        c != null && new[] { c.TopHalf, c.BottomHalf }.Any(h => h?.Effects != null && h.Effects.Any(IsOmniscienceEffect));
+
+    private static bool IsOmniscienceEffect(IEffect e) =>
+        e is OmniscienceLeafEffect || (e?.Children != null && e.Children.Any(IsOmniscienceEffect));
+
+    /// <summary>End of the owner's turn (CombatManager.EndPlayerTurn): discard the hand, then
+    /// exile the first <see cref="ExileOnExpire"/> cards cast this turn, wherever they lie.</summary>
+    public static void EndOfTurn(GameState s, Unit unit)
     {
-        if (OwnerUnit?.DeckData == null || ExileOnExpire <= 0)
+        if (s?.ActiveEffects == null || unit == null)
             return;
-        int n = Math.Min(ExileOnExpire, OwnerUnit.DeckData.Hand.Count);
-        if (n > 0)
-            OwnerUnit.DeckData.Hand.RemoveRange(0, n);
-        s.Log($"[Omniscience] Expired. {n} card(s) exiled as the price of godhood.");
+        foreach (var om in s.ActiveEffects.OfType<OmniscienceEffect>().Where(o => o.OwnerUnit == unit && !o.IsExpired).ToList())
+        {
+            om.TurnsRemaining = 0;
+            var d = unit.DeckData;
+            if (d == null)
+                continue;
+            int discarded = d.Hand.Count;
+            foreach (var c in d.Hand.ToList())
+                d.Discard(c);
+            int exiled = 0;
+            foreach (var c in om.CastCards)
+            {
+                if (d.DiscardPile.Remove(c) || d.Hand.Remove(c) || d.DrawPile.Remove(c) || d.Pages.Remove(c))
+                {
+                    d.FreeTopPages.Remove(c);
+                    d.ExilePile.Add(c);
+                    exiled++;
+                }
+            }
+            s.OnDrawCards?.Invoke(unit);
+            s.Log($"[Omniscience] Ends. {discarded} card(s) discarded, {exiled} exiled as the price of knowing everything.");
+        }
     }
 }
 

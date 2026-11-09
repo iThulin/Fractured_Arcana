@@ -1,0 +1,277 @@
+{
+	"id": "arcanist_widen",
+	"status": "ready",
+	"name": "Widen",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Widen",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Your next single-target spell this turn also hits every enemy adjacent to its target. Gain 1 Charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "metamagic",
+					"label": "Widen",
+					"widen": true
+				},
+				{
+					"type": "gain_charge",
+					"amount": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Margin Shot",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Deal 4 damage.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage",
+			"amount": 4
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Widen+",
+			"bottom_name": "Margin Shot+",
+			"description": "A wider margin, a harder shot.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Widen",
+								"widen": true,
+								"bonus_damage": 1
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits every enemy adjacent to its target and deals 1 more damage. Gain 1 Charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 5
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 5 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Widen the Margins",
+			"description": "Widen the Margins.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Widen",
+								"widen": true,
+								"bonus_damage": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits every enemy adjacent to its target and deals 2 more damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Broad Shot",
+			"description": "Broad Shot.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 6
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Wide Open",
+			"description": "Wide Open: more Charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Widen",
+								"widen": true,
+								"bonus_damage": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits every enemy adjacent to its target and deals 2 more damage. Gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Annotated Shot",
+			"description": "Annotated Shot.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Everything Within Reach",
+			"description": "Everything Within Reach.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Widen",
+								"widen": true,
+								"bonus_damage": 3
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits every enemy adjacent to its target and deals 3 more damage. Gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Wide Margin",
+			"description": "The Wide Margin.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 1 Charge."
+				}
+			]
+		}
+	]
+}

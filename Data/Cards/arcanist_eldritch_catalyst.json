@@ -8,7 +8,7 @@
 		"name": "Eldritch Catalyst",
 		"mana": 0,
 		"speed": "Studied",
-		"rules_text": "Your next spell this turn also hits 1 additional enemy (nearest within 2).",
+		"rules_text": "Your next spell this turn gains +2 damage per buff on its target.",
 		"tags": [
 			"arcane"
 		],
@@ -16,10 +16,9 @@
 			"type": "self"
 		},
 		"effect": {
-			"type": "queue_next_spell_modifier",
-			"extra_targets": 1,
-			"extra_target_range": 2,
-			"extra_target_fraction": 0.5
+			"type": "metamagic",
+			"label": "Eldritch Catalyst",
+			"bonus_per_buff": 2
 		}
 	},
 	"bottom": {
@@ -59,16 +58,6 @@
 			"description": "Catalyst's splash reaches further. Siphon hits harder.",
 			"changes": [
 				{
-					"half": "top",
-					"field": "effect.extra_target_range",
-					"value": 3
-				},
-				{
-					"half": "top",
-					"field": "rules_text",
-					"value": "Your next spell this turn also hits 1 additional enemy (nearest within 3)."
-				},
-				{
 					"half": "bottom",
 					"field": "effect.steps[0].amount",
 					"value": 6
@@ -77,6 +66,20 @@
 					"half": "bottom",
 					"field": "rules_text",
 					"value": "Deal 6 damage. Gain 1 Charge per buff on the target (min 1)."
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "metamagic",
+						"label": "Eldritch Catalyst",
+						"bonus_per_buff": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next spell this turn gains +3 damage per buff on its target."
 				}
 			]
 		},
@@ -84,17 +87,22 @@
 			"tier": 2,
 			"half": "top",
 			"top_name": "Forking Catalyst",
-			"description": "Forking Catalyst: the splash deals full damage, not half.",
+			"description": "Forking Catalyst: a little extra either way.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.extra_target_fraction",
-					"value": 1.0
+					"field": "effect",
+					"value": {
+						"type": "metamagic",
+						"label": "Eldritch Catalyst",
+						"bonus_per_buff": 3,
+						"bonus_damage": 1
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Your next spell this turn also hits 1 additional enemy at full damage (nearest within 3)."
+					"value": "Your next spell this turn gains +3 damage per buff on its target, and +1 more."
 				}
 			]
 		},
@@ -120,17 +128,22 @@
 			"tier": 3,
 			"half": "top",
 			"top_name": "Chain Catalyst",
-			"description": "Chain Catalyst: the next spell hits 2 additional enemies.",
+			"description": "Chain Catalyst.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.extra_targets",
-					"value": 2
+					"field": "effect",
+					"value": {
+						"type": "metamagic",
+						"label": "Eldritch Catalyst",
+						"bonus_per_buff": 4,
+						"bonus_damage": 1
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Your next spell this turn also hits 2 additional enemies at full damage (within 3)."
+					"value": "Your next spell this turn gains +4 damage per buff on its target, and +1 more."
 				}
 			]
 		},
@@ -171,17 +184,31 @@
 			"tier": 4,
 			"half": "top",
 			"top_name": "Eldritch Cascade",
-			"description": "Eldritch Cascade: the next spell hits 3 additional enemies and the catalyst is free.",
+			"description": "Eldritch Cascade: and Charge.",
 			"changes": [
 				{
 					"half": "top",
-					"field": "effect.extra_targets",
-					"value": 3
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Eldritch Catalyst",
+								"bonus_per_buff": 4,
+								"bonus_damage": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
 				},
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Your next spell this turn also hits 3 additional enemies at full damage (within 3)."
+					"value": "Your next spell this turn gains +4 damage per buff on its target, and +2 more. Gain 1 Charge."
 				}
 			]
 		},

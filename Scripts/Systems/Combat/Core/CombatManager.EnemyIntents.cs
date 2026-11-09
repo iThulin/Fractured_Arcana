@@ -2681,6 +2681,9 @@ public partial class CombatManager
             LogClause(enemy, "rider");
         else
             ApplyCasterRider(enemy, victim);
+
+        // Arcanist legendary: a Revised Edition within 3 copies the blast back.
+        ReviseEnemyBlast(enemy, tile, blast);
     }
 
     // ── Per-school caster riders (Step 2): the signature effect each wizard

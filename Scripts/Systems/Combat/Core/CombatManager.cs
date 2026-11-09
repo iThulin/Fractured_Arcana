@@ -2612,6 +2612,8 @@ public partial class CombatManager : Node3D
         RegisterManager.Fire("combat.basics.halves");
         RegisterManager.Fire("combat.basics.move");
         TickNames();   // Enchanter Names lose a turn; the break round advances
+        foreach (var line in ArcaneStructures.TurnStart(State, 0))   // Arcanist structures
+            combatUI?.AppendActionLog(line);
 
         // Round 1 intents (2026-10-03). Plans are locked at the end of each enemy
         // phase, plus once in StartDeploymentPhase. But enemies now spawn AFTER
@@ -2921,6 +2923,11 @@ public partial class CombatManager : Node3D
             if (unit.Attunement is WeaveAttunement w)
                 w.OnTurnEnd(State.Glyphs.CountFriendly(unit.TeamId) > 0
                             || Names.AnyWrittenBy(State.UnitsInPlay, unit.TeamId));
+
+            // Arcanist: Omniscience ends. Discard the hand, exile the first cards cast.
+            OmniscienceEffect.EndOfTurn(State, unit);
+            if (HumaneClause.ActiveCaster == unit)   // a protected spell that never resolved
+                HumaneClause.ActiveCaster = null;
 
             DiscardOverflowCards(unit);
 
@@ -5993,6 +6000,20 @@ public partial class CombatManager : Node3D
                         armor = 2;
                         break;
 
+                    case "focus_stone":
+                    case "mirror_plane":
+                    case "grand_apparatus":
+                    case "nexus":
+                    case "prism":
+                    case "singularity":
+                        // Arcanist structures (slice 14d): RaiseStructureEffect sets the
+                        // real HP, no attack, no speed and IsStructure after the spawn.
+                        scene = DummyUnitScene;
+                        hp = 8;
+                        speed = 0;
+                        armor = 0;
+                        break;
+
                     case "livingspell":
                     case "living_spell":
                         scene = DummyUnitScene;
@@ -6787,6 +6808,11 @@ public partial class CombatManager : Node3D
         combatUI?.AppendActionLog($"✕ {msg}");
     }
 
+    /// <summary>Extend (Arcanist): the selected unit's bonus range for this cast.</summary>
+    private int ExtendRange => (selectedUnit?.NextSpellRangeBonus ?? 0)
+                               + ArcaneStructures.FocusRange(State, selectedUnit);   // Focus Stone
+    private bool ExtendIgnoresLos => selectedUnit?.NextSpellIgnoresLos ?? false;
+
     private void OnCardDroppedOnTile(CardUi cardUi, bool isTop, HexTile tile)
     {
         _isCardBeingDragged = false;
@@ -6924,7 +6950,7 @@ public partial class CombatManager : Node3D
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int vdist = grid.Distance(selectedUnit.CurrentTile.Axial, victim.CurrentTile.Axial);
-                    if (vdist > ts.range)
+                    if (vdist > ts.range + ExtendRange)
                     { CancelTwoStep(); CastFail($"{resolvedHalf.Name}: {victim.Name} is out of range ({vdist} > {ts.range})."); return; }
                 }
                 if (ts.enemyOnly && victim.TeamId == selectedUnit?.TeamId)
@@ -6957,13 +6983,13 @@ public partial class CombatManager : Node3D
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial);
-                    if (dist > ut.range)
+                    if (dist > ut.range + ExtendRange)
                     {
                         CastFail($"{resolvedHalf.Name}: {unit.Name} is out of range ({dist} > {ut.range}).");
                         return;
                     }
                 }
-                if (ut.los && !grid.HasLineOfSight(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
+                if (ut.los && !ExtendIgnoresLos && !grid.HasLineOfSight(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
                 {
                     var blocker = grid.FirstLosBlocker(selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial);
                     string what = blocker == null ? "terrain"
@@ -6973,13 +6999,13 @@ public partial class CombatManager : Node3D
                     CastFail($"{resolvedHalf.Name}: no line of sight to {unit.Name}, blocked by {what}.");
                     return;
                 }
-                if (selectedUnit?.CurrentTile != null
+                if (selectedUnit?.CurrentTile != null && !ExtendIgnoresLos
                     && ut.BlockedByCover(grid, selectedUnit.CurrentTile.Axial, unit.CurrentTile.Axial))
                 {
                     CastFail($"{resolvedHalf.Name}: {unit.Name} is behind full cover. A bolt cannot reach; an arc or a burst could.");
                     return;
                 }
-                if (ut.enemyOnly && unit.TeamId == selectedUnit?.TeamId)
+                if (ut.enemyOnly && unit.TeamId == selectedUnit?.TeamId && !ArcaneStructures.IsMirror(unit))
                 {
                     CastFail($"{resolvedHalf.Name}: must target an enemy.");
                     return;
@@ -6995,7 +7021,7 @@ public partial class CombatManager : Node3D
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
-                    if (dist > tt.range)
+                    if (dist > tt.range + ExtendRange)
                     {
                         CastFail($"{resolvedHalf.Name}: tile is out of range ({dist} > {tt.range}).");
                         return;
@@ -7033,7 +7059,7 @@ public partial class CombatManager : Node3D
                 if (selectedUnit?.CurrentTile != null)
                 {
                     int dist = grid.Distance(selectedUnit.CurrentTile.Axial, tile.Axial);
-                    if (dist > et.Range)
+                    if (dist > et.Range + ExtendRange)
                     {
                         CastFail($"{resolvedHalf.Name}: tile is out of range ({dist} > {et.Range}).");
                         return;
@@ -7122,6 +7148,13 @@ public partial class CombatManager : Node3D
             combatUI?.AppendActionLog($"Cast: {resolvedHalf.Name}.");
             NoteTutorialCast(resolvedHalf);   // C4: the trial's Reflex step
             PayLeafCast(cardUi.CardInstance, isTop);   // before the discard below takes it off the page
+            // Extend is spent by this cast. Reset BEFORE resolution, so an Extend cast
+            // sets it for the spell after it.
+            if (selectedUnit != null && (selectedUnit.NextSpellRangeBonus > 0 || selectedUnit.NextSpellIgnoresLos))
+            {
+                selectedUnit.NextSpellRangeBonus = 0;
+                selectedUnit.NextSpellIgnoresLos = false;
+            }
             // Record mastery cast against the original half's blueprint
             // C4 (P-1): a scripted fight counts no casts toward mastery.
             if (!string.IsNullOrEmpty(cardUi.CardInstance?.BlueprintId) && !ScriptedFight)

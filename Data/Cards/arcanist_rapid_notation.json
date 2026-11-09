@@ -1,0 +1,344 @@
+{
+	"id": "arcanist_rapid_notation",
+	"status": "ready",
+	"name": "Rapid Notation",
+	"school": "Arcanist",
+	"rarity": "Common",
+	"top": {
+		"name": "Rapid Notation",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage. If this is your 3rd or later spell this turn, deal 6 instead and gain 1 Charge.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "spells_cast_this_turn",
+				"threshold": 3
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 6
+					},
+					{
+						"type": "gain_charge",
+						"amount": 1
+					}
+				]
+			},
+			"else": {
+				"type": "damage",
+				"amount": 3
+			}
+		}
+	},
+	"bottom": {
+		"name": "Recital",
+		"mana": 0,
+		"speed": "Reflex",
+		"rules_text": "Your leaf recites its oldest page's top half now, for free. That card is exiled for the fight.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "recite_oldest"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Rapid Notation+",
+			"bottom_name": "Recital+",
+			"description": "Faster notes. A louder recital.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "spells_cast_this_turn",
+							"threshold": 3
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 7
+								},
+								{
+									"type": "gain_charge",
+									"amount": 1
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 4
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. If this is your 3rd or later spell this turn, deal 7 instead and gain 1 Charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "recite_oldest"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your leaf recites its oldest page's top half now, for free. That card is exiled for the fight. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Shorthand",
+			"description": "Shorthand: it counts from the 2nd spell.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "spells_cast_this_turn",
+							"threshold": 2
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 7
+								},
+								{
+									"type": "gain_charge",
+									"amount": 1
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 4
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. If this is your 2nd or later spell this turn, deal 7 instead and gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Prompted Recital",
+			"description": "Prompted Recital: and a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "recite_oldest"
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your leaf recites its oldest page's top half now, for free. That card is exiled for the fight. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Stenography",
+			"description": "Stenography.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "spells_cast_this_turn",
+							"threshold": 2
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 9
+								},
+								{
+									"type": "gain_charge",
+									"amount": 1
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. If this is your 2nd or later spell this turn, deal 9 instead and gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Full Recital",
+			"description": "Full Recital.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "recite_oldest"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your leaf recites its oldest page's top half now, for free. That card is exiled for the fight. Gain 1 Charge. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Running Hand",
+			"description": "The Running Hand.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "spells_cast_this_turn",
+							"threshold": 2
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 11
+								},
+								{
+									"type": "gain_charge",
+									"amount": 2
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 6
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage. If this is your 2nd or later spell this turn, deal 11 instead and gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Recital by Heart",
+			"description": "Recital by Heart.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "recite_oldest"
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Your leaf recites its oldest page's top half now, for free. That card is exiled for the fight. Gain 2 Charge. Draw 1 card."
+				}
+			]
+		}
+	]
+}

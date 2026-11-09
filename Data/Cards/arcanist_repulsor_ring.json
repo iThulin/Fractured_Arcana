@@ -8,7 +8,7 @@
 		"name": "Repulsor Ring",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Enemies at exactly 2 from the aim point are pushed 2 outward (collision 3).",
+		"rules_text": "Deal 4 damage to each enemy exactly 2 tiles from the aim point.",
 		"tags": [
 			"arcane"
 		],
@@ -24,9 +24,8 @@
 				"enemies_only": true
 			},
 			"do": {
-				"type": "push",
-				"tiles": 2,
-				"collision_damage": 3
+				"type": "damage",
+				"amount": 4
 			}
 		}
 	},
@@ -34,7 +33,7 @@
 		"name": "Inward Pulse",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 3 shield. Pull enemies within 2 toward you by 1.",
+		"rules_text": "Gain 3 shield. Gain 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -49,18 +48,249 @@
 					"amount": 3
 				},
 				{
-					"type": "retarget",
-					"targeting": {
-						"type": "aoe",
-						"radius": 2,
-						"enemies_only": true
-					},
-					"do": {
-						"type": "pull",
-						"tiles": 1
-					}
+					"type": "gain_charge",
+					"amount": 1
 				}
 			]
 		}
-	}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"description": "Harder rings. A steadier guard.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "ring",
+							"radius": 2,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage to each enemy exactly 2 tiles from the aim point."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 shield. Gain 1 Charge."
+				}
+			],
+			"top_name": "Repulsor Ring+",
+			"bottom_name": "Inward Pulse+"
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"description": "Wide Ring: a farther circle.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "ring",
+							"radius": 3,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage to each enemy exactly 3 tiles from the aim point."
+				}
+			],
+			"top_name": "Wide Ring"
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"description": "Warding Pulse.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 5
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 5 shield. Gain 1 Charge."
+				}
+			],
+			"bottom_name": "Warding Pulse"
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"description": "Searing Ring.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "ring",
+							"radius": 3,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage",
+							"amount": 7
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage to each enemy exactly 3 tiles from the aim point."
+				}
+			],
+			"top_name": "Searing Ring"
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"description": "Calm Center: and a card.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Gain 1 Charge. Draw 1 card."
+				}
+			],
+			"bottom_name": "Calm Center"
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"description": "The Perfect Circle.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "ring",
+							"radius": 3,
+							"enemies_only": true
+						},
+						"do": {
+							"type": "damage",
+							"amount": 9
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 9 damage to each enemy exactly 3 tiles from the aim point."
+				}
+			],
+			"top_name": "The Perfect Circle"
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"description": "Eye of the Ring.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 7
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 7 shield. Gain 2 Charge. Draw 1 card."
+				}
+			],
+			"bottom_name": "Eye of the Ring"
+		}
+	]
 }

@@ -134,7 +134,7 @@ public class ArcaneAttunement : ISchoolAttunement
     {
         if (amount <= 0)
             return 0;
-        if (LockTurns > 0)
+        if (LockTurns > 0 && HumaneClause.ActiveCaster == null)   // the Humane Clause lifts the lockout
         {
             GD.Print($"[ArcaneAttunement] Add({amount}) refused: Charge is locked by Overcharge.");
             return 0;

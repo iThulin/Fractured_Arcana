@@ -123,6 +123,14 @@ public partial class Unit : Node3D
     public int RedInkAmount = 0;
     /// <summary>Blot (Arcanist): how much this enemy's next spell is cut by.</summary>
     public int NextSpellPenalty = 0;
+    /// <summary>Extend (Arcanist): range added to this unit's next spell, and whether it
+    /// ignores line of sight. Spent by the next successful cast.</summary>
+    public int NextSpellRangeBonus = 0;
+    public bool NextSpellIgnoresLos = false;
+    /// <summary>The Revised Edition (Arcanist legendary): copy radius (0 = not in play)
+    /// and the damage bonus its copies carry.</summary>
+    public int RevisedEditionRadius = 0;
+    public int RevisedEditionBonus = 0;
 
     /// <summary>Maze of Mirrors: the unit this copy mirrors (null for a real unit).</summary>
     public Unit IllusionOwner;
@@ -1232,6 +1240,13 @@ public partial class Unit : Node3D
         // Fall back to whoever is mid-resolution when the call site did not say.
         source ??= AmbientDamageSource;
 
+        // The Humane Clause (Arcanist): the protected spell harms no one on its caster's side.
+        if (HumaneClause.Shields(this))
+        {
+            GD.Print($"[HumaneClause] {Name} is spared {amount} damage.");
+            return;
+        }
+
         // U3c veil: negate damage from anything not standing next to us. Checked
         // BEFORE mitigation and before links, so a veiled unit reads as untouchable
         // rather than as heavily armoured.
@@ -1507,6 +1522,10 @@ public partial class Unit : Node3D
     {
         // R22 sim gate: preview never applies real statuses.
         if (CombatSim.Active)
+            return;
+
+        // The Humane Clause (Arcanist): the protected spell does not root its own side.
+        if (status == "rooted" && HumaneClause.Shields(this))
             return;
 
         // Name of Courage (Enchanter boon): cannot be Weakened.

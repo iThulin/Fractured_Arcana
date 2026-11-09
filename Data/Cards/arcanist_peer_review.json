@@ -1,0 +1,259 @@
+{
+	"id": "arcanist_peer_review",
+	"status": "ready",
+	"name": "Peer Review",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Peer Review",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "The next single-target spell an ally casts within 3 of you this round deals 3 more damage and also hits every enemy adjacent to its target.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "metamagic",
+			"label": "Peer Review",
+			"ally": true,
+			"widen": true,
+			"bonus_damage": 3,
+			"radius": 3
+		}
+	},
+	"bottom": {
+		"name": "Seminar",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "This round, whenever an ally casts a spell within 3 of you, gain 1 Charge and draw 1 card (up to 3 times).",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "ally_cast_payoff",
+			"charge": 1,
+			"draw": 1,
+			"cap": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Peer Review+",
+			"bottom_name": "Seminar+",
+			"description": "Sharper notes. A longer seminar.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "metamagic",
+						"label": "Peer Review",
+						"ally": true,
+						"widen": true,
+						"bonus_damage": 4,
+						"radius": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next single-target spell an ally casts within 3 of you this round deals 4 more damage and also hits every enemy adjacent to its target."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "ally_cast_payoff",
+						"charge": 1,
+						"draw": 1,
+						"cap": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This round, whenever an ally casts a spell within 3 of you, gain 1 Charge and draw 1 card (up to 4 times)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Close Reading",
+			"description": "Close Reading: and Charge for you.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Peer Review",
+								"ally": true,
+								"widen": true,
+								"bonus_damage": 4,
+								"radius": 3
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next single-target spell an ally casts within 3 of you this round deals 4 more damage and also hits every enemy adjacent to its target. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Graduate Seminar",
+			"description": "Graduate Seminar.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "ally_cast_payoff",
+						"charge": 2,
+						"draw": 1,
+						"cap": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This round, whenever an ally casts a spell within 3 of you, gain 2 Charge and draw 1 card (up to 3 times)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Second Opinion",
+			"description": "Second Opinion: further out.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Peer Review",
+								"ally": true,
+								"widen": true,
+								"bonus_damage": 5,
+								"radius": 4
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next single-target spell an ally casts within 4 of you this round deals 5 more damage and also hits every enemy adjacent to its target. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Colloquium",
+			"description": "Colloquium.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "ally_cast_payoff",
+						"charge": 2,
+						"draw": 1,
+						"cap": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This round, whenever an ally casts a spell within 3 of you, gain 2 Charge and draw 1 card (up to 4 times)."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Committee Review",
+			"description": "Committee Review.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Peer Review",
+								"ally": true,
+								"widen": true,
+								"bonus_damage": 6,
+								"radius": 5
+							},
+							{
+								"type": "gain_charge",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "The next single-target spell an ally casts within 5 of you this round deals 6 more damage and also hits every enemy adjacent to its target. Gain 2 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Grand Symposium",
+			"description": "The Grand Symposium.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "ally_cast_payoff",
+						"charge": 2,
+						"draw": 2,
+						"cap": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "This round, whenever an ally casts a spell within 3 of you, gain 2 Charge and draw 2 cards (up to 3 times)."
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,258 @@
+{
+	"id": "arcanist_twin_cast",
+	"status": "ready",
+	"name": "Twin Cast",
+	"school": "Arcanist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Twin Cast",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Your next single-target spell this turn also hits the nearest other enemy within 3 of its target. Each takes 60% of its damage.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "metamagic",
+			"label": "Twin Cast",
+			"twin": true
+		}
+	},
+	"bottom": {
+		"name": "Second Copy",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Deal 5 damage.",
+		"tags": [
+			"arcane"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 6,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "damage",
+			"amount": 5
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Twin Cast+",
+			"bottom_name": "Second Copy+",
+			"description": "A cleaner copy. A harder second.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Twin Cast",
+								"twin": true
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits the nearest other enemy within 3 of its target. Each takes 60% of its damage. Gain 1 Charge."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 6
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 6 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Twin Cast, Revised",
+			"description": "Twin Cast, Revised: both copies hit harder.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "metamagic",
+						"label": "Twin Cast",
+						"twin": true,
+						"bonus_damage": 2
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits the nearest other enemy within 3 of its target. Each takes 60% of its damage, after +2 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Fair Copy",
+			"description": "Fair Copy.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "damage",
+						"amount": 7
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Matched Pair",
+			"description": "Matched Pair.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Twin Cast",
+								"twin": true,
+								"bonus_damage": 2
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits the nearest other enemy within 3 of its target. Each takes 60% of its damage, after +2 damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Clean Copy",
+			"description": "Clean Copy.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "Perfect Twin",
+			"description": "Perfect Twin.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "metamagic",
+								"label": "Twin Cast",
+								"twin": true,
+								"bonus_damage": 4
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Your next single-target spell this turn also hits the nearest other enemy within 3 of its target. Each takes 60% of its damage, after +4 damage. Gain 1 Charge."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Master Copy",
+			"description": "Master Copy.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 8
+							},
+							{
+								"type": "gain_charge",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Deal 8 damage. Gain 1 Charge."
+				}
+			]
+		}
+	]
+}

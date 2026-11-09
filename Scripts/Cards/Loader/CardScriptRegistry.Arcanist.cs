@@ -46,6 +46,79 @@ public static partial class CardScriptRegistry
         RegisterEffect("charge_lock", n =>
             new ChargeLockEffect(n.TryGetProperty("turns", out var t) ? t.GetInt32() : 2).WithTag("Mana"));
         // { "type": "spend_charge", "amount": n }
+        // ── The Architect: structures (slice 14d) ──────────────────────
+        RegisterEffect("raise_structure", n =>
+        {
+            int I(string k, int d) => n.TryGetProperty(k, out var v) ? v.GetInt32() : d;
+            bool B(string k) => n.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.True;
+            string kind = n.TryGetProperty("kind", out var kd) ? kd.GetString() : "focus_stone";
+            return new RaiseStructureEffect
+            {
+                Kind = kind, HP = I("hp", 8), Radius = I("radius", 2),
+                ChargePerTurn = I("charge_per_turn", 0), CostReduction = I("cost_reduction", 0),
+                EnemyDamagePerTurn = Math.Max(I("enemy_damage_per_turn", 0), I("pulse_damage", 0)),
+                SplitRange = I("split_range", 2), SplitTargets = I("split_targets", 1), SplitAll = B("split_all"),
+                ChargePerHit = I("charge_per_hit", 0), BonusDamage = I("bonus_damage", 0), BonusRange = I("bonus_range", 0),
+            }.WithTag("Summon");
+        });
+        RegisterEffect("casting_circle", n =>
+        {
+            float F(string k, float d) => n.TryGetProperty(k, out var v) ? (float)v.GetDouble() : d;
+            return new CastingCircleEffect
+            {
+                BonusPerCharge = n.TryGetProperty("bonus_per_charge", out var b) ? b.GetInt32() : 2,
+                ConsumeFraction = F("consume_fraction", 1f), RefundFraction = F("refund_fraction", 0f),
+            }.WithTag("Buff");
+        });
+        RegisterEffect("move_structures", n =>
+            new MoveStructuresEffect { Tiles = n.TryGetProperty("tiles", out var t) ? t.GetInt32() : 2 }.WithTag("Movement"));
+        RegisterPredicate("near_structure", n => new NearStructurePredicate
+        {
+            OrTarget = n.TryGetProperty("or_target", out var o) && o.ValueKind == System.Text.Json.JsonValueKind.True,
+        });
+
+        // ── The finale (slice 14e) ─────────────────────────────────────
+        // { "type": "damage_per_spells_cast", "per": n }
+        RegisterEffect("damage_per_spells_cast", n =>
+            new DamagePerSpellsCastEffect(n.TryGetProperty("per", out var p) ? p.GetInt32() : 2).WithTag("Damage"));
+        // { "type": "humane_clause", "charge": n }
+        RegisterEffect("humane_clause", n =>
+            new HumaneClauseEffect { Charge = n.TryGetProperty("charge", out var c) ? c.GetInt32() : 0 }.WithTag("Buff"));
+        // { "type": "strip_buffs", "charge_per": n }
+        RegisterEffect("strip_buffs", n =>
+            new StripBuffsEffect(n.TryGetProperty("charge_per", out var c) ? c.GetInt32() : 1).WithTag("Debuff"));
+        // { "type": "revised_edition", "radius": n, "bonus": n }
+        RegisterEffect("revised_edition", n => new RevisedEditionEffect
+        {
+            Radius = n.TryGetProperty("radius", out var r) ? r.GetInt32() : 3,
+            Bonus = n.TryGetProperty("bonus", out var b) ? b.GetInt32() : 0,
+        }.WithTag("Buff"));
+
+        // ── The Reviser: metamagic (slice 14c) ─────────────────────────
+        // { "type": "metamagic", "widen": bool, "twin": bool, "bonus_damage": n,
+        //   "bonus_per_buff": n, "ally": bool, "radius": n, "label": s }
+        RegisterEffect("metamagic", n =>
+        {
+            bool B(string k) => n.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.True;
+            int I(string k, int d) => n.TryGetProperty(k, out var v) ? v.GetInt32() : d;
+            return new MetamagicEffect
+            {
+                Widen = B("widen"), Twin = B("twin"), Ally = B("ally"),
+                BonusDamage = I("bonus_damage", 0), BonusPerBuff = I("bonus_per_buff", 0), Radius = I("radius", 3),
+                Label = n.TryGetProperty("label", out var l) ? l.GetString() : "Metamagic",
+            }.WithTag("Buff");
+        });
+        // { "type": "ally_cast_payoff", "charge": n, "draw": n, "cap": n }
+        RegisterEffect("ally_cast_payoff", n => new AllyCastPayoffEffect
+        {
+            Charge = n.TryGetProperty("charge", out var c) ? c.GetInt32() : 1,
+            Draw = n.TryGetProperty("draw", out var d) ? d.GetInt32() : 1,
+            Cap = n.TryGetProperty("cap", out var cp) ? cp.GetInt32() : 3,
+        }.WithTag("CardDraw"));
+        // { "type": "extend", "range": n }
+        RegisterEffect("extend", n =>
+            new ExtendEffect(n.TryGetProperty("range", out var r) ? r.GetInt32() : 3).WithTag("Buff"));
+
         // ── The Annotator (slice 14b) ──────────────────────────────────
         // { "type": "strike_clause" }
         RegisterEffect("strike_clause", _ => new StrikeClauseEffect().WithTag("Control"));
@@ -202,7 +275,10 @@ public static partial class CardScriptRegistry
         RegisterEffect("omniscience", n =>
         {
             int turns = n.TryGetProperty("turns", out var t) ? t.GetInt32() : 1;
-            int exile = n.TryGetProperty("exile_on_expire", out var e) ? e.GetInt32() : 3;
+            // The cards author exile_count; exile_on_expire is the old key (it was the
+            // only one read, so every tier exiled 3).
+            int exile = n.TryGetProperty("exile_count", out var ec) ? ec.GetInt32()
+                      : n.TryGetProperty("exile_on_expire", out var e) ? e.GetInt32() : 3;
             return new OmniscienceLeafEffect(turns, exile).WithTag("Charge");
         });
 

@@ -23,6 +23,11 @@ public partial class CombatManager
     private void InstallAnnotatorHooks()
     {
         IntentTime.PurloinHook = StealSpell;
+        // Arcanist structures (slice 14d): fresh per fight; circles drawn on tiles.
+        ArcaneStructures.Reset();
+        HumaneClause.ActiveCaster = null;   // slice 14e: no window carries between fights
+        if (State != null)
+            State.OnCastingCircleChanged = (axial, on) => grid?.GetTileView(axial)?.SetCastingCircle(on);
     }
 
     /// <summary>True when the enemy's next attack or spell loses its rider.</summary>
@@ -122,6 +127,39 @@ public partial class CombatManager
         RefreshThreatTiles();
         combatUI?.AppendActionLog($"{enemy.Name}'s {spell.Name} is purloined. It has nothing left to cast.");
         return spell;
+    }
+
+    /// <summary>The Revised Edition: an enemy blast that lands within the radius of a player
+    /// unit holding it is copied back for 1 Charge: the same damage (plus the edition's
+    /// bonus) and the caster's rider, at the enemy nearest that unit. One copy per blast.</summary>
+    private void ReviseEnemyBlast(Unit enemy, Vector2I tile, int blast)
+    {
+        if (blast <= 0 || CombatSim.Active)
+            return;
+        foreach (var p in playerUnits)
+        {
+            if (p == null || !IsInstanceValid(p) || !p.Stats.IsAlive || p.CurrentTile == null
+                || p.RevisedEditionRadius <= 0 || grid.Distance(p.CurrentTile.Axial, tile) > p.RevisedEditionRadius)
+                continue;
+            if (p.Attunement is not ArcaneAttunement arc || arc.Charge < 1)
+                continue;
+            var mark = enemyUnits
+                .Where(e => e != null && IsInstanceValid(e) && e.Stats.IsAlive && e.CurrentTile != null && !e.IsStructure)
+                .OrderBy(e => grid.Distance(p.CurrentTile.Axial, e.CurrentTile.Axial))
+                .FirstOrDefault();
+            if (mark == null)
+                return;
+            arc.Spend(1);
+            int dmg = blast + p.RevisedEditionBonus;
+            mark.ApplyDamage(dmg, p);
+            var (status, turns) = StolenRider(enemy?.CasterSpell);
+            if (status != null && mark.Stats.IsAlive)
+                mark.ApplyStatus(status, turns);
+            mark.RefreshHealthBar();
+            schoolAttunementUI?.Refresh();
+            combatUI?.AppendActionLog($"{p.Name} revises {enemy?.Name ?? "the"}'s blast and sends it back: {dmg} damage to {mark.Name} (-1 Charge).");
+            return;
+        }
     }
 
     /// <summary>The player-side form of a caster school's release rider (ApplyCasterRider).</summary>

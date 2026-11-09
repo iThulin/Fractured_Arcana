@@ -38,7 +38,7 @@
 			"range": 4
 		},
 		"effect": {
-			"type": "create_arcane_construct",
+			"type": "raise_structure",
 			"kind": "nexus",
 			"hp": 10,
 			"radius": 2,
@@ -204,7 +204,7 @@
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "create_arcane_construct",
+						"type": "raise_structure",
 						"kind": "nexus",
 						"hp": 20,
 						"radius": 3,

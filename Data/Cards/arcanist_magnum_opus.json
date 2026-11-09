@@ -25,7 +25,7 @@
 		"name": "Arcane Singularity",
 		"mana": 3,
 		"speed": "Studied",
-		"rules_text": "Create a Singularity Crystal on a tile (HP 20). All spells cast by anyone within 3 also resolve on the Singularity's tile. You gain 1 Charge per spell that hits it.",
+		"rules_text": "Create a Singularity Crystal on a tile (HP 20). Each spell you or an ally casts within 3 of it gives you 1 Charge.",
 		"tags": [
 			"arcane"
 		],
@@ -34,7 +34,7 @@
 			"range": 4
 		},
 		"effect": {
-			"type": "create_arcane_construct",
+			"type": "raise_structure",
 			"kind": "singularity",
 			"hp": 20,
 			"radius": 3,
@@ -61,13 +61,19 @@
 				},
 				{
 					"half": "bottom",
-					"field": "effect.hp",
-					"value": 28
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "singularity",
+						"hp": 28,
+						"radius": 3,
+						"charge_per_hit": 1
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (HP 28). Spells within 3 also resolve on its tile. Gain 1 Charge per spell that hits it."
+					"value": "Create a Singularity Crystal on a tile (HP 28). Each spell you or an ally casts within 3 of it gives you 1 Charge."
 				}
 			]
 		},
@@ -93,17 +99,23 @@
 			"tier": 2,
 			"half": "bottom",
 			"bottom_name": "Greater Singularity",
-			"description": "Greater Singularity: range grows to 5.",
+			"description": "Greater Singularity: a wider pull.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.radius",
-					"value": 5
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "singularity",
+						"hp": 28,
+						"radius": 5,
+						"charge_per_hit": 1
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (HP 28). Spells within 5 also resolve on its tile. Gain 1 Charge per spell that hits it."
+					"value": "Create a Singularity Crystal on a tile (HP 28). Each spell you or an ally casts within 5 of it gives you 1 Charge."
 				}
 			]
 		},
@@ -129,17 +141,23 @@
 			"tier": 3,
 			"half": "bottom",
 			"bottom_name": "Devouring Singularity",
-			"description": "Devouring Singularity: banks 2 charge per hit.",
+			"description": "Devouring Singularity.",
 			"changes": [
 				{
 					"half": "bottom",
-					"field": "effect.charge_per_hit",
-					"value": 2
+					"field": "effect",
+					"value": {
+						"type": "raise_structure",
+						"kind": "singularity",
+						"hp": 28,
+						"radius": 5,
+						"charge_per_hit": 2
+					}
 				},
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (HP 28). Spells within 5 also resolve on it. Gain 2 Charge per spell that hits it."
+					"value": "Create a Singularity Crystal on a tile (HP 28). Each spell you or an ally casts within 5 of it gives you 2 Charge."
 				}
 			]
 		},
@@ -171,13 +189,13 @@
 			"tier": 4,
 			"half": "bottom",
 			"bottom_name": "The Heart of Magic",
-			"description": "The Heart of Magic: a permanent engine that pulses damage.",
+			"description": "The Heart of Magic.",
 			"changes": [
 				{
 					"half": "bottom",
 					"field": "effect",
 					"value": {
-						"type": "create_arcane_construct",
+						"type": "raise_structure",
 						"kind": "singularity",
 						"hp": 40,
 						"radius": 5,
@@ -188,7 +206,7 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Create a Singularity Crystal (HP 40). Spells within 5 also resolve on it. Gain 2 Charge per hit. It deals 4 to all enemies within 5 each turn."
+					"value": "Create a Singularity Crystal on a tile (HP 40). Each spell you or an ally casts within 5 of it gives you 2 Charge. At the start of your turn it deals 4 damage to every enemy within 5."
 				}
 			]
 		}
