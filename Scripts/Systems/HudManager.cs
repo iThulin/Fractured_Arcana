@@ -195,7 +195,8 @@ public partial class HudManager : Node
 
         // S5: the first lunation's Next line, centred between the two clusters by a spacer on
         // each side. Flat, in gold: a line to read and click, not another nav button.
-        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        _centreLeft = new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddChild(_centreLeft);
         _nextButton = new Button { Flat = true, Visible = false, FocusMode = Control.FocusModeEnum.None };
         _nextButton.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         _nextButton.AddThemeColorOverride("font_color", UITheme.Gold);
@@ -208,7 +209,8 @@ public partial class HudManager : Node
         _nextSlot = _nextButton.GetIndex();
 
         // Spacer pushes the buttons to the right edge.
-        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        _centreRight = new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddChild(_centreRight);
 
         // ── Right: global nav buttons (extend here) ──────────────────────
         // Return to Campus is a scene-warp shown on menu screens (see
@@ -389,6 +391,26 @@ public partial class HudManager : Node
     }
 
     private bool CentreClaimed => _centreOwner != null;
+
+    // P7a3: the two spacers either side of the bar's centre. A screen that lays its own
+    // controls over the centre reads the room between them, so it never covers a readout.
+    private Control _centreLeft;
+    private Control _centreRight;
+
+    /// <summary>The room in the bar's centre, in canvas pixels: from the end of the resource
+    /// readouts to the start of the buttons. False until the bar is built and laid out.</summary>
+    public bool TryCentreGap(out float left, out float right)
+    {
+        left = 0f;
+        right = 0f;
+        if (!IsInstanceValid(_centreLeft) || !IsInstanceValid(_centreRight))
+        {
+            return false;
+        }
+        left = _centreLeft.GlobalPosition.X;
+        right = _centreRight.GlobalPosition.X + _centreRight.Size.X;
+        return right > left;
+    }
 
     /// <summary>Put the date and the Next line where the claim says. Waits for BuildBar,
     /// which calls it again once the bar exists.</summary>

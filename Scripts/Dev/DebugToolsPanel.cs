@@ -315,8 +315,6 @@ public partial class DebugToolsPanel : VBoxContainer
         expedition.AddChild(_forceEncounterDropdown);
         // Castle-role review, test 2 (2026-11-03). Added after the dropdown so the
         // caption and the dropdown keep their row in the three-column grid.
-        Check(expedition, "Resolve from Camp (A/B: a brisk walk that never stops to look)", PlayerSession.DebugResolveFromCamp,
-            on => PlayerSession.DebugResolveFromCamp = on);
         expedition.AddChild(new Control());
 
         // ── STRATEGIC MAP & COURT ────────────────────────────────────────

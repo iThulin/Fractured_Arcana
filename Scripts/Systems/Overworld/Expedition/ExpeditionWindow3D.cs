@@ -3085,12 +3085,17 @@ void fragment() {
                 AddFieldMark(c, fieldMark);
             }
             if (ov.Poi == OverworldHex.POIType.None || ov.Consumed) continue;
-            var col = (SiteHidden != null && SiteHidden(c)) ? UITheme.TextDim : PoiColor(ov.Poi);
+            // An unknown site is a pale ring, not a dab: a shape of its own, so it is not taken
+            // for a province-edge mark or a patrol's path (2026-11-10).
+            bool siteHidden = SiteHidden != null && SiteHidden(c);
+            var col = siteHidden ? UITheme.TextPrimary : PoiColor(ov.Poi);
             var pos = TileOrigin(c.X, c.Y); pos.Y = TileHeight(c) + 0.9f;
             _markers.Add(AddChildReturn(new MeshInstance3D
             {
                 // A7: flattened paint-dab, matching the atlas's POI language.
-                Mesh = new SphereMesh { Radius = 0.32f, Height = 0.24f, RadialSegments = 10, Rings = 6 },
+                Mesh = siteHidden
+                    ? (Mesh)new TorusMesh { InnerRadius = 0.2f, OuterRadius = 0.36f, Rings = 18, RingSegments = 8 }
+                    : new SphereMesh { Radius = 0.32f, Height = 0.24f, RadialSegments = 10, Rings = 6 },
                 // NoDepthTest so a marker is never hidden behind a taller tile at this shallow angle.
                 // That is the "markers don't reliably appear" fix. It reads through terrain like a map pin.
                 MaterialOverride = new StandardMaterial3D
@@ -3209,14 +3214,16 @@ void fragment() {
             }));
         }
         bool edge = mark == 3;
-        float radius = edge ? 0.14f : 0.6f;
-        Color tint = edge ? UITheme.TextPrimary : UITheme.Danger;
+        // The province's edge is violet, the colour of the interface's own rules, so it reads as
+        // a boundary and not as a thing on the ground.
+        float radius = edge ? 0.2f : 0.6f;
+        Color tint = edge ? UITheme.Violet : UITheme.Danger;
         _markers.Add(AddChildReturn(new MeshInstance3D
         {
             Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.03f, RadialSegments = 12, Rings = 1 },
             MaterialOverride = new StandardMaterial3D
             {
-                AlbedoColor = new Color(tint, edge ? 0.7f : 0.4f),
+                AlbedoColor = new Color(tint, edge ? 0.95f : 0.4f),
                 Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
                 ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
                 NoDepthTest = true,

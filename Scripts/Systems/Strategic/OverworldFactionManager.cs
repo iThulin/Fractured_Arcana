@@ -111,6 +111,22 @@ public partial class OverworldFactionManager : Node2D
     /// <summary>SP3 (Foreboding): a hunting patrol's word says how many steps it has left.</summary>
     public bool ShowHuntSteps;
 
+    /// <summary>P7a3: is a patrol that is hunting the party within the range of this tile?</summary>
+    public bool HunterNear(Vector2I coord, int range)
+    {
+        foreach (var p in _patrols)
+        {
+            if (p.Intent == PatrolToken.PatrolIntent.Hunting && _grid.Distance(p.CurrentCoord, coord) <= range)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>P7a2 (ruling RA3): do this province's patrols hunt the party? False for a realm
+    /// whose court is not Hostile: its patrols walk their beat and let the party be. True by
+    /// default, so a castle run plays as before.</summary>
+    public bool HuntsParty = true;
+
     /// <summary>SP3 (Beast Envoy): the nearest patrol that is not stunned or regrouping walks to
     /// the tile for the given steps. False when there is none.</summary>
     public bool LureNearestPatrol(Vector2I target, int steps)
@@ -354,6 +370,7 @@ public partial class OverworldFactionManager : Node2D
             // P5: field rules, and a site to raid for a patrol that has none.
             patrol.FieldRules = FieldRules;
             patrol.Posture = FieldRules ? Posture : PatrolToken.PatrolPosture.Normal;
+            patrol.HuntsParty = !FieldRules || HuntsParty;   // P7a2
             if (FieldRules && Posture == PatrolToken.PatrolPosture.Raider
                 && RaidTargetPicker != null && !patrol.RaidTarget.HasValue)
             {
@@ -393,6 +410,8 @@ public partial class OverworldFactionManager : Node2D
                 continue; // recovering from a fight, so no re-capture
             if (patrol.IsStunned)
                 continue; // frozen by a spell/trap, so no capture either
+            if (!patrol.HuntsParty)
+                continue; // P7a2: a patrol that is not hunting walks past
             if (patrol.IsOnSameHex(playerCoord))
             {
                 GD.Print($"[FactionManager] Patrol '{patrol.ArchmageId}' captured player " +

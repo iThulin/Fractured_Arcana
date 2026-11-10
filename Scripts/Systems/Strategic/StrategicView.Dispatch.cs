@@ -922,6 +922,81 @@ public partial class StrategicView
             UpdateAtlasInsets();
         }
         TickAtlasView();   // provinces 7f (PR37): the atlas follows the window's pixels
+        FitTimeBar();      // P7a3: the clock keeps to the room the bar leaves it
+    }
+
+    private string _timeBarFitKey = "";
+    private string _timeDateFull = "";
+    private string _timeDateShort = "";
+
+    /// <summary>P7a3: place the clock in the room between the bar's readouts and its buttons, and
+    /// make it smaller when the room is short: first the year line goes, then the date is cut
+    /// short with its full text on hover. Before this the clock was centred on the screen at its
+    /// full width, and on a narrower window it lay over the readouts.</summary>
+    private void FitTimeBar()
+    {
+        if (_timeBar == null || !IsInstanceValid(_timeBar) || _timeDateLabel == null || _timeYearLabel == null)
+        {
+            return;
+        }
+        var hud = HudManager.Instance;
+        if (hud == null || !IsInstanceValid(hud) || !hud.TryCentreGap(out float left, out float right))
+        {
+            return;
+        }
+        string key = $"{left:0}|{right:0}|{_timeDateFull}|{_timeYearLabel.Text}|{_turnMoonBtn?.Text}";
+        if (key == _timeBarFitKey)
+        {
+            return;
+        }
+        _timeBarFitKey = key;
+
+        float room = right - left - 16f;
+        if (room < 120f)
+        {
+            return;
+        }
+        _timeYearLabel.Visible = true;
+        if (_timeDateFull.Length > 0)
+        {
+            _timeDateLabel.Text = _timeDateFull;
+        }
+        _timeDateLabel.ClipText = false;
+        _timeDateLabel.CustomMinimumSize = Vector2.Zero;
+        _timeDateLabel.TooltipText = "";
+        _timeDateLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
+        float need = _timeBar.GetCombinedMinimumSize().X;
+        if (need > room)
+        {
+            _timeYearLabel.Visible = false;
+            need = _timeBar.GetCombinedMinimumSize().X;
+        }
+        if (need > room && _timeDateShort.Length > 0)
+        {
+            // P7a4: say the date shortly before cutting it off. The full date is on hover.
+            _timeDateLabel.Text = _timeDateShort;
+            _timeDateLabel.TooltipText = _timeDateFull + "\n" + _timeYearLabel.Text;
+            _timeDateLabel.MouseFilter = Control.MouseFilterEnum.Pass;
+            need = _timeBar.GetCombinedMinimumSize().X;
+        }
+        if (need > room)
+        {
+            float dateWidth = _timeDateLabel.GetCombinedMinimumSize().X;
+            float dateRoom = Mathf.Max(60f, room - (need - dateWidth));
+            _timeDateLabel.TooltipText = _timeDateFull + "\n" + _timeYearLabel.Text;
+            _timeDateLabel.MouseFilter = Control.MouseFilterEnum.Pass;
+            _timeDateLabel.ClipText = true;
+            _timeDateLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            _timeDateLabel.CustomMinimumSize = new Vector2(dateRoom, 0f);
+            need = need - dateWidth + dateRoom;
+        }
+        float x = left + 8f + Mathf.Max(0f, (room - need) * 0.5f);
+        _timeBar.AnchorLeft = 0f;
+        _timeBar.AnchorRight = 0f;
+        _timeBar.GrowHorizontal = Control.GrowDirection.End;
+        _timeBar.OffsetLeft = x;
+        _timeBar.OffsetRight = x;
+        _timeBar.ResetSize();
     }
 
     /// <summary>The date, the year, the next stop and the button's count.
@@ -953,6 +1028,9 @@ public partial class StrategicView
         }
         _timeYearLabel.AddThemeColorOverride("font_color",
             left <= 2 || year > 1 ? UITheme.Danger : UITheme.TextSecondary);
+        // P7a4: the date in full, and the short form the clock falls back to when the bar is tight.
+        _timeDateFull = _timeDateLabel.Text;
+        _timeDateShort = $"Moon {cal.CurrentLunation} of {cal.LunationsPerCycle}  ·  day {cal.DayOfLunation + 1}";
 
         int now = cal.AbsoluteDay;
         int nextDay = WorldClock.NextEventDay(cycle, out string what);
@@ -978,6 +1056,8 @@ public partial class StrategicView
         if (Interval.Walking(cycle))
         {
             _timeDateLabel.Text = Interval.DateLine;
+            _timeDateFull = Interval.DateLine;
+            _timeDateShort = Interval.DateLine;
             _timeYearLabel.Text = Interval.HeldLine;
             _timeYearLabel.AddThemeColorOverride("font_color", UITheme.TextSecondary);
             if (_turnMoonBtn != null)

@@ -110,6 +110,10 @@ public partial class PatrolToken : Node2D
     /// <summary>Set by OverworldFactionManager each tick from the ruler's plan.</summary>
     public PatrolPosture Posture = PatrolPosture.Normal;
 
+    /// <summary>P7a2 (ruling RA3): false for a patrol whose realm is not Hostile to the guild.
+    /// It never commits to a hunt. Set by OverworldFactionManager each tick.</summary>
+    public bool HuntsParty = true;
+
     private int Detection => Posture == PatrolPosture.Hunter ? 10
                            : Posture == PatrolPosture.Sentry ? 6 : DetectionRange;
     private int Stamina => Posture == PatrolPosture.Hunter ? 18 : HuntStamina;
@@ -373,7 +377,7 @@ public partial class PatrolToken : Node2D
         // and a committed hunter loses the trail. The patrol keeps its route;
         // interception simply fails (G3). Checked here so the pursuit logic
         // below sees a world without the party in it.
-        if (OverworldSpellEffects.VeilActive())
+        if (OverworldSpellEffects.VeilActive() || !HuntsParty)   // P7a2
             _committed = false;
         // Spot the player within detection range → commit to the hunt.
         else if (distToPlayer <= Detection)

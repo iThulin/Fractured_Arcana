@@ -334,7 +334,7 @@ public partial class ExpeditionManager : Node2D
 
     /// <summary>In the 3D view the readout is a small card, one fact a line.</summary>
     private string TooltipLayout(string line)
-        => _window3D != null ? line.Replace("  ·  ", "\n") : line;
+        => _window3D != null ? line.Replace("  ·  ", "\n").Replace(". ", ".\n") : line;   // P7a2: one sentence a line
     private HSeparator _objectiveSeparator;
 
     // ── Autosave throttle ───────────────────────────────────────────────
@@ -490,6 +490,11 @@ public partial class ExpeditionManager : Node2D
         if (_fieldRun && !Interval.Walking(cycle))
         {
             _factionManager.Posture = FieldPosture(cycle, out int planPatrols, out planNote);
+            // P7a2 (ruling RA3): a realm's patrols hunt the guild only when its court is Hostile.
+            // Land no realm rules is raider ground, and raiders hunt.
+            string fieldRuler = ProvinceControl.RulerAt(cycle, _stagingCol, _stagingRow);
+            _factionManager.HuntsParty = !ProvinceControl.IsKingdom(fieldRuler)
+                || _factionManager.Posture == PatrolToken.PatrolPosture.Hunter;
             _factionManager.ExtraPatrols = Mathf.Max(0, _factionManager.ExtraPatrols + planPatrols);
         }
         _factionManager.PoiQuery = local => _overlay.OverlayAt(local).Poi;
@@ -763,12 +768,6 @@ public partial class ExpeditionManager : Node2D
                 PlayerSession.ChronoFlatMovesLeft = 0;
                 LogRun("field_party", $"{_fieldPartyId}: {ActiveRunCompanionIds().Count} afoot, "
                                     + $"{MaxFuel} rations, window radius {WindowRadius}");
-                // Castle-role review, test 2 (2026-11-03): name the arm in the journal, so a
-                // dive walked with the Resolve from Camp switch reads as one afterwards.
-                if (PlayerSession.DebugResolveFromCamp)
-                {
-                    LogRun("ab_resolve_camp", "on: a brisk walk that stops for no sighting");
-                }
             }
             else
             {
@@ -917,8 +916,11 @@ public partial class ExpeditionManager : Node2D
         // subsequent run comes up in 3D until you switch back. The 2D map still runs
         // underneath; the overlay renders it and drives the real move logic.
         UpdateView3DButton();
-        if (PlayerSession.ExpeditionView3D && _window3D == null)
+        // P7a: the field is played in the 3D view. The castle's sortie keeps its choice.
+        if ((PlayerSession.ExpeditionView3D || _fieldRun) && _window3D == null)
             OpenWindow3D();
+        if (_view3DButton != null && _fieldRun)
+            _view3DButton.Visible = false;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -1223,7 +1225,7 @@ public partial class ExpeditionManager : Node2D
         //    3D expedition view. Esc is deliberately NOT handled here (it is
         //    reserved for the pause menu), so use M (or the "Switch to 2D"
         //    button) to leave the 3D view.
-        if (@event is InputEventKey { Pressed: true, Keycode: Key.M } && !ExpeditionComplete)
+        if (@event is InputEventKey { Pressed: true, Keycode: Key.M } && !ExpeditionComplete && !_fieldRun)   // P7a
         {
             OnView3DTogglePressed();
             GetViewport().SetInputAsHandled();
@@ -1374,7 +1376,10 @@ public partial class ExpeditionManager : Node2D
     private void UpdateView3DButton()
     {
         if (_view3DButton != null)
+        {
             _view3DButton.Text = _window3D != null ? "Switch to 2D" : "Switch to 3D";
+            _view3DButton.Visible = !_fieldRun;   // P7a: the field has one view
+        }
     }
 
     private void ToggleWindow3D()
@@ -1434,7 +1439,9 @@ public partial class ExpeditionManager : Node2D
         FeedWindow3D(frameCamera: true);
         UpdateView3DButton();
         SeedDeskFromInbox();   // notes that arrived while the stone looked elsewhere
-        ShowInfo("3D expedition view. Click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
+        ShowInfo(_fieldRun
+            ? "Click a site or any tile to walk there. Hover a tile to see what is on it."   // P7a
+            : "3D expedition view. Click an adjacent tile to walk. \"Switch to 2D\" or M returns.");
     }
 
     private void CloseWindow3D()
@@ -2858,7 +2865,7 @@ public partial class ExpeditionManager : Node2D
         // IS allowed. That is the exploratory march (spec §3.4 revisited): you can
         // command the fortress toward the unknown, not only across charted ground.
         if (!_grid.Hexes.ContainsKey(goalLocal) || (TryTileAt(goalLocal, out var gt) && gt.IsWater))
-        { ShowInfo("The castle cannot march there."); return; }
+        { ShowInfo(_fieldRun ? "The party cannot walk there." : "The castle cannot march there."); return; }   // P7a2
         // P4: ground a guard holds is not a destination. The guard itself is.
         if (GuardBlocks(goalLocal, goalLocal))
         { ShowInfo(GuardHoldsText); return; }
@@ -2929,7 +2936,7 @@ public partial class ExpeditionManager : Node2D
             }
         }
         else if (_party.CurrentCoord == _strideGoal)
-        { EndStride("The castle reaches the tile you ordered.", "Arrived"); return; }
+        { EndStride(_fieldRun ? "The party arrives." : "The castle reaches the tile you ordered.", "Arrived"); return; }   // P7a2
 
         // Castle-role review, test 2 (2026-11-03): under BriskWalk the march never stops
         // for a sighting, so it stops when it lands on a place on the way. That place's
@@ -2960,7 +2967,9 @@ public partial class ExpeditionManager : Node2D
         // Safety halt: don't grind the Hull down to nothing on a long order.
         if (MaxHull > 0 && Hull <= Mathf.CeilToInt(MaxHull * 0.25f))
         {
-            EndStride("The Hull is down to a quarter. The march stops rather than grind it away on a long order.",
+            EndStride(_fieldRun
+                    ? "The party is down to a quarter of its health. It stops here."   // P7a2
+                    : "The Hull is down to a quarter. The march stops rather than grind it away on a long order.",
                       "Hull spared", HaltTone.Trouble);
             return;
         }
@@ -2969,7 +2978,9 @@ public partial class ExpeditionManager : Node2D
         // the bearing (the exploratory march). Dead-end / lost-in-fog halts here.
         if (!TryNextStrideTile(out var next))
         {
-            EndStride("Nothing adjacent is passable and unvisited. The castle can find no way onward.",
+            EndStride(_fieldRun
+                    ? "There is no way onward from here."   // P7a2
+                    : "Nothing adjacent is passable and unvisited. The castle can find no way onward.",
                       "No way onward", HaltTone.Trouble);
             return;
         }
@@ -3039,7 +3050,9 @@ public partial class ExpeditionManager : Node2D
             if (d < _strideBestDist) { _strideBestDist = d; _strideStuck = 0; }
             else if (++_strideStuck > 5)
             {
-                EndStride("Several steps have passed without closing on the destination. The castle loses the bearing in the fog.",
+                EndStride(_fieldRun
+                        ? "The party cannot find a way there and stops."   // P7a2
+                        : "Several steps have passed without closing on the destination. The castle loses the bearing in the fog.",
                           "Bearing lost", HaltTone.Trouble);
                 return;
             }
@@ -3568,7 +3581,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 LogRun("terrain_drain", destKnown ? destTerrain.ToString() : "?",
                        hpDelta: -hpDrain, at: newCoord);
                 ShowInfo($"{OverworldMovementCost.TerrainDrainProse(destTerrain)}: " +
-                         $"{hpDrain} Hull lost. Roads and wards spare you this.");
+                         (_fieldRun ? $"{hpDrain} health lost. Roads and wards spare you this."   // P7a
+                                    : $"{hpDrain} Hull lost. Roads and wards spare you this."));
                 if (Hull <= 0)
                 { Hull = 0; EmergencyExtract("The wilds batter the castle to breaking, forcing a recall."); return; }
             }
@@ -3603,7 +3617,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 Hull -= corruptionDrain;
                 LogRun("corruption_drain", $"tier {tier}",
                        hpDelta: -corruptionDrain, at: newCoord);
-                ShowInfo($"The corruption sears the castle! {corruptionDrain} Hull lost.");
+                ShowInfo(_fieldRun
+                    ? $"The corruption sears the party. {corruptionDrain} health lost."   // P7a
+                    : $"The corruption sears the castle! {corruptionDrain} Hull lost.");
                 if (Hull <= 0)
                 { Hull = 0; EmergencyExtract("Corruption eats through the hull, forcing a recall."); return; }
             }
@@ -3674,7 +3690,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 Hull -= weatherHull;
                 LogRun("weather_drain", wDef.Name, hpDelta: -weatherHull, at: newCoord);
-                ShowInfo($"{wDef.Name} batters the castle. {weatherHull} Hull lost.");
+                ShowInfo(_fieldRun
+                    ? $"{wDef.Name} batters the party. {weatherHull} health lost."   // P7a
+                    : $"{wDef.Name} batters the castle. {weatherHull} Hull lost.");
                 if (Hull <= 0)
                 { Hull = 0; EmergencyExtract($"{wDef.Name} breaks the hull, forcing a recall."); return; }
             }
@@ -4052,7 +4070,16 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         _hoverTooltip.Visible = true;
-        _hoverTooltip.Position = _hudCanvas.GetViewport().GetMousePosition() + new Vector2(16, 12);
+        // P7a2: keep the card on screen. It flips to the cursor's left or above it at an edge.
+        _hoverTooltip.ResetSize();
+        Vector2 tipAt = _hudCanvas.GetViewport().GetMousePosition() + new Vector2(16, 12);
+        Vector2 tipSize = _hoverTooltip.Size;
+        Vector2 screen = _hudCanvas.GetViewport().GetVisibleRect().Size;
+        if (tipAt.X + tipSize.X > screen.X - 8f)
+            tipAt.X = Mathf.Max(8f, tipAt.X - tipSize.X - 32f);
+        if (tipAt.Y + tipSize.Y > screen.Y - 8f)
+            tipAt.Y = Mathf.Max(8f, tipAt.Y - tipSize.Y - 24f);
+        _hoverTooltip.Position = tipAt;
     }
 
     private void OnPartyArrived(Vector2I coord)
@@ -6465,10 +6492,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     {
         if (ExpeditionComplete)
             return;
-        if (OnSupplyAnchor())
+        if (CanLeaveFreely())
         {
             Extract();
             return;
+        }
+        if (_fieldRun && _emergencyConfirm != null)
+        {
+            // P7a3: in the field the only thing that makes leaving an emergency is a hunt.
+            _emergencyConfirm.DialogText =
+                "A patrol is hunting you and is too close to slip away from.\n" +
+                "Breaking away now is an emergency escape:\n\n" +
+                "  \u00B7 One full moon passes before you are home.\n" +
+                "  \u00B7 Every companion risks injury, or worse, on the way.\n\n" +
+                "What you carry is kept. Lose the patrol first and you can leave at no cost.\n" +
+                "Escape anyway?";
         }
         _emergencyConfirm?.PopupCentered();
     }
@@ -6598,10 +6636,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _dryFurnaceConfirm.Title = "Out of time";
             _dryFurnaceConfirm.OkButtonText = "Turn back";
             _dryFurnaceConfirm.CancelButtonText = "Push on";
-            string walkOut = OnSupplyAnchor()
-                ? "Turn back now: they are standing on an anchor and walk out clean with what they carry."
-                : "Turn back now and they straggle home overland: a moon passes, and every "
-                  + "companion risks injury on the road. What they carry comes with them.";
+            string walkOut = CanLeaveFreely()   // P7a3
+                ? "Turn back now: they leave the field with what they carry, at no cost."
+                : "A patrol is hunting them close by. Turn back now and it is an emergency escape: "
+                  + "a moon passes, and every companion risks injury on the way. What they carry comes with them.";
             _dryFurnaceConfirm.DialogText =
                 "Your party has used all its days and cannot keep working here.\n\n" +
                 walkOut + "\n\n" +
@@ -6642,7 +6680,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // ONE decision. The dry-rations dialog already named the straggle
             // cost, so routing through the Emergency Extraction confirm asked
             // the same question twice with different words (2026-09-23).
-            if (OnSupplyAnchor())
+            if (CanLeaveFreely())
             {
                 Extract();
             }
@@ -7594,7 +7632,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 }
                 else if (cycle.CastleParked)
                 {
-                    status = $"({cycle.CastleX},{cycle.CastleY})  parked";
+                    // P7a: where it stands, by name.
+                    string castleAt = ProvinceControl.Name(cycle.World?.ProvinceAt(cycle.CastleX, cycle.CastleY));
+                    status = castleAt.Length > 0 ? $"parked in {castleAt}" : "parked";
                 }
                 else
                 {
@@ -7740,10 +7780,19 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var wd = WeatherCatalog.Def(wt);
             // W2: name the front + its per-tile toll so the tradeoff is legible.
             var fx = new System.Collections.Generic.List<string>();
-            if (wd.FuelPerTile != 0) fx.Add($"+{wd.FuelPerTile} fuel");
             bool cinderImmune = _castle != null && _castle.WeatherHullImmune;
-            if (wd.HullPerTile != 0) fx.Add(cinderImmune ? "Hull immune" : $"-{wd.HullPerTile} Hull");
-            if (wd.ScryDelta != 0) fx.Add($"scry {wd.ScryDelta}");
+            if (_fieldRun)
+            {
+                // P7a: the party's words. Sight is not the weather's business in the field.
+                if (wd.FuelPerTile != 0) fx.Add($"each tile takes {DaysText(wd.FuelPerTile)} longer");
+                if (wd.HullPerTile != 0) fx.Add($"-{wd.HullPerTile} health a tile");
+            }
+            else
+            {
+                if (wd.FuelPerTile != 0) fx.Add($"+{wd.FuelPerTile} fuel");
+                if (wd.HullPerTile != 0) fx.Add(cinderImmune ? "Hull immune" : $"-{wd.HullPerTile} Hull");
+                if (wd.ScryDelta != 0) fx.Add($"scry {wd.ScryDelta}");
+            }
             string suffix = fx.Count > 0 ? $"  ({string.Join(", ", fx)})" : "";
             _weatherLabel.Text = $"Weather: {wd.Glyph} {wd.Name}{suffix}";
             _weatherLabel.Modulate = wd.Severity >= 3 ? UITheme.OverworldLowResourceWarning : Colors.White;
@@ -7762,9 +7811,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // (the loaded set now slides and grows; a ratio over it is noise).
         int supplyDist = SupplyDistanceAt(_party.CurrentCoord);
         int supplyBand = SupplyBandAt(_party.CurrentCoord);
-        _windowLabel.Text = supplyBand == 0
-            ? $"Supply: in range ({supplyDist}/{SupplyRange})"
-            : $"Supply: {supplyDist - SupplyRange} beyond the line (−{supplyBand * LeashDrainPerBand} HP/step)";
+        _windowLabel.Text = _fieldRun
+            ? (supplyBand == 0   // P7a
+                ? $"Supply line: {SupplyRange - supplyDist} tile(s) to spare"
+                : $"Supply line: {supplyDist - SupplyRange} tile(s) past it (-{supplyBand * LeashDrainPerBand} health a tile)")
+            : supplyBand == 0
+                ? $"Supply: in range ({supplyDist}/{SupplyRange})"
+                : $"Supply: {supplyDist - SupplyRange} beyond the line (−{supplyBand * LeashDrainPerBand} HP/step)";
         _windowLabel.Modulate = supplyBand == 0 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
         if (_grid.Hexes.TryGetValue(_party.CurrentCoord, out var cur))
@@ -7774,7 +7827,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // W3: the button tells the truth about which extraction you'd get.
         if (_extractButton != null && !ExpeditionComplete)
-            _extractButton.Text = OnSupplyAnchor() ? "Extract" : "Emergency Extract";
+            _extractButton.Text = CanLeaveFreely()
+                ? (_fieldRun ? "Leave the Field" : "Extract")   // P7a3
+                : (_fieldRun ? "Emergency Escape" : "Emergency Extract");
 
         // Road-follow shows only with a road underfoot and no march already
         // running, so its precondition is visible rather than explained.
@@ -9557,6 +9612,26 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// <summary>True when the party stands ON a supply anchor tile: the
     /// staging tile or any Available staging point. Free extraction is only
     /// offered here (W3 ruling); anywhere else is an emergency extraction.</summary>
+    /// <summary>How close a hunting patrol must be to make leaving an emergency.</summary>
+    private const int HuntedExitRange = 4;
+
+    /// <summary>P7a3 (ruled 2026-11-10): can the force leave now at no cost? The castle only on
+    /// a supply anchor, as before. A field party anywhere, unless a patrol that is hunting it
+    /// stands within HuntedExitRange tiles: the emergency escape is for getting out from
+    /// under a hunt. While the interval walks the old rule holds.</summary>
+    private bool CanLeaveFreely()
+    {
+        if (OnSupplyAnchor())
+        {
+            return true;
+        }
+        if (!_fieldRun || _party == null || Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return false;
+        }
+        return _factionManager == null || !_factionManager.HunterNear(_party.CurrentCoord, HuntedExitRange);
+    }
+
     private bool OnSupplyAnchor()
     {
         if (_party == null ||
