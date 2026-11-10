@@ -353,6 +353,8 @@ public static class CampSight
         PoiKind.Prison => "a prison",
         PoiKind.Companion => "someone in trouble",
         PoiKind.SupplyCache => "a supply cache",
+        PoiKind.Stash => "a stash",
+        PoiKind.Shrine => "a shrine",
         PoiKind.Seat or PoiKind.Convergence => "a seat of power",
         PoiKind.Settlement => "a settlement",
         _ => "something worth a look",

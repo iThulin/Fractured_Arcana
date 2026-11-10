@@ -267,6 +267,8 @@ public partial class ExpeditionWindow3D : Node3D
         PoiKind.Seat => OverworldHex.POIType.Seat,
         PoiKind.Settlement => OverworldHex.POIType.Settlement,
         PoiKind.SupplyCache => OverworldHex.POIType.SupplyCache,
+        PoiKind.Stash => OverworldHex.POIType.Stash,
+        PoiKind.Shrine => OverworldHex.POIType.Shrine,
         PoiKind.Companion => OverworldHex.POIType.Narrative, // K3 rescue sites
         _ => OverworldHex.POIType.Combat,
     };
@@ -3522,6 +3524,9 @@ void fragment() {
     /// the total estimate, drawn as solid pins + a "~N fuel" label. Exploratory
     /// (`exploratory` = true): `worldPath` is just [castle, goal] and the line is
     /// drawn dashed toward the unknown with a "March into the unknown" label.</summary>
+    /// <summary>P1: how a planned path's cost is worded. Null means the castle's "~N fuel".</summary>
+    public System.Func<int, string> StrideCostText;
+
     public void ShowStridePath(List<Vector2I> worldPath, int fuel, bool exploratory = false)
     {
         ClearStridePath();
@@ -3591,7 +3596,7 @@ void fragment() {
         var gp = TileOrigin(g.X, g.Y); gp.Y = TileHeight(g) + 0.75f;
         var lbl = new Label3D
         {
-            Text = exploratory ? "March into the unknown" : $"~{fuel} fuel",
+            Text = exploratory ? "March into the unknown" : (StrideCostText != null ? StrideCostText(fuel) : $"~{fuel} fuel"),
             Position = gp,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
             FontSize = exploratory ? 28 : 34, PixelSize = 0.012f,
@@ -3876,6 +3881,8 @@ void fragment() {
         OverworldHex.POIType.Seat => UITheme.Gold,
         OverworldHex.POIType.Settlement => UITheme.ArcaneBlue,
         OverworldHex.POIType.SupplyCache => UITheme.Success,
+        OverworldHex.POIType.Stash => UITheme.Gold,
+        OverworldHex.POIType.Shrine => UITheme.ArcaneBlue,
         _ => UITheme.TextPrimary,
     };
 }

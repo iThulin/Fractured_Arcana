@@ -412,6 +412,19 @@ public partial class ExpeditionManager : Node2D
         _grid = new OverworldHexGrid { Name = "WindowGrid", WindowMode = true };
         AddChild(_grid);
 
+        // P3 (province_field_v1, F5): the first field deploy into a province fills it with
+        // sites. Before the window is built, so the window carries them. Not while the
+        // interval walks: the opening shows only its errand.
+        if (_fieldRun && !Interval.Walking(cycle))
+        {
+            int filled = ProvinceField.Fill(_world, _stagingCol, _stagingRow);
+            if (filled > 0)
+            {
+                SaveManager.MarkDirty();
+                GD.Print($"[Field] Province filled: {filled} site(s) added.");
+            }
+        }
+
         _window = new WorldWindowBuilder(_world, _stagingCol, _stagingRow, WindowRadius);
 
         // The sortie begins at the dock, so the castle stands there until it moves.
@@ -850,6 +863,7 @@ public partial class ExpeditionManager : Node2D
         StampSighted();    // knowledge ladder L3: places on the map stand as beacons in the field
         PaintContestedGround();   // and show WHICH ground the war is over
         ApplyScryingReveals(bonuses);   // Scrying Chambers run-start intel (scrying_chambers_spec_v1)
+        OpenProvinceGround();           // P2: the province lies open on arrival (province_field_v1, F3)
 
         CenterCamera();
         UpdateUI();
@@ -1583,7 +1597,116 @@ public partial class ExpeditionManager : Node2D
     /// patrols, ambushes, every trouble halt). The walk stays visible, because
     /// without movement the game reads as a spreadsheet (ruled 2026-11-03). The
     /// castle's own sorties walk as before.</summary>
-    private bool BriskWalk => _fieldRun && PlayerSession.DebugResolveFromCamp;
+    private bool BriskWalk => _fieldRun;   // P1 (docs/province_field_v1.md, F2): always, in the field
+
+    /// <summary>P1: in the field the budget is time. The counter underneath is the old ration
+    /// count, four to a day (WorldClock.DaysPerRation), so the day clock and saves are unchanged.</summary>
+    private static string DaysNumber(int rations) => $"{rations * WorldClock.DaysPerRation:0.##}";
+
+    /// <summary>The province this outing is played in: the one the party deployed into
+    /// (province_field_v1, F1). -1 until it is read, or where the world has no provinces.</summary>
+    private int _fieldProvince = -1;
+
+    /// <summary>P2 (F3): no creeping fog in the field. Every tile of the outing's province that
+    /// the window holds is revealed, and the reveal is written to the world as walking would
+    /// write it, so its places show and a fight's round trip keeps it. Not while the interval
+    /// walks: the opening shows only its errand.</summary>
+    private void OpenProvinceGround()
+    {
+        if (!_fieldRun || _world == null || _party == null || _grid == null || _fog == null
+            || !_world.HasProvinces() || Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return;
+        }
+        if (_fieldProvince < 0)
+        {
+            if (!_window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr))
+            {
+                return;
+            }
+            _fieldProvince = _world.ProvinceIndexAt(pc, pr);
+            if (_fieldProvince < 0)
+            {
+                return;
+            }
+        }
+        var toOpen = new List<Vector2I>();
+        foreach (var local in _grid.Hexes.Keys)
+        {
+            if (_fog.FogAt(local) != OverworldHex.FogState.Revealed
+                && _window.TryLocalToWorld(local, out int c, out int r)
+                && _world.ProvinceIndexAt(c, r) == _fieldProvince)
+            {
+                toOpen.Add(local);
+            }
+        }
+        if (toOpen.Count == 0)
+        {
+            return;
+        }
+        foreach (var local in toOpen)
+        {
+            _fog.RevealHex(local);
+        }
+        WriteVisibleToWorld();
+        if (PlayerSession.DebugMode)
+        {
+            GD.Print($"[Field] The province lies open: {toOpen.Count} tile(s) revealed.");
+        }
+        if (_world.Provinces != null && _fieldProvince < _world.Provinces.Count)
+        {
+            var here = _world.Provinces[_fieldProvince];
+            GD.Print($"[Field] {here.Name}: {here.TileCount} tile(s), {toOpen.Count} opened in this window.");
+        }
+    }
+
+    /// <summary>P2 (F4): what a site is, how strong it is and what it pays, in plain words,
+    /// before the party commits to it. Field runs only. Appended to the tile's tooltip.</summary>
+    private string SiteCard(Vector2I local, OverworldHex.POIType poi)
+    {
+        if (!_fieldRun)
+        {
+            return "";
+        }
+        switch (poi)
+        {
+            case OverworldHex.POIType.Combat:
+            case OverworldHex.POIType.Prison:
+            {
+                var tier = _isWarfront ? EncounterTier.Siege : EncounterTier.Battle;
+                var (min, max) = EncounterRouter.GoldRangeForTier(tier);
+                string what = poi == OverworldHex.POIType.Prison ? "Prison: a fight to free a prisoner" : "Fight";
+                return $"  ·  {what} ({tier}). Enemy strength x{DifficultyMultAt(local):0.##}. "
+                       + $"Pays {min} to {max} gold plus splinters.";
+            }
+            case OverworldHex.POIType.Narrative:
+                return "  ·  Encounter: a story choice.";
+            case OverworldHex.POIType.Negotiation:
+                return "  ·  Parley: a negotiation. No fight unless it breaks down.";
+            case OverworldHex.POIType.Rest:
+                return "  ·  Refuge: heals your party by a quarter of its health.";
+            case OverworldHex.POIType.Outpost:
+                return "  ·  Outpost: full heal, 25 gold, and a new place to deploy from.";
+            case OverworldHex.POIType.Stash:
+                return "  ·  Stash: 12 to 24 gold plus splinters. One click, no fight.";
+            case OverworldHex.POIType.Shrine:
+                return "  ·  Shrine: restores 4 Essence. One click, no fight.";
+            case OverworldHex.POIType.SupplyCache:
+                return "  ·  Supply depot: looking is free. Taking it is ordered from the strategic map.";
+            case OverworldHex.POIType.Settlement:
+            case OverworldHex.POIType.Seat:
+                return "  ·  Settlement: market and services.";
+            default:
+                return "";
+        }
+    }
+
+    /// <summary>"1 day", "2.5 days": a field cost or budget in words.</summary>
+    private static string DaysText(int rations)
+    {
+        string n = DaysNumber(rations);
+        return n == "1" ? "1 day" : $"{n} days";
+    }
 
     /// <summary>The brisk pace: the 2D hop runs twice as fast and the 3D pawn's
     /// glide is matched to it, with no pause between steps. About nine tiles a
@@ -1711,6 +1834,7 @@ public partial class ExpeditionManager : Node2D
                 if (_window.TryLocalToWorld(l, out int wx, out int wy))
                     worldPath.Add(new Vector2I(wx, wy));
             int fuel = StridePlanner.FuelEstimate(_party.CurrentCoord, path, StrideEdgeCost);
+            _window3D.StrideCostText = _fieldRun ? (n => "about " + DaysText(n)) : null;
             _window3D.ShowStridePath(worldPath, fuel, exploratory: false);
             return;
         }
@@ -2160,6 +2284,11 @@ public partial class ExpeditionManager : Node2D
 
         // Interruptions from the world (combat launched, ambush, run ended).
         if (ExpeditionComplete || _ambushPending)
+        { EndStride(null); return; }
+
+        // P2a: an encounter window opened on the last step (the caravan, a story choice).
+        // The march stops under it. Walking on let a patrol catch the party mid-choice.
+        if (_narrativePanel != null && _narrativePanel.Visible)
         { EndStride(null); return; }
 
         // Wait for the previous hop's animation to land before issuing the next.
@@ -2875,7 +3004,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 if (band > 0 && _lastSupplyBand == 0)
                     ShowInfo(_fieldRun
-                        ? "You pass beyond your supply line. Out here every step eats extra rations."
+                        ? "You are beyond your supply line. Every step out here costs extra time."
                         : "You pass beyond your supply line. Each step out here drains the castle.");
                 else if (band == 0 && _lastSupplyBand > 0)
                     ShowInfo("You are back within your supply line.");
@@ -2995,8 +3124,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Living map: the roaming caravan wanders once per step and offers a
         // one-time opportunity when it crosses the party's path.
-        if (_roamer != null && !_roamerSpent && !ExpeditionComplete &&
-            GodotObject.IsInstanceValid(_roamer))
+        if (_roamer != null && !_roamerSpent && !ExpeditionComplete && !_ambushPending &&
+            GodotObject.IsInstanceValid(_roamer))   // P2a: not on the step a patrol struck
         {
             bool contact = _roamer.IsOnSameHex(_party.CurrentCoord);
             if (!contact) { _roamer.Tick(); contact = _roamer.IsOnSameHex(_party.CurrentCoord); }
@@ -3158,7 +3287,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
                 line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
-                        NegotiationPreread(axial) + HeldTipAt(axial); // S5: True Names. O3c (D209): a held place says so.
+                        NegotiationPreread(axial) + HeldTipAt(axial) + SiteCard(axial, ovTip.Poi); // S5: True Names. O3c (D209): a held place says so.
             // City tile: name the settlement whose greyed footprint this tile belongs to, so the
             // player can tell they're standing in a city (not just on its terrain).
             if (_window.TryLocalToWorld(axial, out int ccol, out int crow))
@@ -3267,7 +3396,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             var ovTip = _overlay.OverlayAt(axial);
             if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
                 line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
-                        NegotiationPreread(axial) + HeldTipAt(axial); // S5: True Names. O3c (D209): a held place says so.
+                        NegotiationPreread(axial) + HeldTipAt(axial) + SiteCard(axial, ovTip.Poi); // S5: True Names. O3c (D209): a held place says so.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
                 line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
@@ -3405,6 +3534,31 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 ShowInfo($"Rest site{(campward ? " (Campward)" : "")}. Essence restored." +
                          $" +{restSpl} Arcane Splinters." +
                          (restFuelGain > 0 ? $" +{restFuelGain} fuel." : ""));
+                UpdateUI();
+                break;
+
+            case OverworldHex.POIType.Stash:
+            {
+                // P3: taken in one click. Gold and splinters, no window.
+                int stashGold = (int)GD.RandRange(12, 24);
+                int stashSpl = SplinterDropTable.RestSite();
+                GoldEarned += stashGold;
+                SplinterEarned += stashSpl;
+                ConsumeOverlayPoi(coord);
+                ConsumeWorldPoi(coord);
+                LogRun("stash", "stash", goldDelta: +stashGold, splinterDelta: +stashSpl, at: coord);
+                ShowInfo($"Stash taken. +{stashGold} gold. +{stashSpl} Arcane Splinters.");
+                UpdateUI();
+                break;
+            }
+
+            case OverworldHex.POIType.Shrine:
+                // P3: taken in one click. Essence for the Grimoire.
+                _spells?.AddEssence(4, "Shrine");
+                ConsumeOverlayPoi(coord);
+                ConsumeWorldPoi(coord);
+                LogRun("shrine", "shrine", at: coord);
+                ShowInfo("Shrine. +4 Essence.");
                 UpdateUI();
                 break;
 
@@ -3834,7 +3988,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // terrain and the installed modules, attaches the protect objective with
         // the Castle Heart, and the wizard arrives by waystone on round 3 (less
         // Wardroom / Waystone Focus). Warfront sieges keep their own routing.
-        if (!_isWarfront)
+        // P2a: only the castle fights at its own gate. A field party caught in the open
+        // has no Castle Heart to defend, so its fight is the plain one.
+        if (!_isWarfront && !_fieldRun)
             CastleDefenseCompiler.Arm(encounterDef, terrainType, (ulong)(coord.X * 7919 + coord.Y * 104729 + 17));
         CommitCombat(coord, encounterDef, terrainType);
         // Mark AFTER CommitCombat (which resets the flag): this combat is a
@@ -5771,23 +5927,23 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // stopping is turning back, which is what the Extract button does.
         if (_fieldRun)
         {
-            ShowInfo("The rations are gone.");
+            ShowInfo("Your party is out of time.");
             if (_dryFurnaceConfirm == null)
             {
                 OnExtractPressed();
                 return;
             }
-            _dryFurnaceConfirm.Title = "The rations are gone";
+            _dryFurnaceConfirm.Title = "Out of time";
             _dryFurnaceConfirm.OkButtonText = "Turn back";
             _dryFurnaceConfirm.CancelButtonText = "Push on";
             string walkOut = OnSupplyAnchor()
                 ? "Turn back now: they are standing on an anchor and walk out clean with what they carry."
-                : "Turn back now and they straggle home overland: a lunation passes, and every "
+                : "Turn back now and they straggle home overland: a moon passes, and every "
                   + "companion risks injury on the road. What they carry comes with them.";
             _dryFurnaceConfirm.DialogText =
-                "The party is out of rations and cannot work this ground any longer.\n\n" +
+                "Your party has used all its days and cannot keep working here.\n\n" +
                 walkOut + "\n\n" +
-                $"Or push on hungry: every further tile costs {ExhaustionDamagePerStep} Health, "
+                $"Or push on: every further tile costs {ExhaustionDamagePerStep} Health, "
                 + "and nothing restores it out here.";
             _dryFurnaceConfirm.PopupCentered();
             return;
@@ -5830,7 +5986,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             }
             else
             {
-                EmergencyExtract("The rations ran out and the party turned back.");
+                EmergencyExtract("Your party ran out of days and turned back.");
             }
             return;
         }
@@ -6793,7 +6949,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 if (slot != null && slot.IsLive())
                 {
                     AddElsewhereEntry(name, UITheme.Gold, $"({slot.X},{slot.Y})  {HoldingWord(slot)}",
-                                      "Rations", slot.StepsRemaining, slot.MaxFuel, "Health", slot.CurrentHP, slot.MaxHP);
+                                      "Days left", Mathf.CeilToInt(slot.StepsRemaining * WorldClock.DaysPerRation),
+                                      Mathf.CeilToInt(slot.MaxFuel * WorldClock.DaysPerRation), "Health", slot.CurrentHP, slot.MaxHP);
                 }
                 else
                 {
@@ -6818,7 +6975,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     {
                         status = $"({p.X},{p.Y})  awaiting orders";
                     }
-                    AddElsewhereEntry(name, UITheme.Gold, status, "Rations", 0, 0, "Health", 0, 0);
+                    AddElsewhereEntry(name, UITheme.Gold, status, "Days left", 0, 0, "Health", 0, 0);
                 }
                 entries++;
             }
@@ -6879,10 +7036,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // One counter, two fictions. A party on foot has no furnace, and a HUD
         // that told them their fuel would be the clearest possible signal that
         // the field run is the castle run wearing a hat.
-        string budgetWord = _fieldRun ? "Rations" : "Fuel";
+        string budgetWord = _fieldRun ? "Days left" : "Fuel";
         _stepLabel.Text = unlimitedFuel
             ? $"{budgetWord}: ∞ [DEBUG]"
-            : $"{budgetWord}: {StepsRemaining} / {MaxFuel}";
+            : _fieldRun
+                ? $"Days left: {DaysNumber(StepsRemaining)} of {DaysNumber(MaxFuel)}"
+                : $"{budgetWord}: {StepsRemaining} / {MaxFuel}";
         _stepLabel.Modulate = StepsRemaining > 5 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
         // Furnace dial: fill = fuel/MaxFuel (clamped; a negotiation overrun reads full).
@@ -7498,11 +7657,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _haltHeadline.Text = headline;
         _haltDetail.Text = detail ?? "";
         _haltDetail.Visible = !string.IsNullOrEmpty(detail);
-        string budget = _fieldRun ? "Rations" : "Fuel";
+        string budget = _fieldRun
+            ? $"Days left {DaysNumber(StepsRemaining)} of {DaysNumber(MaxFuel)}"
+            : $"Fuel {StepsRemaining}/{MaxFuel}";
         string vitals = _fieldRun ? "Health" : "Hull";
         _haltState.Text = _party == null
-            ? $"{budget} {StepsRemaining}/{MaxFuel}    {vitals} {Hull}/{MaxHull}"
-            : $"{budget} {StepsRemaining}/{MaxFuel}    {vitals} {Hull}/{MaxHull}    {TerrainDisplayName(TerrainAt(_party.CurrentCoord))}";
+            ? $"{budget}    {vitals} {Hull}/{MaxHull}"
+            : $"{budget}    {vitals} {Hull}/{MaxHull}    {TerrainDisplayName(TerrainAt(_party.CurrentCoord))}";
 
         Color accent = tone switch
         {
@@ -8299,6 +8460,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (added > 0)
             StampSighted();   // knowledge ladder L3: sighted places that streamed in
         PaintContestedGround();   // newly streamed fringe joins (or leaves) the war zone
+        if (added > 0)
+            OpenProvinceGround(); // P2: more of the province streamed in
         if (PlayerSession.DebugMode && (added > 0 || removed > 0))
             GD.Print($"[Window] Slide → ({col},{row}): +{added}/−{removed} tiles, " +
                      $"{_grid.Hexes.Count} live.");

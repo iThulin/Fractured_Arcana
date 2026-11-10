@@ -36,7 +36,7 @@ public partial class OverworldHex : Node2D
     // not an anonymous revealed hex). APPEND-ONLY. Debug
     // ForceNextEncounterType casts ints to this enum, so existing values
     // must keep their order.
-    public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost, Prison, Settlement, Seat, SupplyCache }
+    public enum POIType { None, Combat, Rest, Objective, Narrative, Negotiation, Outpost, Prison, Settlement, Seat, SupplyCache, Stash, Shrine }
     public POIType POI { get; set; } = POIType.None;
     public bool POIConsumed { get; set; } = false;
 
@@ -256,6 +256,8 @@ public partial class OverworldHex : Node2D
                 POIType.Settlement => UITheme.Gold,
                 POIType.Seat => UITheme.Gold,
                 POIType.SupplyCache => UITheme.Success,
+                POIType.Stash => UITheme.Gold,
+                POIType.Shrine => UITheme.ArcaneBlue,
                 _ => Colors.White
             };
 

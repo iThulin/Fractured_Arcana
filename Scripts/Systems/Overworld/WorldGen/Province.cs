@@ -83,6 +83,10 @@ public class Province
 
     public ProvinceCharacter Character = ProvinceCharacter.Lowland;
 
+    /// <summary>True once the field's site fill has run here (ProvinceField.cs, P3).
+    /// Saved, so a province is filled once per timeline. Additive, default false.</summary>
+    public bool FieldFilled = false;
+
     /// <summary>Indices into WorldData.Settlements of every settlement whose centre lies
     /// in the province, ascending.</summary>
     public List<int> Settlements = new();

@@ -70,4 +70,12 @@ public enum PoiKind
     /// expedition window it resolves to a bespoke broker interaction, not a
     /// plain POIType. Appended last for int-serialization stability.</summary>
     Concord,
+
+    /// <summary>A stash: gold and splinters, taken in one click. Placed by the field's
+    /// site fill (ProvinceField.cs, province_field_v1 P3). Appended last.</summary>
+    Stash,
+
+    /// <summary>A shrine: restores Essence, taken in one click. Placed by the field's
+    /// site fill (ProvinceField.cs, province_field_v1 P3). Appended last.</summary>
+    Shrine,
 }

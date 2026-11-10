@@ -275,16 +275,23 @@ public partial class EncounterRouter : Node
     /// return path reads the tier of the combat it's returning from.</summary>
     public EncounterTier CurrentTier => _currentTier;
 
-    private int CalculateGoldRewardForTier(EncounterTier tier) => tier switch
+    /// <summary>The gold a won fight of this tier pays, as a range. One table: the roll below
+    /// and the field's site card (ExpeditionManager.SiteCard) both read it.</summary>
+    public static (int Min, int Max) GoldRangeForTier(EncounterTier tier) => tier switch
     {
-        EncounterTier.Skirmish => (int)GD.RandRange(8, 15),
-        EncounterTier.Battle => (int)GD.RandRange(18, 30),
-        EncounterTier.Siege => (int)GD.RandRange(40, 60),
-        // Ambush sits between Skirmish and Battle. This was already the
-        // fallthrough value; made explicit now that the tier is actually routed.
-        EncounterTier.Ambush => (int)GD.RandRange(15, 25),
-        _ => (int)GD.RandRange(15, 25),
+        EncounterTier.Skirmish => (8, 15),
+        EncounterTier.Battle => (18, 30),
+        EncounterTier.Siege => (40, 60),
+        // Ambush sits between Skirmish and Battle.
+        EncounterTier.Ambush => (15, 25),
+        _ => (15, 25),
     };
+
+    private int CalculateGoldRewardForTier(EncounterTier tier)
+    {
+        var (min, max) = GoldRangeForTier(tier);
+        return (int)GD.RandRange(min, max);
+    }
 
     /// <summary>Salvage from the field: arms, harness, timber, iron. Starting
     /// values (2026-09-29), about three quarters of the gold band, so a fight

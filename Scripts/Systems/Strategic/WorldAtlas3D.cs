@@ -3463,6 +3463,8 @@ public partial class WorldAtlas3D : Node3D
         PoiKind.Seat => UITheme.Gold,
         PoiKind.Settlement => UITheme.ArcaneBlue,
         PoiKind.Convergence => UITheme.POIConvergence,
+        PoiKind.Stash => UITheme.Gold,
+        PoiKind.Shrine => UITheme.ArcaneBlue,
         PoiKind.SupplyCache => UITheme.Success,
         _ => UITheme.TextPrimary,
     };

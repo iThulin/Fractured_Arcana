@@ -248,6 +248,8 @@ public class WorldWindowBuilder
         // overseers still live on the strategic map; walking onto one is
         // reconnaissance (discovery + a report), not an encounter.
         PoiKind.SupplyCache => OverworldHex.POIType.SupplyCache,
+        PoiKind.Stash => OverworldHex.POIType.Stash,
+        PoiKind.Shrine => OverworldHex.POIType.Shrine,
         // Espionage E1c: Concord nodes are world-scale only; a bespoke broker
         // interaction (E3) replaces this. Non-rendering in-window for now,
         // explicit rather than falling to the default.

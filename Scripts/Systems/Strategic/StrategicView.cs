@@ -1434,9 +1434,8 @@ public partial class StrategicView : Node2D
                     : "\u25B6  Take the field";
                 _partyDeployBtn.TooltipText = busy
                     ? $"{party.Name} are still out on their last dive. Pass time; they are free on day {party.BusyUntilDay - WorldClock.Now(cycle)} from now."
-                    : $"Send {party.Name} into the field at ({party.X},{party.Y}). The dive costs days in "
-                      + $"proportion to the rations it eats, about {WorldClock.DaysPerRation:0.##} a ration, "
-                      + "charged when they come back.";
+                    : $"Send {party.Name} into the field at ({party.X},{party.Y}). The days they spend out "
+                      + "are charged when they come back.";
             }
         }
 
@@ -4141,6 +4140,8 @@ public partial class StrategicView : Node2D
         PoiKind.Seat => UITheme.Gold,          // archmage seats: gold
         PoiKind.Settlement => UITheme.ArcaneBlue,
         PoiKind.Convergence => UITheme.POIConvergence,
+        PoiKind.Stash => UITheme.Gold,
+        PoiKind.Shrine => UITheme.ArcaneBlue,
         PoiKind.SupplyCache => UITheme.Success,   // provisions read green; the
                                                   // marker layer carries the owner color
         _ => UITheme.TextPrimary,
@@ -5497,7 +5498,8 @@ public partial class StrategicView : Node2D
             bool fieldDrawer = _pendingRunKind == ExpeditionRunKind.Field;
             float perUnit = fieldDrawer ? WorldClock.DaysPerRation : WorldClock.DaysPerFuel;
             AddDeployStat(vbox, "Time cost",
-                $"{perUnit:0.##} day per {(fieldDrawer ? "ration" : "fuel")}, charged on return  "
+                (fieldDrawer ? "The days the party spends out, charged on return  "
+                             : $"{perUnit:0.##} day per fuel, charged on return  ")
                 + $"·  day {depCal.DayOfLunation + 1} of {CalendarState.DaysPerLunation}, "
                 + $"{depCal.DaysToNewMoon} to the new moon");
         }
@@ -5644,7 +5646,7 @@ public partial class StrategicView : Node2D
         var intro = new Label
         {
             Text = $"They take the field at {sp.Name} ({sp.X},{sp.Y}).\n"
-                 + $"The dive costs about {WorldClock.DaysPerRation:0.##} day per ration eaten, charged when they return.",
+                 + "The days they spend out are charged when they return.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             CustomMinimumSize = new Vector2(DialogFit.TextWidth, 0f),
         };
