@@ -9,7 +9,7 @@
     "magnitude": "Subtle",
     "effectKey": "elemental_sense",
     "effectParams": { "radius": 3 },
-    "description": "Volcanic, Arcane Ground, water, and frozen terrain silhouettes through fog within 3 hexes. Terrain shape only, never POI contents."
+    "description": "Volcanic and frozen ground do not harm you."
   },
   {
     "id": "force_path",
@@ -32,10 +32,11 @@
     "isInnate": true,
     "essenceCost": 3,
     "magnitude": "Subtle",
-    "targetingType": "None",
+    "targetingType": "Tile",
+    "range": 6,
     "effectKey": "tremorsense",
     "effectParams": { "radius": 12 },
-    "description": "Chart every Mountain and Hills hex within 12 hexes: the earth's side of the argument."
+    "description": "Shake the ground under a guard within 6 tiles. It holds only its own tile from then on, so you can slip past."
   },
   {
     "id": "ember_ward",
@@ -47,6 +48,6 @@
     "targetingType": "None",
     "effectKey": "ember_ward",
     "effectParams": { "steps": 8 },
-    "description": "Negate volcanic terrain HP drain for the next 8 steps."
+    "description": "Your next fight is fought under clear skies, whatever the weather."
   }
 ]

@@ -87,6 +87,10 @@ public class Province
     /// Saved, so a province is filled once per timeline. Additive, default false.</summary>
     public bool FieldFilled = false;
 
+    /// <summary>True once the field's guards have been posted here (ProvinceField.PostGuards,
+    /// P4). Saved, so it happens once per timeline. Additive, default false.</summary>
+    public bool GuardsPosted = false;
+
     /// <summary>Indices into WorldData.Settlements of every settlement whose centre lies
     /// in the province, ascending.</summary>
     public List<int> Settlements = new();

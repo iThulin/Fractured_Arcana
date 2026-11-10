@@ -264,8 +264,11 @@ public partial class GrimoirePanel : PanelContainer
                 cost += $"  +{tax} off-school";
             if (surcharge > 0)
                 cost += $"  +{surcharge} corrupted ground";
+            int reach = _manager.ReachSurcharge(def);   // SP2
+            if (reach > 0)
+                cost += $"  +{reach} beyond the castle's reach";
             // Provinces 7i (PR46): held ground takes its discount off the total.
-            int discount = _manager.HeldGroundDiscount(def.EssenceCost + tax + surcharge);
+            int discount = _manager.HeldGroundDiscount(def.EssenceCost + tax + surcharge + reach);
             if (discount > 0)
                 cost += $"  -{discount} held ground";
             Add(cost, -2, UITheme.EssenceText);
@@ -472,8 +475,11 @@ public partial class GrimoirePanel : PanelContainer
                 costText += $"+{tax}";
             if (surcharge > 0)
                 costText += $"+{surcharge}";
+            int reach = _manager.ReachSurcharge(def);   // SP2
+            if (reach > 0)
+                costText += $"+{reach}";
             // Provinces 7i (PR46): held ground takes its discount off the total.
-            int discount = _manager.HeldGroundDiscount(def.EssenceCost + tax + surcharge);
+            int discount = _manager.HeldGroundDiscount(def.EssenceCost + tax + surcharge + reach);
             if (discount > 0)
                 costText += $"-{discount}";
             costText += "✦";

@@ -77,6 +77,70 @@ public partial class PatrolToken : Node2D
     // not rout home) and resumes exactly where it froze. Delay, not removal (G3).
     private int _stunSteps;
 
+    // ── The field, P5 (province_field_v1, F9): a patrol shows what it is doing ──
+    public enum PatrolIntent { Patrolling, Hunting, Raiding, GoingHome, Recovering, Held, Lured }
+
+    /// <summary>What the patrol did with its last tick, and where that takes it.</summary>
+    public PatrolIntent Intent { get; private set; } = PatrolIntent.Patrolling;
+    public Vector2I IntentTarget { get; private set; }
+
+    /// <summary>Field rules: a hunt runs out of wind, and an idle patrol raids. Set by
+    /// OverworldFactionManager each tick. False on a castle run, which plays as before.</summary>
+    public bool FieldRules;
+
+    /// <summary>The site this patrol is walking to take, or null. Set by the manager.</summary>
+    public Vector2I? RaidTarget;
+
+    /// <summary>True once the patrol has stood on its raid target long enough to take it.
+    /// The manager reads it, tells the expedition and calls ClearRaid.</summary>
+    public bool RaidDone { get; private set; }
+
+    /// <summary>Steps a field patrol will chase before it loses the trail.</summary>
+    public const int HuntStamina = 12;
+    /// <summary>Steps it then ignores the party.</summary>
+    public const int GiveUpRest = 6;
+    /// <summary>Ticks a patrol stands on a site before the site is gone.</summary>
+    public const int RaidTicks = 2;
+
+    // ── Rival archmages R2: how the patrol's realm has told it to behave ──
+    /// <summary>Normal walks its beat. Hunter sees farther and chases longer. Raider takes
+    /// small sites. Sentry sees less far and stays near home.</summary>
+    public enum PatrolPosture { Normal, Hunter, Raider, Sentry }
+
+    /// <summary>Set by OverworldFactionManager each tick from the ruler's plan.</summary>
+    public PatrolPosture Posture = PatrolPosture.Normal;
+
+    private int Detection => Posture == PatrolPosture.Hunter ? 10
+                           : Posture == PatrolPosture.Sentry ? 6 : DetectionRange;
+    private int Stamina => Posture == PatrolPosture.Hunter ? 18 : HuntStamina;
+
+    private int _huntSteps;
+
+    /// <summary>SP3 (Foreboding): steps a hunt has left before the patrol loses the trail.</summary>
+    public int HuntStepsLeft => Mathf.Max(0, Stamina - _huntSteps);
+
+    // SP3 (Beast Envoy): a lured patrol walks to the lure and forgets the party meanwhile.
+    private int _lureSteps;
+    private Vector2I _lureCoord;
+
+    public void Lure(Vector2I coord, int steps)
+    {
+        _lureCoord = coord;
+        _lureSteps = Mathf.Max(_lureSteps, steps);
+        _committed = false;
+        _huntSteps = 0;
+    }
+    private int _raidWait;
+    private int _raidStall;
+
+    public void ClearRaid()
+    {
+        RaidTarget = null;
+        RaidDone = false;
+        _raidWait = 0;
+        _raidStall = 0;
+    }
+
     /// <summary>True while frozen by a spell/trap: no move, no hunt, no capture.</summary>
     public bool IsStunned => _stunSteps > 0;
 
@@ -270,6 +334,8 @@ public partial class PatrolToken : Node2D
         if (_stunSteps > 0)
         {
             _stunSteps--;
+            Intent = PatrolIntent.Held;
+            IntentTarget = CurrentCoord;
             return;
         }
 
@@ -277,11 +343,27 @@ public partial class PatrolToken : Node2D
         if (_recoveryCooldown > 0)
         {
             _recoveryCooldown--;
+            Intent = PatrolIntent.Recovering;
+            IntentTarget = _homeCoord;
             Vector2I home = _grid.Distance(CurrentCoord, _homeCoord) > 0
                 ? StepToward(CurrentCoord, _homeCoord)
                 : Wander();
             if (home != CurrentCoord)
                 MoveTo(home);
+            return;
+        }
+
+        // SP3 (Beast Envoy): lured. It follows the beast and does not look for the party.
+        if (_lureSteps > 0)
+        {
+            _lureSteps--;
+            _committed = false;
+            _huntSteps = 0;
+            Intent = PatrolIntent.Lured;
+            IntentTarget = _lureCoord;
+            Vector2I toLure = StepToward(CurrentCoord, _lureCoord);
+            if (toLure != CurrentCoord)
+                MoveTo(toLure);
             return;
         }
 
@@ -294,11 +376,32 @@ public partial class PatrolToken : Node2D
         if (OverworldSpellEffects.VeilActive())
             _committed = false;
         // Spot the player within detection range → commit to the hunt.
-        else if (distToPlayer <= DetectionRange)
+        else if (distToPlayer <= Detection)
             _committed = true;
         // Lose the trail only if the player breaks well clear.
         else if (_committed && distToPlayer > LoseInterestRange)
             _committed = false;
+
+        // P5: in the field a hunt runs out of wind. After HuntStamina steps the patrol
+        // loses the trail and ignores the party for GiveUpRest steps, so a chase can be
+        // outlasted as well as outrun.
+        if (FieldRules && _committed)
+        {
+            _huntSteps++;
+            if (_huntSteps > Stamina)
+            {
+                _committed = false;
+                _huntSteps = 0;
+                _recoveryCooldown = GiveUpRest;
+                Intent = PatrolIntent.Recovering;
+                IntentTarget = _homeCoord;
+                return;
+            }
+        }
+        else
+        {
+            _huntSteps = 0;
+        }
 
         Vector2I next;
         if (_committed)
@@ -306,14 +409,47 @@ public partial class PatrolToken : Node2D
             // Relentless pursuit, with no home leash. Equal speed means it shadows a
             // moving player and closes on a dithering one.
             next = StepToward(CurrentCoord, playerCoord);
+            Intent = PatrolIntent.Hunting;
+            IntentTarget = playerCoord;
+        }
+        else if (FieldRules && RaidTarget.HasValue)
+        {
+            // P5: an idle patrol walks to a small site and takes it.
+            Intent = PatrolIntent.Raiding;
+            IntentTarget = RaidTarget.Value;
+            if (CurrentCoord == RaidTarget.Value)
+            {
+                next = CurrentCoord;
+                _raidWait++;
+                if (_raidWait >= RaidTicks)
+                {
+                    RaidDone = true;
+                }
+            }
+            else
+            {
+                next = StepToward(CurrentCoord, RaidTarget.Value);
+                if (next == CurrentCoord)
+                {
+                    _raidStall++;
+                    if (_raidStall > 3)
+                    {
+                        ClearRaid();   // no way through: give the site up
+                    }
+                }
+            }
         }
         else if (_grid.Distance(CurrentCoord, _homeCoord) > HomeRange)
         {
             next = StepToward(CurrentCoord, _homeCoord);    // drift back to territory
+            Intent = PatrolIntent.GoingHome;
+            IntentTarget = _homeCoord;
         }
         else
         {
             next = Wander();
+            Intent = PatrolIntent.Patrolling;
+            IntentTarget = next;
         }
 
         if (next != CurrentCoord)

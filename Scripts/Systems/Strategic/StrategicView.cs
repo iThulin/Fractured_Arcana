@@ -3566,7 +3566,7 @@ public partial class StrategicView : Node2D
                 Vector2 pos = HexCoord.OffsetRenderPosition(poi.X, poi.Y, TilePx)
                               + new Vector2(TilePx * 0.5f, TilePx * 0.5f);
                 mm.SetInstanceTransform2D(n, new Transform2D(0f, pos));
-                mm.SetInstanceColor(n, PoiColor(poi.Kind));
+                mm.SetInstanceColor(n, ProvinceField.KindHidden(poi) ? UITheme.TextDim : PoiColor(poi.Kind));   // SP1
                 mm.SetInstanceCustomData(n, Colors.White);
                 _poiInstanceOfPoi[poiIndex] = n;
             }
@@ -5281,6 +5281,17 @@ public partial class StrategicView : Node2D
         var cycle = SaveManager.ActiveSave?.Cycle;
         if (cycle == null || !wf.HasFocus)
             return;
+
+        // SP2 (ruled 2026-11-10): seizing a province is a siege, and the castle is the guild's
+        // siege engine. It must stand in reach of the front. Defend and Aid do not need it.
+        if (side == WarfrontSide.Seize && !CastleReach.InReach(cycle, wf.FocusCol, wf.FocusRow))
+        {
+            ShowStrategicNotice("The castle is out of range",
+                "Seizing a province is a siege, and the castle is your siege engine. "
+                + "March the castle into this province or one beside it first. "
+                + "You can still Defend or Aid without it.");
+            return;
+        }
 
         _warfrontUi?.QueueFree();
         _warfrontUi = null;
@@ -7151,6 +7162,8 @@ public partial class StrategicView : Node2D
         // fell pays its new master. See docs/supply_cache_spec_v1.
         SupplyCacheSystem.TickPressure(cycle);
         KingdomTickSimulation.Tick(cycle, FactionDisplay);
+        // Rival archmages R1: each realm names its plan for the moon from what the tick did.
+        KingdomTickSimulation.ChoosePlans(cycle, FactionDisplay);
         SupplyCacheSystem.Tick(cycle, FactionDisplay);
         CompanionInjurySystem.TickRecovery(SaveManager.ActiveSave);
         // Wands at home recharge with the moon, so a wand spent in a castle or

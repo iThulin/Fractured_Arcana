@@ -34,6 +34,14 @@ public static class OverworldMovementCost
     /// <summary>Added to a step that crosses an unbridged river edge (a ford).</summary>
     public static int FordPenalty = 2;
 
+    /// <summary>FordPenalty outside the field. ExpeditionManager sets FordPenalty per run and
+    /// puts this back when it leaves the tree, because worldgen's road builder reads it too.</summary>
+    public const int DefaultFordPenalty = 2;
+
+    /// <summary>The field, P4: fording is the long way round a guarded bridge. A day and a
+    /// half at four to the day.</summary>
+    public const int FieldFordPenalty = 6;
+
     // ── Castle movement signature (Mobile Fortress §4) ───────────────────
     // Static ambient set once per sortie by ExpeditionManager from the active
     // CastleTypeDef, read inside StepCost so the preview and the charge apply

@@ -110,6 +110,11 @@ public class KingdomState
     /// convenience. Empty if no archmage was placed.</summary>
     public string ArchmageId = "";
 
+    /// <summary>Rival archmages R1 (docs/rival_archmages_v1.md): what this realm is working
+    /// toward this moon. Chosen by KingdomTickSimulation.ChoosePlans. Additive; a save from
+    /// before it loads with no plan.</summary>
+    public RivalPlan Plan = new();
+
 // ── Helpers ──────────────────────────────────────────────────────────
     // AtLeast / CanBuildOutpost REMOVED with the stored Stance. Gate reads:
     //   CouncilQueries.StanceFor(cycle, RegionId) >= KingdomStance.Neutral

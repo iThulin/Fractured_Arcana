@@ -2070,7 +2070,7 @@ public partial class WorldAtlas3D : Node3D
         foreach (var poi in _world.Pois)
         {
             if (!poi.Discovered && !_revealAll) continue;
-            var c = PoiColor(poi.Kind);
+            var c = ProvinceField.KindHidden(poi) ? UITheme.TextDim : PoiColor(poi.Kind);   // SP1
             AddMarker(new MeshInstance3D
             {
                 Mesh = poiMesh,

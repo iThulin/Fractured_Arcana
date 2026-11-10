@@ -99,6 +99,75 @@ public partial class OverworldFactionManager : Node2D
     [Signal]
     public delegate void PatrolCapturedPlayerEventHandler(Vector2I coord, string archmageId);
 
+    // ── The field, P5 (province_field_v1, F9) ────────────────────────────
+    /// <summary>True on a field run: hunts tire and idle patrols raid. Set by the expedition.</summary>
+    public bool FieldRules;
+
+    /// <summary>P5a: patrols added on top of the usual count. The expedition sets it before
+    /// Initialize: 2 on a field run, 0 on a castle run. The same on every rebuild of a run,
+    /// so saved patrol positions still line up after a fight.</summary>
+    public int ExtraPatrols;
+
+    /// <summary>SP3 (Foreboding): a hunting patrol's word says how many steps it has left.</summary>
+    public bool ShowHuntSteps;
+
+    /// <summary>SP3 (Beast Envoy): the nearest patrol that is not stunned or regrouping walks to
+    /// the tile for the given steps. False when there is none.</summary>
+    public bool LureNearestPatrol(Vector2I target, int steps)
+    {
+        PatrolToken best = null;
+        int bestDist = int.MaxValue;
+        foreach (var p in _patrols)
+        {
+            if (p.IsStunned || p.IsDisengaged)
+                continue;
+            int d = _grid.Distance(p.CurrentCoord, target);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = p;
+            }
+        }
+        if (best == null)
+            return false;
+        best.Lure(target, steps);
+        return true;
+    }
+
+    /// <summary>Rival archmages R2: how this province's patrols behave, from its ruler's plan.
+    /// The expedition sets it before Initialize. Only a Raider takes sites.</summary>
+    public PatrolToken.PatrolPosture Posture = PatrolToken.PatrolPosture.Normal;
+
+    /// <summary>Given a patrol's tile, the small site it should walk to and take, or null.
+    /// Supplied by the expedition, which knows the sites.</summary>
+    public System.Func<Vector2I, Vector2I?> RaidTargetPicker;
+
+    /// <summary>A patrol stood on a site long enough to take it. The expedition removes it.</summary>
+    public event System.Action<Vector2I> PatrolRaidedSite;
+
+    /// <summary>Every patrol's tile, where it is going, the plain word for why, and whether
+    /// that is aimed at the party.</summary>
+    public List<(Vector2I pos, Vector2I target, string word, bool hostile)> GetPatrolIntents()
+    {
+        var result = new List<(Vector2I pos, Vector2I target, string word, bool hostile)>(_patrols.Count);
+        foreach (var p in _patrols)
+        {
+            string word = p.Intent switch
+            {
+                PatrolToken.PatrolIntent.Hunting => ShowHuntSteps
+                    ? $"Hunting you ({p.HuntStepsLeft} steps left)" : "Hunting you",
+                PatrolToken.PatrolIntent.Lured => "Chasing a beast",
+                PatrolToken.PatrolIntent.Raiding => "Raiding a site",
+                PatrolToken.PatrolIntent.GoingHome => "Going home",
+                PatrolToken.PatrolIntent.Recovering => "Regrouping",
+                PatrolToken.PatrolIntent.Held => "Held",
+                _ => p.Posture == PatrolToken.PatrolPosture.Sentry ? "Standing guard" : "On patrol",
+            };
+            result.Add((p.CurrentCoord, p.IntentTarget, word, p.Intent == PatrolToken.PatrolIntent.Hunting));
+        }
+        return result;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Initialization
     // ═══════════════════════════════════════════════════════════════════════
@@ -153,6 +222,7 @@ public partial class OverworldFactionManager : Node2D
         // Supplies fund soldiers (docs/supply_cache_spec_v1): a kingdom flush
         // with harvested supply fields an extra patrol in its region.
         patrolCount += SupplyCacheSystem.PatrolBonusForRegion(regionId);
+        patrolCount += ExtraPatrols;   // P5a
         var placedCoords = new List<Vector2I>();
 
         for (int i = 0; i < patrolCount; i++)
@@ -281,7 +351,24 @@ public partial class OverworldFactionManager : Node2D
 
         foreach (var patrol in _patrols)
         {
+            // P5: field rules, and a site to raid for a patrol that has none.
+            patrol.FieldRules = FieldRules;
+            patrol.Posture = FieldRules ? Posture : PatrolToken.PatrolPosture.Normal;
+            if (FieldRules && Posture == PatrolToken.PatrolPosture.Raider
+                && RaidTargetPicker != null && !patrol.RaidTarget.HasValue)
+            {
+                patrol.RaidTarget = RaidTargetPicker(patrol.CurrentCoord);
+            }
             patrol.Tick(playerCoord);
+            if (patrol.RaidDone)
+            {
+                var taken = patrol.RaidTarget;
+                patrol.ClearRaid();
+                if (taken.HasValue)
+                {
+                    PatrolRaidedSite?.Invoke(taken.Value);
+                }
+            }
 
             // S3 (Fulminant Charge, Tinker): the first patrol to enter a
             // rigged hex springs the charge and freezes. Delay, not removal (G3).
@@ -497,23 +584,47 @@ public void DisengagePatrolsAt(Vector2I coord, int cooldownSteps)
         // Sort for determinism, then pick by a region-seeded RNG.
         candidates.Sort((a, b) => a.X != b.X ? a.X - b.X : a.Y - b.Y);
         var rng = new RandomNumberGenerator { Seed = (ulong)(regionId.GetHashCode() ^ 0x5EED) };
-        var start = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
+        // P5a: one wilds patrol, plus ExtraPatrols on a field run, kept four tiles apart
+        // where the ground allows.
+        var starts = new List<Vector2I>();
+        for (int i = 0; i < 1 + ExtraPatrols; i++)
+        {
+            var start = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
+            for (int tries = 0; tries < 12; tries++)
+            {
+                bool crowded = false;
+                foreach (var s in starts)
+                {
+                    if (_grid.Distance(s, start) < 4)
+                    {
+                        crowded = true;
+                        break;
+                    }
+                }
+                if (!crowded)
+                {
+                    break;
+                }
+                start = candidates[(int)(rng.Randi() % (uint)candidates.Count)];
+            }
+            starts.Add(start);
 
-        var patrol = new PatrolToken { Name = "WildsPatrol_0" };
-        patrol.TileQuery = TileQuery;   // Step 4
-        patrol.FogQuery = FogQuery;
-        _grid.AddChild(patrol);
-        patrol.Initialize(
-            _grid,
-            start,
-            homeCoord: start,
-            factionColorHex: "#9A8478",   // neutral dun, clearly not a faction force
-            archmageId: "wilds",
-            seed: (int)rng.Randi());
-        _patrols.Add(patrol);
+            var patrol = new PatrolToken { Name = $"WildsPatrol_{i}" };
+            patrol.TileQuery = TileQuery;   // Step 4
+            patrol.FogQuery = FogQuery;
+            _grid.AddChild(patrol);
+            patrol.Initialize(
+                _grid,
+                start,
+                homeCoord: start,
+                factionColorHex: "#9A8478",   // neutral dun, clearly not a faction force
+                archmageId: "wilds",
+                seed: (int)rng.Randi());
+            _patrols.Add(patrol);
+            GD.Print($"[FactionManager] Wilds patrol spawned at {start} (entry {entry}).");
+        }
 
         _initialized = true;
-        GD.Print($"[FactionManager] Wilds patrol spawned at {start} (entry {entry}).");
     }
 
     // ═══════════════════════════════════════════════════════════════════════

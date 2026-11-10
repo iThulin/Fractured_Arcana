@@ -144,6 +144,15 @@ public class WorldPoi
     /// A consumed POI persists as consumed so it isn't re-offered on revisit.</summary>
     public bool Consumed = false;
 
+    /// <summary>The field, P4 (province_field_v1, F6): this fight is a guard. It stands on a
+    /// bridge, pass or gate and holds its own tile and the six around it until it is beaten.
+    /// Posted by ProvinceField.PostGuards. Additive, default false.</summary>
+    public bool Guard = false;
+
+    /// <summary>SP3 (Tremorsense): this guard's ground has been shaken. It holds only its own
+    /// tile from then on. Additive, default false.</summary>
+    public bool GuardShaken = false;
+
     /// <summary>True if discovering/securing this POI grants a staging point.</summary>
     public bool GrantsStaging = false;
 

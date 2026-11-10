@@ -8,7 +8,7 @@
     "isInnate": true,
     "magnitude": "Subtle",
     "effectKey": "arcane_literacy",
-    "description": "Revealed POIs additionally show their reward category. (S3)"
+    "description": "You see what a site is from 5 tiles away instead of 3, and what kind of reward it holds."
   },
   {
     "id": "scrying_lens",
@@ -18,11 +18,11 @@
     "isInnate": true,
     "essenceCost": 3,
     "magnitude": "Subtle",
-    "targetingType": "Tile",
+    "targetingType": "None",
     "range": 6,
     "effectKey": "scrying_lens",
-    "effectParams": { "radius": 3 },
-    "description": "Chart all tiles within radius 3 of any already-charted tile up to 6 hexes away. Repeated casts leapfrog the frontier."
+    "effectParams": { "radius": 8 },
+    "description": "Every unknown site within 8 tiles of you becomes known."
   },
   {
     "id": "identify",
@@ -46,6 +46,6 @@
     "magnitude": "Subtle",
     "targetingType": "None",
     "effectKey": "ley_tap",
-    "description": "While on Arcane Ground: convert 1 step into 2 Essence."
+    "description": "While on Arcane Ground: spend half a day for 2 Essence."
   }
 ]

@@ -262,9 +262,16 @@ public partial class OverworldSpellManager : Node2D
     /// 1 less, never below 1: provinces 7i, PR46).</summary>
     public int CastCostOf(OverworldSpellDefinition def)
     {
-        int full = def.EssenceCost + OffCasterTax(def) + CorruptionSurcharge();
+        int full = def.EssenceCost + OffCasterTax(def) + CorruptionSurcharge() + ReachSurcharge(def);
         return full - HeldGroundDiscount(full);
     }
+
+    /// <summary>SP2 (ruled 2026-11-10): the castle is the focal point spells are cast from. A
+    /// field party beyond the castle's reach pays 1 more Essence for any spell that costs
+    /// Essence at all. 0 within reach, on a castle run, and for a free spell.</summary>
+    public int ReachSurcharge(OverworldSpellDefinition def)
+        => def != null && def.EssenceCost > 0 && _expedition != null
+           && _expedition.SpellBeyondCastleReach() ? 1 : 0;
 
     /// <summary>Provinces 7i (PR46): the Essence off a cast of the given full cost made
     /// from a tile of a province held for its benefits, the mirror of corrupted ground's
@@ -445,6 +452,10 @@ public partial class OverworldSpellManager : Node2D
         {
             case "retrace" when !_expedition.CanRetrace:
                 return "no step to retrace";
+            case "ember_ward" when _expedition.SpellFieldRules && OverworldSpellEffects.ClearSkiesArmed:
+                return "already armed";
+            case "bone_scout" when _expedition.SpellFieldRules && OverworldSpellEffects.NextFightMult < 1f:
+                return "the fallen are already raised";
             case "bone_scout" when !NearRemnant():
                 return "no Remnant within reach";
             case "speak_fallen" when !NearRemnant() && !OnRuins():
@@ -589,7 +600,7 @@ public partial class OverworldSpellManager : Node2D
         {
             _minorMenu = new PopupMenu { Name = "MinorWorkingMenu" };
             _minorMenu.AddItem("Mend: heal 3 party HP", 0);
-            _minorMenu.AddItem("Glimpse: chart 1 adjacent unseen hex", 1);
+            _minorMenu.AddItem("Glimpse: see what one site within 4 tiles is", 1);
             _minorMenu.AddItem("Ward: no terrain drain for 3 steps", 2);
             AddChild(_minorMenu);
             _minorMenu.IdPressed += id =>
@@ -657,6 +668,10 @@ public partial class OverworldSpellManager : Node2D
             if (def.Range > 0 && dist > def.Range)
                 continue;
 
+            // SP3: in the field these spells aim at sites, guards and ground.
+            if (_expedition.SpellFieldRules && FieldTarget(def, coord, dist, kvp.Value, into))
+                continue;
+
             switch (def.EffectKey)
             {
                 case "force_path":
@@ -710,12 +725,125 @@ public partial class OverworldSpellManager : Node2D
                         ? OverlayQuery(coord)
                         : new TileOverlay { Poi = kvp.Value.POI, Consumed = kvp.Value.POIConsumed };
                     if (idFog == OverworldHex.FogState.Revealed &&
-                        !idPoi.Consumed &&
+                        !idPoi.Consumed && _expedition.SpellSiteKnown(coord) &&
                         (idPoi.Poi == OverworldHex.POIType.Combat ||
                          idPoi.Poi == OverworldHex.POIType.Prison))
                         into.Add(coord);
                     break;
             }
+        }
+    }
+
+    /// <summary>SP3: field targeting. True when this spell's targets are decided here (the
+    /// tile is added to <paramref name="into"/> when it is one), false to fall through to the
+    /// older rules.</summary>
+    private bool FieldTarget(OverworldSpellDefinition def, Vector2I coord, int dist,
+                             OverworldHex node, List<Vector2I> into)
+    {
+        switch (def.EffectKey)
+        {
+            case "beast_envoy":
+                if (dist > 0 && LandAt(coord, node))
+                    into.Add(coord);
+                return true;
+            case "tremorsense":
+                if (_expedition.SpellIsGuard(coord))
+                    into.Add(coord);
+                return true;
+            case "clockwork_skimmer":
+                if (_expedition.SpellIsSmallSite(coord, takeOnly: true))
+                    into.Add(coord);
+                return true;
+            case "wayfarers_beacon":
+                if (_expedition.SpellIsSmallSite(coord, takeOnly: false))
+                    into.Add(coord);
+                return true;
+            case "minor_working":
+                if (dist <= 4 && _expedition.SpellIsUnknownSite(coord))
+                    into.Add(coord);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>SP3: the field's effects. <paramref name="handled"/> is false for a spell
+    /// that still plays by the older rules.</summary>
+    private string DispatchField(OverworldSpellDefinition def, Vector2I target, out bool handled)
+    {
+        handled = true;
+        switch (def.EffectKey)
+        {
+            case "beast_envoy":
+            {
+                int steps = (int)def.Param("steps", 6);
+                if (!_expedition.SpellLurePatrol(target, steps))
+                { _expedition.SpellInfo("Beast Envoy: there is no patrol to lure."); return null; }
+                return $"the beast runs, and the nearest patrol follows it for {steps} steps";
+            }
+
+            case "scrying_lens":
+            {
+                int n = _expedition.SpellKnowSites(_expedition.PartyLocal, (int)def.Param("radius", 8), fightsOnly: false);
+                if (n == 0)
+                { _expedition.SpellInfo("Scrying Lens: nothing unknown within reach."); return null; }
+                return $"the lens opens: {n} site(s) known";
+            }
+
+            case "speak_fallen":
+            {
+                int n = _expedition.SpellKnowSites(_expedition.PartyLocal, (int)def.Param("radius", 8), fightsOnly: true);
+                return n > 0
+                    ? $"the dead name their own: {n} fight(s) known"
+                    : "the dead know of no fight near here that you do not";
+            }
+
+            case "ley_tap":
+            {
+                _grid.Hexes.TryGetValue(_expedition.PartyLocal, out var ltHex);
+                if (TerrainOf(_expedition.PartyLocal, ltHex) != OverworldHex.TerrainType.ArcaneGround)
+                { _expedition.SpellInfo("Ley Tap: must stand on Arcane Ground."); return null; }
+                if (_expedition.StepsRemaining < 2)
+                { _expedition.SpellInfo("Ley Tap: not half a day left to spend."); return null; }
+                _expedition.StepsRemaining -= 2;
+                AddEssence(2, "Ley Tap");
+                return "half a day drawn down into 2 Essence";
+            }
+
+            case "tremorsense":
+                return _expedition.SpellShakeGuard(target)
+                    ? "the ground heaves: the guard holds only its own tile now"
+                    : null;
+
+            case "ember_ward":
+                OverworldSpellEffects.ClearSkiesArmed = true;
+                return "your next fight will be fought under clear skies";
+
+            case "bone_scout":
+                OverworldSpellEffects.NextFightMult = def.Param("mult", 0.85f);
+                return "the fallen rise to march with you: your next fight's enemies are weaker";
+
+            case "clockwork_skimmer":
+                return _expedition.SpellTakeSite(target);
+
+            case "attuned_recall":
+                if (!_expedition.SpellRecallToArrival())
+                { _expedition.SpellInfo("Attuned Recall: you are already where you arrived."); return null; }
+                return "the party steps back to where it arrived, and no time passes";
+
+            case "wayfarers_beacon":
+                return _expedition.SpellWardSite(target)
+                    ? "the mark is set: patrols will leave this site alone"
+                    : null;
+
+            case "minor_working" when _minorChoice == 1:
+                return _expedition.SpellKnowSiteAt(target)
+                    ? "a glimpse: the site is known"
+                    : null;
+
+            default:
+                handled = false;
+                return null;
         }
     }
 
@@ -978,6 +1106,14 @@ public partial class OverworldSpellManager : Node2D
         var world = _expedition.WorldRef;
         var window = _expedition.WindowRef;
 
+        // SP3: in the field, the rewritten spells resolve here.
+        if (_expedition.SpellFieldRules)
+        {
+            string field = DispatchField(def, target, out bool handled);
+            if (handled)
+                return field;
+        }
+
         switch (def.EffectKey)
         {
             // ── S3 ────────────────────────────────────────────────────────
@@ -1209,6 +1345,13 @@ public partial class OverworldSpellManager : Node2D
         var att = OverworldSpellRegistry.AttunementFor(_school);
         if (att == null)
             return;
+        // SP3: in the field no attunement thins fog. Each is read where it acts: sight and
+        // sites in ExpeditionManager, patrols in the intent line. Elemental Sense wards here.
+        if (_expedition.SpellFieldRules)
+        {
+            OverworldSpellEffects.ElementalWard = att.EffectKey == "elemental_sense";
+            return;
+        }
         if (!ImplementedAttunements.Contains(att.EffectKey))
         {
             if (!_warnedUnbuiltAttunement)

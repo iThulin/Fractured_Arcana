@@ -9,7 +9,7 @@
     "magnitude": "Subtle",
     "effectKey": "deathsight",
     "effectParams": { "radius": 3 },
-    "description": "Ruins silhouette through fog within 3 hexes; every combat the party wins leaves a Remnant for the rest of the expedition."
+    "description": "Sites on ruins are known the moment you arrive. Every fight you win leaves a Remnant where it was fought."
   },
   {
     "id": "speak_fallen",
@@ -21,7 +21,8 @@
     "magnitude": "Overt",
     "targetingType": "None",
     "effectKey": "speak_fallen",
-    "description": "At a Remnant or ruin: the dead betray patrol positions and the bearing of the nearest undiscovered site."
+    "effectParams": { "radius": 8 },
+    "description": "At a Remnant or a ruin: every unknown fight within 8 tiles becomes known."
   },
   {
     "id": "bone_scout",
@@ -31,11 +32,11 @@
     "isInnate": true,
     "essenceCost": 3,
     "magnitude": "Overt",
-    "targetingType": "Path",
+    "targetingType": "None",
     "range": 5,
     "effectKey": "bone_scout",
-    "effectParams": { "chartRadius": 0 },
-    "description": "Raise a scout from a Remnant; it walks a drawn path of up to 5 hexes, charting as it goes, then collapses."
+    "effectParams": { "mult": 0.85 },
+    "description": "At a Remnant: raise the fallen. The enemies in your next fight are 15% weaker."
   },
   {
     "id": "pallid_bargain",

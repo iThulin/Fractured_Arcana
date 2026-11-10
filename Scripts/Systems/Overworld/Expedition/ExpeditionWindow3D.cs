@@ -105,6 +105,14 @@ public partial class ExpeditionWindow3D : Node3D
     /// disagree. Null in the standalone harness, which falls back to the POI kind.</summary>
     public System.Func<Vector2I, string> LureLabel;
 
+    /// <summary>The field, P4 (world-offset coord in): 1 a guard stands here, 2 a guard holds
+    /// this ground, 3 the edge of the outing's province, 0 nothing. Null in the harness.</summary>
+    public System.Func<Vector2I, int> FieldMark;
+
+    /// <summary>SP1 (world-offset coord in): true when the site on this tile is not yet known.
+    /// It draws as a grey mark that does not show its kind. Null in the harness.</summary>
+    public System.Func<Vector2I, bool> SiteHidden;
+
     /// <summary>Knowledge ladder L4b1 (D220): the standing rumors' rings, world-offset coords
     /// in: each ring's center, its radius in tiles and its label. The live host supplies them;
     /// null in the standalone harness, which draws none.</summary>
@@ -3071,8 +3079,13 @@ void fragment() {
         {
             if (_fog.FogAt(c) != Fog.Revealed) continue;   // silhouette hides contents (G2)
             var ov = _overlay.OverlayAt(c);
+            int fieldMark = FieldMark != null ? FieldMark(c) : 0;
+            if (fieldMark != 0)
+            {
+                AddFieldMark(c, fieldMark);
+            }
             if (ov.Poi == OverworldHex.POIType.None || ov.Consumed) continue;
-            var col = PoiColor(ov.Poi);
+            var col = (SiteHidden != null && SiteHidden(c)) ? UITheme.TextDim : PoiColor(ov.Poi);
             var pos = TileOrigin(c.X, c.Y); pos.Y = TileHeight(c) + 0.9f;
             _markers.Add(AddChildReturn(new MeshInstance3D
             {
@@ -3172,6 +3185,44 @@ void fragment() {
         };
         AddChild(ring);
         _markers.Add(ring);
+    }
+
+    /// <summary>The field, P4. A guard is a tall red spike over its marker. Ground it holds is
+    /// a red disc on the tile. The province's edge is a small pale disc. All join
+    /// <see cref="_markers"/>, so the next rebuild frees them.</summary>
+    private void AddFieldMark(Vector2I c, int mark)
+    {
+        var ground = TileOrigin(c.X, c.Y);
+        ground.Y = TileHeight(c) + 0.06f;
+        if (mark == 1)
+        {
+            _markers.Add(AddChildReturn(new MeshInstance3D
+            {
+                Mesh = new CylinderMesh { TopRadius = 0f, BottomRadius = 0.3f, Height = 1.4f, RadialSegments = 8, Rings = 1 },
+                MaterialOverride = new StandardMaterial3D
+                {
+                    AlbedoColor = UITheme.POICombat,
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    NoDepthTest = true,
+                },
+                Position = ground + new Vector3(0f, 1.9f, 0f),
+            }));
+        }
+        bool edge = mark == 3;
+        float radius = edge ? 0.14f : 0.6f;
+        Color tint = edge ? UITheme.TextPrimary : UITheme.Danger;
+        _markers.Add(AddChildReturn(new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = radius, BottomRadius = radius, Height = 0.03f, RadialSegments = 12, Rings = 1 },
+            MaterialOverride = new StandardMaterial3D
+            {
+                AlbedoColor = new Color(tint, edge ? 0.7f : 0.4f),
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                NoDepthTest = true,
+            },
+            Position = ground,
+        }));
     }
 
     /// <summary>Height of a lure's column above its marker, in world units. Tall
@@ -3816,6 +3867,59 @@ void fragment() {
                 { AlbedoColor = color, EmissionEnabled = true, Emission = color, EmissionEnergyMultiplier = 0.6f, NoDepthTest = true },
                 Position = pos,
             }));
+        }
+    }
+
+    private readonly List<Node3D> _intentNodes = new();   // P5: patrol intent lines and words
+
+    /// <summary>The field, P5: draw each patrol's intent as a dotted line from the patrol to
+    /// where it is going, with the plain word over the patrol. World-offset coords in. Null or
+    /// empty clears them.</summary>
+    public void SetIntents(System.Collections.Generic.IEnumerable<(Vector2I from, Vector2I to, string word, Color color)> intents)
+    {
+        foreach (var n in _intentNodes) n?.QueueFree();
+        _intentNodes.Clear();
+        if (intents == null || _fog == null) return;
+        foreach (var (from, to, word, color) in intents)
+        {
+            if (_fog.FogAt(from) == Fog.Hidden) continue;
+            var a = TileOrigin(from.X, from.Y);
+            a.Y = TileHeight(from) + 0.5f;
+            var label = new Label3D
+            {
+                Text = word,
+                Position = a + new Vector3(0f, 1.3f, 0f),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                RenderPriority = 4,
+                OutlineRenderPriority = 3,
+                FontSize = 28,
+                PixelSize = 0.012f,
+                Modulate = color,
+                OutlineSize = 10,
+                OutlineModulate = UITheme.RoadChoiceOutline,
+            };
+            AddChild(label);
+            _intentNodes.Add(label);
+
+            if (to == from || !_world.InBounds(to.X, to.Y)) continue;
+            var b = TileOrigin(to.X, to.Y);
+            b.Y = TileHeight(to) + 0.5f;
+            int dots = Mathf.Clamp(Mathf.RoundToInt(a.DistanceTo(b) / 0.9f), 2, 24);
+            for (int i = 1; i < dots; i++)
+            {
+                _intentNodes.Add(AddChildReturn(new MeshInstance3D
+                {
+                    Mesh = new SphereMesh { Radius = 0.09f, Height = 0.18f, RadialSegments = 6, Rings = 3 },
+                    MaterialOverride = new StandardMaterial3D
+                    {
+                        AlbedoColor = color,
+                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                        NoDepthTest = true,
+                    },
+                    Position = a.Lerp(b, i / (float)dots),
+                }));
+            }
         }
     }
 

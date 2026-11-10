@@ -327,6 +327,14 @@ public partial class ExpeditionManager : Node2D
 
     private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
     private Label _hoverTooltip;
+
+    /// <summary>The tile the 3D view's cursor is over, or null. The readout reads it while the
+    /// 3D view is open.</summary>
+    private Vector2I? _hover3D;
+
+    /// <summary>In the 3D view the readout is a small card, one fact a line.</summary>
+    private string TooltipLayout(string line)
+        => _window3D != null ? line.Replace("  ·  ", "\n") : line;
     private HSeparator _objectiveSeparator;
 
     // ── Autosave throttle ───────────────────────────────────────────────
@@ -423,7 +431,18 @@ public partial class ExpeditionManager : Node2D
                 SaveManager.MarkDirty();
                 GD.Print($"[Field] Province filled: {filled} site(s) added.");
             }
+            // P4 (F6): guards on the province's bridges, passes and gates.
+            int guards = ProvinceField.PostGuards(_world, _stagingCol, _stagingRow);
+            if (guards > 0)
+            {
+                SaveManager.MarkDirty();
+                GD.Print($"[Field] Guards posted: {guards}.");
+            }
         }
+        // P4: in the field a ford is the long way round. Put back in _ExitTree.
+        OverworldMovementCost.FordPenalty = _fieldRun
+            ? OverworldMovementCost.FieldFordPenalty
+            : OverworldMovementCost.DefaultFordPenalty;
 
         _window = new WorldWindowBuilder(_world, _stagingCol, _stagingRow, WindowRadius);
 
@@ -465,6 +484,14 @@ public partial class ExpeditionManager : Node2D
         // the same seams the manager itself gates on. Wired BEFORE Initialize.
         _factionManager.TileQuery = local => TryTileAt(local, out var ft) ? ft : (WorldTile?)null;
         _factionManager.FogQuery = local => _fog.FogAt(local);
+        _factionManager.ExtraPatrols = _fieldRun ? 2 : 0;   // P5a: the field is busier
+        // Rival archmages R2: the province's patrols act on its ruler's plan.
+        string planNote = "";
+        if (_fieldRun && !Interval.Walking(cycle))
+        {
+            _factionManager.Posture = FieldPosture(cycle, out int planPatrols, out planNote);
+            _factionManager.ExtraPatrols = Mathf.Max(0, _factionManager.ExtraPatrols + planPatrols);
+        }
         _factionManager.PoiQuery = local => _overlay.OverlayAt(local).Poi;
         _grid.AddChild(_factionManager);
         // Patrols key off the TEMPLATE REGION (the campaign's archmage map is
@@ -475,6 +502,21 @@ public partial class ExpeditionManager : Node2D
             _factionManager.Initialize(_grid, StagingTemplateRegion(), cycle.Campaign);
         }
         _factionManager.PatrolCapturedPlayer += OnPatrolCapturedPlayer;
+        if (!(router != null && router.HasPendingReturn))
+        {
+            _wardedSites.Clear();   // SP3: a beacon lasts one outing
+        }
+        // R2: say on arrival what the ruler's plan means here. Not on a return from a fight.
+        if (planNote.Length > 0 && !(router != null && router.HasPendingReturn))
+        {
+            GD.Print($"[Field] {planNote}");
+            PostScryMessage(ScryChannel.Note, "Patrols in this province", planNote,
+                            _fieldRun ? _fieldPartyId : "");
+        }
+        // P5 (province_field_v1, F9): in the field patrols tire, raid, and show their intent.
+        _factionManager.FieldRules = _fieldRun;
+        _factionManager.RaidTargetPicker = PickRaidTarget;
+        _factionManager.PatrolRaidedSite += OnPatrolRaidedSite;
 
         // Party token
         _party = new OverworldPartyToken { Name = "PartyToken" };
@@ -864,6 +906,7 @@ public partial class ExpeditionManager : Node2D
         PaintContestedGround();   // and show WHICH ground the war is over
         ApplyScryingReveals(bonuses);   // Scrying Chambers run-start intel (scrying_chambers_spec_v1)
         OpenProvinceGround();           // P2: the province lies open on arrival (province_field_v1, F3)
+        KnowSitesNear(_party.CurrentCoord);   // SP1: what stands beside the arrival tile is known
 
         CenterCamera();
         UpdateUI();
@@ -1373,6 +1416,8 @@ public partial class ExpeditionManager : Node2D
         _window3D.TileHovered += OnWindow3DHover;
         _window3D.TileUnhovered += OnWindow3DUnhover;
         _window3D.LureLabel = LureLabelAtWorld;
+        _window3D.FieldMark = FieldMarkAtWorld;   // P4: guards, held ground, the border
+        _window3D.SiteHidden = w => !SiteKnownWorld(w.X, w.Y);   // SP1: unknown sites draw grey
         _window3D.LeadRings = LeadRingsInWorld;   // knowledge ladder L4b1 (D220)
         vp.AddChild(_window3D);
         _window3D.AcceptInput = true;
@@ -1402,6 +1447,7 @@ public partial class ExpeditionManager : Node2D
         _window3DContainer?.QueueFree();
         _window3DContainer = null;
         _window3D = null;
+        _hover3D = null;
         UpdateView3DButton();
     }
 
@@ -1454,6 +1500,27 @@ public partial class ExpeditionManager : Node2D
             && _window.TryLocalToWorld(_roamer.CurrentCoord, out int rx, out int ry))
             entities.Add((new Vector2I(rx, ry), UITheme.POINarrative));
         _window3D.SetEntities(entities);
+
+        // P5: each patrol's intent, as a dotted line to where it is going and a word.
+        List<(Vector2I from, Vector2I to, string word, Color color)> intents = null;
+        if (_fieldRun && _factionManager != null)
+        {
+            intents = new List<(Vector2I from, Vector2I to, string word, Color color)>();
+            // SP3: Foreboding counts a hunt down; True Names names the realm and its plan.
+            _factionManager.ShowHuntSteps = _spells != null && _spells.HasAttunement("foreboding");
+            string named = _spells != null && _spells.HasAttunement("true_names") && _fieldRulerTag.Length > 0
+                ? $" ({_fieldRulerTag})" : "";
+            foreach (var (pos, target, word, hostile) in _factionManager.GetPatrolIntents())
+            {
+                if (_window.TryLocalToWorld(pos, out int ix, out int iy)
+                    && _window.TryLocalToWorld(target, out int tx, out int ty))
+                {
+                    intents.Add((new Vector2I(ix, iy), new Vector2I(tx, ty), word + named,
+                                 hostile ? UITheme.Danger : UITheme.TextPrimary));
+                }
+            }
+        }
+        _window3D.SetIntents(intents);
     }
 
     /// <summary>A 3D-overlay click: translate the world coord back to grid-local and run
@@ -1477,11 +1544,12 @@ public partial class ExpeditionManager : Node2D
     /// the existing OnHexHovered/OnHexUnhovered path), AND preview the stride path to that tile.</summary>
     private void OnWindow3DHover(Vector2I worldCoord)
     {
+        var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
+        _hover3D = local;   // the readout follows the cursor even while a march runs
         if (!CanAcceptOrders())
         {
             return;
         }
-        var local = _window.LocalOf(worldCoord.X, worldCoord.Y);
         OnHexHovered(local);
         ShowStridePreview(local);
     }
@@ -1520,6 +1588,7 @@ public partial class ExpeditionManager : Node2D
 
     private void OnWindow3DUnhover()
     {
+        _hover3D = null;
         if (_hoveredCoord.HasValue)
             OnHexUnhovered(_hoveredCoord.Value);
         _window3D?.ClearStridePath();
@@ -1660,6 +1729,532 @@ public partial class ExpeditionManager : Node2D
         }
     }
 
+    // ── SP1: a site is an unknown mark until the party has seen it close ──
+
+    /// <summary>Tiles within which the party sees what a site is.</summary>
+    private const int FieldSightRadius = 3;
+
+    private const string UnknownSiteText =
+        "  ·  Unknown site. Come within 3 tiles to see what it is.";
+
+    /// <summary>Is what stands on this world tile known? Always on a castle run and in the
+    /// interval. In the field: a guard, an outpost, a settlement, a seat and a supply cache
+    /// are landmarks and always known. Any other site is known once WorldPoi.Known is set,
+    /// by sight (KnowSitesNear) or by a spell.</summary>
+    private bool SiteKnownWorld(int col, int row)
+    {
+        if (!_fieldRun || _world == null || Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return true;
+        }
+        var poi = _world.PoiAt(col, row);
+        if (poi == null || poi.Known || poi.Guard)
+        {
+            return true;
+        }
+        return poi.Kind == PoiKind.Outpost || poi.Kind == PoiKind.Settlement
+            || poi.Kind == PoiKind.Seat || poi.Kind == PoiKind.SupplyCache
+            || poi.Kind == PoiKind.Convergence;
+    }
+
+    private bool SiteKnownLocal(Vector2I local)
+        => _window == null || !_window.TryLocalToWorld(local, out int c, out int r) || SiteKnownWorld(c, r);
+
+    /// <summary>Every site within FieldSightRadius of the party becomes known.</summary>
+    private void KnowSitesNear(Vector2I local)
+    {
+        if (!_fieldRun || _world == null || _window == null
+            || !_window.TryLocalToWorld(local, out int pc, out int pr))
+        {
+            return;
+        }
+        bool any = false;
+        foreach (var (c, r) in _world.Disc(pc, pr, FieldSight))
+        {
+            var poi = _world.PoiAt(c, r);
+            if (poi != null && !poi.Known && !poi.Consumed)
+            {
+                poi.Known = true;
+                any = true;
+            }
+        }
+        // SP3: Wildsense knows the sites on forest and swamp, Deathsight the sites on ruins.
+        bool wild = _spells != null && _spells.HasAttunement("wildsense");
+        bool dead = _spells != null && _spells.HasAttunement("deathsight");
+        if ((wild || dead) && _grid != null)
+        {
+            foreach (var hexLocal in _grid.Hexes.Keys)
+            {
+                var ov = _overlay.OverlayAt(hexLocal);
+                if (ov.Poi == OverworldHex.POIType.None || ov.Consumed
+                    || !_window.TryLocalToWorld(hexLocal, out int sc, out int sr))
+                {
+                    continue;
+                }
+                var sensed = _world.PoiAt(sc, sr);
+                if (sensed == null || sensed.Known)
+                {
+                    continue;
+                }
+                var ground = TerrainAt(hexLocal);
+                if ((wild && (ground == OverworldHex.TerrainType.Forest || ground == OverworldHex.TerrainType.Swamp))
+                    || (dead && ground == OverworldHex.TerrainType.Ruins))
+                {
+                    sensed.Known = true;
+                    any = true;
+                }
+            }
+        }
+        if (any)
+        {
+            SaveManager.MarkDirty();
+        }
+    }
+
+    // ── SP3: what the field's spells do (called by OverworldSpellManager) ──
+
+    /// <summary>True on a field run outside the interval: the rewritten spells apply.</summary>
+    public bool SpellFieldRules => _fieldRun && !Interval.Walking(SaveManager.ActiveSave?.Cycle);
+
+    /// <summary>Tiles within which the party sees what a site is. Arcane Literacy: 5.</summary>
+    private int FieldSight => _spells != null && _spells.HasAttunement("arcane_literacy") ? 5 : FieldSightRadius;
+
+    /// <summary>Sites a beacon protects from raiders this outing, as "col,row". Static so a
+    /// fight's round trip keeps them. Cleared on a fresh deploy.</summary>
+    private static readonly HashSet<string> _wardedSites = new();
+
+    /// <summary>The ruler and its plan, for True Names: "Eastreach: Hunt". Empty in the wilds.</summary>
+    private string _fieldRulerTag = "";
+
+    // Retrace in the field undoes a whole march, not one step.
+    private bool _hasMarch;
+    private Vector2I _marchFrom;
+    private int _marchSteps;
+
+    private void NoteMarchStart()
+    {
+        if (_party == null)
+        {
+            return;
+        }
+        _hasMarch = true;
+        _marchFrom = _party.CurrentCoord;
+        _marchSteps = StepsRemaining;
+    }
+
+    private void RefreshField3D()
+    {
+        if (_window3D != null)
+        {
+            FeedWindow3D(frameCamera: false);
+        }
+    }
+
+    /// <summary>The tooltip for a site not yet known. Surveyor's Eye adds whether it is a fight.</summary>
+    private string UnknownSiteLine(Vector2I local)
+    {
+        string kind = "";
+        if (_spells != null && _spells.HasAttunement("surveyors_eye"))
+        {
+            var p = _overlay.OverlayAt(local).Poi;
+            kind = p == OverworldHex.POIType.Combat || p == OverworldHex.POIType.Prison
+                ? " It is a fight." : " It is not a fight.";
+        }
+        return $"  ·  Unknown site.{kind} Come within {FieldSight} tiles to see what it is.";
+    }
+
+    public bool SpellSiteKnown(Vector2I local) => SiteKnownLocal(local);
+
+    public bool SpellIsUnknownSite(Vector2I local)
+    {
+        var ov = _overlay.OverlayAt(local);
+        return ov.Poi != OverworldHex.POIType.None && !ov.Consumed && !SiteKnownLocal(local);
+    }
+
+    /// <summary>An unbeaten guard whose ground has not been shaken.</summary>
+    public bool SpellIsGuard(Vector2I local)
+    {
+        if (!IsGuardTile(local) || !_window.TryLocalToWorld(local, out int c, out int r))
+        {
+            return false;
+        }
+        var g = ProvinceField.GuardAt(_world, c, r);
+        return g != null && !g.GuardShaken;
+    }
+
+    /// <summary>A known, untaken stash or shrine in view; with takeOnly false a refuge too.</summary>
+    public bool SpellIsSmallSite(Vector2I local, bool takeOnly)
+    {
+        var ov = _overlay.OverlayAt(local);
+        if (ov.Consumed || !SiteKnownLocal(local) || _fog.FogAt(local) != OverworldHex.FogState.Revealed)
+        {
+            return false;
+        }
+        return ov.Poi == OverworldHex.POIType.Stash || ov.Poi == OverworldHex.POIType.Shrine
+            || (!takeOnly && ov.Poi == OverworldHex.POIType.Rest);
+    }
+
+    /// <summary>Every unknown site within the radius becomes known. Returns how many.</summary>
+    public int SpellKnowSites(Vector2I centerLocal, int radius, bool fightsOnly)
+    {
+        if (_world == null || !_window.TryLocalToWorld(centerLocal, out int pc, out int pr))
+        {
+            return 0;
+        }
+        int n = 0;
+        foreach (var (c, r) in _world.Disc(pc, pr, radius))
+        {
+            var poi = _world.PoiAt(c, r);
+            if (poi == null || poi.Known || poi.Consumed || !ProvinceField.KindHidden(poi))
+            {
+                continue;
+            }
+            if (fightsOnly && poi.Kind != PoiKind.Combat)
+            {
+                continue;
+            }
+            poi.Known = true;
+            n++;
+        }
+        if (n > 0)
+        {
+            SaveManager.MarkDirty();
+            RefreshField3D();
+        }
+        return n;
+    }
+
+    public bool SpellKnowSiteAt(Vector2I local)
+    {
+        if (!_window.TryLocalToWorld(local, out int c, out int r))
+        {
+            return false;
+        }
+        var poi = _world.PoiAt(c, r);
+        if (poi == null || poi.Known)
+        {
+            return false;
+        }
+        poi.Known = true;
+        SaveManager.MarkDirty();
+        RefreshField3D();
+        return true;
+    }
+
+    public bool SpellLurePatrol(Vector2I target, int steps)
+    {
+        bool lured = _factionManager != null && _factionManager.LureNearestPatrol(target, steps);
+        if (lured)
+        {
+            RefreshField3D();
+        }
+        return lured;
+    }
+
+    public bool SpellShakeGuard(Vector2I local)
+    {
+        if (!SpellIsGuard(local) || !_window.TryLocalToWorld(local, out int c, out int r))
+        {
+            return false;
+        }
+        ProvinceField.GuardAt(_world, c, r).GuardShaken = true;
+        SaveManager.MarkDirty();
+        RefreshField3D();
+        return true;
+    }
+
+    /// <summary>Clockwork Skimmer: take a known stash or shrine without walking to it.</summary>
+    public string SpellTakeSite(Vector2I local)
+    {
+        if (!SpellIsSmallSite(local, takeOnly: true))
+        {
+            return null;
+        }
+        var poi = _overlay.OverlayAt(local).Poi;
+        string result;
+        if (poi == OverworldHex.POIType.Stash)
+        {
+            int gold = (int)GD.RandRange(12, 24);
+            int spl = SplinterDropTable.RestSite();
+            GoldEarned += gold;
+            SplinterEarned += spl;
+            LogRun("stash", "stash (skimmer)", goldDelta: +gold, splinterDelta: +spl, at: local);
+            result = $"the skimmer returns with {gold} gold and {spl} Arcane Splinters";
+        }
+        else
+        {
+            _spells?.AddEssence(4, "Shrine");
+            LogRun("shrine", "shrine (skimmer)", at: local);
+            result = "the skimmer carries the shrine's gift back: +4 Essence";
+        }
+        ConsumeOverlayPoi(local);
+        ConsumeWorldPoi(local);
+        UpdateUI();
+        RefreshField3D();
+        return result;
+    }
+
+    public bool SpellWardSite(Vector2I local)
+    {
+        if (!SpellIsSmallSite(local, takeOnly: false) || !_window.TryLocalToWorld(local, out int c, out int r))
+        {
+            return false;
+        }
+        return _wardedSites.Add($"{c},{r}");
+    }
+
+    private bool SiteWarded(Vector2I local)
+        => _window.TryLocalToWorld(local, out int c, out int r) && _wardedSites.Contains($"{c},{r}");
+
+    /// <summary>Attuned Recall: the party stands on its arrival tile again. No days pass.</summary>
+    public bool SpellRecallToArrival()
+    {
+        if (_party == null || _window == null)
+        {
+            return false;
+        }
+        var home = _window.LocalOf(_stagingCol, _stagingRow);
+        if (home == _party.CurrentCoord)
+        {
+            return false;
+        }
+        if (!HardWindowMode)
+        {
+            RecenterWindow(home);
+        }
+        if (!_grid.Hexes.ContainsKey(home))
+        {
+            return false;
+        }
+        _party.Initialize(_grid, _fog, home);
+        _hasMarch = false;
+        _hasLastMove = false;
+        KnowSitesNear(home);
+        UpdateUI();
+        RefreshField3D();
+        return true;
+    }
+
+    /// <summary>Retrace in the field: the last march unhappens. Position and days restored.</summary>
+    private bool RetraceMarch()
+    {
+        if (!_hasMarch || _party == null)
+        {
+            return false;
+        }
+        _hasMarch = false;
+        _hasLastMove = false;
+        StepsRemaining = Mathf.Max(StepsRemaining, _marchSteps);
+        if (!HardWindowMode)
+        {
+            RecenterWindow(_marchFrom);
+        }
+        if (!_grid.Hexes.ContainsKey(_marchFrom))
+        {
+            return false;
+        }
+        _party.Initialize(_grid, _fog, _marchFrom);
+        UpdateUI();
+        RefreshField3D();
+        return true;
+    }
+
+    // ── Rival archmages R2 (rival_archmages_v1): the ruler's plan, in the field ──
+
+    /// <summary>How the patrols of the province the party deploys into behave, from the plan
+    /// of the realm that rules it. Land no realm rules is bandit ground: its patrols raid.
+    /// <paramref name="patrols"/> is the change to the patrol count, and
+    /// <paramref name="note"/> one plain line for the desk.</summary>
+    private PatrolToken.PatrolPosture FieldPosture(CycleState cycle, out int patrols, out string note)
+    {
+        patrols = 0;
+        note = "";
+        if (cycle?.World == null)
+        {
+            return PatrolToken.PatrolPosture.Normal;
+        }
+        var province = cycle.World.ProvinceAt(_stagingCol, _stagingRow);
+        string ruler = ProvinceControl.RulerAt(cycle, _stagingCol, _stagingRow);
+
+        // A neighbour pushing a front or a claim into this province puts more soldiers on it.
+        string pressed = "";
+        if (province != null && cycle.Kingdoms != null)
+        {
+            foreach (var kvp in cycle.Kingdoms)
+            {
+                var other = kvp.Value?.Plan;
+                if (kvp.Key != ruler && other != null && other.Kind == RivalPlanKind.Expand
+                    && other.TargetProvinceId == province.Id)
+                {
+                    patrols++;
+                    pressed = $" {ProvinceControl.RealmName(cycle, kvp.Key)} is pushing in here, so there are more soldiers about.";
+                    break;
+                }
+            }
+        }
+
+        if (!ProvinceControl.IsKingdom(ruler) || cycle.Kingdoms == null
+            || !cycle.Kingdoms.TryGetValue(ruler, out var realm) || realm?.Plan == null)
+        {
+            note = "No realm rules here. The patrols are raiders and will take stashes, shrines and refuges." + pressed;
+            return PatrolToken.PatrolPosture.Raider;
+        }
+
+        string who = ProvinceControl.RealmName(cycle, ruler);
+        _fieldRulerTag = realm.Plan.Kind == RivalPlanKind.None ? who : $"{who}: {realm.Plan.Kind}";   // SP3: True Names
+        switch (realm.Plan.Kind)
+        {
+            case RivalPlanKind.Hunt:
+                patrols++;
+                note = $"{who} is hunting the guild. Its patrols here see farther, chase longer, and there is one more of them." + pressed;
+                return PatrolToken.PatrolPosture.Hunter;
+            case RivalPlanKind.Gather:
+                note = $"{who} is gathering. Its patrols here will take stashes, shrines and refuges." + pressed;
+                return PatrolToken.PatrolPosture.Raider;
+            case RivalPlanKind.Fortify:
+                note = $"{who} is fortifying. Its patrols here stand guard: they stay near their posts and see less far." + pressed;
+                return PatrolToken.PatrolPosture.Sentry;
+            case RivalPlanKind.Expand:
+                patrols--;
+                note = $"{who} is expanding elsewhere. One of its patrols here has gone to the front." + pressed;
+                return PatrolToken.PatrolPosture.Normal;
+            default:
+                note = pressed.Length > 0 ? $"{who} has no plan this moon." + pressed : "";
+                return PatrolToken.PatrolPosture.Normal;
+        }
+    }
+
+    // ── P5 (province_field_v1, F9): what an idle patrol goes to take ─────
+
+    /// <summary>How far a patrol will walk to raid a site.</summary>
+    private const int RaidReach = 10;
+
+    private static bool IsRaidable(OverworldHex.POIType p)
+        => p == OverworldHex.POIType.Stash || p == OverworldHex.POIType.Shrine
+        || p == OverworldHex.POIType.Rest;
+
+    /// <summary>The nearest stash, shrine or refuge a patrol at this tile could take: in view,
+    /// not yet taken, not on ground a guard holds, and not under the party. Null when there is
+    /// none in reach, on a castle run, or while the interval walks.</summary>
+    private Vector2I? PickRaidTarget(Vector2I from)
+    {
+        if (!_fieldRun || _grid == null || _party == null
+            || Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        {
+            return null;
+        }
+        Vector2I? best = null;
+        int bestDist = RaidReach + 1;
+        foreach (var local in _grid.Hexes.Keys)
+        {
+            var ov = _overlay.OverlayAt(local);
+            if (!IsRaidable(ov.Poi) || ov.Consumed || local == _party.CurrentCoord
+                || _fog.FogAt(local) != OverworldHex.FogState.Revealed)
+            {
+                continue;
+            }
+            int d = _grid.Distance(from, local);
+            if (d < bestDist && GuardHoldingLocal(local) == null && !SiteWarded(local))
+            {
+                bestDist = d;
+                best = local;
+            }
+        }
+        return best;
+    }
+
+    /// <summary>A patrol stood on a small site long enough to take it. The site is gone.</summary>
+    private void OnPatrolRaidedSite(Vector2I coord)
+    {
+        var ov = _overlay.OverlayAt(coord);
+        if (!IsRaidable(ov.Poi) || ov.Consumed)
+        {
+            return;
+        }
+        string what = ov.Poi == OverworldHex.POIType.Stash ? "stash"
+                    : ov.Poi == OverworldHex.POIType.Shrine ? "shrine" : "refuge";
+        ConsumeOverlayPoi(coord);
+        ConsumeWorldPoi(coord);
+        LogRun("raided", what, at: coord);
+        ShowInfo($"A patrol has taken a {what}. It is gone.");
+        SaveManager.MarkDirty();
+    }
+
+    // ── P4 (province_field_v1, F6): guards and the ground they hold ──────
+
+    private const string GuardHoldsText =
+        "A guard holds that ground. Click the guard to fight it, or go around.";
+
+    /// <summary>The unbeaten guard holding this tile, or null. Field runs only.</summary>
+    private WorldPoi GuardHoldingLocal(Vector2I local)
+    {
+        if (!_fieldRun || _world == null || _window == null
+            || !_window.TryLocalToWorld(local, out int c, out int r))
+        {
+            return null;
+        }
+        return ProvinceField.GuardHolding(_world, c, r);
+    }
+
+    /// <summary>Does an unbeaten guard stand on this tile?</summary>
+    private bool IsGuardTile(Vector2I local)
+        => _fieldRun && _world != null && _window != null
+           && _window.TryLocalToWorld(local, out int c, out int r)
+           && ProvinceField.GuardAt(_world, c, r) != null;
+
+    /// <summary>May the party not walk onto this tile? True for ground an unbeaten guard
+    /// holds, unless the order's goal is that guard (the approach to it is open). A party
+    /// that somehow stands on a guard's own tile is never penned in.</summary>
+    private bool GuardBlocks(Vector2I local, Vector2I goal)
+    {
+        var g = GuardHoldingLocal(local);
+        if (g == null)
+        {
+            return false;
+        }
+        if (_window.TryLocalToWorld(goal, out int gc, out int gr) && g.X == gc && g.Y == gr)
+        {
+            return false;
+        }
+        if (_party != null && _window.TryLocalToWorld(_party.CurrentCoord, out int pc, out int pr)
+            && g.X == pc && g.Y == pr)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>What the 3D window draws on a tile beyond its site: 1 a guard, 2 ground a
+    /// guard holds, 3 the edge of the outing's province, 0 nothing. World coords in.</summary>
+    private int FieldMarkAtWorld(Vector2I worldCoord)
+    {
+        if (!_fieldRun || _world == null)
+        {
+            return 0;
+        }
+        if (ProvinceField.GuardAt(_world, worldCoord.X, worldCoord.Y) != null)
+        {
+            return 1;
+        }
+        if (ProvinceField.GuardHolding(_world, worldCoord.X, worldCoord.Y) != null)
+        {
+            return 2;
+        }
+        if (_fieldProvince >= 0
+            && _world.ProvinceIndexAt(worldCoord.X, worldCoord.Y) == _fieldProvince
+            && ProvinceField.OnBorder(_world, worldCoord.X, worldCoord.Y, _fieldProvince))
+        {
+            return 3;
+        }
+        return 0;
+    }
+
+    public override void _ExitTree()
+    {
+        // P4: the ford's field price must not leak into worldgen or a castle run.
+        OverworldMovementCost.FordPenalty = OverworldMovementCost.DefaultFordPenalty;
+    }
+
     /// <summary>P2 (F4): what a site is, how strong it is and what it pays, in plain words,
     /// before the party commits to it. Field runs only. Appended to the tile's tooltip.</summary>
     private string SiteCard(Vector2I local, OverworldHex.POIType poi)
@@ -1676,6 +2271,10 @@ public partial class ExpeditionManager : Node2D
                 var tier = _isWarfront ? EncounterTier.Siege : EncounterTier.Battle;
                 var (min, max) = EncounterRouter.GoldRangeForTier(tier);
                 string what = poi == OverworldHex.POIType.Prison ? "Prison: a fight to free a prisoner" : "Fight";
+                if (IsGuardTile(local))
+                {
+                    what = "Guard: holds the ground around it. Beat it to pass, or go around";
+                }
                 return $"  ·  {what} ({tier}). Enemy strength x{DifficultyMultAt(local):0.##}. "
                        + $"Pays {min} to {max} gold plus splinters.";
             }
@@ -1770,7 +2369,8 @@ public partial class ExpeditionManager : Node2D
     private bool StrideOrderable(Vector2I local)
         => _grid != null && _grid.Hexes.ContainsKey(local)
            && !(TryTileAt(local, out var t) && t.IsWater)
-           && _fog.FogAt(local) != OverworldHex.FogState.Hidden;
+           && _fog.FogAt(local) != OverworldHex.FogState.Hidden
+           && !GuardBlocks(local, _strideGoal);   // P4: held ground is not walked through
 
     /// <summary>Fuel to step from `from` into `to` for the planner AND the estimate.
     /// This is the SAME cost the live move charges (G1), plus the Silhouette
@@ -2259,8 +2859,12 @@ public partial class ExpeditionManager : Node2D
         // command the fortress toward the unknown, not only across charted ground.
         if (!_grid.Hexes.ContainsKey(goalLocal) || (TryTileAt(goalLocal, out var gt) && gt.IsWater))
         { ShowInfo("The castle cannot march there."); return; }
+        // P4: ground a guard holds is not a destination. The guard itself is.
+        if (GuardBlocks(goalLocal, goalLocal))
+        { ShowInfo(GuardHoldsText); return; }
 
         HideHaltNotice();
+        NoteMarchStart();   // SP3: Retrace undoes the march from here
         _strideGoal = goalLocal;
         _striding = true;
         _strideHasMoved = false;
@@ -2395,6 +2999,14 @@ public partial class ExpeditionManager : Node2D
         // Expedition v2: likewise, a known encounter POI on the next tile is not
         // the castle's business and does not stop the march.
 
+        // P4: the march stops beside a guard and offers the fight from there.
+        if (IsGuardTile(next))
+        {
+            EndStride(null);
+            OpenScoutReport(next);
+            return;
+        }
+
         var from = _party.CurrentCoord;
         // Under BriskWalk the march does not stop for a sighting, so nothing is noted,
         // and both pawns walk at the brisk pace.
@@ -2478,6 +3090,7 @@ public partial class ExpeditionManager : Node2D
     private bool BlindStridePassable(Vector2I nb, bool allowBacktrack)
         => _grid.Hexes.ContainsKey(nb)
            && !(TryTileAt(nb, out var t) && t.IsWater)
+           && !GuardBlocks(nb, _strideGoal)   // P4
            && (allowBacktrack || nb != _strideLastTile);
 
     private void ScheduleStrideTick(float delay)
@@ -3117,6 +3730,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // Reveal-on-move writes straight into World.
         WriteVisibleToWorld();
+        KnowSitesNear(_party.CurrentCoord);   // SP1: sites within sight become known
 
         // Patrols tick once per step.
         if (_factionManager != null && !ExpeditionComplete)
@@ -3224,7 +3838,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         if (_grid.GetNeighbors(_party.CurrentCoord).Contains(local))
         {
+            // P4: a guard is fought from the tile beside it. The party does not step
+            // onto its tile until it is beaten, and does not step onto ground it holds.
+            if (IsGuardTile(local))
+            {
+                HideHaltNotice();
+                OpenScoutReport(local);
+                return;
+            }
+            if (GuardBlocks(local, local))
+            {
+                ShowInfo(GuardHoldsText);
+                return;
+            }
             HideHaltNotice();   // the player answered the halt by moving
+            NoteMarchStart();   // SP3
             _party.TryMoveTo(local);
         }
         else
@@ -3285,7 +3913,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 line += $"  ·  {OverworldMovementCost.TerrainDrainNote(hazardTerrain)}";
             // Step 2: POI gate + label read the overlay model, not the node.
             var ovTip = _overlay.OverlayAt(axial);
-            if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
+            if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed && !SiteKnownLocal(axial))
+                line += UnknownSiteLine(axial);   // SP1, SP3
+            else if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
                 line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
                         NegotiationPreread(axial) + HeldTipAt(axial) + SiteCard(axial, ovTip.Poi); // S5: True Names. O3c (D209): a held place says so.
             // City tile: name the settlement whose greyed footprint this tile belongs to, so the
@@ -3300,7 +3930,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
                 line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
-            _hoverTooltip.Text = line;
+            _hoverTooltip.Text = TooltipLayout(line);
         }
 
         _hoverTooltip.Visible = true;
@@ -3333,7 +3963,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     private bool MouseIsOverUi()
     {
         var hovered = GetViewport()?.GuiGetHoveredControl();
-        if (hovered != null && hovered.IsVisibleInTree())
+        // The 3D view is drawn in a full-screen container. Hovering the map hovers that
+        // container, and counting it as UI hid the tile readout for the whole 3D view.
+        if (hovered != null && hovered != _window3DContainer && hovered.IsVisibleInTree())
             return true;
 
         var mouse = GetViewport().GetMousePosition();
@@ -3363,8 +3995,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // Resolve the tile under the cursor from the mouse position, every frame.
         // (Area2D MouseEntered/Exited is unreliable here; InputEvent gives no exit
         // event, so we poll, which also fixes "tooltip won't hide off-grid".)
-        Vector2 mouseWorld = _grid.GetGlobalMousePosition();
-        Vector2I axial = _grid.WorldToAxial(_grid.ToLocal(mouseWorld));
+        Vector2I axial;
+        if (_window3D != null)
+        {
+            // The 2D grid is hidden under the 3D view, so its mouse maths names the wrong tile.
+            if (!_hover3D.HasValue)
+            {
+                _hoverTooltip.Visible = false;
+                return;
+            }
+            axial = _hover3D.Value;
+        }
+        else
+        {
+            Vector2 mouseWorld = _grid.GetGlobalMousePosition();
+            axial = _grid.WorldToAxial(_grid.ToLocal(mouseWorld));
+        }
 
         if (!_grid.Hexes.TryGetValue(axial, out var hex))
         {
@@ -3394,13 +4040,15 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 line += $"  ·  {OverworldMovementCost.TerrainDrainNote(hazardTerrain)}";
             // Step 2: POI gate + label read the overlay model, not the node.
             var ovTip = _overlay.OverlayAt(axial);
-            if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
+            if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed && !SiteKnownLocal(axial))
+                line += UnknownSiteLine(axial);   // SP1, SP3
+            else if (ovTip.Poi != OverworldHex.POIType.None && !ovTip.Consumed)
                 line += $"  ·  {PoiSignal.Label(ovTip.Poi, TerrainAt(axial), SignalKey(axial))}{_spells?.TooltipPoiExtra(axial, hex) ?? ""}" +
                         NegotiationPreread(axial) + HeldTipAt(axial) + SiteCard(axial, ovTip.Poi); // S5: True Names. O3c (D209): a held place says so.
             if (_window.TryLocalToWorld(axial, out int col, out int row) &&
                 _world.TryIndex(col, row, out int idx) && _world.Tiles[idx].Corruption >= 20)
                 line += $"  ·  corrupted ({_world.Tiles[idx].Corruption})";
-            _hoverTooltip.Text = line;
+            _hoverTooltip.Text = TooltipLayout(line);
         }
 
         _hoverTooltip.Visible = true;
@@ -3496,6 +4144,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             LogRun("charted_poi", poiType.ToString(), at: coord);
             SaveManager.MarkDirty();
             return;
+        }
+
+        // SP3: a march that ended on a site is spent. Retrace does not give it back.
+        if (poiType != OverworldHex.POIType.None && !ovArrived.Consumed)
+        {
+            _hasMarch = false;
         }
 
         switch (poiType)
@@ -3816,6 +4470,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         // S3 (Retrace): a scene swap makes "the last step" ambiguous: forget it.
         _hasLastMove = false;
+        _hasMarch = false;   // SP3: a fight is not undone by Retrace
 
         LogRun("combat_start",
                $"{encounterDef.Id} (tier {encounterDef.Tier}, {encounterDef.Enemies.Count} foes)" +
@@ -3835,6 +4490,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         // W3: carry the weather over the combat tile into the fight; the
         // battlefield injects a matching weather_turns hazard (§combat).
         router.SavedWeather = WeatherSystem.WeatherAt(hexCoord);
+        // SP3: Ember Ward clears the sky over this fight. Bone Scout is spent by the fight it weakened.
+        if (OverworldSpellEffects.ClearSkiesArmed)
+        {
+            OverworldSpellEffects.ClearSkiesArmed = false;
+            router.SavedWeather = WeatherType.Clear;
+        }
+        OverworldSpellEffects.NextFightMult = 1f;
         // §3.4: record whether the castle was mid-stride at combat launch. Only an
         // ambush interrupts a march (a normal fight cancels the stride first), so
         // this is true exactly for a stride-interrupting ambush. F6 adds +1 round
@@ -6354,6 +7016,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hoverTooltip.AddThemeColorOverride("font_color", UITheme.TextPrimary);
         _hoverTooltip.AddThemeColorOverride("font_outline_color", UITheme.WorldDeep);
         _hoverTooltip.AddThemeConstantOverride("outline_size", 5);
+        // A backing card, so several lines read against any ground.
+        var tipCard = new StyleBoxFlat { BgColor = UITheme.WorldDeep };
+        tipCard.SetCornerRadiusAll(4);
+        tipCard.ContentMarginLeft = 10;
+        tipCard.ContentMarginRight = 10;
+        tipCard.ContentMarginTop = 6;
+        tipCard.ContentMarginBottom = 6;
+        _hoverTooltip.AddThemeStyleboxOverride("normal", tipCard);
         _hudCanvas.AddChild(_hoverTooltip);
 
         var margin = new MarginContainer();
@@ -7877,7 +8547,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// on. Used only for the REGION pool; archmage groups carry their own
     /// authored difficulty (see OpenScoutReport / OnPatrolCapturedPlayer).</summary>
     private float DifficultyMultAt(Vector2I local)
-        => KingdomDifficultyMultAt(local) * AffixFightMult();
+        => KingdomDifficultyMultAt(local) * AffixFightMult()
+           * (IsGuardTile(local) ? ProvinceField.GuardFightMult : 1f)   // P4
+           * OverworldSpellEffects.NextFightMult;   // SP3: Bone Scout
 
     /// <summary>Haunted, Warlords' and Ley-crossed ground each harden every fight
     /// in the window by WaystoneAffixes.FightMult. They stack: that is the price
@@ -7951,6 +8623,20 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     public Vector2I PartyLocal => _party?.CurrentCoord ?? Vector2I.Zero;
     public WorldData WorldRef => _world;
     public WorldWindowBuilder WindowRef => _window;
+
+    /// <summary>SP2: is a field party standing outside the castle's reach (its province, the
+    /// ones beside it, and the ones beside a forward camp)? False on a castle run and while
+    /// the interval walks.</summary>
+    public bool SpellBeyondCastleReach()
+    {
+        var cycle = SaveManager.ActiveSave?.Cycle;
+        if (!_fieldRun || cycle == null || _party == null || _window == null || Interval.Walking(cycle)
+            || !_window.TryLocalToWorld(_party.CurrentCoord, out int col, out int row))
+        {
+            return false;
+        }
+        return !CastleReach.InReach(cycle, col, row);
+    }
 
     public void SpellInfo(string message) => ShowInfo(message);
     public void SpellRefreshHud() => UpdateUI();
@@ -8067,10 +8753,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     /// cost refunded. HP drains are NOT refunded (time reclaims the ground,
     /// not the toll). False when there is no step to undo.</summary>
     /// <summary>True when a last step exists to undo (Grimoire gating).</summary>
-    public bool CanRetrace => _hasLastMove;
+    public bool CanRetrace => _fieldRun ? _hasMarch : _hasLastMove;
 
     public bool SpellRetrace()
     {
+        if (_fieldRun)
+            return RetraceMarch();   // SP3: the whole march, not one step
         if (!_hasLastMove || _party == null)
             return false;
         _hasLastMove = false;

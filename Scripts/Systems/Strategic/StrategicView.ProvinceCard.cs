@@ -58,6 +58,7 @@ public partial class StrategicView
     private Label _cardController;
     private Label _cardFront;
     private Label _cardCourt;
+    private Label _cardPlan;   // rival archmages R1
     private Label _cardPlaces;
     private Label _cardBenefitsWhy;
     private readonly List<Label> _cardBenefitLines = new();
@@ -148,6 +149,7 @@ public partial class StrategicView
         _cardController.Text = ProvinceRulerLine(cycle, province);   // provinces PV3a (PR57)
         SetCardLine(_cardFront, ProvinceFrontLine(cycle, world, index));
         SetCardLine(_cardCourt, ProvinceCourtLine(cycle, province));
+        SetCardLine(_cardPlan, KingdomTickSimulation.PlanCardLine(cycle, province));
         _cardPlaces.Text = ProvincePlacesLine(world, index);
         RefreshLeadCardLine(cycle, index);   // provinces PV8a (PR98)
 
@@ -357,6 +359,8 @@ public partial class StrategicView
         _cardFront.Visible = false;
         _cardCourt = CardLine(stack, UITheme.TextSecondary);
         _cardCourt.Visible = false;
+        _cardPlan = CardLine(stack, UITheme.TextPrimary);
+        _cardPlan.Visible = false;
         _cardPlaces = CardLine(stack, UITheme.TextSecondary);
         BuildLeadCardLine(stack);   // provinces PV8a: the rumors that point here
 

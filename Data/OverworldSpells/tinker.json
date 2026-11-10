@@ -8,7 +8,7 @@
     "isInnate": true,
     "magnitude": "Subtle",
     "effectKey": "surveyors_eye",
-    "description": "Silhouetted hexes display their step cost and any hazard flag before entry."
+    "description": "An unknown site shows whether it is a fight or not."
   },
   {
     "id": "deploy_waystation",
@@ -31,10 +31,10 @@
     "essenceCost": 3,
     "magnitude": "Subtle",
     "targetingType": "Tile",
-    "range": 5,
+    "range": 6,
     "effectKey": "clockwork_skimmer",
     "effectParams": { "radius": 2 },
-    "description": "Launch a gadget to any tile within 5; it charts radius 2 around its landing point."
+    "description": "Take a known stash or shrine within 6 tiles without walking to it."
   },
   {
     "id": "fulminant_charge",

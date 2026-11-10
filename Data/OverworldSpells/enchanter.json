@@ -8,7 +8,7 @@
     "isInnate": true,
     "magnitude": "Subtle",
     "effectKey": "true_names",
-    "description": "Patrol tokens name their archmage in full at sight."
+    "description": "Each patrol shows the realm it serves and that realm's plan for the moon."
   },
   {
     "id": "veil",

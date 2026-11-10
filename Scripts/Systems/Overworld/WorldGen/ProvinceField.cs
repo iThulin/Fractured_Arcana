@@ -19,7 +19,8 @@ using System.Collections.Generic;
 // Collaborators:  WorldData.cs (Pois, Tiles, ProvinceMap),
 //                 Province.cs (FieldFilled), ExpeditionManager.cs
 //                 (calls Fill before the window is built, resolves
-//                 the Stash and Shrine kinds)
+//                 the Stash and Shrine kinds, and asks which
+//                 ground a guard holds)
 // See:            docs/province_field_v1.md sections 2 and 5
 // ============================================================
 
@@ -157,6 +158,206 @@ public static class ProvinceField
             added++;
         }
         return added;
+    }
+
+    /// <summary>SP1: is this place's kind still unknown? True for a wild site (a fight, story,
+    /// parley, refuge, stash, shrine or someone in trouble) that has not been seen close or
+    /// revealed by a spell. Guards and the landmarks are never hidden.</summary>
+    public static bool KindHidden(WorldPoi p)
+    {
+        if (p == null || p.Known || p.Guard)
+        {
+            return false;
+        }
+        return p.Kind == PoiKind.Combat || p.Kind == PoiKind.Rest || p.Kind == PoiKind.Narrative
+            || p.Kind == PoiKind.Negotiation || p.Kind == PoiKind.Stash || p.Kind == PoiKind.Shrine
+            || p.Kind == PoiKind.Companion;
+    }
+
+    // ── Guards (P4, rule F6) ─────────────────────────────────────────────
+
+    public const int MaxGuards = 3;
+
+    /// <summary>No two guards closer than this, so the ground they hold never overlaps.</summary>
+    public const int GuardSpacing = 4;
+
+    /// <summary>A guard's fight is this much stronger than the ground's ordinary fight.</summary>
+    public const float GuardFightMult = 1.25f;
+
+    /// <summary>The unbeaten guard standing on this tile, or null.</summary>
+    public static WorldPoi GuardAt(WorldData world, int x, int y)
+    {
+        var p = world?.PoiAt(x, y);
+        return (p != null && p.Guard && !p.Consumed) ? p : null;
+    }
+
+    /// <summary>The unbeaten guard holding this tile (its own, or one of the six around it),
+    /// or null.</summary>
+    public static WorldPoi GuardHolding(WorldData world, int x, int y)
+    {
+        if (world == null)
+        {
+            return null;
+        }
+        foreach (var (c, r) in world.Disc(x, y, 1))
+        {
+            var g = GuardAt(world, c, r);
+            // SP3: a shaken guard holds only its own tile.
+            if (g != null && (!g.GuardShaken || (c == x && r == y)))
+            {
+                return g;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Posts guards in the province holding (col, row), once: on its bridges first,
+    /// then its roads through high ground, then its roads at the border. Each guard added
+    /// turns the nearest ordinary fight into a stash, so the share of fights holds. Returns
+    /// the number posted.</summary>
+    public static int PostGuards(WorldData world, int col, int row)
+    {
+        if (world == null || !world.HasProvinces())
+        {
+            return 0;
+        }
+        var province = world.ProvinceAt(col, row);
+        if (province == null || province.GuardsPosted)
+        {
+            return 0;
+        }
+        province.GuardsPosted = true;
+
+        var bridges = new List<(int x, int y)>();
+        var passes = new List<(int x, int y)>();
+        var gates = new List<(int x, int y)>();
+        var plainFights = new List<WorldPoi>();
+        for (int y = 0; y < world.Height; y++)
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                if (world.ProvinceIndexAt(x, y) != province.Index)
+                {
+                    continue;
+                }
+                var t = world.GetTile(x, y);
+                var here = world.PoiAt(x, y);
+                if (here != null)
+                {
+                    if (here.Kind == PoiKind.Combat && !here.Consumed && !here.Guard)
+                    {
+                        plainFights.Add(here);
+                    }
+                    continue;
+                }
+                if (!t.IsLand || t.SettlementIndex >= 0 || t.ShardZoneIndex >= 0 || t.IsStagingPoint
+                    || HexCoord.OffsetDistance(col, row, x, y) < 3)
+                {
+                    continue;
+                }
+                if (t.BridgeEdges != 0)
+                {
+                    bridges.Add((x, y));
+                }
+                else if (t.RoadEdges != 0 && (t.Terrain == OverworldHex.TerrainType.Mountain
+                                              || t.Terrain == OverworldHex.TerrainType.Hills))
+                {
+                    passes.Add((x, y));
+                }
+                else if (t.RoadEdges != 0 && OnBorder(world, x, y, province.Index))
+                {
+                    gates.Add((x, y));
+                }
+            }
+        }
+
+        var rng = new Random(unchecked(province.Index * 104729 + world.Height * 7919 + 31));
+        Shuffle(bridges, rng);
+        Shuffle(passes, rng);
+        Shuffle(gates, rng);
+        var candidates = new List<(int x, int y)>(bridges);
+        candidates.AddRange(passes);
+        candidates.AddRange(gates);
+
+        int want = Math.Clamp(TargetFor(province.TileCount) / 6, 1, MaxGuards);
+        var posted = new List<(int x, int y)>();
+        foreach (var (x, y) in candidates)
+        {
+            if (posted.Count >= want)
+            {
+                break;
+            }
+            bool crowded = false;
+            foreach (var (px, py) in posted)
+            {
+                if (HexCoord.OffsetDistance(px, py, x, y) < GuardSpacing)
+                {
+                    crowded = true;
+                    break;
+                }
+            }
+            if (crowded)
+            {
+                continue;
+            }
+
+            var tile = world.GetTile(x, y);
+            tile.PoiIndex = world.Pois.Count;
+            world.Pois.Add(new WorldPoi
+            {
+                X = x,
+                Y = y,
+                Kind = PoiKind.Combat,
+                KingdomId = tile.KingdomId ?? "",
+                Discovered = false,
+                GrantsStaging = false,
+                Guard = true,
+            });
+            world.SetTile(x, y, tile);
+            posted.Add((x, y));
+
+            // Hold the share of fights: the nearest ordinary fight becomes a stash.
+            WorldPoi nearest = null;
+            int best = int.MaxValue;
+            foreach (var f in plainFights)
+            {
+                int d = HexCoord.OffsetDistance(f.X, f.Y, x, y);
+                if (d < best)
+                {
+                    best = d;
+                    nearest = f;
+                }
+            }
+            if (nearest != null)
+            {
+                nearest.Kind = PoiKind.Stash;
+                plainFights.Remove(nearest);
+            }
+        }
+        return posted.Count;
+    }
+
+    /// <summary>True when a tile of this province touches land of another.</summary>
+    public static bool OnBorder(WorldData world, int x, int y, int provinceIndex)
+    {
+        foreach (var (c, r) in world.Disc(x, y, 1))
+        {
+            int other = world.ProvinceIndexAt(c, r);
+            if (other >= 0 && other != provinceIndex)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void Shuffle(List<(int x, int y)> list, Random rng)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = rng.Next(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
     }
 
     private static bool TooClose(List<(int x, int y)> taken, int x, int y)

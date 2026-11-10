@@ -20,8 +20,8 @@
     "magnitude": "Overt",
     "targetingType": "None",
     "effectKey": "purifying_rite",
-    "effectParams": { "steps": 10 },
-    "description": "Suppress corruption attrition for the party's next 10 steps."
+    "effectParams": { "steps": 12 },
+    "description": "For your next 12 tiles, corruption does not harm you."
   },
   {
     "id": "wayfarers_beacon",
@@ -30,9 +30,10 @@
     "category": "Divination",
     "essenceCost": 1,
     "magnitude": "Subtle",
-    "targetingType": "None",
+    "targetingType": "Tile",
+    "range": 8,
     "effectKey": "wayfarers_beacon",
-    "description": "Mark the current tile; the mark stays visible for the rest of the expedition."
+    "description": "Mark a known stash, shrine or refuge within 8 tiles. Patrols will not raid it this outing."
   },
   {
     "id": "campward",

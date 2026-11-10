@@ -8,7 +8,7 @@
     "isInnate": true,
     "magnitude": "Subtle",
     "effectKey": "foreboding",
-    "description": "Patrol tokens in sight display their pursuit vector when committed to a hunt."
+    "description": "A patrol hunting you shows how many steps its hunt has left."
   },
   {
     "id": "retrace",
@@ -21,7 +21,7 @@
     "targetingType": "None",
     "oncePerExpedition": true,
     "effectKey": "retrace",
-    "description": "Undo the party's last movement step: position restored, step refunded. Once per expedition, hard cap."
+    "description": "Undo your last march. You stand where it began and its days are restored. A march that ended on a site cannot be undone."
   },
   {
     "id": "auspice",

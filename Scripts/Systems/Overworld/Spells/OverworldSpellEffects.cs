@@ -50,6 +50,14 @@ public static class OverworldSpellEffects
     /// <summary>Campward (§8): armed until the next Rest site consumes it.</summary>
     public static bool CampwardArmed = false;
 
+    // ── SP3: the field's spells ──────────────────────────────────────────
+    /// <summary>Elemental Sense: no damage from volcanic or frozen ground while it is true.</summary>
+    public static bool ElementalWard = false;
+    /// <summary>Ember Ward: the next fight is fought under clear skies.</summary>
+    public static bool ClearSkiesArmed = false;
+    /// <summary>Bone Scout: the next fight's strength is multiplied by this. 1 when not armed.</summary>
+    public static float NextFightMult = 1f;
+
     // ── S3: patrol-facing state ──────────────────────────────────────────
 
     /// <summary>Veil (Enchanter): steps of party imperceptibility remaining.
@@ -144,6 +152,10 @@ public static class OverworldSpellEffects
     /// <summary>True if an active ward negates this terrain's HP drain.</summary>
     public static bool DrainSuppressed(OverworldHex.TerrainType t)
     {
+        if (ElementalWard && (t == OverworldHex.TerrainType.Volcanic
+                              || t == OverworldHex.TerrainType.Snow
+                              || t == OverworldHex.TerrainType.Tundra))
+            return true;
         foreach (var e in _effects)
             if (e.SuppressDrain && e.StepsLeft > 0 && e.Matches(t))
                 return true;
@@ -204,6 +216,9 @@ public static class OverworldSpellEffects
     {
         _effects.Clear();
         CampwardArmed = false;
+        ElementalWard = false;
+        ClearSkiesArmed = false;
+        NextFightMult = 1f;
         VeilStepsLeft = 0;
         ForebodingVision = false;
         TrueNamesVision = false;
