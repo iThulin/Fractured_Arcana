@@ -109,5 +109,37 @@ public static partial class CardScriptRegistry
         RegisterPredicate("target_has_status", n =>
             new TargetHasStatusPredicate(
                 n.TryGetProperty("status", out var st) ? st.GetString() : ""));
+
+        // ── Slice 15a: the Weaver, the Geomancer, Threefold Argument ─────
+        int I(System.Text.Json.JsonElement n, string k, int d) => n.TryGetProperty(k, out var v) ? v.GetInt32() : d;
+        string S(System.Text.Json.JsonElement n, string k, string d) => n.TryGetProperty(k, out var v) ? v.GetString() : d;
+        bool B(System.Text.Json.JsonElement n, string k) => n.TryGetProperty(k, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.True;
+        // { "type": "gain_attunement", "element": "fire"|"ice"|"storm"|"earth"|"highest"|"all", "amount": n }
+        RegisterEffect("gain_attunement", n => new GainAttunementEffect
+            { Element = S(n, "element", "highest"), Amount = I(n, "amount", 1) }.WithTag("Attunement"));
+        // { "type": "imbue_highest" }
+        RegisterEffect("imbue_highest", _ => new ImbueHighestEffect().WithTag("Terrain"));
+        // { "type": "adjust_height", "amount": n | "lower": n, "blocks_los": bool, "max": n }
+        RegisterEffect("adjust_height", n => new AdjustHeightEffect
+            { Amount = n.TryGetProperty("lower", out var lw) ? -lw.GetInt32() : I(n, "amount", 1), BlocksLos = B(n, "blocks_los"), Max = I(n, "max", AdjustHeightEffect.MaxHeightCap) }.WithTag("Terrain"));
+        // { "type": "imbue_reacting", "element": "storm", "radius": n, "reaction_damage": n }
+        RegisterEffect("imbue_reacting", n => new ImbueReactingEffect
+            { Element = S(n, "element", "storm"), Radius = I(n, "radius", 1), ReactionDamage = I(n, "reaction_damage", 3) }.WithTag("Terrain"));
+        // { "type": "draw_per_reaction", "max": n, "per": n }
+        RegisterEffect("draw_per_reaction", n => new DrawPerReactionEffect
+            { Max = I(n, "max", 3), Per = I(n, "per", 1) }.WithTag("CardDraw"));
+        // { "type": "alchemy_of_ruin", "radius": n, "damage": n }
+        RegisterEffect("alchemy_of_ruin", n => new AlchemyOfRuinEffect
+            { Radius = I(n, "radius", 3), Damage = I(n, "damage", 0) }.WithTag("Terrain"));
+        // { "type": "clear_reactions", "radius": n, "attunement_per": n }
+        RegisterEffect("clear_reactions", n => new ClearReactionsEffect
+            { Radius = I(n, "radius", 3), AttunementPer = I(n, "attunement_per", 1) }.WithTag("Attunement"));
+        // { "type": "long_argument", "radius": n, "damage": n, "attunement_per": n }
+        RegisterEffect("long_argument", n => new LongArgumentEffect
+            { Radius = I(n, "radius", 4), Damage = I(n, "damage", 3), AttunementPer = I(n, "attunement_per", 1) }.WithTag("Buff"));
+        // { "type": "imbue_opposed_near_enemies" }
+        RegisterEffect("imbue_opposed_near_enemies", _ => new ImbueOpposedNearEnemiesEffect().WithTag("Terrain"));
+        // { "type": "target_frozen_or_brittle" }
+        RegisterPredicate("target_frozen_or_brittle", _ => new TargetFrozenOrBrittlePredicate());
     }
 }

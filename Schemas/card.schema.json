@@ -467,7 +467,16 @@
 						"damage_per_spells_cast",
 						"humane_clause",
 						"strip_buffs",
-						"revised_edition"
+						"revised_edition",
+						"gain_attunement",
+						"imbue_highest",
+						"adjust_height",
+						"imbue_reacting",
+						"draw_per_reaction",
+						"alchemy_of_ruin",
+						"clear_reactions",
+						"long_argument",
+						"imbue_opposed_near_enemies"
 					]
 				},
 				"amount": {
@@ -627,7 +636,8 @@
 						"temporal_drag",
 						"hasted",
 						"mana_taxed",
-						"delayed"
+						"delayed",
+						"anchored"
 					]
 				},
 				"duration": {
@@ -1071,6 +1081,22 @@
 				"label": {
 					"type": "string",
 					"description": "metamagic: the name shown in the combat log."
+				},
+				"reaction_damage": {
+					"type": "integer",
+					"description": "imbue_reacting: damage to the occupant of each tile that reacts."
+				},
+				"lower": {
+					"type": "integer",
+					"description": "adjust_height: lower the tile by this much (a drop of 2 or more is a fall)."
+				},
+				"blocks_los": {
+					"type": "boolean",
+					"description": "adjust_height: a raised tile also blocks line of sight."
+				},
+				"attunement_per": {
+					"type": "integer",
+					"description": "clear_reactions / long_argument: attunement gained in each element of a reaction."
 				},
 				"per": {
 					"type": "integer",

@@ -47,6 +47,10 @@ public static class ForcedMove
     /// travels. Adjacent origins give the exact hex direction; further origins take
     /// the hex-line direction rounded to the nearest of the six. Zero when they
     /// coincide.</summary>
+    /// <summary>Anchored (Threefold Argument's Earth, Oath of the Mountain): forced
+    /// movement can't move this unit.</summary>
+    public static bool IsAnchored(Unit u) => u != null && u.HasStatus("anchored");
+
     public static Vector2I StepAwayFrom(HexGridManager grid, Vector2I origin, Vector2I victim)
     {
         if (origin == victim)
@@ -77,6 +81,11 @@ public static class ForcedMove
         if (victim.IsMapObject && !victim.Pushable)
         {
             log?.Invoke($"[Push] {victim.Name} is immovable.");
+            return r;
+        }
+        if (IsAnchored(victim))
+        {
+            log?.Invoke($"[Push] {victim.Name} is anchored and does not move.");
             return r;
         }
 
@@ -192,7 +201,7 @@ public static class ForcedMove
         var path = new List<Vector2I>();
         if (grid == null || victim?.CurrentTile == null || dir == Vector2I.Zero)
             return path;
-        if (victim.IsMapObject && !victim.Pushable)
+        if ((victim.IsMapObject && !victim.Pushable) || IsAnchored(victim))
             return path;
         var cur = victim.CurrentTile;
         for (int i = 0; i < tiles; i++)

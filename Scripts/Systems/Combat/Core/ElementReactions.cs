@@ -92,6 +92,14 @@ public static class ElementReactions
     /// on combat start; null falls back to GD.Print.</summary>
     public static Action<string> Log;
 
+    /// <summary>Reactions formed so far (preview predictions included). Effects read it
+    /// before and after an imbue to learn whether that tile reacted (Thunderhead).</summary>
+    public static int FormedCount;
+
+    /// <summary>Raised whenever a reaction forms at runtime (tile, reaction, source).
+    /// The Long Argument listens. Cleared at combat start.</summary>
+    public static event Action<TileData, ElementReaction, Unit> OnFormed;
+
     // Preview bookkeeping (CombatSim only).
     private static readonly Dictionary<TileData, TileElementType> _simElement = new();
     private static readonly List<(TileData tile, ElementReaction reaction)> _simReactions = new();
@@ -101,6 +109,9 @@ public static class ElementReactions
     {
         _simElement.Clear();
         _simReactions.Clear();
+        FormedCount = 0;
+        OnFormed = null;
+        LongArgument.Reset();
     }
 
     /// <summary>Clears the preview overlay. Called by CombatSim.Begin.</summary>
@@ -246,6 +257,7 @@ public static class ElementReactions
         }
 
         _simReactions.Add((tile, reaction));
+        FormedCount++;
         _simElement[tile] = ResultElement(reaction);
 
         // Immediate damage lands in the preview ledger (ApplyDamage is sim-gated).
@@ -300,6 +312,8 @@ public static class ElementReactions
                         occupant.ApplyStatus("frozen", 1);
                     Say($"[Reaction] {DisplayName(existing, incoming)} at {tile.Axial}: no room for a Glacier, "
                         + (occupant != null ? $"{occupant.Name} is Frozen." : "the tile keeps Frost."));
+                    FormedCount++;
+                    OnFormed?.Invoke(tile, reaction, source);
                     return;
                 }
                 WriteRaw(tile, TileElementType.None);
@@ -319,6 +333,30 @@ public static class ElementReactions
 
         if (reaction == ElementReaction.Fulgurite && occupant != null && occupant.Stats.IsAlive)
             occupant.ApplyDamage(FulguriteDamage, source);
+
+        FormedCount++;
+        OnFormed?.Invoke(tile, reaction, source);
+    }
+
+    /// <summary>The two elements that make a reaction (for attunement payoffs).</summary>
+    public static (TileElementType a, TileElementType b) ElementsOf(ElementReaction r) => r switch
+    {
+        ElementReaction.Steam => (TileElementType.Fire, TileElementType.Frost),
+        ElementReaction.Fulgurite => (TileElementType.Lightning, TileElementType.Earth),
+        ElementReaction.Magma => (TileElementType.Fire, TileElementType.Earth),
+        ElementReaction.Wildfire => (TileElementType.Fire, TileElementType.Lightning),
+        ElementReaction.Brittle => (TileElementType.Frost, TileElementType.Lightning),
+        ElementReaction.Glacier => (TileElementType.Frost, TileElementType.Earth),
+        _ => (TileElementType.None, TileElementType.None),
+    };
+
+    /// <summary>Ends a reaction now, exactly as if its rounds ran out (Magma cools to
+    /// Earth, a Glacier melts to Frost). Fulgurite's rubble stays; its marker goes.</summary>
+    public static void Dispel(TileData tile, HexGridManager grid)
+    {
+        if (tile == null || tile.Reaction == ElementReaction.None || CombatSim.Active)
+            return;
+        Expire(tile, grid);
     }
 
     private static string DisplayName(TileElementType existing, TileElementType incoming)

@@ -201,6 +201,8 @@ public static class TileEntryReactions
             return;
         if (previousTile == null || unit.CurrentTile != tile || !unit.Stats.IsAlive)
             return;
+        if (ForcedMove.IsAnchored(unit))
+            return;   // anchored: it stops on the Frost
 
         // Direction of travel = the step just taken; only a single hex step yields
         // a slide vector (a multi-tile teleport delta is not a direction).

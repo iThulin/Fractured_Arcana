@@ -8,7 +8,7 @@
 		"name": "Threefold Argument",
 		"mana": 2,
 		"speed": "Studied",
-		"rules_text": "Choose one. Fire: deal 4 damage. Storm: push target 2 tiles (collisions deal 2 damage). Earth: the target is Rooted for 1 turn.",
+		"rules_text": "Choose one. Fire: deal 4 damage. Storm: push the target 2 tiles (collisions deal 2). Earth: its tile becomes Earth and it can't be force-moved this round. The mode gives 1 attunement in its element.",
 		"tags": [],
 		"targeting": {
 			"type": "unit",
@@ -21,28 +21,62 @@
 			"options": [
 				{
 					"label": "Fire's Argument",
-					"description": "Deal 4 damage.",
+					"description": "Deal 4 damage. Gain 1 Fire attunement.",
 					"effect": {
-						"type": "damage",
-						"amount": 4
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_attunement",
+								"element": "fire",
+								"amount": 1
+							},
+							{
+								"type": "damage",
+								"amount": 4
+							}
+						]
 					}
 				},
 				{
 					"label": "Storm's Argument",
-					"description": "Push target 2 tiles. Collisions deal 2 damage.",
+					"description": "Push target 2 tiles (collisions deal 2). Gain 1 Storm attunement.",
 					"effect": {
-						"type": "push",
-						"tiles": 2,
-						"collision_damage": 2
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_attunement",
+								"element": "storm",
+								"amount": 1
+							},
+							{
+								"type": "push",
+								"tiles": 2,
+								"collision_damage": 2
+							}
+						]
 					}
 				},
 				{
 					"label": "Earth's Argument",
-					"description": "The target is Rooted for 1 turn.",
+					"description": "Its tile becomes Earth; it can't be force-moved this round. Gain 1 Earth attunement.",
 					"effect": {
-						"type": "apply_status",
-						"status": "rooted",
-						"duration": 1
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "gain_attunement",
+								"element": "earth",
+								"amount": 1
+							},
+							{
+								"type": "imbue_tile",
+								"element": "earth"
+							},
+							{
+								"type": "apply_status",
+								"status": "anchored",
+								"duration": 1
+							}
+						]
 					}
 				}
 			]
@@ -52,7 +86,7 @@
 		"name": "Counterargument",
 		"mana": 1,
 		"speed": "Reflex",
-		"rules_text": "Gain 2 shield. Until your next turn, any attacker that hits you takes 3 damage.",
+		"rules_text": "Gain 2 shield. Imbue your tile with the element you hold the most attunement in.",
 		"tags": [],
 		"targeting": {
 			"type": "self"
@@ -65,8 +99,7 @@
 					"amount": 2
 				},
 				{
-					"type": "retaliate",
-					"damage": 3
+					"type": "imbue_highest"
 				}
 			]
 		}
@@ -75,6 +108,8 @@
 		{
 			"tier": 1,
 			"half": "both",
+			"top_name": "Threefold Argument+",
+			"bottom_name": "Counterargument+",
 			"description": "Every argument lands with more weight.",
 			"changes": [
 				{
@@ -85,28 +120,62 @@
 						"options": [
 							{
 								"label": "Fire's Argument",
-								"description": "Deal 5 damage.",
+								"description": "Deal 5 damage. Gain 1 Fire attunement.",
 								"effect": {
-									"type": "damage",
-									"amount": 5
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "fire",
+											"amount": 1
+										},
+										{
+											"type": "damage",
+											"amount": 5
+										}
+									]
 								}
 							},
 							{
 								"label": "Storm's Argument",
-								"description": "Push target 3 tiles. Collisions deal 2 damage.",
+								"description": "Push target 3 tiles (collisions deal 2). Gain 1 Storm attunement.",
 								"effect": {
-									"type": "push",
-									"tiles": 3,
-									"collision_damage": 2
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "storm",
+											"amount": 1
+										},
+										{
+											"type": "push",
+											"tiles": 3,
+											"collision_damage": 2
+										}
+									]
 								}
 							},
 							{
 								"label": "Earth's Argument",
-								"description": "The target is Rooted for 2 turns.",
+								"description": "Its tile becomes Earth; it can't be force-moved this round. Gain 1 Earth attunement.",
 								"effect": {
-									"type": "apply_status",
-									"status": "rooted",
-									"duration": 2
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "earth",
+											"amount": 1
+										},
+										{
+											"type": "imbue_tile",
+											"element": "earth"
+										},
+										{
+											"type": "apply_status",
+											"status": "anchored",
+											"duration": 1
+										}
+									]
 								}
 							}
 						]
@@ -115,7 +184,7 @@
 				{
 					"half": "top",
 					"field": "rules_text",
-					"value": "Choose one. Fire: deal 5 damage. Storm: push target 3 tiles (collisions deal 2 damage). Earth: the target is Rooted for 2 turns."
+					"value": "Choose one. Fire: deal 5 damage. Storm: push the target 3 tiles (collisions deal 2). Earth: its tile becomes Earth and it can't be force-moved this round. The mode gives 1 attunement in its element."
 				},
 				{
 					"half": "bottom",
@@ -128,8 +197,7 @@
 								"amount": 3
 							},
 							{
-								"type": "retaliate",
-								"damage": 4
+								"type": "imbue_highest"
 							}
 						]
 					}
@@ -137,11 +205,364 @@
 				{
 					"half": "bottom",
 					"field": "rules_text",
-					"value": "Gain 3 shield. Until your next turn, any attacker that hits you takes 4 damage."
+					"value": "Gain 3 shield. Imbue your tile with the element you hold the most attunement in."
 				}
-			],
-			"top_name": "Threefold Argument+",
-			"bottom_name": "Counterargument+"
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Fourfold Argument",
+			"description": "Fourfold Argument: the Earth mode bites.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "choose_one",
+						"options": [
+							{
+								"label": "Fire's Argument",
+								"description": "Deal 6 damage. Gain 1 Fire attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "fire",
+											"amount": 1
+										},
+										{
+											"type": "damage",
+											"amount": 6
+										}
+									]
+								}
+							},
+							{
+								"label": "Storm's Argument",
+								"description": "Push target 3 tiles (collisions deal 3). Gain 1 Storm attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "storm",
+											"amount": 1
+										},
+										{
+											"type": "push",
+											"tiles": 3,
+											"collision_damage": 3
+										}
+									]
+								}
+							},
+							{
+								"label": "Earth's Argument",
+								"description": "Its tile becomes Earth; it can't be force-moved this round. Deal 3 damage. Gain 1 Earth attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "earth",
+											"amount": 1
+										},
+										{
+											"type": "imbue_tile",
+											"element": "earth"
+										},
+										{
+											"type": "apply_status",
+											"status": "anchored",
+											"duration": 1
+										},
+										{
+											"type": "damage",
+											"amount": 3
+										}
+									]
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose one. Fire: deal 6 damage. Storm: push the target 3 tiles (collisions deal 3). Earth: its tile becomes Earth and it can't be force-moved this round; deal 3 damage. The mode gives 1 attunement in its element."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Rejoinder",
+			"description": "Rejoinder.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "imbue_highest"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 shield. Imbue your tile with the element you hold the most attunement in."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Settled Argument",
+			"description": "The Settled Argument.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "choose_one",
+						"options": [
+							{
+								"label": "Fire's Argument",
+								"description": "Deal 7 damage. Gain 1 Fire attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "fire",
+											"amount": 1
+										},
+										{
+											"type": "damage",
+											"amount": 7
+										}
+									]
+								}
+							},
+							{
+								"label": "Storm's Argument",
+								"description": "Push target 4 tiles (collisions deal 3). Gain 1 Storm attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "storm",
+											"amount": 1
+										},
+										{
+											"type": "push",
+											"tiles": 4,
+											"collision_damage": 3
+										}
+									]
+								}
+							},
+							{
+								"label": "Earth's Argument",
+								"description": "Its tile becomes Earth; it can't be force-moved this round. Deal 4 damage. Gain 1 Earth attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "earth",
+											"amount": 1
+										},
+										{
+											"type": "imbue_tile",
+											"element": "earth"
+										},
+										{
+											"type": "apply_status",
+											"status": "anchored",
+											"duration": 1
+										},
+										{
+											"type": "damage",
+											"amount": 4
+										}
+									]
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose one. Fire: deal 7 damage. Storm: push the target 4 tiles (collisions deal 3). Earth: its tile becomes Earth and it can't be force-moved this round; deal 4 damage. The mode gives 1 attunement in its element."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Riposte",
+			"description": "Riposte: cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "imbue_highest"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 4 shield. Imbue your tile with the element you hold the most attunement in."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Final Argument",
+			"description": "The Final Argument.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "choose_one",
+						"options": [
+							{
+								"label": "Fire's Argument",
+								"description": "Deal 8 damage. Gain 1 Fire attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "fire",
+											"amount": 1
+										},
+										{
+											"type": "damage",
+											"amount": 8
+										}
+									]
+								}
+							},
+							{
+								"label": "Storm's Argument",
+								"description": "Push target 4 tiles (collisions deal 4). Gain 1 Storm attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "storm",
+											"amount": 1
+										},
+										{
+											"type": "push",
+											"tiles": 4,
+											"collision_damage": 4
+										}
+									]
+								}
+							},
+							{
+								"label": "Earth's Argument",
+								"description": "Its tile becomes Earth; it can't be force-moved this round. Deal 5 damage. Gain 1 Earth attunement.",
+								"effect": {
+									"type": "sequence",
+									"steps": [
+										{
+											"type": "gain_attunement",
+											"element": "earth",
+											"amount": 1
+										},
+										{
+											"type": "imbue_tile",
+											"element": "earth"
+										},
+										{
+											"type": "apply_status",
+											"status": "anchored",
+											"duration": 1
+										},
+										{
+											"type": "damage",
+											"amount": 5
+										}
+									]
+								}
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Choose one. Fire: deal 8 damage. Storm: push the target 4 tiles (collisions deal 4). Earth: its tile becomes Earth and it can't be force-moved this round; deal 5 damage. The mode gives 1 attunement in its element."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Last Word",
+			"description": "The Last Word.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "shield",
+								"amount": 6
+							},
+							{
+								"type": "imbue_highest"
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Gain 6 shield. Imbue your tile with the element you hold the most attunement in."
+				}
+			]
 		}
 	]
 }

@@ -1,0 +1,320 @@
+{
+	"id": "elementalist_shatterpoint",
+	"status": "ready",
+	"name": "Shatterpoint",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Shatterpoint",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage. If the target is Frozen or on Brittle ground, deal 12 instead; it thaws.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "conditional",
+			"if": {
+				"type": "target_frozen_or_brittle"
+			},
+			"then": {
+				"type": "sequence",
+				"steps": [
+					{
+						"type": "damage",
+						"amount": 12
+					},
+					{
+						"type": "remove_status",
+						"status": "frozen"
+					}
+				]
+			},
+			"else": {
+				"type": "damage",
+				"amount": 3
+			}
+		}
+	},
+	"bottom": {
+		"name": "Charge the Air",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Imbue target tile within 4 with Storm.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "imbue_tile",
+			"element": "storm"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Shatterpoint+",
+			"bottom_name": "Charge the Air+",
+			"description": "A cleaner break. A wider charge.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_frozen_or_brittle"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 13
+								},
+								{
+									"type": "remove_status",
+									"status": "frozen"
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 4
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. If the target is Frozen or on Brittle ground, deal 13 instead; it thaws."
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "storm"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue target tile within 5 with Storm."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Fault Line",
+			"description": "Fault Line.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_frozen_or_brittle"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 15
+								},
+								{
+									"type": "remove_status",
+									"status": "frozen"
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 4
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. If the target is Frozen or on Brittle ground, deal 15 instead; it thaws."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Static Charge",
+			"description": "Static Charge: it stings.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue target tile within 5 with Storm. An enemy standing there takes 2 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Fracture",
+			"description": "Fracture.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_frozen_or_brittle"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 16
+								},
+								{
+									"type": "remove_status",
+									"status": "frozen"
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 5
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. If the target is Frozen or on Brittle ground, deal 16 instead; it thaws."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Ion Charge",
+			"description": "Ion Charge.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue target tile within 5 with Storm. An enemy standing there takes 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Perfect Break",
+			"description": "The Perfect Break.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "conditional",
+						"if": {
+							"type": "target_frozen_or_brittle"
+						},
+						"then": {
+							"type": "sequence",
+							"steps": [
+								{
+									"type": "damage",
+									"amount": 18
+								},
+								{
+									"type": "remove_status",
+									"status": "frozen"
+								}
+							]
+						},
+						"else": {
+							"type": "damage",
+							"amount": 6
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage. If the target is Frozen or on Brittle ground, deal 18 instead; it thaws."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Lightning Rod",
+			"description": "Lightning Rod.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "storm",
+						"bonus_damage": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue target tile within 6 with Storm. An enemy standing there takes 4 damage."
+				}
+			]
+		}
+	]
+}

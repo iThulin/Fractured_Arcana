@@ -1,0 +1,288 @@
+{
+	"id": "elementalist_thunderhead",
+	"status": "ready",
+	"name": "Thunderhead",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Thunderhead",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Imbue target tile and its ring with Storm. Each tile that reacts deals 3 damage to whoever stands on it.",
+		"tags": [
+			"storm"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "imbue_reacting",
+			"element": "storm",
+			"radius": 1,
+			"reaction_damage": 3
+		}
+	},
+	"bottom": {
+		"name": "Hoarfrost",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Imbue your tile with Frost. Gain 1 attunement for each different element on adjacent tiles.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "imbue_tile",
+					"element": "ice"
+				},
+				{
+					"type": "attunement_per_nearby_element",
+					"radius": 1
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Thunderhead+",
+			"bottom_name": "Hoarfrost+",
+			"description": "A heavier cloud. A colder skin.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "imbue_reacting",
+						"element": "storm",
+						"radius": 1,
+						"reaction_damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile and its ring with Storm. Each tile that reacts deals 4 damage to whoever stands on it."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							},
+							{
+								"type": "attunement_per_nearby_element",
+								"radius": 1
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue your tile with Frost. Gain 1 attunement for each different element on adjacent tiles. Gain 2 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Anvil Cloud",
+			"description": "Anvil Cloud.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "imbue_reacting",
+						"element": "storm",
+						"radius": 1,
+						"reaction_damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile and its ring with Storm. Each tile that reacts deals 5 damage to whoever stands on it."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Rime Reading",
+			"description": "Rime Reading: it reads further.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							},
+							{
+								"type": "attunement_per_nearby_element",
+								"radius": 2
+							},
+							{
+								"type": "shield",
+								"amount": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue your tile with Frost. Gain 1 attunement for each different element on tiles within 2. Gain 2 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Supercell",
+			"description": "Supercell.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "imbue_reacting",
+						"element": "storm",
+						"radius": 1,
+						"reaction_damage": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile and its ring with Storm. Each tile that reacts deals 6 damage to whoever stands on it."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Frost Sight",
+			"description": "Frost Sight.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							},
+							{
+								"type": "attunement_per_nearby_element",
+								"radius": 2
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue your tile with Frost. Gain 1 attunement for each different element on tiles within 2. Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Thunder King",
+			"description": "The Thunder King.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_reacting",
+								"element": "storm",
+								"radius": 1,
+								"reaction_damage": 7
+							},
+							{
+								"type": "gain_attunement",
+								"element": "storm",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile and its ring with Storm. Each tile that reacts deals 7 damage to whoever stands on it. Gain 1 Storm attunement."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The White Reading",
+			"description": "The White Reading.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							},
+							{
+								"type": "attunement_per_nearby_element",
+								"radius": 2
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue your tile with Frost. Gain 1 attunement for each different element on tiles within 2. Gain 3 shield. Draw 1 card."
+				}
+			]
+		}
+	]
+}

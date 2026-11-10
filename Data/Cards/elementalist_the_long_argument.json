@@ -1,0 +1,272 @@
+{
+	"id": "elementalist_the_long_argument",
+	"status": "ready",
+	"name": "The Long Argument",
+	"school": "Elementalist",
+	"rarity": "Legendary",
+	"top": {
+		"name": "The Long Argument",
+		"mana": 4,
+		"speed": "Studied",
+		"rules_text": "For the rest of the fight: whenever a reaction forms within 4 of you, gain 1 attunement in each of its elements, and it deals 3 damage to the enemy nearest it.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "long_argument",
+			"radius": 4,
+			"damage": 3
+		},
+		"once_per_fight": true
+	},
+	"bottom": {
+		"name": "Rebuttal",
+		"mana": 3,
+		"speed": "Reflex",
+		"rules_text": "Every unoccupied tile next to an enemy is imbued with the element opposed to the one it holds.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "imbue_opposed_near_enemies"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "The Long Argument+",
+			"bottom_name": "Rebuttal+",
+			"description": "A sharper argument. A fuller rebuttal.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "long_argument",
+						"radius": 4,
+						"damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: whenever a reaction forms within 4 of you, gain 1 attunement in each of its elements, and it deals 4 damage to the enemy nearest it."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_opposed_near_enemies"
+							},
+							{
+								"type": "gain_attunement",
+								"element": "all",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every unoccupied tile next to an enemy is imbued with the element opposed to the one it holds. Gain 1 attunement in every element."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "The Longer Argument",
+			"description": "Wider.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "long_argument",
+						"radius": 5,
+						"damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: whenever a reaction forms within 5 of you, gain 1 attunement in each of its elements, and it deals 4 damage to the enemy nearest it."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Counter-Rebuttal",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_opposed_near_enemies"
+							},
+							{
+								"type": "gain_attunement",
+								"element": "all",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every unoccupied tile next to an enemy is imbued with the element opposed to the one it holds. Gain 1 attunement in every element."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "The Standing Argument",
+			"description": "Cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "long_argument",
+						"radius": 5,
+						"damage": 4
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: whenever a reaction forms within 5 of you, gain 1 attunement in each of its elements, and it deals 4 damage to the enemy nearest it."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Rejoinder",
+			"description": "Rejoinder.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_opposed_near_enemies"
+							},
+							{
+								"type": "gain_attunement",
+								"element": "all",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every unoccupied tile next to an enemy is imbued with the element opposed to the one it holds. Gain 1 attunement in every element. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Endless Argument",
+			"description": "The Endless Argument.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 3
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "long_argument",
+						"radius": 5,
+						"damage": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "For the rest of the fight: whenever a reaction forms within 5 of you, gain 1 attunement in each of its elements, and it deals 6 damage to the enemy nearest it."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Last Word",
+			"description": "The Last Word.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 1
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_opposed_near_enemies"
+							},
+							{
+								"type": "gain_attunement",
+								"element": "all",
+								"amount": 1
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Every unoccupied tile next to an enemy is imbued with the element opposed to the one it holds. Gain 1 attunement in every element. Draw 1 card."
+				}
+			]
+		}
+	]
+}

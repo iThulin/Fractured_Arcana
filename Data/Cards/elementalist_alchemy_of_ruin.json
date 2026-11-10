@@ -1,0 +1,261 @@
+{
+	"id": "elementalist_alchemy_of_ruin",
+	"status": "ready",
+	"name": "Alchemy of Ruin",
+	"school": "Elementalist",
+	"rarity": "Rare",
+	"top": {
+		"name": "Alchemy of Ruin",
+		"mana": 3,
+		"speed": "Studied",
+		"rules_text": "Every imbued tile within 3 of you is imbued with the element you hold the most attunement in, and reacts unless it already holds that element.",
+		"tags": [
+			"fire",
+			"ice",
+			"storm",
+			"earth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "alchemy_of_ruin",
+			"radius": 3
+		}
+	},
+	"bottom": {
+		"name": "Solve et Coagula",
+		"mana": 2,
+		"speed": "Reflex",
+		"rules_text": "Clear every reaction within 3. Gain 1 attunement in each element of each reaction cleared.",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "clear_reactions",
+			"radius": 3,
+			"attunement_per": 1
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Alchemy of Ruin+",
+			"bottom_name": "Solve et Coagula+",
+			"description": "The ruin bites. The clearing guards.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "alchemy_of_ruin",
+						"radius": 3,
+						"damage": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every imbued tile within 3 of you is imbued with the element you hold the most attunement in, and reacts unless it already holds that element. An enemy on a tile that reacts takes 3 damage."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "clear_reactions",
+								"radius": 3,
+								"attunement_per": 1
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Clear every reaction within 3. Gain 1 attunement in each element of each reaction cleared. Gain 4 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Great Work of Ruin",
+			"description": "Wider.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "alchemy_of_ruin",
+						"radius": 4,
+						"damage": 3
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every imbued tile within 4 of you is imbued with the element you hold the most attunement in, and reacts unless it already holds that element. An enemy on a tile that reacts takes 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Dissolution",
+			"description": "Dissolution: wider.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "clear_reactions",
+								"radius": 4,
+								"attunement_per": 1
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Clear every reaction within 4. Gain 1 attunement in each element of each reaction cleared. Gain 4 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Calcination",
+			"description": "Calcination.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "alchemy_of_ruin",
+						"radius": 4,
+						"damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every imbued tile within 4 of you is imbued with the element you hold the most attunement in, and reacts unless it already holds that element. An enemy on a tile that reacts takes 5 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Distillation",
+			"description": "Distillation.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "clear_reactions",
+								"radius": 4,
+								"attunement_per": 1
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Clear every reaction within 4. Gain 1 attunement in each element of each reaction cleared. Gain 4 shield. Draw 1 card."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Red Work",
+			"description": "The Red Work: cheaper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "mana",
+					"value": 2
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "alchemy_of_ruin",
+						"radius": 4,
+						"damage": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Every imbued tile within 4 of you is imbued with the element you hold the most attunement in, and reacts unless it already holds that element. An enemy on a tile that reacts takes 5 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The White Work",
+			"description": "The White Work.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "clear_reactions",
+								"radius": 4,
+								"attunement_per": 2
+							},
+							{
+								"type": "shield",
+								"amount": 4
+							},
+							{
+								"type": "draw",
+								"count": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Clear every reaction within 4. Gain 2 attunement in each element of each reaction cleared. Gain 4 shield. Draw 1 card."
+				}
+			]
+		}
+	]
+}

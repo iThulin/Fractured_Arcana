@@ -990,6 +990,8 @@ public sealed class PullEffect : EffectBase
 			// Don't pull the caster toward themselves
 			if (victim == casterUnit)
 				continue;
+			if (ForcedMove.IsAnchored(victim))
+				continue;
 
 			// Pull is positioning, not a hazard: suppress falling and keep the
 			// no-collision asymmetry (spec §4). Verbs (Fire Sears, Frost Slides,

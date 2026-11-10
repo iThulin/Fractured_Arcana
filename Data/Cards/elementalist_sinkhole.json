@@ -1,0 +1,327 @@
+{
+	"id": "elementalist_sinkhole",
+	"status": "ready",
+	"name": "Sinkhole",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Sinkhole",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Lower target tile within 4 by 2. Whoever stands on it falls (6 damage) and is Slowed.",
+		"tags": [
+			"earth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "adjust_height",
+					"lower": 2
+				},
+				{
+					"type": "apply_status",
+					"status": "slowed",
+					"duration": 1
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Upheave",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Raise your tile by 1 (max height 3). Gain 3 armor.",
+		"tags": [
+			"earth"
+		],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "adjust_height",
+					"amount": 1,
+					"max": 3
+				},
+				{
+					"type": "armor",
+					"amount": 3
+				}
+			]
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Sinkhole+",
+			"bottom_name": "Upheave+",
+			"description": "A longer slow. Thicker stone.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"lower": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Lower target tile within 4 by 2. Whoever stands on it falls (6 damage) and is Slowed for 2 turns."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 1,
+								"max": 3
+							},
+							{
+								"type": "armor",
+								"amount": 4
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise your tile by 1 (max height 3). Gain 4 armor."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Cave-In",
+			"description": "Cave-In: further.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"lower": 2
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Lower target tile within 5 by 2. Whoever stands on it falls (6 damage) and is Slowed for 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Uplift",
+			"description": "Uplift.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 1,
+								"max": 3
+							},
+							{
+								"type": "armor",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise your tile by 1 (max height 3). Gain 5 armor."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Collapse",
+			"description": "Collapse: deeper.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"lower": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 2
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Lower target tile within 5 by 3. Whoever stands on it falls (9 damage) and is Slowed for 2 turns."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Rampart",
+			"description": "Rampart: higher.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 2,
+								"max": 3
+							},
+							{
+								"type": "armor",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise your tile by 2 (max height 3). Gain 5 armor."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Swallowing Earth",
+			"description": "The Swallowing Earth.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 6
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"lower": 3
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Lower target tile within 6 by 3. Whoever stands on it falls (9 damage) and is Slowed for 3 turns."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Citadel",
+			"description": "The Citadel.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 2,
+								"max": 3
+							},
+							{
+								"type": "armor",
+								"amount": 7
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise your tile by 2 (max height 3). Gain 7 armor."
+				}
+			]
+		}
+	]
+}

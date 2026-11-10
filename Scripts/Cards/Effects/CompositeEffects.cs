@@ -313,7 +313,7 @@ public sealed class PullDamageEffect : EffectBase
             var victim = ResolveTargetUnit(s, obj);
             if (victim == null || victim.CurrentTile == null)
                 continue;
-            if (victim == casterUnit)
+            if (victim == casterUnit || ForcedMove.IsAnchored(victim))
                 continue;
 
             // Forced movement (entry verbs fire per step); pull suppresses falling.

@@ -1,0 +1,288 @@
+{
+	"id": "elementalist_catalyst_spark",
+	"status": "ready",
+	"name": "Catalyst Spark",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Catalyst Spark",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Imbue target tile with Fire, then Storm.",
+		"tags": [
+			"fire",
+			"storm"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 4
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "imbue_tile",
+					"element": "fire"
+				},
+				{
+					"type": "imbue_tile",
+					"element": "storm"
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Read the Reaction",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Draw 1 card per reaction on the board (max 3).",
+		"tags": [],
+		"targeting": {
+			"type": "self"
+		},
+		"effect": {
+			"type": "draw_per_reaction",
+			"max": 3
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Catalyst Spark+",
+			"bottom_name": "Read the Reaction+",
+			"description": "A longer fuse. A cheaper reading.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "fire"
+							},
+							{
+								"type": "imbue_tile",
+								"element": "storm"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile with Fire, then Storm."
+				},
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "draw_per_reaction",
+						"max": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 1 card per reaction on the board (max 3)."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Arc Spark",
+			"description": "Arc Spark: it burns.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "fire"
+							},
+							{
+								"type": "imbue_tile",
+								"element": "storm",
+								"bonus_damage": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile with Fire, then Storm. An enemy standing there takes 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Read the Board",
+			"description": "Read the Board.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "draw_per_reaction",
+						"max": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 1 card per reaction on the board (max 4)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Chain Spark",
+			"description": "Chain Spark.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "fire"
+							},
+							{
+								"type": "imbue_tile",
+								"element": "storm",
+								"bonus_damage": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile with Fire, then Storm. An enemy standing there takes 5 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Read the Pattern",
+			"description": "Read the Pattern.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw_per_reaction",
+								"max": 4
+							},
+							{
+								"type": "gain_attunement",
+								"element": "highest",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 1 card per reaction on the board (max 4). Gain 1 attunement in your highest element."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The First Spark",
+			"description": "The First Spark.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "imbue_tile",
+								"element": "fire"
+							},
+							{
+								"type": "imbue_tile",
+								"element": "storm",
+								"bonus_damage": 5
+							},
+							{
+								"type": "gain_attunement",
+								"element": "highest",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Imbue target tile with Fire, then Storm. An enemy standing there takes 5 damage. Gain 1 attunement in your highest element."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Read Everything",
+			"description": "Read Everything.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "draw_per_reaction",
+								"max": 5
+							},
+							{
+								"type": "gain_attunement",
+								"element": "highest",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Draw 1 card per reaction on the board (max 5). Gain 1 attunement in your highest element."
+				}
+			]
+		}
+	]
+}

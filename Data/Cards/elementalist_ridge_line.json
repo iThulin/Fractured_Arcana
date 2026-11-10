@@ -1,0 +1,330 @@
+{
+	"id": "elementalist_ridge_line",
+	"status": "ready",
+	"name": "Ridge Line",
+	"school": "Elementalist",
+	"rarity": "Uncommon",
+	"top": {
+		"name": "Ridge Line",
+		"mana": 2,
+		"speed": "Studied",
+		"rules_text": "Raise a line of 3 tiles toward target tile by 1 (max height 3).",
+		"tags": [
+			"earth"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 5
+		},
+		"effect": {
+			"type": "retarget",
+			"targeting": {
+				"type": "line",
+				"length": 3,
+				"enemies_only": false,
+				"include_tiles": true
+			},
+			"do": {
+				"type": "adjust_height",
+				"amount": 1,
+				"max": 3
+			}
+		}
+	},
+	"bottom": {
+		"name": "Standing Stone",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Raise an empty tile adjacent to you by 2; it blocks line of sight.",
+		"tags": [
+			"earth"
+		],
+		"targeting": {
+			"type": "empty_tile",
+			"range": 1
+		},
+		"effect": {
+			"type": "adjust_height",
+			"amount": 2,
+			"blocks_los": true
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Ridge Line+",
+			"bottom_name": "Standing Stone+",
+			"description": "A longer ridge. A guarded stone.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "line",
+							"length": 4,
+							"enemies_only": false,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "adjust_height",
+							"amount": 1,
+							"max": 3
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a line of 4 tiles toward target tile by 1 (max height 3)."
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 2,
+								"blocks_los": true
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise an empty tile adjacent to you by 2; it blocks line of sight. Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Escarpment",
+			"description": "Escarpment.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "line",
+									"length": 4,
+									"enemies_only": false,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "adjust_height",
+									"amount": 1,
+									"max": 3
+								}
+							},
+							{
+								"type": "gain_attunement",
+								"element": "earth",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a line of 4 tiles toward target tile by 1 (max height 3). Gain 1 Earth attunement."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Menhir",
+			"description": "Menhir: cheaper.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 2,
+								"blocks_los": true
+							},
+							{
+								"type": "shield",
+								"amount": 3
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise an empty tile adjacent to you by 2; it blocks line of sight. Gain 3 shield."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Cordillera",
+			"description": "Cordillera: higher.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "retarget",
+						"targeting": {
+							"type": "line",
+							"length": 4,
+							"enemies_only": false,
+							"include_tiles": true
+						},
+						"do": {
+							"type": "adjust_height",
+							"amount": 2,
+							"max": 3
+						}
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a line of 4 tiles toward target tile by 2 (max height 3)."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Dolmen",
+			"description": "Dolmen.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 2,
+								"blocks_los": true
+							},
+							{
+								"type": "shield",
+								"amount": 5
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise an empty tile adjacent to you by 2; it blocks line of sight. Gain 5 shield."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Spine of the World",
+			"description": "The Spine of the World.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "retarget",
+								"targeting": {
+									"type": "line",
+									"length": 5,
+									"enemies_only": false,
+									"include_tiles": true
+								},
+								"do": {
+									"type": "adjust_height",
+									"amount": 2,
+									"max": 3
+								}
+							},
+							{
+								"type": "gain_attunement",
+								"element": "earth",
+								"amount": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Raise a line of 5 tiles toward target tile by 2 (max height 3). Gain 1 Earth attunement."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "The Great Stone",
+			"description": "The Great Stone.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "mana",
+					"value": 0
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "adjust_height",
+								"amount": 3,
+								"blocks_los": true
+							},
+							{
+								"type": "shield",
+								"amount": 6
+							}
+						]
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Raise an empty tile adjacent to you by 3; it blocks line of sight. Gain 6 shield."
+				}
+			]
+		}
+	]
+}

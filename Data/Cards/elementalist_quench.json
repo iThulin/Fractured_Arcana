@@ -1,0 +1,283 @@
+{
+	"id": "elementalist_quench",
+	"status": "ready",
+	"name": "Quench",
+	"school": "Elementalist",
+	"rarity": "Common",
+	"top": {
+		"name": "Quench",
+		"mana": 1,
+		"speed": "Studied",
+		"rules_text": "Deal 3 damage. Imbue the target's tile with Frost.",
+		"tags": [
+			"ice"
+		],
+		"targeting": {
+			"type": "unit",
+			"range": 5,
+			"los": true,
+			"enemies_only": true
+		},
+		"effect": {
+			"type": "sequence",
+			"steps": [
+				{
+					"type": "damage",
+					"amount": 3
+				},
+				{
+					"type": "imbue_tile",
+					"element": "ice"
+				}
+			]
+		}
+	},
+	"bottom": {
+		"name": "Kindle",
+		"mana": 1,
+		"speed": "Reflex",
+		"rules_text": "Imbue a tile within 3 with Fire.",
+		"tags": [
+			"fire"
+		],
+		"targeting": {
+			"type": "tile",
+			"range": 3
+		},
+		"effect": {
+			"type": "imbue_tile",
+			"element": "fire"
+		}
+	},
+	"upgrades": [
+		{
+			"tier": 1,
+			"half": "both",
+			"top_name": "Quench+",
+			"bottom_name": "Kindle+",
+			"description": "Colder water. A longer reach for the spark.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 4
+							},
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 4 damage. Imbue the target's tile with Frost."
+				},
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "fire"
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile within 4 with Fire."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "top",
+			"top_name": "Douse",
+			"description": "Douse.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 5
+							},
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 5 damage. Imbue the target's tile with Frost."
+				}
+			]
+		},
+		{
+			"tier": 2,
+			"half": "bottom",
+			"bottom_name": "Tinder",
+			"description": "Tinder: it bites.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "fire",
+						"bonus_damage": 2
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile within 4 with Fire. An enemy standing there takes 2 damage."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "top",
+			"top_name": "Cold Snap",
+			"description": "Cold Snap.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 6
+							},
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 6 damage. Imbue the target's tile with Frost."
+				}
+			]
+		},
+		{
+			"tier": 3,
+			"half": "bottom",
+			"bottom_name": "Flashpoint",
+			"description": "Flashpoint.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "fire",
+						"bonus_damage": 3
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile within 5 with Fire. An enemy standing there takes 3 damage."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "top",
+			"top_name": "The Long Winter",
+			"description": "The Long Winter: it slows.",
+			"changes": [
+				{
+					"half": "top",
+					"field": "effect",
+					"value": {
+						"type": "sequence",
+						"steps": [
+							{
+								"type": "damage",
+								"amount": 7
+							},
+							{
+								"type": "imbue_tile",
+								"element": "ice"
+							},
+							{
+								"type": "apply_status",
+								"status": "slowed",
+								"duration": 1
+							}
+						]
+					}
+				},
+				{
+					"half": "top",
+					"field": "rules_text",
+					"value": "Deal 7 damage. Imbue the target's tile with Frost. It is Slowed."
+				}
+			]
+		},
+		{
+			"tier": 4,
+			"half": "bottom",
+			"bottom_name": "Wildspark",
+			"description": "Wildspark.",
+			"changes": [
+				{
+					"half": "bottom",
+					"field": "targeting",
+					"value": {
+						"type": "tile",
+						"range": 5
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "effect",
+					"value": {
+						"type": "imbue_tile",
+						"element": "fire",
+						"bonus_damage": 4
+					}
+				},
+				{
+					"half": "bottom",
+					"field": "rules_text",
+					"value": "Imbue a tile within 5 with Fire. An enemy standing there takes 4 damage."
+				}
+			]
+		}
+	]
+}

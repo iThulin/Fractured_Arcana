@@ -110,6 +110,7 @@ public static class StatusCatalog
         { "stunned",       new("Stunned",      "STN",  StatusTone.Debuff, "Loses its actions and movement.") },
         { "bound",         new("Bound",        "BND",  StatusTone.Debuff, "Cannot act or move, and cannot be freed by cleansing.") },
         { "rooted",        new("Rooted",       "ROOT", StatusTone.Debuff, "Cannot move. Can still act.") },
+        { "anchored",      new("Anchored",     "ANCH", StatusTone.Trait,  "Forced movement can't move it: no push, pull or slide.") },
         { "slowed",        new("Slowed",       "SLOW", StatusTone.Debuff, "Movement is halved.") },
         { "temporal_drag", new("Time Drag",    "DRAG", StatusTone.Debuff, "Movement is halved.") },
         { "delayed",       new("Delayed",      "DLY",  StatusTone.Debuff, "Its turn has been postponed. Cannot be postponed again until it acts.") },
