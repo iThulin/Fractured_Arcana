@@ -34,19 +34,19 @@ using System.Collections.Generic;
 public static class Interval
 {
     // ── The lines the gates say (placeholders for the copy pass) ─────────
-    public const string HeldLine = "The moon will not turn until the guild is founded.";
-    public const string DoorLine = "The door is not set.";
+    public const string HeldLine = "Time does not pass until you finish founding the guild (the Standing Orders quest).";
+    public const string DoorLine = "Not available until you finish founding the guild. Follow the Standing Orders quest.";
     /// <summary>The date while the moon is held, on the map's time bar and the top bar (D164).</summary>
     public const string DateLine = "Before the first new moon";
     public const string CastleSortieLine =
-        "Until the door is set, the castle marches but does not take the field. Send the party out from its camp.";
+        "Until you finish founding the guild, the castle can march but cannot go on an expedition itself. Send your party out from the castle's camp instead.";
     public const string FootLine =
-        "Before the founding, the party does not walk the map: every day on the road would turn the moon. "
-        + "Send them out from the castle's camp instead.";
+        "Until you finish founding the guild, your party cannot march across the map. "
+        + "Send it out from the castle's camp instead.";
     public const string PostingLine =
-        "Postings wait for the founding: their work is counted in days, and the moon is held.";
+        "Postings are not available until you finish founding the guild.";
     public const string RecallLine =
-        "The party falls back to the castle. The moon is held, so no time is lost.";
+        "Your party returns to the castle. No time passes.";
     // Why the world is held (O3c, D208): until the guild first sits, at the first new moon, the only
     // business in order is founding it, and the Register will not risk the founding on anything else.
     // A house that does business before it sits is no house, and only a house's orders stand. The
@@ -55,23 +55,26 @@ public static class Interval
 
     /// <summary>Said when a dive arrives on a place the interval holds (O3b, D198) and no line for
     /// its kind applies (HeldLineFor).</summary>
-    public const string PlaceHeldLine = "'Out of order,' says the Register. 'Entered for the first sitting.'";
+    public const string PlaceHeldLine = "'Out of order,' says the Register. 'Entered for the first sitting.'" + HeldPlain;
     /// <summary>The Register explains the held world the first time it matters (O3b, D202). Renamed
     /// from interval.held in O3c, so a guild that saw the old explanation sees this one.</summary>
     public const string HeldBark = "interval.out_of_order";
+    /// <summary>The plain sentence under every held place's line (voice first, then this).</summary>
+    public const string HeldPlain =
+        "\n\nYou cannot use this place until you finish founding the guild (the Standing Orders quest). It will still be here afterward.";
     /// <summary>The held kinds that are not places (O3c): a shard zone's gate or sanctum, and a
     /// blight site. Places are held by their POIType's name.</summary>
     public const string HeldShard = "shard";
     public const string HeldFacet = "facet";
     /// <summary>A held place's word in the field's tooltip (O3c, D209).</summary>
-    public const string HeldTip = " (out of order until the first sitting)";
+    public const string HeldTip = " (available after you found the guild)";
     /// <summary>The stride's halt on a held place (O3c, D209): the place is named, then this.</summary>
-    public const string HeldSightTail = "Out of order until the first sitting. Press on.";
+    public const string HeldSightTail = "Not available until you finish founding the guild. Keep going.";
     /// <summary>The banner of a fight lost while the interval walks (O3c, D209): what D147, D195 and
     /// D206 do, in the Register's words.</summary>
     public const string RoutLine =
-        "The Register does not minute a rout. Before the guild sits, a rout costs bruises, not lives, "
-        + "and teaches nothing. The place is still there.";
+        "You lost the fight. Until the guild is founded, losing costs you nothing: no Anchor, no injuries. "
+        + "The place is still there.";
 
     /// <summary>What a dive is told on arriving at a held place (O3c, D209), by the kind
     /// ExpeditionManager found there: a POIType's name, HeldShard or HeldFacet.</summary>
@@ -79,28 +82,28 @@ public static class Interval
     {
         nameof(OverworldHex.POIType.Combat) =>
             "Whoever holds this place would fight for it. The Register closes on your thumb. "
-            + "'Out of order,' it says. 'Entered for the first sitting.'",
+            + "'Out of order,' it says. 'Entered for the first sitting.'" + HeldPlain,
         nameof(OverworldHex.POIType.Rest) =>
             "A refuge, and someone keeping it. 'Sessional business,' says the Register. "
-            + "'It will keep for the first sitting. Refuges do.'",
+            + "'It will keep for the first sitting. Refuges do.'" + HeldPlain,
         nameof(OverworldHex.POIType.Narrative) =>
             "Something here is waiting to be told. The Register turns its page face down. "
-            + "'Entered for the first sitting. The Register does not... read ahead.'",
+            + "'Entered for the first sitting. The Register does not... read ahead.'" + HeldPlain,
         nameof(OverworldHex.POIType.Negotiation) =>
             "Someone at the meeting place looks up, ready to deal. 'A guild that has not sat cannot "
-            + "treat,' says the Register, 'and this one has not sat.'",
+            + "treat,' says the Register, 'and this one has not sat.'" + HeldPlain,
         nameof(OverworldHex.POIType.Outpost) =>
             "An outpost, held for whoever takes it. 'The house holds nothing before it sits,' says the "
-            + "Register. 'Not even this.'",
+            + "Register. 'Not even this.'" + HeldPlain,
         nameof(OverworldHex.POIType.Prison) =>
             "A jail, and someone in it. 'Entered first in the order of business,' says the Register, "
-            + "very carefully, 'for the first sitting.'",
+            + "very carefully, 'for the first sitting.'" + HeldPlain,
         HeldShard =>
             "The air here tastes of the hall, the afternoon it broke. The Register goes very still. "
-            + "'Not this,' it says. 'Not before the guild sits.'",
+            + "'Not this,' it says. 'Not before the guild sits.'" + HeldPlain,
         HeldFacet =>
             "Something bright lies in the blighted ground. 'The guild will want that,' says the "
-            + "Register, 'once there is a guild to carry it home.'",
+            + "Register, 'once there is a guild to carry it home.'" + HeldPlain,
         _ => PlaceHeldLine,
     };
 

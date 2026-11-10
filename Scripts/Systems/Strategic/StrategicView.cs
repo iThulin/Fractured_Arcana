@@ -7260,10 +7260,10 @@ public partial class StrategicView : Node2D
         vbox.AddChild(title);
 
         string gateBody = inFinale
-            ? "You left the Anchorhold open. It is still open. Nothing else in this timeline is going to happen until you walk back through it."
+            ? "You left the final battle at the Convergence unfinished. Nothing else can happen in this timeline until you finish it."
             : resolved
-                ? "The sky has finished reading itself. Every seat is answered: allied, bought, emptied, or lost. The script has one passage left, and it converges on a second that was never written. The Anchorhold can open its door exactly once. He will be through it before it closes. So will you."
-                : "The moons align and the timeline strains toward its close. You can let it unmake: return to the campus, keep everything you have learned, and begin a new world. Or refuse to let it go, and hold this timeline into another year. Perfect it, and all you have built endures; but the world hardens, the corruption deepens, and a defeat now unmakes it all.";
+                ? "The sky has finished reading itself. Every seat is answered: allied, bought, emptied, or lost. The Anchorhold can open its door exactly once. He will be through it before it closes. So will you.\n\nThis is the final battle of this timeline. Win it and you may continue into a harder year or start a new timeline. Lose it and this timeline ends."
+                : $"The year is over. You can continue this timeline into Year {(gateCycle?.CampaignYear ?? 1) + 1}: you keep your world, deck, companions and Anchors, but enemies get stronger and corruption rises everywhere. Or you can end this timeline and start a new one. Either way you keep your campus, unlocked cards, mastery and Regalia.";
 
         var body = new Label
         {
@@ -7302,7 +7302,7 @@ public partial class StrategicView : Node2D
 
         if (inFinale)
         {
-            vbox.AddChild(GateButton("Return to the Convergence", true, OpenAnchorhold));
+            vbox.AddChild(GateButton("Return to the Final Battle", true, OpenAnchorhold));
         }
         else if (!resolved)
         {
@@ -7310,7 +7310,7 @@ public partial class StrategicView : Node2D
             // unchanged: while seats remain unresolved the Conjunction is still a pure
             // DEADLINE, and Continue is still earned by surviving to it.
             int nextYear = (gateCycle?.CampaignYear ?? 1) + 1;
-            vbox.AddChild(GateButton($"Perfect the Timeline  (Year {nextYear})", true, () =>
+            vbox.AddChild(GateButton($"Continue This Timeline  (Year {nextYear}, harder)", true, () =>
             {
                 // Keep the world, advance the year, harden it; then reload the
                 // strategic scene, whose _Ready re-reads the preserved+escalated
@@ -7319,12 +7319,12 @@ public partial class StrategicView : Node2D
                 PlayerSession.CycleEndedByConjunction = false;
                 GetTree().ChangeSceneToFile(StrategicScenePath);
             }));
-            vbox.AddChild(GateButton("Let It Unmake  (Return to Campus)", false, LetItUnmake));
+            vbox.AddChild(GateButton("End This Timeline", false, LetItUnmake));
         }
         else
         {
-            vbox.AddChild(GateButton("Open the Anchorhold", true, OpenAnchorhold));
-            vbox.AddChild(GateButton("Let It Unmake  (Return to Campus)", false, LetItUnmake));
+            vbox.AddChild(GateButton("Begin the Final Battle", true, OpenAnchorhold));
+            vbox.AddChild(GateButton("End This Timeline", false, LetItUnmake));
         }
     }
 
@@ -7386,7 +7386,7 @@ public partial class StrategicView : Node2D
         EncounterContextCarrier.SetContext(def.TerrainType, def.Tier);
         GD.Print("[Convergence] The Anchorhold opens. The Fracture begins.");
         SceneTransition.Go(GetTree(), router.CombatScenePath, "The Anchorhold Opens",
-            "The Fracture begins.", 1.0f);
+            "The final battle begins.", 1.0f);
     }
 
     /// <summary>The Fracture, placeholder form. Real content (waves, the Anchor ward
@@ -7525,7 +7525,7 @@ public partial class StrategicView : Node2D
         vbox.AddThemeConstantOverride("separation", 14);
         margin.AddChild(vbox);
 
-        var title = new Label { Text = won ? "The Conferral Completes" : "The Anchor Takes You Back" };
+        var title = new Label { Text = won ? "Victory at the Convergence" : "Defeat at the Convergence" };
         title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeLarge);
         title.AddThemeColorOverride("font_color", won ? UITheme.Gold : UITheme.Danger);
         title.HorizontalAlignment = HorizontalAlignment.Center;
@@ -7534,8 +7534,8 @@ public partial class StrategicView : Node2D
         var body = new Label
         {
             Text = won
-                ? "The Long Second closes, and this time it closes on your terms. The hall lets go of the moment it has been holding since before you were a wizard. Whatever else is true of this timeline, it ended in the one room nobody could read, and you were the one still standing in it."
-                : "The anchor takes you back before the blow lands. The timeline closes over the Convergence like water. He does not gloat; he schedules. Somewhere behind your eyes, the Long Second holds, and everything carried inside it holds with you.",
+                ? "The Long Second closes, and this time it closes on your terms. The hall lets go of the moment it has been holding since before you were a wizard. Whatever else is true of this timeline, it ended in the one room nobody could read, and you were the one still standing in it.\n\nYou won the final battle. Continue this timeline into a harder year, or end it and start a new one."
+                : "The anchor takes you back before the blow lands. The timeline closes over the Convergence like water. He does not gloat; he schedules. Somewhere behind your eyes, the Long Second holds, and everything carried inside it holds with you.\n\nYou lost the final battle. This timeline is over.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
@@ -7569,19 +7569,19 @@ public partial class StrategicView : Node2D
         {
             // R-F2: post-resolution, Continue is offered ONLY here, on a victory.
             int nextYear = (cycle?.CampaignYear ?? 1) + 1;
-            vbox.AddChild(OutcomeButton($"Perfect the Timeline  (Year {nextYear})", true, () =>
+            vbox.AddChild(OutcomeButton($"Continue This Timeline  (Year {nextYear}, harder)", true, () =>
             {
                 SaveManager.ContinueCampaign();
                 PlayerSession.CycleEndedByConjunction = false;
                 GetTree().ChangeSceneToFile(StrategicScenePath);
             }));
-            vbox.AddChild(OutcomeButton("Let It Rest", false, ToCampus));
+            vbox.AddChild(OutcomeButton("End This Timeline", false, ToCampus));
         }
         else
         {
             // No retry inside the timeline: the wall is fixed, and the answer to a
             // defeat is another timeline with more permanent power (spec §3).
-            vbox.AddChild(OutcomeButton("Return to the Campus", true, ToCampus));
+            vbox.AddChild(OutcomeButton("See What You Keep", true, ToCampus));
         }
     }
 

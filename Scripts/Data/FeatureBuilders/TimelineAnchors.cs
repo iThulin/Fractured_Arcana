@@ -95,7 +95,7 @@ public static class TimelineAnchors
     /// timeline is unmade. <paramref name="line"/> is what the player is told.</summary>
     public static bool SpendOnDefeat(GuildSaveData save, out string line)
     {
-        line = "The castle withdraws.";
+        line = "You lost the fight. No rewards.";
         var cycle = save?.Cycle;
         if (cycle == null)
         {

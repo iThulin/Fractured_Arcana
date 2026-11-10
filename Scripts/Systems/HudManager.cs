@@ -646,7 +646,7 @@ public partial class HudManager : Node
 
         if (force || lunKey != _lastLunation)
         {
-            _lunationLabel.Text = held ? Interval.DateLine : $"Lunation  {lun}  ·  day {day}";
+            _lunationLabel.Text = held ? Interval.DateLine : $"Moon  {lun}  ·  day {day}";
             _lastLunation = lunKey;
         }
         UpdateReadout(_gold, "Gold", save?.Gold ?? 0, pGold, force);

@@ -219,13 +219,13 @@ public partial class EncounterRouter : Node
                 GD.Print($"EncounterRouter: Adept stipend. No draft, splinters doubled to {SplinterReward}.");
                 GetTree().CreateTimer(2.0f).Timeout += () =>
                     SceneTransition.Go(GetTree(), ReturnScenePath, "Victory",
-                        $"{GoldReward} gold · {SplinterReward} Arcane Splinters. The Academy's stipend.");
+                        $"You gain {GoldReward} gold and {SplinterReward} Arcane Splinters. Adepts get double splinters instead of a card.");
             }
             else
             {
                 // Show card reward screen. It routes to ReturnScenePath when done.
                 SceneTransition.Go(GetTree(), "res://Scenes/UI/CardRewardScreen.tscn", "Victory",
-                    $"{GoldReward} gold · {SplinterReward} Arcane Splinters. The field yields a card.");
+                    $"You gain {GoldReward} gold and {SplinterReward} Arcane Splinters. Choose a card to add to your deck.");
             }
         }
         else
@@ -234,9 +234,10 @@ public partial class EncounterRouter : Node
             // and with none left the timeline is unmade (TimelineAnchors). Exams and the
             // Convergence keep their own endings; scripted fights returned above.
             var lossSave = SaveManager.ActiveSave;
-            string lossLine = "The castle withdraws.";
+            string lossLine = "You lost the fight. No rewards.";
             bool unmade = false;
-            if (wizardFielded && ExamFitting == null && lossSave?.Cycle?.Convergence?.InProgress != true)
+            if (wizardFielded && ExamFitting == null && lossSave?.Cycle?.Convergence?.InProgress != true
+                && !Interval.Walking(lossSave?.Cycle))
             {
                 unmade = TimelineAnchors.SpendOnDefeat(lossSave, out lossLine);
                 SaveManager.SaveIfDirty();

@@ -173,7 +173,7 @@ public partial class TimelineEndScreen : Control
         int span = Math.Max(1, cycle.Calendar?.LunationsPerCycle ?? 12);
         int lunation = Math.Clamp(cycle.Calendar?.CurrentLunation ?? 1, 1, span);
         string record = $"Timeline {cycle.CycleNumber}  ·  Year {cycle.CampaignYear}  ·  " +
-                        $"Lunation {lunation} of {span}  ·  Played as {cycle.SelectedSchool}  ·  " +
+                        $"Moon {lunation} of {span}  ·  Played as {cycle.SelectedSchool}  ·  " +
                         $"{cycle.TotalRuns} expedition{(cycle.TotalRuns == 1 ? "" : "s")}";
         root.AddChild(MakeLabel(record, UITheme.CampusSmallFontSize, UITheme.TextSecondary, center: true));
         root.AddChild(new HSeparator());

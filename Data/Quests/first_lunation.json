@@ -1,11 +1,11 @@
 [
   {
     "id": "q_first_lunation",
-    "title": "The First Lunation",
-    "category": "First Lunation",
+    "title": "Your First Moon",
+    "category": "First Moon",
     "permanent": true,
     "layer": "Eternal",
-    "summary": "The Academy is stopped in its afternoon, and the guild is one candidate and a book. Out past the gate the world is moving, and the Grand Conjunction is twelve moons off. The Register suggests learning the way around before the first moon turns.",
+    "summary": "Learn the basics before the first new moon. Do each step once, in any order the game allows. The Grand Conjunction, the end of the year, is 12 moons away.",
     "requiredFlag": "prologue_founding_done",
     "objectives": [
       {

@@ -5,31 +5,31 @@
     "category": "Standing Orders",
     "permanent": true,
     "layer": "Eternal",
-    "summary": "The Academy's statutes say what a guild needs: a fire, a quorum, a doorway the world can knock on, and standing orders, so the house still stands when the sitting rises. The Register has the fire. Until the door is set, the campus is shut and the moon will not turn.",
+    "summary": "Found your guild. Complete these five steps in order. Until you finish, time does not pass, your campus is closed, and most places on the map cannot be used.",
     "requiredFlag": "interval_begun",
     "objectives": [
       {
-        "text": "Light the castle from the Grand Hall's hearth and take it out of the gate",
+        "text": "Light the castle at the Grand Hall and take it out through the gate",
         "doneText": "A fire: the castle is lit and out of the gate",
         "counter": "interval:hearth"
       },
       {
-        "text": "Refuel the castle at the Academy's field store",
+        "text": "Take back the Academy's field store to refuel the castle",
         "doneText": "Provisions: the castle is fueled for the road",
         "counter": "interval:store"
       },
       {
-        "text": "Gather a quorum: three members on the roll",
+        "text": "Have 3 members in your guild",
         "doneText": "A quorum: three members on the roll",
         "counter": "interval:quorum"
       },
       {
-        "text": "Set the door at the Academy's field house",
+        "text": "Reach the Academy's field house and set your campus door there",
         "doneText": "A doorway: the door is set",
         "counter": "interval:door"
       },
       {
-        "text": "Adopt the standing orders in the Grand Hall",
+        "text": "Adopt the Standing Orders in the Grand Hall to finish founding the guild",
         "doneText": "Standing orders: adopted",
         "counter": "interval:orders"
       }

@@ -45,7 +45,7 @@ public static class FirstLunation
 {
     public const string QuestId = "q_first_lunation";
     /// <summary>The quest's category in the log: shown first, and only while it is being walked.</summary>
-    public const string Category = "First Lunation";
+    public const string Category = "First Moon";
     /// <summary>The quest log's counter family: "tutorial:&lt;step&gt;", 1 once the step is done.</summary>
     public const string CounterPrefix = "tutorial:";
     /// <summary>A step's tick on the save: a meta flag, so it holds in every reading after.</summary>
@@ -323,7 +323,7 @@ public static class FirstLunation
         if (step == null || Interval.Walking(save?.Cycle))
             return null;
         canGo = CanGoFrom(scene);
-        tooltip = $"The first lunation, step {IndexOf(step) + 1} of {Steps.Length}."
+        tooltip = $"First moon tutorial, step {IndexOf(step) + 1} of {Steps.Length}."
                   + (canGo ? " Click to go there." : "");
         return $"Next: {Label(step)}";
     }

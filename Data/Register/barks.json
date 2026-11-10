@@ -616,7 +616,7 @@
       "lines": [
         "A piece of the sphere came down here, hot, and it has been... leaking ever since. The ground around it is the wound. The Register would prefer not to describe the rest."
       ],
-      "note": "A shard zone is where one Seal fragment fell. A guardian holds its gate and the fragment waits in the sanctum beyond. Surveying a zone lays out its tiles and its guardian, and some zones open without a fight. Taking a fragment is recorded for good: what it grants the guild carries into every reading."
+      "note": "A shard zone is where one piece of the Seal fell. A guardian holds its gate, and the Shard waits in the sanctum beyond. Surveying a zone shows its tiles and its guardian, and some zones open without a fight. A Shard you take is permanent: you keep it and what it grants in every timeline."
     },
     {
       "key": "lore.first_entry",
@@ -626,7 +626,7 @@
       "lines": [
         "Be it recorded that the guild has learned something. It has been indexed. The Register does not trust indexes, but it trusts them more than... memory."
       ],
-      "note": "The Hall of Lore keeps what the guild has uncovered: each entry under its subject, with what was learned. Entries are kept for good and carry into every reading."
+      "note": "The Hall of Lore lists what your guild has learned, by subject. Lore entries are permanent: you keep them in every timeline."
     },
     {
       "key": "combat.basics.hand",
@@ -876,7 +876,7 @@
       "lines": [
         "The party has been posted. Be it recorded where they stand, in case anyone asks... later."
       ],
-      "note": "A posted party works its ground lunation by lunation and draws supplies each moon. Recall or collect it from the map when the work is done. A party left exposed in the field can be found by threats."
+      "note": "A posted party works where it stands, moon by moon, and uses supplies at each new moon. Recall or collect it from the map when the work is done. A party left in the open can be attacked."
     },
     {
       "key": "strategic.first_waystone",
@@ -892,21 +892,21 @@
       "key": "strategic.first_lunation",
       "category": "explain",
       "once": true,
-      "title": "A lunation passes",
+      "title": "A moon passes",
       "lines": [
         "A moon has turned. The world has made its entries while you were... occupied."
       ],
-      "note": "Each new moon the world takes its turn: postings progress, threats advance, and the kingdoms act. The Conjunction draws one lunation closer."
+      "note": "At each new moon the world takes its turn: postings progress, threats advance, and the kingdoms act. The Grand Conjunction, the end of the year, is one moon closer."
     },
     {
       "key": "cycle.first_unmaking",
       "category": "explain",
       "once": true,
-      "title": "The unmaking",
+      "title": "A new timeline",
       "lines": [
         "Struck through. All of it. And yet the Register remains, and so do... some of you."
       ],
-      "note": "The timeline has been unmade and a new one begins. What the guild made eternal carries over: essence, the campus, mastery, the Regalia, and every name the Register holds. The kingdoms, companions and fragments start fresh."
+      "note": "Your timeline ended and a new one has started. You keep your campus, mastery, unlocked cards, Shards and Regalia. The world, the kingdoms, your companions and your deck start fresh."
     },
     {
       "key": "campus.first_ledger",
@@ -916,7 +916,7 @@
       "lines": [
         "The guild's own ledger. Kept by somebody else. The Register will try not to... correct it."
       ],
-      "note": "The Grand Hall keeps the guild's ledger: the disciplines you can declare, your first goal among them, the charters that put a building's doctrine in force, and your save slots."
+      "note": "The Grand Hall holds your guild's ledger: the disciplines you can unlock, your first goal, the doctrines your buildings have active, and your save slots."
     },
     {
       "key": "strategic.first_forces",
@@ -946,7 +946,7 @@
       "lines": [
         "The cards you sat with, and a few more. The Academy's own. On paper you are still... an Adept."
       ],
-      "note": "The Sanctum is where the deck your wizard fights with is built. Slotting a card costs gold. Until you declare a discipline, you fight as an Adept."
+      "note": "The Sanctum is where you build the deck your wizard fights with. Adding a card to the deck costs gold. Until you unlock another discipline, you fight as an Adept."
     },
     {
       "key": "strategic.first_world",
@@ -976,27 +976,27 @@
       "lines": [
         "Everything the guild means to do, in one book. Not this one. The Register is... relieved."
       ],
-      "note": "The quest log keeps what the guild is working toward: your first goal, the threads that carry across readings, and this reading's own. The Hall of Lore under it keeps what has been learned."
+      "note": "The quest log lists what your guild is working toward: your first goal, quests that carry across timelines, and this timeline's own quests. The Hall of Lore below it lists what you have learned."
     },
     {
       "key": "campus.first_charter",
       "category": "explain",
       "once": true,
-      "title": "A charter",
+      "title": "Doctrines",
       "lines": [
         "A doctrine, put in force by charter. The Register drafts charters for... recreation."
       ],
-      "note": "A building at its third tier offers two doctrines, and only a chartered one is in force. The Grand Hall holds one charter for each of its tiers, and each reading's first charters are free. Changing a charter is a refit: it costs materials and holds from the next moon."
+      "note": "A building at tier 3 offers two doctrines, and only one can be active. Making a doctrine active is called chartering it. The Grand Hall allows one active doctrine for each of its tiers. Your first choices in each timeline are free. Changing a doctrine later costs materials and takes effect at the next new moon."
     },
     {
       "key": "campus.first_declaration",
       "category": "explain",
       "once": true,
-      "title": "A discipline in reach",
+      "title": "You can unlock a discipline",
       "lines": [
         "A teacher, a candidate and a Grand Hall. The Register has the... form ready."
       ],
-      "note": "A discipline can be declared once someone left can teach it, your mastery in it is high enough, and the Grand Hall stands. Then you sit its practical. A declared discipline is yours in every reading after."
+      "note": "You can unlock a discipline once you have a teacher for it, enough mastery in it, and the Grand Hall. Then pass its exam, the Practical. An unlocked discipline is yours in every timeline."
     },
     {
       "key": "campus.first_build",
@@ -1036,7 +1036,7 @@
       "lines": [
         "A house that does business before it sits is no house at all. And only a house's orders... stand."
       ],
-      "note": "Until the guild first sits, at the first new moon, the only business in order is founding it, and the Register will not risk the founding on anything else. Every other place is entered for the first sitting and waits there, unspent. Nothing roams the roads yet, a dive pays nothing of its own, towns grant no staging, and a fight lost here costs nothing and counts for nothing."
+      "note": "Until you finish founding the guild (the Standing Orders quest), most places on the map cannot be used. They stay where they are, and visiting one uses nothing up. Nothing roams the roads yet, towns cannot be used as bases, and a fight you lose now costs you nothing."
     },
     {
       "key": "interval.first_furnace",
