@@ -568,7 +568,7 @@ public static class SaveManager
     /// renown anchoring prompts, Kassian adaptation inputs).
     /// </summary>
     /// <param name="school">School for the new cycle (one cycle, one school).</param>
-    /// <param name="outcome">"Victory", "ConvergenceDefeat", "CorruptionLoss", or "Abandoned".</param>
+    /// <param name="outcome">"Victory", "ConvergenceDefeat", "WizardFallen", or "Abandoned".</param>
     /// <param name="resolutionPath">"Restoration", "Harness", "Synthesis", or "" for non-victories.</param>
     public static GuildSaveData BeginNewCycle(string school, string outcome,
                                               string resolutionPath = "")

@@ -110,6 +110,10 @@ public partial class CombatManager
         int delay = BaseAmbushWizardDelay + CastleModules.AmbushDelayModifier()
                     + AmbushDelayFromCrew();
         delay = Math.Max(0, delay);
+        if (Administrator.SallyPortActive(SaveManager.ActiveSave))
+        {
+            delay = 0;   // the Sally Port (Teleport Sigil T3): the wizard steps through at once
+        }
         _wizardArrivalRound = delay > 0 ? 1 + delay : 0;
         _wizardArrived = delay == 0;
 

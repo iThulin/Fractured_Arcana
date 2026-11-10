@@ -214,6 +214,12 @@ public class FieldParty
     /// reachable everywhere the moment its id exists.</summary>
     public string ParentId = "";
 
+    /// <summary>The Wizard's Party (A1, docs/field_party_addendum_a1_wizard_leads.md): the
+    /// primary field party, and never a detachment. Derived, not stored, so the save cannot
+    /// hold a second hero or a detachment that carries one.</summary>
+    [JsonIgnore]
+    public bool CarriesWizard => Id == ExpeditionAnchors.PrimaryFieldPartyId && string.IsNullOrEmpty(ParentId);
+
     /// <summary>True when the treasury could not pay this posting's Supplies at
     /// the last new moon. A stalled posting keeps its place and does no work;
     /// it never ends for want of coin (spec 5.2).</summary>
@@ -354,20 +360,11 @@ public class SortieState
     /// finished does not charge its walking on top of the moons it sat.</summary>
     public int StartDay = -1;
 
-    /// <summary>A field party's dive only: the wizard has been summoned and
-    /// fights with the party until the dive ends (Administrator, design §19).</summary>
-    public bool WizardSummoned = false;
-
-    /// <summary>Days the summons added to this dive, charged when it ends.</summary>
-    public int SummonDays = 0;
-
     public void Clear()
     {
         Active = false;
         LunationsFrozen = 0;
         StartDay = -1;
-        WizardSummoned = false;
-        SummonDays = 0;
         X = -1; Y = -1;
         StagingX = -1; StagingY = -1;
         WindowRadius = 0;

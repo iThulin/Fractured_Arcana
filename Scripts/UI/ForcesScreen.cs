@@ -270,7 +270,7 @@ public partial class ForcesScreen : Control
                     continue;
                 }
                 int n = p.MemberCompanionIds?.Count ?? 0;
-                list.Add((p.Id, p.Name, $"{n} / {Math.Max(1, cycle.MaxPartySize)}  ·  {PartyState(cycle, p)}", UITheme.Gold));
+                list.Add((p.Id, p.CarriesWizard ? $"{p.Name} (the wizard leads)" : p.Name, $"{n} / {Math.Max(1, cycle.MaxPartySize)}  ·  {PartyState(cycle, p)}", UITheme.Gold));
                 foreach (var det in FieldPostings.DetachmentsOf(cycle, p))
                 {
                     int dn = det.MemberCompanionIds?.Count ?? 0;

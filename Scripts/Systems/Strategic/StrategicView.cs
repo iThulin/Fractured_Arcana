@@ -284,6 +284,13 @@ public partial class StrategicView : Node2D
                     CallDeferred(nameof(RouteToPrologue));
                     return;
                 }
+                // Anchors: a timeline already lost has only its ending left (TimelineEndScreen).
+                if (SaveManager.ActiveSave.Cycle?.TimelineLost == true)
+                {
+                    PlayerSession.CycleEndedByConjunction = true;
+                    CallDeferred(nameof(RouteToTimelineEnd));
+                    return;
+                }
                 FirstLunation.AssertOnce();   // S5: logs only, once per process
                 StandingOrders.AssertOnce();  // Standing Orders O1b: the same
 
@@ -501,6 +508,9 @@ public partial class StrategicView : Node2D
     /// mid-build.</summary>
     private void RouteToCampusFallback() => GetTree().ChangeSceneToFile(
         SaveManager.ActiveSave == null ? "res://Scenes/UI/TitleScreen.tscn" : CampusScenePath);
+
+    /// <summary>A reading that has ended goes to its ending (TE1). Deferred, as the fallback is.</summary>
+    private void RouteToTimelineEnd() => GetTree().ChangeSceneToFile(TimelineEndScreen.ScenePath);
 
     /// <summary>C4: back to the examination hall (PrologueDirector.NeedsHall).</summary>
     private void RouteToPrologue() => GetTree().ChangeSceneToFile(PrologueDirector.ScenePath);
@@ -7287,7 +7297,7 @@ public partial class StrategicView : Node2D
             // so declining the open door archives as "Abandoned", not a defeat.
             PlayerSession.CycleEndedByConjunction = true;
             SaveManager.SaveIfDirty();
-            GetTree().ChangeSceneToFile(CampusScenePath);
+            GetTree().ChangeSceneToFile(TimelineEndScreen.ScenePath);
         }
 
         if (inFinale)
@@ -7552,7 +7562,7 @@ public partial class StrategicView : Node2D
         {
             PlayerSession.CycleEndedByConjunction = true;
             SaveManager.SaveIfDirty();
-            GetTree().ChangeSceneToFile(CampusScenePath);
+            GetTree().ChangeSceneToFile(TimelineEndScreen.ScenePath);
         }
 
         if (won)

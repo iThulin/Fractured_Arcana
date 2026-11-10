@@ -41,6 +41,10 @@ public partial class EncounterRouter : Node
     public static EncounterRouter Instance { get; private set; }
 
     public bool HasPendingReturn { get; set; } = false;
+
+    /// <summary>Set by CombatManager's spawn gate: the player's wizard is on the board in
+    /// the fight now running. Read once when the fight ends (TimelineAnchors).</summary>
+    public bool WizardFieldedThisFight = false;
     public bool CombatWon { get; set; }
     public int GoldReward { get; set; }
     public int DamageTaken { get; set; }
@@ -165,6 +169,8 @@ public partial class EncounterRouter : Node
         }
         EncounterContextCarrier.Clear();
         CombatWon = playerWon;
+        bool wizardFielded = WizardFieldedThisFight;
+        WizardFieldedThisFight = false;
         // C1: on_combat_end, won or lost, for every fight that comes back through the router
         // (the expedition's, the campus's and the strategic map's alike). Debug fights never
         // reach here, and the scheduler is silent through the prologue's.
@@ -224,9 +230,30 @@ public partial class EncounterRouter : Node
         }
         else
         {
-            // Loss: skip reward, return to the launch host after brief delay
+            // Loss: skip reward. A fight lost with the wizard on the board spends an Anchor,
+            // and with none left the timeline is unmade (TimelineAnchors). Exams and the
+            // Convergence keep their own endings; scripted fights returned above.
+            var lossSave = SaveManager.ActiveSave;
+            string lossLine = "The castle withdraws.";
+            bool unmade = false;
+            if (wizardFielded && ExamFitting == null && lossSave?.Cycle?.Convergence?.InProgress != true)
+            {
+                unmade = TimelineAnchors.SpendOnDefeat(lossSave, out lossLine);
+                SaveManager.SaveIfDirty();
+            }
+            if (unmade)
+            {
+                // The end-of-timeline screen is the only way on, as after the Conjunction.
+                HasPendingReturn = false;
+                PlayerSession.CycleEndedByConjunction = true;
+                PlayerSession.IsOnExpedition = false;      // the run died with its timeline
+                PlayerSession.WizardExpeditionHP = -1;
+                GetTree().CreateTimer(2.0f).Timeout += () =>
+                    SceneTransition.Go(GetTree(), TimelineEndScreen.ScenePath, "Timeline Lost", lossLine);
+                return;
+            }
             GetTree().CreateTimer(2.0f).Timeout += () =>
-                SceneTransition.Go(GetTree(), ReturnScenePath, "Defeat", "The castle withdraws.");
+                SceneTransition.Go(GetTree(), ReturnScenePath, "Defeat", lossLine);
         }
     }
 

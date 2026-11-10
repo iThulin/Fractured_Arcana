@@ -96,14 +96,6 @@ public sealed class CampusContext
     /// a panel gets the verb, not the machinery.</summary>
     public Action EnterStrategicMap { get; }
 
-    /// <summary>End the current timeline and start the next one on the given school:
-    /// archive a LoopRecord, replace CycleState, reseed the starter deck, generate the new
-    /// world, then open it. The single most consequential call available to a panel, which
-    /// is exactly why it is one named verb rather than a panel reaching into SaveManager.
-    ///
-    /// Takes the school only; the caller frees its own picker UI.</summary>
-    public Action<string> BeginNextCycle { get; }
-
     /// <summary>Seed everything a freshly loaded save is expected to already contain:
     /// companion roster, building list, starter armory. Idempotent. The Guild panel calls it
     /// after switching slots; the shell calls it on boot. Kept as one verb because splitting
@@ -112,7 +104,7 @@ public sealed class CampusContext
 
     public CampusContext(Node host, ToastManager toasts,
                          Action<NarrativeEncounterData> showNarrative, Action requestRefreshAll,
-                         Action refreshGold, Action enterStrategicMap, Action<string> beginNextCycle,
+                         Action refreshGold, Action enterStrategicMap,
                          Action ensureSaveSeeded,
                          Action<NarrativeEncounterData, Action> showNarrativeThen = null)
     {
@@ -124,6 +116,5 @@ public sealed class CampusContext
         RequestRefreshAll = requestRefreshAll;
         RefreshGold = refreshGold;
         EnterStrategicMap = enterStrategicMap;
-        BeginNextCycle = beginNextCycle;
     }
 }

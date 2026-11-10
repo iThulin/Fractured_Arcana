@@ -191,8 +191,6 @@ public static class FieldExpeditionSaveAssert
                 EncountersWon = 3,
                 LunationsFrozen = 2,
                 StartDay = 19,
-                WizardSummoned = true,
-                SummonDays = 2,
             },
         };
         var rt = RoundTrip(src);
@@ -250,12 +248,18 @@ public static class FieldExpeditionSaveAssert
                     && rt.Sortie?.EncountersWon == src.Sortie.EncountersWon);
         ok &= Check(sb, "FieldParty.Sortie.LunationsFrozen",
                     rt.Sortie?.LunationsFrozen == src.Sortie.LunationsFrozen);
-        // Administrator (design §19): the summons outlives a save mid-dive.
-        ok &= Check(sb, "FieldParty.Sortie.WizardSummoned", rt.Sortie?.WizardSummoned == true);
-        ok &= Check(sb, "FieldParty.Sortie.SummonDays", rt.Sortie?.SummonDays == src.Sortie.SummonDays);
-        var cleared = new SortieState { WizardSummoned = true, SummonDays = 2 };
-        cleared.Clear();
-        ok &= Check(sb, "SortieState.Clear drops the summons", !cleared.WizardSummoned && cleared.SummonDays == 0);
+        // A1 (2026-10-12): the Wizard's Party is the primary party, a detachment never
+        // carries the wizard, and the flag is derived, so the save never holds it.
+        var a1Lead = new FieldParty { Id = ExpeditionAnchors.PrimaryFieldPartyId };
+        var a1Detachment = new FieldParty { Id = ExpeditionAnchors.PrimaryFieldPartyId + "_d1", ParentId = a1Lead.Id };
+        var a1Second = new FieldParty { Id = "field_2" };
+        ok &= Check(sb, "A1: the primary party carries the wizard",
+                    a1Lead.CarriesWizard && RoundTrip(a1Lead).CarriesWizard);
+        ok &= Check(sb, "A1: a detachment never carries the wizard",
+                    !a1Detachment.CarriesWizard && !RoundTrip(a1Detachment).CarriesWizard);
+        ok &= Check(sb, "A1: a second party does not carry the wizard", !a1Second.CarriesWizard);
+        ok &= Check(sb, "A1: CarriesWizard is not written to the save",
+                    !JsonSerializer.Serialize(a1Lead, SaveManager.JsonOptions).Contains("arriesWizard"));
 
         // Field work (2026-09-23): a job forgotten across a save is a party
         // standing idle with its lunations spent.

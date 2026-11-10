@@ -300,7 +300,7 @@ public static class EchoSeeder
     {
         "Victory" => "a victory of some description",
         "ConvergenceDefeat" => "an ending at the Convergence",
-        "CorruptionLoss" => "an ending that came from the inside",
+        "WizardFallen" => "an ending in the field",
         "Abandoned" => "a thing left unfinished",
         _ => "an ending",
     };

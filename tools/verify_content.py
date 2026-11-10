@@ -32,7 +32,7 @@ SUBS = set(re.findall(r'_subs\["([a-z_]+)"\]\s*=', _seeder))
 # Substitution keys that hold raw storage values and must never appear in prose.
 UNSAFE_SUBS = {"deal_faction", "convergence_outcome", "style_companion_id"}
 ECHO_FLAGS = set(re.findall(r'TrySeed\("([a-z_]+)"', _seeder))
-ENC_FIELDS  = {"id","title","body","terrainTags","regionTags","requiredFlag","archmageId","choices"}
+ENC_FIELDS  = {"id","title","body","terrainTags","regionTags","requiredFlag","excludedFlag","archmageId","choices"}
 CHOICE_FIELDS = {"label","resultText","goldDelta","hpDelta","stepDelta","spellReward",
                  "cardReward","cardCodex","setFlags","setMetaFlags","launchGuardian",
                  "requiredFlag","requiredSchool","requiredGold","requiredItem",

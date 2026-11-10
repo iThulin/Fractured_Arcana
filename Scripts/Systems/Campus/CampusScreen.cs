@@ -234,40 +234,11 @@ public partial class CampusScreen : Control
         quitBtn.Pressed += () => GetTree().Quit();
         titleBar.AddChild(quitBtn);
 
-        // Z14 (docs/sundering_long_second_founding_v1.md section 7, ruled 2026-10-27): an
-        // ended reading's campus had no way on. The next reading begins only from the
-        // Expedition panel's launch (the picker, then BeginNextCycle), and the diegetic hub
-        // hides the tab bar that reached it. So the title bar carries the way on itself,
-        // and the Guild panel stays in view for declaring first.
-        if (PlayerSession.CycleEndedByConjunction && OverlayLeaveHandler == null)
-        {
-            var nextBtn = new Button
-            {
-                Text = "Begin the Next Reading",
-                TooltipText = "This reading has ended. Declare what you can in the Disciplines " +
-                              "section first: the next reading is walked in a declared discipline, " +
-                              "and the door opens somewhere new.",
-                AnchorLeft = 0f,
-                AnchorTop = 0.5f,
-                AnchorRight = 0f,
-                AnchorBottom = 0.5f,
-                GrowHorizontal = Control.GrowDirection.End,
-                GrowVertical = Control.GrowDirection.Both,
-                OffsetLeft = 8,
-                OffsetRight = 248,
-                OffsetTop = -16,
-                OffsetBottom = 16,
-            };
-            nextBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-            UITheme.ApplyButtonStyle(nextBtn, isPrimary: true);
-            nextBtn.Pressed += () => _expeditionPanel.BeginNextReading();
-            titleBar.AddChild(nextBtn);
-        }
         // Standing Orders O1a fix (2026-11-02): the standalone campus (then the title screen's
         // Guild Hall door, retired 2026-11-05) offered only Quit, which closes the game, so the
         // way back into the reading is here. Standalone means this screen is the scene itself,
         // not the campus opened over the map (which has its own leave button).
-        else if (GetParent() == GetTree().Root && SaveManager.ActiveSave?.Cycle != null)
+        if (GetParent() == GetTree().Root && SaveManager.ActiveSave?.Cycle != null)
         {
             var worldBtn = new Button
             {
@@ -381,7 +352,7 @@ public partial class CampusScreen : Control
         _campusNarrativePanel = new NarrativeEncounterPanel { Visible = false };
         _campusToasts = new ToastManager { Name = "CampusQuestToasts" };
         _ctx = new CampusContext(this, _campusToasts, ShowCampusNarrative, RefreshAll,
-                                 RefreshGoldLabel, EnterStrategicMap, BeginNextCycle,
+                                 RefreshGoldLabel, EnterStrategicMap,
                                  EnsureSaveSeeded, ShowCampusNarrativeThen);
 
         _guildPanel.Build((ScrollContainer)_tabPanels[0], _ctx);
@@ -790,46 +761,6 @@ public partial class CampusScreen : Control
         // Standalone campus scene: the classic scene change, with the Stage 2 ascend
         // zoom on arrival.
         PlayerSession.ZoomFromHomeOnOpen = true;
-        GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
-    }
-
-    /// <summary>Backs <see cref="CampusContext.BeginNextCycle"/>. Cycle lifecycle, kept on
-    /// the shell rather than moved into the Expedition panel: it archives a LoopRecord,
-    /// replaces CycleState and reseeds the deck, save mutation far beyond anything that
-    /// panel displays. EnsureCycleWorld's own comment marks it for a future CycleInitializer;
-    /// parking both here keeps that lift to one step.</summary>
-    private void BeginNextCycle(string school)
-    {
-        // Archive the dead cycle and create the fresh one. Option A persistence is
-        // automatic: BeginNewCycle leaves the ledger untouched, resets the cycle,
-        // and re-seeds a starter deck for the chosen school.
-        //
-        // The outcome was HARDCODED "ConvergenceDefeat" from the day this method was
-        // written, because there was no Convergence to have an outcome. As of I1
-        // (schema v102) there is: StrategicView writes CycleState.Convergence.Outcome
-        // when the finale resolves, and the three cases are genuinely distinct:
-        //   "Victory"  → the Anchorhold was opened and held,
-        //   "Defeat"   → it was opened and lost,
-        //   ""         → the Conjunction passed, or the open door was declined.
-        // Declining is NOT a defeat; it archives as "Abandoned", the same as running
-        // out of clock. EchoSeeder 5.4 ("The Song Nobody Wrote") only fires on real
-        // Victory / ConvergenceDefeat records, so this is what finally feeds it.
-        var conv = SaveManager.ActiveSave?.Cycle?.Convergence;
-        string outcome = conv?.Outcome switch
-        {
-            "Victory" => "Victory",
-            "Defeat"  => "ConvergenceDefeat",
-            _         => "Abandoned",
-        };
-        SaveManager.BeginNewCycle(school, outcome, conv?.Path ?? "");
-        PlayerSession.CycleEndedByConjunction = false;
-        if (Enum.TryParse<CardSchool>(school, out var cs))
-            PlayerSession.SelectedSchool = cs;
-
-        // Generate the new cycle's world and open it in city view, the hub state.
-        EnsureCycleWorld();
-        RefreshAll();
-        PlayerSession.StartInCityOnOpen = true;
         GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
     }
 

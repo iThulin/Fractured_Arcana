@@ -4725,9 +4725,13 @@ public partial class CombatManager : Node3D
         enemyUnits.Clear();
 
         // ── Spawn wizard (first, when present) ────────────────────────────
-        // Administrator (design §19): on a field party's dive the wizard stays
-        // at the campus unless summoned or the sortie is their own.
+        // A1 (2026-10-12): the wizard fights wherever the Wizard's Party fights. Another
+        // party's dive fields them only for a beat that is theirs, or when nobody else can.
         bool wizardFields = Administrator.WizardFieldsThisFight(out _wizardPresenceNote);
+        if (EncounterRouter.Instance != null)
+        {
+            EncounterRouter.Instance.WizardFieldedThisFight = wizardFields && !PlayerSession.DebugCombat;
+        }
         var wizard = !wizardFields ? null : SpawnUnitFromSide(HexGridManager.SpawnSide.Player, PlayerUnitScene,
             teamId: 0, isPlayerControlled: true, namePrefix: "Wizard",
             maxHealth: 20, health: 20, baseSpeed: 3, maxMana: 3, mana: 3, armor: 0, shield: 0);

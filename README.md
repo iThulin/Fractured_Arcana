@@ -2,8 +2,8 @@
 
 A tactical roguelite card game built in Godot 4 / C#. You play as a wizard leading a guild, exploring fog-of-war hex maps, resolving encounters through tactical card combat or negotiation, and building out a persistent campus between runs. Each wizard school has a distinct combat identity, exploration passive, and negotiation style.
 
-**Current development phase: Phase 3, Horizontal Content**
-One school (Elementalist) is fully playable. Core systems (save/load, overworld, campus, negotiation skeleton, companion framework) are in place. Phase 3 widens content to all six schools, multiple regions, and full campus buildings.
+**Current development phase: systems close-out (see docs/systems_audit_2026-11-09.md)**
+All eight schools (Adept, Elementalist, Arcanist, Enchanter, Chronomancer, Druid, Necromancer, Tinker) have card sets and starter decks. Combat, the card engine, negotiation, the courts and the campus are built. The strategic layer (provinces, the castle, troops) is built and not yet playtested, and the time loop is still being settled.
 
 ---
 
@@ -52,7 +52,7 @@ One school (Elementalist) is fully playable. Core systems (save/load, overworld,
 ### Building & Running
 
 - Press **F5** in Godot to run, or use the play button in the top-right toolbar.
-- Entry scene: `res://Scenes/Campus/CampusScene.tscn`
+- Entry scene: `res://Scenes/UI/TitleScreen.tscn`
 - Combat scene: `res://Scenes/Combat/Battlefield.tscn`
 - Save data location on Windows: `%APPDATA%\Godot\app_userdata\FracturedArcana\saves\`
 - Save data location on Mac: `~/Library/Application Support/Godot/app_userdata/FracturedArcana/saves/`
@@ -89,7 +89,7 @@ FracturedArcana/
 │                                   # HealthBarTheme.tres
 │
 ├── Scenes/
-│   ├── Campus/CampusScene.tscn     # Entry scene
+│   ├── Campus/CampusScene.tscn     # Campus screen (cycle-end ritual)
 │   ├── Combat/                     # Battlefield, HexTile, ImbuementOverlay
 │   │   ├── Players/Unit.tscn  Monsters/TargetDummy.tscn
 │   │   └── Summons/HexTile_Stone_Blocker.tscn

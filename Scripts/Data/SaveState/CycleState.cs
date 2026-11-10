@@ -42,6 +42,15 @@ public class CycleState
     /// claude/progression_persistence_model_v1.md.</summary>
     public int CampaignYear = 1;
 
+    /// <summary>Anchors spent in this timeline (TimelineAnchors.cs,
+    /// docs/timeline_loss_anchors_v1.md). The maximum is derived from the ledger, so
+    /// only what is spent is saved. A new timeline starts at 0; a new year keeps it.</summary>
+    public int AnchorsSpent = 0;
+
+    /// <summary>The wizard fell with no Anchor left: this timeline is over and only the
+    /// campus's next reading follows. Saved, so a quit before the ritual cannot undo it.</summary>
+    public bool TimelineLost = false;
+
     // ── The astrological calendar ────────────────────────────────────────
     /// <summary>Phase / lunation / conjunction clock for this timeline.</summary>
     public CalendarState Calendar = new();

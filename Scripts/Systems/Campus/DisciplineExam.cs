@@ -286,6 +286,10 @@ public static class DisciplineExam
     private static string ReturnSceneFor(SceneTree tree)
     {
         string current = tree?.CurrentScene?.SceneFilePath ?? "";
+        if (current == TimelineEndScreen.ScenePath)
+        {
+            return current;   // TE1: declared at the end of a reading, where its teacher still is
+        }
         return current == PrologueDirector.CampusScenePath
             ? PrologueDirector.CampusScenePath
             : PrologueDirector.StrategicScenePath;

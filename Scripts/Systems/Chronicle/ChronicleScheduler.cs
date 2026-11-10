@@ -1050,10 +1050,8 @@ public static class ChronicleScheduler
         return "";
     }
 
-    /// <summary>The Wizard's Party (A1). Until A1's CarriesWizard flag exists, the primary field
-    /// party: at baseline the only one, and a detachment never carries the wizard.</summary>
-    private static bool CarriesWizard(FieldParty party) =>
-        party != null && party.Id == ExpeditionAnchors.PrimaryFieldPartyId && string.IsNullOrEmpty(party.ParentId);
+    /// <summary>The Wizard's Party (A1): FieldParty.CarriesWizard, null-safe.</summary>
+    private static bool CarriesWizard(FieldParty party) => party != null && party.CarriesWizard;
 
     /// <summary>Resolves a beat's tokens lazily, in the doc's order: globals, then arguments, then
     /// derived values, then the beat's declared line tokens. Records every value it resolves, so

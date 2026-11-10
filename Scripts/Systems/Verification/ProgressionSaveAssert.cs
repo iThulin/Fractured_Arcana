@@ -37,6 +37,7 @@ public static class ProgressionSaveAssert
         sb.AppendLine("=== PROGRESSION SAVE ROUND-TRIP ASSERTIONS ===");
 
         bool ok = AssertCardCommission(sb);
+        ok &= AssertAnchors(sb);
 
         sb.AppendLine(ok
             ? "RESULT: ALL PASSED. Progression save-adjacent structs round-trip clean."
@@ -46,6 +47,21 @@ public static class ProgressionSaveAssert
         if (!ok)
             GD.PushError("[ProgressionSaveAssert] Round-trip assertion FAILED. See Output panel.");
 
+        return ok;
+    }
+
+    /// <summary>Anchors (docs/timeline_loss_anchors_v1.md): the cycle's two fields.</summary>
+    private static bool AssertAnchors(StringBuilder sb)
+    {
+        var fresh = new CycleState();
+        bool ok = Check(sb, "Anchors: a new timeline has spent none and is not lost",
+                        fresh.AnchorsSpent == 0 && !fresh.TimelineLost);
+        var rt = RoundTrip(new CycleState { AnchorsSpent = 2, TimelineLost = true });
+        ok &= Check(sb, "CycleState.AnchorsSpent", rt != null && rt.AnchorsSpent == 2);
+        ok &= Check(sb, "CycleState.TimelineLost", rt != null && rt.TimelineLost);
+        ok &= Check(sb, "Anchors: the base is within the cap",
+                    TimelineAnchors.BaseAnchors >= 1 && TimelineAnchors.BaseAnchors <= TimelineAnchors.MaxAnchors);
+        sb.AppendLine(ok ? "  Anchors: PASS" : "  Anchors: FAIL");
         return ok;
     }
 

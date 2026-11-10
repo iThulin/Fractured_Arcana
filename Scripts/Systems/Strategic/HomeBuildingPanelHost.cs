@@ -248,7 +248,6 @@ public sealed partial class HomeBuildingPanelHost : CanvasLayer
             requestRefreshAll: () => _panel?.Refresh(),
             refreshGold: () => { },
             enterStrategicMap: Close,
-            beginNextCycle: _ => { },
             ensureSaveSeeded: () => { });
 
         _panel = _panelId.HasValue ? CreatePanel(_panelId.Value) : null;

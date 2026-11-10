@@ -63,6 +63,7 @@ public partial class HudManager : Node
     private ResourceReadout _splinters;
     private ResourceReadout _materials;
     private ResourceReadout _supplies;
+    private ResourceReadout _anchors;
     private Button _returnButton; // gated by ShouldShowReturnToCampus (menu screens only)
     private Button _nextButton;   // S5: the first lunation's Next line (RefreshNextLine)
     private double _nextRefreshIn;
@@ -190,6 +191,7 @@ public partial class HudManager : Node
         _splinters = MakeResourceReadout(row, UITheme.ArcaneBlue);
         _materials = MakeResourceReadout(row, UITheme.TextPrimary);
         _supplies = MakeResourceReadout(row, UITheme.Success);
+        _anchors = MakeResourceReadout(row, UITheme.Gold);
 
         // S5: the first lunation's Next line, centred between the two clusters by a spacer on
         // each side. Flat, in gold: a line to read and click, not another nav button.
@@ -651,6 +653,7 @@ public partial class HudManager : Node
         UpdateReadout(_splinters, "Splinters", save?.ArcaneSplinters ?? 0, pSplinters, force);
         UpdateReadout(_materials, "Materials", save?.BuildMaterials ?? 0, pMaterials, force);
         UpdateReadout(_supplies, "Supplies", save?.Supplies ?? 0, pSupplies, force);
+        UpdateReadout(_anchors, "Anchors", TimelineAnchors.Left(save), 0, force);
     }
 
     private static void UpdateReadout(ResourceReadout r, string name,
@@ -751,7 +754,8 @@ public partial class HudManager : Node
     {
         var current = GetTree().CurrentScene;
         string lower = (current?.SceneFilePath ?? "").ToLower();
-        if (lower.Contains("mainmenu") || lower.Contains("newgame") || lower.Contains("titlescreen"))
+        if (lower.Contains("mainmenu") || lower.Contains("newgame") || lower.Contains("titlescreen")
+            || lower.Contains("timelineend"))
         {
             return true; // pre-game menus only, since the bar spans all gameplay, combat included
         }

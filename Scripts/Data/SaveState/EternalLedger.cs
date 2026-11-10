@@ -100,7 +100,7 @@ public class LoopRecord
     public int CycleNumber = 0;
     public string School = "";
 
-    /// <summary>"Victory", "ConvergenceDefeat", "CorruptionLoss", or "Abandoned".</summary>
+    /// <summary>"Victory", "ConvergenceDefeat", "WizardFallen", or "Abandoned".</summary>
     public string Outcome = "";
 
     /// <summary>Convergence resolution when victorious: "Restoration", "Harness", "Synthesis", or "".</summary>

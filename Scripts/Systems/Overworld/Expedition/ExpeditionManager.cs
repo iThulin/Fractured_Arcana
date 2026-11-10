@@ -313,7 +313,6 @@ public partial class ExpeditionManager : Node2D
     private Button _waypointButton;                  // Expedition v2: raise a built waypoint
     private Button _scryTableButton;                 // Expedition v2: aim the table at another force
     private Button _makeCampButton;                  // 2026-09-23: park at any fuel level
-    private Button _summonButton;                    // Administrator (§19): field dives only, row eight
     private bool _freshSortie;                       // this load began a sortie (not a return or resume)
 
     /// <summary>Build materials a waypoint costs. A waystone is a real thing the
@@ -654,10 +653,13 @@ public partial class ExpeditionManager : Node2D
             // K2.5: fresh expedition: everyone starts whole. (Combat returns
             // take the other branch and must NOT reset carried HP.)
             CompanionInjurySystem.ResetExpeditionHP(SaveManager.ActiveSave);
-            // K2.5 symmetry, wizard too. Not on a field dive: the wizard is at the
-            // campus (Administrator, §19), and their carried HP belongs to the castle's run.
+            // K2.5 symmetry, wizard too. A1: the Wizard's Party sets out with the wizard whole
+            // (unless the castle is out and the wizard's HP is that run's); another party's
+            // dive leaves the wizard's carried HP alone.
             if (!_fieldRun)
                 PlayerSession.WizardExpeditionHP = -1;
+            else if (WizardWithThisForce)
+                Administrator.WizardSetsOut(SaveManager.ActiveSave);
             _freshSortie = true;   // Clouded Water drains once, on a real start (§21)
             // C1: on_companion_join for everyone setting out (the helmsman is re-seeded each reading).
             foreach (var joinId in ActiveRunCompanionIds())
@@ -3868,52 +3870,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _ = ScryVeil.Instance.Dissipate();
     }
 
-    /// <summary>Summon the Wizard's label, tooltip and state, re-decided on every
-    /// HUD refresh (Administrator, §19).</summary>
-    private void RefreshSummonButton()
-    {
-        if (_summonButton == null)
-            return;
-        _summonButton.Visible = _fieldRun && !ExpeditionComplete;
-        if (!_summonButton.Visible)
-            return;
-        var save = SaveManager.ActiveSave;
-        if (Administrator.IsSummoned(save?.Cycle, _fieldPartyId))
-        {
-            _summonButton.Text = "Wizard: with you";
-            _summonButton.Disabled = true;
-            _summonButton.TooltipText = "The wizard fights beside this party until the dive ends.";
-            return;
-        }
-        string why = Administrator.CannotSummonReason(save, _fieldPartyId);
-        int days = Administrator.SummonDaysFor(save);
-        _summonButton.Text = "Summon the Wizard";
-        _summonButton.Disabled = why != null;
-        _summonButton.TooltipText = (why != null ? why + "\n\n" : "")
-            + "The wizard directs from the campus and does not fight with a field party. Summoned, they "
-            + $"join every fight for the rest of this dive. Costs {Administrator.SummonSplinters} splinters"
-            + (days > 0 ? $" and adds {days} days to the dive (none with the Sally Port chartered)." : " (the Sally Port spares the days).");
-    }
-
-    private void OnSummonWizardPressed()
-    {
-        var save = SaveManager.ActiveSave;
-        string line = Administrator.TrySummon(save, _fieldPartyId);
-        if (line == null)
-        {
-            ShowInfo(Administrator.CannotSummonReason(save, _fieldPartyId) ?? "The wizard cannot come now.");
-            return;
-        }
-        LogRun("summon", line);
-        SaveManager.SaveIfDirty();
-        ShowInfo(line);
-        UpdateUI();
-    }
-
-    /// <summary>Is the player's wizard with the force the table drives? Always
-    /// for the castle; for a field party only once summoned (Administrator, §19).</summary>
+    /// <summary>Is the player's wizard with the force the table drives? Always for the
+    /// castle; in the field, for the Wizard's Party (A1).</summary>
     private bool WizardWithThisForce
-        => !_fieldRun || Administrator.IsSummoned(SaveManager.ActiveSave?.Cycle, _fieldPartyId);
+        => !_fieldRun || Administrator.WizardWith(SaveManager.ActiveSave?.Cycle, _fieldPartyId);
 
     /// <summary>The active force's sortie slot on the cycle, or null.</summary>
     private SortieState ActiveSortieSlot()
@@ -3993,12 +3953,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         int startDay = slot != null && slot.StartDay >= 0 ? slot.StartDay : now;
         int burned = Mathf.Max(0, MaxFuel - StepsRemaining);
         int days = WorldClock.SortieDays(burned, _fieldRun);
-        int summonDays = _fieldRun && slot != null ? slot.SummonDays : 0;   // Administrator (§19)
-        days += summonDays;
         if (Interval.Walking(cycle))
         {
             days = 0;   // Standing Orders O1: the moon is held, so no order costs days
-            summonDays = 0;
         }
         int until = Mathf.Max(now, startDay + days);
         if (_fieldRun)
@@ -4019,7 +3976,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             cycle.CastleBusyUntilDay = until;
         }
         LogRun("time", $"{burned} {(_fieldRun ? "rations" : "fuel")} burned: {days} day(s)"
-                       + (summonDays > 0 ? $" ({summonDays} for the wizard's summons)" : "")
                        + $"; free on day {until} (now {now})");
         GD.Print($"[Sortie] {(_fieldRun ? _fieldPartyId : "castle")} burned {burned}: {days} day(s), busy until day {until}.");
     }
@@ -6431,29 +6387,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         _hudCanvas.AddChild(_makeCampButton);
         _uiHoverBlockers.Add(_makeCampButton);
 
-        // Summon the Wizard (row eight, where Make Camp sits on a castle run):
-        // field dives only. The wizard directs from the campus until summoned
-        // (Administrator, design §19).
-        _summonButton = new Button
-        {
-            Text = "Summon the Wizard",
-            AnchorLeft = 1f,
-            AnchorTop = 0f,
-            AnchorRight = 1f,
-            AnchorBottom = 0f,
-            GrowHorizontal = Control.GrowDirection.Begin,
-            OffsetLeft = -150,
-            OffsetRight = -12,
-            OffsetTop = 348 + HudManager.BarHeight,
-            OffsetBottom = 388 + HudManager.BarHeight,
-            Visible = _fieldRun,
-        };
-        _summonButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
-        UITheme.ApplyButtonStyle(_summonButton, isPrimary: false);
-        _summonButton.Pressed += OnSummonWizardPressed;
-        _hudCanvas.AddChild(_summonButton);
-        _uiHoverBlockers.Add(_summonButton);
-
         // Look Up (row nine) and the desk panel. See ExpeditionManager.ScryDesk.
         BuildScryDeskHud();
 
@@ -6598,8 +6531,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _roadFollowButton.Visible = false;
         if (_makeCampButton != null)
             _makeCampButton.Visible = false;
-        if (_summonButton != null)
-            _summonButton.Visible = false;
         if (_ledgerButton != null)
             _ledgerButton.Visible = false;
         if (_ledgerPanel != null)
@@ -6971,7 +6902,6 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // is a flag read at whatever moment construction happened to be.
             _makeCampButton.Visible = !_fieldRun && !ExpeditionComplete;
         }
-        RefreshSummonButton();
 
         // Mobile Fortress weather (W1): the front over the castle. Severe
         // fronts (severity ≥ 3) read in the warning tint; milder ones stay plain.

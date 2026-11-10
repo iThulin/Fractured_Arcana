@@ -3,120 +3,72 @@ using Godot;
 // ============================================================
 // Administrator.cs
 //
-// Purpose:        The wizard as the Administrator (campus_building_upgrades_
-//                 design_v1 §19; expedition handoff §4.4). The wizard stays
-//                 at the campus while a FIELD PARTY dives: the party fights
-//                 without them unless the wizard is summoned.
+// Purpose:        Where the player's wizard stands in a fight (A1,
+//                 docs/field_party_addendum_a1_wizard_leads.md; ruled
+//                 2026-10-12, built 2026-11-10). The wizard leads the
+//                 Wizard's Party: the primary field party, never a
+//                 detachment (FieldParty.CarriesWizard).
 //
 //                 Who fights when:
-//                   castle sorties, castle defenses, portal strikes, district
-//                   fights, debug fights    the wizard, as before
-//                   a field party's dive     the party alone, unless
-//                                            summoned, or the fight is a
-//                                            scripted sortie (a shard
-//                                            guardian, an archmage's
-//                                            resolution), or no companion is
-//                                            able to fight
-//                   a posting's defense      the posted force alone
+//                   the Wizard's Party in the field   the wizard, always
+//                   castle sorties, castle defenses,
+//                   portal strikes, district fights,
+//                   debug fights                      the wizard, as before
+//                   another party's dive              the party alone, unless
+//                                                     the fight is a beat that
+//                                                     is the wizard's own (a
+//                                                     shard guardian, an
+//                                                     archmage's resolution)
+//                                                     or no companion is able
+//                                                     to fight
+//                   a posting's defense               the posted force alone
 //
-//                 Summon the Wizard (expedition HUD, field dives): costs a
-//                 reagent (5 splinters) and 2 days added to the dive's time.
-//                 The wizard then stays with that party until the dive ends.
-//                 Sally Port (Teleport Sigil T3 doctrine): no days, the
-//                 reagent only.
+//                 The summons is retired (A4.2): nothing calls the wizard to
+//                 a party any more. The Sally Port (Teleport Sigil T3
+//                 doctrine) brings the wizard to a castle defense with no
+//                 rounds lost instead (CombatManager.CastleDefense).
 // Layer:          Data / rules
-// Collaborators:  SortieState (WizardSummoned, SummonDays), ExpeditionManager
-//                 (the button, ChargeSortieDays), CombatManager.SpawnTestUnits
-//                 (the spawn gate), EncounterRouter (scripted fights),
+// Collaborators:  FieldParty (CarriesWizard), ExpeditionManager
+//                 (WizardWithThisForce, the fresh sortie),
+//                 CombatManager.SpawnTestUnits (the spawn gate),
+//                 EncounterRouter (the wizard's own beats),
 //                 CompanionRoster (the able party), Charters (Sally Port).
 // ============================================================
 
-/// <summary>The Administrator's rules: when the wizard is on the board, and
-/// the summons. Stateless; the summons lives on the party's SortieState.</summary>
+/// <summary>The rules for when the wizard is on the board. Stateless: the
+/// Wizard's Party is derived from the party's id.</summary>
 public static class Administrator
 {
     public const string SigilId = "teleport_sigil";
     public const string SallyPort = "sally_port";
 
-    /// <summary>Days a summons adds to the dive (none under the Sally Port).</summary>
-    public const int SummonDays = 2;
-
-    /// <summary>The reagent: splinters spent on the summoning circle.</summary>
-    public const int SummonSplinters = 5;
-
     public static bool SallyPortActive(GuildSaveData save) => Charters.IsActive(save, SigilId, SallyPort);
 
-    public static int SummonDaysFor(GuildSaveData save) => SallyPortActive(save) ? 0 : SummonDays;
-
-    /// <summary>The field party's sortie slot, or null.</summary>
-    public static SortieState FieldSlot(CycleState cycle, string partyId)
+    /// <summary>Does this field party carry the wizard? An empty id means the
+    /// primary party. A party the cycle does not list is judged by its id.</summary>
+    public static bool WizardWith(CycleState cycle, string partyId)
     {
-        if (cycle?.FieldParties == null || string.IsNullOrEmpty(partyId))
+        if (string.IsNullOrEmpty(partyId))
         {
-            return null;
+            partyId = ExpeditionAnchors.PrimaryFieldPartyId;
         }
-        foreach (var p in cycle.FieldParties)
+        if (cycle?.FieldParties != null)
         {
-            if (p != null && p.Id == partyId)
+            foreach (var p in cycle.FieldParties)
             {
-                return p.Sortie;
+                if (p != null && p.Id == partyId)
+                {
+                    return p.CarriesWizard;
+                }
             }
         }
-        return null;
+        return partyId == ExpeditionAnchors.PrimaryFieldPartyId;
     }
 
-    /// <summary>Is the wizard with this field party right now?</summary>
-    public static bool IsSummoned(CycleState cycle, string partyId)
-    {
-        var slot = FieldSlot(cycle, partyId);
-        return slot != null && slot.Active && slot.WizardSummoned;
-    }
-
-    /// <summary>Why the wizard cannot be summoned to this party now, or null.</summary>
-    public static string CannotSummonReason(GuildSaveData save, string partyId)
-    {
-        var cycle = save?.Cycle;
-        var slot = FieldSlot(cycle, partyId);
-        if (slot == null || !slot.Active)
-        {
-            return "Only a field party out on a dive can summon the wizard.";
-        }
-        if (slot.WizardSummoned)
-        {
-            return "The wizard is already with the party.";
-        }
-        if (save.ArcaneSplinters < SummonSplinters)
-        {
-            return $"The circle needs {SummonSplinters} splinters (the guild has {save.ArcaneSplinters}).";
-        }
-        return null;
-    }
-
-    /// <summary>Summon the wizard to the party: spend the reagent, add the
-    /// days. Returns the report line, or null when refused.</summary>
-    public static string TrySummon(GuildSaveData save, string partyId)
-    {
-        if (CannotSummonReason(save, partyId) != null)
-        {
-            return null;
-        }
-        var slot = FieldSlot(save.Cycle, partyId);
-        int days = SummonDaysFor(save);
-        save.ArcaneSplinters -= SummonSplinters;
-        slot.WizardSummoned = true;
-        slot.SummonDays += days;
-        FreshWizardUnlessCastleOut(save);
-        SaveManager.MarkDirty();
-        GD.Print($"[Administrator] Wizard summoned to {partyId}: {SummonSplinters} splinters, {days} day(s).");
-        return days > 0
-            ? $"The wizard steps through the circle to join the party ({SummonSplinters} splinters; the dive runs {days} days longer)."
-            : $"The wizard steps through the Sally Port to join the party ({SummonSplinters} splinters, no days lost).";
-    }
-
-    /// <summary>The wizard's carried HP (PlayerSession.WizardExpeditionHP) is
-    /// the castle run's. A wizard coming to a field party from the campus comes
-    /// whole, unless the castle is out and the wizard with it.</summary>
-    private static void FreshWizardUnlessCastleOut(GuildSaveData save)
+    /// <summary>The wizard's carried HP (PlayerSession.WizardExpeditionHP) is one
+    /// pool. A wizard setting out with a party sets out whole, unless the castle
+    /// is out and that HP is the castle run's.</summary>
+    public static void WizardSetsOut(GuildSaveData save)
     {
         if (save?.Cycle?.CastleSortie?.IsLive() != true)
         {
@@ -124,10 +76,10 @@ public static class Administrator
         }
     }
 
-    /// <summary>Called when the wizard IS spawned. On a field run where the
-    /// wizard was not summoned (a scripted sortie, or nobody else able), they
-    /// come from the campus for this one fight: whole, unless the castle is out.
-    /// A summoned wizard keeps what the dive's fights have cost them.</summary>
+    /// <summary>Called when the wizard IS spawned. With the Wizard's Party they
+    /// keep what the dive's fights have cost them. Joining another party's fight
+    /// (their own beat, or nobody else able), they come for that one fight:
+    /// whole, unless the castle is out.</summary>
     public static void PrepareWizardHpForField()
     {
         if (PlayerSession.DebugCombat || PlayerSession.ExpeditionRunKind != ExpeditionRunKind.Field)
@@ -135,19 +87,17 @@ public static class Administrator
             return;
         }
         var save = SaveManager.ActiveSave;
-        string partyId = string.IsNullOrEmpty(PlayerSession.ExpeditionFieldPartyId)
-            ? ExpeditionAnchors.PrimaryFieldPartyId
-            : PlayerSession.ExpeditionFieldPartyId;
-        if (!IsSummoned(save?.Cycle, partyId))
+        if (!WizardWith(save?.Cycle, PlayerSession.ExpeditionFieldPartyId))
         {
-            FreshWizardUnlessCastleOut(save);
+            WizardSetsOut(save);
         }
     }
 
     /// <summary>Does the player's wizard take the field in the fight now being
-    /// spawned? False only on a field party's run, when not summoned, not a
-    /// scripted sortie, and someone else is able to fight. <paramref name="why"/>
-    /// says why, for the combat log.</summary>
+    /// spawned? False only on the dive of a party that does not carry them, when
+    /// the fight is not their own beat and someone else is able to fight.
+    /// <paramref name="why"/> says why, for the combat log; empty when the wizard
+    /// is simply where they belong.</summary>
     public static bool WizardFieldsThisFight(out string why)
     {
         why = "";
@@ -155,28 +105,24 @@ public static class Administrator
         {
             return true;
         }
+        var save = SaveManager.ActiveSave;
+        if (WizardWith(save?.Cycle, PlayerSession.ExpeditionFieldPartyId))
+        {
+            return true;
+        }
         var router = EncounterRouter.Instance;
         if (router != null && (!string.IsNullOrEmpty(router.SavedCombatGuardianKey)
                                || !string.IsNullOrEmpty(router.SavedResolutionArchmageId)))
         {
-            why = "This sortie is the wizard's own: they fight in person.";
-            return true;
-        }
-        var save = SaveManager.ActiveSave;
-        string partyId = string.IsNullOrEmpty(PlayerSession.ExpeditionFieldPartyId)
-            ? ExpeditionAnchors.PrimaryFieldPartyId
-            : PlayerSession.ExpeditionFieldPartyId;
-        if (IsSummoned(save?.Cycle, partyId))
-        {
-            why = "The wizard came through the circle and fights with the party.";
+            why = "This fight is the wizard's own: they come to it in person.";
             return true;
         }
         if (CompanionRoster.GetActiveParty().Count == 0)
         {
-            why = "No one in the party can fight: the wizard comes through the circle at once.";
+            why = "No one in the party can fight: the wizard comes to them at once.";
             return true;
         }
-        why = "The wizard directs from the campus (the Lens in an ally's tray casts through them). Summon them from the expedition map to fight in person.";
+        why = "This party fights without the wizard (the Lens in an ally's tray casts through them).";
         return false;
     }
 }
