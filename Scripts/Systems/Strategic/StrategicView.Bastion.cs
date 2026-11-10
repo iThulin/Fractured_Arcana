@@ -148,34 +148,90 @@ public partial class StrategicView
             : $"Cast one of {known} maneuver(s) from the castle. The font fills again at the new moon.";
     }
 
-    /// <summary>The Maneuvers dialog: pick a maneuver, read what it does and what it costs, aim
-    /// it where it needs aiming, cast.</summary>
+    // ── The Maneuvers panel (C2, 2026-11-10) ─────────────────────────────
+    //    A docked panel, not a dialog: the map stays in view and stays live. The province a
+    //    maneuver is aimed at is lit, with a line to it from the castle, and a click on any
+    //    lit province aims there. The names stay in the list for whoever knows them.
+
+    private const float ManeuverPanelWidth = 440f;
+    private CanvasLayer _maneuverLayer;
+    private System.Func<int, int, bool> _maneuverPick;
+
+    private void CloseManeuvers()
+    {
+        _maneuverPick = null;
+        _atlas3D?.ClearAim();
+        if (_maneuverLayer != null && IsInstanceValid(_maneuverLayer))
+            _maneuverLayer.QueueFree();
+        _maneuverLayer = null;
+    }
+
+    /// <summary>The province a maneuver's target stands for: the province itself, or the one a
+    /// front contests. -1 when there is none.</summary>
+    private static int ManeuverTargetProvince(CycleState cycle, ManeuverDef def, string key)
+    {
+        if (cycle?.World == null || def == null || string.IsNullOrEmpty(key))
+            return -1;
+        if (def.Target == ManeuverTarget.CastleFront || def.Target == ManeuverTarget.ReachFront)
+        {
+            foreach (var wf in cycle.Warfronts ?? new List<Warfront>())
+            {
+                if (wf != null && wf.Id == key)
+                    return ProvinceControl.IndexOf(cycle.World, wf.ProvinceId);
+            }
+            return -1;
+        }
+        return int.TryParse(key, out int index) ? index : -1;
+    }
+
+    /// <summary>The Maneuvers panel: pick a maneuver, read what it does and what it costs, aim
+    /// it on the map, cast.</summary>
     private void ShowManeuvers()
     {
         var cycle = SaveManager.ActiveSave?.Cycle;
         var known = CastleManeuvers.Known(cycle);
         if (cycle == null || known.Count == 0)
         {
-            // Provinces 7j: where the spells come from.
-            ShowStrategicNotice("Maneuvers",
-                "The font casts the castle's maneuvers from the overworld spells the guild knows: Force "
-                + "Path, Veil, Retrace, Ley Leap and the rest. It knows none of them yet. Spells are "
-                + "learned on expeditions, at lore places, in deals closed on cordial terms and from the "
-                + "fallen, or from scrolls."
-                + (OS.IsDebugBuild() ? "\n\nTo test: Settings, Developer tools, Learn Maneuvers." : ""));
+            ShowStrategicNotice("Maneuvers", "The castle has no maneuver it can cast yet.");
             return;
         }
+        CloseManeuvers();
 
-        var dlg = new ConfirmationDialog
+        _maneuverLayer = new CanvasLayer { Name = "ManeuverLayer", Layer = ProvinceCardLayer };
+        AddChild(_maneuverLayer);
+        var panel = new PanelContainer
         {
-            Title = $"Maneuvers  (the font holds {CastleManeuvers.Font(cycle)} Essence)",
-            OkButtonText = "Cast",
-            CancelButtonText = "Close",
-            MinSize = new Vector2I(560, 400),
+            Name = "ManeuverPanel",
+            AnchorLeft = 0f,
+            AnchorTop = 0f,
+            AnchorRight = 0f,
+            AnchorBottom = 0f,
+            GrowHorizontal = Control.GrowDirection.End,
+            GrowVertical = Control.GrowDirection.End,
+            OffsetLeft = 16,
+            OffsetRight = 16,
+            OffsetTop = HudManager.BarHeight + 56,
+            OffsetBottom = HudManager.BarHeight + 56,
+            MouseFilter = Control.MouseFilterEnum.Stop,
         };
-        var box = new VBoxContainer();
+        panel.AddThemeStyleboxOverride("panel", UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
+        _maneuverLayer.AddChild(panel);
+
+        var margins = new MarginContainer();
+        margins.AddThemeConstantOverride("margin_left", 16);
+        margins.AddThemeConstantOverride("margin_right", 16);
+        margins.AddThemeConstantOverride("margin_top", 12);
+        margins.AddThemeConstantOverride("margin_bottom", 14);
+        panel.AddChild(margins);
+
+        var box = new VBoxContainer { CustomMinimumSize = new Vector2(ManeuverPanelWidth - 32f, 0f) };
         box.AddThemeConstantOverride("separation", 8);
-        dlg.AddChild(box);
+        margins.AddChild(box);
+
+        var title = new Label { Text = $"Maneuvers  \u00B7  the castle holds {CastleManeuvers.Font(cycle)} Essence" };
+        title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize + 2);
+        title.AddThemeColorOverride("font_color", UITheme.Gold);
+        box.AddChild(title);
 
         var picker = new OptionButton();
         foreach (var def in known)
@@ -183,48 +239,108 @@ public partial class StrategicView
         picker.Selected = 0;
         box.AddChild(picker);
 
-        var detail = DialogFit.Wrap(new Label());
+        var detail = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(ManeuverPanelWidth - 32f, 0f),
+        };
         detail.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
         detail.AddThemeColorOverride("font_color", UITheme.TextSecondary);
         box.AddChild(detail);
 
-        var targetRow = new HBoxContainer();
-        targetRow.AddThemeConstantOverride("separation", 8);
-        var targetLbl = new Label { Text = "Aim:" };
-        targetLbl.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-        targetRow.AddChild(targetLbl);
-        var targetPick = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        targetRow.AddChild(targetPick);
-        box.AddChild(targetRow);
+        var aimHint = new Label
+        {
+            Text = "Aim: the lit province. Click another lit province on the map to aim there.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(ManeuverPanelWidth - 32f, 0f),
+        };
+        aimHint.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+        aimHint.AddThemeColorOverride("font_color", UITheme.Gold);
+        box.AddChild(aimHint);
+
+        var targetPick = new OptionButton();
+        box.AddChild(targetPick);
+
+        var buttons = new HBoxContainer();
+        buttons.AddThemeConstantOverride("separation", 8);
+        box.AddChild(buttons);
+        var cast = new Button { Text = "Cast", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        UITheme.ApplyButtonStyle(cast, isPrimary: true);
+        buttons.AddChild(cast);
+        var close = new Button { Text = "Close", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        UITheme.ApplyButtonStyle(close, isPrimary: false);
+        buttons.AddChild(close);
 
         var targets = new List<(string Key, string Label)>();
+        var targetProvinces = new List<int>();
+
+        void PaintAim()
+        {
+            var def = known[Mathf.Clamp(picker.Selected, 0, known.Count - 1)];
+            if (def.Target == ManeuverTarget.None || targets.Count == 0)
+            {
+                _atlas3D?.ClearAim();
+                return;
+            }
+            int at = Mathf.Clamp(targetPick.Selected, 0, targets.Count - 1);
+            _atlas3D?.SetAim(new Vector2I(cycle.CastleX, cycle.CastleY), targetProvinces[at],
+                             targetProvinces, UITheme.Gold);
+        }
+
         void ShowChoice(int i)
         {
             var def = known[Mathf.Clamp(i, 0, known.Count - 1)];
             bool can = CastleManeuvers.CanCast(cycle, def, out string why);
             detail.Text = def.Text + (can ? "" : $"\n\nNot now: {why}");
+            cast.Disabled = !can;
             targets.Clear();
             targets.AddRange(CastleManeuvers.Targets(cycle, def));
+            targetProvinces.Clear();
             targetPick.Clear();
-            foreach (var (_, label) in targets)
+            foreach (var (key, label) in targets)
+            {
                 targetPick.AddItem(label);
-            targetRow.Visible = def.Target != ManeuverTarget.None && targets.Count > 0;
-            if (targets.Count > 0)
+                targetProvinces.Add(ManeuverTargetProvince(cycle, def, key));
+            }
+            bool aimed = def.Target != ManeuverTarget.None && targets.Count > 0;
+            targetPick.Visible = aimed;
+            aimHint.Visible = aimed;
+            if (aimed)
                 targetPick.Selected = 0;
+            PaintAim();
         }
-        ShowChoice(0);
-        picker.ItemSelected += idx => ShowChoice((int)idx);
 
-        dlg.Confirmed += () =>
+        picker.ItemSelected += idx => ShowChoice((int)idx);
+        targetPick.ItemSelected += _ => PaintAim();
+        _maneuverPick = (col, row) =>
+        {
+            int clicked = _world != null ? _world.ProvinceIndexAt(col, row) : -1;
+            if (clicked < 0)
+                return false;
+            for (int i = 0; i < targetProvinces.Count; i++)
+            {
+                if (targetProvinces[i] == clicked)
+                {
+                    targetPick.Selected = i;
+                    PaintAim();
+                    return true;
+                }
+            }
+            return false;   // not a province this maneuver reaches: the click means what it always did
+        };
+        ShowChoice(0);
+
+        close.Pressed += CloseManeuvers;
+        cast.Pressed += () =>
         {
             var def = known[Mathf.Clamp(picker.Selected, 0, known.Count - 1)];
             string aim = def.Target != ManeuverTarget.None && targets.Count > 0
                 ? targets[Mathf.Clamp(targetPick.Selected, 0, targets.Count - 1)].Key
                 : "";
-            dlg.QueueFree();
+            CloseManeuvers();
             if (!CastleManeuvers.Cast(cycle, def.SpellId, aim, out string line, out bool moved))
             {
-                ShowStrategicNotice($"The font cannot cast {def.Name}", line);
+                ShowStrategicNotice($"The castle cannot cast {def.Name}", line);
                 return;
             }
             SaveManager.MarkDirty();
@@ -240,8 +356,5 @@ public partial class StrategicView
             RefreshPieceChrome();
             ShowStrategicNotice(def.Name, line);
         };
-        dlg.Canceled += () => dlg.QueueFree();
-        AddChild(dlg);
-        dlg.PopupCentered();
     }
 }

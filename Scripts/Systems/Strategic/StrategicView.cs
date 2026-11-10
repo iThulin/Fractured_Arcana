@@ -1610,6 +1610,10 @@ public partial class StrategicView : Node2D
         if (_atlas3D != null && _atlas3D.CityMode)
             return;
 
+        // C2: while a maneuver is being aimed, a click on a province it can reach aims there.
+        if (_maneuverPick != null && _maneuverPick(col, row))
+            return;
+
         // March mode owns the click once the city has had its say: it is an
         // explicit armed verb, so it takes priority over the passive map
         // behaviours below, but never over descending into a settlement.

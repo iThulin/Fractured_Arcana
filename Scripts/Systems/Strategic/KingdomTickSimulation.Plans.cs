@@ -74,6 +74,13 @@ public static partial class KingdomTickSimulation
                 k.Plan = new RivalPlan();
                 continue;
             }
+            // C1 (Sow Discord): a realm in discord holds no plan this moon.
+            if (k.HinderedMoons > 0)
+            {
+                k.HinderedMoons--;
+                k.Plan = new RivalPlan();
+                continue;
+            }
             var next = ChoosePlan(cycle, kid, fronts);
             var was = k.Plan;
             bool changed = was == null || was.Kind != next.Kind

@@ -66,6 +66,10 @@ public class CastleManeuverState
     /// moons it still stands still for.</summary>
     public Dictionary<string, int> FrozenFronts = new();
 
+    /// <summary>C1 (Bombardment): fronts the castle's engines have pounded. The guild's next
+    /// Seize at one counts double, and spends it. Additive.</summary>
+    public Dictionary<string, int> BombardedFronts = new();
+
     /// <summary>The forward camp (Deploy Waystation) while it stands, by its tile and its
     /// province's Id; -1 and "" for none. It goes when the castle next moves.</summary>
     public int WaystationX = -1;

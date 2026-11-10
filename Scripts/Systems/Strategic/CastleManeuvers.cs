@@ -102,6 +102,19 @@ public static class CastleManeuvers
         new ManeuverDef { SpellId = "thornwall", Name = "Thornwall", Essence = 3,
             Target = ManeuverTarget.CastleFront,
             Text = "The front in the castle's province stands still at the next new moon." },
+        // C1 (2026-11-10): the castle's own works. Every guild has them; no spell is needed.
+        new ManeuverDef { SpellId = "castle_scry", Name = "Scry Province", Essence = 2,
+            Target = ManeuverTarget.ReachProvince,
+            Text = "See a province within the castle's reach: every site in it becomes known, with its "
+                   + "guards and its ruler's plan." },
+        new ManeuverDef { SpellId = "castle_discord", Name = "Sow Discord", Essence = 4,
+            Target = ManeuverTarget.ReachProvince,
+            Text = "Break the plan of the realm that rules a province within reach. It holds no plan for "
+                   + "the rest of this moon and all of the next, and land it was annexing stops gaining. "
+                   + "A front already open keeps moving." },
+        new ManeuverDef { SpellId = "castle_bombard", Name = "Bombardment", Essence = 5,
+            Target = ManeuverTarget.ReachFront,
+            Text = "The castle's engines pound a front within reach. Your next Seize there counts double." },
         new ManeuverDef { SpellId = "stasis_snare", Name = "Stasis Snare", Essence = 3,
             Target = ManeuverTarget.ReachFront,
             Text = "A front in a province within the font's reach stands still at the next new moon." },
@@ -129,11 +142,54 @@ public static class CastleManeuvers
     {
         if (cycle == null || string.IsNullOrEmpty(spellId))
             return false;
+        if (IsCastleWork(spellId))
+            return true;   // C1: the castle's own works need no spell
         if (cycle.Grimoire?.KnownSpellIds != null && cycle.Grimoire.KnownSpellIds.Contains(spellId))
             return true;
         var def = OverworldSpellRegistry.Get(spellId);
         return def != null && def.IsInnate
                && string.Equals(def.School, cycle.SelectedSchool ?? "", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>C1: a maneuver that is the castle's own work, not a spell's second use.</summary>
+    public static bool IsCastleWork(string spellId)
+        => !string.IsNullOrEmpty(spellId) && spellId.StartsWith("castle_", StringComparison.Ordinal);
+
+    /// <summary>C1 (Bombardment): was this front bombarded? Spends the bombardment.</summary>
+    public static bool ConsumeBombardment(CycleState cycle, string frontId)
+        => cycle?.Maneuvers?.BombardedFronts != null && !string.IsNullOrEmpty(frontId)
+           && cycle.Maneuvers.BombardedFronts.Remove(frontId);
+
+    /// <summary>C1 (Scry Province): fills the province with its sites and guards if no party has
+    /// been there, then makes every site in it found and known. Returns the line for the player.</summary>
+    private static string ScryProvince(CycleState cycle, Province to)
+    {
+        var world = cycle.World;
+        if (to.SeatX >= 0 && to.SeatY >= 0)
+        {
+            ProvinceField.Fill(world, to.SeatX, to.SeatY);
+            ProvinceField.PostGuards(world, to.SeatX, to.SeatY);
+        }
+        int fights = 0, guards = 0, other = 0;
+        foreach (var poi in world.Pois)
+        {
+            if (poi == null || poi.Consumed || poi.Kind == PoiKind.Concord
+                || !world.InBounds(poi.X, poi.Y) || world.ProvinceIndexAt(poi.X, poi.Y) != to.Index)
+            {
+                continue;
+            }
+            poi.Discovered = true;
+            poi.Known = true;
+            if (poi.Guard)
+                guards++;
+            else if (poi.Kind == PoiKind.Combat || poi.Kind == PoiKind.Prison)
+                fights++;
+            else
+                other++;
+        }
+        string plan = KingdomTickSimulation.PlanCardLine(cycle, to);
+        return $"{ProvinceControl.Name(to)}: {fights} fight(s), {guards} guard(s), {other} other site(s), all known."
+               + (plan.Length > 0 ? " " + plan : "");
     }
 
     /// <summary>The maneuvers the guild knows, in the dialog's order.</summary>
@@ -516,6 +572,46 @@ public static class CastleManeuvers
                 moved = charted > 0;   // the fog lifts: the map draws it afresh
                 break;
             }
+            case "castle_scry":
+            {
+                var to = world.Provinces[int.Parse(target)];
+                line = "Scry Province. " + ScryProvince(cycle, to);
+                moved = true;   // new marks: the map draws it afresh
+                break;
+            }
+            case "castle_discord":
+            {
+                var to = world.Provinces[int.Parse(target)];
+                string ruler = ProvinceControl.RulerOf(cycle, to);
+                if (!ProvinceControl.IsKingdom(ruler) || cycle.Kingdoms == null
+                    || !cycle.Kingdoms.TryGetValue(ruler, out var realm) || realm == null)
+                {
+                    line = "No realm rules that province. There is no plan there to break.";
+                    return false;
+                }
+                if (realm.HinderedMoons > 0)
+                {
+                    line = $"{ProvinceControl.RealmName(cycle, ruler)} is in discord already.";
+                    return false;
+                }
+                realm.HinderedMoons = 1;
+                realm.Plan = new RivalPlan();
+                line = $"Sow Discord: {ProvinceControl.RealmName(cycle, ruler)}'s plan falls apart. It holds no plan "
+                       + "for the rest of this moon and all of the next.";
+                break;
+            }
+            case "castle_bombard":
+            {
+                state.BombardedFronts ??= new Dictionary<string, int>();
+                if (state.BombardedFronts.ContainsKey(target))
+                {
+                    line = "That front is under the castle's engines already.";
+                    return false;
+                }
+                state.BombardedFronts[target] = 1;
+                line = "Bombardment: the engines find their range. Your next Seize at that front counts double.";
+                break;
+            }
             case "thornwall":
             case "stasis_snare":
             {
@@ -729,6 +825,8 @@ public static class CastleManeuvers
         int learned = 0;
         foreach (var def in All)
         {
+            if (IsCastleWork(def.SpellId))
+                continue;   // C1: not a spell, nothing to learn
             if (!cycle.Grimoire.KnownSpellIds.Contains(def.SpellId))
             {
                 cycle.Grimoire.KnownSpellIds.Add(def.SpellId);

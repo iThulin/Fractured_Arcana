@@ -497,7 +497,9 @@ public static partial class KingdomTickSimulation
                 break;
 
             case WarfrontSide.Seize:
-                wf.Advance += success ? -WarfrontWinSwing : WarfrontLossSwing;
+                // C1 (Bombardment): a bombarded front's next Seize counts double, won or lost it is spent.
+                bool bombarded = CastleManeuvers.ConsumeBombardment(cycle, wf.Id);
+                wf.Advance += success ? -(WarfrontWinSwing * (bombarded ? 2 : 1)) : WarfrontLossSwing;
                 if (success)
                 {
                     wf.PlayerSeizing = true;

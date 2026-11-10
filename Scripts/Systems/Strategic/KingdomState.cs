@@ -115,6 +115,10 @@ public class KingdomState
     /// before it loads with no plan.</summary>
     public RivalPlan Plan = new();
 
+    /// <summary>C1 (Sow Discord): new moons this realm still holds no plan for, and gains
+    /// nothing on its bids to annex. Additive, default 0.</summary>
+    public int HinderedMoons = 0;
+
 // ── Helpers ──────────────────────────────────────────────────────────
     // AtLeast / CanBuildOutpost REMOVED with the stored Stance. Gate reads:
     //   CouncilQueries.StanceFor(cycle, RegionId) >= KingdomStance.Neutral

@@ -114,6 +114,10 @@ public static partial class KingdomTickSimulation
         {
             int bar = province.Annexation != null && province.Annexation.TryGetValue(kid, out int stored) ? stored : 0;
             int gain = Math.Max(0, AnnexBase + AnnexPerBorder * (borders[kid] - 1) - relief);
+            // C1 (Sow Discord): a realm in discord gains nothing on its bid.
+            if (cycle.Kingdoms != null && cycle.Kingdoms.TryGetValue(kid, out var bidder)
+                && bidder != null && bidder.HinderedMoons > 0)
+                gain = 0;
             bids.Add(new AnnexBid(kid, bar, borders[kid], gain));
         }
         bids.Sort((x, y) => x.Bar != y.Bar

@@ -307,6 +307,110 @@ public partial class WorldAtlas3D
         RecolorTiles();   // ends in ApplyRangeOverlay
     }
 
+    // ── The castle's aim (C2, 2026-11-10) ────────────────────────────────
+    //    While a maneuver is being aimed: the aimed province is lit, the others it could be
+    //    aimed at are lit faintly, the rest of the map dims, and a line runs from the castle
+    //    to the aimed province's seat. Painted like the range wash, so a recolour keeps it.
+
+    private int _aimProvince = -1;
+    private HashSet<int> _aimCandidates;
+    private Color _aimTint = UITheme.Gold;
+    private MeshInstance3D _aimLine;
+    private StandardMaterial3D _aimLineMaterial;
+
+    /// <summary>Light the province a maneuver is aimed at, and the others it could be.</summary>
+    public void SetAim(Vector2I from, int province, IEnumerable<int> candidates, Color tint)
+    {
+        _aimProvince = province;
+        _aimCandidates = candidates != null ? new HashSet<int>(candidates) : new HashSet<int>();
+        _aimTint = tint;
+        RecolorTiles();   // ends in ApplyAimOverlay
+        HighlightProvince(province);
+        DrawAimLine(from, province);
+    }
+
+    public void ClearAim()
+    {
+        if (_aimCandidates == null)
+        {
+            return;
+        }
+        _aimCandidates = null;
+        _aimProvince = -1;
+        FreeAimLine();
+        HighlightProvince(-1);
+        RecolorTiles();
+    }
+
+    private void FreeAimLine()
+    {
+        if (_aimLine != null && IsInstanceValid(_aimLine))
+        {
+            _aimLine.QueueFree();
+        }
+        _aimLine = null;
+    }
+
+    private void DrawAimLine(Vector2I from, int province)
+    {
+        FreeAimLine();
+        if (_world == null || !_world.HasProvinces() || province < 0 || province >= _world.Provinces.Count
+            || !_world.InBounds(from.X, from.Y))
+        {
+            return;
+        }
+        var target = _world.Provinces[province];
+        if (target == null || !_world.InBounds(target.SeatX, target.SeatY))
+        {
+            return;
+        }
+        float lift = HexR * 1.5f;
+        Vector3 a = TileOrigin(from.X, from.Y);
+        Vector3 b = TileOrigin(target.SeatX, target.SeatY);
+        a.Y = lift;
+        b.Y = lift;
+        float length = a.DistanceTo(b);
+        if (length < 0.05f)
+        {
+            return;
+        }
+        _aimLineMaterial ??= new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+            NoDepthTest = true,
+        };
+        _aimLineMaterial.AlbedoColor = _aimTint;
+        _aimLine = new MeshInstance3D
+        {
+            Name = "AimLine",
+            Mesh = new BoxMesh { Size = new Vector3(HexR * 0.24f, HexR * 0.06f, length) },
+            MaterialOverride = _aimLineMaterial,
+            Transform = new Transform3D(Basis.LookingAt(b - a, Vector3.Up), (a + b) * 0.5f),
+        };
+        AddChild(_aimLine);
+    }
+
+    private void ApplyAimOverlay()
+    {
+        if (_aimCandidates == null || _world == null || _cityMode || _instanceIndexOf == null
+            || _landLayer?.Multimesh == null || _waterLayer?.Multimesh == null || _canvasLayer?.Multimesh == null)
+        {
+            return;
+        }
+        for (int i = 0; i < _world.Tiles.Length; i++)
+        {
+            int col = i % _world.Width, row = i / _world.Width;
+            var baseColor = TileColor(_world.Tiles[i], col, row);
+            int p = _world.ProvinceIndexAt(col, row);
+            Color shown = p >= 0 && p == _aimProvince
+                ? baseColor.Lerp(_aimTint, 0.5f).Lightened(0.08f)
+                : p >= 0 && _aimCandidates.Contains(p)
+                    ? baseColor.Lerp(_aimTint, 0.16f)
+                    : baseColor.Darkened(0.35f);
+            LayerMultimesh(i).SetInstanceColor(_instanceIndexOf[i], shown);
+        }
+    }
+
     public void ClearRangeOverlay()
     {
         if (!_rangeCenter.HasValue)

@@ -1629,6 +1629,7 @@ public partial class WorldAtlas3D : Node3D
         if (PreviewActive)
             ApplyWindowTint();   // fresh multimesh colors wiped the preview lift
         ApplyRangeOverlay();     // and the reach wash, for the same reason
+        ApplyAimOverlay();       // and the castle's aim (C2)
     }
 
     private void RebuildTiles()
@@ -1803,6 +1804,7 @@ public partial class WorldAtlas3D : Node3D
             ApplyWindowTint();
         RefreshProvinceNames();   // provinces 7d: the numbers follow the lens and the influence
         ApplyRangeOverlay();   // a force's reach, if one is lit (2026-09-29)
+        ApplyAimOverlay();     // the castle's aim, if a maneuver is being aimed (C2)
     }
 
     /// <summary>The MultiMesh holding a flat tile index's instance.</summary>
