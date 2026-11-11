@@ -858,7 +858,10 @@ public static class FieldPostings
                 int opened = ExploreRing(world, zone, force.X, force.Y, ring);
                 int splinters = SurveySplintersPerMoon + (scout >= 2 ? Vocations.ScoutExtraSplintersR2 : 0);
                 cycle.ArcaneSplinters += splinters;
-                return $"{force.Name} lay open {opened} tile(s) of {zone.Name} and send home {splinters} splinters.";
+                // Shardfall H2 (S3): a party posted on a vault digs it out, moon by moon.
+                string dugLine = Shardfall.DigLine(zone, Shardfall.Dig(cycle, zone, Shardfall.DigPerPostedMoon));
+                return $"{force.Name} lay open {opened} tile(s) of {zone.Name} and send home {splinters} splinters."
+                       + (dugLine.Length > 0 ? " " + dugLine : "");
             }
             case HoldLine:
             {

@@ -266,6 +266,10 @@ public class ShardZone
     /// or empty. The shard itself is not moved: the garrison is beaten and the vault is free.</summary>
     public string HeldByKingdomId = "";
 
+    /// <summary>Shardfall H2 (S3): how far the vault is dug out this timeline, 0 to 100. Its
+    /// gate is shut below 100. Additive, default 0.</summary>
+    public int Excavation = 0;
+
     /// <summary>True once a field party has finished surveying the zone
     /// (FieldPostings, 2026-09-24): every footprint tile Explored and the
     /// guardian's composition known. The seam the acquisition spec's Commune

@@ -139,13 +139,8 @@ public static class FieldMarch
             reason = "They cannot cross open water on foot.";
             return false;
         }
-        if (dest.Discovery == TileDiscovery.Unseen)
-        {
-            // The castle's job, stated as the refusal so the rule teaches itself
-            // at the moment the player runs into it.
-            reason = "Nobody has charted that ground. Send the castle to scout it first.";
-            return false;
-        }
+        // FM2 (ruled 2026-11-10): unseen ground can be marched into. The party charts a
+        // corridor as it walks.
         return true;
     }
 
@@ -156,8 +151,8 @@ public static class FieldMarch
         {
             return 0;
         }
-        // Provinces PV5 (PR82): a tile a day on the castle's roads within its reach.
-        return CastleReach.DaysAlong(cycle, party.X, party.Y, x, y);
+        // FM2: the days along the quickest way, by terrain.
+        return DaysBetween(cycle, party.X, party.Y, x, y);
     }
 
     public static int LunationsTo(CycleState cycle, FieldParty party, int x, int y)
@@ -253,15 +248,25 @@ public static class FieldMarch
                 continue;
             }
 
+            // FM2: the next tile on the quickest way, and the days that tile costs to enter.
+            int fromX = party.X, fromY = party.Y;
+            var (nx, ny) = NextStep(cycle, party.X, party.Y, party.DestX, party.DestY);
+            if (nx == fromX && ny == fromY)
+            {
+                party.State = FieldPartyState.AtAnchor;
+                party.TravelPhasesRemaining = 0;
+                party.TravelDayAccum = 0;
+                string stuck = $"{party.Name} can find no way on from ({fromX},{fromY}) and halts there.";
+                report = report == null ? stuck : report + " " + stuck;
+                continue;
+            }
             party.TravelDayAccum++;
-            if (party.TravelDayAccum < CastleReach.DaysPerTileAt(cycle, party.X, party.Y))   // provinces PV5: the castle's roads
+            if (party.TravelDayAccum < StepDays(cycle, fromX, fromY, nx, ny))
             {
                 continue;
             }
             party.TravelDayAccum = 0;
 
-            int fromX = party.X, fromY = party.Y;
-            var (nx, ny) = StepToward(cycle.World, party.X, party.Y, party.DestX, party.DestY, 1);
             party.X = nx;
             party.Y = ny;
             ChartCorridor(cycle.World, fromX, fromY, nx, ny);
@@ -583,6 +588,15 @@ public static class FieldMarch
             return (toX, toY);
         }
 
+        // FM1 (2026-11-10): one step at a time follows the shortest way over land. The
+        // straight line below stalled for good when its first tile was water, as it is for a
+        // seat on a lake shore. The line stays as the fallback for a destination that cannot
+        // be walked to.
+        if (steps == 1 && PathStep(world, fromX, fromY, toX, toY, out int px, out int py))
+        {
+            return (px, py);
+        }
+
         var (aq, ar) = HexCoord.OffsetToAxial(fromX, fromY);
         var (bq, br) = HexCoord.OffsetToAxial(toX, toY);
         float t = (float)steps / total;
@@ -604,6 +618,250 @@ public static class FieldMarch
 
     private static bool Standable(WorldData world, int x, int y)
         => world.InBounds(x, y) && !world.GetTile(x, y).IsWater;
+
+    // ── The march by terrain (FM2, ruled 2026-11-10) ─────────────
+    //    Open ground and roads cost 1 day a tile. Forest, hills, swamp, marsh and snow cost 2.
+    //    Mountains and volcanic ground cost 3. A river with no bridge adds 1. Crossing into a
+    //    province whose court is Hostile adds 3, once, at the border. Within the castle's
+    //    reach every tile costs 1.
+
+    public const int OpenDays = 1;
+    public const int RoughDays = 2;
+    public const int MountainDays = 3;
+    public const int RiverDays = 1;
+    public const int HostileBorderDays = 3;
+
+    /// <summary>Days to step from one tile onto the tile beside it.</summary>
+    public static int StepDays(CycleState cycle, int fromX, int fromY, int toX, int toY)
+        => StepDays(cycle, CastleManeuvers.Reach(cycle), fromX, fromY, toX, toY);
+
+    private static int StepDays(CycleState cycle, System.Collections.Generic.HashSet<int> reach,
+                                int fromX, int fromY, int toX, int toY)
+    {
+        var world = cycle.World;
+        int toProvince = world.HasProvinces() ? world.ProvinceIndexAt(toX, toY) : -1;
+        if (toProvince >= 0 && reach != null && reach.Contains(toProvince))
+        {
+            return CastleReach.RoadDaysPerTile;
+        }
+
+        var from = world.GetTile(fromX, fromY);
+        var to = world.GetTile(toX, toY);
+        var (fq, fr) = HexCoord.OffsetToAxial(fromX, fromY);
+        var (tq, tr) = HexCoord.OffsetToAxial(toX, toY);
+        int d = OverworldMovementCost.EdgeDirection(new Vector2I(fq, fr), new Vector2I(tq, tr));
+        bool road = d >= 0 && (from.RoadEdges & (1 << d)) != 0;
+        bool river = d >= 0 && (from.RiverEdges & (1 << d)) != 0;
+
+        int days;
+        if (road || to.Terrain == OverworldHex.TerrainType.Road)
+        {
+            days = OpenDays;
+        }
+        else
+        {
+            switch (to.Terrain)
+            {
+                case OverworldHex.TerrainType.Mountain:
+                case OverworldHex.TerrainType.Volcanic:
+                    days = MountainDays;
+                    break;
+                case OverworldHex.TerrainType.Forest:
+                case OverworldHex.TerrainType.Hills:
+                case OverworldHex.TerrainType.Swamp:
+                case OverworldHex.TerrainType.Marsh:
+                case OverworldHex.TerrainType.Snow:
+                    days = RoughDays;
+                    break;
+                default:
+                    days = OpenDays;
+                    break;
+            }
+        }
+        if (river && !road)
+        {
+            days += RiverDays;
+        }
+        if (toProvince >= 0 && toProvince != world.ProvinceIndexAt(fromX, fromY)
+            && ProvinceControl.StanceAt(cycle, toX, toY, KingdomStance.Neutral) == KingdomStance.Hostile)
+        {
+            days += HostileBorderDays;
+        }
+        return days;
+    }
+
+    private static CycleState _daysCycle;
+    private static int _daysToX = -1, _daysToY = -1, _daysStamp = -1;
+    private static int[] _days;
+
+    /// <summary>Days on foot from every tile to one destination, by the quickest way. Kept for
+    /// the last destination asked about, and thrown away when the day or the castle changes.
+    /// -1 marks a tile with no way there.</summary>
+    private static int[] DayDistances(CycleState cycle, int toX, int toY)
+    {
+        var world = cycle.World;
+        int stamp = System.HashCode.Combine(WorldClock.Now(cycle), cycle.CastleX, cycle.CastleY, cycle.CastleParked);
+        if (_days != null && ReferenceEquals(_daysCycle, cycle) && _daysToX == toX && _daysToY == toY
+            && _daysStamp == stamp && _days.Length == world.Width * world.Height)
+        {
+            return _days;
+        }
+        var reach = CastleManeuvers.Reach(cycle);
+        var dist = new int[world.Width * world.Height];
+        System.Array.Fill(dist, -1);
+        var frontier = new System.Collections.Generic.PriorityQueue<(int x, int y), int>();
+        dist[toY * world.Width + toX] = 0;
+        frontier.Enqueue((toX, toY), 0);
+        while (frontier.TryDequeue(out var cell, out int soFar))
+        {
+            if (soFar > dist[cell.y * world.Width + cell.x])
+            {
+                continue;
+            }
+            foreach (var (nx, ny) in HexCoord.Neighbors(cell.x, cell.y, world.Width, world.Height))
+            {
+                if (!Standable(world, nx, ny))
+                {
+                    continue;
+                }
+                // The march runs the other way: from the neighbour onto this tile.
+                int total = soFar + StepDays(cycle, reach, nx, ny, cell.x, cell.y);
+                int at = ny * world.Width + nx;
+                if (dist[at] < 0 || total < dist[at])
+                {
+                    dist[at] = total;
+                    frontier.Enqueue((nx, ny), total);
+                }
+            }
+        }
+        _daysCycle = cycle;
+        _daysToX = toX;
+        _daysToY = toY;
+        _daysStamp = stamp;
+        _days = dist;
+        return dist;
+    }
+
+    /// <summary>Days on foot between two tiles by the quickest way. Where there is no way
+    /// over land, the old count along the straight line.</summary>
+    public static int DaysBetween(CycleState cycle, int fromX, int fromY, int toX, int toY)
+    {
+        var world = cycle?.World;
+        if (world == null || !world.InBounds(fromX, fromY) || !world.InBounds(toX, toY))
+        {
+            return 0;
+        }
+        int days = DayDistances(cycle, toX, toY)[fromY * world.Width + fromX];
+        return days >= 0 ? days : CastleReach.DaysAlong(cycle, fromX, fromY, toX, toY);
+    }
+
+    /// <summary>Days until a marching party arrives.</summary>
+    public static int DaysLeft(CycleState cycle, FieldParty party)
+    {
+        if (cycle?.World == null || party == null || party.DestX < 0 || party.DestY < 0)
+        {
+            return 1;
+        }
+        return Mathf.Max(1, DaysBetween(cycle, party.X, party.Y, party.DestX, party.DestY) - party.TravelDayAccum);
+    }
+
+    /// <summary>The next tile on the quickest way. The party's own tile when there is none.</summary>
+    private static (int x, int y) NextStep(CycleState cycle, int fromX, int fromY, int toX, int toY)
+    {
+        var world = cycle.World;
+        if (!world.InBounds(fromX, fromY) || !world.InBounds(toX, toY))
+        {
+            return (fromX, fromY);
+        }
+        var dist = DayDistances(cycle, toX, toY);
+        var reach = CastleManeuvers.Reach(cycle);
+        int best = int.MaxValue, bx = fromX, by = fromY;
+        foreach (var (nx, ny) in HexCoord.Neighbors(fromX, fromY, world.Width, world.Height))
+        {
+            int d = dist[ny * world.Width + nx];
+            if (d < 0)
+            {
+                continue;
+            }
+            int total = d + StepDays(cycle, reach, fromX, fromY, nx, ny);
+            if (total < best)
+            {
+                best = total;
+                bx = nx;
+                by = ny;
+            }
+        }
+        return best != int.MaxValue ? (bx, by) : StepToward(world, fromX, fromY, toX, toY, 1);
+    }
+
+    // ── The way over land (FM1) ──────────────────────────────────
+
+    private static WorldData _pathWorld;
+    private static int _pathToX = -1, _pathToY = -1;
+    private static int[] _pathDist;
+
+    /// <summary>Steps over land from every tile to one destination, by a flood from the
+    /// destination. Kept for the last destination asked about, since a march asks for the
+    /// same one every step. -1 marks a tile with no way there.</summary>
+    private static int[] LandDistances(WorldData world, int toX, int toY)
+    {
+        if (_pathDist != null && ReferenceEquals(_pathWorld, world) && _pathToX == toX && _pathToY == toY
+            && _pathDist.Length == world.Width * world.Height)
+        {
+            return _pathDist;
+        }
+        var dist = new int[world.Width * world.Height];
+        System.Array.Fill(dist, -1);
+        var queue = new System.Collections.Generic.Queue<(int x, int y)>();
+        dist[toY * world.Width + toX] = 0;
+        queue.Enqueue((toX, toY));
+        while (queue.Count > 0)
+        {
+            var (cx, cy) = queue.Dequeue();
+            int next = dist[cy * world.Width + cx] + 1;
+            foreach (var (nx, ny) in HexCoord.Neighbors(cx, cy, world.Width, world.Height))
+            {
+                int at = ny * world.Width + nx;
+                if (dist[at] >= 0 || !Standable(world, nx, ny))
+                {
+                    continue;
+                }
+                dist[at] = next;
+                queue.Enqueue((nx, ny));
+            }
+        }
+        _pathWorld = world;
+        _pathToX = toX;
+        _pathToY = toY;
+        _pathDist = dist;
+        return dist;
+    }
+
+    /// <summary>The next tile on the shortest way over land. False when there is no way, or
+    /// when either end is off the map.</summary>
+    private static bool PathStep(WorldData world, int fromX, int fromY, int toX, int toY,
+                                 out int stepX, out int stepY)
+    {
+        stepX = fromX;
+        stepY = fromY;
+        if (!world.InBounds(fromX, fromY) || !world.InBounds(toX, toY))
+        {
+            return false;
+        }
+        var dist = LandDistances(world, toX, toY);
+        int best = int.MaxValue;
+        foreach (var (nx, ny) in HexCoord.Neighbors(fromX, fromY, world.Width, world.Height))
+        {
+            int d = dist[ny * world.Width + nx];
+            if (d >= 0 && d < best)
+            {
+                best = d;
+                stepX = nx;
+                stepY = ny;
+            }
+        }
+        return best != int.MaxValue;
+    }
 
     /// <summary>Chart a thin corridor along the leg just walked. Unseen to
     /// Charted only, never Explored: walking past a place is not working it.</summary>

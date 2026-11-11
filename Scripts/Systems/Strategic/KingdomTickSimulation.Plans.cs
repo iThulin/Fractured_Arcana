@@ -207,7 +207,8 @@ public static partial class KingdomTickSimulation
         }
         foreach (var zone in cycle.World.ShardZones)
         {
-            if (zone != null && zone.KingdomId == kid && !zone.ShardCollected
+            // H1: only a live vault. Not an empty one, and not one sealed for the timeline.
+            if (zone != null && zone.KingdomId == kid && Shardfall.Live(SaveManager.ActiveSave, zone)
                 && string.IsNullOrEmpty(zone.HeldByKingdomId))
             {
                 return zone;

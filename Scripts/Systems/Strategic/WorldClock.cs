@@ -47,7 +47,8 @@ public static class WorldClock
     public static int Now(CycleState cycle) => cycle?.Calendar?.AbsoluteDay ?? 0;
 
     public static bool CastleBusy(CycleState cycle)
-        => cycle != null && cycle.CastleBusyUntilDay > Now(cycle);
+        => cycle != null && cycle.CastleBusyUntilDay > Now(cycle)
+           && cycle.CastleBusyUntilDay - Now(cycle) <= MaxBusyDays;
 
     /// <summary>Days until the castle's resupply finishes, or 0. The resupply
     /// is priced in lunations but runs on the day clock; every readout says
@@ -58,7 +59,7 @@ public static class WorldClock
             : cycle.CastleRepairLunations;   // DAYS since 2026-09-29 (see CycleState)
 
     public static bool PartyBusy(CycleState cycle, FieldParty p)
-        => p != null && p.BusyUntilDay > Now(cycle);
+        => p != null && p.BusyUntilDay > Now(cycle) && p.BusyUntilDay - Now(cycle) <= MaxBusyDays;
 
     /// <summary>The next absolute day on which something the player ordered
     /// completes, or -1 when nothing is scheduled. The new moon is not in
@@ -87,7 +88,7 @@ public static class WorldClock
         {
             return -1;
         }
-        if (cycle.CastleBusyUntilDay > now)
+        if (CastleBusy(cycle))
         {
             Consider(cycle.CastleBusyUntilDay, "the castle comes free");
         }
@@ -103,13 +104,13 @@ public static class WorldClock
                 {
                     continue;
                 }
-                if (p.BusyUntilDay > now)
+                if (PartyBusy(cycle, p))
                 {
                     Consider(p.BusyUntilDay, $"{p.Name} comes free");
                 }
                 if (p.State == FieldPartyState.Travelling && p.TravelPhasesRemaining > 0)
                 {
-                    int days = p.TravelPhasesRemaining * FieldMarch.DaysPerTile - p.TravelDayAccum;
+                    int days = FieldMarch.DaysLeft(cycle, p);   // FM2: by terrain
                     Consider(now + Mathf.Max(1, days), $"{p.Name} arrives");
                 }
                 if (p.State == FieldPartyState.Working && p.WorkDaysLeft > 0)
@@ -125,6 +126,10 @@ public static class WorldClock
     /// <summary>Everything that moves by the day, for ONE day that has just
     /// been advanced. Appends a line per thing that completed; the caller
     /// stops when the list is non-empty.</summary>
+    /// <summary>No outing keeps a force busy longer than this. A larger wait is a day number
+    /// from the last timeline's calendar, which began again at day 1, and is ignored.</summary>
+    public const int MaxBusyDays = 2 * CalendarState.DaysPerLunation;
+
     public static void StepDay(CycleState cycle, List<string> events)
     {
         if (cycle == null || events == null)
@@ -136,6 +141,22 @@ public static class WorldClock
             return;   // Standing Orders O1: the moon is held
         }
         int now = Now(cycle);
+
+        // A busy day left over from the last timeline's calendar is not a wait (2026-11-10).
+        if (cycle.CastleBusyUntilDay - now > MaxBusyDays)
+        {
+            cycle.CastleBusyUntilDay = 0;
+        }
+        if (cycle.FieldParties != null)
+        {
+            foreach (var stale in cycle.FieldParties)
+            {
+                if (stale != null && stale.BusyUntilDay - now > MaxBusyDays)
+                {
+                    stale.BusyUntilDay = 0;
+                }
+            }
+        }
 
         if (cycle.CastleBusyUntilDay > 0 && cycle.CastleBusyUntilDay == now)
         {

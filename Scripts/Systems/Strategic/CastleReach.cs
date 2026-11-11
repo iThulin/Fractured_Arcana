@@ -58,7 +58,7 @@ public static class CastleReach
             return world.HexDistance(fromX, fromY, toX, toY) * FieldMarch.DaysPerTile;
         var reach = CastleManeuvers.Reach(cycle);
         int days = 0, x = fromX, y = fromY;
-        int guard = world.HexDistance(fromX, fromY, toX, toY) + 2;
+        int guard = world.HexDistance(fromX, fromY, toX, toY) * 3 + 8;   // FM1: the way round water is longer than the line
         while ((x != toX || y != toY) && guard-- > 0)
         {
             int province = world.ProvinceIndexAt(x, y);

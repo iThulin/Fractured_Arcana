@@ -778,11 +778,53 @@ public partial class ExpeditionWindow3D : Node3D
         Vector3 offset = new Vector3(cp * sy, sp, cp * cy) * dist;
         _camera.Position = target + offset;
         _camera.LookAt(target, Vector3.Up);
+
+        // Zoomed right out, the camera rises through the chamber's ceiling, which then hid the
+        // whole table (2026-11-10). The ceiling is only drawn while the camera is under it.
+        var ceiling = _scryRig?.GetNodeOrNull<MeshInstance3D>("ChamberCeiling");
+        if (ceiling != null)
+        {
+            ceiling.Visible = _camera.Position.Y < ceiling.Position.Y - 0.5f;
+        }
+    }
+
+    // Labels are sized in world units, so they shrank to nothing when the camera pulled back
+    // (2026-11-10). Past a middle distance they grow with it, and so hold their size on screen.
+    private const float LabelZoomFrom = 24f;
+    private const float LabelZoomMax = 1.6f;
+    private const string LabelBaseMeta = "base_pixel_size";
+    private float _labelZoomClock;
+
+    private void ScaleLabelsForZoom()
+    {
+        float factor = Mathf.Clamp(_camDist / LabelZoomFrom, 1f, LabelZoomMax);
+        foreach (var node in FindChildren("*", "Label3D", true, false))
+        {
+            if (node is not Label3D label)
+            {
+                continue;
+            }
+            if (!label.HasMeta(LabelBaseMeta))
+            {
+                label.SetMeta(LabelBaseMeta, label.PixelSize);
+            }
+            float want = label.GetMeta(LabelBaseMeta).AsSingle() * factor;
+            if (!Mathf.IsEqualApprox(label.PixelSize, want))
+            {
+                label.PixelSize = want;
+            }
+        }
     }
 
     public override void _Process(double delta)
     {
         UpdateWeatherVfx((float)delta);   // W4: weather VFX animate regardless of input focus
+        _labelZoomClock += (float)delta;
+        if (_labelZoomClock >= 0.2f)
+        {
+            _labelZoomClock = 0f;
+            ScaleLabelsForZoom();
+        }
         if (!AcceptInput || _camera == null) return;
         float dt = (float)delta;
         bool moved = false;

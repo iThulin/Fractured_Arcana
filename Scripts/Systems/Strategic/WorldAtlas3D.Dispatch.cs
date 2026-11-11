@@ -307,6 +307,47 @@ public partial class WorldAtlas3D
         RecolorTiles();   // ends in ApplyRangeOverlay
     }
 
+    // ── The shards' seeps (shardfall H2b) ────────────────────────────────
+    //    A province a live shard seeps into is washed violet, whatever is known of its ground.
+
+    private void ApplySeepOverlay()
+    {
+        if (_world?.ShardZones == null || _cityMode || _instanceIndexOf == null || !_world.HasProvinces()
+            || _landLayer?.Multimesh == null || _waterLayer?.Multimesh == null || _canvasLayer?.Multimesh == null)
+        {
+            return;
+        }
+        var save = SaveManager.ActiveSave;
+        HashSet<int> seeped = null;
+        foreach (var zone in _world.ShardZones)
+        {
+            if (zone != null && Shardfall.Live(save, zone))
+            {
+                int p = _world.ProvinceIndexAt(zone.GateX, zone.GateY);
+                if (p >= 0)
+                {
+                    seeped ??= new HashSet<int>();
+                    seeped.Add(p);
+                }
+            }
+        }
+        if (seeped == null)
+        {
+            return;
+        }
+        for (int i = 0; i < _world.Tiles.Length; i++)
+        {
+            int col = i % _world.Width, row = i / _world.Width;
+            int at = _world.ProvinceIndexAt(col, row);
+            if (at < 0 || !seeped.Contains(at))
+            {
+                continue;
+            }
+            LayerMultimesh(i).SetInstanceColor(_instanceIndexOf[i],
+                TileColor(_world.Tiles[i], col, row).Lerp(UITheme.Violet, 0.42f));
+        }
+    }
+
     // ── The castle's aim (C2, 2026-11-10) ────────────────────────────────
     //    While a maneuver is being aimed: the aimed province is lit, the others it could be
     //    aimed at are lit faintly, the rest of the map dims, and a line runs from the castle

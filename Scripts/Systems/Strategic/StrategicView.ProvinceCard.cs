@@ -59,6 +59,12 @@ public partial class StrategicView
     private Label _cardFront;
     private Label _cardCourt;
     private Label _cardPlan;   // rival archmages R1
+    // H2c: the excavation as a bar, and the long detail folded behind one button.
+    private Label _cardDigLine;
+    private ProgressBar _cardDig;
+    private Button _cardMoreButton;
+    private VBoxContainer _cardMore;
+    private bool _cardMoreOpen;
     private Label _cardPlaces;
     private Label _cardBenefitsWhy;
     private readonly List<Label> _cardBenefitLines = new();
@@ -149,8 +155,23 @@ public partial class StrategicView
         _cardController.Text = ProvinceRulerLine(cycle, province);   // provinces PV3a (PR57)
         SetCardLine(_cardFront, ProvinceFrontLine(cycle, world, index));
         SetCardLine(_cardCourt, ProvinceCourtLine(cycle, province));
-        SetCardLine(_cardPlan, KingdomTickSimulation.PlanCardLine(cycle, province));
+        // H1 (shardfall_v1): the ruler's plan, and what a shard vault does to this province.
+        string planLine = KingdomTickSimulation.PlanCardLine(cycle, province);
+        string seepLine = Shardfall.CardLine(SaveManager.ActiveSave, province);
+        SetCardLine(_cardPlan, planLine.Length > 0 && seepLine.Length > 0 ? planLine + "\n" + seepLine : planLine + seepLine);
         _cardPlaces.Text = ProvincePlacesLine(world, index);
+        var seepZone = Shardfall.SeepOfProvince(SaveManager.ActiveSave, index);
+        _cardDig.Visible = seepZone != null;
+        _cardDigLine.Visible = seepZone != null;
+        if (seepZone != null)
+        {
+            _cardDig.Value = seepZone.Excavation;
+            _cardDigLine.Text = seepZone.Excavation >= 100
+                ? "Excavation: the vault is dug out. Its gate will open."
+                : $"Excavation {seepZone.Excavation} of 100. Win fights and work sites here to dig.";
+        }
+        _cardMore.Visible = _cardMoreOpen;
+        _cardMoreButton.Text = _cardMoreOpen ? "Hide details" : "Show details";
         RefreshLeadCardLine(cycle, index);   // provinces PV8a (PR98)
 
         _cardBenefitsWhy.Text = province.Held
@@ -328,7 +349,6 @@ public partial class StrategicView
         header.AddChild(close);
 
         _cardKind = CardLine(stack, UITheme.TextSecondary);
-        _cardSeat = CardLine(stack, UITheme.TextSecondary);
         _cardStance = CardLine(stack, UITheme.TextSecondary);
 
         // The readout's meter: marked where the castle's presence stops, and where the
@@ -353,7 +373,6 @@ public partial class StrategicView
         stack.AddChild(_cardMeter);
 
         _cardInfluence = CardLine(stack, UITheme.TextPrimary);
-        _cardNext = CardLine(stack, UITheme.TextSecondary);
         _cardController = CardLine(stack, UITheme.TextSecondary);
         _cardFront = CardLine(stack, UITheme.Danger);
         _cardFront.Visible = false;
@@ -361,17 +380,58 @@ public partial class StrategicView
         _cardCourt.Visible = false;
         _cardPlan = CardLine(stack, UITheme.TextPrimary);
         _cardPlan.Visible = false;
-        _cardPlaces = CardLine(stack, UITheme.TextSecondary);
+
+        // H2c: the excavation, as a bar like the influence meter above.
+        _cardDig = new ProgressBar
+        {
+            MinValue = 0,
+            MaxValue = 100,
+            ShowPercentage = false,
+            CustomMinimumSize = new Vector2(0f, 10f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Visible = false,
+        };
+        var digBack = new StyleBoxFlat { BgColor = UITheme.NeutralDim };
+        digBack.SetCornerRadiusAll(3);
+        var digFill = new StyleBoxFlat { BgColor = UITheme.Violet };
+        digFill.SetCornerRadiusAll(3);
+        _cardDig.AddThemeStyleboxOverride("background", digBack);
+        _cardDig.AddThemeStyleboxOverride("fill", digFill);
+        stack.AddChild(_cardDig);
+        _cardDigLine = CardLine(stack, UITheme.TextSecondary);
+        _cardDigLine.Visible = false;
+
         BuildLeadCardLine(stack);   // provinces PV8a: the rumors that point here
 
-        stack.AddChild(new HSeparator { MouseFilter = Control.MouseFilterEnum.Ignore });
-        CardLine(stack, UITheme.TextPrimary, "What holding it gives");
-        _cardBenefitsWhy = CardLine(stack, UITheme.TextSecondary);
+        // H2c: the card opens short. The seat, next moon's gain, the places, what holding
+        // gives and the army sit behind one button, and the choice is kept between provinces.
+        _cardMoreButton = new Button { Text = "Show details", FocusMode = Control.FocusModeEnum.None };
+        _cardMoreButton.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        UITheme.ApplyButtonStyle(_cardMoreButton, isPrimary: false);
+        _cardMoreButton.Pressed += () =>
+        {
+            _cardMoreOpen = !_cardMoreOpen;
+            RefreshProvinceCard();
+        };
+        stack.AddChild(_cardMoreButton);
+
+        _cardMore = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
+        _cardMore.AddThemeConstantOverride("separation", stack.GetThemeConstant("separation"));
+        stack.AddChild(_cardMore);
+
+        _cardSeat = CardLine(_cardMore, UITheme.TextSecondary);
+        _cardNext = CardLine(_cardMore, UITheme.TextSecondary);
+        _cardPlaces = CardLine(_cardMore, UITheme.TextSecondary);
+
+        _cardMore.AddChild(new HSeparator { MouseFilter = Control.MouseFilterEnum.Ignore });
+        CardLine(_cardMore, UITheme.TextPrimary, "What holding it gives");
+        _cardBenefitsWhy = CardLine(_cardMore, UITheme.TextSecondary);
         _cardBenefitLines.Clear();
         foreach (string text in BenefitTexts())
-            _cardBenefitLines.Add(CardLine(stack, UITheme.TextDim, text));
+            _cardBenefitLines.Add(CardLine(_cardMore, UITheme.TextDim, text));
 
         // Provinces PV7: what the province's ground raises, and a Raise button for each line.
-        BuildArmyCardRows(stack);
+        BuildArmyCardRows(_cardMore);
     }
 }

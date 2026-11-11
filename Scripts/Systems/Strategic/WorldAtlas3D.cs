@@ -1628,6 +1628,7 @@ public partial class WorldAtlas3D : Node3D
         RebuildDecorations();
         if (PreviewActive)
             ApplyWindowTint();   // fresh multimesh colors wiped the preview lift
+        ApplySeepOverlay();      // the shards' seeps (shardfall H2b), under the washes below
         ApplyRangeOverlay();     // and the reach wash, for the same reason
         ApplyAimOverlay();       // and the castle's aim (C2)
     }
@@ -1803,6 +1804,7 @@ public partial class WorldAtlas3D : Node3D
         if (PreviewActive)
             ApplyWindowTint();
         RefreshProvinceNames();   // provinces 7d: the numbers follow the lens and the influence
+        ApplySeepOverlay();    // the shards' seeps (shardfall H2b)
         ApplyRangeOverlay();   // a force's reach, if one is lit (2026-09-29)
         ApplyAimOverlay();     // the castle's aim, if a maneuver is being aimed (C2)
     }
@@ -2226,21 +2228,7 @@ public partial class WorldAtlas3D : Node3D
             }
         }
 
-        // Shard zones: violet spikes at the gate once discovered.
-        foreach (var z in _world.ShardZones)
-        {
-            if (!z.Discovered && !_revealAll) continue;
-            AddMarker(new MeshInstance3D
-            {
-                Mesh = new CylinderMesh { TopRadius = 0f, BottomRadius = 0.35f, Height = 1.8f, RadialSegments = 6, Rings = 0 },
-                MaterialOverride = new StandardMaterial3D
-                {
-                    AlbedoColor = UITheme.Violet,
-                    EmissionEnabled = true, Emission = UITheme.Violet, EmissionEnergyMultiplier = 0.6f,
-                },
-                Position = MarkerPos(z.GateX, z.GateY, 0.95f),
-            });
-        }
+        // Shard zones: drawn below with their state (shardfall H2b), known from the start.
 
         // The Convergence: Kassian's seat, the cycle's terminal location.
         if (_world.ConvergenceX >= 0)
@@ -2257,6 +2245,49 @@ public partial class WorldAtlas3D : Node3D
             });
             AddMarker(MakeLabel("The Convergence", UITheme.POIConvergence,
                 MarkerPos(_world.ConvergenceX, _world.ConvergenceY, 4.6f)));
+        }
+
+        // Shardfall H2b (ruled 2026-11-10): the six vaults are known from the start of a
+        // timeline, because choosing which shard to go for is its first decision. The tint
+        // says live, spent or taken.
+        if (_world.ShardZones != null)
+        {
+            var shardSave = SaveManager.ActiveSave;
+            foreach (var zone in _world.ShardZones)
+            {
+                if (zone == null || !_world.InBounds(zone.GateX, zone.GateY))
+                    continue;
+                Color vaultTint;
+                if (zone.ShardCollected)
+                {
+                    vaultTint = UITheme.Gold;
+                }
+                else if (Shardfall.Empty(shardSave, zone))
+                {
+                    vaultTint = UITheme.TextDim;
+                }
+                else if (Shardfall.Sealed(shardSave, zone))
+                {
+                    vaultTint = UITheme.TextDim;
+                }
+                else
+                {
+                    vaultTint = UITheme.Violet;
+                }
+                AddMarker(new MeshInstance3D
+                {
+                    Mesh = new CylinderMesh { TopRadius = 0f, BottomRadius = 0.45f, Height = 2.4f, RadialSegments = 6, Rings = 0 },
+                    MaterialOverride = new StandardMaterial3D
+                    {
+                        AlbedoColor = vaultTint,
+                        EmissionEnabled = true, Emission = vaultTint, EmissionEnergyMultiplier = 0.9f,
+                    },
+                    Position = MarkerPos(zone.GateX, zone.GateY, 1.3f),
+                });
+                // The name only. The vault's state is on its province card (ruled 2026-11-10).
+                AddMarker(MakeLabel(zone.Name, vaultTint,
+                    MarkerPos(zone.GateX, zone.GateY, 3.6f), fontSize: 34, stackFrac: 0.035f));
+            }
         }
 
         // Warfronts: red conflict beacons at active fronts. CYCLE state (not

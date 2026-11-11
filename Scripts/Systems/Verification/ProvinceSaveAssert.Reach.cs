@@ -47,7 +47,7 @@ public static partial class ProvinceSaveAssert
         int nearDays = FieldMarch.DaysTo(cycle, party, 4, 16);
         int farDays = FieldMarch.DaysTo(cycle, party, 30, 15);
         ok &= Check(sb, $"within the castle's province a walk takes a day a tile ({near} tile(s), {nearDays} day(s)); a walk that leaves the reach takes longer ({far} tile(s), {farDays} day(s))",
-            nearDays == near && farDays > far && farDays < far * FieldMarch.DaysPerTile);
+            nearDays == near && farDays >= far && farDays < far * FieldMarch.DaysPerTile);   // FM2: by terrain
 
         cycle.Grimoire.KnownSpellIds.Add("deploy_waystation");
         int south = world.ProvinceIndexAt(18, 25);

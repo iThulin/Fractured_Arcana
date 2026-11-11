@@ -87,6 +87,10 @@ public partial class EncounterRouter : Node
     /// fragment key). On a win, ExpeditionManager sets &lt;key&gt;_trial_passed.</summary>
     public string SavedCombatGuardianKey = "";
 
+    /// <summary>H1 (shardfall_v1, S2): the next fight's gold is multiplied by this. Set by the
+    /// expedition for a fight in a seeped province, and put back to 1 when the gold is rolled.</summary>
+    public float SavedGoldMult = 1f;
+
     /// <summary>Owner archmage of a POI combat whose composition was drawn from
     /// that archmage's own pool ("" for region-pool fights). On a win,
     /// ExpeditionManager advances the archmage's dossier (DossierService).
@@ -177,7 +181,8 @@ public partial class EncounterRouter : Node
         ChronicleScheduler.RaiseCombatEnd(playerWon, AttributedArchmageId());
         SavedWeather = WeatherType.Clear; // W3: don't leak weather into the next fight
         SavedStrideAmbush = false;        // §3.4: clear the stride-ambush flag too
-        GoldReward = CalculateGoldRewardForTier(_currentTier);
+        GoldReward = Mathf.RoundToInt(CalculateGoldRewardForTier(_currentTier) * SavedGoldMult);
+        SavedGoldMult = 1f;   // H1: one fight's worth
         SplinterReward = SplinterDropTable.Combat(_currentTier);
         MaterialReward = CalculateMaterialRewardForTier(_currentTier);
         HasPendingReturn = true;

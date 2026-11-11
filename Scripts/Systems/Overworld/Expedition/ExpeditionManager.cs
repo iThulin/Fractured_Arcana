@@ -162,6 +162,8 @@ public partial class ExpeditionManager : Node2D
     /// have to re-derive fog, supply, ambush and loot, and the two would drift
     /// within a month. Everything below branches on this flag instead.</para></summary>
     private bool _fieldRun;
+    private const int FieldWeatherTilesPerToll = 4;   // a day's walking
+    private int _weatherTilesUnderFront;
 
     /// <summary>Which field party is out. Empty on a castle sortie.</summary>
     private string _fieldPartyId = "";
@@ -495,6 +497,21 @@ public partial class ExpeditionManager : Node2D
             string fieldRuler = ProvinceControl.RulerAt(cycle, _stagingCol, _stagingRow);
             _factionManager.HuntsParty = !ProvinceControl.IsKingdom(fieldRuler)
                 || _factionManager.Posture == PatrolToken.PatrolPosture.Hunter;
+            // H1 (shardfall_v1, S2): a seeped province is stronger and richer, and its creatures
+            // hunt the party whatever the local court thinks.
+            _seepZone = Shardfall.SeepAt(SaveManager.ActiveSave, _stagingCol, _stagingRow);
+            _seepProvince = _seepZone != null ? cycle.World.ProvinceIndexAt(_seepZone.GateX, _seepZone.GateY) : -1;
+            if (_seepZone != null)
+            {
+                _factionManager.Posture = PatrolToken.PatrolPosture.Hunter;
+                _factionManager.HuntsParty = true;
+                planNote = $"The shard at {_seepZone.Name} seeps into this province. Everything here is stronger "
+                           + "and pays more, and its creatures hunt you. "
+                           + (_seepZone.Excavation >= 100
+                               ? "Its vault is dug out. "
+                               : $"Its vault is buried: excavation {_seepZone.Excavation} of 100. Every site you work here digs. ")
+                           + planNote;
+            }
             _factionManager.ExtraPatrols = Mathf.Max(0, _factionManager.ExtraPatrols + planPatrols);
         }
         _factionManager.PoiQuery = local => _overlay.OverlayAt(local).Poi;
@@ -1120,7 +1137,7 @@ public partial class ExpeditionManager : Node2D
     /// <summary>Mark a world POI consumed (resolved) so it isn't re-offered. Returns the
     /// place it consumed, or null when there was none left to consume (provinces PV2b-1: a
     /// won fight's deed reads it).</summary>
-    private WorldPoi ConsumeWorldPoi(Vector2I local)
+    private WorldPoi ConsumeWorldPoi(Vector2I local, bool byParty = true)
     {
         if (!_window.TryLocalToWorld(local, out int col, out int row))
             return null;
@@ -1141,6 +1158,18 @@ public partial class ExpeditionManager : Node2D
                 if (freed.Length > 0)
                 {
                     ShowInfo(freed);
+                }
+            }
+            // H2 (shardfall_v1, S3): a site the party works in a seep digs toward the vault.
+            if (byParty && _seepZone != null && InSeep(local))
+            {
+                int dig = poi.Guard ? Shardfall.DigPerGuard
+                        : (poi.Kind == PoiKind.Combat || poi.Kind == PoiKind.Prison) ? Shardfall.DigPerFight
+                        : Shardfall.DigPerSite;
+                int dug = Shardfall.Dig(SaveManager.ActiveSave?.Cycle, _seepZone, dig);
+                if (dug > 0)
+                {
+                    _toasts?.Push(Shardfall.DigLine(_seepZone, dug), QuestToastKind.Progress);
                 }
             }
             SaveManager.MarkDirty();
@@ -1990,7 +2019,7 @@ public partial class ExpeditionManager : Node2D
         string result;
         if (poi == OverworldHex.POIType.Stash)
         {
-            int gold = (int)GD.RandRange(12, 24);
+            int gold = (int)(GD.RandRange(12, 24) * (InSeep(local) ? Shardfall.SeepPayMult : 1f));   // H1
             int spl = SplinterDropTable.RestSite();
             GoldEarned += gold;
             SplinterEarned += spl;
@@ -2193,7 +2222,7 @@ public partial class ExpeditionManager : Node2D
         string what = ov.Poi == OverworldHex.POIType.Stash ? "stash"
                     : ov.Poi == OverworldHex.POIType.Shrine ? "shrine" : "refuge";
         ConsumeOverlayPoi(coord);
-        ConsumeWorldPoi(coord);
+        ConsumeWorldPoi(coord, byParty: false);   // H2: a patrol's raid digs nothing
         LogRun("raided", what, at: coord);
         // R3 (Gather): what a realm's patrol takes goes into that realm's stock.
         if (_window.TryLocalToWorld(coord, out int raidCol, out int raidRow))
@@ -2208,6 +2237,19 @@ public partial class ExpeditionManager : Node2D
         ShowInfo($"A patrol has taken a {what}. It is gone.");
         SaveManager.MarkDirty();
     }
+
+    // ── H1 (shardfall_v1, S2): the seep ──────────────────────────────────
+
+    /// <summary>The live shard vault seeping into the outing's province, or null.</summary>
+    private ShardZone _seepZone;
+    private int _seepProvince = -1;
+
+    /// <summary>Is this tile in ground a live shard seeps into? False once the shard is taken.</summary>
+    private bool InSeep(Vector2I local)
+        => _fieldRun && _seepZone != null && !_seepZone.ShardCollected && _seepProvince >= 0
+           && _world != null && _window != null
+           && _window.TryLocalToWorld(local, out int c, out int r)
+           && _world.ProvinceIndexAt(c, r) == _seepProvince;
 
     // ── P4 (province_field_v1, F6): guards and the ground they hold ──────
 
@@ -2310,8 +2352,10 @@ public partial class ExpeditionManager : Node2D
                         what = "Vault garrison: a rival realm holds the way to the shard vault. Beat it to reach the gate";
                     }
                 }
+                float seepPay = InSeep(local) ? Shardfall.SeepPayMult : 1f;   // H1
                 return $"  ·  {what} ({tier}). Enemy strength x{DifficultyMultAt(local):0.##}. "
-                       + $"Pays {min} to {max} gold plus splinters.";
+                       + $"Pays {Mathf.RoundToInt(min * seepPay)} to {Mathf.RoundToInt(max * seepPay)} gold plus splinters."
+                       + (seepPay > 1f ? " Seeped by the shard: stronger and richer." : "");
             }
             case OverworldHex.POIType.Narrative:
                 return "  ·  Encounter: a story choice.";
@@ -2998,7 +3042,7 @@ public partial class ExpeditionManager : Node2D
             EndStride(_fieldRun
                     ? "The party is down to a quarter of its health. It stops here."   // P7a2
                     : "The Hull is down to a quarter. The march stops rather than grind it away on a long order.",
-                      "Hull spared", HaltTone.Trouble);
+                      _fieldRun ? "Party halted" : "Hull spared", HaltTone.Trouble);
             return;
         }
 
@@ -3714,6 +3758,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 weatherHull = 0;
             if (weatherHull > 0 && _castle != null && _castle.WeatherHullImmune)
                 weatherHull = 0; // §4 Cinderhold (Elementalist): immune to weather Hull drain
+            // 2026-11-10: the toll was set for a fortress's hull. A party on foot pays it once a
+            // day under the front (every fourth tile), not on every tile.
+            if (weatherHull > 0 && _fieldRun)
+            {
+                _weatherTilesUnderFront++;
+                if (_weatherTilesUnderFront % FieldWeatherTilesPerToll != 0)
+                    weatherHull = 0;
+            }
             if (weatherHull > 0)
             {
                 Hull -= weatherHull;
@@ -3722,7 +3774,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                     ? $"{wDef.Name} batters the party. {weatherHull} health lost."   // P7a
                     : $"{wDef.Name} batters the castle. {weatherHull} Hull lost.");
                 if (Hull <= 0)
-                { Hull = 0; EmergencyExtract($"{wDef.Name} breaks the hull, forcing a recall."); return; }
+                { Hull = 0; EmergencyExtract(_fieldRun ? $"{wDef.Name} beats the party down. It is pulled out." : $"{wDef.Name} breaks the hull, forcing a recall."); return; }
             }
         }
 
@@ -3756,7 +3808,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 PostScryMessage(ScryChannel.Note,
                     $"{wd.Name} over {who}",
                     (wd.FuelPerTile != 0 ? $"Each tile costs {wd.FuelPerTile} more to cross. " : "")
-                    + (wd.HullPerTile != 0 ? $"The front bites for {wd.HullPerTile} a step. " : "")
+                    + (wd.HullPerTile != 0
+                        ? (_fieldRun ? $"It costs {wd.HullPerTile} health for each day walked under it. Walk out from under it, or wait. "
+                                     : $"The front bites for {wd.HullPerTile} a step. ")
+                        : "")
                     + "It will pass.",
                     _fieldRun ? _fieldPartyId : "");
             }
@@ -4249,7 +4304,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             case OverworldHex.POIType.Stash:
             {
                 // P3: taken in one click. Gold and splinters, no window.
-                int stashGold = (int)GD.RandRange(12, 24);
+                int stashGold = (int)(GD.RandRange(12, 24) * (InSeep(coord) ? Shardfall.SeepPayMult : 1f));   // H1
                 int stashSpl = SplinterDropTable.RestSite();
                 GoldEarned += stashGold;
                 SplinterEarned += stashSpl;
@@ -4565,6 +4620,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedCombatWasPatrolAmbush = false;
         router.SavedCombatPatrolArchmageId = "";
         router.SavedCombatGuardianKey = guardianKey;
+        router.SavedGoldMult = InSeep(hexCoord) ? Shardfall.SeepPayMult : 1f;   // H1: a seeped fight pays more
         router.SavedCombatArchmageId = "";
         router.SavedResolutionArchmageId = ""; // Step 9: set AFTER this call by resolution launchers
         router.ReturnSceneOverride = "";       // expedition launches always return to the overworld
@@ -4824,6 +4880,12 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         var slot = ActiveSortieSlot();
         int now = cycle.Calendar.AbsoluteDay;
         int startDay = slot != null && slot.StartDay >= 0 ? slot.StartDay : now;
+        if (startDay > now)
+        {
+            // The calendar began again while this outing was open (a new timeline). Days
+            // counted from the old calendar would lock the force out for most of a year.
+            startDay = now;
+        }
         int burned = Mathf.Max(0, MaxFuel - StepsRemaining);
         int days = WorldClock.SortieDays(burned, _fieldRun);
         if (Interval.Walking(cycle))
@@ -5104,6 +5166,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                    $", encounter #{EncountersWon}",
                    goldDelta: +router.GoldReward, splinterDelta: +router.SplinterReward,
                    at: resultHex);
+            // H2c (shardfall_v1, S3): in a seep the hunters are part of the dig. Beating a patrol
+            // there digs, so a party that is ambushed all day still gets somewhere.
+            if (router.SavedCombatWasPatrolAmbush && _seepZone != null && _party != null && InSeep(_party.CurrentCoord))
+            {
+                int patrolDug = Shardfall.Dig(SaveManager.ActiveSave?.Cycle, _seepZone, Shardfall.DigPerPatrol);
+                if (patrolDug > 0)
+                {
+                    spoils.Add((Shardfall.DigLine(_seepZone, patrolDug), UITheme.Violet));
+                    SaveManager.MarkDirty();
+                }
+            }
             if (router.GoldReward > 0 || router.SplinterReward > 0 || router.MaterialReward > 0)
                 spoils.Add(($"+{router.GoldReward} gold   ·   +{router.SplinterReward} Arcane Splinters"
                             + (router.MaterialReward > 0 ? $"   ·   +{router.MaterialReward} materials" : ""),
@@ -5444,16 +5517,37 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             if (!_grid.Hexes.ContainsKey(coord))
                 return false;
+            // H1 (shardfall_v1, S1): an empty vault, or one sealed because the guild has taken
+            // its shard for this timeline, does not open.
+            string gateShut = Shardfall.GateShut(SaveManager.ActiveSave, z);
+            if (gateShut.Length > 0)
+            {
+                ShowInfo(gateShut);
+                return true;
+            }
             // Shard paths (2026-09-27): a surveyed zone of the guild's own
             // school, or an Allied kingdom's zone, opens without a fight.
-            if (ShardPaths.PeacefulPassage(SaveManager.ActiveSave, z, out string how, out string why))
+            // H2 (shardfall_v1, S7): they finish the digging at once. They never skip the guardian.
+            if (z.Excavation < 100 && ShardPaths.PeacefulPassage(SaveManager.ActiveSave, z, out string how, out _))
             {
-                ShardPaths.OpenGate(SaveManager.ActiveSave, z, how);
-                ShowInfo(why);
-                _toasts?.Push("The gate opens. The way to the fragment is clear.", QuestToastKind.Progress);
-                PostScryMessage(ScryChannel.Messenger, "The gate opens", why + " The sanctum waits beyond.");
-                LogRun("shard_gate", $"{z.FragmentKey}: {how}", at: coord);
+                z.Excavation = 100;
+                SaveManager.MarkDirty();
+                string quiet = (how == ShardPaths.ProvenanceCommuned
+                        ? "The shard answers your school and the ground gives way."
+                        : "Your allies open the ground for you.")
+                    + $" The vault at {z.Name} is dug out. Its guardian still waits: enter the gate again to face it.";
+                ShowInfo(quiet);
+                _toasts?.Push($"The vault at {z.Name} is dug out.", QuestToastKind.Progress);
+                PostScryMessage(ScryChannel.Messenger, "The vault lies open", quiet);
+                LogRun("shard_dug", $"{z.FragmentKey}: {how}", at: coord);
                 UpdateUI();
+                return true;
+            }
+            // H2 (S3): the gate is shut until the vault is dug out.
+            if (z.Excavation < 100)
+            {
+                ShowInfo($"The vault at {z.Name} is still buried: excavation {z.Excavation} of 100. "
+                         + "Work the sites in this province, or post a party on the vault to dig.");
                 return true;
             }
             ShowInfo($"The heart of {z.Name} is guarded. Its warden stirs.");
@@ -5515,7 +5609,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         LogRun("shard_collected", $"{z.Name} ({z.FragmentKey}); vault becomes staging point");
         _toasts?.Push($"Shard recovered: {z.Name}.", QuestToastKind.Complete);
         ShowInfo($"You take the shard from {z.Name}. Its power is yours, and the vault " +
-                 "is now a staging point.");
+                 "is now a staging point. The other vaults seal until the next timeline.");
         foreach (var qt in QuestNotifier.NotifyNew(before, save))
             _toasts?.Push(qt.Text, qt.Kind);
         UpdateUI();
@@ -5550,6 +5644,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         RecenterWindow(local);
         _party.Initialize(_grid, _fog, local);
         WriteVisibleToWorld();
+        best.Excavation = 100;   // H2: the debug jump tests the guardian, so the vault is dug out
         string what = !best.GuardianCleared ? "gate" : "sanctum";
         ShowInfo($"[DEBUG] Teleported to {best.Name} {what} ({bestX},{bestY}).");
         OnPartyArrived(local);
@@ -7813,7 +7908,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             {
                 // P7a: the party's words. Sight is not the weather's business in the field.
                 if (wd.FuelPerTile != 0) fx.Add($"each tile takes {DaysText(wd.FuelPerTile)} longer");
-                if (wd.HullPerTile != 0) fx.Add($"-{wd.HullPerTile} health a tile");
+                if (wd.HullPerTile != 0) fx.Add($"-{wd.HullPerTile} health a day");
             }
             else
             {
@@ -7852,6 +7947,13 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             _windowLabel.Text += $"  |  {TerrainAt(_party.CurrentCoord)}";   // Step 3
         string curKingdom = KingdomIdAt(_party.CurrentCoord);
         _windowLabel.Text += $"  |  {(string.IsNullOrEmpty(curKingdom) ? "Unclaimed" : KingdomDisplayName(curKingdom))}";
+        // H2a: say so on the panel when the party stands in seeped ground.
+        if (_seepZone != null && InSeep(_party.CurrentCoord))
+        {
+            _windowLabel.Text += _seepZone.Excavation >= 100
+                ? "  |  Seeped (vault dug out)"
+                : $"  |  Seeped (excavation {_seepZone.Excavation} of 100)";
+        }
 
         // W3: the button tells the truth about which extraction you'd get.
         if (_extractButton != null && !ExpeditionComplete)
@@ -7894,7 +7996,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
     private void ShowInfo(string message)
     {
-        _infoLabel.Text = message;
+        // A note can arrive in _Ready before the panel is built (the plan note on a deploy).
+        if (_infoLabel != null)
+        {
+            _infoLabel.Text = message;
+        }
         GD.Print($"[Expedition] {message}");
     }
 
@@ -8632,7 +8738,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     private float DifficultyMultAt(Vector2I local)
         => KingdomDifficultyMultAt(local) * AffixFightMult()
            * (IsGuardTile(local) ? ProvinceField.GuardFightMult : 1f)   // P4
-           * OverworldSpellEffects.NextFightMult;   // SP3: Bone Scout
+           * OverworldSpellEffects.NextFightMult   // SP3: Bone Scout
+           * (InSeep(local) ? Shardfall.SeepFightMult : 1f);   // H1: the seep
 
     /// <summary>Haunted, Warlords' and Ley-crossed ground each harden every fight
     /// in the window by WaystoneAffixes.FightMult. They stack: that is the price

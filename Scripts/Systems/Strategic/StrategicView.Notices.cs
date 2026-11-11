@@ -101,8 +101,8 @@ public partial class StrategicView
 
     /// <summary>The hint line while a party's move is armed.</summary>
     private static string PartyMoveHintLine()
-        => "Move: click charted ground" + HintSeparator
-           + $"{FieldMarch.DaysPerTile} days a tile, {CastleReach.RoadDaysPerTile} on the castle's roads"
+        => "Move: click any land" + HintSeparator
+           + $"{FieldMarch.OpenDays} to {FieldMarch.MountainDays} days a tile by terrain, {CastleReach.RoadDaysPerTile} within the castle's reach"
            + HintSeparator + "click the castle, its forward camp or a waystone to step through"
            + HintSeparator + "press Move party to stand down.";
 }

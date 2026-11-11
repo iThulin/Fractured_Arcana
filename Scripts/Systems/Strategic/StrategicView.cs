@@ -1250,7 +1250,7 @@ public partial class StrategicView : Node2D
                 }
                 if (p.State == FieldPartyState.Travelling)
                 {
-                    int days = p.TravelPhasesRemaining * FieldMarch.DaysPerTile - p.TravelDayAccum;
+                    int days = FieldMarch.DaysLeft(cycle, p);   // FM2: by terrain
                     lines.Add($"{p.Name} arrives at ({p.DestX},{p.DestY}) in {days} day(s).");
                 }
                 else if (p.State == FieldPartyState.Working)
@@ -6659,8 +6659,14 @@ public partial class StrategicView : Node2D
             OkButtonText = "March",
             DialogText =
                 $"Send them from ({party.X},{party.Y}) to ({col},{row}).\n\n"
-                + $"{tiles} tile(s) on foot, {marchDays} day(s): {FieldMarch.DaysPerTile} a tile, "
-                + $"{CastleReach.RoadDaysPerTile} on the castle's roads within its reach. "
+                + $"About {tiles} tile(s) on foot, {marchDays} day(s) by the quickest way. Open ground and roads "
+                + $"cost {FieldMarch.OpenDays} day a tile, forest, hills, swamp and snow {FieldMarch.RoughDays}, "
+                + $"mountains {FieldMarch.MountainDays}. A river with no bridge adds {FieldMarch.RiverDays}. "
+                + $"Crossing into a Hostile court's province adds {FieldMarch.HostileBorderDays}. "
+                + $"Every tile within the castle's reach costs {CastleReach.RoadDaysPerTile}. "
+                + (cycle.World.GetTile(col, row).Discovery == TileDiscovery.Unseen
+                    ? "That ground is not charted. They chart a strip of it as they walk. "
+                    : "")
                 + "They walk as the days pass, and they cannot take the field while they are walking.\n\n"
                 + "The road is watched. Patrols take a share of whatever they carry and cost them "
                 + "time; in hostile ground, soldiers turn them back outright."
