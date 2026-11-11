@@ -1,3 +1,4 @@
+using Godot;
 using System;
 using System.Collections.Generic;
 
@@ -40,6 +41,65 @@ public static class Shardfall
     public const int DigPerGuard = 18;
     /// <summary>By working any other site there.</summary>
     public const int DigPerSite = 6;
+
+    // H4 (S5): a garrison left standing this many new moons claims the shard for the timeline.
+    public const int ClaimMoons = 3;
+    /// <summary>At most this many vaults are held or claimed by realms at once (Claude's call,
+    /// 2026-11-11): in play all six were garrisoned in the same moon.</summary>
+    public const int MaxRivalVaults = 2;
+    /// <summary>H4 (S6): the share of the excavation that carries to the next timeline.</summary>
+    public const float CarryShare = 0.5f;
+
+    // H5: groves (ruled 2026-11-11: any school may raise one, five moons, 4 supplies a moon,
+    // and a calm seep keeps its strength and its pay).
+    public const int GroveMoons = 5;
+    public const int GroveSupplies = 4;
+    public const int GrovesForDruid = 3;
+    public const string DruidGrovesFlag = "druid_groves_complete";
+
+    /// <summary>A grove stands in this vault's seep, awake or not.</summary>
+    public static bool HasGrove(GuildSaveData save, ShardZone zone)
+        => save?.Ledger?.GroveKeys != null && zone != null && save.Ledger.GroveKeys.Contains(zone.FragmentKey);
+
+    /// <summary>A grove stands here and the guild has not dug under it this timeline. An awake
+    /// grove calms the seep (nothing there hunts the party) and wards the shard from realms.</summary>
+    public static bool GroveAwake(GuildSaveData save, ShardZone zone)
+        => HasGrove(save, zone) && !zone.GroveAsleep;
+
+    public static int GroveCount(GuildSaveData save) => save?.Ledger?.GroveKeys?.Count ?? 0;
+
+    /// <summary>Record a grove. Returns the line for the player.</summary>
+    public static string RaiseGrove(GuildSaveData save, ShardZone zone)
+    {
+        if (save?.Ledger == null || zone == null)
+        {
+            return "";
+        }
+        save.Ledger.GroveKeys ??= new List<string>();
+        if (!save.Ledger.GroveKeys.Contains(zone.FragmentKey))
+        {
+            save.Ledger.GroveKeys.Add(zone.FragmentKey);
+        }
+        int groves = save.Ledger.GroveKeys.Count;
+        string line = $"A grove stands at {zone.Name}, in this timeline and every one after. Nothing in its seep hunts you, "
+                      + "and no realm can garrison its vault. Digging here puts the grove to sleep until the next timeline. "
+                      + $"Groves raised: {groves} of {GrovesForDruid}.";
+        if (groves >= GrovesForDruid && !save.Ledger.MetaNarrativeFlags.Contains(DruidGrovesFlag))
+        {
+            save.Ledger.MetaNarrativeFlags.Add(DruidGrovesFlag);
+            line += " Three seeps are in harmony. The top of the Druid's class is open.";
+        }
+        GD.Print($"[Shardfall] {line}");
+        return line;
+    }
+
+    // H3 (S4): the descent's two fights before the guardian, as multiples of the ground's
+    // own strength (which already carries the seep).
+    public const float OuterWardsMult = 1.15f;
+    public const float InnerGuardMult = 1.35f;
+    public const int DescentStages = 2;
+
+    public static string DescentStageName(int stage) => stage <= 0 ? "outer wards" : "inner guard";
     /// <summary>A patrol beaten in the seep (H2c): the seep's hunters guard the dig too.</summary>
     public const int DigPerPatrol = 8;
     /// <summary>What a party posted on the vault digs in a moon.</summary>
@@ -63,6 +123,19 @@ public static class Shardfall
         }
         int before = zone.Excavation;
         zone.Excavation = Math.Min(100, before + amount);
+        // H5 (SH12): digging under a grove puts it to sleep for this timeline.
+        if (zone.Excavation > before && GroveAwake(SaveManager.ActiveSave, zone))
+        {
+            zone.GroveAsleep = true;
+            string asleep = $"Your digging has put the grove at {zone.Name} to sleep. Its seep hunts you again, "
+                            + "and realms may garrison the vault, until the next timeline.";
+            if (cycle != null)
+            {
+                cycle.PendingSiegeReports ??= new List<string>();
+                cycle.PendingSiegeReports.Add(asleep);
+            }
+            GD.Print($"[Shardfall] {asleep}");
+        }
         return zone.Excavation - before;
     }
 
@@ -104,7 +177,82 @@ public static class Shardfall
     /// <summary>The vault holds its shard, but the guild has taken another this timeline.</summary>
     public static bool Sealed(GuildSaveData save, ShardZone zone)
         => save != null && zone != null && !zone.ShardCollected && !Empty(save, zone)
-           && TakenThisTimeline(save.Cycle);
+           && (TakenThisTimeline(save.Cycle) || Claimed(zone));
+
+    /// <summary>H4 (S5): a realm's garrison stood long enough and took the shard for this
+    /// timeline. The shard is in its vault again in the next.</summary>
+    public static bool Claimed(ShardZone zone)
+        => zone != null && !string.IsNullOrEmpty(zone.ClaimedByKingdomId);
+
+    /// <summary>How many vaults realms hold or have claimed.</summary>
+    public static int RivalVaults(WorldData world)
+    {
+        int n = 0;
+        if (world?.ShardZones != null)
+        {
+            foreach (var zone in world.ShardZones)
+            {
+                if (zone != null && (Claimed(zone) || !string.IsNullOrEmpty(zone.HeldByKingdomId)))
+                {
+                    n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    /// <summary>H4 (S6): a timeline that ends without a shard keeps part of its best
+    /// excavation, on that one vault. Called as the timeline ends, before its world is gone.</summary>
+    public static void StoreCarry(GuildSaveData save, CycleState ending)
+    {
+        if (save?.Ledger == null)
+        {
+            return;
+        }
+        save.Ledger.CarriedDigKey = "";
+        save.Ledger.CarriedDig = 0;
+        if (ending?.World?.ShardZones == null || TakenThisTimeline(ending))
+        {
+            return;
+        }
+        ShardZone best = null;
+        foreach (var zone in ending.World.ShardZones)
+        {
+            if (zone != null && zone.Excavation > 0 && !Empty(save, zone)
+                && (best == null || zone.Excavation > best.Excavation))
+            {
+                best = zone;
+            }
+        }
+        if (best == null)
+        {
+            return;
+        }
+        save.Ledger.CarriedDigKey = best.FragmentKey;
+        save.Ledger.CarriedDig = (int)Math.Round(best.Excavation * CarryShare);
+        GD.Print($"[Shardfall] {save.Ledger.CarriedDig} of the excavation at {best.Name} carries to the next timeline.");
+    }
+
+    /// <summary>H4 (S6): give the new timeline's vault its head start. Called once the new
+    /// world exists.</summary>
+    public static void ApplyCarry(GuildSaveData save, WorldData world)
+    {
+        if (save?.Ledger == null || world?.ShardZones == null
+            || string.IsNullOrEmpty(save.Ledger.CarriedDigKey) || save.Ledger.CarriedDig <= 0)
+        {
+            return;
+        }
+        foreach (var zone in world.ShardZones)
+        {
+            if (zone != null && zone.FragmentKey == save.Ledger.CarriedDigKey && !Empty(save, zone))
+            {
+                zone.Excavation = Math.Min(100, Math.Max(zone.Excavation, save.Ledger.CarriedDig));
+                GD.Print($"[Shardfall] The vault at {zone.Name} begins this timeline at excavation {zone.Excavation} of 100.");
+            }
+        }
+        save.Ledger.CarriedDigKey = "";
+        save.Ledger.CarriedDig = 0;
+    }
 
     /// <summary>The vault holds its shard and can still be won this timeline. A live vault
     /// seeps, and a realm may seek it.</summary>
@@ -121,6 +269,11 @@ public static class Shardfall
         if (Empty(save, zone))
         {
             return $"The vault at {zone.Name} stands empty. Its shard is already yours.";
+        }
+        if (Claimed(zone))
+        {
+            return $"The vault at {zone.Name} is sealed. A rival realm has claimed its shard for this timeline. "
+                   + "The shard will be in its vault again in the next.";
         }
         if (Sealed(save, zone))
         {
@@ -178,12 +331,25 @@ public static class Shardfall
             {
                 return $"The vault at {zone.Name} stands empty. Its shard is already yours.";
             }
+            if (Claimed(zone))
+            {
+                return $"A rival realm has claimed the shard at {zone.Name} for this timeline. It is in its vault again in the next.";
+            }
             if (Sealed(save, zone))
             {
                 return $"The vault at {zone.Name} is sealed until the next timeline.";
             }
             // H2c: the excavation itself is the bar under this line on the card.
-            return $"Seeped by the shard at {zone.Name}. Fights are stronger, sites pay more, and everything here hunts you.";
+            string seeped = GroveAwake(save, zone)
+                ? $"Seeped by the shard at {zone.Name}. Fights are stronger and sites pay more. A grove keeps the seep calm: nothing here hunts you, and no realm can garrison the vault."
+                : $"Seeped by the shard at {zone.Name}. Fights are stronger, sites pay more, and everything here hunts you."
+                  + (HasGrove(save, zone) ? " Its grove sleeps until the next timeline." : "");
+            if (!string.IsNullOrEmpty(zone.HeldByKingdomId))
+            {
+                int left = Math.Max(1, ClaimMoons - zone.HeldMoons);
+                seeped += $"\nA rival garrison holds the vault. It claims the shard in {left} moon(s) unless you beat it.";
+            }
+            return seeped;
         }
         return "";
     }

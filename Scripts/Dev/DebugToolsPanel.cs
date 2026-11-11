@@ -481,6 +481,40 @@ public partial class DebugToolsPanel : VBoxContainer
         // ── PROGRESSION ──────────────────────────────────────────────────
         var progression = Section("PROGRESSION",
             "Skips the slow gates. These write the EternalLedger and save at once: PERMANENT for this guild. Use a scratch slot.");
+
+        // Party loadouts (2026-11-11): save this timeline's build under a name, or put a saved
+        // build onto this timeline. For testing a fight against a build from a real run.
+        Caption(progression, "Loadout name:");
+        var loadoutName = new LineEdit
+        {
+            PlaceholderText = "adept moon 8",
+            CustomMinimumSize = new Vector2(160, 28),
+        };
+        loadoutName.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        progression.AddChild(loadoutName);
+        var loadoutPick = new OptionButton { CustomMinimumSize = new Vector2(160, 28) };
+        loadoutPick.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        void FillLoadouts()
+        {
+            loadoutPick.Clear();
+            foreach (string slug in PartyLoadouts.List())
+                loadoutPick.AddItem(slug);
+            if (loadoutPick.ItemCount == 0)
+                loadoutPick.AddItem("(none saved)");
+        }
+        FillLoadouts();
+        Grant(progression, "Snapshot Party As Loadout", save =>
+        {
+            GD.Print($"[Loadout] {PartyLoadouts.Snapshot(save, loadoutName.Text)}");
+            FillLoadouts();
+        });
+        Caption(progression, "Saved loadout:");
+        progression.AddChild(loadoutPick);
+        Grant(progression, "Apply Loadout", save =>
+        {
+            string slug = loadoutPick.Selected >= 0 ? loadoutPick.GetItemText(loadoutPick.Selected) : "";
+            GD.Print($"[Loadout] {PartyLoadouts.Apply(save, slug == "(none saved)" ? "" : slug)}");
+        });
         Grant(progression, "Grant Elementalist Facets", save =>
         {
             int n = 0;

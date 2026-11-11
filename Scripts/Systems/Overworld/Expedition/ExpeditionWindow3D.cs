@@ -112,6 +112,11 @@ public partial class ExpeditionWindow3D : Node3D
     /// <summary>SP1 (world-offset coord in): true when the site on this tile is not yet known.
     /// It draws as a grey mark that does not show its kind. Null in the harness.</summary>
     public System.Func<Vector2I, bool> SiteHidden;
+    /// <summary>WG2: the weather over a tile of the table. The table is in world coordinates and
+    /// the weather in the window's local ones, so the manager answers.</summary>
+    public System.Func<Vector2I, WeatherType> WeatherAtTile;
+    /// <summary>WG2: true for a tile inside the seep the party came for.</summary>
+    public System.Func<Vector2I, bool> SeepTile;
 
     /// <summary>Knowledge ladder L4b1 (D220): the standing rumors' rings, world-offset coords
     /// in: each ring's center, its radius in tiles and its label. The live host supplies them;
@@ -630,14 +635,19 @@ public partial class ExpeditionWindow3D : Node3D
             cloud.Position = FrontToWorld(f.Center, WeatherCloudHeight);
             cloud.Scale = new Vector3(rx, 1f, rx);   // PlaneMesh half-size 1 → radius rx
             StyleWeatherCloud(cloud, f.Type);
-            if (!cloud.Visible) cloud.Visible = true;
+            // WG1 (2026-11-11): the cloud plane read as a lake and hid the ground. The front is
+            // marked on the tiles instead (RefreshWeatherGround).
+            cloud.Visible = false;
         }
+
+        RefreshWeatherGround();   // WG1: the front's edge, wash and label on the tiles
+        RefreshSeepWall();        // WG2: the seep's wall and its motes
 
         // Ambient tint: nudge toward the front's colour by severity when the
         // castle sits under weather. Reversible (lerps from the captured base).
         if (_haveBaseAmbient && _env != null && WeatherSystem.Active)
         {
-            var wt = WeatherSystem.WeatherAt(_party);
+            var wt = WeatherAtTile != null ? WeatherAtTile(_party) : WeatherSystem.WeatherAt(_party);
             var wd = WeatherCatalog.Def(wt);
             float k = Mathf.Clamp(wd.Severity * 0.06f, 0f, 0.22f);
             _env.AmbientLightColor = _baseAmbient.Lerp(WeatherTint(wt), k);
@@ -645,6 +655,346 @@ public partial class ExpeditionWindow3D : Node3D
         else if (_haveBaseAmbient && _env != null)
         {
             _env.AmbientLightColor = _baseAmbient;
+        }
+    }
+
+    // ── WG1: weather on the ground ───────────────────────────────────────
+    //    Every tile under a front carries a pale hex in the front's colour, and the tiles on
+    //    the front's edge carry a strong one, so the party can see where to walk out. One
+    //    label per front states its cost. Rebuilt only when a front moves or the field grows.
+
+    private const float WeatherWashAlpha = 0.20f;
+    private MultiMeshInstance3D _weatherGround;
+    private readonly List<Label3D> _weatherGroundLabels = new();
+    private int _weatherGroundStamp;
+
+    private static Color WeatherGroundColor(WeatherType t)
+        => WeatherCatalog.Def(t).HullPerTile != 0 ? UITheme.Danger : UITheme.ArcaneBlue;
+
+    private string WeatherGroundText(WeatherType t)
+    {
+        var def = WeatherCatalog.Def(t);
+        var parts = new List<string>();
+        if (FieldParty)
+        {
+            if (def.HullPerTile != 0) parts.Add($"{def.HullPerTile} health a day");
+            if (def.FuelPerTile != 0) parts.Add($"each tile takes {def.FuelPerTile * 0.25f:0.##} days longer");
+        }
+        else
+        {
+            if (def.HullPerTile != 0) parts.Add($"{def.HullPerTile} Hull a tile");
+            if (def.FuelPerTile != 0) parts.Add($"{def.FuelPerTile} more fuel a tile");
+        }
+        return parts.Count > 0 ? $"{def.Name}: {string.Join(", ", parts)}" : def.Name;
+    }
+
+    private void RefreshWeatherGround()
+    {
+        var fronts = WeatherSystem.Fronts;
+        var stamp = new System.HashCode();
+        stamp.Add(WeatherSystem.Active);
+        stamp.Add(_field.Count);
+        stamp.Add(FieldParty);
+        foreach (var f in fronts)
+        {
+            stamp.Add(Mathf.RoundToInt(f.Center.X * 10f));
+            stamp.Add(Mathf.RoundToInt(f.Center.Y * 10f));
+            stamp.Add(Mathf.RoundToInt(f.Radius * 10f));
+            stamp.Add((int)f.Type);
+        }
+        int now = stamp.ToHashCode();
+        if (_weatherGround != null && GodotObject.IsInstanceValid(_weatherGround) && now == _weatherGroundStamp)
+        {
+            return;
+        }
+        _weatherGroundStamp = now;
+
+        if (_weatherGround == null || !GodotObject.IsInstanceValid(_weatherGround))
+        {
+            _weatherGround = new MultiMeshInstance3D
+            {
+                Name = "WeatherGround",
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                MaterialOverride = new StandardMaterial3D
+                {
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    VertexColorUseAsAlbedo = true,
+                    // Depth tested (2026-11-11), so the mist and the table's rim cover it.
+                },
+            };
+            AddChild(_weatherGround);
+        }
+        foreach (var old in _weatherGroundLabels)
+        {
+            if (GodotObject.IsInstanceValid(old)) old.QueueFree();
+        }
+        _weatherGroundLabels.Clear();
+
+        var tiles = new List<(Vector2I c, Color col)>();
+        var walls = new List<WallPiece>();
+        var sums = new Dictionary<WeatherType, (Vector2 sum, int n)>();
+        if (WeatherSystem.Active && WeatherAtTile != null)
+        {
+            foreach (var kv in _field)
+            {
+                if (kv.Value.water || _fog == null || _fog.FogAt(kv.Key) != Fog.Revealed)
+                {
+                    continue;   // only ground the table shows: not the mist, not past the map's edge
+                }
+                var type = WeatherAtTile(kv.Key);
+                if (type == WeatherType.Clear)
+                {
+                    continue;
+                }
+                var tint = WeatherGroundColor(type);
+                foreach (var n in HexNeighbours(kv.Key))
+                {
+                    if (WeatherAtTile(n) != type)
+                    {
+                        // Weather's edge is a low broken wall: half-width pieces.
+                        AddWallPiece(walls, kv.Key, n, tint, 0.9f, 0.5f);
+                    }
+                }
+                tint.A = WeatherWashAlpha;
+                tiles.Add((kv.Key, tint));
+                sums.TryGetValue(type, out var acc);
+                sums[type] = (acc.sum + new Vector2(kv.Key.X, kv.Key.Y), acc.n + 1);
+            }
+        }
+        // One label per kind of weather on the table, on its tile nearest the middle of it.
+        var labelAt = new Dictionary<WeatherType, Vector2I>();
+        foreach (var kv in sums)
+        {
+            var mid = kv.Value.sum / kv.Value.n;
+            float best = float.MaxValue;
+            foreach (var t in tiles)
+            {
+                if (WeatherAtTile(t.c) != kv.Key)
+                {
+                    continue;
+                }
+                float d = new Vector2(t.c.X, t.c.Y).DistanceSquaredTo(mid);
+                if (d < best)
+                {
+                    best = d;
+                    labelAt[kv.Key] = t.c;
+                }
+            }
+        }
+        SetWall(ref _weatherWall, "WeatherWall", walls);
+
+        var mm = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            UseColors = true,
+            Mesh = new CylinderMesh
+            {
+                TopRadius = HexR * 0.92f, BottomRadius = HexR * 0.92f, Height = 0.02f,
+                RadialSegments = 6, Rings = 0,
+            },
+            InstanceCount = tiles.Count,
+        };
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            var pos = TileOrigin(tiles[i].c.X, tiles[i].c.Y);
+            pos.Y = TileHeight(tiles[i].c) + 0.14f;
+            // A six-sided cylinder has a corner on +Z. The field's hexes are flat-topped, so
+            // the disc is turned a twelfth of a circle to sit on its tile.
+            mm.SetInstanceTransform(i, new Transform3D(new Basis(Vector3.Up, Mathf.Pi / 6f), pos));
+            mm.SetInstanceColor(i, tiles[i].col);
+        }
+        _weatherGround.Multimesh = mm;
+        _weatherGround.Visible = tiles.Count > 0;
+
+        foreach (var kv in labelAt)
+        {
+            var type = kv.Key;
+            var pos = TileOrigin(kv.Value.X, kv.Value.Y);
+            pos.Y = TileHeight(kv.Value) + 2.6f;
+            var label = new Label3D
+            {
+                Text = WeatherGroundText(type),
+                Position = pos,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                RenderPriority = 4,
+                OutlineRenderPriority = 3,
+                FontSize = 40,
+                PixelSize = 0.012f,
+                Modulate = WeatherGroundColor(type),
+                OutlineSize = 10,
+                OutlineModulate = UITheme.RoadChoiceOutline,
+            };
+            AddChild(label);
+            _weatherGroundLabels.Add(label);
+        }
+    }
+
+    // ── WG2: walls for edges, motes for a state ──────────────────────────
+    //    The rule (docs/field_visual_pass_notes.md): a boundary is a wall, an area's state is
+    //    motion, and colour says whose a thing is. The seep's wall is whole and tall. The
+    //    weather's is low and broken.
+
+    private struct WallPiece
+    {
+        public Vector3 Foot;
+        public float Angle;
+        public float Height;
+        public float Width;
+        public Color Tint;
+    }
+
+    private MultiMeshInstance3D _weatherWall;
+    private MultiMeshInstance3D _seepWall;
+    private CpuParticles3D _seepMotes;
+    private int _seepWallStamp = -1;
+
+    private static IEnumerable<Vector2I> HexNeighbours(Vector2I c)
+    {
+        var (q, r) = HexCoord.OffsetToAxial(c.X, c.Y);
+        foreach (var (dq, dr) in HexCoord.AxialDirections)
+        {
+            var (nc, nr) = HexCoord.AxialToOffset(q + dq, r + dr);
+            yield return new Vector2I(nc, nr);
+        }
+    }
+
+    /// <summary>A wall piece on the edge between a tile and the tile beside it: a bright foot
+    /// and a faint curtain above it.</summary>
+    private void AddWallPiece(List<WallPiece> into, Vector2I inside, Vector2I outside, Color tint,
+                              float height, float widthFrac)
+    {
+        var a = TileOrigin(inside.X, inside.Y);
+        var b = TileOrigin(outside.X, outside.Y);
+        var foot = (a + b) * 0.5f;
+        float ground = TileHeight(inside);
+        if (_field.ContainsKey(outside))
+        {
+            ground = Mathf.Max(ground, TileHeight(outside));
+        }
+        foot.Y = ground + 0.05f;
+        float angle = Mathf.Atan2(b.X - a.X, b.Z - a.Z);
+        var footTint = tint;
+        footTint.A = 0.85f;
+        into.Add(new WallPiece { Foot = foot, Angle = angle, Height = 0.18f, Width = HexR * widthFrac, Tint = footTint });
+        var curtain = tint;
+        curtain.A = 0.22f;
+        into.Add(new WallPiece { Foot = foot, Angle = angle, Height = height, Width = HexR * widthFrac, Tint = curtain });
+    }
+
+    private void SetWall(ref MultiMeshInstance3D node, string name, List<WallPiece> pieces)
+    {
+        if (node == null || !GodotObject.IsInstanceValid(node))
+        {
+            node = new MultiMeshInstance3D
+            {
+                Name = name,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                MaterialOverride = new StandardMaterial3D
+                {
+                    ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                    Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                    VertexColorUseAsAlbedo = true,
+                    CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                },
+            };
+            AddChild(node);
+        }
+        var mm = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            UseColors = true,
+            Mesh = new QuadMesh { Size = new Vector2(1f, 1f) },
+            InstanceCount = pieces.Count,
+        };
+        for (int i = 0; i < pieces.Count; i++)
+        {
+            var p = pieces[i];
+            // The quad faces along the line from the inside tile to the outside one, so it
+            // stands on their shared edge. Scaled to the piece's width and height.
+            var basis = new Basis(Vector3.Up, p.Angle).Scaled(new Vector3(p.Width, p.Height, 1f));
+            mm.SetInstanceTransform(i, new Transform3D(basis, p.Foot + new Vector3(0f, p.Height * 0.5f, 0f)));
+            mm.SetInstanceColor(i, p.Tint);
+        }
+        node.Multimesh = mm;
+        node.Visible = pieces.Count > 0;
+    }
+
+    private void RefreshSeepWall()
+    {
+        int stamp = SeepTile == null ? 0 : System.HashCode.Combine(_field.Count, _party.X, _party.Y, 1);
+        if (stamp == _seepWallStamp)
+        {
+            return;
+        }
+        _seepWallStamp = stamp;
+
+        var walls = new List<WallPiece>();
+        var inside = new List<Vector3>();
+        if (SeepTile != null)
+        {
+            foreach (var kv in _field)
+            {
+                if (!SeepTile(kv.Key) || _fog == null || _fog.FogAt(kv.Key) != Fog.Revealed)
+                {
+                    continue;
+                }
+                if (!kv.Value.water)
+                {
+                    var top = TileOrigin(kv.Key.X, kv.Key.Y);
+                    top.Y = TileHeight(kv.Key) + 0.1f;
+                    inside.Add(top);
+                }
+                foreach (var n in HexNeighbours(kv.Key))
+                {
+                    if (!SeepTile(n))
+                    {
+                        AddWallPiece(walls, kv.Key, n, UITheme.Violet, 2.2f, 1f);
+                    }
+                }
+            }
+        }
+        SetWall(ref _seepWall, "SeepWall", walls);
+
+        if (_seepMotes == null || !GodotObject.IsInstanceValid(_seepMotes))
+        {
+            var moteTint = UITheme.Violet;
+            moteTint.A = 0.9f;
+            _seepMotes = new CpuParticles3D
+            {
+                Name = "SeepMotes",
+                Mesh = new QuadMesh
+                {
+                    Size = new Vector2(0.14f, 0.14f),
+                    Material = new StandardMaterial3D
+                    {
+                        ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                        BillboardMode = BaseMaterial3D.BillboardModeEnum.Enabled,
+                        AlbedoColor = moteTint,
+                    },
+                },
+                Lifetime = 3.5f,
+                Gravity = new Vector3(0f, 0.55f, 0f),   // they rise
+                Direction = new Vector3(0f, 1f, 0f),
+                Spread = 20f,
+                InitialVelocityMin = 0.1f,
+                InitialVelocityMax = 0.4f,
+                EmissionShape = CpuParticles3D.EmissionShapeEnum.Points,
+                Emitting = false,
+            };
+            AddChild(_seepMotes);
+        }
+        if (inside.Count > 0)
+        {
+            _seepMotes.EmissionPoints = inside.ToArray();
+            _seepMotes.Amount = Mathf.Clamp(inside.Count * 2, 16, 400);
+            _seepMotes.Emitting = true;
+        }
+        else
+        {
+            _seepMotes.Emitting = false;
         }
     }
 
@@ -879,15 +1229,8 @@ public partial class ExpeditionWindow3D : Node3D
 
     public override void _UnhandledInput(InputEvent ev)
     {
-        // V debug-viz cycler works whenever the view exists (before the
-        // AcceptInput gate); it's a diagnostic, not a game input. (F8 was a
-        // mistake: it's the editor's Stop-project shortcut and killed the run.)
-        if (ev is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.V)
-        {
-            _debugViz = (_debugViz + 1) % 7;
-            ApplyDebugViz();
-            return;
-        }
+        // The V debug-viz cycler was retired on 2026-11-11 (Magos): V is the manager's debug
+        // jump to a shard vault.
         // B cycles the surround style (Haze → Desk → Vignette) live.
         if (ev is InputEventKey bkey && bkey.Pressed && !bkey.Echo && bkey.Keycode == Key.B)
         {

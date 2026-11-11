@@ -1526,6 +1526,7 @@ public partial class StrategicView : Node2D
         {
             FieldPostings.Garrison => "[G]",
             FieldPostings.Survey => "[S]",
+            FieldPostings.Grove => "[V]",
             FieldPostings.HoldLine => "[H]",
             FieldPostings.Siege => "[B]",
             FieldPostings.Envoy => "[E]",

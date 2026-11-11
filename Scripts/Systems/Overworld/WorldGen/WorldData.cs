@@ -266,9 +266,26 @@ public class ShardZone
     /// or empty. The shard itself is not moved: the garrison is beaten and the vault is free.</summary>
     public string HeldByKingdomId = "";
 
+    /// <summary>Shardfall H4 (S5): new moons the garrison has stood on this vault. Additive.</summary>
+    public int HeldMoons = 0;
+
+    /// <summary>Shardfall H4 (S5): the realm that claimed this vault's shard for the timeline, or
+    /// empty. A claimed vault is sealed until the next timeline. Additive.</summary>
+    public string ClaimedByKingdomId = "";
+
+    /// <summary>Shardfall H5: the guild dug under this vault's grove in this timeline, so the
+    /// grove sleeps until the next. A sleeping grove neither calms the seep nor wards the
+    /// shard. Additive.</summary>
+    public bool GroveAsleep = false;
+
     /// <summary>Shardfall H2 (S3): how far the vault is dug out this timeline, 0 to 100. Its
     /// gate is shut below 100. Additive, default 0.</summary>
     public int Excavation = 0;
+
+    /// <summary>Shardfall H3 (S4): how deep the party is in this outing's descent. 0 at the
+    /// gate, 1 past the outer wards, 2 past the inner guard. Set back to 0 when an outing
+    /// begins: the descent is fought in one outing. Additive, default 0.</summary>
+    public int DescentStage = 0;
 
     /// <summary>True once a field party has finished surveying the zone
     /// (FieldPostings, 2026-09-24): every footprint tile Explored and the

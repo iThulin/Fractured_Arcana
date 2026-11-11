@@ -164,6 +164,7 @@ public partial class ExpeditionManager : Node2D
     private bool _fieldRun;
     private const int FieldWeatherTilesPerToll = 4;   // a day's walking
     private int _weatherTilesUnderFront;
+    private bool _seepSeen, _seepWasIn;   // H2d
 
     /// <summary>Which field party is out. Empty on a castle sortie.</summary>
     private string _fieldPartyId = "";
@@ -503,10 +504,17 @@ public partial class ExpeditionManager : Node2D
             _seepProvince = _seepZone != null ? cycle.World.ProvinceIndexAt(_seepZone.GateX, _seepZone.GateY) : -1;
             if (_seepZone != null)
             {
-                _factionManager.Posture = PatrolToken.PatrolPosture.Hunter;
-                _factionManager.HuntsParty = true;
+                // H5: an awake grove calms the seep. It stays as strong and pays as well.
+                bool calm = Shardfall.GroveAwake(SaveManager.ActiveSave, _seepZone);
+                if (!calm)
+                {
+                    _factionManager.Posture = PatrolToken.PatrolPosture.Hunter;
+                    _factionManager.HuntsParty = true;
+                }
                 planNote = $"The shard at {_seepZone.Name} seeps into this province. Everything here is stronger "
-                           + "and pays more, and its creatures hunt you. "
+                           + "and pays more"
+                           + (calm ? ". A grove keeps it calm: nothing here hunts you for being here. "
+                                   : ", and its creatures hunt you. ")
                            + (_seepZone.Excavation >= 100
                                ? "Its vault is dug out. "
                                : $"Its vault is buried: excavation {_seepZone.Excavation} of 100. Every site you work here digs. ")
@@ -527,6 +535,17 @@ public partial class ExpeditionManager : Node2D
         if (!(router != null && router.HasPendingReturn))
         {
             _wardedSites.Clear();   // SP3: a beacon lasts one outing
+            // H3 (S4): the descent is fought in one outing. Leaving lets the wards close again.
+            if (_world?.ShardZones != null)
+            {
+                foreach (var dz in _world.ShardZones)
+                {
+                    if (dz != null && !dz.GuardianCleared)
+                    {
+                        dz.DescentStage = 0;
+                    }
+                }
+            }
         }
         // R2: say on arrival what the ruler's plan means here. Not on a return from a fight.
         if (planNote.Length > 0 && !(router != null && router.HasPendingReturn))
@@ -1170,6 +1189,7 @@ public partial class ExpeditionManager : Node2D
                 if (dug > 0)
                 {
                     _toasts?.Push(Shardfall.DigLine(_seepZone, dug), QuestToastKind.Progress);
+                    GD.Print($"[Shardfall] A site worked: +{dug}, excavation {_seepZone.Excavation} of 100.");
                 }
             }
             SaveManager.MarkDirty();
@@ -1460,6 +1480,9 @@ public partial class ExpeditionManager : Node2D
         _window3D.TileUnhovered += OnWindow3DUnhover;
         _window3D.LureLabel = LureLabelAtWorld;
         _window3D.FieldMark = FieldMarkAtWorld;   // P4: guards, held ground, the border
+        // WG2: the table asks in world coordinates. The weather and the seep answer in local ones.
+        _window3D.WeatherAtTile = w => _window != null ? WeatherSystem.WeatherAt(_window.LocalOf(w.X, w.Y)) : WeatherType.Clear;
+        _window3D.SeepTile = w => _seepZone != null && _window != null && InSeep(_window.LocalOf(w.X, w.Y));
         _window3D.SiteHidden = w => !SiteKnownWorld(w.X, w.Y);   // SP1: unknown sites draw grey
         _window3D.LeadRings = LeadRingsInWorld;   // knowledge ladder L4b1 (D220)
         vp.AddChild(_window3D);
@@ -5078,6 +5101,22 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // Standing Orders O3b (D206): a fight won in the interval records the casts it held back.
             CastMasteryTracker.CommitInterval();
 
+            // H3 (S4): a descent fight won at a vault's gate takes the party one stage deeper.
+            if (string.IsNullOrEmpty(router.SavedCombatGuardianKey) && !router.SavedCombatWasPatrolAmbush)
+            {
+                var descent = DescentZoneAt(resultHex);
+                if (descent != null)
+                {
+                    string wonStage = Shardfall.DescentStageName(descent.DescentStage);
+                    descent.DescentStage++;
+                    SaveManager.MarkDirty();
+                    spoils.Add(($"The {wonStage} of {descent.Name} are broken. Fight {descent.DescentStage} of 3 is won.", UITheme.Violet));
+                    GD.Print($"[Shardfall] Descent into {descent.Name}: stage {descent.DescentStage} of 3 won.");
+                    var descentHex = resultHex;
+                    Callable.From(() => OfferDescent(descent, descentHex)).CallDeferred();
+                }
+            }
+
             // Fragment guardian felled → the trial is passed (permanent ledger flag).
             if (!string.IsNullOrEmpty(router.SavedCombatGuardianKey))
             {
@@ -5174,6 +5213,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 if (patrolDug > 0)
                 {
                     spoils.Add((Shardfall.DigLine(_seepZone, patrolDug), UITheme.Violet));
+                    GD.Print($"[Shardfall] A patrol beaten in the seep: +{patrolDug}, excavation {_seepZone.Excavation} of 100.");
                     SaveManager.MarkDirty();
                 }
             }
@@ -5550,8 +5590,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                          + "Work the sites in this province, or post a party on the vault to dig.");
                 return true;
             }
-            ShowInfo($"The heart of {z.Name} is guarded. Its warden stirs.");
-            LaunchGuardianCombat(z.FragmentKey, TerrainAt(coord));
+            ContinueDescent(z, coord);   // H3: outer wards, inner guard, then the guardian
             return true;
         }
 
@@ -5647,6 +5686,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         best.Excavation = 100;   // H2: the debug jump tests the guardian, so the vault is dug out
         string what = !best.GuardianCleared ? "gate" : "sanctum";
         ShowInfo($"[DEBUG] Teleported to {best.Name} {what} ({bestX},{bestY}).");
+        FeedWindow3D(frameCamera: true);   // the 3D table follows the jump
         OnPartyArrived(local);
     }
 
@@ -5843,6 +5883,88 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if ((bonuses.ScryingPortent || LoreHalls.ThirdEyeActive(SaveManager.ActiveSave))
             && !PlayerSession.ScryingPortentSpentThisSortie)
             PlayerSession.ScryingPortentAvailable = true;
+    }
+
+    // ── H3 (shardfall_v1, S4): the descent ───────────────────────────────
+    //    With the vault dug out, the gate is three fights in one outing on carried health:
+    //    the outer wards, the inner guard, the guardian. Between fights the party may go on
+    //    or withdraw. Leaving the field closes the wards again.
+
+    /// <summary>Fight whatever stands next in the descent.</summary>
+    private void ContinueDescent(ShardZone z, Vector2I coord)
+    {
+        if (z.DescentStage >= Shardfall.DescentStages)
+        {
+            ShowInfo($"The heart of {z.Name} is guarded. Its warden stirs.");
+            LaunchGuardianCombat(z.FragmentKey, TerrainAt(coord));
+            return;
+        }
+        string stageName = Shardfall.DescentStageName(z.DescentStage);
+        float mult = DifficultyMultAt(coord)
+                     * (z.DescentStage == 0 ? Shardfall.OuterWardsMult : Shardfall.InnerGuardMult);
+        string terrainType = TerrainAt(coord).ToString();
+        var def = EncounterPoolLoader.Pick(StagingTemplateRegion(), EncounterTier.Battle, terrainType, mult);
+        if (def == null || def.Enemies.Count == 0 || EncounterRouter.Instance == null)
+        {
+            // Nothing to field here: the stage is passed, so the descent never dead-ends.
+            z.DescentStage++;
+            SaveManager.MarkDirty();
+            LogRun("descent_bypassed", $"{z.FragmentKey}: {stageName}", at: coord);
+            ShowInfo($"The {stageName} of {z.Name} stand empty. Enter the gate again to go deeper.");
+            return;
+        }
+        LogRun("descent_fight", $"{z.FragmentKey}: {stageName} x{mult:0.00}", at: coord);
+        ShowInfo($"The {stageName} of {z.Name} rise against you. This is fight {z.DescentStage + 1} of 3.");
+        CommitCombat(coord, def, terrainType);
+    }
+
+    /// <summary>The vault whose gate stands on this tile and whose descent is under way, or
+    /// null. This is how a won fight is known to have been one of the descent's.</summary>
+    private ShardZone DescentZoneAt(Vector2I local)
+    {
+        if (_world?.ShardZones == null || _window == null
+            || !_window.TryLocalToWorld(local, out int col, out int row))
+        {
+            return null;
+        }
+        var z = _world.ShardZoneAt(col, row);
+        return z != null && col == z.GateX && row == z.GateY && !z.GuardianCleared
+               && z.Excavation >= 100 && z.DescentStage < Shardfall.DescentStages
+            ? z
+            : null;
+    }
+
+    /// <summary>After a descent fight is won: go on, or withdraw.</summary>
+    private void OfferDescent(ShardZone z, Vector2I coord)
+    {
+        if (z == null || ExpeditionComplete)
+        {
+            return;
+        }
+        string next = z.DescentStage >= Shardfall.DescentStages
+            ? "the guardian"
+            : $"the {Shardfall.DescentStageName(z.DescentStage)}";
+        var dlg = new ConfirmationDialog
+        {
+            Title = $"The descent into {z.Name}",
+            OkButtonText = "Go deeper",
+            CancelButtonText = "Hold here",
+            DialogText = $"Fight {z.DescentStage} of 3 is won. Next: {next}.\n\n"
+                         + $"Health {Hull} of {MaxHull}. It is not restored between these fights.\n\n"
+                         + "Hold here to rest or use a spell first, then enter the gate again. "
+                         + "If you leave the field, the wards close and the descent starts over.",
+        };
+        dlg.Confirmed += () =>
+        {
+            dlg.QueueFree();
+            if (!ExpeditionComplete && _party != null)
+            {
+                ContinueDescent(z, coord);
+            }
+        };
+        dlg.Canceled += dlg.QueueFree;
+        AddChild(dlg);
+        dlg.PopupCentered();
     }
 
     /// <summary>Difficulty multiplier applied to fragment-guardian boss units.</summary>
@@ -7948,11 +8070,31 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string curKingdom = KingdomIdAt(_party.CurrentCoord);
         _windowLabel.Text += $"  |  {(string.IsNullOrEmpty(curKingdom) ? "Unclaimed" : KingdomDisplayName(curKingdom))}";
         // H2a: say so on the panel when the party stands in seeped ground.
+        // H2d: say so when the party walks out of the seep or back in. Only work inside it digs,
+        // and the province's edge is easy to cross without noticing.
+        if (_seepZone != null)
+        {
+            bool inSeepNow = InSeep(_party.CurrentCoord);
+            if (_seepSeen && inSeepNow != _seepWasIn)
+            {
+                string seepLine = inSeepNow
+                    ? $"You are back in the seep of {_seepZone.Name}. Fights and sites here dig toward its vault."
+                    : $"You have left the seep of {_seepZone.Name}. Nothing out here digs toward its vault.";
+                _toasts?.Push(seepLine, QuestToastKind.Progress);
+                GD.Print($"[Shardfall] {seepLine}");
+            }
+            _seepSeen = true;
+            _seepWasIn = inSeepNow;
+        }
         if (_seepZone != null && InSeep(_party.CurrentCoord))
         {
             _windowLabel.Text += _seepZone.Excavation >= 100
                 ? "  |  Seeped (vault dug out)"
                 : $"  |  Seeped (excavation {_seepZone.Excavation} of 100)";
+        }
+        else if (_seepZone != null)
+        {
+            _windowLabel.Text += "  |  Outside the seep";
         }
 
         // W3: the button tells the truth about which extraction you'd get.

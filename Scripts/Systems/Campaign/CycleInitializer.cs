@@ -177,6 +177,7 @@ public static class CycleInitializer
         worldParams.CoConspirator = coConspirator;
         var g = WorldGenerator.Generate(seed, cycle.SelectedSchool, worldParams);
         cycle.World = g.World;
+        Shardfall.ApplyCarry(save, g.World);   // shardfall H4 (S6): last timeline's head start
         cycle.Kingdoms = g.Kingdoms;
         cycle.Campaign = g.Campaign;
         cycle.Council = g.Council;

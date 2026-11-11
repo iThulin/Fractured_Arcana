@@ -38,6 +38,8 @@ public static class FieldPostings
 
     public const string Garrison = "garrison";
     public const string Survey = "survey";
+    /// <summary>Shardfall H5: raise a grove in a seep. Timed, on a vault's ground.</summary>
+    public const string Grove = "grove";
     public const string HoldLine = "hold";
     public const string Siege = "siege";
     public const string Envoy = "envoy";
@@ -200,7 +202,9 @@ public static class FieldPostings
 
         // Survey: a discovered shard zone not yet taken or surveyed.
         var zone = world.ShardZoneAt(x, y);
-        if (zone != null && zone.Discovered && !zone.ShardCollected && !zone.Surveyed)
+        // Shardfall SH13: the vaults are known from the start, so a survey no longer waits on
+        // the zone being discovered.
+        if (zone != null && !zone.ShardCollected && !zone.Surveyed)
         {
             list.Add(new Option
             {
@@ -210,6 +214,24 @@ public static class FieldPostings
                        + "at the end the gate and the sanctum are known.",
                 SuppliesPerMoon = SurveySupplies,
                 Days = SurveyDays,
+                ZoneId = $"shard:{zone.FragmentKey}",
+            });
+        }
+
+        // Shardfall H5: a grove, on a live vault's ground that has none yet.
+        if (zone != null && Shardfall.Live(SaveManager.ActiveSave, zone)
+            && !Shardfall.HasGrove(SaveManager.ActiveSave, zone))
+        {
+            list.Add(new Option
+            {
+                Kind = Grove,
+                Title = $"Raise a grove at {(string.IsNullOrEmpty(zone.Name) ? "the vault" : zone.Name)}",
+                Detail = $"{Shardfall.GroveMoons} moons. The grove is permanent, in this timeline and every one after. "
+                       + "Nothing in its seep hunts you, and no realm can garrison its vault. The seep stays as strong "
+                       + "and pays as well. Digging here puts the grove to sleep until the next timeline. "
+                       + $"{Shardfall.GrovesForDruid} groves open the top of the Druid's class.",
+                SuppliesPerMoon = Shardfall.GroveSupplies,
+                Days = Shardfall.GroveMoons * CalendarState.DaysPerLunation,
                 ZoneId = $"shard:{zone.FragmentKey}",
             });
         }
@@ -863,6 +885,17 @@ public static class FieldPostings
                 return $"{force.Name} lay open {opened} tile(s) of {zone.Name} and send home {splinters} splinters."
                        + (dugLine.Length > 0 ? " " + dugLine : "");
             }
+            case Grove:
+            {
+                var groveZone = ZoneOf(cycle, zoneId);
+                if (groveZone == null || !Shardfall.Live(SaveManager.ActiveSave, groveZone))
+                {
+                    Stop(cycle, force);
+                    return $"{force.Name} can raise no grove here now, and stand down.";
+                }
+                force.WorkProgress++;
+                return $"{force.Name} tend the grove at {groveZone.Name}: moon {force.WorkProgress} of {Shardfall.GroveMoons}.";
+            }
             case HoldLine:
             {
                 var wf = WarfrontOf(cycle, zoneId);
@@ -1082,6 +1115,19 @@ public static class FieldPostings
     /// <summary>Called by FieldWork.OnComplete for timed postings.</summary>
     public static string OnComplete(CycleState cycle, FieldParty force, string kind, string zoneId)
     {
+        if (kind == Grove)
+        {
+            var groveZone = ZoneOf(cycle, zoneId);
+            if (groveZone == null)
+            {
+                return null;
+            }
+            force.WorkProgress = 0;
+            string raised = Shardfall.RaiseGrove(SaveManager.ActiveSave, groveZone);
+            ScryInbox.Post(cycle, ScryChannel.Messenger, $"A grove at {groveZone.Name}", raised, force.Id, "post");
+            SaveManager.MarkDirty();
+            return $"{force.Name} finish the grove at {groveZone.Name}.";
+        }
         if (kind != Survey)
         {
             return null;
@@ -1144,6 +1190,7 @@ public static class FieldPostings
     {
         Garrison => GarrisonSupplies,
         Survey => SurveySupplies,
+        Grove => Shardfall.GroveSupplies,
         HoldLine => HoldSupplies,
         Siege => SiegeSupplies,
         Envoy => 0,
@@ -1157,6 +1204,7 @@ public static class FieldPostings
     {
         Garrison => "garrison",
         Survey => "survey",
+        Grove => "raise a grove",
         HoldLine => "hold the line",
         Siege => "lay siege",
         Envoy => "attend court",
@@ -1177,6 +1225,7 @@ public static class FieldPostings
         {
             Garrison => "garrison",
             Survey => $"survey, ring {force.WorkProgress}",
+            Grove => $"raising a grove, moon {force.WorkProgress} of {Shardfall.GroveMoons}",
             HoldLine => force.WorkSide == (int)WarfrontSide.Aid ? "pressing the line" : "holding the line",
             Siege => "besieging the depot",
             Envoy => "envoy at court",

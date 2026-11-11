@@ -237,6 +237,15 @@ public class EternalLedger
     /// <summary>Cross-loop story flags. Placement-agnostic by design rule.</summary>
     public List<string> MetaNarrativeFlags = new();
 
+    /// <summary>Shardfall H4 (S6): the vault whose excavation carries into the next timeline, and
+    /// how much of it (half of what was dug). Empty and 0 when nothing carries. Additive.</summary>
+    public string CarriedDigKey = "";
+    public int CarriedDig = 0;
+
+    /// <summary>Shardfall H5: the shards (by fragment key) whose seeps hold a grove. A grove
+    /// is permanent across timelines. Additive.</summary>
+    public List<string> GroveKeys = new();
+
     /// <summary>
     /// The Register's once flags (docs/the_register_v1.md §4): ids of explanations
     /// already shown. Eternal, so an explanation never repeats across cycles.

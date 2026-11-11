@@ -59,6 +59,7 @@ public static partial class KingdomTickSimulation
             return;
         }
         cycle.PendingSiegeReports ??= new List<string>();
+        TickVaultClaims(cycle);   // H4 (S5)
         string convergence = ConvergenceKingdomId(cycle.World);
         bool fronts = FrontsWalk(cycle);
         foreach (var kvp in cycle.Kingdoms)
@@ -205,11 +206,17 @@ public static partial class KingdomTickSimulation
         {
             return null;
         }
+        // H4: realms do not reach for every vault at once.
+        if (Shardfall.RivalVaults(cycle.World) >= Shardfall.MaxRivalVaults)
+        {
+            return null;
+        }
         foreach (var zone in cycle.World.ShardZones)
         {
             // H1: only a live vault. Not an empty one, and not one sealed for the timeline.
             if (zone != null && zone.KingdomId == kid && Shardfall.Live(SaveManager.ActiveSave, zone)
-                && string.IsNullOrEmpty(zone.HeldByKingdomId))
+                && string.IsNullOrEmpty(zone.HeldByKingdomId)
+                && !Shardfall.GroveAwake(SaveManager.ActiveSave, zone))   // H5: a grove wards its shard
             {
                 return zone;
             }
@@ -254,11 +261,48 @@ public static partial class KingdomTickSimulation
                     if (ProvinceField.GarrisonVault(cycle.World, vault))
                     {
                         vault.HeldByKingdomId = kid;
+                        vault.HeldMoons = 0;   // H4: its clock starts now
                         Report(cycle, $"{RealmOf(k, kid)} has garrisoned the shard vault at {vault.Name}. "
                                       + "Its shard is still inside. Beat the garrison to reach the gate.");
                     }
                 }
                 break;
+            }
+        }
+    }
+
+    /// <summary>H4 (shardfall_v1, S5): each new moon a garrison stands on a live vault brings its
+    /// realm closer to the shard. At Shardfall.ClaimMoons the realm claims it: the vault seals
+    /// for this timeline, and the shard is in its vault again in the next.</summary>
+    private static void TickVaultClaims(CycleState cycle)
+    {
+        if (cycle?.World?.ShardZones == null)
+        {
+            return;
+        }
+        foreach (var zone in cycle.World.ShardZones)
+        {
+            if (zone == null || string.IsNullOrEmpty(zone.HeldByKingdomId) || Shardfall.Claimed(zone)
+                || !Shardfall.Live(SaveManager.ActiveSave, zone))
+            {
+                continue;
+            }
+            string kid = zone.HeldByKingdomId;
+            string realm = cycle.Kingdoms != null && cycle.Kingdoms.TryGetValue(kid, out var k) && k != null
+                ? RealmOf(k, kid)
+                : "A rival realm";
+            zone.HeldMoons++;
+            if (zone.HeldMoons >= Shardfall.ClaimMoons)
+            {
+                zone.ClaimedByKingdomId = kid;
+                Report(cycle, $"{realm} has claimed the shard at {zone.Name}. The vault is sealed for this timeline. "
+                              + "The shard will be in its vault again in the next.");
+            }
+            else
+            {
+                int left = Shardfall.ClaimMoons - zone.HeldMoons;
+                Report(cycle, $"{realm}'s garrison still holds the vault at {zone.Name}. "
+                              + $"It claims the shard in {left} moon(s) unless you beat it.");
             }
         }
     }
@@ -279,6 +323,7 @@ public static partial class KingdomTickSimulation
             }
             string holder = zone.HeldByKingdomId;
             zone.HeldByKingdomId = "";
+            zone.HeldMoons = 0;   // H4
             if (cycle.Kingdoms != null && cycle.Kingdoms.TryGetValue(holder, out var realm) && realm != null)
             {
                 realm.SeekProgress = 0;

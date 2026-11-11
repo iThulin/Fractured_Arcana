@@ -638,6 +638,9 @@ public static class SaveManager
         // (ContinueCampaign never calls this method).
         ArchiveUnfinishedQuests(old);
 
+        // Shardfall H4 (S6): half the best excavation carries, before this world is gone.
+        Shardfall.StoreCarry(ActiveSave, old);
+
         // ── A new timeline ──────────────────────────────────────────────
         ActiveSave.Cycle = new CycleState
         {
@@ -699,6 +702,20 @@ public static class SaveManager
         cycle.CampaignYear += 1;
         cycle.Calendar = new CalendarState();   // lunation 1, phase 0, no eclipses
         cycle.PendingStraggleLunations = 0;     // a new year owes no straggle debt
+
+        // H4 (2026-11-11): the calendar began again at day 1, so a day number from the old
+        // year is not a wait. A force that was resting or out is free as the year turns.
+        cycle.CastleBusyUntilDay = 0;
+        if (cycle.FieldParties != null)
+        {
+            foreach (var p in cycle.FieldParties)
+            {
+                if (p != null)
+                {
+                    p.BusyUntilDay = 0;
+                }
+            }
+        }
 
         // The world hardens (the forcing clock, progression doc §6).
         CampaignEscalation.Apply(cycle);
