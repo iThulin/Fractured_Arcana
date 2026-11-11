@@ -153,6 +153,10 @@ public class WorldPoi
     /// tile from then on. Additive, default false.</summary>
     public bool GuardShaken = false;
 
+    /// <summary>Rival archmages R3 (Seek): this guard is a realm's garrison on a shard vault.
+    /// The fragment key of the vault it holds, or empty. Beating it frees the vault.</summary>
+    public string VaultKey = "";
+
     /// <summary>True if discovering/securing this POI grants a staging point.</summary>
     public bool GrantsStaging = false;
 
@@ -257,6 +261,10 @@ public class ShardZone
 
     /// <summary>True once the shard has been taken (fragment_&lt;key&gt;_collected).</summary>
     public bool ShardCollected = false;
+
+    /// <summary>Rival archmages R3 (Seek): the realm whose garrison holds the way to this vault,
+    /// or empty. The shard itself is not moved: the garrison is beaten and the vault is free.</summary>
+    public string HeldByKingdomId = "";
 
     /// <summary>True once a field party has finished surveying the zone
     /// (FieldPostings, 2026-09-24): every footprint tile Explored and the

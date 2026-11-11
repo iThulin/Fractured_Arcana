@@ -1134,6 +1134,15 @@ public partial class ExpeditionManager : Node2D
             poi.Known = true;
             // A site that regrows starts its clock here (2026-09-28).
             HarvestSites.OnConsumed(SaveManager.ActiveSave?.Cycle, poi);
+            // R3 (Seek): a beaten garrison frees its vault.
+            if (!string.IsNullOrEmpty(poi.VaultKey))
+            {
+                string freed = KingdomTickSimulation.ReleaseVault(SaveManager.ActiveSave?.Cycle, poi.VaultKey);
+                if (freed.Length > 0)
+                {
+                    ShowInfo(freed);
+                }
+            }
             SaveManager.MarkDirty();
             return poi;
         }
@@ -2125,6 +2134,9 @@ public partial class ExpeditionManager : Node2D
                 patrols--;
                 note = $"{who} is expanding elsewhere. One of its patrols here has gone to the front." + pressed;
                 return PatrolToken.PatrolPosture.Normal;
+            case RivalPlanKind.Seek:
+                note = $"{who} is moving on the shard vault in its land. Its patrols here walk their beats." + pressed;
+                return PatrolToken.PatrolPosture.Normal;
             default:
                 note = pressed.Length > 0 ? $"{who} has no plan this moon." + pressed : "";
                 return PatrolToken.PatrolPosture.Normal;
@@ -2183,6 +2195,16 @@ public partial class ExpeditionManager : Node2D
         ConsumeOverlayPoi(coord);
         ConsumeWorldPoi(coord);
         LogRun("raided", what, at: coord);
+        // R3 (Gather): what a realm's patrol takes goes into that realm's stock.
+        if (_window.TryLocalToWorld(coord, out int raidCol, out int raidRow))
+        {
+            var raidCycle = SaveManager.ActiveSave?.Cycle;
+            string raider = ProvinceControl.RulerAt(raidCycle, raidCol, raidRow);
+            if (ProvinceControl.IsKingdom(raider))
+            {
+                KingdomTickSimulation.CreditRaid(raidCycle, raider);
+            }
+        }
         ShowInfo($"A patrol has taken a {what}. It is gone.");
         SaveManager.MarkDirty();
     }
@@ -2281,6 +2303,12 @@ public partial class ExpeditionManager : Node2D
                 if (IsGuardTile(local))
                 {
                     what = "Guard: holds the ground around it. Beat it to pass, or go around";
+                    // R3 (Seek): a realm's garrison on a shard vault says so.
+                    if (_window.TryLocalToWorld(local, out int gCol, out int gRow)
+                        && !string.IsNullOrEmpty(_world.PoiAt(gCol, gRow)?.VaultKey))
+                    {
+                        what = "Vault garrison: a rival realm holds the way to the shard vault. Beat it to reach the gate";
+                    }
                 }
                 return $"  ·  {what} ({tier}). Enemy strength x{DifficultyMultAt(local):0.##}. "
                        + $"Pays {min} to {max} gold plus splinters.";

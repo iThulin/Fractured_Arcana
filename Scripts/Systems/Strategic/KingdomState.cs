@@ -119,6 +119,10 @@ public class KingdomState
     /// nothing on its bids to annex. Additive, default 0.</summary>
     public int HinderedMoons = 0;
 
+    /// <summary>Rival archmages R3 (Seek): how far this realm is toward garrisoning the shard
+    /// vault in its land, 0 to 100. Additive, default 0.</summary>
+    public int SeekProgress = 0;
+
 // ── Helpers ──────────────────────────────────────────────────────────
     // AtLeast / CanBuildOutpost REMOVED with the stored Stance. Gate reads:
     //   CouncilQueries.StanceFor(cycle, RegionId) >= KingdomStance.Neutral

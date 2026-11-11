@@ -74,6 +74,7 @@ public static partial class KingdomTickSimulation
                 k.Plan = new RivalPlan();
                 continue;
             }
+            ApplyPlanYield(cycle, kid, k);   // R3: what last moon's plan earned
             // C1 (Sow Discord): a realm in discord holds no plan this moon.
             if (k.HinderedMoons > 0)
             {
@@ -161,6 +162,16 @@ public static partial class KingdomTickSimulation
             }
         }
 
+        // R3: a shard vault in its own land that it does not yet hold.
+        var vault = SeekTarget(cycle, kid);
+        if (vault != null)
+        {
+            plan.Kind = RivalPlanKind.Seek;
+            var at = cycle.World.ProvinceAt(vault.GateX, vault.GateY);
+            plan.TargetProvinceId = at != null ? at.Id : "";
+            return plan;
+        }
+
         if (cycle.World.Pois != null)
         {
             foreach (var p in cycle.World.Pois)
@@ -173,6 +184,117 @@ public static partial class KingdomTickSimulation
             }
         }
         return plan;
+    }
+
+    // ── R3: what a plan does ─────────────────────────────────────────────
+
+    /// <summary>Supply a realm adds to its stock for a moon spent gathering.</summary>
+    public const int GatherYield = 6;
+
+    /// <summary>Supply a realm gains when one of its patrols takes a site in the field.</summary>
+    public const int RaidYield = 2;
+
+    /// <summary>How far a moon spent seeking moves a realm toward garrisoning its vault.</summary>
+    public const int SeekStep = 34;
+
+    /// <summary>The shard vault a realm seeks: one in its own land, its shard not yet taken by
+    /// the guild, that no realm's garrison holds. Null when there is none.</summary>
+    public static ShardZone SeekTarget(CycleState cycle, string kid)
+    {
+        if (cycle?.World?.ShardZones == null || string.IsNullOrEmpty(kid))
+        {
+            return null;
+        }
+        foreach (var zone in cycle.World.ShardZones)
+        {
+            if (zone != null && zone.KingdomId == kid && !zone.ShardCollected
+                && string.IsNullOrEmpty(zone.HeldByKingdomId))
+            {
+                return zone;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>What the plan a realm held through the last moon earned it: supply for
+    /// gathering, a guard for fortifying, ground toward the vault for seeking.</summary>
+    private static void ApplyPlanYield(CycleState cycle, string kid, KingdomState k)
+    {
+        var plan = k.Plan;
+        if (plan == null)
+        {
+            return;
+        }
+        switch (plan.Kind)
+        {
+            case RivalPlanKind.Gather:
+                k.SupplyStock += GatherYield;
+                break;
+            case RivalPlanKind.Fortify:
+            {
+                var held = ProvinceControl.ProvinceById(cycle.World, plan.TargetProvinceId);
+                if (held != null && ProvinceField.AddGuard(cycle.World, held))
+                {
+                    Report(cycle, $"{RealmOf(k, kid)} has posted a new guard in {ProvinceControl.Name(held)}.");
+                }
+                break;
+            }
+            case RivalPlanKind.Seek:
+            {
+                var vault = SeekTarget(cycle, kid);
+                if (vault == null)
+                {
+                    break;
+                }
+                k.SeekProgress += SeekStep;
+                if (k.SeekProgress >= 100)
+                {
+                    k.SeekProgress = 0;
+                    if (ProvinceField.GarrisonVault(cycle.World, vault))
+                    {
+                        vault.HeldByKingdomId = kid;
+                        Report(cycle, $"{RealmOf(k, kid)} has garrisoned the shard vault at {vault.Name}. "
+                                      + "Its shard is still inside. Beat the garrison to reach the gate.");
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    /// <summary>A vault's garrison has been beaten: the vault is free, and the realm that held
+    /// it starts again from nothing. Returns the line for the player, or "".</summary>
+    public static string ReleaseVault(CycleState cycle, string fragmentKey)
+    {
+        if (cycle?.World?.ShardZones == null || string.IsNullOrEmpty(fragmentKey))
+        {
+            return "";
+        }
+        foreach (var zone in cycle.World.ShardZones)
+        {
+            if (zone == null || zone.FragmentKey != fragmentKey || string.IsNullOrEmpty(zone.HeldByKingdomId))
+            {
+                continue;
+            }
+            string holder = zone.HeldByKingdomId;
+            zone.HeldByKingdomId = "";
+            if (cycle.Kingdoms != null && cycle.Kingdoms.TryGetValue(holder, out var realm) && realm != null)
+            {
+                realm.SeekProgress = 0;
+            }
+            return $"The garrison at {zone.Name} is broken. The way to the vault is open.";
+        }
+        return "";
+    }
+
+    /// <summary>A realm's patrol took a site in the field: its stock rises by RaidYield.</summary>
+    public static void CreditRaid(CycleState cycle, string kid)
+    {
+        if (cycle?.Kingdoms != null && !string.IsNullOrEmpty(kid)
+            && cycle.Kingdoms.TryGetValue(kid, out var realm) && realm != null)
+        {
+            realm.SupplyStock += RaidYield;
+        }
     }
 
     /// <summary>The plan in plain words: the verb, then what it means on the map.</summary>
@@ -211,7 +333,14 @@ public static partial class KingdomTickSimulation
             case RivalPlanKind.Gather:
                 return "Gather: it is working its supply caches.";
             case RivalPlanKind.Seek:
-                return "Seek: it is after a shard.";
+            {
+                var sought = SeekTarget(cycle, kid);
+                int done = cycle?.Kingdoms != null && cycle.Kingdoms.TryGetValue(kid, out var seeker) && seeker != null
+                    ? seeker.SeekProgress : 0;
+                return sought != null
+                    ? $"Seek: it is moving to garrison the shard vault at {sought.Name}. {done} of 100."
+                    : "Seek: it is after a shard vault.";
+            }
             case RivalPlanKind.Court:
                 return "Court: it is winning a neighbour's favour.";
             default:

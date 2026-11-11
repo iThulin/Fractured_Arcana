@@ -337,6 +337,123 @@ public static class ProvinceField
         return posted.Count;
     }
 
+    // ── Rival archmages R3: guards a realm posts for itself ──────────────
+
+    /// <summary>Fortify: one more guard in a province, on a bridge, a road through high ground
+    /// or a road at the border, GuardSpacing from every guard already there. A province holds
+    /// at most MaxGuards + 2. False when there is no room or no such ground.</summary>
+    public static bool AddGuard(WorldData world, Province province)
+    {
+        if (world == null || province == null || !world.HasProvinces())
+        {
+            return false;
+        }
+        var standing = new List<(int x, int y)>();
+        var candidates = new List<(int x, int y)>();
+        for (int y = 0; y < world.Height; y++)
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                if (world.ProvinceIndexAt(x, y) != province.Index)
+                {
+                    continue;
+                }
+                var here = world.PoiAt(x, y);
+                if (here != null)
+                {
+                    if (here.Guard && !here.Consumed)
+                    {
+                        standing.Add((x, y));
+                    }
+                    continue;
+                }
+                var t = world.GetTile(x, y);
+                if (!t.IsLand || t.SettlementIndex >= 0 || t.ShardZoneIndex >= 0 || t.IsStagingPoint || t.RoadEdges == 0)
+                {
+                    continue;
+                }
+                if (t.BridgeEdges != 0 || t.Terrain == OverworldHex.TerrainType.Mountain
+                    || t.Terrain == OverworldHex.TerrainType.Hills || OnBorder(world, x, y, province.Index))
+                {
+                    candidates.Add((x, y));
+                }
+            }
+        }
+        if (standing.Count >= MaxGuards + 2 || candidates.Count == 0)
+        {
+            return false;
+        }
+        var rng = new Random(unchecked(province.Index * 7919 + world.Pois.Count * 31 + 5));
+        Shuffle(candidates, rng);
+        foreach (var (x, y) in candidates)
+        {
+            bool crowded = false;
+            foreach (var (gx, gy) in standing)
+            {
+                if (HexCoord.OffsetDistance(gx, gy, x, y) < GuardSpacing)
+                {
+                    crowded = true;
+                    break;
+                }
+            }
+            if (crowded)
+            {
+                continue;
+            }
+            PlaceGuard(world, x, y, "");
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Seek: a garrison beside a shard vault's gate, on the nearest free land within
+    /// two tiles. It is a guard, so it holds the gate until it is beaten. False when no tile
+    /// is free.</summary>
+    public static bool GarrisonVault(WorldData world, ShardZone zone)
+    {
+        if (world == null || zone == null)
+        {
+            return false;
+        }
+        for (int radius = 1; radius <= 2; radius++)
+        {
+            foreach (var (x, y) in world.Disc(zone.GateX, zone.GateY, radius))
+            {
+                if ((x == zone.GateX && y == zone.GateY) || (x == zone.SanctumX && y == zone.SanctumY)
+                    || world.PoiAt(x, y) != null)
+                {
+                    continue;
+                }
+                var t = world.GetTile(x, y);
+                if (!t.IsLand || t.SettlementIndex >= 0 || t.IsStagingPoint)
+                {
+                    continue;
+                }
+                PlaceGuard(world, x, y, zone.FragmentKey ?? "");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void PlaceGuard(WorldData world, int x, int y, string vaultKey)
+    {
+        var tile = world.GetTile(x, y);
+        tile.PoiIndex = world.Pois.Count;
+        world.Pois.Add(new WorldPoi
+        {
+            X = x,
+            Y = y,
+            Kind = PoiKind.Combat,
+            KingdomId = tile.KingdomId ?? "",
+            Discovered = false,
+            GrantsStaging = false,
+            Guard = true,
+            VaultKey = vaultKey,
+        });
+        world.SetTile(x, y, tile);
+    }
+
     /// <summary>True when a tile of this province touches land of another.</summary>
     public static bool OnBorder(WorldData world, int x, int y, int provinceIndex)
     {
