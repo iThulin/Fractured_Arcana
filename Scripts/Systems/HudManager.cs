@@ -155,13 +155,13 @@ public partial class HudManager : Node
             AnchorBottom = 0f,
             OffsetBottom = BarHeight,
         };
-        // Mimic the campus title bar: deep fill, violet bottom border only.
-        // It is the same style the campus screen used, now unified across all content.
+        // Daylight glass trial: ink fill with the gold line along the bottom. It was the
+        // campus title bar style (deep fill, violet bottom border).
         var barStyle = new StyleBoxFlat
         {
-            BgColor = UITheme.CampusTitleBarBg,
-            BorderColor = UITheme.CampusTitleBarBorder,
-            BorderWidthBottom = 2,
+            BgColor = UITheme.GlassInkSolid,
+            BorderColor = UITheme.GlassLine,
+            BorderWidthBottom = 1,
         };
         bar.AddThemeStyleboxOverride("panel", barStyle);
         _layer.AddChild(bar);
@@ -284,7 +284,7 @@ public partial class HudManager : Node
     {
         var btn = new Button { Text = text, CustomMinimumSize = new Vector2(96, 0) };
         btn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        UITheme.ApplyButtonStyle(btn, isPrimary: false);
+        UITheme.ApplyGlassButtonStyle(btn);
         btn.Pressed += () => onPressed();
         row.AddChild(btn);
         return btn;
@@ -463,8 +463,8 @@ public partial class HudManager : Node
         };
         var style = new StyleBoxFlat
         {
-            BgColor = UITheme.CampusTitleBarBg,
-            BorderColor = UITheme.CampusTitleBarBorder,
+            BgColor = UITheme.GlassInkSolid,
+            BorderColor = UITheme.GlassLine,
             BorderWidthLeft = 1,
             BorderWidthRight = 1,
             BorderWidthBottom = 1,
@@ -596,7 +596,7 @@ public partial class HudManager : Node
                 CustomMinimumSize = new Vector2(glyph ? 44 : 96, 0),
             };
             btn.AddThemeFontSizeOverride("font_size", glyph ? UITheme.CampusBodyFontSize : UITheme.CampusSmallFontSize);
-            UITheme.ApplyButtonStyle(btn, isPrimary: false);
+            UITheme.ApplyGlassButtonStyle(btn);
             var press = b.OnPressed;
             btn.Pressed += () => press();
             _screenSlot.AddChild(btn);

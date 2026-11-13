@@ -54,6 +54,7 @@ public partial class CombatUI : CanvasLayer
 
 	// ── Layout constants (design-space px, V1 resolution ruling) ─────────
 	private const int LeftPanelWidth = 280;
+	private const int GlassEdgeMargin = 10;   // glass panels float clear of the screen edge and the top bar
 	private const int RightColumnWidth = 300;  // the enemy roster and the turn panel under it
 
 	/// <summary>Where the top-anchored panels start: under the global top bar while it shows,
@@ -225,20 +226,20 @@ public partial class CombatUI : CanvasLayer
 
 	private void BuildLeftPanel()
 	{
-		_leftPanel = new PanelContainer
+		_leftPanel = new GlassPanel
 		{
 			Name = "LeftPanel",
 			AnchorLeft = 0f,
 			AnchorTop = 0f,
 			AnchorRight = 0f,
 			AnchorBottom = 0f,
-			OffsetTop = TopInset, // clear the global top bar when it shows
-			OffsetRight = LeftPanelWidth,
+			OffsetTop = TopInset + GlassEdgeMargin, // clear the global top bar when it shows
+			OffsetLeft = GlassEdgeMargin,
+			OffsetRight = LeftPanelWidth + GlassEdgeMargin,
 			GrowHorizontal = Control.GrowDirection.End,
 			GrowVertical = Control.GrowDirection.End,
 		};
-		_leftPanel.AddThemeStyleboxOverride("panel",
-			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
+		_leftPanel.AddThemeStyleboxOverride("panel", UITheme.MakeGlassPanelStyle());
 		AddChild(_leftPanel);
 
 		var margin = new MarginContainer { Name = "Margin" };
@@ -257,6 +258,7 @@ public partial class CombatUI : CanvasLayer
 
 		// ── Unit name ────────────────────────────────────────────────
 		_unitNameLabel = MakeLabel("-", UITheme.FontSizeLarge, UITheme.TextPrimary);
+		_unitNameLabel.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
 		_unitNameLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		_unitNameLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		vbox.AddChild(_unitNameLabel);
@@ -311,7 +313,7 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddChild(_inspectBlock);
 
 		// Attunement slot, populated by SchoolAttunementUI.UseExternalContainer()
-		vbox.AddChild(MakeDivider(UITheme.VioletDim));
+		vbox.AddChild(MakeDivider(UITheme.GlassLineDim));
 		_attunementSection = new VBoxContainer { Name = "AttunementSection" };
 		_attunementSection.AddThemeConstantOverride("separation", 4);
 		_attunementSection.Visible = false;   // hidden until a school with an attunement is selected
@@ -341,9 +343,8 @@ public partial class CombatUI : CanvasLayer
 
 	private void BuildTurnPanel()
 	{
-		var banner = new PanelContainer { Name = "TurnPanel" };
-		banner.AddThemeStyleboxOverride("panel",
-			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
+		var banner = new GlassPanel { Name = "TurnPanel" };
+		banner.AddThemeStyleboxOverride("panel", UITheme.MakeGlassPanelStyle());
 		_rightColumn.AddChild(banner);
 
 		var margin = new MarginContainer { Name = "Margin" };
@@ -357,7 +358,8 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddThemeConstantOverride("separation", 2);
 		margin.AddChild(vbox);
 
-		_phaseLabel = MakeLabel("", UITheme.FontSizeNormal, UITheme.Violet);
+		_phaseLabel = MakeLabel("", UITheme.FontSizeNormal, UITheme.GlassTitle);
+		_phaseLabel.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
 		_phaseLabel.HorizontalAlignment = HorizontalAlignment.Center;
 		vbox.AddChild(_phaseLabel);
 
@@ -375,7 +377,7 @@ public partial class CombatUI : CanvasLayer
 		// Hint line rides the banner (V1 fix: its first home above the fan sat
 		// exactly on the card tops, unreadable and mid-hand). V4's context
 		// strip takes this slot later; the hint then moves or dies.
-		_hintLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.TextDim);
+		_hintLabel = MakeLabel("", UITheme.FontSizeSmall, UITheme.GlassTextDim);
 		_hintLabel.Name = "HintLabel";
 		_hintLabel.HorizontalAlignment = HorizontalAlignment.Left;
 		_hintLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -428,8 +430,7 @@ public partial class CombatUI : CanvasLayer
 
 		// Log ticker: 3 lines, panel-backed, clickable for full history.
 		var logPanel = new PanelContainer { Name = "LogTicker" };
-		logPanel.AddThemeStyleboxOverride("panel",
-			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.VioletDim));
+		logPanel.AddThemeStyleboxOverride("panel", UITheme.MakeGlassPanelStyle(quiet: true));
 		block.AddChild(logPanel);
 
 		var logMargin = new MarginContainer { Name = "Margin" };
@@ -499,7 +500,7 @@ public partial class CombatUI : CanvasLayer
 			Visible = false,
 			CustomMinimumSize = new Vector2(EndTurnWidth, 40),
 		};
-		UITheme.ApplyButtonStyle(_confirmDeploymentButton, isPrimary: true);
+		UITheme.ApplyGlassButtonStyle(_confirmDeploymentButton, isPrimary: true);
 		_confirmDeploymentButton.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
 		_confirmDeploymentButton.Pressed += () => EmitSignal(SignalName.ConfirmDeploymentPressed);
 		block.AddChild(_confirmDeploymentButton);
@@ -514,7 +515,7 @@ public partial class CombatUI : CanvasLayer
 			CustomMinimumSize = new Vector2(110, 48),
 		};
 		_scrollsButton.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-		UITheme.ApplyButtonStyle(_scrollsButton, isPrimary: false);
+		UITheme.ApplyGlassButtonStyle(_scrollsButton);
 		_scrollsButton.Pressed += () => EmitSignal(SignalName.ScrollsPressed);
 		block.AddChild(_scrollsButton);
 
@@ -569,6 +570,7 @@ public partial class CombatUI : CanvasLayer
 		// bottom-left block, or the End Turn corner (see UITheme tiling note).
 		_deckButton = MakeSmallButton("Deck -");
 		_deckButton.Name = "DeckButton";
+		UITheme.ApplyGlassButtonStyle(_deckButton);
 		_deckButton.AnchorLeft = 0f; _deckButton.AnchorRight = 0f;
 		_deckButton.AnchorTop = 1f; _deckButton.AnchorBottom = 1f;
 		_deckButton.OffsetLeft = UITheme.HandReserveLeft - 8 - FlankButtonWidth;
@@ -580,6 +582,7 @@ public partial class CombatUI : CanvasLayer
 
 		_graveButton = MakeSmallButton("Grave -");
 		_graveButton.Name = "GraveButton";
+		UITheme.ApplyGlassButtonStyle(_graveButton);
 		_graveButton.AnchorLeft = 1f; _graveButton.AnchorRight = 1f;
 		_graveButton.AnchorTop = 1f; _graveButton.AnchorBottom = 1f;
 		_graveButton.OffsetLeft = -(UITheme.HandReserveRight - 8);
@@ -606,20 +609,20 @@ public partial class CombatUI : CanvasLayer
 			AnchorTop = 0f,
 			AnchorRight = 1f,
 			AnchorBottom = 0f,
-			OffsetTop = TopInset, // clear the global top bar when it shows
-			OffsetLeft = -RightColumnWidth,
+			OffsetTop = TopInset + GlassEdgeMargin, // clear the global top bar when it shows
+			OffsetLeft = -RightColumnWidth - GlassEdgeMargin,
+			OffsetRight = -GlassEdgeMargin,
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.End,
 		};
-		_rightColumn.AddThemeConstantOverride("separation", 6);
+		_rightColumn.AddThemeConstantOverride("separation", 8);
 		AddChild(_rightColumn);
 	}
 
 	private void BuildRightPanel()
 	{
-		_rightPanel = new PanelContainer { Name = "RightPanel" };
-		_rightPanel.AddThemeStyleboxOverride("panel",
-			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.VioletDim));
+		_rightPanel = new GlassPanel { Name = "RightPanel" };
+		_rightPanel.AddThemeStyleboxOverride("panel", UITheme.MakeGlassPanelStyle());
 		_rightColumn.AddChild(_rightPanel);
 
 		var margin = new MarginContainer { Name = "Margin" };
@@ -633,11 +636,12 @@ public partial class CombatUI : CanvasLayer
 		vbox.AddThemeConstantOverride("separation", 4);
 		margin.AddChild(vbox);
 
-		var header = MakeLabel("─ ENEMIES ─", UITheme.FontSizeSmall, UITheme.Violet);
+		var header = MakeLabel("Enemies", UITheme.FontSizeNormal, UITheme.GlassHostileTitle);
+		header.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
 		header.HorizontalAlignment = HorizontalAlignment.Center;
 		vbox.AddChild(header);
 
-		vbox.AddChild(MakeDivider(UITheme.VioletDim));
+		vbox.AddChild(MakeDivider(UITheme.GlassLineDim));
 
 		_enemyRosterBox = new VBoxContainer { Name = "EnemyRoster" };
 		_enemyRosterBox.AddThemeConstantOverride("separation", 5);
@@ -769,8 +773,7 @@ public partial class CombatUI : CanvasLayer
 			GrowVertical = Control.GrowDirection.Begin,
 			Visible = false,
 		};
-		_stackPanel.AddThemeStyleboxOverride("panel",
-			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+		_stackPanel.AddThemeStyleboxOverride("panel", UITheme.MakeGlassPanelStyle());
 		AddChild(_stackPanel);
 
 		var margin = new MarginContainer();
@@ -813,7 +816,7 @@ public partial class CombatUI : CanvasLayer
 			CustomMinimumSize = new Vector2(0, 32),
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		UITheme.ApplyButtonStyle(_stackRespondBtn, isPrimary: false);
+		UITheme.ApplyGlassButtonStyle(_stackRespondBtn);
 		_stackRespondBtn.Pressed += () => EmitSignal(SignalName.PriorityRespondPressed);
 		btnRow.AddChild(_stackRespondBtn);
 
@@ -823,7 +826,7 @@ public partial class CombatUI : CanvasLayer
 			CustomMinimumSize = new Vector2(0, 32),
 			SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 		};
-		UITheme.ApplyButtonStyle(_stackPassBtn, isPrimary: true);
+		UITheme.ApplyGlassButtonStyle(_stackPassBtn, isPrimary: true);
 		_stackPassBtn.Pressed += () => EmitSignal(SignalName.PriorityPassPressed);
 		btnRow.AddChild(_stackPassBtn);
 	}
@@ -861,8 +864,7 @@ public partial class CombatUI : CanvasLayer
 			GrowVertical = Control.GrowDirection.Begin,
 			OffsetLeft = -360, OffsetRight = -12, OffsetBottom = -110,
 		};
-		_consumablePopup.AddThemeStyleboxOverride("panel",
-			UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Gold));
+		_consumablePopup.AddThemeStyleboxOverride("panel", UITheme.MakeGlassPanelStyle());
 		AddChild(_consumablePopup);
 
 		var margins = new MarginContainer();
@@ -901,7 +903,7 @@ public partial class CombatUI : CanvasLayer
 					SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
 				};
 				btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
-				UITheme.ApplyButtonStyle(btn, isPrimary: false);
+				UITheme.ApplyGlassButtonStyle(btn);
 				string captured = e.InstanceId;
 				btn.Pressed += () => EmitSignal(SignalName.UseConsumablePressed, captured);
 				vbox.AddChild(btn);
@@ -988,7 +990,7 @@ public partial class CombatUI : CanvasLayer
 			}
 
 			if (i < items.Count - 1)
-				_stackList.AddChild(MakeDivider(UITheme.VioletDim));
+				_stackList.AddChild(MakeDivider(UITheme.GlassLineDim));
 		}
 
 		_stackPassBtn.Visible = interactive;
@@ -1208,7 +1210,7 @@ public partial class CombatUI : CanvasLayer
 				TooltipText = a.Tooltip,
 			};
 			btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
-			UITheme.ApplyButtonStyle(btn, isPrimary: a.Armed);
+			UITheme.ApplyGlassButtonStyle(btn, isPrimary: a.Armed);
 			int kind = (int)a.Kind;
 			btn.Pressed += () => EmitSignal(SignalName.UnitActionRequested, kind);
 			_actionRow.AddChild(btn);
@@ -1233,7 +1235,7 @@ public partial class CombatUI : CanvasLayer
 		}
 		_inspectBlock.Visible = true;
 
-		_inspectBlock.AddChild(MakeDivider(UITheme.VioletDim));
+		_inspectBlock.AddChild(MakeDivider(UITheme.GlassLineDim));
 
 		// Behavior line: rules and reach, plain language.
 		var behavior = MakeLabel(
@@ -1805,15 +1807,15 @@ public partial class CombatUI : CanvasLayer
 
 			var style = new StyleBoxFlat
 			{
-				BgColor = isSelected ? UITheme.UnitBarSelected : UITheme.BgRaised,
-				BorderColor = isSelected ? UITheme.UnitBarBorder : UITheme.Neutral,
+				BgColor = isSelected ? UITheme.GlassInkRaised : UITheme.GlassInk,
+				BorderColor = isSelected ? UITheme.GlassLine : UITheme.GlassLineDim,
 				ContentMarginLeft = 4,
 				ContentMarginRight = 6,
 				ContentMarginTop = 4,
 				ContentMarginBottom = 4,
 			};
 			style.SetBorderWidthAll(isSelected ? 2 : 1);
-			style.SetCornerRadiusAll(UITheme.CornerRadius);
+			style.SetCornerRadiusAll(UITheme.GlassCornerRadius);
 			panel.AddThemeStyleboxOverride("panel", style);
 
 			var chipRow = new HBoxContainer { Name = "Row" };
@@ -1847,7 +1849,7 @@ public partial class CombatUI : CanvasLayer
 					pips += p < unit.CurrentActionPoints ? "●" : "○";
 
 				var pipLbl = MakeLabel(pips, UITheme.FontSizeSmall,
-					isSelected ? UITheme.Violet : UITheme.NeutralDim);
+					isSelected ? UITheme.GlassTitle : UITheme.NeutralDim);
 				vbox.AddChild(pipLbl);
 
 				// HP text
@@ -1970,19 +1972,14 @@ public partial class CombatUI : CanvasLayer
 	{
 		var btn = new Button { Text = text };
 		btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-		UITheme.ApplyButtonStyle(btn, isPrimary: false);
+		UITheme.ApplyGlassButtonStyle(btn);
 		return btn;
 	}
 
 	private static void StyleEndTurnButton(Button btn)
 	{
-		var style = new StyleBoxFlat { BgColor = UITheme.Success };
-		style.SetBorderWidthAll(1);
-		style.SetCornerRadiusAll(UITheme.CornerRadius);
-		style.BorderColor = UITheme.SuccessDim;
-		btn.AddThemeStyleboxOverride("normal", style);
-		btn.AddThemeColorOverride("font_color", UITheme.TextPrimary);
-		btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeNormal);
+		UITheme.ApplyGlassButtonStyle(btn, isPrimary: true);
+		btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
 	}
 
 	private static HBoxContainer MakeBarRow(

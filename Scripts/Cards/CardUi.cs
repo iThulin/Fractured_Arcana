@@ -55,6 +55,7 @@ public partial class CardUi : Control
     /// hand cards and grow to full size when hovered).</summary>
     public float RestScale = 1f;
     private Label _pagePlate;
+    private Panel _glow;   // daylight glass trial: school-coloured light behind a castable hand card
 
     /// <summary>Shows a small plate above the card ("PAGE · +1 Charge"); null hides it.</summary>
     public void SetPagePlate(string text)
@@ -215,6 +216,14 @@ public partial class CardUi : Control
         if (_fullCardView == null)
             GD.Print("CardUi: FullCardView not found, so hover art is disabled");
 
+        // Daylight glass trial: the clip moves from the root to the two views, so the
+        // glow behind the card can reach past the card edge. Card content is clipped
+        // to the same 200x300 rect as before.
+        ClipContents = false;
+        _splitView.ClipContents = true;
+        if (_fullCardView != null)
+            _fullCardView.ClipContents = true;
+
         // ── Mouse events ────────────────────────────────────────────
         topArea.MouseEntered += OnCardEnter;
         bottomArea.MouseEntered += OnCardEnter;
@@ -359,6 +368,7 @@ public partial class CardUi : Control
 
         ApplyPanelBorder(_topPanel, borderCol, true);
         ApplyPanelBorder(_bottomPanel, borderCol, false);
+        ApplyGlow(borderCol);
 
         string sigilCardId = CardInstance?.BlueprintId;
         if (string.IsNullOrEmpty(sigilCardId)) sigilCardId = top?.SourceCardId ?? bottom?.SourceCardId ?? "";
@@ -1078,7 +1088,7 @@ public partial class CardUi : Control
     // ── §7c reaction window ──────────────────────────────────────────────
     // While a priority window is open, halves that cannot be cast as a
     // response (not Reflex speed) render darkened + desaturated. Halves that
-    // ARE Reflex keep the normal affordability read (DangerDim when short).
+    // ARE Reflex keep the normal affordability read (dimmed when short).
 
     private bool _reactionWindow = false;
 
@@ -1143,7 +1153,11 @@ public partial class CardUi : Control
         // as a different colour. A DISCOUNTED price (2026-07-29: Precognition's kept
         // card, a Perfected card) reads as a third: the affordance colour, because a
         // lowered price is an invitation.
-        label.Modulate = IsTaxed(half) ? UITheme.Warning
+        // Daylight glass trial: a price the player cannot pay is the one red thing on
+        // the card, and it beats the tax and discount tints. The half itself is dimmed
+        // (HalfBaseColor), not painted red.
+        label.Modulate = EffCost(half) > _lastKnownMana ? UITheme.Danger
+                       : IsTaxed(half) ? UITheme.Warning
                        : IsDiscounted(half) ? UITheme.Success
                        : Colors.White;
     }
@@ -1154,7 +1168,7 @@ public partial class CardUi : Control
         if (HalfReactionLocked(half))
             return UITheme.CardReactionLocked;
         return EffCost(half) > _lastKnownMana
-            ? UITheme.DangerDim : UITheme.SurfaceLight;
+            ? UITheme.CardUnaffordable : UITheme.SurfaceLight;
     }
 
     /// <summary>Hover color for a half: a reaction-locked half never lights up
@@ -1202,12 +1216,60 @@ public partial class CardUi : Control
         // flagged for overflow discard still has a price the player needs to read.
         // The amber pulse owns the panel modulate, not the number.
         RefreshManaPips();
+        RefreshGlow();
 
         // Don't override panel colors if discard flagged; the amber pulse takes visual priority
         if (_isDiscardFlagged) return;
 
         _topPanel.Modulate = HalfBaseColor(TopHalf);
         _bottomPanel.Modulate = HalfBaseColor(BottomHalf);
+    }
+
+    /// <summary>
+    /// Daylight glass trial. Creates the glow behind the card on first call and
+    /// tints it to the school colour. It stays hidden until RefreshGlow shows it.
+    /// </summary>
+    private void ApplyGlow(Color schoolCol)
+    {
+        if (_visualNode == null) return;
+        if (_glow == null)
+        {
+            _glow = new Panel
+            {
+                Name = "Glow",
+                MouseFilter = MouseFilterEnum.Ignore,
+                Visible = false,
+            };
+            _visualNode.AddChild(_glow);
+            _visualNode.MoveChild(_glow, 0);   // behind both views
+            _glow.Position = Vector2.Zero;
+            _glow.Size = new Vector2(UITheme.HandCardWidth, UITheme.HandCardHeight);
+        }
+
+        var style = new StyleBoxFlat
+        {
+            DrawCenter = false,
+            ShadowColor = new Color(schoolCol.R, schoolCol.G, schoolCol.B, UITheme.CardGlowAlpha),
+            ShadowSize = UITheme.CardGlowSize,
+        };
+        style.SetCornerRadiusAll(UITheme.CardGlowCornerRadius);
+        _glow.AddThemeStyleboxOverride("panel", style);
+        RefreshGlow();
+    }
+
+    /// <summary>A half the player could cast right now: affordable and not locked.</summary>
+    private bool HalfCastable(CardHalf half)
+        => half != null && !HalfReactionLocked(half) && EffCost(half) <= _lastKnownMana;
+
+    /// <summary>
+    /// The glow means "you can cast this now". It shows only on hand cards in a
+    /// fight (the only cards with a DeckUiManager), and only while a half is castable.
+    /// </summary>
+    private void RefreshGlow()
+    {
+        if (_glow == null) return;
+        _glow.Visible = _deckUiManager != null
+            && (HalfCastable(TopHalf) || HalfCastable(BottomHalf));
     }
 
     public void SetDiscardFlagged(bool flagged)

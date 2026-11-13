@@ -70,10 +70,10 @@ public partial class TooltipManager : Control
         _panel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
 
         var style = new StyleBoxFlat();
-        style.BgColor = new Color(0.06f, 0.06f, 0.10f, 0.97f);
-        style.BorderColor = UITheme.Violet;
-        style.SetBorderWidthAll(2);
-        style.SetCornerRadiusAll(UITheme.CornerRadius);
+        style.BgColor = UITheme.GlassInkSolid;
+        style.BorderColor = UITheme.GlassLine;
+        style.SetBorderWidthAll(1);
+        style.SetCornerRadiusAll(UITheme.GlassCornerRadius);
         style.ShadowColor = new Color(0f, 0f, 0f, 0.8f);
         style.ShadowSize = 4;
         _panel.AddThemeStyleboxOverride("panel", style);

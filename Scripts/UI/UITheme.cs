@@ -863,6 +863,40 @@ public static class UITheme
     public const float DiscardEndScale = 0.85f;
 
     // ════════════════════════════════════════════════════════════
+    // DAYLIGHT GLASS (trial, branch ui/daylight-glass)
+    // Combat HUD direction E: warm ink chrome, one gold line, and
+    // saturated colour kept for magic. Only CombatUI and GlassPanel
+    // read these. The slate tokens above are untouched.
+    // ════════════════════════════════════════════════════════════
+    public static readonly Color GlassInk = new Color(0.094f, 0.086f, 0.110f, 0.92f); // #18161C at 92%
+    public static readonly Color GlassInkSolid = new Color(0.094f, 0.086f, 0.110f, 1f); // #18161C opaque, for bars and tooltips
+    public static readonly Color GlassInkRaised = new Color(0.165f, 0.149f, 0.184f, 0.96f); // #2A262F hover fill
+    public static readonly Color GlassLine = new Color(0.878f, 0.706f, 0.361f, 1f); // #E0B45C the gold line
+    public static readonly Color GlassLineDim = new Color(0.478f, 0.353f, 0.141f, 1f); // #7A5A24 inner hairline, quiet panels
+    public static readonly Color GlassTitle = new Color(1.000f, 0.851f, 0.541f, 1f); // #FFD98A display text
+    public static readonly Color GlassTextDim = new Color(0.722f, 0.690f, 0.635f, 1f); // #B8B0A2 hints on ink
+    public static readonly Color GlassHostileTitle = new Color(1.000f, 0.604f, 0.510f, 1f); // #FF9A82 enemy headings
+    public static readonly Color GlassShadow = new Color(0f, 0f, 0f, 0.35f);
+    public static readonly Color GlassPrimary = new Color(0.949f, 0.702f, 0.278f, 1f); // #F2B347 End Turn fill
+    public static readonly Color GlassPrimaryHover = new Color(1.000f, 0.878f, 0.541f, 1f); // #FFE08A
+    public static readonly Color GlassPrimaryPressed = new Color(0.800f, 0.560f, 0.180f, 1f); // #CC8F2E
+    public static readonly Color GlassPrimaryEdge = new Color(1.000f, 0.953f, 0.769f, 1f); // #FFF3C4
+    public static readonly Color GlassPrimaryInk = new Color(0.165f, 0.071f, 0.024f, 1f); // #2A1206 text on the gold fill
+    public static readonly Color GlassPrimaryGlow = new Color(1.000f, 0.745f, 0.314f, 0.55f); // #FFBE50 at 55%
+    public const int GlassCornerRadius = 2;
+    public const int GlassShadowSize = 8;
+    public const int GlassGlowSize = 10;
+    public const float GlassInnerLineInset = 3.5f;  // half-pixel so the 1px hairline stays crisp
+    public const string GlassDisplayFontPath = "res://Assets/Fonts/Caladea-Bold.ttf";
+    // A half the player cannot afford: dimmed parchment, between a resting half and a
+    // reaction-locked one. The red moves to the price on the mana pip (CardUi.ApplyManaPip).
+    public static readonly Color CardUnaffordable = new Color(0.62f, 0.60f, 0.58f, 1f);
+    // Card glow: a soft school-coloured light behind a hand card that can be cast now.
+    public const int CardGlowSize = 10;
+    public const int CardGlowCornerRadius = 8;
+    public const float CardGlowAlpha = 0.50f;
+
+    // ════════════════════════════════════════════════════════════
     // HELPERS
     // ════════════════════════════════════════════════════════════
 
@@ -935,5 +969,72 @@ public static class UITheme
         btn.AddThemeStyleboxOverride("pressed", pressed);
         btn.AddThemeStyleboxOverride("focus", normal);
         btn.AddThemeColorOverride("font_color", TextPrimary);
+    }
+
+    // ── Daylight glass helpers (trial) ────────────────────────────
+
+    private static Font _glassDisplayFont;
+
+    /// <summary>The serif display face for glass titles and buttons. Loaded once.</summary>
+    public static Font GlassDisplayFont => _glassDisplayFont ??= GD.Load<Font>(GlassDisplayFontPath);
+
+    /// <summary>
+    /// Ink panel with one gold line. quiet: dim line and no shadow, for
+    /// secondary surfaces such as the log ticker.
+    /// </summary>
+    public static StyleBoxFlat MakeGlassPanelStyle(bool quiet = false)
+    {
+        var s = new StyleBoxFlat
+        {
+            BgColor = GlassInk,
+            BorderColor = quiet ? GlassLineDim : GlassLine,
+            ShadowColor = GlassShadow,
+            ShadowSize = quiet ? 0 : GlassShadowSize,
+        };
+        s.SetBorderWidthAll(1);
+        s.SetCornerRadiusAll(GlassCornerRadius);
+        return s;
+    }
+
+    /// <summary>
+    /// Glass button. isPrimary: the gold fill with a glow, one per screen
+    /// (End Turn). Otherwise ink with the gold line.
+    /// </summary>
+    public static void ApplyGlassButtonStyle(Button btn, bool isPrimary = false)
+    {
+        Color text = isPrimary ? GlassPrimaryInk : GlassTitle;
+        Color border = isPrimary ? GlassPrimaryEdge : GlassLine;
+
+        StyleBoxFlat normal = MakeGlassButtonBox(isPrimary ? GlassPrimary : GlassInk, border, isPrimary);
+        btn.AddThemeStyleboxOverride("normal", normal);
+        btn.AddThemeStyleboxOverride("focus", normal);
+        btn.AddThemeStyleboxOverride("hover",
+            MakeGlassButtonBox(isPrimary ? GlassPrimaryHover : GlassInkRaised, border, isPrimary));
+        btn.AddThemeStyleboxOverride("pressed",
+            MakeGlassButtonBox(isPrimary ? GlassPrimaryPressed : GlassInkRaised, border, false));
+        btn.AddThemeStyleboxOverride("disabled",
+            MakeGlassButtonBox(GlassInk, GlassLineDim, false));
+
+        btn.AddThemeColorOverride("font_color", text);
+        btn.AddThemeColorOverride("font_hover_color", text);
+        btn.AddThemeColorOverride("font_pressed_color", text);
+        btn.AddThemeColorOverride("font_focus_color", text);
+        btn.AddThemeColorOverride("font_disabled_color", GlassTextDim);
+        btn.AddThemeFontOverride("font", GlassDisplayFont);
+    }
+
+    private static StyleBoxFlat MakeGlassButtonBox(Color bg, Color border, bool glow)
+    {
+        var s = new StyleBoxFlat { BgColor = bg, BorderColor = border };
+        s.SetBorderWidthAll(1);
+        s.SetCornerRadiusAll(GlassCornerRadius);
+        s.ContentMarginLeft = s.ContentMarginRight = PaddingNormal + 4;
+        s.ContentMarginTop = s.ContentMarginBottom = PaddingSmall + 2;
+        if (glow)
+        {
+            s.ShadowColor = GlassPrimaryGlow;
+            s.ShadowSize = GlassGlowSize;
+        }
+        return s;
     }
 }
