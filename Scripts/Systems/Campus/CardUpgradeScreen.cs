@@ -140,7 +140,7 @@ public partial class CardUpgradeScreen : Control
             leftShell.AddThemeStyleboxOverride("panel", new StyleBoxFlat
             {
                 BgColor = UITheme.BgBase,
-                BorderColor = UITheme.Violet,
+                BorderColor = UITheme.GlassLine,
                 BorderWidthRight = 1,
             });
             body.AddChild(leftShell);
@@ -149,7 +149,7 @@ public partial class CardUpgradeScreen : Control
             leftVBox.SizeFlagsVertical = SizeFlags.ExpandFill;
             leftShell.AddChild(leftVBox);
 
-            leftVBox.AddChild(BuildHeader("Your Cards", UITheme.Violet));
+            leftVBox.AddChild(BuildHeader("Your Cards", UITheme.GlassTitle));
 
             var leftScroll = new ScrollContainer
             {
@@ -430,7 +430,7 @@ public partial class CardUpgradeScreen : Control
                 BgColor = isSelected
                     ? new Color(UITheme.Violet.R, UITheme.Violet.G, UITheme.Violet.B, 0.18f)
                     : UITheme.SurfaceLight,
-                BorderColor = isSelected ? UITheme.Violet
+                BorderColor = isSelected ? UITheme.GlassLine
                                 : maxed ? UITheme.Gold
                                 : accent,
                 BorderWidthLeft = 3,

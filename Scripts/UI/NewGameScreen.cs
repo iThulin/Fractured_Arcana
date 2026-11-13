@@ -549,7 +549,7 @@ public partial class NewGameScreen : Control
         var inputFocus = new StyleBoxFlat
         {
             BgColor = new Color(0.07f, 0.06f, 0.12f),
-            BorderColor = UITheme.Violet,
+            BorderColor = UITheme.GlassLine,
             BorderWidthTop = 1,
             BorderWidthBottom = 2,
             BorderWidthLeft = 1,
@@ -1008,7 +1008,7 @@ public partial class NewGameScreen : Control
         var normal = new StyleBoxFlat
         {
             BgColor = UITheme.ButtonPrimary,
-            BorderColor = UITheme.Violet,
+            BorderColor = UITheme.GlassLine,
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = 1,
@@ -1021,7 +1021,7 @@ public partial class NewGameScreen : Control
         var hover = new StyleBoxFlat
         {
             BgColor = UITheme.ButtonPrimaryHover,
-            BorderColor = UITheme.Violet,
+            BorderColor = UITheme.GlassLine,
             BorderWidthTop = 1,
             BorderWidthBottom = 2,
             BorderWidthLeft = 1,

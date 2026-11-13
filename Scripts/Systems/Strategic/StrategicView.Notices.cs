@@ -68,7 +68,7 @@ public partial class StrategicView
             {
                 var edge = (StyleBoxFlat)border.Duplicate();
                 edge.BgColor = UITheme.BgRaised;
-                edge.BorderColor = UITheme.Violet;
+                edge.BorderColor = UITheme.GlassLine;
                 dialog.AddThemeStyleboxOverride(name, edge);
             }
         }

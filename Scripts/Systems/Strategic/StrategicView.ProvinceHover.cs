@@ -263,7 +263,7 @@ public partial class StrategicView
         var style = new StyleBoxFlat
         {
             BgColor = new Color(0.06f, 0.06f, 0.10f, 0.97f),
-            BorderColor = UITheme.Violet,
+            BorderColor = UITheme.GlassLine,
             ShadowColor = new Color(0f, 0f, 0f, 0.8f),
             ShadowSize = 4,
             ContentMarginLeft = 12,

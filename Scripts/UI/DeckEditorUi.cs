@@ -236,7 +236,7 @@ public partial class DeckEditorUi : Control
         var ghostStyle = new StyleBoxFlat
         {
             BgColor = new Color(0.08f, 0.08f, 0.18f, 0.95f),
-            BorderColor = UITheme.Violet,
+            BorderColor = UITheme.GlassLine,
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = 1,

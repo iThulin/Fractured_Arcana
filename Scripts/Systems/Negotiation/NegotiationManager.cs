@@ -429,7 +429,7 @@ public partial class NegotiationManager : Control
 
         // ── NPC strip (v3.6): the person is the largest thing on screen ───
         var strip = new PanelContainer();
-        strip.AddThemeStyleboxOverride("panel", PanelStyle(UITheme.BgRaised, UITheme.VioletDim, 10, 14));
+        strip.AddThemeStyleboxOverride("panel", PanelStyle(UITheme.BgRaised, UITheme.GlassLineDim, 10, 14));
         root.AddChild(strip);
         var stripRow = new HBoxContainer();
         stripRow.AddThemeConstantOverride("separation", 22);
@@ -550,7 +550,7 @@ public partial class NegotiationManager : Control
 
         // ── Bottom bar ────────────────────────────────────────────────────
         var bottom = new PanelContainer();
-        bottom.AddThemeStyleboxOverride("panel", PanelStyle(UITheme.BgRaised, UITheme.VioletDim, 8, 8));
+        bottom.AddThemeStyleboxOverride("panel", PanelStyle(UITheme.BgRaised, UITheme.GlassLineDim, 8, 8));
         root.AddChild(bottom);
         var bottomRow = new HBoxContainer();
         bottomRow.AddThemeConstantOverride("separation", 10);
@@ -581,7 +581,7 @@ public partial class NegotiationManager : Control
         root.AddChild(logHeader);
 
         var logPanel = new PanelContainer { CustomMinimumSize = new Vector2(0, 90) };
-        logPanel.AddThemeStyleboxOverride("panel", PanelStyle(UITheme.BgDeep, UITheme.VioletDim, 8, 8));
+        logPanel.AddThemeStyleboxOverride("panel", PanelStyle(UITheme.BgDeep, UITheme.GlassLineDim, 8, 8));
         root.AddChild(logPanel);
         _logScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         logPanel.AddChild(_logScroll);
@@ -1038,7 +1038,7 @@ public partial class NegotiationManager : Control
             var style = new StyleBoxFlat
             {
                 BgColor = faceUp ? Parchment : new Color(0.24f, 0.18f, 0.32f),
-                BorderColor = n.Kind == NpcCardKind.Squeeze ? ColTheirs : faceUp ? ColInfo : UITheme.VioletDim,
+                BorderColor = n.Kind == NpcCardKind.Squeeze ? ColTheirs : faceUp ? ColInfo : UITheme.GlassLineDim,
                 BorderWidthTop = 1, BorderWidthBottom = 1, BorderWidthLeft = 1, BorderWidthRight = 1,
                 CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
                 ContentMarginTop = 3, ContentMarginBottom = 3, ContentMarginLeft = 6, ContentMarginRight = 6,

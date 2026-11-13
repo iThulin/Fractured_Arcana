@@ -19,11 +19,13 @@ using Godot;
 //
 // Visual identity reminders for new contributors:
 //   - 3D world (tiles, units, overworld map): deep purple-black.
-//   - UI chrome (panels, campus, modals, negotiation): dark
-//     blue-grey slate. Near-white text on all panel surfaces.
+//   - UI chrome (panels, campus, modals, negotiation): black ink
+//     with one gold line. Warm near-white text on all panels.
 //   - Card faces: warm light parchment (SurfaceLight). Cards
-//     should read as physical objects on top of the slate UI.
-//   - Accents: violet borders, gold titles, arcane blue mana.
+//     should read as physical objects on top of the ink UI.
+//   - Accents: gold lines and titles, arcane blue mana. Violet is
+//     the player's colour in the world, not a chrome colour.
+//   - Saturated colour and glow are kept for magic.
 
 /// <summary>Project-wide theme tokens. Every UI surface, panel, button, label, and animation duration reads from this class. Member-level docs are intentionally omitted for the color/size constants, because the names plus the section banners below carry the meaning. If you find yourself hardcoding a color or padding value in another file, add a token here instead.</summary>
 public static class UITheme
@@ -37,22 +39,27 @@ public static class UITheme
     public static readonly Color WorldBase = new Color(0.12f, 0.09f, 0.16f, 1f); // #1E1728
     public static readonly Color WorldOverlay = new Color(0.00f, 0.00f, 0.00f, 0.65f);
 
-    // ── Slate UI chrome ───────────────────────────────────────────
-    public static readonly Color BgDeep = new Color(0.10f, 0.11f, 0.16f, 1f); // #1A1C29 is the deepest slate
-    public static readonly Color BgBase = new Color(0.13f, 0.15f, 0.22f, 1f); // #212538 is the panel bg
-    public static readonly Color BgRaised = new Color(0.17f, 0.19f, 0.28f, 1f); // #2B3047 for raised elements
+    // ── Ink UI chrome ─────────────────────────────────────────────
+    public static readonly Color BgDeep = new Color(0.071f, 0.063f, 0.078f, 1f); // #121014 the deepest ink
+    public static readonly Color BgBase = new Color(0.094f, 0.086f, 0.110f, 1f); // #18161C the panel bg
+    public static readonly Color BgRaised = new Color(0.141f, 0.129f, 0.165f, 1f); // #24212A for raised elements
     public static readonly Color BgOverlay = new Color(0.00f, 0.00f, 0.00f, 0.72f);
-    public static readonly Color BgCard = new Color(0.20f, 0.22f, 0.32f, 1f); // #333852 is lighter than BgBase; used for cards and campus elements to stand out against panels
+    public static readonly Color BgCard = new Color(0.180f, 0.165f, 0.208f, 1f); // #2E2A35 is lighter than BgBase; used for cards and campus elements to stand out against panels
 
-    // ── Accent purple ─────────────────────────────────────────────
+    // ── Gold line (chrome borders, dividers, selected edges) ─────
+    public static readonly Color GlassLine = new Color(0.878f, 0.706f, 0.361f, 1f); // #E0B45C
+    public static readonly Color GlassLineDim = new Color(0.478f, 0.353f, 0.141f, 1f); // #7A5A24 inner hairline, quiet panels
+
+    // ── Violet: the player's colour in the world (home marks, your
+    //    side of a negotiation, shards). No longer a chrome colour.
     public static readonly Color Violet = new Color(0.48f, 0.30f, 0.82f, 1f); // #7A4DD1
     public static readonly Color VioletDim = new Color(0.32f, 0.20f, 0.55f, 1f); // #52338C
     public static readonly Color VioletDark = new Color(0.20f, 0.13f, 0.35f, 1f); // #332159
 
-    // ── Button fills, solid so they pop against slate ─────────────
-    public static readonly Color ButtonPrimary = new Color(0.36f, 0.22f, 0.65f, 1f); // #5C38A6
-    public static readonly Color ButtonPrimaryHover = new Color(0.44f, 0.28f, 0.76f, 1f); // #7048C2
-    public static readonly Color ButtonSecondary = new Color(0.18f, 0.20f, 0.30f, 1f); // #2E3350
+    // ── Button fills ──────────────────────────────────────────────
+    public static readonly Color ButtonPrimary = new Color(0.361f, 0.271f, 0.110f, 1f); // #5C451C selected or active fill, under light text
+    public static readonly Color ButtonPrimaryHover = new Color(0.451f, 0.341f, 0.141f, 1f); // #735724
+    public static readonly Color ButtonSecondary = new Color(0.141f, 0.129f, 0.165f, 1f); // #24212A
     public static readonly Color ButtonDanger = new Color(0.55f, 0.14f, 0.14f, 1f); // #8C2424
 
     // ── Gold ──────────────────────────────────────────────────────
@@ -73,16 +80,16 @@ public static class UITheme
     public static readonly Color Warning = new Color(0.90f, 0.60f, 0.12f, 1f); // #E6991F
     public static readonly Color WarningDim = new Color(0.60f, 0.40f, 0.08f, 1f); // #996614
 
-    // ── Text on slate surfaces ────────────────────────────────────
-    public static readonly Color TextPrimary = new Color(0.92f, 0.90f, 0.96f, 1f); // #EBE6F5 near-white
-    public static readonly Color TextSecondary = new Color(0.68f, 0.64f, 0.80f, 1f); // #ADA3CC soft lavender
-    public static readonly Color TextDim = new Color(0.48f, 0.45f, 0.58f, 1f); // #7A7394 muted
-    public static readonly Color TextOnDark = new Color(0.92f, 0.90f, 0.96f, 1f); // same as primary
+    // ── Text on ink surfaces ──────────────────────────────────────
+    public static readonly Color TextPrimary = new Color(0.965f, 0.925f, 0.863f, 1f); // #F6ECDC warm near-white
+    public static readonly Color TextSecondary = new Color(0.722f, 0.690f, 0.635f, 1f); // #B8B0A2 warm grey
+    public static readonly Color TextDim = new Color(0.541f, 0.514f, 0.471f, 1f); // #8A8378 muted
+    public static readonly Color TextOnDark = new Color(0.965f, 0.925f, 0.863f, 1f); // same as primary
     public static readonly Color TextOnLight = new Color(0.12f, 0.10f, 0.18f, 1f); // for card faces
 
     // ── Neutral ───────────────────────────────────────────────────
-    public static readonly Color Neutral = new Color(0.32f, 0.30f, 0.42f, 1f);
-    public static readonly Color NeutralDim = new Color(0.22f, 0.20f, 0.30f, 1f);
+    public static readonly Color Neutral = new Color(0.360f, 0.320f, 0.260f, 1f); // #5C5242 quiet borders
+    public static readonly Color NeutralDim = new Color(0.210f, 0.190f, 0.170f, 1f); // #36302B
 
     // ════════════════════════════════════════════════════════════
     // SURFACE ALIASES
@@ -388,8 +395,8 @@ public static class UITheme
     // COMBAT UI
     // ════════════════════════════════════════════════════════════
     public static readonly Color EnemyHealthBar = Danger;
-    public static readonly Color UnitBarSelected = new Color(0.48f, 0.30f, 0.82f, 0.25f);
-    public static readonly Color UnitBarBorder = Violet;
+    public static readonly Color UnitBarSelected = new Color(0.878f, 0.706f, 0.361f, 0.22f); // the gold line at 22%
+    public static readonly Color UnitBarBorder = GlassLine;
     public static readonly Color StatBarHealth = HealthGreen;
     public static readonly Color StatBarMove = Gold;
     public static readonly Color StatBarMana = ArcaneBlue;
@@ -503,8 +510,8 @@ public static class UITheme
     public static readonly Color MoveHighlightExpensive = new Color(0.90f, 0.40f, 0.25f, 0.30f);
     public static readonly Color MoveHighlightDefault = new Color(0.70f, 0.55f, 0.90f, 0.30f);
 
-    public static readonly Color OverworldHudBg = new Color(0.10f, 0.11f, 0.16f, 0.88f);
-    public static readonly Color OverworldHudBorder = new Color(0.32f, 0.22f, 0.52f, 0.80f);
+    public static readonly Color OverworldHudBg = new Color(0.094f, 0.086f, 0.110f, 0.88f); // ink at 88%
+    public static readonly Color OverworldHudBorder = new Color(0.878f, 0.706f, 0.361f, 0.8f); // the gold line at 80%
     public static readonly Color OverworldLowResourceWarning = Danger;
     public static readonly Color OverworldInfoLabelTint = Gold;
 
@@ -646,9 +653,9 @@ public static class UITheme
     // ════════════════════════════════════════════════════════════
     public static readonly Color NarrativeBackdrop = BgOverlay;
     public static readonly Color NarrativePanelBg = BgBase;
-    public static readonly Color NarrativePanelBorder = Violet;
+    public static readonly Color NarrativePanelBorder = GlassLine;
     public static readonly Color NarrativeResultBg = BgRaised;
-    public static readonly Color NarrativeResultBorder = VioletDim;
+    public static readonly Color NarrativeResultBorder = GlassLineDim;
     public static readonly Color NarrativeTitleColor = Gold;
     public static readonly Color NarrativeBodyColor = TextPrimary;
     public static readonly Color NarrativeResultColor = TextSecondary;
@@ -665,7 +672,7 @@ public static class UITheme
     // ════════════════════════════════════════════════════════════
     public static readonly Color NegotiationBg = BgDeep;
     public static readonly Color NegotiationResultBg = BgRaised;
-    public static readonly Color NegotiationResultBorder = Violet;
+    public static readonly Color NegotiationResultBorder = GlassLine;
     public static readonly Color NegotiationTitleColor = Gold;
     public static readonly Color NegotiationNpcColor = TextSecondary;
     public static readonly Color NegotiationBodyColor = TextPrimary;
@@ -699,7 +706,7 @@ public static class UITheme
     // ════════════════════════════════════════════════════════════
     public static readonly Color CampusBg = WorldBase;
     public static readonly Color CampusTitleBarBg = BgDeep;
-    public static readonly Color CampusTitleBarBorder = Violet;
+    public static readonly Color CampusTitleBarBorder = GlassLine;
 
     public static readonly Color CampusTitleColor = Gold;
     public static readonly Color CampusSectionColor = Gold;
@@ -720,7 +727,7 @@ public static class UITheme
     public static readonly Color CompanionSubText = TextSecondary;
 
     public static readonly Color BuildingCardBg = BgCard;
-    public static readonly Color BuildingCardBorderBuilt = Violet;
+    public static readonly Color BuildingCardBorderBuilt = GlassLine;
     public static readonly Color BuildingCardBorderEmpty = Neutral;
     public static readonly Color BuildingCategoryText = TextSecondary;
     public static readonly Color BuildingActiveText = Success;
@@ -762,7 +769,7 @@ public static class UITheme
 
     // ── Card library ──────────────────────────────────────────────
     public static readonly Color LibraryTabNormal = BgBase;
-    public static readonly Color LibraryTabPressed = new Color(0.28f, 0.20f, 0.48f, 1f);
+    public static readonly Color LibraryTabPressed = new Color(0.361f, 0.271f, 0.110f, 1f); // #5C451C
     public static readonly Color LibraryTabHover = BgRaised;
 
     public const int LibraryTabFontSize = 12;
@@ -863,16 +870,15 @@ public static class UITheme
     public const float DiscardEndScale = 0.85f;
 
     // ════════════════════════════════════════════════════════════
-    // DAYLIGHT GLASS (trial, branch ui/daylight-glass)
-    // Combat HUD direction E: warm ink chrome, one gold line, and
-    // saturated colour kept for magic. Only CombatUI and GlassPanel
-    // read these. The slate tokens above are untouched.
+    // DAYLIGHT GLASS (adopted 2026-11-13, branch ui/daylight-glass)
+    // Warm ink chrome, one gold line, and saturated colour kept for
+    // magic. The core palette above carries the same ink and gold,
+    // so every screen that reads UITheme follows. GlassLine and
+    // GlassLineDim live in the core palette.
     // ════════════════════════════════════════════════════════════
     public static readonly Color GlassInk = new Color(0.094f, 0.086f, 0.110f, 0.92f); // #18161C at 92%
     public static readonly Color GlassInkSolid = new Color(0.094f, 0.086f, 0.110f, 1f); // #18161C opaque, for bars and tooltips
     public static readonly Color GlassInkRaised = new Color(0.165f, 0.149f, 0.184f, 0.96f); // #2A262F hover fill
-    public static readonly Color GlassLine = new Color(0.878f, 0.706f, 0.361f, 1f); // #E0B45C the gold line
-    public static readonly Color GlassLineDim = new Color(0.478f, 0.353f, 0.141f, 1f); // #7A5A24 inner hairline, quiet panels
     public static readonly Color GlassTitle = new Color(1.000f, 0.851f, 0.541f, 1f); // #FFD98A display text
     public static readonly Color GlassTextDim = new Color(0.722f, 0.690f, 0.635f, 1f); // #B8B0A2 hints on ink
     public static readonly Color GlassHostileTitle = new Color(1.000f, 0.604f, 0.510f, 1f); // #FF9A82 enemy headings
@@ -901,8 +907,10 @@ public static class UITheme
     // ════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Standard slate panel StyleBoxFlat.
+    /// Standard ink panel StyleBoxFlat.
     /// bg: pass BgRaised for cards/items, BgBase for container panels.
+    /// A Violet or VioletDim border is drawn as the gold line (bright or dim):
+    /// violet stopped being a chrome colour on 2026-11-13.
     /// </summary>
     public static StyleBoxFlat MakePanelStyle(
         Color bg, Color border,
@@ -910,17 +918,19 @@ public static class UITheme
     {
         var s = new StyleBoxFlat();
         s.BgColor = bg;
-        s.BorderColor = border;
-        s.SetBorderWidthAll(BorderWidth);
+        s.BorderColor = border == Violet ? GlassLine
+            : border == VioletDim ? GlassLineDim
+            : border;
+        s.SetBorderWidthAll(1);
         if (topCorners)
         {
-            s.CornerRadiusTopLeft = CornerRadius;
-            s.CornerRadiusTopRight = CornerRadius;
+            s.CornerRadiusTopLeft = GlassCornerRadius;
+            s.CornerRadiusTopRight = GlassCornerRadius;
         }
         if (bottomCorners)
         {
-            s.CornerRadiusBottomLeft = CornerRadius;
-            s.CornerRadiusBottomRight = CornerRadius;
+            s.CornerRadiusBottomLeft = GlassCornerRadius;
+            s.CornerRadiusBottomRight = GlassCornerRadius;
         }
         return s;
     }
@@ -933,45 +943,17 @@ public static class UITheme
     }
 
     /// <summary>
-    /// Apply the standard slate button appearance to any Button node.
-    /// Call this on every Button in the project that needs themed styling.
+    /// Apply the standard button appearance to any Button node: ink with the gold
+    /// line, or the gold fill when isPrimary. Keeps the body font and has no glow,
+    /// so a screen can hold several. The one headline action on a screen uses
+    /// ApplyGlassButtonStyle(btn, isPrimary: true) for the display font and glow.
     /// </summary>
     public static void ApplyButtonStyle(Button btn, bool isPrimary = true)
     {
-        var normal = new StyleBoxFlat
-        {
-            BgColor = isPrimary ? ButtonPrimary : ButtonSecondary,
-            BorderColor = isPrimary ? Violet : Neutral,
-        };
-        normal.SetBorderWidthAll(1);
-        normal.SetCornerRadiusAll(CornerRadius);
-        normal.ContentMarginLeft = normal.ContentMarginRight = PaddingNormal + 4;
-        normal.ContentMarginTop = normal.ContentMarginBottom = PaddingSmall + 2;
-
-        var hover = new StyleBoxFlat
-        {
-            BgColor = isPrimary ? ButtonPrimaryHover : BgRaised,
-            BorderColor = isPrimary ? Violet : Neutral,
-        };
-        hover.SetBorderWidthAll(1);
-        hover.SetCornerRadiusAll(CornerRadius);
-        hover.ContentMarginLeft = hover.ContentMarginRight = PaddingNormal + 4;
-        hover.ContentMarginTop = hover.ContentMarginBottom = PaddingSmall + 2;
-
-        var pressed = new StyleBoxFlat { BgColor = VioletDim, BorderColor = Violet };
-        pressed.SetBorderWidthAll(1);
-        pressed.SetCornerRadiusAll(CornerRadius);
-        pressed.ContentMarginLeft = pressed.ContentMarginRight = PaddingNormal + 4;
-        pressed.ContentMarginTop = pressed.ContentMarginBottom = PaddingSmall + 2;
-
-        btn.AddThemeStyleboxOverride("normal", normal);
-        btn.AddThemeStyleboxOverride("hover", hover);
-        btn.AddThemeStyleboxOverride("pressed", pressed);
-        btn.AddThemeStyleboxOverride("focus", normal);
-        btn.AddThemeColorOverride("font_color", TextPrimary);
+        ApplyGlassButtonStyle(btn, isPrimary, glow: false, displayFont: false);
     }
 
-    // ── Daylight glass helpers (trial) ────────────────────────────
+    // ── Daylight glass helpers ────────────────────────────────────
 
     private static Font _glassDisplayFont;
 
@@ -997,19 +979,24 @@ public static class UITheme
     }
 
     /// <summary>
-    /// Glass button. isPrimary: the gold fill with a glow, one per screen
-    /// (End Turn). Otherwise ink with the gold line.
+    /// Glass button. isPrimary: the gold fill, with a glow unless glow is false.
+    /// Otherwise ink with the gold line. displayFont false keeps the body font,
+    /// for small or dense buttons.
     /// </summary>
-    public static void ApplyGlassButtonStyle(Button btn, bool isPrimary = false)
+    public static void ApplyGlassButtonStyle(Button btn, bool isPrimary = false,
+        bool glow = true, bool displayFont = true)
     {
-        Color text = isPrimary ? GlassPrimaryInk : GlassTitle;
+        bool lit = isPrimary && glow;
+        // Gold serif text belongs to the display buttons. Dense body-font buttons
+        // read better in the plain text colour, and a screen full of them stays calm.
+        Color text = isPrimary ? GlassPrimaryInk : displayFont ? GlassTitle : TextPrimary;
         Color border = isPrimary ? GlassPrimaryEdge : GlassLine;
 
-        StyleBoxFlat normal = MakeGlassButtonBox(isPrimary ? GlassPrimary : GlassInk, border, isPrimary);
+        StyleBoxFlat normal = MakeGlassButtonBox(isPrimary ? GlassPrimary : GlassInk, border, lit);
         btn.AddThemeStyleboxOverride("normal", normal);
         btn.AddThemeStyleboxOverride("focus", normal);
         btn.AddThemeStyleboxOverride("hover",
-            MakeGlassButtonBox(isPrimary ? GlassPrimaryHover : GlassInkRaised, border, isPrimary));
+            MakeGlassButtonBox(isPrimary ? GlassPrimaryHover : GlassInkRaised, border, lit));
         btn.AddThemeStyleboxOverride("pressed",
             MakeGlassButtonBox(isPrimary ? GlassPrimaryPressed : GlassInkRaised, border, false));
         btn.AddThemeStyleboxOverride("disabled",
@@ -1020,7 +1007,10 @@ public static class UITheme
         btn.AddThemeColorOverride("font_pressed_color", text);
         btn.AddThemeColorOverride("font_focus_color", text);
         btn.AddThemeColorOverride("font_disabled_color", GlassTextDim);
-        btn.AddThemeFontOverride("font", GlassDisplayFont);
+        if (displayFont)
+        {
+            btn.AddThemeFontOverride("font", GlassDisplayFont);
+        }
     }
 
     private static StyleBoxFlat MakeGlassButtonBox(Color bg, Color border, bool glow)

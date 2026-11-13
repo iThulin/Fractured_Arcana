@@ -410,7 +410,7 @@ public partial class CouncilScreen : CanvasLayer
 
         var header = new Label { Text = "Rumours & Word" };
         header.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-        header.AddThemeColorOverride("font_color", UITheme.Violet);
+        header.AddThemeColorOverride("font_color", UITheme.GlassTitle);
         v.AddChild(header);
 
         _rumourBox = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };

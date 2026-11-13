@@ -104,7 +104,7 @@ public static class CampusUi
         var normal = new StyleBoxFlat
         {
             BgColor = isActive ? UITheme.ButtonPrimary : UITheme.BgDeep,
-            BorderColor = isActive ? UITheme.Violet : UITheme.NeutralDim,
+            BorderColor = isActive ? UITheme.GlassLine : UITheme.NeutralDim,
             BorderWidthBottom = isActive ? 2 : 0,
             BorderWidthTop = 0,
             BorderWidthLeft = 0,
@@ -114,7 +114,7 @@ public static class CampusUi
         var hover = new StyleBoxFlat
         {
             BgColor = isActive ? UITheme.ButtonPrimaryHover : UITheme.BgBase,
-            BorderColor = UITheme.Violet,
+            BorderColor = UITheme.GlassLine,
             BorderWidthBottom = 2,
             BorderWidthTop = 0,
             BorderWidthLeft = 0,

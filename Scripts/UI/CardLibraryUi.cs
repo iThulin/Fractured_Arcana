@@ -597,7 +597,7 @@ public partial class CardLibraryUi : Control
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         splitHeader.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-        splitHeader.AddThemeColorOverride("font_color", UITheme.Violet);
+        splitHeader.AddThemeColorOverride("font_color", UITheme.GlassTitle);
         _detailContent.AddChild(splitHeader);
 
         var pathRow = new HBoxContainer();
