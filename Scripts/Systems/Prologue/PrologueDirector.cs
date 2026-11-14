@@ -1643,7 +1643,7 @@ public static class PrologueDirector
             GD.Print($"[Prologue Assert] PASS: {_panels.Count} panels, {_fights.Count} fights, {folios} folios, "
                      + $"{checklists} checklist(s), {sentences} sentence(s), {examPages} exam page(s), "
                      + $"{trialMinutes} trial minutes, the profile file, the Register's modes, the Long Second's tableau, "
-                     + "the founding, the first lunation and the debug unlock.");
+                     + "the founding, the first moon and the debug unlock.");
         return fails.Count == 0;
     }
 

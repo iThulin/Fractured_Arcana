@@ -332,6 +332,22 @@ public partial class CameraController : Node3D
         _focusNode = null;
     }
 
+    /// <summary>True while the pointer rests on a control that scrolls, or inside one.</summary>
+    private bool PointerOverScrollable()
+    {
+        Control c = GetViewport()?.GuiGetHoveredControl();
+        while (c != null)
+        {
+            if (c is ScrollContainer || c is ItemList || c is Tree || c is TextEdit
+                || (c is RichTextLabel text && text.ScrollActive))
+            {
+                return true;
+            }
+            c = c.GetParent() as Control;
+        }
+        return false;
+    }
+
     // ── Input ────────────────────────────────────────────────────────────────
     public override void _Input(InputEvent @event)
     {
@@ -343,10 +359,14 @@ public partial class CameraController : Node3D
             if (mb.ButtonIndex == MouseButton.Right)
                 _dragging = mb.Pressed;
 
-            if (mb.ButtonIndex == MouseButton.WheelUp)
+            // _Input runs before the GUI, so without this check the wheel zoomed the camera
+            // while it also scrolled a list or the Register's notes under the pointer.
+            bool overScroll = PointerOverScrollable();
+
+            if (mb.ButtonIndex == MouseButton.WheelUp && !overScroll)
                 _zoomTarget = Mathf.Clamp(_zoomTarget - ZoomSpeed, MinZoom, _maxZoomDynamic);
 
-            if (mb.ButtonIndex == MouseButton.WheelDown)
+            if (mb.ButtonIndex == MouseButton.WheelDown && !overScroll)
                 _zoomTarget = Mathf.Clamp(_zoomTarget + ZoomSpeed, MinZoom, _maxZoomDynamic);
 
             if (mb.ButtonIndex == MouseButton.Left && !mb.Pressed)
@@ -357,7 +377,7 @@ public partial class CameraController : Node3D
         // wheel. A Mac trackpad sends gesture events, never WheelUp/WheelDown.
         if (@event is InputEventMagnifyGesture mag && mag.Factor > 0.01f)
             _zoomTarget = Mathf.Clamp(_zoomTarget / mag.Factor, MinZoom, _maxZoomDynamic);
-        else if (@event is InputEventPanGesture pan && !pan.AltPressed)
+        else if (@event is InputEventPanGesture pan && !pan.AltPressed && !PointerOverScrollable())
             _zoomTarget = Mathf.Clamp(_zoomTarget + pan.Delta.Y * ZoomSpeed * TrackpadScrollZoom,
                                       MinZoom, _maxZoomDynamic);
 

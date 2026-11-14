@@ -740,7 +740,7 @@ public partial class CouncilScreen : CanvasLayer
             {
                 if (r.KingdomId == court.KingdomId)
                 {
-                    lines.Add($"L{r.Lunation}  {r.Text}");
+                    lines.Add($"Moon {r.Lunation}  {r.Text}");
                 }
             }
         }
@@ -791,9 +791,9 @@ public partial class CouncilScreen : CanvasLayer
             var mdef = CouncilMissions.Get(mission.MissionType);
             _statusLabel.Text = mission.Recalled
                 ? $"{envoy?.Name ?? mission.CompanionId} is travelling home " +
-                  $"({mission.LunationsRemaining} lunation)."
+                  $"({mission.LunationsRemaining} moon)."
                 : $"{envoy?.Name ?? mission.CompanionId} is on {mdef?.DisplayName ?? mission.MissionType}, " +
-                  $"{mission.LunationsRemaining} lunation(s) left.";
+                  $"{mission.LunationsRemaining} moon(s) left.";
             if (encLock != null)
             {
                 _statusLabel.Text += $"   ·   {encLock}";
@@ -854,7 +854,7 @@ public partial class CouncilScreen : CanvasLayer
         else if (court.MissionFreezeLunations > 0)
         {
             _statusLabel.Text += $"   ·   The court's doors are closed " +
-                                 $"({court.MissionFreezeLunations} lunation(s) remain).";
+                                 $"({court.MissionFreezeLunations} moon(s) remain).";
         }
 
         var bandNow = court.Band();
@@ -1261,7 +1261,7 @@ public partial class CouncilScreen : CanvasLayer
         });
 
         GD.Print($"[Council] Dispatched {_selCompanionId} to {court.KingdomId} " +
-                 $"({def.Id}, {def.Lunations} lunation(s), {CouncilMissions.GoldFor(save, def)}g).");
+                 $"({def.Id}, {def.Lunations} moon(s), {CouncilMissions.GoldFor(save, def)}g).");
 
         CloseFlow();
         SaveManager.Save();

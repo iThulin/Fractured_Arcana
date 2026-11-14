@@ -23,6 +23,9 @@ using Godot;
 public partial class TitleScreen : Control
 {
     private const string StrategicScenePath = "res://Scenes/Overworld/StrategicScene.tscn";
+    // The city places its camera and lays its ground over its first frames. The curtain
+    // stays down long enough that neither is seen.
+    private const float StrategicSettleSeconds = 0.9f;
     private const string SettingsScenePath = "res://Scenes/UI/SettingsMenu.tscn";
 
     public override void _Ready()
@@ -125,7 +128,7 @@ public partial class TitleScreen : Control
             return;
         }
         PlayerSession.StartInCityOnOpen = true;
-        GetTree().ChangeSceneToFile(StrategicScenePath);
+        SceneTransition.Quiet(GetTree(), StrategicScenePath, StrategicSettleSeconds);
     }
 
     /// <summary>A new guild in the first empty slot, founded on the New Game screen. With

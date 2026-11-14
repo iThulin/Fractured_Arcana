@@ -122,7 +122,7 @@ public sealed class CampusCompanionsPanel : CampusPanel
             // K3 (§5a): the campus storefront is retired, so unrecruited people
             // show as ABROAD (findable in the world), never as a price tag.
             string badge = c.IsInjured
-                ? $"  [INFIRMARY: {c.InjuredLunationsRemaining} lunation{(c.InjuredLunationsRemaining == 1 ? "" : "s")}]"
+                ? $"  [INFIRMARY: {c.InjuredLunationsRemaining} moon{(c.InjuredLunationsRemaining == 1 ? "" : "s")}]"
                 : c.IsRecruited ? (inParty ? "  [PARTY]" : "  [ROSTER]") : "  [ABROAD]";
 
             var nameLabel = new Label { Text = $"{c.Name}{badge}" };

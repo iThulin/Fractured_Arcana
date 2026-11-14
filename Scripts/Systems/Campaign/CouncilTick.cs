@@ -974,7 +974,7 @@ public static class CouncilTick
 
         Emit(reports, lun, court.KingdomId,
             $"EXPULSION from {CourtDisplayName(cycle, court.KingdomId)}: the guild is cast out.{envoyClause} " +
-            $"No envoys may be sent for {ExpulsionFreezeLunations} lunations, and standing is " +
+            $"No envoys may be sent for {ExpulsionFreezeLunations} moons, and standing is " +
             $"capped at Received until the doors reopen.");
     }
 

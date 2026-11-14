@@ -81,7 +81,7 @@ public static partial class ProvinceSaveAssert
         var world = cycle.World;
         var provinces = world.Provinces;
         var stateless = KingdomTickSimulation.AnnexBids(cycle, farSouth);
-        bool ok = Check(sb, $"a realm with no state in the cycle bids for nothing: the east alone bids for Far South Fields, 25 a lunation on two borders ({Gains(stateless)})",
+        bool ok = Check(sb, $"a realm with no state in the cycle bids for nothing: the east alone bids for Far South Fields, 25 a moon on two borders ({Gains(stateless)})",
             stateless.Count == 1 && stateless[0].KingdomId == East && stateless[0].Borders == 2 && stateless[0].Gain == 25);
 
         cycle.Kingdoms[Lost] = LostState();
@@ -89,7 +89,7 @@ public static partial class ProvinceSaveAssert
         provinces[north].Influence = 20;
         var bids = KingdomTickSimulation.AnnexBids(cycle, farSouth);
         string lead = KingdomTickSimulation.AnnexForecast(bids, out int lunations);
-        ok &= Check(sb, $"with a state the third realm bids too, 20 a lunation on one border, and the east would annex it in 4 lunations ({Gains(bids)}; {lead} in {lunations})",
+        ok &= Check(sb, $"with a state the third realm bids too, 20 a moon on one border, and the east would annex it in 4 moons ({Gains(bids)}; {lead} in {lunations})",
             bids.Count == 2 && bids[0].KingdomId == East && bids[0].Gain == 25
             && bids[1].KingdomId == Lost && bids[1].Gain == 20 && lead == East && lunations == 4);
 
@@ -97,7 +97,7 @@ public static partial class ProvinceSaveAssert
         int reports = cycle.PendingSiegeReports.Count;
         KingdomTickSimulation.Tick(cycle);
         var news = cycle.PendingSiegeReports.Skip(reports).ToList();
-        ok &= Check(sb, $"a lunation starts three bids: the east's on Northeast Fields at 35, the east's and the third realm's on Far South Fields at 25 and 20 (PR61; {Bars(provinces[north])}; {Bars(provinces[farSouth])})",
+        ok &= Check(sb, $"a moon starts three bids: the east's on Northeast Fields at 35, the east's and the third realm's on Far South Fields at 25 and 20 (PR61; {Bars(provinces[north])}; {Bars(provinces[farSouth])})",
             Bar(provinces[north], East) == 35 && provinces[north].Annexation.Count == 1
             && Bar(provinces[farSouth], East) == 25 && Bar(provinces[farSouth], Lost) == 20
             && provinces[farSouth].Annexation.Count == 2);
@@ -111,7 +111,7 @@ public static partial class ProvinceSaveAssert
         string northLead = KingdomTickSimulation.AnnexForecast(northBids, out int northIn);
         bids = KingdomTickSimulation.AnnexBids(cycle, farSouth);
         lead = KingdomTickSimulation.AnnexForecast(bids, out lunations);
-        ok &= Check(sb, $"the forecast: the east annexes Northeast Fields in 2 lunations and Far South Fields in 3 ({northLead} in {northIn}; {lead} in {lunations})",
+        ok &= Check(sb, $"the forecast: the east annexes Northeast Fields in 2 moons and Far South Fields in 3 ({northLead} in {northIn}; {lead} in {lunations})",
             northLead == East && northIn == 2 && lead == East && lunations == 3);
 
         provinces[farSouth].Influence = 45;
@@ -120,20 +120,20 @@ public static partial class ProvinceSaveAssert
         provinces[farSouth].Influence = 39;
         var unslowed = KingdomTickSimulation.AnnexBids(cycle, farSouth);
         provinces[farSouth].Influence = 0;
-        ok &= Check(sb, $"the guild's influence at 45 slows every bar by 10 and the east then needs 5 lunations; at 39 it does not (PR62; {Gains(slowed)}; {slowedLead} in {slowedIn}; {Gains(unslowed)})",
+        ok &= Check(sb, $"the guild's influence at 45 slows every bar by 10 and the east then needs 5 moons; at 39 it does not (PR62; {Gains(slowed)}; {slowedLead} in {slowedIn}; {Gains(unslowed)})",
             slowed.Count == 2 && slowed[0].Gain == 15 && slowed[1].Gain == 10 && slowedLead == East && slowedIn == 5
             && unslowed.Count == 2 && unslowed[0].Gain == 25 && unslowed[1].Gain == 20);
 
         reports = cycle.PendingSiegeReports.Count;
         KingdomTickSimulation.TickAnnexation(cycle);
-        ok &= Check(sb, $"a second lunation: 70 on Northeast Fields, 50 and 40 on Far South Fields, and no news ({Bars(provinces[north])}; {Bars(provinces[farSouth])})",
+        ok &= Check(sb, $"a second moon: 70 on Northeast Fields, 50 and 40 on Far South Fields, and no news ({Bars(provinces[north])}; {Bars(provinces[farSouth])})",
             Bar(provinces[north], East) == 70 && Bar(provinces[farSouth], East) == 50 && Bar(provinces[farSouth], Lost) == 40
             && cycle.PendingSiegeReports.Count == reports);
 
         reports = cycle.PendingSiegeReports.Count;
         KingdomTickSimulation.TickAnnexation(cycle);
         news = cycle.PendingSiegeReports.Skip(reports).ToList();
-        ok &= Check(sb, $"in the third the east annexes Northeast Fields, in this lunation, and its bids end (PR63, PR64; {Bars(provinces[north])})",
+        ok &= Check(sb, $"in the third the east annexes Northeast Fields, in this moon, and its bids end (PR63, PR64; {Bars(provinces[north])})",
             ProvinceControl.RulerOf(cycle, provinces[north]) == East && provinces[north].ControllerId == East
             && provinces[north].ControlSinceLunation == 5 && provinces[north].Annexation.Count == 0);
         ok &= Check(sb, $"the cache no one held there passes to the east, the annexation's news before the cache's, and the guild's influence there is untouched ({provinces[north].Influence})",
@@ -151,7 +151,7 @@ public static partial class ProvinceSaveAssert
             && news.Any(l => l.Contains("annexes Far South Fields, which no one ruled.")));
         reports = cycle.PendingSiegeReports.Count;
         KingdomTickSimulation.TickAnnexation(cycle);
-        ok &= Check(sb, "with no land left to no one, a further lunation changes nothing",
+        ok &= Check(sb, "with no land left to no one, a further moon changes nothing",
             cycle.PendingSiegeReports.Count == reports && ProvinceControl.RulerOf(cycle, provinces[north]) == East
             && ProvinceControl.RulerOf(cycle, provinces[farSouth]) == East);
 

@@ -163,7 +163,7 @@ public partial class CombatUI : CanvasLayer
 			return;
 		if (StackWindowInteractive)
 			return;
-		if ((_deckPopup?.Visible ?? false) || (_gravePopup?.Visible ?? false) || (_logPopup?.Visible ?? false))
+		if (PileViewer.IsOpen || (_deckPopup?.Visible ?? false) || (_gravePopup?.Visible ?? false) || (_logPopup?.Visible ?? false))
 			return;
 
 		if (_endTurnButton.Text == "Confirm Deployment")
@@ -546,7 +546,7 @@ public partial class CombatUI : CanvasLayer
 			Name = "StackStopsBar",
 			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
 			OffsetLeft = -12 - 300, OffsetRight = -12,
-			OffsetTop = -12 - 100 - 26, OffsetBottom = -12 - 100,
+			OffsetTop = -12 - 112 - 26, OffsetBottom = -12 - 112,   // clear of Satchel + End Turn (102 tall)
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Begin,
 			Alignment = BoxContainer.AlignmentMode.End,
@@ -568,7 +568,7 @@ public partial class CombatUI : CanvasLayer
 		// Deck / Grave counters flank the fan left/right (§5), placed just
 		// INSIDE the hand reserves so they never collide with cards, the
 		// bottom-left block, or the End Turn corner (see UITheme tiling note).
-		_deckButton = MakeSmallButton("Deck -");
+		_deckButton = MakeSmallButton("Deck");
 		_deckButton.Name = "DeckButton";
 		UITheme.ApplyGlassButtonStyle(_deckButton);
 		_deckButton.AnchorLeft = 0f; _deckButton.AnchorRight = 0f;
@@ -577,10 +577,11 @@ public partial class CombatUI : CanvasLayer
 		_deckButton.OffsetRight = UITheme.HandReserveLeft - 8;
 		_deckButton.OffsetTop = -52; _deckButton.OffsetBottom = -14;
 		_deckButton.GrowVertical = Control.GrowDirection.Begin;
+		_deckButton.TooltipText = "Show the cards left in your deck.";
 		_deckButton.Pressed += OnDeckButtonPressed;
 		AddChild(_deckButton);
 
-		_graveButton = MakeSmallButton("Grave -");
+		_graveButton = MakeSmallButton("Grave");
 		_graveButton.Name = "GraveButton";
 		UITheme.ApplyGlassButtonStyle(_graveButton);
 		_graveButton.AnchorLeft = 1f; _graveButton.AnchorRight = 1f;
@@ -590,6 +591,7 @@ public partial class CombatUI : CanvasLayer
 		_graveButton.OffsetTop = -52; _graveButton.OffsetBottom = -14;
 		_graveButton.GrowHorizontal = Control.GrowDirection.Begin;
 		_graveButton.GrowVertical = Control.GrowDirection.Begin;
+		_graveButton.TooltipText = "Show the cards in your grave.";
 		_graveButton.Pressed += OnGraveButtonPressed;
 		AddChild(_graveButton);
 	}
@@ -768,7 +770,7 @@ public partial class CombatUI : CanvasLayer
 			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
 			OffsetLeft = -12 - 320, OffsetRight = -12,
 			// §7c: taller than the v1 strip (stop-toggle row + Respond/Pass row).
-			OffsetTop = -12 - 430, OffsetBottom = -12 - 80,
+			OffsetTop = -12 - 462, OffsetBottom = -12 - 112,   // sits above Satchel; at -80 it covered it
 			GrowHorizontal = Control.GrowDirection.Begin,
 			GrowVertical = Control.GrowDirection.Begin,
 			Visible = false,
@@ -859,19 +861,21 @@ public partial class CombatUI : CanvasLayer
 		_consumablePopup = new PanelContainer
 		{
 			Name = "ConsumablePopup",
-			AnchorLeft = 1f, AnchorTop = 1f, AnchorRight = 1f, AnchorBottom = 1f,
-			GrowHorizontal = Control.GrowDirection.Begin,
-			GrowVertical = Control.GrowDirection.Begin,
-			OffsetLeft = -360, OffsetRight = -12, OffsetBottom = -110,
+			// Centred and wide: it was a narrow box tucked beside End Turn, which made the
+			// items read as an afterthought.
+			AnchorLeft = 0.5f, AnchorTop = 0.5f, AnchorRight = 0.5f, AnchorBottom = 0.5f,
+			GrowHorizontal = Control.GrowDirection.Both,
+			GrowVertical = Control.GrowDirection.Both,
+			CustomMinimumSize = new Vector2(520, 0),
 		};
 		_consumablePopup.AddThemeStyleboxOverride("panel", UITheme.MakeGlassPanelStyle());
 		AddChild(_consumablePopup);
 
 		var margins = new MarginContainer();
-		margins.AddThemeConstantOverride("margin_left", 10);
-		margins.AddThemeConstantOverride("margin_right", 10);
-		margins.AddThemeConstantOverride("margin_top", 8);
-		margins.AddThemeConstantOverride("margin_bottom", 8);
+		margins.AddThemeConstantOverride("margin_left", 20);
+		margins.AddThemeConstantOverride("margin_right", 20);
+		margins.AddThemeConstantOverride("margin_top", 16);
+		margins.AddThemeConstantOverride("margin_bottom", 16);
 		_consumablePopup.AddChild(margins);
 
 		var vbox = new VBoxContainer();
@@ -880,19 +884,25 @@ public partial class CombatUI : CanvasLayer
 
 		var head = new HBoxContainer();
 		vbox.AddChild(head);
-		var title = MakeLabel("Satchel", UITheme.FontSizeSmall, UITheme.Gold);
+		var title = MakeLabel("Satchel", UITheme.FontSizeLarge, UITheme.GlassTitle);
+		title.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
 		title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
 		head.AddChild(title);
-		var close = new Button { Text = "✕" };
+		var close = new Button { Text = "Close", CustomMinimumSize = new Vector2(88, 36) };
+		UITheme.ApplyGlassButtonStyle(close);
 		close.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
 		close.Pressed += CloseConsumableList;
 		head.AddChild(close);
 
 		if (!string.IsNullOrEmpty(gateNote))
-			vbox.AddChild(MakeLabel(gateNote, UITheme.FontSizeSmall - 1, UITheme.TextDim));
+		{
+			Label gate = MakeLabel(gateNote, UITheme.FontSizeNormal, UITheme.TextSecondary);
+			gate.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+			vbox.AddChild(gate);
+		}
 
 		if (entries == null || entries.Count == 0)
-			vbox.AddChild(MakeLabel("The satchel is empty.", UITheme.FontSizeSmall - 1, UITheme.TextDim));
+			vbox.AddChild(MakeLabel("The satchel is empty.", UITheme.FontSizeNormal, UITheme.TextSecondary));
 		else
 		{
 			foreach (var e in entries)
@@ -901,8 +911,9 @@ public partial class CombatUI : CanvasLayer
 				{
 					Text = e.Label,
 					SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+					CustomMinimumSize = new Vector2(0, 44),
 				};
-				btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall - 1);
+				btn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeNormal);
 				UITheme.ApplyGlassButtonStyle(btn);
 				string captured = e.InstanceId;
 				btn.Pressed += () => EmitSignal(SignalName.UseConsumablePressed, captured);
@@ -1042,8 +1053,24 @@ public partial class CombatUI : CanvasLayer
 
 	// ── Selected unit panel ──────────────────────────────────────────────
 
+	// The panel keeps the last unit it showed while nothing is selected (the enemy turn
+	// clears the selection), so it does not blank to a dash between turns.
+	private Unit _lastShownUnit;
+	private int _lastShownMana;
+
 	public void ShowSelectedUnit(Unit unit, int mana)
 	{
+		if (unit != null)
+		{
+			_lastShownUnit = unit;
+			_lastShownMana = mana;
+		}
+		else if (_lastShownUnit != null && IsInstanceValid(_lastShownUnit)
+				 && _lastShownUnit.Stats != null && _lastShownUnit.Stats.IsAlive)
+		{
+			unit = _lastShownUnit;
+			mana = _lastShownMana;
+		}
 		if (_unitNameLabel == null)
 		{
 			_pendingUnit = unit;
@@ -1343,9 +1370,17 @@ public partial class CombatUI : CanvasLayer
 
 	// ── Action log ───────────────────────────────────────────────────────
 
+	// The log's writers tag their lines for the console ("[Stack] ...", "[Attunement] ...").
+	// The tag is a code label, so the player's log drops it.
+	private static readonly System.Text.RegularExpressions.Regex LogTag =
+		new System.Text.RegularExpressions.Regex(@"^\[[A-Za-z][A-Za-z \-]*\]\s*");
+
 	public void AppendActionLog(string message)
 	{
 		if (string.IsNullOrWhiteSpace(message))
+			return;
+		message = LogTag.Replace(message, "");
+		if (message.Length == 0)
 			return;
 		_logQueue.Enqueue(message);
 		while (_logQueue.Count > LogLineCount)
@@ -1653,7 +1688,7 @@ public partial class CombatUI : CanvasLayer
 		foreach (Node child in _enemyRosterBox.GetChildren())
 			child.QueueFree();
 
-		var header = MakeLabel("─ ENEMY INTEL ─", UITheme.FontSizeSmall, UITheme.Gold);
+		var header = MakeLabel("Known before the fight", UITheme.FontSizeSmall, UITheme.Gold);
 		header.HorizontalAlignment = HorizontalAlignment.Center;
 		_enemyRosterBox.AddChild(header);
 
@@ -1908,6 +1943,9 @@ public partial class CombatUI : CanvasLayer
 		if (_graveButton != null)
 			_graveButton.Text = $"Grave {discardPile?.Count ?? 0}";
 
+		_drawPileShown = drawPile != null ? new List<Card>(drawPile) : new List<Card>();
+		_discardPileShown = discardPile != null ? new List<Card>(discardPile) : new List<Card>();
+
 		if (_deckList != null)
 		{
 			_deckList.Clear();
@@ -1928,8 +1966,16 @@ public partial class CombatUI : CanvasLayer
 	// Private helpers
 	// ════════════════════════════════════════════════════════════════════
 
-	private void OnDeckButtonPressed() => _deckPopup?.PopupCentered();
-	private void OnGraveButtonPressed() => _gravePopup?.PopupCentered();
+	// The piles open as card faces (PileViewer). The deck is sorted by name so the draw
+	// order stays hidden; the grave keeps the order the cards arrived in. Ruled 2026-11-13.
+	private List<Card> _drawPileShown = new List<Card>();
+	private List<Card> _discardPileShown = new List<Card>();
+
+	private void OnDeckButtonPressed() => PileViewer.Open(this, "Deck",
+		"Sorted by name. The order you will draw them in stays hidden.", _drawPileShown, groupByName: true);
+
+	private void OnGraveButtonPressed() => PileViewer.Open(this, "Grave",
+		"In the order the cards went to the grave, first to last.", _discardPileShown, groupByName: false);
 	public VBoxContainer AttunementSection => _attunementSection;
 
 	private VBoxContainer _almanacSection;

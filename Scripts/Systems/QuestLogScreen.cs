@@ -63,16 +63,11 @@ public partial class QuestLogScreen : CanvasLayer
             GrowHorizontal = Control.GrowDirection.Both,
             GrowVertical = Control.GrowDirection.Both,
         };
-        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = UITheme.BgBase,
-            BorderColor = UITheme.POINarrative,
-            BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 10, CornerRadiusTopRight = 10,
-            CornerRadiusBottomLeft = 10, CornerRadiusBottomRight = 10,
-            ContentMarginLeft = 22, ContentMarginRight = 22,
-            ContentMarginTop = 18, ContentMarginBottom = 18,
-        });
+        StyleBoxFlat panelStyle = UITheme.MakeGlassPanelStyle();
+        panelStyle.BgColor = UITheme.GlassInkSolid;
+        panelStyle.ContentMarginLeft = panelStyle.ContentMarginRight = 22;
+        panelStyle.ContentMarginTop = panelStyle.ContentMarginBottom = 18;
+        panel.AddThemeStyleboxOverride("panel", panelStyle);
         AddChild(panel);
 
         var layout = new VBoxContainer();
@@ -82,7 +77,8 @@ public partial class QuestLogScreen : CanvasLayer
         var header = new HBoxContainer();
         var title = new Label { Text = "Quests", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         title.AddThemeFontSizeOverride("font_size", UITheme.CampusTitleFontSize);
-        title.AddThemeColorOverride("font_color", UITheme.TextPrimary);
+        title.AddThemeColorOverride("font_color", UITheme.GlassTitle);
+        title.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
         header.AddChild(title);
         var close = new Button { Text = "Close", CustomMinimumSize = new Vector2(88, 0) };
         close.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
@@ -117,7 +113,8 @@ public partial class QuestLogScreen : CanvasLayer
         content.AddChild(new HSeparator());
         var loreHead = new Label { Text = "Hall of Lore" };
         loreHead.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        loreHead.AddThemeColorOverride("font_color", UITheme.POINarrative);
+        loreHead.AddThemeColorOverride("font_color", UITheme.GlassTitle);
+        loreHead.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
         content.AddChild(loreHead);
 
         var loreBox = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };

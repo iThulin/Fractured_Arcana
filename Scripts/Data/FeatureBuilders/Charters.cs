@@ -316,7 +316,7 @@ public static class Charters
             line = $"{d.Name} is chartered and in force.";
         }
         SaveManager.MarkDirty();
-        GD.Print($"[Charters] {buildingId}: {doctrineId} (refit {refit}, from lunation {entry.ActiveFromLunation}).");
+        GD.Print($"[Charters] {buildingId}: {doctrineId} (refit {refit}, from moon {entry.ActiveFromLunation}).");
         return line;
     }
 

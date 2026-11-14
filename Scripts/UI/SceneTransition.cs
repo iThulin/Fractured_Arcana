@@ -68,7 +68,7 @@ public partial class SceneTransition : Node
     /// beat, not a flicker). A second call while a transition is running is
     /// ignored with a warning: the first swap wins.</summary>
     public static void Go(SceneTree tree, string targetScenePath, string title,
-                          string subtitle = "", float minHoldSeconds = 0.6f)
+                          string subtitle = "", float minHoldSeconds = 0.6f, float settleSeconds = 0f)
     {
         if (tree == null || string.IsNullOrEmpty(targetScenePath))
         {
@@ -76,7 +76,27 @@ public partial class SceneTransition : Node
             return;
         }
         var t = Ensure(tree);
-        _ = t.Run(targetScenePath, title ?? "", subtitle ?? "", Mathf.Max(0f, minHoldSeconds));
+        _ = t.Run(targetScenePath, title ?? "", subtitle ?? "", Mathf.Max(0f, minHoldSeconds),
+                  Mathf.Max(0f, settleSeconds));
+    }
+
+    /// <summary>A plain fade with no words on the curtain, for moves between screens that
+    /// are not an event (title to city, city to field and back). <paramref name="settleSeconds"/>
+    /// keeps the curtain down while the target places its camera and finishes building, so
+    /// neither is seen. Falls back to a direct swap while another transition is running.</summary>
+    public static void Quiet(SceneTree tree, string targetScenePath, float settleSeconds = 0.3f)
+    {
+        if (tree == null || string.IsNullOrEmpty(targetScenePath))
+        {
+            GD.PushError("[SceneTransition] Quiet called with no tree or no target.");
+            return;
+        }
+        if (IsTransitioning)
+        {
+            tree.ChangeSceneToFile(targetScenePath);
+            return;
+        }
+        Go(tree, targetScenePath, "", "", 0f, settleSeconds);
     }
 
     /// <summary>True while a transition owns the screen. Launchers can use it to
@@ -160,7 +180,7 @@ public partial class SceneTransition : Node
 
     // ── The transition ───────────────────────────────────────────────────────
 
-    private async Task Run(string target, string title, string subtitle, float minHold)
+    private async Task Run(string target, string title, string subtitle, float minHold, float settle)
     {
         if (_busy)
         {
@@ -212,6 +232,8 @@ public partial class SceneTransition : Node
 
             // 5. Let the target settle (deferred camera make_current, first draw).
             await Frames(tree, SettleFrames);
+            if (settle > 0f)
+                await ToSignal(tree.CreateTimer(settle, processAlways: true), SceneTreeTimer.SignalName.Timeout);
 
             // 6. Curtain up.
             await Fade(0f, FadeOut);

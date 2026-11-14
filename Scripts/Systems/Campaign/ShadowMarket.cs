@@ -292,6 +292,6 @@ public static class ShadowMarket
         SaveManager.MarkDirty();
         return ShadowMarketResult.Pass(
             $"Commissioned {contractType} in {kingdomId} for {cost} favor " +
-            $"({duration} lunation(s); {council.ConcordFavor} banked).");
+            $"({duration} moon(s); {council.ConcordFavor} banked).");
     }
 }

@@ -299,7 +299,7 @@ public static class FirstLunation
             var profile = ReadLines(CompletedFile);
             if (!profile.Contains(CompletedLine))
                 AppendLine(CompletedFile, CompletedLine);
-            GD.Print("[FirstLunation] The first lunation is finished, and noted on this computer.");
+            GD.Print("[FirstLunation] The first moon is finished, and noted on this computer.");
         }
         if (changed)
             SaveManager.MarkDirty();
@@ -405,7 +405,7 @@ public static class FirstLunation
         int n = flags.RemoveAll(f => f != null && f.StartsWith(TickPrefix, StringComparison.Ordinal));
         save.Ledger.CompletedQuestIds?.Remove(QuestId);
         SaveManager.MarkDirty();
-        GD.Print($"[FirstLunation] Debug: {n} flag(s) taken back. The first lunation is walked again"
+        GD.Print($"[FirstLunation] Debug: {n} flag(s) taken back. The first moon is walked again"
                  + (Unlocked(save) ? "." : ", once this save has been founded in the story."));
         return n;
     }
@@ -522,7 +522,7 @@ public static class FirstLunation
             if (!Done(skipped, s.Id))
                 fails.Add($"a skipped save has {s.Id} not done");
         if (Current(Probe()) != null || Unlocked(Probe()))
-            fails.Add("a save from before the founding walks the first lunation");
+            fails.Add("a save from before the founding walks the first moon");
         var lived = Probe(founded);
         lived.Cycle.TotalRuns = 1;
         lived.Cycle.Calendar.CurrentLunation = 2;

@@ -164,12 +164,12 @@ public static class ElementReactions
     /// <summary>One-line rules text for tooltips, the log and the reference chart.</summary>
     public static string Describe(ElementReaction r) => r switch
     {
-        ElementReaction.Steam => "Fire met Frost. Blocks line of sight through this tile.",
-        ElementReaction.Fulgurite => $"Storm met Earth. Fused rubble: forced movement stops here.",
-        ElementReaction.Magma => $"Fire met Earth. Cannot be walked into; forced entry deals {MagmaForcedEntryDamage} and stops. Cools to Earth.",
-        ElementReaction.Wildfire => "Fire met Storm. Spreads Fire one tile each round toward the caster's enemies.",
-        ElementReaction.Brittle => $"Frost met Storm. Whoever stands here takes +{BrittleBonusDamage} from each hit; a Frozen unit shatters for +{ShatterBonusDamage}.",
-        ElementReaction.Glacier => "Frost met Earth. An ice wall that blocks movement and sight. Melts to Frost.",
+        ElementReaction.Steam => "Fire and Frost. Blocks line of sight through this tile.",
+        ElementReaction.Fulgurite => "Storm and Earth. Forced movement stops on this tile.",
+        ElementReaction.Magma => $"Fire and Earth. Units cannot walk onto this tile. A unit forced onto it takes {MagmaForcedEntryDamage} damage and stops there. Becomes Earth when it cools.",
+        ElementReaction.Wildfire => "Fire and Storm. Each round, Fire spreads one tile toward the caster's enemies.",
+        ElementReaction.Brittle => $"Frost and Storm. A unit on this tile takes +{BrittleBonusDamage} damage from each hit. A Frozen unit on it takes +{ShatterBonusDamage} instead.",
+        ElementReaction.Glacier => "Frost and Earth. Blocks movement and line of sight. Becomes Frost when it melts.",
         _ => ""
     };
 

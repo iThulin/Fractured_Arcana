@@ -774,7 +774,7 @@ public static class SupplyCacheSystem
                     Math.Max(c.InjuredLunationsRemaining, 1 + (int)(GD.Randi() % 2));
                 cycle.PendingSiegeReports.Add(
                     $"⚠ {c.Name} was overseeing the cache and was wounded in the rout, " +
-                    $"home in {c.InjuredLunationsRemaining} lunation(s).");
+                    $"home in {c.InjuredLunationsRemaining} moon(s).");
             }
             poi.OverseerCompanionId = "";
         }

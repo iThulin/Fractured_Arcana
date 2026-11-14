@@ -321,6 +321,7 @@ public partial class ScoutReportPanel : Control
             CustomMinimumSize = new Vector2(130, 42),
         };
         btn.AddThemeFontSizeOverride("font_size", UITheme.NarrativeBodyFontSize);
+        UITheme.ApplyButtonStyle(btn, isPrimary: false);
         btn.AddThemeColorOverride("font_color", accentColor);
         return btn;
     }

@@ -448,7 +448,7 @@ public partial class StrategicView : Node2D
         if (Interval.Walking(cycle))
         {
             // Standing Orders O1: the moon is held, so the interval owes no lunations.
-            GD.Print($"[Interval] {owed} owed lunation(s) dropped: the moon is held.");
+            GD.Print($"[Interval] {owed} owed moon(s) dropped: the moon is held.");
             SaveManager.MarkDirty();
             return;
         }
@@ -457,8 +457,8 @@ public partial class StrategicView : Node2D
         {
             if (!cycle.Calendar.AdvanceLunation())
                 break; // conjunction already reached, no further time to spend
-            GD.Print($"[Calendar] The party straggles home. A lunation passes " +
-                     $"(Lunation {cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentMoonName}).");
+            GD.Print($"[Calendar] The party straggles home. A moon passes " +
+                     $"(Moon {cycle.Calendar.CurrentLunation} · {cycle.Calendar.CurrentMoonName}).");
             RunLunationTick(cycle);
         }
 
@@ -1058,7 +1058,7 @@ public partial class StrategicView : Node2D
             RecordTiles();
             if (newMoon)
             {
-                GD.Print($"[Calendar] The moon turns. Lunation {cal.CurrentLunation} " +
+                GD.Print($"[Calendar] The moon turns. Moon {cal.CurrentLunation} " +
                          $"of {cal.LunationsPerCycle}: {cal.CurrentMoonName} " +
                          $"({cal.CurrentMoonSchool} ascendant).");
                 RunLunationTick(cycle);
@@ -1070,7 +1070,7 @@ public partial class StrategicView : Node2D
                 break;
             }
         }
-        GD.Print($"[Calendar] {passed} day(s) pass. Lunation {cal.CurrentLunation}, day {cal.DayOfLunation + 1}.");
+        GD.Print($"[Calendar] {passed} day(s) pass. Moon {cal.CurrentLunation}, day {cal.DayOfLunation + 1}.");
         SaveManager.MarkDirty();
 
         if (cal.ConjunctionReached)
@@ -1117,7 +1117,7 @@ public partial class StrategicView : Node2D
 
         if (crossedLunation)
         {
-            GD.Print($"[Calendar] The moon turns. Lunation {cycle.Calendar.CurrentLunation} " +
+            GD.Print($"[Calendar] The moon turns. Moon {cycle.Calendar.CurrentLunation} " +
                      $"of {cycle.Calendar.LunationsPerCycle}: {cycle.Calendar.CurrentMoonName} " +
                      $"({cycle.Calendar.CurrentMoonSchool} ascendant).");
             RunLunationTick(cycle);
@@ -1177,7 +1177,7 @@ public partial class StrategicView : Node2D
             Title = "Pass time",
             OkButtonText = $"Pass {days} day(s)",
             DialogText =
-                $"Lunation {cycle.Calendar.CurrentLunation}, day {cycle.Calendar.DayOfLunation + 1}. "
+                $"Moon {cycle.Calendar.CurrentLunation}, day {cycle.Calendar.DayOfLunation + 1}. "
                 + $"{days} day(s) pass, until {until}.\n\n"
                 + WhatResolvesLine(cycle)
                 + (string.IsNullOrEmpty(idle)
@@ -2126,7 +2126,7 @@ public partial class StrategicView : Node2D
                 SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
             };
             buildBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-            UITheme.ApplyButtonStyle(buildBtn, isPrimary: reason == null);
+            UITheme.ApplyButtonStyle(buildBtn, isPrimary: false);   // one row per building: a gold fill on each was a wall of gold
             string capturedId = bs.Id;
             buildBtn.Pressed += () => OnConstructPicked(capturedId, coord);
             col.AddChild(buildBtn);
@@ -3494,7 +3494,10 @@ public partial class StrategicView : Node2D
                 continue;
             bool active = (int)btn.GetMeta("lens") == (int)_lens;
             btn.ButtonPressed = active;
-            btn.Modulate = active ? Colors.White : new Color(1f, 1f, 1f, 0.55f);
+            // The selected tab inverts (gold fill, dark text). The others are standard
+            // buttons at full strength: they were dimmed to 55 percent and hard to read.
+            UITheme.ApplyButtonStyle(btn, isPrimary: active);
+            btn.Modulate = Colors.White;
         }
         UpdateLensKey();    // provinces 7d: the lens key
     }
@@ -4858,7 +4861,7 @@ public partial class StrategicView : Node2D
 
         AddDeployStat(vbox, "Harvested by",
             SupplyCacheSystem.ControllerDisplay(cycle, ctrl) + (guildOwned ? " (you)" : ""));
-        AddDeployStat(vbox, "Yield", $"+{SupplyCacheSystem.YieldOf(poi)} supplies / lunation");
+        AddDeployStat(vbox, "Yield", $"+{SupplyCacheSystem.YieldOf(poi)} supplies / moon");
         if (!guildOwned && cycle.Kingdoms.TryGetValue(ctrl, out var ck))
             AddDeployStat(vbox, "Their stock", $"{ck.SupplyStock} / 100");
         if (guildOwned)
@@ -4978,7 +4981,7 @@ public partial class StrategicView : Node2D
 
         var warn = new Label
         {
-            Text = $"+{SupplyCacheSystem.OverseerYieldBonus} supplies per lunation and a stiffer " +
+            Text = $"+{SupplyCacheSystem.OverseerYieldBonus} supplies per moon and a stiffer " +
                    "defence, but if the cache falls, they are wounded in the rout. " +
                    "Posted companions can't join the party or run envoy missions.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
@@ -5661,7 +5664,7 @@ public partial class StrategicView : Node2D
 
         var intro = new Label
         {
-            Text = $"They take the field at {sp.Name} ({sp.X},{sp.Y}).\n"
+            Text = $"They take the field at {sp.Name}.\n"
                  + "The days they spend out are charged when they return.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             CustomMinimumSize = new Vector2(DialogFit.TextWidth, 0f),
@@ -5699,7 +5702,7 @@ public partial class StrategicView : Node2D
                                        && c.FieldPartyId != targetPartyId
                                        && (cycle.FieldParties?.Exists(fp => fp != null && fp.Id == c.FieldPartyId && FieldPostings.IsDetachment(fp)) ?? false);
                 string suffix = c.IsInjured
-                    ? $"  (injured, {c.InjuredLunationsRemaining} lunation(s))"
+                    ? $"  (injured, {c.InjuredLunationsRemaining} moon(s))"
                     : postedElsewhere ? "  (posted with a detachment)"
                     : c.Posting == CompanionPosting.Crew ? "  (castle crew)" : "";
 
@@ -6479,7 +6482,7 @@ public partial class StrategicView : Node2D
             }
             var cb = new CheckBox
             {
-                Text = c.Name + (c.IsInjured ? $"  (injured, {c.InjuredLunationsRemaining} lunation(s))" : ""),
+                Text = c.Name + (c.IsInjured ? $"  (injured, {c.InjuredLunationsRemaining} moon(s))" : ""),
                 ButtonPressed = true,
             };
             cb.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
@@ -7014,7 +7017,7 @@ public partial class StrategicView : Node2D
                      + $"({_pendingStaging.X},{_pendingStaging.Y}) on day {WorldClock.Now(cycle)}.");
 
             FirstLunation.Tick(FirstLunation.Sortie);   // S5
-            GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+            SceneTransition.Quiet(GetTree(), "res://Scenes/Overworld/ExpeditionScene.tscn");
             return;
         }
 
@@ -7054,11 +7057,11 @@ public partial class StrategicView : Node2D
 
         GD.Print($"[StrategicView] Deploying expedition from " +
                  $"'{_pendingStaging.Name}' ({_pendingStaging.X},{_pendingStaging.Y}). " +
-                 $"Lunation {cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle} " +
+                 $"Moon {cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle} " +
                  $"· {cycle.Calendar.CurrentMoonName}.");
 
         FirstLunation.Tick(FirstLunation.Sortie);   // S5
-        GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+        SceneTransition.Quiet(GetTree(), "res://Scenes/Overworld/ExpeditionScene.tscn");
     }
 
     /// <summary>The per-lunation world tick, in canonical order: the single

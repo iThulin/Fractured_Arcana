@@ -500,13 +500,13 @@ public static partial class ProvinceSaveAssert
             rest &= provinces[i].Influence == expected;
         }
         ok &= Check(sb, "each province beside it gains 3, and every other loses 2, down to 0", rest);
-        ok &= Check(sb, "a lunation with no change of hold has no news", news.Count == 0);
-        ok &= Check(sb, "each kingdom's value is the tile-weighted mean after a lunation", DerivedMatches(cycle));
+        ok &= Check(sb, "a moon with no change of hold has no news", news.Count == 0);
+        ok &= Check(sb, "each kingdom's value is the tile-weighted mean after a moon", DerivedMatches(cycle));
 
         // Parking alone never holds.
         for (int lunation = 0; lunation < 30; lunation++)
             ProvinceInfluence.Tick(cycle);
-        ok &= Check(sb, $"thirty more lunations leave the castle's province at 40 (now {provinces[capital].Influence})",
+        ok &= Check(sb, $"thirty more moons leave the castle's province at 40 (now {provinces[capital].Influence})",
             provinces[capital].Influence == ProvinceInfluence.PassiveCap);
         ok &= Check(sb, "every province beside it stops at 40 too",
             near.All(i => provinces[i].Influence == ProvinceInfluence.PassiveCap));
@@ -535,7 +535,7 @@ public static partial class ProvinceSaveAssert
         cycle.CastleY = -1;
         for (int lunation = 0; lunation < 5; lunation++)
             ProvinceInfluence.Tick(cycle);
-        ok &= Check(sb, $"five lunations with the castle gone: 50 and still held (now {provinces[capital].Influence})",
+        ok &= Check(sb, $"five moons with the castle gone: 50 and still held (now {provinces[capital].Influence})",
             provinces[capital].Influence == 50 && provinces[capital].Held);
         news = ProvinceInfluence.Tick(cycle);
         ok &= Check(sb, "the sixth: 48, lost, and the loss is news",
@@ -617,7 +617,7 @@ public static partial class ProvinceSaveAssert
         var cycle = InfluenceCycle(buildProvinces: false);
         var west = cycle.Kingdoms[West];
         bool ok = Check(sb, "a world without provinces is not active", !ProvinceInfluence.Active(cycle));
-        ok &= Check(sb, "sync and the lunation do nothing there",
+        ok &= Check(sb, "sync and the moon do nothing there",
             !ProvinceInfluence.Sync(cycle) && ProvinceInfluence.Tick(cycle).Count == 0 && west.PlayerInfluence == 25);
         ProvinceInfluence.Add(cycle, 6, 15, 20);
         ok &= Check(sb, "a deed raises the tile's kingdom (45)", west.PlayerInfluence == 45);
@@ -662,8 +662,8 @@ public static partial class ProvinceSaveAssert
         ok &= Check(sb, "an untouched province far away forecasts nothing",
             far == 0 && farDrift == ProvinceInfluence.Drift.Still);
         ok &= Check(sb, "the forecast line reads as written",
-            ProvinceInfluence.NextLunationLine(cycle, capital) == "Next lunation: +8, with the castle here.");
-        ok &= Check(sb, "with the castle at the west seat, every forecast is what the lunation does", ForecastHolds(cycle));
+            ProvinceInfluence.NextLunationLine(cycle, capital) == "Next moon: +8, with the castle here.");
+        ok &= Check(sb, "with the castle at the west seat, every forecast is what the moon does", ForecastHolds(cycle));
 
         // A held capital under the castle: presence stops at the cap.
         ProvinceInfluence.Add(cycle, 6, 15, 35);
@@ -674,26 +674,26 @@ public static partial class ProvinceSaveAssert
         ok &= Check(sb, "beside it, the held capital adds 1 to the castle's 3",
             nextDoor == ProvinceInfluence.PresenceNeighborGain + ProvinceInfluence.HeldNeighborGain
             && nextDoorDrift == ProvinceInfluence.Drift.CastleBeside);
-        ok &= Check(sb, "with a held capital, every forecast is what the lunation does", ForecastHolds(cycle));
+        ok &= Check(sb, "with a held capital, every forecast is what the moon does", ForecastHolds(cycle));
 
         // The castle gone: the held capital fades, and the count of lunations is exact.
         cycle.CastleX = -1;
         cycle.CastleY = -1;
         here = ProvinceInfluence.NextLunation(cycle, capital, out hereDrift);
         int lost = ProvinceInfluence.LunationsUntilLost(cycle, capital);
-        ok &= Check(sb, $"with the castle gone the held capital forecasts -2 and a loss in {lost} lunations",
+        ok &= Check(sb, $"with the castle gone the held capital forecasts -2 and a loss in {lost} moons",
             here == -ProvinceInfluence.Decay && hereDrift == ProvinceInfluence.Drift.Fading
             && lost == (provinces[capital].Influence - ProvinceInfluence.LoseLine) / ProvinceInfluence.Decay + 1
-            && ProvinceInfluence.NextLunationLine(cycle, capital).EndsWith($"The hold is lost in {lost} lunations.",
+            && ProvinceInfluence.NextLunationLine(cycle, capital).EndsWith($"The hold is lost in {lost} moons.",
                 System.StringComparison.Ordinal));
-        ok &= Check(sb, "with the castle gone, every forecast is what the lunation does", ForecastHolds(cycle));
+        ok &= Check(sb, "with the castle gone, every forecast is what the moon does", ForecastHolds(cycle));
         int lunations = 1;
         while (provinces[capital].Held && lunations < 100)
         {
             ProvinceInfluence.Tick(cycle);
             lunations++;
         }
-        ok &= Check(sb, $"the hold went after {lunations} lunations, as forecast", lunations == lost);
+        ok &= Check(sb, $"the hold went after {lunations} moons, as forecast", lunations == lost);
 
         // The east ruled by the guild: sovereign land does not fade.
         ProvinceInfluence.SetKingdom(cycle, East, 30);
@@ -701,7 +701,7 @@ public static partial class ProvinceSaveAssert
         far = ProvinceInfluence.NextLunation(cycle, eastCapital, out farDrift);
         ok &= Check(sb, "a province the guild rules forecasts no change, sovereign",
             far == 0 && farDrift == ProvinceInfluence.Drift.Sovereign);
-        ok &= Check(sb, "with the east ruled by the guild, every forecast is what the lunation does", ForecastHolds(cycle));
+        ok &= Check(sb, "with the east ruled by the guild, every forecast is what the moon does", ForecastHolds(cycle));
         cycle.Kingdoms[East].ControllingFactionId = "";
 
         sb.AppendLine(ok ? "  Forecast: PASS" : "  Forecast: FAIL");
@@ -844,7 +844,7 @@ public static partial class ProvinceSaveAssert
         change = ProvinceInfluence.NextLunation(cycle, fondLand.Index, out drift);
         ok &= Check(sb, "at 20 it forecasts no change, for the friend's regard",
             change == 0 && drift == ProvinceInfluence.Drift.EstateFloor
-            && ProvinceInfluence.NextLunationLine(cycle, fondLand.Index).StartsWith("Next lunation: no change.", System.StringComparison.Ordinal));
+            && ProvinceInfluence.NextLunationLine(cycle, fondLand.Index).StartsWith("Next moon: no change.", System.StringComparison.Ordinal));
         ok &= Check(sb, "and holds there, as forecast", ForecastHolds(cycle) && fondLand.Influence == 20);
         var deep = west.Courtiers[2];
         deep.Regard = 3;

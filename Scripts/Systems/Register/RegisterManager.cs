@@ -626,7 +626,8 @@ public partial class RegisterManager : Node
         vbox.AddThemeConstantOverride("separation", 6);
         _slip.AddChild(vbox);
 
-        _slipTitle = SlipLabel(UITheme.CardInkMuted, BodySize - 3);
+        _slipTitle = SlipLabel(UITheme.CipherInk, BodySize - 2);
+        _slipTitle.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
         _slipLine = SlipLabel(UITheme.CipherInk, BodySize);
         _slipRule = new HSeparator { MouseFilter = Control.MouseFilterEnum.Ignore };
         _slipNote = SlipLabel(UITheme.CardKeywordInk, BodySize - 1);
@@ -665,7 +666,8 @@ public partial class RegisterManager : Node
 
         var header = new HBoxContainer();
         var title = SlipLabel(UITheme.CipherInk, BodySize, wrap: false);
-        title.Text = "THE REGISTER: MARGIN NOTES";
+        title.Text = "The Register: margin notes";
+        title.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
         title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         header.AddChild(title);
 
@@ -688,8 +690,10 @@ public partial class RegisterManager : Node
             ScrollActive = true,
             FitContent = false,
             SelectionEnabled = false,
+            MetaUnderlined = false,
             MouseFilter = Control.MouseFilterEnum.Stop,
         };
+        _historyText.MetaClicked += OnHistoryHeadingClicked;
         _historyText.AddThemeFontSizeOverride("normal_font_size", BodySize - 1);
         _historyText.AddThemeFontSizeOverride("bold_font_size", BodySize - 1);
         _historyText.AddThemeColorOverride("default_color", UITheme.CardInk);
@@ -798,26 +802,61 @@ public partial class RegisterManager : Node
             _history.Visible = false;
     }
 
-    private void ShowHistory()
+    /// <summary>The notes open in the book. Every other note shows its heading only.</summary>
+    private readonly HashSet<string> _historyOpen = new HashSet<string>();
+
+    private void OnHistoryHeadingClicked(Variant meta)
+    {
+        string id = meta.AsString();
+        if (!_historyOpen.Remove(id))
+            _historyOpen.Add(id);
+        WriteHistoryText(resetScroll: false);
+    }
+
+    /// <summary>Writes the book: one bold heading per note, and the note under it when open.</summary>
+    private void WriteHistoryText(bool resetScroll)
     {
         string muted = ColorHex(UITheme.CardInkMuted);
+        string ink = ColorHex(UITheme.CardInk);
         var sb = new StringBuilder();
         int shown = 0;
         foreach (var bark in RegisterBarks.All)
         {
             if (bark.Category != RegisterCategory.Explain || !IsSeen(bark.SeenId))
                 continue;
-            if (shown > 0)
-                sb.Append("\n\n");
+            if (shown == 0)
+                sb.Append($"[color={muted}]Click a heading to open or close its note.[/color]\n\n");
             shown++;
-            sb.Append($"[color={muted}]{Escape(bark.Title.ToUpperInvariant())}[/color]\n");
-            sb.Append(Escape(bark.Note));
+            bool open = _historyOpen.Contains(bark.SeenId);
+            sb.Append($"[url={bark.SeenId}][color={ink}][b]{(open ? "▾" : "▸")}  {Escape(bark.Title)}[/b][/color][/url]\n");
+            if (open)
+            {
+                sb.Append(Escape(bark.Note));
+                sb.Append("\n\n");
+            }
         }
         if (shown == 0)
             sb.Append($"[color={muted}]Nothing is written here yet. The Register will make a note the first time something needs explaining.[/color]");
 
+        double scroll = _historyText.GetVScrollBar().Value;
         _historyText.Text = sb.ToString();
-        _historyText.ScrollToLine(0);
+        if (resetScroll)
+        {
+            _historyText.ScrollToLine(0);
+        }
+        else
+        {
+            // Rewriting the text sends the view to the top. Put it back once the label has laid out.
+            Callable.From(() =>
+            {
+                _historyText.GetVScrollBar().Value = scroll;
+            }).CallDeferred();
+        }
+    }
+
+    private void ShowHistory()
+    {
+        WriteHistoryText(resetScroll: true);
 
         bool explainOff = !ExplanationsEnabled, commentOff = !CommentaryEnabled;
         if (explainOff || commentOff)

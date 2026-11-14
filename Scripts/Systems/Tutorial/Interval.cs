@@ -207,7 +207,7 @@ public static class Interval
         cycle.PendingStraggleLunations = 0;
         SetMeta(save, BegunFlag);
         RemoveMeta(save, DoneFlag);   // O1b: a walk begun again is not over (the debug panel's Walk)
-        GD.Print($"[Interval] Walking. The moon is held at lunation {cycle.Interval.HeldLunation}, "
+        GD.Print($"[Interval] Walking. The moon is held at moon {cycle.Interval.HeldLunation}, "
                  + $"day {cycle.Interval.HeldDay + 1}.");
         EnsureStarted(cycle);
     }
@@ -569,11 +569,11 @@ public static class Interval
         var cal = cycle.Calendar;
         if (cal.CurrentLunation != iv.HeldLunation || cal.DayOfLunation != iv.HeldDay)
         {
-            GD.PushError($"[Interval Assert] FAIL at {where}: the moon was held at lunation {iv.HeldLunation}, "
-                         + $"day {iv.HeldDay + 1}, and it is lunation {cal.CurrentLunation}, day {cal.DayOfLunation + 1}.");
+            GD.PushError($"[Interval Assert] FAIL at {where}: the moon was held at moon {iv.HeldLunation}, "
+                         + $"day {iv.HeldDay + 1}, and it is moon {cal.CurrentLunation}, day {cal.DayOfLunation + 1}.");
             return;
         }
-        GD.Print($"[Interval Assert] PASS at {where}: the moon holds at lunation {iv.HeldLunation}, day {iv.HeldDay + 1}.");
+        GD.Print($"[Interval Assert] PASS at {where}: the moon holds at moon {iv.HeldLunation}, day {iv.HeldDay + 1}.");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

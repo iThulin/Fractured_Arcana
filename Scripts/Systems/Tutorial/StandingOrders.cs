@@ -426,7 +426,7 @@ public static class StandingOrders
         if (fails.Count == 0)
         {
             GD.Print($"[Standing Orders Assert] PASS: {Steps.Length} steps, the quest, the counters on scratch "
-                     + "saves, the first lunation's yield and the profile file.");
+                     + "saves, the first moon's yield and the profile file.");
         }
     }
 
@@ -571,11 +571,11 @@ public static class StandingOrders
         string founded = PrologueDirector.FoundingDoneFlag;
         if (FirstLunation.NextLine(Probe(true, founded, begun), null, out _, out _) != null)
         {
-            fails.Add("the first lunation's Next line shows while the interval walks");
+            fails.Add("the first moon's Next line shows while the interval walks");
         }
         if (FirstLunation.NextLine(Probe(false, founded), null, out _, out _) == null)
         {
-            fails.Add("the first lunation's Next line is gone with no interval walking");
+            fails.Add("the first moon's Next line is gone with no interval walking");
         }
 
         // 4. The profile file: write, read and match.

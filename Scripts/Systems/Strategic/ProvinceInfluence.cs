@@ -509,26 +509,26 @@ public static class ProvinceInfluence
         }
         string line = drift switch
         {
-            Drift.CastleHere => $"Next lunation: {amount}, with the castle here.",
-            Drift.CastleBeside => $"Next lunation: {amount}, with the castle beside it.",
-            Drift.Capped => $"Next lunation: no change. The castle's presence stops at {PassiveCap}; deeds take it further.",
+            Drift.CastleHere => $"Next moon: {amount}, with the castle here.",
+            Drift.CastleBeside => $"Next moon: {amount}, with the castle beside it.",
+            Drift.Capped => $"Next moon: no change. The castle's presence stops at {PassiveCap}; deeds take it further.",
             Drift.Sovereign => change > 0
-                ? $"Next lunation: {amount}. The guild rules it, so its influence does not fade."
-                : "Next lunation: no change. The guild rules it, so its influence does not fade.",
+                ? $"Next moon: {amount}. The guild rules it, so its influence does not fade."
+                : "Next moon: no change. The guild rules it, so its influence does not fade.",
             Drift.HeldNeighbors => change > 0
-                ? $"Next lunation: {amount}, from the held provinces beside it."
-                : "Next lunation: no change. The held provinces beside it hold off the fading.",
-            Drift.Fading => $"Next lunation: {amount}, with the castle away.",
+                ? $"Next moon: {amount}, from the held provinces beside it."
+                : "Next moon: no change. The held provinces beside it hold off the fading.",
+            Drift.Fading => $"Next moon: {amount}, with the castle away.",
             Drift.EstateFloor => change < 0
-                ? $"Next lunation: {amount}, and no lower: {who}'s regard keeps it from fading below {floor}."
-                : $"Next lunation: no change. {who}'s regard keeps it from fading below {floor}.",
-            _ => "Next lunation: no change. Nothing reaches it with the castle away.",
+                ? $"Next moon: {amount}, and no lower: {who}'s regard keeps it from fading below {floor}."
+                : $"Next moon: no change. {who}'s regard keeps it from fading below {floor}.",
+            _ => "Next moon: no change. Nothing reaches it with the castle away.",
         };
         int lost = LunationsUntilLost(cycle, index);
         if (lost == 1)
-            line += " The hold is lost next lunation.";
+            line += " The hold is lost next moon.";
         else if (lost > 1)
-            line += $" The hold is lost in {lost} lunations.";
+            line += $" The hold is lost in {lost} moons.";
         return line;
     }
 
@@ -578,7 +578,7 @@ public static class ProvinceInfluence
             ? $"The castle stands in {Label(cycle, provinces[castle])}."
             : "The castle is not on the map.");
         sb.AppendLine($"Held: {held} of {provinces.Count} provinces. Held at {HoldLine}, lost below {LoseLine}. " +
-                      $"Each lunation: +{PresenceGain} in the castle's province, +{PresenceNeighborGain} beside it, " +
+                      $"Each moon: +{PresenceGain} in the castle's province, +{PresenceNeighborGain} beside it, " +
                       $"+{HeldNeighborGain} per held neighbour, none of it past {PassiveCap}; -{Decay} away from the castle.");
         sb.AppendLine($"Deeds: a site cleared +{SiteClearedGain}, a contract +{ContractGain}, a lead +{LeadGain}, " +
                       "each weighed by the realm's court; a friendly courtier's estate fades no lower than " +

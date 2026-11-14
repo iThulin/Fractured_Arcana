@@ -357,10 +357,10 @@ public static class LeadsSaveAssert
             first.Count == 1 && !first[0].IsFalse && first[0].PoiIndex == near);
         ok &= Check(sb, "The rumor is the kingdom's talk", first.Count == 1 && first[0].Source == "talk:k1");
         ok &= Check(sb, "The kingdom's record counts it", LeadService.Record(cycle, "talk:k1").Heard == 1);
-        ok &= Check(sb, "It talks once a lunation", LeadService.HearTalk(cycle, town, 1).Count == 0);
+        ok &= Check(sb, "It talks once a moon", LeadService.HearTalk(cycle, town, 1).Count == 0);
         cycle.Calendar.CurrentLunation = 2;
         var second = LeadService.HearTalk(cycle, town, 1);
-        ok &= Check(sb, "It talks again the next lunation, of the next place",
+        ok &= Check(sb, "It talks again the next moon, of the next place",
             second.Count == 1 && second[0].PoiIndex == far);
 
         var lie = LeadService.HearTalk(cycle, town, 1, anyLunation: true, lie: true);

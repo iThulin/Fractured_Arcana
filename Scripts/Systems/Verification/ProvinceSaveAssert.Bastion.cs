@@ -106,7 +106,7 @@ public static partial class ProvinceSaveAssert
         int lapsed = CastleHops.Plan(cycle, 6, 15, 40, 8, adept)?.Fuel ?? -1;
         cycle.Calendar.CurrentLunation -= 1;
         cycle.Maneuvers.VerdantLunation = -1;
-        ok &= Check(sb, $"Force Path 25; Verdant Passage 27 this lunation, 28 the next ({forced}, {verdant}, {lapsed})",
+        ok &= Check(sb, $"Force Path 25; Verdant Passage 27 this moon, 28 the next ({forced}, {verdant}, {lapsed})",
             forced == 25 && verdant == 27 && lapsed == 28);
 
         int ford = CastleHops.Plan(cycle, 30, 15, 43, 20, adept)?.Fuel ?? -1;
@@ -162,7 +162,7 @@ public static partial class ProvinceSaveAssert
             && cycle.CastleRepairLunations == 0 && state.FontEssence == CastleManeuvers.FontMax - 4
             && !state.LastMarchValid && state.LastMoveVeiled);
         bool again = CastleManeuvers.Cast(cycle, "retrace", "", out string twice, out _);
-        ok &= Check(sb, $"and not twice in a lunation ({twice})", !again && twice.Contains("this lunation"));
+        ok &= Check(sb, $"and not twice in a moon ({twice})", !again && twice.Contains("this moon"));
 
         sb.AppendLine(ok ? "  March and Retrace: PASS" : "  March and Retrace: FAIL");
         return ok;
@@ -306,7 +306,7 @@ public static partial class ProvinceSaveAssert
         var news = cycle.PendingSiegeReports.Skip(reports).ToList();
         bool ok = Check(sb, $"Thornwall holds the front at {start} through the new moon, while one not held moves ({front.Advance}, {controlFront.Advance}; {thorn})",
             held && front.Advance == start && controlFront.Advance != controlStart
-            && news.Any(l => l.Contains("stands still this lunation")) && cycle.Maneuvers.FrozenFronts.Count == 0);
+            && news.Any(l => l.Contains("stands still this moon")) && cycle.Maneuvers.FrozenFronts.Count == 0);
         ok &= Check(sb, $"the east's soldiers fall on the castle's camp, and a defence is owed ({cycle.PendingCastleAssaultKingdomId})",
             cycle.PendingCastleAssaultKingdomId == East && cycle.CastleRepairLunations > 0
             && news.Any(l => l.Contains("The war comes to the castle")));

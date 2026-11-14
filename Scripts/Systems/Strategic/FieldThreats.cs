@@ -312,7 +312,7 @@ public static class FieldThreats
             Report = $"{who} bar the road. {party.Name} is turned back and the march is lost."
                    + (string.IsNullOrEmpty(hurt)
                         ? ""
-                        : $" {hurt} is hurt and out for {KingdomInjuryLunations} lunation(s)."),
+                        : $" {hurt} is hurt and out for {KingdomInjuryLunations} moon(s)."),
         };
         GD.Print($"[FieldThreats] {result.Report}");
         return result;

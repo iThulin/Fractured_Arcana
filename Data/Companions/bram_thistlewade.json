@@ -5,7 +5,7 @@
 	"unitClass": "Arcane",
 	"personalityTrait": "Loyal",
 	"vocation": "Physician",
-	"backstory": "Found half-starved in a grove the blight had circled but not touched. He held it alone for two lunations, and he does not forget who finally came.",
+	"backstory": "Found half-starved in a grove the blight had circled but not touched. He held it alone for two moons, and he does not forget who finally came.",
 	"recruitmentCost": 0,
 	"isAvailable": false,
 	"unlockCondition": "Rescue: found at a companion POI in the wilds",

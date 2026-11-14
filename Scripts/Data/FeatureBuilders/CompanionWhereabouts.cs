@@ -198,7 +198,7 @@ public static class CompanionWhereabouts
 
             if (w.Injured)
             {
-                w.Detail = $"injured, {c.InjuredLunationsRemaining} lunation(s)"
+                w.Detail = $"injured, {c.InjuredLunationsRemaining} moon(s)"
                          + (string.IsNullOrEmpty(w.Detail) ? "" : $"  ·  {w.Detail}");
             }
             list.Add(w);

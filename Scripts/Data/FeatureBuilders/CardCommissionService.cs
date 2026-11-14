@@ -177,7 +177,7 @@ public static class CardCommissionService
         if (!ArchivesAvailable(save))
             return Fail("Research opens at the Arcane Library's second tier (Expanded Stacks).");
         if (existing != null)
-            return Fail($"Already under research. {existing.LunationsRemaining} lunation(s) remain.");
+            return Fail($"Already under research. {existing.LunationsRemaining} moon(s) remain.");
         if (bp.Rarity == CardRarity.Legendary || gold < 0)
             return Fail("This is Regalia. It is granted at a milestone, never researched.");
         if (MarginaliaService.IsMarginaliaCard(bp.Id))
@@ -224,7 +224,7 @@ public static class CardCommissionService
         save.Ledger.CardCommissions.Add(commission);
 
         GD.Print($"[Commission] Research begun on '{bp.Id}' for {status.GoldCost} gold. " +
-                 $"Delivers in {status.Lunations} lunation(s) " +
+                 $"Delivers in {status.Lunations} moon(s) " +
                  $"({status.InFlight + 1}/{status.MaxConcurrent} in flight).");
         return commission;
     }
@@ -316,7 +316,7 @@ public static class CardCommissionService
             GoldPaid = 0,
         });
         GD.Print($"[Commission][Debug] Commissioned '{bp.Id}' ({bp.Rarity}). " +
-                 $"Settles in {Math.Max(1, lunations)} lunation(s). Advance the moon to test.");
+                 $"Settles in {Math.Max(1, lunations)} moon(s). Advance the moon to test.");
         return bp.Id;
     }
 

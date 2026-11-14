@@ -177,7 +177,7 @@
     "choices": [
       {
         "label": "Ask which deal was 'sharper than needed'",
-        "resultText": "She tells you, precisely, including what it will cost you in two lunations. She is right. She is always going to be right, and you had better get used to it."
+        "resultText": "She tells you, precisely, including what it will cost you in two moons. She is right. She is always going to be right, and you had better get used to it."
       },
       {
         "label": "Ask about the table she was traded across",
@@ -230,7 +230,7 @@
   {
     "id": "cm_bram_rescue",
     "title": "The Grove That Held",
-    "body": "The blight has circled this grove and stopped, the way water circles a stone. Inside the untouched green, a man sits against an oak with a walking staff across his knees and the look of someone at the far end of a long argument.\n\n'Two lunations,' he says, without greeting. 'It didn't get in. I don't know what I did. I just didn't leave.' He is half-starved and entirely calm. The grove leans toward him slightly, the way rooms lean toward their oldest resident.\n\nHis name is Bram. The grove, he says, can manage without him now. He isn't sure he can say the same the other way around.",
+    "body": "The blight has circled this grove and stopped, the way water circles a stone. Inside the untouched green, a man sits against an oak with a walking staff across his knees and the look of someone at the far end of a long argument.\n\n'Two moons,' he says, without greeting. 'It didn't get in. I don't know what I did. I just didn't leave.' He is half-starved and entirely calm. The grove leans toward him slightly, the way rooms lean toward their oldest resident.\n\nHis name is Bram. The grove, he says, can manage without him now. He isn't sure he can say the same the other way around.",
     "choices": [
       {
         "label": "Take him in: the guild has room for a man groves trust",
@@ -376,7 +376,7 @@
   {
     "id": "cm_bram_1",
     "title": "What Held It",
-    "body": "The grove is exactly as he left it: green, quiet, ringed by a blight-line that stops like a tide against nothing. Bram walks in and exhales two lunations of held breath.\n\n'I used to think it was me,' he says, one hand on the oak. 'Standing here. Refusing.' He shakes his head slowly. 'It wasn't. Watch.'\n\nHe steps outside the ring. The grove... attends. There is no other word for it: the way the leaves angle after him, the way the blight-line tenses. He steps back in and the whole green settles like a dog that found its person.\n\n'It held ME,' he says. 'I just gave it a reason to bother.'",
+    "body": "The grove is exactly as he left it: green, quiet, ringed by a blight-line that stops like a tide against nothing. Bram walks in and exhales two moons of held breath.\n\n'I used to think it was me,' he says, one hand on the oak. 'Standing here. Refusing.' He shakes his head slowly. 'It wasn't. Watch.'\n\nHe steps outside the ring. The grove... attends. There is no other word for it: the way the leaves angle after him, the way the blight-line tenses. He steps back in and the whole green settles like a dog that found its person.\n\n'It held ME,' he says. 'I just gave it a reason to bother.'",
     "choices": [
       {
         "label": "Ask the grove how, properly, in the Druid way",
@@ -385,7 +385,7 @@
       },
       {
         "label": "Give it a reason to keep bothering: pledge the guild to this ground",
-        "resultText": "Bram relays the pledge with his palm flat on the oak. The blight-line, over the following lunation, retreats the width of one furrow. It is showing off, he says. Groves are terrible about praise."
+        "resultText": "Bram relays the pledge with his palm flat on the oak. The blight-line, over the following moon, retreats the width of one furrow. It is showing off, he says. Groves are terrible about praise."
       }
     ]
   },
@@ -396,7 +396,7 @@
     "choices": [
       {
         "label": "Renew the pledge on the remembered spot",
-        "resultText": "The blight-line gives back a furrow's width on the spot, no lunation of deliberation this time. Groves are terrible about praise, and worse about reunions."
+        "resultText": "The blight-line gives back a furrow's width on the spot, no moon of deliberation this time. Groves are terrible about praise, and worse about reunions."
       }
     ]
   },
@@ -489,7 +489,7 @@
     "choices": [
       {
         "label": "Ink the route: the Thornhelm Round, permanent",
-        "resultText": "She walks it that same evening, learning her ground the way she learns everything: completely, on foot, in all weathers. Within a lunation the campus has a rhythm it did not have before: her boots at dusk, as reliable as the bell."
+        "resultText": "She walks it that same evening, learning her ground the way she learns everything: completely, on foot, in all weathers. Within a moon the campus has a rhythm it did not have before: her boots at dusk, as reliable as the bell."
       },
       {
         "label": "Add her to the campus charter by name",
@@ -522,11 +522,11 @@
   {
     "id": "cm_corvin_reprise",
     "title": "The Sentence, Kept",
-    "body": "Corvin finds you on the wall at dusk, and for once he opens his mouth without waiting a lunation.\n\n'The words came back this morning. All of it: the fights, the roll, the borrowed cadence at the end.' He watches the frozen skyline. 'Except I know how it ends. I've ended it. Somewhere the sky shuffled away, I stood on this wall and chose.' He turns. 'A man shouldn't have to desert the same war twice. Witness it once more and be done.'",
+    "body": "Corvin finds you on the wall at dusk, and for once he opens his mouth without waiting a moon.\n\n'The words came back this morning. All of it: the fights, the roll, the borrowed cadence at the end.' He watches the frozen skyline. 'Except I know how it ends. I've ended it. Somewhere the sky shuffled away, I stood on this wall and chose.' He turns. 'A man shouldn't have to desert the same war twice. Witness it once more and be done.'",
     "choices": [
       {
         "label": "Witness it",
-        "resultText": "'I am choosing where to stand. Here.' Once, in his own cadence, unrehearsed and unhurried. A sentence so thoroughly his that no rendering can lend it out again. He nods, paid up, and goes back to his forty words a lunation."
+        "resultText": "'I am choosing where to stand. Here.' Once, in his own cadence, unrehearsed and unhurried. A sentence so thoroughly his that no rendering can lend it out again. He nods, paid up, and goes back to his forty words a moon."
       }
     ]
   },
@@ -637,7 +637,7 @@
     "choices": [
       {
         "label": "No. But commission the instruments: measure everything, touch nothing.",
-        "resultText": "'MEASURE everything...' she repeats, already redesigning. Within a lunation the anchor has more instrumentation than the rest of the campus combined, and Fenna has readings nobody in history has had."
+        "resultText": "'MEASURE everything...' she repeats, already redesigning. Within a moon the anchor has more instrumentation than the rest of the campus combined, and Fenna has readings nobody in history has had."
       },
       {
         "label": "Ask what she thinks is inside",
@@ -948,7 +948,7 @@
     "choices": [
       {
         "label": "Yes: the grounds are hers to ward",
-        "resultText": "Within two lunations the campus perimeter is a marvel nobody can see: seventeen quiet countermeasures, each one a killing method retired into a warning. Nothing approaches unannounced again. Dagny's Round and Sable's web, it's noted, fit together like they were drawn by one hand."
+        "resultText": "Within two moons the campus perimeter is a marvel nobody can see: seventeen quiet countermeasures, each one a killing method retired into a warning. Nothing approaches unannounced again. Dagny's Round and Sable's web, it's noted, fit together like they were drawn by one hand."
       },
       {
         "label": "Yes, and ask her to teach the seeing to the scouts",
@@ -1004,7 +1004,7 @@
     "choices": [
       {
         "label": "Stand with him while he racks it",
-        "resultText": "The spear goes into the bracket with the care of a man laying something down that stayed up too long, and his hands come away, and stay away, and he stands there flexing them slowly like they're new. 'Right,' he says thickly. 'Harvest in a lunation. Bring a scythe, if you're bringing anything.'"
+        "resultText": "The spear goes into the bracket with the care of a man laying something down that stayed up too long, and his hands come away, and stay away, and he stands there flexing them slowly like they're new. 'Right,' he says thickly. 'Harvest in a moon. Bring a scythe, if you're bringing anything.'"
       },
       {
         "label": "Point out the barley behind him: the night the fire took, given back",
@@ -1146,7 +1146,7 @@
   {
     "id": "cm_odile_3",
     "title": "Colors",
-    "body": "Odile stands at the gatehouse at dawn with a wrapped bundle and the bearing of a woman at a flag ceremony only she can see.\n\n'The pole's been empty since I arrived,' she says. 'Empty banner pole over a defended gate. It's been shouting at me for a lunation.'\n\nShe unwraps the bundle: a banner, new-sewn, her needlework, with guild colors in the field and in the canton, small and precise, a single grain-sheaf on a wagon wheel. 'Your colors. My freight.' She looks up the pole. 'I held one gate six hours for what was behind it. This gate holds back the end of the world. Marshal requests permission to raise colors, and to hold this one for the duration.'",
+    "body": "Odile stands at the gatehouse at dawn with a wrapped bundle and the bearing of a woman at a flag ceremony only she can see.\n\n'The pole's been empty since I arrived,' she says. 'Empty banner pole over a defended gate. It's been shouting at me for a moon.'\n\nShe unwraps the bundle: a banner, new-sewn, her needlework, with guild colors in the field and in the canton, small and precise, a single grain-sheaf on a wagon wheel. 'Your colors. My freight.' She looks up the pole. 'I held one gate six hours for what was behind it. This gate holds back the end of the world. Marshal requests permission to raise colors, and to hold this one for the duration.'",
     "choices": [
       {
         "label": "Permission granted: raise the colors",
@@ -1188,11 +1188,11 @@
   {
     "id": "cm_petra_1r",
     "title": "Marginalia (Entry Forty-Two)",
-    "body": "Petra meets you at the library wing already holding the catalogue, and it's thicker.\n\n'Entry forty-two is new,' she says, walking you to the held-open ledger. Below the old note, in her hand, dated a year this world never had: *Petra, the one who brought you here has done it before. Trust the continuity. Skip the panic; it wastes a lunation. Love, us.*\n\nShe looks up. 'It says LOVE, US. I sign notes to MYSELF as a collective now.' A beat. 'I'm going to need the whole truth again, apparently, but the short version, since my archive says you keep it somewhere.'",
+    "body": "Petra meets you at the library wing already holding the catalogue, and it's thicker.\n\n'Entry forty-two is new,' she says, walking you to the held-open ledger. Below the old note, in her hand, dated a year this world never had: *Petra, the one who brought you here has done it before. Trust the continuity. Skip the panic; it wastes a moon. Love, us.*\n\nShe looks up. 'It says LOVE, US. I sign notes to MYSELF as a collective now.' A beat. 'I'm going to need the whole truth again, apparently, but the short version, since my archive says you keep it somewhere.'",
     "choices": [
       {
         "label": "Give her the short version: the panic-skipping edition",
-        "resultText": "The loom, the renderings, the correspondence, all delivered in the efficient form her own note requested. She catches up in an afternoon instead of a lunation, then writes entry forty-three: *Confirmed. The short version works. Us.*"
+        "resultText": "The loom, the renderings, the correspondence, all delivered in the efficient form her own note requested. She catches up in an afternoon instead of a moon, then writes entry forty-three: *Confirmed. The short version works. Us.*"
       }
     ]
   },
@@ -1392,12 +1392,12 @@
     "body": "The castle is docked and quiet, and Brannoc is in the courtyard with nothing in his hands, and it is the worst anyone has seen him look. He keeps reaching for a wheel that is three floors above him.\n\n'Can't do standing still,' he says. 'Walked it thirty years. When it stops, I stop. Nothing in me knows what to do that isn't a heading.' He looks at his hands, opens them, closes them. 'You asked where I'd point it. I've got a place now. Cold coast, north, where the walkers used to be built. Never seen it. Only place I ever wanted to.'\n\nHe does not ask. He never asks. But he is standing here with his hands empty, and the not-asking is as loud as it gets.",
     "choices": [
       {
-        "label": "Promise him the coast: one lunation's detour, when the road allows",
+        "label": "Promise him the coast: one moon's detour, when the road allows",
         "resultText": "He does not thank you. He goes very still, the way he did at the wheel, and then he says, 'Right,' and goes up the three floors to stand at a Helm that is not moving, because now there is something to stand at it for. He is there until the lamps are lit. Every hour someone hears him check a bearing that has not changed."
       },
       {
-        "label": "Tell him the road decides; the guild cannot spare a lunation",
-        "resultText": "He takes it the way he takes everything. 'Fair. Guild's line, not mine.' But he keeps the heading. You know because a lunation later there is a bearing scratched into the Helm rail, small, north by a hair, that was not there before, and nobody who walks the castle scratches its rail without meaning it."
+        "label": "Tell him the road decides; the guild cannot spare a moon",
+        "resultText": "He takes it the way he takes everything. 'Fair. Guild's line, not mine.' But he keeps the heading. You know because a moon later there is a bearing scratched into the Helm rail, small, north by a hair, that was not there before, and nobody who walks the castle scratches its rail without meaning it."
       }
     ]
   },

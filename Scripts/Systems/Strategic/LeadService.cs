@@ -337,7 +337,7 @@ public static class LeadService
             AnnounceHeard(cycle, lead);
             heard.Add(lead);
         }
-        GD.Print($"[Leads] Talk at ({s.CenterX},{s.CenterY}), a {reliability} kingdom, on lunation {lunation}: "
+        GD.Print($"[Leads] Talk at ({s.CenterX},{s.CenterY}), a {reliability} kingdom, on moon {lunation}: "
                  + $"{heard.Count} rumor(s), {heard.FindAll(l => l.IsFalse).Count} false.");
         return heard;
     }

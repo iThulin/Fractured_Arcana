@@ -167,7 +167,7 @@ public partial class TooltipManager : Control
         if (satisfiedRequires.Count > 0)
         {
             AddSeparator();
-            AddSubtitle("Satisfies:");
+            AddSubtitle("You can cast here:");
             foreach (var req in satisfiedRequires)
                 AddColoredRow("✓", RequiresDisplayName(req), UITheme.Success);
         }
@@ -546,11 +546,11 @@ public partial class TooltipManager : Control
 
     private static string RequiresDisplayName(string req) => req switch
     {
-        "fire_tile"  => "fire_tile cards",
-        "ice_tile"   => "ice_tile cards",
-        "storm_tile" => "storm_tile cards",
-        "stone_tile" => "stone_tile cards",
-        "empty_tile" => "empty_tile cards",
+        "fire_tile"  => "Cards that need a Fire tile",
+        "ice_tile"   => "Cards that need an Ice tile",
+        "storm_tile" => "Cards that need a Storm tile",
+        "stone_tile" => "Cards that need a Stone tile",
+        "empty_tile" => "Cards that need an empty tile",
         _            => req
     };
 

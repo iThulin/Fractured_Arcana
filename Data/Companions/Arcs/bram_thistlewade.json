@@ -1,7 +1,7 @@
 {
   "companionId": "bram_thistlewade",
   "arcName": "The Grove That Held",
-  "arcSummary": "Bram held a grove against the blight, alone, for two lunations. He still doesn't know how. The grove might.",
+  "arcSummary": "Bram held a grove against the blight, alone, for two moons. He still doesn't know how. The grove might.",
   "recruitEncounterId": "cm_bram_rescue",
   "recruitFlag": "bram_rescued",
   "recruitLocation": "expedition",

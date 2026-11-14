@@ -34,6 +34,7 @@ public static class QuestLogView
             return "";
         foreach (var c in box.GetChildren())
             c.QueueFree();
+        _openedOne = false;
         if (save == null)
             return "No guild loaded.";
 
@@ -117,7 +118,7 @@ public static class QuestLogView
             {
                 int year = cycle.CampaignYear;
                 int lunation = cycle.Calendar?.CurrentLunation ?? 0;
-                timelineTitle += $":  Year {year}, Lunation {lunation}";
+                timelineTitle += $":  Year {year}, Moon {lunation}";
             }
             AddSectionHeader(box, timelineTitle);
 
@@ -197,7 +198,8 @@ public static class QuestLogView
 
         var head = new Label { Text = text };
         head.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        head.AddThemeColorOverride("font_color", UITheme.POINarrative);
+        head.AddThemeColorOverride("font_color", UITheme.GlassTitle);
+        head.AddThemeFontOverride("font", UITheme.GlassDisplayFont);
         parent.AddChild(head);
     }
 
@@ -227,6 +229,9 @@ public static class QuestLogView
 
     // ── Quest card (active / complete / locked) ─────────────────────────
 
+    /// <summary>Set once a quest card has opened itself in this build of the log (AddCard).</summary>
+    private static bool _openedOne;
+
     private static void AddCard(VBoxContainer parent, QuestDefinition q, QuestStatus status, GuildSaveData save)
     {
         var card = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -251,18 +256,53 @@ public static class QuestLogView
         }
 
         string glyph = status == QuestStatus.Complete ? "✓" : "◆";
-        var title = new Label { Text = $"{glyph}  {q.Title}", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        int doneCount = 0;
+        foreach (var objective in q.Objectives)
+        {
+            if (QuestTracker.ObjectiveDone(objective, save))
+                doneCount++;
+        }
+        string tally = q.Objectives.Count > 0 ? $"   {doneCount}/{q.Objectives.Count}" : "";
+        string closedText = $"▸  {glyph}  {q.Title}{tally}";
+        string openText = $"▾  {glyph}  {q.Title}{tally}";
+
+        // Collapsed by default, so the log reads as a list of titles with a tally. The first
+        // quest still in progress opens on its own: it is the one most likely wanted.
+        bool open = status != QuestStatus.Complete && !_openedOne;
+        if (open)
+            _openedOne = true;
+
+        var details = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = open };
+        details.AddThemeConstantOverride("separation", 3);
+
+        Color titleColor = status == QuestStatus.Complete ? UITheme.Gold : UITheme.TextPrimary;
+        var title = new Button
+        {
+            Text = open ? openText : closedText,
+            Alignment = HorizontalAlignment.Left,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Show or hide this quest's steps.",
+        };
         title.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
-        title.AddThemeColorOverride("font_color",
-            status == QuestStatus.Complete ? UITheme.Gold : UITheme.TextPrimary);
+        foreach (string state in new[] { "normal", "hover", "pressed", "focus", "disabled" })
+            title.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
+        title.AddThemeColorOverride("font_color", titleColor);
+        title.AddThemeColorOverride("font_pressed_color", titleColor);
+        title.AddThemeColorOverride("font_hover_color", UITheme.GlassTitle);
+        title.Pressed += () =>
+        {
+            details.Visible = !details.Visible;
+            title.Text = details.Visible ? openText : closedText;
+        };
         card.AddChild(title);
 
         if (!string.IsNullOrEmpty(q.Summary))
         {
             var sum = new Label { Text = q.Summary, AutowrapMode = TextServer.AutowrapMode.WordSmart };
             sum.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
-            sum.AddThemeColorOverride("font_color", UITheme.NegotiationHiddenTerm);
-            card.AddChild(sum);
+            sum.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+            details.AddChild(sum);
         }
 
         foreach (var o in q.Objectives)
@@ -282,8 +322,8 @@ public static class QuestLogView
             string shown = od && !string.IsNullOrEmpty(o.DoneText) ? o.DoneText : o.Text;
             var line = new Label { Text = $"   {mark}  {shown}{prog}", AutowrapMode = TextServer.AutowrapMode.WordSmart };
             line.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
-            line.AddThemeColorOverride("font_color", od ? UITheme.POINegotiation : UITheme.NegotiationHiddenTerm);
-            card.AddChild(line);
+            line.AddThemeColorOverride("font_color", od ? UITheme.POINegotiation : UITheme.TextPrimary);
+            details.AddChild(line);
         }
 
         // Dossier cards render the revealed weakness-hint TEXT inline, because
@@ -310,10 +350,11 @@ public static class QuestLogView
                     hl.AddThemeFontSizeOverride("font_size", UITheme.CampusBuildSmallFontSize);
                     hl.AddThemeColorOverride("font_color",
                         revealed ? UITheme.Gold : UITheme.NegotiationHiddenTerm);
-                    card.AddChild(hl);
+                    details.AddChild(hl);
                 }
             }
         }
+        card.AddChild(details);
         parent.AddChild(card);
     }
 

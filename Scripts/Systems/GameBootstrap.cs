@@ -21,6 +21,10 @@ public partial class GameBootstrap : Node
 {
     public override void _Ready()
     {
+        // Stock engine controls (text fields, sliders, dropdowns, scroll bars, dialogs)
+        // take the ink and gold scheme before any scene builds its UI.
+        ProjectThemeInstaller.Install();
+
         // Ensure card database is loaded before any gameplay scenes that rely on it.
         CardLoaderV2.LoadCardsFromJson("res://Data/Cards");
 

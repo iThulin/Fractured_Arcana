@@ -216,7 +216,7 @@ public static class ProvinceControl
         string ruler = RulerOf(cycle, province);
         if (ruler == (province.KingdomId ?? ""))
             return "";
-        string since = province.ControlSinceLunation >= 0 ? $" since lunation {province.ControlSinceLunation}" : "";
+        string since = province.ControlSinceLunation >= 0 ? $" since moon {province.ControlSinceLunation}" : "";
         if (ruler == Guild)
             return "  the guild's" + since;
         if (ruler == Neutral)

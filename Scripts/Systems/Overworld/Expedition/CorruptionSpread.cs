@@ -165,7 +165,7 @@ public static class CorruptionSpread
         // lunation starts unshielded and the cap resets.
         _delayedRegions.Clear();
 
-        GD.Print("[Corruption] Lunation spread applied.");
+        GD.Print("[Corruption] Moon spread applied.");
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -239,7 +239,7 @@ public static class CorruptionSpread
             // rather than pausing the clock. It is tempo, not a stop.
             if (_delayedRegions.Contains(region) && targetLevel > curLevel)
             {
-                GD.Print($"[Corruption] Kingdom '{kid}' ({region}) advance delayed this lunation (sabotage).");
+                GD.Print($"[Corruption] Kingdom '{kid}' ({region}) advance delayed this moon (sabotage).");
                 continue;
             }
 

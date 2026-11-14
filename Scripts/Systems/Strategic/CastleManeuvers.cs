@@ -81,8 +81,8 @@ public static class CastleManeuvers
         new ManeuverDef { SpellId = "veil", Name = "Veil", Essence = 3,
             Text = "The next march leaves no trail: whatever hunts the castle loses it." },
         new ManeuverDef { SpellId = "retrace", Name = "Retrace", Essence = 4,
-            Text = "Undo this lunation's last march: the castle stands where it began, the fuel back "
-                   + "in the furnace and no camp to make. Once a lunation." },
+            Text = "Undo this moon's last march: the castle stands where it began, the fuel back "
+                   + "in the furnace and no camp to make. Once a moon." },
         new ManeuverDef { SpellId = "deploy_waystation", Name = "Deploy Waystation", Essence = 5,
             Target = ManeuverTarget.NeighbourProvince,
             Text = "A forward camp in a province beside the castle's: a party can stage there, and the "
@@ -367,13 +367,13 @@ public static class CastleManeuvers
             case "retrace":
                 if (state.RetraceLunation == Lunation(cycle))
                 {
-                    why = "Retrace has been cast this lunation already.";
+                    why = "Retrace has been cast this moon already.";
                     return false;
                 }
                 if (!state.LastMarchValid || state.LastMarchLunation != Lunation(cycle)
                     || state.LastMarchToX != cycle.CastleX || state.LastMarchToY != cycle.CastleY)
                 {
-                    why = "There is no march of this lunation to undo.";
+                    why = "There is no march of this moon to undo.";
                     return false;
                 }
                 if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
@@ -400,7 +400,7 @@ public static class CastleManeuvers
             case "verdant_passage":
                 if (VerdantActive(cycle))
                 {
-                    why = "Verdant Passage already holds this lunation.";
+                    why = "Verdant Passage already holds this moon.";
                     return false;
                 }
                 break;
@@ -771,7 +771,7 @@ public static class CastleManeuvers
         var contested = ProvinceControl.ProvinceById(cycle.World, wf.ProvinceId);
         string where = contested != null ? ProvinceControl.Name(contested) : wf.DefenderName;
         cycle.PendingSiegeReports ??= new List<string>();
-        cycle.PendingSiegeReports.Add($"The front at {where} stands still this lunation: the guild's spell holds it.");
+        cycle.PendingSiegeReports.Add($"The front at {where} stands still this moon: the guild's spell holds it.");
         return true;
     }
 

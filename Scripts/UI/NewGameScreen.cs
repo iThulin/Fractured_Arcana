@@ -135,7 +135,7 @@ public partial class NewGameScreen : Control
         AnchorBottom = 1f;
 
         // ── Background ──────────────────────────────────────────────────
-        var bg = new ColorRect { Color = new Color(0.05f, 0.04f, 0.08f) };
+        var bg = new ColorRect { Color = UITheme.BgDeep };
         bg.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(bg);
 
@@ -240,7 +240,7 @@ public partial class NewGameScreen : Control
 
         var hdr = new Label { Text = "THE EIGHT SCHOOLS" };
         hdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-        hdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
+        hdr.AddThemeColorOverride("font_color", UITheme.TextDim);
         col.AddChild(hdr);
 
         foreach (CardSchool school in Enum.GetValues(typeof(CardSchool)))
@@ -292,7 +292,7 @@ public partial class NewGameScreen : Control
         };
         symLbl.AddThemeFontSizeOverride("font_size", 17);
         symLbl.AddThemeColorOverride("font_color",
-            sel ? accent : new Color(0.30f, 0.30f, 0.40f));
+            sel ? accent : UITheme.TextDim);
         row.AddChild(symLbl);
 
         // Center name + identity vertically within the card height
@@ -318,7 +318,7 @@ public partial class NewGameScreen : Control
         };
         identityLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         identityLbl.AddThemeColorOverride("font_color",
-            sel ? new Color(accent.R, accent.G, accent.B, 0.85f) : new Color(0.32f, 0.32f, 0.42f));
+            sel ? new Color(accent.R, accent.G, accent.B, 0.85f) : UITheme.TextDim);
         nameWrapper.AddChild(identityLbl);
 
         var countLbl = new Label
@@ -329,7 +329,7 @@ public partial class NewGameScreen : Control
         };
         countLbl.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
         countLbl.AddThemeColorOverride("font_color",
-            sel ? accent : new Color(0.30f, 0.30f, 0.40f));
+            sel ? accent : UITheme.TextDim);
         row.AddChild(countLbl);
 
         _schoolCards.Add((school, card, nameLbl, symLbl));
@@ -355,8 +355,8 @@ public partial class NewGameScreen : Control
         {
             BgColor = sel
                 ? new Color(accent.R * 0.12f, accent.G * 0.12f, accent.B * 0.12f, 1f)
-                : new Color(0.07f, 0.06f, 0.10f),
-            BorderColor = sel ? accent : new Color(0.16f, 0.15f, 0.22f),
+                : UITheme.BgBase,
+            BorderColor = sel ? accent : UITheme.NeutralDim,
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = sel ? 3 : 1,
@@ -424,7 +424,7 @@ public partial class NewGameScreen : Control
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         _modelPlaceholderLabel.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
-        _modelPlaceholderLabel.AddThemeColorOverride("font_color", new Color(0.28f, 0.28f, 0.38f));
+        _modelPlaceholderLabel.AddThemeColorOverride("font_color", UITheme.TextDim);
         modelContent.AddChild(_modelPlaceholderLabel);
 
         modelContent.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
@@ -481,13 +481,13 @@ public partial class NewGameScreen : Control
 
         var flavorRule = new Panel { CustomMinimumSize = new Vector2(0, 1) };
         flavorRule.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        var frStyle = new StyleBoxFlat { BgColor = new Color(0.20f, 0.20f, 0.28f) };
+        var frStyle = new StyleBoxFlat { BgColor = UITheme.Neutral };
         flavorRule.AddThemeStyleboxOverride("panel", frStyle);
         infoVBox.AddChild(flavorRule);
 
         _detailFlavor = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _detailFlavor.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        _detailFlavor.AddThemeColorOverride("font_color", new Color(0.36f, 0.36f, 0.46f));
+        _detailFlavor.AddThemeColorOverride("font_color", UITheme.TextDim);
         infoVBox.AddChild(_detailFlavor);
     }
 
@@ -499,7 +499,7 @@ public partial class NewGameScreen : Control
     {
         var rule = new Panel { CustomMinimumSize = new Vector2(0, 1) };
         rule.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        var rStyle = new StyleBoxFlat { BgColor = new Color(0.18f, 0.17f, 0.26f) };
+        var rStyle = new StyleBoxFlat { BgColor = UITheme.Neutral };
         rule.AddThemeStyleboxOverride("panel", rStyle);
         parent.AddChild(rule);
 
@@ -515,7 +515,7 @@ public partial class NewGameScreen : Control
 
         var nameHdr = new Label { Text = "GUILD NAME" };
         nameHdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-        nameHdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
+        nameHdr.AddThemeColorOverride("font_color", UITheme.TextDim);
         nameSection.AddChild(nameHdr);
 
         _guildNameInput = new LineEdit
@@ -526,13 +526,13 @@ public partial class NewGameScreen : Control
         };
         _guildNameInput.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         _guildNameInput.AddThemeColorOverride("font_color", Colors.White);
-        _guildNameInput.AddThemeColorOverride("font_placeholder_color", new Color(0.32f, 0.32f, 0.42f));
+        _guildNameInput.AddThemeColorOverride("font_placeholder_color", UITheme.TextDim);
 
 
         var inputNormal = new StyleBoxFlat
         {
-            BgColor = new Color(0.06f, 0.05f, 0.10f),
-            BorderColor = new Color(0.24f, 0.23f, 0.34f),
+            BgColor = UITheme.BgBase,
+            BorderColor = UITheme.Neutral,
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = 1,
@@ -548,7 +548,7 @@ public partial class NewGameScreen : Control
         };
         var inputFocus = new StyleBoxFlat
         {
-            BgColor = new Color(0.07f, 0.06f, 0.12f),
+            BgColor = UITheme.BgBase,
             BorderColor = UITheme.GlassLine,
             BorderWidthTop = 1,
             BorderWidthBottom = 2,
@@ -579,7 +579,7 @@ public partial class NewGameScreen : Control
 
         var wizardHdr = new Label { Text = "WIZARD NAME" };
         wizardHdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-        wizardHdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
+        wizardHdr.AddThemeColorOverride("font_color", UITheme.TextDim);
         wizardSection.AddChild(wizardHdr);
 
         _wizardNameInput = new LineEdit
@@ -591,7 +591,7 @@ public partial class NewGameScreen : Control
         _wizardNameInput.AddThemeFontSizeOverride("font_size", UITheme.CampusBodyFontSize);
         _wizardNameInput.AddThemeColorOverride("font_color", Colors.White);
         _wizardNameInput.AddThemeColorOverride("font_placeholder_color",
-            new Color(0.32f, 0.32f, 0.42f));
+            UITheme.TextDim);
         _wizardNameInput.AddThemeStyleboxOverride("normal", inputNormal);
         _wizardNameInput.AddThemeStyleboxOverride("focus", inputFocus);
         wizardSection.AddChild(_wizardNameInput);
@@ -690,7 +690,7 @@ public partial class NewGameScreen : Control
             // so whatever is set here is what actually paints.
             nameLbl.AddThemeColorOverride("font_color", SchoolNameColor(school, sel));
             symLbl.AddThemeColorOverride("font_color",
-                sel ? accent : new Color(0.30f, 0.30f, 0.40f));
+                sel ? accent : UITheme.TextDim);
         }
     }
 
@@ -726,7 +726,7 @@ public partial class NewGameScreen : Control
         // Info panel
         var infoPanelStyle = new StyleBoxFlat
         {
-            BgColor = new Color(0.07f, 0.06f, 0.10f),
+            BgColor = UITheme.BgBase,
             BorderColor = new Color(accent.R, accent.G, accent.B, 0.4f),
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
@@ -790,7 +790,7 @@ public partial class NewGameScreen : Control
 
         var hdr = new Label { Text = "FOUNDING: CHOOSE YOUR REALM" };
         hdr.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize - 1);
-        hdr.AddThemeColorOverride("font_color", new Color(0.38f, 0.38f, 0.48f));
+        hdr.AddThemeColorOverride("font_color", UITheme.TextDim);
         section.AddChild(hdr);
 
         var cardRow = new HBoxContainer();
@@ -862,8 +862,8 @@ public partial class NewGameScreen : Control
         {
             BgColor = sel
                 ? new Color(accent.R * 0.12f, accent.G * 0.12f, accent.B * 0.12f, 1f)
-                : new Color(0.07f, 0.06f, 0.10f),
-            BorderColor = sel ? accent : new Color(0.16f, 0.15f, 0.22f),
+                : UITheme.BgBase,
+            BorderColor = sel ? accent : UITheme.NeutralDim,
             BorderWidthTop = sel ? 2 : 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = 1,
@@ -1036,8 +1036,8 @@ public partial class NewGameScreen : Control
         // (The confirm button was disabled for a locked school until 2026-10-26.)
         var disabled = new StyleBoxFlat
         {
-            BgColor = new Color(0.10f, 0.09f, 0.14f),
-            BorderColor = new Color(0.24f, 0.23f, 0.34f),
+            BgColor = UITheme.BgRaised,
+            BorderColor = UITheme.Neutral,
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = 1,
@@ -1059,7 +1059,7 @@ public partial class NewGameScreen : Control
         var normal = new StyleBoxFlat
         {
             BgColor = new Color(0f, 0f, 0f, 0f),
-            BorderColor = new Color(0.22f, 0.22f, 0.32f),
+            BorderColor = UITheme.Neutral,
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = 1,
@@ -1071,8 +1071,8 @@ public partial class NewGameScreen : Control
         };
         var hover = new StyleBoxFlat
         {
-            BgColor = new Color(0.10f, 0.10f, 0.16f),
-            BorderColor = new Color(0.32f, 0.32f, 0.45f),
+            BgColor = UITheme.BgRaised,
+            BorderColor = UITheme.GlassLineDim,
             BorderWidthTop = 1,
             BorderWidthBottom = 1,
             BorderWidthLeft = 1,

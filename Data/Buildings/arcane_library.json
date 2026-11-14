@@ -20,7 +20,7 @@
     {
       "tier": 2,
       "displayName": "Expanded Stacks",
-      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 lunations each). Still 1 Insight card in every parley deck.",
+      "description": "Research opens: commission an undiscovered card from the Card Library (2 at once, 3 moons each). Still 1 Insight card in every parley deck.",
       "goldCost": 200,
       "requiredBuildings": [],
       "unlocksCardLibrary": true,
@@ -31,7 +31,7 @@
     {
       "tier": 3,
       "displayName": "The Deep Stacks",
-      "description": "3 commissions at once, and 2 Insight cards per parley. And a doctrine, chartered at the Grand Hall. The Forbidden Archives: research takes 2 lunations. Or the Chancery: every parley opens with your school's card in hand and every Lore term's valuation already read.",
+      "description": "3 commissions at once, and 2 Insight cards per parley. And a doctrine, chartered at the Grand Hall. The Forbidden Archives: research takes 2 moons. Or the Chancery: every parley opens with your school's card in hand and every Lore term's valuation already read.",
       "goldCost": 400,
       "requiredBuildings": [],
       "unlocksCardLibrary": true,
@@ -42,7 +42,7 @@
         {
           "id": "forbidden_archives",
           "name": "The Forbidden Archives",
-          "description": "The deck is the product. Commissioned research delivers in 2 lunations instead of 3, so the Library becomes the guild's main card faucet."
+          "description": "The deck is the product. Commissioned research delivers in 2 moons instead of 3, so the Library becomes the guild's main card faucet."
         },
         {
           "id": "chancery",

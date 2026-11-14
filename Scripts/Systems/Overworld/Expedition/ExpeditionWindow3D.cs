@@ -814,14 +814,16 @@ public partial class ExpeditionWindow3D : Node3D
             pos.Y = TileHeight(kv.Value) + 2.6f;
             var label = new Label3D
             {
-                Text = WeatherGroundText(type),
+                // The front's name only, and small. The cost is on the field panel's Weather
+                // line; as a sentence here it ran off the edge of the screen.
+                Text = WeatherCatalog.Def(type).Name,
                 Position = pos,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 NoDepthTest = true,
                 RenderPriority = 4,
                 OutlineRenderPriority = 3,
                 FontSize = 40,
-                PixelSize = 0.012f,
+                PixelSize = 0.006f,
                 Modulate = WeatherGroundColor(type),
                 OutlineSize = 10,
                 OutlineModulate = UITheme.RoadChoiceOutline,

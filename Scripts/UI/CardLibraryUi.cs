@@ -419,7 +419,7 @@ public partial class CardLibraryUi : Control
             var pending = new Label
             {
                 Text = $"Under research at the Library, {existing.LunationsRemaining} " +
-                       $"lunation(s) remain. It enters the draft pool on completion.",
+                       $"moon(s) remain. It enters the draft pool on completion.",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             };
             pending.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -451,7 +451,7 @@ public partial class CardLibraryUi : Control
 
         info.Text = $"Undiscovered. Commission its research at the Library " +
                     $"({status.InFlight}/{status.MaxConcurrent} in progress). Delivers in " +
-                    $"{status.Lunations} lunations.";
+                    $"{status.Lunations} moons.";
         info.AddThemeColorOverride("font_color", UITheme.CampusSubtleText);
         row.AddChild(info);
 

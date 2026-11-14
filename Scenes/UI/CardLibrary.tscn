@@ -23,7 +23,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.055, 0.055, 0.09, 1)
+color = Color(0.063, 0.059, 0.055, 1)
 
 ; ── Margin wrapper (full rect, inset content) ──────────────────────────────
 [node name="Margin" type="MarginContainer" parent="."]

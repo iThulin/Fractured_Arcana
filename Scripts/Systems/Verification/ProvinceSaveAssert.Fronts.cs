@@ -192,7 +192,7 @@ public static partial class ProvinceSaveAssert
         reports = cycle.PendingSiegeReports.Count;
         KingdomTickSimulation.Settle(cycle, front);
         var news = cycle.PendingSiegeReports.Skip(reports).ToList();
-        ok &= Check(sb, "at 100 the east takes Southeast Fields, in this lunation",
+        ok &= Check(sb, "at 100 the east takes Southeast Fields, in this moon",
             ProvinceControl.RulerOf(cycle, provinces[south]) == East && provinces[south].ControllerId == East
             && provinces[south].ControlSinceLunation == 5);
         ok &= Check(sb, "the guild's influence there drops to 0 and its hold with it, and the news says so (PR54)",
@@ -232,7 +232,7 @@ public static partial class ProvinceSaveAssert
             && ProvinceControl.RulerOf(cycle, provinces[capital]) == West
             && cycle.PendingSiegeReports.Skip(reports).Any(l => l.Contains("thrown back at Crownland")));
         ok &= Check(sb, "the report names the taken province's ruler",
-            ProvinceInfluence.Report(cycle).Contains("ruled by Eastreach since lunation 5"));
+            ProvinceInfluence.Report(cycle).Contains("ruled by Eastreach since moon 5"));
 
         sb.AppendLine(ok ? "  Walking front: PASS" : "  Walking front: FAIL");
         return ok;
@@ -317,7 +317,7 @@ public static partial class ProvinceSaveAssert
         int westStability = cycle.Kingdoms[West].Stability;
         int eastStability = cycle.Kingdoms[East].Stability;
         KingdomTickSimulation.Tick(cycle);
-        ok &= Check(sb, $"a lunation passes it by (stability {westStability} to {cycle.Kingdoms[West].Stability}) while the east ticks ({eastStability} to {cycle.Kingdoms[East].Stability})",
+        ok &= Check(sb, $"a moon passes it by (stability {westStability} to {cycle.Kingdoms[West].Stability}) while the east ticks ({eastStability} to {cycle.Kingdoms[East].Stability})",
             cycle.Kingdoms[West].Stability == westStability && cycle.Kingdoms[East].Stability != eastStability
             && !cycle.Warfronts.Any(w => !w.Closed && (w.DefenderKingdomId == West || w.AggressorKingdomId == West)));
 

@@ -205,7 +205,7 @@ public partial class DebugToolsPanel : VBoxContainer
 
         // ── PROLOGUE ─────────────────────────────────────────────────────
         var prologue = Section("PROLOGUE",
-            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk the Arc is for the next guild you found too: chapter I in the Grand Hall instead of the founding, then out of the gate into the interval. Walk First Lunation Again is for this guild, and saves at once. Walk the Interval, Next Standing Order and End the Interval are for this guild too: each saves, then opens the map. Rehearse the Founding, Rehearse Chapter I and Rehearse the Sundering play those scenes on this guild and keep nothing. Bake Stage Previews (only while the game runs from the editor) saves the prologue's halls for the direction scenes in the editor.");
+            "Unlock All Classes is for the next guild you found: it opens every school on the founding screen, the one you state as your intention is the practical you sit in the prologue, and its folio is the one you carry into the Sundering. The guild still begins as an Adept, and the trial is still the Adept duel. Walk the Arc is for the next guild you found too: chapter I in the Grand Hall instead of the founding, then out of the gate into the interval. Walk First Moon Again is for this guild, and saves at once. Walk the Interval, Next Standing Order and End the Interval are for this guild too: each saves, then opens the map. Rehearse the Founding, Rehearse Chapter I and Rehearse the Sundering play those scenes on this guild and keep nothing. Bake Stage Previews (only while the game runs from the editor) saves the prologue's halls for the direction scenes in the editor.");
         Check(prologue, "Unlock All Classes", PlayerSession.DebugUnlockAllClasses,
             on => PlayerSession.DebugUnlockAllClasses = on);
         Check(prologue, "Walk the Arc", PlayerSession.DebugWalkArc,
@@ -213,8 +213,8 @@ public partial class DebugToolsPanel : VBoxContainer
             "Standing Orders O2, for the next guild you found: after the Anchorhold it meets chapter I in the "
             + "Grand Hall (the statutes, the hearth, the gate) instead of the founding, and goes out of the gate "
             + "into the interval. Until the later chapters exist, Next Standing Order walks the rest.";
-        Grant(prologue, "Walk First Lunation Again", save => FirstLunation.DebugForget(save),
-            "This guild's first-lunation steps go back to undone (S5). Steps its own state shows, such as a "
+        Grant(prologue, "Walk First Moon Again", save => FirstLunation.DebugForget(save),
+            "This guild's first-moon steps go back to undone (S5). Steps its own state shows, such as a "
             + "sortie, a won fight or a new moon, tick again at once. The Register's notes stay seen on this computer.");
         // Standing Orders O1a: the interval's buttons move the castle and shut or open the
         // home, so after saving they open the map afresh from wherever Settings was opened
@@ -332,7 +332,7 @@ public partial class DebugToolsPanel : VBoxContainer
             PlayerSession.CampusOverlayOpen = false;
             Ctx.Host.GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
         }, "Provinces PV3a (Gate PV3a): the first open war moves 40 toward its aggressor and settles at once "
-           + "by the lunation's rules: at 100 the province is taken and the front moves on at 60, or the realm "
+           + "by the moon's rules: at 100 the province is taken and the front moves on at 60, or the realm "
            + "falls with its capital. Then the map opens afresh.");
         Act(strategic, "Push Annex +40", () =>
         {
@@ -363,7 +363,7 @@ public partial class DebugToolsPanel : VBoxContainer
             PlayerSession.CampusOverlayOpen = false;
             Ctx.Host.GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
         }, "Provinces PV6 (the Keeper): the Keeper wakes now, two hops from the castle, knowing where it "
-           + "stands; each Owe +1 Lunation then plays its next card. Then the map opens afresh.");
+           + "stands; each Owe +1 Moon then plays its next card. Then the map opens afresh.");
         Act(strategic, "Muster the Army", () =>
         {
             if (!StrategicDebug.MusterArmy())
@@ -375,8 +375,8 @@ public partial class DebugToolsPanel : VBoxContainer
         }, "Provinces PV7 (troops): one line of each kind joins the army at full strength, with 30 "
            + "supplies for their keep. Then Force Castle Assault: the lines stand garrison on the castle's "
            + "deck, and the Orders card comes to the commander's deck. Then the map opens afresh.");
-        Act(strategic, "Owe +1 Lunation", () => StrategicDebug.OweLunations(1));
-        Act(strategic, "Owe +3 Lunations", () => StrategicDebug.OweLunations(3));
+        Act(strategic, "Owe +1 Moon", () => StrategicDebug.OweLunations(1));
+        Act(strategic, "Owe +3 Moons", () => StrategicDebug.OweLunations(3));
         Act(strategic, "Resolve All Seats", StrategicDebug.ResolveAllSeats);
         Act(strategic, "Dump Expedition State", StrategicDebug.DumpExpeditionState);
         Act(strategic, "March Castle", StrategicDebug.MarchCastleToNearestAnchor);
@@ -385,7 +385,7 @@ public partial class DebugToolsPanel : VBoxContainer
             + "Its ring shows on the next map load. March and camp within sight of the place, and the lead goes "
             + "with a note that it held true.");
         Act(strategic, "Hear the Nearest Talk", () => StrategicDebug.HearNearestTalk(false),
-            "Knowledge ladder L4b1: the settlement nearest the castle talks now, ignoring the once-a-lunation rule, "
+            "Knowledge ladder L4b1: the settlement nearest the castle talks now, ignoring the once-a-moon rule, "
             + "true or false by its kingdom's reliability, then saves. Its ring shows on the next map load.");
         Act(strategic, "Hear a False Rumor", () => StrategicDebug.HearNearestTalk(true),
             "Knowledge ladder L4b1: a false rumor from the settlement nearest the castle, then saves. Stop on its "

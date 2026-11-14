@@ -85,7 +85,7 @@ public static class StrategicDebug
         if (cycle.Calendar.ConjunctionReached)
         {
             GD.Print("[StrategicDebug] The Conjunction is already reached " +
-                     $"(lunation {cycle.Calendar.CurrentLunation} / " +
+                     $"(moon {cycle.Calendar.CurrentLunation} / " +
                      $"{cycle.Calendar.LunationsPerCycle}, forced={cycle.Calendar.ConjunctionForced}).");
             return;
         }
@@ -93,7 +93,7 @@ public static class StrategicDebug
         cycle.Calendar.ConjunctionForced = true;
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
-        GD.Print("[StrategicDebug] Conjunction FORCED. Was at lunation " +
+        GD.Print("[StrategicDebug] Conjunction FORCED. Was at moon " +
                  $"{cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle} " +
                  $"({cycle.Calendar.LunationsRemaining} remaining). " +
                  "Return to the strategic map; the Conjunction beat plays on load.");
@@ -122,7 +122,7 @@ public static class StrategicDebug
         cycle.PendingStraggleLunations += n;
         SaveManager.MarkDirty();
         SaveManager.SaveIfDirty();
-        GD.Print($"[StrategicDebug] Owed +{n} lunation(s), now at " +
+        GD.Print($"[StrategicDebug] Owed +{n} moon(s), now at " +
                  $"{cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle}, " +
                  $"{cycle.PendingStraggleLunations} pending. " +
                  "Return to the strategic map; each ticks the world in full.");
@@ -181,7 +181,7 @@ public static class StrategicDebug
                      (sawAnyEntry
                         ? ": every candidate's aggressor has no controlling faction, " +
                           "or every kingdom already has an open front."
-                        : ": BorderPressure is empty. Owe a lunation first, then prime.") +
+                        : ": BorderPressure is empty. Owe a moon first, then prime.") +
                      $" (open warfronts: {cycle.Warfronts?.Count ?? 0})");
             return;
         }
@@ -192,7 +192,7 @@ public static class StrategicDebug
         SaveManager.SaveIfDirty();
         GD.Print($"[StrategicDebug] Primed '{bestAggressor}' → '{bestDefender}' " +
                  $"at pressure {KingdomTickSimulation.WarfrontOpenThreshold} " +
-                 $"(was {bestPressure}). Owe a lunation and return to the map. " +
+                 $"(was {bestPressure}). Owe a moon and return to the map. " +
                  "The tick opens the warfront and plants the ⚔ marker.");
     }
 
@@ -215,7 +215,7 @@ public static class StrategicDebug
                 : FactionRegistry.Get(factionId)?.DisplayName ?? factionId);
         if (line == null)
         {
-            GD.Print("[StrategicDebug] No open war to push. Prime Warfront, owe a lunation, then push.");
+            GD.Print("[StrategicDebug] No open war to push. Prime Warfront, owe a moon, then push.");
             return false;
         }
         SaveManager.MarkDirty();
@@ -409,7 +409,7 @@ public static class StrategicDebug
         sb.AppendLine(cycle.CastleX >= 0 && cycle.CastleY >= 0
             ? $"Castle: ({cycle.CastleX},{cycle.CastleY}) " +
               (cycle.CastleParked
-                  ? $"PARKED since lunation {cycle.CastleParkedLunation}"
+                  ? $"PARKED since moon {cycle.CastleParkedLunation}"
                   : "at dock")
             : "Castle: not yet on the map this cycle");
         sb.AppendLine($"Hold: {(cycle.CastleHold == null || cycle.CastleHold.IsEmpty ? "empty" : cycle.CastleHold.ToString())}");
@@ -426,7 +426,7 @@ public static class StrategicDebug
         var turn = cycle.ExpeditionTurn;
         sb.AppendLine(turn == null
             ? "Turn budget: absent"
-            : $"Turn budget: lunation {turn.Lunation}, castle move " +
+            : $"Turn budget: moon {turn.Lunation}, castle move " +
               $"{(turn.CastleMoveSpent ? "spent" : "available")}, " +
               $"dives {turn.DivesSpent}/{turn.DivesPerLunation} " +
               $"({turn.DivesRemaining} left)");

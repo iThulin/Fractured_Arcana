@@ -1010,12 +1010,12 @@ public partial class StrategicView
         }
         var cal = cycle.Calendar;
         _timeBar.Visible = true;   // the clock runs in the city too
-        _timeDateLabel.Text = $"Lunation {cal.CurrentLunation} of {cal.LunationsPerCycle}  ·  "
+        _timeDateLabel.Text = $"Moon {cal.CurrentLunation} of {cal.LunationsPerCycle}  ·  "
                             + $"day {cal.DayOfLunation + 1}  ·  {cal.CurrentMoonName}";
 
         // The year line: what the gold card said, in one line.
         int left = cal.LunationsRemaining;
-        string conj = left <= 2 ? $"{left} lunation(s) to the Conjunction" : $"{left} lunations to the Conjunction";
+        string conj = left <= 2 ? $"{left} moon(s) to the Conjunction" : $"{left} moons to the Conjunction";
         int year = cycle.CampaignYear;
         if (year > 1)
         {

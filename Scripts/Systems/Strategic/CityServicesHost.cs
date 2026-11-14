@@ -190,7 +190,7 @@ public sealed partial class CityServicesHost : CanvasLayer
         var board = CityContractService.GetOrRefresh(cycle, _city);
         if (board == null || board.Offers.Count == 0)
         {
-            var empty = new Label { Text = "The board is bare this lunation." };
+            var empty = new Label { Text = "The board is bare this moon." };
             empty.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             empty.AddThemeColorOverride("font_color", UITheme.TextDim);
             _questsBox.AddChild(empty);
@@ -314,7 +314,7 @@ public sealed partial class CityServicesHost : CanvasLayer
         var market = CityMarketService.GetOrRefresh(cycle, _city);
         if (market == null || market.StockItemIds.Count == 0)
         {
-            var empty = new Label { Text = "The shelves are bare this lunation." };
+            var empty = new Label { Text = "The shelves are bare this moon." };
             empty.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             empty.AddThemeColorOverride("font_color", UITheme.TextDim);
             _marketBox.AddChild(empty);
@@ -433,7 +433,7 @@ public sealed partial class CityServicesHost : CanvasLayer
         var hall = HiringHallService.GetOrRefresh(cycle, _city);
         if (hall == null || hall.Candidates.Count == 0)
         {
-            var empty = new Label { Text = "No one worth hiring this lunation. The hall refills as the moons turn." };
+            var empty = new Label { Text = "No one worth hiring this moon. The hall refills as the moons turn." };
             empty.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
             empty.AddThemeColorOverride("font_color", UITheme.TextDim);
             empty.AutowrapMode = TextServer.AutowrapMode.WordSmart;

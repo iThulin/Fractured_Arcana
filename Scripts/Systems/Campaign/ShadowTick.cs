@@ -563,9 +563,9 @@ public static class ShadowTick
         {
             bool ok = CorruptionSpread.TryRequestDelay(kingdomId, cycle.Kingdoms);
             Emit(reports, lun, kingdomId, ok
-                ? $"Shadow: {actor} stalls the corruption creeping into {where}. A lunation bought."
+                ? $"Shadow: {actor} stalls the corruption creeping into {where}. A moon bought."
                 : $"Shadow: {actor} moved against the corruption in {where}, but the shadows were " +
-                  $"already stretched thin (no effect this lunation).");
+                  $"already stretched thin (no effect this moon).");
         }
         else // siege
         {

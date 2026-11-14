@@ -416,8 +416,8 @@ public partial class FoundingStage : Node3D
         bool answered = false;
         var dialog = new ConfirmationDialog
         {
-            Title = "Skip the first lunation?",
-            DialogText = "You have finished the first lunation before on this computer. Mark its steps done? "
+            Title = "Skip the first moon?",
+            DialogText = "You have finished the first moon before on this computer. Mark its steps done? "
                          + "The top bar's Next line and the quest log will not walk you through it again.",
             OkButtonText = "Mark them done",
             CancelButtonText = "Walk it again",

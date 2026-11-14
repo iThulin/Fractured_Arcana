@@ -35,16 +35,16 @@ public static class UITheme
     // ════════════════════════════════════════════════════════════
 
     // ── World backgrounds (3D battlefield, overworld map) ────────
-    public static readonly Color WorldDeep = new Color(0.08f, 0.06f, 0.10f, 1f); // #141018
-    public static readonly Color WorldBase = new Color(0.12f, 0.09f, 0.16f, 1f); // #1E1728
+    public static readonly Color WorldDeep = new Color(0.063f, 0.055f, 0.059f, 1f); // #100E0F warm black
+    public static readonly Color WorldBase = new Color(0.094f, 0.084f, 0.086f, 1f); // #181516
     public static readonly Color WorldOverlay = new Color(0.00f, 0.00f, 0.00f, 0.65f);
 
     // ── Ink UI chrome ─────────────────────────────────────────────
-    public static readonly Color BgDeep = new Color(0.071f, 0.063f, 0.078f, 1f); // #121014 the deepest ink
-    public static readonly Color BgBase = new Color(0.094f, 0.086f, 0.110f, 1f); // #18161C the panel bg
-    public static readonly Color BgRaised = new Color(0.141f, 0.129f, 0.165f, 1f); // #24212A for raised elements
+    public static readonly Color BgDeep = new Color(0.063f, 0.059f, 0.055f, 1f); // #100F0E the deepest ink
+    public static readonly Color BgBase = new Color(0.090f, 0.084f, 0.078f, 1f); // #171514 the panel bg
+    public static readonly Color BgRaised = new Color(0.137f, 0.127f, 0.118f, 1f); // #23201E for raised elements
     public static readonly Color BgOverlay = new Color(0.00f, 0.00f, 0.00f, 0.72f);
-    public static readonly Color BgCard = new Color(0.180f, 0.165f, 0.208f, 1f); // #2E2A35 is lighter than BgBase; used for cards and campus elements to stand out against panels
+    public static readonly Color BgCard = new Color(0.180f, 0.167f, 0.153f, 1f); // #2E2B27 is lighter than BgBase; used for cards and campus elements to stand out against panels
 
     // ── Gold line (chrome borders, dividers, selected edges) ─────
     public static readonly Color GlassLine = new Color(0.878f, 0.706f, 0.361f, 1f); // #E0B45C
@@ -59,7 +59,7 @@ public static class UITheme
     // ── Button fills ──────────────────────────────────────────────
     public static readonly Color ButtonPrimary = new Color(0.361f, 0.271f, 0.110f, 1f); // #5C451C selected or active fill, under light text
     public static readonly Color ButtonPrimaryHover = new Color(0.451f, 0.341f, 0.141f, 1f); // #735724
-    public static readonly Color ButtonSecondary = new Color(0.141f, 0.129f, 0.165f, 1f); // #24212A
+    public static readonly Color ButtonSecondary = new Color(0.137f, 0.127f, 0.118f, 1f); // #23201E
     public static readonly Color ButtonDanger = new Color(0.55f, 0.14f, 0.14f, 1f); // #8C2424
 
     // ── Gold ──────────────────────────────────────────────────────
@@ -82,8 +82,8 @@ public static class UITheme
 
     // ── Text on ink surfaces ──────────────────────────────────────
     public static readonly Color TextPrimary = new Color(0.965f, 0.925f, 0.863f, 1f); // #F6ECDC warm near-white
-    public static readonly Color TextSecondary = new Color(0.722f, 0.690f, 0.635f, 1f); // #B8B0A2 warm grey
-    public static readonly Color TextDim = new Color(0.541f, 0.514f, 0.471f, 1f); // #8A8378 muted
+    public static readonly Color TextSecondary = new Color(0.812f, 0.780f, 0.722f, 1f); // #CFC7B8 warm grey
+    public static readonly Color TextDim = new Color(0.639f, 0.608f, 0.553f, 1f); // #A39B8D muted, still readable on ink
     public static readonly Color TextOnDark = new Color(0.965f, 0.925f, 0.863f, 1f); // same as primary
     public static readonly Color TextOnLight = new Color(0.12f, 0.10f, 0.18f, 1f); // for card faces
 
@@ -510,7 +510,7 @@ public static class UITheme
     public static readonly Color MoveHighlightExpensive = new Color(0.90f, 0.40f, 0.25f, 0.30f);
     public static readonly Color MoveHighlightDefault = new Color(0.70f, 0.55f, 0.90f, 0.30f);
 
-    public static readonly Color OverworldHudBg = new Color(0.094f, 0.086f, 0.110f, 0.88f); // ink at 88%
+    public static readonly Color OverworldHudBg = new Color(0.090f, 0.084f, 0.078f, 0.88f); // ink at 88%
     public static readonly Color OverworldHudBorder = new Color(0.878f, 0.706f, 0.361f, 0.8f); // the gold line at 80%
     public static readonly Color OverworldLowResourceWarning = Danger;
     public static readonly Color OverworldInfoLabelTint = Gold;
@@ -842,8 +842,9 @@ public static class UITheme
     public const int PaddingSmall = 4;
     public const int PaddingNormal = 8;
     public const int PaddingLarge = 16;
-    public const int BorderWidth = 2;
-    public const int CornerRadius = 5;
+    public const int BorderWidth = 1;   // was 2 under the slate scheme
+    public const int CornerRadius = 2;  // was 5; every menu shares the square glass corner now
+    public const int CardFaceCornerRadius = 5;  // the parchment fill under a card's rounded frame texture
     public const int CornerRadiusLg = 8;
 
     // ════════════════════════════════════════════════════════════
@@ -876,9 +877,9 @@ public static class UITheme
     // so every screen that reads UITheme follows. GlassLine and
     // GlassLineDim live in the core palette.
     // ════════════════════════════════════════════════════════════
-    public static readonly Color GlassInk = new Color(0.094f, 0.086f, 0.110f, 0.92f); // #18161C at 92%
-    public static readonly Color GlassInkSolid = new Color(0.094f, 0.086f, 0.110f, 1f); // #18161C opaque, for bars and tooltips
-    public static readonly Color GlassInkRaised = new Color(0.165f, 0.149f, 0.184f, 0.96f); // #2A262F hover fill
+    public static readonly Color GlassInk = new Color(0.090f, 0.084f, 0.078f, 0.92f); // #171514 at 92%
+    public static readonly Color GlassInkSolid = new Color(0.090f, 0.084f, 0.078f, 1f); // #171514 opaque, for bars and tooltips
+    public static readonly Color GlassInkRaised = new Color(0.150f, 0.139f, 0.127f, 0.96f); // #262320 hover fill
     public static readonly Color GlassTitle = new Color(1.000f, 0.851f, 0.541f, 1f); // #FFD98A display text
     public static readonly Color GlassTextDim = new Color(0.722f, 0.690f, 0.635f, 1f); // #B8B0A2 hints on ink
     public static readonly Color GlassHostileTitle = new Color(1.000f, 0.604f, 0.510f, 1f); // #FF9A82 enemy headings
@@ -897,6 +898,12 @@ public static class UITheme
     // A half the player cannot afford: dimmed parchment, between a resting half and a
     // reaction-locked one. The red moves to the price on the mana pip (CardUi.ApplyManaPip).
     public static readonly Color CardUnaffordable = new Color(0.62f, 0.60f, 0.58f, 1f);
+    // A card flagged for the overflow discard pulses between its own colours and this
+    // light amber. It was a solid orange that hid the face.
+    public static readonly Color CardDiscardPulse = new Color(1.00f, 0.80f, 0.50f, 1f);
+    // How far the hover view's art slot leans from parchment toward the school colour,
+    // until cards have art. It was a dark block, which flashed on every hover.
+    public const float CardArtSlotTint = 0.22f;
     // Card glow: a soft school-coloured light behind a hand card that can be cast now.
     public const int CardGlowSize = 10;
     public const int CardGlowCornerRadius = 8;

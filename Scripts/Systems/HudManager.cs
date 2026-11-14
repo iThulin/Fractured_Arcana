@@ -246,7 +246,7 @@ public partial class HudManager : Node
         // The hub is the strategic city (2026-08-19): from utility screens this warp
         // lands in city view, not on the retired standalone campus screen.
         PlayerSession.StartInCityOnOpen = true;
-        GetTree().ChangeSceneToFile("res://Scenes/Overworld/StrategicScene.tscn");
+        SceneTransition.Quiet(GetTree(), "res://Scenes/Overworld/StrategicScene.tscn", 0.9f);
     }
 
     private Label MakeLabel(HBoxContainer row, Color color)

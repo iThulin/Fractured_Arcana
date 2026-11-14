@@ -320,11 +320,11 @@ public static class FieldExpeditionSaveAssert
         // BeginLunation must be idempotent inside one lunation, or a reload
         // mid-lunation would refund a spent castle move.
         rt.BeginLunation(4);
-        ok &= Check(sb, "BeginLunation is idempotent for the same lunation",
+        ok &= Check(sb, "BeginLunation is idempotent for the same moon",
                     rt.CastleMoveSpent && rt.DivesSpent == 2);
 
         rt.BeginLunation(5);
-        ok &= Check(sb, "BeginLunation resets on a new lunation",
+        ok &= Check(sb, "BeginLunation resets on a new moon",
                     !rt.CastleMoveSpent && rt.DivesSpent == 0 && rt.Lunation == 5);
 
         // DivesRemaining must never go negative even if a dive slips past the gate.

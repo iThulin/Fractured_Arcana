@@ -46,16 +46,18 @@ public partial class SaveSlotsPanel : Control
 
     public override void _Ready()
     {
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        // Anchors AND offsets, set outright. SetAnchorsPreset alone left this panel at its
+        // minimum size in the top-left corner on the 4K Windows build (2026-11-13).
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
 
         var bg = new ColorRect { Color = UITheme.WorldDeep, MouseFilter = MouseFilterEnum.Ignore };
-        bg.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(bg);
+        bg.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
         var center = new CenterContainer();
-        center.SetAnchorsPreset(LayoutPreset.FullRect);
         AddChild(center);
+        center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
         var column = MakeVBox(14);
         column.CustomMinimumSize = new Vector2(820, 0);
@@ -183,7 +185,7 @@ public partial class SaveSlotsPanel : Control
 
                 var schoolBadge = new Label { Text = slot.School };
                 schoolBadge.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-                schoolBadge.AddThemeColorOverride("font_color", UITheme.Violet);
+                schoolBadge.AddThemeColorOverride("font_color", UITheme.TextSecondary);
                 nameRow.AddChild(schoolBadge);
 
                 if (isActive)
@@ -224,7 +226,7 @@ public partial class SaveSlotsPanel : Control
                 CustomMinimumSize = new Vector2(110, 34),
             };
             mainBtn.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-            UITheme.ApplyButtonStyle(mainBtn, isPrimary: true);
+            UITheme.ApplyButtonStyle(mainBtn, isPrimary: !isEmpty);   // gold for a save you can load, plain for an empty slot
             mainBtn.Pressed += () =>
             {
                 if (isEmpty)
@@ -279,7 +281,7 @@ public partial class SaveSlotsPanel : Control
         if (Enum.TryParse<CardSchool>(SaveManager.ActiveSave?.SelectedSchool, out var school))
             PlayerSession.SelectedSchool = school;
         PlayerSession.StartInCityOnOpen = true;
-        GetTree().ChangeSceneToFile(StrategicScenePath);
+        SceneTransition.Quiet(GetTree(), StrategicScenePath, 0.9f);   // hides the city settling in
     }
 
     /// <summary>Delete only after a yes: the Guild tab deleted on the first click.</summary>

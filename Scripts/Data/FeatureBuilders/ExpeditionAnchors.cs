@@ -813,7 +813,7 @@ public static class ExpeditionAnchors
         }
 
         cycle.LastDeployStagingKey = $"{x},{y}";
-        GD.Print($"[ExpeditionAnchors] {name} parks at ({x},{y}) on lunation {cycle.CastleParkedLunation}, "
+        GD.Print($"[ExpeditionAnchors] {name} parks at ({x},{y}) on moon {cycle.CastleParkedLunation}, "
                  + $"resupply {cycle.CastleRepairLunations} day(s).");
 
         // Knowledge ladder L2: every camp looks around. Places in sight become

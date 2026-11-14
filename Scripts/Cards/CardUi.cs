@@ -519,13 +519,13 @@ public partial class CardUi : Control
         var style = new StyleBoxFlat { BgColor = UITheme.SurfaceLight };
         if (isTop)
         {
-            style.CornerRadiusTopLeft = UITheme.CornerRadius;
-            style.CornerRadiusTopRight = UITheme.CornerRadius;
+            style.CornerRadiusTopLeft = UITheme.CardFaceCornerRadius;
+            style.CornerRadiusTopRight = UITheme.CardFaceCornerRadius;
         }
         else
         {
-            style.CornerRadiusBottomLeft = UITheme.CornerRadius;
-            style.CornerRadiusBottomRight = UITheme.CornerRadius;
+            style.CornerRadiusBottomLeft = UITheme.CardFaceCornerRadius;
+            style.CornerRadiusBottomRight = UITheme.CardFaceCornerRadius;
         }
         panel.AddThemeStyleboxOverride("panel", style);
 
@@ -856,12 +856,13 @@ public partial class CardUi : Control
         if (_artPanel != null)
         {
             var artStyle = new StyleBoxFlat();
-            artStyle.BgColor = new Color(
-                borderColor.R * 0.35f,
-                borderColor.G * 0.35f,
-                borderColor.B * 0.35f, 1f);
-            artStyle.CornerRadiusTopLeft = UITheme.CornerRadius;
-            artStyle.CornerRadiusTopRight = UITheme.CornerRadius;
+            // The Enchanter's cipher is drawn for a dark ground and keeps it. Every other
+            // school has no art yet, so its slot stays near parchment.
+            artStyle.BgColor = school == CardSchool.Enchanter
+                ? new Color(borderColor.R * 0.35f, borderColor.G * 0.35f, borderColor.B * 0.35f, 1f)
+                : UITheme.SurfaceLight.Lerp(borderColor, UITheme.CardArtSlotTint);
+            artStyle.CornerRadiusTopLeft = UITheme.CardFaceCornerRadius;
+            artStyle.CornerRadiusTopRight = UITheme.CardFaceCornerRadius;
             artStyle.BorderColor = borderColor;
             artStyle.BorderWidthLeft = UITheme.BorderWidth;
             artStyle.BorderWidthTop = UITheme.BorderWidth;
@@ -937,8 +938,8 @@ public partial class CardUi : Control
             infoStyle.BorderWidthRight = UITheme.BorderWidth;
             infoStyle.BorderWidthBottom = UITheme.BorderWidth;
             infoStyle.BorderWidthTop = 0;
-            infoStyle.CornerRadiusBottomLeft = UITheme.CornerRadius;
-            infoStyle.CornerRadiusBottomRight = UITheme.CornerRadius;
+            infoStyle.CornerRadiusBottomLeft = UITheme.CardFaceCornerRadius;
+            infoStyle.CornerRadiusBottomRight = UITheme.CardFaceCornerRadius;
             _fullInfoPanel.AddThemeStyleboxOverride("panel", infoStyle);
         }
 
@@ -1285,8 +1286,8 @@ public partial class CardUi : Control
             _amberPulseTween = CreateTween().SetLoops();
             _amberPulseTween.SetEase(Tween.EaseType.InOut)
                             .SetTrans(Tween.TransitionType.Sine);
-            _amberPulseTween.TweenProperty(_visualNode, "modulate", UITheme.Warning, 0.5f);
-            _amberPulseTween.TweenProperty(_visualNode, "modulate", UITheme.WarningDim, 0.5f);
+            _amberPulseTween.TweenProperty(_visualNode, "modulate", UITheme.CardDiscardPulse, 0.5f);
+            _amberPulseTween.TweenProperty(_visualNode, "modulate", Colors.White, 0.5f);
         }
         else
         {

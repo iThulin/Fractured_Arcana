@@ -6,7 +6,7 @@
   "startingWeaponId": "guild_crossbow",
   "personalityTrait": "Stoic",
   "vocation": "Scout",
-  "backstory": "A deserter from a war nobody won. He speaks maybe forty words a lunation and has never missed twice at the same target.",
+  "backstory": "A deserter from a war nobody won. He speaks maybe forty words a moon and has never missed twice at the same target.",
   "recruitmentCost": 95,
   "isAvailable": false,
   "unlockCondition": "The guild's record: 4 combats won (any timeline)",

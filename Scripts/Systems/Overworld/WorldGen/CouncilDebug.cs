@@ -52,7 +52,7 @@ public static class CouncilDebug
 
         int now = cycle.Calendar.CurrentLunation;
         var sb = new StringBuilder();
-        sb.AppendLine($"=== ECHOES IN FLIGHT, lunation {now}: {council.EchoesInFlight.Count} echo(es) ===");
+        sb.AppendLine($"=== ECHOES IN FLIGHT, moon {now}: {council.EchoesInFlight.Count} echo(es) ===");
 
         if (council.EchoesInFlight.Count == 0)
         {
@@ -101,7 +101,7 @@ public static class CouncilDebug
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine($"=== COURT REGARD, lunation {cycle.Calendar.CurrentLunation} ===");
+        sb.AppendLine($"=== COURT REGARD, moon {cycle.Calendar.CurrentLunation} ===");
 
         bool any = false;
         foreach (var kvp in council.Courts.OrderBy(k => k.Key))

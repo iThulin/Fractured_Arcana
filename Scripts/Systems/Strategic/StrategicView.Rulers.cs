@@ -54,14 +54,14 @@ public partial class StrategicView
             return "";
         int since = province.ControlSinceLunation;
         if (ruler == ProvinceControl.Guild)
-            return since >= 0 ? $"The guild's own land since lunation {since}." : "The guild's own land.";
+            return since >= 0 ? $"The guild's own land since moon {since}." : "The guild's own land.";
         if (ruler == ProvinceControl.Neutral)
         {
             string realm = ProvinceControl.RealmName(cycle, province.KingdomId);
-            return (since >= 0 ? $"No one rules it since {realm} fell in lunation {since}." : $"No one rules it since {realm} fell.")
+            return (since >= 0 ? $"No one rules it since {realm} fell in moon {since}." : $"No one rules it since {realm} fell.")
                    + AnnexNote(cycle, province);
         }
-        return since >= 0 ? $"Taken by {RulerDisplay(ruler)} in lunation {since}." : $"Taken by {RulerDisplay(ruler)}.";
+        return since >= 0 ? $"Taken by {RulerDisplay(ruler)} in moon {since}." : $"Taken by {RulerDisplay(ruler)}.";
     }
 
     /// <summary>Provinces PV3b (PR65): who moves to annex a province no one rules, and when
@@ -82,7 +82,7 @@ public partial class StrategicView
             : "";
         if (lead == null)
             return $" Bars to annex it, of 100: {bars}.{slowed}";
-        string when = lunations <= 1 ? "next lunation" : $"in about {lunations} lunations";
+        string when = lunations <= 1 ? "next moon" : $"in about {lunations} moons";
         return $" {RulerDisplay(lead)} will annex it {when} unless the guild holds it first (bars of 100: {bars}).{slowed}";
     }
 

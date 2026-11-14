@@ -118,9 +118,9 @@ public static class CompanionInjurySystem
             {
                 // Severity roll: 1–2 lunations out of all three demands.
                 c.InjuredLunationsRemaining = 1 + (int)(GD.Randi() % 2);
-                GD.Print($"[Injury] {c.Name} injured: {c.InjuredLunationsRemaining} lunation(s) " +
+                GD.Print($"[Injury] {c.Name} injured: {c.InjuredLunationsRemaining} moon(s) " +
                          $"in the infirmary (death roll {roll} ≥ {chance}%).");
-                summary.Append($" {c.Name} injured: {c.InjuredLunationsRemaining} lunation(s).");
+                summary.Append($" {c.Name} injured: {c.InjuredLunationsRemaining} moon(s).");
                 survived.Add(c);
             }
         }
@@ -162,7 +162,7 @@ public static class CompanionInjurySystem
                 GD.Print($"[Infirmary] Restless Sleep: {c.Name} -{BlightedForms.RestlessSleepLoyalty} loyalty ({c.Loyalty}).");
             }
             GD.Print(c.IsInjured
-                ? $"[Infirmary] {c.Name} recovering: {c.InjuredLunationsRemaining} lunation(s) left."
+                ? $"[Infirmary] {c.Name} recovering: {c.InjuredLunationsRemaining} moon(s) left."
                 : $"[Infirmary] {c.Name} has recovered and returns to the roster.");
         }
     }
@@ -203,15 +203,15 @@ public static class CompanionInjurySystem
             {
                 c.InjuredLunationsRemaining = 1 + (int)(GD.Randi() % 2);
                 GD.Print($"[Injury] {c.Name} was carried home: " +
-                         $"{c.InjuredLunationsRemaining} lunation(s) in the infirmary.");
-                summary.Append($" {c.Name} carried home: {c.InjuredLunationsRemaining} lunation(s).");
+                         $"{c.InjuredLunationsRemaining} moon(s) in the infirmary.");
+                summary.Append($" {c.Name} carried home: {c.InjuredLunationsRemaining} moon(s).");
             }
             else if (hp * 100 < c.BaseHP * ExtractionInjuryThresholdPct)
             {
                 c.InjuredLunationsRemaining = 1;
                 GD.Print($"[Injury] {c.Name} extracted at {hp}/{c.BaseHP} HP: " +
-                         "1 lunation in the infirmary.");
-                summary.Append($" {c.Name} injured: 1 lunation.");
+                         "1 moon in the infirmary.");
+                summary.Append($" {c.Name} injured: 1 moon.");
             }
         }
         return summary.ToString().Trim();

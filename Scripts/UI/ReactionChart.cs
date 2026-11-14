@@ -71,11 +71,11 @@ public static class ReactionChart
 
         var intro = new Label
         {
-            Text = "Imbuing a tile that already holds a different element forms a reaction instead of replacing it.",
+            Text = "Imbue a tile that already holds a different element and the two combine into a reaction. The new element does not replace the old one. Find the row for one element and the column for the other.",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             CustomMinimumSize = new Vector2(CellWidth * 5, 0),
         };
-        intro.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        intro.AddThemeColorOverride("font_color", UITheme.TextPrimary);
         root.AddChild(intro);
 
         var grid = new GridContainer { Columns = Elements.Length + 1 };
@@ -86,21 +86,20 @@ public static class ReactionChart
         // Header row: a blank corner, then each element.
         grid.AddChild(Cell("", UITheme.TextSecondary, null));
         foreach (var e in Elements)
-            grid.AddChild(Cell(e.Name, ElementColors.Get(e.ColorTag), null, bold: true));
+            grid.AddChild(Chip(e.Name, ElementColors.Get(e.ColorTag)));
 
         foreach (var row in Elements)
         {
-            grid.AddChild(Cell(row.Name, ElementColors.Get(row.ColorTag), null, bold: true));
+            grid.AddChild(Chip(row.Name, ElementColors.Get(row.ColorTag)));
             foreach (var col in Elements)
             {
                 var reaction = ElementReactions.Resolve(row.Element, col.Element);
                 if (reaction == ElementReaction.None)
                 {
-                    grid.AddChild(Cell("same", UITheme.TextSecondary, null));
+                    grid.AddChild(Cell("-", UITheme.TextDim, null));
                     continue;
                 }
-                var cell = Cell(ElementReactions.DisplayName(reaction), ElementColors.Reaction(reaction),
-                                new Color(UITheme.BgCard.R, UITheme.BgCard.G, UITheme.BgCard.B, 1f), bold: true);
+                var cell = Chip(ElementReactions.DisplayName(reaction), ElementColors.Reaction(reaction));
                 cell.TooltipText = ElementReactions.Describe(reaction);
                 grid.AddChild(cell);
             }
@@ -115,8 +114,9 @@ public static class ReactionChart
             var line = new HBoxContainer();
             line.AddThemeConstantOverride("separation", 10);
 
-            var name = new Label { Text = ElementReactions.DisplayName(r), CustomMinimumSize = new Vector2(96, 0) };
-            name.AddThemeColorOverride("font_color", ElementColors.Reaction(r));
+            Control name = Chip(ElementReactions.DisplayName(r), ElementColors.Reaction(r));
+            name.CustomMinimumSize = new Vector2(96, 28);
+            name.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
             line.AddChild(name);
 
             var text = new Label
@@ -137,10 +137,17 @@ public static class ReactionChart
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             CustomMinimumSize = new Vector2(CellWidth * 5, 0),
         };
-        tie.AddThemeColorOverride("font_color", UITheme.TextSecondary);
+        tie.AddThemeColorOverride("font_color", UITheme.TextPrimary);
         root.AddChild(tie);
 
         return root;
+    }
+
+    /// <summary>A cell filled with its own colour, with dark or light text chosen for
+    /// contrast. Coloured text on the ink panel was too faint for Earth and Fire.</summary>
+    private static Control Chip(string text, Color fill)
+    {
+        return Cell(text, ElementColors.GetTextColor(fill), fill);
     }
 
     private static Control Cell(string text, Color fg, Color? bg, bool bold = false)
@@ -149,10 +156,10 @@ public static class ReactionChart
         var style = new StyleBoxFlat
         {
             BgColor = bg ?? new Color(0f, 0f, 0f, 0f),
-            CornerRadiusTopLeft = 4,
-            CornerRadiusTopRight = 4,
-            CornerRadiusBottomLeft = 4,
-            CornerRadiusBottomRight = 4,
+            CornerRadiusTopLeft = UITheme.GlassCornerRadius,
+            CornerRadiusTopRight = UITheme.GlassCornerRadius,
+            CornerRadiusBottomLeft = UITheme.GlassCornerRadius,
+            CornerRadiusBottomRight = UITheme.GlassCornerRadius,
         };
         panel.AddThemeStyleboxOverride("panel", style);
 

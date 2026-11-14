@@ -4423,7 +4423,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                         string scCtrl = SupplyCacheSystem.ControllerDisplay(
                             scCycle, SupplyCacheSystem.ControllerOf(scPoi));
                         ShowInfo($"Supply cache harvested by {scCtrl} " +
-                                 $"(+{SupplyCacheSystem.YieldOf(scPoi)} supplies/lunation). " +
+                                 $"(+{SupplyCacheSystem.YieldOf(scPoi)} supplies/moon). " +
                                  (cacheFuelGain > 0 ? $"+{cacheFuelGain} fuel drawn from the stores. " : "") +
                                  "Sieges are laid from the strategic map.");
                         LogRun("supply_cache", $"scouted the cache; held by {scCtrl}", at: coord);
@@ -4683,9 +4683,21 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SetCurrentTier(encounterDef.Tier);
 
         ShowInfo("Entering combat...");
-        string foeLine = string.IsNullOrEmpty(encounterDef.DisplayName) ? "The enemy" : encounterDef.DisplayName;
+        string foeLine = string.IsNullOrEmpty(encounterDef.DisplayName) ? "The enemy" : ReadableName(encounterDef.DisplayName);
         SceneTransition.Go(GetTree(), router.CombatScenePath, "To Arms",
             $"{foeLine} · {encounterDef.Tier} · {terrainType}");
+    }
+
+    /// <summary>A name fit to show. Some encounters carry their id as their display name
+    /// ("the_storm_answers"); those are spaced and capitalised. A real name passes through.</summary>
+    private static string ReadableName(string name)
+    {
+        if (string.IsNullOrEmpty(name) || name.Contains(' ') || !name.Contains('_'))
+        {
+            return name;
+        }
+        string spaced = name.Replace('_', ' ').Trim();
+        return spaced.Length == 0 ? name : char.ToUpperInvariant(spaced[0]) + spaced.Substring(1);
     }
 
     private void OnPatrolCapturedPlayer(Vector2I coord, string archmageId)
@@ -6803,14 +6815,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         string casualties = string.IsNullOrEmpty(_casualtyNote) ? "" : $" {_casualtyNote}";
         string emReason = string.IsNullOrEmpty(reason) ? "Emergency recall." : reason;
         RunEventLog.End("emergency_extract",
-            $"{emReason} straggled home, +1 lunation.{casualties}",
+            $"{emReason} straggled home, +1 moon.{casualties}",
             GoldEarned, SplinterEarned, EncountersWon, CurrentHP, StepsRemaining,
             goldBanked: true, materials: MaterialEarned, supplies: SuppliesEarned);
         // §2.2 turnaround: the recall IS the refuel/restock/unload/repair, the
         // narration for the existing lunation cadence (no new timer).
         ShowInfo(Interval.Walking(cycle)
             ? $"{emReason} {Interval.RecallLine} Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}"
-            : $"{emReason} The castle limps home to refuel, restock, unload, and repair, and a lunation will pass. " +
+            : $"{emReason} The castle limps home to refuel, restock, unload, and repair, and a moon will pass. " +
               $"Gold: {GoldEarned}, Splinters: {SplinterEarned}.{casualties}");
         _casualtyNote = null;
         ShowReturnButton();
@@ -7538,7 +7550,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             Title = "Emergency Extraction",
             DialogText = "You are away from any supply anchor. The party abandons\n" +
                          "the field and straggles home overland:\n\n" +
-                         "  · One full lunation passes before you reach the campus.\n" +
+                         "  · One whole moon passes before you reach the campus.\n" +
                          "  · Every companion risks injury, or worse, on the road.\n\n" +
                          "Spoils and discoveries are kept. Extract anyway?",
             OkButtonText = "Extract",
@@ -7610,7 +7622,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         };
         _returnButton.AddThemeFontSizeOverride("font_size", UITheme.OverworldUIFontSize);
         UITheme.ApplyButtonStyle(_returnButton, isPrimary: true);
-        _returnButton.Pressed += () => GetTree().ChangeSceneToFile(StrategicScenePath);
+        _returnButton.Pressed += () => SceneTransition.Quiet(GetTree(), StrategicScenePath, 0.9f);
         _hudCanvas.AddChild(_returnButton);
 
         // S4.2: every clickable HUD surface blocks the tile hover readout.
@@ -8058,17 +8070,17 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         int supplyBand = SupplyBandAt(_party.CurrentCoord);
         _windowLabel.Text = _fieldRun
             ? (supplyBand == 0   // P7a
-                ? $"Supply line: {SupplyRange - supplyDist} tile(s) to spare"
-                : $"Supply line: {supplyDist - SupplyRange} tile(s) past it (-{supplyBand * LeashDrainPerBand} health a tile)")
+                ? $"Supply line: {TileCount(SupplyRange - supplyDist)} to spare"
+                : $"Supply line: {TileCount(supplyDist - SupplyRange)} past it (-{supplyBand * LeashDrainPerBand} health a tile)")
             : supplyBand == 0
                 ? $"Supply: in range ({supplyDist}/{SupplyRange})"
                 : $"Supply: {supplyDist - SupplyRange} beyond the line (−{supplyBand * LeashDrainPerBand} HP/step)";
         _windowLabel.Modulate = supplyBand == 0 ? Colors.White : UITheme.OverworldLowResourceWarning;
 
         if (_grid.Hexes.TryGetValue(_party.CurrentCoord, out var cur))
-            _windowLabel.Text += $"  |  {TerrainAt(_party.CurrentCoord)}";   // Step 3
+            _windowLabel.Text += $"\nGround: {TerrainAt(_party.CurrentCoord)}";   // Step 3
         string curKingdom = KingdomIdAt(_party.CurrentCoord);
-        _windowLabel.Text += $"  |  {(string.IsNullOrEmpty(curKingdom) ? "Unclaimed" : KingdomDisplayName(curKingdom))}";
+        _windowLabel.Text += $"\nRealm: {(string.IsNullOrEmpty(curKingdom) ? "Unclaimed" : KingdomDisplayName(curKingdom))}";
         // H2a: say so on the panel when the party stands in seeped ground.
         // H2d: say so when the party walks out of the seep or back in. Only work inside it digs,
         // and the province's edge is easy to cross without noticing.
@@ -8089,8 +8101,8 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         if (_seepZone != null && InSeep(_party.CurrentCoord))
         {
             _windowLabel.Text += _seepZone.Excavation >= 100
-                ? "  |  Seeped (vault dug out)"
-                : $"  |  Seeped (excavation {_seepZone.Excavation} of 100)";
+                ? "\nSeep: the vault is dug out"
+                : $"\nSeep: excavation {_seepZone.Excavation} of 100";
         }
         else if (_seepZone != null)
         {
@@ -8231,7 +8243,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 else if (!canSend)
                 { line = "No expeditions left this moon."; }
                 else
-                { line = $"At ({p.X},{p.Y}). Send them: costs one expedition, not a lunation."; }
+                { line = $"At ({p.X},{p.Y}). Send them: costs one expedition, not a moon."; }
 
                 var party = p;
                 AddScryRow(box, dlg, $"\u25B2  {p.Name}", line,
@@ -8347,7 +8359,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         }
 
         GD.Print($"[Sortie] Table aimed at {(kind == ExpeditionRunKind.Castle ? "the castle" : partyId)}.");
-        GetTree().ChangeSceneToFile("res://Scenes/Overworld/ExpeditionScene.tscn");
+        SceneTransition.Quiet(GetTree(), "res://Scenes/Overworld/ExpeditionScene.tscn");
     }
 
     /// <summary>C4, P6 (docs/prologue_script_v1.md): the first sortie once the prologue is
@@ -8767,6 +8779,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
     }
 
     /// <summary>One-line summary of the seeded weather fronts, for the run log.</summary>
+    /// <summary>"1 tile", "7 tiles".</summary>
+    private static string TileCount(int n) => n == 1 ? "1 tile" : $"{n} tiles";
+
     private string WeatherSummary()
     {
         var counts = new System.Collections.Generic.Dictionary<WeatherType, int>();
