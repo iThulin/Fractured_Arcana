@@ -299,6 +299,28 @@ public static class Shardfall
                 return zone;
             }
         }
+        // H6d (primal): under the rule a live vault seeps into the provinces beside its own.
+        if (Ascension.Active(save.Cycle, Ascension.Primal) && provinceIndex < world.Provinces.Count)
+        {
+            foreach (var zone in world.ShardZones)
+            {
+                if (zone == null || !Live(save, zone))
+                {
+                    continue;
+                }
+                int home = world.ProvinceIndexAt(zone.GateX, zone.GateY);
+                if (home >= 0 && home < world.Provinces.Count && world.Provinces[home].Neighbors != null)
+                {
+                    foreach (int beside in world.Provinces[home].Neighbors)
+                    {
+                        if (beside == provinceIndex)
+                        {
+                            return zone;
+                        }
+                    }
+                }
+            }
+        }
         return null;
     }
 

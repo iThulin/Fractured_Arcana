@@ -181,6 +181,7 @@ public static class CycleInitializer
         cycle.Kingdoms = g.Kingdoms;
         cycle.Campaign = g.Campaign;
         cycle.Council = g.Council;
+        Pinnacles.ApplyToNewWorld(save, cycle);   // shardfall H6c: the Oathhall
         // Stamp the founding scenario's runtime difficulty onto the timeline so the
         // combat + corruption layers can read it (consumed in milestone 2B).
         cycle.EnemyDifficultyMult = scenario.EnemyDifficultyMult;

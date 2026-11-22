@@ -174,9 +174,11 @@ public partial class CardRewardScreen : Control
 
         var usedIds = new HashSet<string>();
 
-        for (int i = 0; i < SlotCount; i++)
+        // Shardfall H6c: the Athenaeum Restored offers one more card.
+        int slots = SlotCount + (Pinnacles.Has(save, Pinnacles.Athenaeum) ? Pinnacles.AthenaeumExtraCards : 0);
+        for (int i = 0; i < slots; i++)
         {
-            bool isNeutralSlot = (i == SlotCount - 1) && neutralPool.Count > 0;
+            bool isNeutralSlot = (i == slots - 1) && neutralPool.Count > 0;
             var pool = isNeutralSlot ? neutralPool : schoolPool;
 
             // Either pool can be empty on a narrow unlock set, so fall through to

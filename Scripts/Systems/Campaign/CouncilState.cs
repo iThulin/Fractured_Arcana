@@ -232,6 +232,10 @@ public class CourtState : IJsonOnDeserialized
     // ── Derived standing (never serialized as truth) ─────────────────────
 
     /// <summary>Σ (Regard × Influence) over all courtiers.</summary>
+    /// <summary>Shardfall H6c: standing the Oathhall pinnacle adds to this court for the whole
+    /// timeline. Set when the world is generated. Additive, default 0.</summary>
+    public int PinnacleStanding = 0;
+
     public int StandingScore()
     {
         int score = 0;
@@ -239,7 +243,7 @@ public class CourtState : IJsonOnDeserialized
         {
             score += c.Regard * c.Influence;
         }
-        return score - StandingPenalty;
+        return score - StandingPenalty + PinnacleStanding;
     }
 
     /// <summary>Standing band per §3b, honoring the Unknown flag and the

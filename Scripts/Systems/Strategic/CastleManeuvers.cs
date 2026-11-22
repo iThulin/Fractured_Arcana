@@ -476,6 +476,7 @@ public static class CastleManeuvers
         int cost = CostFor(cycle, def);
         string name = CastleHops.Chassis(cycle)?.Name ?? "The castle";
         KeeperHunt.HearCast(cycle, def.SpellId);   // provinces PV6: a cast is loud, heard where it is cast
+        Ascension.NoteCast(cycle);   // shardfall H6d (axiom)
         switch (def.SpellId)
         {
             case "force_path":

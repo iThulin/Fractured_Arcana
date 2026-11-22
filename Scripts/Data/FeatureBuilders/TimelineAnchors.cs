@@ -76,7 +76,9 @@ public static class TimelineAnchors
         {
             n++;
         }
-        if (RegaliaService.ShardsCollected(save) >= ShardsForAnchor)
+        // Shardfall H6 (ruled 2026-11-10): the Ossuary of Names gives this Anchor. It used to
+        // come at three shards of any kind (ShardsForAnchor, no longer read).
+        if (Pinnacles.Has(save, Pinnacles.Ossuary))
         {
             n++;
         }

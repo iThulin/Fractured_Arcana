@@ -583,6 +583,10 @@ public partial class ExpeditionManager : Node2D
 
         // ── Resource state ───────────────────────────────────────────────
         MaxHP = ComputePartyBaseHP();
+        if (_fieldRun)
+        {
+            MaxHP = Pinnacles.FieldHealth(SaveManager.ActiveSave, MaxHP);   // shardfall H6c: the Hearth
+        }
         CurrentHP = MaxHP;
         StepsRemaining = OperatingRange;
         GoldEarned = 0;
@@ -1164,6 +1168,11 @@ public partial class ExpeditionManager : Node2D
         if (poi != null && !poi.Consumed)
         {
             poi.Consumed = true;
+            if (poi.Guard && byParty)
+            {
+                // H6d (deathless): under the rule it stands again two moons from now.
+                poi.BrokenOnLunation = SaveManager.ActiveSave?.Cycle?.Calendar?.CurrentLunation ?? 0;
+            }
             // Resolving a place is a visit: what it holds is Known (knowledge
             // ladder, spec section 6.1), so a site that regrows does not read as
             // unvisited again (CampSight.SightedUnvisited).
@@ -2272,7 +2281,8 @@ public partial class ExpeditionManager : Node2D
         => _fieldRun && _seepZone != null && !_seepZone.ShardCollected && _seepProvince >= 0
            && _world != null && _window != null
            && _window.TryLocalToWorld(local, out int c, out int r)
-           && _world.ProvinceIndexAt(c, r) == _seepProvince;
+           // H6d (primal): the seep may reach past the vault's own province, so ask Shardfall.
+           && Shardfall.SeepOfProvince(SaveManager.ActiveSave, _world.ProvinceIndexAt(c, r)) == _seepZone;
 
     // ── P4 (province_field_v1, F6): guards and the ground they hold ──────
 
@@ -3670,6 +3680,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 hpDrain = 0;
             }
 
+            // Shardfall H6c: the Hearth of Storms. Terrain does a party on foot no harm.
+            if (hpDrain > 0 && _fieldRun && Pinnacles.Has(SaveManager.ActiveSave, Pinnacles.Hearth))
+            {
+                hpDrain = 0;
+            }
             if (hpDrain > 0)
             {
                 Hull -= hpDrain;
@@ -3783,6 +3798,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 weatherHull = 0; // §4 Cinderhold (Elementalist): immune to weather Hull drain
             // 2026-11-10: the toll was set for a fortress's hull. A party on foot pays it once a
             // day under the front (every fourth tile), not on every tile.
+            // Shardfall H6c: the Hearth of Storms. Nor does the weather.
+            if (weatherHull > 0 && _fieldRun && Pinnacles.Has(SaveManager.ActiveSave, Pinnacles.Hearth))
+            {
+                weatherHull = 0;
+            }
             if (weatherHull > 0 && _fieldRun)
             {
                 _weatherTilesUnderFront++;
@@ -5659,6 +5679,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         SaveManager.MarkDirty();
         LogRun("shard_collected", $"{z.Name} ({z.FragmentKey}); vault becomes staging point");
         _toasts?.Push($"Shard recovered: {z.Name}.", QuestToastKind.Complete);
+        // Shardfall H6c: say what the shard raises.
+        string pinnacleLine = Pinnacles.RaisedLine(z.FragmentKey);
+        if (pinnacleLine.Length > 0)
+        {
+            _toasts?.Push(pinnacleLine, QuestToastKind.Complete);
+            PostScryMessage(ScryChannel.Messenger, Pinnacles.NameOf(z.FragmentKey), pinnacleLine);
+            GD.Print($"[Pinnacles] {pinnacleLine}");
+        }
         ShowInfo($"You take the shard from {z.Name}. Its power is yours, and the vault " +
                  "is now a staging point. The other vaults seal until the next timeline.");
         foreach (var qt in QuestNotifier.NotifyNew(before, save))

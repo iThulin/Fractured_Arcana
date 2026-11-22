@@ -60,6 +60,10 @@ public static partial class KingdomTickSimulation
         }
         cycle.PendingSiegeReports ??= new List<string>();
         TickVaultClaims(cycle);   // H4 (S5)
+        Ascension.NewMoon(cycle);   // H6d: guards that stand again, the world rebuilding
+        bool faster = Ascension.Active(cycle, Ascension.Moment);
+        int answers = Ascension.Active(cycle, Ascension.Axiom) ? cycle.AscensionAnswers : 0;
+        cycle.AscensionAnswers = 0;
         string convergence = ConvergenceKingdomId(cycle.World);
         bool fronts = FrontsWalk(cycle);
         foreach (var kvp in cycle.Kingdoms)
@@ -76,6 +80,16 @@ public static partial class KingdomTickSimulation
                 continue;
             }
             ApplyPlanYield(cycle, kid, k);   // R3: what last moon's plan earned
+            if (faster)
+            {
+                ApplyPlanYield(cycle, kid, k);   // H6d (moment): each realm acts twice a moon
+            }
+            if (answers > 0 && k.Plan != null)
+            {
+                answers--;
+                ApplyPlanYield(cycle, kid, k);   // H6d (axiom): a realm answers a spell the guild cast
+                Report(cycle, $"{RealmOf(k, kid)} answers your spellcraft in kind, and presses its plan once more.");
+            }
             // C1 (Sow Discord): a realm in discord holds no plan this moon.
             if (k.HinderedMoons > 0)
             {

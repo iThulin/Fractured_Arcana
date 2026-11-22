@@ -650,9 +650,21 @@ public static class SaveManager
             // found item 1): every {wizard_name} read "Wizard" from the second reading on.
             WizardName = old.WizardName,
             // U18: every reading opens with the founding's purse, as the first one did.
-            Gold = FoundingPurse(ActiveSave.Ledger?.FoundingScenario),
-            BuildMaterials = FoundingMaterials,
+            // Shardfall H6c: the Pattern Foundry enlarges the purse every timeline opens with.
+            Gold = Pinnacles.FoundingAmount(ActiveSave, FoundingPurse(ActiveSave.Ledger?.FoundingScenario)),
+            BuildMaterials = Pinnacles.FoundingAmount(ActiveSave, FoundingMaterials),
         };
+
+        Pinnacles.ApplyToFreshCalendar(ActiveSave, ActiveSave.Cycle.Calendar);   // shardfall H6c
+        // Shardfall H6d: the pact. No screen chooses it yet, so the lightest that meets the floor.
+        ActiveSave.Cycle.AscensionRules = Ascension.DefaultPact(ActiveSave);
+        string pactLine = Ascension.PactLine(ActiveSave.Cycle);
+        if (pactLine.Length > 0)
+        {
+            ActiveSave.Cycle.PendingSiegeReports ??= new List<string>();
+            ActiveSave.Cycle.PendingSiegeReports.Add(pactLine);
+            GD.Print($"[Ascension] {pactLine}");
+        }
 
         // C1: companions met in the ending reading are known to the next, and a chronicle
         // panel still waiting on an Eternal beat carries over (its once flag is written).
@@ -701,6 +713,7 @@ public static class SaveManager
         // The timeline persists. Advance the year and reset only the clock.
         cycle.CampaignYear += 1;
         cycle.Calendar = new CalendarState();   // lunation 1, phase 0, no eclipses
+        Pinnacles.ApplyToFreshCalendar(ActiveSave, cycle.Calendar);   // shardfall H6c: the Stilled Hour
         cycle.PendingStraggleLunations = 0;     // a new year owes no straggle debt
 
         // H4 (2026-11-11): the calendar began again at day 1, so a day number from the old

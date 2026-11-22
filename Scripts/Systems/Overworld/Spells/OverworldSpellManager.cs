@@ -1057,6 +1057,7 @@ public partial class OverworldSpellManager : Node2D
         }
 
         _grimoire.EssenceCurrent -= cost;
+        Ascension.NoteCast(SaveManager.ActiveSave?.Cycle);   // shardfall H6d (axiom)
         _grimoire.PerExpeditionCastCounts[def.Id] =
             _grimoire.PerExpeditionCastCounts.TryGetValue(def.Id, out int n) ? n + 1 : 1;
         _grimoire.LastCastSpellId = def.Id; // S3: Emulate's memory (scrolls count, "by anyone")
