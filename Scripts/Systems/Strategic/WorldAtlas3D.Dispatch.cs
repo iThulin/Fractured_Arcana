@@ -319,16 +319,13 @@ public partial class WorldAtlas3D
         }
         var save = SaveManager.ActiveSave;
         HashSet<int> seeped = null;
-        foreach (var zone in _world.ShardZones)
+        // H6d (primal): a seep may reach past its vault's own province, so every province is asked.
+        for (int p = 0; p < _world.Provinces.Count; p++)
         {
-            if (zone != null && Shardfall.Live(save, zone))
+            if (Shardfall.SeepOfProvince(save, p) != null)
             {
-                int p = _world.ProvinceIndexAt(zone.GateX, zone.GateY);
-                if (p >= 0)
-                {
-                    seeped ??= new HashSet<int>();
-                    seeped.Add(p);
-                }
+                seeped ??= new HashSet<int>();
+                seeped.Add(p);
             }
         }
         if (seeped == null)

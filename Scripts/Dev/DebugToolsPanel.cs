@@ -482,6 +482,20 @@ public partial class DebugToolsPanel : VBoxContainer
         var progression = Section("PROGRESSION",
             "Skips the slow gates. These write the EternalLedger and save at once: PERMANENT for this guild. Use a scratch slot.");
 
+        // Shardfall H6d: switch any pact rule for the running timeline, whatever the floor says.
+        foreach (string pactKey in Ascension.Keys)
+        {
+            string key = pactKey;
+            Check(progression, $"Pact: {Ascension.NameOf(key)} ({Ascension.WeightOf(key)})",
+                Ascension.Active(Ctx.Save?.Cycle, key),
+                on =>
+                {
+                    Ascension.DebugSet(Ctx.Save?.Cycle, key, on);
+                    SaveManager.MarkDirty();
+                    SaveManager.SaveIfDirty();
+                });
+        }
+
         // Party loadouts (2026-11-11): save this timeline's build under a name, or put a saved
         // build onto this timeline. For testing a fight against a build from a real run.
         Caption(progression, "Loadout name:");

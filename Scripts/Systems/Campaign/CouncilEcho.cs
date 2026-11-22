@@ -90,6 +90,27 @@ public static class CouncilEcho
             LandsOnLunation = cycle.Calendar.CurrentLunation + delay,
             Cancelled = false,
         });
+        // Shardfall H6d (binding): courts are bound together. An offence is heard, as a lesser
+        // one, in every court that borders this one.
+        if (!positive && Ascension.Active(cycle, Ascension.Binding))
+        {
+            foreach (string neighbour in KingdomTickSimulation.NeighborsOf(cycle, kingdomId))
+            {
+                if (neighbour == kingdomId || !cycle.Council.Courts.ContainsKey(neighbour))
+                {
+                    continue;
+                }
+                cycle.Council.EchoesInFlight.Add(new EchoEvent
+                {
+                    KingdomId = neighbour,
+                    DeedTag = deedTag,
+                    Valence = -1,
+                    IsMajor = false,
+                    LandsOnLunation = cycle.Calendar.CurrentLunation + delay,
+                    Cancelled = false,
+                });
+            }
+        }
         SaveManager.MarkDirty();
 
         string courtName = CouncilTick.CourtDisplayName(cycle, kingdomId);

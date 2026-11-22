@@ -553,6 +553,14 @@ public class CycleState
     public Dictionary<string, int> ReadingDeeds = new();
 
     // ── Phase 3+ stubs (carried over; all timeline-scoped) ───────────────
+    /// <summary>Shardfall H6d: the world rules this timeline is played under (fragment keys).
+    /// Chosen as the timeline begins, kept through every year of it. Additive.</summary>
+    public List<string> AscensionRules = new();
+
+    /// <summary>Shardfall H6d (axiom): realms owed an extra turn at the next new moon, one for
+    /// each overworld spell the guild cast this moon. Additive.</summary>
+    public int AscensionAnswers = 0;
+
     public string CharterAlignment = "";
     public int SeasonalThreatLevel = 0;
     public Dictionary<string, int> FragmentProgress = new();

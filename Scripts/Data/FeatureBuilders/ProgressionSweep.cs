@@ -195,12 +195,20 @@ public static class ProgressionSweep
 
             if (!paid.Contains(artFlag))
             {
+                // Shardfall H6b (G2): the shard gives its school's full Regalia, so every
+                // Legendary the school has that the guild does not hold yet.
                 var legendary = RegaliaService.PickLegendaryForSchool(save, school);
-                if (legendary != null)
+                int grantedHere = 0;
+                while (legendary != null && grantedHere < 16)
                 {
                     RegaliaService.Grant(save, legendary.Id, $"fragment '{key}' claimed");
-                    Stamp(save, paid, artFlag);
+                    grantedHere++;
                     awards++;
+                    legendary = RegaliaService.PickLegendaryForSchool(save, school);
+                }
+                if (grantedHere > 0)
+                {
+                    Stamp(save, paid, artFlag);
                 }
                 else if (OS.IsStdOutVerbose())
                 {

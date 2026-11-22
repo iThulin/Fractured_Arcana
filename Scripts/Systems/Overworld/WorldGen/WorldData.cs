@@ -152,6 +152,9 @@ public class WorldPoi
     /// <summary>SP3 (Tremorsense): this guard's ground has been shaken. It holds only its own
     /// tile from then on. Additive, default false.</summary>
     public bool GuardShaken = false;
+    /// <summary>Shardfall H6d (deathless): the moon the guild broke this guard, or 0. Under the
+    /// rule it stands again two moons later. Additive.</summary>
+    public int BrokenOnLunation = 0;
 
     /// <summary>Rival archmages R3 (Seek): this guard is a realm's garrison on a shard vault.
     /// The fragment key of the vault it holds, or empty. Beating it frees the vault.</summary>
