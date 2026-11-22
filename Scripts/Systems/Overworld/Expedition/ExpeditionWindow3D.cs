@@ -661,7 +661,8 @@ public partial class ExpeditionWindow3D : Node3D
     // ── WG1: weather on the ground ───────────────────────────────────────
     //    Every tile under a front carries a pale hex in the front's colour, and the tiles on
     //    the front's edge carry a strong one, so the party can see where to walk out. One
-    //    label per front states its cost. Rebuilt only when a front moves or the field grows.
+    //    label per front names it (the cost is on the field panel). Rebuilt only when a
+    //    front moves or the field grows.
 
     private const float WeatherWashAlpha = 0.20f;
     private MultiMeshInstance3D _weatherGround;
@@ -670,23 +671,6 @@ public partial class ExpeditionWindow3D : Node3D
 
     private static Color WeatherGroundColor(WeatherType t)
         => WeatherCatalog.Def(t).HullPerTile != 0 ? UITheme.Danger : UITheme.ArcaneBlue;
-
-    private string WeatherGroundText(WeatherType t)
-    {
-        var def = WeatherCatalog.Def(t);
-        var parts = new List<string>();
-        if (FieldParty)
-        {
-            if (def.HullPerTile != 0) parts.Add($"{def.HullPerTile} health a day");
-            if (def.FuelPerTile != 0) parts.Add($"each tile takes {def.FuelPerTile * 0.25f:0.##} days longer");
-        }
-        else
-        {
-            if (def.HullPerTile != 0) parts.Add($"{def.HullPerTile} Hull a tile");
-            if (def.FuelPerTile != 0) parts.Add($"{def.FuelPerTile} more fuel a tile");
-        }
-        return parts.Count > 0 ? $"{def.Name}: {string.Join(", ", parts)}" : def.Name;
-    }
 
     private void RefreshWeatherGround()
     {
