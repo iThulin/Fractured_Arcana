@@ -223,8 +223,9 @@ public partial class StrategicView
         }
     }
 
-    /// <summary>Up to the world and the castle's sortie drawer, as the Sortie verb opens it; or, when the
-    /// castle cannot go, the castle picked and the reason.</summary>
+    /// <summary>Up to the world, with the field party picked and where its verb is (tutorial v2,
+    /// T1). The step used to open the castle's sortie drawer. The castle marches and camps, and it
+    /// is the party that takes the field.</summary>
     private void GoSortie(CycleState cycle)
     {
         if (cycle == null)
@@ -235,13 +236,18 @@ public partial class StrategicView
         {
             _atlas3D.LeaveCityMode();
         }
-        if (CanSortie(cycle, out string why))
+        var party = cycle.FieldParties?.Find(p => p != null && p.Id == ExpeditionAnchors.PrimaryFieldPartyId)
+                    ?? cycle.FieldParties?.Find(p => p != null && !FieldPostings.IsDetachment(p));
+        if (party == null)
         {
-            OnSortiePressed();
+            FocusForce("");
+            ShowStrategicNotice("No party to send", "You have no field party yet. Hire someone at a city's hiring hall.");
             return;
         }
-        FocusForce("");
-        ShowStrategicNotice("The castle cannot sortie yet", why);
+        FocusForce(party.Id);
+        ShowStrategicNotice("Take the field",
+            $"{party.Name} is picked. Press Take the field in its panel at the lower left. "
+            + "It sets out from where it stands: the castle's camp, a city or a waystone.");
     }
 
     /// <summary>A sortie ends in the field, so the way home is not a verb here. Pick whichever force is out

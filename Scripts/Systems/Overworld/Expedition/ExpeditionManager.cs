@@ -1755,12 +1755,13 @@ public partial class ExpeditionManager : Node2D
 
     /// <summary>P2 (F3): no creeping fog in the field. Every tile of the outing's province that
     /// the window holds is revealed, and the reveal is written to the world as walking would
-    /// write it, so its places show and a fight's round trip keeps it. Not while the interval
-    /// walks: the opening shows only its errand.</summary>
+    /// write it, so its places show and a fight's round trip keeps it. On in the interval too
+    /// (tutorial v2, ruling TU2): the opening plays by the field's rules. It still adds no
+    /// sites, guards, patrols, seep or rival plans before the founding.</summary>
     private void OpenProvinceGround()
     {
         if (!_fieldRun || _world == null || _party == null || _grid == null || _fog == null
-            || !_world.HasProvinces() || Interval.Walking(SaveManager.ActiveSave?.Cycle))
+            || !_world.HasProvinces())
         {
             return;
         }
@@ -1814,13 +1815,13 @@ public partial class ExpeditionManager : Node2D
     private const string UnknownSiteText =
         "  ·  Unknown site. Come within 3 tiles to see what it is.";
 
-    /// <summary>Is what stands on this world tile known? Always on a castle run and in the
-    /// interval. In the field: a guard, an outpost, a settlement, a seat and a supply cache
+    /// <summary>Is what stands on this world tile known? Always on a castle run. In the field,
+    /// the interval included (TU2): a guard, an outpost, a settlement, a seat and a supply cache
     /// are landmarks and always known. Any other site is known once WorldPoi.Known is set,
     /// by sight (KnowSitesNear) or by a spell.</summary>
     private bool SiteKnownWorld(int col, int row)
     {
-        if (!_fieldRun || _world == null || Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        if (!_fieldRun || _world == null)
         {
             return true;
         }
@@ -1890,8 +1891,8 @@ public partial class ExpeditionManager : Node2D
 
     // ── SP3: what the field's spells do (called by OverworldSpellManager) ──
 
-    /// <summary>True on a field run outside the interval: the rewritten spells apply.</summary>
-    public bool SpellFieldRules => _fieldRun && !Interval.Walking(SaveManager.ActiveSave?.Cycle);
+    /// <summary>True on a field run: the rewritten spells apply. In the interval too (TU2).</summary>
+    public bool SpellFieldRules => _fieldRun;
 
     /// <summary>Tiles within which the party sees what a site is. Arcane Literacy: 5.</summary>
     private int FieldSight => _spells != null && _spells.HasAttunement("arcane_literacy") ? 5 : FieldSightRadius;
@@ -9945,10 +9946,11 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             return true;
         }
-        if (!_fieldRun || _party == null || Interval.Walking(SaveManager.ActiveSave?.Cycle))
+        if (!_fieldRun || _party == null)
         {
             return false;
         }
+        // In the interval too (TU2). Nothing hunts before the founding, so leaving is free there.
         return _factionManager == null || !_factionManager.HunterNear(_party.CurrentCoord, HuntedExitRange);
     }
 
