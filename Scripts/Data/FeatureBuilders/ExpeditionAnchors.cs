@@ -528,6 +528,19 @@ public static class ExpeditionAnchors
         {
             return;
         }
+        // Removals Tier D (E1, ruled 2026-11-22): the castle does not go on expeditions. A castle
+        // sortie still in progress in an older save ends here: the castle makes camp where it
+        // stood, with its fuel and what it had gathered, exactly as Bank the furnace did.
+        if (cycle.CastleSortie != null && cycle.CastleSortie.IsLive())
+        {
+            string ended = BankFrozenCastle(cycle, "The castle", MinResupplyDays, MaxResupplyDays);
+            if (!string.IsNullOrEmpty(ended))
+            {
+                cycle.PendingSiegeReports ??= new System.Collections.Generic.List<string>();
+                cycle.PendingSiegeReports.Add("The castle no longer goes on expeditions itself. " + ended);
+                GD.Print("[ExpeditionAnchors] A castle sortie in progress was ended on load.");
+            }
+        }
         if (cycle.CastleSortie != null && cycle.CastleSortie.Active && !cycle.CastleSortie.IsLive())
         {
             GD.PrintErr($"[ExpeditionAnchors] Castle sortie slot was Active but dead ({cycle.CastleSortie}); cleared.");

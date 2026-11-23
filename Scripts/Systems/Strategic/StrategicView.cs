@@ -119,7 +119,6 @@ public partial class StrategicView : Node2D
     // (2026-09-24). Since provinces 7f (PR41) the city/world toggle is the
     // global bar's (HudManager reads HomeToggleState), and Escape. See
     // OnViewTogglePressed.
-    private Button _sortieBtn;             // 2026-09-24: the castle sorties from where it stands
     private Button _annexButton;           // "annex a district" toggle (kept so we can reset it after a purchase)
     private Button _buildModeBtn;          // "build" toggle: arms bare-ground clicks to open the construct card
     private Button _marchModeBtn;          // Expedition v2: arms map clicks as a MOVE order
@@ -1323,19 +1322,6 @@ public partial class StrategicView : Node2D
         // HomeToggleState (StrategicView.Corners) and hears of a change here.
         HudManager.Instance?.RefreshViewToggle();
 
-        if (_sortieBtn != null)
-        {
-            _sortieBtn.Visible = CastleSelected && !cityNow;
-            if (_sortieBtn.Visible)
-            {
-                bool can = CanSortie(cycle, out string sortieWhy);
-                _sortieBtn.Disabled = !can;
-                _sortieBtn.TooltipText = can
-                    ? "The castle strides out from where it stands. Fuel is the budget; the days it "
-                      + $"costs are charged on return at about {WorldClock.DaysPerFuel:0.##} a fuel."
-                    : sortieWhy;
-            }
-        }
         // Provinces PV4: the font's maneuvers, for the castle on the world map.
         RefreshManeuverButton(cycle, cityNow);
         // Provinces PV7: the army, for the castle on the world map.
@@ -3254,9 +3240,8 @@ public partial class StrategicView : Node2D
         // stands, exactly as the party takes the field where it stands. This
         // replaces the staging-point drawer as the way to launch the castle;
         // the drawer's readouts moved into the confirm this opens.
-        _sortieBtn = MakeCityChromeButton("\u25B6  Sortie", primary: true);
-        _sortieBtn.Visible = false;
-        _sortieBtn.Pressed += OnSortiePressed;
+        // The Sortie button was removed on 2026-11-22 (removals Tier C). The castle marches,
+        // camps, casts and lays siege. The field party takes the field.
 
         // Provinces PV4: the castle's maneuvers, beside its march and its sortie.
         BuildManeuverButton();
@@ -4676,15 +4661,8 @@ public partial class StrategicView : Node2D
 
     private void OnStagingClicked(StagingPoint sp)
     {
-        // 2026-09-24: a beacon opens the launch confirm ONLY when the castle
-        // stands on it, which is the same thing the Sortie verb does. Every
-        // other beacon is a place: see ShowPlaceCard.
-        var cycle = SaveManager.ActiveSave?.Cycle;
-        if (cycle != null && cycle.CastleX == sp.X && cycle.CastleY == sp.Y && CanSortie(cycle, out _))
-        {
-            OnSortiePressed();
-            return;
-        }
+        // Every beacon is a place: see ShowPlaceCard. The castle's launch confirm that opened
+        // here when the castle stood on the beacon went with its sortie (2026-11-22).
         ShowPlaceCard(sp);
     }
 
@@ -5420,198 +5398,6 @@ public partial class StrategicView : Node2D
         }
     }
 
-    private void ShowDeployConfirm(StagingPoint sp)
-    {
-        _deployUi?.QueueFree();
-        _deployUi = new CanvasLayer { Name = "DeployUI" };
-        AddChild(_deployUi);
-        // Map stays live under the drawer, but a settlement click must not
-        // descend into city view underneath it (cleared on close/launch).
-        if (_atlas3D != null) _atlas3D.SuppressCityEntry = true;
-
-        // 3D-native deploy: no dimming backdrop; the map stays visible with this
-        // staging point's deploy footprint (WorldAtlas3D's window preview) highlighted
-        // in-world. A cinematic fly-in swoops the camera down into the region; the
-        // half-drawer-width shift centers the beacon in the map area LEFT of the drawer.
-        _atlas3D?.FlyToTile(sp.X, sp.Y, 30f, SidebarWidth * 0.5f);
-
-        // Deploy-flow streamline (2026-08-21): the map stays LIVE under the
-        // drawer. Pan/zoom to read the region, and clicking another staging
-        // beacon RETARGETS this drawer (OnAtlas3DTilePicked filters to staging-
-        // only while the drawer is up, so caches/warfronts can't stack dialogs
-        // over it). The old full-rect Stop guard is gone; the drawer panel
-        // itself still swallows clicks over its own rect.
-
-        // Full-height sidebar flush to the right edge (below the global top bar) that
-        // SLIDES OUT from off-screen: a drawer opening, not a modal popping in. The
-        // width is constant through the slide, so the content never reflows. This is
-        // the "launch screen": the manifest + spell prep, read against the region the
-        // camera flew into on the left.
-        var panel = new PanelContainer
-        {
-            AnchorLeft = 1f,
-            AnchorTop = 0f,
-            AnchorRight = 1f,
-            AnchorBottom = 1f,
-            GrowHorizontal = Control.GrowDirection.Begin,
-            OffsetTop = HudManager.BarHeight,
-            OffsetBottom = 0,
-            // Start fully off-screen to the right; the tween below slides it in.
-            OffsetLeft = 0,
-            OffsetRight = SidebarWidth,
-        };
-        panel.AddThemeStyleboxOverride("panel",
-            UITheme.MakePanelStyle(UITheme.BgBase, UITheme.Violet));
-        _deployUi.AddChild(panel);
-
-        var pop = CreateTween();
-        pop.SetParallel(true);
-        pop.TweenProperty(panel, "offset_left", -SidebarWidth, 0.34f)
-            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
-        pop.TweenProperty(panel, "offset_right", 0f, 0.34f)
-            .SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 28);
-        margin.AddThemeConstantOverride("margin_right", 28);
-        margin.AddThemeConstantOverride("margin_top", 24);
-        margin.AddThemeConstantOverride("margin_bottom", 22);
-        panel.AddChild(margin);
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 12);
-        margin.AddChild(vbox);
-
-        // A fresh drawer is a fresh question. Without this, opening the drawer
-        // after cancelling a field send would leave the Deploy button sending
-        // the field party.
-        _pendingRunKind = ExpeditionRunKind.Castle;
-
-        var title = new Label { Text = $"Sortie from {sp.Name}" };
-        title.AddThemeFontSizeOverride("font_size", UITheme.FontSizeMedium);
-        title.AddThemeColorOverride("font_color", UITheme.Gold);
-        title.HorizontalAlignment = HorizontalAlignment.Center;
-        vbox.AddChild(title);
-
-        vbox.AddChild(new HSeparator());
-
-        // Context: kingdom + terrain + range.
-        var tile = _world.GetTile(sp.X, sp.Y);
-        string kingdomLabel = string.IsNullOrEmpty(tile.KingdomId)
-            ? "Wilderness"
-            : (_kingdoms.TryGetValue(tile.KingdomId, out var ks) && !string.IsNullOrEmpty(ks.ControllingFactionId)
-                ? FactionDisplay(ks.ControllingFactionId)
-                : tile.KingdomId);
-
-        AddDeployStat(vbox, "Location", $"({sp.X}, {sp.Y}) · {tile.Terrain}");
-        AddDeployStat(vbox, "Territory", kingdomLabel);
-        AddDeployStat(vbox, "Operating range", $"~{DeployWindowRadius * 2} tiles across");
-
-        // Time cost: every deploy spends one whole lunation of the doomsday
-        // clock. Surface it here: it is the most expensive thing the player
-        // spends, and it was previously invisible until the debug log.
-        var depCycle = SaveManager.ActiveSave?.Cycle;
-        if (depCycle != null)
-        {
-            var depCal = depCycle.Calendar;
-            bool fieldDrawer = _pendingRunKind == ExpeditionRunKind.Field;
-            float perUnit = fieldDrawer ? WorldClock.DaysPerRation : WorldClock.DaysPerFuel;
-            AddDeployStat(vbox, "Time cost",
-                (fieldDrawer ? "The days the party spends out, charged on return  "
-                             : $"{perUnit:0.##} day per fuel, charged on return  ")
-                + $"·  day {depCal.DayOfLunation + 1} of {CalendarState.DaysPerLunation}, "
-                + $"{depCal.DaysToNewMoon} to the new moon");
-        }
-
-        // K2 (§5b): party manifest: who actually deploys, who's in the
-        // infirmary. Without this the injury system was invisible outside
-        // the log and a missing companion in the first fight was a surprise.
-        var deploySave = SaveManager.ActiveSave;
-        if (deploySave != null)
-        {
-            var fielded = new System.Collections.Generic.List<string>();
-            var infirmary = new System.Collections.Generic.List<string>();
-            foreach (var cid in deploySave.ActivePartyCompanionIds)
-            {
-                var comp = deploySave.Companions.Find(x => x.Id == cid && x.IsRecruited && !x.IsPermadead);
-                if (comp == null)
-                    continue;
-                if (comp.IsInjured)
-                    infirmary.Add($"{comp.Name} ({comp.InjuredLunationsRemaining} lun.)");
-                else
-                    fielded.Add(comp.Name);
-            }
-            AddDeployStat(vbox, "Party",
-                fielded.Count > 0 ? "Wizard + " + string.Join(", ", fielded) : "The wizard, alone");
-            if (infirmary.Count > 0)
-            {
-                var injWarn = new Label
-                {
-                    Text = $"✚ Infirmary: {string.Join(", ", infirmary)} (recovering, will not deploy).",
-                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                };
-                injWarn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-                injWarn.AddThemeColorOverride("font_color", UITheme.Danger);
-                vbox.AddChild(injWarn);
-            }
-        }
-
-        // Corruption warning if the staging tile is corrupted.
-        if (tile.Corruption >= 20)
-        {
-            string sev = tile.Corruption >= 60 ? "Heavy" : "Spreading";
-            var warn = new Label { Text = $"⚠ {sev} corruption here ({tile.Corruption}/100)." };
-            warn.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
-            warn.AddThemeColorOverride("font_color", UITheme.Danger);
-            vbox.AddChild(warn);
-        }
-
-        // S4: Grimoire preparation, the §4a prepared slots, chosen at launch.
-        BuildGrimoirePrep(vbox, deploySave);
-
-        // Deploy-flow streamline (2026-08-21): the consumable LOADOUT lives on the
-        // launch screen. Check/uncheck what the party carries. Default all-carried
-        // (today's behaviour); exclusions persist this cycle.
-        BuildConsumableLoadout(vbox, deploySave);
-
-        vbox.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
-
-        var buttons = new HBoxContainer();
-        buttons.AddThemeConstantOverride("separation", 12);
-        buttons.Alignment = BoxContainer.AlignmentMode.Center;
-        vbox.AddChild(buttons);
-
-        var cancelBtn = new Button { Text = "Cancel", CustomMinimumSize = new Vector2(120, 40) };
-        UITheme.ApplyButtonStyle(cancelBtn, isPrimary: false);
-        cancelBtn.Pressed += () => CloseDeploy(panel);
-        buttons.AddChild(cancelBtn);
-
-        var deployBtn = new Button { Text = "Sortie", CustomMinimumSize = new Vector2(120, 40) };
-        UITheme.ApplyButtonStyle(deployBtn, isPrimary: true);
-        deployBtn.Pressed += () => { _pendingRunKind = ExpeditionRunKind.Castle; Deploy(); };
-        buttons.AddChild(deployBtn);
-
-        // Expedition v2: the OTHER force. Same question ("go here"), different
-        // answer, so it sits on the same drawer as Deploy and March rather than
-        // hiding behind a mode the player has to find. Offered at any staging
-        // point, because a field party travels to KNOWN anchors and a staging
-        // point is exactly that.
-        // The field party used to have a three-state control here: dive if it
-        // was standing on this anchor, order an abstract journey if it was not,
-        // greyed out while that journey ran. All three are gone.
-        //
-        // The drawer belongs to a STAGING POINT, and the party is not a thing
-        // that happens at staging points any more. It is a piece on the map with
-        // its own marker, its own move order and its own "Take the field"
-        // button, and it acts wherever it is standing. Leaving a party control
-        // here would have been a second, worse way to command it.
-
-        // The March button that sat beside Deploy is gone (2026-09-24): the
-        // castle marches from the map (the March verb, or a beacon's place
-        // card), and this confirm is the SORTIE only, opened from where the
-        // castle stands.
-    }
-
     /// <summary>Choose who goes, then send them.
     ///
     /// <para>The picker is the half of the force split that the data layer could
@@ -6038,95 +5824,6 @@ public partial class StrategicView : Node2D
             _atlas3D.FlyToTile(_world.HomeX, _world.HomeY, 30f, 0f);
             _atlas3D.EnterCityMode();
         }
-    }
-
-    /// <summary>Can the castle stride out from where it stands, and if not why.
-    /// The same preconditions a march has, minus the fuel-per-tile check: a
-    /// sortie refuels at deploy.</summary>
-    private static bool CanSortie(CycleState cycle, out string why)
-    {
-        why = "";
-        if (cycle?.World == null)
-        {
-            why = "There is no world.";
-            return false;
-        }
-        if (Interval.Walking(cycle))
-        {
-            why = Interval.CastleSortieLine;   // Standing Orders O1 (D145)
-            return false;
-        }
-        if (cycle.CastleSortie != null && cycle.CastleSortie.IsLive())
-        {
-            why = "The castle is already in the field. Aim the stone at it.";
-            return false;
-        }
-        if (!cycle.CastleParked)
-        {
-            why = "The castle is out. Recall or make camp first.";
-            return false;
-        }
-        if (cycle.CastleRepairLunations > 0)
-        {
-            why = $"The crews are still at work: {WorldClock.ResupplyDaysLeft(cycle)} day(s) of resupply left.";
-            return false;
-        }
-        if (WorldClock.CastleBusy(cycle))
-        {
-            why = $"The castle is still coming in from its last sortie: {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s).";
-            return false;
-        }
-        if (!string.IsNullOrEmpty(cycle.PendingCastleAssaultKingdomId))
-        {
-            why = "There are soldiers in the camp. Answer them before you move.";
-            return false;
-        }
-        if (!cycle.World.InBounds(cycle.CastleX, cycle.CastleY))
-        {
-            why = "The castle is not sited.";
-            return false;
-        }
-        return true;
-    }
-
-    /// <summary>The staging point the castle launches from: whatever stages
-    /// on its own tile (its park, the dock, a secured outpost it stopped on),
-    /// or a synthesised one, because the expedition scene only ever needed a
-    /// coordinate and a radius.</summary>
-    private StagingPoint CastleLaunchPoint(CycleState cycle)
-    {
-        var here = _world?.StagingPoints?.Find(s => s != null && s.X == cycle.CastleX && s.Y == cycle.CastleY);
-        if (here != null)
-        {
-            return here;
-        }
-        var anchor = ExpeditionAnchors.FindAt(cycle, cycle.CastleX, cycle.CastleY);
-        return new StagingPoint
-        {
-            X = cycle.CastleX,
-            Y = cycle.CastleY,
-            Name = anchor != null && !string.IsNullOrEmpty(anchor.Name) ? anchor.Name : "the castle",
-            Source = "Castle",
-            Available = true,
-        };
-    }
-
-    private void OnSortiePressed()
-    {
-        var cycle = SaveManager.ActiveSave?.Cycle;
-        if (cycle == null)
-        {
-            return;
-        }
-        if (!CanSortie(cycle, out string why))
-        {
-            ShowStrategicNotice("The castle cannot sortie", why);
-            return;
-        }
-        SelectPiece("");
-        var sp = CastleLaunchPoint(cycle);
-        _pendingStaging = sp;
-        ShowDeployConfirm(sp);
     }
 
     /// <summary>A staging beacon is a PLACE now, not a launch dialog: what it is,
@@ -7021,47 +6718,9 @@ public partial class StrategicView : Node2D
             return;
         }
 
-        // A castle sortie. Say so explicitly rather than relying on the static
-        // still holding Castle: it survives scene changes, and a field send that
-        // was cancelled halfway must not make this run a field run.
-        PlayerSession.ExpeditionRunKind = ExpeditionRunKind.Castle;
-        PlayerSession.ExpeditionFieldPartyId = "";
-
-        // ── Time advances on deploy: one expedition costs one whole lunation. ──
-        // AdvanceLunation snaps the calendar to the next new moon, so every
-        // expedition begins on The Veiled and the living world ticks exactly
-        // once per deploy. The Conjunction remains a real deadline
-        // (~LunationsPerCycle deploys per cycle).
-        //
-        // SEAM (Phase 4): eclipses land on a specific (lunation, phase). Under
-        // whole-lunation deploys the calendar only ever rests on phase 0, so an
-        // eclipse-interception model must key off the lunation itself (or
-        // temporarily restore phase-stepping for the deploy that would cross a
-        // scheduled eclipse).
-        // The day clock (2026-09-23): a sortie no longer turns the moon on the
-        // way out. Its days are charged when it ends, in proportion to the fuel
-        // it burned, and the world moves when the player passes time across a
-        // new moon. The castle is gated on being free, not on a budget.
-        if (WorldClock.CastleBusy(cycle))
-        {
-            ShowStrategicNotice("The castle is still out",
-                $"The castle is {cycle.CastleBusyUntilDay - WorldClock.Now(cycle)} day(s) from being free. Pass time.");
-            return;
-        }
-        SaveManager.MarkDirty();
-        SaveManager.SaveIfDirty();
-
-        PlayerSession.ExpeditionStagingCol = _pendingStaging.X;
-        PlayerSession.ExpeditionStagingRow = _pendingStaging.Y;
-        PlayerSession.ExpeditionWindowRadius = DeployWindowRadius;
-
-        GD.Print($"[StrategicView] Deploying expedition from " +
-                 $"'{_pendingStaging.Name}' ({_pendingStaging.X},{_pendingStaging.Y}). " +
-                 $"Moon {cycle.Calendar.CurrentLunation} / {cycle.Calendar.LunationsPerCycle} " +
-                 $"· {cycle.Calendar.CurrentMoonName}.");
-
-        FirstLunation.Tick(FirstLunation.Sortie);   // S5
-        SceneTransition.Quiet(GetTree(), "res://Scenes/Overworld/ExpeditionScene.tscn");
+        // The castle does not go on expeditions (removals Tier C, 2026-11-22). Only a field
+        // party's send reaches Deploy, and it returned above.
+        GD.PrintErr("[StrategicView] Deploy was reached with no field party to send. Nothing was launched.");
     }
 
     /// <summary>The per-lunation world tick, in canonical order: the single

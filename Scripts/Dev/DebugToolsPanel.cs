@@ -295,8 +295,6 @@ public partial class DebugToolsPanel : VBoxContainer
         Check(expedition, "No Fog", PlayerSession.NoFog, on => PlayerSession.NoFog = on);
         Check(expedition, "Unlimited Fuel", PlayerSession.UnlimitedSteps, on => PlayerSession.UnlimitedSteps = on);
         Check(expedition, "No Enemy Ambushes", PlayerSession.DebugNoAmbush, on => PlayerSession.DebugNoAmbush = on);
-        Check(expedition, "Classic Exploration (A/B baseline)", PlayerSession.DebugClassicExploration,
-            on => PlayerSession.DebugClassicExploration = on);
         Check(expedition, "Grant Staging (press G)", PlayerSession.DebugGrantStagingArmed,
             on => PlayerSession.DebugGrantStagingArmed = on);
         Check(expedition, "Start With Gold", PlayerSession.StartWithGold, on => PlayerSession.StartWithGold = on);

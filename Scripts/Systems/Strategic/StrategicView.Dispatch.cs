@@ -222,7 +222,7 @@ public partial class StrategicView
     {
         var verbs = new Button[]
         {
-            _sortieBtn, _partyDeployBtn, _interveneBtn, _marchModeBtn,
+            _partyDeployBtn, _interveneBtn, _marchModeBtn,
             _maneuverBtn, _armyBtn,   // provinces 7j: the castle's font and army, with its other orders
             _postBtn, _audienceBtn, _stopWorkBtn, _collectBtn, _recallBtn, _bankFurnaceBtn,
         };
@@ -402,7 +402,7 @@ public partial class StrategicView
         string blocked = null;
         if (CastleSelected)
         {
-            if (!CastleMarch.CanMarchAtAll(cycle, out string castleWhy) && !CanSortie(cycle, out _))
+            if (!CastleMarch.CanMarchAtAll(cycle, out string castleWhy))
             {
                 blocked = castleWhy;
             }
