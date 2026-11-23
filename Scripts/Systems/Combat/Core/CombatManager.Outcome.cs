@@ -385,8 +385,8 @@ public partial class CombatManager
 
     private void OnOutcomeTick()
     {
-        if (SlayActive)
-            RefreshObjectiveBanner();   // no-ops unless the leader's health changed
+        if (SlayActive || ReachActive)
+            RefreshObjectiveBanner();   // no-ops unless the line changed (leader health, who is on the marked ground)
         RefreshWithdrawControl();
     }
 

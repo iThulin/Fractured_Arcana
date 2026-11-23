@@ -55,6 +55,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     private CheckBox _surviveChk;
     private CheckBox _protectChk;   // O3
     private CheckBox _slayChk;      // C1
+    private CheckBox _reachChk;     // C2
     private OptionButton _mapEventKindOpt;
     private OptionButton _mapEventElemOpt;
     private CheckBox _noHazardCapChk;
@@ -438,6 +439,11 @@ public partial class CombatDebugLauncher : CanvasLayer
         _slayChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_slayChk);
 
+        // C2 (2026-11-23): reach test. Brings the larger board with it.
+        _reachChk = new CheckBox { Text = "Objective: reach the far side (larger board)" };
+        _reachChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_reachChk);
+
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _status.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         _status.AddThemeColorOverride("font_color", UITheme.TextDim);
@@ -638,6 +644,10 @@ public partial class CombatDebugLauncher : CanvasLayer
         // C1: slay wins over both when ticked (one objective per fight).
         if (_slayChk != null && _slayChk.ButtonPressed)
             def.Objective = new CombatObjectiveDef { Kind = CombatObjectiveDef.KindSlay };
+
+        // C2: reach wins over the rest when ticked.
+        if (_reachChk != null && _reachChk.ButtonPressed)
+            def.Objective = new CombatObjectiveDef { Kind = CombatObjectiveDef.KindReach };
 
         if (_wavesChk != null && _wavesChk.ButtonPressed)
         {

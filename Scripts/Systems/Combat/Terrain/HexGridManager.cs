@@ -467,6 +467,7 @@ public partial class HexGridManager : Node3D
 
         EnsureReservedTilesArePlayable();
         EnsureConnectivityBetweenSpawns();
+        EnsureReachConnectivity();   // C2: the party can walk to the marked ground (HexGridManager.Reach.cs)
 
         // Tactical report (cover_and_zoc_v1 §7.6): how open the fight actually is,
         // measured on the final walkable/cover state, before hazards are capped.

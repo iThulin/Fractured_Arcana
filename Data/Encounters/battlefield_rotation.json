@@ -665,6 +665,10 @@
         "weight": 3
       },
       {
+        "kind": "reach",
+        "weight": 2
+      },
+      {
         "kind": "hold_zone",
         "weight": 2,
         "rounds": 5,
@@ -710,6 +714,10 @@
       }
     ],
     "ambush": [
+      {
+        "kind": "reach",
+        "weight": 2
+      },
       {
         "kind": "survive",
         "weight": 3,

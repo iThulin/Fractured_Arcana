@@ -5287,6 +5287,7 @@ public partial class CombatManager : Node3D
             grid.KeepMidpointClearOfEnemies =
                 obj != null && obj.Kind == CombatObjectiveDef.KindHoldZone &&
                 (obj.ZoneAnchor == "midpoint" || obj.ZoneAnchor == "center");
+            ConfigureGridForReach(obj);   // C2: a larger board, the enemy in the middle, a way through (CombatManager.Reach.cs)
             grid.DensityControlMode = HexGridManager.DensityMode.Preset;
             grid.DensityPreset = DensityForTier(EncounterContextCarrier.Tier);
 

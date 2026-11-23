@@ -332,6 +332,9 @@ public partial class CombatManager
             combatUI?.AppendActionLog($"You held for {_objective.Rounds} rounds. The objective is met.");
         }
 
+        // 2b. C2: reach. The leader and half the party on the marked ground.
+        EvaluateReachBoundary();
+
         // 3. Wave arrivals.
         if (!_objectiveVictory && !_objectiveDefeat)
             SpawnDueWaves();
@@ -572,7 +575,9 @@ public partial class CombatManager
         // Zone indicator: attempted here rather than at init because this
         // re-fires on every phase change. The first call where grid AND renderer
         // exist wins, and the latch makes the rest no-ops.
-        if (_objective != null && _objective.Kind == CombatObjectiveDef.KindHoldZone
+        if (_objective != null
+            && (_objective.Kind == CombatObjectiveDef.KindHoldZone
+                || _objective.Kind == CombatObjectiveDef.KindReach)   // C2: the marked ground
             && !_objectiveZoneShown && grid != null && _zoneRenderer != null)
         {
             EnsureObjectiveZone();
@@ -610,6 +615,8 @@ public partial class CombatManager
                 : _objective.Description;
             if (_objective.Kind == CombatObjectiveDef.KindSlay)
                 label = SlayBannerLabel();   // C1: names the leader and its health
+            if (_objective.Kind == CombatObjectiveDef.KindReach)
+                label = ReachBannerLabel();  // C2: who is on the marked ground
 
             if (_objective.Rounds > 0)
             {
@@ -647,6 +654,7 @@ public partial class CombatManager
         CombatObjectiveDef.KindProtect => "Protect the ward",
         CombatObjectiveDef.KindHoldZone => "Hold the ground",
         CombatObjectiveDef.KindSlay => "Kill the enemy leader",
+        CombatObjectiveDef.KindReach => "Reach the marked ground",
         _ => "",
     };
 }

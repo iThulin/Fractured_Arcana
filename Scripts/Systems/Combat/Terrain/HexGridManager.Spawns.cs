@@ -123,6 +123,7 @@ public partial class HexGridManager
             _playerSpawnTargets.Add(PlayerLayoutAnchor);
         if (_enemySpawnTargets.Count == 0)
             _enemySpawnTargets.Add(EnemyLayoutAnchor);
+        ApplyEnemySpawnOverride();   // C2 (HexGridManager.Reach.cs)
 
         bool ok = BuildSpawnPlanFor(_playerSpawnTargets, _enemySpawnTargets);
 
@@ -131,9 +132,9 @@ public partial class HexGridManager
         // plain line on the SAME skeleton. The layout frame (and so every feature)
         // is untouched; only the zones move. The line plan is the shipped path and
         // cannot fail worse than it did before this spec.
-        if (!ok && ActiveDeployment != null && ActiveDeployment.MovesTargets)
+        if (!ok && (_enemySpawnOverridden || (ActiveDeployment != null && ActiveDeployment.MovesTargets)))
         {
-            GD.PushWarning($"[Deploy] guarantee failed for deployment '{ActiveDeployment.Id}'; falling back to the layout anchors.");
+            GD.PushWarning($"[Deploy] guarantee failed for deployment '{ActiveDeployment?.Id ?? "(none)"}'; falling back to the layout anchors.");
             _playerSpawnTargets.Clear();
             _enemySpawnTargets.Clear();
             _playerSpawnTargets.Add(PlayerLayoutAnchor);

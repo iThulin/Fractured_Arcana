@@ -56,6 +56,7 @@ public partial class HexGridManager : Node3D
             if (s.Radius > 0) MapRadius = s.Radius;
             BlobErosion = s.Erosion;
         }
+        ApplyBoardGrow();   // C2: a reach fight plays on a larger board (HexGridManager.Reach.cs)
     }
 
     /// <summary>Builds a MapField using the recipe's base-terrain params, falling back to MapField defaults where unset.</summary>
