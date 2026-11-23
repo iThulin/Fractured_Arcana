@@ -661,6 +661,10 @@
         "weight": 5
       },
       {
+        "kind": "slay",
+        "weight": 3
+      },
+      {
         "kind": "hold_zone",
         "weight": 2,
         "rounds": 5,
@@ -685,6 +689,10 @@
       {
         "kind": "annihilate",
         "weight": 4
+      },
+      {
+        "kind": "slay",
+        "weight": 2
       },
       {
         "kind": "hold_zone",

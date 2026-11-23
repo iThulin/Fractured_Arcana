@@ -152,6 +152,11 @@ public partial class EncounterRouter : Node
     /// scripted session.</summary>
     public ExamScaling ExamFitting;
 
+    /// <summary>C1: how the last fight ended (CombatOutcome.cs). Written by CombatManager just
+    /// before CombatCompleted, null for a fight that ended some other way (the pause menu's
+    /// forfeit, a debug fight). Transient, never saved. CombatWon still means a victory.</summary>
+    public CombatOutcome LastOutcome;
+
     public override void _Ready()
     {
         Instance = this;
@@ -174,6 +179,8 @@ public partial class EncounterRouter : Node
         EncounterContextCarrier.Clear();
         CombatWon = playerWon;
         bool wizardFielded = WizardFieldedThisFight;
+        // C1: a withdrawal comes back as a fight not won, and it spends no Anchor.
+        bool withdrew = !playerWon && LastOutcome != null && LastOutcome.Result == CombatResult.Withdrawn;
         WizardFieldedThisFight = false;
         // C1: on_combat_end, won or lost, for every fight that comes back through the router
         // (the expedition's, the campus's and the strategic map's alike). Debug fights never
@@ -239,9 +246,11 @@ public partial class EncounterRouter : Node
             // and with none left the timeline is unmade (TimelineAnchors). Exams and the
             // Convergence keep their own endings; scripted fights returned above.
             var lossSave = SaveManager.ActiveSave;
-            string lossLine = "You lost the fight. No rewards.";
+            string lossLine = withdrew
+                ? "You withdrew from the fight. No rewards. No Anchor was spent."
+                : "You lost the fight. No rewards.";
             bool unmade = false;
-            if (wizardFielded && ExamFitting == null && lossSave?.Cycle?.Convergence?.InProgress != true
+            if (!withdrew && wizardFielded && ExamFitting == null && lossSave?.Cycle?.Convergence?.InProgress != true
                 && !Interval.Walking(lossSave?.Cycle))
             {
                 unmade = TimelineAnchors.SpendOnDefeat(lossSave, out lossLine);
@@ -259,7 +268,7 @@ public partial class EncounterRouter : Node
                 return;
             }
             GetTree().CreateTimer(2.0f).Timeout += () =>
-                SceneTransition.Go(GetTree(), ReturnScenePath, "Defeat", lossLine);
+                SceneTransition.Go(GetTree(), ReturnScenePath, withdrew ? "Withdrawn" : "Defeat", lossLine);
         }
     }
 

@@ -307,6 +307,7 @@ public partial class CombatManager : Node3D
         {
             combatUI.ConfirmDeploymentPressed += OnConfirmDeploymentPressed;
             combatUI.EndTurnPressed += OnEndTurnPressed;
+            combatUI.WithdrawPressed += OnWithdrawPressed;           // C1 (CombatManager.Outcome.cs)
             combatUI.ScrollsPressed += OnScrollsPressed;             // consumables (2026-08-13)
             combatUI.UseConsumablePressed += OnUseConsumablePressed;
             combatUI.StanceSwitchRequested += OnStanceSwitchRequested;   // 2026-07-29 stance switcher
@@ -350,6 +351,9 @@ public partial class CombatManager : Node3D
         RefreshPhaseUI();
         RefreshSelectedUnitUI();
 
+        // C1: the Withdraw button and the slay leader's health line are pushed on a slow tick.
+        Callable.From(StartOutcomeTicker).CallDeferred();
+
         if (PlayerSession.DebugCombat)
         {
             CombatCompleted += (bool won) => CombatDebugLauncher.ReturnToCampus(this);
@@ -357,6 +361,8 @@ public partial class CombatManager : Node3D
         }
         else if (EncounterRouter.Instance != null)
         {
+            // C1: start with no record, so a forfeit from the pause menu cannot inherit an old one.
+            EncounterRouter.Instance.LastOutcome = null;
             CombatCompleted += (bool won) => EncounterRouter.Instance.OnCombatFinished(won);
             GD.Print("GameRunner: Wired CombatCompleted to EncounterRouter.");
         }
@@ -4357,6 +4363,7 @@ public partial class CombatManager : Node3D
 
         RecordTroopsAfterFight(true);   // provinces PV7: the lines' losses and their battle
         RecordWizardEndHealth();   // C4: the duel's clean verdict
+        PublishOutcome(CombatResult.Victory);   // C1: the record the router carries out
         EmitSignal(SignalName.CombatCompleted, true);
         return true;
     }
@@ -4378,6 +4385,7 @@ public partial class CombatManager : Node3D
 
         RecordTroopsAfterFight(false);   // provinces PV7: the lines' losses and their battle
         RecordWizardEndHealth();
+        PublishOutcome(CombatResult.Defeat);   // C1
         EmitSignal(SignalName.CombatCompleted, false);
         return true;
     }
@@ -5203,6 +5211,15 @@ public partial class CombatManager : Node3D
         {
             EncounterContextCarrier.Current.Objective = BattlefieldRoster.RollObjective(
                 EncounterContextCarrier.Current.RegionId, EncounterContextCarrier.Tier);
+
+            // C1: a rolled slay needs three or more enemies to pick a leader from.
+            if (EncounterContextCarrier.Current.Objective != null &&
+                EncounterContextCarrier.Current.Objective.Kind == CombatObjectiveDef.KindSlay &&
+                EncounterContextCarrier.Current.Enemies.Count < SlayMinEnemies)
+            {
+                GD.Print("[Roster] slay rolled on a fight with fewer than three enemies. Running as annihilate.");
+                EncounterContextCarrier.Current.Objective = null;
+            }
         }
 
         // (2026-07-29 playtest) Spawn-zone sizing: EnemySpawnCount /
@@ -5700,6 +5717,7 @@ public partial class CombatManager : Node3D
         // Portal strike: foundations beside the guild's buildings, and the
         // ritualists who mean to foul them (campus corruption, SiegeBlight).
         SpawnBuildingFoundations();
+        BindSlayTarget();      // C1: a slay fight picks and marks its leader (CombatManager.Outcome.cs)
         ScaleExamToWizard();   // E4: a declaration exam fits its apparatus to the wizard (CombatManager.Exam.cs)
         RefreshEnemyRoster();
     }

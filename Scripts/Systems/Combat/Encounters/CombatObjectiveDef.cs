@@ -27,8 +27,11 @@ public class CombatObjectiveDef
     public const string KindSurvive = "survive";
     public const string KindProtect = "protect";
     public const string KindHoldZone = "hold_zone";
+    /// <summary>C1: kill the leader and the fight is won. The leader is the composition's
+    /// one elite, or the toughest enemy promoted (CombatManager.Outcome.cs).</summary>
+    public const string KindSlay = "slay";
 
-    /// <summary>"annihilate" (default) | "survive" | "protect" | "hold_zone".</summary>
+    /// <summary>"annihilate" (default) | "survive" | "protect" | "hold_zone" | "slay".</summary>
     public string Kind = KindAnnihilate;
 
     /// <summary>survive / hold_zone: victory at the END of this round (1-based).
@@ -53,7 +56,7 @@ public class CombatObjectiveDef
 
     public static bool IsKnownKind(string kind) =>
         kind == KindAnnihilate || kind == KindSurvive ||
-        kind == KindProtect || kind == KindHoldZone;
+        kind == KindProtect || kind == KindHoldZone || kind == KindSlay;
 
     /// <summary>True for kinds whose runtime this build actually implements.
     /// Authoring a not-yet-built kind is a loud load-time error, not a fight
@@ -61,7 +64,8 @@ public class CombatObjectiveDef
     /// 2026-08-11 with the city siege work; protect (O3) still pending.</summary>
     public static bool IsImplementedKind(string kind) =>
         kind == KindAnnihilate || kind == KindSurvive || kind == KindHoldZone
-        || kind == KindProtect;   // O3 (2026-08-13)
+        || kind == KindProtect    // O3 (2026-08-13)
+        || kind == KindSlay;      // C1 (2026-11-23)
 }
 
 /// <summary>

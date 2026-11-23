@@ -200,6 +200,7 @@ public partial class CombatManager
     /// emit-once guard hold.</summary>
     private void NoteObjectiveUnitDeath(Unit unit)
     {
+        NoteOutcomeDeath(unit);   // C1: the outcome tallies, and the slay leader (CombatManager.Outcome.cs)
         if (_wardUnit == null || unit != _wardUnit)
             return;
         _objectiveDefeat = true;
@@ -607,6 +608,8 @@ public partial class CombatManager
             string label = string.IsNullOrEmpty(_objective.Description)
                 ? DefaultObjectiveLabel(_objective.Kind)
                 : _objective.Description;
+            if (_objective.Kind == CombatObjectiveDef.KindSlay)
+                label = SlayBannerLabel();   // C1: names the leader and its health
 
             if (_objective.Rounds > 0)
             {
@@ -643,6 +646,7 @@ public partial class CombatManager
         CombatObjectiveDef.KindSurvive => "Survive",
         CombatObjectiveDef.KindProtect => "Protect the ward",
         CombatObjectiveDef.KindHoldZone => "Hold the ground",
+        CombatObjectiveDef.KindSlay => "Kill the enemy leader",
         _ => "",
     };
 }

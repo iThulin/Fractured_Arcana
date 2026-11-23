@@ -54,6 +54,7 @@ public partial class CombatDebugLauncher : CanvasLayer
     private CheckBox _wavesChk;
     private CheckBox _surviveChk;
     private CheckBox _protectChk;   // O3
+    private CheckBox _slayChk;      // C1
     private OptionButton _mapEventKindOpt;
     private OptionButton _mapEventElemOpt;
     private CheckBox _noHazardCapChk;
@@ -432,6 +433,11 @@ public partial class CombatDebugLauncher : CanvasLayer
         _protectChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_protectChk);
 
+        // C1 (2026-11-23): slay test. Needs three or more enemies in the roster.
+        _slayChk = new CheckBox { Text = "Objective: kill the leader (3 or more enemies)" };
+        _slayChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_slayChk);
+
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _status.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
         _status.AddThemeColorOverride("font_color", UITheme.TextDim);
@@ -628,6 +634,10 @@ public partial class CombatDebugLauncher : CanvasLayer
                 Description = "Protect the Anchor",
             };
         }
+
+        // C1: slay wins over both when ticked (one objective per fight).
+        if (_slayChk != null && _slayChk.ButtonPressed)
+            def.Objective = new CombatObjectiveDef { Kind = CombatObjectiveDef.KindSlay };
 
         if (_wavesChk != null && _wavesChk.ButtonPressed)
         {

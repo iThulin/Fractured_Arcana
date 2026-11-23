@@ -34,6 +34,7 @@ public partial class CombatUI : CanvasLayer
 	// ── Signals ──────────────────────────────────────────────────────────
 	[Signal] public delegate void ConfirmDeploymentPressedEventHandler();
 	[Signal] public delegate void EndTurnPressedEventHandler();
+	[Signal] public delegate void WithdrawPressedEventHandler();   // C1
 	// Consumables (2026-08-13): the Scrolls button + a pick from its popup.
 	[Signal] public delegate void ScrollsPressedEventHandler();
 	[Signal] public delegate void UseConsumablePressedEventHandler(string instanceId);
@@ -554,6 +555,7 @@ public partial class CombatUI : CanvasLayer
 		_stopsBar.AddThemeConstantOverride("separation", 6);
 		AddChild(_stopsBar);
 		AddStopToggleSet(_stopsBar);
+		BuildWithdrawBar();   // C1
 	}
 
 	// ════════════════════════════════════════════════════════════════════
@@ -738,6 +740,71 @@ public partial class CombatUI : CanvasLayer
 			block.Visible = visible;
 		if (_endTurnButton != null)
 			_endTurnButton.Visible = visible;
+	}
+
+	// ── C1: Withdraw (docs/combat_c1_break_withdraw_outcome_v1.md) ───────────
+	// A small stack above the stop toggles: the reason line, then the button.
+	// CombatManager pushes its state on a slow tick (CombatManager.Outcome.cs), so
+	// nothing here needs a pending replay: a call before the build is repeated.
+
+	private VBoxContainer _withdrawBar;
+	private Button _withdrawButton;
+	private Label _withdrawReason;
+
+	private void BuildWithdrawBar()
+	{
+		_withdrawBar = new VBoxContainer
+		{
+			Name = "WithdrawBar",
+			AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
+			OffsetLeft = -12 - 300, OffsetRight = -12,
+			OffsetTop = -12 - 112 - 26 - 8, OffsetBottom = -12 - 112 - 26 - 8,   // just above the stop toggles
+			GrowHorizontal = Control.GrowDirection.Begin,
+			GrowVertical = Control.GrowDirection.Begin,
+			Alignment = BoxContainer.AlignmentMode.End,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Visible = false,
+		};
+		_withdrawBar.AddThemeConstantOverride("separation", 4);
+		AddChild(_withdrawBar);
+
+		// The reason a disabled button is disabled, in visible text (CLAUDE.md).
+		_withdrawReason = MakeLabel("", UITheme.FontSizeSmall, UITheme.Gold);
+		_withdrawReason.Name = "WithdrawReason";
+		_withdrawReason.HorizontalAlignment = HorizontalAlignment.Right;
+		_withdrawReason.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		_withdrawReason.CustomMinimumSize = new Vector2(300, 0);
+		_withdrawReason.MouseFilter = Control.MouseFilterEnum.Ignore;
+		_withdrawReason.Visible = false;
+		_withdrawBar.AddChild(_withdrawReason);
+
+		_withdrawButton = new Button
+		{
+			Name = "WithdrawButton",
+			Text = "Withdraw",
+			CustomMinimumSize = new Vector2(EndTurnWidth, 36),
+			SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd,
+		};
+		_withdrawButton.AddThemeFontSizeOverride("font_size", UITheme.FontSizeSmall);
+		UITheme.ApplyGlassButtonStyle(_withdrawButton);
+		_withdrawButton.Pressed += () => EmitSignal(SignalName.WithdrawPressed);
+		_withdrawBar.AddChild(_withdrawButton);
+	}
+
+	/// <summary>Shows, enables and labels the Withdraw button. <paramref name="reason"/> is the
+	/// line above it: why it is disabled, or what confirming will cost. Empty hides the line.</summary>
+	public void SetWithdrawState(bool offered, bool enabled, string label, string reason)
+	{
+		if (_withdrawBar == null || _withdrawButton == null || _withdrawReason == null)
+			return;
+		_withdrawBar.Visible = offered;
+		_withdrawButton.Disabled = !enabled;
+		if (_withdrawButton.Text != label)
+			_withdrawButton.Text = label;
+		string line = reason ?? "";
+		if (_withdrawReason.Text != line)
+			_withdrawReason.Text = line;
+		_withdrawReason.Visible = line.Length > 0;
 	}
 
 	public void SetHintText(string text)

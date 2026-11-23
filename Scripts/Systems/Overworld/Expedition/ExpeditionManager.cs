@@ -5286,6 +5286,14 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // Standing Orders O3 (D194): the field store's page follows the card.
             CombatSummaryPanel.Show(this, spoils, storeTaken ? new System.Action(ShowStorePanel) : null);
         }
+        else if (router.LastOutcome != null && router.LastOutcome.Result == CombatResult.Withdrawn)
+        {
+            // C1 (docs/combat_c1_break_withdraw_outcome_v1.md): a withdrawal is not a defeat.
+            // Nobody is wiped, the place stays to be tried again, and the expedition goes on.
+            CastMasteryTracker.DropInterval();
+            LogRun("combat_end", "WITHDREW", at: resultHex);
+            ShowInfo("You withdrew from the fight. The enemy still holds this place.");
+        }
         else
         {
             // Standing Orders O3b (D206): a fight lost in the interval records none of its casts.
