@@ -55,6 +55,10 @@ public static class MapObjectCatalog
                 spec = new MapObjectSpec { Hp = 3, BlocksLoS = false, Pushable = true,
                     BodyColor = new Color(0.35f, 0.28f, 0.22f), Label = "Powder Cask" };
                 return true;
+            case "ice_spire":   // C4 (Snow kit): cover that turns the ground to ice when broken
+                spec = new MapObjectSpec { Hp = 6, BlocksLoS = true, Pushable = false,
+                    BodyColor = new Color(0.70f, 0.88f, 0.96f), Label = "Ice Spire" };
+                return true;
             default:
                 spec = default;
                 return false;

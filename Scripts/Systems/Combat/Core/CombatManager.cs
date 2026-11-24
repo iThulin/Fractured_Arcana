@@ -302,6 +302,7 @@ public partial class CombatManager : Node3D
         // SpawnTestUnits, which runs before combatUI is found.
         if (combatUI != null && !string.IsNullOrEmpty(_wizardPresenceNote))
             combatUI.AppendActionLog($"── {_wizardPresenceNote} ──");
+        LogBiomeKitRules();   // C4: what this ground does, in plain words (CombatManager.Biomes.cs)
 
         if (combatUI != null)
         {
@@ -561,6 +562,12 @@ public partial class CombatManager : Node3D
         if (zoc > 0) parts.Add($"free strike: -{zoc}");
         if (cover) parts.Add("cover");
         if (station.Length > 0) parts.Add(station);
+        // C4: say what the ground will do before the unit steps onto it.
+        var destTile = grid.GetTile(dest);
+        if (destTile != null && destTile.IsSlick)
+            parts.Add("ice: you slide on");
+        else if (destTile != null && destTile.ElementType == TileElementType.Fire)
+            parts.Add("fire: you are burned");
         return string.Join("  ", parts);
     }
 
@@ -5336,7 +5343,9 @@ public partial class CombatManager : Node3D
 
         // E3: materialise recipe map objects now, before enemies deploy, so their
         // tiles read as occupied and spawns route around them.
+        ApplyBiomeKit();          // C4: the biome's clock joins the map events (CombatManager.Biomes.cs)
         SpawnMapObjects();
+        SpawnBiomeKitObjects();   // C4: the biome's objects, after the map's own
     }
 
     /// <summary>
@@ -5377,7 +5386,7 @@ public partial class CombatManager : Node3D
     {
         "Forest" => TileTerrainType.Forest,
         "Mountain" or "Hills" => TileTerrainType.Stone,
-        "Snow" or "Tundra" => TileTerrainType.Ice,
+        "Snow" or "Tundra" => TileTerrainType.Snow,
         "Volcanic" => TileTerrainType.Lava,
         "Water" or "Lake" or "Coast" or "Swamp" or "Marsh" => TileTerrainType.Water,
         "ArcaneGround" => TileTerrainType.Arcane,
@@ -5719,6 +5728,7 @@ public partial class CombatManager : Node3D
         // ritualists who mean to foul them (campus corruption, SiegeBlight).
         SpawnBuildingFoundations();
         BindSlayTarget();      // C1: a slay fight picks and marks its leader (CombatManager.Outcome.cs)
+        AssignEnemyPosts();    // C3: the leader holds its ground; a reach fight posts a warden (CombatManager.Posts.cs)
         ScaleExamToWizard();   // E4: a declaration exam fits its apparatus to the wizard (CombatManager.Exam.cs)
         RefreshEnemyRoster();
     }
@@ -6998,6 +7008,12 @@ public partial class CombatManager : Node3D
             case SelectUnitTarget ut:
                 var unit = State.UnitsInPlay
                     .FirstOrDefault(u => u?.CurrentTile?.Axial == tile.Axial && u.Stats.IsAlive);
+                // C4: a field object (a pillar, a crystal, an ice spire) is not in UnitsInPlay,
+                // so an aimed spell could never be pointed at one. It stands on the tile, so
+                // read it from there. Range, sight and cover below apply to it like any target.
+                var fieldObject = unit == null ? grid.GetTile(tile.Axial)?.Occupant : null;
+                if (fieldObject != null && fieldObject.IsMapObject && fieldObject.Stats.IsAlive)
+                    unit = fieldObject;
                 if (unit == null)
                 {
                     CastFail($"{resolvedHalf.Name}: no unit on tile {tile.Axial}.");

@@ -99,6 +99,10 @@ public sealed class AtmosphereSpec
     public Color Fog = new(0.7f, 0.7f, 0.7f);
     public float FogDensity = 0.01f;
 
+    /// <summary>Settled snow on rocks, stone tops and ledges, 0..1 (recipe key "snow_cover").
+    /// 0 on maps that do not name it. See HexGridManager.SnowCover.cs.</summary>
+    public float SnowCover = 0f;
+
     public static AtmosphereSpec FromDict(Godot.Collections.Dictionary d) => new()
     {
         Sun = MapRecipe.Col(d, "sun_color", new Color(1, 1, 1)),
@@ -106,7 +110,8 @@ public sealed class AtmosphereSpec
         Ambient = MapRecipe.Col(d, "ambient_color", new Color(0.5f, 0.5f, 0.5f)),
         AmbientEnergy = MapRecipe.Flt(d, "ambient_energy", 0.4f),
         Fog = MapRecipe.Col(d, "fog_color", new Color(0.7f, 0.7f, 0.7f)),
-        FogDensity = MapRecipe.Flt(d, "fog_density", 0.01f)
+        FogDensity = MapRecipe.Flt(d, "fog_density", 0.01f),
+        SnowCover = MapRecipe.Flt(d, "snow_cover", 0f)
     };
 }
 
@@ -189,6 +194,8 @@ public sealed class ObstaclePalette
                 return role == "low" ? "ice_ridge" : role == "pillar" ? "ice_spire" : "crystal";
             case TileTerrainType.Sand:
                 return role == "low" ? "sandstone_ledge" : "hoodoo";
+            case TileTerrainType.Snow:
+                return role == "low" ? "rock_ledge" : role == "pillar" ? "standing_stone" : "rock";
             case TileTerrainType.Arcane:
                 return role == "low" ? "rune_stone" : role == "pillar" ? "ley_pillar" : "crystal";
             case TileTerrainType.Water:

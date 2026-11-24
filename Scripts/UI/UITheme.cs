@@ -288,6 +288,10 @@ public static class UITheme
     public static readonly Color TileThreat = new Color(0.85f, 0.25f, 0.20f, 0.45f);
     // Battlefield E4 telegraph - imminent destructive map event (amber, distinct from threat red).
     public static readonly Color TileTelegraph = new Color(0.95f, 0.55f, 0.10f, 0.55f);
+    // Readability R1 (docs/readability_style_guide_v1.md, rule 2): ground that acts carries a drawn
+    // mark in one neutral ink with a pale halo, so it reads on any palette and borrows no meaning.
+    public static readonly Color GroundMarkInk = new Color(0.10f, 0.11f, 0.16f, 0.88f);
+    public static readonly Color GroundMarkHalo = new Color(0.96f, 0.97f, 1.00f, 0.70f);
     // Battlefield E4 terrain scars - overlay tint after a tile is converted mid-fight.
     public static readonly Color TileScarWater = new Color(0.20f, 0.45f, 0.85f, 0.60f);
     public static readonly Color TileScarChasm = new Color(0.14f, 0.10f, 0.22f, 0.75f);
@@ -313,6 +317,7 @@ public static class UITheme
     public static readonly Color CombatTileArcane = new Color(0.48f, 0.22f, 0.75f, 1f);
     public static readonly Color CombatTileIce = new Color(0.65f, 0.85f, 0.98f, 1f);
     public static readonly Color CombatTileSand = new Color(0.82f, 0.71f, 0.52f, 1f);
+    public static readonly Color CombatTileSnow = new Color(0.90f, 0.91f, 0.93f, 1f);
 
     public static readonly Color SpawnTintPlayer = new Color(0.25f, 0.75f, 1.00f, 1f);
     public static readonly Color SpawnTintEnemy = new Color(1.00f, 0.30f, 0.30f, 1f);

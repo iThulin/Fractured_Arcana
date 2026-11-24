@@ -160,6 +160,9 @@ public partial class CombatManager : Node3D
             case "ember_brazier":
                 ImbueAround(tile, TileElementType.Fire);
                 break;
+            case "ice_spire":   // C4: the spire shatters across the ground
+                ImbueAround(tile, TileElementType.Frost);
+                break;
             // boulder, ward_stone: no on-death effect
         }
     }

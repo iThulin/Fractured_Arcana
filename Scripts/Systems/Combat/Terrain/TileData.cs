@@ -29,7 +29,10 @@ public enum TileTerrainType
     Ice,
     // APPEND ONLY: the ordinal is the texture-array layer index
     // (TerrainTextureLibrary) and is stored in saves, so never reorder.
-    Sand
+    Sand,
+    // Snow (docs/snow_ice_ground_v1.md): plain winter ground, no rule. Ice is the
+    // ground that slides. Layer 8, drawn by the snow_ground block of the splat shader.
+    Snow
 }
 
 /// <summary>Elemental imbuement currently applied to a tile. <see cref="None"/> means the tile has no active imbuement.</summary>
@@ -126,6 +129,11 @@ public class TileData
 
     /// <summary>Currently imbued element. <see cref="TileElementType.None"/> means no imbuement.</summary>
     public TileElementType ElementType = TileElementType.None;
+
+    /// <summary>A unit that steps here keeps sliding the way it came. True for Frost ground
+    /// and for Ice terrain, so the dark ice the player sees is the ground that slides
+    /// (docs/snow_ice_ground_v1.md section 3.4).</summary>
+    public bool IsSlick => ElementType == TileElementType.Frost || TerrainType == TileTerrainType.Ice;
 
     /// <summary>Magnitude of the current imbuement (0..1 typical). Used by element-aware effects to scale.</summary>
     public float ElementStrength = 0f;

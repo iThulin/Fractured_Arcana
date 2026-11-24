@@ -111,7 +111,15 @@ public partial class HexGridManager : Node3D
 
     [ExportGroup("Blended Terrain Mesh")]
     [Export] public bool UseBlendedTerrainMesh = true;
-    [Export(PropertyHint.Range, "0.55,0.9,0.01")] public float TerrainSolidFactor = 0.75f;
+    [Export(PropertyHint.Range, "0.4,0.9,0.01")] public float TerrainSolidFactor = 0.75f;
+
+    /// <summary>
+    /// Shape of the slope between a tile's flat top and its edge. 0 = straight ramp, which
+    /// leaves a hard crease where the flat top ends (every tile reads as a hexagonal
+    /// plateau). 1 = the slope starts level and steepens toward the edge, so two
+    /// neighbours join in one S-curve and the crease is gone. Applies to every terrain.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1,0.05")] public float TerrainRampEase = 1f;
     [Export(PropertyHint.Range, "0,4,1")] public int TerrainTerraceSteps = 0;
     /// <summary>World-unit height of the rolling micro-relief on tile tops. 0 = flat (old behaviour). Start ~0.15.</summary>
     [Export(PropertyHint.Range, "0,0.6,0.01")] public float TerrainNoiseAmplitude = 0.15f;
@@ -509,6 +517,9 @@ public partial class HexGridManager : Node3D
             ApplyRecipeAtmosphere(_activeRecipe.Atmosphere);
         else
             ApplyThemeAtmosphere();
+        // Settled snow on rocks, stone tops and ledges. Always set, 0 included: the
+        // shader global outlives the fight (SnowCover partial).
+        ApplySnowCover(_activeRecipe?.Atmosphere?.SnowCover ?? 0f);
         ApplyCameraLens();        // combat lens + fog compensation (FarField partial)
         ApplyInteriorBackground(); // no sky indoors
 

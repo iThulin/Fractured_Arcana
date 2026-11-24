@@ -305,6 +305,7 @@ public partial class CombatManager
             { "shove",                   PlanShove },      // tile_interaction §7: telegraphed gust push
             { "warp_channeler",          PlanWarpChanneler }, // city siege: interruptible teleport assault
             { "hunt_ward",               PlanHuntWard },   // O3: protect-objective pressure
+            { "hold_post",               PlanHoldPost },   // C3: runtime-only, assigned per fight (CombatManager.Posts.cs)
             { "inert",                   _ => null },      // C4 (E-1): a target that never acts; its abilities still fire
         };
 
@@ -2804,6 +2805,10 @@ public partial class CombatManager
     private async Task ExecuteGuardIntent(Unit enemy, EnemyIntent intent)
     {
         if (!IsValidActor(enemy))
+            return;
+
+        // C3: a post-holder stands, or walks back to its post, and gains no armour.
+        if (await TryExecuteHoldPost(enemy))
             return;
 
         // U2: immobile/planted-bulwark units brace in place, skipping the

@@ -59,6 +59,9 @@ public partial class HexGridManager : Node3D
     /// <summary>Scatter boulders/scree on STONE tiles too (mountains). Off = old grass-only behaviour.</summary>
     [Export] public bool RockOnStone = true;
 
+    /// <summary>Scatter rocks on SNOW tiles. They are the dark accents that stop a snow map reading as one flat value, and they carry snow caps (snow_cover).</summary>
+    [Export] public bool RockOnSnow = true;
+
     /// <summary>Rock COUNT multiplier on stone tiles, since mountains want more scree/boulders than meadows. Applied on top of RocksPerTile.</summary>
     [Export(PropertyHint.Range, "1,8,0.5")] public float RockStoneDensityMult = 2.0f;
 
@@ -168,7 +171,8 @@ public partial class HexGridManager : Node3D
         bool IsRockSurface(TileData t) =>
             t.TerrainType == TileTerrainType.Grass ||
             (RockOnForest && t.TerrainType == TileTerrainType.Forest) ||
-            (RockOnStone && t.TerrainType == TileTerrainType.Stone);
+            (RockOnStone && t.TerrainType == TileTerrainType.Stone) ||
+            (RockOnSnow && t.TerrainType == TileTerrainType.Snow);
 
         bool useColors = UseRockColorVariation;
         bool paletteOk = RockPalette != null && RockPalette.Length > 0;

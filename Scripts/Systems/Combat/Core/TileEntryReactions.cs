@@ -195,8 +195,8 @@ public static class TileEntryReactions
     {
         if (ctx?.Grid == null || kind == MovementKind.Teleport)
             return;
-        if (tile.ElementType != TileElementType.Frost)
-            return;
+        if (!tile.IsSlick)
+            return;   // Frost ground or Ice terrain
         if (ctx.HaltForced || ctx.ForcedTilesRemaining <= 0)
             return;
         if (previousTile == null || unit.CurrentTile != tile || !unit.Stats.IsAlive)

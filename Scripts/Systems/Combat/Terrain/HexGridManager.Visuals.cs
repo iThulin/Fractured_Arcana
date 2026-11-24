@@ -348,6 +348,7 @@ public partial class HexGridManager
             TileTerrainType.Arcane => UITheme.CombatTileArcane,
             TileTerrainType.Ice => UITheme.CombatTileIce,
             TileTerrainType.Sand => UITheme.CombatTileSand,
+            TileTerrainType.Snow => UITheme.CombatTileSnow,
             _ => Colors.White
         };
 

@@ -30,9 +30,9 @@
   },
   "atmosphere": {
     "sun_color": [
-      0.88,
-      0.92,
-      0.98
+      1.0,
+      0.95,
+      0.84
     ],
     "sun_energy": 1.1,
     "ambient_color": [
@@ -46,7 +46,8 @@
       0.84,
       0.9
     ],
-    "fog_density": 0.009
+    "fog_density": 0.009,
+    "snow_cover": 0.35
   },
   "obstacles": {
     "low": "ice_ridge",

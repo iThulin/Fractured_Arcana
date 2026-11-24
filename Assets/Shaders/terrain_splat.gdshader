@@ -20,6 +20,9 @@
 shader_type spatial;
 render_mode specular_disabled;
 
+// Snow that settles on upward faces: snow_cover_mask(), driven by the global snow_cover.
+#include "res://Assets/Shaders/snow_cover.gdshaderinc"
+
 group_uniforms debug;
 /** Diagnostic false-coloring by surface kind (GREEN backface, MAGENTA skirt, RED wall, ORANGE steep top, dim = ordinary). Solved the 2026-07-24 black-triangle hunt in one screenshot — leave available. */
 uniform bool debug_surfaces = false;
@@ -172,6 +175,84 @@ uniform float sand_mottle_scale : hint_range(0.01, 1.0) = 0.3;
 uniform float sand_mottle : hint_range(0.0, 0.5) = 0.13;
 /** Fake dune undulation bent into the normal (the water trick) — hides low-poly faceting under the flat colour. */
 uniform float sand_normal_strength : hint_range(0.0, 1.0) = 0.35;
+
+// ── Snow ground (snow tops only) ───────────────────────────────
+group_uniforms snow_ground;
+/** Painterly snow, all procedural like sand: NO texture. Warm white where lit, blue only in the hollows, dry ground breaking through. */
+uniform bool  use_snow_ground = true;
+/** Texture-array layer of Snow ( = (int)TileTerrainType.Snow = 8 ). */
+uniform int   snow_layer = 8;
+/** Blend strength over the base splat colour. */
+uniform float snow_strength : hint_range(0.0, 1.0) = 1.0;
+/** Sunlit snow. Keep it WARM and just under white, or the sun blows it out. */
+uniform vec3  snow_lit : source_color = vec3(0.82, 0.81, 0.78);
+/** Snow in the hollows. This is the only place blue belongs on a snow map. */
+uniform vec3  snow_shade : source_color = vec3(0.66, 0.74, 0.90);
+/** How far hollows go toward snow_shade. Lower this first if the board still reads blue. */
+uniform float snow_shade_amount : hint_range(0.0, 1.0) = 0.45;
+/** Scale of the large drift masses. Lower = bigger drifts. */
+uniform float snow_tint_scale : hint_range(0.005, 0.4) = 0.022;
+/** Dry grass and earth showing through thin snow. The warm accent. */
+uniform vec3  snow_bare_color : source_color = vec3(0.60, 0.50, 0.33);
+/** How much ground shows through. 0 = unbroken snow. Raise for a thawing or windswept look. */
+uniform float snow_bare_amount : hint_range(0.0, 1.0) = 0.24;
+/** Scale of the bare patches. Higher = smaller, more scattered patches. */
+uniform float snow_bare_scale : hint_range(0.01, 1.0) = 0.05;
+/** Fine break-up of the bare patch edges. 0 = clean blobs, 1 = speckled. */
+uniform float snow_bare_speckle : hint_range(0.0, 1.0) = 0.15;
+/** Fine brightness mottle scale. */
+uniform float snow_mottle_scale : hint_range(0.01, 1.0) = 0.4;
+/** Fine brightness mottle strength. Keep low: snow is smooth. */
+uniform float snow_mottle : hint_range(0.0, 0.5) = 0.05;
+/** Fake drift relief bent into the normal so toon light rolls over the snow. */
+uniform float snow_normal_strength : hint_range(0.0, 1.0) = 0.1;
+/** How fully snow covers the slopes between snow tiles. 0 = slopes show rock and earth (the old look), 1 = unbroken snow banks. */
+uniform float snow_drape : hint_range(0.0, 1.0) = 0.9;
+/** Steepness above which a face counts as a real cliff wall and stays rock. */
+uniform float snow_drape_wall : hint_range(0.5, 1.0) = 0.86;
+/** How much of the out-of-bounds dimming (vista mute and horizon melt) applies to snow ground. 1 = same as other terrain, 0 = none. */
+uniform float snow_vista_mute : hint_range(0.0, 1.0) = 0.2;
+/** How well flat STONE tops hold settled snow (snow_cover). Below 1 leaves rock showing in patches. */
+uniform float snow_on_stone : hint_range(0.0, 1.0) = 0.75;
+
+// ── Ice ground (ice tops only) ─────────────────────────────────
+group_uniforms ice_ground;
+/** Dark glassy ice, all procedural. The darkest ground on a snow map, so the tiles that slide read from the material. */
+uniform bool  use_ice_ground = true;
+/** Texture-array layer of Ice ( = (int)TileTerrainType.Ice = 6 ). */
+uniform int   ice_layer = 6;
+/** Blend strength over the base splat colour. */
+uniform float ice_strength : hint_range(0.0, 1.0) = 1.0;
+/** Deep ice. Darker than snow, and GREENER and greyer than water: hue is what separates the two. */
+uniform vec3  ice_deep : source_color = vec3(0.22, 0.40, 0.42);
+/** Lighter, cloudier ice. */
+uniform vec3  ice_light : source_color = vec3(0.56, 0.72, 0.72);
+/** Scale of the deep and cloudy masses. */
+uniform float ice_tint_scale : hint_range(0.005, 0.4) = 0.09;
+/** Pale fracture lines. */
+uniform vec3  ice_crack_color : source_color = vec3(0.80, 0.90, 0.94);
+/** Scale of the crack pattern. Higher = more, shorter cracks. */
+uniform float ice_crack_scale : hint_range(0.02, 2.0) = 0.35;
+/** Crack line width. */
+uniform float ice_crack_width : hint_range(0.002, 0.08) = 0.012;
+/** Crack visibility. 0 = clean ice. */
+uniform float ice_crack_strength : hint_range(0.0, 1.0) = 0.55;
+/** Sky colour the ice picks up at a glancing view. Stands in for specular, which this shader disables. */
+uniform vec3  ice_sheen_color : source_color = vec3(0.86, 0.92, 0.93);
+/** Sheen amount. */
+uniform float ice_sheen_strength : hint_range(0.0, 1.0) = 0.35;
+/** Wind-blown snow lying in streaks across the sheet. Water never has it, so it is the clearest ice-or-water cue. 0 = bare ice. */
+uniform float ice_dusting : hint_range(0.0, 1.0) = 0.45;
+/** Scale of the snow streaks. */
+uniform float ice_dusting_scale : hint_range(0.01, 1.0) = 0.22;
+/** Sheen falloff. Lower = sheen reaches further toward the camera. */
+uniform float ice_sheen_power : hint_range(0.5, 8.0) = 1.5;
+/** Width of the frosted rim where ice meets other ground. */
+uniform float ice_rim_width : hint_range(0.0, 0.6) = 0.25;
+/** Softness of the frosted rim. */
+uniform float ice_rim_softness : hint_range(0.01, 0.4) = 0.15;
+/** Strength of the frosted rim. 0 = none. */
+uniform float ice_rim_strength : hint_range(0.0, 1.0) = 0.7;
 
 // ── Cliff treatment (steep faces: contact shadow + sparse cracks + top moss) ──
 group_uniforms cliff_treatment;
@@ -346,6 +427,9 @@ uniform vec3  imbue_snow_color : source_color = vec3(0.86, 0.90, 0.95);
 
 /** How far toward imbue_snow_color fully frosted ground goes. */
 uniform float imbue_snow_strength : hint_range(0.0, 1.0) = 0.80;
+
+/** Frost laid on SNOW ground shows as a dark ice glaze, not a white tint: white on white hid the tiles that slide. Other ground keeps the white dusting. */
+uniform bool  imbue_frost_glazes_snow = true;
 
 /** Colour wet ground tends toward. */
 uniform vec3  imbue_wet_color : source_color = vec3(0.22, 0.28, 0.26);
@@ -556,6 +640,21 @@ void fragment() {
 	// texture; the water surface provides the depth mood instead.
 	cliff_mix *= above_water;
 
+	// Snow drapes slopes. Without this every ramp between two snow tiles crossed the
+	// steepness line and was repainted as striped rock, which drew a dark band round
+	// each hex. Only near-vertical faces (real cliff walls) stay rock.
+	float snow_drape_w = 0.0;
+	if (use_snow_ground) {
+		float dsl = float(snow_layer);
+		snow_drape_w =
+			(abs(v_indices.r - dsl) < 0.5 ? w.r : 0.0) +
+			(abs(v_indices.g - dsl) < 0.5 ? w.g : 0.0) +
+			(abs(v_indices.b - dsl) < 0.5 ? w.b : 0.0) +
+			(abs(v_indices.a - dsl) < 0.5 ? w.a : 0.0);
+		snow_drape_w *= snow_drape * (1.0 - smoothstep(snow_drape_wall, snow_drape_wall + 0.08, steep));
+		cliff_mix *= 1.0 - snow_drape_w;
+	}
+
 	vec3 albedo = mix(terrain_albedo, cliff_albedo, cliff_mix);
 	vec3 tn = normalize(mix(terrain_n, cliff_n, cliff_mix));
 
@@ -613,6 +712,10 @@ void fragment() {
 
 		vec3 stone_col = rock_paint(v_world_pos);
 
+		// Snow cover settles on stone tops. snow_on_stone below 1 leaves rock showing in patches.
+		float stone_snow_n = texture(stone_noise_tex, v_world_pos.xz * 0.19 + vec2(0.45, 0.08)).r;
+		stone_col = mix(stone_col, snow_lit, snow_cover_mask(geom.y * snow_on_stone, stone_snow_n));
+
 		float stone_mask = (1.0 - cliff_mix) * stone_strength * stone_weight * (1.0 - is_skirt);
 		albedo = mix(albedo, stone_col, stone_mask);
 	}
@@ -662,6 +765,95 @@ void fragment() {
 		}
 	}
 
+	// ── Snow ground (snow tops only) ─────────────────────────────
+	// Kept outside the block: the imbuement pass reads it to glaze frost on snow.
+	float snow_ground_weight = 0.0;
+	if (use_snow_ground) {
+		float snl = float(snow_layer);
+		float snow_weight =
+			(abs(v_indices.r - snl) < 0.5 ? w.r : 0.0) +
+			(abs(v_indices.g - snl) < 0.5 ? w.g : 0.0) +
+			(abs(v_indices.b - snl) < 0.5 ? w.b : 0.0) +
+			(abs(v_indices.a - snl) < 0.5 ? w.a : 0.0);
+		snow_ground_weight = snow_weight;
+
+		if (snow_weight > 0.001) {
+			// Drift masses from the shared ground noise, two rotated octaves.
+			vec2 np = v_world_pos.xz * snow_tint_scale;
+			vec2 npr = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * np;
+			float drift = texture(stone_noise_tex, np).r * 0.8
+				+ texture(stone_noise_tex, npr * 2.3 + vec2(0.57, 0.19)).r * 0.2;
+
+			// Hollows go blue. Crests stay warm white.
+			float hollow = 1.0 - smoothstep(0.20, 0.70, drift);
+			vec3 snow_col = mix(snow_lit, snow_shade, hollow * snow_shade_amount);
+
+			float nmv = texture(stone_noise_tex, v_world_pos.xz * snow_mottle_scale + vec2(0.23, 0.48)).r;
+			snow_col *= 1.0 + (nmv - 0.5) * snow_mottle * 2.0;
+
+			// Dry ground breaking through thin snow: the warm accent.
+			float bn = mix(texture(stone_noise_tex, v_world_pos.xz * snow_bare_scale + vec2(0.71, 0.33)).r,
+				texture(stone_noise_tex, npr * 5.1 + vec2(0.11, 0.86)).r, snow_bare_speckle);
+			float bare = (1.0 - smoothstep(snow_bare_amount, snow_bare_amount + 0.04, bn)) * step(0.001, snow_bare_amount);
+			snow_col = mix(snow_col, snow_bare_color * (0.85 + nmv * 0.3), bare);
+
+			float snow_mask = (1.0 - cliff_mix) * snow_strength * snow_weight * (1.0 - is_skirt);
+			albedo = mix(albedo, snow_col, snow_mask);
+
+			// Fake drift relief. Tangent space, Z up: NORMAL_MAP reads X and Y only.
+			float seps = 0.02;
+			vec2 np2 = np;
+			float dR = texture(stone_noise_tex, np2 + vec2(seps, 0.0)).r - texture(stone_noise_tex, np2 - vec2(seps, 0.0)).r;
+			float dU = texture(stone_noise_tex, np2 + vec2(0.0, seps)).r - texture(stone_noise_tex, np2 - vec2(0.0, seps)).r;
+			vec3 dn = normalize(vec3(-dR * snow_normal_strength * 8.0, -dU * snow_normal_strength * 8.0, 1.0));
+			tn = normalize(mix(tn, dn, snow_mask * (1.0 - bare)));
+		}
+	}
+
+	// ── Ice ground (ice tops only) ───────────────────────────────
+	if (use_ice_ground) {
+		float il = float(ice_layer);
+		float ice_weight =
+			(abs(v_indices.r - il) < 0.5 ? w.r : 0.0) +
+			(abs(v_indices.g - il) < 0.5 ? w.g : 0.0) +
+			(abs(v_indices.b - il) < 0.5 ? w.b : 0.0) +
+			(abs(v_indices.a - il) < 0.5 ? w.a : 0.0);
+
+		if (ice_weight > 0.001) {
+			// Deep and cloudy masses.
+			float itone = texture(stone_noise_tex, v_world_pos.xz * ice_tint_scale + vec2(0.62, 0.15)).r;
+			vec3 ice_col = mix(ice_deep, ice_light, itone);
+
+			// Cracks: thin contour lines of the shared noise, at two scales.
+			vec2 cp = v_world_pos.xz * ice_crack_scale;
+			vec2 cpr = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * cp;
+			float c1 = abs(texture(stone_noise_tex, cp).r - 0.5);
+			float c2 = abs(texture(stone_noise_tex, cpr * 2.1 + vec2(0.37, 0.91)).r - 0.5);
+			float crack = max(1.0 - smoothstep(0.0, ice_crack_width, c1),
+				(1.0 - smoothstep(0.0, ice_crack_width * 0.6, c2)) * 0.6);
+			ice_col = mix(ice_col, ice_crack_color, crack * ice_crack_strength);
+
+			// Wind-blown snow in long streaks (stretched along X, like the sand strokes).
+			float dust = texture(stone_noise_tex, vec2(v_world_pos.x * 0.3, v_world_pos.z) * ice_dusting_scale + vec2(0.19, 0.64)).r;
+			dust = smoothstep(1.0 - ice_dusting * 0.6, 1.0 - ice_dusting * 0.6 + 0.12, dust);
+			ice_col = mix(ice_col, snow_lit, dust * 0.85);
+
+			// Sky sheen at a glancing view (specular is disabled in this shader).
+			float ndv = clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0);
+			ice_col = mix(ice_col, ice_sheen_color, pow(1.0 - ndv, ice_sheen_power) * ice_sheen_strength);
+
+			// Frosted rim where the sheet meets other ground.
+			float irim = 1.0 - smoothstep(ice_rim_width, ice_rim_width + ice_rim_softness, ice_weight);
+			ice_col = mix(ice_col, snow_lit, irim * ice_rim_strength);
+
+			float ice_mask = (1.0 - cliff_mix) * ice_strength * ice_weight * (1.0 - is_skirt);
+			albedo = mix(albedo, ice_col, ice_mask);
+
+			// A sheet of ice is smooth: flatten the normal against the drifted snow around it.
+			tn = normalize(mix(tn, vec3(0.0, 0.0, 1.0), ice_mask));
+		}
+	}
+
 	// ── Slope dirt / scree (S9): earth on moderate slopes ────────
 	// Lives in the band between grass tops and rock cliffs: ramps in above
 	// slope_dirt_start and fades out as cliff_mix (rock) takes over, so the
@@ -669,7 +861,7 @@ void fragment() {
 	// non-skirt faces so it never muddies water beds or the map-edge skirt.
 	if (use_slope_dirt) {
 		float dirt = smoothstep(slope_dirt_start, slope_dirt_start + slope_dirt_soft, steep);
-		dirt *= (1.0 - cliff_mix) * above_water * (1.0 - is_skirt) * slope_dirt_strength;
+		dirt *= (1.0 - cliff_mix) * above_water * (1.0 - is_skirt) * slope_dirt_strength * (1.0 - snow_drape_w);
 		if (dirt > 0.001) {
 			float dn = texture(stone_noise_tex, v_world_pos.xz * slope_dirt_noise_scale).r * 0.6
 				+ texture(stone_noise_tex, v_world_pos.xz * slope_dirt_noise_scale * 2.7 + vec2(5.3, 1.9)).r * 0.4;
@@ -743,6 +935,9 @@ void fragment() {
 		float li = texture(cliff_crack_tex, crack_uv * cliff_crack_scale * 0.4 + vec2(0.7, 0.2)).r;
 		cliff_col = mix(cliff_col, cliff_moss, smoothstep(0.6, 0.9, li) * upface * cliff_moss_amount);
 
+		// Snow cover settles on the upward parts of the face, the same place moss does.
+		cliff_col = mix(cliff_col, snow_lit, snow_cover_mask(upface, li));
+
 		// S11 — vertical facet crevices: dark seams running DOWN the face that
 		// split one wide flat hex pane into stacked rock columns. Keyed on the
 		// horizontal position across the face, wandered by noise so seams
@@ -800,7 +995,9 @@ void fragment() {
 		{
 			vec4 imb = texture(imbuement_field, fuv) * imb_top * (1.0 - is_skirt);
 
-			albedo = mix(albedo, imbue_snow_color, clamp(imb.r, 0.0, 1.0) * imbue_snow_strength);
+			float frost_glaze = imbue_frost_glazes_snow ? clamp(snow_ground_weight, 0.0, 1.0) : 0.0;
+			vec3 frost_col = mix(imbue_snow_color, mix(ice_deep, ice_light, 0.5), frost_glaze);
+			albedo = mix(albedo, frost_col, clamp(imb.r, 0.0, 1.0) * imbue_snow_strength);
 			albedo = mix(albedo, imbue_wet_color,  clamp(imb.b, 0.0, 1.0) * imbue_wet_strength);
 
 			float ilum = dot(albedo, vec3(0.2126, 0.7152, 0.0722));
@@ -816,7 +1013,9 @@ void fragment() {
 	if (vista_fade > 0.001) {
 		float v_luma = dot(albedo, vec3(0.299, 0.587, 0.114));
 		vec3 muted = mix(albedo, vec3(v_luma), vista_desaturation) * (1.0 - vista_darken);
-		albedo = mix(albedo, muted, vista_fade);
+		// On snow the mute is scaled down: greying and darkening white ground reads as a
+		// different material, not as distance (snow_vista_mute).
+		albedo = mix(albedo, muted, vista_fade * mix(1.0, snow_vista_mute, clamp(snow_ground_weight, 0.0, 1.0)));
 	}
 
 	// ── Horizon melt: outer vista rings dissolve toward the theme
@@ -826,7 +1025,10 @@ void fragment() {
 		// Top-face melt is suppressed underwater — the water SURFACE carries
 		// the horizon dissolve out there (painterly_water horizon group);
 		// melting the bed just reads as a white seabed through the water.
-		float melt = vista_horizon * mix(horizon_strength * above_water, horizon_skirt_strength, is_skirt);
+		// Same scaling on snow: the melt steps once per ring of tiles, and on white
+		// ground each step shows as a seam between hexes.
+		float snow_melt_scale = mix(1.0, snow_vista_mute, clamp(snow_ground_weight, 0.0, 1.0));
+		float melt = vista_horizon * mix(horizon_strength * above_water * snow_melt_scale, horizon_skirt_strength, is_skirt);
 		albedo = mix(albedo, horizon_color, melt);
 	}
 

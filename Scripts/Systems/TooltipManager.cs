@@ -129,6 +129,13 @@ public partial class TooltipManager : Control
         // Element imbuement
         if (tile.ElementType != TileElementType.None)
             AddColoredRow("Imbued:", tile.ElementType.ToString(), ElementColorForType(tile.ElementType));
+        // C4: what the element does to a unit, in plain words (tile_interaction_spec_v1 section 3).
+        string elementRule = ElementRuleLine(tile.ElementType);
+        // Ice terrain slides with no imbuement on it. Say so once, not twice on frosted ice.
+        if (tile.TerrainType == TileTerrainType.Ice && tile.ElementType != TileElementType.Frost)
+            AddRow(ElementRuleLine(TileElementType.Frost), "");
+        if (elementRule.Length > 0)
+            AddRow(elementRule, "");
 
         // Element reaction (class_identity_elementalist_v1 §2a item 3): name, rounds, rule.
         if (tile.Reaction != ElementReaction.None)
@@ -174,6 +181,17 @@ public partial class TooltipManager : Control
 
         _tooltipRoot.Visible = true;
     }
+
+    /// <summary>One plain line per element that acts on a unit entering the tile.
+    /// Empty for elements with no entry rule.</summary>
+    private static string ElementRuleLine(TileElementType element) => element switch
+    {
+        TileElementType.Fire => "Burns a unit that enters or ends its turn here.",
+        TileElementType.Frost => "Ice. A unit that enters keeps sliding the same way.",
+        TileElementType.Lightning => "A unit pushed here is shocked, and so is every unit beside it.",
+        TileElementType.Earth => "A pushed unit stops here.",
+        _ => "",
+    };
 
     public void HideTileTooltip()
     {
@@ -523,6 +541,7 @@ public partial class TooltipManager : Control
         TileTerrainType.Arcane => "Arcane Ground",
         TileTerrainType.Ice    => "Ice",
         TileTerrainType.Sand   => "Sand",
+        TileTerrainType.Snow   => "Snow",
         _                      => t.ToString()
     };
 

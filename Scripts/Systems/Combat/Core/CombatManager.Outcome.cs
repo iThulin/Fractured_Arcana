@@ -388,6 +388,12 @@ public partial class CombatManager
         if (SlayActive || ReachActive)
             RefreshObjectiveBanner();   // no-ops unless the line changed (leader health, who is on the marked ground)
         RefreshWithdrawControl();
+        // Ground marks are a held view, not always on: the ground's own material is the
+        // first read (docs/snow_ice_ground_v1.md SG3). Hold Alt to draw them.
+        if (Input.IsKeyPressed(Key.Alt))
+            _zoneRenderer?.RefreshGroundMarks(grid);
+        else
+            _zoneRenderer?.ClearGroundMarks();
     }
 
     private void RefreshWithdrawControl()

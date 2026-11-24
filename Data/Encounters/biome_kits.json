@@ -1,0 +1,88 @@
+{
+  "kits": {
+    "Volcanic": {
+      "name": "Volcanic ground",
+      "rules": [
+        "Fire ground burns anything that enters it or ends a turn on it.",
+        "Vents open on rounds 3, 5 and 7, each marked one round ahead. A map with its own fire clock keeps that clock and opens no vents.",
+        "A brazier spills fire onto the ground when it is shoved or broken."
+      ],
+      "events": [
+        {
+          "kind": "hazard_patch",
+          "id": "biome_vent_1",
+          "round": 3,
+          "telegraph": 1,
+          "at": "flank:2",
+          "element": "fire",
+          "radius": 1,
+          "announce": "A vent opens. The ground around it burns.",
+          "skip_if_recipe_has": ["ring_closes", "front_advances"]
+        },
+        {
+          "kind": "hazard_patch",
+          "id": "biome_vent_2",
+          "round": 5,
+          "telegraph": 1,
+          "at": "flank:-2",
+          "element": "fire",
+          "radius": 1,
+          "announce": "A second vent opens.",
+          "skip_if_recipe_has": ["ring_closes", "front_advances"]
+        },
+        {
+          "kind": "hazard_patch",
+          "id": "biome_vent_3",
+          "round": 7,
+          "telegraph": 1,
+          "at": "midpoint",
+          "element": "fire",
+          "radius": 1,
+          "announce": "A vent opens in the middle of the field.",
+          "skip_if_recipe_has": ["ring_closes", "front_advances"]
+        }
+      ],
+      "objects": [
+        { "kind": "ember_brazier", "at": "axis:-2" },
+        { "kind": "ember_brazier", "at": "axis:2" }
+      ]
+    },
+    "Snow": {
+      "name": "Snow and ice",
+      "rules": [
+        "A unit that enters ice keeps sliding in the same direction until the ice ends or something stops it.",
+        "A whiteout cuts sight to 3 tiles for 1 round. It comes on round 3 and every 3 rounds after, announced one round ahead.",
+        "An ice spire blocks sight. Break it and the ground around it turns to ice."
+      ],
+      "events": [
+        {
+          "kind": "fog_rolls_in",
+          "id": "biome_whiteout",
+          "round": 3,
+          "repeat_every": 3,
+          "telegraph": 1,
+          "sight": 3,
+          "turns": 1,
+          "announce": "A whiteout closes in. Sight is cut to 3 tiles for 1 round."
+        },
+        {
+          "kind": "weather_turns",
+          "id": "biome_snow",
+          "round": 2,
+          "repeat_every": 3,
+          "telegraph": 1,
+          "weather": "snow",
+          "per_patch": 2,
+          "announce": "Ice creeps across the field."
+        }
+      ],
+      "objects": [
+        { "kind": "ice_spire", "at": "flank:2" },
+        { "kind": "ice_spire", "at": "flank:-2" }
+      ]
+    },
+    "Tundra": {
+      "same_as": "Snow"
+    }
+  }
+}

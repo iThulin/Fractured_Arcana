@@ -26,6 +26,7 @@ public static class UIContent
         { "melee_advance",           "Advances on the nearest unit and strikes." },
         { "melee_target_highest_hp", "Marks your healthiest unit and grinds toward it." },
         { "hold_until_near",         "Holds position and guards; strikes whatever comes adjacent." },
+        { "hold_post",               "Holds its post and strikes anything within 3 tiles of it. Once hurt, it leaves the post and comes for you." },
         { "ranged_kite",             "Keeps its distance and shoots; retreats when pressed." },
         { "ranged_charge",           "Channels one turn, then releases a heavy blast; the target tile is locked when the channel begins." },
         { "melee_hunt_wounded",      "Hunts whichever of your units is closest to death, ignoring distance." },

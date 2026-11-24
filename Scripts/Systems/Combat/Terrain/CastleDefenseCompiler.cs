@@ -85,7 +85,7 @@ public static class CastleDefenseCompiler
     {
         "forest" => "forest",
         "mountain" or "hills" => "stone",
-        "snow" or "tundra" => "ice",
+        "snow" or "tundra" => "snow",
         "desert" => "sand",
         "swamp" or "marsh" => "grass",
         _ => "grass",

@@ -116,7 +116,9 @@ public sealed class MapField
                     return TileTerrainType.Water;
                 if (elevation01 > 0.82f)
                     return TileTerrainType.Stone;
-                return TileTerrainType.Ice;
+                if (elevation01 < 0.26f)
+                    return TileTerrainType.Ice;   // frozen shallows: the ground that slides
+                return TileTerrainType.Snow;
 
             case OverworldHex.TerrainType.Volcanic:
                 if (elevation01 < 0.20f)

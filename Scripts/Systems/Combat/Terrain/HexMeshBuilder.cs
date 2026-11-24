@@ -81,6 +81,16 @@ public static class HexMeshBuilder
         return n;
     }
 
+    /// <summary>
+    /// How far down the edge slope a point sits, for a position t across the bridge band
+    /// (0 = where the flat top ends, 1 = the shared rim). Linear at ease 0. At ease 1 it is
+    /// t squared: level where it leaves the flat top, steepest at the rim, so the two tiles
+    /// either side of a rim form one S-curve. The mesh (AddBridgeHalf) and the surface
+    /// sampler (SampleSurfaceWorldY) must both use this or props float off the ground.
+    /// </summary>
+    private static float RampEase(HexGridManager grid, float t)
+        => Mathf.Lerp(t, t * t, Mathf.Clamp(grid.TerrainRampEase, 0f, 1f));
+
     /// <summary>Raw positional noise in ~[-1,1] at a world XZ for a given frequency.</summary>
     public static float SurfaceNoise(float worldX, float worldZ, float frequency)
         => NoiseForFreq(frequency).GetNoise2D(worldX, worldZ);
@@ -526,7 +536,7 @@ public static class HexMeshBuilder
         // t = 0 meets the fan and t = 1 meets the rim).
         Vector2 rimXZ = originXZ + cE.Lerp(cF, s);
         float rimNoise = NoiseOwn(grid, tile, rimXZ.X, rimXZ.Y);
-        float smoothBandY = ownTop + ownNoise + (edgeY - rimNoise) * t;
+        float smoothBandY = ownTop + ownNoise + (edgeY - rimNoise) * RampEase(grid, t);
 
         var wcA = grid.GetTileOrVista(tile.Axial + HexDirection.All[(7 - e) % 6]);
         var wcB = grid.GetTileOrVista(tile.Axial + HexDirection.All[(5 - e) % 6]);
@@ -795,6 +805,7 @@ public static class HexMeshBuilder
             TileTerrainType.Arcane => UITheme.CombatTileArcane,
             TileTerrainType.Ice => UITheme.CombatTileIce,
             TileTerrainType.Sand => UITheme.CombatTileSand,
+            TileTerrainType.Snow => UITheme.CombatTileSnow,
             _ => Colors.White
         };
     }
@@ -858,7 +869,8 @@ public static class HexMeshBuilder
             // like the fan instead of a single planar span (the solid-factor ring).
             // Inner row welds to the fan (pure own noise); outer row hits the shared
             // rim exactly (the noise term cancels at tr = 1).
-            int radial = Math.Max(2, Mathf.RoundToInt(n * (1f - solidFactor) / Mathf.Max(0.01f, solidFactor)));
+            // At least 4 rows: the eased slope is a curve, and 2 rows draw it as one bend.
+            int radial = Math.Max(4, Mathf.RoundToInt(n * (1f - solidFactor) / Mathf.Max(0.01f, solidFactor)));
 
             Vector3 BandVert(int c, int r)
             {
@@ -869,7 +881,7 @@ public static class HexMeshBuilder
                 Vector2 xz = inXZ.Lerp(outXZ, tr);
                 float rimY = Mathf.Lerp(yA, yB, u);
                 float dev = rimY - NoiseOwn(grid, tile, centerXZ.X + outXZ.X, centerXZ.Y + outXZ.Y);
-                float y = NoiseOwn(grid, tile, centerXZ.X + xz.X, centerXZ.Y + xz.Y) + dev * tr;
+                float y = NoiseOwn(grid, tile, centerXZ.X + xz.X, centerXZ.Y + xz.Y) + dev * RampEase(grid, tr);
                 return new Vector3(xz.X, y, xz.Y);
             }
 

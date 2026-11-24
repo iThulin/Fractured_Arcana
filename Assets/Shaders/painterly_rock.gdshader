@@ -26,6 +26,9 @@ shader_type spatial;
 // ---------------------------------------------------------------------------
 render_mode cull_back, specular_disabled;
 
+// Snow that settles on upward faces: snow_cover_mask(), driven by the global snow_cover.
+#include "res://Assets/Shaders/snow_cover.gdshaderinc"
+
 // --------------------------------------------------------------- 1. mosaic --
 group_uniforms coords;
 /** Blender's "Generated" coords are 0..1 across the object bounding box — they
@@ -317,6 +320,13 @@ void fragment() {
 	col *= v_tint;
 	float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
 	col = max(mix(vec3(lum), col, saturation) * brightness, vec3(0.0));
+
+	// --- snow cover ---------------------------------------------------------
+	// Caps whatever faces the sky. World normal, so a tilted rock is capped on
+	// its true top, not its model top. No-op while the global snow_cover is 0.
+	vec3 world_n = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	float cap_noise = rk_value_noise(p * 3.0 + vec3(11.0));
+	col = mix(col, snow_cover_color, snow_cover_mask(world_n.y, cap_noise));
 
 	// --- debug isolation ---------------------------------------------------
 	if (debug_view == 1) { col = vec3(mosaic); }
