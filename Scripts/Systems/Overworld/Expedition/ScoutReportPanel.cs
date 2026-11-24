@@ -37,6 +37,9 @@ public partial class ScoutReportPanel : Control
     /// <summary>Fired when the player clicks Retreat.</summary>
     public Action OnRetreat;
 
+    /// <summary>C2b: fired when the player clicks the second approach (OfferApproaches).</summary>
+    public Action OnAlternate;
+
     // ── Layout nodes ────────────────────────────────────────────────────
     private Panel _backdrop;
     private Panel _panel;
@@ -47,6 +50,8 @@ public partial class ScoutReportPanel : Control
     private Label _stepNoteLabel;
     private Button _engageButton;
     private Button _retreatButton;
+    private Button _alternateButton;   // C2b
+    private Label _approachLabel;      // C2b
 
     public override void _Ready()
     {
@@ -141,6 +146,12 @@ public partial class ScoutReportPanel : Control
         // Step note (shows step cost context)
         _stepNoteLabel = MakeBodyLabel(layout);
 
+        // C2b: what each approach costs, in plain words. Hidden unless approaches are offered.
+        _approachLabel = MakeBodyLabel(layout);
+        _approachLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _approachLabel.CustomMinimumSize = new Vector2(420, 0);
+        _approachLabel.Visible = false;
+
         // Spacer
         layout.AddChild(new Control { CustomMinimumSize = new Vector2(0, 8) });
 
@@ -154,6 +165,12 @@ public partial class ScoutReportPanel : Control
         _retreatButton = MakeButton("Retreat", UITheme.NarrativeBodyColor);
         _retreatButton.Pressed += OnRetreatPressed;
         buttonRow.AddChild(_retreatButton);
+
+        // C2b: the second approach. Hidden unless OfferApproaches shows it.
+        _alternateButton = MakeButton("Slip past", UITheme.NarrativeTitleColor);
+        _alternateButton.Pressed += OnAlternatePressed;
+        _alternateButton.Visible = false;
+        buttonRow.AddChild(_alternateButton);
 
         _engageButton = MakeButton("Engage", UITheme.POICombat);
         _engageButton.Pressed += OnEngagePressed;
@@ -182,6 +199,7 @@ public partial class ScoutReportPanel : Control
         _titleLabel.Text = "SCOUTING REPORT";
         _engageButton.Visible = true;
         _retreatButton.Text = "Retreat";
+        ResetApproaches();   // C2b: one Engage button unless OfferApproaches follows
         Populate(encounter, terrainName);
 
         // ── Step note ────────────────────────────────────────────────────
@@ -201,6 +219,7 @@ public partial class ScoutReportPanel : Control
         _titleLabel.Text = "ARCANE SIGHT";
         _engageButton.Visible = false;
         _retreatButton.Text = "Close";
+        ResetApproaches();   // C2b
         Populate(encounter, terrainName);
         _stepNoteLabel.Text = note ?? "";
         Visible = true;
@@ -276,6 +295,42 @@ public partial class ScoutReportPanel : Control
         if (_intelMode)
             return; // unreachable (button hidden); belt and braces
         OnEngage?.Invoke();
+    }
+
+    /// <summary>C2b: after Show, turns the one Engage button into two approaches. The note
+    /// states what each costs. The alternate handler is dropped by the next Show.</summary>
+    public void OfferApproaches(string note, string engageLabel, string alternateLabel, Action onAlternate)
+    {
+        if (_intelMode)
+            return;
+        OnAlternate = onAlternate;
+        _engageButton.Text = engageLabel;
+        _alternateButton.Text = alternateLabel;
+        _alternateButton.Visible = true;
+        _approachLabel.Text = note ?? "";
+        _approachLabel.Visible = !string.IsNullOrEmpty(note);
+    }
+
+    private void ResetApproaches()
+    {
+        OnAlternate = null;
+        if (_engageButton != null)
+            _engageButton.Text = "Engage";
+        if (_alternateButton != null)
+            _alternateButton.Visible = false;
+        if (_approachLabel != null)
+        {
+            _approachLabel.Text = "";
+            _approachLabel.Visible = false;
+        }
+    }
+
+    private void OnAlternatePressed()
+    {
+        Visible = false;
+        if (_intelMode)
+            return;
+        OnAlternate?.Invoke();
     }
 
     private void OnRetreatPressed()

@@ -157,6 +157,11 @@ public partial class EncounterRouter : Node
     /// forfeit, a debug fight). Transient, never saved. CombatWon still means a victory.</summary>
     public CombatOutcome LastOutcome;
 
+    /// <summary>C2b: how the party chose to take a guard held by an archmage's own soldiers
+    /// (ExpeditionManager.GuardApproaches.cs): "force_realm", "slip", or empty for every other
+    /// fight. Cleared by CommitCombat and set by the scout report after it.</summary>
+    public string GuardApproach = "";
+
     public override void _Ready()
     {
         Instance = this;
@@ -214,6 +219,18 @@ public partial class EncounterRouter : Node
             string title = ScriptedReturnTitle ?? "";
             GetTree().CreateTimer(2.0f).Timeout += () =>
                 SceneTransition.Go(GetTree(), ReturnScenePath, title);
+            return;
+        }
+
+        if (playerWon && GuardApproach == ExpeditionManager.GuardApproachSlip)
+        {
+            // C2b: slipping past a guard pays nothing and drafts nothing.
+            GoldReward = 0;
+            SplinterReward = 0;
+            MaterialReward = 0;
+            GetTree().CreateTimer(2.0f).Timeout += () =>
+                SceneTransition.Go(GetTree(), ReturnScenePath, "Past the guard",
+                    "You got past the guard. No rewards. No standing lost.");
             return;
         }
 

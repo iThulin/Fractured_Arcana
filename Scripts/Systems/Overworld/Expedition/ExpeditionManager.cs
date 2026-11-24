@@ -4515,6 +4515,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
 
         int stepCost = GetTerrainStepCost(TerrainAt(coord));
         _scoutPanel.Show(encounterDef, TerrainAt(coord).ToString(), stepCost);
+        OfferGuardApproaches(coord);   // C2b: an archmage's own guard post can be forced or slipped past
     }
 
     private void CommitCombat(Vector2I hexCoord, EncounterDefinition encounterDef, string terrainType, string guardianKey = "")
@@ -4565,6 +4566,7 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         router.SavedCombatWasPatrolAmbush = false;
         router.SavedCombatPatrolArchmageId = "";
         router.SavedCombatGuardianKey = guardianKey;
+        router.GuardApproach = "";   // C2b: the scout report sets it after this call, for a realm guard only
         router.SavedGoldMult = InSeep(hexCoord) ? Shardfall.SeepPayMult : 1f;   // H1: a seeped fight pays more
         router.SavedCombatArchmageId = "";
         router.SavedResolutionArchmageId = ""; // Step 9: set AFTER this call by resolution launchers
@@ -5019,6 +5021,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
         {
             OnNegotiationReturned(resultHex);
         }
+        else if (router.CombatWon && router.GuardApproach == GuardApproachSlip)
+        {
+            ResolveSlipPast(router, resultHex);   // C2b (ExpeditionManager.GuardApproaches.cs)
+        }
         else if (router.CombatWon)
         {
             // Standing Orders O3b (D206): a fight won in the interval records the casts it held back.
@@ -5214,7 +5220,10 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
             // Provinces PV2b-1 (docs/provinces_v1_7g_deeds_and_courts.md): a site cleared is a deed
             // in its province, weighed by its realm's court. A site that grants a staging point
             // counted as secured just above, so it is not paid twice.
-            if (clearedSite != null && !clearedSite.GrantsStaging)
+            // C2b: a guard post forced against an archmage's own soldiers is no deed for their realm.
+            bool forcedRealmGuard = router.GuardApproach == GuardApproachForceRealm;
+            router.GuardApproach = "";
+            if (clearedSite != null && !clearedSite.GrantsStaging && !forcedRealmGuard)
             {
                 string clearedNews = ProvinceInfluence.Deed(SaveManager.ActiveSave?.Cycle, clearedSite.X, clearedSite.Y,
                                                             ProvinceInfluence.SiteClearedGain);
@@ -5232,7 +5241,9 @@ private void OnPartyMoved(Vector2I newCoord, Vector2I oldCoord)
                 {
                     string sentRegion = StagingTemplateRegion();
                     string sentArch = sentCampaign.GetArchmageForRegion(sentRegion);
-                    if (!string.IsNullOrEmpty(sentArch))
+                    if (forcedRealmGuard)
+                        ApplyForcedRealmGuardCost(sentCampaign, router.SavedCombatArchmageId);   // C2b: a loss, not the nudge
+                    else if (!string.IsNullOrEmpty(sentArch))
                         sentCampaign.ShiftSentiment(sentArch, +5);
                 }
             }
