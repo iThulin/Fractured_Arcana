@@ -71,7 +71,7 @@ public partial class HexGridManager : Node3D
     [Export(PropertyHint.Range, "0.2,2,0.05")] public float FarFieldFirstStep = 0.5f;
 
     /** Each loop outward is this much wider than the one inside it (geometric spacing: dense at the seam, sparse at the rim). */
-    [Export(PropertyHint.Range, "1.05,1.5,0.01")] public float FarFieldStepGrowth = 1.2f;
+    [Export(PropertyHint.Range, "1.05,1.5,0.01")] public float FarFieldStepGrowth = 1.12f;
 
     /** Metres over which the vista edge height relaxes into the map field's own continuation. */
     [Export(PropertyHint.Range, "2,80,1")] public float FarFieldSeamBlend = 16f;
@@ -253,6 +253,26 @@ public partial class HexGridManager : Node3D
             FractalOctaves = 3
         };
         var elevCache = new Dictionary<Vector2I, float>();
+        // Far terrain comes from a smooth field (FarSea partial): no streaks.
+        var moistCache = new Dictionary<Vector2I, float>();
+        var broadMoisture = new FastNoiseLite
+        {
+            Seed = MapSeed ^ 0x51A7C3E9,
+            Frequency = 1f / Mathf.Max(FarFieldHillWavelength, 1f),
+            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth,
+            FractalType = FastNoiseLite.FractalTypeEnum.Fbm,
+            FractalOctaves = 3
+        };
+        // Water only carries on out here when a body of water reaches the edge of the
+        // tiles (the sea sheet in BuildFarSea covers it). Otherwise far water is land.
+        bool seaBeyond = EnableFarSea && outline.Any(o => o.Terrain == TileTerrainType.Water);
+        float seaBedY = seaBeyond ? outline.Where(o => o.Terrain == TileTerrainType.Water).Min(o => o.Y) : 0f;
+        TileTerrainType dryTerrain = outline.Where(o => o.Terrain != TileTerrainType.Water)
+                                            .GroupBy(o => o.Terrain)
+                                            .OrderByDescending(g => g.Count())
+                                            .Select(g => g.Key)
+                                            .DefaultIfEmpty(TileTerrainType.Grass)
+                                            .First();
         var palette = _activeRecipe?.BaseTerrain?.Palette;
         float seam = Mathf.Max(FarFieldSeamBlend, 0.5f);
         float minY = float.MaxValue;
@@ -298,9 +318,28 @@ public partial class HexGridManager : Node3D
                 // Water is never painted out here (no water plane covers the far field).
                 // Sink it under the backdrop plane instead, so a lake or sea side reads as
                 // haze, the way it did before the far field, not as a grass plain.
-                var ter = sOut < seam * 0.5f ? o.Terrain : FarFieldTerrainAt(field, p, palette);
+                TileTerrainType ter = o.Terrain;
+                if (sOut >= seam * 0.5f)
+                {
+                    float farT = SmoothStep01((sOut - seam * 0.5f) / (seam * 2f));
+                    ter = FarFieldTerrainSmooth(field, p, palette, macro, broadMoisture, elevCache, moistCache, farT, out float farElev);
+
+                    // High country stands up on the horizon. Never over a tile, and
+                    // eased off before the rim meets the backdrop plane.
+                    if (over?.TileView == null)
+                    {
+                        y += SmoothStep01((farElev - 0.62f) / 0.3f) * FarFieldPeakHeight * farT
+                            * (1f - SmoothStep01((r - radius * 0.78f) / (radius * 0.1f)));
+                    }
+                }
+
                 if (ter == TileTerrainType.Water)
-                    y = Mathf.Min(y, plane - 0.25f);
+                {
+                    if (seaBeyond)
+                        y = Mathf.Min(y, seaBedY - 0.3f);   // a bed for the sea sheet to cover
+                    else
+                        ter = dryTerrain;                    // no sea out here: it is land
+                }
 
                 pos[vi] = new Vector3(p.X, y, p.Y);
                 terr[vi] = ter;

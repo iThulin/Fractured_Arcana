@@ -58,9 +58,86 @@ public partial class GrassLodController : Node
         public Aabb Bounds;
         public int Total;
         public int Applied = int.MinValue; // last VisibleInstanceCount written (-1 = all)
+        public int SolidApplied = -1;      // -1 = not yet decided, 0 = fading material, 1 = solid
+    }
+
+    // ── Solid pass ──────────────────────────────────────────────
+    // The grass shader fades blades in and out by discarding pixels. A shader that
+    // can discard is treated as alpha-tested, so the GPU cannot skip blades hidden
+    // behind other blades. Chunks wholly inside the full-visibility range never
+    // fade, so they are switched to a copy of the shader with the discard compiled
+    // out. The two materials are kept identical otherwise: every parameter is
+    // copied across each frame, so wind, tide, glyph and imbuement changes made on
+    // the original reach the copy.
+
+    private ShaderMaterial _fadingMaterial;
+    private ShaderMaterial _solidMaterial;
+    private readonly List<StringName> _uniformNames = new();
+    private float _fadeStart = 18f;       // shader defaults, replaced by the material's values
+    private float _nearFadeStart = 2.8f;
+    private bool _distanceFade = true;
+    private bool _nearFade = true;
+
+    private static Shader _solidShaderSource;   // the shader the cached copy was built from
+    private static Shader _solidShader;
+
+    /// <summary>Builds the no-discard copy of the grass material. Call once, after the node
+    /// is created and before chunks register. Does nothing if the shader has no source.</summary>
+    public void ConfigureSolidPass(ShaderMaterial fading)
+    {
+        if (fading?.Shader == null)
+            return;
+
+        if (_solidShader == null || !ReferenceEquals(_solidShaderSource, fading.Shader))
+        {
+            const string header = "shader_type spatial;";
+            string code = fading.Shader.Code;
+            int at = string.IsNullOrEmpty(code) ? -1 : code.IndexOf(header, System.StringComparison.Ordinal);
+            if (at < 0)
+                return;
+
+            at += header.Length;
+            _solidShader = new Shader { Code = code.Substring(0, at) + "\n#define GRASS_SOLID\n" + code.Substring(at) };
+            _solidShaderSource = fading.Shader;
+        }
+
+        _fadingMaterial = fading;
+        _solidMaterial = (ShaderMaterial)fading.Duplicate();
+        _solidMaterial.Shader = _solidShader;
+
+        _uniformNames.Clear();
+        foreach (Godot.Collections.Dictionary uniform in fading.Shader.GetShaderUniformList())
+            _uniformNames.Add(uniform["name"].AsStringName());
+
+        _fadeStart = ReadFloat(fading, "fade_start", _fadeStart);
+        _nearFadeStart = ReadFloat(fading, "near_fade_start", _nearFadeStart);
+        _distanceFade = ReadBool(fading, "use_distance_fade", true);
+        _nearFade = ReadBool(fading, "use_near_fade", true);
+    }
+
+    private static float ReadFloat(ShaderMaterial material, string name, float fallback)
+    {
+        Variant v = material.GetShaderParameter(name);
+        return v.VariantType == Variant.Type.Float || v.VariantType == Variant.Type.Int ? v.AsSingle() : fallback;
+    }
+
+    private static bool ReadBool(ShaderMaterial material, string name, bool fallback)
+    {
+        Variant v = material.GetShaderParameter(name);
+        return v.VariantType == Variant.Type.Bool ? v.AsBool() : fallback;
+    }
+
+    /// <summary>Copies every shader parameter from the fading material to the solid one.</summary>
+    private void SyncSolidMaterial()
+    {
+        if (_solidMaterial == null || _fadingMaterial == null)
+            return;
+        foreach (StringName name in _uniformNames)
+            _solidMaterial.SetShaderParameter(name, _fadingMaterial.GetShaderParameter(name));
     }
 
     private readonly List<Entry> _entries = new();
+    private int _lastSolidReported = -1;
     private double _accum;
 
     /// <summary>Registers one grass chunk. <paramref name="bounds"/> is the chunk's
@@ -80,6 +157,8 @@ public partial class GrassLodController : Node
 
     public override void _Process(double delta)
     {
+        SyncSolidMaterial();   // every frame: tide and glyph changes animate
+
         _accum += delta;
         if (_accum < UpdateInterval)
             return;
@@ -95,6 +174,7 @@ public partial class GrassLodController : Node
         float lens = CameraController.LensDistanceScale(cam);
 
         float span = Mathf.Max(0.001f, EndDistance - FullDistance);
+        int solidCount = 0;
 
         foreach (var e in _entries)
         {
@@ -125,10 +205,37 @@ public partial class GrassLodController : Node
                 target = Mathf.Max(1, Mathf.RoundToInt(e.Total * f));
             }
 
-            if (target == e.Applied)
+            if (target != e.Applied)
+            {
+                e.Mmi.Multimesh.VisibleInstanceCount = target;
+                e.Applied = target;
+            }
+
+            if (_solidMaterial == null)
                 continue;
-            e.Mmi.Multimesh.VisibleInstanceCount = target;
-            e.Applied = target;
+
+            // Solid only when the chunk's FARTHEST point is still short of the fade and
+            // its nearest point is beyond the near fade, with a margin on both.
+            Vector3 farthest = new Vector3(
+                Mathf.Abs(camPos.X - e.Bounds.Position.X) > Mathf.Abs(camPos.X - e.Bounds.End.X) ? e.Bounds.Position.X : e.Bounds.End.X,
+                Mathf.Abs(camPos.Y - e.Bounds.Position.Y) > Mathf.Abs(camPos.Y - e.Bounds.End.Y) ? e.Bounds.Position.Y : e.Bounds.End.Y,
+                Mathf.Abs(camPos.Z - e.Bounds.Position.Z) > Mathf.Abs(camPos.Z - e.Bounds.End.Z) ? e.Bounds.Position.Z : e.Bounds.End.Z);
+            bool insideFar = !_distanceFade || camPos.DistanceTo(farthest) / lens < _fadeStart * 0.9f;
+            bool beyondNear = !_nearFade || camPos.DistanceTo(nearest) > _nearFadeStart * 1.25f;
+            int solid = insideFar && beyondNear ? 1 : 0;
+            solidCount += solid;
+            if (solid != e.SolidApplied)
+            {
+                e.Mmi.MaterialOverride = solid == 1 ? _solidMaterial : _fadingMaterial;
+                e.SolidApplied = solid;
+            }
+        }
+
+        // Say how many chunks took the solid shader, when that number changes.
+        if (_solidMaterial != null && solidCount != _lastSolidReported)
+        {
+            _lastSolidReported = solidCount;
+            GD.Print($"[GrassLod] {solidCount} of {_entries.Count} grass chunk(s) on the solid shader (fade starts at {_fadeStart:0.#}).");
         }
     }
 }

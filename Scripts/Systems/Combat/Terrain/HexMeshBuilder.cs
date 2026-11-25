@@ -98,7 +98,7 @@ public static class HexMeshBuilder
     // ── Per-terrain parameters ────────────────────────────────────────────────
 
     /// <summary>(amplitude, frequency) for a terrain type, from HexGridManager exports.</summary>
-    private static (float amp, float freq) NoiseParams(HexGridManager grid, TileTerrainType terrain)
+    internal static (float amp, float freq) NoiseParams(HexGridManager grid, TileTerrainType terrain)
     {
         return terrain switch
         {
@@ -173,6 +173,11 @@ public static class HexMeshBuilder
     {
         if (tile.TileView == null)
             return null;
+
+        // Continuous ground: the tile is a patch of one smooth surface (GroundSurface.cs).
+        // Everything below is the old per-tile construction, kept for interiors.
+        if (grid.ContinuousGroundActive)
+            return GroundSurface.BuildTileMesh(grid, tile, worldFloor, splatMode);
 
         float radius = grid.HexRadius;
         float ownTop = tile.Height * HexTile.HeightStep;
@@ -474,6 +479,11 @@ public static class HexMeshBuilder
         float ownTop = tile.Height * HexTile.HeightStep;
         if (tile.TileView == null)
             return ownTop;
+
+        // Continuous ground: one height function for the mesh and for everything that
+        // sits on it (grass, rocks, water depth, the far field rim).
+        if (grid.ContinuousGroundActive)
+            return GroundSurface.Sample(grid, worldX, worldZ);
 
         float radius = grid.HexRadius;
         Vector2 originXZ = new Vector2(tile.TileView.GlobalPosition.X, tile.TileView.GlobalPosition.Z);

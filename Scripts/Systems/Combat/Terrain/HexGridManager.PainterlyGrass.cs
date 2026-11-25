@@ -91,6 +91,9 @@ public partial class HexGridManager : Node3D
     /** Distance-density LOD: far chunks draw a uniform random subsample of their blades (via VisibleInstanceCount), saving the vertex work the dither fade alone cannot (discarded fragments still cost their vertices). */
     [Export] public bool GrassLodEnabled = true;
 
+    /// <summary>Draw grass chunks that are wholly inside the full-visibility range with a version of the shader that cannot discard pixels. Same look, far cheaper on tile-based GPUs (Apple Silicon). Needs GrassLodEnabled.</summary>
+    [Export] public bool GrassSolidNearChunks = true;
+
     /** Camera distance up to which a chunk draws 100% of its blades. Keep at or below the grass material's fade_start so LOD thinning hides inside the dither fade. */
     [Export(PropertyHint.Range, "4,80,1")] public float GrassLodFullDistance = 24f;
 
@@ -398,6 +401,12 @@ public partial class HexGridManager : Node3D
                 float hs = GrassScale * vScale * (1f + rng.RandfRange(-GrassHeightJitter, GrassHeightJitter));
                 float ws = GrassScale * vScale * (1f + rng.RandfRange(-GrassWidthJitter, GrassWidthJitter));
 
+                // Thinned out-of-bounds grass: fewer tufts, each wider, so the ground stays
+                // covered instead of going patchy (Surround partial, SurroundGrassFill).
+                float fill = SurroundTuftScale(scatterDensity);
+                ws *= fill;
+                hs *= Mathf.Lerp(1f, fill, 0.3f);
+
                 var basis = new Basis(Vector3.Up, yaw)
                     .Scaled(new Vector3(Mathf.Max(0.05f, ws), Mathf.Max(0.05f, hs), Mathf.Max(0.05f, ws)));
 
@@ -452,6 +461,11 @@ public partial class HexGridManager : Node3D
             };
             lod.AddToGroup(PainterlyGrassGroup);
             parent.AddChild(lod);
+
+            // Near chunks draw with a copy of the grass shader that cannot discard
+            // (GrassLodController swaps it in). Off = every chunk uses the one material.
+            if (GrassSolidNearChunks && mat is ShaderMaterial fading)
+                lod.ConfigureSolidPass(fading);
         }
 
         // One MultiMeshInstance3D per non-empty (chunk, variant) pair. All share

@@ -294,6 +294,7 @@ public static class CastleDefenseCompiler
         var recipe = new JsonObject
         {
             ["id"] = result.RecipeId,
+            ["hard_ground"] = true,   // the deck is a built platform: keep wall faces
             ["display_name"] = "The Gangway",
             ["shape"] = new JsonObject { ["type"] = "hexagon", ["radius"] = R },
             ["base_terrain"] = new JsonObject

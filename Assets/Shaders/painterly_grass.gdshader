@@ -717,8 +717,15 @@ void fragment()
         fade *= smoothstep(near_fade_end,
                            max(near_fade_start, near_fade_end + 0.01), v_view_dist);
 
+    // GRASS_SOLID: a second copy of this shader built without the discard, used on
+    // chunks that sit wholly inside the full-visibility range (GrassLodController).
+    // A shader that can discard is drawn as alpha-tested geometry, which stops the
+    // GPU throwing away hidden blades before shading them. On tile-based GPUs
+    // (Apple Silicon, mobile) that is most of the cost of a dense field.
+#ifndef GRASS_SOLID
     if (fade < 1.0 && fade < dither_bayer(FRAGCOORD.xy))
         discard;
+#endif
 }
 
 void light()

@@ -44,6 +44,11 @@ uniform float normal_strength : hint_range(0.0, 2.0) = 1.0;
 /** Flip normal green channel if maps are DirectX (-Y) not OpenGL (+Y). */
 uniform bool flip_normal_y = false;
 
+group_uniforms performance;
+/** Skip texture lookups that cannot affect the pixel: layers with no weight, side projections on flat ground, and the rock, cliff, grass and water treatments where those are absent. Same picture, far fewer lookups per pixel. Off = the old always-sample-everything path, for comparison. */
+uniform bool lean_sampling = true;
+group_uniforms;
+
 // ── Cliff retexturing ──────────────────────────────────────────
 group_uniforms cliff_retexture;
 /** Terrain array layer used for steep cliff faces. = (int)TileTerrainType rock. */
@@ -209,7 +214,7 @@ uniform float snow_normal_strength : hint_range(0.0, 1.0) = 0.1;
 /** How fully snow covers the slopes between snow tiles. 0 = slopes show rock and earth (the old look), 1 = unbroken snow banks. */
 uniform float snow_drape : hint_range(0.0, 1.0) = 0.9;
 /** Steepness above which a face counts as a real cliff wall and stays rock. */
-uniform float snow_drape_wall : hint_range(0.5, 1.0) = 0.86;
+uniform float snow_drape_wall : hint_range(0.3, 1.0) = 0.55;
 /** How much of the out-of-bounds dimming (vista mute and horizon melt) applies to snow ground. 1 = same as other terrain, 0 = none. */
 uniform float snow_vista_mute : hint_range(0.0, 1.0) = 0.2;
 /** How well flat STONE tops hold settled snow (snow_cover). Below 1 leaves rock showing in patches. */
@@ -284,6 +289,8 @@ uniform float cliff_relief_scale : hint_range(0.05, 2.0) = 0.5;
 uniform float cliff_facet_strength : hint_range(0.0, 0.8) = 0.35;
 /** Horizontal frequency of the vertical facet crevices. */
 uniform float cliff_facet_scale : hint_range(0.2, 4.0) = 1.3;
+/** Steepness above which a face counts as a sheer wall and gets the facet seams. Below it the face is a slope and stays smooth rock. 1 = never. */
+uniform float cliff_wall_start : hint_range(0.5, 1.0) = 0.85;
 
 // ── Painterly ground detail (mottling + small stones) ──────────
 group_uniforms ground_detail;
@@ -488,6 +495,7 @@ varying vec3 v_world_normal;
 varying vec4 v_indices;
 varying vec4 v_weights;
 varying vec2 v_local_xz;
+varying vec2 v_vista;     // UV2 from the continuous ground: x = 2 + mute, y = horizon melt. x below 1.5 = not supplied
 varying float v_skirt;   // 1.0 on map-edge skirt faces (from vertex-colour alpha)
 
 float toon_band(float x, float bands, float softness) {
@@ -506,6 +514,7 @@ void vertex() {
 	v_weights = COLOR;
 	v_skirt = COLOR.a;          // section-4 skirts set A=1; interior faces A=0
 	v_local_xz = VERTEX.xz;
+	v_vista = UV2;
 }
 
 vec3 sample_albedo(float layer, vec3 wp, vec3 bw) {
@@ -566,6 +575,33 @@ vec3 rock_paint(vec3 wp) {
 	return c;
 }
 
+// One splat layer's albedo and top normal, sampled only where it can show. Uses
+// explicit gradients (taken once, outside any branch), so skipping a lookup can
+// never disturb the mip level of its neighbours.
+void lean_layer(float layer, float wt, vec3 tp, vec3 bw,
+		vec2 dx_zy, vec2 dy_zy, vec2 dx_xz, vec2 dy_xz, vec2 dx_xy, vec2 dy_xy,
+		inout vec3 alb, inout vec3 nrm) {
+	if (wt <= 0.001) {
+		return;
+	}
+	vec3 c = vec3(0.0);
+	float used = 0.0;
+	if (bw.x > 0.01) {
+		c += textureGrad(terrain_textures, vec3(tp.zy, layer), dx_zy, dy_zy).rgb * bw.x;
+		used += bw.x;
+	}
+	if (bw.y > 0.01) {
+		c += textureGrad(terrain_textures, vec3(tp.xz, layer), dx_xz, dy_xz).rgb * bw.y;
+		used += bw.y;
+	}
+	if (bw.z > 0.01) {
+		c += textureGrad(terrain_textures, vec3(tp.xy, layer), dx_xy, dy_xy).rgb * bw.z;
+		used += bw.z;
+	}
+	alb += c / max(used, 0.0001) * wt;
+	nrm += decode_n(textureGrad(terrain_normals, vec3(tp.xz, layer), dx_xz, dy_xz).rgb) * wt;
+}
+
 void fragment() {
 	vec3 geom = normalize(v_world_normal);
 	vec3 bw = pow(abs(geom), vec3(triplanar_sharpness));
@@ -611,29 +647,57 @@ void fragment() {
 	w /= max(w.r + w.g + w.b + w.a, 0.0001);
 
 	// ── Base terrain albedo ──────────────────────────────────────
-	vec3 terrain_albedo =
-		sample_albedo(v_indices.r, v_world_pos, bw) * w.r +
-		sample_albedo(v_indices.g, v_world_pos, bw) * w.g +
-		sample_albedo(v_indices.b, v_world_pos, bw) * w.b +
-		sample_albedo(v_indices.a, v_world_pos, bw) * w.a;
+	// Texture-space position and its screen gradients, taken here, outside every branch.
+	vec3 tp = v_world_pos * texture_scale;
+	vec2 dx_zy = dFdx(tp.zy);
+	vec2 dy_zy = dFdy(tp.zy);
+	vec2 dx_xz = dFdx(tp.xz);
+	vec2 dy_xz = dFdy(tp.xz);
+	vec2 dx_xy = dFdx(tp.xy);
+	vec2 dy_xy = dFdy(tp.xy);
 
-	vec3 terrain_n =
-		sample_normal_top(v_indices.r, v_world_pos) * w.r +
-		sample_normal_top(v_indices.g, v_world_pos) * w.g +
-		sample_normal_top(v_indices.b, v_world_pos) * w.b +
-		sample_normal_top(v_indices.a, v_world_pos) * w.a;
+	vec3 terrain_albedo = vec3(0.0);
+	vec3 terrain_n = vec3(0.0);
+	if (lean_sampling) {
+		lean_layer(v_indices.r, w.r, tp, bw, dx_zy, dy_zy, dx_xz, dy_xz, dx_xy, dy_xy, terrain_albedo, terrain_n);
+		lean_layer(v_indices.g, w.g, tp, bw, dx_zy, dy_zy, dx_xz, dy_xz, dx_xy, dy_xy, terrain_albedo, terrain_n);
+		lean_layer(v_indices.b, w.b, tp, bw, dx_zy, dy_zy, dx_xz, dy_xz, dx_xy, dy_xy, terrain_albedo, terrain_n);
+		lean_layer(v_indices.a, w.a, tp, bw, dx_zy, dy_zy, dx_xz, dy_xz, dx_xy, dy_xy, terrain_albedo, terrain_n);
+	} else {
+		terrain_albedo =
+			sample_albedo(v_indices.r, v_world_pos, bw) * w.r +
+			sample_albedo(v_indices.g, v_world_pos, bw) * w.g +
+			sample_albedo(v_indices.b, v_world_pos, bw) * w.b +
+			sample_albedo(v_indices.a, v_world_pos, bw) * w.a;
+
+		terrain_n =
+			sample_normal_top(v_indices.r, v_world_pos) * w.r +
+			sample_normal_top(v_indices.g, v_world_pos) * w.g +
+			sample_normal_top(v_indices.b, v_world_pos) * w.b +
+			sample_normal_top(v_indices.a, v_world_pos) * w.a;
+	}
 
 	// ── Cliff layer (rock) ───────────────────────────────────────
 	// Painterly rock (strata + elevation) instead of the flat cliff-layer
 	// texture sample — the empty slot rendered steep faces as solid grey,
 	// the biggest reason mountains read as clay.
 	float cl = float(cliff_layer);
-	vec3 cliff_albedo = rock_paint(v_world_pos);
-	vec3 cliff_n = sample_normal_wall(cl, v_world_pos, bw);
-
 	float steep = 1.0 - abs(geom.y);
 	float cliff_mix = smoothstep(0.0, 1.0,
 		clamp((steep - cliff_blend_start) * cliff_blend_sharpness, 0.0, 1.0));
+
+	// Rock colour and wall normal only where a cliff can show (lean), or always (old path).
+	vec3 cliff_albedo = vec3(0.5);
+	vec3 cliff_n = vec3(0.0, 0.0, 1.0);
+	if (!lean_sampling) {
+		cliff_albedo = rock_paint(v_world_pos);
+		cliff_n = sample_normal_wall(cl, v_world_pos, bw);
+	} else if (cliff_mix > 0.001) {
+		cliff_albedo = rock_paint(v_world_pos);
+		vec3 wnx = decode_n(textureGrad(terrain_normals, vec3(tp.zy, cl), dx_zy, dy_zy).rgb);
+		vec3 wnz = decode_n(textureGrad(terrain_normals, vec3(tp.xy, cl), dx_xy, dy_xy).rgb);
+		cliff_n = (wnx * bw.x + wnz * bw.z) / max(bw.x + bw.z, 0.0001);
+	}
 	// No cliff retexture UNDERWATER: shore-corner welds create steep little
 	// bed wedges that this slope test painted dark grey — the "black
 	// triangles at land-water corners" bug. Submerged slopes keep their own
@@ -679,6 +743,7 @@ void fragment() {
 			(abs(v_indices.b - gl) < 0.5 ? w.b : 0.0) +
 			(abs(v_indices.a - gl) < 0.5 ? w.a : 0.0);
 
+		if (!lean_sampling || grass_weight > 0.001) {
 		float gt = pastel_from_noise
 			? texture(pastel_noise_tex, v_world_pos.xz * pastel_noise_scale).r
 			: smoothstep(pastel_height_low, pastel_height_high, v_world_pos.y);
@@ -699,6 +764,7 @@ void fragment() {
 
 		float ground_mask = (1.0 - cliff_mix) * pastel_strength * grass_weight * (1.0 - is_skirt);
 		albedo = mix(albedo, pastel, ground_mask);
+		}
 	}
 
 	// ── Stone ground tonal mass (stone tops only) ────────────────
@@ -710,6 +776,7 @@ void fragment() {
 			(abs(v_indices.b - sl) < 0.5 ? w.b : 0.0) +
 			(abs(v_indices.a - sl) < 0.5 ? w.a : 0.0);
 
+		if (!lean_sampling || stone_weight > 0.001) {
 		vec3 stone_col = rock_paint(v_world_pos);
 
 		// Snow cover settles on stone tops. snow_on_stone below 1 leaves rock showing in patches.
@@ -718,6 +785,7 @@ void fragment() {
 
 		float stone_mask = (1.0 - cliff_mix) * stone_strength * stone_weight * (1.0 - is_skirt);
 		albedo = mix(albedo, stone_col, stone_mask);
+		}
 	}
 
 	// ── Sand ground tonal mass (sand tops only) ──────────────────
@@ -879,6 +947,7 @@ void fragment() {
 			(abs(v_indices.b - wl) < 0.5 ? w.b : 0.0) +
 			(abs(v_indices.a - wl) < 0.5 ? w.a : 0.0);
 
+		if (!lean_sampling || water_weight > 0.001) {
 		vec2 ndir = normalize(water_flow);
 		vec2 perp = vec2(-ndir.y, ndir.x);
 		float along = dot(v_world_pos.xz, ndir);
@@ -916,11 +985,16 @@ void fragment() {
 
 		float water_mask = water_weight * (1.0 - is_skirt);
 		albedo = mix(albedo, wcol, water_mask);
+		}
 	}
 
 	// ── Cliff treatment (interior steep faces only — skirts excluded) ──
-	if (use_cliff_treatment) {
+	if (use_cliff_treatment && (!lean_sampling || cliff_mix > 0.001)) {
 		float face = cliff_mix * (1.0 - is_skirt);
+		// How close this face is to a true vertical wall. The facet seams and base shadow
+		// were drawn for sheer walls. On the continuous ground a cliff is a steep slope,
+		// and there they stretch into blocky dark shapes, so they fade out with the lean.
+		float wallness = smoothstep(cliff_wall_start, cliff_wall_start + 0.12, steep);
 
 		vec3 cliff_col = mix(albedo, cliff_tint, cliff_tint_strength);
 
@@ -946,7 +1020,7 @@ void fragment() {
 		float acrossf = crack_uv.x * cliff_facet_scale + texture(cliff_crack_tex, crack_uv * 0.25).r * 0.8;
 		float seam = abs(fract(acrossf) - 0.5) * 2.0;
 		seam = 1.0 - smoothstep(0.0, 0.16, seam);
-		cliff_col *= 1.0 - seam * cliff_facet_strength;
+		cliff_col *= 1.0 - seam * cliff_facet_strength * wallness;
 
 		// S11 — fake rocky relief: bend the working normal on the face plane so
 		// toon light rolls over crags instead of a mirror-flat wall (the sand /
@@ -1010,25 +1084,30 @@ void fragment() {
 	}
 
 	// ── Vista de-emphasis: mute non-playable perimeter tiles ─────
-	if (vista_fade > 0.001) {
+	// Out-of-bounds dimming. The continuous ground supplies it per vertex, blended
+	// between tiles, so it has no step per ring. Older meshes use the per-tile values.
+	bool vista_per_vertex = v_vista.x > 1.5;
+	float vista_mute_amt = vista_per_vertex ? clamp(v_vista.x - 2.0, 0.0, 1.0) : vista_fade;
+	float vista_melt_amt = vista_per_vertex ? clamp(v_vista.y, 0.0, 1.0) : vista_horizon;
+	if (vista_mute_amt > 0.001) {
 		float v_luma = dot(albedo, vec3(0.299, 0.587, 0.114));
 		vec3 muted = mix(albedo, vec3(v_luma), vista_desaturation) * (1.0 - vista_darken);
 		// On snow the mute is scaled down: greying and darkening white ground reads as a
 		// different material, not as distance (snow_vista_mute).
-		albedo = mix(albedo, muted, vista_fade * mix(1.0, snow_vista_mute, clamp(snow_ground_weight, 0.0, 1.0)));
+		albedo = mix(albedo, muted, vista_mute_amt * mix(1.0, snow_vista_mute, clamp(snow_ground_weight, 0.0, 1.0)));
 	}
 
 	// ── Horizon melt: outer vista rings dissolve toward the theme
 	//    fog colour — SUBTLE on top faces (close-range melt reads as
 	//    ice, not haze), STRONG on the skirt/void faces at the rim ──
-	if (vista_horizon > 0.001) {
+	if (vista_melt_amt > 0.001) {
 		// Top-face melt is suppressed underwater — the water SURFACE carries
 		// the horizon dissolve out there (painterly_water horizon group);
 		// melting the bed just reads as a white seabed through the water.
 		// Same scaling on snow: the melt steps once per ring of tiles, and on white
 		// ground each step shows as a seam between hexes.
 		float snow_melt_scale = mix(1.0, snow_vista_mute, clamp(snow_ground_weight, 0.0, 1.0));
-		float melt = vista_horizon * mix(horizon_strength * above_water * snow_melt_scale, horizon_skirt_strength, is_skirt);
+		float melt = vista_melt_amt * mix(horizon_strength * above_water * snow_melt_scale, horizon_skirt_strength, is_skirt);
 		albedo = mix(albedo, horizon_color, melt);
 	}
 

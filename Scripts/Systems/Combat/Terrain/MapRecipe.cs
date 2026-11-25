@@ -638,6 +638,10 @@ public sealed class MapRecipe
     public ObstaclePalette Obstacles;
     /// <summary>The set this fight is staged inside, or null outdoors (InteriorSpec).</summary>
     public InteriorSpec Interior;
+    /// <summary>True for a map whose ground is a built thing with hard edges (a castle deck),
+    /// so it keeps the old per-tile mesh with wall faces instead of the continuous
+    /// ground. JSON: "hard_ground": true.</summary>
+    public bool HardGround;
     /// <summary>Without a deployments block, where along the board's length (west to
     /// east, 0 to 1) the player's and the enemy's layout anchors sit. The defaults are
     /// the pre-spec plan; a long board (the prologue's examination floor) moves them in.
@@ -670,6 +674,7 @@ public sealed class MapRecipe
             Sand = skin.Sand ?? Sand,
             Siege = Siege,
             Tactics = Tactics,
+            HardGround = HardGround,
             Obstacles = skin.Obstacles ?? Obstacles,
             Interior = Interior,
             AnchorPlayer = AnchorPlayer,
@@ -711,6 +716,8 @@ public sealed class MapRecipe
 
         if (d.ContainsKey("atmosphere"))
             r.Atmosphere = AtmosphereSpec.FromDict(d["atmosphere"].AsGodotDictionary());
+
+        r.HardGround = d.ContainsKey("hard_ground") && d["hard_ground"].AsBool();
 
         if (d.ContainsKey("water"))
             r.Water = WaterSpec.FromDict(d["water"].AsGodotDictionary());

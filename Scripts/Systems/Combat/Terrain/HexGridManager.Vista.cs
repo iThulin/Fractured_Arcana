@@ -89,7 +89,7 @@ public partial class HexGridManager : Node3D
         foreach (var t in Tiles.Values)
             yield return (t, 1f);
         foreach (var t in VistaTiles.Values)
-            yield return (t, VistaScatterDensity);
+            yield return (t, VistaDensityFor(t));
     }
 
     /// <summary>Generates vista TileData + nodes ring by ring. Terrain/height come from
@@ -106,7 +106,11 @@ public partial class HexGridManager : Node3D
         var known = new HashSet<Vector2I>(Tiles.Keys);
         var frontier = new List<Vector2I>(Tiles.Keys);
 
-        for (int r = 0; r < VistaRingDepth; r++)
+        // Wide surround: many rings, each tile a bare stand-in node (Surround partial).
+        bool wide = SurroundActive;
+        int ringDepth = ActiveVistaDepth;
+
+        for (int r = 0; r < ringDepth; r++)
         {
             var next = new List<Vector2I>();
 
@@ -143,7 +147,7 @@ public partial class HexGridManager : Node3D
                     int side = DominantDirection(coord);
                     if (VistaTerrainBias.TryGetValue(side, out var biased) && biased != terrain)
                     {
-                        float ringT = VistaRingDepth <= 1 ? 1f : (float)r / (VistaRingDepth - 1);
+                        float ringT = ringDepth <= 1 ? 1f : (float)r / (ringDepth - 1);
                         float chance = Mathf.Lerp(0.45f, 0.9f, ringT);
                         if (VistaHash01(coord) < chance)
                             terrain = biased;
@@ -170,7 +174,7 @@ public partial class HexGridManager : Node3D
                 if (mn != int.MaxValue)
                     h = Mathf.Clamp(h, mn - 1 - r, mx + r);
 
-                var tileNode = HexTileScene3D.Instantiate<HexTile>();
+                HexTile tileNode = wide ? new SurroundTile() : HexTileScene3D.Instantiate<HexTile>();
                 tileNode.Position = AxialToWorld(coord);
                 tileNode.Axial = coord;
                 AddChild(tileNode);
@@ -192,9 +196,11 @@ public partial class HexGridManager : Node3D
                 tileNode.Data = data;
                 // Horizon melt ramps across the rings: innermost 0 (just muted),
                 // outermost 1 (dissolves toward the theme fog colour).
-                float horizonBlend = VistaRingDepth <= 1
+                float horizonBlend = ringDepth <= 1
                     ? 1f
-                    : (float)r / (VistaRingDepth - 1);
+                    : (float)r / (ringDepth - 1);
+                data.VistaHorizon = horizonBlend;
+                data.VistaRing = r;
                 tileNode.MarkAsVista(horizonBlend);
                 VistaTiles[coord] = data;
             }
@@ -240,6 +246,12 @@ public partial class HexGridManager : Node3D
     /// the playable meshes were built, so edge tiles have already blended outward.</summary>
     private void BuildVistaMeshes()
     {
+        if (SurroundActive)
+        {
+            BuildSurroundMesh();   // one merged mesh (Surround partial)
+            return;
+        }
+
         foreach (var tile in VistaTiles.Values)
         {
             if (tile.TileView == null)

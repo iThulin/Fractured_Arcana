@@ -122,6 +122,15 @@ public class TileData
     /// <summary>Tile height in integer steps. 0 is ground; positive values are raised terrain.</summary>
     public int Height = 0;
 
+    /// <summary>Out-of-bounds dressing tiles only: how far this tile's ring has faded toward
+    /// the horizon, 0 (innermost ring) to 1 (outermost). Below 0 on every playable tile.
+    /// The continuous ground blends it between tiles so the fade has no steps.</summary>
+    public float VistaHorizon = -1f;
+
+    /// <summary>Out-of-bounds tiles only: which ring out from the board this tile is in,
+    /// 0 beside the board. Below 0 on every playable tile.</summary>
+    public int VistaRing = -1;
+
     // ── Gameplay properties ─────────────────────────────────────────────────
 
     /// <summary>Underlying terrain biome. Distinct from <see cref="ElementType"/>, which is a per-cast imbuement layered on top.</summary>

@@ -471,7 +471,7 @@ public partial class HexGridManager : Node3D
             float halfSpan = Mathf.Max(GridBoundsMax.X - GridBoundsMin.X, GridBoundsMax.Z - GridBoundsMin.Z) * 0.5f;
             waterSm.SetShaderParameter("board_center", new Vector2(boardCenter.X, boardCenter.Z));
             waterSm.SetShaderParameter("horizon_melt_start", halfSpan + HexRadius * 1.5f);
-            waterSm.SetShaderParameter("horizon_melt_end", halfSpan + HexRadius * 1.75f * (VistaRingDepth + 1.5f));
+            waterSm.SetShaderParameter("horizon_melt_end", halfSpan + HexRadius * 1.75f * (ActiveVistaDepth + 1.5f));
 
             if (WaterSunLight != null)
                 waterSm.SetShaderParameter("sun_direction", -WaterSunLight.GlobalTransform.Basis.Z);
@@ -500,6 +500,9 @@ public partial class HexGridManager : Node3D
             else
                 waterSm.SetShaderParameter("rise_t", 1f);
         }
+
+        // Water that reaches the edge of the tiles carries on to the horizon (FarSea partial).
+        BuildFarSea(surfaceYByTile, mat);
     }
 
     // ── Material resolution (mirrors ResolvePainterlyGrassMaterial) ─────────
