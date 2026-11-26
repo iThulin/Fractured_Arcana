@@ -60,6 +60,9 @@ public partial class SettingsMenu
     {
         if (FindChild(DeveloperToolsName, false, false) != null)
             return;
+        // 2026-11-25: opening the tools turns Debug Mode on, so the tools list shows at
+        // once with no checkbox to tick first. The checkbox inside still turns it off.
+        PlayerSession.DebugMode = true;
         var overlay = new Control
         {
             Name = DeveloperToolsName,

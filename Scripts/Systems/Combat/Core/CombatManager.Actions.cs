@@ -85,7 +85,7 @@ public partial class CombatManager
             {
                 Kind = UnitAction.Interact,
                 Label = $"Interact ({MartialAPCosts.AttackMelee} AP)",
-                Tooltip = $"Adjacent: {what}. Click the lever or the wall. A plain click on a lever also works.",
+                Tooltip = $"Adjacent: {what}. Click the object or the wall. A plain click on a lever, winch or supplies also works.",
                 Enabled = myTurn && unit.CurrentActionPoints >= MartialAPCosts.AttackMelee && unit.CanAct(),
                 Armed = _armedAction == UnitAction.Interact,
             });
@@ -230,7 +230,8 @@ public partial class CombatManager
             return false;
         var kind = _armedAction;
         // A lever is the one target a plain click may interact with: it means one thing.
-        if (kind == UnitAction.None && target.IsMapObject && target.MapObjectKind == "lever")
+        if (kind == UnitAction.None && target.IsMapObject
+            && (target.MapObjectKind == "lever" || IsWorkObject(target)))   // C7: work objects too
             kind = UnitAction.Interact;
         if (kind == UnitAction.None && Input.IsKeyPressed(Key.Shift) && DanceCaster() != null)
             kind = UnitAction.Swap;
@@ -262,8 +263,12 @@ public partial class CombatManager
                 TryMartialAttack(selectedUnit, target);
                 break;
             case UnitAction.Interact:
-                if (!(target.IsMapObject && target.MapObjectKind == "lever")) return false;
-                TryWorkLever(selectedUnit, target);
+                if (target.IsMapObject && target.MapObjectKind == "lever")
+                    TryWorkLever(selectedUnit, target);
+                else if (IsWorkObject(target))
+                    TryWorkObject(selectedUnit, target);   // C7 (CombatManager.WorkObjects.cs)
+                else
+                    return false;
                 break;
             case UnitAction.Swap:
                 if (!TryDanceSwap(selectedUnit, target)) return false;
@@ -306,6 +311,10 @@ public partial class CombatManager
             {
                 var ev = LeverEventFor(t.Occupant);
                 list.Add((ev != null ? LeverActionText(ev) : "pull the lever", n, t.Occupant));
+            }
+            else if (IsWorkObject(t.Occupant))   // C7
+            {
+                list.Add((WorkText(t.Occupant, unit), n, t.Occupant));
             }
             else if (t.IsBlocked && t.ObstacleHp > 0)
             {

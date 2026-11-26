@@ -124,6 +124,11 @@ public static class PlayerSession
     /// run. Reset on return. Prevents the blank-screen exit from a debug fight.</summary>
     public static bool DebugCombat = false;
 
+    /// <summary>Debug launcher checkbox (stage C5): offer Withdraw in this debug
+    /// fight, which is otherwise field-only. Read only while DebugCombat is set.
+    /// Set by the launcher on every launch, cleared on return.</summary>
+    public static bool DebugAllowWithdraw = false;
+
     /// <summary>Set by NegotiationDebugLauncher: this table was launched standalone
     /// from the hub. NegotiationManager reads NegotiationDebug overrides while it is
     /// set, records nothing to the Hall of Records, and returns to the hub on close.
@@ -143,6 +148,11 @@ public static class PlayerSession
     /// Ids not on the launched recipe fall back to the roll with a warning.
     /// Cleared on return to campus.</summary>
     public static string DebugDeploymentId = null;
+
+    /// <summary>Debug launcher: "barrier" forces a wall across the board, "none"
+    /// forbids one, null rolls as a real fight does (stage C8). Read only while
+    /// DebugCombat is set. Set by the launcher on every launch, cleared on return.</summary>
+    public static string DebugObstruction = null;
 
     /// <summary>When set, HexGridManager.EnforceHazardCap is skipped so the
     /// guarantee-pass hazard trim can be A/B-compared against an uncapped map.</summary>

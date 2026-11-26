@@ -53,8 +53,79 @@ public partial class CombatManager
                 "and comes for you once it is hurt. ──");
         }
 
+        AnnounceObstruction();   // C8 (CombatManager.Obstructions.cs)
+
         if (ReachActive)
+        {
             PostReachWarden();
+            PostReachPicket();
+            if (_reachBarricadePieces > 0)
+                combatUI?.AppendActionLog(
+                    "A barricade stands in front of the far exit, with one gate. The Gate Winch is inside it. " +
+                    "If the gate is shut, break a piece to get in. " +
+                    "A Powder Cask breaks easily and bursts on anything next to it.");
+            AssignGateKeeper();   // C9: the enemy mans the winch (CombatManager.GateKeeper.cs)
+        }
+
+        AssignSignalRunner();   // C9: after the posts, so a post-holder is never the runner (CombatManager.SignalFire.cs)
+    }
+
+    /// <summary>A reach fight fields extra enemies in front of the far exit: half
+    /// the roster again, rounded down, at least 1 and at most this many.</summary>
+    private const int ReachPicketMax = 3;
+
+    /// <summary>Spawns the picket: copies of the fight's own roster, placed just
+    /// outside the barricade on the side the party comes from. A unit that can hold
+    /// a post holds one there. Spawned here and not added to the encounter, so a
+    /// fight that is started again does not grow its roster each time.</summary>
+    private void PostReachPicket()
+    {
+        var roster = EncounterContextCarrier.Current?.Enemies;
+        if (roster == null || roster.Count == 0 || grid == null || _objective == null)
+            return;
+        int want = Mathf.Clamp(roster.Count / 2, 1, ReachPicketMax);
+
+        Vector2I centre = grid.ResolveRecipeCoord(_objective.ZoneAnchor);
+        Vector2I mid = grid.RecipeMidpoint;
+        int near = Mathf.Max(1, _objective.ZoneRadius) + ReachBarricadeGap + 1;
+        var spots = new List<TileData>();
+        foreach (var td in grid.Tiles.Values)
+        {
+            if (td == null || !td.IsWalkable || td.IsBlocked || td.IsOccupied)
+                continue;
+            int d = grid.Distance(td.Axial, centre);
+            if (d < near || d > near + 1)
+                continue;
+            spots.Add(td);
+        }
+        spots.Sort((a, b) => grid.Distance(a.Axial, mid).CompareTo(grid.Distance(b.Axial, mid)));
+
+        int spawned = 0;
+        int posted = 0;
+        for (int i = 0; i < spots.Count && spawned < want; i++)
+        {
+            var slot = roster[spawned % roster.Count];
+            var unit = SpawnRegistryUnit(slot.UnitId, spots[i], teamId: 1,
+                                         difficultyMult: slot.DifficultyMult,
+                                         isMidFightSummon: false);
+            if (unit == null)
+                continue;
+            spawned++;
+            if (CanHoldPost(unit))
+            {
+                GivePost(unit, spots[i].Axial);
+                posted++;
+            }
+        }
+        GD.Print($"[Posts] reach picket: {spawned} of {want} spawned, {posted} posted.");
+        if (spawned > 0)
+        {
+            combatUI?.AppendActionLog(
+                spawned == 1
+                    ? "1 more enemy stands watch in front of the far exit."
+                    : $"{spawned} more enemies stand watch in front of the far exit.");
+            RefreshEnemyRoster();
+        }
     }
 
     /// <summary>Only a plain melee unit takes a post. A ranged unit already keeps its
@@ -130,7 +201,7 @@ public partial class CombatManager
         GivePost(warden, best.Axial);
         string who = string.IsNullOrEmpty(warden.DisplayName) ? warden.Name.ToString() : warden.DisplayName;
         combatUI?.AppendActionLog(
-            $"── {who} guards the marked ground. It strikes anything within {PostLeash} tiles, " +
+            $"── {who} guards the far exit. It strikes anything within {PostLeash} tiles, " +
             "and leaves its post once it is hurt. ──");
     }
 
