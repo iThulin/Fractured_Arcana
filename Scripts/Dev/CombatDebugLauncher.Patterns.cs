@@ -28,6 +28,8 @@ public partial class CombatDebugLauncher : CanvasLayer
     {
         "cracked_pillar", "resonant_crystal", "ember_brazier",
         "boulder", "ward_stone", "powder_cask",
+        "supply_crate",   // C7: Field Supplies, worked with Interact
+        "signal_fire",    // C9: an enemy runs to it and lights it
     };
 
     // E6: force a specific battlefield archetype (overrides terrain -> recipe).

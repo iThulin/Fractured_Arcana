@@ -403,6 +403,20 @@
       "hp": 0
     },
     {
+      "kind": "palisade",
+      "role": "high",
+      "silhouette": "slab",
+      "material": "wood",
+      "color": [
+        0.42,
+        0.31,
+        0.2
+      ],
+      "label": "Palisade",
+      "hp": 10,
+      "height": 2.2
+    },
+    {
       "kind": "drystone_wall",
       "role": "low",
       "silhouette": "slab",

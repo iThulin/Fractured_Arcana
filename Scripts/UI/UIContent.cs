@@ -27,6 +27,8 @@ public static class UIContent
         { "melee_target_highest_hp", "Marks your healthiest unit and grinds toward it." },
         { "hold_until_near",         "Holds position and guards; strikes whatever comes adjacent." },
         { "hold_post",               "Holds its post and strikes anything within 3 tiles of it. Once hurt, it leaves the post and comes for you." },
+        { "light_signal",            "Runs to the Signal Fire and lights it, which calls 2 more enemies 2 rounds later. Does not attack until the fire is lit, put out or broken." },
+        { "man_winch",               "Mans the Gate Winch. On its turn it closes the gate if one of your units is within 4 tiles of the gate. A unit in the gateway takes 6 damage and is thrown out. After that it holds its post." },
         { "ranged_kite",             "Keeps its distance and shoots; retreats when pressed." },
         { "ranged_charge",           "Channels one turn, then releases a heavy blast; the target tile is locked when the channel begins." },
         { "melee_hunt_wounded",      "Hunts whichever of your units is closest to death, ignoring distance." },

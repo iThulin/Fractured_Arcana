@@ -55,6 +55,8 @@ public partial class CombatDebugLauncher : CanvasLayer
     private CheckBox _surviveChk;
     private CheckBox _protectChk;   // O3
     private CheckBox _slayChk;      // C1
+    private CheckBox _withdrawChk;  // C5
+    private OptionButton _obstructionOpt;  // C8
     private CheckBox _reachChk;     // C2
     private OptionButton _mapEventKindOpt;
     private OptionButton _mapEventElemOpt;
@@ -86,8 +88,10 @@ public partial class CombatDebugLauncher : CanvasLayer
     public static void ReturnToCampus(Node ctx)
     {
         PlayerSession.DebugCombat = false;
+        PlayerSession.DebugAllowWithdraw = false;
         PlayerSession.DebugMapEventKind = null;
         PlayerSession.DebugDeploymentId = null;
+        PlayerSession.DebugObstruction = null;
         PlayerSession.DebugDisableHazardCap = false;
         PlayerSession.DebugMapObjects = null;
         PlayerSession.DebugMode = false;
@@ -201,7 +205,51 @@ public partial class CombatDebugLauncher : CanvasLayer
         // variants. "(roll)" = weighted roll, as a real fight does. An id the
         // launched recipe lacks falls back to the roll (warning in the log).
         _forceDeploymentOpt = AddStringDropdown(form, "Force deployment:", DeploymentIds);
+        // C8: a wall across the board with a gate and a winch. "(roll)" = as a real fight.
+        _obstructionOpt = AddStringDropdown(form, "Obstruction:", new[] { "(roll)", "none", "barrier" });
         _diffSpin = AddSpin(form, "Difficulty ×:", 0.5, 3.0, 0.25, 1.0);
+
+        // 2026-11-25: the objective boxes sit here, in the first section, so a
+        // combination is set before scrolling. When several are ticked the lowest
+        // ticked objective wins (reach over slay over protect over survive).
+        form.AddChild(new HSeparator());
+        AddSectionLabel(form, "Objective (the lowest ticked one wins):");
+        // ── O-track levers (docs/combat_objectives_spec_v1.md) ──────────────
+        // Same design rule as the strategic debug harness: a lever sets the
+        // state the SHIPPED path already reads, so a forced run exercises the
+        // same code an authored encounter would. These write a real
+        // CombatObjectiveDef / ReinforcementWave onto the definition, and nothing
+        // here reimplements the runtime.
+        _wavesChk = new CheckBox
+        {
+            Text = "Reinforcement waves (rounds 3 and 5, mirroring the roster)",
+        };
+        _wavesChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_wavesChk);
+
+        _surviveChk = new CheckBox { Text = "Objective: survive 6 rounds" };
+        _surviveChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_surviveChk);
+
+        // O3 (2026-08-13): protect test. Spawns the Anchor as the ward.
+        _protectChk = new CheckBox { Text = "Objective: protect the Anchor (ward)" };
+        _protectChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_protectChk);
+
+        // C1 (2026-11-23): slay test. Needs three or more enemies in the roster.
+        _slayChk = new CheckBox { Text = "Objective: kill the leader (3 or more enemies)" };
+        _slayChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_slayChk);
+
+        // C2 (2026-11-23): reach test. Brings the larger board with it.
+        _reachChk = new CheckBox { Text = "Objective: reach the far side (larger board)" };
+        _reachChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_reachChk);
+
+        // C5 (2026-11-25): Withdraw is field-only. This offers it in a debug fight.
+        _withdrawChk = new CheckBox { Text = "Allow Withdraw (exit at the deployment tiles, from round 2)" };
+        _withdrawChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
+        form.AddChild(_withdrawChk);
 
         form.AddChild(new HSeparator());
         AddSectionLabel(form, "Battlefield test injectors (new mechanics):");
@@ -411,38 +459,6 @@ public partial class CombatDebugLauncher : CanvasLayer
         };
         _stopOnTriggersChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
         form.AddChild(_stopOnTriggersChk);
-
-        // ── O-track levers (docs/combat_objectives_spec_v1.md) ──────────────
-        // Same design rule as the strategic debug harness: a lever sets the
-        // state the SHIPPED path already reads, so a forced run exercises the
-        // same code an authored encounter would. These write a real
-        // CombatObjectiveDef / ReinforcementWave onto the definition, and nothing
-        // here reimplements the runtime.
-        _wavesChk = new CheckBox
-        {
-            Text = "Reinforcement waves (rounds 3 and 5, mirroring the roster)",
-        };
-        _wavesChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        form.AddChild(_wavesChk);
-
-        _surviveChk = new CheckBox { Text = "Objective: survive 6 rounds" };
-        _surviveChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        form.AddChild(_surviveChk);
-
-        // O3 (2026-08-13): protect test. Spawns the Anchor as the ward.
-        _protectChk = new CheckBox { Text = "Objective: protect the Anchor (ward)" };
-        _protectChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        form.AddChild(_protectChk);
-
-        // C1 (2026-11-23): slay test. Needs three or more enemies in the roster.
-        _slayChk = new CheckBox { Text = "Objective: kill the leader (3 or more enemies)" };
-        _slayChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        form.AddChild(_slayChk);
-
-        // C2 (2026-11-23): reach test. Brings the larger board with it.
-        _reachChk = new CheckBox { Text = "Objective: reach the far side (larger board)" };
-        _reachChk.AddThemeFontSizeOverride("font_size", UITheme.CampusSmallFontSize);
-        form.AddChild(_reachChk);
 
         _status = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _status.AddThemeFontSizeOverride("font_size", UITheme.CampusTinyFontSize);
@@ -690,6 +706,7 @@ public partial class CombatDebugLauncher : CanvasLayer
 
         PlayerSession.SelectedSchool = (CardSchool)_schoolOpt.GetSelectedId();
         PlayerSession.DebugCombat = true;
+        PlayerSession.DebugAllowWithdraw = _withdrawChk != null && _withdrawChk.ButtonPressed;
         PlayerSession.DebugMode = true;
         PlayerSession.SkipDeployment = _skipDeployChk.ButtonPressed;
         PlayerSession.DebugStopOnTriggers = _stopOnTriggersChk.ButtonPressed;
@@ -713,6 +730,8 @@ public partial class CombatDebugLauncher : CanvasLayer
         PlayerSession.DebugMapEventKind = mevKind == "(none)" ? null : mevKind;
         string depId = _forceDeploymentOpt.GetItemText(_forceDeploymentOpt.Selected);
         PlayerSession.DebugDeploymentId = depId == "(roll)" ? null : depId;
+        string obstruction = _obstructionOpt.GetItemText(_obstructionOpt.Selected);
+        PlayerSession.DebugObstruction = obstruction == "(roll)" ? null : obstruction;
         PlayerSession.DebugMapEventElement = _mapEventElemOpt.GetItemText(_mapEventElemOpt.Selected);
         PlayerSession.DebugDisableHazardCap = _noHazardCapChk.ButtonPressed;
 

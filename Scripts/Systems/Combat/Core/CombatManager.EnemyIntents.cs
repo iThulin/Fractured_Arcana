@@ -306,6 +306,8 @@ public partial class CombatManager
             { "warp_channeler",          PlanWarpChanneler }, // city siege: interruptible teleport assault
             { "hunt_ward",               PlanHuntWard },   // O3: protect-objective pressure
             { "hold_post",               PlanHoldPost },   // C3: runtime-only, assigned per fight (CombatManager.Posts.cs)
+            { "light_signal",            PlanLightSignal }, // C9: runtime-only, the Signal Fire's runner (CombatManager.SignalFire.cs)
+            { "man_winch",               PlanManWinch },    // C9: runtime-only, the barricade's gate keeper (CombatManager.GateKeeper.cs)
             { "inert",                   _ => null },      // C4 (E-1): a target that never acts; its abilities still fire
         };
 
@@ -2811,6 +2813,14 @@ public partial class CombatManager
         if (await TryExecuteHoldPost(enemy))
             return;
 
+        // C9: the Signal Fire's runner walks to the fire and lights it.
+        if (await TryExecuteLightSignal(enemy))
+            return;
+
+        // C9: the gate keeper closes the barricade's gate when the party comes near.
+        if (await TryExecuteManWinch(enemy))
+            return;
+
         // U2: immobile/planted-bulwark units brace in place, skipping the
         // reposition, because the plant IS the guard.
         if (!MayMove(enemy, out string guardGate))
@@ -3095,6 +3105,33 @@ public partial class CombatManager
         int tiles = 0, moves = 0;
         const int SafetyCap = 6;
 
+        // C9 (CombatManager.EnemyBreach.cs): on a map with a wall across it, score by
+        // walking distance so the mover goes round by the gate. With no route at all,
+        // walk to the weakest thing in the way and hammer it. field stays null on
+        // every other map, and the scoring below is then what it always was.
+        Vector2I? breach = null;
+        Unit winchToWork = null;
+        var field = IsValidActor(enemy) ? WallAwareField(goal) : null;
+        if (field != null && !field.ContainsKey(enemy.CurrentTile.Axial))
+        {
+            // A post-holder never breaks out of its own post (the warden inside the barricade).
+            // A winch it can walk to beats hammering: one action opens the whole gate.
+            winchToWork = _posts.ContainsKey(enemy) ? null : FindWinchToOpen(enemy);
+            if (winchToWork != null)
+                breach = winchToWork.CurrentTile.Axial;
+            else
+                breach = _posts.ContainsKey(enemy) ? null : FindBreachTarget(enemy, field);
+            if (breach != null)
+            {
+                goal = breach.Value;
+                field = grid.WalkField(goal);
+            }
+            else
+            {
+                field = null;
+            }
+        }
+
         for (int i = 0; i < SafetyCap; i++)
         {
             if (!IsValidActor(enemy))
@@ -3106,8 +3143,10 @@ public partial class CombatManager
                                                         // rest is reserved for the hit
 
             // Tier 2: one AP buys a hop of up to EffectiveMoveRange, not one hex.
-            var dest = BestMoveDestination(enemy, c => ScoreTowardGoal(enemy, c, goal))
-                       ?? ChooseStepTowardTile(enemy, goal);   // ally-boxed fallback
+            var dest = BestMoveDestination(enemy, c => field != null
+                           ? ScoreAlongField(enemy, c, goal, field)
+                           : ScoreTowardGoal(enemy, c, goal))
+                       ?? (field != null ? null : ChooseStepTowardTile(enemy, goal));   // ally-boxed fallback
             if (dest == null)
                 break;
 
@@ -3120,6 +3159,17 @@ public partial class CombatManager
             tiles += Mathf.Max(1, cost);
             moves++;
             await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
+        }
+
+        if (winchToWork != null)
+        {
+            EnemyWorksWinch(enemy, winchToWork);
+            return;
+        }
+        if (breach != null)
+        {
+            StrikeBreach(enemy, breach.Value);
+            return;
         }
 
         if (moves > 0 && !quiet)

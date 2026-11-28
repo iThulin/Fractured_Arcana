@@ -59,6 +59,22 @@ public static class MapObjectCatalog
                 spec = new MapObjectSpec { Hp = 6, BlocksLoS = true, Pushable = false,
                     BodyColor = new Color(0.70f, 0.88f, 0.96f), Label = "Ice Spire" };
                 return true;
+            case "gate_winch":   // C7: worked with Interact, opens the gate it is tied to
+                spec = new MapObjectSpec { Hp = 8, BlocksLoS = false, Pushable = false,
+                    BodyColor = new Color(0.50f, 0.36f, 0.20f), Label = "Gate Winch" };
+                return true;
+            case "barricade_gate":   // C7: a barricade piece the winch opens
+                spec = new MapObjectSpec { Hp = 16, BlocksLoS = false, Pushable = false,
+                    BodyColor = new Color(0.40f, 0.30f, 0.18f), Label = "Barricade Gate" };
+                return true;
+            case "signal_fire":   // C9: an enemy runs to it and lights it. Interact puts it out
+                spec = new MapObjectSpec { Hp = 8, BlocksLoS = false, Pushable = false,
+                    BodyColor = new Color(0.55f, 0.50f, 0.42f), Label = "Signal Fire" };
+                return true;
+            case "supply_crate":   // C7: worked with Interact, the unit regains health
+                spec = new MapObjectSpec { Hp = 4, BlocksLoS = false, Pushable = true,
+                    BodyColor = new Color(0.30f, 0.55f, 0.32f), Label = "Field Supplies" };
+                return true;
             default:
                 spec = default;
                 return false;

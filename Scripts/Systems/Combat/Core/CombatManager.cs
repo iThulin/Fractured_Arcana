@@ -4303,7 +4303,16 @@ public partial class CombatManager : Node3D
             return DeclareVictory();
 
         if (allPlayersDead)
+        {
+            // C5: the wizard already left by the exit, so losing the units still on
+            // the board ends the fight as a withdrawal (CombatManager.Outcome.cs).
+            if (WithdrawalStandsOnWipe)
+            {
+                DeclareWithdrawn();
+                return true;
+            }
             return DeclareDefeat();
+        }
 
         return false;
     }
@@ -5295,6 +5304,7 @@ public partial class CombatManager : Node3D
                 obj != null && obj.Kind == CombatObjectiveDef.KindHoldZone &&
                 (obj.ZoneAnchor == "midpoint" || obj.ZoneAnchor == "center");
             ConfigureGridForReach(obj);   // C2: a larger board, the enemy in the middle, a way through (CombatManager.Reach.cs)
+            ConfigureGridObstruction(obj);   // C8: a barrier across the board, or none (CombatManager.Obstructions.cs)
             grid.DensityControlMode = HexGridManager.DensityMode.Preset;
             grid.DensityPreset = DensityForTier(EncounterContextCarrier.Tier);
 
@@ -5346,6 +5356,8 @@ public partial class CombatManager : Node3D
         ApplyBiomeKit();          // C4: the biome's clock joins the map events (CombatManager.Biomes.cs)
         SpawnMapObjects();
         SpawnBiomeKitObjects();   // C4: the biome's objects, after the map's own
+        SpawnReachBarricade();    // C6: a reach fight rings its far exit (CombatManager.Reach.cs)
+        grid.BuildBarrierRunOff();   // C8: the wall carries on past the board's edges (looks only)
     }
 
     /// <summary>

@@ -473,6 +473,8 @@ public partial class HexGridManager : Node3D
             PlaceThemeLandmark();
         }
 
+        ApplyObstruction();   // C8: a wall across the board with a gate (HexGridManager.Obstruction.cs)
+
         EnsureReservedTilesArePlayable();
         EnsureConnectivityBetweenSpawns();
         EnsureReachConnectivity();   // C2: the party can walk to the marked ground (HexGridManager.Reach.cs)

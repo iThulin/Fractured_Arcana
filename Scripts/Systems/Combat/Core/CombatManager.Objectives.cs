@@ -332,8 +332,8 @@ public partial class CombatManager
             combatUI?.AppendActionLog($"You held for {_objective.Rounds} rounds. The objective is met.");
         }
 
-        // 2b. C2: reach. The leader and half the party on the marked ground.
-        EvaluateReachBoundary();
+        // 2b. C2 reach is no longer judged at the round boundary. Since C6 it is met
+        //     when units leave by the far exit (CombatManager.Reach.cs, NoteReachExit).
 
         // 3. Wave arrivals.
         if (!_objectiveVictory && !_objectiveDefeat)
@@ -654,7 +654,7 @@ public partial class CombatManager
         CombatObjectiveDef.KindProtect => "Protect the ward",
         CombatObjectiveDef.KindHoldZone => "Hold the ground",
         CombatObjectiveDef.KindSlay => "Kill the enemy leader",
-        CombatObjectiveDef.KindReach => "Reach the marked ground",
+        CombatObjectiveDef.KindReach => "Leave by the far exit",
         _ => "",
     };
 }

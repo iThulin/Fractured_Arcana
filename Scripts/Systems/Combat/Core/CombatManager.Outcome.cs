@@ -7,8 +7,8 @@ using System.Collections.Generic;
 // Purpose:        Combat overhaul stage C1. Three things that let a
 //                 fight end some way other than the last body:
 //                 the slay objective (kill the leader and the rest
-//                 flee), the Withdraw action (leave with no Anchor
-//                 spent), and the outcome record the world reads.
+//                 flee), the Withdraw action (each unit leaves by the
+//                 exit, stage C5), and the outcome record the world reads.
 // Layer:          Combat / runtime
 // Collaborators:  CombatManager.cs (DeclareVictory / DeclareDefeat,
 //                   SpawnAndPlaceEnemies, the UI wiring in _Ready),
@@ -17,7 +17,8 @@ using System.Collections.Generic;
 //                 CombatOutcome.cs (data),
 //                 EncounterRouter.cs (LastOutcome),
 //                 CombatUI.cs (SetWithdrawState, WithdrawPressed)
-// See:            docs/combat_c1_break_withdraw_outcome_v1.md
+// See:            docs/combat_c1_break_withdraw_outcome_v1.md,
+//                 docs/combat_c5_edge_withdraw_v1.md
 //
 // Nothing here is serialized. Every field starts fresh with the
 // scene, because one CombatManager lives for exactly one fight.
@@ -239,21 +240,50 @@ public partial class CombatManager
     /// <summary>Withdraw opens on this round. Round 1 is the fight you chose to start.</summary>
     private const int WithdrawFromRound = 2;
 
-    private const string WithdrawCostLine =
-        "No rewards. No Anchor spent. Units outside the deployment zone lose half " +
-        "their current health. Press again to confirm.";
+    private const string WithdrawNoRewardsLine =
+        "The fight ends with no rewards. No Anchor is spent.";
 
-    private bool _withdrawArmed;
+    /// <summary>Leaving the board is a move: it costs what one move costs.</summary>
+    private const int WithdrawActionPointCost = 1;
+
+    /// <summary>Party units that withdrew from this fight, by CompanionId. Their
+    /// health was carried out at the moment they left the board.</summary>
+    private readonly HashSet<string> _leftFight = new HashSet<string>();
+
+    /// <summary>Reach fights: the units in <see cref="_leftFight"/> that left by the
+    /// far exit (the objective's marked ground) and so count toward the objective.</summary>
+    private readonly HashSet<string> _leftThrough = new HashSet<string>();
+
+    /// <summary>Reach fights: the far exit plus, where retreat is offered, the
+    /// deployment tiles. Built once the objective zone exists.</summary>
+    private HashSet<Vector2I> _reachExitTiles;
+
+    private int _leftWizardHealth = -1;
+    private int _leftWizardMaxHealth = -1;
+    private bool _wizardSeenOnBoard;
+    private bool _exitZoneShown;
+
+    /// <summary>Set by a mission that names its own way out (an extraction point).
+    /// Null means the exit is the player's deployment tiles.</summary>
+    private HashSet<Vector2I> _exitTilesOverride;
     private HashSet<Vector2I> _playerDeployTiles;
     private Timer _outcomeTicker;
+
+    /// <summary>The Withdraw button is shown. True wherever a unit may leave the way
+    /// it came in (<see cref="RetreatOffered"/>), and in every reach fight, where
+    /// leaving by the far exit is how the objective is met.</summary>
+    private bool WithdrawOffered => RetreatOffered || (ReachActive && !ScriptedFight);
 
     /// <summary>Field fights only in C1. A lost fight launched from the strategic
     /// map, the campus or a script has its own ending, and a withdrawal there
     /// has no reader yet.</summary>
-    private bool WithdrawOffered
+    private bool RetreatOffered
     {
         get
         {
+            // C5: the debug launcher's "Allow Withdraw" box offers it off the field.
+            if (PlayerSession.DebugCombat && PlayerSession.DebugAllowWithdraw && !ScriptedFight)
+                return true;
             if (!PlayerSession.IsOnExpedition || PlayerSession.DebugCombat || ScriptedFight)
                 return false;
             if (TutorialStepsArmed || SunderingArmed || IsCastleDefense)
@@ -270,15 +300,15 @@ public partial class CombatManager
     }
 
     /// <summary>The wizard, or the first standing companion when the wizard is
-    /// not on the board. Null when nobody qualifies.</summary>
+    /// not on the board. Null when nobody qualifies. Read by the reach objective
+    /// (CombatManager.Reach.cs). A unit that withdrew is no longer on the board,
+    /// so the next companion becomes the leader.</summary>
     private Unit WithdrawLeader()
     {
         Unit first = null;
         foreach (var u in playerUnits)
         {
-            if (u == null || !IsInstanceValid(u) || u.Stats == null || !u.Stats.IsAlive)
-                continue;
-            if (u.IsStructure || u.IsObjectiveWard || string.IsNullOrEmpty(u.CompanionId))
+            if (!IsPartyUnit(u))
                 continue;
             if (u.CompanionId == "wizard")
                 return u;
@@ -287,10 +317,70 @@ public partial class CombatManager
         return first;
     }
 
-    private bool InPlayerDeployZone(Unit unit)
+    /// <summary>A living companion or the wizard. Summons, structures and the
+    /// objective ward are not party units: they cannot withdraw and they do not
+    /// keep a fight going once the party has left.</summary>
+    private bool IsPartyUnit(Unit u)
     {
-        if (unit?.CurrentTile == null || grid == null)
+        if (u == null || !IsInstanceValid(u) || u.Stats == null || !u.Stats.IsAlive)
             return false;
+        if (u.IsStructure || u.IsObjectiveWard || string.IsNullOrEmpty(u.CompanionId))
+            return false;
+        return true;
+    }
+
+    private int PartyOnBoardCount()
+    {
+        int n = 0;
+        foreach (var u in playerUnits)
+            if (IsPartyUnit(u))
+                n++;
+        return n;
+    }
+
+    private static string UnitLabel(Unit u) =>
+        string.IsNullOrEmpty(u.DisplayName) ? u.Name.ToString() : u.DisplayName;
+
+    /// <summary>The unit the Withdraw button acts on: the selected unit, when it
+    /// is a party unit. Null otherwise.</summary>
+    private Unit WithdrawingUnit() => IsPartyUnit(selectedUnit) ? selectedUnit : null;
+
+    /// <summary>The tiles a unit withdraws from. A mission's own exit when one is
+    /// set, otherwise the player's deployment tiles. Null until the board has
+    /// its spawn zones.</summary>
+    private HashSet<Vector2I> ExitTiles()
+    {
+        if (_exitTilesOverride != null && _exitTilesOverride.Count > 0)
+            return _exitTilesOverride;
+        if (grid == null)
+            return null;
+        if (ReachActive)
+        {
+            if (_reachExitTiles != null)
+                return _reachExitTiles;
+            EnsureObjectiveZone();
+            if (_objectiveZone == null || _objectiveZone.Count == 0)
+                return null;   // the far exit is not placed yet: try again on the next ask
+            var both = new HashSet<Vector2I>(_objectiveZone);
+            if (RetreatOffered)
+            {
+                var deploy = DeployTiles();
+                if (deploy == null)
+                    return null;
+                both.UnionWith(deploy);
+            }
+            _reachExitTiles = both;
+            return _reachExitTiles;
+        }
+        return DeployTiles();
+    }
+
+    /// <summary>The player's deployment tiles, cached. Null until the board has
+    /// its spawn zones.</summary>
+    private HashSet<Vector2I> DeployTiles()
+    {
+        if (grid == null)
+            return null;
         if (_playerDeployTiles == null)
         {
             var tiles = new HashSet<Vector2I>();
@@ -302,11 +392,31 @@ public partial class CombatManager
                     tiles.Add(coord);
             }
             if (tiles.Count == 0)
-                return false;   // not generated yet: try again on the next ask
+                return null;   // not generated yet: try again on the next ask
             _playerDeployTiles = tiles;
         }
-        return _playerDeployTiles.Contains(unit.CurrentTile.Axial);
+        return _playerDeployTiles;
     }
+
+    private bool OnExitTile(Unit unit)
+    {
+        var tiles = ExitTiles();
+        return unit?.CurrentTile != null && tiles != null && tiles.Contains(unit.CurrentTile.Axial);
+    }
+
+    /// <summary>For a mission with its own way out. Pass null to go back to the
+    /// deployment tiles. The outline is redrawn on the next tick.</summary>
+    private void SetExitTiles(HashSet<Vector2I> tiles)
+    {
+        _exitTilesOverride = tiles;
+        _exitZoneShown = false;
+    }
+
+    /// <summary>True when a wipe of the units still on the board is a withdrawal
+    /// and not a defeat: the wizard already left, or the wizard was never
+    /// fielded and somebody left. Read by CheckCombatEnd.</summary>
+    private bool WithdrawalStandsOnWipe =>
+        _leftFight.Contains("wizard") || (!_wizardSeenOnBoard && _leftFight.Count > 0);
 
     private bool EnemyAdjacentTo(Unit unit)
     {
@@ -344,21 +454,40 @@ public partial class CombatManager
             reason = "Finish the current action first.";
             return false;
         }
-        var leader = WithdrawLeader();
-        if (leader == null)
+        if (selectedUnit != null && IsInstanceValid(selectedUnit) && !IsPartyUnit(selectedUnit))
         {
-            reason = "Nobody is left to lead the withdrawal.";
+            reason = $"{UnitLabel(selectedUnit)} cannot withdraw. Select one of your party.";
             return false;
         }
-        string who = string.IsNullOrEmpty(leader.DisplayName) ? leader.Name.ToString() : leader.DisplayName;
-        if (!InPlayerDeployZone(leader))
+        var unit = WithdrawingUnit();
+        if (unit == null)
         {
-            reason = $"Move {who} back to where you deployed.";
+            reason = "Select a unit to withdraw it from the fight.";
             return false;
         }
-        if (EnemyAdjacentTo(leader))
+        string who = UnitLabel(unit);
+        if (!OnExitTile(unit))
+        {
+            reason = $"Move {who} to the exit (green outline) to withdraw.";
+            return false;
+        }
+        if (EnemyAdjacentTo(unit))
         {
             reason = $"An enemy is next to {who}.";
+            return false;
+        }
+        if (OnFarExit(unit))
+        {
+            var holder = EnemyHoldingFarExit();
+            if (holder != null)
+            {
+                reason = $"{UnitLabel(holder)} is standing on the far exit. Kill it or move it off before anyone leaves.";
+                return false;
+            }
+        }
+        if (!unit.CanSpendAP(WithdrawActionPointCost))
+        {
+            reason = $"{who} has no action points left. Withdrawing costs {WithdrawActionPointCost}, like a move.";
             return false;
         }
         return true;
@@ -404,20 +533,83 @@ public partial class CombatManager
         bool live = currentPhase == CombatPhase.PlayerTurn || currentPhase == CombatPhase.EnemyTurn;
         if (!live || !WithdrawOffered)
         {
-            _withdrawArmed = false;
+            if (_exitZoneShown)
+            {
+                _zoneRenderer?.ClearExitZone();
+                _exitZoneShown = false;
+            }
             combatUI.SetWithdrawState(false, false, "Withdraw", "");
             return;
         }
 
+        if (!_wizardSeenOnBoard)
+        {
+            foreach (var u in playerUnits)
+            {
+                if (u != null && IsInstanceValid(u) && u.CompanionId == "wizard")
+                {
+                    _wizardSeenOnBoard = true;
+                    break;
+                }
+            }
+        }
+
+        if (!_exitZoneShown && _zoneRenderer != null)
+        {
+            var exit = ExitTiles();
+            if (exit != null)
+            {
+                _zoneRenderer.ShowExitZone(exit, grid);
+                _exitZoneShown = true;
+            }
+        }
+
         bool allowed = WithdrawAllowed(out string reason);
-        if (!allowed)
-            _withdrawArmed = false;
-        combatUI.SetWithdrawState(true, allowed,
-            _withdrawArmed ? "Confirm withdraw" : "Withdraw",
-            allowed ? (_withdrawArmed ? WithdrawCostLine : "") : reason);
+        string line = allowed ? WithdrawCostLine(WithdrawingUnit()) : reason;
+        combatUI.SetWithdrawState(true, allowed, "Withdraw", line);
     }
 
-    /// <summary>First press arms and states the cost. Second press leaves.</summary>
+    /// <summary>What pressing the button does, in plain words, shown above it
+    /// while it is enabled. The last party unit on the board ends the fight
+    /// when it leaves.</summary>
+    private string WithdrawCostLine(Unit unit)
+    {
+        string who = UnitLabel(unit);
+        string cost = WithdrawActionPointCost == 1
+            ? "1 action point"
+            : $"{WithdrawActionPointCost} action points";
+        if (ReachActive)
+        {
+            if (OnFarExit(unit))
+            {
+                if (ReachMetIfLeaves(unit))
+                {
+                    int behind = ReachLeftBehindCount(unit);
+                    string behindLine = behind == 0
+                        ? " Nobody is left behind."
+                        : behind == 1
+                            ? " 1 unit is still on the board and will lose half its health."
+                            : $" {behind} units are still on the board and will each lose half their health.";
+                    return $"Withdrawing costs {cost}. {who} leaves by the far exit. " +
+                           $"That meets the objective and wins the fight.{behindLine}";
+                }
+                return $"Withdrawing costs {cost}. {who} leaves by the far exit, counts toward the objective and cannot come back.";
+            }
+            if (PartyOnBoardCount() <= 1)
+                return $"{who} is your last unit on the board. Withdrawing costs {cost} and ends the fight: " +
+                       "the objective is not met, no rewards, no Anchor spent.";
+            return $"Withdrawing costs {cost}. {who} leaves the way you came in, does not count toward " +
+                   "the objective and cannot come back.";
+        }
+        if (PartyOnBoardCount() <= 1)
+            return $"{who} is your last unit on the board. Withdrawing costs {cost} and ends the fight: " +
+                   "no rewards, no Anchor spent.";
+        return $"Withdrawing costs {cost}. {who} leaves with its current health and cannot come back. " +
+               "The fight goes on.";
+    }
+
+    /// <summary>One press. The line above the button has already said what it
+    /// costs and what it ends.</summary>
     private void OnWithdrawPressed()
     {
         if (!WithdrawOffered || !WithdrawAllowed(out _))
@@ -425,14 +617,89 @@ public partial class CombatManager
             RefreshWithdrawControl();
             return;
         }
-        if (!_withdrawArmed)
+        var unit = WithdrawingUnit();
+        if (unit == null)
+            return;
+        WithdrawUnit(unit);
+    }
+
+    /// <summary>One unit leaves by the exit, alive. Its health is written out
+    /// now, because the declare tails only carry out units still on the board.
+    /// It is taken off the board and out of the unit lists, so nothing targets
+    /// it, and it does not come back. When it was the last party unit the fight
+    /// ends as a withdrawal.</summary>
+    private void WithdrawUnit(Unit unit)
+    {
+        if (!IsPartyUnit(unit) || !unit.CanSpendAP(WithdrawActionPointCost))
+            return;
+        unit.CurrentActionPoints -= WithdrawActionPointCost;
+        string who = UnitLabel(unit);
+        bool isWizard = unit.CompanionId == "wizard";
+        bool through = OnFarExit(unit);   // read now: the unit has no tile once it is lifted
+
+        if (PlayerSession.IsOnExpedition && SaveManager.ActiveSave != null)
         {
-            _withdrawArmed = true;
-            combatUI?.AppendActionLog($"Withdraw? {WithdrawCostLine}");
-            RefreshWithdrawControl();
+            if (isWizard)
+            {
+                PlayerSession.WizardExpeditionHP = unit.Stats.Health;
+                PlayerSession.WizardExpeditionMaxHP = unit.Stats.MaxHealth;
+            }
+            else
+            {
+                var comp = SaveManager.ActiveSave.Companions?.Find(c => c.Id == unit.CompanionId);
+                if (comp != null)
+                    comp.ExpeditionHP = unit.Stats.Health;
+            }
+        }
+        if (isWizard)
+        {
+            _leftWizardHealth = unit.Stats.Health;
+            _leftWizardMaxHealth = unit.Stats.MaxHealth;
+        }
+        _leftFight.Add(unit.CompanionId);
+        if (through)
+            _leftThrough.Add(unit.CompanionId);
+
+        DropReactionOnDeath(unit);             // an armed reaction does not outlast its unit
+        ConduitLinkSystem.OnUnitDied(unit);    // nor does a link
+
+        if (selectedUnit == unit)
+        {
+            unit.SetSelected(false);
+            selectedUnit = null;
+            ClearMoveTiles();
+            ClearTargetHighlight();
+        }
+        if (_hoveredUnit == unit)
+            _hoveredUnit = null;
+
+        unit.LiftFromBoard();
+        playerUnits.Remove(unit);
+        State?.UnitsInPlay.Remove(unit);
+
+        GD.Print($"[Withdraw] {unit.Name} left the fight at {unit.Stats.Health} health.");
+        combatUI?.AppendActionLog(through
+            ? $"{who} left by the far exit."
+            : $"{who} withdrew from the fight.");
+
+        // Reach: enough of the party is out by the far exit. The latch is declared
+        // by CheckCombatEnd like every other objective win, before the empty-board test.
+        if (ReachActive && NoteReachExit() && CheckCombatEnd())
+            return;
+
+        // A latched win that CheckCombatEnd deferred is declared on a later check,
+        // so an empty board must not be called a withdrawal in the meantime.
+        if (PartyOnBoardCount() == 0 && !_objectiveVictory)
+        {
+            DeclareWithdrawn();
             return;
         }
-        DeclareWithdrawn();
+
+        RefreshSelectedUnitUI();
+        RefreshThreatTiles();
+        RefreshPlayerUnitBar();
+        RefreshEnemyRoster();
+        CallDeferred(nameof(SelectNextLivingAfterDeath));
     }
 
     /// <summary>The withdrawal tail, the third sibling of DeclareVictory and
@@ -444,25 +711,13 @@ public partial class CombatManager
         if (currentPhase == CombatPhase.Victory || currentPhase == CombatPhase.Defeat)
             return;
 
-        // Units caught outside the zone pay for the retreat before health is carried out.
-        foreach (var u in playerUnits)
-        {
-            if (u == null || !IsInstanceValid(u) || u.Stats == null || !u.Stats.IsAlive)
-                continue;
-            if (u.IsStructure || u.IsObjectiveWard || string.IsNullOrEmpty(u.CompanionId))
-                continue;
-            if (InPlayerDeployZone(u))
-                continue;
-            int kept = Mathf.Max(1, Mathf.CeilToInt(u.Stats.Health * 0.5f));
-            GD.Print($"[Withdraw] {u.Name} was outside the deployment zone: {u.Stats.Health} to {kept} health.");
-            u.Stats.Health = kept;
-        }
-
         currentPhase = CombatPhase.Defeat;   // the ended-fight guard reads this; the banner is corrected below
         RefreshPhaseUI();
         combatUI?.SetPhaseText("Withdrawn");
         combatUI?.SetHintText("You left the fight. No rewards. No Anchor was spent.");
         combatUI?.SetWithdrawState(false, false, "Withdraw", "");
+        _zoneRenderer?.ClearExitZone();
+        _exitZoneShown = false;
         GD.Print("=== WITHDRAWN ===");
         combatUI?.AppendActionLog("You withdrew from the fight.");
         CombatTelemetry.EndFight(false, roundNumber);
@@ -475,6 +730,12 @@ public partial class CombatManager
 
         RecordTroopsAfterFight(false);
         RecordWizardEndHealth();
+        if (_leftWizardHealth >= 0 && EncounterRouter.Instance != null)
+        {
+            // The wizard left by the exit, so it is no longer in the unit list that call reads.
+            EncounterRouter.Instance.LastWizardHealth = _leftWizardHealth;
+            EncounterRouter.Instance.LastWizardMaxHealth = _leftWizardMaxHealth;
+        }
         PublishOutcome(CombatResult.Withdrawn);
         EmitSignal(SignalName.CombatCompleted, false);
     }
