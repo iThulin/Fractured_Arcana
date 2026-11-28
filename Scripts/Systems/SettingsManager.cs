@@ -39,6 +39,24 @@ public partial class SettingsManager : Node
     /// <summary>The Register's one-time onboarding explanations.</summary>
     public bool RegisterExplanations { get; private set; } = true;
 
+    /// <summary>How the 3D view is rendered. The UI is always drawn at full sharpness.</summary>
+    public enum GraphicsQualityLevel
+    {
+        /// <summary>3D at two thirds resolution, fast edge smoothing. For integrated graphics.</summary>
+        Performance = 0,
+        /// <summary>3D at 80% resolution, 2x edge smoothing.</summary>
+        Balanced = 1,
+        /// <summary>3D at full resolution, 2x edge smoothing. The look the game is authored at.</summary>
+        Quality = 2
+    }
+
+    public GraphicsQualityLevel GraphicsQuality { get; private set; } = GraphicsQualityLevel.Quality;
+
+    /// <summary>Show the frame-rate readout (FpsOverlay). F3 toggles it.</summary>
+    public bool ShowFps { get; private set; }
+
+    private FpsOverlay _fpsOverlay;
+
     public static readonly List<Vector2I> SupportedResolutions = new()
     {
         new Vector2I(1280, 720),
@@ -55,6 +73,10 @@ public partial class SettingsManager : Node
         Instance = this;
         ProcessMode = ProcessModeEnum.Always;
         LoadSettings();
+
+        _fpsOverlay = new FpsOverlay { Name = "FpsOverlay" };
+        AddChild(_fpsOverlay);
+
         ApplyAllSettings();
 
         // Deferred so the window system is fully ready
@@ -103,6 +125,8 @@ public partial class SettingsManager : Node
         ApplyVSync();
         ApplyUIScale();
         ApplyVolume();
+        ApplyGraphicsQuality();
+        _fpsOverlay?.SetShown(ShowFps);
     }
 
     public void SetResolution(Vector2I res)
@@ -139,6 +163,20 @@ public partial class SettingsManager : Node
     {
         MasterVolume = Mathf.Clamp(vol, 0f, 1f);
         ApplyVolume();
+        SaveSettings();
+    }
+
+    public void SetGraphicsQuality(GraphicsQualityLevel level)
+    {
+        GraphicsQuality = level;
+        ApplyGraphicsQuality();
+        SaveSettings();
+    }
+
+    public void SetShowFps(bool on)
+    {
+        ShowFps = on;
+        _fpsOverlay?.SetShown(on);
         SaveSettings();
     }
 
@@ -210,6 +248,38 @@ public partial class SettingsManager : Node
         GetTree().Root.ContentScaleFactor = UIScale;
     }
 
+    /// <summary>
+    /// Sets how the 3D view is rendered on the main window. Only the 3D scene is scaled:
+    /// the UI stays at full resolution. Quality is the authored look (docs/performance_targets_v1.md).
+    /// </summary>
+    private void ApplyGraphicsQuality()
+    {
+        Window root = GetTree().Root;
+        switch (GraphicsQuality)
+        {
+            case GraphicsQualityLevel.Performance:
+                root.Scaling3DMode = Viewport.Scaling3DModeEnum.Bilinear;
+                root.Scaling3DScale = 0.67f;
+                root.Msaa3D = Viewport.Msaa.Disabled;
+                root.ScreenSpaceAA = Viewport.ScreenSpaceAAEnum.Fxaa;
+                break;
+
+            case GraphicsQualityLevel.Balanced:
+                root.Scaling3DMode = Viewport.Scaling3DModeEnum.Bilinear;
+                root.Scaling3DScale = 0.8f;
+                root.Msaa3D = Viewport.Msaa.Msaa2X;
+                root.ScreenSpaceAA = Viewport.ScreenSpaceAAEnum.Disabled;
+                break;
+
+            default:
+                root.Scaling3DMode = Viewport.Scaling3DModeEnum.Bilinear;
+                root.Scaling3DScale = 1f;
+                root.Msaa3D = Viewport.Msaa.Msaa2X;
+                root.ScreenSpaceAA = Viewport.ScreenSpaceAAEnum.Disabled;
+                break;
+        }
+    }
+
     private void ApplyVolume()
     {
         int masterBus = AudioServer.GetBusIndex("Master");
@@ -246,6 +316,8 @@ public partial class SettingsManager : Node
         MasterVolume = (float)cfg.GetValue("audio", "master_volume", 1.0f);
         RegisterCommentary = (bool)cfg.GetValue("register", "commentary", true);
         RegisterExplanations = (bool)cfg.GetValue("register", "explanations", true);
+        GraphicsQuality = (GraphicsQualityLevel)Mathf.Clamp((int)cfg.GetValue("display", "graphics_quality", (int)GraphicsQualityLevel.Quality), 0, 2);
+        ShowFps = (bool)cfg.GetValue("display", "show_fps", false);
 
         GD.Print($"[Settings] Loaded: {Resolution.X}x{Resolution.Y}, mode={WindowMode}, " +
                  $"vsync={VSync}, ui_scale={UIScale}, vol={MasterVolume}");
@@ -262,6 +334,8 @@ public partial class SettingsManager : Node
         cfg.SetValue("audio", "master_volume", MasterVolume);
         cfg.SetValue("register", "commentary", RegisterCommentary);
         cfg.SetValue("register", "explanations", RegisterExplanations);
+        cfg.SetValue("display", "graphics_quality", (int)GraphicsQuality);
+        cfg.SetValue("display", "show_fps", ShowFps);
 
         var err = cfg.Save(ConfigPath);
         if (err != Error.Ok)

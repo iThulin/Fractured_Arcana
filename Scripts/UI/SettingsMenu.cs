@@ -32,6 +32,8 @@ public partial class SettingsMenu : Control
     private Button       _backButton;
     private CheckBox     _registerCommentaryCheck;
     private CheckBox     _registerExplainCheck;
+    private OptionButton _graphicsDropdown;
+    private CheckBox     _showFpsCheck;
 
     public override void _Ready()
     {
@@ -53,6 +55,7 @@ public partial class SettingsMenu : Control
         if (_volumeSlider  == null) GD.PrintErr("[SettingsMenu] VolumeSlider not found");
         if (_backButton    == null) GD.PrintErr("[SettingsMenu] BackButton not found");
 
+        BuildGraphicsRows();
         BuildRegisterRows();
         BuildDeveloperRow();   // 2026-11-05: the developer tools, in a debug build only
         PopulateResolutionDropdown();
@@ -94,6 +97,54 @@ public partial class SettingsMenu : Control
 
         _registerCommentaryCheck = AddCheckRow(settings, vsyncRow, "RegisterCommentary", "Commentary");
         _registerExplainCheck = AddCheckRow(settings, vsyncRow, "RegisterExplanations", "Explanations");
+    }
+
+    /// <summary>Adds a "Graphics" section: the quality dropdown and the frame-rate readout
+    /// toggle. Built by duplicating the scene's window-mode and VSync rows, the same way
+    /// the Register rows are, so there is no .tscn edit.</summary>
+    private void BuildGraphicsRows()
+    {
+        var vsyncRow = _vsyncCheck?.GetParent() as Control;
+        var modeRow = _modeDropdown?.GetParent() as Control;
+        var settings = vsyncRow?.GetParent() as Control;
+        if (vsyncRow == null || modeRow == null || settings == null)
+        {
+            GD.PrintErr("[SettingsMenu] Display rows not found, so the Graphics settings are not shown.");
+            return;
+        }
+
+        if (FindChild("AudioSpacer", true) is Control spacer)
+            settings.AddChild(spacer.Duplicate());
+        if (FindChild("AudioHeader", true) is Label headerTemplate)
+        {
+            var header = (Label)headerTemplate.Duplicate();
+            header.Name = "GraphicsHeader";
+            header.Text = "Graphics";
+            settings.AddChild(header);
+        }
+
+        var row = (Control)modeRow.Duplicate();
+        row.Name = "GraphicsQualityRow";
+        settings.AddChild(row);
+        foreach (var child in row.GetChildren())
+        {
+            if (child is OptionButton dropdown)
+            {
+                dropdown.Name = "GraphicsQualityDropdown";
+                dropdown.Clear();
+                dropdown.AddItem("Performance (3D at 67% resolution)", (int)SettingsManager.GraphicsQualityLevel.Performance);
+                dropdown.AddItem("Balanced (3D at 80% resolution)", (int)SettingsManager.GraphicsQualityLevel.Balanced);
+                dropdown.AddItem("Quality (3D at full resolution)", (int)SettingsManager.GraphicsQualityLevel.Quality);
+                _graphicsDropdown = dropdown;
+            }
+            else if (child is Label label)
+            {
+                label.Name = "GraphicsQualityLabel";
+                label.Text = "Graphics quality";
+            }
+        }
+
+        _showFpsCheck = AddCheckRow(settings, vsyncRow, "ShowFps", "Show frame rate (F3)");
     }
 
     private static CheckBox AddCheckRow(Control settings, Control template, string id, string text)
@@ -178,6 +229,18 @@ public partial class SettingsMenu : Control
         if (_volumeSlider  != null) _volumeSlider.Value       = sm.MasterVolume;
         if (_registerCommentaryCheck != null) _registerCommentaryCheck.ButtonPressed = sm.RegisterCommentary;
         if (_registerExplainCheck    != null) _registerExplainCheck.ButtonPressed    = sm.RegisterExplanations;
+        if (_showFpsCheck != null) _showFpsCheck.ButtonPressed = sm.ShowFps;
+        if (_graphicsDropdown != null)
+        {
+            for (int i = 0; i < _graphicsDropdown.ItemCount; i++)
+            {
+                if (_graphicsDropdown.GetItemId(i) == (int)sm.GraphicsQuality)
+                {
+                    _graphicsDropdown.Selected = i;
+                    break;
+                }
+            }
+        }
 
         UpdateUIScaleLabel(sm.UIScale);
         UpdateVolumeLabel(sm.MasterVolume);
@@ -195,6 +258,11 @@ public partial class SettingsMenu : Control
         if (_uiScaleSlider != null) _uiScaleSlider.ValueChanged += OnUIScaleChanged;
         if (_volumeSlider  != null) _volumeSlider.ValueChanged  += OnVolumeChanged;
         if (_backButton    != null) _backButton.Pressed         += OnBackPressed;
+        if (_graphicsDropdown != null)
+            _graphicsDropdown.ItemSelected += index => SettingsManager.Instance?.SetGraphicsQuality(
+                (SettingsManager.GraphicsQualityLevel)_graphicsDropdown.GetItemId((int)index));
+        if (_showFpsCheck != null)
+            _showFpsCheck.Toggled += on => SettingsManager.Instance?.SetShowFps(on);
         if (_registerCommentaryCheck != null)
             _registerCommentaryCheck.Toggled += on => SettingsManager.Instance?.SetRegisterCommentary(on);
         if (_registerExplainCheck != null)
